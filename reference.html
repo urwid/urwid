@@ -39,7 +39,7 @@ l&nbsp;--&nbsp;list&nbsp;of&nbsp;(name,&nbsp;foreground,&nbsp;background)&nbsp;o
 &nbsp;<br>
 calls&nbsp;self.<strong>register_palette_entry</strong>&nbsp;for&nbsp;each&nbsp;item&nbsp;in&nbsp;l</tt></dd></dl>
 
-<dl><dt><a name="Screen-register_palette_entry"><strong>register_palette_entry</strong></a>(self, name, foreground, background)</dt><dd><tt>Register&nbsp;a&nbsp;single&nbsp;palette&nbsp;entry.<br>
+<dl><dt><a name="Screen-register_palette_entry"><strong>register_palette_entry</strong></a>(self, name, foreground, background, mono<font color="#909090">=None</font>)</dt><dd><tt>Register&nbsp;a&nbsp;single&nbsp;palette&nbsp;entry.<br>
 &nbsp;<br>
 name&nbsp;--&nbsp;new&nbsp;entry/attribute&nbsp;name<br>
 foreground&nbsp;--&nbsp;foreground&nbsp;colour,&nbsp;one&nbsp;of:&nbsp;'black',&nbsp;'dark&nbsp;red',<br>
@@ -49,7 +49,10 @@ foreground&nbsp;--&nbsp;foreground&nbsp;colour,&nbsp;one&nbsp;of:&nbsp;'black',&
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'light&nbsp;cyan',&nbsp;'white'<br>
 background&nbsp;--&nbsp;background&nbsp;colour,&nbsp;one&nbsp;of:&nbsp;'black',&nbsp;'dark&nbsp;red',<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'dark&nbsp;green',&nbsp;'brown',&nbsp;'dark&nbsp;blue',&nbsp;'dark&nbsp;magenta',<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'dark&nbsp;cyan',&nbsp;'light&nbsp;gray'</tt></dd></dl>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'dark&nbsp;cyan',&nbsp;'light&nbsp;gray'<br>
+mono&nbsp;--&nbsp;monochrome&nbsp;terminal&nbsp;attribute,&nbsp;one&nbsp;of:&nbsp;None&nbsp;(default),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'bold',&nbsp;'underline',&nbsp;'standout',&nbsp;or&nbsp;a&nbsp;tuple&nbsp;containing<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a&nbsp;combination&nbsp;eg.&nbsp;('bold','underline')</tt></dd></dl>
 
 <dl><dt><a name="Screen-run_wrapper"><strong>run_wrapper</strong></a>(self, fn)</dt><dd><tt>Call&nbsp;fn&nbsp;in&nbsp;fullscreen&nbsp;mode.&nbsp;&nbsp;Return&nbsp;to&nbsp;normal&nbsp;on&nbsp;exit.<br>
 &nbsp;<br>
@@ -477,11 +480,14 @@ l&nbsp;--&nbsp;list&nbsp;of&nbsp;(name,&nbsp;foreground,&nbsp;background)&nbsp;o
 &nbsp;<br>
 calls&nbsp;self.<strong>register_palette_entry</strong>&nbsp;for&nbsp;each&nbsp;item&nbsp;in&nbsp;l</tt></dd></dl>
 
-<dl><dt><a name="HtmlGenerator-register_palette_entry"><strong>register_palette_entry</strong></a>(self, name, foreground, background)</dt><dd><tt>Register&nbsp;a&nbsp;single&nbsp;palette&nbsp;entry.<br>
+<dl><dt><a name="HtmlGenerator-register_palette_entry"><strong>register_palette_entry</strong></a>(self, name, foreground, background, mono<font color="#909090">=None</font>)</dt><dd><tt>Register&nbsp;a&nbsp;single&nbsp;palette&nbsp;entry.<br>
 &nbsp;<br>
 name&nbsp;--&nbsp;new&nbsp;entry/attribute&nbsp;name<br>
-foreground&nbsp;--&nbsp;foreground&nbsp;colour,&nbsp;same&nbsp;as&nbsp;curses_display.Screen<br>
-background&nbsp;--&nbsp;background&nbsp;colour,&nbsp;same&nbsp;as&nbsp;curses_display.Screen</tt></dd></dl>
+foreground&nbsp;--&nbsp;foreground&nbsp;colour<br>
+background&nbsp;--&nbsp;background&nbsp;colour<br>
+mono&nbsp;--&nbsp;monochrome&nbsp;terminal&nbsp;attribute<br>
+&nbsp;<br>
+See&nbsp;curses_display.register_palette_entry&nbsp;for&nbsp;more&nbsp;info.</tt></dd></dl>
 
 <dl><dt><a name="HtmlGenerator-run_wrapper"><strong>run_wrapper</strong></a>(self, fn)</dt><dd><tt>Call&nbsp;fn.</tt></dd></dl>
 

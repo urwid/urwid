@@ -25,6 +25,9 @@ Curses-based UI implementation
 
 import curses
 
+try: True # old python?
+except: False, True = 0, 1
+		
 
 _curses_colours = {
 	'black':		(curses.COLOR_BLACK,	0),
@@ -46,26 +49,23 @@ _curses_colours = {
 }
 
 _keyconv = {
+	8:'backspace',
 	9:'tab',
 	10:'enter',
+	127:'backspace',
+	160:'meta space', # regular space is just " "
 	258:'down',
 	259:'up',
 	260:'left',
 	261:'right',
 	262:'home',
 	263:'backspace',
-	265:'f1',
-	266:'f2',
-	267:'f3',
-	268:'f4',
-	269:'f5',
-	270:'f6',
-	271:'f7',
-	272:'f8',
-	273:'f9',
-	274:'f10',
-	275:'f11',
-	276:'f12',
+	265:'f1', 266:'f2', 267:'f3', 268:'f4',
+	269:'f5', 270:'f6', 271:'f7', 272:'f8',
+	273:'f9', 274:'f10', 275:'f11', 276:'f12',
+	277:'shift f1', 278:'shift f2', 279:'shift f3', 280:'shift f4',
+	281:'shift f5', 282:'shift f6', 283:'shift f7', 284:'shift f8',
+	285:'shift f9', 286:'shift f10', 287:'shift f11', 288:'shift f12',
 	330:'delete',
 	331:'insert',
 	338:'page down',
@@ -77,7 +77,7 @@ _keyconv = {
 }
 
 # replace control characters with ?'s
-_trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 256)])
+_trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 255)]) + "?"
 
 WINDOW_RESIZE = 410
 
@@ -87,13 +87,7 @@ class Screen:
 			(curses.COLOR_WHITE, curses.COLOR_BLACK), # default
 		]
 		self.palette = {}
-		self.default_attrconv = {
-			#'select':	curses.A_NORMAL,
-			#'highlight':	curses.A_STANDOUT,
-			#'reverse':	curses.A_STANDOUT,
-			#'altcharset':	curses.A_ALTCHARSET,
-			#'underline':	curses.A_UNDERLINE,
-		}
+		self.has_color = False
 		self.s = None
 		self._keyqueue = []
 
@@ -107,7 +101,7 @@ class Screen:
 		"""
 		
 		for item in l:
-			if len(item) == 3:
+			if len(item) in (3,4):
 				self.register_palette_entry( *item )
 				continue
 			assert len(item) == 2, "Invalid register_palette usage"
@@ -116,7 +110,8 @@ class Screen:
 				raise Exception("palette entry '%s' doesn't exist"%like_name)
 			self.palette[name] = self.palette[like_name]
 
-	def register_palette_entry( self, name, foreground, background ):
+	def register_palette_entry( self, name, foreground, background,
+		mono=None):
 		"""Register a single palette entry.
 
 		name -- new entry/attribute name
@@ -128,12 +123,19 @@ class Screen:
 		background -- background colour, one of: 'black', 'dark red',
 			'dark green', 'brown', 'dark blue', 'dark magenta',
 			'dark cyan', 'light gray'
+		mono -- monochrome terminal attribute, one of: None (default),
+			'bold',	'underline', 'standout', or a tuple containing
+			a combination eg. ('bold','underline')
+			
 		"""
 		fg_a, fg_b = _curses_colours[foreground]
 		bg_a, bg_b = _curses_colours[background]
 		if bg_b: # can't do bold backgrounds
 			raise Exception("%s is not a supported background colour"%background )
-		
+		assert (mono is None or 
+			mono in (None, 'bold', 'underline', 'standout') or
+			type(mono)==type(()))
+	
 		for i in range(len(self.curses_pairs)):
 			pair = self.curses_pairs[i]
 			if pair == (fg_a, bg_a): break
@@ -141,7 +143,7 @@ class Screen:
 			i = len(self.curses_pairs)
 			self.curses_pairs.append( (fg_a, bg_a) )
 		
-		self.palette[name] = (i, fg_b)
+		self.palette[name] = (i, fg_b, mono)
 		
 	
 	def run_wrapper(self,fn):
@@ -153,7 +155,12 @@ class Screen:
 	
 		self.s = curses.initscr()
 		try:
-			curses.start_color()
+			self.has_color = curses.has_colors()
+			if self.has_color:
+				curses.start_color()
+				if curses.COLORS < 8:
+					# not colourful enough
+					self.has_color = False
 			self._setup_colour_pairs()
 			curses.noecho()
 			curses.meta(1)
@@ -169,18 +176,43 @@ class Screen:
 				pass # don't block original error with curses error
 
 	def _setup_colour_pairs(self):
+	
 		k = 1
-		for fg,bg in self.curses_pairs[1:]:
-			try:
-				curses.init_pair(k,fg,bg)
-			except:
+		if self.has_color:
+			if len(self.curses_pairs) > curses.COLOR_PAIRS:
 				raise Exception("Too many colour pairs!  Use fewer combinations.")
-			k+=1
+			
+			for fg,bg in self.curses_pairs[1:]:
+				curses.init_pair(k,fg,bg)
+				k+=1
+		else:
+			wh, bl = curses.COLOR_WHITE, curses.COLOR_BLACK
 		
-		self.attrconv = self.default_attrconv.copy()
-		for name, (cp, a) in self.palette.items():
-			self.attrconv[name] = curses.color_pair(cp)
-			if a: self.attrconv[name] |= curses.A_BOLD
+		self.attrconv = {}
+		for name, (cp, a, mono) in self.palette.items():
+			if self.has_color:
+				self.attrconv[name] = curses.color_pair(cp)
+				if a: self.attrconv[name] |= curses.A_BOLD
+			elif type(mono)==type(()):
+				attr = 0
+				for m in mono:
+					attr |= self._curses_attr(m)
+				self.attrconv[name] = attr
+			else:
+				attr = self._curses_attr(mono)
+				self.attrconv[name] = attr
+	
+	def _curses_attr(self, a):
+		if a == 'bold':
+			return curses.A_BOLD
+		elif a == 'standout':
+			return curses.A_STANDOUT
+		elif a == 'underline':
+			return curses.A_UNDERLINE
+		else:
+			return 0
+				
+				
 
 
 	def _curs_set(self,x):
@@ -245,16 +277,18 @@ class Screen:
 		return processed
 		
 	def _process_keyqueue(self, keys):
+		# help.. becoming unmaintainable..
 		code = keys.pop(0)
 		if code >= 32 and code <= 126:
 			key = chr(code)
 			return [key],keys
 		if _keyconv.has_key(code):
 			return [_keyconv[code]],keys
-		if code == ord('h')-ord('a')+1:
-			return ['backspace'],keys
 		if code >0 and code <27:
 			return ["ctrl %s" % chr(ord('a')+code-1)],keys
+		if code >160 and code<255:
+			key = "meta "+chr(code&0x7f)
+			return [key],keys
 		if code != 27:
 			return ["<%d>"%code],keys
 
@@ -264,24 +298,39 @@ class Screen:
 		if c2 == ord('['):
 			if not keys: return ['esc','['],keys
 			c3 = keys.pop(0)
-			if chr(c3) not in "14" or not keys: 
-				 return ['esc','['],keys
+			if chr(c3) not in "12456[" or not keys: 
+				 return ['esc','['],[c3]+keys
 			c4 = keys.pop(0)
+			if c3 == ord("["):
+				if c4 == ord('A'): return ["f1"],keys
+				if c4 == ord('B'): return ["f2"],keys
+				if c4 == ord('C'): return ["f3"],keys
+				if c4 == ord('D'): return ["f4"],keys
+				if c4 == ord('E'): return ["f5"],keys
+				return ['esc','['],[c3,c4]+keys
+				
 			if c4 == ord("~"):
 				if c3 == ord('1'): return ["home"],keys
-				else:		   return ["end"],keys
+				if c3 == ord('4'): return ["end"],keys
+				if c3 == ord('5'): return ["page up"],keys
+				if c3 == ord('6'): return ["page down"],keys
+				return ['esc','['],[c3,c4]+keys
 
-			if chr(c4) not in "1234" or not keys:
+			if chr(c4) not in "0123456789" or not keys:
 				 return ['esc','['],[c3,c4]+keys
 			c5 = keys.pop(0)
 			
 			if c5 != ord("~"):
 				 return ['esc','['],[c3,c4,c5]+keys
-			if c4 == ord("1"): return ["f1"],keys
-			if c4 == ord("2"): return ["f2"],keys
-			if c4 == ord("3"): return ["f3"],keys
-			else:		   return ["f4"],keys
-			
+			num = chr(c3)+chr(c4)
+			numd = {"11":"f1", "12":"f2", "13":"f3", "14":"f4",
+				"15":"f5", "17":"f6", "18":"f7", "19":"f8",
+				"20":"f9", "21":"f10", "23":"f11", "24":"f12",
+				"25":"f13"}
+			if numd.has_key(num):
+				return [numd[num]],keys
+			else:
+				return ['esc','['],[c3,c4,c5]+keys
 		
 		if c2 != ord('O') or not keys: return ['esc'],[c2]+keys
 		
@@ -292,6 +341,10 @@ class Screen:
 		if c3 == ord('j'): return ["*"],keys
 		if c3 == ord('m'): return ["-"],keys
 		if c3 == ord('k'): return ["+"],keys
+		if c3 == ord('A'): return ["up"],keys
+		if c3 == ord('B'): return ["down"],keys
+		if c3 == ord('C'): return ["right"],keys
+		if c3 == ord('D'): return ["left"],keys
 		
 		if chr(c3) not in "2345678" or not keys: 
 			return ['esc'],[c2,c3]+keys
@@ -302,10 +355,10 @@ class Screen:
 		if i & 4: mod += "ctrl "
 
 		c4 = keys.pop(0)
-		if c4 == ord('A'): return mod+"up",keys
-		if c4 == ord('B'): return mod+"down",keys
-		if c4 == ord('C'): return mod+"right",keys
-		if c4 == ord('D'): return mod+"left",keys
+		if c4 == ord('A'): return [mod+"up"],keys
+		if c4 == ord('B'): return [mod+"down"],keys
+		if c4 == ord('C'): return [mod+"right"],keys
+		if c4 == ord('D'): return [mod+"left"],keys
 		else: return ['esc'],[c2,c3,c4]+keys
 			
 
@@ -336,6 +389,16 @@ class Screen:
 		return cols,rows
 		
 
+	def _setattr(self, a):
+		if a is None:
+			self.s.attrset( 0 )
+			return
+		if not self.attrconv.has_key(a):
+			raise Exception, "Attribute %s not registered!"%`a`
+		self.s.attrset( self.attrconv[a] )
+				
+			
+			
 	def draw_screen(self, (cols, rows), r ):
 		"""Paint screen with rendered canvas."""
 		lines = r.text
@@ -354,18 +417,20 @@ class Screen:
 				attr = []
 			col = 0
 			
-			self.s.move( y, 0 )
+			try:
+				self.s.move( y, 0 )
+			except:
+				# terminal shrunk? 
+				# move failed so stop rendering.
+				break
 			
 			for a, run in attr:
-				if a is None:
-					self.s.attrset( 0 )
-				else:
-					self.s.attrset( self.attrconv[a] )
+				self._setattr(a)
 				self.s.addstr( line[col:col+run] )
 				col += run
 
 			if len(line) > col:
-				self.s.attrset( 0 )
+				self._setattr( None )
 				self.s.addstr( line[col:] )
 			
 		if r.cursor is not None:
@@ -374,7 +439,7 @@ class Screen:
 			try:
 				self.s.move(y,x)
 			except:
-				assert 0, (y,x)
+				pass
 		else:
 			self._curs_set(0)
 			self.s.move(0,0)
@@ -393,33 +458,39 @@ class _test:
 		self.l.sort()
 		for c in self.l:
 			self.ui.register_palette( [
-				(c+" on black", c, 'black'),
-				(c+" on dark blue", c, 'dark blue'),
-				(c+" on light gray", c, 'light gray'),
+				(c+" on black", c, 'black', 'underline'),
+				(c+" on dark blue",c, 'dark blue', 'bold'),
+				(c+" on light gray",c,'light gray', 'standout'),
 				])
 		self.ui.run_wrapper(self.run)
 		
 	def run(self):
 		class FakeRender: pass
 		r = FakeRender()
-		text = []
+		text = ["  has_color = "+`self.ui.has_color`,""]
+		attr = [[],[]]
 		r.coords = {}
+		r.cursor = None
 		
 		for c in self.l:
 			t = ""
+			a = []
 			for p in c+" on black",c+" on dark blue",c+" on light gray":
-				r.coords[p]=[(len(t),len(text)),(len(t)+27,len(text))]
+				
+				a.append((p,27))
 				t=t+ (p+27*" ")[:27]
 			text.append( t )
+			attr.append( a )
 
-		text.append("")
-		text.append("Last keys pressed: (q exits)")
+		text.append(3*27*"")
+		text.append("return values from get_input(): (q exits)")
 		keyins = len(text)
-		text.append("")
+		text.append(3*27*"")
 		cols,rows = self.ui.get_cols_rows()
 		keys = None
 		while keys!=['q']:
-			r.text = (text+[""]*rows) [:rows]
+			r.text = ([t[:cols] for t in text]+[""]*rows) [:rows]
+			r.attr = (attr+[[]]*rows) [:rows]
 			self.ui.draw_screen((cols,rows),r)
 			keys = self.ui.get_input()
 			##try:
@@ -427,8 +498,8 @@ class _test:
 			##except:
 			##	keys = [None]
 			if 'window resize' in keys:
-				size = self.ui.get_cols_rows()
-			text[keyins] = text[keyins][-40:] + " " + `keys`
+				cols, rows = self.ui.get_cols_rows()
+			text[keyins] = (text[keyins] + " " + `keys`)[-cols:]
 				
 
 

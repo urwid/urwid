@@ -23,6 +23,9 @@
 HTML PRE-based UI implementation
 """
 
+try: True # old python?
+except: False, True = 0, 1
+                
 
 _html_colours = {
 	'black':		"black",
@@ -44,7 +47,7 @@ _html_colours = {
 }
 
 # replace control characters with ?'s
-_trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 256)])
+_trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 255)]) + "?"
 
 
 class HtmlGenerator:
@@ -52,6 +55,7 @@ class HtmlGenerator:
 
 	def __init__(self):
 		self.palette = {}
+		self.has_color = True
 	
 	def register_palette( self, l ):
 		"""Register a list of palette entries.
@@ -63,7 +67,7 @@ class HtmlGenerator:
 		"""
 		
 		for item in l:
-			if len(item) == 3:
+			if len(item) in (3,4):
 				self.register_palette_entry( *item )
 				continue
 			assert len(item) == 2, "Invalid register_palette usage"
@@ -72,14 +76,18 @@ class HtmlGenerator:
 				raise Exception("palette entry '%s' doesn't exist"%like_name)
 			self.palette[name] = self.palette[like_name]
 
-	def register_palette_entry( self, name, foreground, background ):
+	def register_palette_entry( self, name, foreground, background, 
+		mono=None):
 		"""Register a single palette entry.
 
 		name -- new entry/attribute name
-		foreground -- foreground colour, same as curses_display.Screen
-		background -- background colour, same as curses_display.Screen
+		foreground -- foreground colour
+		background -- background colour
+		mono -- monochrome terminal attribute
+
+		See curses_display.register_palette_entry for more info.
 		"""
-		self.palette[name] = (foreground, background)
+		self.palette[name] = (foreground, background, mono)
 
 	def run_wrapper(self,fn):
 		"""Call fn."""
@@ -112,9 +120,9 @@ class HtmlGenerator:
 			
 			for a, run in attr:
 				if a is None:
-					fg, bg = "light gray", "black"
+					fg,bg,mono = "light gray", "black", None
 				else:
-					fg, bg = self.palette[a]
+					fg,bg,mono = self.palette[a]
 				if y == cy:
 					l.append( html_span( line[col:col+run],
 						fg, bg, cx-col ))
@@ -124,7 +132,7 @@ class HtmlGenerator:
 				col += run
 
 			if cols > col:
-				fg, bg = "light gray", "black"
+				fg,bg,mono = "light gray", "black", None
 				if y == cy:
 					l.append( html_span( " "*(cols-col), 
 						fg, bg, cx-col ))

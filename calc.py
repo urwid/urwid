@@ -552,15 +552,14 @@ class CalcDisplay:
 	palette = [
 		('body','white', 'dark blue'),
 		('edit','yellow', 'dark blue'),
-		('editfocus','yellow','black'),
-		('focus', 'white', 'dark blue'),
-		('key','light cyan', 'dark cyan'),
-		('title', 'white', 'dark cyan'),
-		('help', 'light gray', 'dark cyan'),
+		('editfocus','yellow','black', 'bold'),
+		('key','light cyan', 'dark cyan', ('standout','underline')),
+		('title', 'white', 'dark cyan', ('bold','standout')),
+		('help', 'light gray', 'dark cyan', 'standout'),
 		('helpnote', 'black', 'dark cyan'),
-		('colhead', 'light gray', 'dark cyan'),
-		('event', 'light red', 'black'),
-		('confirm', 'yellow', 'black'),
+		('colhead', 'light gray', 'dark cyan', 'standout'),
+		('event', 'light red', 'black', 'standout'),
+		('confirm', 'yellow', 'black', 'bold'),
 		]
 	
 	def __init__(self):

@@ -114,13 +114,13 @@ CONTENT = [
 
 class TourDisplay:
 	palette = [
-		('body','black','light gray'),
-		('header','white','dark red'),
-		('important','dark blue','light gray'),
-		('editfc','white', 'dark blue'),
+		('body','black','light gray', 'standout'),
+		('header','white','dark red', 'bold'),
+		('important','dark blue','light gray',('standout','underline')),
+		('editfc','white', 'dark blue', 'bold'),
 		('editbx','light gray', 'dark blue'),
-		('editcp','black','light gray'),
-		('bright','dark gray','light gray'),
+		('editcp','black','light gray', 'standout'),
+		('bright','dark gray','light gray', ('bold','standout')),
 		]
 	
 	def __init__(self):

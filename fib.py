@@ -66,10 +66,10 @@ class FibonacciWalker:
 
 class FibonacciDisplay:
 	palette = [
-		('body','black','dark cyan'),
+		('body','black','dark cyan', 'standout'),
 		('foot','light gray', 'black'),
-		('key','light cyan', 'black'),
-		('title', 'white', 'black'),
+		('key','light cyan', 'black', 'underline'),
+		('title', 'white', 'black',),
 		]
 		
 	footer_text = ('foot', [

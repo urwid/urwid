@@ -23,12 +23,74 @@ from distutils.core import setup
 
 import os
 
-setup(	name="urwid",
-	version=os.popen("make -s release").read().strip(),
-	description="urwid -- curses-based UI/widget library",
-	author="Ian Ward",
-	author_email="ian@excess.org",
-	url="http://excess.org/urwid/",
-	packages=['urwid'],
-     )
+release = "0.8.1" #os.popen("make -s release").read().strip()
+
+setup_d = {
+	'name':"urwid",
+	'version':release,
+	'author':"Ian Ward",
+	'author_email':"ian@excess.org",
+	'url':"http://excess.org/urwid/",
+	'download_url':"http://excess.org/urwid/urwid-%s.tar.gz"%release,
+	'license':"GPL",
+	'keywords':"curses ui widget scroll listbox interface text layout",
+	'platforms':"unix-like",
+	'description':"A curses-based UI/widget library featuring fluid interface resizing, multiple text layout options, simple markup for attributes, powerful scrolling list boxes and flexible edit boxes.",
+	'long_description':"""
+Urwid is a curses-based UI/widget library.  It includes many features useful
+for console application developers, including:
+
+- Fluid interface resizing (xterm window resizing / fbset on Linux console)
+- Multiple text alignment and wrapping modes built-in
+- Ability to register user-defined text alignment and wrapping modes
+- Simple markup for setting text attributes
+- Powerful list box that handles scrolling between different widget types
+- List box contents may be managed with a user-defined class
+- Flexible edit box for editing almost any type of text
+- Plain HTML screen shots
+
+
+Example Programs:
+
+tour.py 
+  A list box showing the built-in widget types and modes.
+  
+fib.py 
+  A Fibonacci set viewer that demonstrates a list box with infinite data.
+
+edit.py 
+  A text editor that starts-up instantly by lazily reading files.  It is
+  suitable for editing text files with lines longer than the terminal width.
+
+browse.py 
+  A directory browser that displays directories in a single tree structure.
+  It reads directories as required and lets you select multiple files.
+
+calc.py
+  A calculator program that shows its work.  It splits sub-expressions
+  into separate columns for easy editing.
+"""[1:],
+	'classifiers':[
+		"Development Status :: 4 - Beta",
+		"Environment :: Console",
+		"Environment :: Console :: Curses",
+		"Intended Audience :: Developers",
+		"License :: OSI Approved :: GNU General Public License (GPL)",
+		"Operating System :: POSIX",
+		"Operating System :: Unix",
+		"Operating System :: MacOS :: MacOS X",
+		"Topic :: Software Development :: Libraries :: Python Modules",
+		"Topic :: Software Development :: Widget Sets",
+		],
+	'packages':['urwid'],
+     }
+
+try:
+	True
+except:
+	# python 2.1's distutils doesn't understand these:
+	del setup_d['classifiers']
+	del setup_d['download_url']
+
+setup( ** setup_d )
 

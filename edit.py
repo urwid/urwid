@@ -145,8 +145,8 @@ class LineWalker:
 class EditDisplay:
 	palette = [
 		('body','light gray', 'black'),
-		('foot','white', 'black'),
-		('key','light cyan', 'black'),
+		('foot','white', 'black', 'bold'),
+		('key','light cyan', 'black', 'underline'),
 		]
 		
 	footer_text = ('foot', [

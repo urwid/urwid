@@ -54,7 +54,7 @@ class TreeWidget(urwid.FlowWidget):
 		if dir == parent:
 			self.depth = 0
 		else:
-		 	self.depth = dir.count(os.path.sep)
+		 	self.depth = dir.count(dir_sep())
 	
 	def rows(self, (maxcol,), **args):
 		"""Return rows from display widget."""
@@ -344,14 +344,15 @@ class DirectoryWalker:
 class DirectoryBrowser:
 	palette = [
 		('body', 'black', 'light gray'),
-		('selected', 'black', 'dark green'),
-		('focus', 'light gray', 'dark blue'),
-		('selected focus', 'yellow', 'dark cyan'),
-		('head', 'yellow', 'black'),
+		('selected', 'black', 'dark green', ('bold','underline')),
+		('focus', 'light gray', 'dark blue', 'standout'),
+		('selected focus', 'yellow', 'dark cyan', 
+				('bold','standout','underline')),
+		('head', 'yellow', 'black', 'standout'),
 		('foot', 'light gray', 'black'),
-		('key', 'light cyan', 'black'),
-		('title', 'white', 'black'),
-		('dirmark', 'black', 'dark cyan'),
+		('key', 'light cyan', 'black','underline'),
+		('title', 'white', 'black', 'bold'),
+		('dirmark', 'black', 'dark cyan', 'bold'),
 		('flag', 'dark gray', 'light gray'),
 		('error', 'dark red', 'light gray'),
 		]
@@ -524,12 +525,12 @@ def store_initial_cwd( name ):
 	"""Store the initial current working directory path components."""
 	
 	global _initial_cwd
-	_initial_cwd = name.split( os.path.sep )
+	_initial_cwd = name.split( dir_sep() )
 
 def starts_expanded( name ):
 	"""Return True if directory is a parent of initial cwd."""
 	
-	l = name.split( os.path.sep )
+	l = name.split( dir_sep() )
 	if len(l) > len( _initial_cwd ):
 		return False
 	
@@ -611,6 +612,10 @@ def sensible_cmp( name_a, name_b ):
 	if ai == len(name_a): return -1
 	return 1
 
+
+def dir_sep():
+	"""Return the separator used in this os."""
+	return getattr(os.path,'sep','/')
 
 
 if __name__=="__main__": 
