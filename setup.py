@@ -23,7 +23,7 @@ from distutils.core import setup
 
 import os
 
-release = "0.8.4" #os.popen("make -s release").read().strip()
+release = "0.8.5" #os.popen("make -s release").read().strip()
 
 setup_d = {
 	'name':"urwid",
@@ -35,7 +35,7 @@ setup_d = {
 	'license':"LGPL",
 	'keywords':"curses ui widget scroll listbox interface text layout",
 	'platforms':"unix-like",
-	'description':"A curses-based UI library featuring fluid interface resizing, CJK suppport, multiple text layouts, simple attribute markup, powerful scrolling list boxes and flexible edit boxes.",
+	'description':"A curses-based UI library featuring fluid interface resizing, CJK support, multiple text layouts, simple attribute markup, powerful scrolling list boxes and flexible edit boxes.",
 	'long_description':"""
 Urwid is a curses-based user interface library.  It includes many features
 useful for text console application developers including:

@@ -14,11 +14,12 @@
 <div style="text-align: center;">
 <a href="http://excess.org/urwid/">Urwid Home Page</a> /
 <a href="http://excess.org/urwid/examples.html">Example Screenshots</a> /
-<a href="http://excess.org/urwid/wexamples.html">Wide Character Screenshots</a> /
+<a href="http://excess.org/urwid/wexamples.zh-cn.html">Wide Character Screenshots</a> /
+<a href="tutorial.html">Tutorial</a> /
 Reference
 </div>
 <br>
-<div class="l1">User interface library wrapper</div><div class="l2"><a href="#curses_display.Screen">curses_display.Screen</a></div><div class="l1">Top-level widgets</div><div class="l2"><a href="#BoxWidget">BoxWidget</a></div><div class="l2"><a href="#Frame">Frame</a></div><div class="l2"><a href="#ListBox">ListBox</a></div><div class="l2"><a href="#SimpleListWalker">SimpleListWalker</a></div><div class="l1">Content widgets</div><div class="l2"><a href="#FlowWidget">FlowWidget</a></div><div class="l2"><a href="#Text">Text</a></div><div class="l2"><a href="#Edit">Edit</a></div><div class="l2"><a href="#IntEdit">IntEdit</a></div><div class="l1">Composite widgets</div><div class="l2"><a href="#Columns">Columns</a></div><div class="l2"><a href="#Pile">Pile</a></div><div class="l1">Decorations</div><div class="l2"><a href="#AttrWrap">AttrWrap</a></div><div class="l2"><a href="#Divider">Divider</a></div><div class="l1">Canvas painting</div><div class="l2"><a href="#canvas.Canvas">canvas.Canvas</a></div><div class="l2"><a href="#-canvas.CanvasCombine">canvas.CanvasCombine</a></div><div class="l2"><a href="#-canvas.CanvasJoin">canvas.CanvasJoin</a></div><div class="l1">Custom formatting rules</div><div class="l2"><a href="#-util.register_align_mode">util.register_align_mode</a></div><div class="l2"><a href="#-util.register_wrap_mode">util.register_wrap_mode</a></div><div class="l2"><a href="#-util.set_double_byte_encoding">util.set_double_byte_encoding</a></div><div class="l1">Screen capture</div><div class="l2"><a href="#-html_fragment.screenshot_init">html_fragment.screenshot_init</a></div><div class="l2"><a href="#-html_fragment.screenshot_collect">html_fragment.screenshot_collect</a></div><div class="l2"><a href="#html_fragment.HtmlGenerator">html_fragment.HtmlGenerator</a></div><h2>User interface library wrapper</h2><h3><strong>curses_display.Screen</strong> = <a name="curses_display.Screen">class Screen</a></h3>Methods defined here:<br>
+<table width="100%"><tr><td width="33%" valign="top"><div class="l1">User interface wrapper</div><div class="l2"><a href="#curses_display.Screen">curses_display.Screen</a></div><div class="l1">Top-level widgets</div><div class="l2"><a href="#BoxWidget">BoxWidget</a></div><div class="l2"><a href="#Frame">Frame</a></div><div class="l2"><a href="#Filler">Filler</a></div><div class="l2"><a href="#ListBox">ListBox</a></div><div class="l2"><a href="#SimpleListWalker">SimpleListWalker</a></div><div class="l1">Decorations</div><div class="l2"><a href="#AttrWrap">AttrWrap</a></div><div class="l2"><a href="#Divider">Divider</a></div></td><td width="33%" valign="top"><div class="l1">Content widgets</div><div class="l2"><a href="#FlowWidget">FlowWidget</a></div><div class="l2"><a href="#Text">Text</a></div><div class="l2"><a href="#Edit">Edit</a></div><div class="l2"><a href="#IntEdit">IntEdit</a></div><div class="l1">Composite widgets</div><div class="l2"><a href="#Columns">Columns</a></div><div class="l2"><a href="#Pile">Pile</a></div><div class="l1">Canvas painting</div><div class="l2"><a href="#Canvas">Canvas</a></div><div class="l2"><a href="#-CanvasCombine">CanvasCombine</a></div><div class="l2"><a href="#-CanvasJoin">CanvasJoin</a></div></td><td width="33%" valign="top"><div class="l1">Custom formatting rules</div><div class="l2"><a href="#-util.register_align_mode">util.register_align_mode</a></div><div class="l2"><a href="#-util.register_wrap_mode">util.register_wrap_mode</a></div><div class="l2"><a href="#-util.set_double_byte_encoding">util.set_double_byte_encoding</a></div><div class="l1">Screen capture</div><div class="l2"><a href="#-html_fragment.screenshot_init">html_fragment.screenshot_init</a></div><div class="l2"><a href="#-html_fragment.screenshot_collect">html_fragment.screenshot_collect</a></div><div class="l2"><a href="#html_fragment.HtmlGenerator">html_fragment.HtmlGenerator</a></div></td></tr></table><h2>User interface wrapper</h2><h3><strong>curses_display.Screen</strong> = <a name="curses_display.Screen">class Screen</a></h3>Methods defined here:<br>
 <dl><dt><a name="Screen-__init__"><strong>__init__</strong></a>(self)</dt></dl>
 
 <dl><dt><a name="Screen-draw_screen"><strong>draw_screen</strong></a>(self, (cols, rows), r)</dt><dd><tt>Paint&nbsp;screen&nbsp;with&nbsp;rendered&nbsp;canvas.</tt></dd></dl>
@@ -53,7 +54,8 @@ Double-byte&nbsp;characters:&nbsp;&nbsp;"\xa1\xea",&nbsp;"\xb2\xd4"</tt></dd></d
 
 <dl><dt><a name="Screen-register_palette"><strong>register_palette</strong></a>(self, l)</dt><dd><tt>Register&nbsp;a&nbsp;list&nbsp;of&nbsp;palette&nbsp;entries.<br>
 &nbsp;<br>
-l&nbsp;--&nbsp;list&nbsp;of&nbsp;(name,&nbsp;foreground,&nbsp;background)&nbsp;or<br>
+l&nbsp;--&nbsp;list&nbsp;of&nbsp;(name,&nbsp;foreground,&nbsp;background,&nbsp;mono),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(name,&nbsp;foreground,&nbsp;background)&nbsp;or<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(name,&nbsp;same_as_other_name)&nbsp;palette&nbsp;entries.<br>
 &nbsp;<br>
 calls&nbsp;self.<strong>register_palette_entry</strong>&nbsp;for&nbsp;each&nbsp;item&nbsp;in&nbsp;l</tt></dd></dl>
@@ -89,6 +91,16 @@ footer&nbsp;--&nbsp;a&nbsp;flow&nbsp;widget&nbsp;for&nbsp;below&nbsp;the&nbsp;bo
 <dl><dt><a name="Frame-keypress"><strong>keypress</strong></a>(self, (maxcol, maxrow), key)</dt><dd><tt>Pass&nbsp;keypress&nbsp;to&nbsp;body&nbsp;widget.</tt></dd></dl>
 
 <dl><dt><a name="Frame-render"><strong>render</strong></a>(self, (maxcol, maxrow), focus<font color="#909090">=False</font>)</dt><dd><tt>Render&nbsp;frame&nbsp;and&nbsp;return&nbsp;it.</tt></dd></dl>
+
+<h3><a name="Filler">class <strong>Filler</strong></a>(BoxWidget)</h3>Methods defined here:<br>
+<dl><dt><a name="Filler-__init__"><strong>__init__</strong></a>(self, body, valign<font color="#909090">='middle'</font>)</dt><dd><tt>body&nbsp;--&nbsp;a&nbsp;flow&nbsp;widget&nbsp;to&nbsp;be&nbsp;filled&nbsp;around<br>
+valign&nbsp;--&nbsp;vertical&nbsp;alignment:&nbsp;"top",&nbsp;"middle"&nbsp;or&nbsp;"bottom"</tt></dd></dl>
+
+<dl><dt><a name="Filler-body_position"><strong>body_position</strong></a>(self, (maxcol, maxrow), focus, rows<font color="#909090">=None</font>, cy<font color="#909090">=None</font>)</dt><dd><tt>Return&nbsp;the&nbsp;row&nbsp;offset&nbsp;(+ve)&nbsp;or&nbsp;reduction&nbsp;(-ve)&nbsp;of&nbsp;self.<strong>body</strong>.</tt></dd></dl>
+
+<dl><dt><a name="Filler-keypress"><strong>keypress</strong></a>(self, (maxcol, maxrow), key)</dt><dd><tt>Pass&nbsp;keypress&nbsp;to&nbsp;self.<strong>body</strong>.</tt></dd></dl>
+
+<dl><dt><a name="Filler-render"><strong>render</strong></a>(self, (maxcol, maxrow), focus<font color="#909090">=False</font>)</dt><dd><tt>Render&nbsp;self.<strong>body</strong>&nbsp;with&nbsp;space&nbsp;around&nbsp;it&nbsp;to&nbsp;fill&nbsp;box&nbsp;size.</tt></dd></dl>
 
 <h3><a name="ListBox">class <strong>ListBox</strong></a>(BoxWidget)</h3>Methods defined here:<br>
 <dl><dt><a name="ListBox-__init__"><strong>__init__</strong></a>(self, body)</dt><dd><tt>body&nbsp;--&nbsp;list&nbsp;or&nbsp;a&nbsp;SimpleListWalker-like&nbsp;object&nbsp;that&nbsp;contains<br>
@@ -127,6 +139,8 @@ snap_rows&nbsp;--&nbsp;the&nbsp;maximum&nbsp;number&nbsp;of&nbsp;extra&nbsp;rows
 convenience&nbsp;function&nbsp;for&nbsp;checking&nbsp;whether&nbsp;the&nbsp;top&nbsp;and&nbsp;bottom<br>
 of&nbsp;the&nbsp;list&nbsp;are&nbsp;visible</tt></dd></dl>
 
+<dl><dt><a name="ListBox-get_focus"><strong>get_focus</strong></a>(self)</dt><dd><tt>Return&nbsp;a&nbsp;(focus&nbsp;widget,&nbsp;focus&nbsp;position)&nbsp;tuple.</tt></dd></dl>
+
 <dl><dt><a name="ListBox-keypress"><strong>keypress</strong></a>(self, (maxcol, maxrow), key)</dt><dd><tt>Move&nbsp;selection&nbsp;through&nbsp;the&nbsp;list&nbsp;elements&nbsp;scrolling&nbsp;when&nbsp;<br>
 necessary.&nbsp;'up'&nbsp;and&nbsp;'down'&nbsp;are&nbsp;first&nbsp;passed&nbsp;to&nbsp;widget&nbsp;in&nbsp;focus<br>
 in&nbsp;case&nbsp;that&nbsp;widget&nbsp;can&nbsp;handle&nbsp;them.&nbsp;'page&nbsp;up'&nbsp;and&nbsp;'page&nbsp;down'<br>
@@ -139,6 +153,12 @@ Keystrokes&nbsp;handled&nbsp;by&nbsp;this&nbsp;widget&nbsp;are:<br>
 &nbsp;'page&nbsp;down'&nbsp;move&nbsp;cursor&nbsp;down&nbsp;one&nbsp;listbox&nbsp;length</tt></dd></dl>
 
 <dl><dt><a name="ListBox-render"><strong>render</strong></a>(self, (maxcol, maxrow), focus<font color="#909090">=False</font>)</dt><dd><tt>Render&nbsp;listbox&nbsp;and&nbsp;return&nbsp;canvas.</tt></dd></dl>
+
+<dl><dt><a name="ListBox-set_focus"><strong>set_focus</strong></a>(self, position, coming_from<font color="#909090">=None</font>)</dt><dd><tt>Set&nbsp;the&nbsp;focus&nbsp;position&nbsp;and&nbsp;try&nbsp;to&nbsp;keep&nbsp;the&nbsp;old&nbsp;focus&nbsp;in&nbsp;view.<br>
+&nbsp;<br>
+position&nbsp;--&nbsp;a&nbsp;position&nbsp;compatible&nbsp;with&nbsp;self.<strong>body</strong>.set_focus<br>
+coming_from&nbsp;--&nbsp;set&nbsp;to&nbsp;'above'&nbsp;or&nbsp;'below'&nbsp;if&nbsp;you&nbsp;know&nbsp;that<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;old&nbsp;position&nbsp;is&nbsp;above&nbsp;or&nbsp;below&nbsp;the&nbsp;new&nbsp;position.</tt></dd></dl>
 
 <dl><dt><a name="ListBox-shift_focus"><strong>shift_focus</strong></a>(self, (maxcol, maxrow), offset_inset)</dt><dd><tt>Move&nbsp;the&nbsp;location&nbsp;of&nbsp;the&nbsp;current&nbsp;focus&nbsp;relative&nbsp;to&nbsp;the&nbsp;top.<br>
 &nbsp;<br>
@@ -161,6 +181,40 @@ offset_inset&nbsp;--&nbsp;either&nbsp;the&nbsp;number&nbsp;of&nbsp;rows&nbsp;bet
 <dl><dt><a name="SimpleListWalker-get_prev"><strong>get_prev</strong></a>(self, start_from)</dt><dd><tt>Return&nbsp;(widget&nbsp;before&nbsp;start_from,&nbsp;position&nbsp;before&nbsp;start_from).</tt></dd></dl>
 
 <dl><dt><a name="SimpleListWalker-set_focus"><strong>set_focus</strong></a>(self, position)</dt><dd><tt>Set&nbsp;focus&nbsp;position.</tt></dd></dl>
+
+<h2>Decorations</h2><h3><a name="AttrWrap">class <strong>AttrWrap</strong></a></h3>Methods defined here:<br>
+<dl><dt><a name="AttrWrap-__init__"><strong>__init__</strong></a>(self, w, attr, focus_attr<font color="#909090">=None</font>)</dt><dd><tt>w&nbsp;--&nbsp;widget&nbsp;to&nbsp;wrap<br>
+attr&nbsp;--&nbsp;attribute&nbsp;to&nbsp;apply&nbsp;to&nbsp;w<br>
+focus_attr&nbsp;--&nbsp;attribute&nbsp;to&nbsp;apply&nbsp;when&nbsp;in&nbsp;focus,&nbsp;if&nbsp;None&nbsp;use&nbsp;attr<br>
+&nbsp;<br>
+Copy&nbsp;w.get_cursor_coords,&nbsp;w.move_cursor_to_coords,&nbsp;<br>
+w.get_pref_col&nbsp;functions&nbsp;to&nbsp;this&nbsp;widget&nbsp;if&nbsp;they&nbsp;exist.</tt></dd></dl>
+
+<dl><dt><a name="AttrWrap-keypress"><strong>keypress</strong></a>(self, maxvals, key)</dt><dd><tt>Pass&nbsp;keypress&nbsp;to&nbsp;self.<strong>w</strong>.</tt></dd></dl>
+
+<dl><dt><a name="AttrWrap-render"><strong>render</strong></a>(self, size, focus<font color="#909090">=False</font>)</dt><dd><tt>Render&nbsp;self.<strong>w</strong>&nbsp;and&nbsp;apply&nbsp;attribute.&nbsp;Return&nbsp;canvas.<br>
+&nbsp;<br>
+size&nbsp;--&nbsp;(maxcol,)&nbsp;if&nbsp;self.<strong>w</strong>&nbsp;contains&nbsp;a&nbsp;flow&nbsp;widget&nbsp;or<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(maxcol,&nbsp;maxrow)&nbsp;if&nbsp;it&nbsp;contains&nbsp;a&nbsp;box&nbsp;widget.</tt></dd></dl>
+
+<dl><dt><a name="AttrWrap-rows"><strong>rows</strong></a>(self, (maxcol,), focus<font color="#909090">=False</font>)</dt><dd><tt>Return&nbsp;the&nbsp;rows&nbsp;needed&nbsp;for&nbsp;self.<strong>w</strong>.</tt></dd></dl>
+
+<dl><dt><a name="AttrWrap-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;the&nbsp;selectable&nbsp;value&nbsp;of&nbsp;self.<strong>w</strong>.</tt></dd></dl>
+
+<h3><a name="Divider">class <strong>Divider</strong></a>(FlowWidget)</h3>Methods defined here:<br>
+<dl><dt><a name="Divider-__init__"><strong>__init__</strong></a>(self, div_char<font color="#909090">=' '</font>, top<font color="#909090">=0</font>, bottom<font color="#909090">=0</font>)</dt><dd><tt>div_char&nbsp;--&nbsp;character&nbsp;to&nbsp;repeat&nbsp;across&nbsp;line<br>
+top&nbsp;--&nbsp;number&nbsp;of&nbsp;blank&nbsp;lines&nbsp;above<br>
+bottom&nbsp;--&nbsp;number&nbsp;of&nbsp;blank&nbsp;lines&nbsp;below</tt></dd></dl>
+
+<dl><dt><a name="Divider-render"><strong>render</strong></a>(self, (maxcol,), focus<font color="#909090">=False</font>)</dt><dd><tt>Render&nbsp;the&nbsp;divider&nbsp;as&nbsp;a&nbsp;canvas&nbsp;and&nbsp;return&nbsp;it.</tt></dd></dl>
+
+<dl><dt><a name="Divider-rows"><strong>rows</strong></a>(self, (maxcol,), focus<font color="#909090">=False</font>)</dt><dd><tt>Return&nbsp;the&nbsp;number&nbsp;of&nbsp;lines&nbsp;that&nbsp;will&nbsp;be&nbsp;rendered.</tt></dd></dl>
+
+<hr>
+Methods inherited from FlowWidget:<br>
+<dl><dt><a name="Divider-keypress"><strong>keypress</strong></a>(self, (maxcol,), key)</dt><dd><tt>Return&nbsp;key.&nbsp;&nbsp;No&nbsp;keys&nbsp;are&nbsp;handled&nbsp;by&nbsp;default.</tt></dd></dl>
+
+<dl><dt><a name="Divider-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;False.&nbsp;&nbsp;Not&nbsp;selectable&nbsp;by&nbsp;default.</tt></dd></dl>
 
 <h2>Content widgets</h2><h3><a name="FlowWidget">class <strong>FlowWidget</strong></a></h3>Methods defined here:<br>
 <dl><dt><a name="FlowWidget-keypress"><strong>keypress</strong></a>(self, (maxcol,), key)</dt><dd><tt>Return&nbsp;key.&nbsp;&nbsp;No&nbsp;keys&nbsp;are&nbsp;handled&nbsp;by&nbsp;default.</tt></dd></dl>
@@ -430,41 +484,7 @@ Methods inherited from FlowWidget:<br>
 
 <dl><dt><a name="Pile-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;False.&nbsp;&nbsp;Not&nbsp;selectable&nbsp;by&nbsp;default.</tt></dd></dl>
 
-<h2>Decorations</h2><h3><a name="AttrWrap">class <strong>AttrWrap</strong></a></h3>Methods defined here:<br>
-<dl><dt><a name="AttrWrap-__init__"><strong>__init__</strong></a>(self, w, attr, focus_attr<font color="#909090">=None</font>)</dt><dd><tt>w&nbsp;--&nbsp;widget&nbsp;to&nbsp;wrap<br>
-attr&nbsp;--&nbsp;attribute&nbsp;to&nbsp;apply&nbsp;to&nbsp;w<br>
-focus_attr&nbsp;--&nbsp;attribute&nbsp;to&nbsp;apply&nbsp;when&nbsp;in&nbsp;focus,&nbsp;if&nbsp;None&nbsp;use&nbsp;attr<br>
-&nbsp;<br>
-Copy&nbsp;w.get_cursor_coords,&nbsp;w.move_cursor_to_coords,&nbsp;<br>
-w.get_pref_col&nbsp;functions&nbsp;to&nbsp;this&nbsp;widget&nbsp;if&nbsp;they&nbsp;exist.</tt></dd></dl>
-
-<dl><dt><a name="AttrWrap-keypress"><strong>keypress</strong></a>(self, maxvals, key)</dt><dd><tt>Pass&nbsp;keypress&nbsp;to&nbsp;self.<strong>w</strong>.</tt></dd></dl>
-
-<dl><dt><a name="AttrWrap-render"><strong>render</strong></a>(self, size, focus<font color="#909090">=False</font>)</dt><dd><tt>Render&nbsp;self.<strong>w</strong>&nbsp;and&nbsp;apply&nbsp;attribute.&nbsp;Return&nbsp;canvas.<br>
-&nbsp;<br>
-size&nbsp;--&nbsp;(maxcol,)&nbsp;if&nbsp;self.<strong>w</strong>&nbsp;contains&nbsp;a&nbsp;flow&nbsp;widget&nbsp;or<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(maxcol,&nbsp;maxrow)&nbsp;if&nbsp;it&nbsp;contains&nbsp;a&nbsp;box&nbsp;widget.</tt></dd></dl>
-
-<dl><dt><a name="AttrWrap-rows"><strong>rows</strong></a>(self, (maxcol,), focus<font color="#909090">=False</font>)</dt><dd><tt>Return&nbsp;the&nbsp;rows&nbsp;needed&nbsp;for&nbsp;self.<strong>w</strong>.</tt></dd></dl>
-
-<dl><dt><a name="AttrWrap-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;the&nbsp;selectable&nbsp;value&nbsp;of&nbsp;self.<strong>w</strong>.</tt></dd></dl>
-
-<h3><a name="Divider">class <strong>Divider</strong></a>(FlowWidget)</h3>Methods defined here:<br>
-<dl><dt><a name="Divider-__init__"><strong>__init__</strong></a>(self, div_char<font color="#909090">=' '</font>, top<font color="#909090">=0</font>, bottom<font color="#909090">=0</font>)</dt><dd><tt>div_char&nbsp;--&nbsp;character&nbsp;to&nbsp;repeat&nbsp;across&nbsp;line<br>
-top&nbsp;--&nbsp;number&nbsp;of&nbsp;blank&nbsp;lines&nbsp;above<br>
-bottom&nbsp;--&nbsp;number&nbsp;of&nbsp;blank&nbsp;lines&nbsp;below</tt></dd></dl>
-
-<dl><dt><a name="Divider-render"><strong>render</strong></a>(self, (maxcol,), focus<font color="#909090">=False</font>)</dt><dd><tt>Render&nbsp;the&nbsp;divider&nbsp;as&nbsp;a&nbsp;canvas&nbsp;and&nbsp;return&nbsp;it.</tt></dd></dl>
-
-<dl><dt><a name="Divider-rows"><strong>rows</strong></a>(self, (maxcol,), focus<font color="#909090">=False</font>)</dt><dd><tt>Return&nbsp;the&nbsp;number&nbsp;of&nbsp;lines&nbsp;that&nbsp;will&nbsp;be&nbsp;rendered.</tt></dd></dl>
-
-<hr>
-Methods inherited from FlowWidget:<br>
-<dl><dt><a name="Divider-keypress"><strong>keypress</strong></a>(self, (maxcol,), key)</dt><dd><tt>Return&nbsp;key.&nbsp;&nbsp;No&nbsp;keys&nbsp;are&nbsp;handled&nbsp;by&nbsp;default.</tt></dd></dl>
-
-<dl><dt><a name="Divider-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;False.&nbsp;&nbsp;Not&nbsp;selectable&nbsp;by&nbsp;default.</tt></dd></dl>
-
-<h2>Canvas painting</h2><h3><strong>canvas.Canvas</strong> = <a name="canvas.Canvas">class Canvas</a></h3>Methods defined here:<br>
+<h2>Canvas painting</h2><h3><a name="Canvas">class <strong>Canvas</strong></a></h3>Methods defined here:<br>
 <dl><dt><a name="Canvas-__init__"><strong>__init__</strong></a>(self, text<font color="#909090">=None</font>, attr<font color="#909090">=None</font>, cursor<font color="#909090">=None</font>)</dt><dd><tt>text&nbsp;--&nbsp;list&nbsp;of&nbsp;strings,&nbsp;one&nbsp;for&nbsp;each&nbsp;line<br>
 attr&nbsp;--&nbsp;list&nbsp;of&nbsp;run&nbsp;length&nbsp;encoded&nbsp;attributes&nbsp;for&nbsp;text<br>
 cursor&nbsp;--&nbsp;(x,y)&nbsp;of&nbsp;cursor&nbsp;or&nbsp;None</tt></dd></dl>
@@ -482,8 +502,8 @@ count&nbsp;--&nbsp;number&nbsp;of&nbsp;lines&nbsp;to&nbsp;keep,&nbsp;or&nbsp;Non
 &nbsp;<br>
 end&nbsp;--&nbsp;number&nbsp;of&nbsp;lines&nbsp;to&nbsp;remove&nbsp;from&nbsp;the&nbsp;end</tt></dd></dl>
 
-<dl><dt><a name="-canvas.CanvasCombine"><strong>canvas.CanvasCombine</strong></a> = CanvasCombine(l)</dt><dd><tt>Stack&nbsp;canvases&nbsp;in&nbsp;l&nbsp;vertically&nbsp;and&nbsp;return&nbsp;resulting&nbsp;canvas.</tt></dd></dl>
-<dl><dt><a name="-canvas.CanvasJoin"><strong>canvas.CanvasJoin</strong></a> = CanvasJoin(l)</dt><dd><tt>Join&nbsp;canvases&nbsp;in&nbsp;l&nbsp;horizontally.&nbsp;Return&nbsp;result.<br>
+<dl><dt><a name="-CanvasCombine"><strong>CanvasCombine</strong></a>(l)</dt><dd><tt>Stack&nbsp;canvases&nbsp;in&nbsp;l&nbsp;vertically&nbsp;and&nbsp;return&nbsp;resulting&nbsp;canvas.</tt></dd></dl>
+<dl><dt><a name="-CanvasJoin"><strong>CanvasJoin</strong></a>(l)</dt><dd><tt>Join&nbsp;canvases&nbsp;in&nbsp;l&nbsp;horizontally.&nbsp;Return&nbsp;result.<br>
 &nbsp;<br>
 l&nbsp;--&nbsp;[canvas1,&nbsp;colnum2,&nbsp;canvas2,&nbsp;...&nbsp;,colnumN,&nbsp;canvasN]<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;colnumX&nbsp;is&nbsp;the&nbsp;column&nbsp;number&nbsp;to&nbsp;start&nbsp;for&nbsp;canvasX</tt></dd></dl>

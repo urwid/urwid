@@ -140,11 +140,12 @@ class HtmlGenerator:
 
 			if cols > col:
 				fg,bg,mono = "light gray", "black", None
+				end = line[col:]+" "*(cols-len(line))
 				if y == cy:
-					l.append( html_span( " "*(cols-col), 
+					l.append( html_span( end, 
 						fg, bg, cx-col ))
 				else:
-					l.append( html_span( " "*(cols-col),
+					l.append( html_span( end,
 						fg, bg ))
 			l.append("\n")
 						

@@ -95,7 +95,8 @@ class Screen:
 	def register_palette( self, l ):
 		"""Register a list of palette entries.
 
-		l -- list of (name, foreground, background) or
+		l -- list of (name, foreground, background, mono),
+		     (name, foreground, background) or
 		     (name, same_as_other_name) palette entries.
 
 		calls self.register_palette_entry for each item in l
@@ -443,6 +444,8 @@ class Screen:
 	
 		for y in range(len(lines)):
 			line = lines[y].translate( _trans_table )
+			if len(line) < cols:
+				line += " "*(cols-len(line))
 			if y == rows-1:
 				# don't draw in the lower right corner
 				line = line[:cols-1]

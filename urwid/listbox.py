@@ -98,6 +98,10 @@ class ListBox(BoxWidget):
 		# pref_col is the preferred column for the cursor when moving
 		# between widgets that use the cursor (edit boxes etc.)
 		self.pref_col = 0
+
+		# variable for delayed focus change used by set_focus
+		self.set_focus_pending = None
+		
 	
 	def calculate_visible(self, (maxcol, maxrow), focus=False ):
 		""" Return (middle,top,bottom) or None,None,None.
@@ -112,8 +116,12 @@ class ListBox(BoxWidget):
 			list of (widget, position, rows) tuples below focus
 			in order from top to bottom )
 		"""
-		
-		# 1. start by rendering focus widget
+
+		# 0. set the focus if a change is pending
+		if self.set_focus_pending:
+			self._set_focus_complete( (maxcol, maxrow), focus )
+
+		# 1. start with the focus widget
 		focus_widget, focus_pos = self.body.get_focus()
 		if focus_widget is None: #list box is empty?
 			return None,None,None
@@ -282,7 +290,77 @@ class ListBox(BoxWidget):
 
 
 
+	def set_focus(self, position, coming_from=None):
+		"""
+		Set the focus position and try to keep the old focus in view.
+
+		position -- a position compatible with self.body.set_focus
+		coming_from -- set to 'above' or 'below' if you know that
+		               old position is above or below the new position.
+		"""
+		assert coming_from in ('above', 'below', None)
+		focus_widget, focus_pos = self.body.get_focus()
+		
+		self.set_focus_pending = coming_from, focus_widget, focus_pos
+		self.body.set_focus( position )
+
+	def get_focus(self):
+		"""
+		Return a (focus widget, focus position) tuple.
+		"""
+		return self.body.get_focus()
+
+	def _set_focus_complete(self, (maxcol, maxrow), focus):
+		"""
+		Finish setting the position now that we have maxcol & maxrow.
+		"""
+		coming_from, focus_widget, focus_pos = self.set_focus_pending
+		self.set_focus_pending = None
+		
+		# new position
+		new_focus_widget, position = self.body.get_focus()
+		if focus_pos == position:
+			# do nothing
+			return
+			
+		# restore old focus temporarily
+		self.body.set_focus(focus_pos)
 				
+		middle,top,bottom=self.calculate_visible((maxcol,maxrow),focus)
+		focus_offset, focus_widget, focus_pos, focus_rows, cursor=middle
+		trim_top, fill_above = top
+		trim_bottom, fill_below = bottom
+		
+		offset = focus_offset
+		for widget, pos, rows in fill_above:
+			offset -= rows
+			if pos == position:
+				self.change_focus((maxcol, maxrow), pos,
+					offset, 'below' )
+				return
+
+		offset = focus_offset + focus_rows
+		for widget, pos, rows in fill_below:
+			if pos == position:
+				self.change_focus((maxcol, maxrow), pos,
+					offset, 'above' )
+				return
+			offset += rows
+
+		# failed to find widget among visible widgets
+		self.body.set_focus( position )
+		widget, position = self.body.get_focus()
+		rows = widget.rows((maxcol,), focus)
+
+		if coming_from=='below':
+			offset = 0
+		elif coming_from=='above':
+			offset = maxrow-rows
+		else:
+			offset = maxrow-rows/2
+		self.shift_focus((maxcol, maxrow), offset)
+	
+
 	def shift_focus(self, (maxcol,maxrow), offset_inset ):
 		"""Move the location of the current focus relative to the top.
 		
@@ -434,6 +512,9 @@ class ListBox(BoxWidget):
 		 'page down' move cursor down one listbox length
 		"""
 
+		if self.set_focus_pending:
+			self._set_focus_complete( (maxcol,maxrow), focus=True )
+			
 		focus_widget, pos = self.body.get_focus()
 		if focus_widget is None: # empty listbox, can't do anything
 			return key

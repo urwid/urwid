@@ -534,6 +534,77 @@ class IntEdit(Edit):
 			return 0
 
 
+class Filler(BoxWidget):
+	def __init__(self, body, valign="middle"):
+		"""
+		body -- a flow widget to be filled around
+		valign -- vertical alignment: "top", "middle" or "bottom"
+		"""
+		self.body = body
+		assert valign in ("top","middle","bottom")
+		self.valign = valign
+	
+	def render(self, (maxcol,maxrow), focus=False):
+		"""Render self.body with space around it to fill box size."""
+		c = self.body.render( (maxcol,), focus )
+		
+		cy = None
+		if c.cursor is not None:
+			cx, cy = c.cursor
+		
+		pos = self.body_position((maxcol,maxrow), focus, c.rows(), cy )
+
+		# need to trim top of self.body
+		if pos < 0:
+			c.trim( -pos, maxrow )
+			return c
+		top = Canvas(["" for i in range(pos)])
+		
+		# may need to trim bottom of self.body
+		if pos + c.rows() >= maxrow:
+			return CanvasCombine( [top, c] ).trim(0, maxrow)
+		
+		# add padding to bottom
+		bottom = Canvas(["" for i in range(maxrow-c.rows()-pos)])
+		return CanvasCombine( [top, c, bottom] )
+
+
+	def keypress(self, (maxcol,maxrow), key):
+		"""Pass keypress to self.body."""
+		return self.body.keypress( (maxcol,), key )
+
+
+	def body_position(self, (maxcol, maxrow), focus, rows=None, cy=None):
+		"""
+		Return the row offset (+ve) or reduction (-ve) of self.body.
+		"""
+		
+		if cy is None and focus:
+			if hasattr(self.body,'get_cursor_coords'):
+				cx, cy = self.body.get_cursor_coords((maxcol,))
+
+		# need to trim rows on top
+		if cy is not None and cy >= maxrow:
+			return maxrow-cy-1
+
+		if self.valign == "top":
+			return 0
+
+		if rows is None:
+			rows = self.body.rows((maxcol,), focus)
+		if rows >= maxrow:
+			return 0
+		
+		remaining = maxrow - rows
+
+		if self.valign == "middle":
+			return remaining / 2
+		else: # valign == "bottom"
+			return remaining
+		
+	
+		
+		
 
 
 class Frame(BoxWidget):
