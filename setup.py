@@ -23,7 +23,7 @@ from distutils.core import setup
 
 import os
 
-release = "0.8.5" #os.popen("make -s release").read().strip()
+release = "0.8.6" #os.popen("make -s release").read().strip()
 
 setup_d = {
 	'name':"urwid",

@@ -142,9 +142,9 @@ class LineWalker:
 
 class EditDisplay:
 	palette = [
-		('body','light gray', 'black'),
-		('foot','white', 'black', 'bold'),
-		('key','light cyan', 'black', 'underline'),
+		('body','default', 'default'),
+		('foot','dark cyan', 'dark blue', 'bold'),
+		('key','light cyan', 'dark blue', 'underline'),
 		]
 		
 	footer_text = ('foot', [
@@ -157,7 +157,8 @@ class EditDisplay:
 		self.save_name = name
 		self.walker = LineWalker( name ) 
 		self.listbox = urwid.ListBox( self.walker )
-		self.footer = urwid.Text( self.footer_text )
+		self.footer = urwid.AttrWrap( urwid.Text( self.footer_text ),
+			"foot")
 		self.view = urwid.Frame( urwid.AttrWrap( self.listbox, 'body'),
 			footer=self.footer )
 

@@ -357,7 +357,7 @@ class DirectoryBrowser:
 		('error', 'dark red', 'light gray'),
 		]
 	
-	footer_text = ('foot',[
+	footer_text = [
 		('title', "Directory Browser"), "    ",
 		('key', "UP"), ",", ('key', "DOWN"), ",",
 		('key', "PAGE UP"), ",", ('key', "PAGE DOWN"),
@@ -369,7 +369,7 @@ class DirectoryBrowser:
 		('key', "HOME"), "  ", 
 		('key', "END"), "  ",
 		('key', "Q"),
-		])
+		]
 	
 	
 	def __init__(self):
@@ -378,7 +378,8 @@ class DirectoryBrowser:
 		self.listbox = urwid.ListBox( DirectoryWalker( cwd ) )
 		self.listbox.offset_rows = 1
 		self.header = urwid.Text( "" )
-		self.footer = urwid.Text( self.footer_text )
+		self.footer = urwid.AttrWrap( urwid.Text( self.footer_text ),
+			'foot')
 		self.view = urwid.Frame( 
 			urwid.AttrWrap( self.listbox, 'body' ), 
 			header=urwid.AttrWrap(self.header, 'head' ), 

@@ -550,12 +550,12 @@ class CalcDisplay:
 	palette = [
 		('body','white', 'dark blue'),
 		('edit','yellow', 'dark blue'),
-		('editfocus','yellow','black', 'bold'),
-		('key','light cyan', 'dark cyan', ('standout','underline')),
-		('title', 'white', 'dark cyan', ('bold','standout')),
-		('help', 'light gray', 'dark cyan', 'standout'),
-		('helpnote', 'black', 'dark cyan'),
-		('colhead', 'light gray', 'dark cyan', 'standout'),
+		('editfocus','yellow','dark cyan', 'bold'),
+		('key','dark cyan', 'light gray', ('standout','underline')),
+		('title', 'white', 'light gray', ('bold','standout')),
+		('help', 'black', 'light gray', 'standout'),
+		('helpnote', 'dark green', 'light gray'),
+		('colhead', 'black', 'light gray', 'standout'),
 		('event', 'light red', 'black', 'standout'),
 		('confirm', 'yellow', 'black', 'bold'),
 		]

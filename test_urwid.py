@@ -40,20 +40,31 @@ class WithinDoubleByteTest(unittest.TestCase):
 		self.wtest("mnopqr",0,2,0,'simple no high bytes')
 		self.wtest("mn\xA1\xA1qr",0,2,1,'simple 1st half')
 		self.wtest("mn\xA1\xA1qr",0,3,2,'simple 2nd half')
-		self.wtest("m\xA1\xA1\xA1\xA1r",0,3,1,'subsequent 2st half')
-		self.wtest("m\xA1\xA1\xA1\xA1r",0,4,2,'subsequent 1st half')
+		self.wtest("m\xA1\xA1\xA1\xA1r",0,3,1,'subsequent 1st half')
+		self.wtest("m\xA1\xA1\xA1\xA1r",0,4,2,'subsequent 2nd half')
+		self.wtest("mn\xA1@qr",0,3,2,'simple 2nd half lo')
+		self.wtest("mn\xA1\xA1@r",0,4,0,'subsequent not 2nd half lo')
+		self.wtest("m\xA1\xA1\xA1@r",0,4,2,'subsequent 2nd half lo')
 		
 	def test2(self):
 		self.wtest("\xA1\xA1qr",0,0,1,'begin 1st half')
 		self.wtest("\xA1\xA1qr",0,1,2,'begin 2nd half')
-		self.wtest("\xA1\xA1\xA1\xA1r",0,2,1,'begin subs. 2st half')
-		self.wtest("\xA1\xA1\xA1\xA1r",0,3,2,'begin subs. 1st half')
+		self.wtest("\xA1@qr",0,1,2,'begin 2nd half lo')
+		self.wtest("\xA1\xA1\xA1\xA1r",0,2,1,'begin subs. 1st half')
+		self.wtest("\xA1\xA1\xA1\xA1r",0,3,2,'begin subs. 2nd half')
+		self.wtest("\xA1\xA1\xA1@r",0,3,2,'begin subs. 2nd half lo')
+		self.wtest("\xA1@\xA1@r",0,3,2,'begin subs. 2nd half lo lo')
+		self.wtest("@\xA1\xA1@r",0,3,0,'begin subs. not 2nd half lo')
 
 	def test3(self):
 		self.wtest("abc \xA1\xA1qr",4,4,1,'newline 1st half')
 		self.wtest("abc \xA1\xA1qr",4,5,2,'newline 2nd half')
-		self.wtest("abc \xA1\xA1\xA1\xA1r",4,6,1,'newl subs. 2st half')
-		self.wtest("abc \xA1\xA1\xA1\xA1r",4,7,2,'newl subs. 1st half')
+		self.wtest("abc \xA1@qr",4,5,2,'newline 2nd half lo')
+		self.wtest("abc \xA1\xA1\xA1\xA1r",4,6,1,'newl subs. 1st half')
+		self.wtest("abc \xA1\xA1\xA1\xA1r",4,7,2,'newl subs. 2nd half')
+		self.wtest("abc \xA1\xA1\xA1@r",4,7,2,'newl subs. 2nd half lo')
+		self.wtest("abc \xA1@\xA1@r",4,7,2,'newl subs. 2nd half lo lo')
+		self.wtest("abc @\xA1\xA1@r",4,7,0,'newl subs. not 2nd half lo')
 
 
 class CalcBreaksTest(unittest.TestCase):

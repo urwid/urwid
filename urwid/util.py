@@ -19,11 +19,22 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-# Try to determine if using a double-byte encoding
-# (this almost certainly needs to be fixed and/or improved)
+# Try to determine if using a supported double-byte encoding
 import locale
 _encoding = locale.getdefaultlocale()[1] or ""
-double_byte_encoding = _encoding[:3] == "euc" or _encoding in ('gb2312','big5')
+double_byte_encoding = _encoding.lower() in ( 'euc-jp' # JISX 0208 only
+	, 'euc-kr', 'euc-cn', 'euc-tw' # CNS 11643 plain 1 only
+	, 'gb2312', 'gbk', 'big5', 'cn-gb', 'uhc'
+	# these shouldn't happen, should they?
+	, 'eucjp', 'euckr', 'euccn', 'euctw', 'cncb' )
+
+# if encoding is valid for conversion from unicode, remember it
+target_encoding = None
+try:	
+	if _encoding:
+		u"".encode(_encoding)
+		target_encoding = _encoding
+except LookupError: pass
 
 def set_double_byte_encoding( dbe ):
 	"""Enable/disable special processing for double-byte characters.
@@ -274,11 +285,22 @@ def within_double_byte(str, line_start, pos):
 	"""
 	if not double_byte_encoding: return 0
 
-	if ord(str[pos]) < 0xA1: return 0
+	v = ord(str[pos])
+
+	if v >= 0x40 and v < 0x7f:
+		# might be second half of big5, uhc or gbk encoding
+		if pos == line_start: return 0
+		
+		if ord(str[pos-1]) >= 0x81:
+			if within_double_byte(str, line_start, pos-1) == 1:
+				return 2
+		return 0
+
+	if v < 0x80: return 0
 
 	i = pos -1
 	while i >= line_start:
-		if ord(str[i]) < 0xA1:
+		if ord(str[i]) < 0x80:
 			break
 		i -= 1
 	

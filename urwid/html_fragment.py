@@ -94,6 +94,10 @@ class HtmlGenerator:
 
 		See curses_display.register_palette_entry for more info.
 		"""
+		if foreground == "default":
+			foreground = "black"
+		if background == "default":
+			background = "light gray"
 		self.palette[name] = (foreground, background, mono)
 
 	def run_wrapper(self,fn):
@@ -127,7 +131,7 @@ class HtmlGenerator:
 			
 			for a, run in attr:
 				if a is None:
-					fg,bg,mono = "light gray", "black", None
+					fg,bg,mono = "black", "light gray", None
 				else:
 					fg,bg,mono = self.palette[a]
 				if y == cy:
@@ -139,7 +143,7 @@ class HtmlGenerator:
 				col += run
 
 			if cols > col:
-				fg,bg,mono = "light gray", "black", None
+				fg,bg,mono = "black", "light gray", None
 				end = line[col:]+" "*(cols-len(line))
 				if y == cy:
 					l.append( html_span( end, 

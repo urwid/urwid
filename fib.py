@@ -72,17 +72,18 @@ class FibonacciDisplay:
 		('title', 'white', 'black',),
 		]
 		
-	footer_text = ('foot', [
+	footer_text = [
 		('title', "Fibonacci Set Viewer"), "    ",
 		('key', "UP"), ", ", ('key', "DOWN"), ", ",
 		('key', "PAGE UP"), " and ", ('key', "PAGE DOWN"),
 		" move view  ",
 		('key', "Q"), " exits",
-		])
+		]
 	
 	def __init__(self):
 		self.listbox = urwid.ListBox( FibonacciWalker() )
-		self.footer = urwid.Text( self.footer_text )
+		self.footer = urwid.AttrWrap( urwid.Text( self.footer_text ),
+			'foot')
 		self.view = urwid.Frame( urwid.AttrWrap( self.listbox, 'body'),
 			footer=self.footer )
 

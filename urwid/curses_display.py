@@ -24,6 +24,7 @@ Curses-based UI implementation
 """
 
 import curses
+import sys
 
 import util
 
@@ -32,6 +33,7 @@ except: False, True = 0, 1
 		
 
 _curses_colours = {
+	'default':		(-1,			0),
 	'black':		(curses.COLOR_BLACK,	0),
 	'dark red':		(curses.COLOR_RED,	0),
 	'dark green':		(curses.COLOR_GREEN,	0),
@@ -85,11 +87,12 @@ WINDOW_RESIZE = 410
 class Screen:
 	def __init__(self):
 		self.curses_pairs = [
-			(curses.COLOR_WHITE, curses.COLOR_BLACK), # default
+			(None,None), # Can't be sure what pair 0 will default to
 		]
 		self.palette = {}
 		self.has_color = False
 		self.s = None
+		self.cursor_state = None
 		self._keyqueue = []
 
 	def register_palette( self, l ):
@@ -121,10 +124,12 @@ class Screen:
 			'dark green', 'brown', 'dark blue', 'dark magenta',
 			'dark cyan', 'light gray', 'dark gray', 'light red',
 			'light green', 'yellow', 'light blue', 'light magenta',
-			'light cyan', 'white'
+			'light cyan', 'white', 'default' (black if unable to
+			use terminal's default)
 		background -- background colour, one of: 'black', 'dark red',
 			'dark green', 'brown', 'dark blue', 'dark magenta',
-			'dark cyan', 'light gray'
+			'dark cyan', 'light gray', 'default' (light gray if
+			unable to use terminal's default)
 		mono -- monochrome terminal attribute, one of: None (default),
 			'bold',	'underline', 'standout', or a tuple containing
 			a combination eg. ('bold','underline')
@@ -163,6 +168,12 @@ class Screen:
 				if curses.COLORS < 8:
 					# not colourful enough
 					self.has_color = False
+			if self.has_color:
+				try:
+					curses.use_default_colors()
+					self.has_default_colors=True
+				except:
+					self.has_default_colors=False
 			self._setup_colour_pairs()
 			curses.noecho()
 			curses.meta(1)
@@ -172,6 +183,7 @@ class Screen:
 			return fn()
 		finally:
 			curses.echo()
+			self._curs_set(1)
 			try:
 				curses.endwin()
 			except:
@@ -183,8 +195,12 @@ class Screen:
 		if self.has_color:
 			if len(self.curses_pairs) > curses.COLOR_PAIRS:
 				raise Exception("Too many colour pairs!  Use fewer combinations.")
-			
+		
 			for fg,bg in self.curses_pairs[1:]:
+				if not self.has_default_colors and fg == -1:
+					fg = _curses_colours["black"][0]
+				if not self.has_default_colors and bg == -1:
+					bg = _curses_colours["light gray"][0]
 				curses.init_pair(k,fg,bg)
 				k+=1
 		else:
@@ -218,10 +234,9 @@ class Screen:
 
 
 	def _curs_set(self,x):
-		try:
-			self.console.curs_set(x)
-		except:
-			pass
+		if x == self.cursor_state: return
+		curses.curs_set(x)
+		self.cursor_state = x
 	
 	def _clear(self):
 		self.s.clear()

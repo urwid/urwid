@@ -81,7 +81,7 @@ Creating canvases directly is generally only done when
 writing custom widget classes.  Note that the draw_screen
 function must be passed a canvas and a screen size that matches it.
 
-<div align="center"><pre><span style="color:silver;background:black">Hello World         </span>
+<div align="center"><pre><span style="color:black;background:silver">Hello World         </span>
 </pre></div>
 <br>
 <br>
@@ -142,13 +142,13 @@ This difference makes sure that when the wrong type of widget is used,
 such as a box widget inside a filler widget, a ValueError exception will 
 be thrown.
 
-<div align="center"><pre><span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">     </span><span style="color:silver;background:black">Hello World     </span>
-<span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">                     </span>
+<div align="center"><pre><span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">     </span><span style="color:black;background:silver">Hello World     </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">                     </span>
 </pre></div>
 <br>
 <br>
@@ -373,29 +373,29 @@ The Edit widget has many capabilities. It lets you make corrections and move
 the cursor around with the HOME, END and arrow keys. It is based on the Text
 widget so it supports the same wrapping and alignment modes.
 
-<div class="shot"><pre><span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">What is your name?   </span>
-<span style="color:silver;background:black"><u> </u>                    </span>
-<span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">                     </span>
+<div class="shot"><pre><span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">What is your name?   </span>
+<span style="color:black;background:silver"><u> </u>                    </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">                     </span>
 </pre></div>
-<div class="shot"><pre><span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">What is your name?   </span>
-<span style="color:silver;background:black">Arthur, King of the  </span>
-<span style="color:silver;background:black">Britons<u> </u>             </span>
-<span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">                     </span>
+<div class="shot"><pre><span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">What is your name?   </span>
+<span style="color:black;background:silver">Arthur, King of the  </span>
+<span style="color:black;background:silver">Britons<u> </u>             </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">                     </span>
 </pre></div>
-<div class="shot"><pre><span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">Nice to meet you,    </span>
-<span style="color:silver;background:black">Arthur, King of the  </span>
-<span style="color:silver;background:black">Britons.             </span>
-<span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">                     </span>
+<div class="shot"><pre><span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">Nice to meet you,    </span>
+<span style="color:black;background:silver">Arthur, King of the  </span>
+<span style="color:black;background:silver">Britons.             </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">                     </span>
 </pre></div>
 <br clear="left">
 <br>
@@ -421,7 +421,7 @@ class Conversation:
 		self.ui = urwid.curses_display.Screen()
 		self.ui.register_palette([
 			('header', 'black', 'dark cyan', 'standout'),
-			('I say', 'white', 'black', 'bold'),
+			('I say', 'dark blue', 'default', 'bold'),
 			])
 		self.ui.run_wrapper( self.run )
 
@@ -477,36 +477,36 @@ editing operations on the list, eg. "list = list + [something]" will not work,
 use "list += [something]" instead.
 
 <div class="shot"><pre><span style="color:black;background:teal">Press F1 to exit.    </span>
-<span style="color:white;background:black">What is your name?</span><span style="color:silver;background:black">   </span>
-<span style="color:silver;background:black"><u> </u>                    </span>
-<span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">                     </span>
+<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">   </span>
+<span style="color:black;background:silver"><u> </u>                    </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">                     </span>
 </pre></div>
 <div class="shot"><pre><span style="color:black;background:teal">Press F1 to exit.    </span>
-<span style="color:white;background:black">What is your name?</span><span style="color:silver;background:black">   </span>
-<span style="color:silver;background:black">Tim t<u> </u>               </span>
-<span style="color:white;background:black">Nice to meet you, Tim</span>
-<span style="color:white;background:black">t</span><span style="color:silver;background:black">                    </span>
-<span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">                     </span>
+<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">   </span>
+<span style="color:black;background:silver">Tim t<u> </u>               </span>
+<span style="color:#0000c0;background:silver">Nice to meet you, Tim</span>
+<span style="color:#0000c0;background:silver">t</span><span style="color:black;background:silver">                    </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">                     </span>
 </pre></div>
 <div class="shot"><pre><span style="color:black;background:teal">Press F1 to exit.    </span>
-<span style="color:white;background:black">What is your name?</span><span style="color:silver;background:black">   </span>
-<span style="color:silver;background:black">Tim the Ench<u> </u>        </span>
-<span style="color:white;background:black">Nice to meet you, Tim</span>
-<span style="color:white;background:black">the Ench</span><span style="color:silver;background:black">             </span>
-<span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">                     </span>
+<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">   </span>
+<span style="color:black;background:silver">Tim the Ench<u> </u>        </span>
+<span style="color:#0000c0;background:silver">Nice to meet you, Tim</span>
+<span style="color:#0000c0;background:silver">the Ench</span><span style="color:black;background:silver">             </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">                     </span>
 </pre></div>
 <div class="shot"><pre><span style="color:black;background:teal">Press F1 to exit.    </span>
-<span style="color:white;background:black">What is your name?</span><span style="color:silver;background:black">   </span>
-<span style="color:silver;background:black">Tim the Enchanter<u> </u>   </span>
-<span style="color:white;background:black">Nice to meet you, Tim</span>
-<span style="color:white;background:black">the Enchanter</span><span style="color:silver;background:black">        </span>
-<span style="color:silver;background:black">                     </span>
-<span style="color:silver;background:black">                     </span>
+<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">   </span>
+<span style="color:black;background:silver">Tim the Enchanter<u> </u>   </span>
+<span style="color:#0000c0;background:silver">Nice to meet you, Tim</span>
+<span style="color:#0000c0;background:silver">the Enchanter</span><span style="color:black;background:silver">        </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">                     </span>
 </pre></div>
 <br clear="left">
 <br>
@@ -595,46 +595,46 @@ widgets are selectable it will only scroll when the cursor reaches the
 top or bottom edge.
 
 <div class="shot"><pre><span style="color:black;background:teal">Press F1 to exit.      </span>
-<span style="color:white;background:black">What is your name?</span><span style="color:silver;background:black">     </span>
-<span style="color:silver;background:black">Abe                    </span>
-<span style="color:white;background:black">Nice to meet you, Abe</span><span style="color:silver;background:black">  </span>
-<span style="color:silver;background:black">                       </span>
-<span style="color:white;background:black">What is your name?</span><span style="color:silver;background:black">     </span>
-<span style="color:silver;background:black">Bob<u> </u>                   </span>
-<span style="color:silver;background:black">                       </span>
-<span style="color:silver;background:black">                       </span>
-<span style="color:silver;background:black">                       </span>
-<span style="color:silver;background:black">                       </span>
-<span style="color:silver;background:black">                       </span>
-<span style="color:silver;background:black">                       </span>
+<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
+<span style="color:black;background:silver">Abe                    </span>
+<span style="color:#0000c0;background:silver">Nice to meet you, Abe</span><span style="color:black;background:silver">  </span>
+<span style="color:black;background:silver">                       </span>
+<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
+<span style="color:black;background:silver">Bob<u> </u>                   </span>
+<span style="color:black;background:silver">                       </span>
+<span style="color:black;background:silver">                       </span>
+<span style="color:black;background:silver">                       </span>
+<span style="color:black;background:silver">                       </span>
+<span style="color:black;background:silver">                       </span>
+<span style="color:black;background:silver">                       </span>
 </pre></div>
 <div class="shot"><pre><span style="color:black;background:teal">Press F1 to exit.      </span>
-<span style="color:white;background:black">Nice to meet you, Abe</span><span style="color:silver;background:black">  </span>
-<span style="color:silver;background:black">                       </span>
-<span style="color:white;background:black">What is your name?</span><span style="color:silver;background:black">     </span>
-<span style="color:silver;background:black">Bob                    </span>
-<span style="color:white;background:black">Nice to meet you, Bob</span><span style="color:silver;background:black">  </span>
-<span style="color:silver;background:black">                       </span>
-<span style="color:white;background:black">What is your name?</span><span style="color:silver;background:black">     </span>
-<span style="color:silver;background:black">Carl                   </span>
-<span style="color:white;background:black">Nice to meet you, Carl</span><span style="color:silver;background:black"> </span>
-<span style="color:silver;background:black">                       </span>
-<span style="color:white;background:black">What is your name?</span><span style="color:silver;background:black">     </span>
-<span style="color:silver;background:black"><u> </u>                      </span>
+<span style="color:#0000c0;background:silver">Nice to meet you, Abe</span><span style="color:black;background:silver">  </span>
+<span style="color:black;background:silver">                       </span>
+<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
+<span style="color:black;background:silver">Bob                    </span>
+<span style="color:#0000c0;background:silver">Nice to meet you, Bob</span><span style="color:black;background:silver">  </span>
+<span style="color:black;background:silver">                       </span>
+<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
+<span style="color:black;background:silver">Carl                   </span>
+<span style="color:#0000c0;background:silver">Nice to meet you, Carl</span><span style="color:black;background:silver"> </span>
+<span style="color:black;background:silver">                       </span>
+<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
+<span style="color:black;background:silver"><u> </u>                      </span>
 </pre></div>
 <div class="shot"><pre><span style="color:black;background:teal">Press F1 to exit.      </span>
-<span style="color:white;background:black">Nice to meet you, Bob</span><span style="color:silver;background:black">  </span>
-<span style="color:silver;background:black">                       </span>
-<span style="color:white;background:black">What is your name?</span><span style="color:silver;background:black">     </span>
-<span style="color:silver;background:black">Carl                   </span>
-<span style="color:white;background:black">Nice to meet you, Carl</span><span style="color:silver;background:black"> </span>
-<span style="color:silver;background:black">                       </span>
-<span style="color:white;background:black">What is your name?</span><span style="color:silver;background:black">     </span>
-<span style="color:silver;background:black">Dave                   </span>
-<span style="color:white;background:black">Nice to meet you, Dave</span><span style="color:silver;background:black"> </span>
-<span style="color:silver;background:black">                       </span>
-<span style="color:white;background:black">What is your name?</span><span style="color:silver;background:black">     </span>
-<span style="color:silver;background:black"><u> </u>                      </span>
+<span style="color:#0000c0;background:silver">Nice to meet you, Bob</span><span style="color:black;background:silver">  </span>
+<span style="color:black;background:silver">                       </span>
+<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
+<span style="color:black;background:silver">Carl                   </span>
+<span style="color:#0000c0;background:silver">Nice to meet you, Carl</span><span style="color:black;background:silver"> </span>
+<span style="color:black;background:silver">                       </span>
+<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
+<span style="color:black;background:silver">Dave                   </span>
+<span style="color:#0000c0;background:silver">Nice to meet you, Dave</span><span style="color:black;background:silver"> </span>
+<span style="color:black;background:silver">                       </span>
+<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
+<span style="color:black;background:silver"><u> </u>                      </span>
 </pre></div>
 <br clear="left">
 <br>
