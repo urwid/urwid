@@ -19,6 +19,21 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+# Try to determine if using a double-byte encoding
+# (this almost certainly needs to be fixed and/or improved)
+import locale
+_encoding = locale.getdefaultlocale()[1] or ""
+double_byte_encoding = _encoding[:3] == "euc" or _encoding in ('gb2312','big5')
+
+def set_double_byte_encoding( dbe ):
+	"""Enable/disable special processing for double-byte characters.
+	
+	dbe -- True to enable, False to disable."""
+
+	global double_byte_encoding
+	double_byte_encoding = dbe
+
+
 STANDARD_WRAP_MODES = ('any', 'space', 'clip')
 STANDARD_ALIGN_MODES = ('left', 'center', 'right')
 
@@ -123,6 +138,10 @@ def calculate_alignment( text, width, b, wrap_mode, align_mode ):
 		line = text[last:p]
 		
 		if line[-1:] == "\n": r_trim = 1
+		if double_byte_encoding and p-last==1:
+			# pathological case: double byte char & width=1
+			if within_double_byte(text,last,p-1):
+				r_trim = 1
 		if wrap_mode == 'space':
 			if line[-1:] == " ": r_trim = 1
 		if wrap_mode == 'clip' and len(line) - l_trim - r_trim > width:
@@ -137,6 +156,12 @@ def calculate_alignment( text, width, b, wrap_mode, align_mode ):
 			else:
 				r_trim += clip
 		
+			if within_double_byte(text,last,last+l_trim) == 2:
+				l_trim += 1
+				l_pad += 1
+			if within_double_byte(text,last,p-r_trim-1) == 1:
+				r_trim += 1
+			
 		if align_mode in ('right', 'center'):
 			ln = len(line) - r_trim - l_trim
 			l_pad = width - ln
@@ -172,8 +197,19 @@ def calculate_text_breaks( text, width, mode ):
 			break
 		if not nb and mode == 'space':
 			nb = _next_word_break(text, width, p)
+			if double_byte_encoding:
+				nb_db = _next_db_break(text, width, p)
+				if nb is None:
+					nb = nb_db
+				elif nb_db is not None and nb_db > nb:
+					nb = nb_db
 		if not nb:
 			nb = p+width
+			if double_byte_encoding and width>1:
+				w = within_double_byte( text, p, nb)
+				if w == 2:
+					# keep whole character together
+					nb -= 1
 			if nb >= len(text): break
 		p = nb
 		b.append(p)
@@ -205,6 +241,51 @@ def _next_word_break( text, width, prev_break ):
 		return
 	return sp_pos +1
 
+def _next_db_break( text, width, prev_break ):
+	# find double byte edge
+	dbe_pos = prev_break+width
+	w = within_double_byte( text, prev_break, dbe_pos )
+	# next line starts on beginning of db char? good.
+	if w == 1:
+		return dbe_pos
+	# db char straddles line?  wrap it to next line.
+	if w == 2:
+		return dbe_pos-1
+	# not here, keep looking
+	dbe_pos -= 1
+	while dbe_pos > prev_break:
+		w = within_double_byte( text, prev_break, dbe_pos )
+		if w == 2:
+			return dbe_pos+1
+		dbe_pos -= 1
+	return
+
+def within_double_byte(str, line_start, pos):
+	"""Return whether pos is within a double-byte encoded character.
+	
+	str -- string in question
+	line_start -- offset of beginning of line (< pos)
+	pos -- offset in question
+
+	Return values:
+	0 -- not within dbe char, or double_byte_encoding == False
+	1 -- pos is on the 1st half of a dbe char
+	2 -- pos is on the 2nd half og a dbe char
+	"""
+	if not double_byte_encoding: return 0
+
+	if ord(str[pos]) < 0xA1: return 0
+
+	i = pos -1
+	while i >= line_start:
+		if ord(str[i]) < 0xA1:
+			break
+		i -= 1
+	
+	if (pos - i) & 1:
+		return 1
+	return 2
+	
 
 def positions_to_coords(plist, trans, clamp=1):
 	"""

@@ -25,6 +25,8 @@ Curses-based UI implementation
 
 import curses
 
+import util
+
 try: True # old python?
 except: False, True = 0, 1
 		
@@ -251,7 +253,8 @@ class Screen:
 		wait briefly for new input.
 
 		keys are returned as single characters for a-z, A-Z, 0-9, " "
-		or as multiple characters for keys like 'backspace','enter','f1'.
+		as double-byte characters for "\\xA1\\xA1", "\\xA1\\xA2" ...
+		or as strings for keys like 'backspace', 'enter', 'f1'.
 		"""
 		curses.doupdate() # this works around a strange curses bug with window resizing not being reported correctly with repeated calls to this function without a doupdate call in between
 		key = self._getch()
@@ -286,6 +289,9 @@ class Screen:
 			return [_keyconv[code]],keys
 		if code >0 and code <27:
 			return ["ctrl %s" % chr(ord('a')+code-1)],keys
+		if code >=0xA1 and util.double_byte_encoding and keys:
+			if keys[0] >=0xA1:
+				return [chr(code)+chr(keys.pop(0))],keys
 		if code >160 and code<255:
 			key = "meta "+chr(code&0x7f)
 			return [key],keys
@@ -332,7 +338,11 @@ class Screen:
 			else:
 				return ['esc','['],[c3,c4,c5]+keys
 		
-		if c2 != ord('O') or not keys: return ['esc'],[c2]+keys
+		if c2 != ord('O'):
+			if c2 >32 and c2 <127: 
+				key = "meta "+chr(c2)
+				return [key],keys
+			return ['esc'],[c2]+keys
 		
 		c3 = keys.pop(0)
 		if c3 == ord('H'): return ["home"],keys

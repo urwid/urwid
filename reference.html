@@ -16,7 +16,7 @@
 <a href="http://excess.org/urwid/examples.html">Urwid Example Screenshots</a>
 </div>
 <br>
-<div class="l1">User interface library wrapper</div><div class="l2"><a href="#curses_display.Screen">curses_display.Screen</a></div><div class="l1">Top-level widgets</div><div class="l2"><a href="#BoxWidget">BoxWidget</a></div><div class="l2"><a href="#Frame">Frame</a></div><div class="l2"><a href="#ListBox">ListBox</a></div><div class="l2"><a href="#SimpleListWalker">SimpleListWalker</a></div><div class="l1">Content widgets</div><div class="l2"><a href="#FlowWidget">FlowWidget</a></div><div class="l2"><a href="#Text">Text</a></div><div class="l2"><a href="#Edit">Edit</a></div><div class="l2"><a href="#IntEdit">IntEdit</a></div><div class="l1">Composite widgets</div><div class="l2"><a href="#Columns">Columns</a></div><div class="l2"><a href="#Pile">Pile</a></div><div class="l1">Decorations</div><div class="l2"><a href="#AttrWrap">AttrWrap</a></div><div class="l2"><a href="#Divider">Divider</a></div><div class="l1">Canvas painting</div><div class="l2"><a href="#canvas.Canvas">canvas.Canvas</a></div><div class="l2"><a href="#-canvas.CanvasCombine">canvas.CanvasCombine</a></div><div class="l2"><a href="#-canvas.CanvasJoin">canvas.CanvasJoin</a></div><div class="l1">Custom formatting rules</div><div class="l2"><a href="#-util.register_align_mode">util.register_align_mode</a></div><div class="l2"><a href="#-util.register_wrap_mode">util.register_wrap_mode</a></div><div class="l1">Screen capture</div><div class="l2"><a href="#html_fragment.HtmlGenerator">html_fragment.HtmlGenerator</a></div><h2>User interface library wrapper</h2><h3><strong>curses_display.Screen</strong> = <a name="curses_display.Screen">class Screen</a></h3>Methods defined here:<br>
+<div class="l1">User interface library wrapper</div><div class="l2"><a href="#curses_display.Screen">curses_display.Screen</a></div><div class="l1">Top-level widgets</div><div class="l2"><a href="#BoxWidget">BoxWidget</a></div><div class="l2"><a href="#Frame">Frame</a></div><div class="l2"><a href="#ListBox">ListBox</a></div><div class="l2"><a href="#SimpleListWalker">SimpleListWalker</a></div><div class="l1">Content widgets</div><div class="l2"><a href="#FlowWidget">FlowWidget</a></div><div class="l2"><a href="#Text">Text</a></div><div class="l2"><a href="#Edit">Edit</a></div><div class="l2"><a href="#IntEdit">IntEdit</a></div><div class="l1">Composite widgets</div><div class="l2"><a href="#Columns">Columns</a></div><div class="l2"><a href="#Pile">Pile</a></div><div class="l1">Decorations</div><div class="l2"><a href="#AttrWrap">AttrWrap</a></div><div class="l2"><a href="#Divider">Divider</a></div><div class="l1">Canvas painting</div><div class="l2"><a href="#canvas.Canvas">canvas.Canvas</a></div><div class="l2"><a href="#-canvas.CanvasCombine">canvas.CanvasCombine</a></div><div class="l2"><a href="#-canvas.CanvasJoin">canvas.CanvasJoin</a></div><div class="l1">Custom formatting rules</div><div class="l2"><a href="#-util.register_align_mode">util.register_align_mode</a></div><div class="l2"><a href="#-util.register_wrap_mode">util.register_wrap_mode</a></div><div class="l2"><a href="#-util.set_double_byte_encoding">util.set_double_byte_encoding</a></div><div class="l1">Screen capture</div><div class="l2"><a href="#html_fragment.HtmlGenerator">html_fragment.HtmlGenerator</a></div><h2>User interface library wrapper</h2><h3><strong>curses_display.Screen</strong> = <a name="curses_display.Screen">class Screen</a></h3>Methods defined here:<br>
 <dl><dt><a name="Screen-__init__"><strong>__init__</strong></a>(self)</dt></dl>
 
 <dl><dt><a name="Screen-draw_screen"><strong>draw_screen</strong></a>(self, (cols, rows), r)</dt><dd><tt>Paint&nbsp;screen&nbsp;with&nbsp;rendered&nbsp;canvas.</tt></dd></dl>
@@ -30,7 +30,8 @@ last&nbsp;time&nbsp;it&nbsp;was&nbsp;called.&nbsp;&nbsp;If&nbsp;there&nbsp;is&nb
 wait&nbsp;briefly&nbsp;for&nbsp;new&nbsp;input.<br>
 &nbsp;<br>
 keys&nbsp;are&nbsp;returned&nbsp;as&nbsp;single&nbsp;characters&nbsp;for&nbsp;a-z,&nbsp;A-Z,&nbsp;0-9,&nbsp;"&nbsp;"<br>
-or&nbsp;as&nbsp;multiple&nbsp;characters&nbsp;for&nbsp;keys&nbsp;like&nbsp;'backspace','enter','f1'.</tt></dd></dl>
+as&nbsp;double-byte&nbsp;characters&nbsp;for&nbsp;"\xA1\xA1",&nbsp;"\xA1\xA2"&nbsp;...<br>
+or&nbsp;as&nbsp;strings&nbsp;for&nbsp;keys&nbsp;like&nbsp;'backspace',&nbsp;'enter',&nbsp;'f1'.</tt></dd></dl>
 
 <dl><dt><a name="Screen-register_palette"><strong>register_palette</strong></a>(self, l)</dt><dd><tt>Register&nbsp;a&nbsp;list&nbsp;of&nbsp;palette&nbsp;entries.<br>
 &nbsp;<br>
@@ -238,9 +239,20 @@ focus.</tt></dd></dl>
 
 <dl><dt><a name="Edit-set_edit_pos"><strong>set_edit_pos</strong></a>(self, pos)</dt><dd><tt>Set&nbsp;the&nbsp;cursor&nbsp;position&nbsp;with&nbsp;a&nbsp;self.<strong>edit_text</strong>&nbsp;offset.</tt></dd></dl>
 
-<dl><dt><a name="Edit-update_text"><strong>update_text</strong></a>(self)</dt><dd><tt>Make&nbsp;sure&nbsp;any&nbsp;cached&nbsp;line&nbsp;translation&nbsp;is&nbsp;not&nbsp;reused.</tt></dd></dl>
+<dl><dt><a name="Edit-set_edit_text"><strong>set_edit_text</strong></a>(self, text)</dt><dd><tt>Set&nbsp;the&nbsp;edit&nbsp;text&nbsp;for&nbsp;this&nbsp;widget.</tt></dd></dl>
+
+<dl><dt><a name="Edit-update_text"><strong>update_text</strong></a>(self)</dt><dd><tt>Deprecated.&nbsp;&nbsp;Use&nbsp;set_caption&nbsp;and/or&nbsp;set_edit_text&nbsp;instead.<br>
+&nbsp;<br>
+Make&nbsp;sure&nbsp;any&nbsp;cached&nbsp;line&nbsp;translation&nbsp;is&nbsp;not&nbsp;reused.</tt></dd></dl>
 
 <dl><dt><a name="Edit-valid_char"><strong>valid_char</strong></a>(self, ch)</dt><dd><tt>Return&nbsp;true&nbsp;for&nbsp;printable&nbsp;characters.</tt></dd></dl>
+
+<dl><dt><a name="Edit-within_double_byte"><strong>within_double_byte</strong></a>(self, maxcol, pos)</dt><dd><tt>Return&nbsp;whether&nbsp;pos&nbsp;is&nbsp;on&nbsp;a&nbsp;double-byte&nbsp;character.<br>
+&nbsp;<br>
+Return&nbsp;values:<br>
+0&nbsp;--&nbsp;not&nbsp;within&nbsp;or&nbsp;double&nbsp;byte&nbsp;encoding&nbsp;not&nbsp;enabled<br>
+1&nbsp;--&nbsp;on&nbsp;the&nbsp;1st&nbsp;half<br>
+2&nbsp;--&nbsp;on&nbsp;the&nbsp;2nd&nbsp;half</tt></dd></dl>
 
 <hr>
 Methods inherited from Text:<br>
@@ -316,7 +328,18 @@ focus.</tt></dd></dl>
 
 <dl><dt><a name="IntEdit-set_edit_pos"><strong>set_edit_pos</strong></a>(self, pos)</dt><dd><tt>Set&nbsp;the&nbsp;cursor&nbsp;position&nbsp;with&nbsp;a&nbsp;self.<strong>edit_text</strong>&nbsp;offset.</tt></dd></dl>
 
-<dl><dt><a name="IntEdit-update_text"><strong>update_text</strong></a>(self)</dt><dd><tt>Make&nbsp;sure&nbsp;any&nbsp;cached&nbsp;line&nbsp;translation&nbsp;is&nbsp;not&nbsp;reused.</tt></dd></dl>
+<dl><dt><a name="IntEdit-set_edit_text"><strong>set_edit_text</strong></a>(self, text)</dt><dd><tt>Set&nbsp;the&nbsp;edit&nbsp;text&nbsp;for&nbsp;this&nbsp;widget.</tt></dd></dl>
+
+<dl><dt><a name="IntEdit-update_text"><strong>update_text</strong></a>(self)</dt><dd><tt>Deprecated.&nbsp;&nbsp;Use&nbsp;set_caption&nbsp;and/or&nbsp;set_edit_text&nbsp;instead.<br>
+&nbsp;<br>
+Make&nbsp;sure&nbsp;any&nbsp;cached&nbsp;line&nbsp;translation&nbsp;is&nbsp;not&nbsp;reused.</tt></dd></dl>
+
+<dl><dt><a name="IntEdit-within_double_byte"><strong>within_double_byte</strong></a>(self, maxcol, pos)</dt><dd><tt>Return&nbsp;whether&nbsp;pos&nbsp;is&nbsp;on&nbsp;a&nbsp;double-byte&nbsp;character.<br>
+&nbsp;<br>
+Return&nbsp;values:<br>
+0&nbsp;--&nbsp;not&nbsp;within&nbsp;or&nbsp;double&nbsp;byte&nbsp;encoding&nbsp;not&nbsp;enabled<br>
+1&nbsp;--&nbsp;on&nbsp;the&nbsp;1st&nbsp;half<br>
+2&nbsp;--&nbsp;on&nbsp;the&nbsp;2nd&nbsp;half</tt></dd></dl>
 
 <hr>
 Methods inherited from Text:<br>
@@ -467,6 +490,9 @@ Must&nbsp;return:<br>
 list&nbsp;of&nbsp;offsets&nbsp;into&nbsp;text&nbsp;for&nbsp;line&nbsp;breaks<br>
 &nbsp;<br>
 eg.&nbsp;[4,6]&nbsp;would&nbsp;split&nbsp;"hallabaloo"&nbsp;into&nbsp;"hall","ab","aloo"</tt></dd></dl>
+<dl><dt><a name="-util.set_double_byte_encoding"><strong>util.set_double_byte_encoding</strong></a> = set_double_byte_encoding(dbe)</dt><dd><tt>Enable/disable&nbsp;special&nbsp;processing&nbsp;for&nbsp;double-byte&nbsp;characters.<br>
+&nbsp;<br>
+dbe&nbsp;--&nbsp;True&nbsp;to&nbsp;enable,&nbsp;False&nbsp;to&nbsp;disable.</tt></dd></dl>
 <h2>Screen capture</h2><h3><strong>html_fragment.HtmlGenerator</strong> = <a name="html_fragment.HtmlGenerator">class HtmlGenerator</a></h3>Methods defined here:<br>
 <dl><dt><a name="HtmlGenerator-__init__"><strong>__init__</strong></a>(self)</dt></dl>
 

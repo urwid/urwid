@@ -198,6 +198,8 @@ class Edit(Text):
 	
 	def valid_char(self, ch):
 		"""Return true for printable characters."""
+		if double_byte_encoding and len(ch)==2 and ord(ch[0])>0xA1:
+			return True
 		return len(ch)==1 and ord(ch) >= 32
 	
 	def selectable(self): return 1
@@ -241,7 +243,9 @@ class Edit(Text):
 			return pref_col
 	
 	def update_text(self):
-		"""Make sure any cached line translation is not reused."""
+		"""Deprecated.  Use set_caption and/or set_edit_text instead.
+		
+		Make sure any cached line translation is not reused."""
 		self._cache_maxcol = None
 
 	def set_caption(self, caption):
@@ -255,6 +259,14 @@ class Edit(Text):
 		self.highlight = None
 		self.pref_col_maxcol = None, None
 		self.edit_pos = pos
+	
+	def set_edit_text(self, text):
+		"""Set the edit text for this widget."""
+		self.highlight = None
+		self.edit_text = text
+		if self.edit_pos > len(text):
+			self.edit_pos = len(text)
+		self.update_text()
 	
 	def insert_text(self, text):
 		"""Insert text at the cursor position and update cursor."""
@@ -284,11 +296,15 @@ class Edit(Text):
 		elif key=="left":
 			if p==0: return key
 			p -= 1
+			if self.within_double_byte(maxcol, p) == 2:
+				p -= 1
 			self.set_edit_pos(p)
 		
 		elif key=="right":
 			if p >= len(self.edit_text): return key
 			p += 1
+			if self.within_double_byte(maxcol, p) == 2:
+				p += 1
 			self.set_edit_pos(p)
 		
 		elif key in ("up","down"):
@@ -308,20 +324,26 @@ class Edit(Text):
 		elif key=="backspace":
 			self._delete_highlighted()
 			self.pref_col_maxcol = None, None
-			p = self.edit_pos
-			if p == 0:
+			p = self.edit_pos-1
+			if p == -1:
 				return key
-			self.edit_text = self.edit_text[:p-1] + self.edit_text[p:]
-			self.edit_pos -= 1
+			if self.within_double_byte(maxcol, p) == 2:
+				p -= 1
+			self.edit_text = ( self.edit_text[:p] + 
+				self.edit_text[self.edit_pos:] )
+			self.edit_pos = p
 			self.update_text()
 
 		elif key=="delete":
 			self._delete_highlighted()
 			self.pref_col_maxcol = None, None
-			p = self.edit_pos
-			if p >= len(self.edit_text):
+			p = self.edit_pos+1
+			if p > len(self.edit_text):
 				return key
-			self.edit_text = self.edit_text[:p] + self.edit_text[p+1:]
+			if self.within_double_byte(maxcol, p) == 2:
+				p += 1
+			self.edit_text = ( self.edit_text[:self.edit_pos] + 
+				self.edit_text[p:] )
 			self.update_text()
 		
 		elif key in ("home", "end"):
@@ -362,6 +384,8 @@ class Edit(Text):
 		e_pos = pos - len(self.caption)
 		if e_pos < 0: e_pos = 0
 		if e_pos > len(self.edit_text): e_pos = len(self.edit_text)
+		if self.within_double_byte(maxcol, e_pos) == 2:
+			e_pos -= 1
 		self.edit_pos = e_pos
 		self.pref_col_maxcol = x, maxcol
 		return True
@@ -441,6 +465,31 @@ class Edit(Text):
 		if x >= maxcol: x = maxcol-1
 		return x,y
 
+
+	def within_double_byte(self, maxcol, pos):
+		"""
+		Return whether pos is on a double-byte character.
+
+		Return values:
+		0 -- not within or double byte encoding not enabled
+		1 -- on the 1st half
+		2 -- on the 2nd half
+		"""
+		
+		# try to do as little work as possible
+		if not double_byte_encoding: return 0
+		if pos < 0 or pos >= len(self.edit_text): return 0
+		if ord(self.edit_text[pos]) < 0xA1: return 0
+		
+		x,y = self.position_coords(maxcol, pos)
+		trans = self.get_line_translation(maxcol)
+
+		epos = 0
+		if y>0: epos = trans[y-1][3]
+		
+		text, attr = self.get_text()
+		return within_double_byte(text, epos, pos + len(self.caption))
+		
 
 
 

@@ -26,6 +26,36 @@ import unittest
 from test import test_support
 
 
+try: True # old python?
+except: False, True = 0, 1
+		
+
+class WithinDoubleByteTest(unittest.TestCase):
+	def setUp(self):
+		urwid.util.set_double_byte_encoding( True )
+	def wtest(self, str, ls, pos, expected, desc):
+		result = urwid.util.within_double_byte(str, ls, pos)
+		assert result==expected, desc+" got:"+`result`+" expected:"+`expected`
+	def test1(self):
+		self.wtest("mnopqr",0,2,0,'simple no high bytes')
+		self.wtest("mn\xA1\xA1qr",0,2,1,'simple 1st half')
+		self.wtest("mn\xA1\xA1qr",0,3,2,'simple 2nd half')
+		self.wtest("m\xA1\xA1\xA1\xA1r",0,3,1,'subsequent 2st half')
+		self.wtest("m\xA1\xA1\xA1\xA1r",0,4,2,'subsequent 1st half')
+		
+	def test2(self):
+		self.wtest("\xA1\xA1qr",0,0,1,'begin 1st half')
+		self.wtest("\xA1\xA1qr",0,1,2,'begin 2nd half')
+		self.wtest("\xA1\xA1\xA1\xA1r",0,2,1,'begin subs. 2st half')
+		self.wtest("\xA1\xA1\xA1\xA1r",0,3,2,'begin subs. 1st half')
+
+	def test3(self):
+		self.wtest("abc \xA1\xA1qr",4,4,1,'newline 1st half')
+		self.wtest("abc \xA1\xA1qr",4,5,2,'newline 2nd half')
+		self.wtest("abc \xA1\xA1\xA1\xA1r",4,6,1,'newl subs. 2st half')
+		self.wtest("abc \xA1\xA1\xA1\xA1r",4,7,2,'newl subs. 1st half')
+
+
 class CalcBreaksTest(unittest.TestCase):
 	def test1(self):
 		result = urwid.calculate_text_breaks( self.text,
@@ -51,6 +81,19 @@ class CalcBreaksCharTest(CalcBreaksTest):
 	width3 = 100
 	result3 = [19]
 
+class CalcBreaksDBCharTest(CalcBreaksTest):
+	def setUp(self):
+		urwid.util.set_double_byte_encoding(True)
+	mode = 'any'
+	text = "abfgh\xA1\xA1j\xA1\xA1xskhtrvs\naltjhgsdf\xA1\xA1jahtshgf"
+	# tests
+	width1 = 10
+	result1 = [10, 19, 28]
+	width2 = 6
+	result2 = [5, 11, 17, 19, 25, 31, 37]
+	width3 = 100
+	result3 = [19]
+
 class CalcBreaksWordTest(CalcBreaksTest):
 	mode = 'space'
 	text = "hello world\nout there. blah"
@@ -71,6 +114,19 @@ class CalcBreaksWordTest2(CalcBreaksTest):
 	result2 = [16]
 	width3 = 13
 	result3 = [13, 23]
+
+class CalcBreaksDBWordTest(CalcBreaksTest):
+	def setUp(self):
+		urwid.util.set_double_byte_encoding(True)
+	mode = 'space'
+	text = "hel\xA1\xA1 world\nout-\xA1\xA1tre blah"
+	# tests
+	width1 = 10
+	result1 = [6, 12, 22]
+	width2 = 5
+	result2 = [6, 12, 16, 22]
+	width3 = 100
+	result3 = [12]
 
 class CalcTranslateTest(unittest.TestCase):
 	def test_left(self):
@@ -109,6 +165,17 @@ class CalcTranslateClipTest(CalcTranslateTest):
 	result_left = [(0,0,7,21),(0,0,1,35),(0,0,0,49)]
 	result_right = [(0,6,1,21),(1,0,1,35),(0,0,0,49)]
 	result_center = [(0,3,4,21),(0,0,1,35),(0,0,0,49)]
+
+class CalcTranslateDBClipTest(CalcTranslateTest):
+	def setUp(self):
+		urwid.util.set_double_byte_encoding(True)
+	text = "It\xA1\xA1 \xA1\xA1t of c\xA1\xA1t\xA1\xA1l!\nYou've got to\n\xA1\xA1rn it off!\xA1\xA1"
+	mode = 'clip'
+	width = 14
+	result_left = [(0,0,8,21),(0,0,1,35),(0,0,0,49)]
+	result_right = [(1,7,1,21),(1,0,1,35),(0,0,0,49)]
+	result_center = [(1,4,5,21),(0,0,1,35),(0,0,0,49)]
+	
 
 
 class Pos2CoordsTest(unittest.TestCase):
@@ -789,8 +856,7 @@ class ListBoxKeypressTest(unittest.TestCase):
 			[S(""),T("\n\n\n\n")], 0, 0,
 			1, 0, None )
 		
-		odd_e.edit_text = "hi\n\n\n\n\n"
-		odd_e.update_text()
+		odd_e.set_edit_text( "hi\n\n\n\n\n" )
 		self.ktest( "pathological cursor widget", 'down',
 			[odd_e,T("\n")], 0, 0,
 			1, 4, None )
@@ -1045,12 +1111,16 @@ class ListBoxKeypressTest(unittest.TestCase):
 
 def test_main():
 	for t in [
+		WithinDoubleByteTest,
 		CalcBreaksCharTest,
+		CalcBreaksDBCharTest,
 		CalcBreaksWordTest,
 		CalcBreaksWordTest2,
+		CalcBreaksDBWordTest,
 		CalcTranslateCharTest,
 		CalcTranslateWordTest,
 		CalcTranslateClipTest,
+		CalcTranslateDBClipTest,
 		CalcPosTest,
 		Pos2CoordsTest,
 		ShiftTransTest,

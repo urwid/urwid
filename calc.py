@@ -313,12 +313,10 @@ class CellColumn( urwid.BoxWidget ):
 			edit = self.walker.get_cell(i).edit
 			cursor_pos = edit.edit_pos
 			tail = edit.edit_text[cursor_pos:]
-			edit.edit_text = edit.edit_text[:cursor_pos]
-			edit.update_text()
+			edit.set_edit_text( edit.edit_text[:cursor_pos] )
 			
 			new_cell = Cell( key )
-			new_cell.edit.edit_text = tail
-			new_cell.edit.update_text()
+			new_cell.edit.set_edit_text( tail )
 			self.content[i+1:i+1] = [new_cell]
 			
 			changed = self.update_results()
@@ -348,8 +346,8 @@ class CellColumn( urwid.BoxWidget ):
 			else:	
 				# above is normal number cell
 				above_pos = len(above.edit.edit_text)
-				above.edit.edit_text += edit.edit_text
-				above.edit.update_text()
+				above.set_edit_text( above.edit.edit_text +
+					edit.edit_text )
 
 			self.move_focus_prev( size )
 			self.content[i-1].edit.set_edit_pos(above_pos)
@@ -374,8 +372,8 @@ class CellColumn( urwid.BoxWidget ):
 				raise CalcEvent, E_cant_combine
 			
 			edit = self.walker.get_cell(i).edit
-			edit.edit_text += below.edit.edit_text
-			edit.update_text()
+			edit.set_edit_text( edit.edit_text +
+				below.edit.edit_text )
 
 			del self.content[i+1]
 			changed = self.update_results()

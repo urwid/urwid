@@ -27,6 +27,7 @@ Features:
 
 Usage:
 edit.py <filename>
+
 """
 
 import sys
@@ -73,6 +74,7 @@ class LineWalker:
 		expanded = next_line.expandtabs()
 		
 		edit = urwid.Edit( "", expanded, allow_tab=True )
+		edit.set_edit_pos(0)
 		edit.original_text = next_line
 		self.lines.append( edit )
 
@@ -107,11 +109,9 @@ class LineWalker:
 		pos = focus.edit_pos
 		edit = urwid.Edit("",focus.edit_text[pos:], allow_tab=True )
 		edit.original_text = ""
-		focus.edit_text = focus.edit_text[:pos]
-		focus.update_text()
-		edit.edit_pos = 0
-		self.focus += 1
-		self.lines.insert( self.focus, edit )
+		focus.set_edit_text( focus.edit_text[:pos] )
+		edit.set_edit_pos(0)
+		self.lines.insert( self.focus+1, edit )
 
 	def combine_focus_with_prev(self):
 		"""Combine the focus edit widget with the one above."""
@@ -122,9 +122,8 @@ class LineWalker:
 			return
 		
 		focus = self.lines[self.focus]
-		above.edit_pos = len(above.edit_text)
-		above.edit_text += focus.edit_text
-		above.update_text()
+		above.set_edit_pos(len(above.edit_text))
+		above.set_edit_text( above.edit_text + focus.edit_text )
 		del self.lines[self.focus]
 		self.focus -= 1
 
@@ -137,8 +136,7 @@ class LineWalker:
 			return
 		
 		focus = self.lines[self.focus]
-		focus.edit_text += below.edit_text
-		focus.update_text()
+		focus.set_edit_text( focus.edit_text + below.edit_text )
 		del self.lines[self.focus+1]
 
 
@@ -202,6 +200,9 @@ class EditDisplay:
 		elif k == "enter":
 			# start new line
 			self.walker.split_focus()
+			# move the cursor to the new line and reset pref_col
+			self.view.keypress(size, "down")
+			self.view.keypress(size, "home")
 
 
 	def save_file(self):
@@ -252,6 +253,7 @@ def main():
 		assert open( name, "r" )
 		assert open( name, "a" )
 	except:
+		sys.stderr.write( __doc__ )
 		return
 	EditDisplay( name ).main()
 	
