@@ -55,7 +55,6 @@ _keyconv = {
 	9:'tab',
 	10:'enter',
 	127:'backspace',
-	160:'meta space', # regular space is just " "
 	258:'down',
 	259:'up',
 	260:'left',
@@ -79,7 +78,7 @@ _keyconv = {
 }
 
 # replace control characters with ?'s
-_trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 255)]) + "?"
+_trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
 
 WINDOW_RESIZE = 410
 
@@ -245,25 +244,49 @@ class Screen:
 			
 		return self.s.getch()
 	
-	def get_input(self):
+	def get_input(self, raw_keys=False):
 		"""Return pending input as a list.
+
+		raw_keys -- return raw keycodes as well as translated versions
 
 		This function will immediately return all the input since the
 		last time it was called.  If there is no input pending it will
 		wait briefly for new input.
 
-		keys are returned as single characters for a-z, A-Z, 0-9, " "
-		as double-byte characters for "\\xA1\\xA1", "\\xA1\\xA2" ...
-		or as strings for keys like 'backspace', 'enter', 'f1'.
+		If raw_keys is False (default) this function will return a list
+		of keys pressed.  If raw_keys is True this function will return
+		a ( keys pressed, raw keycodes ) tuple instead.
+		
+		Examples of keys returned
+		-------------------------
+		ASCII printable characters:  " ", "a", "0", "A", "-", "/" 
+		ASCII control characters:  "tab", "enter"
+		Escape sequences:  "up", "page up", "home", "insert", "f1"
+		Key combinations:  "shift f1", "meta a", "ctrl b"
+		Window events:  "window resize"
+		
+		When double-byte encoding is not enabled
+		"Extended ASCII" characters:  "\\xa1", "\\xb2", "\\xfe"
+
+		When double-byte encoding is enabled
+		Double-byte characters:  "\\xa1\\xea", "\\xb2\\xd4"
 		"""
-		curses.doupdate() # this works around a strange curses bug with window resizing not being reported correctly with repeated calls to this function without a doupdate call in between
+		
+		# this works around a strange curses bug with window resizing 
+		# not being reported correctly with repeated calls to this
+		# function without a doupdate call in between
+		curses.doupdate() 
+		
 		key = self._getch()
-		resize = 0
+		resize = False
+		raw = []
 		keys = []
 		
 		while key >= 0:
+			if raw_keys:
+				raw.append(key)
 			if key==WINDOW_RESIZE: 
-				resize = 1
+				resize = True
 				key = self._getch_nodelay()
 				continue
 			keys.append(key)
@@ -277,7 +300,10 @@ class Screen:
 		if resize:
 			processed.append('window resize')
 
-		return processed
+		if raw_keys:
+			return processed, raw
+		else:
+			return processed
 		
 	def _process_keyqueue(self, keys):
 		# help.. becoming unmaintainable..
@@ -292,8 +318,8 @@ class Screen:
 		if code >=0xA1 and util.double_byte_encoding and keys:
 			if keys[0] >=0xA1:
 				return [chr(code)+chr(keys.pop(0))],keys
-		if code >160 and code<255:
-			key = "meta "+chr(code&0x7f)
+		if code >127 and code <256:
+			key = chr(code)
 			return [key],keys
 		if code != 27:
 			return ["<%d>"%code],keys
@@ -492,24 +518,31 @@ class _test:
 			text.append( t )
 			attr.append( a )
 
-		text.append(3*27*"")
-		text.append("return values from get_input(): (q exits)")
-		keyins = len(text)
-		text.append(3*27*"")
+		text += ["","return values from get_input(): (q exits)", ""]
+		attr += [[],[],[]]
 		cols,rows = self.ui.get_cols_rows()
 		keys = None
 		while keys!=['q']:
-			r.text = ([t[:cols] for t in text]+[""]*rows) [:rows]
-			r.attr = (attr+[[]]*rows) [:rows]
+			r.text=([t.ljust(cols) for t in text]+[""]*rows)[:rows]
+			r.attr=(attr+[[]]*rows) [:rows]
 			self.ui.draw_screen((cols,rows),r)
-			keys = self.ui.get_input()
-			##try:
-			##	keys = [self.ui.s.getkey()]
-			##except:
-			##	keys = [None]
+			keys, raw = self.ui.get_input( raw_keys = True )
 			if 'window resize' in keys:
 				cols, rows = self.ui.get_cols_rows()
-			text[keyins] = (text[keyins] + " " + `keys`)[-cols:]
+			if not keys:
+				continue
+			t = ""
+			a = []
+			for k in keys:
+				t += "'"+k + "' "
+				a += [(None,1), ('yellow on dark blue',len(k)),
+					(None,2)]
+			
+			text.append(t + ": "+ `raw`)
+			attr.append(a)
+			text = text[-rows:]
+			attr = attr[-rows:]
+				
 				
 
 

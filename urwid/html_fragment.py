@@ -23,6 +23,8 @@
 HTML PRE-based UI implementation
 """
 
+import util
+
 try: True # old python?
 except: False, True = 0, 1
                 
@@ -47,11 +49,16 @@ _html_colours = {
 }
 
 # replace control characters with ?'s
-_trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 255)]) + "?"
+_trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 256)])
 
+class HtmlGeneratorSimulationError(Exception):
+	pass
 
 class HtmlGenerator:
+	# class variables
 	fragments = []
+	sizes = []
+	keys = []
 
 	def __init__(self):
 		self.palette = {}
@@ -144,7 +151,18 @@ class HtmlGenerator:
 		# add the fragment to the list
 		self.fragments.append( "<pre>%s</pre>" % "".join(l) )
 			
+			
+	def get_cols_rows(self):
+		"""Return the next screen size in HtmlGenerator.sizes."""
+		if not self.sizes:
+			raise HtmlGeneratorSimulationError, "Ran out of screen sizes to return!"
+		return self.sizes.pop(0)
 
+	def get_input(self):
+		"""Return the next list of keypresses in HtmlGenerator.keys."""
+		if not self.keys:
+			raise HtmlGeneratorSimulationError, "Ran out of key lists to return!"
+		return self.keys.pop(0)
 	
 
 def html_span( s, fg, bg, cursor = -1):
@@ -153,7 +171,13 @@ def html_span( s, fg, bg, cursor = -1):
 	
 	if cursor >= 0 and cursor < len(s):
 		# use an underline to approximate a cursor
-		escaped = html_escape(s[:cursor]) + "<u>" + html_escape(s[cursor]) + "</u>" + html_escape(s[cursor+1:])
+		c2 = cursor +1
+		w = util.within_double_byte(s, 0, cursor)
+		if w == 1:
+			c2 += 1
+		if w == 2:
+			cursor -= 1
+		escaped = html_escape(s[:cursor]) + "<u>" + html_escape(s[cursor:c2]) + "</u>" + html_escape(s[c2:])
 	else:
 		escaped = html_escape(s)
 	
@@ -167,4 +191,59 @@ def html_escape(text):
 	text = text.replace('>','&gt;')
 	return text
 
+def screenshot_init( sizes, keys ):
+	"""Replace curses_display.Screen class with HtmlGenerator.
+	
+	Call this function before executing an application that uses 
+	curses_display.Screen to have that code use HtmlGenerator instead.
+	
+	sizes -- list of ( columns, rows ) tuples to be returned by each call
+	         to HtmlGenerator.get_cols_rows()
+	keys -- list of lists of keys to be returned by each call to
+	        HtmlGenerator.get_input()
+	
+	Lists of keys may include "window resize" to force the application to
+	call get_cols_rows and read a new screen size.
 
+	For example, the following call will prepare an application to:
+	 1. start in 80x25 with its first call to get_cols_rows()
+	 2. take a screenshot when it calls draw_screen(..)
+	 3. simulate 5 "down" keys from get_input()
+	 4. take a screenshot when it calls draw_screen(..)
+	 5. simulate keys "a", "b", "c" and a "window resize"
+	 6. resize to 20x10 on its second call to get_cols_rows()
+	 7. take a screenshot when it calls draw_screen(..)
+	 8. simulate a "Q" keypress to quit the application
+
+	screenshot_init( [ (80,25), (20,10) ],
+		[ ["down"]*5, ["a","b","c","window resize"], ["Q"] ] )
+	"""
+	try:
+		for (row,col) in sizes:
+			assert type(row) == type(0)
+			assert row>0 and col>0
+	except:
+		raise Exception, "sizes must be in the form [ (col1,row1), (col2,row2), ...]"
+	
+	try:
+		for l in keys:
+			assert type(l) == type([])
+			for k in l:
+				assert type(k) == type("")
+	except:
+		raise Exception, "keys must be in the form [ [keyA1, keyA2, ..], [keyB1, ..], ...]"
+	
+	import curses_display
+	curses_display.Screen = HtmlGenerator
+	
+	HtmlGenerator.sizes = sizes
+	HtmlGenerator.keys = keys
+
+
+def screenshot_collect():
+	"""Return screenshots as a list of HTML fragments."""
+	l = HtmlGenerator.fragments
+	HtmlGenerator.fragments = []
+	return l
+
+	

@@ -362,7 +362,10 @@ class Edit(Text):
 				epos = trans[y][-1] -1
 				if y == len(trans)-1:
 					epos += 1
-				self.edit_pos = epos - len(self.caption)
+				epos -= len(self.caption)
+				if self.within_double_byte(maxcol, epos) == 2:
+					epos -= 1
+				self.edit_pos = epos 
 			return
 			
 			
