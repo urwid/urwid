@@ -1,0 +1,436 @@
+#!/usr/bin/python
+#
+# Urwid curses output wrapper.. the horror..
+#    Copyright (C) 2004  Ian Ward
+#
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+# Urwid web site: http://excess.org/urwid/
+
+"""
+Curses-based UI implementation
+"""
+
+import curses
+
+
+_curses_colours = {
+	'black':		(curses.COLOR_BLACK,	0),
+	'dark red':		(curses.COLOR_RED,	0),
+	'dark green':		(curses.COLOR_GREEN,	0),
+	'brown':		(curses.COLOR_YELLOW,	0),
+	'dark blue':		(curses.COLOR_BLUE,	0),
+	'dark magenta':		(curses.COLOR_MAGENTA,	0),
+	'dark cyan':		(curses.COLOR_CYAN,	0),
+	'light gray':		(curses.COLOR_WHITE,	0),
+	'dark gray':		(curses.COLOR_BLACK,    1),
+	'light red':		(curses.COLOR_RED,      1),
+	'light green':		(curses.COLOR_GREEN,    1),
+	'yellow':		(curses.COLOR_YELLOW,   1),
+	'light blue':		(curses.COLOR_BLUE,     1),
+	'light magenta':	(curses.COLOR_MAGENTA,  1),
+	'light cyan':		(curses.COLOR_CYAN,     1),
+	'white':		(curses.COLOR_WHITE,	1),
+}
+
+_keyconv = {
+	9:'tab',
+	10:'enter',
+	258:'down',
+	259:'up',
+	260:'left',
+	261:'right',
+	262:'home',
+	263:'backspace',
+	265:'f1',
+	266:'f2',
+	267:'f3',
+	268:'f4',
+	269:'f5',
+	270:'f6',
+	271:'f7',
+	272:'f8',
+	273:'f9',
+	274:'f10',
+	275:'f11',
+	276:'f12',
+	330:'delete',
+	331:'insert',
+	338:'page down',
+	339:'page up',
+	343:'enter',    # on numpad
+	350:'5',        # on numpad
+	360:'end',
+	 -1:None,
+}
+
+# replace control characters with ?'s
+_trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 256)])
+
+WINDOW_RESIZE = 410
+
+class Screen:
+	def __init__(self):
+		self.curses_pairs = [
+			(curses.COLOR_WHITE, curses.COLOR_BLACK), # default
+		]
+		self.palette = {}
+		self.default_attrconv = {
+			#'select':	curses.A_NORMAL,
+			#'highlight':	curses.A_STANDOUT,
+			#'reverse':	curses.A_STANDOUT,
+			#'altcharset':	curses.A_ALTCHARSET,
+			#'underline':	curses.A_UNDERLINE,
+		}
+		self.s = None
+		self._keyqueue = []
+
+	def register_palette( self, l ):
+		"""Register a list of palette entries.
+
+		l -- list of (name, foreground, background) or
+		     (name, same_as_other_name) palette entries.
+
+		calls self.register_palette_entry for each item in l
+		"""
+		
+		for item in l:
+			if len(item) == 3:
+				self.register_palette_entry( *item )
+				continue
+			assert len(item) == 2, "Invalid register_palette usage"
+			name, like_name = item
+			if not self.palette.has_key(like_name):
+				raise Exception("palette entry '%s' doesn't exist"%like_name)
+			self.palette[name] = self.palette[like_name]
+
+	def register_palette_entry( self, name, foreground, background ):
+		"""Register a single palette entry.
+
+		name -- new entry/attribute name
+		foreground -- foreground colour, one of: 'black', 'dark red',
+			'dark green', 'brown', 'dark blue', 'dark magenta',
+			'dark cyan', 'light gray', 'dark gray', 'light red',
+			'light green', 'yellow', 'light blue', 'light magenta',
+			'light cyan', 'white'
+		background -- background colour, one of: 'black', 'dark red',
+			'dark green', 'brown', 'dark blue', 'dark magenta',
+			'dark cyan', 'light gray'
+		"""
+		fg_a, fg_b = _curses_colours[foreground]
+		bg_a, bg_b = _curses_colours[background]
+		if bg_b: # can't do bold backgrounds
+			raise Exception("%s is not a supported background colour"%background )
+		
+		for i in range(len(self.curses_pairs)):
+			pair = self.curses_pairs[i]
+			if pair == (fg_a, bg_a): break
+		else:
+			i = len(self.curses_pairs)
+			self.curses_pairs.append( (fg_a, bg_a) )
+		
+		self.palette[name] = (i, fg_b)
+		
+	
+	def run_wrapper(self,fn):
+		"""Call fn in fullscreen mode.  Return to normal on exit.
+		
+		This function should be called to wrap your main program loop.
+		Exception tracebacks will be displayed in normal mode.
+		"""
+	
+		self.s = curses.initscr()
+		try:
+			curses.start_color()
+			self._setup_colour_pairs()
+			curses.noecho()
+			curses.meta(1)
+			curses.halfdelay(10) # don't wait longer than 1s for keypress
+			self.s.keypad(1)
+			self.s.scrollok(1)
+			return fn()
+		finally:
+			curses.echo()
+			try:
+				curses.endwin()
+			except:
+				pass # don't block original error with curses error
+
+	def _setup_colour_pairs(self):
+		k = 1
+		for fg,bg in self.curses_pairs[1:]:
+			try:
+				curses.init_pair(k,fg,bg)
+			except:
+				raise Exception("Too many colour pairs!  Use fewer combinations.")
+			k+=1
+		
+		self.attrconv = self.default_attrconv.copy()
+		for name, (cp, a) in self.palette.items():
+			self.attrconv[name] = curses.color_pair(cp)
+			if a: self.attrconv[name] |= curses.A_BOLD
+
+
+	def _curs_set(self,x):
+		try:
+			self.console.curs_set(x)
+		except:
+			pass
+	
+	def _clear(self):
+		self.s.clear()
+		self.s.refresh()
+	
+	
+	def _getch(self):
+		curses.halfdelay(10) # don't wait longer than 1s for keypress
+		self.s.nodelay(0)
+		return self.s.getch()
+	
+	def _getch_nodelay(self):
+		self.s.nodelay(1)
+		while 1:
+			# this call fails sometimes, but seems to work when I try again
+			try:
+				curses.cbreak()
+				break
+			except:
+				pass
+			
+		return self.s.getch()
+	
+	def get_input(self):
+		"""Return pending input as a list.
+
+		This function will immediately return all the input since the
+		last time it was called.  If there is no input pending it will
+		wait briefly for new input.
+
+		keys are returned as single characters for a-z, A-Z, 0-9, " "
+		or as multiple characters for keys like 'backspace','enter','f1'.
+		"""
+		curses.doupdate() # this works around a strange curses bug with window resizing not being reported correctly with repeated calls to this function without a doupdate call in between
+		key = self._getch()
+		resize = 0
+		keys = []
+		
+		while key >= 0:
+			if key==WINDOW_RESIZE: 
+				resize = 1
+				key = self._getch_nodelay()
+				continue
+			keys.append(key)
+			key = self._getch_nodelay()
+
+		processed = []
+		while keys:
+			run, keys = self._process_keyqueue(keys)
+			processed += run
+
+		if resize:
+			processed.append('window resize')
+
+		return processed
+		
+	def _process_keyqueue(self, keys):
+		code = keys.pop(0)
+		if code >= 32 and code <= 126:
+			key = chr(code)
+			return [key],keys
+		if _keyconv.has_key(code):
+			return [_keyconv[code]],keys
+		if code == ord('h')-ord('a')+1:
+			return ['backspace'],keys
+		if code >0 and code <27:
+			return ["ctrl %s" % chr(ord('a')+code-1)],keys
+		if code != 27:
+			return ["<%d>"%code],keys
+
+		if not keys: return ['esc'],keys
+		c2 = keys.pop(0)
+
+		if c2 == ord('['):
+			if not keys: return ['esc','['],keys
+			c3 = keys.pop(0)
+			if chr(c3) not in "14" or not keys: 
+				 return ['esc','['],keys
+			c4 = keys.pop(0)
+			if c4 == ord("~"):
+				if c3 == ord('1'): return ["home"],keys
+				else:		   return ["end"],keys
+
+			if chr(c4) not in "1234" or not keys:
+				 return ['esc','['],[c3,c4]+keys
+			c5 = keys.pop(0)
+			
+			if c5 != ord("~"):
+				 return ['esc','['],[c3,c4,c5]+keys
+			if c4 == ord("1"): return ["f1"],keys
+			if c4 == ord("2"): return ["f2"],keys
+			if c4 == ord("3"): return ["f3"],keys
+			else:		   return ["f4"],keys
+			
+		
+		if c2 != ord('O') or not keys: return ['esc'],[c2]+keys
+		
+		c3 = keys.pop(0)
+		if c3 == ord('H'): return ["home"],keys
+		if c3 == ord('F'): return ["end"],keys
+		if c3 == ord('o'): return ["/"],keys
+		if c3 == ord('j'): return ["*"],keys
+		if c3 == ord('m'): return ["-"],keys
+		if c3 == ord('k'): return ["+"],keys
+		
+		if chr(c3) not in "2345678" or not keys: 
+			return ['esc'],[c2,c3]+keys
+		i = c3 - ord("1")
+		mod = ""
+		if i & 1: mod += "shift "
+		if i & 2: mod += "meta "
+		if i & 4: mod += "ctrl "
+
+		c4 = keys.pop(0)
+		if c4 == ord('A'): return mod+"up",keys
+		if c4 == ord('B'): return mod+"down",keys
+		if c4 == ord('C'): return mod+"right",keys
+		if c4 == ord('D'): return mod+"left",keys
+		else: return ['esc'],[c2,c3,c4]+keys
+			
+
+	def _dbg_instr(self): # messy input string (intended for debugging)
+		curses.echo()
+		str = self.s.getstr()
+		curses.noecho()
+		return str
+		
+	def _dbg_out(self,str): # messy output function (intended for debugging)
+		self.s.clrtoeol()
+		self.s.addstr(str)
+		self.s.refresh()
+		self._curs_set(1)
+		
+	def _dbg_query(self,question): # messy query (intended for debugging)
+		self.dbg_out(question)
+		return self.dbg_instr()
+	
+	def _dbg_refresh(self):
+		self.s.refresh()
+
+
+
+	def get_cols_rows(self):
+		"""Return the terminal dimensions (num columns, num rows)."""
+		rows,cols = self.s.getmaxyx()
+		return cols,rows
+		
+
+	def draw_screen(self, (cols, rows), r ):
+		"""Paint screen with rendered canvas."""
+		lines = r.text
+		
+		assert len(lines) == rows
+	
+		for y in range(len(lines)):
+			line = lines[y].translate( _trans_table )
+			if y == rows-1:
+				# don't draw in the lower right corner
+				line = line[:cols-1]
+				
+			if len(r.attr) > y:
+				attr = r.attr[y]
+			else:
+				attr = []
+			col = 0
+			
+			self.s.move( y, 0 )
+			
+			for a, run in attr:
+				if a is None:
+					self.s.attrset( 0 )
+				else:
+					self.s.attrset( self.attrconv[a] )
+				self.s.addstr( line[col:col+run] )
+				col += run
+
+			if len(line) > col:
+				self.s.attrset( 0 )
+				self.s.addstr( line[col:] )
+			
+		if r.cursor is not None:
+			x,y = r.cursor
+			self._curs_set(1)
+			try:
+				self.s.move(y,x)
+			except:
+				assert 0, (y,x)
+		else:
+			self._curs_set(0)
+			self.s.move(0,0)
+		
+		self.s.refresh()
+
+
+
+
+
+
+class _test:
+	def __init__(self):
+		self.ui = Screen()
+		self.l = _curses_colours.keys()
+		self.l.sort()
+		for c in self.l:
+			self.ui.register_palette( [
+				(c+" on black", c, 'black'),
+				(c+" on dark blue", c, 'dark blue'),
+				(c+" on light gray", c, 'light gray'),
+				])
+		self.ui.run_wrapper(self.run)
+		
+	def run(self):
+		class FakeRender: pass
+		r = FakeRender()
+		text = []
+		r.coords = {}
+		
+		for c in self.l:
+			t = ""
+			for p in c+" on black",c+" on dark blue",c+" on light gray":
+				r.coords[p]=[(len(t),len(text)),(len(t)+27,len(text))]
+				t=t+ (p+27*" ")[:27]
+			text.append( t )
+
+		text.append("")
+		text.append("Last keys pressed: (q exits)")
+		keyins = len(text)
+		text.append("")
+		cols,rows = self.ui.get_cols_rows()
+		keys = None
+		while keys!=['q']:
+			r.text = (text+[""]*rows) [:rows]
+			self.ui.draw_screen((cols,rows),r)
+			keys = self.ui.get_input()
+			##try:
+			##	keys = [self.ui.s.getkey()]
+			##except:
+			##	keys = [None]
+			if 'window resize' in keys:
+				size = self.ui.get_cols_rows()
+			text[keyins] = text[keyins][-40:] + " " + `keys`
+				
+
+
+if '__main__'==__name__:
+	_test()
