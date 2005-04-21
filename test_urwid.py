@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid unit testing .. ok, ok, ok
-#    Copyright (C) 2004  Ian Ward
+#    Copyright (C) 2004-2005  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -336,10 +336,18 @@ class EditTest(unittest.TestCase):
 		
 		self.t2.set_edit_pos(8)
 		self.ktest(self.t2,'right',None,9,"right at right edge-1")
+		self.t3.set_edit_pos(0)
+		self.t3.keypress((12,),'right')
+		assert self.t3.get_pref_col((12,)) == 1
 
 
 	def test_up(self):
 		self.ktest(self.t1,'up','up',9,"up at top")
+		self.t2.set_edit_pos(2)
+		self.t2.keypress((12,),"left")
+		assert self.t2.get_pref_col((12,)) == 7
+		self.ktest(self.t2,'up','up',1,"up at top again")
+		assert self.t2.get_pref_col((12,)) == 7
 		self.t3.set_edit_pos(10)
 		self.ktest(self.t3,'up',None,0,"up at top+1")
 	
@@ -395,6 +403,8 @@ class SelectableText(urwid.Text):
 	def selectable(self):
 		return 1
 		
+	def keypress(self, size, key):
+		return key
 		
 class ListBoxCalculateVisibleTest(unittest.TestCase):
 		
@@ -1117,8 +1127,324 @@ class ListBoxKeypressTest(unittest.TestCase):
 			[T("-"),S("d"),T("c"),S("-"),S("-"),T("b")],1,1,
 			4,3, None )
 		
+
+class PaddingTest(unittest.TestCase):
+	def ptest(self, desc, align, width, maxcol, left, right,min_width=None):
+		p = urwid.Padding(None, align, width, min_width)
+		l, r = p.padding_values((maxcol,))
+		assert (l,r)==(left,right), "%s expected %s but got %s"%(
+			desc, (left,right), (l,r))
+	
+	def petest(self, desc, align, width):
+		try:
+			urwid.Padding(None, align, width)
+		except urwid.PaddingError, e:
+			return	
+		assert 0, "%s expected error!" % desc
+		
+	def test_create(self):
+		self.petest("invalid pad",6,5)
+		self.petest("invalid pad type",('bad',2),5)
+		self.petest("invalid width",'center','42')
+		self.petest("invalid width type",'center',('gouranga',4))
+		self.petest("invalid combination",('relative',20),
+			('fixed right',4))
+		self.petest("invalid combination 2",('relative',20),
+			('fixed left',4))
+		
+	def test_values(self):	
+		self.ptest("left align 5 7",'left',5,7,0,2)
+		self.ptest("left align 7 7",'left',7,7,0,0)
+		self.ptest("left align 9 7",'left',9,7,0,0)
+		self.ptest("right align 5 7",'right',5,7,2,0)
+		self.ptest("center align 5 7",'center',5,7,1,1)
+		self.ptest("fixed left",('fixed left',3),5,10,3,2)
+		self.ptest("fixed left reduce",('fixed left',3),8,10,2,0)
+		self.ptest("fixed left shrink",('fixed left',3),18,10,0,0)
+		self.ptest("fixed left, right",
+			('fixed left',3),('fixed right',4),17,3,4)
+		self.ptest("fixed left, right, min_width",
+			('fixed left',3),('fixed right',4),10,3,2,5)
+		self.ptest("fixed left, right, min_width 2",
+			('fixed left',3),('fixed right',4),10,2,0,8)
+		self.ptest("fixed right",('fixed right',3),5,10,2,3)
+		self.ptest("fixed right reduce",('fixed right',3),8,10,0,2)
+		self.ptest("fixed right shrink",('fixed right',3),18,10,0,0)
+		self.ptest("fixed right, left",
+			('fixed right',3),('fixed left',4),17,4,3)
+		self.ptest("fixed right, left, min_width",
+			('fixed right',3),('fixed left',4),10,2,3,5)
+		self.ptest("fixed right, left, min_width 2",
+			('fixed right',3),('fixed left',4),10,0,2,8)
+		self.ptest("relative 30",('relative',30),5,10,1,4)
+		self.ptest("relative 50",('relative',50),5,10,2,3)
+		self.ptest("relative 130 edge",('relative',130),5,10,5,0)
+		self.ptest("relative -10 edge",('relative',-10),4,10,0,6)
+		self.ptest("center relative 70",'center',('relative',70),
+			10,1,2)
+		self.ptest("center relative 70 grow 8",'center',('relative',70),
+			10,1,1,8)
+
+	def mctest(self, desc, left, right, size, cx, innercx):
+		class Inner:
+			def __init__(self, desc, innercx):
+				self.desc = desc
+				self.innercx = innercx
+			def move_cursor_to_coords(self,size,cx,cy):
+				assert cx==self.innercx, desc
+		i = Inner(desc,innercx)
+		p = urwid.Padding(i, ('fixed left',left),
+			('fixed right',right))
+		p.move_cursor_to_coords(size, cx, 0)
+
+	def test_cursor(self):
+		self.mctest("cursor left edge",2,2,(10,2),2,0) 
+		self.mctest("cursor left edge-1",2,2,(10,2),1,0) 
+		self.mctest("cursor right edge",2,2,(10,2),7,5)
+		self.mctest("cursor right edge+1",2,2,(10,2),8,5) 
+
+
+
+class FillerTest(unittest.TestCase):
+	def ftest(self, desc, valign, height, maxrow, top, bottom, 
+			min_height=None):
+		f = urwid.Filler(None, valign, height, min_height)
+		t, b = f.filler_values((20,maxrow), False)
+		assert (t,b)==(top,bottom), "%s expected %s but got %s"%(
+			desc, (top,bottom), (t,b))
+	
+	def fetest(self, desc, valign, height):
+		try:
+			urwid.Filler(None, valign, height)
+		except urwid.FillerError, e:
+			return	
+		assert 0, "%s expected error!" % desc
+		
+	def test_create(self):
+		self.fetest("invalid pad",6,5)
+		self.fetest("invalid pad type",('bad',2),5)
+		self.fetest("invalid width",'middle','42')
+		self.fetest("invalid width type",'middle',('gouranga',4))
+		self.fetest("invalid combination",('relative',20),
+			('fixed bottom',4))
+		self.fetest("invalid combination 2",('relative',20),
+			('fixed top',4))
+		
+	def test_values(self):	
+		self.ftest("top align 5 7",'top',5,7,0,2)
+		self.ftest("top align 7 7",'top',7,7,0,0)
+		self.ftest("top align 9 7",'top',9,7,0,0)
+		self.ftest("bottom align 5 7",'bottom',5,7,2,0)
+		self.ftest("middle align 5 7",'middle',5,7,1,1)
+		self.ftest("fixed top",('fixed top',3),5,10,3,2)
+		self.ftest("fixed top reduce",('fixed top',3),8,10,2,0)
+		self.ftest("fixed top shrink",('fixed top',3),18,10,0,0)
+		self.ftest("fixed top, bottom",
+			('fixed top',3),('fixed bottom',4),17,3,4)
+		self.ftest("fixed top, bottom, min_width",
+			('fixed top',3),('fixed bottom',4),10,3,2,5)
+		self.ftest("fixed top, bottom, min_width 2",
+			('fixed top',3),('fixed bottom',4),10,2,0,8)
+		self.ftest("fixed bottom",('fixed bottom',3),5,10,2,3)
+		self.ftest("fixed bottom reduce",('fixed bottom',3),8,10,0,2)
+		self.ftest("fixed bottom shrink",('fixed bottom',3),18,10,0,0)
+		self.ftest("fixed bottom, top",
+			('fixed bottom',3),('fixed top',4),17,4,3)
+		self.ftest("fixed bottom, top, min_height",
+			('fixed bottom',3),('fixed top',4),10,2,3,5)
+		self.ftest("fixed bottom, top, min_height 2",
+			('fixed bottom',3),('fixed top',4),10,0,2,8)
+		self.ftest("relative 30",('relative',30),5,10,1,4)
+		self.ftest("relative 50",('relative',50),5,10,2,3)
+		self.ftest("relative 130 edge",('relative',130),5,10,5,0)
+		self.ftest("relative -10 edge",('relative',-10),4,10,0,6)
+		self.ftest("middle relative 70",'middle',('relative',70),
+			10,1,2)
+		self.ftest("middle relative 70 grow 8",'middle',('relative',70),
+			10,1,1,8)
+
+
+class FrameTest(unittest.TestCase):
+
+	def ftbtest(self, desc, focus_part, header_rows, footer_rows, size, 
+			focus, top, bottom):
+		class FakeWidget:
+			def __init__(self, rows, want_focus):
+				self.ret_rows = rows
+				self.want_focus = want_focus
+			def rows(self, size, focus=False):
+				assert self.want_focus == focus
+				return self.ret_rows
+		header = footer = None
+		if header_rows:
+			header = FakeWidget(header_rows, 
+				focus and focus_part == 'header')
+		if footer_rows:
+			footer = FakeWidget(footer_rows,
+				focus and focus_part == 'footer')
+				
+		f = urwid.Frame(None, header, footer, focus_part)
+
+		rval = f.frame_top_bottom(size, focus)
+		exp = (top, bottom), (header_rows, footer_rows)
+		assert exp == rval, "%s expected %s but got %s"%(
+			desc,`exp`,`rval`)
+		
+	def test(self):
+		self.ftbtest("simple", 'body', 0, 0, (9, 10), True, 0, 0)
+		self.ftbtest("simple h", 'body', 3, 0, (9, 10), True, 3, 0)
+		self.ftbtest("simple f", 'body', 0, 3, (9, 10), True, 0, 3)
+		self.ftbtest("simple hf", 'body', 3, 3, (9, 10), True, 3, 3)
+		self.ftbtest("almost full hf", 'body', 4, 5, (9, 10), 
+			True, 4, 5)
+		self.ftbtest("full hf", 'body', 5, 5, (9, 10), 
+			True, 4, 5)
+		self.ftbtest("x full h+1f", 'body', 6, 5, (9, 10), 
+			False, 4, 5)
+		self.ftbtest("full h+1f", 'body', 6, 5, (9, 10), 
+			True, 4, 5)
+		self.ftbtest("full hf+1", 'body', 5, 6, (9, 10), 
+			True, 3, 6)
+		self.ftbtest("F full h+1f", 'footer', 6, 5, (9, 10), 
+			True, 5, 5)
+		self.ftbtest("F full hf+1", 'footer', 5, 6, (9, 10), 
+			True, 4, 6)
+		self.ftbtest("F full hf+5", 'footer', 5, 11, (9, 10), 
+			True, 0, 10)
+		self.ftbtest("full hf+5", 'body', 5, 11, (9, 10), 
+			True, 0, 9)
+		self.ftbtest("H full hf+1", 'header', 5, 6, (9, 10), 
+			True, 5, 5)
+		self.ftbtest("H full h+1f", 'header', 6, 5, (9, 10), 
+			True, 6, 4)
+		self.ftbtest("H full h+5f", 'header', 11, 5, (9, 10), 
+			True, 10, 0)
+
+
+class PileTest(unittest.TestCase):
+	def ktest(self, desc, l, focus_item, key, 
+			rkey, rfocus, rpref_col):
+		p = urwid.Pile( l, focus_item )
+		rval = p.keypress( (20,), key )
+		assert rkey == rval, "%s key expected %s but got %s" %(
+			desc, `rkey`, `rval`)
+		new_focus = l.index(p.get_focus())
+		assert new_focus == rfocus, "%s focus expected %s but got %s" %(
+			desc, `rfocus`, `new_focus`)
+		new_pref = p.get_pref_col((20,))
+		assert new_pref == rpref_col, (
+			"%s pref_col expected %s but got %s" % (
+			desc, `rpref_col`, `new_pref`))
+	
+	def test_select_change(self):
+		T,S,E = urwid.Text, SelectableText, urwid.Edit
+
+		self.ktest("simple up", [S("")], 0, "up", "up", 0, None)
+		self.ktest("simple down", [S("")], 0, "down", "down", 0, None)
+		self.ktest("ignore up", [T(""),S("")], 1, "up", "up", 1, None)
+		self.ktest("ignore down", [S(""),T("")], 0, "down", 
+			"down", 0, None)
+		self.ktest("step up", [S(""),S("")], 1, "up", None, 0, None)
+		self.ktest("step down", [S(""),S("")], 0, "down", 
+			None, 1, None)
+		self.ktest("skip step up", [S(""),T(""),S("")], 2, "up", 
+			None, 0, None)
+		self.ktest("skip step down", [S(""),T(""),S("")], 0, "down", 
+			None, 2, None)
+		self.ktest("pad skip step up", [T(""),S(""),T(""),S("")], 3, 
+			"up", None, 1, None)
+		self.ktest("pad skip step down", [S(""),T(""),S(""),T("")], 0, 
+			"down", None, 2, None)
+		self.ktest("padi skip step up", [S(""),T(""),S(""),T(""),S("")],
+			4, "up", None, 2, None)
+		self.ktest("padi skip step down", [S(""),T(""),S(""),T(""),
+			S("")], 0, "down", None, 2, None)
+		e = E("","abcd", edit_pos=1)
+		e.keypress((20,),"right") # set a pref_col
+		self.ktest("pref step up", [S(""),T(""),e], 2, "up", 
+			None, 0, 2)
+		self.ktest("pref step down", [e,T(""),S("")], 0, "down", 
+			None, 2, 2)
+		z = E("","1234")
+		self.ktest("prefx step up", [z,T(""),e], 2, "up", 
+			None, 0, 2)
+		assert z.get_pref_col((20,)) == 2
+		z = E("","1234")
+		self.ktest("prefx step down", [e,T(""),z], 0, "down", 
+			None, 2, 2)
+		assert z.get_pref_col((20,)) == 2
 		
 		
+class ColumnsTest(unittest.TestCase):
+	def cwtest(self, desc, l, divide, size, exp):
+		c = urwid.Columns( l, divide )
+		rval = c.column_widths( size )
+		assert rval == exp, "%s expected %s, got %s"%(desc,exp,rval)
+
+	def test_widths(self):
+		x = None # sample "column"
+		self.cwtest( "simple 1", [x], 0, (20,), [20] )
+		self.cwtest( "simple 2", [x,x], 0, (20,), [10,10] )
+		self.cwtest( "simple 2+1", [x,x], 1, (20,), [10,9] )
+		self.cwtest( "simple 3+1", [x,x,x], 1, (20,), [6,6,6] )
+		self.cwtest( "simple 3+2", [x,x,x], 2, (20,), [5,6,5] )
+		self.cwtest( "simple 3+2", [x,x,x], 2, (21,), [6,6,5] )
+		self.cwtest( "simple 4+1", [x,x,x,x], 1, (25,), [6,5,6,5] )
+		self.cwtest( "squish 4+1", [x,x,x,x], 1, (7,), [1,1,1,1] )
+		self.cwtest( "squish 4+1", [x,x,x,x], 1, (6,), [1,2,1] )
+		self.cwtest( "squish 4+1", [x,x,x,x], 1, (4,), [2,1] )
+		
+		self.cwtest( "fixed 3", [('fixed',4,x),('fixed',6,x),
+			('fixed',2,x)], 1, (25,), [4,6,2] )
+		self.cwtest( "fixed 3 cut", [('fixed',4,x),('fixed',6,x),
+			('fixed',2,x)], 1, (13,), [4,6] )
+		self.cwtest( "fixed 3 cut2", [('fixed',4,x),('fixed',6,x),
+			('fixed',2,x)], 1, (10,), [4] )
+		
+		self.cwtest( "mixed 4", [('weight',2,x),('fixed',5,x),
+			x, ('weight',3,x)], 1, (14,), [2,5,1,3] )
+		self.cwtest( "mixed 4 a", [('weight',2,x),('fixed',5,x),
+			x, ('weight',3,x)], 1, (12,), [1,5,1,2] )
+		self.cwtest( "mixed 4 b", [('weight',2,x),('fixed',5,x),
+			x, ('weight',3,x)], 1, (10,), [2,5,1] )
+		self.cwtest( "mixed 4 c", [('weight',2,x),('fixed',5,x),
+			x, ('weight',3,x)], 1, (20,), [4,5,2,6] )
+	
+	def mctest(self, desc, l, divide, size, col, row, exp, f_col, pref_col):
+		c = urwid.Columns( l, divide )
+		rval = c.move_cursor_to_coords( size, col, row )
+		assert rval == exp, "%s expected %s, got %s"%(desc,`exp`,`rval`)
+		assert c.focus_col == f_col, "%s expected focus_col %s got %s"%(
+			desc, f_col, c.focus_col)
+		pc = c.get_pref_col( size )
+		assert pc == pref_col, "%s expected pref_col %s, got %s"%(
+			desc, pref_col, pc)
+		
+	def test_move_cursor(self):	
+		e, s, x = urwid.Edit("",""),SelectableText(""), urwid.Text("")
+		self.mctest("nothing selectbl",[x,x,x],1,(20,),9,0,False,0,None)
+		self.mctest("dead on",[x,s,x],1,(20,),9,0,True,1,9)
+		self.mctest("l edge",[x,s,x],1,(20,),6,0,True,1,6)
+		self.mctest("r edge",[x,s,x],1,(20,),13,0,True,1,13)
+		self.mctest("l off",[x,s,x],1,(20,),2,0,True,1,2)
+		self.mctest("r off",[x,s,x],1,(20,),17,0,True,1,17)
+		self.mctest("l off 2",[x,x,s],1,(20,),2,0,True,2,2)
+		self.mctest("r off 2",[s,x,x],1,(20,),17,0,True,0,17)
+		
+		self.mctest("l between",[s,s,x],1,(20,),6,0,True,0,6)
+		self.mctest("r between",[x,s,s],1,(20,),13,0,True,1,13)
+		self.mctest("l between 2l",[s,s,x],2,(22,),6,0,True,0,6)
+		self.mctest("r between 2l",[x,s,s],2,(22,),14,0,True,1,14)
+		self.mctest("l between 2r",[s,s,x],2,(22,),7,0,True,1,7)
+		self.mctest("r between 2r",[x,s,s],2,(22,),15,0,True,2,15)
+		
+		# unfortunate pref_col shifting
+		self.mctest("l e edge",[x,e,x],1,(20,),6,0,True,1,7)
+		self.mctest("r e edge",[x,e,x],1,(20,),13,0,True,1,12)
+		
+		
+		
+	
 
 def test_main():
 	for t in [
@@ -1143,6 +1469,11 @@ def test_main():
 		ListBoxChangeFocusTest,
 		ListBoxRenderTest,
 		ListBoxKeypressTest,
+		PaddingTest,
+		FillerTest,
+		FrameTest,
+		PileTest,
+		ColumnsTest,
 		]:
 		if test_support.run_unittest(t): break
 	

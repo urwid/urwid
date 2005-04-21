@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid listbox class
-#    Copyright (C) 2004  Ian Ward
+#    Copyright (C) 2004-2005  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -36,8 +36,9 @@ class SimpleListWalker:
 		contents -- list to walk
 		"""
 		self.contents = contents
-		try: contents[0]
-		except: raise ListWalkerError, "SimpleListWalker expecting list like object, got: "+`contents`
+		if not type(contents) == type([]) and not hasattr( 
+			contents, '__getitem__' ):
+			raise ListWalkerError, "SimpleListWalker expecting list like object, got: "+`contents`
 		self.focus = 0
 	
 	def _clamp_focus(self):

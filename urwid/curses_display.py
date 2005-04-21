@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid curses output wrapper.. the horror..
-#    Copyright (C) 2004  Ian Ward
+#    Copyright (C) 2004-2005  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -94,6 +94,7 @@ class Screen:
 		self.s = None
 		self.cursor_state = None
 		self._keyqueue = []
+		self.prev_input_resize = 0
 
 	def register_palette( self, l ):
 		"""Register a list of palette entries.
@@ -234,9 +235,14 @@ class Screen:
 
 
 	def _curs_set(self,x):
-		if x == self.cursor_state: return
-		curses.curs_set(x)
-		self.cursor_state = x
+		if self.cursor_state== "fixed" or x == self.cursor_state: 
+			return
+		try:
+			curses.curs_set(x)
+			self.cursor_state = x
+		except:
+			self.cursor_state = "fixed"
+
 	
 	def _clear(self):
 		self.s.clear()
@@ -244,7 +250,7 @@ class Screen:
 	
 	
 	def _getch(self):
-		curses.halfdelay(10) # don't wait longer than 1s for keypress
+		curses.halfdelay(5) # don't wait longer than 0.5s for keypress
 		self.s.nodelay(0)
 		return self.s.getch()
 	
@@ -288,6 +294,37 @@ class Screen:
 		Double-byte characters:  "\\xa1\\xea", "\\xb2\\xd4"
 		"""
 		
+		keys, raw = self._get_input()
+
+		# Avoid pegging CPU at 100% when slowly resizing, and work
+		# around a bug with some braindead curses implementations that 
+		# return "no key" between "window resize" commands 
+		if keys==['window resize'] and self.prev_input_resize:
+			while True:
+				keys, raw2 = self._get_input()
+				raw += raw2
+				if not keys:
+					keys, raw2 = self._get_input()
+					raw += raw2
+				if keys!=['window resize']:
+					break
+			if keys[-1:]!=['window resize']:
+				keys.append('window resize')
+
+				
+		if keys==['window resize']:
+			self.prev_input_resize = 2
+		elif self.prev_input_resize == 2 and not keys:
+			self.prev_input_resize = 1
+		else:
+			self.prev_input_resize = 0
+		
+		if raw_keys:
+			return keys, raw
+		return keys
+		
+		
+	def _get_input(self):
 		# this works around a strange curses bug with window resizing 
 		# not being reported correctly with repeated calls to this
 		# function without a doupdate call in between
@@ -299,8 +336,7 @@ class Screen:
 		keys = []
 		
 		while key >= 0:
-			if raw_keys:
-				raw.append(key)
+			raw.append(key)
 			if key==WINDOW_RESIZE: 
 				resize = True
 				key = self._getch_nodelay()
@@ -316,10 +352,7 @@ class Screen:
 		if resize:
 			processed.append('window resize')
 
-		if raw_keys:
-			return processed, raw
-		else:
-			return processed
+		return processed, raw
 		
 	def _process_keyqueue(self, keys):
 		# help.. becoming unmaintainable..
@@ -455,7 +488,7 @@ class Screen:
 		"""Paint screen with rendered canvas."""
 		lines = r.text
 		
-		assert len(lines) == rows
+		assert len(lines) == rows, `len(lines),rows`
 	
 		for y in range(len(lines)):
 			line = lines[y].translate( _trans_table )

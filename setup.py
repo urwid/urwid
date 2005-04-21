@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 # Urwid setup.py exports the useful bits
-#    Copyright (C) 2004  Ian Ward
+#    Copyright (C) 2004-2005  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -23,7 +23,7 @@ from distutils.core import setup
 
 import os
 
-release = "0.8.6" #os.popen("make -s release").read().strip()
+release = "0.8.7" #os.popen("make -s release").read().strip()
 
 setup_d = {
 	'name':"urwid",
@@ -48,6 +48,8 @@ useful for text console application developers including:
 - Powerful list box that handles scrolling between different widget types
 - List box contents may be managed with a user-defined class
 - Flexible edit box for editing many different types of text
+- Buttons, check boxes and radio boxes
+- Customizable layout for all widgets
 - Easy interface for creating HTML screen shots
 
 

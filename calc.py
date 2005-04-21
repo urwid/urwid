@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid advanced example column calculator application
-#    Copyright (C) 2004  Ian Ward
+#    Copyright (C) 2004-2005  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -346,7 +346,7 @@ class CellColumn( urwid.BoxWidget ):
 			else:	
 				# above is normal number cell
 				above_pos = len(above.edit.edit_text)
-				above.set_edit_text( above.edit.edit_text +
+				above.edit.set_edit_text( above.edit.edit_text +
 					edit.edit_text )
 
 			self.move_focus_prev( size )

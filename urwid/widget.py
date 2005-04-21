@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid basic widget classes
-#    Copyright (C) 2004  Ian Ward
+#    Copyright (C) 2004-2005  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -27,6 +27,9 @@ from canvas import *
 try: True # old python?
 except: False, True = 0, 1
 
+try: sum # old python?
+except: sum = lambda l: reduce(lambda (a,b): a+b, l, 0)
+
 class FlowWidget:
 	"""
 	base class of widgets
@@ -35,9 +38,6 @@ class FlowWidget:
 		"""Return False.  Not selectable by default."""
 		return False
 
-	def keypress(self,(maxcol,),key):
-		"""Return key.  No keys are handled by default."""
-		return key
 
 
 class BoxWidget:
@@ -45,9 +45,9 @@ class BoxWidget:
 	base class of width and height constrained widgets such as
 	the top level widget attached to the display object
 	"""
-	def keypress(self,(maxcol,maxrow),key):
-		"""Return key.  No keys are handled by default."""
-		return key
+	def selectable(self):
+		"""Return True.  Selectable by default."""
+		return True
 	
 
 
@@ -198,14 +198,15 @@ class Edit(Text):
 	
 	def valid_char(self, ch):
 		"""Return true for printable characters."""
-		if double_byte_encoding and len(ch)==2 and ord(ch[0])>0xA1:
+		if len(ch)==2 and within_double_byte(ch, 0, 0)==1:
 			return True
 		return len(ch)==1 and ord(ch) >= 32
 	
-	def selectable(self): return 1
+	def selectable(self): return True
 
 	def __init__(self, caption = "", edit_text = "", multiline = False,
-			align = None, wrap = None, allow_tab = False):
+			align = None, wrap = None, allow_tab = False,
+			edit_pos = None):
 		"""
 		caption -- markup for caption preceeding edit_text
 		edit_text -- text string for editing
@@ -213,6 +214,7 @@ class Edit(Text):
 		align -- align mode
 		wrap -- wrap mode
 		allow_tab -- True: 'tab' inserts 1-8 spaces  False: return it
+		edit_pos -- initial position for cursor, None:at end
 		"""
 		
 		Text.__init__(self,"", align, wrap)
@@ -221,7 +223,10 @@ class Edit(Text):
 		self.edit_text = edit_text
 		self.multiline = multiline
 		self.allow_tab = allow_tab
-		self.edit_pos = len(edit_text)
+		if edit_pos is None:
+			self.edit_pos = len(edit_text)
+		else:
+			self.set_edit_pos(edit_pos)
 		self.highlight = None
 		self.pref_col_maxcol = None, None
 		self._shift_view_to_cursor = 0
@@ -235,10 +240,11 @@ class Edit(Text):
 		return self.caption + self.edit_text, self.attrib
 	
 	def get_pref_col(self, (maxcol,)):
-		"""Return the preferred column for the cursor, or None."""
+		"""Return the preferred column for the cursor, or the
+		current cursor x value."""
 		pref_col, then_maxcol = self.pref_col_maxcol
 		if then_maxcol != maxcol:
-			return None
+			return self.get_cursor_coords((maxcol,))[0]
 		else:
 			return pref_col
 	
@@ -267,7 +273,11 @@ class Edit(Text):
 		if self.edit_pos > len(text):
 			self.edit_pos = len(text)
 		self.update_text()
-	
+
+	def get_edit_text(self):
+		"""Return the edit text for this widget."""
+		return self.edit_text
+
 	def insert_text(self, text):
 		"""Insert text at the cursor position and update cursor."""
 		p = self.edit_pos
@@ -312,8 +322,9 @@ class Edit(Text):
 			
 			x,y = self.get_cursor_coords((maxcol,))
 			pref_col = self.get_pref_col((maxcol,))
-			if pref_col is None: 
-				pref_col = x
+			assert pref_col is not None
+			#if pref_col is None: 
+			#	pref_col = x
 
 			if key == "up": y -= 1
 			else:		y += 1
@@ -534,108 +545,895 @@ class IntEdit(Edit):
 			return 0
 
 
+class SelectableIcon(Text):
+	def selectable(self):
+		return True
+	
+	def render(self, (maxcol,), focus=False):
+		c = Text.render(self, (maxcol,), focus )
+		if focus:
+			c.cursor = self.get_cursor_coords((maxcol,))
+		return c
+	
+	def get_cursor_coords(self, (maxcol,)):
+		if maxcol>1:
+			return (1,0)
+
+	def keypress(self, (maxcol,), key):
+		return key
+
+class CheckBox(FlowWidget):
+	states = { 
+		True: SelectableIcon("[X]"),
+		False: SelectableIcon("[ ]"),
+		'mixed': SelectableIcon("[#]") }
+	reserve_columns = 4
+
+	def selectable(self): return True
+	
+	def __init__(self, label, state=False, has_mixed=False,
+		     on_state_change=None):
+		"""
+		label -- markup for check box label
+		state -- False, True or "mixed"
+		has_mixed -- True if "mixed" is a state to cycle through
+		on_state_change -- callback function for state changes
+		                   on_state_change( check box, new state )
+		"""
+		self.label = Text("")
+		self.has_mixed = has_mixed
+		self.state = None
+		self.on_state_change = on_state_change
+		self.set_label(label)
+		self.set_state(state)
+	
+	def set_label(self, label):
+		"""Change the check box label."""
+		self.label.set_text(label)
+	
+	def get_label(self):
+		"""Return label text."""
+		text, attr = self.label.get_text()
+		return text
+	
+	def set_state(self, state):
+		"""Call on_state_change then change the check box state."""
+		if self.state is not None and self.on_state_change:
+			self.on_state_change( self, state )
+		self.state = state
+		self.display_widget = Columns( [
+			('fixed', self.reserve_columns, self.states[state] ),
+			self.label ] )
+		self.display_widget.focus_col = 0
+		
+	def get_state(self):
+		"""Return the state of the checkbox."""
+		return self.state
+		
+	def keypress(self, (maxcol,), key):
+		"""Toggle state on space or enter."""
+		if key not in (' ','enter'):
+			return key
+		
+		if self.state == False:
+			self.set_state(True)
+		elif self.state == True:
+			if self.has_mixed:
+				self.set_state('mixed')
+			else:
+				self.set_state(False)
+		elif self.state == 'mixed':
+			self.set_state(False)
+	
+	def get_cursor_coords(self, (maxcol,)):
+		"""Return cursor coords from display widget."""
+		return self.display_widget.get_cursor_coords( (maxcol,))
+	
+	def render(self, (maxcol,), focus=False):
+		"""Render check box."""
+		return self.display_widget.render( (maxcol,), focus=focus)
+	
+	def rows(self, (maxcol,), focus=False):
+		"""Return rows required for check box."""
+		return self.display_widget.rows( (maxcol,), focus=focus)
+		
+
+class RadioButton(FlowWidget):
+	states = { 
+		True: SelectableIcon("(X)"),
+		False: SelectableIcon("( )"),
+		'mixed': SelectableIcon("(#)") }
+	reserve_columns = 4
+
+	def selectable(self): return True
+	
+	def __init__(self, group, label, state="first True",
+		     on_state_change=None):
+		"""
+		group -- list for radio buttons in same group
+		label -- markup for radio button label
+		state -- False, True, "mixed" or "first True"
+		on_state_change -- callback function for state changes
+		                   on_state_change( radio_button, new_state )
+
+		This function will append the new radio button to group.
+		"first True" will set to True if group is empty.
+		"""
+
+		if state=="first True":
+			state = not group
+		self.group = group
+
+		self.label = Text("")
+		self.state = None
+		self.on_state_change = on_state_change
+		self.set_label(label)
+		self.set_state(state)
+	
+		group.append(self)
+	
+	def set_label(self, label):
+		"""Change the check box label."""
+		self.label.set_text(label)
+	
+	def get_label(self):
+		"""Return label text."""
+		text, attr = self.label.get_text()
+		return text
+	
+	def set_state(self, state):
+		"""
+		Call on_state_change then change the radio button state.
+		if state is True set all other radio buttons in group to False.
+		"""
+		if self.state is not None and self.on_state_change:
+			self.on_state_change( self, state )
+		self.state = state
+		self.display_widget = Columns( [
+			('fixed', self.reserve_columns, self.states[state] ),
+			self.label ] )
+		self.display_widget.focus_col = 0
+		
+		if state is not True:
+			return
+
+		for cb in self.group:
+			if cb is self: continue
+			if cb.state:
+				cb.set_state(False)
+	
+	def get_state(self):
+		"""Return the state of the radio button."""
+		return self.state
+
+	def keypress(self, (maxcol,), key):
+		"""Set state to True on space or enter."""
+		if key not in (' ','enter'):
+			return key
+		
+		if self.state is not True:
+			self.set_state(True)
+		else:
+			return key
+			
+	def get_cursor_coords(self, (maxcol,)):
+		"""Return cursor coords from display widget."""
+		return self.display_widget.get_cursor_coords( (maxcol,))
+	
+	def render(self, (maxcol,), focus=False):
+		"""Render radio button."""
+		return self.display_widget.render( (maxcol,), focus=focus)
+	
+	def rows(self, (maxcol,), focus=False):
+		"""Return rows required for radio button."""
+		return self.display_widget.rows( (maxcol,), focus=focus)
+
+class Button(FlowWidget):
+	button_left = Text("<")
+	button_right = Text(">")
+
+	def selectable(self):
+		return True
+	
+	def __init__(self, label, on_press):
+		"""
+		label -- markup for button label
+		on_press -- callback function for button "press"
+		           on_press( button object )
+		"""
+			
+		self.set_label( label )
+		self.on_press = on_press
+	
+	def set_label(self, label):
+		self.label = label
+		self.display_widget = Columns([
+			('fixed', 1, self.button_left),
+			Text( label ),
+			('fixed', 1, self.button_right)],
+			dividechars=1)
+	
+	def get_label(self):
+		return self.label
+	
+	def render(self, (maxcol,), focus=False):
+		"""Display button. Show a cursor when in focus."""
+		c = self.display_widget.render( (maxcol,), focus=focus)
+		if focus and maxcol >2:
+			c.cursor = (2,0)
+		return c
+
+	def get_cursor_coords(self, (maxcol,)):
+		"""Return the location of the cursor."""
+		if maxcol >2:
+			return (2,0)
+		return None
+
+	def rows(self, (maxcol,), focus=False):
+		"""Return rows required for button."""
+		return self.display_widget.rows( (maxcol,), focus=focus)
+		
+	def keypress(self, (maxcol,), key):
+		if key not in (' ','enter'):
+			return key
+		
+		self.on_press( self )
+	
+
+
+class GridFlow(FlowWidget):
+
+	def selectable(self): 
+		"""Return True if the cell in focus is selectable."""
+		return self.focus_cell and self.focus_cell.selectable()
+		
+	def __init__(self, cells, cell_width, h_sep, v_sep, align):
+		"""
+		cells -- list of flow widgets to display
+		cell_width -- column width for each cell
+		h_sep -- blank columns between each cell horizontally
+		v_sep -- blank rows between cells vertically (if more than
+		         one row is required to display all the cells)
+		align -- horizontal alignment of cells, see "align" parameter
+		         of Padding widget for available options
+		"""
+		self.cells = cells
+		self.cell_width = cell_width
+		self.h_sep = h_sep
+		self.v_sep = v_sep
+		self.align = align
+		self.focus_cell = None
+		if cells:
+			self.focus_cell = cells[0]
+		self._cache_maxcol = None
+
+	def set_focus(self, cell):
+		"""Set the cell in focus.  
+		
+		cell -- widget or integer index into self.cells"""
+		if type(cell) == type(0):
+			assert cell>=0 and cell<len(self.cells)
+			self.focus_cell = self.cells[cell]
+		else:
+			assert cell in self.cells
+			self.focus_cell = cell
+		self._cache_maxcol = None
+		
+
+	def get_display_widget(self, (maxcol,)):
+		"""
+		Arrange the cells into columns (and possibly a pile) for 
+		display, input or to calculate rows. 
+		"""
+		# use cache if possible
+		if self._cache_maxcol == maxcol:
+			return self._cache_display_widget
+
+		self._cache_maxcol = maxcol
+		self._cache_display_widget = self.generate_display_widget(
+			(maxcol,))
+
+		return self._cache_display_widget
+
+	def generate_display_widget(self, (maxcol,)):
+		"""
+		Actually generate display widget (ignoring cache)
+		"""
+		d = Divider()
+		if len(self.cells) == 0: # how dull
+			return d
+		
+		if self.v_sep > 1:
+			# increase size of divider
+			d.top = self.v_sep-1
+		
+		# cells per row
+		bpr = (maxcol+self.h_sep) / (self.cell_width+self.h_sep)
+		
+		if bpr == 0: # too narrow, pile them on top of eachother
+			l = [self.cells[0]]
+			f = 0
+			for b in self.cells[1:]:
+				if b is self.focus_cell:
+					f = len(l)
+				if self.v_sep:
+					l.append(d)
+				l.append(b)
+			return Pile(l, f)
+		
+		if bpr >= len(self.cells): # all fit on one row
+			k = len(self.cells)
+			f = self.cells.index(self.focus_cell)
+			cols = Columns(self.cells, self.h_sep, f)
+			rwidth = (self.cell_width+self.h_sep)*k - self.h_sep
+			row = Padding(cols, self.align, rwidth)
+			return row
+
+		
+		out = []
+		s = 0
+		f = 0
+		while s < len(self.cells):
+			if out and self.v_sep:
+				out.append(d)
+			k = min( len(self.cells), s+bpr )
+			cells = self.cells[s:k]
+			if self.focus_cell in cells:
+				f = len(out)
+				fcol = cells.index(self.focus_cell)
+				cols = Columns(cells, self.h_sep, fcol)
+			else:
+				cols = Columns(cells, self.h_sep)
+			rwidth = (self.cell_width+self.h_sep)*(k-s)-self.h_sep
+			row = Padding(cols, self.align, rwidth)
+			out.append(row)
+			s += bpr
+		return Pile(out, f)	
+	
+	def _set_focus_from_display_widget(self, w):
+		"""Set the focus to the item in focus in the display widget."""
+		if isinstance(w, Padding):
+			# unwrap padding
+			w = w.w
+		w = w.get_focus()
+		if w in self.cells:
+			self.set_focus(w)
+			return
+		if isinstance(w, Padding):
+			# unwrap padding
+			w = w.w
+		w = w.get_focus()
+		#assert w == self.cells[0], `w, self.cells`
+		self.set_focus(w)
+
+	def keypress(self, (maxcol,), key):
+		"""
+		Pass keypress to display widget for handling.  
+		Capture	focus changes."""
+		
+		d = self.get_display_widget((maxcol,))
+		if not d.selectable():
+			return key
+		key = d.keypress( (maxcol,), key)
+		if key is None:
+			self._set_focus_from_display_widget(d)
+		return key
+
+	def rows(self, (maxcol,), focus=False):
+		"""Return rows used by this widget."""
+		d = self.get_display_widget((maxcol,))
+		return d.rows( (maxcol,), focus=focus )
+	
+	def render(self, (maxcol,), focus=False ):
+		"""Use display widget to render."""
+		d = self.get_display_widget((maxcol,))
+		return d.render( (maxcol,), focus=focus )
+
+	def get_cursor_coords(self, (maxcol,)):
+		"""Get cursor from display widget."""
+		d = self.get_display_widget((maxcol,))
+		if not d.selectable():
+			return None
+		return d.get_cursor_coords((maxcol,))
+	
+	def move_cursor_to_coords(self, (maxcol,), col, row ):
+		"""Set the widget in focus based on the col + row."""
+		d = self.get_display_widget((maxcol,))
+		if not d.selectable():
+			# happy is the default
+			return True
+		
+		r =  d.move_cursor_to_coords((maxcol,), col, row)
+		if not r:
+			return False
+		
+		self._set_focus_from_display_widget(d)
+		return True
+	
+	def get_pref_col(self, (maxcol,)):
+		"""Return pref col from display widget."""
+		d = self.get_display_widget((maxcol,))
+		if not d.selectable():
+			return None
+		return d.get_pref_col((maxcol,))
+	
+
+
+class PaddingError(Exception):
+	pass
+
+class Padding:
+	def __init__(self, w, align, width, min_width=None):
+		"""
+		w -- a box or flow widget to pad on the left and/or right
+		align -- one of:
+		    'left', 'center', 'right'
+		    ('fixed left', columns)
+		    ('fixed right', columns)
+		    ('relative', percentage 0=left 100=right)
+		width -- one of:
+		    number of columns wide 
+		    ('fixed right', columns)  Only if align is 'fixed left'
+		    ('fixed left', columns)  Only if align is 'fixed right'
+		    ('relative', percentage of total width)    
+		min_width -- the minimum number of columns for the widget
+		    when width is not fixed
+		
+		Padding widgets will try to satisfy width argument first by
+		reducing the align amount when necessary.  If width still 
+		cannot be satisfied it will also be reduced.
+		"""
+
+		try:
+			if align in ('left','center','right'):
+				align = (align,0)
+			align_type, align_amount = align
+			assert align_type in ('left','center','right','fixed left','fixed right','relative')
+		except:
+			raise PaddingError, "align value %s is not one of 'left', 'center', 'right', ('fixed left', columns), ('fixed right', columns), ('relative', percentage 0=left 100=right)" % `align`
+
+		try:
+			if type(width) == type(0):
+				width=('fixed',width)
+			width_type, width_amount = width
+			assert width_type in ('fixed','fixed right','fixed left','relative')
+		except:
+			raise PaddingError, "width value %s is not one of ('fixed', columns width), ('fixed right', columns), ('relative', percentage of total width)" % `width`
+			
+		if width_type == 'fixed left' and align_type != 'fixed right':
+			raise PaddingError, "fixed left width may only be used with fixed right align"
+		if width_type == 'fixed right' and align_type != 'fixed left':
+			raise PaddingError, "fixed right width may only be used with fixed left align"
+
+		self.w = w
+		self.align_type = align_type
+		self.align_amount = align_amount
+		self.width_type = width_type
+		self.width_amount = width_amount
+		if width_type != 'fixed':
+			self.min_width = min_width
+		
+	def render(self, size, focus=False):	
+		left, right = self.padding_values(size)
+		
+		maxcol = size[0]
+		maxcol -= left+right
+
+		c = self.w.render( (maxcol,)+size[1:], focus )
+		if left == 0:
+			return c
+		return CanvasJoin( [Canvas(), left, c] )
+
+	def padding_values(self, size):
+		"""Return the number of columns to pad on the left and right.
+		
+		Override this method to define custom padding behaviour."""
+		
+		maxcol = size[0]
+		
+		if self.width_type == 'fixed':
+			width = self.width_amount
+		elif self.width_type == 'relative':
+			width = int(self.width_amount*maxcol/100+.5)
+			if self.min_width is not None:
+				    width = max(width, self.min_width)
+		else: # self.width_type == 'fixed right' or 'fixed left'
+			width = maxcol-self.width_amount-self.align_amount
+			if self.min_width is not None:
+				    width = max(width, self.min_width)
+		
+		if width >= maxcol:
+			# use the full space (no padding)
+			return 0, 0
+			
+		if self.align_type == 'fixed left':
+			left = self.align_amount
+			if left+width <= maxcol:
+				return left, maxcol-left-width
+			# need to shrink left
+			return maxcol-width, 0
+		elif self.align_type == 'fixed right':
+			right = self.align_amount
+			if right+width <= maxcol:
+				return maxcol-right-width, right
+			# need to shrink right
+			return 0, maxcol-width		
+		elif self.align_type == 'relative':
+			left = int( (maxcol-width)*self.align_amount/100+.5 )
+		elif self.align_type == 'right':
+			left = maxcol-width	
+		elif self.align_type == 'center':
+			left = int( (maxcol-width)/2 )
+		else: #self.align_type == 'left'
+			left = 0
+		
+		if left+width > maxcol: left = maxcol-width
+		if left < 0: left = 0
+		
+		right = maxcol-width-left
+		return left, right 	
+
+	def selectable(self):
+		"""Return the selectable value of self.w."""
+		return self.w.selectable()
+
+	def rows(self, (maxcol,), focus=False ):
+		"""Return the rows needed for self.w."""
+		left, right = self.padding_values((maxcol,))
+		return self.w.rows( (maxcol-left-right,), focus=focus )
+	
+	def keypress(self, size, key):
+		"""Pass keypress to self.w."""
+		maxcol = size[0]
+		left, right = self.padding_values(size)
+		maxvals = (maxcol-left-right,)+size[1:] 
+		return self.w.keypress(maxvals, key)
+
+	def get_cursor_coords(self,size):
+		"""Return the (x,y) coordinates of cursor within self.w."""
+		if not hasattr(self.w,'get_cursor_coords'):
+			return None
+		left, right = self.padding_values(size)
+		maxcol = size[0]
+		maxvals = (maxcol-left-right,)+size[1:] 
+		coords = self.w.get_cursor_coords(maxvals)
+		if coords is None: 
+			return None
+		x, y = coords
+		return x+left, y
+
+	def move_cursor_to_coords(self, size, x, y):
+		"""Set the cursor position with (x,y) coordinates of self.w.
+
+		Returns True if move succeeded, False otherwise.
+		"""
+		if not hasattr(self.w,'move_cursor_to_coords'):
+			return True
+		left, right = self.padding_values(size)
+		maxcol = size[0]
+		maxvals = (maxcol-left-right,)+size[1:] 
+		if x < left: 
+			x = left
+		elif x >= maxcol-right: 
+			x = maxcol-right-1
+		return self.w.move_cursor_to_coords(maxvals, x-left, y)
+
+	def get_pref_col(self, size):
+		"""Return the preferred column from self.w, or None."""
+		if not hasattr(self.w,'get_pref_col'):
+			return None
+		left, right = self.padding_values(size)
+		maxcol = size[0]
+		maxvals = (maxcol-left-right,)+size[1:] 
+		x = self.w.get_pref_col(maxvals)
+		return x+left
+		
+
+class FillerError(Exception):
+	pass
+
 class Filler(BoxWidget):
-	def __init__(self, body, valign="middle"):
+	def __init__(self, body, valign="middle", height=None, min_height=None):
 		"""
-		body -- a flow widget to be filled around
-		valign -- vertical alignment: "top", "middle" or "bottom"
+		body -- a flow widget or box widget to be filled around
+		valign -- one of:
+		    'top', 'middle', 'bottom'
+		    ('fixed top', rows)
+		    ('fixed bottom', rows)
+		    ('relative', percentage 0=top 100=bottom)
+		height -- one of:
+		    None if body is a flow widget
+		    number of rows high 
+		    ('fixed bottom', rows)  Only if valign is 'fixed top'
+		    ('fixed top', rows)  Only if valign is 'fixed bottom'
+		    ('relative', percentage of total height)
+		min_height -- one of:
+		    None if no minimum or body is a flow widget
+		    minimum number of rows for the widget when height not fixed
+		
+		If body is a flow widget then height and min_height must be set
+		to None.
+		
+		Filler widgets will try to satisfy height argument first by
+		reducing the valign amount when necessary.  If height still 
+		cannot be satisfied it will also be reduced.
 		"""
+		try:
+			if valign in ('top','middle','bottom'):
+				valign = (valign,0)
+			valign_type, valign_amount = valign
+			assert valign_type in ('top','middle','bottom','fixed top','fixed bottom','relative')
+		except:
+			raise FillerError, "Invalid valign: %s" % `valign`
+
+		try:
+			if height is None:
+				height = None, None
+			elif type(height) == type(0):
+				height=('fixed',height)
+			height_type, height_amount = height
+			assert height_type in (None, 'fixed','fixed bottom','fixed top','relative')
+		except:
+			raise FillerError, "Invalid height: %s"%`height`
+			
+		if height_type == 'fixed top' and valign_type != 'fixed bottom':
+			raise FillerError, "fixed top height may only be used with fixed bottom valign"
+		if height_type == 'fixed bottom' and valign_type != 'fixed top':
+			raise FillerError, "fixed bottom height may only be used with fixed top valign"
+
 		self.body = body
-		assert valign in ("top","middle","bottom")
-		self.valign = valign
+		self.valign_type = valign_type
+		self.valign_amount = valign_amount
+		self.height_type = height_type
+		self.height_amount = height_amount
+		if height_type not in ('fixed', None):
+			self.min_height = min_height
+	
+	def selectable(self):
+		"""Return selectable from body."""
+		return self.body.selectable()
+	
+	def filler_values(self, (maxcol, maxrow), focus):
+		"""Return the number of rows to pad on the top and bottom.
+		
+		Override this method to define custom padding behaviour."""
+		
+		if self.height_type == None:
+			height = self.body.rows((maxcol,),focus=focus)
+		elif self.height_type == 'fixed':
+			height = self.height_amount
+		elif self.height_type == 'relative':
+			height = int(self.height_amount*maxrow/100+.5)
+			if self.min_height is not None:
+				    height = max(height, self.min_height)
+		else: # self.height_type == 'fixed bottom' or 'fixed top'
+			height = maxrow-self.height_amount-self.valign_amount
+			if self.min_height is not None:
+				    height = max(height, self.min_height)
+		
+		if height >= maxrow:
+			# use the full space (no padding)
+			return 0, 0
+			
+		if self.valign_type == 'fixed top':
+			top = self.valign_amount
+			if top+height <= maxrow:
+				return top, maxrow-top-height
+			# need to shrink top
+			return maxrow-height, 0
+		elif self.valign_type == 'fixed bottom':
+			bottom = self.valign_amount
+			if bottom+height <= maxrow:
+				return maxrow-bottom-height, bottom
+			# need to shrink bottom
+			return 0, maxrow-height		
+		elif self.valign_type == 'relative':
+			top = int( (maxrow-height)*self.valign_amount/100+.5 )
+		elif self.valign_type == 'bottom':
+			top = maxrow-height	
+		elif self.valign_type == 'middle':
+			top = int( (maxrow-height)/2 )
+		else: #self.valign_type == 'top'
+			top = 0
+		
+		if top+height > maxrow: top = maxrow-height
+		if top < 0: top = 0
+		
+		bottom = maxrow-height-top
+		return top, bottom 	
 	
 	def render(self, (maxcol,maxrow), focus=False):
-		"""Render self.body with space around it to fill box size."""
-		c = self.body.render( (maxcol,), focus )
+		"""Render self.body with space above and/or below."""
+		top, bottom = self.filler_values((maxcol,maxrow), focus)
 		
-		cy = None
-		if c.cursor is not None:
+		if self.height_type is None:
+			c = self.body.render( (maxcol,), focus)
+		else:
+			c = self.body.render( (maxcol,maxrow-top-bottom),focus)
+		
+		if c.rows() > maxrow and c.cursor is not None:
 			cx, cy = c.cursor
+			if cy >= maxrow:
+				c.trim(cy-maxrow+1,maxrow-top-bottom)
+			
+		c.trim(0, maxrow-top-bottom)
 		
-		pos = self.body_position((maxcol,maxrow), focus, c.rows(), cy )
-
-		# need to trim top of self.body
-		if pos < 0:
-			c.trim( -pos, maxrow )
-			return c
-		top = Canvas(["" for i in range(pos)])
-		
-		# may need to trim bottom of self.body
-		if pos + c.rows() >= maxrow:
-			return CanvasCombine( [top, c] ).trim(0, maxrow)
-		
-		# add padding to bottom
-		bottom = Canvas(["" for i in range(maxrow-c.rows()-pos)])
-		return CanvasCombine( [top, c, bottom] )
+		l = [c]
+		if top:
+			l = [Canvas(["" for i in range(top)])] + l
+		if bottom:
+			l = l + [Canvas(["" for i in range(bottom)])]
+		c = CanvasCombine( l )
+		return c
 
 
 	def keypress(self, (maxcol,maxrow), key):
 		"""Pass keypress to self.body."""
-		return self.body.keypress( (maxcol,), key )
+		if self.height_type is None:
+			return self.body.keypress( (maxcol,), key )
 
+		top, bottom = self.filler_values((maxcol,maxrow), True)
+		return self.body.keypress( (maxcol,maxrow-top-bottom), key )
 
-	def body_position(self, (maxcol, maxrow), focus, rows=None, cy=None):
-		"""
-		Return the row offset (+ve) or reduction (-ve) of self.body.
-		"""
+	def get_cursor_coords(self, (maxcol,maxrow)):
+		"""Return cursor coords from self.body if any."""
+		if not hasattr(self.body, 'get_cursor_coords'):
+			return None
+			
+		top, bottom = self.filler_values((maxcol,maxrow), True)
+		if self.height_type is None:
+			x, y = self.body.get_cursor_coords((maxcol,))
+		else:
+			x, y = self.body.get_cursor_coords(
+				(maxcol,maxrow-top-bottom))
+		if y >= maxrow:
+			y = maxrow-1
+		return x, y+top
+
+	def get_pref_col(self, (maxcol,maxrow)):
+		"""Return pref_col from self.body if any."""
+		if not hasattr(self.body, 'get_pref_col'):
+			return None
 		
-		if cy is None and focus:
-			if hasattr(self.body,'get_cursor_coords'):
-				cx, cy = self.body.get_cursor_coords((maxcol,))
+		if self.height_type is None:
+			x = self.body.get_pref_col((maxcol,))
+		else:
+			top, bottom = self.filler_values((maxcol,maxrow), True)
+			x = self.body.get_pref_col(
+				(maxcol,maxrow-top-bottom))
 
-		# need to trim rows on top
-		if cy is not None and cy >= maxrow:
-			return maxrow-cy-1
-
-		if self.valign == "top":
-			return 0
-
-		if rows is None:
-			rows = self.body.rows((maxcol,), focus)
-		if rows >= maxrow:
-			return 0
+		return x
+	
+	def move_cursor_to_coords(self, (maxcol,maxrow), col, row):
+		"""Pass to self.body."""
+		if not hasattr(self.body, 'move_cursor_to_coords'):
+			return True
 		
-		remaining = maxrow - rows
+		top, bottom = self.filler_values((maxcol,maxrow), True)
+		if row < top or row >= maxcol-bottom:
+			return False
 
-		if self.valign == "middle":
-			return remaining / 2
-		else: # valign == "bottom"
-			return remaining
-		
+		if self.height_type is None:
+			return self.body.move_cursor_to_coords((maxcol,),
+				col, row-top)
+		return self.body.move_cursor_to_coords(
+			(maxcol, maxrow-top-bottom), col, row-top)
 	
 		
 		
 
 
 class Frame(BoxWidget):
-	def __init__(self, body, header=None, footer=None):
+	def __init__(self, body, header=None, footer=None, focus_part='body'):
 		"""
 		body -- a box widget for the body of the frame
 		header -- a flow widget for above the body (or None)
 		footer -- a flow widget for below the body (or None)
+		focus_part -- 'header', 'footer' or 'body'
 		"""
 		self.header = header
 		self.body = body
 		self.footer = footer
+		self.focus_part = focus_part
+	
+	def set_focus(self, part):
+		"""Set the part of the frame that is in focus.
+
+		part -- 'header', 'footer' or 'body'
+		"""
+		assert part in ('header', 'footer', 'body')
+		self.focus_part = part
+
+	def frame_top_bottom(self, (maxcol,maxrow), focus):
+		"""Calculate the number of rows for the header and footer.
+
+		Returns (head rows, foot rows),(orig head, orig foot).
+		orig head/foot are from rows() calls.
+		"""
+		frows = hrows = 0
+		
+		if self.header:
+			hrows = self.header.rows((maxcol,),
+				self.focus_part=='header' and focus)
+		
+		if self.footer:
+			frows = self.footer.rows((maxcol,),
+				self.focus_part=='footer' and focus)
+		
+		remaining = maxrow
+		
+		if self.focus_part == 'footer':
+			if frows >= remaining:
+				return (0, remaining),(hrows, frows)
+				
+			remaining -= frows
+			if hrows >= remaining:
+				return (remaining, frows),(hrows, frows)
+
+		elif self.focus_part == 'header':
+			if hrows >= maxrow:
+				return (remaining, 0),(hrows, frows)
+			
+			remaining -= hrows
+			if frows >= remaining:
+				return (hrows, remaining),(hrows, frows)
+
+		elif hrows + frows >= remaining:
+			# self.focus_part == 'body'
+			if frows >= remaining-1:
+				return (0, remaining-1),(hrows, frows)
+			
+			remaining -= frows
+			return (remaining-1,frows),(hrows, frows)
+		
+		return (hrows, frows),(hrows, frows)
+		
+	
 
 	def render(self, (maxcol,maxrow), focus=False):
 		"""Render frame and return it."""
-		head = foot = Canvas()
-		if self.header is not None:
-			head = self.header.render((maxcol,))
-		if self.footer is not None:
-			foot = self.footer.render((maxcol,))
 		
-		remaining = maxrow - head.rows() - foot.rows()
-		if remaining <= 0:
-			return CanvasCombine([head,foot]).trim(0,maxrow)
+		(htrim, ftrim),(hrows, frows) = self.frame_top_bottom(
+			(maxcol, maxrow), focus)
 		
-		bod = self.body.render( (maxcol, remaining), focus=focus )
-		d = CanvasCombine( [head,bod,foot] )
-		return d
+		if not ftrim:
+			foot = Canvas()
+		elif ftrim < frows:
+			foot = Filler(self.footer, 'bottom').render(
+				(maxcol, ftrim), 
+				focus and self.focus_part == 'footer')
+		else:
+			foot = self.footer.render((maxcol,),
+				focus and self.focus_part == 'footer')
+			assert foot.rows() == frows, "rows, render mismatch"
+		
+		if not htrim:
+			head = Canvas()
+		elif htrim < hrows:
+			head = Filler(self.header, 'top').render(
+				(maxcol, htrim), 
+				focus and self.focus_part == 'header')
+		else:
+			head = self.header.render((maxcol,),
+				focus and self.focus_part == 'header')
+			assert head.rows() == hrows, "rows, render mismatch"
+
+		if ftrim+htrim < maxrow:
+			body = self.body.render((maxcol, maxrow-ftrim-htrim),
+				focus and self.focus_part == 'body')
+			
+		return CanvasCombine( [head,body,foot] )
+
 
 	def keypress(self, (maxcol,maxrow), key):
-		"""Pass keypress to body widget."""
+		"""Pass keypress to widget in focus."""
+		
+		if self.focus_part == 'header' and self.header is not None:
+			return self.header.keypress((maxcol,),key)
+		if self.focus_part == 'footer' and self.footer is not None:
+			return self.footer.keypress((maxcol,),key)
+		if self.focus_part != 'body':
+			return key
 		remaining = maxrow
 		if self.header is not None:
 			remaining -= self.header.rows((maxcol,))
@@ -657,18 +1455,12 @@ class AttrWrap:
 		attr -- attribute to apply to w
 		focus_attr -- attribute to apply when in focus, if None use attr
 		
-		Copy w.get_cursor_coords, w.move_cursor_to_coords, 
-		w.get_pref_col functions to this widget if they exist.
+		This object will pass function calls and variable references
+		to the wrapped widget.
 		"""
 		self.w = w
 		self.attr = attr
 		self.focus_attr = focus_attr
-		if hasattr(self.w,'get_cursor_coords'):
-			self.get_cursor_coords = self.w.get_cursor_coords
-		if hasattr(self.w,'move_cursor_to_coords'):
-			self.move_cursor_to_coords=self.w.move_cursor_to_coords
-		if hasattr(self.w,'get_pref_col'):
-			self.get_pref_col = self.w.get_pref_col
 	
 	def render(self, size, focus = False ):
 		"""Render self.w and apply attribute. Return canvas.
@@ -685,38 +1477,75 @@ class AttrWrap:
 		r.text = [x.ljust(cols) for x in r.text]
 		return r
 
-	def selectable(self):
-		"""Return the selectable value of self.w."""
-		return self.w.selectable()
+	def __getattr__(self,name):
+		"""Call getattr on wrapped widget."""
+		return getattr(self.w, name)
 
-	def rows(self, (maxcol,), focus=False ):
-		"""Return the rows needed for self.w."""
-		return self.w.rows( (maxcol,), focus=focus )
-	
-	def keypress(self, maxvals, key):
-		"""Pass keypress to self.w."""
-		return self.w.keypress(maxvals, key)
-	
 
 		
 class Pile(FlowWidget):
-	def __init__(self, widget_list):
+	def __init__(self, widget_list, focus_item=0):
 		"""
 		widget_list -- list of flow widgets
+		focus_item -- widget or integer index
 		"""
 		
 		self.widget_list = widget_list
-		self.maxcol = None
-	
+		self.set_focus(focus_item)
+		self.pref_col = None
+
+	def selectable(self):
+		"""Return True if the focus item is selectable."""
+		return self.focus_item.selectable()
+
+	def set_focus(self, item):
+		"""Set the item in focus.  
+		
+		item -- widget or integer index"""
+		if type(item) == type(0):
+			assert item>=0 and item<len(self.widget_list)
+			self.focus_item = self.widget_list[item]
+		else:
+			assert item in self.widget_list
+			self.focus_item = item
+
+	def get_focus(self):
+		"""Return the widget in focus."""
+		return self.focus_item
+
+	def get_pref_col(self, (maxcol,)):
+		"""Return the preferred column for the cursor, or None."""
+		if not self.selectable():
+			return None
+		self._update_pref_col_from_focus((maxcol,))
+		return self.pref_col
+		
 	def render(self, (maxcol,), focus=False):
 		"""
 		Render all widgets in self.widget_list and return the results
 		stacked one on top of the next.
 		"""
 		return CanvasCombine(
-			[ w.render((maxcol,), focus=False) 
+			[ w.render( (maxcol,),
+				focus=focus and w==self.focus_item ) 
 				for w in self.widget_list ])
+	
+	def get_cursor_coords(self, (maxcol,)):
+		"""Return the cursor coordinates of the focus widget."""
+		if not self.focus_item.selectable():
+			return None
+		if not hasattr(self.focus_item,'get_cursor_coords'):
+			return None
+		coords = self.focus_item.get_cursor_coords((maxcol,))
+		if coords is None:
+			return None
+		x,y = coords
+		position = self.widget_list.index(self.focus_item)
+		for w in self.widget_list[:position]:
+			y += w.rows((maxcol,))
+		return x, y
 		
+	
 	def rows(self, (maxcol,), focus=False ):
 		"""Return the number of rows required for this widget."""
 		rows = 0
@@ -724,16 +1553,116 @@ class Pile(FlowWidget):
 			rows = rows+w.rows( (maxcol,) )
 		return rows
 
+	def keypress(self, (maxcol,), key ):
+		"""Pass the keypress to the widget in focus.
+		Unhandled 'up' and 'down' keys may cause a focus change."""
+
+		key = self.focus_item.keypress( (maxcol,), key )
+		if key not in ('up', 'down'):
+			return key
+
+		i = self.widget_list.index(self.focus_item)
+		if key == 'up':
+			candidates = range(i-1, -1, -1) # count backwards to 0
+		else: # key == 'down'
+			candidates = range(i+1, len(self.widget_list))
+			
+		for j in candidates:
+			if not self.widget_list[j].selectable():
+				continue
+			
+			self._update_pref_col_from_focus((maxcol,))
+			old_focus = self.focus_item
+			self.set_focus(j)
+			if not hasattr(self.focus_item,'move_cursor_to_coords'):
+				return
+
+			rows = self.focus_item.rows((maxcol,))
+			if key=='up':
+				rowlist = range(rows-1, -1, -1)
+			else: # key == 'down'
+				rowlist = range(rows)
+			for row in rowlist:
+				if self.focus_item.move_cursor_to_coords(
+						(maxcol,),self.pref_col,row):
+					break
+			return					
+				
+		# nothing to select
+		return key
+
+	def _update_pref_col_from_focus(self, (maxcol,) ):
+		"""Update self.pref_col from the focus widget."""
+		
+		widget = self.focus_item
+
+		if not hasattr(widget,'get_pref_col'):
+			return
+		pref_col = widget.get_pref_col((maxcol,))
+		if pref_col is not None: 
+			self.pref_col = pref_col
+
+	def move_cursor_to_coords(self, (maxcol,), col, row):
+		"""Capture pref col and set new focus."""
+		self.pref_col = col
+
+		wrow = 0
+		for w in self.widget_list:
+			r = w.rows((maxcol,), focus = self.focus_item==w)
+			if wrow+r > row:
+				break
+			wrow += r
+
+		if not w.selectable():
+			return False
+		
+		if hasattr(w,'move_cursor_to_coords'):
+			rval = w.move_cursor_to_coords((maxcol,),col,row-wrow)
+			if rval is False:
+				return False
+			
+		self.focus_item = w
+		return True
+		
+
+
+
+class ColumnsError(Exception):
+	pass
+
 		
 class Columns: # either FlowWidget or BoxWidget
-	def __init__(self, widget_list, dividechars=0):
+	def __init__(self, widget_list, dividechars=0, focus_column=0,
+		min_width=1):
 		"""
 		widget_list -- list of flow widgets or list of box widgets
 		dividechars -- blank characters between columns
+		focus_column -- index into widget_list of column in focus
+		min_width -- minimum width for each column before it is hidden
+
+		widget_list may also contain tuples such as:
+		('fixed', width, widget) give this column a fixed width
+		('weight', weight, widget) give this column a relative weight
+
+		widgets not in a tuple are the same as ('weight', 1, widget)	
 		"""
 		self.widget_list = widget_list
+		self.column_types = []
+		for i in range(len(widget_list)):
+			w = widget_list[i]
+			if type(w) != type(()):
+				self.column_types.append(('weight',1))
+			elif w[0] in ('fixed', 'weight'):
+				f,width,widget = w
+				self.widget_list[i] = widget
+				self.column_types.append((f,width))
+			else:
+				raise ColumnsError, "widget list item invalid: %s" % `w`
+		
 		self.dividechars = dividechars
-		self.focus_col = 0
+		self.focus_col = focus_column
+		self.pref_col = None
+		self.min_width = min_width
 	
 	def set_focus_column( self, num ):
 		"""Set the column in focus by its index in self.widget_list."""
@@ -742,29 +1671,68 @@ class Columns: # either FlowWidget or BoxWidget
 	def get_focus_column( self ):
 		"""Return the focus column index."""
 		return self.focus_col
+
+	def set_focus(self, widget):
+		"""Set the column in focus with a widget in self.widget_list."""
+		position = self.widget_list.index(widget)
+		self.focus_col = position
 	
+	def get_focus(self):
+		"""Return the widget in focus."""
+		return self.widget_list[self.focus_col]
+
 	def column_widths( self, size ):
-		"""Return a list of column character widths.
+		"""Return a list of column widths.
 
 		size -- (maxcol,) if self.widget_list contains flow widgets or
 			(maxcol, maxrow) if it contains box widgets.
 		"""
-		if len(size) == 1:
-			(maxcol,) = size
-		else:
-			(maxcol, maxrow) = size
-		
+		maxcol = size[0]
+
+		col_types = self.column_types
+		# hack to support old practice of editing self.widget_list
+		# directly
+		lwl, lct = len(self.widget_list), len(self.column_types)
+		if lwl > lct:
+			col_types = col_types + [('weight',1)] * (lwl-lct)
+			
 		widths=[]
 		
-		k = len(self.widget_list)
-		maxcol -= (k-1) * self.dividechars
-		for w in self.widget_list:
-			portion = int(maxcol/k)
-			if portion <= 0: break
-			k -= 1
-			maxcol -= portion
-			
-			widths.append(portion)
+		weighted = []
+		shared = maxcol + self.dividechars
+		growable = 0
+		
+		i = 0
+		for t, width in col_types:
+			if t == 'fixed':
+				static_w = width
+			else:
+				static_w = self.min_width
+				
+			if shared < static_w + self.dividechars:
+				break
+		
+			widths.append( static_w )	
+			shared -= static_w + self.dividechars
+			if t != 'fixed':
+				weighted.append( (width,i) )
+		
+			i += 1
+		
+		if not shared:
+			return widths
+		
+		# divide up the remaining space between weighted cols
+		weighted.sort()
+		wtotal = sum([weight for weight,i in weighted])
+		grow = shared + len(weighted)*self.min_width
+		for weight, i in weighted:
+			width = int( float(grow) * weight / wtotal + 0.5 )
+			width = max(self.min_width, width)
+			widths[i] = width
+			grow -= width
+			wtotal -= weight
+		
 		
 		return widths
 	
@@ -781,20 +1749,92 @@ class Columns: # either FlowWidget or BoxWidget
 		for i in range(len(widths)):
 			mc = widths[i]
 			w = self.widget_list[i]
-			if len(size) == 1:
-				sub_size = (mc,)
-			else:
-				sub_size = (mc, size[1])
-				
-			if focus and self.focus_col == i:
-				l.append(w.render(sub_size, focus=1))
-			else:
-				l.append(w.render(sub_size, focus=0))
+			sub_size = (mc,) + size[1:]
+			
+			l.append(w.render(sub_size, 
+				focus = focus and self.focus_col == i) )
 				
 			off = mc + self.dividechars
 			l.append(off)
 		return CanvasJoin( l[:-1] )
+
+	def get_cursor_coords(self, size):
+		"""Return the cursor coordinates from the focus widget."""
+		w = self.widget_list[self.focus_col]
+
+		if not w.selectable():
+			return None
+		if not hasattr(w, 'get_cursor_coords'):
+			return None
+
+		widths = self.column_widths( size )
+		colw = widths[self.focus_col]
+
+		coords = w.get_cursor_coords( (colw,)+size[1:] )
+		if coords is None:
+			return None
+		x,y = coords
+		x += self.focus_col * self.dividechars
+		x += sum( widths[:self.focus_col] )
+		return x, y
+
+	def move_cursor_to_coords(self, size, col, row):
+		"""Choose a selectable column to focus based on the coords."""
+		widths = self.column_widths(size)
+		
+		best = None
+		x = 0
+		for i in range(len(widths)):
+			w = self.widget_list[i]
+			end = x + widths[i]
+			if w.selectable():
+				if x > col and best is None:
+					# no other choice
+					best = i, x, end
+					break
+				if x > col and col-best[2] < x-col:
+					# choose one on left
+					break
+				best = i, x, end
+				if col < end:
+					# choose this one
+					break
+			x = end + self.dividechars
+			
+		if best is None:
+			return False
+		i, x, end = best
+		w = self.widget_list[i]
+		if hasattr(w,'move_cursor_to_coords'):
+			rval = w.move_cursor_to_coords((end-x,)+size[1:],
+				min(max(0,col-x),end-x-1), row)
+			if rval is False:
+				return False
+				
+		self.focus_col = i
+		self.pref_col = col
+		return True
+
+	def get_pref_col(self, size):
+		"""Return the pref col from the column in focus."""
+		maxcol = size[0]
+		widths = self.column_widths( (maxcol,) )
 	
+		w = self.widget_list[self.focus_col]
+		col = None
+		if hasattr(w,'get_pref_col'):
+			col = w.get_pref_col((widths[self.focus_col],)+size[1:])
+			if col is not None:
+				col += self.focus_col * self.dividechars
+				col += sum( widths[:self.focus_col] )
+		if col is None:
+			col = self.pref_col
+		if col is None and w.selectable():
+			col = widths[self.focus_col]/2
+			col += self.focus_col * self.dividechars
+			col += sum( widths[:self.focus_col] )
+		return col
+
 	def rows(self, (maxcol,), focus=0 ):
 		"""Return the number of rows required by the columns.
 		Only makes sense if self.widget_list contains flow widgets."""
@@ -804,10 +1844,8 @@ class Columns: # either FlowWidget or BoxWidget
 		for i in range(len(widths)):
 			mc = widths[i]
 			w = self.widget_list[i]
-			if focus and self.focus_col == i:
-				rows = max(rows, w.rows( (mc,), focus=1 ))
-			else:
-				rows = max(rows, w.rows( (mc,), focus=0 ))
+			rows = max( rows, w.rows( (mc,), 
+				focus = focus and self.focus_col == i ) )
 		return rows
 			
 	def keypress(self, size, key):
@@ -825,10 +1863,26 @@ class Columns: # either FlowWidget or BoxWidget
 		i = self.focus_col
 		mc = widths[i]
 		w = self.widget_list[i]
-		if len(size) == 1:
-			return w.keypress( (mc,), key )
-		else:
-			return w.keypress( (mc, size[1]), key )
+		if key not in ('up','down','page up','page down'):
+			self.pref_col = None
+		key = w.keypress( (mc,)+size[1:], key )
+		
+		if key not in ('left','right'):
+			return key
+
+		if key == 'left':
+			candidates = range(i-1, -1, -1) # count backwards to 0
+		else: # key == 'right'
+			candidates = range(i+1, len(widths))
+
+		for j in candidates:
+			if not self.widget_list[j].selectable():
+				continue
+
+			self.set_focus_column( j )
+			return
+		return key
+			
 
 	def selectable(self):
 		"""Return the selectable value of the focus column."""
