@@ -20,7 +20,7 @@
 Reference
 </div>
 <br>
-<table width="100%"><tr><td width="33%" valign="top"><div class="l1">Urwid class interfaces</div><div class="l2"><a href="#Widget_interface_definition">Widget interface definition</a></div><div class="l2"><a href="#List_Walker_interface_definition">List Walker interface definition</a></div><div class="l1">User interface wrapper</div><div class="l2"><a href="#curses_display.Screen">curses_display.Screen</a></div><div class="l1">Top-level widgets</div><div class="l2"><a href="#BoxWidget">BoxWidget</a></div><div class="l2"><a href="#Frame">Frame</a></div><div class="l2"><a href="#Filler">Filler</a></div><div class="l2"><a href="#ListBox">ListBox</a></div><div class="l2"><a href="#SimpleListWalker">SimpleListWalker</a></div><div class="l1">Decorations</div><div class="l2"><a href="#AttrWrap">AttrWrap</a></div><div class="l2"><a href="#Padding">Padding</a></div><div class="l2"><a href="#Divider">Divider</a></div></td><td width="33%" valign="top"><div class="l1">Content widgets</div><div class="l2"><a href="#FlowWidget">FlowWidget</a></div><div class="l2"><a href="#Text">Text</a></div><div class="l2"><a href="#Edit">Edit</a></div><div class="l2"><a href="#IntEdit">IntEdit</a></div><div class="l2"><a href="#Button">Button</a></div><div class="l2"><a href="#CheckBox">CheckBox</a></div><div class="l2"><a href="#RadioButton">RadioButton</a></div><div class="l1">Composite widgets</div><div class="l2"><a href="#Columns">Columns</a></div><div class="l2"><a href="#Pile">Pile</a></div><div class="l2"><a href="#GridFlow">GridFlow</a></div><div class="l1">Canvas painting</div><div class="l2"><a href="#Canvas">Canvas</a></div><div class="l2"><a href="#CanvasCombine">CanvasCombine</a></div><div class="l2"><a href="#CanvasJoin">CanvasJoin</a></div></td><td width="33%" valign="top"><div class="l1">Custom formatting rules</div><div class="l2"><a href="#util.register_align_mode">util.register_align_mode</a></div><div class="l2"><a href="#util.register_wrap_mode">util.register_wrap_mode</a></div><div class="l2"><a href="#util.set_double_byte_encoding">util.set_double_byte_encoding</a></div><div class="l1">Screen capture</div><div class="l2"><a href="#html_fragment.screenshot_init">html_fragment.screenshot_init</a></div><div class="l2"><a href="#html_fragment.screenshot_collect">html_fragment.screenshot_collect</a></div><div class="l2"><a href="#html_fragment.HtmlGenerator">html_fragment.HtmlGenerator</a></div></td></tr></table><h2>Urwid class interfaces</h2><h3><a name="Widget_interface_definition"></a><strong>Widget interface definition</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<table width="100%"><tr><td width="33%" valign="top"><div class="l1">Urwid class interfaces</div><div class="l2"><a href="#Widget_interface_definition">Widget interface definition</a></div><div class="l2"><a href="#List_Walker_interface_definition">List Walker interface definition</a></div><div class="l1">User interface wrapper</div><div class="l2"><a href="#curses_display.Screen">curses_display.Screen</a></div><div class="l1">Top-level widgets</div><div class="l2"><a href="#BoxWidget">BoxWidget</a></div><div class="l2"><a href="#Frame">Frame</a></div><div class="l2"><a href="#Filler">Filler</a></div><div class="l2"><a href="#ListBox">ListBox</a></div><div class="l2"><a href="#SimpleListWalker">SimpleListWalker</a></div><div class="l1">Decorations</div><div class="l2"><a href="#AttrWrap">AttrWrap</a></div><div class="l2"><a href="#Padding">Padding</a></div><div class="l2"><a href="#Divider">Divider</a></div></td><td width="33%" valign="top"><div class="l1">Content widgets</div><div class="l2"><a href="#FlowWidget">FlowWidget</a></div><div class="l2"><a href="#Text">Text</a></div><div class="l2"><a href="#Edit">Edit</a></div><div class="l2"><a href="#IntEdit">IntEdit</a></div><div class="l2"><a href="#Button">Button</a></div><div class="l2"><a href="#CheckBox">CheckBox</a></div><div class="l2"><a href="#RadioButton">RadioButton</a></div><div class="l1">Composite widgets</div><div class="l2"><a href="#Columns">Columns</a></div><div class="l2"><a href="#Pile">Pile</a></div><div class="l2"><a href="#GridFlow">GridFlow</a></div><div class="l1">Canvas painting</div><div class="l2"><a href="#Canvas">Canvas</a></div><div class="l2"><a href="#CanvasCombine">CanvasCombine</a></div><div class="l2"><a href="#CanvasJoin">CanvasJoin</a></div></td><td width="33%" valign="top"><div class="l1">Custom formatting rules</div><div class="l2"><a href="#util.register_align_mode">util.register_align_mode</a></div><div class="l2"><a href="#util.register_wrap_mode">util.register_wrap_mode</a></div><div class="l2"><a href="#util.set_double_byte_encoding">util.set_double_byte_encoding</a></div><div class="l1">Screen capture</div><div class="l2"><a href="#html_fragment.screenshot_init">html_fragment.screenshot_init</a></div><div class="l2"><a href="#html_fragment.screenshot_collect">html_fragment.screenshot_collect</a></div><div class="l2"><a href="#html_fragment.HtmlGenerator">html_fragment.HtmlGenerator</a></div><div class="l1">Web Application Interface</div><div class="l2"><a href="#web_display.is_web_request">web_display.is_web_request</a></div><div class="l2"><a href="#web_display.set_preferences">web_display.set_preferences</a></div><div class="l2"><a href="#web_display.handle_short_request">web_display.handle_short_request</a></div><div class="l2"><a href="#web_display.Screen">web_display.Screen</a></div></td></tr></table><h2>Urwid class interfaces</h2><h3><a name="Widget_interface_definition"></a><strong>Widget interface definition</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="WidgetInterface-get_cursor_coords"><strong>get_cursor_coords</strong></a>(self, size)</dt><dd><tt>Returns&nbsp;(col,row)&nbsp;coordinates&nbsp;for&nbsp;cursor&nbsp;or&nbsp;None&nbsp;if&nbsp;no&nbsp;cursor.<br>
 &nbsp;<br>
 MUST&nbsp;be&nbsp;implemented&nbsp;if&nbsp;render&nbsp;function&nbsp;returns&nbsp;a&nbsp;canvas&nbsp;with<br>
@@ -898,6 +898,57 @@ Data and other attributes defined here:<br>
 <dl><dt><strong>keys</strong> = []</dl>
 
 <dl><dt><strong>sizes</strong> = []</dl>
+
+<h2>Web Application Interface</h2><a name="web_display.is_web_request"></a><h3>function web_display.is_web_request <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3><dl><dt><a name="-web_display.is_web_request"><strong>web_display.is_web_request</strong></a> = is_web_request()</dt><dd><tt>Return&nbsp;True&nbsp;if&nbsp;this&nbsp;is&nbsp;a&nbsp;CGI&nbsp;web&nbsp;request.</tt></dd></dl>
+<a name="web_display.set_preferences"></a><h3>function web_display.set_preferences <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3><dl><dt><a name="-web_display.set_preferences"><strong>web_display.set_preferences</strong></a> = set_preferences(app_name, pipe_dir<font color="#909090">='/tmp'</font>, allow_polling<font color="#909090">=True</font>, max_clients<font color="#909090">=20</font>)</dt><dd><tt>Set&nbsp;web_display&nbsp;preferences.<br>
+&nbsp;<br>
+app_name&nbsp;--&nbsp;application&nbsp;name&nbsp;to&nbsp;appear&nbsp;in&nbsp;html&nbsp;interface<br>
+pipe_dir&nbsp;--&nbsp;directory&nbsp;for&nbsp;input&nbsp;pipes,&nbsp;daemon&nbsp;update&nbsp;sockets&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and&nbsp;daemon&nbsp;error&nbsp;logs<br>
+allow_polling&nbsp;--&nbsp;allow&nbsp;creation&nbsp;of&nbsp;daemon&nbsp;processes&nbsp;for&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;browsers&nbsp;without&nbsp;multipart&nbsp;support&nbsp;<br>
+max_clients&nbsp;--&nbsp;maximum&nbsp;concurrent&nbsp;client&nbsp;connections.&nbsp;This<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pool&nbsp;is&nbsp;shared&nbsp;by&nbsp;all&nbsp;urwid&nbsp;applications<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;using&nbsp;the&nbsp;same&nbsp;pipe_dir</tt></dd></dl>
+<a name="web_display.handle_short_request"></a><h3>function web_display.handle_short_request <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3><dl><dt><a name="-web_display.handle_short_request"><strong>web_display.handle_short_request</strong></a> = handle_short_request()</dt><dd><tt>Handle&nbsp;short&nbsp;requests&nbsp;such&nbsp;as&nbsp;passing&nbsp;keystrokes&nbsp;to&nbsp;the&nbsp;application<br>
+or&nbsp;sending&nbsp;the&nbsp;initial&nbsp;html&nbsp;page.&nbsp;&nbsp;If&nbsp;returns&nbsp;True,&nbsp;then&nbsp;this<br>
+function&nbsp;recognised&nbsp;and&nbsp;handled&nbsp;a&nbsp;short&nbsp;request,&nbsp;and&nbsp;the&nbsp;calling<br>
+script&nbsp;should&nbsp;immediately&nbsp;exit.<br>
+&nbsp;<br>
+web_display.set_preferences(..)&nbsp;should&nbsp;be&nbsp;called&nbsp;before&nbsp;calling&nbsp;this<br>
+function&nbsp;for&nbsp;the&nbsp;preferences&nbsp;to&nbsp;take&nbsp;effect</tt></dd></dl>
+<h3><a name="web_display.Screen"></a><strong>web_display.Screen</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<dl><dt><a name="Screen-__init__"><strong>__init__</strong></a>(self)</dt></dl>
+
+<dl><dt><a name="Screen-draw_screen"><strong>draw_screen</strong></a>(self, (cols, rows), r)</dt><dd><tt>Send&nbsp;a&nbsp;screen&nbsp;update&nbsp;to&nbsp;the&nbsp;client.</tt></dd></dl>
+
+<dl><dt><a name="Screen-get_cols_rows"><strong>get_cols_rows</strong></a>(self)</dt><dd><tt>Return&nbsp;the&nbsp;screen&nbsp;size.</tt></dd></dl>
+
+<dl><dt><a name="Screen-get_input"><strong>get_input</strong></a>(self)</dt><dd><tt>Return&nbsp;pending&nbsp;input&nbsp;as&nbsp;a&nbsp;list.</tt></dd></dl>
+
+<dl><dt><a name="Screen-register_palette"><strong>register_palette</strong></a>(self, l)</dt><dd><tt>Register&nbsp;a&nbsp;list&nbsp;of&nbsp;palette&nbsp;entries.<br>
+&nbsp;<br>
+l&nbsp;--&nbsp;list&nbsp;of&nbsp;(name,&nbsp;foreground,&nbsp;background)&nbsp;or<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(name,&nbsp;same_as_other_name)&nbsp;palette&nbsp;entries.<br>
+&nbsp;<br>
+calls&nbsp;self.<strong>register_palette_entry</strong>&nbsp;for&nbsp;each&nbsp;item&nbsp;in&nbsp;l</tt></dd></dl>
+
+<dl><dt><a name="Screen-register_palette_entry"><strong>register_palette_entry</strong></a>(self, name, foreground, background, mono<font color="#909090">=None</font>)</dt><dd><tt>Register&nbsp;a&nbsp;single&nbsp;palette&nbsp;entry.<br>
+&nbsp;<br>
+name&nbsp;--&nbsp;new&nbsp;entry/attribute&nbsp;name<br>
+foreground&nbsp;--&nbsp;foreground&nbsp;colour<br>
+background&nbsp;--&nbsp;background&nbsp;colour<br>
+mono&nbsp;--&nbsp;monochrome&nbsp;terminal&nbsp;attribute<br>
+&nbsp;<br>
+See&nbsp;curses_display.register_palette_entry&nbsp;for&nbsp;more&nbsp;info.</tt></dd></dl>
+
+<dl><dt><a name="Screen-run_wrapper"><strong>run_wrapper</strong></a>(self, fn)</dt><dd><tt>Start&nbsp;the&nbsp;application&nbsp;main&nbsp;loop.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;reads&nbsp;the&nbsp;initial&nbsp;screen&nbsp;size,&nbsp;generates&nbsp;a<br>
+unique&nbsp;id&nbsp;and&nbsp;handles&nbsp;cleanup&nbsp;when&nbsp;fn&nbsp;exits.<br>
+&nbsp;<br>
+web_display.set_preferences(..)&nbsp;must&nbsp;be&nbsp;called&nbsp;before&nbsp;calling<br>
+this&nbsp;function&nbsp;for&nbsp;the&nbsp;preferences&nbsp;to&nbsp;take&nbsp;effect</tt></dd></dl>
 
 
 </body>

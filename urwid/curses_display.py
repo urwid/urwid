@@ -79,6 +79,92 @@ _keyconv = {
 	 -1:None,
 }
 
+def escape_modifier( digit ):
+	mode = ord(digit) - ord("1")
+	return "shift "*(mode&1) + "meta "*((mode&2)/2) + "ctrl "*((mode&4)/4)
+	
+
+_escape_sequences = [
+	('[A','up'),('[B','down'),('[C','right'),('[D','left'),
+	('[E','5'),('[F','end'),('[G','5'),('[H','home'),
+
+	('[1~','home'),('[2~','insert'),('[3~','delete'),('[4~','end'),
+	('[5~','page up'),('[6~','page down'),
+
+	('[[A','f1'),('[[B','f2'),('[[C','f3'),('[[D','f4'),('[[E','f5'),
+	
+	('[11~','f1'),('[12~','f2'),('[13~','f3'),('[14~','f4'),
+	('[15~','f5'),('[17~','f6'),('[18~','f7'),('[19~','f8'),
+	('[20~','f9'),('[21~','f10'),('[23~','f11'),('[24~','f12'),
+	('[25~','f13'),('[26~','f14'),('[28~','f15'),('[29~','f16'),
+	('[31~','f17'),('[32~','f18'),('[33~','f19'),('[34~','f20'),
+
+	('OA','up'),('OB','down'),('OC','right'),('OD','left'),
+	('OH','home'),('OF','end'),
+	('OP','f1'),('OQ','f2'),('OR','f3'),('OS','f4'),
+	('Oo','/'),('Oj','*'),('Om','-'),('Ok','+'),
+	
+] + [ 
+	# modified cursor keys + home, end, 5 -- [#X and [1;#X forms
+	(prefix+digit+letter, escape_modifier(digit) + key)
+	for prefix in "[","[1;"
+	for digit in "12345678"
+	for letter,key in zip("ABCDEFGH",
+		('up','down','right','left','5','end','5','home'))
+] + [ 
+	# modified F1-F4 keys -- O#X form
+	("O"+digit+letter, escape_modifier(digit) + key)
+	for digit in "12345678"
+	for letter,key in zip("PQRS",('f1','f2','f3','f4'))
+] + [ 
+	# modified F1-F13 keys -- [XX;#~ form
+	("["+str(num)+";"+digit+"~", escape_modifier(digit) + key)
+	for digit in "12345678"
+	for num,key in zip(
+		(11,12,13,14,15,17,18,19,20,21,23,24,25,26,28,29,31,32,33,34),
+		('f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11',
+		'f12','f13','f14','f15','f16','f17','f18','f19','f20'))
+]
+
+class _KeyqueueTrie:
+	def __init__( self, sequences ):
+		self.data = {}
+		for s, result in sequences:
+			assert type(result) != type({})
+			self.add(self.data, s, result)
+	
+	def add(self, root, s, result):
+		assert type(root) == type({}), "trie conflict detected"
+		assert len(s) > 0, "trie conflict detected"
+		
+		if root.has_key(ord(s[0])):
+			return self.add(root[ord(s[0])], s[1:], result)
+		if len(s)>1:
+			d = {}
+			root[ord(s[0])] = d
+			return self.add(d, s[1:], result)
+		root[ord(s)] = result
+	
+	def get(self, keys, more_fn):
+		return self.get_recurse(self.data, keys, more_fn)
+	
+	def get_recurse(self, root, keys, more_fn):
+		if type(root) != type({}):
+			return (root, keys)
+		if not keys:
+			# get more keys
+			key = more_fn()
+			if key < 0:
+				return None
+			keys.append(key)
+		if not root.has_key(keys[0]):
+			return None
+		return self.get_recurse( root[keys[0]], keys[1:], more_fn )
+		
+
+_escape_trie = _KeyqueueTrie(_escape_sequences)
+
+
 # replace control characters with ?'s
 _trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
 
@@ -179,7 +265,7 @@ class Screen:
 			curses.noecho()
 			curses.meta(1)
 			curses.halfdelay(10) # don't wait longer than 1s for keypress
-			self.s.keypad(1)
+			self.s.keypad(0)
 			self.s.scrollok(1)
 			return fn()
 		finally:
@@ -254,6 +340,11 @@ class Screen:
 		self.s.nodelay(0)
 		return self.s.getch()
 	
+	def _getch_tinydelay(self):
+		curses.halfdelay(1) # don't wait longer than 0.1s for keypress
+		self.s.nodelay(0)
+		return self.s.getch()
+		
 	def _getch_nodelay(self):
 		self.s.nodelay(1)
 		while 1:
@@ -301,10 +392,10 @@ class Screen:
 		# return "no key" between "window resize" commands 
 		if keys==['window resize'] and self.prev_input_resize:
 			while True:
-				keys, raw2 = self._get_input()
+				keys, raw2 = self._get_input(True)
 				raw += raw2
 				if not keys:
-					keys, raw2 = self._get_input()
+					keys, raw2 = self._get_input(True)
 					raw += raw2
 				if keys!=['window resize']:
 					break
@@ -324,13 +415,16 @@ class Screen:
 		return keys
 		
 		
-	def _get_input(self):
+	def _get_input(self, tiny_delay=False):
 		# this works around a strange curses bug with window resizing 
 		# not being reported correctly with repeated calls to this
 		# function without a doupdate call in between
 		curses.doupdate() 
 		
-		key = self._getch()
+		if tiny_delay:
+			key = self._getch_tinydelay()
+		else:
+			key = self._getch()
 		resize = False
 		raw = []
 		keys = []
@@ -345,8 +439,15 @@ class Screen:
 			key = self._getch_nodelay()
 
 		processed = []
+		
+		def more_fn(raw=raw):
+			key = self._getch_tinydelay()
+			if key >= 0:
+				raw.append(key)
+			return key
+			
 		while keys:
-			run, keys = self._process_keyqueue(keys)
+			run, keys = self._process_keyqueue(keys, more_fn)
 			processed += run
 
 		if resize:
@@ -354,8 +455,7 @@ class Screen:
 
 		return processed, raw
 		
-	def _process_keyqueue(self, keys):
-		# help.. becoming unmaintainable..
+	def _process_keyqueue(self, keys, more_fn):
 		code = keys.pop(0)
 		if code >= 32 and code <= 126:
 			key = chr(code)
@@ -364,87 +464,36 @@ class Screen:
 			return [_keyconv[code]],keys
 		if code >0 and code <27:
 			return ["ctrl %s" % chr(ord('a')+code-1)],keys
-		if code >=0xA1 and util.double_byte_encoding and keys:
-			if keys[0] >=0xA1:
-				return [chr(code)+chr(keys.pop(0))],keys
+		if code < 256 and util.within_double_byte(chr(code),0,0):
+			if not keys:
+				key = more_fn()
+				if key >= 0: keys.append(key)
+			if keys and key[0] < 256:
+				db = chr(code)+chr(keys[0])
+				if util.within_double_byte( db, 0, 1 ):
+					keys.pop(0)
+					return [db],keys
 		if code >127 and code <256:
 			key = chr(code)
 			return [key],keys
 		if code != 27:
 			return ["<%d>"%code],keys
 
-		if not keys: return ['esc'],keys
-		c2 = keys.pop(0)
+		result = _escape_trie.get( keys, more_fn )
+		
+		if result is not None:
+			result, keys = result
+			return [result],keys
 
-		if c2 == ord('['):
-			if not keys: return ['esc','['],keys
-			c3 = keys.pop(0)
-			if chr(c3) not in "12456[" or not keys: 
-				 return ['esc','['],[c3]+keys
-			c4 = keys.pop(0)
-			if c3 == ord("["):
-				if c4 == ord('A'): return ["f1"],keys
-				if c4 == ord('B'): return ["f2"],keys
-				if c4 == ord('C'): return ["f3"],keys
-				if c4 == ord('D'): return ["f4"],keys
-				if c4 == ord('E'): return ["f5"],keys
-				return ['esc','['],[c3,c4]+keys
-				
-			if c4 == ord("~"):
-				if c3 == ord('1'): return ["home"],keys
-				if c3 == ord('4'): return ["end"],keys
-				if c3 == ord('5'): return ["page up"],keys
-				if c3 == ord('6'): return ["page down"],keys
-				return ['esc','['],[c3,c4]+keys
-
-			if chr(c4) not in "0123456789" or not keys:
-				 return ['esc','['],[c3,c4]+keys
-			c5 = keys.pop(0)
+		if keys:
+			# Meta keys -- ESC+Key form
+			run, keys = self._process_keyqueue(keys, more_fn)
+			if run[0] == "esc" or "meta " in run[0]:
+				return ['esc']+run, keys
+			return ['meta '+run[0]]+run[1:], keys
 			
-			if c5 != ord("~"):
-				 return ['esc','['],[c3,c4,c5]+keys
-			num = chr(c3)+chr(c4)
-			numd = {"11":"f1", "12":"f2", "13":"f3", "14":"f4",
-				"15":"f5", "17":"f6", "18":"f7", "19":"f8",
-				"20":"f9", "21":"f10", "23":"f11", "24":"f12",
-				"25":"f13"}
-			if numd.has_key(num):
-				return [numd[num]],keys
-			else:
-				return ['esc','['],[c3,c4,c5]+keys
+		return ['esc'],keys
 		
-		if c2 != ord('O'):
-			if c2 >32 and c2 <127: 
-				key = "meta "+chr(c2)
-				return [key],keys
-			return ['esc'],[c2]+keys
-		
-		c3 = keys.pop(0)
-		if c3 == ord('H'): return ["home"],keys
-		if c3 == ord('F'): return ["end"],keys
-		if c3 == ord('o'): return ["/"],keys
-		if c3 == ord('j'): return ["*"],keys
-		if c3 == ord('m'): return ["-"],keys
-		if c3 == ord('k'): return ["+"],keys
-		if c3 == ord('A'): return ["up"],keys
-		if c3 == ord('B'): return ["down"],keys
-		if c3 == ord('C'): return ["right"],keys
-		if c3 == ord('D'): return ["left"],keys
-		
-		if chr(c3) not in "2345678" or not keys: 
-			return ['esc'],[c2,c3]+keys
-		i = c3 - ord("1")
-		mod = ""
-		if i & 1: mod += "shift "
-		if i & 2: mod += "meta "
-		if i & 4: mod += "ctrl "
-
-		c4 = keys.pop(0)
-		if c4 == ord('A'): return [mod+"up"],keys
-		if c4 == ord('B'): return [mod+"down"],keys
-		if c4 == ord('C'): return [mod+"right"],keys
-		if c4 == ord('D'): return [mod+"left"],keys
-		else: return ['esc'],[c2,c3,c4]+keys
 			
 
 	def _dbg_instr(self): # messy input string (intended for debugging)

@@ -25,10 +25,17 @@ Urwid tour.  Shows many of the standard widget types and features.
 
 import urwid
 import urwid.curses_display
+import urwid.web_display
 
 try: True # old python?
 except: False, True = 0, 1
-		
+
+# use appropriate Screen class
+if urwid.web_display.is_web_request():
+	Screen = urwid.web_display.Screen
+else:
+	Screen = urwid.curses_display.Screen
+
 
 blank = urwid.Text("")
 
@@ -291,7 +298,7 @@ class TourDisplay:
 		
 	
 	def main(self):
-		self.ui = urwid.curses_display.Screen()
+		self.ui = Screen()
 		self.ui.register_palette( self.palette )
 		self.ui.run_wrapper( self.run )
 	
@@ -311,7 +318,12 @@ class TourDisplay:
 				self.view.keypress( size, k )
 
 def main():
+	urwid.web_display.set_preferences("Urwid Tour")
+	# try to handle short web requests quickly
+	if urwid.web_display.handle_short_request():
+		return
+		
 	TourDisplay().main()
 	
-if __name__=="__main__": 
+if '__main__'==__name__ or urwid.web_display.is_web_request():
 	main()

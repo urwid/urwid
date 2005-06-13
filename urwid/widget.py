@@ -1891,6 +1891,29 @@ class Columns: # either FlowWidget or BoxWidget
 
 
 
+class BoxAdapter:
+	"""
+	Adapter for using a box widget where a flow widget would usually go
+	"""
+
+	def __init__(self, box_widget, height):
+		self.height = height
+		self.box_widget = box_widget
+
+	def rows(self, (maxcol,), focus=False):
+		return self.height
+
+	def selectable(self):
+		return self.box_widget.selectable()
+
+	def __getattr__(self, name):
+		if name in ('get_cursor_coords','get_pref_col','keypress',
+			'move_cursor_to_coords','render'):
+			fn = getattr(self.box_widget, name)
+			def fix_size_fn((maxcol,), *largs, **dargs ):
+				return fn((maxcol,self.height), *largs, **dargs )
+			return fix_size_fn
+		return getattr(self.box_widget, name)
 
 
 class _test:

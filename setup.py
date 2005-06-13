@@ -23,7 +23,7 @@ from distutils.core import setup
 
 import os
 
-release = "0.8.7" #os.popen("make -s release").read().strip()
+release = "0.8.8"
 
 setup_d = {
 	'name':"urwid",
@@ -41,6 +41,7 @@ Urwid is a curses-based user interface library.  It includes many features
 useful for text console application developers including:
 
 - Fluid interface resizing (xterm window resizing / fbset on Linux console)
+- Web application display mode using Apache and CGI
 - Support for 8-bit and CJK encodings
 - Multiple text alignment and wrapping modes built-in
 - Ability to register user-defined text alignment and wrapping modes

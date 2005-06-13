@@ -33,9 +33,16 @@ Features:
 
 import urwid
 import urwid.curses_display
+import urwid.web_display
 
 try: True # old python?
 except: False, True = 0, 1
+
+# use appropriate Screen class
+if urwid.web_display.is_web_request():
+	Screen = urwid.web_display.Screen
+else:
+	Screen = urwid.curses_display.Screen
 
 
 def div_or_none(a,b):
@@ -568,7 +575,7 @@ class CalcDisplay:
 		self.col_link = {}
 
 	def main(self):
-		self.ui = urwid.curses_display.Screen()
+		self.ui = Screen()
 		self.ui.register_palette( self.palette )
 		self.ui.run_wrapper( self.run )
 
@@ -808,10 +815,14 @@ def align_right_less1( text, width, b, wrap_mode, align_mode ):
 		
 def main():
 	"""Launch Column Calculator."""
+	urwid.web_display.set_preferences("Column Calculator")
+	# try to handle short web requests quickly
+	if urwid.web_display.handle_short_request():
+		return
 	
 	urwid.util.register_wrap_mode('numeric -1', wrap_numeric_less1 )
 	urwid.util.register_align_mode('right -1', align_right_less1 )
 	CalcDisplay().main()
 
-if __name__=="__main__": 
+if '__main__'==__name__ or urwid.web_display.is_web_request():
 	main()
