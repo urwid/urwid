@@ -181,6 +181,7 @@ class Screen:
 		self.cursor_state = None
 		self._keyqueue = []
 		self.prev_input_resize = 0
+		self.set_input_timeouts()
 
 	def register_palette( self, l ):
 		"""Register a list of palette entries.
@@ -335,16 +336,13 @@ class Screen:
 		self.s.refresh()
 	
 	
-	def _getch(self):
-		curses.halfdelay(5) # don't wait longer than 0.5s for keypress
+	def _getch(self, wait_tenths):
+		if wait_tenths==0:
+			return self._getch_nodelay()
+		curses.halfdelay(wait_tenths)
 		self.s.nodelay(0)
 		return self.s.getch()
 	
-	def _getch_tinydelay(self):
-		curses.halfdelay(1) # don't wait longer than 0.1s for keypress
-		self.s.nodelay(0)
-		return self.s.getch()
-		
 	def _getch_nodelay(self):
 		self.s.nodelay(1)
 		while 1:
@@ -356,6 +354,31 @@ class Screen:
 				pass
 			
 		return self.s.getch()
+
+	def set_input_timeouts(self, max_wait=0.5, complete_wait=0.1, 
+		resize_wait=0.1):
+		"""
+		Set the get_input timeout values.  All values have a granularity
+		of 0.1s, ie. any value between 0.15 and 0.05 will be treated as
+		0.1 and any value less than 0.05 will be treated as 0. 
+	
+		max_wait -- amount of time in seconds to wait for input when
+			there is no input pending
+		complete_wait -- amount of time in seconds to wait when
+			get_input detects an incomplete escape sequence at the
+			end of the available input
+		resize_wait -- amount of time in seconds to wait for more input
+			after receiving two screen resize requests in a row to
+			stop urwid from consuming 100% cpu during a gradual
+			window resize operation
+		"""
+
+		def convert_to_tenths( s ):
+			return int( (s+0.05)*10 )
+
+		self.max_tenths = convert_to_tenths(max_wait)
+		self.complete_tenths = convert_to_tenths(complete_wait)
+		self.resize_tenths = convert_to_tenths(resize_wait)
 	
 	def get_input(self, raw_keys=False):
 		"""Return pending input as a list.
@@ -364,7 +387,8 @@ class Screen:
 
 		This function will immediately return all the input since the
 		last time it was called.  If there is no input pending it will
-		wait briefly for new input.
+		wait before returning an empty list.  The wait time may be
+		configured with the set_input_timeouts function.
 
 		If raw_keys is False (default) this function will return a list
 		of keys pressed.  If raw_keys is True this function will return
@@ -385,17 +409,18 @@ class Screen:
 		Double-byte characters:  "\\xa1\\xea", "\\xb2\\xd4"
 		"""
 		
-		keys, raw = self._get_input()
-
+		keys, raw = self._get_input( self.max_tenths )
+		
 		# Avoid pegging CPU at 100% when slowly resizing, and work
 		# around a bug with some braindead curses implementations that 
 		# return "no key" between "window resize" commands 
 		if keys==['window resize'] and self.prev_input_resize:
 			while True:
-				keys, raw2 = self._get_input(True)
+				keys, raw2 = self._get_input(self.resize_tenths)
 				raw += raw2
 				if not keys:
-					keys, raw2 = self._get_input(True)
+					keys, raw2 = self._get_input( 
+						self.resize_tenths)
 					raw += raw2
 				if keys!=['window resize']:
 					break
@@ -415,16 +440,13 @@ class Screen:
 		return keys
 		
 		
-	def _get_input(self, tiny_delay=False):
+	def _get_input(self, wait_tenths):
 		# this works around a strange curses bug with window resizing 
 		# not being reported correctly with repeated calls to this
 		# function without a doupdate call in between
 		curses.doupdate() 
 		
-		if tiny_delay:
-			key = self._getch_tinydelay()
-		else:
-			key = self._getch()
+		key = self._getch(wait_tenths)
 		resize = False
 		raw = []
 		keys = []
@@ -441,7 +463,7 @@ class Screen:
 		processed = []
 		
 		def more_fn(raw=raw):
-			key = self._getch_tinydelay()
+			key = self._getch(self.complete_tenths)
 			if key >= 0:
 				raw.append(key)
 			return key

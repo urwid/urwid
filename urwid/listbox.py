@@ -358,7 +358,7 @@ class ListBox(BoxWidget):
 		elif coming_from=='above':
 			offset = maxrow-rows
 		else:
-			offset = maxrow-rows/2
+			offset = (maxrow-rows)/2
 		self.shift_focus((maxcol, maxrow), offset)
 	
 

@@ -984,34 +984,15 @@ class Padding:
 		cannot be satisfied it will also be reduced.
 		"""
 
-		try:
-			if align in ('left','center','right'):
-				align = (align,0)
-			align_type, align_amount = align
-			assert align_type in ('left','center','right','fixed left','fixed right','relative')
-		except:
-			raise PaddingError, "align value %s is not one of 'left', 'center', 'right', ('fixed left', columns), ('fixed right', columns), ('relative', percentage 0=left 100=right)" % `align`
-
-		try:
-			if type(width) == type(0):
-				width=('fixed',width)
-			width_type, width_amount = width
-			assert width_type in ('fixed','fixed right','fixed left','relative')
-		except:
-			raise PaddingError, "width value %s is not one of ('fixed', columns width), ('fixed right', columns), ('relative', percentage of total width)" % `width`
-			
-		if width_type == 'fixed left' and align_type != 'fixed right':
-			raise PaddingError, "fixed left width may only be used with fixed right align"
-		if width_type == 'fixed right' and align_type != 'fixed left':
-			raise PaddingError, "fixed right width may only be used with fixed left align"
-
+		at,aa,wt,wa=decompose_align_width(align, width, PaddingError)
+		
 		self.w = w
-		self.align_type = align_type
-		self.align_amount = align_amount
-		self.width_type = width_type
-		self.width_amount = width_amount
-		if width_type != 'fixed':
+		self.align_type, self.align_amount = at, aa
+		self.width_type, self.width_amount = wt, wa
+		if self.width_type != 'fixed':
 			self.min_width = min_width
+		else:
+			self.min_width = None
 		
 	def render(self, size, focus=False):	
 		left, right = self.padding_values(size)
@@ -1030,48 +1011,9 @@ class Padding:
 		Override this method to define custom padding behaviour."""
 		
 		maxcol = size[0]
-		
-		if self.width_type == 'fixed':
-			width = self.width_amount
-		elif self.width_type == 'relative':
-			width = int(self.width_amount*maxcol/100+.5)
-			if self.min_width is not None:
-				    width = max(width, self.min_width)
-		else: # self.width_type == 'fixed right' or 'fixed left'
-			width = maxcol-self.width_amount-self.align_amount
-			if self.min_width is not None:
-				    width = max(width, self.min_width)
-		
-		if width >= maxcol:
-			# use the full space (no padding)
-			return 0, 0
-			
-		if self.align_type == 'fixed left':
-			left = self.align_amount
-			if left+width <= maxcol:
-				return left, maxcol-left-width
-			# need to shrink left
-			return maxcol-width, 0
-		elif self.align_type == 'fixed right':
-			right = self.align_amount
-			if right+width <= maxcol:
-				return maxcol-right-width, right
-			# need to shrink right
-			return 0, maxcol-width		
-		elif self.align_type == 'relative':
-			left = int( (maxcol-width)*self.align_amount/100+.5 )
-		elif self.align_type == 'right':
-			left = maxcol-width	
-		elif self.align_type == 'center':
-			left = int( (maxcol-width)/2 )
-		else: #self.align_type == 'left'
-			left = 0
-		
-		if left+width > maxcol: left = maxcol-width
-		if left < 0: left = 0
-		
-		right = maxcol-width-left
-		return left, right 	
+		return calculate_padding( self.align_type, self.align_amount,
+			self.width_type, self.width_amount,
+			self.min_width, maxcol )
 
 	def selectable(self):
 		"""Return the selectable value of self.w."""
@@ -1158,36 +1100,15 @@ class Filler(BoxWidget):
 		reducing the valign amount when necessary.  If height still 
 		cannot be satisfied it will also be reduced.
 		"""
-		try:
-			if valign in ('top','middle','bottom'):
-				valign = (valign,0)
-			valign_type, valign_amount = valign
-			assert valign_type in ('top','middle','bottom','fixed top','fixed bottom','relative')
-		except:
-			raise FillerError, "Invalid valign: %s" % `valign`
-
-		try:
-			if height is None:
-				height = None, None
-			elif type(height) == type(0):
-				height=('fixed',height)
-			height_type, height_amount = height
-			assert height_type in (None, 'fixed','fixed bottom','fixed top','relative')
-		except:
-			raise FillerError, "Invalid height: %s"%`height`
-			
-		if height_type == 'fixed top' and valign_type != 'fixed bottom':
-			raise FillerError, "fixed top height may only be used with fixed bottom valign"
-		if height_type == 'fixed bottom' and valign_type != 'fixed top':
-			raise FillerError, "fixed bottom height may only be used with fixed top valign"
-
+		vt,va,ht,ha=decompose_valign_height(valign,height,FillerError)
+		
 		self.body = body
-		self.valign_type = valign_type
-		self.valign_amount = valign_amount
-		self.height_type = height_type
-		self.height_amount = height_amount
-		if height_type not in ('fixed', None):
+		self.valign_type, self.valign_amount = vt, va
+		self.height_type, self.height_amount = ht, ha
+		if self.height_type not in ('fixed', None):
 			self.min_height = min_height
+		else:
+			self.min_height = None
 	
 	def selectable(self):
 		"""Return selectable from body."""
@@ -1197,50 +1118,17 @@ class Filler(BoxWidget):
 		"""Return the number of rows to pad on the top and bottom.
 		
 		Override this method to define custom padding behaviour."""
-		
+
 		if self.height_type == None:
 			height = self.body.rows((maxcol,),focus=focus)
-		elif self.height_type == 'fixed':
-			height = self.height_amount
-		elif self.height_type == 'relative':
-			height = int(self.height_amount*maxrow/100+.5)
-			if self.min_height is not None:
-				    height = max(height, self.min_height)
-		else: # self.height_type == 'fixed bottom' or 'fixed top'
-			height = maxrow-self.height_amount-self.valign_amount
-			if self.min_height is not None:
-				    height = max(height, self.min_height)
-		
-		if height >= maxrow:
-			# use the full space (no padding)
-			return 0, 0
+			return calculate_filler( self.valign_type,
+				self.valign_amount, 'fixed', height, 
+				None, maxrow )
 			
-		if self.valign_type == 'fixed top':
-			top = self.valign_amount
-			if top+height <= maxrow:
-				return top, maxrow-top-height
-			# need to shrink top
-			return maxrow-height, 0
-		elif self.valign_type == 'fixed bottom':
-			bottom = self.valign_amount
-			if bottom+height <= maxrow:
-				return maxrow-bottom-height, bottom
-			# need to shrink bottom
-			return 0, maxrow-height		
-		elif self.valign_type == 'relative':
-			top = int( (maxrow-height)*self.valign_amount/100+.5 )
-		elif self.valign_type == 'bottom':
-			top = maxrow-height	
-		elif self.valign_type == 'middle':
-			top = int( (maxrow-height)/2 )
-		else: #self.valign_type == 'top'
-			top = 0
-		
-		if top+height > maxrow: top = maxrow-height
-		if top < 0: top = 0
-		
-		bottom = maxrow-height-top
-		return top, bottom 	
+		return calculate_filler( self.valign_type, self.valign_amount,
+			self.height_type, self.height_amount,
+			self.min_height, maxrow)
+
 	
 	def render(self, (maxcol,maxrow), focus=False):
 		"""Render self.body with space above and/or below."""
@@ -1321,6 +1209,252 @@ class Filler(BoxWidget):
 	
 		
 		
+class OverlayError(Exception):
+	pass
+
+class Overlay(BoxWidget):
+	def __init__(self, top_w, bottom_w, align, width, valign, height,
+			min_width=None, min_height=None ):
+		"""
+		top_w -- a box widget to overlay "on top"
+		bottom_w -- a box widget to appear "below" previous widget
+		align -- one of:
+		    'left', 'center', 'right'
+		    ('fixed left', columns)
+		    ('fixed right', columns)
+		    ('relative', percentage 0=left 100=right)
+		width -- one of:
+		    number of columns wide
+		    ('fixed right', columns)  Only if align is 'fixed left'
+		    ('fixed left', columns)  Only if align is 'fixed right'
+		    ('relative', percentage of total width)
+		valign -- one of:
+		    'top', 'middle', 'bottom'
+		    ('fixed top', rows)
+		    ('fixed bottom', rows)
+		    ('relative', percentage 0=top 100=bottom)
+		height -- one of:
+		    number of rows high 
+		    ('fixed bottom', rows)  Only if valign is 'fixed top'
+		    ('fixed top', rows)  Only if valign is 'fixed bottom'
+		    ('relative', percentage of total height)
+		min_width -- the minimum number of columns for top_w
+		    when width is not fixed
+		min_height -- one of:
+		    minimum number of rows for the widget when height not fixed
+		
+		Overlay widgets behave similarly to Padding and Filler widgets
+		when determining the size and position of top_w.  bottom_w is
+		always rendered the full size available "below" top_w.
+		"""
+
+		at,aa,wt,wa=decompose_align_width(align, width, OverlayError)
+		vt,va,ht,ha=decompose_valign_height(valign,height,OverlayError)
+		if ht is None:
+			raise OverlayError, "Overlay height may not be None."
+		
+		self.top_w = top_w
+		self.bottom_w = bottom_w
+		
+		self.align_type, self.align_amount = at, aa
+		self.width_type, self.width_amount = wt, wa
+		if self.width_type != 'fixed':
+			self.min_width = min_width
+		else:
+			self.min_width = None
+		
+		self.valign_type, self.valign_amount = vt, va
+		self.height_type, self.height_amount = ht, ha
+		if self.height_type not in ('fixed', None):
+			self.min_height = min_height
+		else:
+			self.min_height = None
+
+	def selectable(self):
+		"""Return selectable from top_w."""
+		return self.top_w.selectable()
+	
+	def keypress(self, size, key):
+		"""Pass keypress to top_w."""
+		return self.top_w.keypress( size, key)
+	
+	def get_cursor_coords(self, size):
+		"""Return cursor coords from top_w, if any."""
+		if not hasattr(self.body, 'get_cursor_coords'):
+			return None
+		left, right, top, bottom = self.calculate_padding_filler(size)
+		x, y = self.body.get_cursor_coords(
+			(maxcol-left-right, maxrow-top-bottom) )
+		if y >= maxrow:  # required??
+			y = maxrow-1
+		return x+left, y+top
+	
+	def calculate_padding_filler(self, (maxcol, maxrow)):
+		"""Return (padding left, right, filler top, bottom)."""
+		left, right = calculate_padding(self.align_type,
+			self.align_amount, self.width_type,
+			self.width_amount, self.min_width, maxcol)
+		top, bottom = calculate_filler(self.valign_type, 
+			self.valign_amount, self.height_type, 
+			self.height_amount, self.min_height, maxrow)
+		return left, right, top, bottom
+	
+	def render(self, size, focus=False):
+		"""Render top_w overlayed on bottom_w."""
+		left, right, top, bottom = self.calculate_padding_filler(size)
+		bottom_c = self.bottom_w.render( size )
+		maxcol,maxrow = size
+		top_c = self.top_w.render( 
+			(maxcol-left-right,maxrow-top-bottom), focus )
+		bottom_c.overlay( top_c, left, right, top, bottom, maxcol )
+		return bottom_c
+		
+	
+
+def decompose_align_width( align, width, err ):
+	try:
+		if align in ('left','center','right'):
+			align = (align,0)
+		align_type, align_amount = align
+		assert align_type in ('left','center','right','fixed left','fixed right','relative')
+	except:
+		raise err, "align value %s is not one of 'left', 'center', 'right', ('fixed left', columns), ('fixed right', columns), ('relative', percentage 0=left 100=right)" % `align`
+
+	try:
+		if type(width) == type(0):
+			width=('fixed',width)
+		width_type, width_amount = width
+		assert width_type in ('fixed','fixed right','fixed left','relative')
+	except:
+		raise err, "width value %s is not one of ('fixed', columns width), ('fixed right', columns), ('relative', percentage of total width)" % `width`
+		
+	if width_type == 'fixed left' and align_type != 'fixed right':
+		raise err, "fixed left width may only be used with fixed right align"
+	if width_type == 'fixed right' and align_type != 'fixed left':
+		raise err, "fixed right width may only be used with fixed left align"
+
+	return align_type, align_amount, width_type, width_amount
+
+
+def decompose_valign_height( valign, height, err ):
+	try:
+		if valign in ('top','middle','bottom'):
+			valign = (valign,0)
+		valign_type, valign_amount = valign
+		assert valign_type in ('top','middle','bottom','fixed top','fixed bottom','relative')
+	except:
+		raise err, "Invalid valign: %s" % `valign`
+
+	try:
+		if height is None:
+			height = None, None
+		elif type(height) == type(0):
+			height=('fixed',height)
+		height_type, height_amount = height
+		assert height_type in (None, 'fixed','fixed bottom','fixed top','relative')
+	except:
+		raise err, "Invalid height: %s"%`height`
+		
+	if height_type == 'fixed top' and valign_type != 'fixed bottom':
+		raise err, "fixed top height may only be used with fixed bottom valign"
+	if height_type == 'fixed bottom' and valign_type != 'fixed top':
+		raise err, "fixed bottom height may only be used with fixed top valign"
+		
+	return valign_type, valign_amount, height_type, height_amount
+
+
+def calculate_filler( valign_type, valign_amount, height_type, height_amount, 
+		      min_height, maxrow ):
+	if height_type == 'fixed':
+		height = height_amount
+	elif height_type == 'relative':
+		height = int(height_amount*maxrow/100+.5)
+		if min_height is not None:
+			    height = max(height, min_height)
+	else:
+		assert height_type in ('fixed bottom','fixed top')
+		height = maxrow-height_amount-valign_amount
+		if min_height is not None:
+			    height = max(height, min_height)
+	
+	if height >= maxrow:
+		# use the full space (no padding)
+		return 0, 0
+		
+	if valign_type == 'fixed top':
+		top = valign_amount
+		if top+height <= maxrow:
+			return top, maxrow-top-height
+		# need to shrink top
+		return maxrow-height, 0
+	elif valign_type == 'fixed bottom':
+		bottom = valign_amount
+		if bottom+height <= maxrow:
+			return maxrow-bottom-height, bottom
+		# need to shrink bottom
+		return 0, maxrow-height		
+	elif valign_type == 'relative':
+		top = int( (maxrow-height)*valign_amount/100+.5 )
+	elif valign_type == 'bottom':
+		top = maxrow-height	
+	elif valign_type == 'middle':
+		top = int( (maxrow-height)/2 )
+	else: #self.valign_type == 'top'
+		top = 0
+	
+	if top+height > maxrow: top = maxrow-height
+	if top < 0: top = 0
+	
+	bottom = maxrow-height-top
+	return top, bottom 	
+
+
+def calculate_padding( align_type, align_amount, width_type, width_amount,
+		       min_width, maxcol ):
+	if width_type == 'fixed':
+		width = width_amount
+	elif width_type == 'relative':
+		width = int(width_amount*maxcol/100+.5)
+		if min_width is not None:
+			    width = max(width, min_width)
+	else: 
+		assert width_type in ('fixed right', 'fixed left')
+		width = maxcol-width_amount-align_amount
+		if min_width is not None:
+			    width = max(width, min_width)
+	
+	if width >= maxcol:
+		# use the full space (no padding)
+		return 0, 0
+		
+	if align_type == 'fixed left':
+		left = align_amount
+		if left+width <= maxcol:
+			return left, maxcol-left-width
+		# need to shrink left
+		return maxcol-width, 0
+	elif align_type == 'fixed right':
+		right = align_amount
+		if right+width <= maxcol:
+			return maxcol-right-width, right
+		# need to shrink right
+		return 0, maxcol-width		
+	elif align_type == 'relative':
+		left = int( (maxcol-width)*align_amount/100+.5 )
+	elif align_type == 'right':
+		left = maxcol-width	
+	elif align_type == 'center':
+		left = int( (maxcol-width)/2 )
+	else: 
+		assert align_type == 'left'
+		left = 0
+	
+	if left+width > maxcol: left = maxcol-width
+	if left < 0: left = 0
+	
+	right = maxcol-width-left
+	return left, right 	
+
 
 
 class Frame(BoxWidget):
@@ -1897,16 +2031,33 @@ class BoxAdapter:
 	"""
 
 	def __init__(self, box_widget, height):
+		"""
+		Create a flow widget that contains a box widget
+
+		box_widget -- box widget
+		height -- number of rows for box widget
+		"""
+		
 		self.height = height
 		self.box_widget = box_widget
 
 	def rows(self, (maxcol,), focus=False):
+		"""
+		Return self.height
+		"""
 		return self.height
 
 	def selectable(self):
+		"""
+		Return box widget's selectable value
+		"""
 		return self.box_widget.selectable()
 
 	def __getattr__(self, name):
+		"""
+		Pass calls to box widget, changing (maxcol,) to
+		(maxcol, self.height) before calling.
+		"""
 		if name in ('get_cursor_coords','get_pref_col','keypress',
 			'move_cursor_to_coords','render'):
 			fn = getattr(self.box_widget, name)
@@ -1914,6 +2065,7 @@ class BoxAdapter:
 				return fn((maxcol,self.height), *largs, **dargs )
 			return fix_size_fn
 		return getattr(self.box_widget, name)
+
 
 
 class _test:

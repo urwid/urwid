@@ -504,6 +504,7 @@ POLL_CONNECT = 3
 MAX_COLS = 200
 MAX_ROWS = 100
 MAX_READ = 4096
+BUF_SZ = 16384
 
 _code_colours = {
 	'black':		"0",
@@ -652,16 +653,17 @@ class Screen:
 			self.input_fd = os.open(self.pipe_name+".in", 
 				os.O_NONBLOCK | os.O_RDONLY)
 			self.input_tail = ""
-			content_head = ("Content-type: "
+			self.content_head = ("Content-type: "
 				"multipart/x-mixed-replace;boundary=ZZ\r\n"
 				"X-Urwid-ID: "+urwid_id+"\r\n"
 				"\r\n\r\n"
 				"--ZZ\r\n")
 			if self.update_method=="polling":
-				content_head = ("Content-type: text/plain\r\n"
+				self.content_head = (
+					"Content-type: text/plain\r\n"
 					"X-Urwid-ID: "+urwid_id+"\r\n"
 					"\r\n\r\n")
-			sys.stdout.write(content_head)
+			#sys.stdout.write(content_head)
 			try:
 				signal.signal(signal.SIGALRM,self._handle_alarm)
 				signal.alarm( ALARM_DELAY )
@@ -713,8 +715,10 @@ class Screen:
 		if cols != self.last_screen_width:
 			self.last_screen = {}
 	
+		sendq = []
+		
 		if self.update_method == "polling":
-			send = sys.stdout.write
+			send = sendq.append
 		elif self.update_method == "polling child":
 			signal.alarm( 0 )
 			try:
@@ -724,9 +728,11 @@ class Screen:
 			send = s.sendall
 		else:
 			signal.alarm( 0 )
-			send = sys.stdout.write
+			send = sendq.append
 			send("\r\n")
 		
+		send( self.content_head )
+	
 		assert len(lines) == rows
 	
 		if r.cursor is not None:
@@ -786,6 +792,7 @@ class Screen:
 		self.last_screen_width = cols
 		
 		if self.update_method == "polling":
+			sys.stdout.write("".join(sendq))
 			sys.stdout.flush()
 			sys.stdout.close()
 			self._fork_child()
@@ -793,6 +800,7 @@ class Screen:
 			s.close()
 		else: # update_method == "multipart"
 			send("\r\n--ZZ\r\n")
+			sys.stdout.write("".join(sendq))
 			sys.stdout.flush()
 		
 		signal.alarm( ALARM_DELAY )
@@ -921,8 +929,8 @@ def handle_short_request():
 		
 	if os.environ['REQUEST_METHOD'] == "GET":
 		# Initial request, send the HTML and javascript.
-		sys.stdout.write("Content-type: text/html\r\n\r\n");
-		sys.stdout.write(html_escape(_prefs.app_name).join(_html_page))
+		sys.stdout.write("Content-type: text/html\r\n\r\n" +
+			html_escape(_prefs.app_name).join(_html_page))
 		return True
 	
 	if os.environ['REQUEST_METHOD'] != "POST":
@@ -952,11 +960,10 @@ def handle_short_request():
 		try:
 			s.connect( os.path.join(_prefs.pipe_dir,
 				"urwid"+urwid_id+".update") )
-			data = s.recv(1024)
-			sys.stdout.write("Content-type: text/plain\r\n\r\n")
+			data = "Content-type: text/plain\r\n\r\n"+s.recv(BUF_SZ)
 			while data:
 				sys.stdout.write(data)
-				data = s.recv(1024)
+				data = s.recv(BUF_SZ)
 			return True
 		except socket.error,e:
 			sys.stdout.write("Status: 404 Not Found\r\n\r\n")

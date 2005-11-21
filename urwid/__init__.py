@@ -19,11 +19,17 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-__all__ = ['BoxWidget','Frame','ListBox','SimpleListWalker',
-	'FlowWidget','Text','Edit','IntEdit','Columns','Pile',
-	'AttrWrap','Divider']
+__all__ = [
+	'BoxWidget','Frame','Filler','ListBox','SimpleListWalker',
+	'FlowWidget','Text','Edit','IntEdit','Button','CheckBox','RadioButton',
+	'BarGraph','ProgressBar','GraphVScale',
+	'Columns','Pile','GridFlow','BoxAdapter','Overlay',
+	'AttrWrap','Padding','Divider',
+	'Canvas','CanvasCombine','CanvasJoin',
+	]
 
 
 from widget import *
 from listbox import *
+from graphics import *
 

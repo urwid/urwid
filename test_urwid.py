@@ -1443,6 +1443,49 @@ class ColumnsTest(unittest.TestCase):
 		self.mctest("r e edge",[x,e,x],1,(20,),13,0,True,1,12)
 		
 		
+class BarGraphTest(unittest.TestCase):
+	def bgtest(self, desc, data, top, widths, maxrow, exp ):
+		rval = urwid.calculate_bargraph_display(data,top,widths,maxrow)
+		assert rval == exp, "%s expected %s, got %s"%(desc,`exp`,`rval`)
+	
+	def test1(self):
+		self.bgtest('simplest',[[0]],5,[1],1,
+			[(1,[(0,1)])] )
+		self.bgtest('simpler',[[0],[0]],5,[1,2],5,
+			[(5,[(0,3)])] )
+		self.bgtest('simple',[[5]],5,[1],1,
+			[(1,[(1,1)])] )
+		self.bgtest('2col-1',[[2],[0]],5,[1,2],5,
+			[(3,[(0,3)]), (2,[(1,1),(0,2)]) ] )
+		self.bgtest('2col-2',[[0],[2]],5,[1,2],5,
+			[(3,[(0,3)]), (2,[(0,1),(1,2)]) ] )
+		self.bgtest('2col-3',[[2],[3]],5,[1,2],5,
+			[(2,[(0,3)]), (1,[(0,1),(1,2)]), (2,[(1,3)]) ] )
+		self.bgtest('3col-1',[[5],[3],[0]],5,[2,1,1],5,
+			[(2,[(1,2),(0,2)]), (3,[(1,3),(0,1)]) ] )
+		self.bgtest('3col-2',[[4],[4],[4]],5,[2,1,1],5,
+			[(1,[(0,4)]), (4,[(1,4)]) ] )
+		self.bgtest('3col-3',[[1],[2],[3]],5,[2,1,1],5,
+			[(2,[(0,4)]), (1,[(0,3),(1,1)]), (1,[(0,2),(1,2)]),
+			 (1,[(1,4)]) ] )
+		self.bgtest('3col-4',[[4],[2],[4]],5,[1,2,1],5,
+			[(1,[(0,4)]), (2,[(1,1),(0,2),(1,1)]), (2,[(1,4)]) ] )
+	
+	def test2(self):
+		self.bgtest('simple1a',[[2,0],[2,1]],2,[1,1],2,
+			[(1,[(1,2)]),(1,[(1,1),(2,1)]) ] )
+		self.bgtest('simple1b',[[2,1],[2,0]],2,[1,1],2,
+			[(1,[(1,2)]),(1,[(2,1),(1,1)]) ] )
+		self.bgtest('cross1a',[[2,2],[1,2]],2,[1,1],2,
+			[(2,[(2,2)]) ] )
+		self.bgtest('cross1b',[[1,2],[2,2]],2,[1,1],2,
+			[(2,[(2,2)]) ] )
+		self.bgtest('mix1a',[[3,2,1],[2,2,2],[1,2,3]],3,[1,1,1],3,
+			[(1,[(1,1),(0,1),(3,1)]),(1,[(2,1),(3,2)]),
+			 (1,[(3,3)]) ] )
+		self.bgtest('mix1b',[[1,2,3],[2,2,2],[3,2,1]],3,[1,1,1],3,
+			[(1,[(3,1),(0,1),(1,1)]),(1,[(3,2),(2,1)]),
+			 (1,[(3,3)]) ] )
 		
 	
 
@@ -1474,6 +1517,7 @@ def test_main():
 		FrameTest,
 		PileTest,
 		ColumnsTest,
+		BarGraphTest,
 		]:
 		if test_support.run_unittest(t): break
 	

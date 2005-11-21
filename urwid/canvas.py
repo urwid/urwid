@@ -20,6 +20,10 @@
 # Urwid web site: http://excess.org/urwid/
 
 
+try: True # old python?
+except: False, True = 0, 1
+
+
 class Canvas:
 	"""
 	class for storing rendered text and attributes
@@ -81,7 +85,64 @@ class Canvas:
 		self.text = self.text[:-end]
 		self.attr = self.attr[:-end]
 
+	def overlay(self, other, left, right, top, bottom, 
+			maxcol ): #FIXME add width to canvas so this not needed
+		"""Overlay other onto this canvas."""
 		
+		width = maxcol-left-right
+		height = self.rows()-top-bottom
+		
+		assert other.rows() == height, "top canvas of overlay not the size expected!" + `other.rows(),top,bottom,height`
+
+		if other.cursor is None:
+			self.cursor = None
+		else:
+			cx, cy = other.cursor
+			self.cursor = cx+left, cy+top
+
+		i = top # row index
+		for text, attr in zip(other.text, other.attr):
+			old = self.text[i].ljust(maxcol)
+			self.text[i] = ( old[:left] + text.ljust(width) + 
+					 old[left+width:] )
+			
+			l = [] # destination attribute row
+			j = 0 # columns into destination attribute row
+			k = 0 # columns into oldattr row
+			oldattr = self.attr[i][:]
+			while oldattr and j<left:
+				a,r = oldattr.pop(0)
+				k += r
+				r = min( left-j, r )
+				l.append( (a,r) )
+				j += r
+			if j < left:
+				l.append( (None, left-j) )
+				j = left
+			for na,r in attr:
+				l.append( (na,r) )
+				j += r
+			if j < maxcol-right:
+				r = maxcol-right-j
+				l.append( (None, r) )
+				j+= r
+			if j < k:
+				r = k-j
+				l.append( (a, r))
+				j += r
+			while oldattr and k<maxcol-right:
+				a,r = oldattr.pop(0)
+				k += r
+				if k > maxcol-right:
+					r = k - (maxcol-right)
+					l.append( (a, r))
+			for a,r in oldattr:
+				l.append( (a,r) )
+			self.attr[i] = l
+			
+			#assert right, `self.text[i],l, self.attr[i+1:i+3]`
+
+			i += 1
 
 
 def CanvasCombine(l):
