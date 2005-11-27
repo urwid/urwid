@@ -21,7 +21,14 @@
 
 # Try to determine if using a supported double-byte encoding
 import locale
-_encoding = locale.getdefaultlocale()[1] or ""
+try:
+	_encoding = locale.getdefaultlocale()[1] or ""
+except ValueError, e:
+	# with invalid LANG value python will throw ValueError
+	if e.args and e.args[0].startswith("unknown locale"):
+		_encoding = ""
+	else:
+		raise
 double_byte_encoding = _encoding.lower() in ( 'euc-jp' # JISX 0208 only
 	, 'euc-kr', 'euc-cn', 'euc-tw' # CNS 11643 plain 1 only
 	, 'gb2312', 'gbk', 'big5', 'cn-gb', 'uhc'
@@ -153,7 +160,7 @@ def calculate_alignment( text, width, b, wrap_mode, align_mode ):
 			# pathological case: double byte char & width=1
 			if within_double_byte(text,last,p-1):
 				r_trim = 1
-		if wrap_mode == 'space':
+		if wrap_mode == 'space' and p != len(text):
 			if line[-1:] == " ": r_trim = 1
 		if wrap_mode == 'clip' and len(line) - l_trim - r_trim > width:
 			# clip line to fit

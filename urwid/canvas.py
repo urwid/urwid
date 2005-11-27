@@ -23,6 +23,7 @@
 try: True # old python?
 except: False, True = 0, 1
 
+from util import *
 
 class Canvas:
 	"""
@@ -100,9 +101,25 @@ class Canvas:
 			cx, cy = other.cursor
 			self.cursor = cx+left, cy+top
 
+		def l_append( l, a, r ):
+			if l[-1:]:
+				tail_a, tail_r = l[-1]
+				# combine runs of same attribute
+				if tail_a == a:
+					l[-1] = (a, tail_r + r)
+					return
+			l.append((a,r))
+				
+
 		i = top # row index
 		for text, attr in zip(other.text, other.attr):
 			old = self.text[i].ljust(maxcol)
+
+			if within_double_byte(old,0,maxcol-right-1)==1:
+				old = old[:maxcol-right]+" "+old[maxcol-right+1:]
+			if within_double_byte(old,0,left)==2:
+				old = old[:left-1]+" "+old[left:]
+			
 			self.text[i] = ( old[:left] + text.ljust(width) + 
 					 old[left+width:] )
 			
@@ -114,30 +131,35 @@ class Canvas:
 				a,r = oldattr.pop(0)
 				k += r
 				r = min( left-j, r )
-				l.append( (a,r) )
+				l_append( l, a, r )
 				j += r
 			if j < left:
 				l.append( (None, left-j) )
 				j = left
 			for na,r in attr:
-				l.append( (na,r) )
+				l_append( l, na, r )
 				j += r
 			if j < maxcol-right:
 				r = maxcol-right-j
-				l.append( (None, r) )
+				l_append( l, None, r )
 				j+= r
 			if j < k:
 				r = k-j
-				l.append( (a, r))
+				l_append( l, a, r )
 				j += r
 			while oldattr and k<maxcol-right:
 				a,r = oldattr.pop(0)
 				k += r
 				if k > maxcol-right:
 					r = k - (maxcol-right)
-					l.append( (a, r))
+					l_append( l, a, r )
 			for a,r in oldattr:
-				l.append( (a,r) )
+				l_append( l, a, r )
+			# trim trailing "None"s
+			if l[-1:]:
+				tail_a, tail_r = l[-1]
+				if tail_a is None:
+					l = l[:-1]
 			self.attr[i] = l
 			
 			#assert right, `self.text[i],l, self.attr[i+1:i+3]`

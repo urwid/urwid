@@ -28,7 +28,7 @@ try: True # old python?
 except: False, True = 0, 1
 
 try: sum # old python?
-except: sum = lambda l: reduce(lambda (a,b): a+b, l, 0)
+except: sum = lambda l: reduce(lambda a,b: a+b, l, 0)
 
 class FlowWidget:
 	"""
@@ -1068,6 +1068,8 @@ class Padding:
 		maxcol = size[0]
 		maxvals = (maxcol-left-right,)+size[1:] 
 		x = self.w.get_pref_col(maxvals)
+		if x is None:
+			return None
 		return x+left
 		
 
@@ -1589,7 +1591,7 @@ class AttrWrap:
 		attr -- attribute to apply to w
 		focus_attr -- attribute to apply when in focus, if None use attr
 		
-		This object will pass function calls and variable references
+		This object will pass all function calls and variable references
 		to the wrapped widget.
 		"""
 		self.w = w
@@ -1615,6 +1617,22 @@ class AttrWrap:
 		"""Call getattr on wrapped widget."""
 		return getattr(self.w, name)
 
+class WidgetWrap:
+	def __init__(self, w):
+		"""
+		w -- widget to wrap, stored as self.w
+
+		This object will pass the functions defined in Widget interface
+		definition to self.w.
+		"""
+		self.w = w
+	
+	def __getattr__(self,name):
+		"""Call self.w if name is in Widget interface definition."""
+		if name in ['get_cursor_coords','get_pref_col','keypress',
+			'move_cursor_to_coords','render','rows','selectable',]:
+			return getattr(self.w, name)
+		raise AttributeError
 
 		
 class Pile(FlowWidget):
@@ -2053,17 +2071,32 @@ class BoxAdapter:
 		"""
 		return self.box_widget.selectable()
 
+	def get_cursor_coords(self, (maxcol,)):
+		if not hasattr(self.box_widget,'get_cursor_coords'):
+			return None
+		return self.box_widget.get_cursor_coords((maxcol, self.height))
+	
+	def get_pref_col(self, (maxcol,)):
+		if not hasattr(self.box_widget,'get_pref_col'):
+			return None
+		return self.box_widget.get_pref_col((maxcol, self.height))
+	
+	def keypress(self, (maxcol,), key):
+		return self.box_widget.keypress((maxcol, self.height), key)
+	
+	def move_cursor_to_coords(self, (maxcol,), col, row):
+		if not hasattr(self.box_widget,'move_cursor_to_coords'):
+			return True
+		return self.box_widget.move_cursor_to_coords((maxcol,
+			self.height), col, row )
+	
+	def render(self, (maxcol,), focus=False):
+		return self.box_widget.render((maxcol, self.height), focus)
+	
 	def __getattr__(self, name):
 		"""
-		Pass calls to box widget, changing (maxcol,) to
-		(maxcol, self.height) before calling.
+		Pass calls to box widget.
 		"""
-		if name in ('get_cursor_coords','get_pref_col','keypress',
-			'move_cursor_to_coords','render'):
-			fn = getattr(self.box_widget, name)
-			def fix_size_fn((maxcol,), *largs, **dargs ):
-				return fn((maxcol,self.height), *largs, **dargs )
-			return fix_size_fn
 		return getattr(self.box_widget, name)
 
 

@@ -56,9 +56,9 @@ class TreeWidget(urwid.FlowWidget):
 		else:
 		 	self.depth = dir.count(dir_sep())
 	
-	def rows(self, (maxcol,), **args):
+	def rows(self, (maxcol,), focus=False):
 		"""Return rows from display widget."""
-		return self.widget.rows((maxcol,), **args)
+		return self.widget.rows((maxcol,), focus)
 	
 	def selectable(self):
 		"""Default to selectable."""
@@ -595,7 +595,7 @@ def sensible_cmp( name_a, name_b ):
 			while i < len(name) and name[i].isdigit():
 				a += name[i]
 				i += 1
-			a = int(a)
+			a = long(a)
 		return a, i
 		
 	# compare one atom at a time

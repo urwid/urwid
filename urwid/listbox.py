@@ -103,6 +103,9 @@ class ListBox(BoxWidget):
 		# variable for delayed focus change used by set_focus
 		self.set_focus_pending = None
 		
+		# variable for delayed valign change used by set_focus_valign
+		self.set_focus_valign_pending = None
+		
 	
 	def calculate_visible(self, (maxcol, maxrow), focus=False ):
 		""" Return (middle,top,bottom) or None,None,None.
@@ -119,7 +122,7 @@ class ListBox(BoxWidget):
 		"""
 
 		# 0. set the focus if a change is pending
-		if self.set_focus_pending:
+		if self.set_focus_pending or self.set_focus_valign_pending:
 			self._set_focus_complete( (maxcol, maxrow), focus )
 
 		# 1. start with the focus widget
@@ -128,15 +131,8 @@ class ListBox(BoxWidget):
 			return None,None,None
 		top_pos = bottom_pos = focus_pos
 		
-		offset_rows = self.offset_rows
-		inset_rows = 0
-		focus_rows = focus_widget.rows((maxcol,))
-		if offset_rows == 0:
-			inum, iden = self.inset_fraction
-			if inum < 0 or iden < 0 or inum >= iden:
-				raise ListBoxError, "Invalid inset_fraction: %s"%`self.inset_fraction`
-			inset_rows = focus_rows * inum / iden
-			assert inset_rows < focus_rows, "urwid inset_fraction error (please report)"
+		offset_rows, inset_rows = self.get_focus_offset_inset(
+			(maxcol,maxrow))
 		#    force at least one line of focus to be visible
 		if offset_rows >= maxrow:
 			offset_rows = maxrow -1
@@ -158,6 +154,7 @@ class ListBox(BoxWidget):
 		
 		#    set trim_top and trim_bottom by focus trimmimg
 		trim_top = inset_rows
+		focus_rows = focus_widget.rows((maxcol,),True)
 		trim_bottom = focus_rows + offset_rows - inset_rows - maxrow
 		if trim_bottom < 0: trim_bottom = 0
 		
@@ -290,6 +287,18 @@ class ListBox(BoxWidget):
 		return CanvasCombine( l )
 
 
+	def set_focus_valign(self, valign):
+		"""Set the focus widget's display offset and inset.
+
+		valign -- one of:
+			'top', 'middle', 'bottom'
+			('fixed top', rows)
+			('fixed bottom', rows)
+			('relative', percentage 0=top 100=bottom)
+		"""
+		vt,va,ht,ha=decompose_valign_height(valign,None,ListBoxError)
+		self.set_focus_valign_pending = vt,va
+
 
 	def set_focus(self, position, coming_from=None):
 		"""
@@ -311,10 +320,32 @@ class ListBox(BoxWidget):
 		"""
 		return self.body.get_focus()
 
+	def _set_focus_valign_complete(self, (maxcol, maxrow), focus):
+		"""
+		Finish setting the offset and inset now that we have have a 
+		maxcol & maxrow.
+		"""
+		vt,va = self.set_focus_valign_pending
+		self.set_focus_valign_pending = None
+
+		focus_widget, focus_pos = self.body.get_focus()
+		if focus_widget is None:
+			return
+		
+		rows = focus_widget.rows((maxcol,), focus)
+		rtop, rbot = calculate_filler( vt, va, 'fixed', rows, 
+			None, maxrow )
+
+		self.shift_focus((maxcol, maxrow), rtop)
+		
+
 	def _set_focus_complete(self, (maxcol, maxrow), focus):
 		"""
 		Finish setting the position now that we have maxcol & maxrow.
 		"""
+		if self.set_focus_valign_pending is not None:
+			return self._set_focus_valign_complete(
+				(maxcol,maxrow),focus )
 		coming_from, focus_widget, focus_pos = self.set_focus_pending
 		self.set_focus_pending = None
 		
@@ -498,6 +529,45 @@ class ListBox(BoxWidget):
 			if target.move_cursor_to_coords((maxcol,),pref_col,row):
 				break
 
+	def get_focus_offset_inset(self,(maxcol, maxrow)):
+		"""Return (offset rows, inset rows) for focus widget."""
+		focus_widget, pos = self.body.get_focus()
+		focus_rows = focus_widget.rows((maxcol,), True)
+		offset_rows = self.offset_rows
+		inset_rows = 0
+		if offset_rows == 0:
+			inum, iden = self.inset_fraction
+			if inum < 0 or iden < 0 or inum >= iden:
+				raise ListBoxError, "Invalid inset_fraction: %s"%`self.inset_fraction`
+			inset_rows = focus_rows * inum / iden
+			assert inset_rows < focus_rows, "urwid inset_fraction error (please report)"
+		return offset_rows, inset_rows
+
+
+	def make_cursor_visible(self,(maxcol,maxrow)):
+		"""Shift the focus widget so that its cursor is visible."""
+		
+		focus_widget, pos = self.body.get_focus()
+		if focus_widget is None:
+			return
+		if not focus_widget.selectable(): 
+			return
+		if not hasattr(focus_widget,'get_cursor_coords'): 
+			return
+		cursor = focus_widget.get_cursor_coords((maxcol,))
+		if cursor is None: 
+			return
+		cx, cy = cursor
+		offset_rows, inset_rows = self.get_focus_offset_inset(
+			(maxcol, maxrow))
+		
+		if cy < inset_rows:
+			self.shift_focus( (maxcol,maxrow), - (cy) )
+			return
+			
+		if offset_rows - inset_rows + cy >= maxrow:
+			self.shift_focus( (maxcol,maxrow), maxrow-cy-1 )
+			return
 
 
 	def keypress(self,(maxcol,maxrow), key):
@@ -513,7 +583,7 @@ class ListBox(BoxWidget):
 		 'page down' move cursor down one listbox length
 		"""
 
-		if self.set_focus_pending:
+		if self.set_focus_pending or self.set_focus_valign_pending:
 			self._set_focus_complete( (maxcol,maxrow), focus=True )
 			
 		focus_widget, pos = self.body.get_focus()
@@ -524,6 +594,7 @@ class ListBox(BoxWidget):
 			if focus_widget.selectable():
 				key = focus_widget.keypress((maxcol,),key)
 			if key is None: 
+				self.make_cursor_visible((maxcol,maxrow))
 				return
 		
 		# pass off the heavy lifting

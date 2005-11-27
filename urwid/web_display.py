@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python
 #
 # Urwid web (CGI/Asynchronous Javascript) display module
 #    Copyright (C) 2004-2005  Ian Ward
@@ -645,7 +645,8 @@ class Screen:
 			sys.stdout.write("Status: 503 Sever Busy\r\n\r\n")
 			sys.exit(0)
 		
-		urwid_id = "%020d"%random.randint(0,10**20-1)
+		urwid_id = "%09d%09d"%(random.randrange(10**9),
+			random.randrange(10**9))
 		self.pipe_name = os.path.join(_prefs.pipe_dir,"urwid"+urwid_id)
 		os.mkfifo(self.pipe_name+".in",0600)
 		signal.signal(signal.SIGTERM,self._cleanup_pipe)
@@ -715,7 +716,7 @@ class Screen:
 		if cols != self.last_screen_width:
 			self.last_screen = {}
 	
-		sendq = []
+		sendq = [self.content_head]
 		
 		if self.update_method == "polling":
 			send = sendq.append
@@ -730,9 +731,8 @@ class Screen:
 			signal.alarm( 0 )
 			send = sendq.append
 			send("\r\n")
+			self.content_head = ""
 		
-		send( self.content_head )
-	
 		assert len(lines) == rows
 	
 		if r.cursor is not None:

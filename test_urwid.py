@@ -169,6 +169,15 @@ class CalcTranslateWordTest(CalcTranslateTest):
 	result_right = [(3,0,1,12),(6,0,1,21),(1,0,0,34)]
 	result_center = [(1,0,1,12),(3,0,1,21),(0,0,0,34)]
 
+class CalcTranslateWordTest2(CalcTranslateTest):
+	text = "It's out of control!\nYou've got to "
+	mode = 'space'
+	width = 14
+	result_left = [(0,0,1,12),(0,0,1,21),(0,0,0,35)]
+	result_right = [(3,0,1,12),(6,0,1,21),(0,0,0,35)]
+	result_center = [(1,0,1,12),(3,0,1,21),(0,0,0,35)]
+	
+
 class CalcTranslateClipTest(CalcTranslateTest):
 	text = "It's out of control!\nYou've got to\nturn it off!!!"
 	mode = 'clip'
@@ -799,6 +808,13 @@ class ListBoxKeypressTest(unittest.TestCase):
 		self.ktest( "edit short between pass cursor B", 'up',
 			None, None, None,
 			0, 0, (3,0), lbox )
+	
+		e = E("","\n\n\n\n\n")
+		e.set_edit_pos(1)
+		key,lbox = self.ktest( "edit cursor force scroll", 'up',
+			[e], 0, -1,
+			0, 0, (0,0) )
+		assert lbox.inset_fraction[0] == 0
 
 	def test2_down(self):	
 		T,S,E = urwid.Text, SelectableText, urwid.Edit
@@ -897,6 +913,13 @@ class ListBoxKeypressTest(unittest.TestCase):
 		self.ktest( "edit short between pass cursor B", 'down',
 			None, None, None,
 			2, 2, (3,2), lbox )
+		
+		e = E("","\n\n\n\n\n")
+		e.set_edit_pos(4)
+		key,lbox = self.ktest( "edit cursor force scroll", 'down',
+			[e], 0, 0,
+			0, -1, (0,4) )
+		assert lbox.inset_fraction[0] == 1
 			
 	def test3_page_up(self):
 		T,S,E = urwid.Text, SelectableText, urwid.Edit
@@ -1487,7 +1510,55 @@ class BarGraphTest(unittest.TestCase):
 			[(1,[(3,1),(0,1),(1,1)]),(1,[(3,2),(2,1)]),
 			 (1,[(3,3)]) ] )
 		
+
+class CanvasOverlayTest(unittest.TestCase):
+	def cotest(self, desc, bgt, bga, fgt, fga, l, r, et, ea):
+		bg = urwid.Canvas([bgt],[bga])
+		fg = urwid.Canvas([fgt],[fga])
+		bg.overlay( fg, l, r, 0, 0, len(bgt) )
+		assert bg.text[0] == et, "%s expected text %s, got %s"%(
+			desc, `et`,`bg.text[0]`)
+		assert bg.attr[0] == ea, "%s expected attr %s, got %s"%(
+			desc, `ea`,`bg.attr[0]`)
 	
+	def test1(self):
+		self.cotest("left", "qxqxqxqx", [], "HI", [], 0, 6,
+			"HIqxqxqx", [])
+		self.cotest("right", "qxqxqxqx", [], "HI", [], 6, 0,
+			"qxqxqxHI", [])
+		self.cotest("center", "qxqxqxqx", [], "HI", [], 3, 3,
+			"qxqHIxqx", [])
+		self.cotest("center2", "qxqxqxqx", [], "HI", [], 2, 2,
+			"qxHI  qx", [])
+		self.cotest("full", "rz", [], "HI", [], 0, 0, 
+			"HI", [])
+	
+	def test2(self):
+		self.cotest("same","asdfghjkl",[('a',9)],"HI",[('a',2)],4,3,
+			"asdfHIjkl",[('a',9)])
+		self.cotest("diff","asdfghjkl",[('a',9)],"HI",[('b',2)],4,3,
+			"asdfHIjkl",[('a',4),('b',2),('a',3)])
+		self.cotest("None end","asdfghjkl",[('a',9)],"HI",[('a',2)],
+			2,3,"asHI  jkl",[('a',4),(None,2),('a',3)])
+		self.cotest("float end","asdfghjkl",[('a',3)],"HI",[('a',2)],
+			4,3,"asdfHIjkl",[('a',3),(None,1),('a',2)])
+		self.cotest("cover 2","asdfghjkl",[('a',5),('c',4)],"HI",
+			[('b',2)],4,3,"asdfHIjkl",[('a',4),('b',2),('c',3)])
+		self.cotest("cover 2-2","asdfghjkl",
+			[('a',4),('d',1),('e',1),('c',3)],
+			"HI",[('b',2)], 4, 3,
+			"asdfHIjkl",[('a',4),('b',2),('c',3)])
+
+	def test3(self):
+		urwid.util.set_double_byte_encoding( True )
+		self.cotest("db0","\xA1\xA1\xA1\xA1",[],"HI",[],2,2,
+			"\xA1\xA1HI\xA1\xA1",[])
+		self.cotest("db1","\xA1\xA1\xA1\xA1",[],"OHI",[],1,2,
+			" OHI\xA1\xA1",[])
+		self.cotest("db2","\xA1\xA1\xA1\xA1",[],"OHI",[],2,1,
+			"\xA1\xA1OHI ",[])
+		self.cotest("db3","\xA1\xA1\xA1\xA1",[],"OHIO",[],1,1,
+			" OHIO ",[])
 
 def test_main():
 	for t in [
@@ -1498,6 +1569,7 @@ def test_main():
 		CalcBreaksWordTest2,
 		CalcBreaksDBWordTest,
 		CalcTranslateCharTest,
+		CalcTranslateWordTest2,
 		CalcTranslateWordTest,
 		CalcTranslateClipTest,
 		CalcTranslateDBClipTest,
@@ -1518,6 +1590,7 @@ def test_main():
 		PileTest,
 		ColumnsTest,
 		BarGraphTest,
+		CanvasOverlayTest,
 		]:
 		if test_support.run_unittest(t): break
 	

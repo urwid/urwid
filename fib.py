@@ -37,7 +37,7 @@ class FibonacciWalker:
 	"""
 	
 	def __init__(self):
-		self.focus = (0,1)
+		self.focus = (0L,1L)
 	
 	def _get_at_pos(self, pos):
 		"""Return a widget and the position passed."""

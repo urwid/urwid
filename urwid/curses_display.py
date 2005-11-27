@@ -103,7 +103,8 @@ _escape_sequences = [
 	('OH','home'),('OF','end'),
 	('OP','f1'),('OQ','f2'),('OR','f3'),('OS','f4'),
 	('Oo','/'),('Oj','*'),('Om','-'),('Ok','+'),
-	
+
+	('[Z','shift tab'),
 ] + [ 
 	# modified cursor keys + home, end, 5 -- [#X and [1;#X forms
 	(prefix+digit+letter, escape_modifier(digit) + key)
@@ -462,8 +463,11 @@ class Screen:
 
 		processed = []
 		
-		def more_fn(raw=raw):
-			key = self._getch(self.complete_tenths)
+		def more_fn(raw=raw,
+				# hide warnings in python 2.1
+				self_getch=self._getch, 
+				self_complete_tenths = self.complete_tenths):
+			key = self_getch(self_complete_tenths)
 			if key >= 0:
 				raw.append(key)
 			return key

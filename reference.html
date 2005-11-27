@@ -20,7 +20,7 @@
 Reference
 </div>
 <br>
-<table width="100%"><tr><td width="33%" valign="top"><div class="l1">Urwid class interfaces</div><div class="l2"><a href="#Widget_interface_definition">Widget interface definition</a></div><div class="l2"><a href="#List_Walker_interface_definition">List Walker interface definition</a></div><div class="l1">User interface wrapper</div><div class="l2"><a href="#curses_display.Screen">curses_display.Screen</a></div><div class="l1">Top-level widgets</div><div class="l2"><a href="#BoxWidget">BoxWidget</a></div><div class="l2"><a href="#Frame">Frame</a></div><div class="l2"><a href="#Filler">Filler</a></div><div class="l2"><a href="#ListBox">ListBox</a></div><div class="l2"><a href="#SimpleListWalker">SimpleListWalker</a></div><div class="l1">Decorations</div><div class="l2"><a href="#AttrWrap">AttrWrap</a></div><div class="l2"><a href="#Padding">Padding</a></div><div class="l2"><a href="#Divider">Divider</a></div></td><td width="33%" valign="top"><div class="l1">Content widgets</div><div class="l2"><a href="#FlowWidget">FlowWidget</a></div><div class="l2"><a href="#Text">Text</a></div><div class="l2"><a href="#Edit">Edit</a></div><div class="l2"><a href="#IntEdit">IntEdit</a></div><div class="l2"><a href="#Button">Button</a></div><div class="l2"><a href="#CheckBox">CheckBox</a></div><div class="l2"><a href="#RadioButton">RadioButton</a></div><div class="l1">Composite widgets</div><div class="l2"><a href="#Columns">Columns</a></div><div class="l2"><a href="#Pile">Pile</a></div><div class="l2"><a href="#GridFlow">GridFlow</a></div><div class="l2"><a href="#BoxAdapter">BoxAdapter</a></div><div class="l2"><a href="#Overlay">Overlay</a></div><div class="l1">Graphics</div><div class="l2"><a href="#BarGraph">BarGraph</a></div><div class="l2"><a href="#GraphVScale">GraphVScale</a></div><div class="l2"><a href="#ProgressBar">ProgressBar</a></div></td><td width="33%" valign="top"><div class="l1">Canvas painting</div><div class="l2"><a href="#Canvas">Canvas</a></div><div class="l2"><a href="#CanvasCombine">CanvasCombine</a></div><div class="l2"><a href="#CanvasJoin">CanvasJoin</a></div><div class="l1">Custom formatting rules</div><div class="l2"><a href="#util.register_align_mode">util.register_align_mode</a></div><div class="l2"><a href="#util.register_wrap_mode">util.register_wrap_mode</a></div><div class="l2"><a href="#util.set_double_byte_encoding">util.set_double_byte_encoding</a></div><div class="l1">Screen capture</div><div class="l2"><a href="#html_fragment.screenshot_init">html_fragment.screenshot_init</a></div><div class="l2"><a href="#html_fragment.screenshot_collect">html_fragment.screenshot_collect</a></div><div class="l2"><a href="#html_fragment.HtmlGenerator">html_fragment.HtmlGenerator</a></div><div class="l1">Web Application Interface</div><div class="l2"><a href="#web_display.is_web_request">web_display.is_web_request</a></div><div class="l2"><a href="#web_display.set_preferences">web_display.set_preferences</a></div><div class="l2"><a href="#web_display.handle_short_request">web_display.handle_short_request</a></div><div class="l2"><a href="#web_display.Screen">web_display.Screen</a></div></td></tr></table><h2>Urwid class interfaces</h2><h3><a name="Widget_interface_definition"></a><strong>Widget interface definition</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<table width="100%"><tr><td width="33%" valign="top"><div class="l1">Urwid class interfaces</div><div class="l2"><a href="#Widget_interface_definition">Widget interface definition</a></div><div class="l2"><a href="#List_Walker_interface_definition">List Walker interface definition</a></div><div class="l1">User interface wrapper</div><div class="l2"><a href="#curses_display.Screen">curses_display.Screen</a></div><div class="l1">Top-level widgets</div><div class="l2"><a href="#BoxWidget">BoxWidget</a></div><div class="l2"><a href="#Frame">Frame</a></div><div class="l2"><a href="#Filler">Filler</a></div><div class="l2"><a href="#ListBox">ListBox</a></div><div class="l2"><a href="#SimpleListWalker">SimpleListWalker</a></div><div class="l1">Decorations</div><div class="l2"><a href="#WidgetWrap">WidgetWrap</a></div><div class="l2"><a href="#AttrWrap">AttrWrap</a></div><div class="l2"><a href="#Padding">Padding</a></div><div class="l2"><a href="#Divider">Divider</a></div></td><td width="33%" valign="top"><div class="l1">Content widgets</div><div class="l2"><a href="#FlowWidget">FlowWidget</a></div><div class="l2"><a href="#Text">Text</a></div><div class="l2"><a href="#Edit">Edit</a></div><div class="l2"><a href="#IntEdit">IntEdit</a></div><div class="l2"><a href="#Button">Button</a></div><div class="l2"><a href="#CheckBox">CheckBox</a></div><div class="l2"><a href="#RadioButton">RadioButton</a></div><div class="l1">Composite widgets</div><div class="l2"><a href="#Columns">Columns</a></div><div class="l2"><a href="#Pile">Pile</a></div><div class="l2"><a href="#GridFlow">GridFlow</a></div><div class="l2"><a href="#BoxAdapter">BoxAdapter</a></div><div class="l2"><a href="#Overlay">Overlay</a></div><div class="l1">Graphics</div><div class="l2"><a href="#BarGraph">BarGraph</a></div><div class="l2"><a href="#GraphVScale">GraphVScale</a></div><div class="l2"><a href="#ProgressBar">ProgressBar</a></div></td><td width="33%" valign="top"><div class="l1">Canvas painting</div><div class="l2"><a href="#Canvas">Canvas</a></div><div class="l2"><a href="#CanvasCombine">CanvasCombine</a></div><div class="l2"><a href="#CanvasJoin">CanvasJoin</a></div><div class="l1">Custom formatting rules</div><div class="l2"><a href="#util.register_align_mode">util.register_align_mode</a></div><div class="l2"><a href="#util.register_wrap_mode">util.register_wrap_mode</a></div><div class="l2"><a href="#util.set_double_byte_encoding">util.set_double_byte_encoding</a></div><div class="l1">Screen capture</div><div class="l2"><a href="#html_fragment.screenshot_init">html_fragment.screenshot_init</a></div><div class="l2"><a href="#html_fragment.screenshot_collect">html_fragment.screenshot_collect</a></div><div class="l2"><a href="#html_fragment.HtmlGenerator">html_fragment.HtmlGenerator</a></div><div class="l1">Web Application Interface</div><div class="l2"><a href="#web_display.is_web_request">web_display.is_web_request</a></div><div class="l2"><a href="#web_display.set_preferences">web_display.set_preferences</a></div><div class="l2"><a href="#web_display.handle_short_request">web_display.handle_short_request</a></div><div class="l2"><a href="#web_display.Screen">web_display.Screen</a></div></td></tr></table><h2>Urwid class interfaces</h2><h3><a name="Widget_interface_definition"></a><strong>Widget interface definition</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="WidgetInterface-get_cursor_coords"><strong>get_cursor_coords</strong></a>(self, size)</dt><dd><tt>Returns&nbsp;(col,row)&nbsp;coordinates&nbsp;for&nbsp;cursor&nbsp;or&nbsp;None&nbsp;if&nbsp;no&nbsp;cursor.<br>
 &nbsp;<br>
 MUST&nbsp;be&nbsp;implemented&nbsp;if&nbsp;render&nbsp;function&nbsp;returns&nbsp;a&nbsp;canvas&nbsp;with<br>
@@ -268,6 +268,8 @@ of&nbsp;the&nbsp;list&nbsp;are&nbsp;visible</tt></dd></dl>
 
 <dl><dt><a name="ListBox-get_focus"><strong>get_focus</strong></a>(self)</dt><dd><tt>Return&nbsp;a&nbsp;(focus&nbsp;widget,&nbsp;focus&nbsp;position)&nbsp;tuple.</tt></dd></dl>
 
+<dl><dt><a name="ListBox-get_focus_offset_inset"><strong>get_focus_offset_inset</strong></a>(self, (maxcol, maxrow))</dt><dd><tt>Return&nbsp;(offset&nbsp;rows,&nbsp;inset&nbsp;rows)&nbsp;for&nbsp;focus&nbsp;widget.</tt></dd></dl>
+
 <dl><dt><a name="ListBox-keypress"><strong>keypress</strong></a>(self, (maxcol, maxrow), key)</dt><dd><tt>Move&nbsp;selection&nbsp;through&nbsp;the&nbsp;list&nbsp;elements&nbsp;scrolling&nbsp;when&nbsp;<br>
 necessary.&nbsp;'up'&nbsp;and&nbsp;'down'&nbsp;are&nbsp;first&nbsp;passed&nbsp;to&nbsp;widget&nbsp;in&nbsp;focus<br>
 in&nbsp;case&nbsp;that&nbsp;widget&nbsp;can&nbsp;handle&nbsp;them.&nbsp;'page&nbsp;up'&nbsp;and&nbsp;'page&nbsp;down'<br>
@@ -279,6 +281,8 @@ Keystrokes&nbsp;handled&nbsp;by&nbsp;this&nbsp;widget&nbsp;are:<br>
 &nbsp;'page&nbsp;up'&nbsp;&nbsp;&nbsp;move&nbsp;cursor&nbsp;up&nbsp;one&nbsp;listbox&nbsp;length<br>
 &nbsp;'page&nbsp;down'&nbsp;move&nbsp;cursor&nbsp;down&nbsp;one&nbsp;listbox&nbsp;length</tt></dd></dl>
 
+<dl><dt><a name="ListBox-make_cursor_visible"><strong>make_cursor_visible</strong></a>(self, (maxcol, maxrow))</dt><dd><tt>Shift&nbsp;the&nbsp;focus&nbsp;widget&nbsp;so&nbsp;that&nbsp;its&nbsp;cursor&nbsp;is&nbsp;visible.</tt></dd></dl>
+
 <dl><dt><a name="ListBox-render"><strong>render</strong></a>(self, (maxcol, maxrow), focus<font color="#909090">=False</font>)</dt><dd><tt>Render&nbsp;listbox&nbsp;and&nbsp;return&nbsp;canvas.</tt></dd></dl>
 
 <dl><dt><a name="ListBox-set_focus"><strong>set_focus</strong></a>(self, position, coming_from<font color="#909090">=None</font>)</dt><dd><tt>Set&nbsp;the&nbsp;focus&nbsp;position&nbsp;and&nbsp;try&nbsp;to&nbsp;keep&nbsp;the&nbsp;old&nbsp;focus&nbsp;in&nbsp;view.<br>
@@ -286,6 +290,14 @@ Keystrokes&nbsp;handled&nbsp;by&nbsp;this&nbsp;widget&nbsp;are:<br>
 position&nbsp;--&nbsp;a&nbsp;position&nbsp;compatible&nbsp;with&nbsp;self.<strong>body</strong>.set_focus<br>
 coming_from&nbsp;--&nbsp;set&nbsp;to&nbsp;'above'&nbsp;or&nbsp;'below'&nbsp;if&nbsp;you&nbsp;know&nbsp;that<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;old&nbsp;position&nbsp;is&nbsp;above&nbsp;or&nbsp;below&nbsp;the&nbsp;new&nbsp;position.</tt></dd></dl>
+
+<dl><dt><a name="ListBox-set_focus_valign"><strong>set_focus_valign</strong></a>(self, valign)</dt><dd><tt>Set&nbsp;the&nbsp;focus&nbsp;widget's&nbsp;display&nbsp;offset&nbsp;and&nbsp;inset.<br>
+&nbsp;<br>
+valign&nbsp;--&nbsp;one&nbsp;of:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'top',&nbsp;'middle',&nbsp;'bottom'<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;('fixed&nbsp;top',&nbsp;rows)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;('fixed&nbsp;bottom',&nbsp;rows)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;('relative',&nbsp;percentage&nbsp;0=top&nbsp;100=bottom)</tt></dd></dl>
 
 <dl><dt><a name="ListBox-shift_focus"><strong>shift_focus</strong></a>(self, (maxcol, maxrow), offset_inset)</dt><dd><tt>Move&nbsp;the&nbsp;location&nbsp;of&nbsp;the&nbsp;current&nbsp;focus&nbsp;relative&nbsp;to&nbsp;the&nbsp;top.<br>
 &nbsp;<br>
@@ -313,14 +325,22 @@ Methods inherited from BoxWidget:<br>
 
 <dl><dt><a name="SimpleListWalker-set_focus"><strong>set_focus</strong></a>(self, position)</dt><dd><tt>Set&nbsp;focus&nbsp;position.</tt></dd></dl>
 
-<h2>Decorations</h2><h3><a name="AttrWrap">class <strong>AttrWrap</strong></a> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<h2>Decorations</h2><h3><a name="WidgetWrap">class <strong>WidgetWrap</strong></a> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<dl><dt><a name="WidgetWrap-__getattr__"><strong>__getattr__</strong></a>(self, name)</dt><dd><tt>Call&nbsp;self.<strong>w</strong>&nbsp;if&nbsp;name&nbsp;is&nbsp;in&nbsp;Widget&nbsp;interface&nbsp;definition.</tt></dd></dl>
+
+<dl><dt><a name="WidgetWrap-__init__"><strong>__init__</strong></a>(self, w)</dt><dd><tt>w&nbsp;--&nbsp;widget&nbsp;to&nbsp;wrap,&nbsp;stored&nbsp;as&nbsp;self.<strong>w</strong><br>
+&nbsp;<br>
+This&nbsp;object&nbsp;will&nbsp;pass&nbsp;the&nbsp;functions&nbsp;defined&nbsp;in&nbsp;Widget&nbsp;interface<br>
+definition&nbsp;to&nbsp;self.<strong>w</strong>.</tt></dd></dl>
+
+<h3><a name="AttrWrap">class <strong>AttrWrap</strong></a> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="AttrWrap-__getattr__"><strong>__getattr__</strong></a>(self, name)</dt><dd><tt>Call&nbsp;getattr&nbsp;on&nbsp;wrapped&nbsp;widget.</tt></dd></dl>
 
 <dl><dt><a name="AttrWrap-__init__"><strong>__init__</strong></a>(self, w, attr, focus_attr<font color="#909090">=None</font>)</dt><dd><tt>w&nbsp;--&nbsp;widget&nbsp;to&nbsp;wrap<br>
 attr&nbsp;--&nbsp;attribute&nbsp;to&nbsp;apply&nbsp;to&nbsp;w<br>
 focus_attr&nbsp;--&nbsp;attribute&nbsp;to&nbsp;apply&nbsp;when&nbsp;in&nbsp;focus,&nbsp;if&nbsp;None&nbsp;use&nbsp;attr<br>
 &nbsp;<br>
-This&nbsp;object&nbsp;will&nbsp;pass&nbsp;function&nbsp;calls&nbsp;and&nbsp;variable&nbsp;references<br>
+This&nbsp;object&nbsp;will&nbsp;pass&nbsp;all&nbsp;function&nbsp;calls&nbsp;and&nbsp;variable&nbsp;references<br>
 to&nbsp;the&nbsp;wrapped&nbsp;widget.</tt></dd></dl>
 
 <dl><dt><a name="AttrWrap-render"><strong>render</strong></a>(self, size, focus<font color="#909090">=False</font>)</dt><dd><tt>Render&nbsp;self.<strong>w</strong>&nbsp;and&nbsp;apply&nbsp;attribute.&nbsp;Return&nbsp;canvas.<br>
@@ -806,13 +826,22 @@ Capture&nbsp;focus&nbsp;changes.</tt></dd></dl>
 cell&nbsp;--&nbsp;widget&nbsp;or&nbsp;integer&nbsp;index&nbsp;into&nbsp;self.<strong>cells</strong></tt></dd></dl>
 
 <h3><a name="BoxAdapter">class <strong>BoxAdapter</strong></a> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
-<dl><dt><a name="BoxAdapter-__getattr__"><strong>__getattr__</strong></a>(self, name)</dt><dd><tt>Pass&nbsp;calls&nbsp;to&nbsp;box&nbsp;widget,&nbsp;changing&nbsp;(maxcol,)&nbsp;to<br>
-(maxcol,&nbsp;self.<strong>height</strong>)&nbsp;before&nbsp;calling.</tt></dd></dl>
+<dl><dt><a name="BoxAdapter-__getattr__"><strong>__getattr__</strong></a>(self, name)</dt><dd><tt>Pass&nbsp;calls&nbsp;to&nbsp;box&nbsp;widget.</tt></dd></dl>
 
 <dl><dt><a name="BoxAdapter-__init__"><strong>__init__</strong></a>(self, box_widget, height)</dt><dd><tt>Create&nbsp;a&nbsp;flow&nbsp;widget&nbsp;that&nbsp;contains&nbsp;a&nbsp;box&nbsp;widget<br>
 &nbsp;<br>
 box_widget&nbsp;--&nbsp;box&nbsp;widget<br>
 height&nbsp;--&nbsp;number&nbsp;of&nbsp;rows&nbsp;for&nbsp;box&nbsp;widget</tt></dd></dl>
+
+<dl><dt><a name="BoxAdapter-get_cursor_coords"><strong>get_cursor_coords</strong></a>(self, (maxcol,))</dt></dl>
+
+<dl><dt><a name="BoxAdapter-get_pref_col"><strong>get_pref_col</strong></a>(self, (maxcol,))</dt></dl>
+
+<dl><dt><a name="BoxAdapter-keypress"><strong>keypress</strong></a>(self, (maxcol,), key)</dt></dl>
+
+<dl><dt><a name="BoxAdapter-move_cursor_to_coords"><strong>move_cursor_to_coords</strong></a>(self, (maxcol,), col, row)</dt></dl>
+
+<dl><dt><a name="BoxAdapter-render"><strong>render</strong></a>(self, (maxcol,), focus<font color="#909090">=False</font>)</dt></dl>
 
 <dl><dt><a name="BoxAdapter-rows"><strong>rows</strong></a>(self, (maxcol,), focus<font color="#909090">=False</font>)</dt><dd><tt>Return&nbsp;self.<strong>height</strong></tt></dd></dl>
 
