@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid utility functions
-#    Copyright (C) 2004-2005  Ian Ward
+#    Copyright (C) 2004-2006  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -19,264 +19,615 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import nested_scopes
+
+import utable
+
+try: True # old python?
+except: False, True = 0, 1
+
 # Try to determine if using a supported double-byte encoding
 import locale
 try:
-	_encoding = locale.getdefaultlocale()[1] or ""
+	detected_encoding = locale.getdefaultlocale()[1]
+	if not detected_encoding:
+		detected_encoding = ""
 except ValueError, e:
 	# with invalid LANG value python will throw ValueError
 	if e.args and e.args[0].startswith("unknown locale"):
-		_encoding = ""
+		detected_encoding = ""
 	else:
 		raise
-double_byte_encoding = _encoding.lower() in ( 'euc-jp' # JISX 0208 only
-	, 'euc-kr', 'euc-cn', 'euc-tw' # CNS 11643 plain 1 only
-	, 'gb2312', 'gbk', 'big5', 'cn-gb', 'uhc'
-	# these shouldn't happen, should they?
-	, 'eucjp', 'euckr', 'euccn', 'euctw', 'cncb' )
 
-# if encoding is valid for conversion from unicode, remember it
+byte_encoding = None
 target_encoding = None
-try:	
-	if _encoding:
-		u"".encode(_encoding)
-		target_encoding = _encoding
-except LookupError: pass
 
-def set_double_byte_encoding( dbe ):
-	"""Enable/disable special processing for double-byte characters.
-	
-	dbe -- True to enable, False to disable."""
-
-	global double_byte_encoding
-	double_byte_encoding = dbe
-
-
-STANDARD_WRAP_MODES = ('any', 'space', 'clip')
-STANDARD_ALIGN_MODES = ('left', 'center', 'right')
-
-_custom_wrap_modes = {}
-_custom_align_modes = {}
-
-def valid_wrap_mode( x ):
-	return x in STANDARD_WRAP_MODES or _custom_wrap_modes.has_key(x)
-
-def valid_align_mode( x ):
-	return x in STANDARD_ALIGN_MODES or _custom_align_modes.has_key(x)
-
-def register_wrap_mode( x, fn ):
-	"""Register custom wrap mode x function fn.
-
-	Custom wrapping function:
-	fn( text, width, wrap_mode )
-		text -- original text string to wrap
-		width -- max number of characters per row
-		wrap_mode -- current wrap_mode
-	Must return:
-	list of offsets into text for line breaks
-
-	eg. [4,6] would split "hallabaloo" into "hall","ab","aloo"
+def set_encoding( encoding ):
 	"""
-	_custom_wrap_modes[x] = fn
-
-def register_align_mode( x, fn ):
+	Set the byte encoding to assume when processing strings and the
+	encoding to use when converting unicode strings.
 	"""
-	Register custom align mode x function fn.
-	
-	Custom alignment function:
-	fn( text, width, b, wrap_mode, align_mode )
-		text -- original text string to align
-		b -- line breaks calculated from wrap_mode function
-		wrap_mode -- current wrap_mode
-		align_mode -- current align_mode
-	Must return:
-	line translation (see Text.get_line_translation for description)
-	"""
-	_custom_align_modes[x] = fn
-	
+	encoding = encoding.lower()
 
-def calculate_pos( trans, pref_col, row ):
-	"""
-	calculate_pos( translation, pref_col, row ) 
-	-> new_pos
-	"""
+	global byte_encoding, target_encoding
 
-	if row < 0 or row >= len(trans):
-		raise Exception("calculate_pos: out of translation row range")
-	
-	spos = 0
-	if row > 0: spos = trans[row-1][-1]
-	l_pad, l_trim, r_trim, epos = trans[row]
-
-	pos = pref_col - l_pad + l_trim
-	if pos < 0: pos = 0 # clamp to left edge
-
-	pos = pos + spos
-	if pos >= epos: 
-		if row == len(trans)-1: # last row allow 1 extra
-			pos = epos
-		else:
-			pos = epos-1 # clamp to right edge
-
-	return pos 
-
-
-	
-def calculate_line_translation( text, width, wrap_mode, align_mode ):
-	"""
-	calculate_line_translation(..) -> [(l_pad, l_trim, r_trim, epos), ... ]
-	
-	one tuple per output line
-
-	l_pad is the number of spaces that must be added to the line
-	to follow the align_mode setting.
-	
-	l_trim and r_trim are the number of characters to be removed
-	from the left and right sides of the line before display.
-	
-	epos is end position of this line in text.
-	"""
-	
-	if _custom_wrap_modes.has_key( wrap_mode ):
-		b = _custom_wrap_modes[ wrap_mode ]( text, width, wrap_mode )
+	if encoding in ( 'utf-8', 'utf8' ):
+		byte_encoding = "utf8"
+	elif encoding in ( 'euc-jp' # JISX 0208 only
+			, 'euc-kr', 'euc-cn', 'euc-tw' # CNS 11643 plain 1 only
+			, 'gb2312', 'gbk', 'big5', 'cn-gb', 'uhc'
+			# these shouldn't happen, should they?
+			, 'eucjp', 'euckr', 'euccn', 'euctw', 'cncb' ):
+		byte_encoding = "wide"
 	else:
-		b = calculate_text_breaks( text, width, wrap_mode )
+		byte_encoding = "narrow"
 
-	if _custom_align_modes.has_key( align_mode ):
-		return _custom_align_modes[ align_mode ]( text, width, b, wrap_mode, align_mode )
-	else:
-		return calculate_alignment( text, width, b, wrap_mode, align_mode )
+	# if encoding is valid for conversion from unicode, remember it
+	target_encoding = 'ascii'
+	try:	
+		if encoding:
+			u"".encode(encoding)
+			target_encoding = encoding
+	except LookupError: pass
 
-def calculate_alignment( text, width, b, wrap_mode, align_mode ):
+######################################################################
+# Try to set the encoding using the one detected by the locale module
+set_encoding( detected_encoding )
+######################################################################
 
-	last = 0
-	l = []
-	for p in b + [len(text)]:
-		l_trim = r_trim = l_pad = 0
-		line = text[last:p]
-		
-		if line[-1:] == "\n": r_trim = 1
-		if double_byte_encoding and p-last==1:
-			# pathological case: double byte char & width=1
-			if within_double_byte(text,last,p-1):
-				r_trim = 1
-		if wrap_mode == 'space' and p != len(text):
-			if line[-1:] == " ": r_trim = 1
-		if wrap_mode == 'clip' and len(line) - l_trim - r_trim > width:
-			# clip line to fit
-			clip = len(line) - l_trim - r_trim - width
-			if align_mode == 'right':
-				l_trim += clip
-			elif align_mode == 'center':
-				ladd = clip / 2
-				l_trim += ladd
-				r_trim += clip - ladd
-			else:
-				r_trim += clip
-		
-			if within_double_byte(text,last,last+l_trim) == 2:
-				l_trim += 1
-				l_pad += 1
-			if within_double_byte(text,last,p-r_trim-1) == 1:
-				r_trim += 1
-			
-		if align_mode in ('right', 'center'):
-			ln = len(line) - r_trim - l_trim
-			l_pad = width - ln
-		if align_mode == 'center':
-			l_pad = l_pad / 2
-					
-		l.append( (l_pad, l_trim, r_trim, p) )
-		last = p
-	return l
-	
 
-def calculate_text_breaks( text, width, mode ):
+def supports_unicode():
 	"""
-	calculate_text_breaks( text, width, mode ) -> mid_breaks
-	
-	mid_breaks is a list of offsets within text where the end of each
-	line from 2..last will start.  ie. len(mid_breaks) = num lines-1
+	Return True if python is able to convert non-ascii unicode strings
+	to the current encoding.
 	"""
-	b = []
-	p = 0
-	if mode == 'clip':
-		# no wrapping to calculate, so it's easy.
-		while 1:
+	return target_encoding and target_encoding != 'ascii'
+
+
+class TextLayout:
+	def supports_align_mode(self, align):
+		"""Return True if align is a supported align mode."""
+		return True
+	def supports_wrap_mode(self, wrap):
+		"""Return True if wrap is a supported wrap mode."""
+		return True
+	def layout(self, text, width, align, wrap ):
+		"""
+		Return a layout structure for text.
+		
+		text -- string in current encoding or unicode string
+		width -- number of screen columns available
+		align -- align mode for text
+		wrap -- wrap mode for text
+
+		Layout structure is a list of line layouts, one per output line.		Line layouts are lists than may contain the following tuples:
+		  ( column width of text segment, start offset, end offset )
+		  ( number of space characters to insert, offset or None)
+		  ( column width of insert text, offset, "insert text" )
+
+		The offset in the last two tuples is used to determine the
+		attribute used for the inserted spaces or text respectively.  
+		The attribute used will be the same as the attribute at that 
+		text offset.  If the offset is None when inserting spaces
+		then no attribute will be used.
+		"""
+		return [[]]
+
+class StandardTextLayout(TextLayout):
+	def __init__(self, tab_stops=(), tab_stop_every=8):
+		"""
+		tab_stops -- list of screen column indexes for tab stops
+		tab_stop_every -- repeated interval for following tab stops
+		"""
+		assert tab_stop_every is None or type(tab_stop_every)==type(0)
+		if not tab_stops and tab_stop_every:
+			self.tab_stops = (tab_stop_every,)
+		self.tab_stops = tab_stops
+		self.tab_stop_every = tab_stop_every
+	def supports_align_mode(self, align):
+		"""Return True if align is 'left', 'center' or 'right'."""
+		return align in ('left', 'center', 'right')
+	def supports_wrap_mode(self, wrap):
+		"""Return True if wrap is 'any', 'space' or 'clip'."""
+		return wrap in ('any', 'space', 'clip')
+	def layout(self, text, width, align, wrap ):
+		"""Return a layout structure for text."""
+		segs = self.calculate_text_segments( text, width, wrap )
+		return self.align_layout( text, width, segs, wrap, align )
+
+	def align_layout( self, text, width, segs, wrap, align ):
+		"""Convert the layout segs to an aligned layout."""
+		out = []
+		for l in segs:
+			sc = line_width(l)
+			if sc == width or align=='left':
+				out.append(l)
+				continue
+
+			if align == 'right':
+				out.append([(width-sc, None)] + l)
+				continue
+			assert align == 'center'
+			out.append([((width-sc+1)/2, None)] + l)
+		return out
+		
+
+	def calculate_text_segments( self, text, width, wrap ):
+		"""
+		Calculate the segments of text to display given width screen 
+		columns to display them.  
+		
+		text - text to display
+		width - number of available screen columns
+		wrap - wrapping mode used
+		
+		Returns a layout structure without aligmnent applied.
+		"""
+		b = []
+		p = 0
+		if wrap == 'clip':
+			# no wrapping to calculate, so it's easy.
+			while p<=len(text):
+				n_cr = text.find("\n", p)
+				if n_cr == -1: 
+					n_cr = len(text)
+				sc = calc_width(text, p, n_cr)
+				b.append([(sc,p,n_cr),
+					# removed character hint
+					(0,n_cr)])
+				p = n_cr+1
+			return b
+
+		
+		while p<=len(text):
+			# look for next eligible line break
 			n_cr = text.find("\n", p)
-			if n_cr == -1: return b
-			p = n_cr +1
-			b.append(p)
-	while 1:
-		# look for next eligable line break
-		nb = _next_char_break(text, width, p)
-		if not nb and p+width >= len(text):
-			# no more cr's, last line fits
+			if n_cr == -1: 
+				n_cr = len(text)
+			sc = calc_width(text, p, n_cr)
+			if sc == 0:
+				# removed character hint
+				b.append([(0,n_cr)])
+				p = n_cr+1
+				continue
+			if sc <= width:
+				# this segment fits
+				b.append([(sc,p,n_cr),
+					# removed character hint
+					(0,n_cr)])
+				
+				p = n_cr+1
+				continue
+			pos, sc = calc_text_pos( text, p, n_cr, width )
+			# FIXME: handle pathological width=1 double-byte case
+			if wrap == 'any':
+				b.append([(sc,p,pos)])
+				p = pos
+				continue
+			assert wrap == 'space'
+			if text[pos] == " ":
+				# perfect space wrap
+				b.append([(sc,p,pos),
+					# removed character hint
+					(0,pos)])
+				p = pos+1
+				continue
+			if is_wide_char(text, pos):
+				# perfect next wide
+				b.append([(sc,p,pos)])
+				p = pos
+				continue
+			prev = pos	
+			while prev > p:
+				prev = move_prev_char(text, p, prev)
+				if text[prev] == " ":
+					sc = calc_width(text,p,prev)
+					b.append([(sc,p,prev),
+						# removed character hint
+						(0,prev)])
+					p = prev+1 
+					break
+				if is_wide_char(text,prev):
+					# wrap after wide char
+					next = move_next_char(text, prev, pos)
+					sc = calc_width(text,p,next)
+					b.append([(sc,p,next)])
+					p = next
+					break
+			else:
+				# unwrap previous line space if possible to
+				# fit more text (we're breaking a word anyway)
+				if b and len(b[-1]) == 2:
+					# look for removed space above
+					[(p_sc, p_off, p_end),
+			       		(h_sc, h_off)] = b[-1]
+					if (p_sc < width and h_sc==0 and
+						text[h_off] == " "):
+						# combine with previous line
+						del b[-1]
+						p = p_off
+						pos, sc = calc_text_pos( 
+							text, p, n_cr, width )
+						b.append([(sc,p,pos)])
+						# check for trailing " " or "\n"
+						p = pos
+						if p < len(text) and (
+							text[p] in (" ","\n")):
+							# removed character hint
+							b[-1].append((0,p))
+							p += 1
+						continue
+						
+						
+				# force any char wrap
+				b.append([(sc,p,pos)])
+				p = pos
+		return b
+
+
+
+######################################
+# default layout object to use
+default_layout = StandardTextLayout()
+######################################
+
+	
+class LayoutSegment:
+	def __init__(self, seg):
+		"""Create object from line layout segment structure"""
+		
+		assert type(seg) == type(()), `seg`
+		assert len(seg) in (2,3), `seg`
+		
+		self.sc, self.offs = seg[:2]
+		
+		assert type(self.sc) == type(0), `self.sc`
+		
+		if len(seg)==3:
+			assert type(self.offs) == type(0), `self.offs`
+			assert self.sc > 0, `seg`
+			t = seg[2]
+			if type(t) == type(""):
+				self.text = t
+				self.end = None
+			else:
+				assert type(t) == type(0), `t`
+				self.text = None
+				self.end = t
+		else:
+			assert len(seg) == 2, `seg`
+			if self.offs is not None:
+				assert self.sc >= 0, `seg`
+				assert type(self.offs)==type(0)
+			self.text = self.end = None
+			
+	def subseg(self, text, start, end):
+		"""
+		Return a "sub-segment" list containing segment structures 
+		that make up a portion of this segment.
+
+		A list is returned to handle cases where wide characters
+		need to be replaced with a space character at either edge
+		so two or three segments will be returned.
+		"""
+		if start < 0: start = 0
+		if end > self.sc: end = self.sc
+		if start >= end:
+			return [] # completely gone
+		if self.text:
+			# use text stored in segment (self.text)
+			pad_front = pad_back = 0
+			spos = 0
+			epos = len(self.text)
+			if start>0:
+				spos,sc=calc_text_pos(self.text, 0, epos, start)
+				if sc < start:
+					pad_front = 1
+					spos,sc=calc_text_pos(self.text, 0, 
+						epos, start+1)
+			pos,sc=calc_text_pos(self.text, spos, epos, 
+				end-start-pad_front)
+			if sc < end-start-pad_front:
+				pad_back = 1
+			return [(sc+pad_back+pad_front, self.offs,
+				" "*pad_front+self.text[spos:pos]+" "*pad_back)]
+		elif self.end:
+			# use text passed as parameter (text)
+			l = []
+			spos = self.offs
+			epos = self.end
+			pad_front = 0
+			if start>0:
+				spos,sc=calc_text_pos(text, spos, epos, start)
+				if sc < start:
+					pad_front=1
+					l.append((1,spos))
+					spos,sc=calc_text_pos(text, self.offs, 
+						epos, start+1)
+			pos,sc=calc_text_pos(text, spos, epos, 
+				end-start-pad_front)
+			if sc < end-start-pad_front:
+				l.append((sc, spos, pos))
+				l.append((1, pos))
+				return l
+			l.append((sc, spos, pos))
+			return l
+		else:
+			# simple padding adjustment
+			return [(end-start,self.offs)]
+
+
+		
+def move_prev_char( text, start_offs, end_offs ):
+	"""
+	Return the position of the character before end_offs.
+	"""
+	assert start_offs < end_offs
+	if type(text) == type(u""):
+		return end_offs-1
+	assert type(text) == type("")
+	if byte_encoding == "utf8":
+		o = end_offs-1
+		while ord(text[o])&0xc0 == 0x80:
+			o -= 1
+		return o
+	if byte_encoding == "wide" and within_double_byte( text,
+		start_offs, end_offs-1) == 2:
+		return end_offs-2
+	return end_offs-1
+
+def move_next_char( text, start_offs, end_offs ):
+	"""
+	Return the position of the character after start_offs.
+	"""
+	assert start_offs < end_offs
+	if type(text) == type(u""):
+		return start_offs+1
+	assert type(text) == type("")
+	if byte_encoding == "utf8":
+		o = start_offs+1
+		while o<end_offs and ord(text[o])&0xc0 == 0x80:
+			o += 1
+		return o
+	if byte_encoding == "wide" and within_double_byte(text, 
+		start_offs, start_offs) == 1:
+		return start_offs +2
+	return start_offs+1
+		
+def is_wide_char( text, offs ):
+	"""
+	Test if the character at offs within text is wide.
+	"""
+	if type(text) == type(u""):
+		o = ord(text[offs])
+		return utable.get_width(o) == 2
+	assert type(text) == type("")
+	if byte_encoding == "utf8":
+		o, n = utable.decode_one(text, offs)
+		return utable.get_width(o) == 2
+	if byte_encoding == "wide":
+		return within_double_byte(text, offs, offs) == 1
+	return False
+
+def line_width( segs ):
+	"""
+	Return the screen column width of one line of a text layout structure.
+
+	This function ignores any existing shift applied to the line,
+	represended by an (amount, None) tuple at the start of the line.
+	"""
+	sc = 0
+	seglist = segs
+	if segs and len(segs[0])==2 and segs[0][1]==None:
+		seglist = segs[1:]
+	for s in seglist:
+		sc += s[0]
+	return sc
+
+def shift_line( segs, amount ):
+	"""
+	Return a shifted line from a layout structure to the left or right.
+	segs -- line of a layout structure
+	amount -- screen columns to shift right (+ve) or left (-ve)
+	"""
+	assert type(amount)==type(0), `amount`
+	
+	if segs and len(segs[0])==2 and segs[0][1]==None:
+		# existing shift
+		amount += segs[0][0]
+		if amount:
+			return [(amount,None)]+segs[1:]
+		return segs[1:]
+			
+	if amount:
+		return [(amount,None)]+segs
+	return segs
+	
+
+def trim_line( segs, text, start, end ):
+	"""
+	Return a trimmed line of a text layout structure.
+	text -- text to which this layout structre applies
+	start -- starting screen column
+	end -- ending screen column
+	"""
+	l = []
+	x = 0
+	for seg in segs:
+		sc = seg[0]
+		if start or sc < 0:
+			if start >= sc:
+				start -= sc
+				x += sc
+				continue
+			s = LayoutSegment(seg)
+			if x+sc >= end:
+				# can all be done at once
+				return s.subseg( text, start, end-x )
+			l += s.subseg( text, start, sc )
+			start = 0
+			x += sc
+			continue
+		if x >= end:
 			break
-		if not nb and mode == 'space':
-			nb = _next_word_break(text, width, p)
-			if double_byte_encoding:
-				nb_db = _next_db_break(text, width, p)
-				if nb is None:
-					nb = nb_db
-				elif nb_db is not None and nb_db > nb:
-					nb = nb_db
-		if not nb:
-			nb = p+width
-			if double_byte_encoding and width>1:
-				w = within_double_byte( text, p, nb)
-				if w == 2:
-					# keep whole character together
-					nb -= 1
-			if nb >= len(text): break
-		p = nb
-		b.append(p)
-	return b
+		if x+sc > end:
+			s = LayoutSegment(seg)
+			l += s.subseg( text, 0, end-x )
+			break
+		l.append( seg )
+	return l
 
 
-def _next_char_break( text, width, prev_break ):
-	# only interested in newline characters
-	cr_pos = text.find("\n", prev_break, prev_break+width+1)
-	if cr_pos == -1:
+def calc_width( text, start_offs, end_offs ):
+	"""
+	Return the screen column width of text between start_offs and end_offs.
+	"""
+	assert start_offs <= end_offs, `start_offs, end_offs`
+	utfs = (type(text) == type("") and byte_encoding == "utf8")
+	if type(text) == type(u"") or utfs:
+		i = start_offs
+		sc = 0
+		n = 1 # number to advance by
+		while i < end_offs:
+			if utfs:
+				o, n = utable.decode_one(text, i)
+			else:
+				o = ord(text[i])
+				n = i + 1
+			w = utable.get_width(ord(text[i]))
+			i = n
+			sc += w
+		return sc
+	assert type(text) == type(""), `text`
+	# "wide" and "narrow"
+	return end_offs - start_offs
+	
+			
+def calc_text_pos( text, start_offs, end_offs, pref_col ):
+	"""
+	Calculate the closest position to the screen column pref_col in text
+	where start_offs is the offset into text assumed to be screen column 0
+	and end_offs is the end of the range to search.
+	
+	Returns (position, actual_col).
+	"""
+	assert start_offs <= end_offs, `start_offs, end_offs`
+	utfs = (type(text) == type("") and byte_encoding == "utf8")
+	if type(text) == type(u"") or utfs:
+		i = start_offs
+		sc = 0
+		n = 1 # number to advance by
+		while i < end_offs:
+			if sc == pref_col:
+				return i, sc
+			if utfs:
+				o, n = utable.decode_one(text, i)
+			else:
+				o = ord(text[i])
+				n = i + 1
+			w = utable.get_width(ord(text[i]))
+			if w+sc > pref_col: 
+				return i, sc
+			i = n
+			sc += w
+		return i, sc
+	assert type(text) == type(""), `text`
+	# "wide" and "narrow"
+	i = start_offs+pref_col
+	if i >= end_offs:
+		return end_offs, end_offs-start_offs
+	if byte_encoding == "wide":
+		if within_double_byte( text, start_offs, i ) == 2:
+			i -= 1
+	return i, i-start_offs
+
+
+def calc_line_pos( text, line_layout, pref_col ):
+	"""
+	Calculate the closest linear position to pref_col given a
+	line layout structure.  Returns None if no position found.
+	"""
+	closest_sc = None
+	closest_pos = None
+	current_sc = 0
+
+	if pref_col == 'left':
+		for seg in line_layout:
+			s = LayoutSegment(seg)
+			if s.offs is not None:
+				return s.offs
 		return
-	return cr_pos+1
+	elif pref_col == 'right':
+		for seg in line_layout:
+			s = LayoutSegment(seg)
+			if s.offs is not None:
+				closest_pos = s
+		s = closest_pos
+		if s is None:
+			return
+		if s.end is None:
+			return s.offs
+		return calc_text_pos( text, s.offs, s.end, s.sc-1)[0]
 
-def _next_word_break( text, width, prev_break ):
-	# find prev space
-	sp_pos = text.rfind(" ", prev_break+1, prev_break+width+1)
-	if sp_pos == -1: 
-		return
-	# wrap on last char in line? perfect.
-	if sp_pos == prev_break + width:
-		return sp_pos +1
-	# wrapping word at end of string smaller than width, ok too.
-	if sp_pos+1+width >= len(text):
-		return sp_pos +1
-	# don't wrap if word wrapped won't fit
-	nsp_pos = text.find(" ",sp_pos+1,sp_pos+1+width)
-	ncr_pos = text.find("\n",sp_pos+1,sp_pos+1+width)
-	if ncr_pos == -1 and nsp_pos == -1:
-		return
-	return sp_pos +1
+	for seg in line_layout:
+		s = LayoutSegment(seg)
+		if s.offs is not None:
+			if s.end is not None:
+				if (current_sc <= pref_col and 
+					pref_col < current_sc + s.sc):
+					# exact match within this segment
+					return calc_text_pos( text, 
+						s.offs, s.end,
+						pref_col - current_sc )[0]
+				elif current_sc <= pref_col:
+					closest_sc = current_sc + s.sc - 1
+					closest_pos = s
+					
+			if closest_sc is None or ( abs(pref_col-current_sc)
+					< abs(pref_col-closest_sc) ):
+				# this screen column is closer
+				closest_sc = current_sc
+				closest_pos = s.offs
+			if current_sc > closest_sc:
+				# we're moving past
+				break
+		current_sc += s.sc
+	
+	if closest_pos is None or type(closest_pos) == type(0):
+		return closest_pos
 
-def _next_db_break( text, width, prev_break ):
-	# find double byte edge
-	dbe_pos = prev_break+width
-	w = within_double_byte( text, prev_break, dbe_pos )
-	# next line starts on beginning of db char? good.
-	if w == 1:
-		return dbe_pos
-	# db char straddles line?  wrap it to next line.
-	if w == 2:
-		return dbe_pos-1
-	# not here, keep looking
-	dbe_pos -= 1
-	while dbe_pos > prev_break:
-		w = within_double_byte( text, prev_break, dbe_pos )
-		if w == 2:
-			return dbe_pos+1
-		dbe_pos -= 1
-	return
+	# return the last positions in the segment "closest_pos"
+	s = closest_pos
+	return calc_text_pos( text, s.offs, s.end, s.sc-1)[0]
+
+def calc_pos( text, layout, pref_col, row ):
+	"""
+	Calculate the closest linear position to pref_col and row given a
+	layout structure.
+	"""
+
+	if row < 0 or row >= len(layout):
+		raise Exception("calculate_pos: out of layout row range")
+	
+	pos = calc_line_pos( text, layout[row], pref_col )
+	if pos is not None:
+		return pos
+	
+	rows_above = range(row-1,-1,-1)
+	rows_below = range(row+1,len(layout))
+	while rows_above and rows_below:
+		if rows_above: 
+			r = rows_above.pop(0)
+			pos = calc_line_pos(text, layout[r], pref_col)
+			if pos is not None: return pos
+		if rows_below: 
+			r = rows_below.pop(0)
+			pos = calc_line_pos(text, layout[r], pref_col)
+			if pos is not None: return pos
+	return 0
+
+
+	
 
 def within_double_byte(str, line_start, pos):
 	"""Return whether pos is within a double-byte encoded character.
@@ -290,8 +641,6 @@ def within_double_byte(str, line_start, pos):
 	1 -- pos is on the 1st half of a dbe char
 	2 -- pos is on the 2nd half og a dbe char
 	"""
-	if not double_byte_encoding: return 0
-
 	v = ord(str[pos])
 
 	if v >= 0x40 and v < 0x7f:
@@ -316,55 +665,40 @@ def within_double_byte(str, line_start, pos):
 	return 2
 	
 
-def positions_to_coords(plist, trans, clamp=1):
+def calc_coords( text, layout, pos, clamp=1 ):
 	"""
-	positions_to_coords( position list, line translation [,clamp]) -> [(x,y), ... ]
-
-	position list must be in ascending order, otherwise use
-	position_to_coords on each position instead.
-
-	if clamp is set (the default) then x coord will be clamped to the
-	left clip edge and right clip edge+1, otherwise the x value may 
-	be outside the translation or clipping area.
+	Calculate the coordinates closest to position pos in text with layout.
+	
+	text -- raw string or unicode string
+	layout -- layout structure applied to text
+	pos -- integer position into text
+	clamp -- ignored right now
 	"""
+	closest = None
 	y = 0
-	beforelast = 0,0
-	last = 0
-	l = []
-	plist_pos = 0
-	for (l_pad, l_trim, r_trim, epos) in trans: 
-		while plist[plist_pos] < epos:
-			x = plist[plist_pos] - last
-			if clamp:
-				# outside trimming margins?  clamp to edge.
-				if x < l_trim:
-					x = l_trim
-				if x > epos-last-r_trim:
-					x = epos-last-r_trim
-			# shift from padding and l_trim
-			x += l_pad - l_trim
-			
-			l.append( (x,y) )
-
-			plist_pos += 1
-			if len(plist) == plist_pos:
-				return l
-		beforelast = last, y
-		last = epos
+	for line_layout in layout:
+		x = 0
+		for seg in line_layout:
+			s = LayoutSegment(seg)
+			if s.offs is None:
+				x += s.sc
+				continue
+			if s.offs == pos:
+				return x,y
+			if s.end is not None and s.offs<=pos and s.end>pos:
+				x += calc_width( text, s.offs, pos )
+				return x,y
+			distance = abs(s.offs - pos)
+			if s.end is not None and s.end<pos:
+				distance = pos - (s.end-1)
+			if closest is None or distance < closest[0]:
+				closest = distance, (x,y)
+			x += s.sc
 		y += 1
-	# clamp to end
-	x,y = beforelast
-	x = last - x + l_pad - l_trim
-	for p in plist[plist_pos:]:
-		l.append( (x, y) )
-	return l
-
-def position_to_coords( pos, trans, clamp=1 ):
-	"""
-	position_to_coords( position, line translation [,clamp]) -> (x,y)
-	"""
-	[(x,y)] = positions_to_coords( [pos], trans, clamp )
-	return (x,y)
+	
+	if closest:
+		return closest[1]
+	return 0,0
 
 
 def trans_line_run( trans, line_no ):
@@ -383,59 +717,6 @@ def trans_line_skip( trans, line_no ):
 	
 	return trans[line_no][0]
 	
-
-def split_attribute_list( attr_list, trans ):
-	"""Return an attribute list split across lines according to trans."""
-
-	# create a position list from the attribute list
-	positions = [0]
-	p = 0
-	for attr, run in attr_list:
-		p += run
-		positions.append( p )
-	
-	# let the old code do the hard work
-	coords = positions_to_coords( positions, trans )
-
-	# one list per output line
-	l = [[] for x in range(len(trans))]
-	last_x = last_y = 0
-
-	# turn coords back into attribute lists
-	for (attr,run),(x,y) in zip( [(None,0)]+attr_list, coords ):
-		if last_y == y:
-			if last_x == x: 
-				# run = 0, nothing to output
-				continue
-			if y >= len(l): # oddity from positions_to_coords
-				continue
-			l[y].append( (attr, x-last_x) )
-		else:
-			# handle tail of previous line
-			run = trans_line_run( trans, last_y )
-			if attr is not None and last_x < run:
-				l[last_y].append( (attr, run-last_x) )
-				
-			# fill lines in between
-			last_y += 1
-			while attr is not None and last_y < y:
-				skip = trans_line_skip( trans, last_y )
-				run = trans_line_run( trans, last_y )
-				if run > skip: 
-					if skip:
-						l[last_y].append( (None, skip) )
-					l[last_y].append( (attr, run-skip) )
-				last_y += 1
-			
-			# then start the new line
-			skip = trans_line_skip( trans, y )
-			if skip:
-				l[y].append( (None, skip) )
-			if x > skip:
-				l[y].append( (attr, x-skip) )
-		last_x, last_y = x, y
-
-	return l
 
 
 def fill_attribute_list( attr_list, width, attr ):

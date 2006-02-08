@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid example fibonacci sequence viewer / unbounded data demo
-#    Copyright (C) 2004-2005  Ian Ward
+#    Copyright (C) 2004-2006  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -29,24 +29,24 @@ Features:
 
 import urwid
 import urwid.curses_display
-
+		
 class FibonacciWalker:
 	"""ListWalker-compatible class for browsing fibonacci set.
 	
 	positions returned are (value at position-1, value at poistion) tuples.
 	"""
-	
 	def __init__(self):
 		self.focus = (0L,1L)
+		self.numeric_layout = NumericLayout()
 	
 	def _get_at_pos(self, pos):
 		"""Return a widget and the position passed."""
 		
 		# Generating widgets this way does not allow the line
 		# translations to be cached and would be inefficient if the 
-		# 'numeric' align mode wasn't so simple (no searching in the 
-		# text the way the other modes do)  
-		return urwid.Text("%d"%pos[1], 'right', 'numeric'), pos
+		# NumericLayour class wasn't so simple (no searching in the 
+		# text the way StandardTextLayout does)  
+		return urwid.Text("%d"%pos[1], layout=self.numeric_layout), pos
 	
 	def get_focus(self): 
 		return self._get_at_pos( self.focus )
@@ -108,23 +108,32 @@ class FibonacciDisplay:
 				self.view.keypress( size, k )
 
 
+class NumericLayout(urwid.TextLayout):
+	"""
+	TextLayout class for bottom-right aligned numbers
+	"""
+	def layout( self, text, width, align, wrap ):
+		"""
+		Return layout structure for right justified numbers.
+		"""
+		lt = len(text)
+		r = lt % width # remaining segment not full width wide
+		if r:
+			linestarts = range( r, lt, width )
+			return [
+				# right-align the remaining segment on 1st line
+				[(width-r,None),(r, 0, r)]
+				# fill the rest of the lines
+				] + [[(width, x, x+width)] for x in linestarts]
+		else:
+			linestarts = range( 0, lt, width )
+			return [[(width, x, x+width)] for x in linestarts]
 
 
 def main():
-	urwid.util.register_wrap_mode('numeric', wrap_numeric)
 	FibonacciDisplay().main()
 	
 
-
-def wrap_numeric( text, width, wrap_mode ):
-	"""Return line breaks suitable for right justified numbers."""
-	
-	lt = len(text)
-	if lt % width:
-		return range( lt%width, lt, width )
-	else:
-		return range( width, lt, width )
-		
 
 if __name__=="__main__": 
 	main()

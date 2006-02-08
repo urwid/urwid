@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid example lazy text editor suitable for tabbed and format=flowed text
-#    Copyright (C) 2004-2005  Ian Ward
+#    Copyright (C) 2004-2006  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -251,7 +251,6 @@ def re_tab( s ):
 def main():
 	try:
 		name = sys.argv[1]
-		assert open( name, "r" )
 		assert open( name, "a" )
 	except:
 		sys.stderr.write( __doc__ )

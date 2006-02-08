@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid unit testing .. ok, ok, ok
-#    Copyright (C) 2004-2005  Ian Ward
+#    Copyright (C) 2004-2006  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -32,9 +32,9 @@ except: False, True = 0, 1
 
 class WithinDoubleByteTest(unittest.TestCase):
 	def setUp(self):
-		urwid.util.set_double_byte_encoding( True )
+		urwid.set_encoding("euc-jp")
 	def wtest(self, str, ls, pos, expected, desc):
-		result = urwid.util.within_double_byte(str, ls, pos)
+		result = urwid.within_double_byte(str, ls, pos)
 		assert result==expected, desc+" got:"+`result`+" expected:"+`expected`
 	def test1(self):
 		self.wtest("mnopqr",0,2,0,'simple no high bytes')
@@ -67,184 +67,288 @@ class WithinDoubleByteTest(unittest.TestCase):
 		self.wtest("abc @\xA1\xA1@r",4,7,0,'newl subs. not 2nd half lo')
 
 
-class CalcBreaksTest(unittest.TestCase):
-	def test1(self):
-		result = urwid.calculate_text_breaks( self.text,
-			self.width1, self.mode )
-		assert result == self.result1, result
-	def test2(self):
-		result = urwid.calculate_text_breaks( self.text,
-			self.width2, self.mode )
-		assert result == self.result2, result
-	def test3(self):
-		result = urwid.calculate_text_breaks( self.text,
-			self.width3, self.mode )
-		assert result == self.result3, result
 
+class CalcTextPosTest(unittest.TestCase):
+	def ctptest(self, text, tests):
+		for s,e,p, expected in tests:
+			got = urwid.calc_text_pos( text, s, e, p )
+			assert got == expected, `s,e,p`+" got: "+`got`+" expected:"+`expected`
+	def test1(self):
+		text = "hello world out there"
+		tests = [
+			(0,21,0, (0,0)),
+			(0,21,5, (5,5)),
+			(0,21,21, (21,21)),
+			(0,21,50, (21,21)),
+			(2,15,50, (15,13)),
+			(6,21,0, (6,0)),
+			(6,21,3, (9,3)),
+			]
+		self.ctptest(text, tests)
+	
+	def test2_wide(self):
+		urwid.set_encoding("euc-jp")
+		text = "hel\xA1\xA1 world out there"
+		tests = [
+			(0,21,0, (0,0)),
+			(0,21,4, (3,3)),
+			(2,21,2, (3,1)),
+			(2,21,3, (5,3)),
+			(6,21,0, (6,0)),
+			]
+		self.ctptest(text, tests)
+	
+	def test3_utf8(self):
+		urwid.set_encoding("utf-8")
+		text = "hel\xc4\x83 world \xe2\x81\x81 there"
+		tests = [
+			(0,21,0, (0,0)),
+			(0,21,4, (5,4)),
+			(2,21,1, (3,1)),
+			(2,21,2, (5,2)),
+			(2,21,3, (6,3)),
+			(6,21,7, (15,7)),
+			(6,21,8, (16,8)),
+			]
+		self.ctptest(text, tests)
+		
+class CalcBreaksTest(unittest.TestCase):
+	def cbtest(self, width, exp):
+		result = urwid.default_layout.calculate_text_segments( 
+			self.text, width, self.mode )
+		assert len(result) == len(exp), `result, exp`
+		for l,e in zip(result, exp):
+			end = l[-1][-1]
+			assert end == e, `result,exp`
+	
+	def test(self):
+		for width, exp in self.do:
+			self.cbtest( width, exp )
+	
 class CalcBreaksCharTest(CalcBreaksTest):
 	mode = 'any'
 	text = "abfghsdjf askhtrvs\naltjhgsdf ljahtshgf"
 	# tests
-	width1 = 10
-	result1 = [10, 19, 29]
-	width2 = 6
-	result2 = [6, 12, 19, 25, 31, 37]
-	width3 = 100
-	result3 = [19]
+	do = [
+		( 100, [18,38] ),
+		( 6, [6, 12, 18, 25, 31, 37, 38] ),
+		( 10, [10, 18, 29, 38] ),
+	]
 
 class CalcBreaksDBCharTest(CalcBreaksTest):
 	def setUp(self):
-		urwid.util.set_double_byte_encoding(True)
+		urwid.set_encoding("euc-jp")
 	mode = 'any'
 	text = "abfgh\xA1\xA1j\xA1\xA1xskhtrvs\naltjhgsdf\xA1\xA1jahtshgf"
 	# tests
-	width1 = 10
-	result1 = [10, 19, 28]
-	width2 = 6
-	result2 = [5, 11, 17, 19, 25, 31, 37]
-	width3 = 100
-	result3 = [19]
+	do = [ 
+		( 10, [10, 18, 28, 38] ),
+		( 6, [5, 11, 17, 18, 25, 31, 37, 38] ),
+		( 100, [18, 38]),
+	]
 
 class CalcBreaksWordTest(CalcBreaksTest):
 	mode = 'space'
 	text = "hello world\nout there. blah"
 	# tests
-	width1 = 10
-	result1 = [6, 12, 23]
-	width2 = 5
-	result2 = [6, 12, 17, 23]
-	width3 = 100
-	result3 = [12]
+	do = [ 
+		( 10, [5, 11, 22, 27] ),
+		( 5, [5, 11, 17, 22, 27] ),
+		( 100, [11, 27] ),
+	]
 
 class CalcBreaksWordTest2(CalcBreaksTest):
 	mode = 'space'
 	text = "A simple set of words, really...."
-	width1 = 10
-	result1 = [9, 16, 23]
-	width2 = 17
-	result2 = [16]
-	width3 = 13
-	result3 = [13, 23]
+	do = [
+		( 10, [8, 15, 22, 33]),
+		( 17, [15, 33]),
+		( 13, [12, 22, 33]),
+	]
 
 class CalcBreaksDBWordTest(CalcBreaksTest):
 	def setUp(self):
-		urwid.util.set_double_byte_encoding(True)
+		urwid.set_encoding("euc-jp")
 	mode = 'space'
 	text = "hel\xA1\xA1 world\nout-\xA1\xA1tre blah"
 	# tests
-	width1 = 10
-	result1 = [6, 12, 22]
-	width2 = 5
-	result2 = [6, 12, 16, 22]
-	width3 = 100
-	result3 = [12]
+	do = [
+		( 10, [5, 11, 21, 26] ),
+		( 5, [5, 11, 16, 21, 26] ),
+		( 100, [11, 26] ),
+	]
+
+class SubsegTest(unittest.TestCase):
+	def setUp(self):
+		urwid.set_encoding("euc-jp")
+
+	def st(self, seg, text, start, end, exp):
+		s = urwid.LayoutSegment(seg)
+		result = s.subseg( text, start, end )
+		assert result == exp, "Expected %s, got %s"%(`exp`,`result`)
+		
+	def test1_padding(self):
+		self.st( (10, None), "", 0, 8,	[(8, None)] )
+		self.st( (10, None), "", 2, 10, [(8, None)] )
+		self.st( (10, 0), "", 3, 7, 	[(4, 0)] )
+		self.st( (10, 0), "", 0, 20, 	[(10, 0)] )
+	
+	def test2_text(self):
+		self.st( (10, 0, "1234567890"), "", 0, 8,  [(8,0,"12345678")] )
+		self.st( (10, 0, "1234567890"), "", 2, 10, [(8,0,"34567890")] )
+		self.st( (10, 0, "12\xA1\xA156\xA1\xA190"), "", 2, 8, 
+			[(6, 0, "\xA1\xA156\xA1\xA1")] )
+		self.st( (10, 0, "12\xA1\xA156\xA1\xA190"), "", 3, 8, 
+			[(5, 0, " 56\xA1\xA1")] )
+		self.st( (10, 0, "12\xA1\xA156\xA1\xA190"), "", 2, 7, 
+			[(5, 0, "\xA1\xA156 ")] )
+		self.st( (10, 0, "12\xA1\xA156\xA1\xA190"), "", 3, 7, 
+			[(4, 0, " 56 ")] )
+		self.st( (10, 0, "12\xA1\xA156\xA1\xA190"), "", 0, 20,
+			[(10, 0, "12\xA1\xA156\xA1\xA190")] )
+		 
+	def test3_range(self):
+		t = "1234567890"
+		self.st( (10, 0, 10), t, 0, 8,	[(8, 0, 8)] )
+		self.st( (10, 0, 10), t, 2, 10, [(8, 2, 10)] )
+		self.st( (6, 2, 8), t, 1, 6, 	[(5, 3, 8)] )
+		self.st( (6, 2, 8), t, 0, 5, 	[(5, 2, 7)] )
+		self.st( (6, 2, 8), t, 1, 5, 	[(4, 3, 7)] )
+		t = "12\xA1\xA156\xA1\xA190"
+		self.st( (10, 0, 10), t, 0, 8,	[(8, 0, 8)] )
+		self.st( (10, 0, 10), t, 2, 10, [(8, 2, 10)] )
+		self.st( (6, 2, 8), t, 1, 6, 	[(1, 2), (4, 4, 8)] )
+		self.st( (6, 2, 8), t, 0, 5, 	[(4, 2, 6), (1, 6)] )
+		self.st( (6, 2, 8), t, 1, 5, 	[(1, 2), (2, 4, 6), (1, 6)] )
+		
+		
 
 class CalcTranslateTest(unittest.TestCase):
-	def test_left(self):
-		result = urwid.calculate_line_translation( self.text,
-			self.width, self.mode, 'left')
+	def test1_left(self):
+		result = urwid.default_layout.layout( self.text,
+			self.width, 'left', self.mode)
 		assert result == self.result_left, result
-	def test_center(self):
-		result = urwid.calculate_line_translation( self.text,
-			self.width, self.mode, 'center')
-		assert result == self.result_center, result
-	def test_right(self):
-		result = urwid.calculate_line_translation( self.text,
-			self.width, self.mode, 'right')
+	def test2_right(self):
+		result = urwid.default_layout.layout( self.text,
+			self.width, 'right', self.mode)
 		assert result == self.result_right, result
+	def test3_center(self):
+		result = urwid.default_layout.layout( self.text,
+			self.width, 'center', self.mode)
+		assert result == self.result_center, result
 
 class CalcTranslateCharTest(CalcTranslateTest):
 	text = "It's out of control!\nYou've got to"
 	mode = 'any'
 	width = 15
-	result_left = [(0,0,0,15),(0,0,1,21),(0,0,0,34)]
-	result_right = [(0,0,0,15),(10,0,1,21),(2,0,0,34)]
-	result_center = [(0,0,0,15),(5,0,1,21),(1,0,0,34)]
+	result_left = [
+		[(15, 0, 15)], 
+		[(5, 15, 20), (0, 20)], 
+		[(13, 21, 34), (0, 34)]]
+	result_right = [
+		[(15, 0, 15)], 
+		[(10, None), (5, 15, 20), (0,20)], 
+		[(2, None), (13, 21, 34), (0,34)]]
+	result_center = [
+		[(15, 0, 15)], 
+		[(5, None), (5, 15, 20), (0,20)], 
+		[(1, None), (13, 21, 34), (0,34)]]
 
 class CalcTranslateWordTest(CalcTranslateTest):
 	text = "It's out of control!\nYou've got to"
 	mode = 'space'
 	width = 14
-	result_left = [(0,0,1,12),(0,0,1,21),(0,0,0,34)]
-	result_right = [(3,0,1,12),(6,0,1,21),(1,0,0,34)]
-	result_center = [(1,0,1,12),(3,0,1,21),(0,0,0,34)]
+	result_left = [
+		[(11, 0, 11), (0, 11)], 
+		[(8, 12, 20), (0, 20)], 
+		[(13, 21, 34), (0, 34)]]
+	result_right = [
+		[(3, None), (11, 0, 11), (0, 11)], 
+		[(6, None), (8, 12, 20), (0, 20)], 
+		[(1, None), (13, 21, 34), (0, 34)]]
+	result_center = [
+		[(2, None), (11, 0, 11), (0, 11)], 
+		[(3, None), (8, 12, 20), (0, 20)], 
+		[(1, None), (13, 21, 34), (0, 34)]]
 
 class CalcTranslateWordTest2(CalcTranslateTest):
 	text = "It's out of control!\nYou've got to "
 	mode = 'space'
 	width = 14
-	result_left = [(0,0,1,12),(0,0,1,21),(0,0,0,35)]
-	result_right = [(3,0,1,12),(6,0,1,21),(0,0,0,35)]
-	result_center = [(1,0,1,12),(3,0,1,21),(0,0,0,35)]
+	result_left = [
+		[(11, 0, 11), (0, 11)], 
+		[(8, 12, 20), (0, 20)], 
+		[(14, 21, 35), (0, 35)]]
+	result_right = [
+		[(3, None), (11, 0, 11), (0, 11)], 
+		[(6, None), (8, 12, 20), (0, 20)], 
+		[(14, 21, 35), (0, 35)]]
+	result_center = [
+		[(2, None), (11, 0, 11), (0, 11)], 
+		[(3, None), (8, 12, 20), (0, 20)], 
+		[(14, 21, 35), (0, 35)]]
 	
 
 class CalcTranslateClipTest(CalcTranslateTest):
 	text = "It's out of control!\nYou've got to\nturn it off!!!"
 	mode = 'clip'
 	width = 14
-	result_left = [(0,0,7,21),(0,0,1,35),(0,0,0,49)]
-	result_right = [(0,6,1,21),(1,0,1,35),(0,0,0,49)]
-	result_center = [(0,3,4,21),(0,0,1,35),(0,0,0,49)]
+	result_left = [
+		[(20, 0, 20), (0, 20)], 
+		[(13, 21, 34), (0, 34)], 
+		[(14, 35, 49), (0, 49)]]
+	result_right = [
+		[(-6, None), (20, 0, 20), (0, 20)], 
+		[(1, None), (13, 21, 34), (0, 34)], 
+		[(14, 35, 49), (0, 49)]]
+	result_center = [
+		[(-3, None), (20, 0, 20), (0, 20)], 
+		[(1, None), (13, 21, 34), (0, 34)], 
+		[(14, 35, 49), (0, 49)]]
 
-class CalcTranslateDBClipTest(CalcTranslateTest):
-	def setUp(self):
-		urwid.util.set_double_byte_encoding(True)
-	text = "It\xA1\xA1 \xA1\xA1t of c\xA1\xA1t\xA1\xA1l!\nYou've got to\n\xA1\xA1rn it off!\xA1\xA1"
-	mode = 'clip'
-	width = 14
-	result_left = [(0,0,8,21),(0,0,1,35),(0,0,0,49)]
-	result_right = [(1,7,1,21),(1,0,1,35),(0,0,0,49)]
-	result_center = [(1,4,5,21),(0,0,1,35),(0,0,0,49)]
 	
+
+class CalcPosTest(unittest.TestCase):
+	def setUp(self):
+		self.text = "A" * 27
+		self.trans = [
+			[(2,None),(7,0,7),(0,7)], 
+			[(13,8,21),(0,21)], 
+			[(3,None),(5,22,27),(0,27)]]
+		self.mytests = [(1,0, 0), (2,0, 0), (11,0, 7),
+			(-3,1, 8), (-2,1, 8), (1,1, 9), (31,1, 21),
+			(1,2, 22), (11,2, 27) ]
+	
+	def tests(self):
+		for x,y, expected in self.mytests:
+			got = urwid.calc_pos( self.text, self.trans, x, y )
+			assert got == expected, `x,y`+" got: "+`got`+" expected:"+`expected`
 
 
 class Pos2CoordsTest(unittest.TestCase):
-	sample_data = [5, 9, 20, 26]
+	pos_list = [5, 9, 20, 26]
+	text = "1234567890" * 3
 	mytests = [
-		([(0,0,0,15),(0,0,0,30)],
-			[(5,0),(9,0),(5,1),(11,1)]),
-		([(0,0,0,9),(0,0,0,21),(0,0,0,30)],
-			[(5,0),(0,1),(11,1),(5,2)]),
-		([(2,0,0,15),(2,0,0,30)], # l_pad
-			[(7,0),(11,0),(7,1),(13,1)]),
-		([(0,6,6,15),(0,5,5,30)], # l_trim, r_trim
-			[(0,0),(3,0),(0,1),(5,1)]),
-		([(0,0,0,10)],
-			[(5,0),(9,0),(10,0),(10,0)]),
+		( [[(15,0,15)], [(15,15,30),(0,30)]], 
+			[(5,0),(9,0),(5,1),(11,1)] ),
+		( [[(9,0,9)], [(12,9,21)], [(9,21,30),(0,30)]],
+			[(5,0),(0,1),(11,1),(5,2)] ),
+		( [[(2,None), (15,0,15)], [(2,None), (15,15,30),(0,30)]],
+			[(7,0),(11,0),(7,1),(13,1)] ),
+		( [[(3, 6, 9),(0,9)], [(5, 20, 25),(0,25)]],
+			[(0,0),(3,0),(0,1),(5,1)] ),
+		( [[(10, 0, 10),(0,10)]],
+			[(5,0),(9,0),(10,0),(10,0)] ),
 		
 		]
 		
 	def test(self):
 		for t, answer in self.mytests:
-			r = urwid.positions_to_coords(self.sample_data, t )
-			assert r==answer, "got: "+`r`+" expected: "+`answer`
+			for pos,a in zip(self.pos_list,answer) :
+				r = urwid.calc_coords( self.text, t, pos)
+				assert r==a, "%s got: %s expected: %s"%(
+					`t`,`r`,`a`)
 
-
-class ShiftTransTest(unittest.TestCase):
-	def setUp(self):
-		self.trans = [(1,0,1,5),(0,1,1,12),(0,1,1,21)]
-	
-	def stest(self, t, expected, desc):
-		assert t == expected, desc+ ". got: "+`t`+" expected: "+`expected`
-	
-	def testShiftTransRight(self):
-		fn = urwid.shift_translation_right
-		self.stest(fn(self.trans, 1, 7),
-			[(2,0,1,5),(0,0,1,12),(0,0,2,21)],"right 1")
-		self.stest(fn(self.trans, 2, 7),
-			[(3,0,1,5),(1,0,1,12),(1,0,3,21)],"right 2")
-		self.stest(fn(self.trans, 7, 7),
-			[(7,0,5,5),(6,0,6,12),(6,0,8,21)],"right 7")
-	
-	def testShiftTransLeft(self):
-		fn = urwid.shift_translation_left
-		self.stest(fn(self.trans, 1, 7),
-			[(0,0,1,5),(0,2,1,12),(0,2,0,21)],"left 1")
-		self.stest(fn(self.trans, 2, 7),
-			[(0,1,1,5),(0,3,1,12),(0,3,0,21)],"left 2")
-		self.stest(fn(self.trans, 7, 7),
-			[(0,5,0,5),(0,7,0,12),(0,8,0,21)],"left 7")
-		
 
 
 
@@ -284,41 +388,30 @@ class TextTest(unittest.TestCase):
 	def setUp(self):
 		self.t = urwid.Text("I walk the\ncity in the night")
 		
-	def test_wrap(self):
-		expected = ["I walk the","city in","the night"]
+	def test1_wrap(self):
+		expected = ["I walk the","city in   ","the night "]
 		got = self.t.render((10,)).text
 		assert got == expected, "got: "+`got`+" expected:"+`expected`
 	
-	def test_left(self):
+	def test2_left(self):
 		self.t.set_align_mode('left')
-		expected = ["I walk the","city in the night"]
+		expected = ["I walk the        ","city in the night "]
 		got = self.t.render((18,)).text
 		assert got == expected, "got: "+`got`+" expected:"+`expected`
 	
-	def test_right(self):
+	def test3_right(self):
 		self.t.set_align_mode('right')
 		expected = ["        I walk the"," city in the night"]
 		got = self.t.render((18,)).text
 		assert got == expected, "got: "+`got`+" expected:"+`expected`
 	
-	def test_center(self):
+	def test4_center(self):
 		self.t.set_align_mode('center')
-		expected = ["    I walk the","city in the night"]
+		expected = ["    I walk the    "," city in the night"]
 		got = self.t.render((18,)).text
 		assert got == expected, "got: "+`got`+" expected:"+`expected`
 
 
-class CalcPosTest(unittest.TestCase):
-	def setUp(self):
-		self.trans = [(2,0,1,8),(0,2,1,22),(3,0,0,27)]
-		self.mytests = [(1,0, 0), (2,0, 0), (11,0, 7),
-			(-3,1, 8), (-2,1, 8), (1,1, 11), (11,1, 21),
-			(1,2, 22), (11,2, 27) ]
-	
-	def tests(self):
-		for x,y, expected in self.mytests:
-			got = urwid.calculate_pos( self.trans, x, y )
-			assert got == expected, `x,y`+" got: "+`got`+" expected:"+`expected`
 
 class EditTest(unittest.TestCase):
 	def setUp(self):
@@ -331,7 +424,7 @@ class EditTest(unittest.TestCase):
 		assert got == expected, desc+ ".  got: "+`got`+" expected:"+`expected`
 		assert e.edit_pos == pos, desc+ ". pos: "+`e.edit_pos`+" expected pos: "+`pos`
 	
-	def test_left(self):
+	def test1_left(self):
 		self.t1.set_edit_pos(0)
 		self.ktest(self.t1,'left','left',0,"left at left edge")
 		
@@ -340,7 +433,7 @@ class EditTest(unittest.TestCase):
 		self.t3.set_edit_pos(10)
 		self.ktest(self.t3,'left',None,9,"left after newline")
 	
-	def test_right(self):
+	def test2_right(self):
 		self.ktest(self.t1,'right','right',9,"right at right edge")
 		
 		self.t2.set_edit_pos(8)
@@ -350,7 +443,7 @@ class EditTest(unittest.TestCase):
 		assert self.t3.get_pref_col((12,)) == 1
 
 
-	def test_up(self):
+	def test3_up(self):
 		self.ktest(self.t1,'up','up',9,"up at top")
 		self.t2.set_edit_pos(2)
 		self.t2.keypress((12,),"left")
@@ -360,7 +453,7 @@ class EditTest(unittest.TestCase):
 		self.t3.set_edit_pos(10)
 		self.ktest(self.t3,'up',None,0,"up at top+1")
 	
-	def test_down(self):
+	def test4_down(self):
 		self.ktest(self.t1,'down','down',9,"down single line")
 		self.t3.set_edit_pos(5)
 		self.ktest(self.t3,'down',None,10,"down line 1 to 2")
@@ -380,13 +473,13 @@ class EditRenderTest(unittest.TestCase):
 		self.rtest(w,["blah","blah"],(0,0))
 		
 		w.set_edit_pos(4)
-		self.rtest(w,["blah","blah"],(3,0))
+		self.rtest(w,["lah ","blah"],(3,0))
 
 		w.set_edit_pos(5)
 		self.rtest(w,["blah","blah"],(0,1))
 		
 		w.set_edit_pos(9)
-		self.rtest(w,["blah","blah"],(3,1))
+		self.rtest(w,["blah","lah "],(3,1))
 	
 	def testClipWrap(self):
 		w = urwid.Edit("","blah\nblargh",1)
@@ -395,17 +488,17 @@ class EditRenderTest(unittest.TestCase):
 		self.rtest(w,["blah","blar"],(0,0))
 		
 		w.set_edit_pos(10)
-		self.rtest(w,["ah","argh"],(3,1))
+		self.rtest(w,["blah","argh"],(3,1))
 		
 		w.set_align_mode('right')
 		w.set_edit_pos(6)
-		self.rtest(w,[" bla","larg"],(0,1))
+		self.rtest(w,["blah","larg"],(0,1))
 	
 	def testAnyWrap(self):
 		w = urwid.Edit("","blah blah")
 		w.set_wrap_mode('any')
 		
-		self.rtest(w,["blah"," bla","h"],(1,2))
+		self.rtest(w,["blah"," bla","h   "],(1,2))
 
 
 class SelectableText(urwid.Text):
@@ -436,7 +529,7 @@ class ListBoxCalculateVisibleTest(unittest.TestCase):
 		assert offset_inset == exp_offset_inset, "%s got: %s expected: %s" %(desc,`offset_inset`,`exp_offset_inset`)
 		assert cursor == exp_cur, "%s (cursor) got: %s expected: %s" %(desc,`cursor`,`exp_cur`)
 	
-	def test_1simple(self):
+	def test1_simple(self):
 		T = urwid.Text
 
 		l = [T(""),T(""),T("\n"),T("\n\n"),T("\n"),T(""),T("")]
@@ -481,7 +574,7 @@ class ListBoxCalculateVisibleTest(unittest.TestCase):
 			[T(""),T(""),T("")], 1, 2, (0,1), 1, None )
 
 	
-	def test_2cursor(self):
+	def test2_cursor(self):
 		T, E = urwid.Text, urwid.Edit
 
 		l1 = [T(""),T(""),T("\n"),E("","\n\nX"),T("\n"),T(""),T("")]
@@ -625,69 +718,69 @@ class ListBoxRenderTest(unittest.TestCase):
 		
 		self.ltest( "simple one text item render",
 			[T("1\n2")], 0, 0,
-			["1","2","","",""],None)
+			["1   ","2   ","    ","    ","    "],None)
 
 		self.ltest( "simple multi text item render off bottom",
 			[T("1"),T("2"),T("3\n4"),T("5"),T("6")], 2, 2,
-			["1","2","3","4","5"],None)
+			["1   ","2   ","3   ","4   ","5   "],None)
 
 		self.ltest( "simple multi text item render off top",
 			[T("1"),T("2"),T("3\n4"),T("5"),T("6")], 2, 1,
-			["2","3","4","5","6"],None)
+			["2   ","3   ","4   ","5   ","6   "],None)
 
 	def test2Trim(self):
 		T = urwid.Text
 		
 		self.ltest( "trim unfocused bottom",
 			[T("1\n2"),T("3\n4"),T("5\n6")], 1, 2,
-			["1","2","3","4","5"],None)
+			["1   ","2   ","3   ","4   ","5   "],None)
 		
 		self.ltest( "trim unfocused top",
 			[T("1\n2"),T("3\n4"),T("5\n6")], 1, 1,
-			["2","3","4","5","6"],None)
+			["2   ","3   ","4   ","5   ","6   "],None)
 		
 		self.ltest( "trim none full focus",
 			[T("1\n2\n3\n4\n5")], 0, 0,
-			["1","2","3","4","5"],None)
+			["1   ","2   ","3   ","4   ","5   "],None)
 		
 		self.ltest( "trim focus bottom",
 			[T("1\n2\n3\n4\n5\n6")], 0, 0,
-			["1","2","3","4","5"],None)
+			["1   ","2   ","3   ","4   ","5   "],None)
 		
 		self.ltest( "trim focus top",
 			[T("1\n2\n3\n4\n5\n6")], 0, -1,
-			["2","3","4","5","6"],None)
+			["2   ","3   ","4   ","5   ","6   "],None)
 		
 		self.ltest( "trim focus top and bottom",
 			[T("1\n2\n3\n4\n5\n6\n7")], 0, -1,
-			["2","3","4","5","6"],None)
+			["2   ","3   ","4   ","5   ","6   "],None)
 		
 	def test3Shift(self):
 		T,E = urwid.Text, urwid.Edit
 		
 		self.ltest( "shift up one fit",
 			[T("1\n2"),T("3"),T("4"),T("5"),T("6")], 4, 5,
-			["2","3","4","5","6"],None)
+			["2   ","3   ","4   ","5   ","6   "],None)
 			
 		e = E("","ab\nc",1)
 		e.set_edit_pos( 2 )
 		self.ltest( "shift down one cursor over edge",
 			[e,T("3"),T("4"),T("5\n6")], 0, -1,
-			["ab","c","3","4","5"], (2,0))
+			["ab  ","c   ","3   ","4   ","5   "], (2,0))
 			
 		self.ltest( "shift up one cursor over edge",
 			[T("1\n2"),T("3"),T("4"),E("","d\ne")], 3, 4,
-			["2","3","4","d","e"], (1,4))
+			["2   ","3   ","4   ","d   ","e   "], (1,4))
 
 		self.ltest( "shift none cursor top focus over edge",
 			[E("","ab\n"),T("3"),T("4"),T("5\n6")], 0, -1,
-			["","3","4","5","6"], (0,0))
+			["    ","3   ","4   ","5   ","6   "], (0,0))
 
 		e = E("","abc\nd")
 		e.set_edit_pos( 3 )
 		self.ltest( "shift none cursor bottom focus over edge",
 			[T("1\n2"),T("3"),T("4"),e], 3, 4,
-			["1","2","3","4","abc"], (3,4))
+			["1   ","2   ","3   ","4   ","abc "], (3,4))
 			
 		
 class ListBoxKeypressTest(unittest.TestCase):
@@ -1515,7 +1608,7 @@ class CanvasOverlayTest(unittest.TestCase):
 	def cotest(self, desc, bgt, bga, fgt, fga, l, r, et, ea):
 		bg = urwid.Canvas([bgt],[bga])
 		fg = urwid.Canvas([fgt],[fga])
-		bg.overlay( fg, l, r, 0, 0, len(bgt) )
+		bg.overlay( fg, l, r, 0, 0 )
 		assert bg.text[0] == et, "%s expected text %s, got %s"%(
 			desc, `et`,`bg.text[0]`)
 		assert bg.attr[0] == ea, "%s expected attr %s, got %s"%(
@@ -1550,7 +1643,7 @@ class CanvasOverlayTest(unittest.TestCase):
 			"asdfHIjkl",[('a',4),('b',2),('c',3)])
 
 	def test3(self):
-		urwid.util.set_double_byte_encoding( True )
+		urwid.set_encoding("euc-jp")
 		self.cotest("db0","\xA1\xA1\xA1\xA1",[],"HI",[],2,2,
 			"\xA1\xA1HI\xA1\xA1",[])
 		self.cotest("db1","\xA1\xA1\xA1\xA1",[],"OHI",[],1,2,
@@ -1563,19 +1656,19 @@ class CanvasOverlayTest(unittest.TestCase):
 def test_main():
 	for t in [
 		WithinDoubleByteTest,
+		CalcTextPosTest,
 		CalcBreaksCharTest,
 		CalcBreaksDBCharTest,
 		CalcBreaksWordTest,
 		CalcBreaksWordTest2,
 		CalcBreaksDBWordTest,
+		SubsegTest,
 		CalcTranslateCharTest,
-		CalcTranslateWordTest2,
 		CalcTranslateWordTest,
+		CalcTranslateWordTest2,
 		CalcTranslateClipTest,
-		CalcTranslateDBClipTest,
 		CalcPosTest,
 		Pos2CoordsTest,
-		ShiftTransTest,
 		TagMarkupTest,
 		TextTest,
 		EditTest,

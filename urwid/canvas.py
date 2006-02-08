@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid canvas class and functions
-#    Copyright (C) 2004-2005  Ian Ward
+#    Copyright (C) 2004-2006  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -19,34 +19,71 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import nested_scopes
+from util import *
 
 try: True # old python?
 except: False, True = 0, 1
 
-from util import *
+
+class CanvasError(Exception):
+	pass
 
 class Canvas:
 	"""
 	class for storing rendered text and attributes
 	"""
-	def __init__(self, text = None, attr = None, cursor = None):
+	def __init__(self,text = None,attr = None,cursor = None,maxcol=None):
 		"""
 		text -- list of strings, one for each line
 		attr -- list of run length encoded attributes for text
 		cursor -- (x,y) of cursor or None
+		maxcol -- screen columns taken by this canvas
 		"""
 		if text == None: 
 			text = []
+		widths = []
+		for t in text:
+			if type(t) != type(""):
+				raise CanvasError("Canvas text must be plain strings encoded in the screen's encoding")
+			widths.append( calc_width( t, 0, len(t)) )
+
+		if maxcol is None:
+			if widths:
+				# find maxcol ourselves
+				maxcol = max(widths)
+			else:
+				maxcol = 0
+
 		if attr == None: 
 			attr = [[] for x in range(len(text))]
-		self.text = text
+		
+		# pad text and attr to maxcol
+		for i in range(len(text)):
+			w = widths[i]
+			if w > maxcol: 
+				raise CanvasError("Canvas text is wider than the maxcol specified \n%s\n%s\n%s"%(`maxcol`,`widths`,`text`))
+			a_gap = len(text[i]) - attr_run( attr[i] )
+			if a_gap < 0:
+				raise CanvasError("Attribute extends beyond text \n%s\n%s" % (`text[i]`,`attr[i]`) )
+			if a_gap:
+				attr_append( attr[i], None, a_gap)
+			
+			if w < maxcol:
+				text[i] = text[i] + " "*(maxcol-w)
+		
 		self.attr = attr
 		self.cursor = cursor
+		self.text = text
+		self.maxcol = maxcol
 
 	def rows(self):
 		"""Return the number of rows in this canvas."""
 		return len(self.text)
 
+	def cols(self):
+		"""Return the screen column width of this canvas."""
+		return self.maxcol
 	
 	def translate_coords(self,dx,dy):
 		"""Shift cursor coords by (dx, dy)."""
@@ -86,9 +123,9 @@ class Canvas:
 		self.text = self.text[:-end]
 		self.attr = self.attr[:-end]
 
-	def overlay(self, other, left, right, top, bottom, 
-			maxcol ): #FIXME add width to canvas so this not needed
+	def overlay(self, other, left, right, top, bottom ):
 		"""Overlay other onto this canvas."""
+		maxcol = self.maxcol
 		
 		width = maxcol-left-right
 		height = self.rows()-top-bottom
@@ -169,15 +206,20 @@ class Canvas:
 
 def CanvasCombine(l):
 	"""Stack canvases in l vertically and return resulting canvas."""
-	d = Canvas()
+	t = []
+	a = []
 	rows = 0
+	cols = 0
+	cursor = None
 	for r in l:
-		d.text += r.text
-		d.attr += r.attr
+		t += r.text
+		a += r.attr
+		cols = max(cols, r.cols())
 		if r.cursor:
-			r.translate_coords(0,rows)
-			d.cursor = r.cursor
-		rows = len( d.text )
+			x,y = r.cursor
+			cursor = x, y+rows
+		rows = len( t )
+	d = Canvas(t, a, cursor, cols )
 	return d
 
 
@@ -185,30 +227,52 @@ def CanvasJoin(l):
 	"""Join canvases in l horizontally. Return result.
 
 	l -- [canvas1, colnum2, canvas2, ... ,colnumN, canvasN]
-		colnumX is the column number to start for canvasX
+		colnumX is the screen column count between the start of
+		canvas(X-1) and canvasX, colnumX >= canvas(X-1).cols()
 	"""
 	
+	# make silly parameter slightly less silly
 	l = [0] + l
 	l2 = [( l[i], l[i+1] ) for i in range(0,len(l),2)]
 	
-	d = Canvas()
-	hoff = 0
-	for coff, r in l2:
-		hoff += coff
-		for i in range(len(r.text)):
-			if len(d.text) == i: 
-				d.text.append("")
-				d.attr.append([])
-			t_run = len(d.text[i])
-			d.text[i] += " " * (hoff - t_run) + r.text[i]
-			a_run = attr_run(d.attr[i])
-			if hoff > a_run:
-				d.attr[i].append( (None, hoff-a_run) )
-			d.attr[i] += r.attr[i]
-
-		if r.cursor:
-			r.translate_coords(hoff,0)
-			d.cursor = r.cursor
+	t = []
+	a = []
+	
+	rows = max([c.rows() for coff, c in l2])
+	for r in range(rows):
+		t.append([])
+		a.append([])
+	
+	x = 0 # current start screen col, from coff
+	xw = 0 # current end screen col from x and canvas width
+	cursor = None
+	for coff, c in l2:
+		x += coff
+		if x < xw: 
+			raise CanvasError("Join colnum < width of canvas")
+		if x > xw:
+			pad = x-xw
+			tpad = " "*pad
+			for r in range(rows):
+				t[r].append(tpad)
+				attr_append(a[r],None,pad)
+		xw = x + c.cols()
+		i = 0
+		while i < c.rows():
+			t[i].append(c.text[i])
+			attr_append_list( a[i], c.attr[i] )
+			i += 1
+		if i < rows:
+			pad = c.cols()
+			tpad = " "*pad
+			while i < rows:
+				t[i].append(tpad)
+				attr_append(a[i],None,pad)
+				i += 1 
+		if c.cursor:
+			c.translate_coords(x, 0)
+			cursor = c.cursor
+	d = Canvas( ["".join(lt) for lt in t], a, cursor, xw )
 	return d
 
 
@@ -222,3 +286,128 @@ def attr_run( attr ):
 	for a, r in attr:
 		run += r
 	return run
+
+def attr_append( attr, a, r ):
+	"""
+	Append (a,r) to the attribute list attr.
+	Join with last run when possible.
+	"""
+	if not attr or attr[-1][0] != a:
+		attr.append( (a,r) )
+		return
+	la,lr = attr[-1]
+	attr[-1] = (a, lr+r)
+
+def attr_append_list( attr, attr2 ):
+	if not attr2:
+		return
+	attr_append(attr, attr2[0][0], attr2[0][1])
+	attr += attr2[1:]
+		
+def apply_text_layout( text, attr, ls, maxcol ):
+	utext = type(text)==type(u"")
+	t = []
+	a = []
+	
+	class AttrWalk:
+		pass
+	aw = AttrWalk
+	aw.k = 0 # counter for moving through elements of a
+	aw.off = 0 # current offset into text of attr[ak]
+	
+	def arange( start_offs, end_offs ):
+		"""Return an attribute list for the range of text specified."""
+		if start_offs < aw.off:
+			aw.k = 0
+			aw.off = 0
+		o = []
+		while aw.off < end_offs:
+			if len(attr)<=aw.k:
+				# run out of attributes
+				o.append((None,end_offs-max(start_offs,aw.off)))
+				break
+			at,run = attr[aw.k]
+			if aw.off+run <= start_offs:
+				# move forward through attr to find start_offs
+				aw.k += 1
+				aw.off += run
+				continue
+			if end_offs <= aw.off+run:
+				o.append((at, end_offs-max(start_offs,aw.off)))
+				break
+			o.append((at, aw.off+run-max(start_offs, aw.off)))
+			aw.k += 1
+			aw.off += run
+		return o
+
+	
+	for line_layout in ls:
+		# trim the line to fit within maxcol
+		line_layout = trim_line( line_layout, text, 0, maxcol )
+		
+		line = []
+		linea = []
+		def attradd( at, run ):
+			assert run>0
+			if not linea or linea[-1][0] != at:
+				linea.append((at, run))
+			else:
+				linea[-1] = (at, linea[-1][1]+run)
+			
+		def attrrange( start_offs, end_offs, destw ):
+			"""
+			Add attributes based on attributes between
+			start_offs and end_offs. 
+			"""
+			if start_offs == end_offs:
+				[(at,run)] = arange(start_offs,end_offs)
+				attradd( at, destw )
+				return
+			if destw == end_offs-start_offs:
+				for at, run in arange(start_offs,end_offs):
+					attradd( at, run )
+				return
+			# encoded version has different width
+			o = start_offs
+			for at, run in arange(start_offs, end_offs):
+				if o+run == end_offs:
+					attradd( at, destw )
+					return
+				tseg = text[o:o+run]
+				segw = len(tseg.encode(target_encoding))
+				attradd( at, segw )
+				o += run
+				destw -= segw
+			
+			
+		for seg in line_layout:
+			#if seg is None: assert 0, ls
+			s = LayoutSegment(seg)
+			if s.end:
+				if utext:
+					tseg = text[s.offs:s.end].encode(
+						target_encoding)
+					line.append(tseg)
+					attrrange(s.offs, s.end, len(tseg))
+				else:
+					line.append(text[s.offs:s.end])
+					attrrange(s.offs, s.end, s.end-s.offs )
+			elif s.text:
+				if type(s.text) == type(u""):
+					tseg = s.text.encode( target_encoding )
+				else:
+					tseg = s.text
+				line.append(tseg)
+				attrrange( s.offs, s.offs, len(tseg) )
+			elif s.offs:
+				if s.sc:
+					line.append(" "*s.sc)
+					attrrange( s.offs, s.offs, s.sc )
+			else:
+				line.append(" "*s.sc)
+				linea.append((None, s.sc))
+			
+		t.append("".join(line))
+		a.append(linea)
+		
+	return Canvas(t,a, maxcol=maxcol)

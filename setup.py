@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 # Urwid setup.py exports the useful bits
-#    Copyright (C) 2004-2005  Ian Ward
+#    Copyright (C) 2004-2006  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -23,7 +23,7 @@ from distutils.core import setup
 
 import os
 
-release = "0.8.10"
+release = "0.9.0-pre1"
 
 setup_d = {
 	'name':"urwid",

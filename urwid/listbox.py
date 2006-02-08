@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid listbox class
-#    Copyright (C) 2004-2005  Ian Ward
+#    Copyright (C) 2004-2006  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -98,7 +98,7 @@ class ListBox(BoxWidget):
 
 		# pref_col is the preferred column for the cursor when moving
 		# between widgets that use the cursor (edit boxes etc.)
-		self.pref_col = 0
+		self.pref_col = 'left'
 
 		# variable for delayed focus change used by set_focus
 		self.set_focus_pending = None
@@ -235,7 +235,7 @@ class ListBox(BoxWidget):
 		middle, top, bottom = self.calculate_visible( 
 			(maxcol, maxrow), focus=focus)
 		if middle is None:
-			return Canvas([""]*maxrow)
+			return Canvas([""]*maxrow, maxcol=maxcol)
 		
 		_ignore, focus_widget, focus_pos, focus_rows, cursor = middle
 		trim_top, fill_above = top
@@ -282,7 +282,7 @@ class ListBox(BoxWidget):
 			bottom_pos = focus_pos
 			if fill_below: bottom_pos = fill_below[-1][1]
 			assert trim_bottom==0 and self.body.get_next(bottom_pos) == (None,None), "Listbox contents too short!  Probably urwid's fault (please report): %s" % `top,middle,bottom`
-			l.append( Canvas( [""] * (maxrow-rows) ))
+			l.append( Canvas( [""] * (maxrow-rows), maxcol=maxcol ))
 
 		return CanvasCombine( l )
 

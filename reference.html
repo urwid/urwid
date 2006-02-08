@@ -20,7 +20,7 @@
 Reference
 </div>
 <br>
-<table width="100%"><tr><td width="33%" valign="top"><div class="l1">Urwid class interfaces</div><div class="l2"><a href="#Widget_interface_definition">Widget interface definition</a></div><div class="l2"><a href="#List_Walker_interface_definition">List Walker interface definition</a></div><div class="l1">User interface wrapper</div><div class="l2"><a href="#curses_display.Screen">curses_display.Screen</a></div><div class="l1">Top-level widgets</div><div class="l2"><a href="#BoxWidget">BoxWidget</a></div><div class="l2"><a href="#Frame">Frame</a></div><div class="l2"><a href="#Filler">Filler</a></div><div class="l2"><a href="#ListBox">ListBox</a></div><div class="l2"><a href="#SimpleListWalker">SimpleListWalker</a></div><div class="l1">Decorations</div><div class="l2"><a href="#WidgetWrap">WidgetWrap</a></div><div class="l2"><a href="#AttrWrap">AttrWrap</a></div><div class="l2"><a href="#Padding">Padding</a></div><div class="l2"><a href="#Divider">Divider</a></div></td><td width="33%" valign="top"><div class="l1">Content widgets</div><div class="l2"><a href="#FlowWidget">FlowWidget</a></div><div class="l2"><a href="#Text">Text</a></div><div class="l2"><a href="#Edit">Edit</a></div><div class="l2"><a href="#IntEdit">IntEdit</a></div><div class="l2"><a href="#Button">Button</a></div><div class="l2"><a href="#CheckBox">CheckBox</a></div><div class="l2"><a href="#RadioButton">RadioButton</a></div><div class="l1">Composite widgets</div><div class="l2"><a href="#Columns">Columns</a></div><div class="l2"><a href="#Pile">Pile</a></div><div class="l2"><a href="#GridFlow">GridFlow</a></div><div class="l2"><a href="#BoxAdapter">BoxAdapter</a></div><div class="l2"><a href="#Overlay">Overlay</a></div><div class="l1">Graphics</div><div class="l2"><a href="#BarGraph">BarGraph</a></div><div class="l2"><a href="#GraphVScale">GraphVScale</a></div><div class="l2"><a href="#ProgressBar">ProgressBar</a></div></td><td width="33%" valign="top"><div class="l1">Canvas painting</div><div class="l2"><a href="#Canvas">Canvas</a></div><div class="l2"><a href="#CanvasCombine">CanvasCombine</a></div><div class="l2"><a href="#CanvasJoin">CanvasJoin</a></div><div class="l1">Custom formatting rules</div><div class="l2"><a href="#util.register_align_mode">util.register_align_mode</a></div><div class="l2"><a href="#util.register_wrap_mode">util.register_wrap_mode</a></div><div class="l2"><a href="#util.set_double_byte_encoding">util.set_double_byte_encoding</a></div><div class="l1">Screen capture</div><div class="l2"><a href="#html_fragment.screenshot_init">html_fragment.screenshot_init</a></div><div class="l2"><a href="#html_fragment.screenshot_collect">html_fragment.screenshot_collect</a></div><div class="l2"><a href="#html_fragment.HtmlGenerator">html_fragment.HtmlGenerator</a></div><div class="l1">Web Application Interface</div><div class="l2"><a href="#web_display.is_web_request">web_display.is_web_request</a></div><div class="l2"><a href="#web_display.set_preferences">web_display.set_preferences</a></div><div class="l2"><a href="#web_display.handle_short_request">web_display.handle_short_request</a></div><div class="l2"><a href="#web_display.Screen">web_display.Screen</a></div></td></tr></table><h2>Urwid class interfaces</h2><h3><a name="Widget_interface_definition"></a><strong>Widget interface definition</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<table width="100%"><tr><td width="33%" valign="top"><div class="l1">Urwid class interfaces</div><div class="l2"><a href="#Widget_interface_definition">Widget interface definition</a></div><div class="l2"><a href="#List_Walker_interface_definition">List Walker interface definition</a></div><div class="l1">User interface wrapper</div><div class="l2"><a href="#curses_display.Screen">curses_display.Screen</a></div><div class="l1">Top-level widgets</div><div class="l2"><a href="#BoxWidget">BoxWidget</a></div><div class="l2"><a href="#Frame">Frame</a></div><div class="l2"><a href="#Filler">Filler</a></div><div class="l2"><a href="#ListBox">ListBox</a></div><div class="l2"><a href="#SimpleListWalker">SimpleListWalker</a></div><div class="l1">Decorations</div><div class="l2"><a href="#WidgetWrap">WidgetWrap</a></div><div class="l2"><a href="#AttrWrap">AttrWrap</a></div><div class="l2"><a href="#Padding">Padding</a></div><div class="l2"><a href="#Divider">Divider</a></div></td><td width="33%" valign="top"><div class="l1">Content widgets</div><div class="l2"><a href="#FlowWidget">FlowWidget</a></div><div class="l2"><a href="#Text">Text</a></div><div class="l2"><a href="#Edit">Edit</a></div><div class="l2"><a href="#IntEdit">IntEdit</a></div><div class="l2"><a href="#Button">Button</a></div><div class="l2"><a href="#CheckBox">CheckBox</a></div><div class="l2"><a href="#RadioButton">RadioButton</a></div><div class="l1">Composite widgets</div><div class="l2"><a href="#Columns">Columns</a></div><div class="l2"><a href="#Pile">Pile</a></div><div class="l2"><a href="#GridFlow">GridFlow</a></div><div class="l2"><a href="#BoxAdapter">BoxAdapter</a></div><div class="l2"><a href="#Overlay">Overlay</a></div><div class="l1">Graphics</div><div class="l2"><a href="#BarGraph">BarGraph</a></div><div class="l2"><a href="#GraphVScale">GraphVScale</a></div><div class="l2"><a href="#ProgressBar">ProgressBar</a></div></td><td width="33%" valign="top"><div class="l1">Canvas painting</div><div class="l2"><a href="#Canvas">Canvas</a></div><div class="l2"><a href="#CanvasCombine">CanvasCombine</a></div><div class="l2"><a href="#CanvasJoin">CanvasJoin</a></div><div class="l1">Custom formatting rules</div><div class="l2"><a href="#TextLayout">TextLayout</a></div><div class="l2"><a href="#StandardTextLayout">StandardTextLayout</a></div><div class="l1">Character encoding</div><div class="l2"><a href="#set_encoding">set_encoding</a></div><div class="l2"><a href="#supports_unicode">supports_unicode</a></div><div class="l1">Screen capture</div><div class="l2"><a href="#html_fragment.screenshot_init">html_fragment.screenshot_init</a></div><div class="l2"><a href="#html_fragment.screenshot_collect">html_fragment.screenshot_collect</a></div><div class="l2"><a href="#html_fragment.HtmlGenerator">html_fragment.HtmlGenerator</a></div><div class="l1">Web Application Interface</div><div class="l2"><a href="#web_display.is_web_request">web_display.is_web_request</a></div><div class="l2"><a href="#web_display.set_preferences">web_display.set_preferences</a></div><div class="l2"><a href="#web_display.handle_short_request">web_display.handle_short_request</a></div><div class="l2"><a href="#web_display.Screen">web_display.Screen</a></div></td></tr></table><h2>Urwid class interfaces</h2><h3><a name="Widget_interface_definition"></a><strong>Widget interface definition</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="WidgetInterface-get_cursor_coords"><strong>get_cursor_coords</strong></a>(self, size)</dt><dd><tt>Returns&nbsp;(col,row)&nbsp;coordinates&nbsp;for&nbsp;cursor&nbsp;or&nbsp;None&nbsp;if&nbsp;no&nbsp;cursor.<br>
 &nbsp;<br>
 MUST&nbsp;be&nbsp;implemented&nbsp;if&nbsp;render&nbsp;function&nbsp;returns&nbsp;a&nbsp;canvas&nbsp;with<br>
@@ -404,21 +404,15 @@ Methods inherited from FlowWidget:<br>
 <dl><dt><a name="FlowWidget-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;False.&nbsp;&nbsp;Not&nbsp;selectable&nbsp;by&nbsp;default.</tt></dd></dl>
 
 <h3><a name="Text">class <strong>Text</strong></a>(FlowWidget) <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
-<dl><dt><a name="Text-__init__"><strong>__init__</strong></a>(self, markup, align<font color="#909090">=None</font>, wrap<font color="#909090">=None</font>)</dt><dd><tt>markup&nbsp;--&nbsp;content&nbsp;of&nbsp;text&nbsp;widget,&nbsp;one&nbsp;of:<br>
+<dl><dt><a name="Text-__init__"><strong>__init__</strong></a>(self, markup, align<font color="#909090">='left'</font>, wrap<font color="#909090">='space'</font>, layout<font color="#909090">=None</font>)</dt><dd><tt>markup&nbsp;--&nbsp;content&nbsp;of&nbsp;text&nbsp;widget,&nbsp;one&nbsp;of:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plain&nbsp;string&nbsp;--&nbsp;string&nbsp;is&nbsp;displayed<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&nbsp;attr,&nbsp;markup2&nbsp;)&nbsp;--&nbsp;markup2&nbsp;is&nbsp;given&nbsp;attribute&nbsp;attr<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;markupA,&nbsp;markupB,&nbsp;...&nbsp;]&nbsp;--&nbsp;list&nbsp;items&nbsp;joined&nbsp;together<br>
-align&nbsp;--&nbsp;align&nbsp;mode&nbsp;or&nbsp;None&nbsp;(widget&nbsp;will&nbsp;use&nbsp;Text.align_mode)<br>
-wrap&nbsp;--&nbsp;wrap&nbsp;mode&nbsp;or&nbsp;None&nbsp;(widget&nbsp;will&nbsp;use&nbsp;Text.wrap_mode)</tt></dd></dl>
+align&nbsp;--&nbsp;align&nbsp;mode&nbsp;for&nbsp;text&nbsp;layout<br>
+wrap&nbsp;--&nbsp;wrap&nbsp;mode&nbsp;for&nbsp;text&nbsp;layout<br>
+layout&nbsp;--&nbsp;layout&nbsp;object&nbsp;to&nbsp;use,&nbsp;defaults&nbsp;to&nbsp;StandardTextLayout</tt></dd></dl>
 
-<dl><dt><a name="Text-get_line_translation"><strong>get_line_translation</strong></a>(self, maxcol)</dt><dd><tt>Return&nbsp;line&nbsp;translation&nbsp;for&nbsp;mapping&nbsp;self.<strong>text</strong>&nbsp;to&nbsp;a&nbsp;canvas.<br>
-&nbsp;<br>
-The&nbsp;line&nbsp;translation&nbsp;is&nbsp;a&nbsp;list&nbsp;of&nbsp;(l_pad,&nbsp;l_trim,&nbsp;r_trim,&nbsp;epos)&nbsp;<br>
-tuples.&nbsp;Each&nbsp;tuple&nbsp;in&nbsp;the&nbsp;line&nbsp;translation&nbsp;represents&nbsp;one&nbsp;row.<br>
-l_pad&nbsp;--&nbsp;number&nbsp;of&nbsp;spaces&nbsp;to&nbsp;add&nbsp;on&nbsp;the&nbsp;left&nbsp;of&nbsp;the&nbsp;line<br>
-l_trim&nbsp;--&nbsp;number&nbsp;of&nbsp;characters&nbsp;to&nbsp;remove&nbsp;from&nbsp;left&nbsp;of&nbsp;line<br>
-r_trim&nbsp;--&nbsp;number&nbsp;of&nbsp;characters&nbsp;to&nbsp;remove&nbsp;from&nbsp;right&nbsp;of&nbsp;line<br>
-epos&nbsp;--&nbsp;character&nbsp;index&nbsp;at&nbsp;the&nbsp;end&nbsp;of&nbsp;the&nbsp;line&nbsp;(start&nbsp;of&nbsp;next)</tt></dd></dl>
+<dl><dt><a name="Text-get_line_translation"><strong>get_line_translation</strong></a>(self, maxcol)</dt><dd><tt>Return&nbsp;layout&nbsp;structure&nbsp;for&nbsp;mapping&nbsp;self.<strong>text</strong>&nbsp;to&nbsp;a&nbsp;canvas.</tt></dd></dl>
 
 <dl><dt><a name="Text-get_text"><strong>get_text</strong></a>(self)</dt><dd><tt>get_text()&nbsp;-&gt;&nbsp;text,&nbsp;attributes<br>
 &nbsp;<br>
@@ -429,21 +423,25 @@ attributes&nbsp;--&nbsp;run&nbsp;length&nbsp;encoded&nbsp;attributes&nbsp;for&nb
 
 <dl><dt><a name="Text-rows"><strong>rows</strong></a>(self, (maxcol,), focus<font color="#909090">=False</font>)</dt><dd><tt>Return&nbsp;the&nbsp;number&nbsp;of&nbsp;rows&nbsp;the&nbsp;rendered&nbsp;text&nbsp;spans.</tt></dd></dl>
 
-<dl><dt><a name="Text-set_align_mode"><strong>set_align_mode</strong></a>(self, mode)</dt><dd><tt>Set&nbsp;text&nbsp;alignment&nbsp;/&nbsp;justification.&nbsp;&nbsp;Valid&nbsp;modes&nbsp;include:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'left',&nbsp;'center',&nbsp;'right'</tt></dd></dl>
+<dl><dt><a name="Text-set_align_mode"><strong>set_align_mode</strong></a>(self, mode)</dt><dd><tt>Set&nbsp;text&nbsp;alignment&nbsp;/&nbsp;justification.&nbsp;&nbsp;<br>
+&nbsp;<br>
+Valid&nbsp;modes&nbsp;for&nbsp;StandardTextLayout&nbsp;are:&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'left',&nbsp;'center'&nbsp;and&nbsp;'right'</tt></dd></dl>
+
+<dl><dt><a name="Text-set_layout"><strong>set_layout</strong></a>(self, align, wrap, layout<font color="#909090">=None</font>)</dt><dd><tt>Set&nbsp;layout&nbsp;object,&nbsp;align&nbsp;and&nbsp;wrap&nbsp;modes.<br>
+&nbsp;<br>
+align&nbsp;--&nbsp;align&nbsp;mode&nbsp;for&nbsp;text&nbsp;layout<br>
+wrap&nbsp;--&nbsp;wrap&nbsp;mode&nbsp;for&nbsp;text&nbsp;layout<br>
+layout&nbsp;--&nbsp;layout&nbsp;object&nbsp;to&nbsp;use,&nbsp;defaults&nbsp;to&nbsp;StandardTextLayout</tt></dd></dl>
 
 <dl><dt><a name="Text-set_text"><strong>set_text</strong></a>(self, markup)</dt><dd><tt>Set&nbsp;content&nbsp;of&nbsp;text&nbsp;widget.</tt></dd></dl>
 
-<dl><dt><a name="Text-set_wrap_mode"><strong>set_wrap_mode</strong></a>(self, mode)</dt><dd><tt>Set&nbsp;wrap&nbsp;mode.&nbsp;&nbsp;Valid&nbsp;modes&nbsp;include:<br>
+<dl><dt><a name="Text-set_wrap_mode"><strong>set_wrap_mode</strong></a>(self, mode)</dt><dd><tt>Set&nbsp;wrap&nbsp;mode.&nbsp;&nbsp;<br>
+&nbsp;<br>
+Valid&nbsp;modes&nbsp;for&nbsp;StandardTextLayout&nbsp;are&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'any'&nbsp;&nbsp;&nbsp;:&nbsp;wrap&nbsp;at&nbsp;any&nbsp;character<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'space'&nbsp;:&nbsp;wrap&nbsp;on&nbsp;space&nbsp;character<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'clip'&nbsp;&nbsp;:&nbsp;truncate&nbsp;lines&nbsp;instead&nbsp;of&nbsp;wrapping</tt></dd></dl>
-
-<hr>
-Data and other attributes defined here:<br>
-<dl><dt><strong>align_mode</strong> = 'left'</dl>
-
-<dl><dt><strong>wrap_mode</strong> = 'space'</dl>
 
 <hr>
 Methods inherited from FlowWidget:<br>
@@ -456,13 +454,14 @@ Methods inherited from FlowWidget:<br>
 </dl>
 <hr>
 Methods defined here:<br>
-<dl><dt><a name="Edit-__init__"><strong>__init__</strong></a>(self, caption<font color="#909090">=''</font>, edit_text<font color="#909090">=''</font>, multiline<font color="#909090">=False</font>, align<font color="#909090">=None</font>, wrap<font color="#909090">=None</font>, allow_tab<font color="#909090">=False</font>, edit_pos<font color="#909090">=None</font>)</dt><dd><tt>caption&nbsp;--&nbsp;markup&nbsp;for&nbsp;caption&nbsp;preceeding&nbsp;edit_text<br>
+<dl><dt><a name="Edit-__init__"><strong>__init__</strong></a>(self, caption<font color="#909090">=''</font>, edit_text<font color="#909090">=''</font>, multiline<font color="#909090">=False</font>, align<font color="#909090">='left'</font>, wrap<font color="#909090">='space'</font>, allow_tab<font color="#909090">=False</font>, edit_pos<font color="#909090">=None</font>, layout<font color="#909090">=None</font>)</dt><dd><tt>caption&nbsp;--&nbsp;markup&nbsp;for&nbsp;caption&nbsp;preceeding&nbsp;edit_text<br>
 edit_text&nbsp;--&nbsp;text&nbsp;string&nbsp;for&nbsp;editing<br>
 multiline&nbsp;--&nbsp;True:&nbsp;'enter'&nbsp;inserts&nbsp;newline&nbsp;&nbsp;False:&nbsp;return&nbsp;it<br>
 align&nbsp;--&nbsp;align&nbsp;mode<br>
 wrap&nbsp;--&nbsp;wrap&nbsp;mode<br>
 allow_tab&nbsp;--&nbsp;True:&nbsp;'tab'&nbsp;inserts&nbsp;1-8&nbsp;spaces&nbsp;&nbsp;False:&nbsp;return&nbsp;it<br>
-edit_pos&nbsp;--&nbsp;initial&nbsp;position&nbsp;for&nbsp;cursor,&nbsp;None:at&nbsp;end</tt></dd></dl>
+edit_pos&nbsp;--&nbsp;initial&nbsp;position&nbsp;for&nbsp;cursor,&nbsp;None:at&nbsp;end<br>
+layout&nbsp;--&nbsp;layout&nbsp;object</tt></dd></dl>
 
 <dl><dt><a name="Edit-get_cursor_coords"><strong>get_cursor_coords</strong></a>(self, (maxcol,))</dt><dd><tt>Return&nbsp;the&nbsp;(x,y)&nbsp;coordinates&nbsp;of&nbsp;cursor&nbsp;within&nbsp;widget.</tt></dd></dl>
 
@@ -503,41 +502,31 @@ Make&nbsp;sure&nbsp;any&nbsp;cached&nbsp;line&nbsp;translation&nbsp;is&nbsp;not&
 
 <dl><dt><a name="Edit-valid_char"><strong>valid_char</strong></a>(self, ch)</dt><dd><tt>Return&nbsp;true&nbsp;for&nbsp;printable&nbsp;characters.</tt></dd></dl>
 
-<dl><dt><a name="Edit-within_double_byte"><strong>within_double_byte</strong></a>(self, maxcol, pos)</dt><dd><tt>Return&nbsp;whether&nbsp;pos&nbsp;is&nbsp;on&nbsp;a&nbsp;double-byte&nbsp;character.<br>
-&nbsp;<br>
-Return&nbsp;values:<br>
-0&nbsp;--&nbsp;not&nbsp;within&nbsp;or&nbsp;double&nbsp;byte&nbsp;encoding&nbsp;not&nbsp;enabled<br>
-1&nbsp;--&nbsp;on&nbsp;the&nbsp;1st&nbsp;half<br>
-2&nbsp;--&nbsp;on&nbsp;the&nbsp;2nd&nbsp;half</tt></dd></dl>
-
 <hr>
 Methods inherited from Text:<br>
-<dl><dt><a name="Edit-get_line_translation"><strong>get_line_translation</strong></a>(self, maxcol)</dt><dd><tt>Return&nbsp;line&nbsp;translation&nbsp;for&nbsp;mapping&nbsp;self.<strong>text</strong>&nbsp;to&nbsp;a&nbsp;canvas.<br>
-&nbsp;<br>
-The&nbsp;line&nbsp;translation&nbsp;is&nbsp;a&nbsp;list&nbsp;of&nbsp;(l_pad,&nbsp;l_trim,&nbsp;r_trim,&nbsp;epos)&nbsp;<br>
-tuples.&nbsp;Each&nbsp;tuple&nbsp;in&nbsp;the&nbsp;line&nbsp;translation&nbsp;represents&nbsp;one&nbsp;row.<br>
-l_pad&nbsp;--&nbsp;number&nbsp;of&nbsp;spaces&nbsp;to&nbsp;add&nbsp;on&nbsp;the&nbsp;left&nbsp;of&nbsp;the&nbsp;line<br>
-l_trim&nbsp;--&nbsp;number&nbsp;of&nbsp;characters&nbsp;to&nbsp;remove&nbsp;from&nbsp;left&nbsp;of&nbsp;line<br>
-r_trim&nbsp;--&nbsp;number&nbsp;of&nbsp;characters&nbsp;to&nbsp;remove&nbsp;from&nbsp;right&nbsp;of&nbsp;line<br>
-epos&nbsp;--&nbsp;character&nbsp;index&nbsp;at&nbsp;the&nbsp;end&nbsp;of&nbsp;the&nbsp;line&nbsp;(start&nbsp;of&nbsp;next)</tt></dd></dl>
+<dl><dt><a name="Edit-get_line_translation"><strong>get_line_translation</strong></a>(self, maxcol)</dt><dd><tt>Return&nbsp;layout&nbsp;structure&nbsp;for&nbsp;mapping&nbsp;self.<strong>text</strong>&nbsp;to&nbsp;a&nbsp;canvas.</tt></dd></dl>
 
 <dl><dt><a name="Edit-rows"><strong>rows</strong></a>(self, (maxcol,), focus<font color="#909090">=False</font>)</dt><dd><tt>Return&nbsp;the&nbsp;number&nbsp;of&nbsp;rows&nbsp;the&nbsp;rendered&nbsp;text&nbsp;spans.</tt></dd></dl>
 
-<dl><dt><a name="Edit-set_align_mode"><strong>set_align_mode</strong></a>(self, mode)</dt><dd><tt>Set&nbsp;text&nbsp;alignment&nbsp;/&nbsp;justification.&nbsp;&nbsp;Valid&nbsp;modes&nbsp;include:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'left',&nbsp;'center',&nbsp;'right'</tt></dd></dl>
+<dl><dt><a name="Edit-set_align_mode"><strong>set_align_mode</strong></a>(self, mode)</dt><dd><tt>Set&nbsp;text&nbsp;alignment&nbsp;/&nbsp;justification.&nbsp;&nbsp;<br>
+&nbsp;<br>
+Valid&nbsp;modes&nbsp;for&nbsp;StandardTextLayout&nbsp;are:&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'left',&nbsp;'center'&nbsp;and&nbsp;'right'</tt></dd></dl>
+
+<dl><dt><a name="Edit-set_layout"><strong>set_layout</strong></a>(self, align, wrap, layout<font color="#909090">=None</font>)</dt><dd><tt>Set&nbsp;layout&nbsp;object,&nbsp;align&nbsp;and&nbsp;wrap&nbsp;modes.<br>
+&nbsp;<br>
+align&nbsp;--&nbsp;align&nbsp;mode&nbsp;for&nbsp;text&nbsp;layout<br>
+wrap&nbsp;--&nbsp;wrap&nbsp;mode&nbsp;for&nbsp;text&nbsp;layout<br>
+layout&nbsp;--&nbsp;layout&nbsp;object&nbsp;to&nbsp;use,&nbsp;defaults&nbsp;to&nbsp;StandardTextLayout</tt></dd></dl>
 
 <dl><dt><a name="Edit-set_text"><strong>set_text</strong></a>(self, markup)</dt><dd><tt>Set&nbsp;content&nbsp;of&nbsp;text&nbsp;widget.</tt></dd></dl>
 
-<dl><dt><a name="Edit-set_wrap_mode"><strong>set_wrap_mode</strong></a>(self, mode)</dt><dd><tt>Set&nbsp;wrap&nbsp;mode.&nbsp;&nbsp;Valid&nbsp;modes&nbsp;include:<br>
+<dl><dt><a name="Edit-set_wrap_mode"><strong>set_wrap_mode</strong></a>(self, mode)</dt><dd><tt>Set&nbsp;wrap&nbsp;mode.&nbsp;&nbsp;<br>
+&nbsp;<br>
+Valid&nbsp;modes&nbsp;for&nbsp;StandardTextLayout&nbsp;are&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'any'&nbsp;&nbsp;&nbsp;:&nbsp;wrap&nbsp;at&nbsp;any&nbsp;character<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'space'&nbsp;:&nbsp;wrap&nbsp;on&nbsp;space&nbsp;character<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'clip'&nbsp;&nbsp;:&nbsp;truncate&nbsp;lines&nbsp;instead&nbsp;of&nbsp;wrapping</tt></dd></dl>
-
-<hr>
-Data and other attributes inherited from Text:<br>
-<dl><dt><strong>align_mode</strong> = 'left'</dl>
-
-<dl><dt><strong>wrap_mode</strong> = 'space'</dl>
 
 <h3><a name="IntEdit">class <strong>IntEdit</strong></a>(Edit) <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3><dl><dt>Method resolution order:</dt>
 <dd>IntEdit</dd>
@@ -593,41 +582,31 @@ focus.</tt></dd></dl>
 &nbsp;<br>
 Make&nbsp;sure&nbsp;any&nbsp;cached&nbsp;line&nbsp;translation&nbsp;is&nbsp;not&nbsp;reused.</tt></dd></dl>
 
-<dl><dt><a name="IntEdit-within_double_byte"><strong>within_double_byte</strong></a>(self, maxcol, pos)</dt><dd><tt>Return&nbsp;whether&nbsp;pos&nbsp;is&nbsp;on&nbsp;a&nbsp;double-byte&nbsp;character.<br>
-&nbsp;<br>
-Return&nbsp;values:<br>
-0&nbsp;--&nbsp;not&nbsp;within&nbsp;or&nbsp;double&nbsp;byte&nbsp;encoding&nbsp;not&nbsp;enabled<br>
-1&nbsp;--&nbsp;on&nbsp;the&nbsp;1st&nbsp;half<br>
-2&nbsp;--&nbsp;on&nbsp;the&nbsp;2nd&nbsp;half</tt></dd></dl>
-
 <hr>
 Methods inherited from Text:<br>
-<dl><dt><a name="IntEdit-get_line_translation"><strong>get_line_translation</strong></a>(self, maxcol)</dt><dd><tt>Return&nbsp;line&nbsp;translation&nbsp;for&nbsp;mapping&nbsp;self.<strong>text</strong>&nbsp;to&nbsp;a&nbsp;canvas.<br>
-&nbsp;<br>
-The&nbsp;line&nbsp;translation&nbsp;is&nbsp;a&nbsp;list&nbsp;of&nbsp;(l_pad,&nbsp;l_trim,&nbsp;r_trim,&nbsp;epos)&nbsp;<br>
-tuples.&nbsp;Each&nbsp;tuple&nbsp;in&nbsp;the&nbsp;line&nbsp;translation&nbsp;represents&nbsp;one&nbsp;row.<br>
-l_pad&nbsp;--&nbsp;number&nbsp;of&nbsp;spaces&nbsp;to&nbsp;add&nbsp;on&nbsp;the&nbsp;left&nbsp;of&nbsp;the&nbsp;line<br>
-l_trim&nbsp;--&nbsp;number&nbsp;of&nbsp;characters&nbsp;to&nbsp;remove&nbsp;from&nbsp;left&nbsp;of&nbsp;line<br>
-r_trim&nbsp;--&nbsp;number&nbsp;of&nbsp;characters&nbsp;to&nbsp;remove&nbsp;from&nbsp;right&nbsp;of&nbsp;line<br>
-epos&nbsp;--&nbsp;character&nbsp;index&nbsp;at&nbsp;the&nbsp;end&nbsp;of&nbsp;the&nbsp;line&nbsp;(start&nbsp;of&nbsp;next)</tt></dd></dl>
+<dl><dt><a name="IntEdit-get_line_translation"><strong>get_line_translation</strong></a>(self, maxcol)</dt><dd><tt>Return&nbsp;layout&nbsp;structure&nbsp;for&nbsp;mapping&nbsp;self.<strong>text</strong>&nbsp;to&nbsp;a&nbsp;canvas.</tt></dd></dl>
 
 <dl><dt><a name="IntEdit-rows"><strong>rows</strong></a>(self, (maxcol,), focus<font color="#909090">=False</font>)</dt><dd><tt>Return&nbsp;the&nbsp;number&nbsp;of&nbsp;rows&nbsp;the&nbsp;rendered&nbsp;text&nbsp;spans.</tt></dd></dl>
 
-<dl><dt><a name="IntEdit-set_align_mode"><strong>set_align_mode</strong></a>(self, mode)</dt><dd><tt>Set&nbsp;text&nbsp;alignment&nbsp;/&nbsp;justification.&nbsp;&nbsp;Valid&nbsp;modes&nbsp;include:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'left',&nbsp;'center',&nbsp;'right'</tt></dd></dl>
+<dl><dt><a name="IntEdit-set_align_mode"><strong>set_align_mode</strong></a>(self, mode)</dt><dd><tt>Set&nbsp;text&nbsp;alignment&nbsp;/&nbsp;justification.&nbsp;&nbsp;<br>
+&nbsp;<br>
+Valid&nbsp;modes&nbsp;for&nbsp;StandardTextLayout&nbsp;are:&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'left',&nbsp;'center'&nbsp;and&nbsp;'right'</tt></dd></dl>
+
+<dl><dt><a name="IntEdit-set_layout"><strong>set_layout</strong></a>(self, align, wrap, layout<font color="#909090">=None</font>)</dt><dd><tt>Set&nbsp;layout&nbsp;object,&nbsp;align&nbsp;and&nbsp;wrap&nbsp;modes.<br>
+&nbsp;<br>
+align&nbsp;--&nbsp;align&nbsp;mode&nbsp;for&nbsp;text&nbsp;layout<br>
+wrap&nbsp;--&nbsp;wrap&nbsp;mode&nbsp;for&nbsp;text&nbsp;layout<br>
+layout&nbsp;--&nbsp;layout&nbsp;object&nbsp;to&nbsp;use,&nbsp;defaults&nbsp;to&nbsp;StandardTextLayout</tt></dd></dl>
 
 <dl><dt><a name="IntEdit-set_text"><strong>set_text</strong></a>(self, markup)</dt><dd><tt>Set&nbsp;content&nbsp;of&nbsp;text&nbsp;widget.</tt></dd></dl>
 
-<dl><dt><a name="IntEdit-set_wrap_mode"><strong>set_wrap_mode</strong></a>(self, mode)</dt><dd><tt>Set&nbsp;wrap&nbsp;mode.&nbsp;&nbsp;Valid&nbsp;modes&nbsp;include:<br>
+<dl><dt><a name="IntEdit-set_wrap_mode"><strong>set_wrap_mode</strong></a>(self, mode)</dt><dd><tt>Set&nbsp;wrap&nbsp;mode.&nbsp;&nbsp;<br>
+&nbsp;<br>
+Valid&nbsp;modes&nbsp;for&nbsp;StandardTextLayout&nbsp;are&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'any'&nbsp;&nbsp;&nbsp;:&nbsp;wrap&nbsp;at&nbsp;any&nbsp;character<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'space'&nbsp;:&nbsp;wrap&nbsp;on&nbsp;space&nbsp;character<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'clip'&nbsp;&nbsp;:&nbsp;truncate&nbsp;lines&nbsp;instead&nbsp;of&nbsp;wrapping</tt></dd></dl>
-
-<hr>
-Data and other attributes inherited from Text:<br>
-<dl><dt><strong>align_mode</strong> = 'left'</dl>
-
-<dl><dt><strong>wrap_mode</strong> = 'space'</dl>
 
 <h3><a name="Button">class <strong>Button</strong></a>(FlowWidget) <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="Button-__init__"><strong>__init__</strong></a>(self, label, on_press)</dt><dd><tt>label&nbsp;--&nbsp;markup&nbsp;for&nbsp;button&nbsp;label<br>
@@ -990,11 +969,14 @@ Methods inherited from FlowWidget:<br>
 <dl><dt><a name="ProgressBar-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;False.&nbsp;&nbsp;Not&nbsp;selectable&nbsp;by&nbsp;default.</tt></dd></dl>
 
 <h2>Canvas painting</h2><h3><a name="Canvas">class <strong>Canvas</strong></a> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
-<dl><dt><a name="Canvas-__init__"><strong>__init__</strong></a>(self, text<font color="#909090">=None</font>, attr<font color="#909090">=None</font>, cursor<font color="#909090">=None</font>)</dt><dd><tt>text&nbsp;--&nbsp;list&nbsp;of&nbsp;strings,&nbsp;one&nbsp;for&nbsp;each&nbsp;line<br>
+<dl><dt><a name="Canvas-__init__"><strong>__init__</strong></a>(self, text<font color="#909090">=None</font>, attr<font color="#909090">=None</font>, cursor<font color="#909090">=None</font>, maxcol<font color="#909090">=None</font>)</dt><dd><tt>text&nbsp;--&nbsp;list&nbsp;of&nbsp;strings,&nbsp;one&nbsp;for&nbsp;each&nbsp;line<br>
 attr&nbsp;--&nbsp;list&nbsp;of&nbsp;run&nbsp;length&nbsp;encoded&nbsp;attributes&nbsp;for&nbsp;text<br>
-cursor&nbsp;--&nbsp;(x,y)&nbsp;of&nbsp;cursor&nbsp;or&nbsp;None</tt></dd></dl>
+cursor&nbsp;--&nbsp;(x,y)&nbsp;of&nbsp;cursor&nbsp;or&nbsp;None<br>
+maxcol&nbsp;--&nbsp;screen&nbsp;columns&nbsp;taken&nbsp;by&nbsp;this&nbsp;canvas</tt></dd></dl>
 
-<dl><dt><a name="Canvas-overlay"><strong>overlay</strong></a>(self, other, left, right, top, bottom, maxcol)</dt><dd><tt>Overlay&nbsp;other&nbsp;onto&nbsp;this&nbsp;canvas.</tt></dd></dl>
+<dl><dt><a name="Canvas-cols"><strong>cols</strong></a>(self)</dt><dd><tt>Return&nbsp;the&nbsp;screen&nbsp;column&nbsp;width&nbsp;of&nbsp;this&nbsp;canvas.</tt></dd></dl>
+
+<dl><dt><a name="Canvas-overlay"><strong>overlay</strong></a>(self, other, left, right, top, bottom)</dt><dd><tt>Overlay&nbsp;other&nbsp;onto&nbsp;this&nbsp;canvas.</tt></dd></dl>
 
 <dl><dt><a name="Canvas-rows"><strong>rows</strong></a>(self)</dt><dd><tt>Return&nbsp;the&nbsp;number&nbsp;of&nbsp;rows&nbsp;in&nbsp;this&nbsp;canvas.</tt></dd></dl>
 
@@ -1013,31 +995,56 @@ end&nbsp;--&nbsp;number&nbsp;of&nbsp;lines&nbsp;to&nbsp;remove&nbsp;from&nbsp;th
 <a name="CanvasJoin"></a><h3>function CanvasJoin <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3><dl><dt><a name="-CanvasJoin"><strong>CanvasJoin</strong></a>(l)</dt><dd><tt>Join&nbsp;canvases&nbsp;in&nbsp;l&nbsp;horizontally.&nbsp;Return&nbsp;result.<br>
 &nbsp;<br>
 l&nbsp;--&nbsp;[canvas1,&nbsp;colnum2,&nbsp;canvas2,&nbsp;...&nbsp;,colnumN,&nbsp;canvasN]<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;colnumX&nbsp;is&nbsp;the&nbsp;column&nbsp;number&nbsp;to&nbsp;start&nbsp;for&nbsp;canvasX</tt></dd></dl>
-<h2>Custom formatting rules</h2><a name="util.register_align_mode"></a><h3>function util.register_align_mode <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3><dl><dt><a name="-util.register_align_mode"><strong>util.register_align_mode</strong></a> = register_align_mode(x, fn)</dt><dd><tt>Register&nbsp;custom&nbsp;align&nbsp;mode&nbsp;x&nbsp;function&nbsp;fn.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;colnumX&nbsp;is&nbsp;the&nbsp;screen&nbsp;column&nbsp;count&nbsp;between&nbsp;the&nbsp;start&nbsp;of<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;canvas(X-1)&nbsp;and&nbsp;canvasX,&nbsp;colnumX&nbsp;&gt;=&nbsp;canvas(X-1).cols()</tt></dd></dl>
+<h2>Custom formatting rules</h2><h3><a name="TextLayout">class <strong>TextLayout</strong></a> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<dl><dt><a name="TextLayout-layout"><strong>layout</strong></a>(self, text, width, align, wrap)</dt><dd><tt>Return&nbsp;a&nbsp;layout&nbsp;structure&nbsp;for&nbsp;text.<br>
 &nbsp;<br>
-Custom&nbsp;alignment&nbsp;function:<br>
-fn(&nbsp;text,&nbsp;width,&nbsp;b,&nbsp;wrap_mode,&nbsp;align_mode&nbsp;)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text&nbsp;--&nbsp;original&nbsp;text&nbsp;string&nbsp;to&nbsp;align<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b&nbsp;--&nbsp;line&nbsp;breaks&nbsp;calculated&nbsp;from&nbsp;wrap_mode&nbsp;function<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wrap_mode&nbsp;--&nbsp;current&nbsp;wrap_mode<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align_mode&nbsp;--&nbsp;current&nbsp;align_mode<br>
-Must&nbsp;return:<br>
-line&nbsp;translation&nbsp;(see&nbsp;Text.get_line_translation&nbsp;for&nbsp;description)</tt></dd></dl>
-<a name="util.register_wrap_mode"></a><h3>function util.register_wrap_mode <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3><dl><dt><a name="-util.register_wrap_mode"><strong>util.register_wrap_mode</strong></a> = register_wrap_mode(x, fn)</dt><dd><tt>Register&nbsp;custom&nbsp;wrap&nbsp;mode&nbsp;x&nbsp;function&nbsp;fn.<br>
+text&nbsp;--&nbsp;string&nbsp;in&nbsp;current&nbsp;encoding&nbsp;or&nbsp;unicode&nbsp;string<br>
+width&nbsp;--&nbsp;number&nbsp;of&nbsp;screen&nbsp;columns&nbsp;available<br>
+align&nbsp;--&nbsp;align&nbsp;mode&nbsp;for&nbsp;text<br>
+wrap&nbsp;--&nbsp;wrap&nbsp;mode&nbsp;for&nbsp;text<br>
 &nbsp;<br>
-Custom&nbsp;wrapping&nbsp;function:<br>
-fn(&nbsp;text,&nbsp;width,&nbsp;wrap_mode&nbsp;)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text&nbsp;--&nbsp;original&nbsp;text&nbsp;string&nbsp;to&nbsp;wrap<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;width&nbsp;--&nbsp;max&nbsp;number&nbsp;of&nbsp;characters&nbsp;per&nbsp;row<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wrap_mode&nbsp;--&nbsp;current&nbsp;wrap_mode<br>
-Must&nbsp;return:<br>
-list&nbsp;of&nbsp;offsets&nbsp;into&nbsp;text&nbsp;for&nbsp;line&nbsp;breaks<br>
+Layout&nbsp;structure&nbsp;is&nbsp;a&nbsp;list&nbsp;of&nbsp;line&nbsp;layouts,&nbsp;one&nbsp;per&nbsp;output&nbsp;line.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Line&nbsp;layouts&nbsp;are&nbsp;lists&nbsp;than&nbsp;may&nbsp;contain&nbsp;the&nbsp;following&nbsp;tuples:<br>
+&nbsp;&nbsp;(&nbsp;column&nbsp;width&nbsp;of&nbsp;text&nbsp;segment,&nbsp;start&nbsp;offset,&nbsp;end&nbsp;offset&nbsp;)<br>
+&nbsp;&nbsp;(&nbsp;number&nbsp;of&nbsp;space&nbsp;characters&nbsp;to&nbsp;insert,&nbsp;offset&nbsp;or&nbsp;None)<br>
+&nbsp;&nbsp;(&nbsp;column&nbsp;width&nbsp;of&nbsp;insert&nbsp;text,&nbsp;offset,&nbsp;"insert&nbsp;text"&nbsp;)<br>
 &nbsp;<br>
-eg.&nbsp;[4,6]&nbsp;would&nbsp;split&nbsp;"hallabaloo"&nbsp;into&nbsp;"hall","ab","aloo"</tt></dd></dl>
-<a name="util.set_double_byte_encoding"></a><h3>function util.set_double_byte_encoding <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3><dl><dt><a name="-util.set_double_byte_encoding"><strong>util.set_double_byte_encoding</strong></a> = set_double_byte_encoding(dbe)</dt><dd><tt>Enable/disable&nbsp;special&nbsp;processing&nbsp;for&nbsp;double-byte&nbsp;characters.<br>
+The&nbsp;offset&nbsp;in&nbsp;the&nbsp;last&nbsp;two&nbsp;tuples&nbsp;is&nbsp;used&nbsp;to&nbsp;determine&nbsp;the<br>
+attribute&nbsp;used&nbsp;for&nbsp;the&nbsp;inserted&nbsp;spaces&nbsp;or&nbsp;text&nbsp;respectively.&nbsp;&nbsp;<br>
+The&nbsp;attribute&nbsp;used&nbsp;will&nbsp;be&nbsp;the&nbsp;same&nbsp;as&nbsp;the&nbsp;attribute&nbsp;at&nbsp;that&nbsp;<br>
+text&nbsp;offset.&nbsp;&nbsp;If&nbsp;the&nbsp;offset&nbsp;is&nbsp;None&nbsp;when&nbsp;inserting&nbsp;spaces<br>
+then&nbsp;no&nbsp;attribute&nbsp;will&nbsp;be&nbsp;used.</tt></dd></dl>
+
+<dl><dt><a name="TextLayout-supports_align_mode"><strong>supports_align_mode</strong></a>(self, align)</dt><dd><tt>Return&nbsp;True&nbsp;if&nbsp;align&nbsp;is&nbsp;a&nbsp;supported&nbsp;align&nbsp;mode.</tt></dd></dl>
+
+<dl><dt><a name="TextLayout-supports_wrap_mode"><strong>supports_wrap_mode</strong></a>(self, wrap)</dt><dd><tt>Return&nbsp;True&nbsp;if&nbsp;wrap&nbsp;is&nbsp;a&nbsp;supported&nbsp;wrap&nbsp;mode.</tt></dd></dl>
+
+<h3><a name="StandardTextLayout">class <strong>StandardTextLayout</strong></a>(TextLayout) <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<dl><dt><a name="StandardTextLayout-__init__"><strong>__init__</strong></a>(self, tab_stops<font color="#909090">=()</font>, tab_stop_every<font color="#909090">=8</font>)</dt><dd><tt>tab_stops&nbsp;--&nbsp;list&nbsp;of&nbsp;screen&nbsp;column&nbsp;indexes&nbsp;for&nbsp;tab&nbsp;stops<br>
+tab_stop_every&nbsp;--&nbsp;repeated&nbsp;interval&nbsp;for&nbsp;following&nbsp;tab&nbsp;stops</tt></dd></dl>
+
+<dl><dt><a name="StandardTextLayout-align_layout"><strong>align_layout</strong></a>(self, text, width, segs, wrap, align)</dt><dd><tt>Convert&nbsp;the&nbsp;layout&nbsp;segs&nbsp;to&nbsp;an&nbsp;aligned&nbsp;layout.</tt></dd></dl>
+
+<dl><dt><a name="StandardTextLayout-calculate_text_segments"><strong>calculate_text_segments</strong></a>(self, text, width, wrap)</dt><dd><tt>Calculate&nbsp;the&nbsp;segments&nbsp;of&nbsp;text&nbsp;to&nbsp;display&nbsp;given&nbsp;width&nbsp;screen&nbsp;<br>
+columns&nbsp;to&nbsp;display&nbsp;them.&nbsp;&nbsp;<br>
 &nbsp;<br>
-dbe&nbsp;--&nbsp;True&nbsp;to&nbsp;enable,&nbsp;False&nbsp;to&nbsp;disable.</tt></dd></dl>
+text&nbsp;-&nbsp;text&nbsp;to&nbsp;display<br>
+width&nbsp;-&nbsp;number&nbsp;of&nbsp;available&nbsp;screen&nbsp;columns<br>
+wrap&nbsp;-&nbsp;wrapping&nbsp;mode&nbsp;used<br>
+&nbsp;<br>
+Returns&nbsp;a&nbsp;layout&nbsp;structure&nbsp;without&nbsp;aligmnent&nbsp;applied.</tt></dd></dl>
+
+<dl><dt><a name="StandardTextLayout-layout"><strong>layout</strong></a>(self, text, width, align, wrap)</dt><dd><tt>Return&nbsp;a&nbsp;layout&nbsp;structure&nbsp;for&nbsp;text.</tt></dd></dl>
+
+<dl><dt><a name="StandardTextLayout-supports_align_mode"><strong>supports_align_mode</strong></a>(self, align)</dt><dd><tt>Return&nbsp;True&nbsp;if&nbsp;align&nbsp;is&nbsp;'left',&nbsp;'center'&nbsp;or&nbsp;'right'.</tt></dd></dl>
+
+<dl><dt><a name="StandardTextLayout-supports_wrap_mode"><strong>supports_wrap_mode</strong></a>(self, wrap)</dt><dd><tt>Return&nbsp;True&nbsp;if&nbsp;wrap&nbsp;is&nbsp;'any',&nbsp;'space'&nbsp;or&nbsp;'clip'.</tt></dd></dl>
+
+<h2>Character encoding</h2><a name="set_encoding"></a><h3>function set_encoding <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3><dl><dt><a name="-set_encoding"><strong>set_encoding</strong></a>(encoding)</dt><dd><tt>Set&nbsp;the&nbsp;byte&nbsp;encoding&nbsp;to&nbsp;assume&nbsp;when&nbsp;processing&nbsp;strings&nbsp;and&nbsp;the<br>
+encoding&nbsp;to&nbsp;use&nbsp;when&nbsp;converting&nbsp;unicode&nbsp;strings.</tt></dd></dl>
+<a name="supports_unicode"></a><h3>function supports_unicode <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3><dl><dt><a name="-supports_unicode"><strong>supports_unicode</strong></a>()</dt><dd><tt>Return&nbsp;True&nbsp;if&nbsp;python&nbsp;is&nbsp;able&nbsp;to&nbsp;convert&nbsp;non-ascii&nbsp;unicode&nbsp;strings<br>
+to&nbsp;the&nbsp;current&nbsp;encoding.</tt></dd></dl>
 <h2>Screen capture</h2><a name="html_fragment.screenshot_init"></a><h3>function html_fragment.screenshot_init <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3><dl><dt><a name="-html_fragment.screenshot_init"><strong>html_fragment.screenshot_init</strong></a> = screenshot_init(sizes, keys)</dt><dd><tt>Replace&nbsp;curses_display.Screen&nbsp;class&nbsp;with&nbsp;HtmlGenerator.<br>
 &nbsp;<br>
 Call&nbsp;this&nbsp;function&nbsp;before&nbsp;executing&nbsp;an&nbsp;application&nbsp;that&nbsp;uses&nbsp;<br>

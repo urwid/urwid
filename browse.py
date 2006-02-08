@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid example lazy directory browser / tree view
-#    Copyright (C) 2004-2005  Ian Ward
+#    Copyright (C) 2004-2006  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public

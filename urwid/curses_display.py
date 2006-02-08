@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid curses output wrapper.. the horror..
-#    Copyright (C) 2004-2005  Ian Ward
+#    Copyright (C) 2004-2006  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -490,16 +490,48 @@ class Screen:
 			return [_keyconv[code]],keys
 		if code >0 and code <27:
 			return ["ctrl %s" % chr(ord('a')+code-1)],keys
-		if code < 256 and util.within_double_byte(chr(code),0,0):
+		
+		if (util.byte_encoding == 'wide' and code < 256 and 
+			util.within_double_byte(chr(code),0,0)):
+			assert 0, code
 			if not keys:
 				key = more_fn()
 				if key >= 0: keys.append(key)
-			if keys and key[0] < 256:
+			if keys and keys[0] < 256:
 				db = chr(code)+chr(keys[0])
 				if util.within_double_byte( db, 0, 1 ):
 					keys.pop(0)
 					return [db],keys
+		if util.byte_encoding == 'utf8' and code>127 and code<256:
+			if code & 0xe0 == 0xc0: # 2-byte form
+				need_more = 1
+			elif code & 0xf0 == 0xe0: # 3-byte form
+				need_more = 2
+			elif code & 0xf8 == 0xf0: # 4-byte form
+				need_more = 3
+			else:
+				return ["<%d>"%code],keys
+
+			for i in range(need_more):
+				if len(keys) <= i:
+					key = more_fn()
+					if key >= 0: 
+						keys.append(key)
+					else:
+						return ["<%d>"%code],keys
+				k = keys[i]
+				if k>256 or k&0xc0 != 0x80:
+					return ["<%d>"%code],keys
+			
+			s = "".join([chr(c)for c in [code]+keys[:need_more]])
+			del keys[:need_more]
+			try:
+				return s.decode("utf-8"), keys[need_more:]
+			except UnicodeDecodeError:
+				return ["<%d>"%code],keys
+			
 		if code >127 and code <256:
+			assert 0, code
 			key = chr(code)
 			return [key],keys
 		if code != 27:
@@ -535,8 +567,8 @@ class Screen:
 		self._curs_set(1)
 		
 	def _dbg_query(self,question): # messy query (intended for debugging)
-		self.dbg_out(question)
-		return self.dbg_instr()
+		self._dbg_out(question)
+		return self._dbg_instr()
 	
 	def _dbg_refresh(self):
 		self.s.refresh()
@@ -567,8 +599,8 @@ class Screen:
 	
 		for y in range(len(lines)):
 			line = lines[y].translate( _trans_table )
-			if len(line) < cols:
-				line += " "*(cols-len(line))
+			#if len(line) < cols:
+			#	line += " "*(cols-len(line))
 			if y == rows-1:
 				# don't draw in the lower right corner
 				line = line[:cols-1]
@@ -660,6 +692,7 @@ class _test:
 			t = ""
 			a = []
 			for k in keys:
+				if type(k) == type(u""): k = k.encode("utf-8")
 				t += "'"+k + "' "
 				a += [(None,1), ('yellow on dark blue',len(k)),
 					(None,2)]

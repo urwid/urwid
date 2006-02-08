@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid basic widget classes
-#    Copyright (C) 2004-2005  Ian Ward
+#    Copyright (C) 2004-2006  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -77,28 +77,26 @@ class Divider(FlowWidget):
 			[""] * self.bottom )
 	
 	
-
+class TextError(Exception):
+	pass
 
 class Text(FlowWidget):
 	"""
 	a horizontally resizeable text widget
 	"""
-	wrap_mode = 'space'
-	align_mode = 'left'
-	
-	def __init__(self,markup, align=None, wrap=None):
+	def __init__(self,markup, align='left', wrap='space', layout=None):
 		"""
 		markup -- content of text widget, one of:
 			plain string -- string is displayed
 			( attr, markup2 ) -- markup2 is given attribute attr
 			[ markupA, markupB, ... ] -- list items joined together
-		align -- align mode or None (widget will use Text.align_mode)
-		wrap -- wrap mode or None (widget will use Text.wrap_mode)
+		align -- align mode for text layout
+		wrap -- wrap mode for text layout
+		layout -- layout object to use, defaults to StandardTextLayout
 		"""
 		self._cache_maxcol = None
 		self.set_text(markup)
-		if align: self.set_align_mode(align)
-		if wrap: self.set_wrap_mode(wrap)
+		self.set_layout(align, wrap, layout)
 	
 	def set_text(self,markup):
 		"""Set content of text widget."""
@@ -115,25 +113,44 @@ class Text(FlowWidget):
 
 	def set_align_mode(self, mode):
 		"""
-		Set text alignment / justification.  Valid modes include:
-			'left', 'center', 'right'
+		Set text alignment / justification.  
+		
+		Valid modes for StandardTextLayout are: 
+			'left', 'center' and 'right'
 		"""
-		assert valid_align_mode(mode)
-		if mode == self.align_mode: return
+		if not self.layout.supports_align_mode(mode):
+			raise TextError("Alignment mode %s not supported."%
+				`mode`)
 		self.align_mode = mode
 		self._cache_maxcol = None
 
 	def set_wrap_mode(self, mode):
 		"""
-		Set wrap mode.  Valid modes include:
+		Set wrap mode.  
+		
+		Valid modes for StandardTextLayout are :
 			'any'	: wrap at any character
 			'space'	: wrap on space character
 			'clip'	: truncate lines instead of wrapping
 		"""
-		assert valid_wrap_mode(mode)
-		if mode == self.wrap_mode: return
+		if not self.layout.supports_wrap_mode(mode):
+			raise TextError("Wrap mode %s not supported"%`mode`)
 		self.wrap_mode = mode
 		self._cache_maxcol = None
+
+	def set_layout(self, align, wrap, layout=None):
+		"""
+		Set layout object, align and wrap modes.
+		
+		align -- align mode for text layout
+		wrap -- wrap mode for text layout
+		layout -- layout object to use, defaults to StandardTextLayout
+		"""
+		if layout is None:
+			layout = default_layout
+		self.layout = layout
+		self.set_align_mode( align )
+		self.set_wrap_mode( wrap )
 
 	def render(self,(maxcol,), focus=False):
 		"""
@@ -145,18 +162,8 @@ class Text(FlowWidget):
 		else:	# update self._cache_translation
 			text, attr = self._update_cache_translation( maxcol )
 			
-		l = []
-		pos = 0
-		for l_pad, l_trim, r_trim, epos in self._cache_translation:
-			line = text[pos:epos]
-			pos = epos
-			# apply trim and pad
-			line = " "*l_pad + line[l_trim:len(line)-r_trim]
-			l.append( line )
-			
-		a = split_attribute_list( attr, self._cache_translation )
-		
-		return Canvas(l,a)
+		return apply_text_layout( text, attr, self._cache_translation, 
+			maxcol )
 		
 
 	def rows(self,(maxcol,), focus=False):
@@ -164,14 +171,7 @@ class Text(FlowWidget):
 		return len(self.get_line_translation(maxcol))
 
 	def get_line_translation(self,maxcol):
-		"""Return line translation for mapping self.text to a canvas.
-
-		The line translation is a list of (l_pad, l_trim, r_trim, epos) 
-		tuples. Each tuple in the line translation represents one row.
-		l_pad -- number of spaces to add on the left of the line
-		l_trim -- number of characters to remove from left of line
-		r_trim -- number of characters to remove from right of line
-		epos -- character index at the end of the line (start of next)
+		"""Return layout structure for mapping self.text to a canvas.
 		"""
 		# uses cached translation if available.  If set_text is not
 		# used (eg. in subclass) set self._cache_maxcol to None
@@ -189,24 +189,22 @@ class Text(FlowWidget):
 		return text, attr
 	
 	def _calc_line_translation(self, text, maxcol ):
-		return calculate_line_translation(
+		return self.layout.layout(
 			text, self._cache_maxcol, 
-			self.wrap_mode, self.align_mode )
+			self.align_mode, self.wrap_mode )
 
 class Edit(Text):
 	"""Text edit widget"""
 	
 	def valid_char(self, ch):
 		"""Return true for printable characters."""
-		if len(ch)==2 and within_double_byte(ch, 0, 0)==1:
-			return True
-		return len(ch)==1 and ord(ch) >= 32
+		return is_wide_char(ch,0) or (len(ch)==1 and ord(ch) >= 32)
 	
 	def selectable(self): return True
 
 	def __init__(self, caption = "", edit_text = "", multiline = False,
-			align = None, wrap = None, allow_tab = False,
-			edit_pos = None):
+			align = 'left', wrap = 'space', allow_tab = False,
+			edit_pos = None, layout=None):
 		"""
 		caption -- markup for caption preceeding edit_text
 		edit_text -- text string for editing
@@ -215,10 +213,11 @@ class Edit(Text):
 		wrap -- wrap mode
 		allow_tab -- True: 'tab' inserts 1-8 spaces  False: return it
 		edit_pos -- initial position for cursor, None:at end
+		layout -- layout object
 		"""
 		
-		Text.__init__(self,"", align, wrap)
-		assert type(edit_text) == type("")
+		Text.__init__(self,"", align, wrap, layout)
+		assert type(edit_text)==type("") or type(edit_text)==type(u"")
 		self.set_caption( caption )
 		self.edit_text = edit_text
 		self.multiline = multiline
@@ -305,16 +304,12 @@ class Edit(Text):
 
 		elif key=="left":
 			if p==0: return key
-			p -= 1
-			if self.within_double_byte(maxcol, p) == 2:
-				p -= 1
+			p = move_prev_char(self.edit_text,0,p)
 			self.set_edit_pos(p)
 		
 		elif key=="right":
 			if p >= len(self.edit_text): return key
-			p += 1
-			if self.within_double_byte(maxcol, p) == 2:
-				p += 1
+			p = move_next_char(self.edit_text,p,len(self.edit_text))
 			self.set_edit_pos(p)
 		
 		elif key in ("up","down"):
@@ -335,11 +330,8 @@ class Edit(Text):
 		elif key=="backspace":
 			self._delete_highlighted()
 			self.pref_col_maxcol = None, None
-			p = self.edit_pos-1
-			if p == -1:
-				return key
-			if self.within_double_byte(maxcol, p) == 2:
-				p -= 1
+			if p == 0: return key
+			p = move_prev_char(self.edit_text,0,p)
 			self.edit_text = ( self.edit_text[:p] + 
 				self.edit_text[self.edit_pos:] )
 			self.edit_pos = p
@@ -348,11 +340,9 @@ class Edit(Text):
 		elif key=="delete":
 			self._delete_highlighted()
 			self.pref_col_maxcol = None, None
-			p = self.edit_pos+1
-			if p > len(self.edit_text):
+			if p >= len(self.edit_text):
 				return key
-			if self.within_double_byte(maxcol, p) == 2:
-				p += 1
+			p = move_next_char(self.edit_text,p,len(self.edit_text))
 			self.edit_text = ( self.edit_text[:self.edit_pos] + 
 				self.edit_text[p:] )
 			self.update_text()
@@ -361,22 +351,12 @@ class Edit(Text):
 			self.highlight = None
 			self.pref_col_maxcol = None, None
 			
-			trans = self.get_line_translation(maxcol)
 			x,y = self.get_cursor_coords((maxcol,))
 			
 			if key == "home":
-				hpos = 0
-				if y > 0:
-					hpos = trans[y-1][-1]
-				self.edit_pos = max(hpos - len(self.caption), 0)
+				self.move_cursor_to_coords((maxcol,),'left',y)
 			else:
-				epos = trans[y][-1] -1
-				if y == len(trans)-1:
-					epos += 1
-				epos -= len(self.caption)
-				if self.within_double_byte(maxcol, epos) == 2:
-					epos -= 1
-				self.edit_pos = epos 
+				self.move_cursor_to_coords((maxcol,),'right',y)
 			return
 			
 			
@@ -394,12 +374,10 @@ class Edit(Text):
 		if y < top_y or y >= len(trans):
 			return False
 
-		pos = calculate_pos( trans, x, y )
+		pos = calc_pos( self.get_text()[0], trans, x, y )
 		e_pos = pos - len(self.caption)
 		if e_pos < 0: e_pos = 0
 		if e_pos > len(self.edit_text): e_pos = len(self.edit_text)
-		if self.within_double_byte(maxcol, e_pos) == 2:
-			e_pos -= 1
 		self.edit_pos = e_pos
 		self.pref_col_maxcol = x, maxcol
 		return True
@@ -425,7 +403,7 @@ class Edit(Text):
 		focus.
 		"""
 		
-		if focus and self.wrap_mode == 'clip':
+		if focus:
 			# keep the cursor visible on clipped edit fields
 			self._shift_view_to_cursor = 1
 			self._cache_maxcol = None
@@ -440,7 +418,6 @@ class Edit(Text):
 		#if self.highlight:
 		#	hstart, hstop = self.highlight_coords()
 		#	d.coords['highlight'] = [ hstart, hstop ]
-		
 		return d
 	
 	def _calc_line_translation(self, text, maxcol ):
@@ -448,13 +425,13 @@ class Edit(Text):
 		if not self._shift_view_to_cursor: 
 			return trans
 		
-		x,y = position_to_coords( self.edit_pos + len(self.caption), trans, clamp=0 )
+		x,y = calc_coords( text, trans, 
+			self.edit_pos + len(self.caption) )
 		if x < 0:
-			return shift_translation_right( trans, -x, maxcol )
+			trans[y] = shift_line( trans[y], -x )
 		elif x >= maxcol:
-			return shift_translation_left( trans, x-maxcol+1, maxcol )
-		else:
-			return trans
+			trans[y] = shift_line( trans[y], -(x-maxcol+1) )
+		return trans
 			
 
 	def get_cursor_coords(self,(maxcol,)):
@@ -475,34 +452,10 @@ class Edit(Text):
 		
 		p = pos + len(self.caption)
 		trans = self.get_line_translation(maxcol)
-		x,y = position_to_coords(p,trans)
+		x,y = calc_coords(self.get_text()[0], trans,p)
 		if x >= maxcol: x = maxcol-1
 		return x,y
 
-
-	def within_double_byte(self, maxcol, pos):
-		"""
-		Return whether pos is on a double-byte character.
-
-		Return values:
-		0 -- not within or double byte encoding not enabled
-		1 -- on the 1st half
-		2 -- on the 2nd half
-		"""
-		
-		# try to do as little work as possible
-		if not double_byte_encoding: return 0
-		if pos < 0 or pos >= len(self.edit_text): return 0
-		if ord(self.edit_text[pos]) < 0xA1: return 0
-		
-		x,y = self.position_coords(maxcol, pos)
-		trans = self.get_line_translation(maxcol)
-
-		epos = 0
-		if y>0: epos = trans[y-1][3]
-		
-		text, attr = self.get_text()
-		return within_double_byte(text, epos, pos + len(self.caption))
 		
 
 
@@ -1054,11 +1007,13 @@ class Padding:
 		left, right = self.padding_values(size)
 		maxcol = size[0]
 		maxvals = (maxcol-left-right,)+size[1:] 
-		if x < left: 
-			x = left
-		elif x >= maxcol-right: 
-			x = maxcol-right-1
-		return self.w.move_cursor_to_coords(maxvals, x-left, y)
+		if type(x)==type(0):
+			if x < left: 
+				x = left
+			elif x >= maxcol-right: 
+				x = maxcol-right-1
+			x -= left
+		return self.w.move_cursor_to_coords(maxvals, x, y)
 
 	def get_pref_col(self, size):
 		"""Return the preferred column from self.w, or None."""
@@ -1068,9 +1023,9 @@ class Padding:
 		maxcol = size[0]
 		maxvals = (maxcol-left-right,)+size[1:] 
 		x = self.w.get_pref_col(maxvals)
-		if x is None:
-			return None
-		return x+left
+		if type(x) == type(0):
+			return x+left
+		return x
 		
 
 class FillerError(Exception):
@@ -1958,8 +1913,12 @@ class Columns: # either FlowWidget or BoxWidget
 		i, x, end = best
 		w = self.widget_list[i]
 		if hasattr(w,'move_cursor_to_coords'):
+			if type(col)==type(0):
+				move_x = min(max(0,col-x),end-x-1)
+			else:
+				move_x = col
 			rval = w.move_cursor_to_coords((end-x,)+size[1:],
-				min(max(0,col-x),end-x-1), row)
+				move_x, row)
 			if rval is False:
 				return False
 				
@@ -1976,7 +1935,7 @@ class Columns: # either FlowWidget or BoxWidget
 		col = None
 		if hasattr(w,'get_pref_col'):
 			col = w.get_pref_col((widths[self.focus_col],)+size[1:])
-			if col is not None:
+			if type(col)==type(0):
 				col += self.focus_col * self.dividechars
 				col += sum( widths[:self.focus_col] )
 		if col is None:
