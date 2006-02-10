@@ -1603,6 +1603,25 @@ class BarGraphTest(unittest.TestCase):
 			[(1,[(3,1),(0,1),(1,1)]),(1,[(3,2),(2,1)]),
 			 (1,[(3,3)]) ] )
 		
+class CanvasJoinTest(unittest.TestCase):
+	def cjtest(self, desc, l, et):
+		result = urwid.CanvasJoin( l )
+		assert result.text == et, "%s expected %s, got %s"%(
+			desc, `et`, `result.text`)
+	
+	def test(self):
+		C = urwid.Canvas
+		self.cjtest("one", [C(["hello"])], ["hello"])
+		self.cjtest("two", [C(["hello"]),5,C(["there"])], 
+			["hellothere"])
+		self.cjtest("two space", [C(["hello"]),7,C(["there"])], 
+			["hello  there"])
+		self.cjtest("three space", [C(["hi"]),4,C(["how"]),7,C(["dy"])],
+			["hi  how    dy"])
+		self.cjtest("pile 2", [C(["hi","you"]),4,C(["how"])],
+			["hi  how","you    "])
+		self.cjtest("pile 2r", [C(["hi"]),4,C(["how","you"])],
+			["hi  how","    you"])
 
 class CanvasOverlayTest(unittest.TestCase):
 	def cotest(self, desc, bgt, bga, fgt, fga, l, r, et, ea):
@@ -1683,6 +1702,7 @@ def test_main():
 		PileTest,
 		ColumnsTest,
 		BarGraphTest,
+		CanvasJoinTest,
 		CanvasOverlayTest,
 		]:
 		if test_support.run_unittest(t): break

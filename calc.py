@@ -79,6 +79,9 @@ E_invalid_in_help_col = [
 	('key',COLUMN_KEYS[1]),"-",('key',COLUMN_KEYS[-1]), 
 	" to select another column."]
 
+# Shared layout object
+CALC_LAYOUT = None
+
 
 class CalcEvent:
 	"""Events triggered by user input."""
@@ -114,7 +117,7 @@ class Cell:
 		self.is_top = op is None
 		self.child = None
 		self.setup_edit()
-		self.result = urwid.Text("",'right -1','numeric -1')
+		self.result = urwid.Text("", layout=CALC_LAYOUT)
 	
 	def show_result(self, next_cell):
 		"""Return whether this widget should display its result.
@@ -136,8 +139,7 @@ class Cell:
 		self.edit = urwid.IntEdit()
 		if not self.is_top:
 			self.edit.set_caption( self.op + " " )
-		self.edit.set_align_mode('right -1')
-		self.edit.set_wrap_mode('numeric -1')
+		self.edit.set_layout( None, None, CALC_LAYOUT )
 
 	def get_value(self):
 		"""Return the numeric value of the cell."""
@@ -194,11 +196,9 @@ class ParentEdit(urwid.Edit):
 		             function takes no parameters
 		"""
 		
-		urwid.Edit.__init__(self)
+		urwid.Edit.__init__(self, layout=CALC_LAYOUT)
 		self.op = op
 		self.set_letter( letter )
-		self.set_align_mode('right -1')
-		self.set_wrap_mode('numeric -1')
 	
 	def set_letter(self, letter):
 		"""Set the letter of the child column for display."""
@@ -297,7 +297,7 @@ class CellColumn( urwid.BoxWidget ):
 		self.letter = letter
 		header = urwid.AttrWrap(
 			urwid.Text( ["Column ",('key',letter)],
-			'right -1','numeric -1'), 'colhead' )
+			layout = CALC_LAYOUT), 'colhead' )
 		self.frame = urwid.Frame( self.listbox, header )
 			
 	def render(self, (maxcol, maxrow), **args):
@@ -529,7 +529,7 @@ class HelpColumn(urwid.BoxWidget):
 	def __init__(self):
 		self.head = urwid.AttrWrap(
 			urwid.Text(["Help Column ", ('key',"?")],
-				'right -1','numeric -1'),
+				layout = CALC_LAYOUT),
 			'help')
 		self.foot = urwid.AttrWrap( 
 			urwid.Text(["[text continues.. press ",
@@ -791,37 +791,53 @@ class CalcDisplay:
 		return col.get_expression(), "%d"%col.get_result()
 			
 
-def wrap_numeric_less1( text, width, wrap_mode ):
-	"""Return line breaks suitable for right justified number editing.
-	
-	choose line breaks so that wrapped numbers leave space on the first
-	line instead of the last line with one extra space on the last line
-	to leave room for a cursor at the end"""
-	
-	lt = len(text)
-	return range( lt%width +1, lt, width )
 
-def align_right_less1( text, width, b, wrap_mode, align_mode ):
-	"""Return alignment suitable for right justified number editing.
-
-	leave room for a cursor at the end, only works as intended when used
-	with wrap_numeric_less1
+class CalcNumLayout(urwid.TextLayout):
 	"""
-	
-	return urwid.util.calculate_alignment(text+" ",width,b,'clip','right')
-	
+	TextLayout class for bottom-right aligned numbers with a space on
+	the last line for the cursor.
+	"""
+	def layout( self, text, width, align, wrap ):
+		"""
+		Return layout structure for calculator number display.
+		"""
+		lt = len(text) + 1 # extra space for cursor
+		r = (lt) % width # remaining segment not full width wide
+		linestarts = range( r, lt, width )
+		l = []
+		if linestarts:
+			if r:
+				# right-align the remaining segment on 1st line
+				l.append( [(width-r,None),(r, 0, r)] )
+			# fill all but the last line
+			for x in linestarts[:-1]:
+				l.append( [(width, x, x+width)] )
+			s = linestarts[-1]
+			# add the last line with a cursor hint
+			l.append( [(width-1, s, lt-1), (0, lt-1)] )
+		elif lt-1:
+			# all fits on one line, so right align the text
+			# with a cursor hint at the end
+			l.append( [(width-lt,None),(lt-1,0,lt-1), (0,lt-1)] )
+		else:
+			# nothing on the line, right align a cursor hint
+			l.append( [(width-1,None),(0,0)] )
+
+		return l
+
 	
 		
 		
 def main():
 	"""Launch Column Calculator."""
+	global CALC_LAYOUT
+	CALC_LAYOUT = CalcNumLayout()
+	
 	urwid.web_display.set_preferences("Column Calculator")
 	# try to handle short web requests quickly
 	if urwid.web_display.handle_short_request():
 		return
 	
-	urwid.util.register_wrap_mode('numeric -1', wrap_numeric_less1 )
-	urwid.util.register_align_mode('right -1', align_right_less1 )
 	CalcDisplay().main()
 
 if '__main__'==__name__ or urwid.web_display.is_web_request():

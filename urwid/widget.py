@@ -954,9 +954,10 @@ class Padding:
 		maxcol -= left+right
 
 		c = self.w.render( (maxcol,)+size[1:], focus )
-		if left == 0:
+		if left == 0 and right == 0:
 			return c
-		return CanvasJoin( [Canvas(), left, c] )
+		empty_c = Canvas()
+		return CanvasJoin( [empty_c, left, c, right+maxcol, empty_c] )
 
 	def padding_values(self, size):
 		"""Return the number of columns to pad on the left and right.
@@ -1263,7 +1264,7 @@ class Overlay(BoxWidget):
 		maxcol,maxrow = size
 		top_c = self.top_w.render( 
 			(maxcol-left-right,maxrow-top-bottom), focus )
-		bottom_c.overlay( top_c, left, right, top, bottom, maxcol )
+		bottom_c.overlay( top_c, left, right, top, bottom )
 		return bottom_c
 		
 	
