@@ -63,14 +63,14 @@ class Canvas:
 			w = widths[i]
 			if w > maxcol: 
 				raise CanvasError("Canvas text is wider than the maxcol specified \n%s\n%s\n%s"%(`maxcol`,`widths`,`text`))
+			if w < maxcol:
+				text[i] = text[i] + " "*(maxcol-w)
 			a_gap = len(text[i]) - attr_run( attr[i] )
 			if a_gap < 0:
 				raise CanvasError("Attribute extends beyond text \n%s\n%s" % (`text[i]`,`attr[i]`) )
 			if a_gap:
 				attr_append( attr[i], None, a_gap)
 			
-			if w < maxcol:
-				text[i] = text[i] + " "*(maxcol-w)
 		
 		self.attr = attr
 		self.cursor = cursor

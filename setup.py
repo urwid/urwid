@@ -23,7 +23,7 @@ from distutils.core import setup
 
 import os
 
-release = "0.9.0-pre2"
+release = "0.9.0-pre3"
 
 setup_d = {
 	'name':"urwid",
