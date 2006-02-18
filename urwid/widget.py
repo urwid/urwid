@@ -290,6 +290,8 @@ class Edit(Text):
 		p = self.edit_pos
 		if self.valid_char(key):
 			self._delete_highlighted()
+			if type(key) == type(u""):
+				key = key.encode("utf-8")
 			self.insert_text( key )
 			
 		elif key=="tab" and self.allow_tab:
@@ -1564,7 +1566,7 @@ class AttrWrap:
 		if focus and self.focus_attr is not None:
 			attr = self.focus_attr
 		r = self.w.render( size, focus=focus )
-		r.attr = fill_attribute_list( r.attr, size[0], attr )
+		r.fill_attr( attr )
 		cols = size[0]
 		r.text = [x.ljust(cols) for x in r.text]
 		return r

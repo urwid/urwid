@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -* coding: utf-8 -*-
 #
 # Urwid utility functions
 #    Copyright (C) 2004-2006  Ian Ward
@@ -100,7 +101,8 @@ class TextLayout:
 		align -- align mode for text
 		wrap -- wrap mode for text
 
-		Layout structure is a list of line layouts, one per output line.		Line layouts are lists than may contain the following tuples:
+		Layout structure is a list of line layouts, one per output line.
+		Line layouts are lists than may contain the following tuples:
 		  ( column width of text segment, start offset, end offset )
 		  ( number of space characters to insert, offset or None)
 		  ( column width of insert text, offset, "insert text" )
@@ -114,16 +116,17 @@ class TextLayout:
 		return [[]]
 
 class StandardTextLayout(TextLayout):
-	def __init__(self, tab_stops=(), tab_stop_every=8):
-		"""
-		tab_stops -- list of screen column indexes for tab stops
-		tab_stop_every -- repeated interval for following tab stops
-		"""
-		assert tab_stop_every is None or type(tab_stop_every)==type(0)
-		if not tab_stops and tab_stop_every:
-			self.tab_stops = (tab_stop_every,)
-		self.tab_stops = tab_stops
-		self.tab_stop_every = tab_stop_every
+	def __init__(self):#, tab_stops=(), tab_stop_every=8):
+		pass
+		#"""
+		#tab_stops -- list of screen column indexes for tab stops
+		#tab_stop_every -- repeated interval for following tab stops
+		#"""
+		#assert tab_stop_every is None or type(tab_stop_every)==type(0)
+		#if not tab_stops and tab_stop_every:
+		#	self.tab_stops = (tab_stop_every,)
+		#self.tab_stops = tab_stops
+		#self.tab_stop_every = tab_stop_every
 	def supports_align_mode(self, align):
 		"""Return True if align is 'left', 'center' or 'right'."""
 		return align in ('left', 'center', 'right')
@@ -316,41 +319,20 @@ class LayoutSegment:
 			return [] # completely gone
 		if self.text:
 			# use text stored in segment (self.text)
-			pad_front = pad_back = 0
-			spos = 0
-			epos = len(self.text)
-			if start>0:
-				spos,sc=calc_text_pos(self.text, 0, epos, start)
-				if sc < start:
-					pad_front = 1
-					spos,sc=calc_text_pos(self.text, 0, 
-						epos, start+1)
-			pos,sc=calc_text_pos(self.text, spos, epos, 
-				end-start-pad_front)
-			if sc < end-start-pad_front:
-				pad_back = 1
-			return [(sc+pad_back+pad_front, self.offs,
-				" "*pad_front+self.text[spos:pos]+" "*pad_back)]
+			spos, epos, pad_left, pad_right = calc_trim_text(
+				self.text, 0, len(self.text), start, end )
+			return [ (end-start, self.offs, " "*pad_left + 
+				self.text[spos:epos] + " "*pad_right) ]
 		elif self.end:
 			# use text passed as parameter (text)
+			spos, epos, pad_left, pad_right = calc_trim_text(
+				text, self.offs, self.end, start, end )
 			l = []
-			spos = self.offs
-			epos = self.end
-			pad_front = 0
-			if start>0:
-				spos,sc=calc_text_pos(text, spos, epos, start)
-				if sc < start:
-					pad_front=1
-					l.append((1,spos))
-					spos,sc=calc_text_pos(text, self.offs, 
-						epos, start+1)
-			pos,sc=calc_text_pos(text, spos, epos, 
-				end-start-pad_front)
-			if sc < end-start-pad_front:
-				l.append((sc, spos, pos))
-				l.append((1, pos))
-				return l
-			l.append((sc, spos, pos))
+			if pad_left:
+				l.append((1,spos-1))
+			l.append((end-start-pad_left-pad_right, spos, epos))
+			if pad_right:
+				l.append((1,epos))
 			return l
 		else:
 			# simple padding adjustment
@@ -494,7 +476,7 @@ def calc_width( text, start_offs, end_offs ):
 			else:
 				o = ord(text[i])
 				n = i + 1
-			w = utable.get_width(ord(text[i]))
+			w = utable.get_width(o)
 			i = n
 			sc += w
 		return sc
@@ -525,7 +507,7 @@ def calc_text_pos( text, start_offs, end_offs, pref_col ):
 			else:
 				o = ord(text[i])
 				n = i + 1
-			w = utable.get_width(ord(text[i]))
+			w = utable.get_width(o)
 			if w+sc > pref_col: 
 				return i, sc
 			i = n
@@ -701,97 +683,134 @@ def calc_coords( text, layout, pos, clamp=1 ):
 	return 0,0
 
 
-def trans_line_run( trans, line_no ):
-	"""Return the number of characters to the right edge of line line_no."""
-	
-	if line_no == 0:
-		prev_epos = 0
-	else:
-		prev_epos = trans[line_no-1][3]
-	l_pad, l_trim, r_trim, epos = trans[line_no]
 
-	return epos - prev_epos + l_pad - l_trim - r_trim
+def calc_trim_text( text, start_offs, end_offs, start_col, end_col ):
+	"""
+	Calculate the result of trimming text.
+	start_offs -- offset into text to treat as screen column 0
+	end_offs -- offset into text to treat as the end of the line
+	start_col -- screen column to trim at the left
+	end_col -- screen column to trim at the right
 
-def trans_line_skip( trans, line_no ):
-	"""Return the number of characters to the left of line line_no."""
-	
-	return trans[line_no][0]
-	
-
-
-def fill_attribute_list( attr_list, width, attr ):
-	"""Fill None items in attr list with an attribute."""
-
-	o = []
-	
-	for line in attr_list:
-		l = []
-		col = 0
-		for a, run in line:
-			if a is None:
-				a = attr
-			l.append( (a, run) )
-			col += run
-		if col < width:
-			l.append( (attr, width-col) )
-		o.append( l )
-	return o
-	
-
-def shift_translation_right( trans, shift, width ):
+	Returns (start, end, pad_left, pad_right), where:
+	start -- resulting start offset
+	end -- resulting end offset
+	pad_left -- 0 for no pad or 1 for one space to be added
+	pad_right -- 0 for no pad or 1 for one space to be added
+	"""
 	l = []
-	last = 0
-	for l_pad, l_trim, r_trim, epos in trans:
-		if shift <= l_trim:
-			# shift satisfied by reducing l_trim
-			l_trim -= shift
+	spos = start_offs
+	pad_left = pad_right = 0
+	if start_col > 0:
+		spos, sc = calc_text_pos( text, spos, end_offs, start_col )
+		if sc < start_col:
+			pad_left = 1
+			spos, sc = calc_text_pos( text, start_offs, 
+				end_offs, start_col+1 )
+	run = end_col - start_col - pad_left
+	pos, sc = calc_text_pos( text, spos, end_offs, run )
+	if sc < run:
+		pad_right = 1
+	return ( spos, pos, pad_left, pad_right )
+
+
+def get_attr_at( attr, pos ):
+	"""
+	Return the attribute at offset pos.
+	"""
+	x = 0
+	if pos < 0:
+		return None
+	for a, run in attr:
+		if x+run > pos:
+			return a
+		x += run
+	return None
+
+
+def trim_text_attr( text, attr, start_col, end_col ):
+	"""
+	Return ( trimmed text, trimmed attr ).
+	"""
+	spos, epos, pad_left, pad_right = calc_trim_text( 
+		text, 0, len(text), start_col, end_col )
+	attrtr = trim_attr( attr, spos, epos )
+	if pad_left:
+		al = get_attr_at( attr, spos-1 )
+		if not attrtr:
+			attrtr = [(al, 1)]
+		else:	
+			a, run = attrtr[0]
+			if a == al:
+				attrtr[0] = (a,run+1)
+			else:
+				attrtr = [(al, 1)] + attrtr
+	if pad_right:
+		if not attrtr:
+			a = get_attr_at( attr, epos )
+			attrtr = [(a, 1)]
 		else:
-			l_pad = l_pad + shift - l_trim
-			if l_pad > width: l_pad = width
-			l_trim = 0
+			a, rin = attrtr[-1]
+			attrtr[-1] = (a,run+1)
+	
+	return " "*pad_left + text[spos:epos] + " "*pad_right, attrtr
+	
 		
-		if epos - last + l_pad - l_trim - r_trim > width:
-			# shifted right side beyond width
-			r_trim = epos - last + l_pad - l_trim - width
-
-		last = epos
-		l.append( (l_pad, l_trim, r_trim, epos) )
-	return l
-	
-def shift_translation_left( trans, shift, width ):
+def trim_attr( attr, start, end ):
+	"""Return a sub segment of an attribute list."""
 	l = []
-	last = 0
-	for l_pad, l_trim, r_trim, epos in trans:
-		if shift <= l_pad:
-			# shift satisfied by reducing l_pad
-			l_pad -= shift
-		else:
-			l_trim = l_trim + shift - l_pad
-			if l_trim > epos - last: l_trim = epos - last
-			l_pad = 0
-
-		r_trim = 0
-		if epos - last + l_pad - l_trim - r_trim > width:
-			r_trim = epos - last + l_pad - l_trim - width
-			
-		last = epos
-		l.append( (l_pad, l_trim, r_trim, epos) )
-	
-	# Assuming all translation shifting will occur on clipped
-	# text, then every line but the last ends with a CR that
-	# should be hidden.  This loop trims one character from all
-	# but the last line in the translation:
-	l_rm_cr = []
-	last = 0
-	for l_pad, l_trim, r_trim, epos in l[:-1]:
-		if r_trim == 0 and l_trim < epos - last: r_trim = 1
-		last = epos
-		l_rm_cr.append( (l_pad, l_trim, r_trim, epos) )
-	l_rm_cr.append( l[-1] )
-	
-	return l_rm_cr
+	x = 0
+	for a, run in attr:
+		if start:
+			if start >= run:
+				start -= run
+				x += run
+				continue
+			x += start
+			run -= start
+			start = 0
+		if x >= end:
+			break
+		if x+run > end:
+			run = end-x
+		x += run	
+		l.append( (a, run) )
+	return l
 
 
+drawing_charmap = {
+	u"◆" : "`",
+	u"▒" : "a",
+	u"␉" : "b",
+	u"␌" : "c",
+	u"␍" : "d",
+	u"␊" : "e",
+	u"°" : "f",
+	u"±" : "g",
+	u"␤" : "h",
+	u"␋" : "i",
+	u"┘" : "j",
+	u"┐" : "k",
+	u"┌" : "l",
+	u"└" : "m",
+	u"┼" : "n",
+	u"⎺" : "o",
+	u"⎻" : "p",
+	u"─" : "q",
+	u"⎼" : "r",
+	u"⎽" : "s",
+	u"├" : "t",
+	u"┤" : "u",
+	u"┴" : "v",
+	u"┬" : "w",
+	u"│" : "x",
+	u"≤" : "y",
+	u"≥" : "z",
+	u"π" : "{",
+	u"≠" : "|",
+	u"£" : "}",
+	u"·" : "~",
+}
 
 class TagMarkupException( Exception ): pass
 

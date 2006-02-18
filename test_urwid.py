@@ -28,7 +28,15 @@ from test import test_support
 
 try: True # old python?
 except: False, True = 0, 1
-		
+
+class CalcWidthTest(unittest.TestCase):
+	def wtest(self, desc, s, exp):
+		result = urwid.calc_width( s, 0, len(s))
+		assert result==exp, desc+" got:"+`result`+" expected:"+`exp`
+	def test1(self):
+		urwid.set_encoding("utf-8")
+		self.wtest("wide char", '\xe6\x9b\xbf', 2)
+
 
 class WithinDoubleByteTest(unittest.TestCase):
 	def setUp(self):
@@ -178,6 +186,17 @@ class CalcBreaksDBWordTest(CalcBreaksTest):
 		( 100, [11, 26] ),
 	]
 
+class CalcBreaksUTF8Test(CalcBreaksTest):
+	def setUp(self):
+		urwid.set_encoding("utf-8")
+	mode = 'space'
+	text = '\xe6\x9b\xbf\xe6\xb4\xbc\xe6\xb8\x8e\xe6\xba\x8f\xe6\xbd\xba'
+	do = [
+		(4, [6, 12, 15] ),
+		(10, [15] ),
+		(5, [6, 12, 15] ),
+	]
+
 class SubsegTest(unittest.TestCase):
 	def setUp(self):
 		urwid.set_encoding("euc-jp")
@@ -217,9 +236,9 @@ class SubsegTest(unittest.TestCase):
 		t = "12\xA1\xA156\xA1\xA190"
 		self.st( (10, 0, 10), t, 0, 8,	[(8, 0, 8)] )
 		self.st( (10, 0, 10), t, 2, 10, [(8, 2, 10)] )
-		self.st( (6, 2, 8), t, 1, 6, 	[(1, 2), (4, 4, 8)] )
+		self.st( (6, 2, 8), t, 1, 6, 	[(1, 3), (4, 4, 8)] )
 		self.st( (6, 2, 8), t, 0, 5, 	[(4, 2, 6), (1, 6)] )
-		self.st( (6, 2, 8), t, 1, 5, 	[(1, 2), (2, 4, 6), (1, 6)] )
+		self.st( (6, 2, 8), t, 1, 5, 	[(1, 3), (2, 4, 6), (1, 6)] )
 		
 		
 
@@ -287,6 +306,22 @@ class CalcTranslateWordTest2(CalcTranslateTest):
 		[(2, None), (11, 0, 11), (0, 11)], 
 		[(3, None), (8, 12, 20), (0, 20)], 
 		[(14, 21, 35), (0, 35)]]
+
+class CalcTranslateWordTest3(CalcTranslateTest):
+	def setUp(self):
+		urwid.set_encoding('utf-8')
+	text = '\xe6\x9b\xbf\xe6\xb4\xbc\n\xe6\xb8\x8e\xe6\xba\x8f\xe6\xbd\xba'
+	width = 10
+	mode = 'space'
+	result_left = [
+		[(4, 0, 6), (0, 6)], 
+		[(6, 7, 16), (0, 16)]]
+	result_right = [
+		[(6, None), (4, 0, 6), (0, 6)], 
+		[(4, None), (6, 7, 16), (0, 16)]]
+	result_center = [
+		[(3, None), (4, 0, 6), (0, 6)], 
+		[(2, None), (6, 7, 16), (0, 16)]]
 	
 
 class CalcTranslateClipTest(CalcTranslateTest):
@@ -1604,24 +1639,28 @@ class BarGraphTest(unittest.TestCase):
 			 (1,[(3,3)]) ] )
 		
 class CanvasJoinTest(unittest.TestCase):
-	def cjtest(self, desc, l, et):
+	def cjtest(self, desc, l, et, ea):
 		result = urwid.CanvasJoin( l )
 		assert result.text == et, "%s expected %s, got %s"%(
 			desc, `et`, `result.text`)
+		assert result.attr == ea, "%s expected %s, got %s"%(
+			desc, `ea`, `result.attr`)
 	
 	def test(self):
 		C = urwid.Canvas
-		self.cjtest("one", [C(["hello"])], ["hello"])
-		self.cjtest("two", [C(["hello"]),5,C(["there"])], 
-			["hellothere"])
+		self.cjtest("one", [C(["hello"])], 
+			["hello"], [[(None,5)]])
+		self.cjtest("two", [C(["hello"]),5,C(["there"],[[("a",5)]])], 
+			["hellothere"], [[(None,5),("a",5)]] )
 		self.cjtest("two space", [C(["hello"]),7,C(["there"])], 
-			["hello  there"])
-		self.cjtest("three space", [C(["hi"]),4,C(["how"]),7,C(["dy"])],
-			["hi  how    dy"])
+			["hello  there"], [[(None,12)]] )
+		self.cjtest("three space", 
+			[C(["hi"]),4,C(["how"],[[("a",1)]]),7,C(["dy"])],
+			["hi  how    dy"], [[(None,4),("a",1),(None,8)]] )
 		self.cjtest("pile 2", [C(["hi","you"]),4,C(["how"])],
-			["hi  how","you    "])
+			["hi  how","you    "], [[(None,7)],[(None,7)]] )
 		self.cjtest("pile 2r", [C(["hi"]),4,C(["how","you"])],
-			["hi  how","    you"])
+			["hi  how","    you"], [[(None,7)],[(None,7)]] )
 
 class CanvasOverlayTest(unittest.TestCase):
 	def cotest(self, desc, bgt, bga, fgt, fga, l, r, et, ea):
@@ -1635,25 +1674,25 @@ class CanvasOverlayTest(unittest.TestCase):
 	
 	def test1(self):
 		self.cotest("left", "qxqxqxqx", [], "HI", [], 0, 6,
-			"HIqxqxqx", [])
+			"HIqxqxqx", [(None,8)])
 		self.cotest("right", "qxqxqxqx", [], "HI", [], 6, 0,
-			"qxqxqxHI", [])
+			"qxqxqxHI", [(None,8)])
 		self.cotest("center", "qxqxqxqx", [], "HI", [], 3, 3,
-			"qxqHIxqx", [])
-		self.cotest("center2", "qxqxqxqx", [], "HI", [], 2, 2,
-			"qxHI  qx", [])
+			"qxqHIxqx", [(None,8)])
+		self.cotest("center2", "qxqxqxqx", [], "HI  ", [], 2, 2,
+			"qxHI  qx", [(None,8)])
 		self.cotest("full", "rz", [], "HI", [], 0, 0, 
-			"HI", [])
+			"HI", [(None,2)])
 	
 	def test2(self):
 		self.cotest("same","asdfghjkl",[('a',9)],"HI",[('a',2)],4,3,
 			"asdfHIjkl",[('a',9)])
 		self.cotest("diff","asdfghjkl",[('a',9)],"HI",[('b',2)],4,3,
 			"asdfHIjkl",[('a',4),('b',2),('a',3)])
-		self.cotest("None end","asdfghjkl",[('a',9)],"HI",[('a',2)],
+		self.cotest("None end","asdfghjkl",[('a',9)],"HI  ",[('a',2)],
 			2,3,"asHI  jkl",[('a',4),(None,2),('a',3)])
 		self.cotest("float end","asdfghjkl",[('a',3)],"HI",[('a',2)],
-			4,3,"asdfHIjkl",[('a',3),(None,1),('a',2)])
+			4,3,"asdfHIjkl",[('a',3),(None,1),('a',2),(None,3)])
 		self.cotest("cover 2","asdfghjkl",[('a',5),('c',4)],"HI",
 			[('b',2)],4,3,"asdfHIjkl",[('a',4),('b',2),('c',3)])
 		self.cotest("cover 2-2","asdfghjkl",
@@ -1663,17 +1702,18 @@ class CanvasOverlayTest(unittest.TestCase):
 
 	def test3(self):
 		urwid.set_encoding("euc-jp")
-		self.cotest("db0","\xA1\xA1\xA1\xA1",[],"HI",[],2,2,
-			"\xA1\xA1HI\xA1\xA1",[])
-		self.cotest("db1","\xA1\xA1\xA1\xA1",[],"OHI",[],1,2,
-			" OHI\xA1\xA1",[])
-		self.cotest("db2","\xA1\xA1\xA1\xA1",[],"OHI",[],2,1,
-			"\xA1\xA1OHI ",[])
-		self.cotest("db3","\xA1\xA1\xA1\xA1",[],"OHIO",[],1,1,
-			" OHIO ",[])
+		self.cotest("db0","\xA1\xA1\xA1\xA1\xA1\xA1",[],"HI",[],2,2,
+			"\xA1\xA1HI\xA1\xA1",[(None,6)])
+		self.cotest("db1","\xA1\xA1\xA1\xA1\xA1\xA1",[],"OHI",[],1,2,
+			" OHI\xA1\xA1",[(None,6)])
+		self.cotest("db2","\xA1\xA1\xA1\xA1\xA1\xA1",[],"OHI",[],2,1,
+			"\xA1\xA1OHI ",[(None,6)])
+		self.cotest("db3","\xA1\xA1\xA1\xA1\xA1\xA1",[],"OHIO",[],1,1,
+			" OHIO ",[(None,6)])
 
 def test_main():
 	for t in [
+		CalcWidthTest,
 		WithinDoubleByteTest,
 		CalcTextPosTest,
 		CalcBreaksCharTest,
@@ -1681,10 +1721,12 @@ def test_main():
 		CalcBreaksWordTest,
 		CalcBreaksWordTest2,
 		CalcBreaksDBWordTest,
+		CalcBreaksUTF8Test,
 		SubsegTest,
 		CalcTranslateCharTest,
 		CalcTranslateWordTest,
 		CalcTranslateWordTest2,
+		CalcTranslateWordTest3,
 		CalcTranslateClipTest,
 		CalcPosTest,
 		Pos2CoordsTest,

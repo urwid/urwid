@@ -27,6 +27,7 @@ import curses
 import sys
 
 import util
+import escape
 
 try: True # old python?
 except: False, True = 0, 1
@@ -51,119 +52,6 @@ _curses_colours = {
 	'light cyan':		(curses.COLOR_CYAN,     1),
 	'white':		(curses.COLOR_WHITE,	1),
 }
-
-_keyconv = {
-	8:'backspace',
-	9:'tab',
-	10:'enter',
-	127:'backspace',
-	258:'down',
-	259:'up',
-	260:'left',
-	261:'right',
-	262:'home',
-	263:'backspace',
-	265:'f1', 266:'f2', 267:'f3', 268:'f4',
-	269:'f5', 270:'f6', 271:'f7', 272:'f8',
-	273:'f9', 274:'f10', 275:'f11', 276:'f12',
-	277:'shift f1', 278:'shift f2', 279:'shift f3', 280:'shift f4',
-	281:'shift f5', 282:'shift f6', 283:'shift f7', 284:'shift f8',
-	285:'shift f9', 286:'shift f10', 287:'shift f11', 288:'shift f12',
-	330:'delete',
-	331:'insert',
-	338:'page down',
-	339:'page up',
-	343:'enter',    # on numpad
-	350:'5',        # on numpad
-	360:'end',
-	 -1:None,
-}
-
-def escape_modifier( digit ):
-	mode = ord(digit) - ord("1")
-	return "shift "*(mode&1) + "meta "*((mode&2)/2) + "ctrl "*((mode&4)/4)
-	
-
-_escape_sequences = [
-	('[A','up'),('[B','down'),('[C','right'),('[D','left'),
-	('[E','5'),('[F','end'),('[G','5'),('[H','home'),
-
-	('[1~','home'),('[2~','insert'),('[3~','delete'),('[4~','end'),
-	('[5~','page up'),('[6~','page down'),
-
-	('[[A','f1'),('[[B','f2'),('[[C','f3'),('[[D','f4'),('[[E','f5'),
-	
-	('[11~','f1'),('[12~','f2'),('[13~','f3'),('[14~','f4'),
-	('[15~','f5'),('[17~','f6'),('[18~','f7'),('[19~','f8'),
-	('[20~','f9'),('[21~','f10'),('[23~','f11'),('[24~','f12'),
-	('[25~','f13'),('[26~','f14'),('[28~','f15'),('[29~','f16'),
-	('[31~','f17'),('[32~','f18'),('[33~','f19'),('[34~','f20'),
-
-	('OA','up'),('OB','down'),('OC','right'),('OD','left'),
-	('OH','home'),('OF','end'),
-	('OP','f1'),('OQ','f2'),('OR','f3'),('OS','f4'),
-	('Oo','/'),('Oj','*'),('Om','-'),('Ok','+'),
-
-	('[Z','shift tab'),
-] + [ 
-	# modified cursor keys + home, end, 5 -- [#X and [1;#X forms
-	(prefix+digit+letter, escape_modifier(digit) + key)
-	for prefix in "[","[1;"
-	for digit in "12345678"
-	for letter,key in zip("ABCDEFGH",
-		('up','down','right','left','5','end','5','home'))
-] + [ 
-	# modified F1-F4 keys -- O#X form
-	("O"+digit+letter, escape_modifier(digit) + key)
-	for digit in "12345678"
-	for letter,key in zip("PQRS",('f1','f2','f3','f4'))
-] + [ 
-	# modified F1-F13 keys -- [XX;#~ form
-	("["+str(num)+";"+digit+"~", escape_modifier(digit) + key)
-	for digit in "12345678"
-	for num,key in zip(
-		(11,12,13,14,15,17,18,19,20,21,23,24,25,26,28,29,31,32,33,34),
-		('f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11',
-		'f12','f13','f14','f15','f16','f17','f18','f19','f20'))
-]
-
-class _KeyqueueTrie:
-	def __init__( self, sequences ):
-		self.data = {}
-		for s, result in sequences:
-			assert type(result) != type({})
-			self.add(self.data, s, result)
-	
-	def add(self, root, s, result):
-		assert type(root) == type({}), "trie conflict detected"
-		assert len(s) > 0, "trie conflict detected"
-		
-		if root.has_key(ord(s[0])):
-			return self.add(root[ord(s[0])], s[1:], result)
-		if len(s)>1:
-			d = {}
-			root[ord(s[0])] = d
-			return self.add(d, s[1:], result)
-		root[ord(s)] = result
-	
-	def get(self, keys, more_fn):
-		return self.get_recurse(self.data, keys, more_fn)
-	
-	def get_recurse(self, root, keys, more_fn):
-		if type(root) != type({}):
-			return (root, keys)
-		if not keys:
-			# get more keys
-			key = more_fn()
-			if key < 0:
-				return None
-			keys.append(key)
-		if not root.has_key(keys[0]):
-			return None
-		return self.get_recurse( root[keys[0]], keys[1:], more_fn )
-		
-
-_escape_trie = _KeyqueueTrie(_escape_sequences)
 
 
 # replace control characters with ?'s
@@ -403,11 +291,14 @@ class Screen:
 		Key combinations:  "shift f1", "meta a", "ctrl b"
 		Window events:  "window resize"
 		
-		When double-byte encoding is not enabled
+		When a narrow encoding is not enabled
 		"Extended ASCII" characters:  "\\xa1", "\\xb2", "\\xfe"
 
-		When double-byte encoding is enabled
+		When a wide encoding is enabled
 		Double-byte characters:  "\\xa1\\xea", "\\xb2\\xd4"
+
+		When utf8 encoding is enabled
+		Unicode characters: u"\\u00a5", u'\\u253c"
 		"""
 		
 		keys, raw = self._get_input( self.max_tenths )
@@ -473,7 +364,7 @@ class Screen:
 			return key
 			
 		while keys:
-			run, keys = self._process_keyqueue(keys, more_fn)
+			run, keys = escape.process_keyqueue(keys, more_fn)
 			processed += run
 
 		if resize:
@@ -481,76 +372,6 @@ class Screen:
 
 		return processed, raw
 		
-	def _process_keyqueue(self, keys, more_fn):
-		code = keys.pop(0)
-		if code >= 32 and code <= 126:
-			key = chr(code)
-			return [key],keys
-		if _keyconv.has_key(code):
-			return [_keyconv[code]],keys
-		if code >0 and code <27:
-			return ["ctrl %s" % chr(ord('a')+code-1)],keys
-		
-		if (util.byte_encoding == 'wide' and code < 256 and 
-			util.within_double_byte(chr(code),0,0)):
-			assert 0, code
-			if not keys:
-				key = more_fn()
-				if key >= 0: keys.append(key)
-			if keys and keys[0] < 256:
-				db = chr(code)+chr(keys[0])
-				if util.within_double_byte( db, 0, 1 ):
-					keys.pop(0)
-					return [db],keys
-		if util.byte_encoding == 'utf8' and code>127 and code<256:
-			if code & 0xe0 == 0xc0: # 2-byte form
-				need_more = 1
-			elif code & 0xf0 == 0xe0: # 3-byte form
-				need_more = 2
-			elif code & 0xf8 == 0xf0: # 4-byte form
-				need_more = 3
-			else:
-				return ["<%d>"%code],keys
-
-			for i in range(need_more):
-				if len(keys) <= i:
-					key = more_fn()
-					if key >= 0: 
-						keys.append(key)
-					else:
-						return ["<%d>"%code],keys
-				k = keys[i]
-				if k>256 or k&0xc0 != 0x80:
-					return ["<%d>"%code],keys
-			
-			s = "".join([chr(c)for c in [code]+keys[:need_more]])
-			del keys[:need_more]
-			try:
-				return s.decode("utf-8"), keys[need_more:]
-			except UnicodeDecodeError:
-				return ["<%d>"%code],keys
-			
-		if code >127 and code <256:
-			assert 0, code
-			key = chr(code)
-			return [key],keys
-		if code != 27:
-			return ["<%d>"%code],keys
-
-		result = _escape_trie.get( keys, more_fn )
-		
-		if result is not None:
-			result, keys = result
-			return [result],keys
-
-		if keys:
-			# Meta keys -- ESC+Key form
-			run, keys = self._process_keyqueue(keys, more_fn)
-			if run[0] == "esc" or "meta " in run[0]:
-				return ['esc']+run, keys
-			return ['meta '+run[0]]+run[1:], keys
-			
-		return ['esc'],keys
 		
 			
 

@@ -27,7 +27,7 @@ Urwid example similar to dialog(1) program
 import sys
 
 import urwid
-import urwid.curses_display
+import urwid.raw_display
 
 try: True # old python?
 except: False, True = 0, 1
@@ -96,7 +96,7 @@ class DialogDisplay:
 		self.exit = button.exitcode
 
 	def main(self):
-		self.ui = urwid.curses_display.Screen()
+		self.ui = urwid.raw_display.Screen()
 		self.ui.register_palette( self.palette )
 
 		return self.ui.run_wrapper( self.run )

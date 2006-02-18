@@ -23,7 +23,7 @@ from distutils.core import setup
 
 import os
 
-release = "0.9.0-pre3"
+release = "0.9.0"
 
 setup_d = {
 	'name':"urwid",
@@ -33,18 +33,21 @@ setup_d = {
 	'url':"http://excess.org/urwid/",
 	'download_url':"http://excess.org/urwid/urwid-%s.tar.gz"%release,
 	'license':"LGPL",
-	'keywords':"curses ui widget scroll listbox interface text layout",
+	'keywords':"curses ui widget scroll listbox user interface text layout consolt ncurses",
 	'platforms':"unix-like",
-	'description':"A curses-based UI library featuring fluid interface resizing, CJK support, multiple text layouts, simple attribute markup, powerful scrolling list boxes and flexible edit boxes.",
+	'description':(
+"A console UI library featuring fluid interface resizing, UTF-8 support,"
+" multiple text layouts, simple attribute markup, powerful scrolling list"
+" boxes and flexible interface design."),
 	'long_description':"""
-Urwid is a curses-based user interface library.  It includes many features
+Urwid is a console user interface library.  It includes many features
 useful for text console application developers including:
 
 - Fluid interface resizing (xterm window resizing / fbset on Linux console)
 - Web application display mode using Apache and CGI
-- Support for 8-bit and CJK encodings
+- Support for UTF-8, simple 8-bit and CJK encodings
 - Multiple text alignment and wrapping modes built-in
-- Ability to register user-defined text alignment and wrapping modes
+- Ability to create user-defined text layout classes
 - Simple markup for setting text attributes
 - Powerful list box that handles scrolling between different widget types
 - List box contents may be managed with a user-defined class

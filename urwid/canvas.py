@@ -69,7 +69,7 @@ class Canvas:
 			if a_gap < 0:
 				raise CanvasError("Attribute extends beyond text \n%s\n%s" % (`text[i]`,`attr[i]`) )
 			if a_gap:
-				attr_append( attr[i], None, a_gap)
+				attr_append( attr[i], (None, a_gap))
 			
 		
 		self.attr = attr
@@ -123,6 +123,19 @@ class Canvas:
 		self.text = self.text[:-end]
 		self.attr = self.attr[:-end]
 
+	def fill_attr(self, a):
+		"""
+		Apply attribute a to all areas of this canvas with
+		attribute currently set to None, leaving other attributes
+		intact."""
+		
+		for l in self.attr:
+			for j in range(len(l)):
+				old_a, run = l[j]
+				if old_a is None:
+					l[j] = (a, run)
+		
+
 	def overlay(self, other, left, right, top, bottom ):
 		"""Overlay other onto this canvas."""
 		maxcol = self.maxcol
@@ -131,75 +144,31 @@ class Canvas:
 		height = self.rows()-top-bottom
 		
 		assert other.rows() == height, "top canvas of overlay not the size expected!" + `other.rows(),top,bottom,height`
+		assert other.cols() == width, "top canvas of overlay not the size expected!" + `other.cols(),left,right,width`
 
-		if other.cursor is None:
-			self.cursor = None
-		else:
-			cx, cy = other.cursor
-			self.cursor = cx+left, cy+top
-
-		def l_append( l, a, r ):
-			if l[-1:]:
-				tail_a, tail_r = l[-1]
-				# combine runs of same attribute
-				if tail_a == a:
-					l[-1] = (a, tail_r + r)
-					return
-			l.append((a,r))
-				
+		self.cursor = other.cursor
+		self.translate_coords( left, top )
 
 		i = top # row index
 		for text, attr in zip(other.text, other.attr):
-			old = self.text[i].ljust(maxcol)
+			oldt = self.text[i]
+			olda = self.attr[i]
+			
+			if left:
+				lt, a = trim_text_attr( oldt, olda, 0, left )
+				t = lt + text
+				attr_join(a, attr)
+			else:
+				t, a = text, attr
 
-			if within_double_byte(old,0,maxcol-right-1)==1:
-				old = old[:maxcol-right]+" "+old[maxcol-right+1:]
-			if within_double_byte(old,0,left)==2:
-				old = old[:left-1]+" "+old[left:]
+			if right:
+				rt, ra = trim_text_attr( oldt, olda, 
+					maxcol-right, maxcol )
+				t = t + rt
+				attr_join(a, ra)
 			
-			self.text[i] = ( old[:left] + text.ljust(width) + 
-					 old[left+width:] )
-			
-			l = [] # destination attribute row
-			j = 0 # columns into destination attribute row
-			k = 0 # columns into oldattr row
-			oldattr = self.attr[i][:]
-			while oldattr and j<left:
-				a,r = oldattr.pop(0)
-				k += r
-				r = min( left-j, r )
-				l_append( l, a, r )
-				j += r
-			if j < left:
-				l.append( (None, left-j) )
-				j = left
-			for na,r in attr:
-				l_append( l, na, r )
-				j += r
-			if j < maxcol-right:
-				r = maxcol-right-j
-				l_append( l, None, r )
-				j+= r
-			if j < k:
-				r = k-j
-				l_append( l, a, r )
-				j += r
-			while oldattr and k<maxcol-right:
-				a,r = oldattr.pop(0)
-				k += r
-				if k > maxcol-right:
-					r = k - (maxcol-right)
-					l_append( l, a, r )
-			for a,r in oldattr:
-				l_append( l, a, r )
-			# trim trailing "None"s
-			if l[-1:]:
-				tail_a, tail_r = l[-1]
-				if tail_a is None:
-					l = l[:-1]
-			self.attr[i] = l
-			
-			#assert right, `self.text[i],l, self.attr[i+1:i+3]`
+			self.text[i] = t
+			self.attr[i] = a
 
 			i += 1
 
@@ -255,19 +224,19 @@ def CanvasJoin(l):
 			tpad = " "*pad
 			for r in range(rows):
 				t[r].append(tpad)
-				attr_append(a[r],None,pad)
+				attr_append(a[r],(None,pad))
 		xw = x + c.cols()
 		i = 0
 		while i < c.rows():
 			t[i].append(c.text[i])
-			attr_append_list( a[i], c.attr[i] )
+			attr_join( a[i], c.attr[i] )
 			i += 1
 		if i < rows:
 			pad = c.cols()
 			tpad = " "*pad
 			while i < rows:
 				t[i].append(tpad)
-				attr_append(a[i],None,pad)
+				attr_append(a[i],(None,pad))
 				i += 1 
 		if c.cursor:
 			c.translate_coords(x, 0)
@@ -287,10 +256,12 @@ def attr_run( attr ):
 		run += r
 	return run
 
-def attr_append( attr, a, r ):
+def attr_append( attr, (a, r) ):
 	"""
 	Append (a,r) to the attribute list attr.
-	Join with last run when possible.
+	Merge with last run when possible.
+	
+	MODIFIES attr parameter contents. Returns None.
 	"""
 	if not attr or attr[-1][0] != a:
 		attr.append( (a,r) )
@@ -298,10 +269,16 @@ def attr_append( attr, a, r ):
 	la,lr = attr[-1]
 	attr[-1] = (a, lr+r)
 
-def attr_append_list( attr, attr2 ):
+def attr_join( attr, attr2 ):
+	"""
+	Append attribute list attr2 to attr.
+	Merge last run of attr with first run of attr2 when possible.
+
+	MODIFIES attr parameter contents. Returns None.
+	"""
 	if not attr2:
 		return
-	attr_append(attr, attr2[0][0], attr2[0][1])
+	attr_append(attr, attr2[0])
 	attr += attr2[1:]
 		
 def apply_text_layout( text, attr, ls, maxcol ):

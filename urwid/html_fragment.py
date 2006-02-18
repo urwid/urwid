@@ -197,7 +197,9 @@ def html_escape(text):
 	return text
 
 def screenshot_init( sizes, keys ):
-	"""Replace curses_display.Screen class with HtmlGenerator.
+	"""
+	Replace curses_display.Screen and raw_display.Screen class with 
+	HtmlGenerator.
 	
 	Call this function before executing an application that uses 
 	curses_display.Screen to have that code use HtmlGenerator instead.
@@ -240,6 +242,8 @@ def screenshot_init( sizes, keys ):
 	
 	import curses_display
 	curses_display.Screen = HtmlGenerator
+	import raw_display
+	raw_display.Screen = HtmlGenerator
 	
 	HtmlGenerator.sizes = sizes
 	HtmlGenerator.keys = keys

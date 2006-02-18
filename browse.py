@@ -31,7 +31,7 @@ Features:
 
 
 import urwid
-import urwid.curses_display
+import urwid.raw_display
 
 import os
 
@@ -388,7 +388,7 @@ class DirectoryBrowser:
 	def main(self):
 		"""Run the program."""
 		
-		self.ui = urwid.curses_display.Screen()
+		self.ui = urwid.raw_display.Screen()
 		self.ui.register_palette( self.palette )
 		self.ui.run_wrapper( self.run )
 	
