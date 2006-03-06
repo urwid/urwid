@@ -124,17 +124,37 @@ class Screen:
 
 	def _sigwinch_handler(self, signum, frame):
 		self.resized = True
-       
+      
+	def signal_init(self):
+		"""
+		Called in the startup of run wrapper to set the SIGWINCH 
+		signal handler to self._sigwinch_handler.
+
+		Override this function to call from main thread in threaded
+		applications.
+		"""
+		signal.signal(signal.SIGWINCH, self._sigwinch_handler)
+	
+	def signal_restore(self):
+		"""
+		Called in the finally block of run wrapper to restore the
+		SIGWINCH handler to the default handler.
+
+		Override this function to call from main thread in threaded
+		applications.
+		"""
+		signal.signal(signal.SIGWINCH, signal.SIG_DFL)
+      
 	def run_wrapper(self,fn):
 		""" Call fn and reset terminal on exit.
 		"""
 		old_settings = termios.tcgetattr(0)
 		try:
-			signal.signal(signal.SIGWINCH, self._sigwinch_handler)
+			self.signal_init()
 			tty.setcbreak(sys.stdin.fileno())
 			fn()
 		finally:
-			signal.signal(signal.SIGWINCH, signal.SIG_DFL)
+			self.signal_restore()
 			termios.tcsetattr(0, termios.TCSADRAIN, old_settings)
 			move_cursor = ""
 			if self.maxrow is not None:

@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -* coding: utf-8 -*-
 #
 # Urwid unit testing .. ok, ok, ok
 #    Copyright (C) 2004-2006  Ian Ward
@@ -1638,6 +1639,28 @@ class BarGraphTest(unittest.TestCase):
 			[(1,[(3,1),(0,1),(1,1)]),(1,[(3,2),(2,1)]),
 			 (1,[(3,3)]) ] )
 		
+class SmoothBarGraphTest(unittest.TestCase):
+	def sbgtest(self, desc, data, top, exp ):
+		urwid.set_encoding('utf-8')
+		g = urwid.BarGraph( ['black','red','blue'],
+				None, {(1,0):'red/black', (2,1):'blue/red'})
+		g.set_data( data, top )
+		rval, ignore = g.calculate_display((5,3))
+		assert rval == exp, "%s expected %s, got %s"%(desc,`exp`,`rval`)
+	
+	def test1(self):
+		self.sbgtest('simple', [[3]], 5, 
+			[(1, [(0, 5)]), (1, [((1, 0, 6), 5)]), (1, [(1, 5)])] )
+		self.sbgtest('boring', [[4,2]], 6, 
+			[(1, [(0, 5)]), (1, [(1, 5)]), (1, [(2,5)]) ] )
+		self.sbgtest('two', [[4],[2]], 6, 
+			[(1, [(0, 5)]), (1, [(1, 3), (0, 2)]), (1, [(1, 5)]) ] )
+		self.sbgtest('twos', [[3],[4]], 6, 
+			[(1, [(0, 5)]), (1, [((1,0,4), 3), (1, 2)]), (1, [(1,5)]) ] )
+		self.sbgtest('twof', [[4],[3]], 6, 
+			[(1, [(0, 5)]), (1, [(1,3), ((1,0,4), 2)]), (1, [(1,5)]) ] )
+	
+		
 class CanvasJoinTest(unittest.TestCase):
 	def cjtest(self, desc, l, et, ea):
 		result = urwid.CanvasJoin( l )
@@ -1744,6 +1767,7 @@ def test_main():
 		PileTest,
 		ColumnsTest,
 		BarGraphTest,
+		SmoothBarGraphTest,
 		CanvasJoinTest,
 		CanvasOverlayTest,
 		]:

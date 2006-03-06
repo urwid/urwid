@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -* coding: utf-8 -*-
 #
 # Urwid graphics widgets
 #    Copyright (C) 2004-2006  Ian Ward
@@ -23,38 +24,52 @@ from util import *
 from canvas import *
 from widget import *
 
+from __future__ import nested_scopes
+
 try: True # old python?
 except: False, True = 0, 1
 
-class BarGraph(BoxWidget):
-	def __init__(self, attlist, hatt=None):
-		"""
-		BarGraph( [bg, fg, ...], hatt )
-		bg -- attribute or (attribute, character) tuple for background
-		fg -- attribute or (attribute, character) tuple for bars
-		... -- further attributes or tuples for multi-segment bars
-		hatt -- attribute or (attribute, character) tuple for horizontal
-			lines
+class BarGraphError(Exception):
+	pass
 
-		see set_segment_attributes for description of above parameters.
-		
-		character defaults to space ' ' if only attribute is given.
+class BarGraph(BoxWidget):
+	eighths = u" ▁▂▃▄▅▆▇"
+	hlines =  u"_⎺⎻─⎼⎽"
+	
+	def __init__(self, attlist, hatt=None, satt=None):
 		"""
-		self.set_segment_attributes( attlist, hatt )
+		Create a bar graph with the passed display characteristics.
+		see set_segment_attributes for a description of the parameters.
+		"""
+		
+		self.set_segment_attributes( attlist, hatt, satt )
 		self.set_data([], 1, None)
 		self.set_bar_width(None)
 		
-	def set_segment_attributes(self, attlist, hatt=None ):
+	def set_segment_attributes(self, attlist, hatt=None, satt=None ):
 		"""
-		set_segment_attributes( [bg, fg, ...], hatt )
-		bg -- attribute or (attribute, character) tuple for background
-		fg -- attribute or (attribute, character) tuple for bars
-		... -- further attributes or tuples for multi-segment bars
-		hatt -- attribute or (attribute, character) tuple for horizontal
-			lines or None
-
-		If hatt is None it will default to (bg's attribute, "_").
-		If hatt does not specidy the character it will default to "_".
+		attlist -- list containing attribute or (attribute, character)
+			tuple for background, first segment, and optionally
+			following segments. ie. len(attlist) == num segments+1
+			character defaults to ' ' if not specified.
+		hatt -- list containing attributes for horizontal lines. First 
+			lement is for lines on background, second is for lines
+		       	on first segment, third is for lines on second segment
+			etc..
+		satt -- dictionary containing attributes for smoothed 
+			transitions of bars in UTF-8 display mode. The values
+			are in the form:
+				(fg,bg) : attr
+			fg and bg are integers where 0 is the graph background,
+			1 is the first segment, 2 is the second, ...  
+			fg > bg in all values.  attr is an attribute with a 
+			foreground corresponding to fg and a background 
+			corresponding to bg.
+			
+		If satt is not None and the bar graph is being displayed in
+		a terminal using the UTF-8 encoding then the character cell
+		that is shared between the segments specified will be smoothed
+		with using the UTF-8 vertical eighth characters.
 		
 		eg: set_segment_attributes( ['no', ('unsure',"?"), 'yes'] )
 		will use the attribute 'no' for the background (the area from
@@ -65,6 +80,8 @@ class BarGraph(BoxWidget):
 		"""
 		self.attr = []
 		self.char = []
+		if len(attlist) < 2:
+			raise BarGraphError, "attlist must include at least background and seg1: %s" % `attlist`
 		assert len(attlist) >= 2, 'must at least specify bg and fg!'
 		for a in attlist:
 			if type(a)!=type(()):
@@ -74,12 +91,29 @@ class BarGraph(BoxWidget):
 				attr, ch = a
 				self.attr.append(attr)
 				self.char.append(ch)
+
+		self.hatt = []
 		if hatt is None:
-			self.hattr = self.attr[0], "_"
-		elif type(hatt)!=type(()):
-			self.hattr = hatt, "_"
-		else:
-			self.hattr = hatt
+			hatt = [self.attr[0]]
+		elif type(hatt)!=type([]):
+			hatt = [hatt]
+		self.hatt = hatt
+		
+		if satt is None:
+			satt = {}
+		for i in satt.items():
+			try:
+				(fg,bg), attr = i
+			except:
+				raise BarGraphError, "satt not in (fg,bg:attr) form: %s"%`i`
+			if type(fg) != type(0) or fg >= len(attlist):
+				raise BarGraphError, "fg not valid integer: %s"%`fg`
+			if type(bg) != type(0) or bg >= len(attlist):
+				raise BarGraphError, "bg not valid integer: %s"%`fg`
+			if fg<=bg:
+				raise BarGraphError, "fg (%s) not > bg (%s)" %(fg,bg)
+		self.satt = satt
+			
 			
 		
 	
@@ -165,55 +199,206 @@ class BarGraph(BoxWidget):
 		"""
 		return False
 	
+	def use_smoothed(self):
+		return self.satt and get_encoding_mode()=="utf8"
+		
+	def calculate_display(self, (maxcol, maxrow) ):
+		"""
+		Calculate display data.
+		"""
+		bardata, top, hlines = self.get_data( (maxcol, maxrow) )
+		widths = self.calculate_bar_widths( (maxcol, maxrow), bardata )
+
+		if self.use_smoothed():
+			disp = calculate_bargraph_display(bardata, top, widths,
+				maxrow * 8 )
+			disp = self.smooth_display( disp )
+	
+		else:
+			disp = calculate_bargraph_display(bardata, top, widths,
+				maxrow )
+
+		if hlines:
+			disp = self.hlines_display( disp, top, hlines, maxrow )
+		
+		return disp
+
+	def hlines_display(self, disp, top, hlines, maxrow ):
+		"""
+		Add hlines to display structure represented as bar_type tuple
+		values:
+		(bg, 0-5)
+		bg is the segment that has the hline on it
+		0-5 is the hline graphic to use where 0 is a regular underscore
+		and 1-5 are the UTF-8 horizontal scan line characters.
+		"""
+		if self.use_smoothed():
+			shiftr = 0
+			r = [	(0.2, 1),
+				(0.4, 2),
+				(0.6, 3),
+				(0.8, 4),
+				(1.0, 5),]
+		else:
+			shiftr = 0.5
+			r = [	(1.0, 0), ]
+
+		# reverse the hlines to match screen ordering
+		rhl = []
+		for h in hlines:
+			rh = float(top-h) * maxrow / top - shiftr
+			if rh < 0:
+				continue
+			rhl.append(rh)
+	
+		# build a list of rows that will have hlines
+		hrows = []
+		last_i = -1
+		for rh in rhl:
+			i = int(rh)
+			if i == last_i:
+				continue
+			f = rh-i
+			for spl, chnum in r:
+				if f < spl:
+					hrows.append( (i, chnum) )
+					break
+			last_i = i
+
+		# fill hlines into disp data
+		def fill_row( row, chnum ):
+			rout = []
+			for bar_type, width in row:
+				if (type(bar_type) == type(0) and 
+						len(self.hatt) > bar_type ):
+					rout.append( ((bar_type, chnum), width))
+					continue
+				rout.append( (bar_type, width))
+			return rout
+			
+		o = []
+		k = 0
+		rnum = 0
+		for y_count, row in disp:
+			if k >= len(hrows):
+				o.append( (y_count, row) )
+				continue
+			end_block = rnum + y_count
+			while k < len(hrows) and hrows[k][0] < end_block:
+				i, chnum = hrows[k]
+				if i-rnum > 0:
+					o.append( (i-rnum, row) )
+				o.append( (1, fill_row( row, chnum ) ) )
+				rnum = i+1
+				k += 1
+			if rnum < end_block:
+				o.append( (end_block-rnum, row) )
+				rnum = end_block
+		
+		#assert 0, o
+		return o
+
+		
+	def smooth_display(self, disp):
+		"""
+		smooth (col, row*8) display into (col, row) display using
+		UTF vertical eighth characters represented as bar_type
+		tuple values:
+		( fg, bg, 1-7 )
+		where fg is the lower segment, bg is the upper segment and
+		1-7 is the vertical eighth character to use.
+		"""
+		o = []
+		r = 0 # row remainder
+		def seg_combine( (bt1,w1), (bt2,w2) ):
+			if (bt1,w1) == (bt2,w2):
+				return (bt1,w1), None, None
+			wmin = min(w1,w2)
+			l1 = l2 = None
+			if w1>w2:
+				l1 = (bt1, w1-w2)
+			elif w2>w1:
+				l2 = (bt2, w2-w1)
+			if type(bt1)==type(()):
+				return (bt1,wmin), l1, l2
+			if not self.satt.has_key( (bt2, bt1) ):
+				if r<4:
+					return (bt2,wmin), l1, l2
+				return (bt1,wmin), l1, l2
+			return ((bt2, bt1, 8-r), wmin), l1, l2
+					
+		def row_combine_last( count, row ):
+			o_count, o_row = o[-1]
+			row = row[:] # shallow copy, so we don't destroy orig.
+			o_row = o_row[:]
+			l = []
+			while row:
+				(bt, w), l1, l2 = seg_combine(
+					o_row.pop(0), row.pop(0) )
+				if l and l[-1][0] == bt:
+					l[-1] = (bt, l[-1][1]+w)
+				else:
+					l.append((bt, w))
+				if l1:
+					o_row = [l1]+o_row
+				if l2:
+					row = [l2]+row
+			
+			assert not o_row
+			o[-1] = ( o_count + count, l )
+			
+		
+		# regroup into actual rows (8 disp rows == 1 actual row)
+		for y_count, row in disp:
+			if r:
+				count = min( 8-r, y_count )
+				row_combine_last( count, row )
+				y_count -= count
+				r += count
+				r = r % 8
+				if not y_count:
+					continue
+			assert r == 0
+			# copy whole blocks
+			if y_count > 7:
+				o.append( (y_count/8*8 , row) )
+				y_count = y_count %8
+				if not y_count:
+					continue
+			o.append( (y_count, row) )
+			r = y_count
+		return [(y/8, row) for (y,row) in o]
+			
+			
 	def render(self, (maxcol, maxrow), focus=False):
 		"""
 		Render BarGraph.
 		"""
-		bardata, top, hlines = self.get_data( (maxcol, maxrow) )
-		widths = self.calculate_bar_widths( (maxcol, maxrow), bardata )
-		disp = calculate_bargraph_display(bardata, top, widths, maxrow )
+		disp = self.calculate_display( (maxcol,maxrow) )
+		#assert 0, disp
 		
-		shl = [ maxrow+1 ] # ie. never
-		if hlines is not None:
-			shl = scale_bar_values( hlines, top, maxrow )
-			shl = [x-1 for x in shl if x > 0]
-			shl.append( maxrow+1 )
-			shl.reverse()
-        	#assert 0, `shl`
-		nexthl = shl.pop()
-			
 		r = []
 		for y_count, row in disp:
 			l = []
-			lhl = []
-			has_hl = nexthl<len(r)+y_count
 			for bar_type, width in row:
-				a = self.attr[bar_type]
-				t = self.char[bar_type] * width
+				if type(bar_type) == type(()):
+					if len(bar_type) == 3:
+						# vertical eighths
+						fg,bg,k = bar_type
+						a = self.satt[(fg,bg)]
+						t = self.eighths[k] * width
+					else:
+						# horizontal lines
+						bg,k = bar_type
+						a = self.hatt[bg]
+						t = self.hlines[k] * width
+				else:
+					a = self.attr[bar_type]
+					t = self.char[bar_type] * width
 				l.append( (a, t) )
-				if has_hl:
-					if bar_type == 0:
-						a,t = self.hattr
-						t *= width
-					lhl.append( (a, t) )
 			c = Text(l).render( (maxcol,) )
 			assert c.rows() == 1, "Invalid characters in BarGraph!"
-			if not has_hl:
-				r += [c] * y_count
-				continue
-				
-			chl = Text(lhl).render( (maxcol,) )
-			assert chl.rows() == 1, "Invalid characters in hline!"
-			while y_count:
-				if len(r)==nexthl:
-					r.append(chl)
-					y_count -=1
-					while nexthl < len(r):
-						nexthl = shl.pop()
-					continue
-				y_run = min( nexthl-len(r), y_count )
-				y_count -= y_run
-				r += [c] * y_run
+			r += [c] * y_count
 			
 		return CanvasCombine(r)
 
@@ -437,17 +622,23 @@ def scale_bar_values( bar, top, maxrow ):
 
 
 class ProgressBar( FlowWidget ):
-	def __init__(self, normal, complete, current=0, done=100):
+	eighths = u" ▏▎▍▌▋▊▉"
+	def __init__(self, normal, complete, current=0, done=100, satt=None):
 		"""
 		normal -- attribute for uncomplete part of progress bar
 		complete -- attribute for complete part of progress bar
 		current -- current progress
 		done -- progress amount at 100%
+		satt -- attribute for smoothed part of bar where the foreground
+			of satt corresponds to the normal part and the
+			background corresponds to the complete part.  If satt
+			is None then no smoothing will be done.
 		"""
 		self.normal = normal
 		self.complete = complete
 		self.current = current
 		self.done = done
+		self.satt = satt
 	
 	def set_completion(self, current ):
 		"""
@@ -472,11 +663,26 @@ class ProgressBar( FlowWidget ):
 		txt=Text( str(percent)+" %", 'center', 'clip' )
 		c = txt.render((maxcol,))
 
-		ccol = int( self.current*maxcol/self.done )
-		if ccol <= 0:
+		cf = float( self.current ) * maxcol / self.done
+		ccol = int( cf )
+		cs = 0
+		if self.satt is not None:
+			cs = int((cf - ccol) * 8)
+		if ccol < 0 or (ccol == 0 and cs == 0):
 			c.attr = [[(self.normal,maxcol)]]
 		elif ccol >= maxcol:
 			c.attr = [[(self.complete,maxcol)]]
+		elif cs and c.text[0][ccol] == " ":
+			t = c.text[0]
+			cenc = self.eighths[cs].encode("utf-8")
+			c.text[0] = t[:ccol]+cenc+t[ccol+1:]
+			a = []
+			if ccol > 0:
+				a.append( (self.complete, ccol) )
+			a.append((self.satt,len(cenc)))
+			if maxcol-ccol-1 > 0:
+				a.append( (self.normal, maxcol-ccol-1) )
+			c.attr = [a]
 		else:
 			c.attr = [[(self.complete,ccol),
 				(self.normal,maxcol-ccol)]]

@@ -20,7 +20,7 @@
 Reference
 </div>
 <br>
-<table width="100%"><tr><td width="33%" valign="top"><div class="l1">User interface wrappers</div><div class="l2"><a href="#raw_display.Screen">raw_display.Screen</a></div><div class="l2"><a href="#curses_display.Screen">curses_display.Screen</a></div><div class="l1">Top-level widgets</div><div class="l2"><a href="#BoxWidget">BoxWidget</a></div><div class="l2"><a href="#Frame">Frame</a></div><div class="l2"><a href="#Filler">Filler</a></div><div class="l2"><a href="#ListBox">ListBox</a></div><div class="l2"><a href="#SimpleListWalker">SimpleListWalker</a></div><div class="l1">Decorations</div><div class="l2"><a href="#WidgetWrap">WidgetWrap</a></div><div class="l2"><a href="#AttrWrap">AttrWrap</a></div><div class="l2"><a href="#Padding">Padding</a></div><div class="l2"><a href="#Divider">Divider</a></div><div class="l1">Composite widgets</div><div class="l2"><a href="#Columns">Columns</a></div><div class="l2"><a href="#Pile">Pile</a></div><div class="l2"><a href="#GridFlow">GridFlow</a></div><div class="l2"><a href="#BoxAdapter">BoxAdapter</a></div><div class="l2"><a href="#Overlay">Overlay</a></div></td><td width="33%" valign="top"><div class="l1">Content widgets</div><div class="l2"><a href="#FlowWidget">FlowWidget</a></div><div class="l2"><a href="#Text">Text</a></div><div class="l2"><a href="#Edit">Edit</a></div><div class="l2"><a href="#IntEdit">IntEdit</a></div><div class="l2"><a href="#Button">Button</a></div><div class="l2"><a href="#CheckBox">CheckBox</a></div><div class="l2"><a href="#RadioButton">RadioButton</a></div><div class="l1">Graphics</div><div class="l2"><a href="#BarGraph">BarGraph</a></div><div class="l2"><a href="#GraphVScale">GraphVScale</a></div><div class="l2"><a href="#ProgressBar">ProgressBar</a></div><div class="l1">Urwid class interfaces</div><div class="l2"><a href="#Widget_interface_definition">Widget interface definition</a></div><div class="l2"><a href="#List_Walker_interface_definition">List Walker interface definition</a></div><div class="l1">Canvas painting</div><div class="l2"><a href="#Canvas">Canvas</a></div><div class="l2"><a href="#CanvasCombine">CanvasCombine</a></div><div class="l2"><a href="#CanvasJoin">CanvasJoin</a></div></td><td width="33%" valign="top"><div class="l1">Custom formatting rules</div><div class="l2"><a href="#TextLayout">TextLayout</a></div><div class="l2"><a href="#StandardTextLayout">StandardTextLayout</a></div><div class="l1">Character encoding</div><div class="l2"><a href="#set_encoding">set_encoding</a></div><div class="l2"><a href="#supports_unicode">supports_unicode</a></div><div class="l1">Screen capture</div><div class="l2"><a href="#html_fragment.screenshot_init">html_fragment.screenshot_init</a></div><div class="l2"><a href="#html_fragment.screenshot_collect">html_fragment.screenshot_collect</a></div><div class="l2"><a href="#html_fragment.HtmlGenerator">html_fragment.HtmlGenerator</a></div><div class="l1">Web Application Interface</div><div class="l2"><a href="#web_display.is_web_request">web_display.is_web_request</a></div><div class="l2"><a href="#web_display.set_preferences">web_display.set_preferences</a></div><div class="l2"><a href="#web_display.handle_short_request">web_display.handle_short_request</a></div><div class="l2"><a href="#web_display.Screen">web_display.Screen</a></div></td></tr></table><h2>User interface wrappers</h2><h3><a name="raw_display.Screen"></a><strong>raw_display.Screen</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<table width="100%"><tr><td width="33%" valign="top"><div class="l1">User interface wrappers</div><div class="l2"><a href="#raw_display.Screen">raw_display.Screen</a></div><div class="l2"><a href="#curses_display.Screen">curses_display.Screen</a></div><div class="l1">Top-level widgets</div><div class="l2"><a href="#BoxWidget">BoxWidget</a></div><div class="l2"><a href="#Frame">Frame</a></div><div class="l2"><a href="#Filler">Filler</a></div><div class="l2"><a href="#ListBox">ListBox</a></div><div class="l2"><a href="#SimpleListWalker">SimpleListWalker</a></div><div class="l1">Decorations</div><div class="l2"><a href="#WidgetWrap">WidgetWrap</a></div><div class="l2"><a href="#AttrWrap">AttrWrap</a></div><div class="l2"><a href="#Padding">Padding</a></div><div class="l2"><a href="#Divider">Divider</a></div><div class="l1">Composite widgets</div><div class="l2"><a href="#Columns">Columns</a></div><div class="l2"><a href="#Pile">Pile</a></div><div class="l2"><a href="#GridFlow">GridFlow</a></div><div class="l2"><a href="#BoxAdapter">BoxAdapter</a></div><div class="l2"><a href="#Overlay">Overlay</a></div></td><td width="33%" valign="top"><div class="l1">Content widgets</div><div class="l2"><a href="#FlowWidget">FlowWidget</a></div><div class="l2"><a href="#Text">Text</a></div><div class="l2"><a href="#Edit">Edit</a></div><div class="l2"><a href="#IntEdit">IntEdit</a></div><div class="l2"><a href="#Button">Button</a></div><div class="l2"><a href="#CheckBox">CheckBox</a></div><div class="l2"><a href="#RadioButton">RadioButton</a></div><div class="l1">Graphics</div><div class="l2"><a href="#BarGraph">BarGraph</a></div><div class="l2"><a href="#GraphVScale">GraphVScale</a></div><div class="l2"><a href="#ProgressBar">ProgressBar</a></div><div class="l1">Urwid class interfaces</div><div class="l2"><a href="#Widget_interface_definition">Widget interface definition</a></div><div class="l2"><a href="#List_Walker_interface_definition">List Walker interface definition</a></div><div class="l1">Canvas painting</div><div class="l2"><a href="#Canvas">Canvas</a></div><div class="l2"><a href="#CanvasCombine">CanvasCombine</a></div><div class="l2"><a href="#CanvasJoin">CanvasJoin</a></div></td><td width="33%" valign="top"><div class="l1">Custom formatting rules</div><div class="l2"><a href="#TextLayout">TextLayout</a></div><div class="l2"><a href="#StandardTextLayout">StandardTextLayout</a></div><div class="l1">Character encoding</div><div class="l2"><a href="#set_encoding">set_encoding</a></div><div class="l2"><a href="#get_encoding_mode">get_encoding_mode</a></div><div class="l2"><a href="#supports_unicode">supports_unicode</a></div><div class="l1">Screen capture</div><div class="l2"><a href="#html_fragment.screenshot_init">html_fragment.screenshot_init</a></div><div class="l2"><a href="#html_fragment.screenshot_collect">html_fragment.screenshot_collect</a></div><div class="l2"><a href="#html_fragment.HtmlGenerator">html_fragment.HtmlGenerator</a></div><div class="l1">Web Application Interface</div><div class="l2"><a href="#web_display.is_web_request">web_display.is_web_request</a></div><div class="l2"><a href="#web_display.set_preferences">web_display.set_preferences</a></div><div class="l2"><a href="#web_display.handle_short_request">web_display.handle_short_request</a></div><div class="l2"><a href="#web_display.Screen">web_display.Screen</a></div></td></tr></table><h2>User interface wrappers</h2><h3><a name="raw_display.Screen"></a><strong>raw_display.Screen</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="Screen-__init__"><strong>__init__</strong></a>(self)</dt></dl>
 
 <dl><dt><a name="Screen-draw_screen"><strong>draw_screen</strong></a>(self, (maxcol, maxrow), r)</dt><dd><tt>Paint&nbsp;screen&nbsp;with&nbsp;rendered&nbsp;canvas.</tt></dd></dl>
@@ -96,6 +96,18 @@ resize_wait&nbsp;--&nbsp;amount&nbsp;of&nbsp;time&nbsp;in&nbsp;seconds&nbsp;to&n
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;after&nbsp;receiving&nbsp;two&nbsp;screen&nbsp;resize&nbsp;requests&nbsp;in&nbsp;a&nbsp;row&nbsp;to<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stop&nbsp;Urwid&nbsp;from&nbsp;consuming&nbsp;100%&nbsp;cpu&nbsp;during&nbsp;a&nbsp;gradual<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;window&nbsp;resize&nbsp;operation</tt></dd></dl>
+
+<dl><dt><a name="Screen-signal_init"><strong>signal_init</strong></a>(self)</dt><dd><tt>Called&nbsp;in&nbsp;the&nbsp;startup&nbsp;of&nbsp;run&nbsp;wrapper&nbsp;to&nbsp;set&nbsp;the&nbsp;SIGWINCH&nbsp;<br>
+signal&nbsp;handler&nbsp;to&nbsp;self.<strong>_sigwinch_handler</strong>.<br>
+&nbsp;<br>
+Override&nbsp;this&nbsp;function&nbsp;to&nbsp;call&nbsp;from&nbsp;main&nbsp;thread&nbsp;in&nbsp;threaded<br>
+applications.</tt></dd></dl>
+
+<dl><dt><a name="Screen-signal_restore"><strong>signal_restore</strong></a>(self)</dt><dd><tt>Called&nbsp;in&nbsp;the&nbsp;finally&nbsp;block&nbsp;of&nbsp;run&nbsp;wrapper&nbsp;to&nbsp;restore&nbsp;the<br>
+SIGWINCH&nbsp;handler&nbsp;to&nbsp;the&nbsp;default&nbsp;handler.<br>
+&nbsp;<br>
+Override&nbsp;this&nbsp;function&nbsp;to&nbsp;call&nbsp;from&nbsp;main&nbsp;thread&nbsp;in&nbsp;threaded<br>
+applications.</tt></dd></dl>
 
 <h3><a name="curses_display.Screen"></a><strong>curses_display.Screen</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="Screen-__init__"><strong>__init__</strong></a>(self)</dt></dl>
@@ -884,21 +896,15 @@ Data and other attributes defined here:<br>
 <dl><dt><strong>states</strong> = {False: &lt;urwid.widget.SelectableIcon instance&gt;, True: &lt;urwid.widget.SelectableIcon instance&gt;, 'mixed': &lt;urwid.widget.SelectableIcon instance&gt;}</dl>
 
 <h2>Graphics</h2><h3><a name="BarGraph">class <strong>BarGraph</strong></a>(BoxWidget) <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
-<dl><dt><a name="BarGraph-__init__"><strong>__init__</strong></a>(self, attlist, hatt<font color="#909090">=None</font>)</dt><dd><tt>BarGraph(&nbsp;[bg,&nbsp;fg,&nbsp;...],&nbsp;hatt&nbsp;)<br>
-bg&nbsp;--&nbsp;attribute&nbsp;or&nbsp;(attribute,&nbsp;character)&nbsp;tuple&nbsp;for&nbsp;background<br>
-fg&nbsp;--&nbsp;attribute&nbsp;or&nbsp;(attribute,&nbsp;character)&nbsp;tuple&nbsp;for&nbsp;bars<br>
-...&nbsp;--&nbsp;further&nbsp;attributes&nbsp;or&nbsp;tuples&nbsp;for&nbsp;multi-segment&nbsp;bars<br>
-hatt&nbsp;--&nbsp;attribute&nbsp;or&nbsp;(attribute,&nbsp;character)&nbsp;tuple&nbsp;for&nbsp;horizontal<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lines<br>
-&nbsp;<br>
-see&nbsp;set_segment_attributes&nbsp;for&nbsp;description&nbsp;of&nbsp;above&nbsp;parameters.<br>
-&nbsp;<br>
-character&nbsp;defaults&nbsp;to&nbsp;space&nbsp;'&nbsp;'&nbsp;if&nbsp;only&nbsp;attribute&nbsp;is&nbsp;given.</tt></dd></dl>
+<dl><dt><a name="BarGraph-__init__"><strong>__init__</strong></a>(self, attlist, hatt<font color="#909090">=None</font>, satt<font color="#909090">=None</font>)</dt><dd><tt>Create&nbsp;a&nbsp;bar&nbsp;graph&nbsp;with&nbsp;the&nbsp;passed&nbsp;display&nbsp;characteristics.<br>
+see&nbsp;set_segment_attributes&nbsp;for&nbsp;a&nbsp;description&nbsp;of&nbsp;the&nbsp;parameters.</tt></dd></dl>
 
 <dl><dt><a name="BarGraph-calculate_bar_widths"><strong>calculate_bar_widths</strong></a>(self, (maxcol, maxrow), bardata)</dt><dd><tt>Return&nbsp;a&nbsp;list&nbsp;of&nbsp;bar&nbsp;widths,&nbsp;one&nbsp;for&nbsp;each&nbsp;bar&nbsp;in&nbsp;data.<br>
 &nbsp;<br>
 If&nbsp;self.<strong>bar_width</strong>&nbsp;is&nbsp;None&nbsp;this&nbsp;implementation&nbsp;will&nbsp;stretch&nbsp;<br>
 the&nbsp;bars&nbsp;across&nbsp;the&nbsp;available&nbsp;space&nbsp;specified&nbsp;by&nbsp;maxcol.</tt></dd></dl>
+
+<dl><dt><a name="BarGraph-calculate_display"><strong>calculate_display</strong></a>(self, (maxcol, maxrow))</dt><dd><tt>Calculate&nbsp;display&nbsp;data.</tt></dd></dl>
 
 <dl><dt><a name="BarGraph-get_data"><strong>get_data</strong></a>(self, (maxcol, maxrow))</dt><dd><tt>Return&nbsp;(bardata,&nbsp;top,&nbsp;hlines)<br>
 &nbsp;<br>
@@ -907,6 +913,13 @@ the&nbsp;graph.&nbsp;It&nbsp;may&nbsp;be&nbsp;overloaded&nbsp;to&nbsp;create&nbs
 &nbsp;<br>
 This&nbsp;implementation&nbsp;will&nbsp;truncate&nbsp;the&nbsp;bardata&nbsp;list&nbsp;returned&nbsp;<br>
 if&nbsp;not&nbsp;all&nbsp;bars&nbsp;will&nbsp;fit&nbsp;within&nbsp;maxcol.</tt></dd></dl>
+
+<dl><dt><a name="BarGraph-hlines_display"><strong>hlines_display</strong></a>(self, disp, top, hlines, maxrow)</dt><dd><tt>Add&nbsp;hlines&nbsp;to&nbsp;display&nbsp;structure&nbsp;represented&nbsp;as&nbsp;bar_type&nbsp;tuple<br>
+values:<br>
+(bg,&nbsp;0-5)<br>
+bg&nbsp;is&nbsp;the&nbsp;segment&nbsp;that&nbsp;has&nbsp;the&nbsp;hline&nbsp;on&nbsp;it<br>
+0-5&nbsp;is&nbsp;the&nbsp;hline&nbsp;graphic&nbsp;to&nbsp;use&nbsp;where&nbsp;0&nbsp;is&nbsp;a&nbsp;regular&nbsp;underscore<br>
+and&nbsp;1-5&nbsp;are&nbsp;the&nbsp;UTF-8&nbsp;horizontal&nbsp;scan&nbsp;line&nbsp;characters.</tt></dd></dl>
 
 <dl><dt><a name="BarGraph-render"><strong>render</strong></a>(self, (maxcol, maxrow), focus<font color="#909090">=False</font>)</dt><dd><tt>Render&nbsp;BarGraph.</tt></dd></dl>
 
@@ -932,15 +945,28 @@ Eg:&nbsp;if&nbsp;top&nbsp;is&nbsp;100&nbsp;and&nbsp;there&nbsp;is&nbsp;a&nbsp;ba
 the&nbsp;top&nbsp;of&nbsp;this&nbsp;bar&nbsp;will&nbsp;be&nbsp;at&nbsp;80%&nbsp;of&nbsp;full&nbsp;height&nbsp;of&nbsp;the&nbsp;graph<br>
 and&nbsp;it&nbsp;will&nbsp;have&nbsp;a&nbsp;second&nbsp;segment&nbsp;that&nbsp;starts&nbsp;at&nbsp;30%.</tt></dd></dl>
 
-<dl><dt><a name="BarGraph-set_segment_attributes"><strong>set_segment_attributes</strong></a>(self, attlist, hatt<font color="#909090">=None</font>)</dt><dd><tt>set_segment_attributes(&nbsp;[bg,&nbsp;fg,&nbsp;...],&nbsp;hatt&nbsp;)<br>
-bg&nbsp;--&nbsp;attribute&nbsp;or&nbsp;(attribute,&nbsp;character)&nbsp;tuple&nbsp;for&nbsp;background<br>
-fg&nbsp;--&nbsp;attribute&nbsp;or&nbsp;(attribute,&nbsp;character)&nbsp;tuple&nbsp;for&nbsp;bars<br>
-...&nbsp;--&nbsp;further&nbsp;attributes&nbsp;or&nbsp;tuples&nbsp;for&nbsp;multi-segment&nbsp;bars<br>
-hatt&nbsp;--&nbsp;attribute&nbsp;or&nbsp;(attribute,&nbsp;character)&nbsp;tuple&nbsp;for&nbsp;horizontal<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lines&nbsp;or&nbsp;None<br>
-&nbsp;<br>
-If&nbsp;hatt&nbsp;is&nbsp;None&nbsp;it&nbsp;will&nbsp;default&nbsp;to&nbsp;(bg's&nbsp;attribute,&nbsp;"_").<br>
-If&nbsp;hatt&nbsp;does&nbsp;not&nbsp;specidy&nbsp;the&nbsp;character&nbsp;it&nbsp;will&nbsp;default&nbsp;to&nbsp;"_".<br>
+<dl><dt><a name="BarGraph-set_segment_attributes"><strong>set_segment_attributes</strong></a>(self, attlist, hatt<font color="#909090">=None</font>, satt<font color="#909090">=None</font>)</dt><dd><tt>attlist&nbsp;--&nbsp;list&nbsp;containing&nbsp;attribute&nbsp;or&nbsp;(attribute,&nbsp;character)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tuple&nbsp;for&nbsp;background,&nbsp;first&nbsp;segment,&nbsp;and&nbsp;optionally<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;following&nbsp;segments.&nbsp;ie.&nbsp;len(attlist)&nbsp;==&nbsp;num&nbsp;segments+1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;character&nbsp;defaults&nbsp;to&nbsp;'&nbsp;'&nbsp;if&nbsp;not&nbsp;specified.<br>
+hatt&nbsp;--&nbsp;list&nbsp;containing&nbsp;attributes&nbsp;for&nbsp;horizontal&nbsp;lines.&nbsp;First&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lement&nbsp;is&nbsp;for&nbsp;lines&nbsp;on&nbsp;background,&nbsp;second&nbsp;is&nbsp;for&nbsp;lines<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;on&nbsp;first&nbsp;segment,&nbsp;third&nbsp;is&nbsp;for&nbsp;lines&nbsp;on&nbsp;second&nbsp;segment<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;etc..<br>
+satt&nbsp;--&nbsp;dictionary&nbsp;containing&nbsp;attributes&nbsp;for&nbsp;smoothed&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;transitions&nbsp;of&nbsp;bars&nbsp;in&nbsp;UTF-8&nbsp;display&nbsp;mode.&nbsp;The&nbsp;values<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;are&nbsp;in&nbsp;the&nbsp;form:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fg,bg)&nbsp;:&nbsp;attr<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fg&nbsp;and&nbsp;bg&nbsp;are&nbsp;integers&nbsp;where&nbsp;0&nbsp;is&nbsp;the&nbsp;graph&nbsp;background,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1&nbsp;is&nbsp;the&nbsp;first&nbsp;segment,&nbsp;2&nbsp;is&nbsp;the&nbsp;second,&nbsp;...&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fg&nbsp;&gt;&nbsp;bg&nbsp;in&nbsp;all&nbsp;values.&nbsp;&nbsp;attr&nbsp;is&nbsp;an&nbsp;attribute&nbsp;with&nbsp;a&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;foreground&nbsp;corresponding&nbsp;to&nbsp;fg&nbsp;and&nbsp;a&nbsp;background&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;corresponding&nbsp;to&nbsp;bg.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+If&nbsp;satt&nbsp;is&nbsp;not&nbsp;None&nbsp;and&nbsp;the&nbsp;bar&nbsp;graph&nbsp;is&nbsp;being&nbsp;displayed&nbsp;in<br>
+a&nbsp;terminal&nbsp;using&nbsp;the&nbsp;UTF-8&nbsp;encoding&nbsp;then&nbsp;the&nbsp;character&nbsp;cell<br>
+that&nbsp;is&nbsp;shared&nbsp;between&nbsp;the&nbsp;segments&nbsp;specified&nbsp;will&nbsp;be&nbsp;smoothed<br>
+with&nbsp;using&nbsp;the&nbsp;UTF-8&nbsp;vertical&nbsp;eighth&nbsp;characters.<br>
 &nbsp;<br>
 eg:&nbsp;set_segment_attributes(&nbsp;['no',&nbsp;('unsure',"?"),&nbsp;'yes']&nbsp;)<br>
 will&nbsp;use&nbsp;the&nbsp;attribute&nbsp;'no'&nbsp;for&nbsp;the&nbsp;background&nbsp;(the&nbsp;area&nbsp;from<br>
@@ -948,6 +974,21 @@ the&nbsp;top&nbsp;of&nbsp;the&nbsp;graph&nbsp;to&nbsp;the&nbsp;top&nbsp;of&nbsp;
 with&nbsp;the&nbsp;attribute&nbsp;'unsure'&nbsp;will&nbsp;be&nbsp;used&nbsp;for&nbsp;the&nbsp;topmost&nbsp;<br>
 segment&nbsp;of&nbsp;the&nbsp;bar,&nbsp;and&nbsp;the&nbsp;attribute&nbsp;'yes'&nbsp;will&nbsp;be&nbsp;used&nbsp;for<br>
 the&nbsp;bottom&nbsp;segment&nbsp;of&nbsp;the&nbsp;bar.</tt></dd></dl>
+
+<dl><dt><a name="BarGraph-smooth_display"><strong>smooth_display</strong></a>(self, disp)</dt><dd><tt>smooth&nbsp;(col,&nbsp;row*8)&nbsp;display&nbsp;into&nbsp;(col,&nbsp;row)&nbsp;display&nbsp;using<br>
+UTF&nbsp;vertical&nbsp;eighth&nbsp;characters&nbsp;represented&nbsp;as&nbsp;bar_type<br>
+tuple&nbsp;values:<br>
+(&nbsp;fg,&nbsp;bg,&nbsp;1-7&nbsp;)<br>
+where&nbsp;fg&nbsp;is&nbsp;the&nbsp;lower&nbsp;segment,&nbsp;bg&nbsp;is&nbsp;the&nbsp;upper&nbsp;segment&nbsp;and<br>
+1-7&nbsp;is&nbsp;the&nbsp;vertical&nbsp;eighth&nbsp;character&nbsp;to&nbsp;use.</tt></dd></dl>
+
+<dl><dt><a name="BarGraph-use_smoothed"><strong>use_smoothed</strong></a>(self)</dt></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>eighths</strong> = u' <font color="#c040c0">\u2581\u2582\u2583\u2584\u2585\u2586\u2587</font>'</dl>
+
+<dl><dt><strong>hlines</strong> = u'_<font color="#c040c0">\u23ba\u23bb\u2500\u23bc\u23bd</font>'</dl>
 
 <h3><a name="GraphVScale">class <strong>GraphVScale</strong></a>(BoxWidget) <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="GraphVScale-__init__"><strong>__init__</strong></a>(self, labels, top)</dt><dd><tt>GraphVScale(&nbsp;[(label1&nbsp;position,&nbsp;label1&nbsp;markup),...],&nbsp;top&nbsp;)<br>
@@ -968,16 +1009,24 @@ label&nbsp;markup&nbsp;--&nbsp;text&nbsp;markup&nbsp;for&nbsp;this&nbsp;label<br
 top&nbsp;--&nbsp;top&nbsp;y&nbsp;position</tt></dd></dl>
 
 <h3><a name="ProgressBar">class <strong>ProgressBar</strong></a>(FlowWidget) <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
-<dl><dt><a name="ProgressBar-__init__"><strong>__init__</strong></a>(self, normal, complete, current<font color="#909090">=0</font>, done<font color="#909090">=100</font>)</dt><dd><tt>normal&nbsp;--&nbsp;attribute&nbsp;for&nbsp;uncomplete&nbsp;part&nbsp;of&nbsp;progress&nbsp;bar<br>
+<dl><dt><a name="ProgressBar-__init__"><strong>__init__</strong></a>(self, normal, complete, current<font color="#909090">=0</font>, done<font color="#909090">=100</font>, satt<font color="#909090">=None</font>)</dt><dd><tt>normal&nbsp;--&nbsp;attribute&nbsp;for&nbsp;uncomplete&nbsp;part&nbsp;of&nbsp;progress&nbsp;bar<br>
 complete&nbsp;--&nbsp;attribute&nbsp;for&nbsp;complete&nbsp;part&nbsp;of&nbsp;progress&nbsp;bar<br>
 current&nbsp;--&nbsp;current&nbsp;progress<br>
-done&nbsp;--&nbsp;progress&nbsp;amount&nbsp;at&nbsp;100%</tt></dd></dl>
+done&nbsp;--&nbsp;progress&nbsp;amount&nbsp;at&nbsp;100%<br>
+satt&nbsp;--&nbsp;attribute&nbsp;for&nbsp;smoothed&nbsp;part&nbsp;of&nbsp;bar&nbsp;where&nbsp;the&nbsp;foreground<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;of&nbsp;satt&nbsp;corresponds&nbsp;to&nbsp;the&nbsp;normal&nbsp;part&nbsp;and&nbsp;the<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;background&nbsp;corresponds&nbsp;to&nbsp;the&nbsp;complete&nbsp;part.&nbsp;&nbsp;If&nbsp;satt<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;None&nbsp;then&nbsp;no&nbsp;smoothing&nbsp;will&nbsp;be&nbsp;done.</tt></dd></dl>
 
 <dl><dt><a name="ProgressBar-render"><strong>render</strong></a>(self, (maxcol,), focus<font color="#909090">=False</font>)</dt><dd><tt>Render&nbsp;the&nbsp;progress&nbsp;bar.</tt></dd></dl>
 
 <dl><dt><a name="ProgressBar-rows"><strong>rows</strong></a>(self, (maxcol,), focus<font color="#909090">=False</font>)</dt><dd><tt>Return&nbsp;1.</tt></dd></dl>
 
 <dl><dt><a name="ProgressBar-set_completion"><strong>set_completion</strong></a>(self, current)</dt><dd><tt>current&nbsp;--&nbsp;current&nbsp;progress</tt></dd></dl>
+
+<hr>
+Data and other attributes defined here:<br>
+<dl><dt><strong>eighths</strong> = u' <font color="#c040c0">\u258f\u258e\u258d\u258c\u258b\u258a\u2589</font>'</dl>
 
 <hr>
 Methods inherited from FlowWidget:<br>
@@ -1127,6 +1176,9 @@ Returns&nbsp;a&nbsp;layout&nbsp;structure&nbsp;without&nbsp;aligmnent&nbsp;appli
 
 <h2>Character encoding</h2><a name="set_encoding"></a><h3>function set_encoding <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3><dl><dt><a name="-set_encoding"><strong>set_encoding</strong></a>(encoding)</dt><dd><tt>Set&nbsp;the&nbsp;byte&nbsp;encoding&nbsp;to&nbsp;assume&nbsp;when&nbsp;processing&nbsp;strings&nbsp;and&nbsp;the<br>
 encoding&nbsp;to&nbsp;use&nbsp;when&nbsp;converting&nbsp;unicode&nbsp;strings.</tt></dd></dl>
+<a name="get_encoding_mode"></a><h3>function get_encoding_mode <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3><dl><dt><a name="-get_encoding_mode"><strong>get_encoding_mode</strong></a>()</dt><dd><tt>Get&nbsp;the&nbsp;mode&nbsp;Urwid&nbsp;is&nbsp;using&nbsp;when&nbsp;processing&nbsp;text&nbsp;strings.<br>
+Returns&nbsp;'narrow'&nbsp;for&nbsp;8-bit&nbsp;encodings,&nbsp;'wide'&nbsp;for&nbsp;CJK&nbsp;encodings<br>
+or&nbsp;'utf8'&nbsp;for&nbsp;UTF-8&nbsp;encodings.</tt></dd></dl>
 <a name="supports_unicode"></a><h3>function supports_unicode <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3><dl><dt><a name="-supports_unicode"><strong>supports_unicode</strong></a>()</dt><dd><tt>Return&nbsp;True&nbsp;if&nbsp;python&nbsp;is&nbsp;able&nbsp;to&nbsp;convert&nbsp;non-ascii&nbsp;unicode&nbsp;strings<br>
 to&nbsp;the&nbsp;current&nbsp;encoding.</tt></dd></dl>
 <h2>Screen capture</h2><a name="html_fragment.screenshot_init"></a><h3>function html_fragment.screenshot_init <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3><dl><dt><a name="-html_fragment.screenshot_init"><strong>html_fragment.screenshot_init</strong></a> = screenshot_init(sizes, keys)</dt><dd><tt>Replace&nbsp;curses_display.Screen&nbsp;and&nbsp;raw_display.Screen&nbsp;class&nbsp;with&nbsp;<br>

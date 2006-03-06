@@ -52,7 +52,7 @@ def set_encoding( encoding ):
 
 	global byte_encoding, target_encoding
 
-	if encoding in ( 'utf-8', 'utf8' ):
+	if encoding in ( 'utf-8', 'utf8', 'utf' ):
 		byte_encoding = "utf8"
 	elif encoding in ( 'euc-jp' # JISX 0208 only
 			, 'euc-kr', 'euc-cn', 'euc-tw' # CNS 11643 plain 1 only
@@ -71,6 +71,15 @@ def set_encoding( encoding ):
 			target_encoding = encoding
 	except LookupError: pass
 
+def get_encoding_mode():
+	"""
+	Get the mode Urwid is using when processing text strings.
+	Returns 'narrow' for 8-bit encodings, 'wide' for CJK encodings
+	or 'utf8' for UTF-8 encodings.
+	"""
+	return byte_encoding
+
+	
 ######################################################################
 # Try to set the encoding using the one detected by the locale module
 set_encoding( detected_encoding )
@@ -781,14 +790,14 @@ def trim_attr( attr, start, end ):
 drawing_charmap = {
 	u"◆" : "`",
 	u"▒" : "a",
-	u"␉" : "b",
-	u"␌" : "c",
-	u"␍" : "d",
-	u"␊" : "e",
+#	u"␉" : "b",
+#	u"␌" : "c",
+#	u"␍" : "d",
+#	u"␊" : "e",
 	u"°" : "f",
 	u"±" : "g",
-	u"␤" : "h",
-	u"␋" : "i",
+#	u"␤" : "h",
+#	u"␋" : "i",
 	u"┘" : "j",
 	u"┐" : "k",
 	u"┌" : "l",
@@ -831,7 +840,7 @@ def _tagmarkup_recurse( tm, attr ):
 	tm -- tagmarkup
 	attr -- current attribute or None"""
 	
-	if type(tm) == type(""):
+	if type(tm) == type("") or type(tm) == type( u"" ):
 		# text
 		return [tm], [(attr, len(tm))]
 		

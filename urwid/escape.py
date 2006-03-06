@@ -161,7 +161,6 @@ def process_keyqueue(keys, more_fn):
 	
 	if (util.byte_encoding == 'wide' and code < 256 and 
 		util.within_double_byte(chr(code),0,0)):
-		assert 0, code
 		if not keys:
 			key = more_fn()
 			if key >= 0: keys.append(key)
@@ -198,7 +197,6 @@ def process_keyqueue(keys, more_fn):
 			return ["<%d>"%code],keys
 		
 	if code >127 and code <256:
-		assert 0, code
 		key = chr(code)
 		return [key],keys
 	if code != 27:
