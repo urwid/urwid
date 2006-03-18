@@ -145,6 +145,15 @@ class Screen:
 		"""
 		signal.signal(signal.SIGWINCH, signal.SIG_DFL)
       
+	def set_mouse_tracking(self):
+		"""
+		Enable mouse tracking.  
+		
+		After calling this function get_input will include mouse
+		click events along with keystrokes.
+		"""
+		sys.stdout.write(escape.MOUSE_TRACKING_ON)
+		
 	def run_wrapper(self,fn):
 		""" Call fn and reset terminal on exit.
 		"""
@@ -162,6 +171,7 @@ class Screen:
 					0, self.maxrow)
 			sys.stdout.write( escape.set_attributes( 
 				'default', 'default') 
+				+ escape.MOUSE_TRACKING_OFF
 				+ move_cursor + "\n" + escape.SHOW_CURSOR )
 			
 	def get_input(self, raw_keys=False):

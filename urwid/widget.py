@@ -61,7 +61,7 @@ class Divider(FlowWidget):
 		top -- number of blank lines above
 		bottom -- number of blank lines below
 		"""
-		self.div_char=div_char
+		self.div_char=Text(div_char).render((1,)).text[0]
 		self.top=top
 		self.bottom=bottom
 		
@@ -157,20 +157,17 @@ class Text(FlowWidget):
 		Render contents with wrapping and alignment.  Return canvas.
 		"""
 
-		if maxcol == self._cache_maxcol:
-			text, attr = self.get_text()
-		else:	# update self._cache_translation
-			text, attr = self._update_cache_translation( maxcol )
+		text, attr = self.get_text()
+		trans = self.get_line_translation( maxcol, (text,attr) )
 			
-		return apply_text_layout( text, attr, self._cache_translation, 
-			maxcol )
+		return apply_text_layout( text, attr, trans, maxcol )
 		
 
 	def rows(self,(maxcol,), focus=False):
 		"""Return the number of rows the rendered text spans."""
 		return len(self.get_line_translation(maxcol))
 
-	def get_line_translation(self,maxcol):
+	def get_line_translation(self, maxcol, ta=None):
 		"""Return layout structure for mapping self.text to a canvas.
 		"""
 		# uses cached translation if available.  If set_text is not
@@ -178,15 +175,17 @@ class Text(FlowWidget):
 		# to None before calling this method.
 		
 		if not self._cache_maxcol or self._cache_maxcol != maxcol:
-			self._update_cache_translation(maxcol)
+			self._update_cache_translation(maxcol, ta)
 		return self._cache_translation
 
-	def _update_cache_translation(self,maxcol):
-		text, attr = self.get_text()
+	def _update_cache_translation(self,maxcol, ta):
+		if ta:
+			text, attr = ta
+		else:
+			text, attr = self.get_text()
 		self._cache_maxcol = maxcol
 		self._cache_translation = self._calc_line_translation(
 			text, maxcol )
-		return text, attr
 	
 	def _calc_line_translation(self, text, maxcol ):
 		return self.layout.layout(
@@ -228,7 +227,7 @@ class Edit(Text):
 			self.set_edit_pos(edit_pos)
 		self.highlight = None
 		self.pref_col_maxcol = None, None
-		self._shift_view_to_cursor = 0
+		self._shift_view_to_cursor = False
 	
 	def get_text(self):
 		"""get_text() -> text, attributes
@@ -405,13 +404,7 @@ class Edit(Text):
 		focus.
 		"""
 		
-		if focus:
-			# keep the cursor visible on clipped edit fields
-			self._shift_view_to_cursor = 1
-			self._cache_maxcol = None
-		elif self._shift_view_to_cursor:
-			self._shift_view_to_cursor = 0
-			self._cache_maxcol = None
+		self._shift_view_to_cursor = not not focus # force bool
 		
 		d = Text.render(self,(maxcol,))
 		if focus:
@@ -422,28 +415,29 @@ class Edit(Text):
 		#	d.coords['highlight'] = [ hstart, hstop ]
 		return d
 	
-	def _calc_line_translation(self, text, maxcol ):
-		trans = Text._calc_line_translation(self, text, maxcol)
+	def get_line_translation(self, maxcol, ta=None ):
+		trans = Text.get_line_translation(self, maxcol, ta)
 		if not self._shift_view_to_cursor: 
 			return trans
 		
+		text, ignore = self.get_text()
 		x,y = calc_coords( text, trans, 
 			self.edit_pos + len(self.caption) )
 		if x < 0:
-			trans[y] = shift_line( trans[y], -x )
+			return ( trans[:y]
+				+ [shift_line(trans[y],-x)]
+				+ trans[y+1:] )
 		elif x >= maxcol:
-			trans[y] = shift_line( trans[y], -(x-maxcol+1) )
+			return ( trans[:y] 
+				+ [shift_line(trans[y],-(x-maxcol+1))]
+				+ trans[y+1:] )
 		return trans
 			
 
 	def get_cursor_coords(self,(maxcol,)):
 		"""Return the (x,y) coordinates of cursor within widget."""
 
-		if self.wrap_mode == 'clip':
-			# keep the cursor visible on clipped edit fields
-			self._shift_view_to_cursor = 1
-			self._cache_maxcol = None
-
+		self._shift_view_to_cursor = True
 		return self.position_coords(maxcol,self.edit_pos)
 	
 	
@@ -455,7 +449,6 @@ class Edit(Text):
 		p = pos + len(self.caption)
 		trans = self.get_line_translation(maxcol)
 		x,y = calc_coords(self.get_text()[0], trans,p)
-		if x >= maxcol: x = maxcol-1
 		return x,y
 
 		

@@ -498,12 +498,14 @@ class EditTest(unittest.TestCase):
 
 class EditRenderTest(unittest.TestCase):
 	def rtest(self, w, expected_text, expected_cursor):
+		get_cursor = w.get_cursor_coords((4,))
+		assert get_cursor == expected_cursor, "got: "+`get_cursor`+" expected: "+`expected_cursor`
 		r = w.render((4,), focus = 1)
 		assert r.text == expected_text, "got: "+`r.text`+" expected: "+`expected_text`
 		assert r.cursor == expected_cursor, "got: "+`r.cursor`+" expected: "+`expected_cursor`
 
 	
-	def testSpaceWrap(self):
+	def test1_SpaceWrap(self):
 		w = urwid.Edit("","blah blah")
 		w.set_edit_pos(0)
 		self.rtest(w,["blah","blah"],(0,0))
@@ -517,7 +519,7 @@ class EditRenderTest(unittest.TestCase):
 		w.set_edit_pos(9)
 		self.rtest(w,["blah","lah "],(3,1))
 	
-	def testClipWrap(self):
+	def test2_ClipWrap(self):
 		w = urwid.Edit("","blah\nblargh",1)
 		w.set_wrap_mode('clip')
 		w.set_edit_pos(0)
@@ -530,11 +532,21 @@ class EditRenderTest(unittest.TestCase):
 		w.set_edit_pos(6)
 		self.rtest(w,["blah","larg"],(0,1))
 	
-	def testAnyWrap(self):
+	def test3_AnyWrap(self):
 		w = urwid.Edit("","blah blah")
 		w.set_wrap_mode('any')
 		
 		self.rtest(w,["blah"," bla","h   "],(1,2))
+
+	def test4_CursorNudge(self):
+		w = urwid.Edit("","hi",align='right')
+		w.keypress((4,),'end')
+
+		self.rtest(w,[" hi "],(3,0))
+		
+		w.keypress((4,),'left')
+		self.rtest(w,["  hi"],(3,0))
+		
 
 
 class SelectableText(urwid.Text):
@@ -1645,7 +1657,7 @@ class SmoothBarGraphTest(unittest.TestCase):
 		g = urwid.BarGraph( ['black','red','blue'],
 				None, {(1,0):'red/black', (2,1):'blue/red'})
 		g.set_data( data, top )
-		rval, ignore = g.calculate_display((5,3))
+		rval = g.calculate_display((5,3))
 		assert rval == exp, "%s expected %s, got %s"%(desc,`exp`,`rval`)
 	
 	def test1(self):

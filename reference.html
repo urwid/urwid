@@ -97,6 +97,11 @@ resize_wait&nbsp;--&nbsp;amount&nbsp;of&nbsp;time&nbsp;in&nbsp;seconds&nbsp;to&n
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stop&nbsp;Urwid&nbsp;from&nbsp;consuming&nbsp;100%&nbsp;cpu&nbsp;during&nbsp;a&nbsp;gradual<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;window&nbsp;resize&nbsp;operation</tt></dd></dl>
 
+<dl><dt><a name="Screen-set_mouse_tracking"><strong>set_mouse_tracking</strong></a>(self)</dt><dd><tt>Enable&nbsp;mouse&nbsp;tracking.&nbsp;&nbsp;<br>
+&nbsp;<br>
+After&nbsp;calling&nbsp;this&nbsp;function&nbsp;get_input&nbsp;will&nbsp;include&nbsp;mouse<br>
+click&nbsp;events&nbsp;along&nbsp;with&nbsp;keystrokes.</tt></dd></dl>
+
 <dl><dt><a name="Screen-signal_init"><strong>signal_init</strong></a>(self)</dt><dd><tt>Called&nbsp;in&nbsp;the&nbsp;startup&nbsp;of&nbsp;run&nbsp;wrapper&nbsp;to&nbsp;set&nbsp;the&nbsp;SIGWINCH&nbsp;<br>
 signal&nbsp;handler&nbsp;to&nbsp;self.<strong>_sigwinch_handler</strong>.<br>
 &nbsp;<br>
@@ -189,6 +194,11 @@ resize_wait&nbsp;--&nbsp;amount&nbsp;of&nbsp;time&nbsp;in&nbsp;seconds&nbsp;to&n
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;after&nbsp;receiving&nbsp;two&nbsp;screen&nbsp;resize&nbsp;requests&nbsp;in&nbsp;a&nbsp;row&nbsp;to<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stop&nbsp;urwid&nbsp;from&nbsp;consuming&nbsp;100%&nbsp;cpu&nbsp;during&nbsp;a&nbsp;gradual<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;window&nbsp;resize&nbsp;operation</tt></dd></dl>
+
+<dl><dt><a name="Screen-set_mouse_tracking"><strong>set_mouse_tracking</strong></a>(self)</dt><dd><tt>Enable&nbsp;mouse&nbsp;tracking.&nbsp;&nbsp;<br>
+&nbsp;<br>
+After&nbsp;calling&nbsp;this&nbsp;function&nbsp;get_input&nbsp;will&nbsp;include&nbsp;mouse<br>
+click&nbsp;events&nbsp;along&nbsp;with&nbsp;keystrokes.</tt></dd></dl>
 
 <h2>Top-level widgets</h2><h3><a name="BoxWidget">class <strong>BoxWidget</strong></a> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="BoxWidget-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;True.&nbsp;&nbsp;Selectable&nbsp;by&nbsp;default.</tt></dd></dl>
@@ -608,7 +618,7 @@ align&nbsp;--&nbsp;align&nbsp;mode&nbsp;for&nbsp;text&nbsp;layout<br>
 wrap&nbsp;--&nbsp;wrap&nbsp;mode&nbsp;for&nbsp;text&nbsp;layout<br>
 layout&nbsp;--&nbsp;layout&nbsp;object&nbsp;to&nbsp;use,&nbsp;defaults&nbsp;to&nbsp;StandardTextLayout</tt></dd></dl>
 
-<dl><dt><a name="Text-get_line_translation"><strong>get_line_translation</strong></a>(self, maxcol)</dt><dd><tt>Return&nbsp;layout&nbsp;structure&nbsp;for&nbsp;mapping&nbsp;self.<strong>text</strong>&nbsp;to&nbsp;a&nbsp;canvas.</tt></dd></dl>
+<dl><dt><a name="Text-get_line_translation"><strong>get_line_translation</strong></a>(self, maxcol, ta<font color="#909090">=None</font>)</dt><dd><tt>Return&nbsp;layout&nbsp;structure&nbsp;for&nbsp;mapping&nbsp;self.<strong>text</strong>&nbsp;to&nbsp;a&nbsp;canvas.</tt></dd></dl>
 
 <dl><dt><a name="Text-get_text"><strong>get_text</strong></a>(self)</dt><dd><tt>get_text()&nbsp;-&gt;&nbsp;text,&nbsp;attributes<br>
 &nbsp;<br>
@@ -663,6 +673,8 @@ layout&nbsp;--&nbsp;layout&nbsp;object</tt></dd></dl>
 
 <dl><dt><a name="Edit-get_edit_text"><strong>get_edit_text</strong></a>(self)</dt><dd><tt>Return&nbsp;the&nbsp;edit&nbsp;text&nbsp;for&nbsp;this&nbsp;widget.</tt></dd></dl>
 
+<dl><dt><a name="Edit-get_line_translation"><strong>get_line_translation</strong></a>(self, maxcol, ta<font color="#909090">=None</font>)</dt></dl>
+
 <dl><dt><a name="Edit-get_pref_col"><strong>get_pref_col</strong></a>(self, (maxcol,))</dt><dd><tt>Return&nbsp;the&nbsp;preferred&nbsp;column&nbsp;for&nbsp;the&nbsp;cursor,&nbsp;or&nbsp;the<br>
 current&nbsp;cursor&nbsp;x&nbsp;value.</tt></dd></dl>
 
@@ -700,8 +712,6 @@ Make&nbsp;sure&nbsp;any&nbsp;cached&nbsp;line&nbsp;translation&nbsp;is&nbsp;not&
 
 <hr>
 Methods inherited from Text:<br>
-<dl><dt><a name="Edit-get_line_translation"><strong>get_line_translation</strong></a>(self, maxcol)</dt><dd><tt>Return&nbsp;layout&nbsp;structure&nbsp;for&nbsp;mapping&nbsp;self.<strong>text</strong>&nbsp;to&nbsp;a&nbsp;canvas.</tt></dd></dl>
-
 <dl><dt><a name="Edit-rows"><strong>rows</strong></a>(self, (maxcol,), focus<font color="#909090">=False</font>)</dt><dd><tt>Return&nbsp;the&nbsp;number&nbsp;of&nbsp;rows&nbsp;the&nbsp;rendered&nbsp;text&nbsp;spans.</tt></dd></dl>
 
 <dl><dt><a name="Edit-set_align_mode"><strong>set_align_mode</strong></a>(self, mode)</dt><dd><tt>Set&nbsp;text&nbsp;alignment&nbsp;/&nbsp;justification.&nbsp;&nbsp;<br>
@@ -747,6 +757,8 @@ Methods inherited from Edit:<br>
 
 <dl><dt><a name="IntEdit-get_edit_text"><strong>get_edit_text</strong></a>(self)</dt><dd><tt>Return&nbsp;the&nbsp;edit&nbsp;text&nbsp;for&nbsp;this&nbsp;widget.</tt></dd></dl>
 
+<dl><dt><a name="IntEdit-get_line_translation"><strong>get_line_translation</strong></a>(self, maxcol, ta<font color="#909090">=None</font>)</dt></dl>
+
 <dl><dt><a name="IntEdit-get_pref_col"><strong>get_pref_col</strong></a>(self, (maxcol,))</dt><dd><tt>Return&nbsp;the&nbsp;preferred&nbsp;column&nbsp;for&nbsp;the&nbsp;cursor,&nbsp;or&nbsp;the<br>
 current&nbsp;cursor&nbsp;x&nbsp;value.</tt></dd></dl>
 
@@ -780,8 +792,6 @@ Make&nbsp;sure&nbsp;any&nbsp;cached&nbsp;line&nbsp;translation&nbsp;is&nbsp;not&
 
 <hr>
 Methods inherited from Text:<br>
-<dl><dt><a name="IntEdit-get_line_translation"><strong>get_line_translation</strong></a>(self, maxcol)</dt><dd><tt>Return&nbsp;layout&nbsp;structure&nbsp;for&nbsp;mapping&nbsp;self.<strong>text</strong>&nbsp;to&nbsp;a&nbsp;canvas.</tt></dd></dl>
-
 <dl><dt><a name="IntEdit-rows"><strong>rows</strong></a>(self, (maxcol,), focus<font color="#909090">=False</font>)</dt><dd><tt>Return&nbsp;the&nbsp;number&nbsp;of&nbsp;rows&nbsp;the&nbsp;rendered&nbsp;text&nbsp;spans.</tt></dd></dl>
 
 <dl><dt><a name="IntEdit-set_align_mode"><strong>set_align_mode</strong></a>(self, mode)</dt><dd><tt>Set&nbsp;text&nbsp;alignment&nbsp;/&nbsp;justification.&nbsp;&nbsp;<br>

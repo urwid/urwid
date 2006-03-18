@@ -57,7 +57,6 @@ _curses_colours = {
 # replace control characters with ?'s
 _trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
 
-WINDOW_RESIZE = 410
 
 class Screen:
 	def __init__(self):
@@ -129,6 +128,21 @@ class Screen:
 		
 		self.palette[name] = (i, fg_b, mono)
 		
+	
+	def set_mouse_tracking(self):
+		"""
+		Enable mouse tracking.  
+		
+		After calling this function get_input will include mouse
+		click events along with keystrokes.
+		"""
+		rval = curses.mousemask( 0 
+			| curses.BUTTON1_PRESSED | curses.BUTTON1_RELEASED
+			| curses.BUTTON2_PRESSED | curses.BUTTON2_RELEASED
+			| curses.BUTTON3_PRESSED | curses.BUTTON3_RELEASED
+			| curses.BUTTON4_PRESSED | curses.BUTTON4_RELEASED
+			| curses.BUTTON_SHIFT | curses.BUTTON_ALT
+			| curses.BUTTON_CTRL )
 	
 	def run_wrapper(self,fn):
 		"""Call fn in fullscreen mode.  Return to normal on exit.
@@ -345,11 +359,12 @@ class Screen:
 		
 		while key >= 0:
 			raw.append(key)
-			if key==WINDOW_RESIZE: 
+			if key==curses.KEY_RESIZE: 
 				resize = True
-				key = self._getch_nodelay()
-				continue
-			keys.append(key)
+			elif key==curses.KEY_MOUSE:
+				keys += self._encode_mouse_event()
+			else:
+				keys.append(key)
 			key = self._getch_nodelay()
 
 		processed = []
@@ -373,6 +388,27 @@ class Screen:
 		return processed, raw
 		
 		
+	def _encode_mouse_event(self):
+		# convert back to escape sequence
+		(id,x,y,z,bstate) = curses.getmouse()
+		if bstate & curses.BUTTON1_PRESSED:	b = 0
+		elif bstate & curses.BUTTON2_PRESSED:	b = 1
+		elif bstate & curses.BUTTON3_PRESSED:	b = 2
+		elif bstate & curses.BUTTON4_PRESSED:	b = 64
+		else:
+			#assert 0, `bstate, bstate&curses.BUTTON1_RELEASED, \
+			#	bstate&curses.BUTTON2_RELEASED, \
+			#	bstate&curses.BUTTON3_RELEASED, \
+			#	bstate&curses.BUTTON4_RELEASED`
+			#x = bstate&curses.BUTTON1_RELEASED
+			#y = bstate&curses.BUTTON2_RELEASED
+			b = 3
+		
+		if bstate & curses.BUTTON_SHIFT:	b |= 4
+		if bstate & curses.BUTTON_ALT:		b |= 8
+		if bstate & curses.BUTTON_CTRL:		b |= 16
+		
+		return [ 27, ord('['), ord('M'), b + 32, x + 33, y + 33 ]
 			
 
 	def _dbg_instr(self): # messy input string (intended for debugging)

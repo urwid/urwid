@@ -871,3 +871,6 @@ def _tagmarkup_recurse( tm, attr ):
 	
 	raise TagMarkupException, "Invalid markup element: %s" % `tm`
 
+
+def is_mouse_event( ev ):
+	return type(ev) == type(()) and len(ev)==4 and ev[0].find("mouse")>=0

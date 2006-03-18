@@ -76,6 +76,9 @@ input_sequences = [
 		(11,12,13,14,15,17,18,19,20,21,23,24,25,26,28,29,31,32,33,34),
 		('f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11',
 		'f12','f13','f14','f15','f16','f17','f18','f19','f20'))
+] + [
+	# mouse reporting (special handling done in KeyqueueTrie)
+	('[M', 'mouse')
 ]
 
 class KeyqueueTrie:
@@ -102,6 +105,8 @@ class KeyqueueTrie:
 	
 	def get_recurse(self, root, keys, more_fn):
 		if type(root) != type({}):
+			if root == "mouse":
+				return self.read_mouse_info( keys, more_fn )
 			return (root, keys)
 		if not keys:
 			# get more keys
@@ -112,6 +117,31 @@ class KeyqueueTrie:
 		if not root.has_key(keys[0]):
 			return None
 		return self.get_recurse( root[keys[0]], keys[1:], more_fn )
+	
+	def read_mouse_info(self, keys, more_fn):
+		while len(keys) < 3:
+			key = more_fn()
+			if key < 0:
+				return None
+			keys.append(key)
+		
+		b = keys[0] - 32
+		x, y = keys[1] - 33, keys[2] - 33  # start from 0
+		
+		prefix = ""
+		if b & 4:	prefix = prefix + "shift "
+		if b & 8:	prefix = prefix + "meta "
+		if b & 16:	prefix = prefix + "ctrl "
+
+		if b & 3 == 3:	
+			action = "release"
+			b = 0
+		else:
+			action = "press"
+			b = ((b&64)/64*3) + (b & 3) + 1
+
+		return ( (prefix + "mouse " + action, b, x, y), keys[3:] )
+
 		
 
 #################################################
@@ -244,6 +274,9 @@ def set_cursor_position( x, y ):
 
 HIDE_CURSOR = ESC+"[?25l"
 SHOW_CURSOR = ESC+"[?25h"
+
+MOUSE_TRACKING_ON = ESC+"[?1000h"
+MOUSE_TRACKING_OFF = ESC+"[?1000l"
 
 _fg_attr = {
 	'default':	"0;39",
