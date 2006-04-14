@@ -613,6 +613,10 @@ class Screen:
 			background = "light gray"
 		self.palette[name] = (foreground, background, mono)
 
+	def set_mouse_tracking(self):
+		"""Not yet implemented"""
+		pass
+
 	def run_wrapper(self,fn):
 		"""Start the application main loop.
 		
@@ -840,7 +844,7 @@ class Screen:
 		"""Return the screen size."""
 		return self.screen_size
 
-	def get_input(self):
+	def get_input(self, raw_keys=False):
 		"""Return pending input as a list."""
 		l = []
 		resized = False
@@ -850,10 +854,15 @@ class Screen:
 				[self.input_fd],[],[],0.5)
 		except select.error, e:
 			# return on interruptions
-			if e.args[0] == 4: return []
+			if e.args[0] == 4: 
+				if raw_keys:
+					return [],[]
+				return []
 			raise
 
 		if not iready:
+			if raw_keys:
+				return [],[]
 			return []
 		
 		keydata = os.read(self.input_fd, MAX_READ)
@@ -877,6 +886,8 @@ class Screen:
 		if resized:
 			l.append("window resize")
 		
+		if raw_keys:
+			return l, []
 		return l
 	
 

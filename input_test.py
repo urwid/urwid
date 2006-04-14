@@ -69,7 +69,7 @@ class KeyTest:
 			if keys:
 				self.ui.draw_screen((cols,rows),
 					self.top.render((cols,rows),focus=True))
-			keys = self.ui.get_input()
+			keys, raw = self.ui.get_input(raw_keys=True)
 			if 'window resize' in keys:
 				cols, rows = self.ui.get_cols_rows()
 			if not keys:
@@ -86,13 +86,19 @@ class KeyTest:
 				else:
 					t += ["'",('key',k),"' "]
 			
-			self.l.append(urwid.Text(t))
+			rawt = urwid.Text(", ".join(["%d"%r for r in raw]))
+			
+			self.l.append(
+				urwid.Columns([
+					('weight',2,urwid.Text(t)),
+					rawt])
+				)
 			self.listbox.set_focus(len(self.l)-1,'above')
 				
 
 
 def main():
-	urwid.web_display.set_preferences('KeyTest')
+	urwid.web_display.set_preferences('Input Test')
 	if urwid.web_display.handle_short_request():
 		return
 	KeyTest().main()

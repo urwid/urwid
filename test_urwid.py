@@ -20,6 +20,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import nested_scopes
 
 import urwid
 
@@ -324,23 +325,52 @@ class CalcTranslateWordTest3(CalcTranslateTest):
 		[(3, None), (4, 0, 6), (0, 6)], 
 		[(2, None), (6, 7, 16), (0, 16)]]
 	
+class CalcTranslateWordTest4(CalcTranslateTest):
+	text = ' Die Gedank'
+	width = 3
+	mode = 'space'
+	result_left = [
+		[(0, 0)], 
+		[(3, 1, 4), (0, 4)], 
+		[(3, 5, 8)], 
+		[(3, 8, 11), (0, 11)]]
+	result_right = [
+		[(3, None), (0, 0)], 
+		[(3, 1, 4), (0, 4)], 
+		[(3, 5, 8)], 
+		[(3, 8, 11), (0, 11)]]
+	result_center = [
+		[(2, None), (0, 0)], 
+		[(3, 1, 4), (0, 4)], 
+		[(3, 5, 8)], 
+		[(3, 8, 11), (0, 11)]]
 
+class CalcTranslateWordTest5(CalcTranslateTest):
+	text = ' Word.'
+	width = 3
+	mode = 'space'
+	result_left = [[(3, 0, 3)], [(3, 3, 6), (0, 6)]]
+	result_right = [[(3, 0, 3)], [(3, 3, 6), (0, 6)]]
+	result_center = [[(3, 0, 3)], [(3, 3, 6), (0, 6)]]
 class CalcTranslateClipTest(CalcTranslateTest):
-	text = "It's out of control!\nYou've got to\nturn it off!!!"
+	text = "It's out of control!\nYou've got to\n\nturn it off!!!"
 	mode = 'clip'
 	width = 14
 	result_left = [
 		[(20, 0, 20), (0, 20)], 
 		[(13, 21, 34), (0, 34)], 
-		[(14, 35, 49), (0, 49)]]
+		[(0, 35)],
+		[(14, 36, 50), (0, 50)]]
 	result_right = [
 		[(-6, None), (20, 0, 20), (0, 20)], 
 		[(1, None), (13, 21, 34), (0, 34)], 
-		[(14, 35, 49), (0, 49)]]
+		[(14, None), (0, 35)],
+		[(14, 36, 50), (0, 50)]]
 	result_center = [
 		[(-3, None), (20, 0, 20), (0, 20)], 
 		[(1, None), (13, 21, 34), (0, 34)], 
-		[(14, 35, 49), (0, 49)]]
+		[(7, None), (0, 35)],
+		[(14, 36, 50), (0, 50)]]
 
 	
 
@@ -1762,6 +1792,8 @@ def test_main():
 		CalcTranslateWordTest,
 		CalcTranslateWordTest2,
 		CalcTranslateWordTest3,
+		CalcTranslateWordTest4,
+		CalcTranslateWordTest5,
 		CalcTranslateClipTest,
 		CalcPosTest,
 		Pos2CoordsTest,

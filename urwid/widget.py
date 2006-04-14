@@ -1516,8 +1516,12 @@ class Frame(BoxWidget):
 		"""Pass keypress to widget in focus."""
 		
 		if self.focus_part == 'header' and self.header is not None:
-			return self.header.keypress((maxcol,),key)
+			if not self.header.selectable():
+				return key
+			return self.header.keypress((maxcol,),key) 
 		if self.focus_part == 'footer' and self.footer is not None:
+			if not self.footer.selectable():
+				return key
 			return self.footer.keypress((maxcol,),key)
 		if self.focus_part != 'body':
 			return key
@@ -1528,6 +1532,8 @@ class Frame(BoxWidget):
 			remaining -= self.footer.rows((maxcol,))
 		if remaining <= 0: return key
 	
+		if not self.body.selectable():
+			return key
 		return self.body.keypress( (maxcol, remaining), key )
 
 
@@ -1660,9 +1666,10 @@ class Pile(FlowWidget):
 		"""Pass the keypress to the widget in focus.
 		Unhandled 'up' and 'down' keys may cause a focus change."""
 
-		key = self.focus_item.keypress( (maxcol,), key )
-		if key not in ('up', 'down'):
-			return key
+		if self.focus_item.selectable():
+			key = self.focus_item.keypress( (maxcol,), key )
+			if key not in ('up', 'down'):
+				return key
 
 		i = self.widget_list.index(self.focus_item)
 		if key == 'up':

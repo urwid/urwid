@@ -133,16 +133,29 @@ class KeyqueueTrie:
 		if b & 8:	prefix = prefix + "meta "
 		if b & 16:	prefix = prefix + "ctrl "
 
+		# 0->1, 1->2, 2->3, 64->4, 65->5
+		button = ((b&64)/64*3) + (b & 3) + 1
+
 		if b & 3 == 3:	
 			action = "release"
-			b = 0
+			button = 0
+		elif b & MOUSE_RELEASE_FLAG:
+			action = "release"
+		elif b & MOUSE_DRAG_FLAG:
+			action = "drag"
 		else:
 			action = "press"
-			b = ((b&64)/64*3) + (b & 3) + 1
 
-		return ( (prefix + "mouse " + action, b, x, y), keys[3:] )
+		return ( (prefix + "mouse " + action, button, x, y), keys[3:] )
 
-		
+
+# This is added to button value to signal mouse release by curses_display
+# and raw_display when we know which button was released.  NON-STANDARD 
+MOUSE_RELEASE_FLAG = 2048  
+
+# xterm adds this to the button value to signal a mouse drag event
+MOUSE_DRAG_FLAG = 32
+
 
 #################################################
 # Build the input trie from input_sequences list
@@ -275,8 +288,8 @@ def set_cursor_position( x, y ):
 HIDE_CURSOR = ESC+"[?25l"
 SHOW_CURSOR = ESC+"[?25h"
 
-MOUSE_TRACKING_ON = ESC+"[?1000h"
-MOUSE_TRACKING_OFF = ESC+"[?1000l"
+MOUSE_TRACKING_ON = ESC+"[?1000h"+ESC+"[?1002h"
+MOUSE_TRACKING_OFF = ESC+"[?1002l"+ESC+"[?1000l"
 
 _fg_attr = {
 	'default':	"0;39",

@@ -23,6 +23,8 @@
 Curses-based UI implementation
 """
 
+from __future__ import nested_scopes
+
 import curses
 import sys
 
@@ -70,6 +72,7 @@ class Screen:
 		self._keyqueue = []
 		self.prev_input_resize = 0
 		self.set_input_timeouts()
+		self.last_bstate = 0
 
 	def register_palette( self, l ):
 		"""Register a list of palette entries.
@@ -389,26 +392,47 @@ class Screen:
 		
 		
 	def _encode_mouse_event(self):
-		# convert back to escape sequence
+		# convert to escape sequence
+		last = next = self.last_bstate
 		(id,x,y,z,bstate) = curses.getmouse()
-		if bstate & curses.BUTTON1_PRESSED:	b = 0
-		elif bstate & curses.BUTTON2_PRESSED:	b = 1
-		elif bstate & curses.BUTTON3_PRESSED:	b = 2
-		elif bstate & curses.BUTTON4_PRESSED:	b = 64
-		else:
-			#assert 0, `bstate, bstate&curses.BUTTON1_RELEASED, \
-			#	bstate&curses.BUTTON2_RELEASED, \
-			#	bstate&curses.BUTTON3_RELEASED, \
-			#	bstate&curses.BUTTON4_RELEASED`
-			#x = bstate&curses.BUTTON1_RELEASED
-			#y = bstate&curses.BUTTON2_RELEASED
-			b = 3
 		
-		if bstate & curses.BUTTON_SHIFT:	b |= 4
-		if bstate & curses.BUTTON_ALT:		b |= 8
-		if bstate & curses.BUTTON_CTRL:		b |= 16
+		mod = 0
+		if bstate & curses.BUTTON_SHIFT:	mod |= 4
+		if bstate & curses.BUTTON_ALT:		mod |= 8
+		if bstate & curses.BUTTON_CTRL:		mod |= 16
 		
-		return [ 27, ord('['), ord('M'), b + 32, x + 33, y + 33 ]
+		l = []
+		def append_button( b ):
+			b |= mod
+			l.extend([ 27, ord('['), ord('M'), b+32, x+33, y+33 ])
+		
+		if bstate & curses.BUTTON1_PRESSED and last & 1 == 0:
+			append_button( 0 )
+			next |= 1
+		if bstate & curses.BUTTON2_PRESSED and last & 2 == 0:
+			append_button( 1 )
+			next |= 2
+		if bstate & curses.BUTTON3_PRESSED and last & 4 == 0:
+			append_button( 2 )
+			next |= 4
+		if bstate & curses.BUTTON4_PRESSED and last & 8 == 0:
+			append_button( 64 )
+			next |= 8
+		if bstate & curses.BUTTON1_RELEASED and last & 1:
+			append_button( 0 + escape.MOUSE_RELEASE_FLAG )
+			next &= ~ 1
+		if bstate & curses.BUTTON2_RELEASED and last & 2:
+			append_button( 1 + escape.MOUSE_RELEASE_FLAG )
+			next &= ~ 2
+		if bstate & curses.BUTTON3_RELEASED and last & 4:
+			append_button( 2 + escape.MOUSE_RELEASE_FLAG )
+			next &= ~ 4
+		if bstate & curses.BUTTON4_RELEASED and last & 8:
+			append_button( 64 + escape.MOUSE_RELEASE_FLAG )
+			next &= ~ 8
+		
+		self.last_bstate = next
+		return l
 			
 
 	def _dbg_instr(self): # messy input string (intended for debugging)

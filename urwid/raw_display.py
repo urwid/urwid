@@ -23,6 +23,8 @@
 Direct terminal UI implementation
 """
 
+from __future__ import nested_scopes
+
 import fcntl
 import termios
 import os
@@ -31,6 +33,7 @@ import struct
 import sys
 import tty
 import signal
+import popen2
 
 import util
 import escape
@@ -54,6 +57,9 @@ class Screen:
 		self.screen_buf = None
 		self.resized = False
 		self.maxrow = None
+		self.gpm_mev = None
+		self.gpm_event_pending = False
+		self.last_bstate = 0
 	
 	def register_palette( self, l ):
 		"""Register a list of palette entries.
@@ -153,7 +159,22 @@ class Screen:
 		click events along with keystrokes.
 		"""
 		sys.stdout.write(escape.MOUSE_TRACKING_ON)
-		
+
+		self._start_gpm_tracking()
+	
+	def _start_gpm_tracking(self):
+		if not os.path.isfile("/usr/bin/mev"):
+			return
+		if not os.environ.get('TERM',"").lower().startswith("linux"):
+			return
+		m = popen2.Popen3("/usr/bin/mev -e 158")
+		self.gpm_mev = m
+	
+	def _stop_gpm_tracking(self):
+		os.kill(self.gpm_mev.pid, signal.SIGINT)
+		os.waitpid(self.gpm_mev.pid, 0)
+		self.gpm_mev = None
+	
 	def run_wrapper(self,fn):
 		""" Call fn and reset terminal on exit.
 		"""
@@ -166,6 +187,8 @@ class Screen:
 			self.signal_restore()
 			termios.tcsetattr(0, termios.TCSADRAIN, old_settings)
 			move_cursor = ""
+			if self.gpm_mev:
+				self._stop_gpm_tracking()
 			if self.maxrow is not None:
 				move_cursor = escape.set_cursor_position( 
 					0, self.maxrow)
@@ -239,13 +262,13 @@ class Screen:
 		raw = []
 		keys = []
 		
-		while key >= 0:
-			raw.append(key)
-			#if key==WINDOW_RESIZE: 
-			#	resize = True
-			#	key = self._getch_nodelay()
-			#	continue
-			keys.append(key)
+		while key >= 0 or self.gpm_event_pending:
+			if self.gpm_event_pending:
+				keys += self._encode_gpm_event()
+
+			if key >= 0:
+				raw.append(key)
+				keys.append(key)
 			key = self._getch_nodelay()
 
 		processed = []
@@ -273,18 +296,86 @@ class Screen:
 		
 	def _getch(self, timeout):
 		ready = None
+		fd_list = [0]
+		if self.gpm_mev is not None:
+			fd_list += [ self.gpm_mev.fromchild ]
 		while True:
 			try:
-				ready,w,err = select.select([0],[],[0], timeout)
+				ready,w,err = select.select(
+					fd_list,[],fd_list, timeout)
 				break
 			except select.error, e:
 				if e.args[0] != 4: 
 					raise
 				if self.resized:
+					ready = []
 					break
-		if ready:
+		if self.gpm_mev is not None:
+			if self.gpm_mev.fromchild in ready:
+				self.gpm_event_pending = True
+		if 0 in ready:
 			return ord(os.read(0, 1))
 		return -1
+	
+	def _encode_gpm_event( self ):
+		self.gpm_event_pending = False
+		s = self.gpm_mev.fromchild.readline()
+		l = s.split(",")
+		if len(l) != 6:
+			# unexpected output, stop tracking
+			self._stop_gpm_tracking()
+			return []
+		ev, x, y, ign, b, m = s.split(",")
+		ev = int( ev.split("x")[-1], 16)
+		x = int( x.split(" ")[-1] )
+		y = int( y.lstrip().split(" ")[0] )
+		b = int( b.split(" ")[-1] )
+		m = int( m.split("x")[-1].rstrip(), 16 )
+
+		# convert to xterm-like escape sequence
+
+		last = next = self.last_bstate
+		l = []
+		
+		mod = 0
+		if m & 1:	mod |= 4 # shift
+		if m & 10:	mod |= 8 # alt
+		if m & 4:	mod |= 16 # ctrl
+
+		def append_button( b ):
+			b |= mod
+			l.extend([ 27, ord('['), ord('M'), b+32, x+32, y+32 ])
+
+		if ev == 20: # press
+			if b & 4 and last & 1 == 0:
+				append_button( 0 )
+				next |= 1
+			if b & 2 and last & 2 == 0:
+				append_button( 1 )
+				next |= 2
+			if b & 1 and last & 4 == 0:
+				append_button( 2 )
+				next |= 4
+		elif ev == 146: # drag
+			if b & 4:
+				append_button( 0 + escape.MOUSE_DRAG_FLAG )
+			elif b & 2:
+				append_button( 1 + escape.MOUSE_DRAG_FLAG )
+			elif b & 1:
+				append_button( 2 + escape.MOUSE_DRAG_FLAG )
+		else: # release
+			if b & 4 and last & 1:
+				append_button( 0 + escape.MOUSE_RELEASE_FLAG )
+				next &= ~ 1
+			if b & 2 and last & 2:
+				append_button( 1 + escape.MOUSE_RELEASE_FLAG )
+				next &= ~ 2
+			if b & 1 and last & 4:
+				append_button( 2 + escape.MOUSE_RELEASE_FLAG )
+				next &= ~ 4
+			
+		self.last_bstate = next
+		return l
 	
 	def _getch_nodelay(self):
 		return self._getch(0)

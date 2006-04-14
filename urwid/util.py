@@ -184,9 +184,10 @@ class StandardTextLayout(TextLayout):
 				if n_cr == -1: 
 					n_cr = len(text)
 				sc = calc_width(text, p, n_cr)
-				b.append([(sc,p,n_cr),
-					# removed character hint
-					(0,n_cr)])
+				l = [(0,n_cr)]
+				if p!=n_cr:
+					l = [(sc, p, n_cr)] + l
+				b.append(l)
 				p = n_cr+1
 			return b
 
@@ -234,9 +235,10 @@ class StandardTextLayout(TextLayout):
 				prev = move_prev_char(text, p, prev)
 				if text[prev] == " ":
 					sc = calc_width(text,p,prev)
-					b.append([(sc,p,prev),
-						# removed character hint
-						(0,prev)])
+					l = [(0,prev)]
+					if p!=prev:
+						l = [(sc,p,prev)] + l
+					b.append(l)
 					p = prev+1 
 					break
 				if is_wide_char(text,prev):
@@ -249,10 +251,16 @@ class StandardTextLayout(TextLayout):
 			else:
 				# unwrap previous line space if possible to
 				# fit more text (we're breaking a word anyway)
-				if b and len(b[-1]) == 2:
+				if b and (len(b[-1]) == 2 or ( len(b[-1])==1 
+						and len(b[-1][0])==2 )):
 					# look for removed space above
-					[(p_sc, p_off, p_end),
-			       		(h_sc, h_off)] = b[-1]
+					if len(b[-1]) == 1:
+						[(h_sc, h_off)] = b[-1]
+						p_sc = 0
+						p_off = p_end = h_off
+					else:
+						[(p_sc, p_off, p_end),
+				       		(h_sc, h_off)] = b[-1]
 					if (p_sc < width and h_sc==0 and
 						text[h_off] == " "):
 						# combine with previous line
