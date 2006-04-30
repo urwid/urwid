@@ -32,7 +32,7 @@ Features:
 """
 
 import urwid
-import urwid.curses_display
+import urwid.raw_display
 import urwid.web_display
 
 try: True # old python?
@@ -42,7 +42,7 @@ except: False, True = 0, 1
 if urwid.web_display.is_web_request():
 	Screen = urwid.web_display.Screen
 else:
-	Screen = urwid.curses_display.Screen
+	Screen = urwid.raw_display.Screen
 
 
 def div_or_none(a,b):
@@ -284,12 +284,13 @@ class CellWalker:
 			return self._get_at_pos( (i, 1) )
 	
 			
-class CellColumn( urwid.BoxWidget ):
+class CellColumn( urwid.WidgetWrap ):
 	def __init__(self, letter):
 		self.content = [ Cell( None ) ]
 		self.walker = CellWalker( self.content )
 		self.listbox = urwid.ListBox( self.walker )
 		self.set_letter( letter )
+		urwid.WidgetWrap.__init__(self, self.frame)
 	
 	def set_letter(self, letter):
 		"""Set the column header with letter."""
@@ -300,9 +301,6 @@ class CellColumn( urwid.BoxWidget ):
 			layout = CALC_LAYOUT), 'colhead' )
 		self.frame = urwid.Frame( self.listbox, header )
 			
-	def render(self, (maxcol, maxrow), **args):
-		return self.frame.render( (maxcol, maxrow), **args )
-
 	def keypress(self, size, key):
 		key = self.frame.keypress( size, key)
 		if key is None: 
@@ -587,6 +585,7 @@ class CalcDisplay:
 
 	def run(self):
 		"""Update screen and accept user input."""
+		self.ui.set_mouse_tracking()
 		size = self.ui.get_cols_rows()
 		self.event = None
 		while 1:
@@ -607,6 +606,12 @@ class CalcDisplay:
 				
 			# handle each key one at a time
 			for k in keys:
+				if urwid.is_mouse_event(k):
+					event, button, col, row = k
+					view.mouse_event( size, event, button,
+						col, row, focus=True )
+					continue
+			
 				if k == 'window resize':
 					# read the new screen size
 					size = self.ui.get_cols_rows()

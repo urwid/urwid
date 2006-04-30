@@ -32,6 +32,11 @@ import urwid.raw_display
 try: True # old python?
 except: False, True = 0, 1
 
+
+class DialogExit(Exception):
+	pass
+
+
 class DialogDisplay:
 	palette = [
 		('body','black','light gray', 'standout'),
@@ -93,34 +98,40 @@ class DialogDisplay:
 			self.buttons ], focus_item = 1)
 
 	def button_press(self, button):
-		self.exit = button.exitcode
+		raise DialogExit(button.exitcode)
 
 	def main(self):
 		self.ui = urwid.raw_display.Screen()
 		self.ui.register_palette( self.palette )
-
 		return self.ui.run_wrapper( self.run )
 
 	def run(self):
-		self.exit = None
+		self.ui.set_mouse_tracking()
 		size = self.ui.get_cols_rows()
-		while self.exit is None:
-			canvas = self.view.render( size, focus=True )
-			self.ui.draw_screen( size, canvas )
-			keys = None
-			while not keys: 
-				keys = self.ui.get_input()
-			for k in keys:
-				if k == 'window resize':
-					size = self.ui.get_cols_rows()
-				k = self.view.keypress( size, k )
+		try:
+			while True:
+				canvas = self.view.render( size, focus=True )
+				self.ui.draw_screen( size, canvas )
+				keys = None
+				while not keys: 
+					keys = self.ui.get_input()
+				for k in keys:
+					if urwid.is_mouse_event(k):
+						event, button, col, row = k
+						self.view.mouse_event( size, 
+							event, button, col, row,
+							focus=True)
+					if k == 'window resize':
+						size = self.ui.get_cols_rows()
+					k = self.view.keypress( size, k )
 
-				if k:
-					self.unhandled_key( size, k)
-		return self.on_exit()
+					if k:
+						self.unhandled_key( size, k)
+		except DialogExit, e:
+			return self.on_exit( e.args[0] )
 		
-	def on_exit(self):
-		return self.exit, ""
+	def on_exit(self, exitcode):
+		return exitcode, ""
 
 	def unhandled_key(self, size, key):
 		pass
@@ -147,8 +158,8 @@ class InputDialogDisplay(DialogDisplay):
 			self.frame.set_focus('footer')
 			self.view.keypress( size, k )
 	
-	def on_exit(self):
-		return self.exit, self.edit.get_edit_text()
+	def on_exit(self, exitcode):
+		return exitcode, self.edit.get_edit_text()
 
 	
 class TextDialogDisplay(DialogDisplay):
@@ -208,33 +219,33 @@ class ListDialogDisplay(DialogDisplay):
 			self.buttons.set_focus(0)
 			self.view.keypress( size, k )
 
-	def on_exit(self):
+	def on_exit(self, exitcode):
 		"""Print the tag of the item selected."""
-		if self.exit != 0:
-			return self.exit, ""
+		if exitcode != 0:
+			return exitcode, ""
 		s = ""
 		for i in self.items:
 			if i.get_state():
 				s = i.get_label()
 				break
-		return self.exit, s
+		return exitcode, s
 		
 	
 	
 
 class CheckListDialogDisplay(ListDialogDisplay):
-	def on_exit(self):
+	def on_exit(self, exitcode):
 		"""
 		Mimick dialog(1)'s --checklist exit. 
 		Put each checked item in double quotes with a trailing space.
 		"""
-		if self.exit != 0:
-			return self.exit, ""
+		if exitcode != 0:
+			return exitcode, ""
 		l = []
 		for i in self.items:
 			if i.get_state():
 				l.append(i.get_label())
-		return self.exit, "".join(['"'+tag+'" ' for tag in l])
+		return exitcode, "".join(['"'+tag+'" ' for tag in l])
 
 
 
@@ -249,8 +260,13 @@ class MenuItem(urwid.Text):
 	def keypress(self,size,key):
 		if key == "enter":
 			self.state = True
-		# return key so that unhandled_key will catch exit condition
+			raise DialogExit, 0
 		return key
+	def mouse_event(self,size,event,button,col,row,focus):
+		if event=='mouse release':
+			self.state = True
+			raise DialogExit, 0
+		return False
 	def get_state(self):
 		return self.state
 	def get_label(self):
@@ -271,7 +287,7 @@ def do_inputbox(text, height, width):
 	return d
 
 def do_menu(text, height, width, menu_height, *items):
-	def constr(tag, state):
+	def constr(tag, state ):
 		return MenuItem(tag)
 	d = ListDialogDisplay(text, height, width, constr, items, False)
 	d.add_buttons([	("OK", 0), ("Cancel", 1) ])

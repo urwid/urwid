@@ -9,8 +9,10 @@
 	.l1 { margin: 12px 0 0 0; }
 	.l2 { margin-left: 20px; }
 	.shot { padding: 5px 20px 5px 0px; float: left; }
+	.back { font-size:small; padding-left: 20px; }
 </style>
 <body>
+<a name="top"></a>
 <h1>Urwid Tutorial</h1>
 
 <div style="text-align: center;">
@@ -23,41 +25,67 @@ Tutorial /
 <br>
 
 <table width="100%"><tr><td width="50%" valign="top">
+
 <div class="l1">1. Hello World Example</div>
-<div class="l2"><a href="#1.1">1.1. Minimal Urwid Application</a></div>
-<div class="l2"><a href="#1.2">1.2. Text and Filler Widgets</a></div>
-<div class="l2"><a href="#1.3">1.3. AttrWrap Widgets and Text Attributes</a></div>
-<div class="l2"><a href="#1.4">1.4. Live Resizing</a></div>
+
+<div class="l2"><a href="#min">1.1. Minimal Urwid Application</a></div>
+
+<div class="l2"><a href="#text">1.2. Text and Filler Widgets</a></div>
+
+<div class="l2"><a href="#attr">1.3. AttrWrap Widgets and Text Attributes</a></div>
+
+<div class="l2"><a href="#resize">1.4. Live Resizing</a></div>
+
 <div class="l1">2. Conversation Example</div>
-<div class="l2"><a href="#2.1">2.1. Edit Widgets</a></div>
-<div class="l2"><a href="#2.2">2.2. Frame and ListBox Widgets</a></div>
-<div class="l2"><a href="#2.3">2.3. Modifying ListBox Content</a></div>
+
+<div class="l2"><a href="#edit">2.1. Edit Widgets</a></div>
+
+<div class="l2"><a href="#frlb">2.2. Frame and ListBox Widgets</a></div>
+
+<div class="l2"><a href="#lbcont">2.3. Modifying ListBox Content</a></div>
+
 <div class="l1">3. Zen of ListBox</div>
-<div class="l2"><a href="#3.1">3.1. ListBox Focus and Scrolling</a></div>
-<div class="l2"><a href="#3.2">3.2. Dynamic ListBox with List Walker</a></div>
-<div class="l2"><a href="#3.3">3.3. Setting the Focus</a></div>
+
+<div class="l2"><a href="#lbscr">3.1. ListBox Focus and Scrolling</a></div>
+
+<div class="l2"><a href="#lbdyn">3.2. Dynamic ListBox with List Walker</a></div>
+
+<div class="l2"><a href="#lbfocus">3.3. Setting the Focus</a></div>
+
 </td><td width="50%" valign="top">
+
 <div class="l1">4. Combining Widgets</div>
-<div class="l2"><a href="#4.1">4.1. Pile of Widgets</a></div>
-<div class="l2"><a href="#4.2">4.2. Dividing into Columns</a></div>
-<div class="l2"><a href="#4.3">4.3. GridFlow Arrangement</a></div>
-<div class="l2"><a href="#4.4">4.4. Overlay Widgets</a></div>
+
+<div class="l2"><a href="#pile">4.1. Piling Widgets</a></div>
+
+<div class="l2"><a href="#cols">4.2. Dividing into Columns</a></div>
+
+<div class="l2"><a href="#grid">4.3. GridFlow Arrangement</a></div>
+
+<div class="l2"><a href="#overlay">4.4. Overlay Widgets</a></div>
+
 <div class="l1">5. Creating Custom Widgets</div>
-<div class="l2"><a href="#5.1">5.1. Modifying Existing Widgets</a></div>
-<div class="l2"><a href="#5.2">5.2. Anatomy of a Widget</a></div>
-<div class="l2"><a href="#5.3">5.3. Creating Selectable Widgets</a></div>
-<div class="l2"><a href="#5.4">5.4. Widgets Displaying the Cursor</a></div>
+
+<div class="l2"><a href="#wmod">5.1. Modifying Existing Widgets</a></div>
+
+<div class="l2"><a href="#wanat">5.2. Anatomy of a Widget</a></div>
+
+<div class="l2"><a href="#wsel">5.3. Creating Selectable Widgets</a></div>
+
+<div class="l2"><a href="#wcur">5.4. Widgets Displaying the Cursor</a></div>
+
 </td></tr></table>
+
 
 <h2>1. Hello World Example</h2>
 
-<h3><a name="1.1">1.1. Minimal Urwid Application</a></h3>
+<h3><a name="min">1.1. Minimal Urwid Application</a>
+<span class="back">[<a href="#top">back to top</a>]</span></h3>
 
 This program displays the string "Hello World" in the top left corner
 of the screen and waits for a keypress before exiting.
 
-<pre class="code">
-import urwid.curses_display
+<pre class="code">import urwid.curses_display
 import urwid
 
 ui = urwid.curses_display.Screen()
@@ -65,7 +93,7 @@ ui = urwid.curses_display.Screen()
 def run():
 	canvas = urwid.Canvas( [&quot;Hello World&quot;] )
 	ui.draw_screen( (20, 1), canvas )
-	
+
 	while not ui.get_input():
 		pass
 
@@ -96,16 +124,17 @@ function must be passed a canvas and a screen size that matches it.
 
 <div align="center"><pre><span style="color:black;background:silver">Hello World</span><span style="color:black;background:silver">         </span>
 </pre></div>
-<br>
+
+<br clear="left">
 <br>
 
-<h3><a name="1.2">1.2. Text and Filler Widgets</a></h3>
+<h3><a name="text">1.2. Text and Filler Widgets</a>
+<span class="back">[<a href="#top">back to top</a>]</span></h3>
 
 This program displays the string "Hello World" in the center of the screen
 and waits for a keypress before exiting.
 
-<pre class="code">
-import urwid.curses_display
+<pre class="code">import urwid.curses_display
 import urwid
 
 ui = urwid.curses_display.Screen()
@@ -163,18 +192,19 @@ be thrown.
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
 </pre></div>
-<br>
+
+<br clear="left">
 <br>
 
-<h3><a name="1.3">1.3. AttrWrap Widgets and Text Attributes</a></h3>
+<h3><a name="attr">1.3. AttrWrap Widgets and Text Attributes</a>
+<span class="back">[<a href="#top">back to top</a>]</span></h3>
 
 This program displays the string "Hello World" in the center of the screen.
 It uses different attributes for the text, the space on either side
 of the text and the space above and below the text.  It waits for 
 a keypress before exiting.
 
-<pre class="code">
-import urwid.curses_display
+<pre class="code">import urwid.curses_display
 import urwid
 
 ui = urwid.curses_display.Screen()
@@ -249,18 +279,19 @@ filler render function in the same way.
 <span style="color:black;background:#0000c0">                     </span>
 <span style="color:black;background:#0000c0">                     </span>
 </pre></div>
-<br>
+
+<br clear="left">
 <br>
 
-<h3><a name="1.4">1.4. Live Resizing</a></h3>
+<h3><a name="resize">1.4. Live Resizing</a>
+<span class="back">[<a href="#top">back to top</a>]</span></h3>
 
 This program displays the string "Hello World" in the center of the screen.
 It uses different attributes for the text, the space on either side
 of the text and the space above and below the text.  When the window is
 resized it will repaint the screen, and it will exit when Q is pressed.
 
-<pre class="code">
-import urwid.curses_display
+<pre class="code">import urwid.curses_display
 import urwid
 
 ui = urwid.curses_display.Screen()
@@ -287,7 +318,7 @@ def run():
 		if &quot;q&quot; in keys or &quot;Q&quot; in keys:
 			break
 		if &quot;window resize&quot; in keys:
-			cols, rows = ui.get_cols_rows()	
+			cols, rows = ui.get_cols_rows()
 
 ui.run_wrapper( run )
 </pre>
@@ -322,17 +353,18 @@ to avoid confusing users.
 <div class="shot"><pre><span style="color:black;background:#c00000"> </span><span style="color:black;background:silver"> Hello World </span><span style="color:black;background:#c00000"> </span>
 <span style="color:black;background:#0000c0">               </span>
 </pre></div>
+
 <br clear="left">
 <br>
 
 <h2>2. Conversation Example</h2>
 
-<h3><a name="2.1">2.1. Edit Widgets</a></h3>
+<h3><a name="edit">2.1. Edit Widgets</a>
+<span class="back">[<a href="#top">back to top</a>]</span></h3>
 
 This program asks for your name then responds "Nice to meet you, (your name)."
 
-<pre class="code">
-import urwid.curses_display
+<pre class="code">import urwid.curses_display
 import urwid
 
 ui = urwid.curses_display.Screen()
@@ -340,7 +372,7 @@ ui = urwid.curses_display.Screen()
 def run():
 	cols, rows = ui.get_cols_rows()
 
-	ask = urwid.Edit(&quot;What is your name?\n&quot;)
+	ask = urwid.Edit(&quot;What is your name?\\n&quot;)
 	fill = urwid.Filler( ask )
 	reply = None
 
@@ -355,8 +387,8 @@ def run():
 				continue
 			if reply is not None:
 				return
-			if k == &quot;enter&quot;: 
-				reply = urwid.Text( &quot;Nice to meet you,\n&quot;+
+			if k == &quot;enter&quot;:
+				reply = urwid.Text( &quot;Nice to meet you,\\n&quot;+
 					ask.edit_text+&quot;.&quot; )
 				fill.body = reply
 			if fill.selectable():
@@ -389,38 +421,39 @@ widget so it supports the same wrapping and alignment modes.
 
 <div class="shot"><pre><span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
-<span style="color:black;background:silver">What is your name?   </span>
-<span style="color:black;background:silver"><u> </u>                    </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">What is your name?\n<u> </u></span>
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
 </pre></div>
 <div class="shot"><pre><span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
-<span style="color:black;background:silver">What is your name?   </span>
-<span style="color:black;background:silver">Arthur, King of the  </span>
-<span style="color:black;background:silver">Britons<u> </u>             </span>
+<span style="color:black;background:silver">What is your         </span>
+<span style="color:black;background:silver">name?\nArthur, King  </span>
+<span style="color:black;background:silver">of the Britons<u> </u>      </span>
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
 </pre></div>
 <div class="shot"><pre><span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
-<span style="color:black;background:silver">Nice to meet you,    </span>
-<span style="color:black;background:silver">Arthur, King of the  </span>
-<span style="color:black;background:silver">Britons.             </span>
+<span style="color:black;background:silver">Nice to meet         </span>
+<span style="color:black;background:silver">you,\nArthur, King of</span>
+<span style="color:black;background:silver">the Britons.         </span>
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
 </pre></div>
+
 <br clear="left">
 <br>
 
-<h3><a name="2.2">2.2. Frame and ListBox Widgets</a></h3>
+<h3><a name="frlb">2.2. Frame and ListBox Widgets</a>
+<span class="back">[<a href="#top">back to top</a>]</span></h3>
 
 This program asks for your name and responds "Nice to meet you, (your name)"
 <i>while</i> you type your name.  F1 exits.
 
-<pre class="code">
-import urwid.curses_display
+<pre class="code">import urwid.curses_display
 import urwid
 
 class Conversation:
@@ -438,14 +471,14 @@ class Conversation:
 			('I say', 'dark blue', 'default', 'bold'),
 			])
 		self.ui.run_wrapper( self.run )
-
+	
 	def run(self):
 		size = self.ui.get_cols_rows()
 
 		while True:
 			self.draw_screen( size )
 			keys = self.ui.get_input()
-			if &quot;f1&quot; in keys: 
+			if &quot;f1&quot; in keys:
 				break
 			for k in keys:
 				if k == &quot;window resize&quot;:
@@ -455,17 +488,16 @@ class Conversation:
 			if keys:
 				name = self.items[0].edit_text
 				self.items[1:2] = [self.new_answer(name)]
-					
+	
 	def draw_screen(self, size):
 		canvas = self.top.render( size, focus=True )
 		self.ui.draw_screen( size, canvas )
-	
+
 	def new_question(self):
 		return urwid.Edit(('I say',&quot;What is your name?\n&quot;))
-	
+
 	def new_answer(self, name):
 		return urwid.Text(('I say',&quot;Nice to meet you, &quot;+name+&quot;\n&quot;))
-			
 
 Conversation().main()
 </pre>
@@ -523,39 +555,40 @@ but the ListBox will still be displaying the old list.
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
 </pre></div>
+
 <br clear="left">
 <br>
 
-<h3><a name="2.3">2.3. Modifying ListBox Content</a></h3>
+<h3><a name="lbcont">2.3. Modifying ListBox Content</a>
+<span class="back">[<a href="#top">back to top</a>]</span></h3>
 
 This program asks for your name and responds "Nice to meet you, (your name)."
 It then asks again, and again. Old values may be changed and the responses
 will be updated when you press ENTER. F1 exits.
 <br><br>
-Update the <a href="#2.2">2.2 program</a> with this code:
-<pre class="code">
-	def run(self):
+Update the <a href="#frlb">previous program</a> with this code:
+<pre class="code">	def run(self):
 		size = self.ui.get_cols_rows()
 
 		while True:
 			self.draw_screen( size )
 			keys = self.ui.get_input()
-			if &quot;f1&quot; in keys: 
+			if &quot;f1&quot; in keys:
 				break
 			for k in keys:
 				if k == &quot;window resize&quot;:
 					size = self.ui.get_cols_rows()
 					continue
 				self.keypress( size, k )
-					
+
 	def keypress(self, size, k):
 		if k == &quot;enter&quot;:
 			widget, pos = self.listbox.get_focus()
 			if not hasattr(widget,'get_edit_text'):
 				return
-			
+
 			answer = self.new_answer( widget.get_edit_text() )
-			
+
 			if pos == len(self.items)-1:
 				self.items.append( answer )
 				self.items.append( self.new_question() )
@@ -644,13 +677,14 @@ does most of the hard work:
 <span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
 <span style="color:black;background:silver"><u> </u>                      </span>
 </pre></div>
+
 <br clear="left">
 <br>
 
-
 <h2>3. Zen of ListBox</h2>
 
-<h3><a name="3.1">3.1. ListBox Focus and Scrolling</a></h3>
+<h3><a name="lbscr">3.1. ListBox Focus and Scrolling</a>
+<span class="back">[<a href="#top">back to top</a>]</span></h3>
 
 The 
 <a href="reference.html#ListBox">ListBox</a> 
@@ -676,8 +710,7 @@ When all the widgets displayed are not selectable the user would typically
 have no way to tell which widget is in focus, but if we wrap the widgets with
 AttrWrap we can see what is happening while the focus changes:
 
-<pre class="code">
-CONTENT = [ urwid.AttrWrap( w, None, 'reveal focus' ) for w in [
+<pre class="code">CONTENT = [ urwid.AttrWrap( w, None, 'reveal focus' ) for w in [
 	urwid.Text(&quot;This is a text string that is fairly long&quot;),
 	urwid.Divider(&quot;-&quot;),
 	urwid.Text(&quot;Short one&quot;),
@@ -788,8 +821,13 @@ view so that the user can see the new focus widget in its entirety.
 This behavior can be used to bring more than a single widget into view
 by using composite widgets to combine a selectable widget with other
 widgets that should be displayed at the same time.
-<br><br>
-<h3><a name="3.2">3.2. Dynamic ListBox with List Walker</a></h3>
+
+<br clear="left">
+<br>
+
+<h3><a name="lbdyn">3.2. Dynamic ListBox with List Walker</a>
+<span class="back">[<a href="#top">back to top</a>]</span></h3>
+
 While the ListBox stores the location of its focus widget, it
 does not directly store the actual focus widget or other contents of the
 ListBox. The storage of a ListBox's content is delegated to a "List Walker" 
@@ -860,8 +898,13 @@ that is accessed using a dictionary indexed by parent directory names.
 This allows the directories to be read only as required. The custom list
 walker also allows directories to be hidden from view when they are
 "collapsed".
-<br><br>
-<h3><a name="3.3">3.3. Setting the Focus</a></h3>
+
+<br clear="left">
+<br>
+
+<h3><a name="lbfocus">3.3. Setting the Focus</a>
+<span class="back">[<a href="#top">back to top</a>]</span></h3>
+
 The easiest way to change the current ListBox focus is to call the
 <a href="reference.html#ListBox-set_focus">set_focus</a> method.
 This method doesn't require that you know the ListBox's
@@ -891,10 +934,15 @@ the ListBox you may call
 This method lets you specify the
 "top", "bottom", "middle", a relative position or the exact number of rows
 from the top or bottom of the ListBox.
-<br><br>
+
+<br clear="left">
+<br>
 
 <h2>4. Combining Widgets</h2>
-<h3><a name="4.1">4.1. Pile of Widgets</a></h3>
+
+<h3><a name="pile">4.1. Piling Widgets</a>
+<span class="back">[<a href="#top">back to top</a>]</span></h3>
+
 <a href="reference.html#Pile">Pile</a>
  widgets are used to combine multiple flow widgets by stacking them
 vertically. A Pile can manage selectable widgets by keeping track of which
@@ -905,7 +953,7 @@ within a ListBox.
 A Pile is selectable only if its focus widget is selectable. If you create
 a Pile containing one Text widget and one Edit widget be sure to call
 <a href="reference.html#Pile-set_focus">set_focus</a> 
-on the Edit widget or it won't be possible for the Edit widget
+on the Pile widget or it won't be possible for the Edit widget
 to become the focus.
 <br><br>
 Pile widgets cannot be used with box widgets. If you want to stack two box
@@ -914,8 +962,13 @@ widgets vertically you can wrap one of the box widgets with a
 in the header or footer of a 
 <a href="reference.html#Frame">Frame</a> with the other
 widget in the body of the Frame.
-<br><br>
-<h3><a name="4.2">4.2. Dividing into Columns</a></h3>
+
+<br clear="left">
+<br>
+
+<h3><a name="cols">4.2. Dividing into Columns</a>
+<span class="back">[<a href="#top">back to top</a>]</span></h3>
+
 <a href="reference.html#Columns">Columns</a>
 widgets may be used to arrange either flow widgets or box widgets
 horizontally into columns. Columns widgets will manage selectable widgets
@@ -927,8 +980,13 @@ Columns widgets are selectable only if the column in focus is selectable.
 The 
 <a href="reference.html#Columns-set_focus">set_focus</a>
 method may be used to select the focus column.
-<br><br>
-<h3><a name="4.3">4.3. GridFlow Arrangement</a></h3>
+
+<br clear="left">
+<br>
+
+<h3><a name="grid">4.3. GridFlow Arrangement</a>
+<span class="back">[<a href="#top">back to top</a>]</span></h3>
+
 The 
 <a href="reference.html#GridFlow">GridFlow</a>
 widget is a flow widget designed for use with
@@ -942,8 +1000,13 @@ The GridFlow widget uses Pile, Columns, Padding and Divider widgets to build
 a display widget that will handle the keyboard input and rendering. When the
 GridFlow widget is resized it regenerates the display widget to accommodate
 the new space.
-<br><br>
-<h3><a name="4.4">4.4. Overlay Widgets</a></h3>
+
+<br clear="left">
+<br>
+
+<h3><a name="overlay">4.4. Overlay Widgets</a>
+<span class="back">[<a href="#top">back to top</a>]</span></h3>
+
 The <a href="reference.html#Overlay">Overlay</a> widget is a box widget that
 contains two other box widgets.  The bottom widget is rendered the full size
 of the Overlay widget and the top widget is placed on top, obscuring an area
@@ -956,9 +1019,14 @@ keyboard input will be passed to the top widget.
 If you want to use a flow
 flow widget for the top widget, first wrap the flow widget with a
 <a href="reference.html#Filler">Filler</a> widget.
-<br><br>
+
+<br clear="left">
+<br>
+
 <h2>5. Creating Custom Widgets</h2>
-<h3><a name="5.1">5.1. Modifying Existing Widgets</a></h3>
+
+<h3><a name="wmod">5.1. Modifying Existing Widgets</a>
+<span class="back">[<a href="#top">back to top</a>]</span></h3>
 
 The easiest way to create a custom widget is to modify an existing widget.
 This can be done by either subclassing the original widget or by wrapping it.
@@ -976,8 +1044,7 @@ constructor.
 <br><br>
 This is an example of a custom widget that uses WidgetWrap:
 
-<pre class="code">
-class QuestionnaireItem( urwid.WidgetWrap ):
+<pre class="code">class QuestionnaireItem( urwid.WidgetWrap ):
 	def __init__(self):
 		self.options = []
 		unsure = urwid.RadioButton( self.options, &quot;Unsure&quot; )
@@ -986,7 +1053,7 @@ class QuestionnaireItem( urwid.WidgetWrap ):
 		display_widget = urwid.GridFlow( [unsure, yes, no],
 			15, 3, 1, 'left' )
 		urwid.WidgetWrap.__init__(self, display_widget)
-	
+
 	def get_state(self):
 		for o in self.options:
 			if o.get_state() is True:
@@ -999,8 +1066,12 @@ query the state of the buttons.
 Wrapped widgets may also override the standard widget methods. These methods
 are described in following sections.
 
-<br><br>
-<h3><a name="5.2">5.2. Anatomy of a Widget</a></h3>
+<br clear="left">
+<br>
+
+<h3><a name="wanat">5.2. Anatomy of a Widget</a>
+<span class="back">[<a href="#top">back to top</a>]</span></h3>
+
 Any object that follows the 
 <a href="reference.html#Widget_interface_definition">Widget interface definition</a>
 may be used as a widget.  Box widgets must implement 
@@ -1011,8 +1082,7 @@ methods, and flow widgets must implement selectable, render and
 <a href="reference.html#Widget_interface_definition-rows">rows</a>
 methods.
 
-<pre class="code">
-class Pudding( urwid.FlowWidget ):
+<pre class="code">class Pudding( urwid.FlowWidget ):
 	def selectable( self ):
 		return False
 	def rows( self, (maxcol,), focus=False ):
@@ -1027,7 +1097,6 @@ class BoxPudding( urwid.BoxWidget ):
 	def render( self, (maxcol, maxrow), focus=False ):
 		num_pudding = maxcol / len(&quot;Pudding&quot;)
 		return urwid.Canvas( [&quot;Pudding&quot;*num_pudding] * maxrow )
-	
 </pre>
 
 The above code implements two widget classes. Pudding is a flow widget and 
@@ -1048,8 +1117,7 @@ method.
 In most cases it is easier to let other widgets handle the rendering and 
 row calculations for you:
 
-<pre class="code">
-class NewPudding( urwid.FlowWidget ):
+<pre class="code">class NewPudding( urwid.FlowWidget ):
 	def selectable( self ):
 		return False
 	def rows( self, (maxcol,), focus=False ):
@@ -1077,8 +1145,7 @@ caching it to reduce its impact on performance.
 It is possible to create a widget that will behave as either a flow widget
 or box widget depending on what is required:
 
-<pre class="code">
-class MultiPudding:
+<pre class="code">class MultiPudding:
 	def selectable( self ):
 		return False
 	def rows( self, (maxcol,), focus=False ):
@@ -1097,8 +1164,11 @@ MultiPudding will work in place of either Pudding or BoxPudding above. The
 number of elements in the size tuple determines whether the containing widget
 is expecting a flow widget or a box widget.
 
-<br><br>
-<h3><a name="5.3">5.3. Creating Selectable Widgets</a></h3>
+<br clear="left">
+<br>
+
+<h3><a name="wsel">5.3. Creating Selectable Widgets</a>
+<span class="back">[<a href="#top">back to top</a>]</span></h3>
 
 Selectable widgets such as Edit and Button widgets allow the user to
 interact with the application.  A widget is selectable if its selectable
@@ -1106,8 +1176,7 @@ method returns True.  Selectable widgets must implement the
 <a href="reference.html#Widget_interface_definition-keypress">keypress</a>
 method to handle keyboard input.
 
-<pre class="code">
-class SelectablePudding( urwid.FlowWidget ):
+<pre class="code">class SelectablePudding( urwid.FlowWidget ):
 	def __init__( self ):
 		self.pudding = &quot;pudding&quot;
 	def selectable( self ):
@@ -1117,7 +1186,7 @@ class SelectablePudding( urwid.FlowWidget ):
 	def render( self, (maxcol,), focus=False ):
 		num_pudding = maxcol / len(self.pudding)
 		pudding = self.pudding
-		if focus: 
+		if focus:
 			pudding = pudding.upper()
 		return urwid.Canvas( [pudding*num_pudding] )
 	def keypress( self, (maxcol,), key ):
@@ -1144,8 +1213,11 @@ unless you have a very good reason not to.  In this case the UP and DOWN keys
 are returned so that if this widget is in a ListBox the ListBox will behave as
 the user expects and change the focus or scroll the ListBox.
 
-<br><br>
-<h3><a name="5.4">5.4. Widgets Displaying the Cursor</a></h3>
+<br clear="left">
+<br>
+
+<h3><a name="wcur">5.4. Widgets Displaying the Cursor</a>
+<span class="back">[<a href="#top">back to top</a>]</span></h3>
 
 Widgets that display the cursor must implement the
 <a href="reference.html#Widget_interface_definition-get_cursor_coords">get_cursor_coords</a> 
@@ -1154,8 +1226,7 @@ widgets make layout decisions without rendering the entire widget.  The
 ListBox widget in particular uses get_cursor_coords to make sure that the
 cursor is visible within its focus widget.
 
-<pre class="code">
-class CursorPudding( urwid.FlowWidget ):
+<pre class="code">class CursorPudding( urwid.FlowWidget ):
 	def __init__( self ):
 		self.cursor_col = 0
 	def selectable( self ):
@@ -1179,7 +1250,6 @@ class CursorPudding( urwid.FlowWidget ):
 		else:
 			return key
 		self.cursor_x = max(0, min( maxcol-1, col ))
-	
 </pre>
 
 CursorPudding will let the user move the cursor through the widget by 
@@ -1202,8 +1272,7 @@ within the row specified (not only at the exact column specified) then this
 method must move the cursor to that position and return True.
 
 
-<pre class="code">
-	def get_pref_col( self, (maxcol,) ):
+<pre class="code">	def get_pref_col( self, (maxcol,) ):
 		return self.cursor_x
 	def move_cursor_to_coords( self, (maxcol,), col, row ):
 		assert row == 0
@@ -1211,8 +1280,8 @@ method must move the cursor to that position and return True.
 		return True
 </pre>
 
-<br><br>
-
+<br clear="left">
+<br>
 
 
 </body>

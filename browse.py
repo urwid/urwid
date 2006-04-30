@@ -173,6 +173,17 @@ class DirectoryWidget(TreeWidget):
 		else:
 			return TreeWidget.keypress(self, (maxcol,), key)
 	
+	def mouse_event(self, (maxcol,), event, button, col, row, focus):
+		if event != 'mouse press' or button!=1:
+			return False
+
+		if row == 0 and col == 2*self.depth:
+			self.expanded = not self.expanded
+			self.update_widget()
+			return True
+		
+		return False
+	
 	def first_child(self):
 		"""Return first child if expanded."""
 		
@@ -399,6 +410,8 @@ class DirectoryBrowser:
 	def run(self):
 		"""Handle user input and display updating."""
 		
+		self.ui.set_mouse_tracking()
+		
 		size = self.ui.get_cols_rows()
 		while 1:
 			focus, _ign = self.listbox.body.get_focus()
@@ -410,6 +423,13 @@ class DirectoryBrowser:
 			while not keys: 
 				keys = self.ui.get_input()
 			for k in keys:
+				if urwid.is_mouse_event(k):
+					event, button, col, row = k
+					self.view.mouse_event( size, 
+						event, button, col, row,
+						focus=True )
+					continue
+
 				if k == 'window resize':
 					size = self.ui.get_cols_rows()
 				elif k in ('q','Q'):

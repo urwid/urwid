@@ -1119,9 +1119,47 @@ class ListBox(BoxWidget):
 		rows = widget.rows((maxcol,), focus=1)
 		self.change_focus((maxcol,maxrow), pos, maxrow-1,
 			'above', (self.pref_col, 0), 0 )
+
+	def mouse_event(self, (maxcol, maxrow), event, button, col, row, focus):
+		"""
+		Pass the event to the contained widgets.
+		May change focus on button 1 press.
+		"""
+		middle, top, bottom = self.calculate_visible((maxcol, maxrow),
+			focus=True)
+		if middle is None:
+			return False
 		
-	
-	def ends_visible(self, (maxcol, maxrow), focus=0):
+		_ignore, focus_widget, focus_pos, focus_rows, cursor = middle
+		trim_top, fill_above = top
+		_ignore, fill_below = bottom
+
+		fill_above.reverse() # fill_above is in bottom-up order
+		w_list = ( fill_above + 
+			[ (focus_widget, focus_pos, focus_rows) ] +
+			fill_below )
+
+		wrow = -trim_top
+		for w, w_pos, w_rows in w_list:
+			if wrow + w_rows > row:
+				break
+			wrow += w_rows
+		else:
+			return False
+
+		focus = focus and w == focus_widget
+		if is_mouse_press(event) and button==1:
+			if w.selectable():
+				self.change_focus((maxcol,maxrow), w_pos, wrow)
+		
+		if not hasattr(w,'mouse_event'):
+			return False
+
+		return w.mouse_event((maxcol,), event, button, col, row-wrow,
+			focus)
+
+
+	def ends_visible(self, (maxcol, maxrow), focus=False):
 		"""Return a list that may contain 'top' and/or 'bottom'.
 		
 		convenience function for checking whether the top and bottom

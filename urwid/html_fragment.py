@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python
 #
 # Urwid html fragment output wrapper for "screen shots"
 #    Copyright (C) 2004-2006  Ian Ward
@@ -99,6 +99,10 @@ class HtmlGenerator:
 		if background == "default":
 			background = "light gray"
 		self.palette[name] = (foreground, background, mono)
+	
+	def set_mouse_tracking(self):
+		"""Not yet implemented"""
+		pass
 
 	def run_wrapper(self,fn):
 		"""Call fn."""

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 #
 # Urwid setup.py exports the useful bits
 #    Copyright (C) 2004-2006  Ian Ward
@@ -23,7 +23,7 @@ from distutils.core import setup
 
 import os
 
-release = "0.9.3"
+release = "0.9.4"
 
 setup_d = {
 	'name':"urwid",

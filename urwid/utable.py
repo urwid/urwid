@@ -81,7 +81,7 @@ def decode_one( text, pos ):
 		return b1, pos+1
 	error = ord("?"), pos+1
 	lt = len(text)
-	remain = lt-pos
+	lt = lt-pos
 	if lt < 2:
 		return error
 	if b1 & 0xe0 == 0xc0:

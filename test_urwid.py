@@ -38,6 +38,7 @@ class CalcWidthTest(unittest.TestCase):
 	def test1(self):
 		urwid.set_encoding("utf-8")
 		self.wtest("wide char", '\xe6\x9b\xbf', 2)
+		self.wtest("invalid", '\xe6', 1)
 
 
 class WithinDoubleByteTest(unittest.TestCase):

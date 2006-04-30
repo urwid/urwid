@@ -316,6 +316,13 @@ class Screen:
 
 		When utf8 encoding is enabled
 		Unicode characters: u"\\u00a5", u'\\u253c"
+
+		Examples of mouse events returned
+		---------------------------------
+		Mouse button press: ('mouse press', 1, 15, 13), 
+		                    ('meta mouse press', 2, 17, 23)
+		Mouse button release: ('mouse release', 0, 18, 13),
+		                      ('ctrl mouse release', 0, 17, 23)
 		"""
 		
 		keys, raw = self._get_input( self.max_tenths )

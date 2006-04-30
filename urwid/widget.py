@@ -383,6 +383,13 @@ class Edit(Text):
 		self.pref_col_maxcol = x, maxcol
 		return True
 
+	def mouse_event(self, (maxcol,), event, button, x, y, focus):
+		"""
+		Move the cursor to the location clicked for button 1.
+		"""
+		if button==1:
+			return self.move_cursor_to_coords( (maxcol,), x, y )
+
 
 	def _delete_highlighted(self):
 		"""
@@ -563,6 +570,10 @@ class CheckBox(FlowWidget):
 		if key not in (' ','enter'):
 			return key
 		
+		self.toggle_state()
+		
+	def toggle_state(self):
+		"""Cycle to the next valid state."""
 		if self.state == False:
 			self.set_state(True)
 		elif self.state == True:
@@ -572,6 +583,13 @@ class CheckBox(FlowWidget):
 				self.set_state(False)
 		elif self.state == 'mixed':
 			self.set_state(False)
+
+	def mouse_event(self, (maxcol,), event, button, x, y, focus):
+		"""Toggle state on button 1 press."""
+		if button != 1 or not is_mouse_press(event):
+			return False
+		self.toggle_state()
+		return True
 	
 	def get_cursor_coords(self, (maxcol,)):
 		"""Return cursor coords from display widget."""
@@ -663,6 +681,14 @@ class RadioButton(FlowWidget):
 			self.set_state(True)
 		else:
 			return key
+	
+	def mouse_event(self, (maxcol,), event, button, x, y, focus):
+		"""Set state to True on button 1 press."""
+		if button != 1 or not is_mouse_press(event):
+			return False
+		if self.state is not True:
+			self.set_state(True)
+		return True
 			
 	def get_cursor_coords(self, (maxcol,)):
 		"""Return cursor coords from display widget."""
@@ -722,10 +748,19 @@ class Button(FlowWidget):
 		return self.display_widget.rows( (maxcol,), focus=focus)
 		
 	def keypress(self, (maxcol,), key):
+		"""Call on_press on spage or enter."""
 		if key not in (' ','enter'):
 			return key
 		
 		self.on_press( self )
+	
+	def mouse_event(self, (maxcol,), event, button, x, y, focus):
+		"""Call on_press on button 1 press."""
+		if button != 1 or not is_mouse_press(event):
+			return False
+			
+		self.on_press( self )
+		return True
 	
 
 
@@ -898,6 +933,18 @@ class GridFlow(FlowWidget):
 		self._set_focus_from_display_widget(d)
 		return True
 	
+	def mouse_event(self, (maxcol,), event, button, col, row, focus):
+		"""Send mouse event to contained widget."""
+		d = self.get_display_widget((maxcol,))
+		
+		r = d.mouse_event( (maxcol,), event, button, col, row, focus )
+		if not r:
+			return False
+		
+		self._set_focus_from_display_widget(d)
+		return True
+		
+	
 	def get_pref_col(self, (maxcol,)):
 		"""Return pref col from display widget."""
 		d = self.get_display_widget((maxcol,))
@@ -1010,6 +1057,19 @@ class Padding:
 				x = maxcol-right-1
 			x -= left
 		return self.w.move_cursor_to_coords(maxvals, x, y)
+	
+	def mouse_event(self, size, event, button, x, y, focus):
+		"""Send mouse event if position is within self.w."""
+		if not hasattr(self.w,'mouse_event'):
+			return False
+		left, right = self.padding_values(size)
+		maxcol = size[0]
+		if x < left or x >= maxcol-right: 
+			return False
+		maxvals = (maxcol-left-right,)+size[1:] 
+		return self.w.mouse_event(maxvals, event, button, x-left, y,
+			focus)
+		
 
 	def get_pref_col(self, size):
 		"""Return the preferred column from self.w, or None."""
@@ -1160,6 +1220,20 @@ class Filler(BoxWidget):
 		return self.body.move_cursor_to_coords(
 			(maxcol, maxrow-top-bottom), col, row-top)
 	
+	def mouse_event(self, (maxcol,maxrow), event, button, col, row, focus):
+		"""Pass to self.body."""
+		if not hasattr(self.body, 'mouse_event'):
+			return False
+		
+		top, bottom = self.filler_values((maxcol,maxrow), True)
+		if row < top or row >= maxcol-bottom:
+			return False
+
+		if self.height_type is None:
+			return self.body.mouse_event((maxcol,),
+				event, button, col, row-top)
+		return self.body.mouse_event( (maxcol, maxrow-top-bottom), 
+			event, button,col, row-top, focus)
 		
 		
 class OverlayError(Exception):
@@ -1261,7 +1335,20 @@ class Overlay(BoxWidget):
 			(maxcol-left-right,maxrow-top-bottom), focus )
 		bottom_c.overlay( top_c, left, right, top, bottom )
 		return bottom_c
+
+	def mouse_event(self, (maxcol,maxrow), event, button, col, row, focus):
+		"""Pass event to top_w, ignore if outside of top_w."""
+		if not hasattr(self.top_w, 'mouse_event'):
+			return False
 		
+		left, right, top, bottom = self.calculate_padding_filler(size)
+		if ( col<left or col>=maxcol-right or
+			row<top or row>=maxrow-bottom ):
+			return False
+			
+		return self.top_w.mouse_event(
+			(maxcol-left-right,maxrow-top-bottom), event, button,
+			col-left, row-top, focus )
 	
 
 def decompose_align_width( align, width, err ):
@@ -1537,6 +1624,47 @@ class Frame(BoxWidget):
 		return self.body.keypress( (maxcol, remaining), key )
 
 
+	def mouse_event(self, (maxcol, maxrow), event, button, col, row, focus):
+		"""
+		Pass mouse event to appropriate part of frame.
+		Focus may be changed on button 1 press.
+		"""
+		(htrim, ftrim),(hrows, frows) = self.frame_top_bottom(
+			(maxcol, maxrow), focus)
+		
+		if row < htrim: # within header
+			focus = focus and self.focus_part == 'header'
+			if is_mouse_press(event) and button==1:
+				if self.header.selectable():
+					self.set_focus('header')
+			if not hasattr(self.header, 'mouse_event'):
+				return False
+			return self.header.mouse_event( (maxcol,), event,
+				button, col, row, focus )
+		
+		if row >= maxrow-ftrim: # within footer
+			focus = focus and self.focus_part == 'footer'
+			if is_mouse_press(event) and button==1:
+				if self.footer.selectable():
+					self.set_focus('footer')
+			if not hasattr(self.footer, 'mouse_event'):
+				return False
+			return self.footer.mouse_event( (maxcol,), event,
+				button, col, row-maxrow+frows, focus )
+		
+		# within body
+		focus = focus and self.focus_part == 'body'
+		if is_mouse_press(event) and button==1:
+			if self.body.selectable():
+				self.set_focus('body')
+		
+		if not hasattr(self.body, 'mouse_event'):
+			return False
+		return self.body.mouse_event( (maxcol, maxrow-htrim-ftrim),
+			event, button, col, row-htrim, focus )
+
+		
+
 class AttrWrap:
 	"""
 	AttrWrap is a decorator that changes the default attribute for a 
@@ -1587,9 +1715,10 @@ class WidgetWrap:
 	def __getattr__(self,name):
 		"""Call self.w if name is in Widget interface definition."""
 		if name in ['get_cursor_coords','get_pref_col','keypress',
-			'move_cursor_to_coords','render','rows','selectable',]:
+			'move_cursor_to_coords','render','rows','selectable',
+			'mouse_event',]:
 			return getattr(self.w, name)
-		raise AttributeError
+		raise AttributeError, name
 
 		
 class Pile(FlowWidget):
@@ -1731,9 +1860,31 @@ class Pile(FlowWidget):
 			if rval is False:
 				return False
 			
-		self.focus_item = w
+		self.set_focus(w)
 		return True
+	
+	def mouse_event(self, (maxcol,), event, button, col, row, focus):
+		"""
+		Pass the event to the contained widget.
+		May change focus on button 1 press.
+		"""
+		wrow = 0
+		for w in self.widget_list:
+			r = w.rows((maxcol,), focus = self.focus_item==w)
+			if wrow+r > row:
+				break
+			wrow += r
+
+		focus = focus and self.focus_item == w
+		if is_mouse_press(event) and button==1:
+			if w.selectable():
+				self.set_focus(w)
 		
+		if not hasattr(w,'mouse_event'):
+			return False
+
+		return w.mouse_event((maxcol,), event, button, col, row-wrow,
+			focus)
 
 
 
@@ -1929,6 +2080,36 @@ class Columns: # either FlowWidget or BoxWidget
 		self.pref_col = col
 		return True
 
+	def mouse_event(self, size, event, button, col, row, focus):
+		"""
+		Send event to appropriate column.
+		May change focus on button 1 press.
+		"""
+		widths = self.column_widths(size)
+		
+		x = 0
+		for i in range(len(widths)):
+			if col < x:
+				return False
+			w = self.widget_list[i]
+			end = x + widths[i]
+			
+			if col >= end:
+				x = end + self.dividechars
+				continue
+
+			focus = focus and self.focus_col == i
+			if is_mouse_press(event) and button == 1:
+				if w.selectable():
+					self.set_focus(w)
+
+			if not hasattr(w,'mouse_event'):
+				return False
+
+			return w.mouse_event((end-x,)+size[1:], event, button, 
+				col - x, row, focus)
+		return False
+		
 	def get_pref_col(self, size):
 		"""Return the pref col from the column in focus."""
 		maxcol = size[0]
@@ -2051,6 +2232,12 @@ class BoxAdapter:
 			return True
 		return self.box_widget.move_cursor_to_coords((maxcol,
 			self.height), col, row )
+	
+	def mouse_event(self, (maxcol,), event, button, col, row, focus):
+		if not hasattr(self.box_widget,'mouse_event'):
+			return False
+		return self.box_widget.mouse_event((maxcol, self.height),
+			event, button, col, row, focus)
 	
 	def render(self, (maxcol,), focus=False):
 		return self.box_widget.render((maxcol, self.height), focus)

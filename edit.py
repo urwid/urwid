@@ -168,6 +168,7 @@ class EditDisplay:
 		self.ui.run_wrapper( self.run )
 
 	def run(self):
+		self.ui.set_mouse_tracking()
 		size = self.ui.get_cols_rows()
 		while 1:
 			canvas = self.view.render( size, focus=1 )
@@ -176,6 +177,11 @@ class EditDisplay:
 			while not keys: 
 				keys = self.ui.get_input()
 			for k in keys:
+				if urwid.is_mouse_event(k):
+					event, button, col, row = k
+					self.view.mouse_event( size, event,
+						button, col, row, focus=True )
+					continue
 				if k == 'window resize':
 					size = self.ui.get_cols_rows()
 					continue
