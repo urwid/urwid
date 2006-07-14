@@ -261,6 +261,8 @@ def main():
 		(urwid.AttrWrap, "AttrWrap"),
 		(urwid.Padding, "Padding"),
 		(urwid.Divider, "Divider"),
+		(urwid.LineBox, "LineBox"),
+		(urwid.SolidFill, "SolidFill"),
 		(None,"Composite widgets"),
 		(urwid.Columns, "Columns"),
 		(urwid.Pile, "Pile"),

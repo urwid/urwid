@@ -23,6 +23,7 @@
 from __future__ import nested_scopes
 
 import utable
+import escape
 
 try: True # old python?
 except: False, True = 0, 1
@@ -40,8 +41,9 @@ except ValueError, e:
 	else:
 		raise
 
-byte_encoding = None
-target_encoding = None
+_byte_encoding = None
+_target_encoding = None
+_use_dec_special = True
 
 def set_encoding( encoding ):
 	"""
@@ -50,25 +52,28 @@ def set_encoding( encoding ):
 	"""
 	encoding = encoding.lower()
 
-	global byte_encoding, target_encoding
+	global _byte_encoding, _target_encoding, _use_dec_special
 
 	if encoding in ( 'utf-8', 'utf8', 'utf' ):
-		byte_encoding = "utf8"
+		_byte_encoding = "utf8"
+		_use_dec_special = False
 	elif encoding in ( 'euc-jp' # JISX 0208 only
 			, 'euc-kr', 'euc-cn', 'euc-tw' # CNS 11643 plain 1 only
 			, 'gb2312', 'gbk', 'big5', 'cn-gb', 'uhc'
 			# these shouldn't happen, should they?
 			, 'eucjp', 'euckr', 'euccn', 'euctw', 'cncb' ):
-		byte_encoding = "wide"
+		_byte_encoding = "wide"
+		_use_dec_special = True
 	else:
-		byte_encoding = "narrow"
+		_byte_encoding = "narrow"
+		_use_dec_special = True
 
 	# if encoding is valid for conversion from unicode, remember it
-	target_encoding = 'ascii'
+	_target_encoding = 'ascii'
 	try:	
 		if encoding:
 			u"".encode(encoding)
-			target_encoding = encoding
+			_target_encoding = encoding
 	except LookupError: pass
 
 def get_encoding_mode():
@@ -77,8 +82,57 @@ def get_encoding_mode():
 	Returns 'narrow' for 8-bit encodings, 'wide' for CJK encodings
 	or 'utf8' for UTF-8 encodings.
 	"""
-	return byte_encoding
+	return _byte_encoding
 
+
+def apply_target_encoding( s ):
+	"""
+	Return (encoded byte string, character set rle).
+	"""
+	if _use_dec_special and type(s) == type(u""):
+		# first convert drawing characters
+		try:
+			s = s.translate( escape.DEC_SPECIAL_CHARMAP )
+		except NotImplementedError:
+			# python < 2.4 needs to do this the hard way..
+			for c, alt in zip(escape.DEC_SPECIAL_CHARS, 
+					escape.ALT_DEC_SPECIAL_CHARS):
+				s = s.replace( c, escape.SO+alt+escape.SI )
+	
+	if type(s) == type(u""):
+		s = s.replace( escape.SI+escape.SO, u"" ) # remove redundant shifts
+		s = s.encode( _target_encoding )
+
+	sis = s.split( escape.SO )
+
+	sis0 = sis[0].replace( escape.SI, "" )
+	sout = []
+	cout = []
+	if sis0:
+		sout.append( sis0 )
+		cout.append( (None,len(sis0)) )
+	
+	if len(sis)==1:
+		return sis0, cout
+	
+	for sn in sis[1:]:
+		sl = sn.split( escape.SI, 1 ) 
+		if len(sl) == 1:
+			sin = sl[0]
+			sout.append(sin)
+			rle_append_modify(cout, (escape.DEC_TAG, len(sin)))
+			continue
+		sin, son = sl
+		son = son.replace( escape.SI, "" )
+		if sin:
+			sout.append(sin)
+			rle_append_modify(cout, (escape.DEC_TAG, len(sin)))
+		if son:
+			sout.append(son)
+			rle_append_modify(cout, (None, len(son)))
+	
+	return "".join(sout), cout
+	
 	
 ######################################################################
 # Try to set the encoding using the one detected by the locale module
@@ -91,7 +145,7 @@ def supports_unicode():
 	Return True if python is able to convert non-ascii unicode strings
 	to the current encoding.
 	"""
-	return target_encoding and target_encoding != 'ascii'
+	return _target_encoding and _target_encoding != 'ascii'
 
 
 class TextLayout:
@@ -122,6 +176,8 @@ class TextLayout:
 		text offset.  If the offset is None when inserting spaces
 		then no attribute will be used.
 		"""
+		assert 0, ("This function must be overridden by a real"
+			" text layout class. (see StandardTextLayout)")
 		return [[]]
 
 class StandardTextLayout(TextLayout):
@@ -146,6 +202,21 @@ class StandardTextLayout(TextLayout):
 		"""Return a layout structure for text."""
 		segs = self.calculate_text_segments( text, width, wrap )
 		return self.align_layout( text, width, segs, wrap, align )
+
+	def pack(self, maxcol, layout):
+		"""
+		Return a minimal maxcol value that would result in the same
+		number of lines for layout.  layout must be a layout structure
+		returned by self.layout().
+		"""
+		maxwidth = 0
+		assert layout, "huh? empty layout?: "+`layout`
+		for l in layout:
+			lw = line_width(l)
+			if lw >= maxcol:
+				return maxcol
+			maxwidth = max(maxwidth, lw)
+		return maxwidth			
 
 	def align_layout( self, text, width, segs, wrap, align ):
 		"""Convert the layout segs to an aligned layout."""
@@ -365,12 +436,12 @@ def move_prev_char( text, start_offs, end_offs ):
 	if type(text) == type(u""):
 		return end_offs-1
 	assert type(text) == type("")
-	if byte_encoding == "utf8":
+	if _byte_encoding == "utf8":
 		o = end_offs-1
 		while ord(text[o])&0xc0 == 0x80:
 			o -= 1
 		return o
-	if byte_encoding == "wide" and within_double_byte( text,
+	if _byte_encoding == "wide" and within_double_byte( text,
 		start_offs, end_offs-1) == 2:
 		return end_offs-2
 	return end_offs-1
@@ -383,12 +454,12 @@ def move_next_char( text, start_offs, end_offs ):
 	if type(text) == type(u""):
 		return start_offs+1
 	assert type(text) == type("")
-	if byte_encoding == "utf8":
+	if _byte_encoding == "utf8":
 		o = start_offs+1
 		while o<end_offs and ord(text[o])&0xc0 == 0x80:
 			o += 1
 		return o
-	if byte_encoding == "wide" and within_double_byte(text, 
+	if _byte_encoding == "wide" and within_double_byte(text, 
 		start_offs, start_offs) == 1:
 		return start_offs +2
 	return start_offs+1
@@ -401,10 +472,10 @@ def is_wide_char( text, offs ):
 		o = ord(text[offs])
 		return utable.get_width(o) == 2
 	assert type(text) == type("")
-	if byte_encoding == "utf8":
+	if _byte_encoding == "utf8":
 		o, n = utable.decode_one(text, offs)
 		return utable.get_width(o) == 2
-	if byte_encoding == "wide":
+	if _byte_encoding == "wide":
 		return within_double_byte(text, offs, offs) == 1
 	return False
 
@@ -482,7 +553,7 @@ def calc_width( text, start_offs, end_offs ):
 	Return the screen column width of text between start_offs and end_offs.
 	"""
 	assert start_offs <= end_offs, `start_offs, end_offs`
-	utfs = (type(text) == type("") and byte_encoding == "utf8")
+	utfs = (type(text) == type("") and _byte_encoding == "utf8")
 	if type(text) == type(u"") or utfs:
 		i = start_offs
 		sc = 0
@@ -511,7 +582,7 @@ def calc_text_pos( text, start_offs, end_offs, pref_col ):
 	Returns (position, actual_col).
 	"""
 	assert start_offs <= end_offs, `start_offs, end_offs`
-	utfs = (type(text) == type("") and byte_encoding == "utf8")
+	utfs = (type(text) == type("") and _byte_encoding == "utf8")
 	if type(text) == type(u"") or utfs:
 		i = start_offs
 		sc = 0
@@ -535,7 +606,7 @@ def calc_text_pos( text, start_offs, end_offs, pref_col ):
 	i = start_offs+pref_col
 	if i >= end_offs:
 		return end_offs, end_offs-start_offs
-	if byte_encoding == "wide":
+	if _byte_encoding == "wide":
 		if within_double_byte( text, start_offs, i ) == 2:
 			i -= 1
 	return i, i-start_offs
@@ -731,53 +802,47 @@ def calc_trim_text( text, start_offs, end_offs, start_col, end_col ):
 	return ( spos, pos, pad_left, pad_right )
 
 
-def get_attr_at( attr, pos ):
+
+
+def trim_text_attr_cs( text, attr, cs, start_col, end_col ):
+	"""
+	Return ( trimmed text, trimmed attr, trimmed cs ).
+	"""
+	spos, epos, pad_left, pad_right = calc_trim_text( 
+		text, 0, len(text), start_col, end_col )
+	attrtr = rle_subseg( attr, spos, epos )
+	cstr = rle_subseg( cs, spos, epos )
+	if pad_left:
+		al = rle_get_at( attr, spos-1 )
+		rle_append_beginning_modify( attrtr, (al, 1) )
+		rle_append_beginning_modify( cstr, (None, 1) )
+	if pad_right:
+		al = rle_get_at( attr, epos )
+		rle_append_modify( attrtr, (al, 1) )
+		rle_append_modify( cstr, (None, 1) )
+	
+	return " "*pad_left + text[spos:epos] + " "*pad_right, attrtr, cstr
+	
+		
+def rle_get_at( rle, pos ):
 	"""
 	Return the attribute at offset pos.
 	"""
 	x = 0
 	if pos < 0:
 		return None
-	for a, run in attr:
+	for a, run in rle:
 		if x+run > pos:
 			return a
 		x += run
 	return None
 
 
-def trim_text_attr( text, attr, start_col, end_col ):
-	"""
-	Return ( trimmed text, trimmed attr ).
-	"""
-	spos, epos, pad_left, pad_right = calc_trim_text( 
-		text, 0, len(text), start_col, end_col )
-	attrtr = trim_attr( attr, spos, epos )
-	if pad_left:
-		al = get_attr_at( attr, spos-1 )
-		if not attrtr:
-			attrtr = [(al, 1)]
-		else:	
-			a, run = attrtr[0]
-			if a == al:
-				attrtr[0] = (a,run+1)
-			else:
-				attrtr = [(al, 1)] + attrtr
-	if pad_right:
-		if not attrtr:
-			a = get_attr_at( attr, epos )
-			attrtr = [(a, 1)]
-		else:
-			a, rin = attrtr[-1]
-			attrtr[-1] = (a,run+1)
-	
-	return " "*pad_left + text[spos:epos] + " "*pad_right, attrtr
-	
-		
-def trim_attr( attr, start, end ):
-	"""Return a sub segment of an attribute list."""
+def rle_subseg( rle, start, end ):
+	"""Return a sub segment of an rle list."""
 	l = []
 	x = 0
-	for a, run in attr:
+	for a, run in rle:
 		if start:
 			if start >= run:
 				start -= run
@@ -795,39 +860,102 @@ def trim_attr( attr, start, end ):
 	return l
 
 
-drawing_charmap = {
-	u"◆" : "`",
-	u"▒" : "a",
-#	u"␉" : "b",
-#	u"␌" : "c",
-#	u"␍" : "d",
-#	u"␊" : "e",
-	u"°" : "f",
-	u"±" : "g",
-#	u"␤" : "h",
-#	u"␋" : "i",
-	u"┘" : "j",
-	u"┐" : "k",
-	u"┌" : "l",
-	u"└" : "m",
-	u"┼" : "n",
-	u"⎺" : "o",
-	u"⎻" : "p",
-	u"─" : "q",
-	u"⎼" : "r",
-	u"⎽" : "s",
-	u"├" : "t",
-	u"┤" : "u",
-	u"┴" : "v",
-	u"┬" : "w",
-	u"│" : "x",
-	u"≤" : "y",
-	u"≥" : "z",
-	u"π" : "{",
-	u"≠" : "|",
-	u"£" : "}",
-	u"·" : "~",
-}
+def rle_len( rle ):
+	"""
+	Return the number of characters covered by a run length
+	encoded attribute list.
+	"""
+	
+	run = 0
+	for v in rle:
+		assert type(v) == type(()), `rle`
+		a, r = v
+		run += r
+	return run
+
+def rle_append_beginning_modify( rle, (a, r) ):
+	"""
+	Append (a, r) to BEGINNING of rle.
+	Merge with first run when possible
+
+	MODIFIES rle parameter contents. Returns None.
+	"""
+	if not rle:
+		rle[:] = [(a, r)]
+	else:	
+		al, run = rle[0]
+		if a == al:
+			rle[0] = (a,run+r)
+		else:
+			rle[0:0] = [(al, r)]
+			
+			
+def rle_append_modify( rle, (a, r) ):
+	"""
+	Append (a,r) to the rle list rle.
+	Merge with last run when possible.
+	
+	MODIFIES rle parameter contents. Returns None.
+	"""
+	if not rle or rle[-1][0] != a:
+		rle.append( (a,r) )
+		return
+	la,lr = rle[-1]
+	rle[-1] = (a, lr+r)
+
+def rle_join_modify( rle, rle2 ):
+	"""
+	Append attribute list rle2 to rle.
+	Merge last run of rle with first run of rle2 when possible.
+
+	MODIFIES attr parameter contents. Returns None.
+	"""
+	if not rle2:
+		return
+	rle_append_modify(rle, rle2[0])
+	rle += rle2[1:]
+		
+def rle_product( rle1, rle2 ):
+	"""
+	Merge the runs of rle1 and rle2 like this:
+	eg.
+	rle1 = [ ("a", 10), ("b", 5) ]
+	rle2 = [ ("Q", 5), ("P", 10) ]
+	rle_product: [ (("a","Q"), 5), (("a","P"), 5), (("b","P"), 5) ]
+
+	rle1 and rle2 are assumed to cover the same total run.
+	"""
+	i1 = i2 = 1 # rle1, rle2 indexes
+	if not rle1 or not rle2: return []
+	a1, r1 = rle1[0]
+	a2, r2 = rle2[0]
+	
+	l = []
+	while r1 and r2:
+		r = min(r1, r2)
+		rle_append_modify( l, ((a1,a2),r) )
+		r1 -= r
+		if r1 == 0 and i1< len(rle1):
+			a1, r1 = rle1[i1]
+			i1 += 1
+		r2 -= r
+		if r2 == 0 and i2< len(rle2):
+			a2, r2 = rle2[i2]
+			i2 += 1
+	return l	
+
+
+def rle_factor( rle ):
+	"""
+	Inverse of rle_product.
+	"""
+	rle1 = []
+	rle2 = []
+	for (a1, a2), r in rle:
+		rle_append_modify( rle1, (a1, r) )
+		rle_append_modify( rle2, (a2, r) )
+	return rle1, rle2
+
 
 class TagMarkupException( Exception ): pass
 

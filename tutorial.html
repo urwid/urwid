@@ -372,7 +372,7 @@ ui = urwid.curses_display.Screen()
 def run():
 	cols, rows = ui.get_cols_rows()
 
-	ask = urwid.Edit(&quot;What is your name?\\n&quot;)
+	ask = urwid.Edit(&quot;What is your name?\n&quot;)
 	fill = urwid.Filler( ask )
 	reply = None
 
@@ -388,7 +388,7 @@ def run():
 			if reply is not None:
 				return
 			if k == &quot;enter&quot;:
-				reply = urwid.Text( &quot;Nice to meet you,\\n&quot;+
+				reply = urwid.Text( &quot;Nice to meet you,\n&quot;+
 					ask.edit_text+&quot;.&quot; )
 				fill.body = reply
 			if fill.selectable():
@@ -421,25 +421,25 @@ widget so it supports the same wrapping and alignment modes.
 
 <div class="shot"><pre><span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">What is your name?   </span>
+<span style="color:black;background:silver"><u> </u>                    </span>
 <span style="color:black;background:silver">                     </span>
-<span style="color:black;background:silver">What is your name?\n<u> </u></span>
-<span style="color:black;background:silver">                     </span>
-<span style="color:black;background:silver">                     </span>
-<span style="color:black;background:silver">                     </span>
-</pre></div>
-<div class="shot"><pre><span style="color:black;background:silver">                     </span>
-<span style="color:black;background:silver">                     </span>
-<span style="color:black;background:silver">What is your         </span>
-<span style="color:black;background:silver">name?\nArthur, King  </span>
-<span style="color:black;background:silver">of the Britons<u> </u>      </span>
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
 </pre></div>
 <div class="shot"><pre><span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
-<span style="color:black;background:silver">Nice to meet         </span>
-<span style="color:black;background:silver">you,\nArthur, King of</span>
-<span style="color:black;background:silver">the Britons.         </span>
+<span style="color:black;background:silver">What is your name?   </span>
+<span style="color:black;background:silver">Arthur, King of the  </span>
+<span style="color:black;background:silver">Britons<u> </u>             </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">                     </span>
+</pre></div>
+<div class="shot"><pre><span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">                     </span>
+<span style="color:black;background:silver">Nice to meet you,    </span>
+<span style="color:black;background:silver">Arthur, King of the  </span>
+<span style="color:black;background:silver">Britons.             </span>
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
 </pre></div>

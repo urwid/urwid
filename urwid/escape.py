@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -* coding: utf-8 -*-
 #
 # Urwid escape sequences common to curses_display and raw_display
 #    Copyright (C) 2004-2006  Ian Ward
@@ -25,6 +26,18 @@ Terminal Escape Sequences for input and display
 
 import util
 import os
+
+SO = "\x0e"
+SI = "\x0f"
+
+DEC_TAG = "0"
+DEC_SPECIAL_CHARS =     u"◆▒°±┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥π≠£·"
+ALT_DEC_SPECIAL_CHARS = u"`afgjklmnopqrstuvwxyz{|}~"
+
+DEC_SPECIAL_CHARMAP = {}
+for c, alt in zip(DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS):
+	DEC_SPECIAL_CHARMAP[ord(c)] = SO + alt + SI
+
 
 ###################
 ## Input sequences
@@ -202,7 +215,9 @@ def process_keyqueue(keys, more_fn):
 	if code >0 and code <27:
 		return ["ctrl %s" % chr(ord('a')+code-1)],keys
 	
-	if (util.byte_encoding == 'wide' and code < 256 and 
+	em = util.get_encoding_mode()
+	
+	if (em == 'wide' and code < 256 and  
 		util.within_double_byte(chr(code),0,0)):
 		if not keys:
 			key = more_fn()
@@ -212,7 +227,7 @@ def process_keyqueue(keys, more_fn):
 			if util.within_double_byte( db, 0, 1 ):
 				keys.pop(0)
 				return [db],keys
-	if util.byte_encoding == 'utf8' and code>127 and code<256:
+	if em == 'utf8' and code>127 and code<256:
 		if code & 0xe0 == 0xc0: # 2-byte form
 			need_more = 1
 		elif code & 0xf0 == 0xe0: # 3-byte form
@@ -254,7 +269,7 @@ def process_keyqueue(keys, more_fn):
 	if keys:
 		# Meta keys -- ESC+Key form
 		run, keys = process_keyqueue(keys, more_fn)
-		if run[0] == "esc" or "meta " in run[0]:
+		if run[0] == "esc" or run[0].find("meta ") >= 0:
 			return ['esc']+run, keys
 		return ['meta '+run[0]]+run[1:], keys
 		
@@ -290,6 +305,8 @@ SHOW_CURSOR = ESC+"[?25h"
 
 MOUSE_TRACKING_ON = ESC+"[?1000h"+ESC+"[?1002h"
 MOUSE_TRACKING_OFF = ESC+"[?1002l"+ESC+"[?1000l"
+
+DESIGNATE_G1_SPECIAL = ESC+")0"
 
 _fg_attr = {
 	'default':	"0;39",

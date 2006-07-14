@@ -21,6 +21,7 @@
 
 from __future__ import nested_scopes
 from util import *
+from escape import * 
 
 try: True # old python?
 except: False, True = 0, 1
@@ -33,10 +34,12 @@ class Canvas:
 	"""
 	class for storing rendered text and attributes
 	"""
-	def __init__(self,text = None,attr = None,cursor = None,maxcol=None):
+	def __init__(self,text = None,attr = None, cs = None, 
+		cursor = None, maxcol=None):
 		"""
 		text -- list of strings, one for each line
 		attr -- list of run length encoded attributes for text
+		cs -- list of run length encoded character set for text
 		cursor -- (x,y) of cursor or None
 		maxcol -- screen columns taken by this canvas
 		"""
@@ -45,7 +48,7 @@ class Canvas:
 		widths = []
 		for t in text:
 			if type(t) != type(""):
-				raise CanvasError("Canvas text must be plain strings encoded in the screen's encoding")
+				raise CanvasError("Canvas text must be plain strings encoded in the screen's encoding", `text`)
 			widths.append( calc_width( t, 0, len(t)) )
 
 		if maxcol is None:
@@ -57,6 +60,8 @@ class Canvas:
 
 		if attr == None: 
 			attr = [[] for x in range(len(text))]
+		if cs == None:
+			cs = [[] for x in range(len(text))]
 		
 		# pad text and attr to maxcol
 		for i in range(len(text)):
@@ -65,14 +70,20 @@ class Canvas:
 				raise CanvasError("Canvas text is wider than the maxcol specified \n%s\n%s\n%s"%(`maxcol`,`widths`,`text`))
 			if w < maxcol:
 				text[i] = text[i] + " "*(maxcol-w)
-			a_gap = len(text[i]) - attr_run( attr[i] )
+			a_gap = len(text[i]) - rle_len( attr[i] )
 			if a_gap < 0:
 				raise CanvasError("Attribute extends beyond text \n%s\n%s" % (`text[i]`,`attr[i]`) )
 			if a_gap:
-				attr_append( attr[i], (None, a_gap))
+				rle_append_modify( attr[i], (None, a_gap))
 			
-		
+			cs_gap = len(text[i]) - rle_len( cs[i] )
+			if cs_gap < 0:
+				raise CanvasError("Character Set extends beyond text \n%s\n%s" % (`text[i]`,`cs[i]`) )
+			if cs_gap:
+				rle_append_modify( cs[i], (None, cs_gap))
+			
 		self.attr = attr
+		self.cs = cs
 		self.cursor = cursor
 		self.text = text
 		self.maxcol = maxcol
@@ -107,9 +118,11 @@ class Canvas:
 		if count is None:
 			self.text = self.text[top:]
 			self.attr = self.attr[top:]
+			self.cs = self.cs[top:]
 		else:
 			self.text = self.text[top:top+count]
 			self.attr = self.attr[top:top+count]
+			self.cs = self.cs[top:top+count]
 		
 		
 	def trim_end(self, end):
@@ -122,6 +135,7 @@ class Canvas:
 			end, len(self.text))
 		self.text = self.text[:-end]
 		self.attr = self.attr[:-end]
+		self.cs = self.cs[:-end]
 
 	def fill_attr(self, a):
 		"""
@@ -150,25 +164,31 @@ class Canvas:
 		self.translate_coords( left, top )
 
 		i = top # row index
-		for text, attr in zip(other.text, other.attr):
+		for text, attr, cs in zip(other.text, other.attr, other.cs):
 			oldt = self.text[i]
 			olda = self.attr[i]
+			oldc = self.cs[i]
 			
 			if left:
-				lt, a = trim_text_attr( oldt, olda, 0, left )
+				lt, a, c= trim_text_attr_cs( 
+					oldt, olda, oldc, 0, left )
 				t = lt + text
-				attr_join(a, attr)
+				rle_join_modify(a, attr)
+				rle_join_modify(c, cs)
 			else:
-				t, a = text, attr
+				t, a, c = text, attr, cs
 
 			if right:
-				rt, ra = trim_text_attr( oldt, olda, 
+				rt, ra, rc = trim_text_attr_cs( 
+					oldt, olda, oldc,
 					maxcol-right, maxcol )
 				t = t + rt
-				attr_join(a, ra)
+				rle_join_modify(a, ra)
+				rle_join_modify(c, rc)
 			
 			self.text[i] = t
 			self.attr[i] = a
+			self.cs[i] = c
 
 			i += 1
 
@@ -177,18 +197,20 @@ def CanvasCombine(l):
 	"""Stack canvases in l vertically and return resulting canvas."""
 	t = []
 	a = []
+	c = []
 	rows = 0
 	cols = 0
 	cursor = None
 	for r in l:
 		t += r.text
 		a += r.attr
+		c += r.cs
 		cols = max(cols, r.cols())
 		if r.cursor:
 			x,y = r.cursor
 			cursor = x, y+rows
 		rows = len( t )
-	d = Canvas(t, a, cursor, cols )
+	d = Canvas(t, a, c, cursor, cols )
 	return d
 
 
@@ -206,16 +228,18 @@ def CanvasJoin(l):
 	
 	t = []
 	a = []
+	c = []
 	
-	rows = max([c.rows() for coff, c in l2])
+	rows = max([cnv.rows() for coff, cnv in l2])
 	for r in range(rows):
 		t.append([])
 		a.append([])
+		c.append([])
 	
 	x = 0 # current start screen col, from coff
 	xw = 0 # current end screen col from x and canvas width
 	cursor = None
-	for coff, c in l2:
+	for coff, cnv in l2:
 		x += coff
 		if x < xw: 
 			raise CanvasError("Join colnum < width of canvas")
@@ -224,67 +248,35 @@ def CanvasJoin(l):
 			tpad = " "*pad
 			for r in range(rows):
 				t[r].append(tpad)
-				attr_append(a[r],(None,pad))
-		xw = x + c.cols()
+				rle_append_modify(a[r],(None,pad))
+				rle_append_modify(c[r],(None,pad))
+		xw = x + cnv.cols()
 		i = 0
-		while i < c.rows():
-			t[i].append(c.text[i])
-			attr_join( a[i], c.attr[i] )
+		while i < cnv.rows():
+			t[i].append(cnv.text[i])
+			rle_join_modify( a[i], cnv.attr[i] )
+			rle_join_modify( c[i], cnv.cs[i] )
 			i += 1
 		if i < rows:
-			pad = c.cols()
+			pad = cnv.cols()
 			tpad = " "*pad
 			while i < rows:
 				t[i].append(tpad)
-				attr_append(a[i],(None,pad))
+				rle_append_modify(a[i],(None,pad))
+				rle_append_modify(c[i],(None,pad))
 				i += 1 
-		if c.cursor:
-			c.translate_coords(x, 0)
-			cursor = c.cursor
-	d = Canvas( ["".join(lt) for lt in t], a, cursor, xw )
+		if cnv.cursor:
+			cnv.translate_coords(x, 0)
+			cursor = cnv.cursor
+	d = Canvas( ["".join(lt) for lt in t], a, c, cursor, xw )
 	return d
 
 
-def attr_run( attr ):
-	"""
-	Return the number of characters covered by a run length
-	encoded attribute list.
-	"""
-	
-	run = 0
-	for a, r in attr:
-		run += r
-	return run
-
-def attr_append( attr, (a, r) ):
-	"""
-	Append (a,r) to the attribute list attr.
-	Merge with last run when possible.
-	
-	MODIFIES attr parameter contents. Returns None.
-	"""
-	if not attr or attr[-1][0] != a:
-		attr.append( (a,r) )
-		return
-	la,lr = attr[-1]
-	attr[-1] = (a, lr+r)
-
-def attr_join( attr, attr2 ):
-	"""
-	Append attribute list attr2 to attr.
-	Merge last run of attr with first run of attr2 when possible.
-
-	MODIFIES attr parameter contents. Returns None.
-	"""
-	if not attr2:
-		return
-	attr_append(attr, attr2[0])
-	attr += attr2[1:]
-		
 def apply_text_layout( text, attr, ls, maxcol ):
 	utext = type(text)==type(u"")
 	t = []
 	a = []
+	c = []
 	
 	class AttrWalk:
 		pass
@@ -324,12 +316,7 @@ def apply_text_layout( text, attr, ls, maxcol ):
 		
 		line = []
 		linea = []
-		def attradd( at, run ):
-			assert run>0
-			if not linea or linea[-1][0] != at:
-				linea.append((at, run))
-			else:
-				linea[-1] = (at, linea[-1][1]+run)
+		linec = []
 			
 		def attrrange( start_offs, end_offs, destw ):
 			"""
@@ -338,21 +325,23 @@ def apply_text_layout( text, attr, ls, maxcol ):
 			"""
 			if start_offs == end_offs:
 				[(at,run)] = arange(start_offs,end_offs)
-				attradd( at, destw )
+				rle_append_modify( linea, ( at, destw ))
 				return
 			if destw == end_offs-start_offs:
 				for at, run in arange(start_offs,end_offs):
-					attradd( at, run )
+					rle_append_modify( linea, ( at, run ))
 				return
 			# encoded version has different width
 			o = start_offs
 			for at, run in arange(start_offs, end_offs):
 				if o+run == end_offs:
-					attradd( at, destw )
+					rle_append_modify( linea, ( at, destw ))
 					return
 				tseg = text[o:o+run]
-				segw = len(tseg.encode(target_encoding))
-				attradd( at, segw )
+				tseg, cs = apply_target_encoding( tseg )
+				segw = rle_len(cs)
+				
+				rle_append_modify( linea, ( at, segw ))
 				o += run
 				destw -= segw
 			
@@ -361,21 +350,16 @@ def apply_text_layout( text, attr, ls, maxcol ):
 			#if seg is None: assert 0, ls
 			s = LayoutSegment(seg)
 			if s.end:
-				if utext:
-					tseg = text[s.offs:s.end].encode(
-						target_encoding)
-					line.append(tseg)
-					attrrange(s.offs, s.end, len(tseg))
-				else:
-					line.append(text[s.offs:s.end])
-					attrrange(s.offs, s.end, s.end-s.offs )
+				tseg, cs = apply_target_encoding(
+					text[s.offs:s.end])
+				line.append(tseg)
+				attrrange(s.offs, s.end, rle_len(cs))
+				rle_join_modify( linec, cs )
 			elif s.text:
-				if type(s.text) == type(u""):
-					tseg = s.text.encode( target_encoding )
-				else:
-					tseg = s.text
+				tseg, cs = apply_target_encoding( s.text )
 				line.append(tseg)
 				attrrange( s.offs, s.offs, len(tseg) )
+				rle_join_modify( linec, cs )
 			elif s.offs:
 				if s.sc:
 					line.append(" "*s.sc)
@@ -383,8 +367,14 @@ def apply_text_layout( text, attr, ls, maxcol ):
 			else:
 				line.append(" "*s.sc)
 				linea.append((None, s.sc))
+				linec.append((None, s.sc))
 			
 		t.append("".join(line))
 		a.append(linea)
+		c.append(linec)
 		
-	return Canvas(t,a, maxcol=maxcol)
+	return Canvas(t,a,c, maxcol=maxcol)
+
+
+
+

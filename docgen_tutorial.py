@@ -136,7 +136,7 @@ def example_edit():
 	def run():
 		cols, rows = ui.get_cols_rows()
 
-		ask = urwid.Edit("What is your name?\\n")
+		ask = urwid.Edit("What is your name?\n")
 		fill = urwid.Filler( ask )
 		reply = None
 
@@ -152,7 +152,7 @@ def example_edit():
 				if reply is not None:
 					return
 				if k == "enter": 
-					reply = urwid.Text( "Nice to meet you,\\n"+
+					reply = urwid.Text( "Nice to meet you,\n"+
 						ask.edit_text+"." )
 					fill.body = reply
 				if fill.selectable():

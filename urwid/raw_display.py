@@ -60,6 +60,7 @@ class Screen:
 		self.gpm_mev = None
 		self.gpm_event_pending = False
 		self.last_bstate = 0
+		self.setup_G1 = True
 	
 	def register_palette( self, l ):
 		"""Register a list of palette entries.
@@ -194,6 +195,7 @@ class Screen:
 					0, self.maxrow)
 			sys.stdout.write( escape.set_attributes( 
 				'default', 'default') 
+				+ escape.SI
 				+ escape.MOUSE_TRACKING_OFF
 				+ move_cursor + "\n" + escape.SHOW_CURSOR )
 			
@@ -400,6 +402,17 @@ class Screen:
 	
 	def draw_screen(self, (maxcol, maxrow), r ):
 		"""Paint screen with rendered canvas."""
+
+		if self.setup_G1:
+			try:
+				if util._use_dec_special:
+					sys.stdout.write(
+						escape.DESIGNATE_G1_SPECIAL)
+					sys.stdout.flush()
+				self.setup_G1 = False
+			except IOError, e:
+				pass
+		
 		if self.resized: 
 			# handle resize before trying to draw screen
 			return
@@ -419,30 +432,49 @@ class Screen:
 		cy = 0
 		for y in range(len(lines)):
 			line = lines[y].translate( _trans_table )
-			attr = r.attr[y]
+			attr_cs = util.rle_product(r.attr[y], r.cs[y])
 			
-			if osb and osb[y] == (line, attr):
+			if osb and osb[y] == (line, attr_cs):
 				sb.append( osb[y] )
 				continue
-			sb.append( (line, attr) )
+			sb.append( (line, attr_cs) )
 			
 			if cy != y:  
 				o.append( escape.set_cursor_position(0,y) )
 			cy = y+1 # will be here after updating this line
 			
 			if y == maxrow-1:
-				line, attr, ins=self._last_row(maxcol,line,attr)
+				line, attr_cs, ins = self._last_row(
+					maxcol, line, attr_cs)
 
 			col = 0
-			for a, run in attr:
+			first = True
+			lasta = lastcs = None
+			for (a,cs), run in attr_cs:
 				assert self.palette.has_key(a), `a`
-				o.append( self.palette[a][0] )
+				if first or lasta != a:
+					o.append( self.palette[a][0] )
+					lasta = a
+				if first or lastcs != cs:
+					assert cs in [None, "0"], `cs`
+					if cs is None:
+						o.append( escape.SI )
+					else:
+						o.append( escape.SO )
+					lastcs = cs
 				o.append( line[col:col+run] )
 				col += run
+				first = False
 			if ins:
-				insert, inserta, back = ins
+				insert, (inserta, insertcs), back = ins
+				ias = self.palette[inserta][0]
+				assert insertcs in [None, "0"], `insertcs`
+				if cs is None:
+					icss = escape.SI
+				else:
+					icss = escape.SO
 				o += [	"\x08"*back, 
-					self.palette[inserta[0]][0],
+					ias, icss,
 					escape.INSERT_ON, insert,
 					escape.INSERT_OFF ]
 
@@ -455,7 +487,13 @@ class Screen:
 			# handle resize before trying to draw screen
 			return
 		try:
-			sys.stdout.write( "".join(o) )
+			k = 0
+			for l in o:
+				sys.stdout.write( l )
+				k += len(l)
+				if k > 100:
+					sys.stdout.flush()
+					k = 0
 			sys.stdout.flush()
 		except IOError, e:
 			# ignore interrupted syscall
@@ -465,7 +503,7 @@ class Screen:
 		self.screen_buf = sb
 				
 	
-	def _last_row(self, maxcol, line, attr):
+	def _last_row(self, maxcol, line, attr_cs):
 		"""On the last row we need to slide the bottom right character
 		into place. Calculate the new line, attr and an insert sequence
 		to do that."""
@@ -481,11 +519,12 @@ class Screen:
 		i2, p2 = util.calc_text_pos( line, 0, ll, p1-1 )
 
 		insert = line[i2:i1] # we will insert this range
-		inserta = util.trim_attr(attr,i2,i1)[0]
+		inserta_cs = util.rle_subseg(attr_cs,i2,i1)[0][0]
 
-		attr = util.trim_attr(attr, 0, i2)+util.trim_attr(attr, i1, ll)
+		attr_cs = util.rle_subseg(attr_cs, 0, i2) + util.rle_subseg(
+			attr_cs, i1, ll)
 		line = line[0:i2] + line[i1:]
 		back = maxcol-p1
 		
-		return line, attr, (insert, inserta, back)
+		return line, attr_cs, (insert, inserta_cs, back)
 			

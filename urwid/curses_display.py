@@ -33,7 +33,9 @@ import escape
 
 try: True # old python?
 except: False, True = 0, 1
-		
+
+KEY_RESIZE = 410 # curses.KEY_RESIZE (sometimes not defined)
+KEY_MOUSE = 409 # curses.KEY_MOUSE
 
 _curses_colours = {
 	'default':		(-1,			0),
@@ -369,9 +371,9 @@ class Screen:
 		
 		while key >= 0:
 			raw.append(key)
-			if key==curses.KEY_RESIZE: 
+			if key==KEY_RESIZE: 
 				resize = True
-			elif key==curses.KEY_MOUSE:
+			elif key==KEY_MOUSE:
 				keys += self._encode_mouse_event()
 			else:
 				keys.append(key)
@@ -491,12 +493,11 @@ class Screen:
 			#	line += " "*(cols-len(line))
 			if y == rows-1:
 				# don't draw in the lower right corner
-				line = line[:cols-1]
+				i1, p1 = util.calc_text_pos( line, 0, 
+					len(line), cols-1 )
+				line = line[:i1]
 				
-			if len(r.attr) > y:
-				attr = r.attr[y]
-			else:
-				attr = []
+			attr_cs = util.rle_product(r.attr[y], r.cs[y])
 			col = 0
 			
 			try:
@@ -506,14 +507,26 @@ class Screen:
 				# move failed so stop rendering.
 				break
 			
-			for a, run in attr:
-				self._setattr(a)
-				self.s.addstr( line[col:col+run] )
+			first = True
+			lasta = None
+			for (a,cs), run in attr_cs:
+				if first or lasta != a:
+					self._setattr(a)
+					lasta = a
+				seg = line[col:col+run]
+				if cs == "0":
+					for i in range(len(seg)):
+						self.s.addch( 0x400000 +
+							ord(seg[i]) )
+				else:
+					assert cs is None
+					self.s.addstr( seg )
+					
 				col += run
 
-			if len(line) > col:
-				self._setattr( None )
-				self.s.addstr( line[col:] )
+			#if len(line) > col:
+			#	self._setattr( None )
+			#	self.s.addstr( line[col:] )
 			
 		if r.cursor is not None:
 			x,y = r.cursor
@@ -527,7 +540,6 @@ class Screen:
 			self.s.move(0,0)
 		
 		self.s.refresh()
-
 
 
 

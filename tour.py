@@ -37,7 +37,7 @@ else:
 	Screen = urwid.raw_display.Screen
 
 
-blank = urwid.Text("")
+blank = urwid.Divider()
 
 HEADER = urwid.AttrWrap( urwid.Text("Welcome to the urwid tour!  "
 	"UP / DOWN / PAGE UP / PAGE DOWN scroll.  F8 exits."), 'header')

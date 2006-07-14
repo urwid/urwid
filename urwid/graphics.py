@@ -20,14 +20,48 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import nested_scopes
+
 from util import *
 from canvas import *
 from widget import *
 
-from __future__ import nested_scopes
-
 try: True # old python?
 except: False, True = 0, 1
+
+
+class LineBox(WidgetWrap):
+	def __init__(self, w):
+		"""Draw a line around w."""
+		
+		tlcorner=None; tline=None; lline=None
+		trcorner=None; blcorner=None; rline=None
+		bline=None; brcorner=None
+		
+		def use_attr( a, t ):
+			if a is not None:
+				t = urwid.AttrWrap(t, a)
+			return t
+			
+		tline = use_attr( tline, Divider(u"─"))
+		bline = use_attr( bline, Divider(u"─"))
+		lline = use_attr( rline, SolidFill(u"│"))
+		rline = use_attr( rline, SolidFill(u"│"))
+		tlcorner = use_attr( tlcorner, Text(u"┌"))
+		trcorner = use_attr( trcorner, Text(u"┐"))
+		blcorner = use_attr( blcorner, Text(u"└"))
+		brcorner = use_attr( brcorner, Text(u"┘"))
+		top = Columns([ ('fixed', 1, tlcorner),
+			tline, ('fixed', 1, trcorner) ])
+		middle = Columns( [('fixed', 1, lline),
+			w, ('fixed', 1, rline)], box_columns = [0,2],
+			focus_column = 1)
+		bottom = Columns([ ('fixed', 1, blcorner),
+			bline, ('fixed', 1, brcorner) ])
+		pile = Pile([('flow',top),middle,('flow',bottom)],
+			focus_item = 1)
+		WidgetWrap.__init__(self, pile)
+
 
 class BarGraphError(Exception):
 	pass

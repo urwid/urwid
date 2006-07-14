@@ -69,6 +69,8 @@ widths = [
 def get_width( o ):
 	"""Return the screen column width for unicode ordinal o."""
 	global widths
+	if o == 0xe or o == 0xf:
+		return 0
 	for num, wid in widths:
 		if o <= num:
 			return wid

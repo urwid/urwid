@@ -40,6 +40,26 @@ class CalcWidthTest(unittest.TestCase):
 		self.wtest("wide char", '\xe6\x9b\xbf', 2)
 		self.wtest("invalid", '\xe6', 1)
 
+class ConvertDecSpecialTest(unittest.TestCase):
+	def ctest(self, desc, s, exp, expcs):
+		urwid.set_encoding('ascii')
+		c = urwid.Text(s).render((5,))
+		result = c.text[0]
+		assert result==exp, desc+" got:"+`result`+" expected:"+`exp`
+		resultcs = c.cs[0]
+		assert resultcs==expcs, desc+" got:"+`resultcs`+" expected:"+`expcs`
+		
+
+	def test1(self):
+		self.ctest("no conversion", "hello", "hello", [(None,5)])
+		self.ctest("only special", u"£££££", "}}}}}", [("0",5)])
+		self.ctest("mix left", u"££abc", "}}abc", [("0",2),(None,3)])
+		self.ctest("mix right", u"abc££", "abc}}", [(None,3),("0",2)])
+		self.ctest("mix inner", u"a££bc", "a}}bc", 
+			[(None,1),("0",2),(None,2)] )
+		self.ctest("mix well", u"£a£b£", "}a}b}",
+			[("0",1),(None,1),("0",1),(None,1),("0",1)] )
+		
 
 class WithinDoubleByteTest(unittest.TestCase):
 	def setUp(self):
@@ -1780,6 +1800,7 @@ class CanvasOverlayTest(unittest.TestCase):
 def test_main():
 	for t in [
 		CalcWidthTest,
+		ConvertDecSpecialTest,
 		WithinDoubleByteTest,
 		CalcTextPosTest,
 		CalcBreaksCharTest,
