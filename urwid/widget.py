@@ -2167,9 +2167,15 @@ class Columns: # either FlowWidget or BoxWidget
 		"""Return the focus column index."""
 		return self.focus_col
 
-	def set_focus(self, widget):
-		"""Set the column in focus with a widget in self.widget_list."""
-		position = self.widget_list.index(widget)
+	def set_focus(self, item):
+		"""Set the item in focus.  
+		
+		item -- widget or integer index"""
+		if type(item) == type(0):
+			assert item>=0 and item<len(self.widget_list)
+			position = item
+		else:
+			position = self.widget_list.index(item)
 		self.focus_col = position
 	
 	def get_focus(self):

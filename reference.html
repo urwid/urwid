@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>Urwid Reference</title>
+<title>Urwid 0.9.6 Reference</title>
 <style type="text/css">
 	h1 { text-align: center; }
 	h2 { margin: 40px 0 0 0; padding: 10px;  background: #6d96e8;}
@@ -10,7 +10,7 @@
 </style>
 <body>
 <a name="top"></a>
-<h1>Urwid Reference</h1>
+<h1>Urwid 0.9.6 Reference</h1>
 
 <div style="text-align: center;">
 <a href="http://excess.org/urwid/">Urwid Home Page</a> /
@@ -20,7 +20,13 @@
 Reference
 </div>
 <br>
-<table width="100%"><tr><td width="33%" valign="top"><div class="l1">User interface wrappers</div><div class="l2"><a href="#raw_display.Screen">raw_display.Screen</a></div><div class="l2"><a href="#curses_display.Screen">curses_display.Screen</a></div><div class="l1">Top-level widgets</div><div class="l2"><a href="#BoxWidget">BoxWidget</a></div><div class="l2"><a href="#Frame">Frame</a></div><div class="l2"><a href="#Filler">Filler</a></div><div class="l2"><a href="#ListBox">ListBox</a></div><div class="l2"><a href="#SimpleListWalker">SimpleListWalker</a></div><div class="l1">Decorations</div><div class="l2"><a href="#WidgetWrap">WidgetWrap</a></div><div class="l2"><a href="#AttrWrap">AttrWrap</a></div><div class="l2"><a href="#Padding">Padding</a></div><div class="l2"><a href="#Divider">Divider</a></div><div class="l2"><a href="#LineBox">LineBox</a></div><div class="l2"><a href="#SolidFill">SolidFill</a></div><div class="l1">Composite widgets</div><div class="l2"><a href="#Columns">Columns</a></div><div class="l2"><a href="#Pile">Pile</a></div><div class="l2"><a href="#GridFlow">GridFlow</a></div><div class="l2"><a href="#BoxAdapter">BoxAdapter</a></div><div class="l2"><a href="#Overlay">Overlay</a></div></td><td width="33%" valign="top"><div class="l1">Content widgets</div><div class="l2"><a href="#FlowWidget">FlowWidget</a></div><div class="l2"><a href="#Text">Text</a></div><div class="l2"><a href="#Edit">Edit</a></div><div class="l2"><a href="#IntEdit">IntEdit</a></div><div class="l2"><a href="#Button">Button</a></div><div class="l2"><a href="#CheckBox">CheckBox</a></div><div class="l2"><a href="#RadioButton">RadioButton</a></div><div class="l1">Graphics</div><div class="l2"><a href="#BarGraph">BarGraph</a></div><div class="l2"><a href="#GraphVScale">GraphVScale</a></div><div class="l2"><a href="#ProgressBar">ProgressBar</a></div><div class="l1">Urwid class interfaces</div><div class="l2"><a href="#Widget_interface_definition">Widget interface definition</a></div><div class="l2"><a href="#List_Walker_interface_definition">List Walker interface definition</a></div><div class="l1">Canvas painting</div><div class="l2"><a href="#Canvas">Canvas</a></div><div class="l2"><a href="#CanvasCombine">CanvasCombine</a></div><div class="l2"><a href="#CanvasJoin">CanvasJoin</a></div></td><td width="33%" valign="top"><div class="l1">Custom formatting rules</div><div class="l2"><a href="#TextLayout">TextLayout</a></div><div class="l2"><a href="#StandardTextLayout">StandardTextLayout</a></div><div class="l1">Character encoding</div><div class="l2"><a href="#set_encoding">set_encoding</a></div><div class="l2"><a href="#get_encoding_mode">get_encoding_mode</a></div><div class="l2"><a href="#supports_unicode">supports_unicode</a></div><div class="l1">Screen capture</div><div class="l2"><a href="#html_fragment.screenshot_init">html_fragment.screenshot_init</a></div><div class="l2"><a href="#html_fragment.screenshot_collect">html_fragment.screenshot_collect</a></div><div class="l2"><a href="#html_fragment.HtmlGenerator">html_fragment.HtmlGenerator</a></div><div class="l1">Web Application Interface</div><div class="l2"><a href="#web_display.is_web_request">web_display.is_web_request</a></div><div class="l2"><a href="#web_display.set_preferences">web_display.set_preferences</a></div><div class="l2"><a href="#web_display.handle_short_request">web_display.handle_short_request</a></div><div class="l2"><a href="#web_display.Screen">web_display.Screen</a></div></td></tr></table><h2>User interface wrappers</h2><h3><a name="raw_display.Screen"></a><strong>raw_display.Screen</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<table width="100%"><tr><td width="33%" valign="top"><div class="l1">User interface wrappers</div><div class="l2"><a href="#raw_display.Screen">raw_display.Screen</a> </div><div class="l2"><a href="#curses_display.Screen">curses_display.Screen</a> </div><div class="l2"><a href="#web_display.Screen">web_display.Screen</a> </div><div class="l1">Top-level widgets</div><div class="l2"><a href="#Frame">Frame</a> [<b>B</b>]</div><div class="l2"><a href="#Filler">Filler</a> [<b>B</b>]</div><div class="l2"><a href="#ListBox">ListBox</a> [<b>B</b>]</div><div class="l1">Decorations</div><div class="l2"><a href="#WidgetWrap">WidgetWrap</a> [<b>F</b>/<b>B</b>]</div><div class="l2"><a href="#AttrWrap">AttrWrap</a> [<b>F</b>/<b>B</b>]</div><div class="l2"><a href="#Padding">Padding</a> [<b>F</b>/<b>B</b>]</div><div class="l2"><a href="#Divider">Divider</a> [<b>F</b>]</div><div class="l2"><a href="#LineBox">LineBox</a> [<b>F</b>/<b>B</b>]</div><div class="l2"><a href="#SolidFill">SolidFill</a> [<b>B</b>]</div><div class="l1">Composite widgets</div><div class="l2"><a href="#Columns">Columns</a> [<b>F</b>/<b>B</b>]</div><div class="l2"><a href="#Pile">Pile</a> [<b>F</b>/<b>B</b>]</div><div class="l2"><a href="#GridFlow">GridFlow</a> [<b>F</b>]</div><div class="l2"><a href="#BoxAdapter">BoxAdapter</a> [<b>F</b>]</div><div class="l2"><a href="#Overlay">Overlay</a> [<b>B</b>]</div></td><td width="33%" valign="top"><div class="l1">Content widgets</div><div class="l2"><a href="#Text">Text</a> [<b>F</b>]</div><div class="l2"><a href="#Edit">Edit</a> [<b>F</b>]</div><div class="l2"><a href="#IntEdit">IntEdit</a> [<b>F</b>]</div><div class="l2"><a href="#Button">Button</a> [<b>F</b>]</div><div class="l2"><a href="#CheckBox">CheckBox</a> [<b>F</b>]</div><div class="l2"><a href="#RadioButton">RadioButton</a> [<b>F</b>]</div><div class="l1">Graphics</div><div class="l2"><a href="#BarGraph">BarGraph</a> [<b>B</b>]</div><div class="l2"><a href="#GraphVScale">GraphVScale</a> [<b>B</b>]</div><div class="l2"><a href="#ProgressBar">ProgressBar</a> [<b>F</b>]</div><div class="l1">Abstract widgets & interfaces</div><div class="l2"><a href="#Widget_interface_definition">Widget interface definition</a> </div><div class="l2"><a href="#BoxWidget">BoxWidget</a> </div><div class="l2"><a href="#FlowWidget">FlowWidget</a> </div><div class="l2"><a href="#List_Walker_interface_definition">List Walker interface definition</a> </div><div class="l1">ListBox list walkers</div><div class="l2"><a href="#SimpleListWalker">SimpleListWalker</a> </div></td><td width="33%" valign="top"><div class="l1">Canvas painting</div><div class="l2"><a href="#Canvas">Canvas</a> </div><div class="l2"><a href="#CanvasCombine">CanvasCombine</a> </div><div class="l2"><a href="#CanvasJoin">CanvasJoin</a> </div><div class="l1">Custom formatting rules</div><div class="l2"><a href="#TextLayout">TextLayout</a> </div><div class="l2"><a href="#StandardTextLayout">StandardTextLayout</a> </div><div class="l1">Character encoding</div><div class="l2"><a href="#set_encoding">set_encoding</a> </div><div class="l2"><a href="#get_encoding_mode">get_encoding_mode</a> </div><div class="l2"><a href="#supports_unicode">supports_unicode</a> </div><div class="l1">Screen capture</div><div class="l2"><a href="#html_fragment.screenshot_init">html_fragment.screenshot_init</a> </div><div class="l2"><a href="#html_fragment.screenshot_collect">html_fragment.screenshot_collect</a> </div><div class="l2"><a href="#html_fragment.HtmlGenerator">html_fragment.HtmlGenerator</a> </div><div class="l1">Web Application Interface</div><div class="l2"><a href="#web_display.is_web_request">web_display.is_web_request</a> </div><div class="l2"><a href="#web_display.set_preferences">web_display.set_preferences</a> </div><div class="l2"><a href="#web_display.handle_short_request">web_display.handle_short_request</a> </div></td></tr></table>
+<br>
+[<b>F</b>] = Flow Widget displayed with assigned screen columns and variable screen rows<br>
+[<b>B</b>] = Box Widget displayed with assigned screen columns and assigned screen rows<br>
+[<b>F</b>/<b>B</b>] = May behave as either Flow Widget or Box Widget<br>
+<br>
+<h2>User interface wrappers</h2><h3><a name="raw_display.Screen"></a><strong>raw_display.Screen</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="Screen-__init__"><strong>__init__</strong></a>(self)</dt></dl>
 
 <dl><dt><a name="Screen-draw_screen"><strong>draw_screen</strong></a>(self, (maxcol, maxrow), r)</dt><dd><tt>Paint&nbsp;screen&nbsp;with&nbsp;rendered&nbsp;canvas.</tt></dd></dl>
@@ -217,10 +223,42 @@ resize_wait&nbsp;--&nbsp;amount&nbsp;of&nbsp;time&nbsp;in&nbsp;seconds&nbsp;to&n
 After&nbsp;calling&nbsp;this&nbsp;function&nbsp;get_input&nbsp;will&nbsp;include&nbsp;mouse<br>
 click&nbsp;events&nbsp;along&nbsp;with&nbsp;keystrokes.</tt></dd></dl>
 
-<h2>Top-level widgets</h2><h3><a name="BoxWidget">class <strong>BoxWidget</strong></a> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
-<dl><dt><a name="BoxWidget-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;True.&nbsp;&nbsp;Selectable&nbsp;by&nbsp;default.</tt></dd></dl>
+<h3><a name="web_display.Screen"></a><strong>web_display.Screen</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<dl><dt><a name="Screen-__init__"><strong>__init__</strong></a>(self)</dt></dl>
 
-<h3><a name="Frame">class <strong>Frame</strong></a>(BoxWidget) <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<dl><dt><a name="Screen-draw_screen"><strong>draw_screen</strong></a>(self, (cols, rows), r)</dt><dd><tt>Send&nbsp;a&nbsp;screen&nbsp;update&nbsp;to&nbsp;the&nbsp;client.</tt></dd></dl>
+
+<dl><dt><a name="Screen-get_cols_rows"><strong>get_cols_rows</strong></a>(self)</dt><dd><tt>Return&nbsp;the&nbsp;screen&nbsp;size.</tt></dd></dl>
+
+<dl><dt><a name="Screen-get_input"><strong>get_input</strong></a>(self, raw_keys<font color="#909090">=False</font>)</dt><dd><tt>Return&nbsp;pending&nbsp;input&nbsp;as&nbsp;a&nbsp;list.</tt></dd></dl>
+
+<dl><dt><a name="Screen-register_palette"><strong>register_palette</strong></a>(self, l)</dt><dd><tt>Register&nbsp;a&nbsp;list&nbsp;of&nbsp;palette&nbsp;entries.<br>
+&nbsp;<br>
+l&nbsp;--&nbsp;list&nbsp;of&nbsp;(name,&nbsp;foreground,&nbsp;background)&nbsp;or<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(name,&nbsp;same_as_other_name)&nbsp;palette&nbsp;entries.<br>
+&nbsp;<br>
+calls&nbsp;self.<strong>register_palette_entry</strong>&nbsp;for&nbsp;each&nbsp;item&nbsp;in&nbsp;l</tt></dd></dl>
+
+<dl><dt><a name="Screen-register_palette_entry"><strong>register_palette_entry</strong></a>(self, name, foreground, background, mono<font color="#909090">=None</font>)</dt><dd><tt>Register&nbsp;a&nbsp;single&nbsp;palette&nbsp;entry.<br>
+&nbsp;<br>
+name&nbsp;--&nbsp;new&nbsp;entry/attribute&nbsp;name<br>
+foreground&nbsp;--&nbsp;foreground&nbsp;colour<br>
+background&nbsp;--&nbsp;background&nbsp;colour<br>
+mono&nbsp;--&nbsp;monochrome&nbsp;terminal&nbsp;attribute<br>
+&nbsp;<br>
+See&nbsp;curses_display.register_palette_entry&nbsp;for&nbsp;more&nbsp;info.</tt></dd></dl>
+
+<dl><dt><a name="Screen-run_wrapper"><strong>run_wrapper</strong></a>(self, fn)</dt><dd><tt>Start&nbsp;the&nbsp;application&nbsp;main&nbsp;loop.<br>
+&nbsp;<br>
+This&nbsp;function&nbsp;reads&nbsp;the&nbsp;initial&nbsp;screen&nbsp;size,&nbsp;generates&nbsp;a<br>
+unique&nbsp;id&nbsp;and&nbsp;handles&nbsp;cleanup&nbsp;when&nbsp;fn&nbsp;exits.<br>
+&nbsp;<br>
+web_display.set_preferences(..)&nbsp;must&nbsp;be&nbsp;called&nbsp;before&nbsp;calling<br>
+this&nbsp;function&nbsp;for&nbsp;the&nbsp;preferences&nbsp;to&nbsp;take&nbsp;effect</tt></dd></dl>
+
+<dl><dt><a name="Screen-set_mouse_tracking"><strong>set_mouse_tracking</strong></a>(self)</dt><dd><tt>Not&nbsp;yet&nbsp;implemented</tt></dd></dl>
+
+<h2>Top-level widgets</h2><h3><a name="Frame">class <strong>Frame</strong></a>(BoxWidget) <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="Frame-__init__"><strong>__init__</strong></a>(self, body, header<font color="#909090">=None</font>, footer<font color="#909090">=None</font>, focus_part<font color="#909090">='body'</font>)</dt><dd><tt>body&nbsp;--&nbsp;a&nbsp;box&nbsp;widget&nbsp;for&nbsp;the&nbsp;body&nbsp;of&nbsp;the&nbsp;frame<br>
 header&nbsp;--&nbsp;a&nbsp;flow&nbsp;widget&nbsp;for&nbsp;above&nbsp;the&nbsp;body&nbsp;(or&nbsp;None)<br>
 footer&nbsp;--&nbsp;a&nbsp;flow&nbsp;widget&nbsp;for&nbsp;below&nbsp;the&nbsp;body&nbsp;(or&nbsp;None)<br>
@@ -376,17 +414,6 @@ offset_inset&nbsp;--&nbsp;either&nbsp;the&nbsp;number&nbsp;of&nbsp;rows&nbsp;bet
 Methods inherited from BoxWidget:<br>
 <dl><dt><a name="ListBox-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;True.&nbsp;&nbsp;Selectable&nbsp;by&nbsp;default.</tt></dd></dl>
 
-<h3><a name="SimpleListWalker">class <strong>SimpleListWalker</strong></a> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
-<dl><dt><a name="SimpleListWalker-__init__"><strong>__init__</strong></a>(self, contents)</dt><dd><tt>contents&nbsp;--&nbsp;list&nbsp;to&nbsp;walk</tt></dd></dl>
-
-<dl><dt><a name="SimpleListWalker-get_focus"><strong>get_focus</strong></a>(self)</dt><dd><tt>Return&nbsp;(focus&nbsp;widget,&nbsp;focus&nbsp;position).</tt></dd></dl>
-
-<dl><dt><a name="SimpleListWalker-get_next"><strong>get_next</strong></a>(self, start_from)</dt><dd><tt>Return&nbsp;(widget&nbsp;after&nbsp;start_from,&nbsp;position&nbsp;after&nbsp;start_from).</tt></dd></dl>
-
-<dl><dt><a name="SimpleListWalker-get_prev"><strong>get_prev</strong></a>(self, start_from)</dt><dd><tt>Return&nbsp;(widget&nbsp;before&nbsp;start_from,&nbsp;position&nbsp;before&nbsp;start_from).</tt></dd></dl>
-
-<dl><dt><a name="SimpleListWalker-set_focus"><strong>set_focus</strong></a>(self, position)</dt><dd><tt>Set&nbsp;focus&nbsp;position.</tt></dd></dl>
-
 <h2>Decorations</h2><h3><a name="WidgetWrap">class <strong>WidgetWrap</strong></a> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="WidgetWrap-__getattr__"><strong>__getattr__</strong></a>(self, name)</dt><dd><tt>Call&nbsp;self.<strong>w</strong>&nbsp;if&nbsp;name&nbsp;is&nbsp;in&nbsp;Widget&nbsp;interface&nbsp;definition.</tt></dd></dl>
 
@@ -530,7 +557,9 @@ Only&nbsp;makes&nbsp;sense&nbsp;if&nbsp;self.<strong>widget_list</strong>&nbsp;c
 
 <dl><dt><a name="Columns-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;the&nbsp;selectable&nbsp;value&nbsp;of&nbsp;the&nbsp;focus&nbsp;column.</tt></dd></dl>
 
-<dl><dt><a name="Columns-set_focus"><strong>set_focus</strong></a>(self, widget)</dt><dd><tt>Set&nbsp;the&nbsp;column&nbsp;in&nbsp;focus&nbsp;with&nbsp;a&nbsp;widget&nbsp;in&nbsp;self.<strong>widget_list</strong>.</tt></dd></dl>
+<dl><dt><a name="Columns-set_focus"><strong>set_focus</strong></a>(self, item)</dt><dd><tt>Set&nbsp;the&nbsp;item&nbsp;in&nbsp;focus.&nbsp;&nbsp;<br>
+&nbsp;<br>
+item&nbsp;--&nbsp;widget&nbsp;or&nbsp;integer&nbsp;index</tt></dd></dl>
 
 <dl><dt><a name="Columns-set_focus_column"><strong>set_focus_column</strong></a>(self, num)</dt><dd><tt>Set&nbsp;the&nbsp;column&nbsp;in&nbsp;focus&nbsp;by&nbsp;its&nbsp;index&nbsp;in&nbsp;self.<strong>widget_list</strong>.</tt></dd></dl>
 
@@ -684,10 +713,7 @@ always&nbsp;rendered&nbsp;the&nbsp;full&nbsp;size&nbsp;available&nbsp;"below"&nb
 
 <dl><dt><a name="Overlay-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;selectable&nbsp;from&nbsp;top_w.</tt></dd></dl>
 
-<h2>Content widgets</h2><h3><a name="FlowWidget">class <strong>FlowWidget</strong></a> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
-<dl><dt><a name="FlowWidget-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;False.&nbsp;&nbsp;Not&nbsp;selectable&nbsp;by&nbsp;default.</tt></dd></dl>
-
-<h3><a name="Text">class <strong>Text</strong></a>(FlowWidget) <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<h2>Content widgets</h2><h3><a name="Text">class <strong>Text</strong></a>(FlowWidget) <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="Text-__init__"><strong>__init__</strong></a>(self, markup, align<font color="#909090">='left'</font>, wrap<font color="#909090">='space'</font>, layout<font color="#909090">=None</font>)</dt><dd><tt>markup&nbsp;--&nbsp;content&nbsp;of&nbsp;text&nbsp;widget,&nbsp;one&nbsp;of:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;plain&nbsp;string&nbsp;--&nbsp;string&nbsp;is&nbsp;displayed<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&nbsp;attr,&nbsp;markup2&nbsp;)&nbsp;--&nbsp;markup2&nbsp;is&nbsp;given&nbsp;attribute&nbsp;attr<br>
@@ -1155,7 +1181,7 @@ Data and other attributes defined here:<br>
 Methods inherited from FlowWidget:<br>
 <dl><dt><a name="ProgressBar-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;False.&nbsp;&nbsp;Not&nbsp;selectable&nbsp;by&nbsp;default.</tt></dd></dl>
 
-<h2>Urwid class interfaces</h2><h3><a name="Widget_interface_definition"></a><strong>Widget interface definition</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<h2>Abstract widgets & interfaces</h2><h3><a name="Widget_interface_definition"></a><strong>Widget interface definition</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="WidgetInterface-get_cursor_coords"><strong>get_cursor_coords</strong></a>(self, size)</dt><dd><tt>size&nbsp;--&nbsp;flow&nbsp;widgets:&nbsp;(maxcol,)&nbsp;&nbsp;box&nbsp;widgets:&nbsp;(maxcol,maxrow)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;where&nbsp;maxcol&nbsp;and&nbsp;maxrow&nbsp;are&nbsp;the&nbsp;maximum&nbsp;screen&nbsp;columns<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and&nbsp;rows&nbsp;for&nbsp;the&nbsp;widget&nbsp;when&nbsp;rendered<br>
@@ -1243,6 +1269,12 @@ should&nbsp;take&nbsp;the&nbsp;focus&nbsp;when&nbsp;changing&nbsp;focus&nbsp;bet
 &nbsp;<br>
 MUST&nbsp;be&nbsp;implemented.</tt></dd></dl>
 
+<h3><a name="BoxWidget">class <strong>BoxWidget</strong></a> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<dl><dt><a name="BoxWidget-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;True.&nbsp;&nbsp;Selectable&nbsp;by&nbsp;default.</tt></dd></dl>
+
+<h3><a name="FlowWidget">class <strong>FlowWidget</strong></a> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<dl><dt><a name="FlowWidget-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;False.&nbsp;&nbsp;Not&nbsp;selectable&nbsp;by&nbsp;default.</tt></dd></dl>
+
 <h3><a name="List_Walker_interface_definition"></a><strong>List Walker interface definition</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="ListWalkerInterface-get_focus"><strong>get_focus</strong></a>(self)</dt><dd><tt>Returns&nbsp;(widget,&nbsp;position).<br>
 &nbsp;<br>
@@ -1272,6 +1304,17 @@ reused&nbsp;after&nbsp;contents&nbsp;of&nbsp;list&nbsp;change.</tt></dd></dl>
 Returns&nbsp;None.<br>
 &nbsp;<br>
 MUST&nbsp;be&nbsp;implemented.</tt></dd></dl>
+
+<h2>ListBox list walkers</h2><h3><a name="SimpleListWalker">class <strong>SimpleListWalker</strong></a> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<dl><dt><a name="SimpleListWalker-__init__"><strong>__init__</strong></a>(self, contents)</dt><dd><tt>contents&nbsp;--&nbsp;list&nbsp;to&nbsp;walk</tt></dd></dl>
+
+<dl><dt><a name="SimpleListWalker-get_focus"><strong>get_focus</strong></a>(self)</dt><dd><tt>Return&nbsp;(focus&nbsp;widget,&nbsp;focus&nbsp;position).</tt></dd></dl>
+
+<dl><dt><a name="SimpleListWalker-get_next"><strong>get_next</strong></a>(self, start_from)</dt><dd><tt>Return&nbsp;(widget&nbsp;after&nbsp;start_from,&nbsp;position&nbsp;after&nbsp;start_from).</tt></dd></dl>
+
+<dl><dt><a name="SimpleListWalker-get_prev"><strong>get_prev</strong></a>(self, start_from)</dt><dd><tt>Return&nbsp;(widget&nbsp;before&nbsp;start_from,&nbsp;position&nbsp;before&nbsp;start_from).</tt></dd></dl>
+
+<dl><dt><a name="SimpleListWalker-set_focus"><strong>set_focus</strong></a>(self, position)</dt><dd><tt>Set&nbsp;focus&nbsp;position.</tt></dd></dl>
 
 <h2>Canvas painting</h2><h3><a name="Canvas">class <strong>Canvas</strong></a> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="Canvas-__init__"><strong>__init__</strong></a>(self, text<font color="#909090">=None</font>, attr<font color="#909090">=None</font>, cs<font color="#909090">=None</font>, cursor<font color="#909090">=None</font>, maxcol<font color="#909090">=None</font>)</dt><dd><tt>text&nbsp;--&nbsp;list&nbsp;of&nbsp;strings,&nbsp;one&nbsp;for&nbsp;each&nbsp;line<br>
@@ -1445,41 +1488,6 @@ script&nbsp;should&nbsp;immediately&nbsp;exit.<br>
 &nbsp;<br>
 web_display.set_preferences(..)&nbsp;should&nbsp;be&nbsp;called&nbsp;before&nbsp;calling&nbsp;this<br>
 function&nbsp;for&nbsp;the&nbsp;preferences&nbsp;to&nbsp;take&nbsp;effect</tt></dd></dl>
-<h3><a name="web_display.Screen"></a><strong>web_display.Screen</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
-<dl><dt><a name="Screen-__init__"><strong>__init__</strong></a>(self)</dt></dl>
-
-<dl><dt><a name="Screen-draw_screen"><strong>draw_screen</strong></a>(self, (cols, rows), r)</dt><dd><tt>Send&nbsp;a&nbsp;screen&nbsp;update&nbsp;to&nbsp;the&nbsp;client.</tt></dd></dl>
-
-<dl><dt><a name="Screen-get_cols_rows"><strong>get_cols_rows</strong></a>(self)</dt><dd><tt>Return&nbsp;the&nbsp;screen&nbsp;size.</tt></dd></dl>
-
-<dl><dt><a name="Screen-get_input"><strong>get_input</strong></a>(self, raw_keys<font color="#909090">=False</font>)</dt><dd><tt>Return&nbsp;pending&nbsp;input&nbsp;as&nbsp;a&nbsp;list.</tt></dd></dl>
-
-<dl><dt><a name="Screen-register_palette"><strong>register_palette</strong></a>(self, l)</dt><dd><tt>Register&nbsp;a&nbsp;list&nbsp;of&nbsp;palette&nbsp;entries.<br>
-&nbsp;<br>
-l&nbsp;--&nbsp;list&nbsp;of&nbsp;(name,&nbsp;foreground,&nbsp;background)&nbsp;or<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(name,&nbsp;same_as_other_name)&nbsp;palette&nbsp;entries.<br>
-&nbsp;<br>
-calls&nbsp;self.<strong>register_palette_entry</strong>&nbsp;for&nbsp;each&nbsp;item&nbsp;in&nbsp;l</tt></dd></dl>
-
-<dl><dt><a name="Screen-register_palette_entry"><strong>register_palette_entry</strong></a>(self, name, foreground, background, mono<font color="#909090">=None</font>)</dt><dd><tt>Register&nbsp;a&nbsp;single&nbsp;palette&nbsp;entry.<br>
-&nbsp;<br>
-name&nbsp;--&nbsp;new&nbsp;entry/attribute&nbsp;name<br>
-foreground&nbsp;--&nbsp;foreground&nbsp;colour<br>
-background&nbsp;--&nbsp;background&nbsp;colour<br>
-mono&nbsp;--&nbsp;monochrome&nbsp;terminal&nbsp;attribute<br>
-&nbsp;<br>
-See&nbsp;curses_display.register_palette_entry&nbsp;for&nbsp;more&nbsp;info.</tt></dd></dl>
-
-<dl><dt><a name="Screen-run_wrapper"><strong>run_wrapper</strong></a>(self, fn)</dt><dd><tt>Start&nbsp;the&nbsp;application&nbsp;main&nbsp;loop.<br>
-&nbsp;<br>
-This&nbsp;function&nbsp;reads&nbsp;the&nbsp;initial&nbsp;screen&nbsp;size,&nbsp;generates&nbsp;a<br>
-unique&nbsp;id&nbsp;and&nbsp;handles&nbsp;cleanup&nbsp;when&nbsp;fn&nbsp;exits.<br>
-&nbsp;<br>
-web_display.set_preferences(..)&nbsp;must&nbsp;be&nbsp;called&nbsp;before&nbsp;calling<br>
-this&nbsp;function&nbsp;for&nbsp;the&nbsp;preferences&nbsp;to&nbsp;take&nbsp;effect</tt></dd></dl>
-
-<dl><dt><a name="Screen-set_mouse_tracking"><strong>set_mouse_tracking</strong></a>(self)</dt><dd><tt>Not&nbsp;yet&nbsp;implemented</tt></dd></dl>
-
 
 </body>
 </html>

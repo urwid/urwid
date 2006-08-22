@@ -30,7 +30,7 @@ import types
 
 html_template = """<html>
 <head>
-<title>Urwid Reference</title>
+<title>Urwid ((version)) Reference</title>
 <style type="text/css">
 	h1 { text-align: center; }
 	h2 { margin: 40px 0 0 0; padding: 10px;  background: #6d96e8;}
@@ -40,7 +40,7 @@ html_template = """<html>
 </style>
 <body>
 <a name="top"></a>
-<h1>Urwid Reference</h1>
+<h1>Urwid ((version)) Reference</h1>
 
 <div style="text-align: center;">
 <a href="http://excess.org/urwid/">Urwid Home Page</a> /
@@ -50,9 +50,22 @@ html_template = """<html>
 Reference
 </div>
 <br>
-%s
+%toc%
+<br>
+[<b>F</b>] = Flow Widget displayed with assigned screen columns and variable screen rows<br>
+[<b>B</b>] = Box Widget displayed with assigned screen columns and assigned screen rows<br>
+[<b>F</b>/<b>B</b>] = May behave as either Flow Widget or Box Widget<br>
+<br>
+%contents%
 </body>
 </html>"""
+
+flagd = {
+	None: "",
+	"B": "[<b>B</b>]",
+	"F": "[<b>F</b>]",
+	"FB": "[<b>F</b>/<b>B</b>]",
+}
 
 
 class UrwidHTMLDoc( pydoc.HTMLDoc ):
@@ -246,70 +259,78 @@ def main():
 	doc = []
 	contents.append('<table width="100%"><tr><td width="33%" valign="top">')
 	
-	for obj, name in [
-		(None,"User interface wrappers"),
-		(urwid.raw_display.Screen, "raw_display.Screen"),
-		(urwid.curses_display.Screen, "curses_display.Screen"),
-		(None,"Top-level widgets"),
-		(urwid.BoxWidget, "BoxWidget"),
-		(urwid.Frame, "Frame"),
-		(urwid.Filler, "Filler"),
-		(urwid.ListBox, "ListBox"),
-		(urwid.SimpleListWalker, "SimpleListWalker"),
-		(None,"Decorations"),
-		(urwid.WidgetWrap, "WidgetWrap"),
-		(urwid.AttrWrap, "AttrWrap"),
-		(urwid.Padding, "Padding"),
-		(urwid.Divider, "Divider"),
-		(urwid.LineBox, "LineBox"),
-		(urwid.SolidFill, "SolidFill"),
-		(None,"Composite widgets"),
-		(urwid.Columns, "Columns"),
-		(urwid.Pile, "Pile"),
-		(urwid.GridFlow, "GridFlow"),
-		(urwid.BoxAdapter,"BoxAdapter"),
-		(urwid.Overlay,"Overlay"),
+	for obj, name, flag in [
+		(None,"User interface wrappers",None),
+		(urwid.raw_display.Screen, "raw_display.Screen",None),
+		(urwid.curses_display.Screen, "curses_display.Screen",None),
+		(urwid.web_display.Screen,"web_display.Screen",None),
+		(None,"Top-level widgets",None),
+		(urwid.Frame, "Frame", "B"),
+		(urwid.Filler, "Filler", "B"),
+		(urwid.ListBox, "ListBox", "B"),
+		(None,"Decorations", None),
+		(urwid.WidgetWrap, "WidgetWrap", "FB"),
+		(urwid.AttrWrap, "AttrWrap", "FB"),
+		(urwid.Padding, "Padding", "FB"),
+		(urwid.Divider, "Divider", "F"),
+		(urwid.LineBox, "LineBox", "FB"),
+		(urwid.SolidFill, "SolidFill", "B"),
+		(None,"Composite widgets", None),
+		(urwid.Columns, "Columns", "FB"),
+		(urwid.Pile, "Pile", "FB"),
+		(urwid.GridFlow, "GridFlow", "F"),
+		(urwid.BoxAdapter,"BoxAdapter", "F"),
+		(urwid.Overlay,"Overlay", "B"),
 		
-		(None, None),
+		(None, None, None),
 
-		(None,"Content widgets"),
-		(urwid.FlowWidget, "FlowWidget"),
-		(urwid.Text, "Text"),
-		(urwid.Edit, "Edit"),
-		(urwid.IntEdit, "IntEdit"),
-		(urwid.Button, "Button"),
-		(urwid.CheckBox, "CheckBox"),
-		(urwid.RadioButton, "RadioButton"),
-		(None, "Graphics"),
-		(urwid.BarGraph, "BarGraph"),
-		(urwid.GraphVScale, "GraphVScale"),
-		(urwid.ProgressBar, "ProgressBar"),
-		(None,"Urwid class interfaces"),
-		(WidgetInterface, "Widget interface definition"),
-		(ListWalkerInterface, "List Walker interface definition"),
-		(None,"Canvas painting"),
-		(urwid.Canvas, "Canvas"),
-		(urwid.CanvasCombine, "CanvasCombine"),
-		(urwid.CanvasJoin, "CanvasJoin"),
+		(None,"Content widgets", None),
+		(urwid.Text, "Text", "F"),
+		(urwid.Edit, "Edit", "F"),
+		(urwid.IntEdit, "IntEdit", "F"),
+		(urwid.Button, "Button", "F"),
+		(urwid.CheckBox, "CheckBox", "F"),
+		(urwid.RadioButton, "RadioButton", "F"),
+		(None, "Graphics",None),
+		(urwid.BarGraph, "BarGraph","B"),
+		(urwid.GraphVScale, "GraphVScale","B"),
+		(urwid.ProgressBar, "ProgressBar","F"),
 		
-		(None, None),
+		(None,"Abstract widgets & interfaces",None),
+		(WidgetInterface, "Widget interface definition",None),
+		(urwid.BoxWidget, "BoxWidget",None),
+		(urwid.FlowWidget, "FlowWidget",None),
+		(ListWalkerInterface, "List Walker interface definition",None),
+		(None,"ListBox list walkers",None),
+		(urwid.SimpleListWalker, "SimpleListWalker",None),
 		
-		(None,"Custom formatting rules"),
-		(urwid.TextLayout,"TextLayout"),
-		(urwid.StandardTextLayout,"StandardTextLayout"),
-		(None,"Character encoding"),
-		(urwid.set_encoding,"set_encoding"),
-		(urwid.get_encoding_mode,"get_encoding_mode"),
-		(urwid.supports_unicode,"supports_unicode"),
-		(None,"Screen capture"),
-		(urwid.html_fragment.screenshot_init, "html_fragment.screenshot_init"),
-		(urwid.html_fragment.screenshot_collect, "html_fragment.screenshot_collect"),
-		(urwid.html_fragment.HtmlGenerator, "html_fragment.HtmlGenerator"),
-		(None,"Web Application Interface"),
-		(urwid.web_display.is_web_request,"web_display.is_web_request"),
-		(urwid.web_display.set_preferences, "web_display.set_preferences"),
-		(urwid.web_display.handle_short_request, "web_display.handle_short_request"),
-		(urwid.web_display.Screen,"web_display.Screen"),
+		(None, None, None),
+		
+		(None,"Canvas painting", None),
+		(urwid.Canvas, "Canvas", None),
+		(urwid.CanvasCombine, "CanvasCombine", None),
+		(urwid.CanvasJoin, "CanvasJoin", None),
+		(None,"Custom formatting rules", None),
+		(urwid.TextLayout,"TextLayout", None),
+		(urwid.StandardTextLayout,"StandardTextLayout", None),
+		(None,"Character encoding", None),
+		(urwid.set_encoding,"set_encoding", None),
+		(urwid.get_encoding_mode,"get_encoding_mode", None),
+		(urwid.supports_unicode,"supports_unicode", None),
+		(None,"Screen capture", None),
+		(urwid.html_fragment.screenshot_init, 
+			"html_fragment.screenshot_init", None),
+		(urwid.html_fragment.screenshot_collect, 
+			"html_fragment.screenshot_collect", None),
+		(urwid.html_fragment.HtmlGenerator, 
+			"html_fragment.HtmlGenerator", None),
+		(None,"Web Application Interface", None),
+		(urwid.web_display.is_web_request,
+			"web_display.is_web_request", None),
+		(urwid.web_display.set_preferences, 
+			"web_display.set_preferences", None),
+		(urwid.web_display.handle_short_request, 
+			"web_display.handle_short_request", None),
 		]:
 		if name is None:
 			contents.append('</td><td width="33%" valign="top">')
@@ -320,14 +341,19 @@ def main():
 			lname = name
 			if type(obj) != types.ClassType: #dirty hack
 				doc.append('<a name="%s"></a><h3>function %s <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>' % (name,name) )
+			thtm = flagd[flag]
 			lname = lname.replace(" ","_")
 			contents.append('<div class="l2">' +
-				'<a href="#%s">%s</a></div>' % (lname,name) )
+				'<a href="#%s">%s</a> %s</div>' % 
+				(lname,name,thtm) )
 			doc.append( html.document( obj, name ) )
 	
 	contents.append("</td></tr></table>")
 	
-	print html_template % ( "".join(contents) + "".join(doc) )
+	h = html_template
+	h = h.replace("%toc%", "".join(contents))
+	h = h.replace("%contents%", "".join(doc))
+	print h
 
 if __name__ == "__main__":
 	main()

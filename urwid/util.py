@@ -25,13 +25,19 @@ from __future__ import nested_scopes
 import utable
 import escape
 
+import encodings
+
 try: True # old python?
 except: False, True = 0, 1
 
 # Try to determine if using a supported double-byte encoding
 import locale
 try:
-	detected_encoding = locale.getdefaultlocale()[1]
+	try:
+		locale.setlocale( locale.LC_ALL, "" )
+	except locale.Error:
+		pass
+	detected_encoding = locale.getlocale()[1]
 	if not detected_encoding:
 		detected_encoding = ""
 except ValueError, e:

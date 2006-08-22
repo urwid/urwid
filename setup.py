@@ -19,11 +19,15 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from distutils.core import setup
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
 
 import os
 
-release = "0.9.5"
+import urwid
+release = urwid.__version__
 
 setup_d = {
 	'name':"urwid",
@@ -85,5 +89,6 @@ except:
 	del setup_d['classifiers']
 	del setup_d['download_url']
 
-setup( ** setup_d )
+if __name__ == "__main__":
+	setup( ** setup_d )
 

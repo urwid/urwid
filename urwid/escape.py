@@ -27,14 +27,18 @@ Terminal Escape Sequences for input and display
 import util
 import os
 
+import encodings
+utf8decode = lambda s: encodings.codecs.utf_8_decode(s)[0]
+
 SO = "\x0e"
 SI = "\x0f"
 
 DEC_TAG = "0"
-DEC_SPECIAL_CHARS =     u"◆▒°±┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥π≠£·"
+DEC_SPECIAL_CHARS = utf8decode("◆▒°±┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥π≠£·")
 ALT_DEC_SPECIAL_CHARS = u"`afgjklmnopqrstuvwxyz{|}~"
 
 DEC_SPECIAL_CHARMAP = {}
+assert len(DEC_SPECIAL_CHARS) == len(ALT_DEC_SPECIAL_CHARS), `DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS`
 for c, alt in zip(DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS):
 	DEC_SPECIAL_CHARMAP[ord(c)] = SO + alt + SI
 
@@ -54,6 +58,7 @@ input_sequences = [
 
 	('[1~','home'),('[2~','insert'),('[3~','delete'),('[4~','end'),
 	('[5~','page up'),('[6~','page down'),
+	('[7~','home'),('[8~','end'),
 
 	('[[A','f1'),('[[B','f2'),('[[C','f3'),('[[D','f4'),('[[E','f5'),
 	

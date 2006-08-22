@@ -25,6 +25,7 @@ from __future__ import nested_scopes
 from util import *
 from canvas import *
 from widget import *
+from escape import utf8decode
 
 try: True # old python?
 except: False, True = 0, 1
@@ -43,14 +44,14 @@ class LineBox(WidgetWrap):
 				t = urwid.AttrWrap(t, a)
 			return t
 			
-		tline = use_attr( tline, Divider(u"─"))
-		bline = use_attr( bline, Divider(u"─"))
-		lline = use_attr( rline, SolidFill(u"│"))
-		rline = use_attr( rline, SolidFill(u"│"))
-		tlcorner = use_attr( tlcorner, Text(u"┌"))
-		trcorner = use_attr( trcorner, Text(u"┐"))
-		blcorner = use_attr( blcorner, Text(u"└"))
-		brcorner = use_attr( brcorner, Text(u"┘"))
+		tline = use_attr( tline, Divider(utf8decode("─")))
+		bline = use_attr( bline, Divider(utf8decode("─")))
+		lline = use_attr( rline, SolidFill(utf8decode("│")))
+		rline = use_attr( rline, SolidFill(utf8decode("│")))
+		tlcorner = use_attr( tlcorner, Text(utf8decode("┌")))
+		trcorner = use_attr( trcorner, Text(utf8decode("┐")))
+		blcorner = use_attr( blcorner, Text(utf8decode("└")))
+		brcorner = use_attr( brcorner, Text(utf8decode("┘")))
 		top = Columns([ ('fixed', 1, tlcorner),
 			tline, ('fixed', 1, trcorner) ])
 		middle = Columns( [('fixed', 1, lline),
@@ -67,8 +68,8 @@ class BarGraphError(Exception):
 	pass
 
 class BarGraph(BoxWidget):
-	eighths = u" ▁▂▃▄▅▆▇"
-	hlines =  u"_⎺⎻─⎼⎽"
+	eighths = utf8decode(" ▁▂▃▄▅▆▇")
+	hlines =  utf8decode("_⎺⎻─⎼⎽")
 	
 	def __init__(self, attlist, hatt=None, satt=None):
 		"""
@@ -656,7 +657,7 @@ def scale_bar_values( bar, top, maxrow ):
 
 
 class ProgressBar( FlowWidget ):
-	eighths = u" ▏▎▍▌▋▊▉"
+	eighths = utf8decode(" ▏▎▍▌▋▊▉")
 	def __init__(self, normal, complete, current=0, done=100, satt=None):
 		"""
 		normal -- attribute for uncomplete part of progress bar

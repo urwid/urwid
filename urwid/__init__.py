@@ -21,12 +21,15 @@
 
 __all__ = [
 	'BoxWidget','Frame','Filler','ListBox','SimpleListWalker',
+	'WidgetWrap','AttrWrap','Padding','Divider','LineBox','SolidFill',
+	'Columns','Pile','GridFlow','BoxAdapter','Overlay',
 	'FlowWidget','Text','Edit','IntEdit','Button','CheckBox','RadioButton',
 	'BarGraph','ProgressBar','GraphVScale',
-	'Columns','Pile','GridFlow','BoxAdapter','Overlay',
-	'AttrWrap','Padding','Divider',
 	'Canvas','CanvasCombine','CanvasJoin',
+	'TextLayout','StandardTextLayout',
+	'set_encoding','get_encoding_mode','supports_unicode',
 	]
+__version__ = "0.9.6"
 
 
 from widget import *

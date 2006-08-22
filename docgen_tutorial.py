@@ -19,13 +19,25 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import nested_scopes
+
 import sys
+import re
 
 import urwid.html_fragment
 import urwid
+try:
+	import templayer
+except:
+	templayer = None
+
+try: True # old python?
+except: False, True = 0, 1
 
 examples = {}
-results = {}
+
+interp_line = "#!/usr/bin/python\n\n"
+cut_comment = "# CUT HERE"
 
 examples["min"] = ["example_min"]
 def example_min():
@@ -169,7 +181,7 @@ def example_frlb():
 		def __init__(self):
 			self.items = [ self.new_question() ]
 			self.listbox = urwid.ListBox( self.items )
-			instruct = urwid.Text("Press F1 to exit.")
+			instruct = urwid.Text("Press F8 to exit.")
 			header = urwid.AttrWrap( instruct, 'header' )
 			self.top = urwid.Frame(self.listbox, header)
 
@@ -177,7 +189,7 @@ def example_frlb():
 			self.ui = urwid.curses_display.Screen()
 			self.ui.register_palette([
 				('header', 'black', 'dark cyan', 'standout'),
-				('I say', 'dark blue', 'default', 'bold'),
+				('I say', 'default', 'default', 'bold'),
 				])
 			self.ui.run_wrapper( self.run )
 		# CUT HERE				
@@ -187,7 +199,7 @@ def example_frlb():
 			while True:
 				self.draw_screen( size )
 				keys = self.ui.get_input()
-				if "f1" in keys: 
+				if "f8" in keys: 
 					break
 				for k in keys:
 					if k == "window resize":
@@ -219,7 +231,7 @@ def example_lbcont():
 		def __init__(self):
 			self.items = [ self.new_question() ]
 			self.listbox = urwid.ListBox( self.items )
-			instruct = urwid.Text("Press F1 to exit.")
+			instruct = urwid.Text("Press F8 to exit.")
 			header = urwid.AttrWrap( instruct, 'header' )
 			self.top = urwid.Frame(self.listbox, header)
 
@@ -227,7 +239,7 @@ def example_lbcont():
 			self.ui = urwid.curses_display.Screen()
 			self.ui.register_palette([
 				('header', 'black', 'dark cyan', 'standout'),
-				('I say', 'dark blue', 'default', 'bold'),
+				('I say', 'default', 'default', 'bold'),
 				])
 			self.ui.run_wrapper( self.run )
 		# CUT HERE				
@@ -237,7 +249,7 @@ def example_lbcont():
 			while True:
 				self.draw_screen( size )
 				keys = self.ui.get_input()
-				if "f1" in keys: 
+				if "f8" in keys: 
 					break
 				for k in keys:
 					if k == "window resize":
@@ -313,7 +325,7 @@ def example_lbscr():
 			while True:
 				self.draw_screen( size )
 				keys = self.ui.get_input()
-				if "f1" in keys: 
+				if "f8" in keys: 
 					break
 				self.head.set_text("Pressed:")
 				for k in keys:
@@ -455,21 +467,47 @@ def example_wcur():
 			self.cursor_x = col
 			return True
 			
+def read_sections(tmpl):
+	"""Read section tags, section descriptions, and column breaks from
+	the Templayer template argument.  Convert the section data into a
+	Python data structure called sections.  Each sublist of sections
+	contains one column.  Each column contains a list of (tag, desc.)
+	pairs.  Return sections."""
+
+	sd = tmpl.layer("section_data")
+	col_break = "---"
+	sections = [[]]
+	for ln in sd.split("\n"):
+		if not ln: continue
+		if ln == col_break:
+			sections.append([])
+			continue
+		tag, desc = ln.split("\t",1)
+		sections[-1].append( (tag, desc) )
+	return sections
 
 def read_example_code():
-	# reverse the "examples" dictionary
-	fn_names = {}
+	"""By the time this function runs, the examples dictionary contains
+	a list of function names, all starting with "example_".  Create a
+	second dictionary called code_blocks.  Open the file containing this
+	function.  For each function name in examples, read the text of that
+	function into an entry in the code_blocks dictionary.  Return the
+	code_blocks dictionary."""
+
+	# invert the "examples" dictionary
+	example_fns = {}
 	for tag, l in examples.items():
 		for i, fn in zip(range(len(l)), l):
-			fn_names[fn] = tag, i
+			example_fns[fn] = tag, i
 	
 	# read our own source code
+	# strip trailing spaces and tabs from each line
 	code_blocks = {}
 	current_block = None
 	for ln in open( sys.argv[0], 'r').readlines():
 		ln = ln.rstrip()
 		if ( ln[:4] == "def " and ln[-3:] == "():" and
-			fn_names.has_key( ln[4:-3] ) ):
+			example_fns.has_key( ln[4:-3] ) ):
 			current_block = ln[4:-3]
 			code_blocks[current_block] = []
 			continue
@@ -486,40 +524,116 @@ def read_example_code():
 	for name, block in code_blocks.items():
 		code_blocks[name] = "".join( block )
 	
-	# special handling for specific blocks
-	head1, ignore, tail1 = (
-		code_blocks["example_frlb"].split("# CUT HERE\n") )
-	code_blocks["example_frlb"] = (
-		code_blocks["example_frlb"].replace("# CUT HERE","") )
-	
-	head2, code_blocks["example_lbcont"], tail2 = (
-		code_blocks["example_lbcont"].split("# CUT HERE\n") )
-	assert head1 == head2, "frlb and lbcont have differing heads!"+`head1,head2`
-	assert tail1 == tail2, "frlb and lbcont have differing tails!"
-
-	ignore, code_blocks["example_lbscr"], ignore = (
-		code_blocks["example_lbscr"].split("# CUT HERE\n") )
-
-	code_blocks["example_wcur"], code_blocks["example_wcur2"] = (
-		code_blocks["example_wcur"].split("# CUT HERE\n") )
-	examples["wcur"].append("example_wcur2")
-	
-	
-	# trim blank lines from end of each block
-	for name, block in code_blocks.items():
-		while block:
-			i = block.rfind('\n',0,-1)
-			if i == -1: break
-			if block[i+1:-1].lstrip() == "":
-				block = block[:i+1]
-			else:
-				break
-		code_blocks[name] = block
-		
 	return code_blocks
 
+def filename(snum, inum, enum):
+	"""Generate a filename to write an example to.  Take the section
+	number from the table of contents, item number (subsection number),
+	and example number.  Numbers start at 1.  Return the filename."""
+
+	assert snum > 0, \
+	 '%d.%d #%d: Section number should be greater than 0' % \
+	 (snum, inum, enum)
+	assert inum > 0, \
+	 '%d.%d #%d: Item number should be greater than 0' % \
+	 (snum, inum, enum)
+	assert enum > 0, \
+	 '%d.%d #%d: Example number should be greater than 0' % \
+	 (snum, inum, enum)
+	assert enum < 28, \
+	 '%d.%d #%d: Example number should be less than 28' % \
+	 (snum, inum, enum)
+
+	if enum == 1:	estr = ''
+	else:		estr = chr(ord('a') - 2 + enum)
+
+	return "example" + str(snum) + "." + str(inum) + estr + ".py"
+
+def write_example_files(sections, blocks):
+	"""The sections dictionary gives section tags in the order used by
+	the HTML output, and going through the tags in order allows us to
+	generate the same section numbers that the HTML uses.  The global
+	examples dictionary maps each section tag to a list of examples used
+	in that section.  And the blocks dictionary maps each example tag
+	to the text of that example.
+	
+	Generate section numbers and find the examples used in each section.
+	Assume each example is ready to run -- replace the "cut here" comments
+	with blank lines, but don't remove any code.  Create a file named
+	according to the section number (and an optional letter to allow for
+	multiple examples per section).  Write the cleaned-up example to the
+	file."""
+
+	cut_re = '^\s*' + re.escape(cut_comment) + '\s*$'
+	cut_re_comp = re.compile(cut_re, re.MULTILINE)
+	valid_re = 'import urwid' # some examples are not runnable
+	valid_re_comp = re.compile(valid_re)
+	snum = inum = enum = 0
+
+	for col in sections:
+		for tag, ignore in col:
+			if not tag:
+				# new section -- do its first item next time
+				snum += 1
+				inum = 0
+				continue
+
+			# new item inside a section
+			inum += 1
+			enum = 0
+			for ename in examples.get(tag, []):
+				etext = blocks[ename]
+				if not valid_re_comp.search(etext):
+					continue
+				enum += 1
+				fname = filename(snum, inum, enum)
+				f = open(fname, 'w')
+				etext = cut_re_comp.sub("", etext)
+				etext = interp_line + etext.rstrip() + "\n"
+				f.write(etext)
+				f.close()
+
+def cut_example_code(blocks):
+	"""For brevity, the HTML gives excerpts from some of the examples.
+	Convert the examples from the full forms stored in this file to the
+	excerpted forms.  Use "cut here" comments in the examples, and the
+	rules below, to do the conversion.  Also check that the full forms
+	of certain examples contain identical code.  Also strip trailing
+	spaces and tabs from the code.  Return a dictionary with the
+	converted examples."""
+
+	## do the conversions and the checks
+	head1, ignore, tail1 = (
+		blocks["example_frlb"].split(cut_comment+"\n") )
+	blocks["example_frlb"] = (
+		blocks["example_frlb"].replace(cut_comment,"") )
+	
+	head2, blocks["example_lbcont"], tail2 = (
+		blocks["example_lbcont"].split(cut_comment+"\n") )
+	assert head1 == head2, "frlb and lbcont have differing heads: "+\
+		`head1, head2`
+	assert tail1 == tail2, "frlb and lbcont have differing tails: "+\
+		`tail1, tail2`
+
+	ignore, blocks["example_lbscr"], ignore = (
+		blocks["example_lbscr"].split(cut_comment+"\n") )
+
+	blocks["example_wcur"], blocks["example_wcur2"] = (
+		blocks["example_wcur"].split(cut_comment+"\n") )
+	examples["wcur"].append("example_wcur2")
+	
+	# strip trailing spaces, tabs, blank lines from each block
+	# removes spaces/tabs left by splitting at cut_comment
+	for name, block in blocks.items():
+		blocks[name] = block.rstrip()
+	
+	return blocks
 
 def generate_example_results():
+	"""Create HTML "screen shots" from the example programs defined in
+	this file.  Store the results in a dictionary (mapping example tag
+	to results) and return the dictionary."""
+
 	results = {}
 	
 	init = urwid.html_fragment.screenshot_init
@@ -545,75 +659,91 @@ def generate_example_results():
 	example_edit()
 	results["edit"] = collect()[:3]
 
-	init([(21,7)],[list("Tim t"),list("he Ench"),list("anter"),["f1"]])
+	init([(21,7)],[list("Tim t"),list("he Ench"),list("anter"),["f8"]])
 	example_frlb()
 	results["frlb"] = collect()[:4]
 
 	init([(23,13)],[list("Abe")+["enter"]+list("Bob"),["enter"]+
-		list("Carl")+["enter"], list("Dave")+["enter"], ["f1"]])
+		list("Carl")+["enter"], list("Dave")+["enter"], ["f8"]])
 	example_lbcont()
 	results["lbcont"] = collect()[1:4]
 
 	init([(15,7), (20,9), (25,7), (11,13)],
 	[["down"],["down"],["down"],["up"],["up"]] +
-	[["window resize"]]*3 + [["f1"]])
+	[["window resize"]]*3 + [["f8"]])
 	example_lbscr()
 	results["lbscr"] = collect()[:9]
 
 	return results
 
-def main():
-	try:
-		import templayer
-	except ImportError, e:
-		sys.stderr.write(
-"""Error importing templayer.  Please download and install the Templayer
-python module available at:
-http://excess.org/templayer/
-""")
-		sys.exit(1)
+def generate_body(tmpl, sections, blocks, results):
+	"""Assemble most of the HTML output (the body) from the pieces
+	of text contained in all the arguments.  The body contains a table
+	of contents followed by section headers and section text.  Pieces of
+	section text may contain example code, and pieces of code may be
+	followed by a "screen shot" of themselves.
 	
-	tmpl = templayer.HtmlTemplate("tmpl_tutorial.html")
-	out_file = tmpl.start_file()
+	The sections dictionary gives the column formatting for the
+	table of contents in the HTML and the description shared by the TOC
+	entry and the section header.  With the addition of section numbers
+	(generated now) sections contains the information needed to write
+	the finished table of contents.  We expect the template to use
+	two slots, toc_left and toc_right, which we fill with the TOC.
+	We also expect the template to define two pieces of HTML,
+	toc_section and toc_item, which give the formatting for all items
+	in the TOC.
 
-	sd = tmpl.layer("section_data")
-	toc = [[]]
-	for ln in sd.split("\n"):
-		if not ln: continue
-		if ln == "---":
-			toc.append([])
-			continue
-		tag, name = ln.split("\t",1)
-		toc[-1].append( (tag, name) )
-
-	code_blocks = read_example_code()
-	results = generate_example_results()
+	While handling each entry in the TOC, we use the tag stored in
+	sections to assemble the corresponding part of the body.  We expect
+	the template to define two pieces of HTML, section_head and
+	section_body, which give the formatting for all parts of the body
+	(colored boxes for section headers, and the formatting that applies
+	to all pieces of section text).  The template also defines one slot
+	for each individual piece of section text, distinguished from the
+	others by the section tag.
 	
+	Each individual body slot may use more slots to hold the examples
+	and results included in a piece of section text.  These slots are
+	numbered.  We use the section tags to look in the examples and
+	results dictionaries; the dictionary order must match the numerical
+	order used in the template.  We do not use example tags as defined
+	in the global examples dictionary.  The blocks and results arguments
+	describe which slots are defined; we hope the HTML text will use
+	all the slots we have defined."""
+
+	# put TOC columns into the variables used by the template
+	# assign section numbers
+	# generate HTML form of TOC entries, corresponding document parts
+	assert len(sections) == 2, 'sections has %d columns but should have 2!' % len(sections)
+
 	toc_slots = {'toc_left':[], 'toc_right':[]}
 	body = []
 	
 	snum = inum = 0
-	for toc_part, l in zip(['toc_left','toc_right'], toc):
+	for slot, l in zip(['toc_left','toc_right'], sections):
 		for tag, name in l:
 			if not tag:
+				# new section -- do its first item next time
 				snum += 1
 				inum = 0
 				t = tmpl.format('toc_section', snum=`snum`,
 					name=name )
-				toc_slots[toc_part].append( t )
+				toc_slots[slot].append( t )
 				b = tmpl.format('section_head', snum=`snum`,
 					name=name )
 				body.append( b )
 				continue
+
+			# new item inside a section
 			inum += 1
 			t = tmpl.format('toc_item', snum=`snum`, 
 				inum=`inum`, name=name, tag=tag)
-			toc_slots[toc_part].append( t )
+			toc_slots[slot].append( t )
 
 			slots = {}
 			i = 0
 			for fn in examples.get(tag, []):
-				slots['example[%d]'%i] = code_blocks[fn]
+				slots['example[%d]'%i] = blocks[fn]
 				i += 1
 			i = 0
 			for res in results.get(tag, []):
@@ -625,9 +755,65 @@ http://excess.org/templayer/
 				content = b)
 			body.append( b )
 			
-	bottom = out_file.open( ** toc_slots )
-	bottom.write( body )
-	out_file.close()
+	return (body, toc_slots)
+
+def parse_options():
+	usage = "%s [-h|-?|--help]\n%s [-H|--HTML|--html] [-s|--scripts]" % \
+	 (sys.argv[0], sys.argv[0])
+	help = """%s options:
+
+-h, -?, --help		Print this message to standard error and exit.
+
+-H, --HTML, --html	Write the HTML documentation to standard output.
+-s, --scripts		Write runnable scripts to files.""" % sys.argv[0]
+	do_html = False
+	do_scripts = False
+
+	if len(sys.argv) < 2 or len(sys.argv) > 3:
+		sys.exit(usage)
+
+	if len(sys.argv) == 2 and (sys.argv[1] in ('-h', '-?', '--help')):
+		sys.exit(help)
+
+	for arg in sys.argv[1:]:
+		if arg in ('-H', '--HTML', '--html'):
+			if do_html:	sys.exit(usage)
+			else:		do_html = True
+		elif arg in ('-s', '--scripts'):
+			if do_scripts:	sys.exit(usage)
+			else:		do_scripts = True
+		else:
+			sys.exit(usage)
+
+	return (do_html, do_scripts)
+
+def main():
+	(do_html, do_scripts) = parse_options()
+
+	if templayer is None:
+		sys.stderr.write(
+"""Error importing templayer.  Please download and install the Templayer
+python module available at:
+http://excess.org/templayer/
+""")
+		sys.exit( 1 )
+
+	tmpl = templayer.HtmlTemplate( "tmpl_tutorial.html" )
+	sections = read_sections( tmpl )
+	code_blocks = read_example_code()
+
+	if do_scripts:
+		write_example_files( sections, code_blocks )
+
+	if do_html:
+		code_blocks = cut_example_code( code_blocks )
+		results = generate_example_results()
+		out_file = tmpl.start_file()
+		(body, toc_slots) = generate_body( tmpl, sections,
+		                                   code_blocks, results )
+		bottom = out_file.open( ** toc_slots )
+		bottom.write( body )
+		out_file.close()
 
 if __name__=="__main__":
 	main()

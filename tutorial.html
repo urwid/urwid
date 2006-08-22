@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>Urwid Tutorial</title>
+<title>Urwid 0.9.6 Tutorial</title>
 <style type="text/css">
 	h1 { text-align: center; }
 	h2 { margin: 40px 0 0 0; padding: 10px;  background: #6d96e8;}
@@ -13,7 +13,7 @@
 </style>
 <body>
 <a name="top"></a>
-<h1>Urwid Tutorial</h1>
+<h1>Urwid 0.9.6 Tutorial</h1>
 
 <div style="text-align: center;">
 <a href="http://excess.org/urwid/">Urwid Home Page</a> /
@@ -97,8 +97,7 @@ def run():
 	while not ui.get_input():
 		pass
 
-ui.run_wrapper( run )
-</pre>
+ui.run_wrapper( run )</pre>
 
 <ul>
 <li>The <a href="reference.html#curses_display.Screen">curses_display.Screen</a>
@@ -151,8 +150,7 @@ def run():
 	while not ui.get_input():
 		pass
 
-ui.run_wrapper( run )
-</pre>
+ui.run_wrapper( run )</pre>
 
 <ul>
 <li><a href="reference.html#Screen-get_cols_rows">get_cols_rows</a>
@@ -229,8 +227,7 @@ def run():
 	while not ui.get_input():
 		pass
 
-ui.run_wrapper( run )
-</pre>
+ui.run_wrapper( run )</pre>
 
 <ul>
 <li>After creating the 
@@ -320,8 +317,7 @@ def run():
 		if &quot;window resize&quot; in keys:
 			cols, rows = ui.get_cols_rows()
 
-ui.run_wrapper( run )
-</pre>
+ui.run_wrapper( run )</pre>
 
 The <a href="reference.html#Screen-get_input">get_input</a> function will
 return "window resize" among keys pressed when the window is resized.  It
@@ -394,8 +390,7 @@ def run():
 			if fill.selectable():
 				fill.keypress( (cols, rows), k )
 
-ui.run_wrapper( run )
-</pre>
+ui.run_wrapper( run )</pre>
 
 <ul>
 <li>An <a href="reference.html#Edit">Edit</a> widget is created with the
@@ -451,7 +446,7 @@ widget so it supports the same wrapping and alignment modes.
 <span class="back">[<a href="#top">back to top</a>]</span></h3>
 
 This program asks for your name and responds "Nice to meet you, (your name)"
-<i>while</i> you type your name.  F1 exits.
+<i>while</i> you type your name.  F8 exits.
 
 <pre class="code">import urwid.curses_display
 import urwid
@@ -460,7 +455,7 @@ class Conversation:
 	def __init__(self):
 		self.items = [ self.new_question() ]
 		self.listbox = urwid.ListBox( self.items )
-		instruct = urwid.Text(&quot;Press F1 to exit.&quot;)
+		instruct = urwid.Text(&quot;Press F8 to exit.&quot;)
 		header = urwid.AttrWrap( instruct, 'header' )
 		self.top = urwid.Frame(self.listbox, header)
 
@@ -468,7 +463,7 @@ class Conversation:
 		self.ui = urwid.curses_display.Screen()
 		self.ui.register_palette([
 			('header', 'black', 'dark cyan', 'standout'),
-			('I say', 'dark blue', 'default', 'bold'),
+			('I say', 'default', 'default', 'bold'),
 			])
 		self.ui.run_wrapper( self.run )
 	
@@ -478,7 +473,7 @@ class Conversation:
 		while True:
 			self.draw_screen( size )
 			keys = self.ui.get_input()
-			if &quot;f1&quot; in keys:
+			if &quot;f8&quot; in keys:
 				break
 			for k in keys:
 				if k == &quot;window resize&quot;:
@@ -499,8 +494,7 @@ class Conversation:
 	def new_answer(self, name):
 		return urwid.Text(('I say',&quot;Nice to meet you, &quot;+name+&quot;\n&quot;))
 
-Conversation().main()
-</pre>
+Conversation().main()</pre>
 
 <ul>
 <li>In the __init__ function a list called self.items is created. It 
@@ -523,35 +517,35 @@ editing operations on the list, eg. "list = list + [something]" will not work,
 use "list += [something]" instead.  The former code will create a new list
 but the ListBox will still be displaying the old list.
 
-<div class="shot"><pre><span style="color:black;background:teal">Press F1 to exit.    </span>
-<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">   </span>
+<div class="shot"><pre><span style="color:black;background:teal">Press F8 to exit.    </span>
+<span style="color:black;background:silver">What is your name?</span><span style="color:black;background:silver">   </span>
 <span style="color:black;background:silver"><u> </u>                    </span>
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
 </pre></div>
-<div class="shot"><pre><span style="color:black;background:teal">Press F1 to exit.    </span>
-<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">   </span>
+<div class="shot"><pre><span style="color:black;background:teal">Press F8 to exit.    </span>
+<span style="color:black;background:silver">What is your name?</span><span style="color:black;background:silver">   </span>
 <span style="color:black;background:silver">Tim t<u> </u>               </span>
-<span style="color:#0000c0;background:silver">Nice to meet you, Tim</span>
-<span style="color:#0000c0;background:silver">t</span><span style="color:black;background:silver">                    </span>
+<span style="color:black;background:silver">Nice to meet you, Tim</span>
+<span style="color:black;background:silver">t</span><span style="color:black;background:silver">                    </span>
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
 </pre></div>
-<div class="shot"><pre><span style="color:black;background:teal">Press F1 to exit.    </span>
-<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">   </span>
+<div class="shot"><pre><span style="color:black;background:teal">Press F8 to exit.    </span>
+<span style="color:black;background:silver">What is your name?</span><span style="color:black;background:silver">   </span>
 <span style="color:black;background:silver">Tim the Ench<u> </u>        </span>
-<span style="color:#0000c0;background:silver">Nice to meet you, Tim</span>
-<span style="color:#0000c0;background:silver">the Ench</span><span style="color:black;background:silver">             </span>
+<span style="color:black;background:silver">Nice to meet you, Tim</span>
+<span style="color:black;background:silver">the Ench</span><span style="color:black;background:silver">             </span>
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
 </pre></div>
-<div class="shot"><pre><span style="color:black;background:teal">Press F1 to exit.    </span>
-<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">   </span>
+<div class="shot"><pre><span style="color:black;background:teal">Press F8 to exit.    </span>
+<span style="color:black;background:silver">What is your name?</span><span style="color:black;background:silver">   </span>
 <span style="color:black;background:silver">Tim the Enchanter<u> </u>   </span>
-<span style="color:#0000c0;background:silver">Nice to meet you, Tim</span>
-<span style="color:#0000c0;background:silver">the Enchanter</span><span style="color:black;background:silver">        </span>
+<span style="color:black;background:silver">Nice to meet you, Tim</span>
+<span style="color:black;background:silver">the Enchanter</span><span style="color:black;background:silver">        </span>
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
 </pre></div>
@@ -564,7 +558,7 @@ but the ListBox will still be displaying the old list.
 
 This program asks for your name and responds "Nice to meet you, (your name)."
 It then asks again, and again. Old values may be changed and the responses
-will be updated when you press ENTER. F1 exits.
+will be updated when you press ENTER. F8 exits.
 <br><br>
 Update the <a href="#frlb">previous program</a> with this code:
 <pre class="code">	def run(self):
@@ -573,7 +567,7 @@ Update the <a href="#frlb">previous program</a> with this code:
 		while True:
 			self.draw_screen( size )
 			keys = self.ui.get_input()
-			if &quot;f1&quot; in keys:
+			if &quot;f8&quot; in keys:
 				break
 			for k in keys:
 				if k == &quot;window resize&quot;:
@@ -599,8 +593,7 @@ Update the <a href="#frlb">previous program</a> with this code:
 			widget, pos = self.listbox.get_focus()
 			widget.set_edit_pos(0)
 		else:
-			self.top.keypress( size, k )
-</pre>
+			self.top.keypress( size, k )</pre>
 
 <ul>
 <li>In this version only the ENTER key receives special attention. When the
@@ -635,12 +628,12 @@ does most of the hard work:
   </ul>
 </ul>
 
-<div class="shot"><pre><span style="color:black;background:teal">Press F1 to exit.      </span>
-<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
+<div class="shot"><pre><span style="color:black;background:teal">Press F8 to exit.      </span>
+<span style="color:black;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
 <span style="color:black;background:silver">Abe                    </span>
-<span style="color:#0000c0;background:silver">Nice to meet you, Abe</span><span style="color:black;background:silver">  </span>
+<span style="color:black;background:silver">Nice to meet you, Abe</span><span style="color:black;background:silver">  </span>
 <span style="color:black;background:silver">                       </span>
-<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
+<span style="color:black;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
 <span style="color:black;background:silver">Bob<u> </u>                   </span>
 <span style="color:black;background:silver">                       </span>
 <span style="color:black;background:silver">                       </span>
@@ -649,32 +642,32 @@ does most of the hard work:
 <span style="color:black;background:silver">                       </span>
 <span style="color:black;background:silver">                       </span>
 </pre></div>
-<div class="shot"><pre><span style="color:black;background:teal">Press F1 to exit.      </span>
-<span style="color:#0000c0;background:silver">Nice to meet you, Abe</span><span style="color:black;background:silver">  </span>
+<div class="shot"><pre><span style="color:black;background:teal">Press F8 to exit.      </span>
+<span style="color:black;background:silver">Nice to meet you, Abe</span><span style="color:black;background:silver">  </span>
 <span style="color:black;background:silver">                       </span>
-<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
+<span style="color:black;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
 <span style="color:black;background:silver">Bob                    </span>
-<span style="color:#0000c0;background:silver">Nice to meet you, Bob</span><span style="color:black;background:silver">  </span>
+<span style="color:black;background:silver">Nice to meet you, Bob</span><span style="color:black;background:silver">  </span>
 <span style="color:black;background:silver">                       </span>
-<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
+<span style="color:black;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
 <span style="color:black;background:silver">Carl                   </span>
-<span style="color:#0000c0;background:silver">Nice to meet you, Carl</span><span style="color:black;background:silver"> </span>
+<span style="color:black;background:silver">Nice to meet you, Carl</span><span style="color:black;background:silver"> </span>
 <span style="color:black;background:silver">                       </span>
-<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
+<span style="color:black;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
 <span style="color:black;background:silver"><u> </u>                      </span>
 </pre></div>
-<div class="shot"><pre><span style="color:black;background:teal">Press F1 to exit.      </span>
-<span style="color:#0000c0;background:silver">Nice to meet you, Bob</span><span style="color:black;background:silver">  </span>
+<div class="shot"><pre><span style="color:black;background:teal">Press F8 to exit.      </span>
+<span style="color:black;background:silver">Nice to meet you, Bob</span><span style="color:black;background:silver">  </span>
 <span style="color:black;background:silver">                       </span>
-<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
+<span style="color:black;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
 <span style="color:black;background:silver">Carl                   </span>
-<span style="color:#0000c0;background:silver">Nice to meet you, Carl</span><span style="color:black;background:silver"> </span>
+<span style="color:black;background:silver">Nice to meet you, Carl</span><span style="color:black;background:silver"> </span>
 <span style="color:black;background:silver">                       </span>
-<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
+<span style="color:black;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
 <span style="color:black;background:silver">Dave                   </span>
-<span style="color:#0000c0;background:silver">Nice to meet you, Dave</span><span style="color:black;background:silver"> </span>
+<span style="color:black;background:silver">Nice to meet you, Dave</span><span style="color:black;background:silver"> </span>
 <span style="color:black;background:silver">                       </span>
-<span style="color:#0000c0;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
+<span style="color:black;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
 <span style="color:black;background:silver"><u> </u>                      </span>
 </pre></div>
 
@@ -718,8 +711,7 @@ AttrWrap we can see what is happening while the focus changes:
 	urwid.Divider(&quot;-&quot;),
 	urwid.Text(&quot;What could be after this?&quot;),
 	urwid.Text(&quot;The end.&quot;),
-] ]
-</pre>
+] ]</pre>
 <div class="shot"><pre><span style="color:white;background:black">Pressed:       </span>
 <span style="color:black;background:teal">This is a text </span>
 <span style="color:black;background:teal">string that is </span>
@@ -1057,8 +1049,7 @@ This is an example of a custom widget that uses WidgetWrap:
 	def get_state(self):
 		for o in self.options:
 			if o.get_state() is True:
-				return o.get_label()
-</pre>
+				return o.get_label()</pre>
 
 The above code creates a group of RadioButtons and provides a method to
 query the state of the buttons.
@@ -1096,8 +1087,7 @@ class BoxPudding( urwid.BoxWidget ):
 		return False
 	def render( self, (maxcol, maxrow), focus=False ):
 		num_pudding = maxcol / len(&quot;Pudding&quot;)
-		return urwid.Canvas( [&quot;Pudding&quot;*num_pudding] * maxrow )
-</pre>
+		return urwid.Canvas( [&quot;Pudding&quot;*num_pudding] * maxrow )</pre>
 
 The above code implements two widget classes. Pudding is a flow widget and 
 BoxPudding is a box widget. Pudding will render as much "Pudding" as will
@@ -1128,8 +1118,7 @@ row calculations for you:
 		return w.render( (maxcol,), focus )
 	def display_widget( self, (maxcol,), focus ):
 		num_pudding = maxcol / len(&quot;Pudding&quot;)
-		return urwid.Text( &quot;Pudding&quot;*num_pudding )
-</pre>
+		return urwid.Text( &quot;Pudding&quot;*num_pudding )</pre>
 
 The NewPudding class behaves the same way as the Pudding class above, but in
 NewPudding you can change the way the widget appears by modifying only the
@@ -1157,8 +1146,7 @@ or box widget depending on what is required:
 		else:
 			(maxcol, maxrow) = size
 		num_pudding = maxcol / len(&quot;Pudding&quot;)
-		return urwid.Canvas( [&quot;Pudding&quot;*num_pudding] * maxrow )
-</pre>
+		return urwid.Canvas( [&quot;Pudding&quot;*num_pudding] * maxrow )</pre>
 
 MultiPudding will work in place of either Pudding or BoxPudding above. The
 number of elements in the size tuple determines whether the containing widget
@@ -1199,8 +1187,7 @@ method to handle keyboard input.
 			if not self.pudding:
 				self.pudding = &quot;pudding&quot;
 		else:
-			return key
-</pre>
+			return key</pre>
 
 The SelectablePudding widget will display its contents in uppercase when it
 is in focus, and it allows the user to "eat" the pudding by pressing each of
@@ -1249,8 +1236,7 @@ cursor is visible within its focus widget.
 			col = self.cursor_col +1
 		else:
 			return key
-		self.cursor_x = max(0, min( maxcol-1, col ))
-</pre>
+		self.cursor_x = max(0, min( maxcol-1, col ))</pre>
 
 CursorPudding will let the user move the cursor through the widget by 
 pressing LEFT and RIGHT. The cursor must only be added to the canvas when
@@ -1277,8 +1263,7 @@ method must move the cursor to that position and return True.
 	def move_cursor_to_coords( self, (maxcol,), col, row ):
 		assert row == 0
 		self.cursor_x = col
-		return True
-</pre>
+		return True</pre>
 
 <br clear="left">
 <br>
