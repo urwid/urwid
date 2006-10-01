@@ -24,15 +24,19 @@ __all__ = [
 	'WidgetWrap','AttrWrap','Padding','Divider','LineBox','SolidFill',
 	'Columns','Pile','GridFlow','BoxAdapter','Overlay',
 	'FlowWidget','Text','Edit','IntEdit','Button','CheckBox','RadioButton',
-	'BarGraph','ProgressBar','GraphVScale',
+	'BarGraph','ProgressBar','GraphVScale','BigText',
 	'Canvas','CanvasCombine','CanvasJoin',
 	'TextLayout','StandardTextLayout',
 	'set_encoding','get_encoding_mode','supports_unicode',
+	'Thin3x3Font','Thin4x3Font','HalfBlock5x4Font','HalfBlock6x5Font',
+	'HalfBlockHeavy6x5Font','Thin6x6Font','HalfBlock7x7Font',
+	'Font','get_all_fonts',
 	]
-__version__ = "0.9.6"
+__version__ = "0.9.7"
 
 
 from widget import *
 from listbox import *
 from graphics import *
-
+from canvas import *
+from font import *

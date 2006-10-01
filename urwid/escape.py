@@ -26,6 +26,7 @@ Terminal Escape Sequences for input and display
 
 import util
 import os
+import re
 
 import encodings
 utf8decode = lambda s: encodings.codecs.utf_8_decode(s)[0]
@@ -41,6 +42,9 @@ DEC_SPECIAL_CHARMAP = {}
 assert len(DEC_SPECIAL_CHARS) == len(ALT_DEC_SPECIAL_CHARS), `DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS`
 for c, alt in zip(DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS):
 	DEC_SPECIAL_CHARMAP[ord(c)] = SO + alt + SI
+
+SAFE_ASCII_DEC_SPECIAL_RE = re.compile(u"^[ -~%s]*$" % DEC_SPECIAL_CHARS)
+DEC_SPECIAL_RE = re.compile(u"[%s]" % DEC_SPECIAL_CHARS)
 
 
 ###################

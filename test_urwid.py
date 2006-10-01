@@ -1346,7 +1346,7 @@ class ListBoxKeypressTest(unittest.TestCase):
 class PaddingTest(unittest.TestCase):
 	def ptest(self, desc, align, width, maxcol, left, right,min_width=None):
 		p = urwid.Padding(None, align, width, min_width)
-		l, r = p.padding_values((maxcol,))
+		l, r = p.padding_values((maxcol,),False)
 		assert (l,r)==(left,right), "%s expected %s but got %s"%(
 			desc, (left,right), (l,r))
 	
@@ -1797,6 +1797,29 @@ class CanvasOverlayTest(unittest.TestCase):
 		self.cotest("db3","\xA1\xA1\xA1\xA1\xA1\xA1",[],"OHIO",[],1,1,
 			" OHIO ",[(None,6)])
 
+class CanvasPadTrimTest(unittest.TestCase):
+	def cptest(self, desc, ct, ca, l, r, et, ea):
+		c = urwid.Canvas([ct], [ca])
+		c.pad_trim_left_right(l, r)
+		assert c.text[0] == et, "%s expected text %s, got %s"%(
+			desc, `et`,`c.text[0]`)
+		assert c.attr[0] == ea, "%s expected attr %s, got %s"%(
+			desc, `ea`,`c.attr[0]`)
+	
+	def test1(self):
+		self.cptest("none", "asdf", [], 0, 0, 
+			"asdf",[(None,4)])
+		self.cptest("left pad", "asdf", [], 2, 0, 
+			"  asdf",[(None,6)])
+		self.cptest("right pad", "asdf", [], 0, 2, 
+			"asdf  ",[(None,6)])
+	
+	def test2(self):
+		self.cptest("left trim", "asdf", [], -2, 0, 
+			"df",[(None,2)])
+		self.cptest("right trim", "asdf", [], 0, -2, 
+			"as",[(None,2)])
+
 def test_main():
 	for t in [
 		CalcWidthTest,
@@ -1836,6 +1859,7 @@ def test_main():
 		SmoothBarGraphTest,
 		CanvasJoinTest,
 		CanvasOverlayTest,
+		CanvasPadTrimTest,
 		]:
 		if test_support.run_unittest(t): break
 	

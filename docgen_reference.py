@@ -55,6 +55,7 @@ Reference
 [<b>F</b>] = Flow Widget displayed with assigned screen columns and variable screen rows<br>
 [<b>B</b>] = Box Widget displayed with assigned screen columns and assigned screen rows<br>
 [<b>F</b>/<b>B</b>] = May behave as either Flow Widget or Box Widget<br>
+[<b>X</b>] = Fixed Widget has a fixed number of screen columns and rows
 <br>
 %contents%
 </body>
@@ -65,6 +66,7 @@ flagd = {
 	"B": "[<b>B</b>]",
 	"F": "[<b>F</b>]",
 	"FB": "[<b>F</b>/<b>B</b>]",
+	"X": "[<b>X</b>]",
 }
 
 
@@ -295,11 +297,14 @@ def main():
 		(urwid.BarGraph, "BarGraph","B"),
 		(urwid.GraphVScale, "GraphVScale","B"),
 		(urwid.ProgressBar, "ProgressBar","F"),
+		(urwid.BigText, "BigText","X"),
+		(urwid.get_all_fonts, "get_all_fonts",None),
 		
 		(None,"Abstract widgets & interfaces",None),
 		(WidgetInterface, "Widget interface definition",None),
 		(urwid.BoxWidget, "BoxWidget",None),
 		(urwid.FlowWidget, "FlowWidget",None),
+		(urwid.FixedWidget, "FixedWidget",None),
 		(ListWalkerInterface, "List Walker interface definition",None),
 		(None,"ListBox list walkers",None),
 		(urwid.SimpleListWalker, "SimpleListWalker",None),

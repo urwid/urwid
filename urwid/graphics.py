@@ -30,6 +30,61 @@ from escape import utf8decode
 try: True # old python?
 except: False, True = 0, 1
 
+class BigText(FixedWidget):
+	def __init__(self, markup, font):
+		"""
+		markup -- same as Text widget markup
+		font -- instance of a Font class
+		"""
+		self.set_font(font)
+		self.set_text(markup)
+	
+	def set_text(self, markup):
+		self.text, self.attrib = decompose_tagmarkup(markup)
+	
+	def get_text(self):
+		"""
+		Returns (text, attributes).
+		"""
+		return self.text, self.attrib
+	
+	def set_font(self, font):
+		self.font = font
+	
+	def pack(self, size=None, focus=False):
+		rows = self.font.height
+		cols = 0
+		for c in self.text:
+			cols += self.font.char_width(c)
+		return cols, rows
+	
+	def render(self, size, focus=False):
+		fixed_size(size) # complain if parameter is wrong
+		a = None
+		ai = ak = 0
+		o = []
+		rows = self.font.height
+		cols = 0
+		attrib = self.attrib+[(None,len(self.text))]
+		for ch in self.text:
+			if not ak:
+				a, ak = attrib[ai]
+				ai += 1
+			ak -= 1
+			width = self.font.char_width(ch)
+			if not width: 
+				# ignore invalid characters
+				continue
+			c = self.font.render(ch)
+			c.fill_attr(a)
+			o.append(c)
+			cols += width
+			o.append(width)
+		
+		if o:
+			return CanvasJoin(o[:-1])
+		return Canvas([""]*rows, maxcol=0)
+		
 
 class LineBox(WidgetWrap):
 	def __init__(self, w):

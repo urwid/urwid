@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>Urwid 0.9.6 Reference</title>
+<title>Urwid 0.9.7 Reference</title>
 <style type="text/css">
 	h1 { text-align: center; }
 	h2 { margin: 40px 0 0 0; padding: 10px;  background: #6d96e8;}
@@ -10,7 +10,7 @@
 </style>
 <body>
 <a name="top"></a>
-<h1>Urwid 0.9.6 Reference</h1>
+<h1>Urwid 0.9.7 Reference</h1>
 
 <div style="text-align: center;">
 <a href="http://excess.org/urwid/">Urwid Home Page</a> /
@@ -20,11 +20,12 @@
 Reference
 </div>
 <br>
-<table width="100%"><tr><td width="33%" valign="top"><div class="l1">User interface wrappers</div><div class="l2"><a href="#raw_display.Screen">raw_display.Screen</a> </div><div class="l2"><a href="#curses_display.Screen">curses_display.Screen</a> </div><div class="l2"><a href="#web_display.Screen">web_display.Screen</a> </div><div class="l1">Top-level widgets</div><div class="l2"><a href="#Frame">Frame</a> [<b>B</b>]</div><div class="l2"><a href="#Filler">Filler</a> [<b>B</b>]</div><div class="l2"><a href="#ListBox">ListBox</a> [<b>B</b>]</div><div class="l1">Decorations</div><div class="l2"><a href="#WidgetWrap">WidgetWrap</a> [<b>F</b>/<b>B</b>]</div><div class="l2"><a href="#AttrWrap">AttrWrap</a> [<b>F</b>/<b>B</b>]</div><div class="l2"><a href="#Padding">Padding</a> [<b>F</b>/<b>B</b>]</div><div class="l2"><a href="#Divider">Divider</a> [<b>F</b>]</div><div class="l2"><a href="#LineBox">LineBox</a> [<b>F</b>/<b>B</b>]</div><div class="l2"><a href="#SolidFill">SolidFill</a> [<b>B</b>]</div><div class="l1">Composite widgets</div><div class="l2"><a href="#Columns">Columns</a> [<b>F</b>/<b>B</b>]</div><div class="l2"><a href="#Pile">Pile</a> [<b>F</b>/<b>B</b>]</div><div class="l2"><a href="#GridFlow">GridFlow</a> [<b>F</b>]</div><div class="l2"><a href="#BoxAdapter">BoxAdapter</a> [<b>F</b>]</div><div class="l2"><a href="#Overlay">Overlay</a> [<b>B</b>]</div></td><td width="33%" valign="top"><div class="l1">Content widgets</div><div class="l2"><a href="#Text">Text</a> [<b>F</b>]</div><div class="l2"><a href="#Edit">Edit</a> [<b>F</b>]</div><div class="l2"><a href="#IntEdit">IntEdit</a> [<b>F</b>]</div><div class="l2"><a href="#Button">Button</a> [<b>F</b>]</div><div class="l2"><a href="#CheckBox">CheckBox</a> [<b>F</b>]</div><div class="l2"><a href="#RadioButton">RadioButton</a> [<b>F</b>]</div><div class="l1">Graphics</div><div class="l2"><a href="#BarGraph">BarGraph</a> [<b>B</b>]</div><div class="l2"><a href="#GraphVScale">GraphVScale</a> [<b>B</b>]</div><div class="l2"><a href="#ProgressBar">ProgressBar</a> [<b>F</b>]</div><div class="l1">Abstract widgets & interfaces</div><div class="l2"><a href="#Widget_interface_definition">Widget interface definition</a> </div><div class="l2"><a href="#BoxWidget">BoxWidget</a> </div><div class="l2"><a href="#FlowWidget">FlowWidget</a> </div><div class="l2"><a href="#List_Walker_interface_definition">List Walker interface definition</a> </div><div class="l1">ListBox list walkers</div><div class="l2"><a href="#SimpleListWalker">SimpleListWalker</a> </div></td><td width="33%" valign="top"><div class="l1">Canvas painting</div><div class="l2"><a href="#Canvas">Canvas</a> </div><div class="l2"><a href="#CanvasCombine">CanvasCombine</a> </div><div class="l2"><a href="#CanvasJoin">CanvasJoin</a> </div><div class="l1">Custom formatting rules</div><div class="l2"><a href="#TextLayout">TextLayout</a> </div><div class="l2"><a href="#StandardTextLayout">StandardTextLayout</a> </div><div class="l1">Character encoding</div><div class="l2"><a href="#set_encoding">set_encoding</a> </div><div class="l2"><a href="#get_encoding_mode">get_encoding_mode</a> </div><div class="l2"><a href="#supports_unicode">supports_unicode</a> </div><div class="l1">Screen capture</div><div class="l2"><a href="#html_fragment.screenshot_init">html_fragment.screenshot_init</a> </div><div class="l2"><a href="#html_fragment.screenshot_collect">html_fragment.screenshot_collect</a> </div><div class="l2"><a href="#html_fragment.HtmlGenerator">html_fragment.HtmlGenerator</a> </div><div class="l1">Web Application Interface</div><div class="l2"><a href="#web_display.is_web_request">web_display.is_web_request</a> </div><div class="l2"><a href="#web_display.set_preferences">web_display.set_preferences</a> </div><div class="l2"><a href="#web_display.handle_short_request">web_display.handle_short_request</a> </div></td></tr></table>
+<table width="100%"><tr><td width="33%" valign="top"><div class="l1">User interface wrappers</div><div class="l2"><a href="#raw_display.Screen">raw_display.Screen</a> </div><div class="l2"><a href="#curses_display.Screen">curses_display.Screen</a> </div><div class="l2"><a href="#web_display.Screen">web_display.Screen</a> </div><div class="l1">Top-level widgets</div><div class="l2"><a href="#Frame">Frame</a> [<b>B</b>]</div><div class="l2"><a href="#Filler">Filler</a> [<b>B</b>]</div><div class="l2"><a href="#ListBox">ListBox</a> [<b>B</b>]</div><div class="l1">Decorations</div><div class="l2"><a href="#WidgetWrap">WidgetWrap</a> [<b>F</b>/<b>B</b>]</div><div class="l2"><a href="#AttrWrap">AttrWrap</a> [<b>F</b>/<b>B</b>]</div><div class="l2"><a href="#Padding">Padding</a> [<b>F</b>/<b>B</b>]</div><div class="l2"><a href="#Divider">Divider</a> [<b>F</b>]</div><div class="l2"><a href="#LineBox">LineBox</a> [<b>F</b>/<b>B</b>]</div><div class="l2"><a href="#SolidFill">SolidFill</a> [<b>B</b>]</div><div class="l1">Composite widgets</div><div class="l2"><a href="#Columns">Columns</a> [<b>F</b>/<b>B</b>]</div><div class="l2"><a href="#Pile">Pile</a> [<b>F</b>/<b>B</b>]</div><div class="l2"><a href="#GridFlow">GridFlow</a> [<b>F</b>]</div><div class="l2"><a href="#BoxAdapter">BoxAdapter</a> [<b>F</b>]</div><div class="l2"><a href="#Overlay">Overlay</a> [<b>B</b>]</div></td><td width="33%" valign="top"><div class="l1">Content widgets</div><div class="l2"><a href="#Text">Text</a> [<b>F</b>]</div><div class="l2"><a href="#Edit">Edit</a> [<b>F</b>]</div><div class="l2"><a href="#IntEdit">IntEdit</a> [<b>F</b>]</div><div class="l2"><a href="#Button">Button</a> [<b>F</b>]</div><div class="l2"><a href="#CheckBox">CheckBox</a> [<b>F</b>]</div><div class="l2"><a href="#RadioButton">RadioButton</a> [<b>F</b>]</div><div class="l1">Graphics</div><div class="l2"><a href="#BarGraph">BarGraph</a> [<b>B</b>]</div><div class="l2"><a href="#GraphVScale">GraphVScale</a> [<b>B</b>]</div><div class="l2"><a href="#ProgressBar">ProgressBar</a> [<b>F</b>]</div><div class="l2"><a href="#BigText">BigText</a> [<b>X</b>]</div><div class="l2"><a href="#get_all_fonts">get_all_fonts</a> </div><div class="l1">Abstract widgets & interfaces</div><div class="l2"><a href="#Widget_interface_definition">Widget interface definition</a> </div><div class="l2"><a href="#BoxWidget">BoxWidget</a> </div><div class="l2"><a href="#FlowWidget">FlowWidget</a> </div><div class="l2"><a href="#FixedWidget">FixedWidget</a> </div><div class="l2"><a href="#List_Walker_interface_definition">List Walker interface definition</a> </div><div class="l1">ListBox list walkers</div><div class="l2"><a href="#SimpleListWalker">SimpleListWalker</a> </div></td><td width="33%" valign="top"><div class="l1">Canvas painting</div><div class="l2"><a href="#Canvas">Canvas</a> </div><div class="l2"><a href="#CanvasCombine">CanvasCombine</a> </div><div class="l2"><a href="#CanvasJoin">CanvasJoin</a> </div><div class="l1">Custom formatting rules</div><div class="l2"><a href="#TextLayout">TextLayout</a> </div><div class="l2"><a href="#StandardTextLayout">StandardTextLayout</a> </div><div class="l1">Character encoding</div><div class="l2"><a href="#set_encoding">set_encoding</a> </div><div class="l2"><a href="#get_encoding_mode">get_encoding_mode</a> </div><div class="l2"><a href="#supports_unicode">supports_unicode</a> </div><div class="l1">Screen capture</div><div class="l2"><a href="#html_fragment.screenshot_init">html_fragment.screenshot_init</a> </div><div class="l2"><a href="#html_fragment.screenshot_collect">html_fragment.screenshot_collect</a> </div><div class="l2"><a href="#html_fragment.HtmlGenerator">html_fragment.HtmlGenerator</a> </div><div class="l1">Web Application Interface</div><div class="l2"><a href="#web_display.is_web_request">web_display.is_web_request</a> </div><div class="l2"><a href="#web_display.set_preferences">web_display.set_preferences</a> </div><div class="l2"><a href="#web_display.handle_short_request">web_display.handle_short_request</a> </div></td></tr></table>
 <br>
 [<b>F</b>] = Flow Widget displayed with assigned screen columns and variable screen rows<br>
 [<b>B</b>] = Box Widget displayed with assigned screen columns and assigned screen rows<br>
 [<b>F</b>/<b>B</b>] = May behave as either Flow Widget or Box Widget<br>
+[<b>X</b>] = Fixed Widget has a fixed number of screen columns and rows
 <br>
 <h2>User interface wrappers</h2><h3><a name="raw_display.Screen"></a><strong>raw_display.Screen</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="Screen-__init__"><strong>__init__</strong></a>(self)</dt></dl>
@@ -298,7 +299,7 @@ height&nbsp;--&nbsp;one&nbsp;of:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;('fixed&nbsp;top',&nbsp;rows)&nbsp;&nbsp;Only&nbsp;if&nbsp;valign&nbsp;is&nbsp;'fixed&nbsp;bottom'<br>
 &nbsp;&nbsp;&nbsp;&nbsp;('relative',&nbsp;percentage&nbsp;of&nbsp;total&nbsp;height)<br>
 min_height&nbsp;--&nbsp;one&nbsp;of:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;None&nbsp;if&nbsp;no&nbsp;minimum&nbsp;or&nbsp;body&nbsp;is&nbsp;a&nbsp;flow&nbsp;widget<br>
+&nbsp;&nbsp;&nbsp;&nbsp;None&nbsp;if&nbsp;no&nbsp;minimum&nbsp;or&nbsp;if&nbsp;body&nbsp;is&nbsp;a&nbsp;flow&nbsp;widget<br>
 &nbsp;&nbsp;&nbsp;&nbsp;minimum&nbsp;number&nbsp;of&nbsp;rows&nbsp;for&nbsp;the&nbsp;widget&nbsp;when&nbsp;height&nbsp;not&nbsp;fixed<br>
 &nbsp;<br>
 If&nbsp;body&nbsp;is&nbsp;a&nbsp;flow&nbsp;widget&nbsp;then&nbsp;height&nbsp;and&nbsp;min_height&nbsp;must&nbsp;be&nbsp;set<br>
@@ -438,7 +439,7 @@ size&nbsp;--&nbsp;(maxcol,)&nbsp;if&nbsp;self.<strong>w</strong>&nbsp;contains&n
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(maxcol,&nbsp;maxrow)&nbsp;if&nbsp;it&nbsp;contains&nbsp;a&nbsp;box&nbsp;widget.</tt></dd></dl>
 
 <h3><a name="Padding">class <strong>Padding</strong></a> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
-<dl><dt><a name="Padding-__init__"><strong>__init__</strong></a>(self, w, align, width, min_width<font color="#909090">=None</font>)</dt><dd><tt>w&nbsp;--&nbsp;a&nbsp;box&nbsp;or&nbsp;flow&nbsp;widget&nbsp;to&nbsp;pad&nbsp;on&nbsp;the&nbsp;left&nbsp;and/or&nbsp;right<br>
+<dl><dt><a name="Padding-__init__"><strong>__init__</strong></a>(self, w, align, width, min_width<font color="#909090">=None</font>)</dt><dd><tt>w&nbsp;--&nbsp;a&nbsp;box,&nbsp;flow&nbsp;or&nbsp;fixed&nbsp;widget&nbsp;to&nbsp;pad&nbsp;on&nbsp;the&nbsp;left&nbsp;and/or&nbsp;right<br>
 align&nbsp;--&nbsp;one&nbsp;of:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;'left',&nbsp;'center',&nbsp;'right'<br>
 &nbsp;&nbsp;&nbsp;&nbsp;('fixed&nbsp;left',&nbsp;columns)<br>
@@ -448,13 +449,19 @@ width&nbsp;--&nbsp;one&nbsp;of:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;number&nbsp;of&nbsp;columns&nbsp;wide&nbsp;<br>
 &nbsp;&nbsp;&nbsp;&nbsp;('fixed&nbsp;right',&nbsp;columns)&nbsp;&nbsp;Only&nbsp;if&nbsp;align&nbsp;is&nbsp;'fixed&nbsp;left'<br>
 &nbsp;&nbsp;&nbsp;&nbsp;('fixed&nbsp;left',&nbsp;columns)&nbsp;&nbsp;Only&nbsp;if&nbsp;align&nbsp;is&nbsp;'fixed&nbsp;right'<br>
-&nbsp;&nbsp;&nbsp;&nbsp;('relative',&nbsp;percentage&nbsp;of&nbsp;total&nbsp;width)&nbsp;&nbsp;&nbsp;&nbsp;<br>
-min_width&nbsp;--&nbsp;the&nbsp;minimum&nbsp;number&nbsp;of&nbsp;columns&nbsp;for&nbsp;the&nbsp;widget<br>
-&nbsp;&nbsp;&nbsp;&nbsp;when&nbsp;width&nbsp;is&nbsp;not&nbsp;fixed<br>
-&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;('relative',&nbsp;percentage&nbsp;of&nbsp;total&nbsp;width)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;None&nbsp;&nbsp;&nbsp;to&nbsp;enable&nbsp;clipping&nbsp;mode<br>
+min_width&nbsp;--&nbsp;the&nbsp;minimum&nbsp;number&nbsp;of&nbsp;columns&nbsp;for&nbsp;w&nbsp;or&nbsp;None<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
 Padding&nbsp;widgets&nbsp;will&nbsp;try&nbsp;to&nbsp;satisfy&nbsp;width&nbsp;argument&nbsp;first&nbsp;by<br>
 reducing&nbsp;the&nbsp;align&nbsp;amount&nbsp;when&nbsp;necessary.&nbsp;&nbsp;If&nbsp;width&nbsp;still&nbsp;<br>
-cannot&nbsp;be&nbsp;satisfied&nbsp;it&nbsp;will&nbsp;also&nbsp;be&nbsp;reduced.</tt></dd></dl>
+cannot&nbsp;be&nbsp;satisfied&nbsp;it&nbsp;will&nbsp;also&nbsp;be&nbsp;reduced.<br>
+&nbsp;<br>
+Clipping&nbsp;Mode:<br>
+In&nbsp;clipping&nbsp;mode&nbsp;w&nbsp;is&nbsp;treated&nbsp;as&nbsp;a&nbsp;fixed&nbsp;widget&nbsp;and&nbsp;this&nbsp;<br>
+widget&nbsp;expects&nbsp;to&nbsp;be&nbsp;treated&nbsp;as&nbsp;a&nbsp;flow&nbsp;widget.&nbsp;&nbsp;w&nbsp;will<br>
+be&nbsp;clipped&nbsp;to&nbsp;fit&nbsp;within&nbsp;the&nbsp;space&nbsp;given.&nbsp;&nbsp;For&nbsp;example,<br>
+if&nbsp;align&nbsp;is&nbsp;'left'&nbsp;then&nbsp;w&nbsp;may&nbsp;be&nbsp;clipped&nbsp;on&nbsp;the&nbsp;right.</tt></dd></dl>
 
 <dl><dt><a name="Padding-get_cursor_coords"><strong>get_cursor_coords</strong></a>(self, size)</dt><dd><tt>Return&nbsp;the&nbsp;(x,y)&nbsp;coordinates&nbsp;of&nbsp;cursor&nbsp;within&nbsp;self.<strong>w</strong>.</tt></dd></dl>
 
@@ -468,7 +475,7 @@ cannot&nbsp;be&nbsp;satisfied&nbsp;it&nbsp;will&nbsp;also&nbsp;be&nbsp;reduced.<
 &nbsp;<br>
 Returns&nbsp;True&nbsp;if&nbsp;move&nbsp;succeeded,&nbsp;False&nbsp;otherwise.</tt></dd></dl>
 
-<dl><dt><a name="Padding-padding_values"><strong>padding_values</strong></a>(self, size)</dt><dd><tt>Return&nbsp;the&nbsp;number&nbsp;of&nbsp;columns&nbsp;to&nbsp;pad&nbsp;on&nbsp;the&nbsp;left&nbsp;and&nbsp;right.<br>
+<dl><dt><a name="Padding-padding_values"><strong>padding_values</strong></a>(self, size, focus)</dt><dd><tt>Return&nbsp;the&nbsp;number&nbsp;of&nbsp;columns&nbsp;to&nbsp;pad&nbsp;on&nbsp;the&nbsp;left&nbsp;and&nbsp;right.<br>
 &nbsp;<br>
 Override&nbsp;this&nbsp;method&nbsp;to&nbsp;define&nbsp;custom&nbsp;padding&nbsp;behaviour.</tt></dd></dl>
 
@@ -670,7 +677,7 @@ height&nbsp;--&nbsp;number&nbsp;of&nbsp;rows&nbsp;for&nbsp;box&nbsp;widget</tt><
 <dl><dt><a name="BoxAdapter-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;box&nbsp;widget's&nbsp;selectable&nbsp;value</tt></dd></dl>
 
 <h3><a name="Overlay">class <strong>Overlay</strong></a>(BoxWidget) <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
-<dl><dt><a name="Overlay-__init__"><strong>__init__</strong></a>(self, top_w, bottom_w, align, width, valign, height, min_width<font color="#909090">=None</font>, min_height<font color="#909090">=None</font>)</dt><dd><tt>top_w&nbsp;--&nbsp;a&nbsp;box&nbsp;widget&nbsp;to&nbsp;overlay&nbsp;"on&nbsp;top"<br>
+<dl><dt><a name="Overlay-__init__"><strong>__init__</strong></a>(self, top_w, bottom_w, align, width, valign, height, min_width<font color="#909090">=None</font>, min_height<font color="#909090">=None</font>)</dt><dd><tt>top_w&nbsp;--&nbsp;a&nbsp;flow,&nbsp;box&nbsp;or&nbsp;fixed&nbsp;widget&nbsp;to&nbsp;overlay&nbsp;"on&nbsp;top"<br>
 bottom_w&nbsp;--&nbsp;a&nbsp;box&nbsp;widget&nbsp;to&nbsp;appear&nbsp;"below"&nbsp;previous&nbsp;widget<br>
 align&nbsp;--&nbsp;one&nbsp;of:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;'left',&nbsp;'center',&nbsp;'right'<br>
@@ -678,6 +685,7 @@ align&nbsp;--&nbsp;one&nbsp;of:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;('fixed&nbsp;right',&nbsp;columns)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;('relative',&nbsp;percentage&nbsp;0=left&nbsp;100=right)<br>
 width&nbsp;--&nbsp;one&nbsp;of:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;None&nbsp;if&nbsp;top_w&nbsp;is&nbsp;a&nbsp;fixed&nbsp;widget<br>
 &nbsp;&nbsp;&nbsp;&nbsp;number&nbsp;of&nbsp;columns&nbsp;wide<br>
 &nbsp;&nbsp;&nbsp;&nbsp;('fixed&nbsp;right',&nbsp;columns)&nbsp;&nbsp;Only&nbsp;if&nbsp;align&nbsp;is&nbsp;'fixed&nbsp;left'<br>
 &nbsp;&nbsp;&nbsp;&nbsp;('fixed&nbsp;left',&nbsp;columns)&nbsp;&nbsp;Only&nbsp;if&nbsp;align&nbsp;is&nbsp;'fixed&nbsp;right'<br>
@@ -688,6 +696,7 @@ valign&nbsp;--&nbsp;one&nbsp;of:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;('fixed&nbsp;bottom',&nbsp;rows)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;('relative',&nbsp;percentage&nbsp;0=top&nbsp;100=bottom)<br>
 height&nbsp;--&nbsp;one&nbsp;of:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;None&nbsp;if&nbsp;top_w&nbsp;is&nbsp;a&nbsp;flow&nbsp;or&nbsp;fixed&nbsp;widget<br>
 &nbsp;&nbsp;&nbsp;&nbsp;number&nbsp;of&nbsp;rows&nbsp;high&nbsp;<br>
 &nbsp;&nbsp;&nbsp;&nbsp;('fixed&nbsp;bottom',&nbsp;rows)&nbsp;&nbsp;Only&nbsp;if&nbsp;valign&nbsp;is&nbsp;'fixed&nbsp;top'<br>
 &nbsp;&nbsp;&nbsp;&nbsp;('fixed&nbsp;top',&nbsp;rows)&nbsp;&nbsp;Only&nbsp;if&nbsp;valign&nbsp;is&nbsp;'fixed&nbsp;bottom'<br>
@@ -701,17 +710,19 @@ Overlay&nbsp;widgets&nbsp;behave&nbsp;similarly&nbsp;to&nbsp;Padding&nbsp;and&nb
 when&nbsp;determining&nbsp;the&nbsp;size&nbsp;and&nbsp;position&nbsp;of&nbsp;top_w.&nbsp;&nbsp;bottom_w&nbsp;is<br>
 always&nbsp;rendered&nbsp;the&nbsp;full&nbsp;size&nbsp;available&nbsp;"below"&nbsp;top_w.</tt></dd></dl>
 
-<dl><dt><a name="Overlay-calculate_padding_filler"><strong>calculate_padding_filler</strong></a>(self, (maxcol, maxrow))</dt><dd><tt>Return&nbsp;(padding&nbsp;left,&nbsp;right,&nbsp;filler&nbsp;top,&nbsp;bottom).</tt></dd></dl>
+<dl><dt><a name="Overlay-calculate_padding_filler"><strong>calculate_padding_filler</strong></a>(self, (maxcol, maxrow), focus)</dt><dd><tt>Return&nbsp;(padding&nbsp;left,&nbsp;right,&nbsp;filler&nbsp;top,&nbsp;bottom).</tt></dd></dl>
 
 <dl><dt><a name="Overlay-get_cursor_coords"><strong>get_cursor_coords</strong></a>(self, size)</dt><dd><tt>Return&nbsp;cursor&nbsp;coords&nbsp;from&nbsp;top_w,&nbsp;if&nbsp;any.</tt></dd></dl>
 
 <dl><dt><a name="Overlay-keypress"><strong>keypress</strong></a>(self, size, key)</dt><dd><tt>Pass&nbsp;keypress&nbsp;to&nbsp;top_w.</tt></dd></dl>
 
-<dl><dt><a name="Overlay-mouse_event"><strong>mouse_event</strong></a>(self, (maxcol, maxrow), event, button, col, row, focus)</dt><dd><tt>Pass&nbsp;event&nbsp;to&nbsp;top_w,&nbsp;ignore&nbsp;if&nbsp;outside&nbsp;of&nbsp;top_w.</tt></dd></dl>
+<dl><dt><a name="Overlay-mouse_event"><strong>mouse_event</strong></a>(self, size, event, button, col, row, focus)</dt><dd><tt>Pass&nbsp;event&nbsp;to&nbsp;top_w,&nbsp;ignore&nbsp;if&nbsp;outside&nbsp;of&nbsp;top_w.</tt></dd></dl>
 
 <dl><dt><a name="Overlay-render"><strong>render</strong></a>(self, size, focus<font color="#909090">=False</font>)</dt><dd><tt>Render&nbsp;top_w&nbsp;overlayed&nbsp;on&nbsp;bottom_w.</tt></dd></dl>
 
 <dl><dt><a name="Overlay-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;selectable&nbsp;from&nbsp;top_w.</tt></dd></dl>
+
+<dl><dt><a name="Overlay-top_w_size"><strong>top_w_size</strong></a>(self, size, left, right, top, bottom)</dt><dd><tt>Return&nbsp;the&nbsp;size&nbsp;to&nbsp;pass&nbsp;to&nbsp;top_w.</tt></dd></dl>
 
 <h2>Content widgets</h2><h3><a name="Text">class <strong>Text</strong></a>(FlowWidget) <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="Text-__init__"><strong>__init__</strong></a>(self, markup, align<font color="#909090">='left'</font>, wrap<font color="#909090">='space'</font>, layout<font color="#909090">=None</font>)</dt><dd><tt>markup&nbsp;--&nbsp;content&nbsp;of&nbsp;text&nbsp;widget,&nbsp;one&nbsp;of:<br>
@@ -724,12 +735,12 @@ layout&nbsp;--&nbsp;layout&nbsp;object&nbsp;to&nbsp;use,&nbsp;defaults&nbsp;to&n
 
 <dl><dt><a name="Text-get_line_translation"><strong>get_line_translation</strong></a>(self, maxcol, ta<font color="#909090">=None</font>)</dt><dd><tt>Return&nbsp;layout&nbsp;structure&nbsp;for&nbsp;mapping&nbsp;self.<strong>text</strong>&nbsp;to&nbsp;a&nbsp;canvas.</tt></dd></dl>
 
-<dl><dt><a name="Text-get_text"><strong>get_text</strong></a>(self)</dt><dd><tt>get_text()&nbsp;-&gt;&nbsp;text,&nbsp;attributes<br>
+<dl><dt><a name="Text-get_text"><strong>get_text</strong></a>(self)</dt><dd><tt>Returns&nbsp;(text,&nbsp;attributes).<br>
 &nbsp;<br>
 text&nbsp;--&nbsp;complete&nbsp;string&nbsp;content&nbsp;of&nbsp;text&nbsp;widget<br>
 attributes&nbsp;--&nbsp;run&nbsp;length&nbsp;encoded&nbsp;attributes&nbsp;for&nbsp;text</tt></dd></dl>
 
-<dl><dt><a name="Text-pack"><strong>pack</strong></a>(self, size<font color="#909090">=None</font>)</dt><dd><tt>Return&nbsp;the&nbsp;number&nbsp;of&nbsp;screen&nbsp;columns&nbsp;required&nbsp;for&nbsp;this&nbsp;Text<br>
+<dl><dt><a name="Text-pack"><strong>pack</strong></a>(self, size<font color="#909090">=None</font>, focus<font color="#909090">=False</font>)</dt><dd><tt>Return&nbsp;the&nbsp;number&nbsp;of&nbsp;screen&nbsp;columns&nbsp;required&nbsp;for&nbsp;this&nbsp;Text<br>
 widget&nbsp;to&nbsp;be&nbsp;displayed&nbsp;without&nbsp;wrapping&nbsp;or&nbsp;clipping,&nbsp;as&nbsp;a&nbsp;<br>
 single&nbsp;element&nbsp;tuple.<br>
 &nbsp;<br>
@@ -825,7 +836,7 @@ Make&nbsp;sure&nbsp;any&nbsp;cached&nbsp;line&nbsp;translation&nbsp;is&nbsp;not&
 
 <hr>
 Methods inherited from Text:<br>
-<dl><dt><a name="Edit-pack"><strong>pack</strong></a>(self, size<font color="#909090">=None</font>)</dt><dd><tt>Return&nbsp;the&nbsp;number&nbsp;of&nbsp;screen&nbsp;columns&nbsp;required&nbsp;for&nbsp;this&nbsp;Text<br>
+<dl><dt><a name="Edit-pack"><strong>pack</strong></a>(self, size<font color="#909090">=None</font>, focus<font color="#909090">=False</font>)</dt><dd><tt>Return&nbsp;the&nbsp;number&nbsp;of&nbsp;screen&nbsp;columns&nbsp;required&nbsp;for&nbsp;this&nbsp;Text<br>
 widget&nbsp;to&nbsp;be&nbsp;displayed&nbsp;without&nbsp;wrapping&nbsp;or&nbsp;clipping,&nbsp;as&nbsp;a&nbsp;<br>
 single&nbsp;element&nbsp;tuple.<br>
 &nbsp;<br>
@@ -914,7 +925,7 @@ Make&nbsp;sure&nbsp;any&nbsp;cached&nbsp;line&nbsp;translation&nbsp;is&nbsp;not&
 
 <hr>
 Methods inherited from Text:<br>
-<dl><dt><a name="IntEdit-pack"><strong>pack</strong></a>(self, size<font color="#909090">=None</font>)</dt><dd><tt>Return&nbsp;the&nbsp;number&nbsp;of&nbsp;screen&nbsp;columns&nbsp;required&nbsp;for&nbsp;this&nbsp;Text<br>
+<dl><dt><a name="IntEdit-pack"><strong>pack</strong></a>(self, size<font color="#909090">=None</font>, focus<font color="#909090">=False</font>)</dt><dd><tt>Return&nbsp;the&nbsp;number&nbsp;of&nbsp;screen&nbsp;columns&nbsp;required&nbsp;for&nbsp;this&nbsp;Text<br>
 widget&nbsp;to&nbsp;be&nbsp;displayed&nbsp;without&nbsp;wrapping&nbsp;or&nbsp;clipping,&nbsp;as&nbsp;a&nbsp;<br>
 single&nbsp;element&nbsp;tuple.<br>
 &nbsp;<br>
@@ -1181,6 +1192,25 @@ Data and other attributes defined here:<br>
 Methods inherited from FlowWidget:<br>
 <dl><dt><a name="ProgressBar-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;False.&nbsp;&nbsp;Not&nbsp;selectable&nbsp;by&nbsp;default.</tt></dd></dl>
 
+<h3><a name="BigText">class <strong>BigText</strong></a>(FixedWidget) <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<dl><dt><a name="BigText-__init__"><strong>__init__</strong></a>(self, markup, font)</dt><dd><tt>markup&nbsp;--&nbsp;same&nbsp;as&nbsp;Text&nbsp;widget&nbsp;markup<br>
+font&nbsp;--&nbsp;instance&nbsp;of&nbsp;a&nbsp;Font&nbsp;class</tt></dd></dl>
+
+<dl><dt><a name="BigText-get_text"><strong>get_text</strong></a>(self)</dt><dd><tt>Returns&nbsp;(text,&nbsp;attributes).</tt></dd></dl>
+
+<dl><dt><a name="BigText-pack"><strong>pack</strong></a>(self, size<font color="#909090">=None</font>, focus<font color="#909090">=False</font>)</dt></dl>
+
+<dl><dt><a name="BigText-render"><strong>render</strong></a>(self, size, focus<font color="#909090">=False</font>)</dt></dl>
+
+<dl><dt><a name="BigText-set_font"><strong>set_font</strong></a>(self, font)</dt></dl>
+
+<dl><dt><a name="BigText-set_text"><strong>set_text</strong></a>(self, markup)</dt></dl>
+
+<hr>
+Methods inherited from FixedWidget:<br>
+<dl><dt><a name="BigText-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;False.&nbsp;&nbsp;Not&nbsp;selectable&nbsp;by&nbsp;default.</tt></dd></dl>
+
+<a name="get_all_fonts"></a><h3>function get_all_fonts <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3><dl><dt><a name="-get_all_fonts"><strong>get_all_fonts</strong></a>()</dt><dd><tt>Return&nbsp;a&nbsp;list&nbsp;of&nbsp;(font&nbsp;name,&nbsp;font&nbsp;class)&nbsp;tuples.</tt></dd></dl>
 <h2>Abstract widgets & interfaces</h2><h3><a name="Widget_interface_definition"></a><strong>Widget interface definition</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="WidgetInterface-get_cursor_coords"><strong>get_cursor_coords</strong></a>(self, size)</dt><dd><tt>size&nbsp;--&nbsp;flow&nbsp;widgets:&nbsp;(maxcol,)&nbsp;&nbsp;box&nbsp;widgets:&nbsp;(maxcol,maxrow)<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;where&nbsp;maxcol&nbsp;and&nbsp;maxrow&nbsp;are&nbsp;the&nbsp;maximum&nbsp;screen&nbsp;columns<br>
@@ -1270,10 +1300,23 @@ should&nbsp;take&nbsp;the&nbsp;focus&nbsp;when&nbsp;changing&nbsp;focus&nbsp;bet
 MUST&nbsp;be&nbsp;implemented.</tt></dd></dl>
 
 <h3><a name="BoxWidget">class <strong>BoxWidget</strong></a> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<dl><dt><a name="BoxWidget-render"><strong>render</strong></a>(self, size, focus<font color="#909090">=False</font>)</dt><dd><tt>All&nbsp;widgets&nbsp;must&nbsp;implement&nbsp;this&nbsp;function.</tt></dd></dl>
+
 <dl><dt><a name="BoxWidget-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;True.&nbsp;&nbsp;Selectable&nbsp;by&nbsp;default.</tt></dd></dl>
 
 <h3><a name="FlowWidget">class <strong>FlowWidget</strong></a> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<dl><dt><a name="FlowWidget-render"><strong>render</strong></a>(self, (maxcol,), focus<font color="#909090">=False</font>)</dt><dd><tt>All&nbsp;widgets&nbsp;must&nbsp;implement&nbsp;this&nbsp;function.</tt></dd></dl>
+
+<dl><dt><a name="FlowWidget-rows"><strong>rows</strong></a>(self, (maxcol,), focus<font color="#909090">=False</font>)</dt><dd><tt>All&nbsp;flow&nbsp;widgets&nbsp;must&nbsp;implement&nbsp;this&nbsp;function.</tt></dd></dl>
+
 <dl><dt><a name="FlowWidget-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;False.&nbsp;&nbsp;Not&nbsp;selectable&nbsp;by&nbsp;default.</tt></dd></dl>
+
+<h3><a name="FixedWidget">class <strong>FixedWidget</strong></a> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
+<dl><dt><a name="FixedWidget-pack"><strong>pack</strong></a>(self, size<font color="#909090">=None</font>, focus<font color="#909090">=False</font>)</dt><dd><tt>All&nbsp;fixed&nbsp;widgets&nbsp;must&nbsp;implement&nbsp;this&nbsp;function.</tt></dd></dl>
+
+<dl><dt><a name="FixedWidget-render"><strong>render</strong></a>(self, size, focus<font color="#909090">=False</font>)</dt><dd><tt>All&nbsp;widgets&nbsp;must&nbsp;implement&nbsp;this&nbsp;function.</tt></dd></dl>
+
+<dl><dt><a name="FixedWidget-selectable"><strong>selectable</strong></a>(self)</dt><dd><tt>Return&nbsp;False.&nbsp;&nbsp;Not&nbsp;selectable&nbsp;by&nbsp;default.</tt></dd></dl>
 
 <h3><a name="List_Walker_interface_definition"></a><strong>List Walker interface definition</strong> <span style="font-size:small; padding-left: 20px">[<a href="#top">back to top</a>]</span></h3>Methods defined here:<br>
 <dl><dt><a name="ListWalkerInterface-get_focus"><strong>get_focus</strong></a>(self)</dt><dd><tt>Returns&nbsp;(widget,&nbsp;position).<br>
@@ -1330,6 +1373,16 @@ attribute&nbsp;currently&nbsp;set&nbsp;to&nbsp;None,&nbsp;leaving&nbsp;other&nbs
 intact.</tt></dd></dl>
 
 <dl><dt><a name="Canvas-overlay"><strong>overlay</strong></a>(self, other, left, right, top, bottom)</dt><dd><tt>Overlay&nbsp;other&nbsp;onto&nbsp;this&nbsp;canvas.</tt></dd></dl>
+
+<dl><dt><a name="Canvas-pad_trim"><strong>pad_trim</strong></a>(self, left, right, top, bottom)</dt><dd><tt>Pad&nbsp;or&nbsp;trim&nbsp;this&nbsp;canvas&nbsp;on&nbsp;all&nbsp;sides.<br>
+&nbsp;<br>
+values&nbsp;&gt;&nbsp;0&nbsp;indicate&nbsp;screen&nbsp;columns&nbsp;or&nbsp;rows&nbsp;to&nbsp;pad<br>
+values&nbsp;&lt;&nbsp;0&nbsp;indicate&nbsp;screen&nbsp;columns&nbsp;or&nbsp;rows&nbsp;to&nbsp;trim</tt></dd></dl>
+
+<dl><dt><a name="Canvas-pad_trim_left_right"><strong>pad_trim_left_right</strong></a>(self, left, right)</dt><dd><tt>Pad&nbsp;or&nbsp;trim&nbsp;this&nbsp;canvas&nbsp;on&nbsp;the&nbsp;left&nbsp;and&nbsp;right<br>
+&nbsp;<br>
+values&nbsp;&gt;&nbsp;0&nbsp;indicate&nbsp;screen&nbsp;columns&nbsp;to&nbsp;pad<br>
+values&nbsp;&lt;&nbsp;0&nbsp;indicate&nbsp;screen&nbsp;columns&nbsp;to&nbsp;trim</tt></dd></dl>
 
 <dl><dt><a name="Canvas-rows"><strong>rows</strong></a>(self)</dt><dd><tt>Return&nbsp;the&nbsp;number&nbsp;of&nbsp;rows&nbsp;in&nbsp;this&nbsp;canvas.</tt></dd></dl>
 

@@ -110,19 +110,13 @@ class Canvas:
 		count -- number of lines to keep, or None for all the rest
 		"""
 		assert top >= 0, "invalid trim amount %d!"%top
-		assert top < len(self.text), "cannot trim %d lines from %d!"%(
-			top, len(self.text))
-		if top:
-			self.translate_coords(0,-top)
-			
+		assert top < self.rows(), "cannot trim %d lines from %d!"%(
+			top, self.rows())
+		
 		if count is None:
-			self.text = self.text[top:]
-			self.attr = self.attr[top:]
-			self.cs = self.cs[top:]
+			self.pad_trim(0, 0, -top, 0)
 		else:
-			self.text = self.text[top:top+count]
-			self.attr = self.attr[top:top+count]
-			self.cs = self.cs[top:top+count]
+			self.pad_trim(0, 0, -top, count - self.rows())
 		
 		
 	def trim_end(self, end):
@@ -131,11 +125,10 @@ class Canvas:
 		end -- number of lines to remove from the end
 		"""
 		assert end > 0, "invalid trim amount %d!"%end
-		assert end < len(self.text), "cannot trim %d lines from %d!"%(
-			end, len(self.text))
-		self.text = self.text[:-end]
-		self.attr = self.attr[:-end]
-		self.cs = self.cs[:-end]
+		assert end < self.rows(), "cannot trim %d lines from %d!"%(
+			end, self.rows())
+		
+		self.pad_trim(0, 0, 0, -end)
 
 	def fill_attr(self, a):
 		"""
@@ -193,6 +186,91 @@ class Canvas:
 			i += 1
 
 
+	def pad_trim(self, left, right, top, bottom):
+		"""
+		Pad or trim this canvas on all sides.
+		
+		values > 0 indicate screen columns or rows to pad
+		values < 0 indicate screen columns or rows to trim
+		"""
+		maxcol = self.maxcol
+		assert left+right+maxcol > 0 and top+bottom+self.rows() > 0, \
+			"trim out of existance? that can't be right"
+		
+		if top < 0:
+			del self.text[:-top]
+			del self.attr[:-top]
+			del self.cs[:-top]
+		if bottom < 0:
+			del self.text[bottom:]
+			del self.attr[bottom:]
+			del self.cs[bottom:]
+
+		if left or right:
+			self.pad_trim_lr(left, right)
+			maxcol = self.maxcol
+		
+		if not top and not bottom:
+			return
+			
+		blank = " " * maxcol
+
+		if top > 0:
+			self.text = [blank] * top + self.text
+			self.attr = [[(None, maxcol)] for i in range(top)] + \
+				self.attr
+			self.cs = [[(None, maxcol)] for i in range(top)] + \
+				self.cs
+		if bottom > 0:
+			self.text += [blank] * bottom
+			self.attr += [[(None, maxcol)] for i in range(bottom)]
+			self.cs += [[(None, maxcol)] for i in range(bottom)]
+			
+		self.translate_coords(0, top)
+
+			
+	def pad_trim_left_right(self, left, right):
+		"""
+		Pad or trim this canvas on the left and right
+		
+		values > 0 indicate screen columns to pad
+		values < 0 indicate screen columns to trim
+		"""
+		lpad = " " * max(0, left)
+		rpad = " " * max(0, right)
+		maxcol = self.maxcol
+
+		i = 0
+		for text, attr, cs in zip(self.text, self.attr, self.cs):
+			if left < 0 or right < 0:
+				text, attr, cs = trim_text_attr_cs(
+					text, attr, cs, max(0, -left), 
+					min(maxcol, maxcol+right))
+			if lpad or rpad:
+				text = lpad + text + rpad
+			if lpad:
+				a = [(None, left)]
+				c = [(None, left)]
+				rle_join_modify(a, attr)
+				rle_join_modify(c, cs)
+				attr = a
+				cs = c
+
+			if rpad:
+				rle_append_modify(attr, (None, right))
+				rle_append_modify(cs, (None, right))
+				
+			self.text[i] = text
+			self.attr[i] = attr
+			self.cs[i] = cs
+			i += 1	
+
+		# we now have new maxcol
+		self.maxcol = maxcol + left + right
+		self.translate_coords(left, 0)
+		
+		
+
 def CanvasCombine(l):
 	"""Stack canvases in l vertically and return resulting canvas."""
 	t = []
@@ -242,7 +320,8 @@ def CanvasJoin(l):
 	for coff, cnv in l2:
 		x += coff
 		if x < xw: 
-			raise CanvasError("Join colnum < width of canvas")
+			raise CanvasError("Join colnum < width of canvas: " +
+				`x,xw`)
 		if x > xw:
 			pad = x-xw
 			tpad = " "*pad
