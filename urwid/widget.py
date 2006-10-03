@@ -1176,7 +1176,7 @@ class Padding:
 		"""Send mouse event if position is within self.w."""
 		if not hasattr(self.w,'mouse_event'):
 			return False
-		left, right = self.padding_values(size)
+		left, right = self.padding_values(size, focus)
 		maxcol = size[0]
 		if x < left or x >= maxcol-right: 
 			return False
@@ -1471,7 +1471,7 @@ class Overlay(BoxWidget):
 		if self.width_type is None:
 			# top_w is a fixed widget
 			return ()
-		maxcol = size[0]
+		maxcol, maxrow = size
 		if self.width_type is not None and self.height_type is None:
 			# top_w is a flow widget
 			return (maxcol-left-right,)
@@ -1497,6 +1497,7 @@ class Overlay(BoxWidget):
 		
 		left, right, top, bottom = self.calculate_padding_filler(size,
 			focus)
+		maxcol, maxrow = size
 		if ( col<left or col>=maxcol-right or
 			row<top or row>=maxrow-bottom ):
 			return False
