@@ -83,7 +83,7 @@ class BigText(FixedWidget):
 		
 		if o:
 			return CanvasJoin(o[:-1])
-		return Canvas([""]*rows, maxcol=0)
+		return Canvas([""]*rows, maxcol=0, check_width=False)
 		
 
 class LineBox(WidgetWrap):

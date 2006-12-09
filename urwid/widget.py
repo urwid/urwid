@@ -139,7 +139,8 @@ class SolidFill(BoxWidget):
 		"""Render the Fill as a canvas and return it."""
 		trow = [ self.fill_char * maxcol ]
 		csrow = [[(self.fill_cs, (len(self.fill_char)*maxcol))]]
-		return Canvas( trow * maxrow, None, csrow*maxrow )
+		return Canvas( trow * maxrow, None, csrow*maxrow, 
+			maxcol=maxcol, check_width=False )
 	
 	def selectable(self):
 		"""Not selectable."""

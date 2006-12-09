@@ -235,7 +235,8 @@ class ListBox(BoxWidget):
 		middle, top, bottom = self.calculate_visible( 
 			(maxcol, maxrow), focus=focus)
 		if middle is None:
-			return Canvas([""]*maxrow, maxcol=maxcol)
+			return Canvas([""]*maxrow, maxcol=maxcol, 
+				check_width=False)
 		
 		_ignore, focus_widget, focus_pos, focus_rows, cursor = middle
 		trim_top, fill_above = top

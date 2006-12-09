@@ -259,7 +259,7 @@ def process_keyqueue(keys, more_fn):
 		
 		s = "".join([chr(c)for c in [code]+keys[:need_more]])
 		try:
-			return s.decode("utf-8"), keys[need_more:]
+			return [s.decode("utf-8")], keys[need_more:]
 		except UnicodeDecodeError:
 			return ["<%d>"%code],keys
 		

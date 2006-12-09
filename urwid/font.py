@@ -132,7 +132,7 @@ class Font:
 			t, cs = apply_target_encoding(d)
 			tl.append(t)
 			csl.append(cs)
-		return Canvas(tl, None, csl, maxcol=width)
+		return Canvas(tl, None, csl, maxcol=width, check_width=False )
 
 		
 #safe_palette = utf8decode("┘┐┌└┼─├┤┴┬│")

@@ -26,6 +26,9 @@ import utable
 import escape
 
 import encodings
+import re
+
+SAFE_ASCII_RE = re.compile("^[ -~]*$")
 
 try: True # old python?
 except: False, True = 0, 1
@@ -560,7 +563,7 @@ def calc_width( text, start_offs, end_offs ):
 	"""
 	assert start_offs <= end_offs, `start_offs, end_offs`
 	utfs = (type(text) == type("") and _byte_encoding == "utf8")
-	if type(text) == type(u"") or utfs:
+	if (type(text) == type(u"") or utfs) and not SAFE_ASCII_RE.match(text):
 		i = start_offs
 		sc = 0
 		n = 1 # number to advance by
@@ -574,7 +577,6 @@ def calc_width( text, start_offs, end_offs ):
 			i = n
 			sc += w
 		return sc
-	assert type(text) == type(""), `text`
 	# "wide" and "narrow"
 	return end_offs - start_offs
 	

@@ -35,7 +35,7 @@ class Canvas:
 	class for storing rendered text and attributes
 	"""
 	def __init__(self,text = None,attr = None, cs = None, 
-		cursor = None, maxcol=None):
+		cursor = None, maxcol=None, check_width=True):
 		"""
 		text -- list of strings, one for each line
 		attr -- list of run length encoded attributes for text
@@ -45,11 +45,16 @@ class Canvas:
 		"""
 		if text == None: 
 			text = []
-		widths = []
-		for t in text:
-			if type(t) != type(""):
-				raise CanvasError("Canvas text must be plain strings encoded in the screen's encoding", `text`)
-			widths.append( calc_width( t, 0, len(t)) )
+
+		if check_width:
+			widths = []
+			for t in text:
+				if type(t) != type(""):
+					raise CanvasError("Canvas text must be plain strings encoded in the screen's encoding", `text`)
+				widths.append( calc_width( t, 0, len(t)) )
+		else:
+			assert type(maxcol) == type(0)
+			widths = [maxcol] * len(text)
 
 		if maxcol is None:
 			if widths:
@@ -347,7 +352,7 @@ def CanvasJoin(l):
 		if cnv.cursor:
 			cnv.translate_coords(x, 0)
 			cursor = cnv.cursor
-	d = Canvas( ["".join(lt) for lt in t], a, c, cursor, xw )
+	d = Canvas( ["".join(lt) for lt in t], a, c, cursor, xw, False )
 	return d
 
 
