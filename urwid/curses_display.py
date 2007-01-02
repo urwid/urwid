@@ -446,6 +446,8 @@ class Screen:
 
 	def _dbg_instr(self): # messy input string (intended for debugging)
 		curses.echo()
+		self.s.nodelay(0)
+		curses.halfdelay(100)
 		str = self.s.getstr()
 		curses.noecho()
 		return str

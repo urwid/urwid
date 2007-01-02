@@ -32,7 +32,7 @@ __all__ = [
 	'HalfBlockHeavy6x5Font','Thin6x6Font','HalfBlock7x7Font',
 	'Font','get_all_fonts',
 	]
-__version__ = "0.9.7.1"
+__version__ = "0.9.7.2"
 
 
 from widget import *
