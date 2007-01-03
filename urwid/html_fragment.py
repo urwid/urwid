@@ -160,6 +160,14 @@ class HtmlGenerator:
 		# add the fragment to the list
 		self.fragments.append( "<pre>%s</pre>" % "".join(l) )
 			
+	def clear(self):
+		"""
+		Force the screen to be completely repainted on the next
+		call to draw_screen().
+
+		(does nothing for html_fragment)
+		"""
+		pass
 			
 	def get_cols_rows(self):
 		"""Return the next screen size in HtmlGenerator.sizes."""

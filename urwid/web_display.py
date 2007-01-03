@@ -809,6 +809,17 @@ class Screen:
 		
 		signal.alarm( ALARM_DELAY )
 	
+
+	def clear(self):
+		"""
+		Force the screen to be completely repainted on the next
+		call to draw_screen().
+
+		(does nothing for web_display)
+		"""
+		pass
+
+
 	def _fork_child(self):
 		"""
 		Fork a child to run CGI disconnected for polling update method.

@@ -544,6 +544,13 @@ class Screen:
 		self.s.refresh()
 
 
+	def clear(self):
+		"""
+		Force the screen to be completely repainted on the next
+		call to draw_screen().
+		"""
+		self.s.clear()
+
 
 
 

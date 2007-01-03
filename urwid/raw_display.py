@@ -528,3 +528,12 @@ class Screen:
 		
 		return line, attr_cs, (insert, inserta_cs, back)
 			
+	
+	def clear(self):
+		"""
+		Force the screen to be completely repainted on the next
+		call to draw_screen().
+		"""
+		self.screen_buf = None
+		self.setup_G1 = True
+		
