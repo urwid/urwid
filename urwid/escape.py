@@ -309,6 +309,9 @@ def set_cursor_position( x, y ):
 	assert type(y) == type(0)
 	return ESC+"[%d;%dH" %(y+1, x+1)
 
+def move_cursor_right(x):
+	return ESC+"[%dC" % x
+
 HIDE_CURSOR = ESC+"[?25l"
 SHOW_CURSOR = ESC+"[?25h"
 

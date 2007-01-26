@@ -426,7 +426,7 @@ class Screen(object):
 		sb = []
 
 		ins = None
-		cy = 0
+		#cy = 0
 		y = -1
 		for row in r.content():
 			y += 1
@@ -435,9 +435,9 @@ class Screen(object):
 				continue
 			sb.append(row)
 			
-			if cy != y:  
-				o.append( escape.set_cursor_position(0,y) )
-			cy = y+1 # will be here after updating this line
+			#if cy != y:  
+			o.append( escape.set_cursor_position(0,y) )
+			#cy = y+1 # will be here after updating this line
 			
 			if y == maxrow-1:
 				row, back, ins = self._last_row(row)

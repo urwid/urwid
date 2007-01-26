@@ -28,6 +28,9 @@ from escape import *
 class CanvasCache(object):
 	_widgets = {}
 	_refs = {}
+	hits = 0
+	fetches = 0
+	cleanups = 0
 
 	def store(cls, widget, size, focus, canvas):
 		"""
@@ -42,13 +45,17 @@ class CanvasCache(object):
 		"""
 		Return the cached canvas for (widget, size, focus) or None.
 		"""
+		cls.fetches += 1
 		sizes = cls._widgets.get(widget, None)
 		if not sizes:
 			return None
 		ref = sizes.get((size, focus), None)
 		if not ref:
 			return None
-		return ref()
+		canv = ref()
+		if canv:
+			cls.hits += 1
+		return canv
 	fetch = classmethod(fetch)
 	
 	def invalidate(cls, widget):
@@ -67,6 +74,7 @@ class CanvasCache(object):
 	invalidate = classmethod(invalidate)
 
 	def cleanup(cls, ref):
+		cls.cleanups += 1
 		w = cls._refs.get(ref, None)
 		if not w:
 			return
@@ -83,6 +91,7 @@ class CanvasCache(object):
 				del cls._widgets[widget]
 			except KeyError:
 				pass
+		del cls._refs[ref]
 	cleanup = classmethod(cleanup)
 
 	def clear(cls):
@@ -93,7 +102,7 @@ class CanvasCache(object):
 		cls._refs = {}
 	clear = classmethod(clear)
 
-
+		
 class CanvasError(Exception):
 	pass
 
