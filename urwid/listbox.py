@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid listbox class
-#    Copyright (C) 2004-2006  Ian Ward
+#    Copyright (C) 2004-2007  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -23,14 +23,11 @@ from util import *
 from canvas import *
 from widget import *
 
-try: True # old python?
-except: False, True = 0, 1
-
 
 class ListWalkerError(Exception):
 	pass
 
-class SimpleListWalker:
+class SimpleListWalker(object):
 	def __init__(self, contents):
 		"""
 		contents -- list to walk
@@ -271,9 +268,11 @@ class ListBox(BoxWidget):
 			l.append(canvas)
 		
 		if trim_top:	
+			l[0] = CompositeCanvas(l[0])
 			l[0].trim(trim_top)
 			rows -= trim_top
 		if trim_bottom:	
+			l[-1] = CompositeCanvas(l[-1])
 			l[-1].trim_end(trim_bottom)
 			rows -= trim_bottom
 		
