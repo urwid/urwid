@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid curses output wrapper.. the horror..
-#    Copyright (C) 2004-2006  Ian Ward
+#    Copyright (C) 2004-2007  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -31,9 +31,6 @@ import sys
 import util
 import escape
 
-try: True # old python?
-except: False, True = 0, 1
-
 KEY_RESIZE = 410 # curses.KEY_RESIZE (sometimes not defined)
 KEY_MOUSE = 409 # curses.KEY_MOUSE
 
@@ -62,7 +59,7 @@ _curses_colours = {
 _trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
 
 
-class Screen:
+class Screen(object):
 	def __init__(self):
 		self.curses_pairs = [
 			(None,None), # Can't be sure what pair 0 will default to
@@ -485,23 +482,25 @@ class Screen:
 			
 	def draw_screen(self, (cols, rows), r ):
 		"""Paint screen with rendered canvas."""
-		lines = r.text
 		
-		assert len(lines) == rows, `len(lines),rows`
+		assert r.rows() == rows, "canvas size and passed size don't match"
 	
-		for y in range(len(lines)):
-			line = lines[y].translate( _trans_table )
-			#if len(line) < cols:
-			#	line += " "*(cols-len(line))
+		y = -1
+		for row in r.content():
+			y += 1
 			if y == rows-1:
 				# don't draw in the lower right corner
-				i1, p1 = util.calc_text_pos( line, 0, 
-					len(line), cols-1 )
-				line = line[:i1]
+				last_attr, last_cs, last_text = row[-1]
+				last_cols = util.calc_width(last_text, 0,
+					len(last_text))
+				last_offs, last_col = util.calc_text_pos(
+					last_text, 0, len(last_text),
+					last_cols -1)
+				row = row[:-1]
+				if last_offs:
+					row.append((last_attr, last_cs, 
+						last_text[:last_offs]))
 				
-			attr_cs = util.rle_product(r.attr[y], r.cs[y])
-			col = 0
-			
 			try:
 				self.s.move( y, 0 )
 			except:
@@ -511,11 +510,11 @@ class Screen:
 			
 			first = True
 			lasta = None
-			for (a,cs), run in attr_cs:
+			for a, cs, seg in row:
+				seg = seg.translate( _trans_table )
 				if first or lasta != a:
 					self._setattr(a)
 					lasta = a
-				seg = line[col:col+run]
 				if cs == "0":
 					for i in range(len(seg)):
 						self.s.addch( 0x400000 +
@@ -524,11 +523,6 @@ class Screen:
 					assert cs is None
 					self.s.addstr( seg )
 					
-				col += run
-
-			#if len(line) > col:
-			#	self._setattr( None )
-			#	self.s.addstr( line[col:] )
 			
 		if r.cursor is not None:
 			x,y = r.cursor

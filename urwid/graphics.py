@@ -2,7 +2,7 @@
 # -* coding: utf-8 -*-
 #
 # Urwid graphics widgets
-#    Copyright (C) 2004-2006  Ian Ward
+#    Copyright (C) 2004-2007  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -27,8 +27,6 @@ from canvas import *
 from widget import *
 from escape import utf8decode
 
-try: True # old python?
-except: False, True = 0, 1
 
 class BigText(FixedWidget):
 	def __init__(self, markup, font):
@@ -76,6 +74,7 @@ class BigText(FixedWidget):
 				# ignore invalid characters
 				continue
 			c = self.font.render(ch)
+			c = CompositeCanvas(c)
 			c.fill_attr(a)
 			o.append(c)
 			cols += width

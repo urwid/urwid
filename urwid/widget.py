@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid basic widget classes
-#    Copyright (C) 2004-2006  Ian Ward
+#    Copyright (C) 2004-2007  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -24,13 +24,10 @@ import string
 from util import *
 from canvas import *
 
-try: True # old python?
-except: False, True = 0, 1
-
 try: sum # old python?
 except: sum = lambda l: reduce(lambda a,b: a+b, l, 0)
 
-class FlowWidget:
+class FlowWidget(object):
 	"""
 	base class of widgets
 	"""
@@ -51,7 +48,7 @@ class FlowWidget:
 		raise NotImplementedError()
 
 
-class BoxWidget:
+class BoxWidget(object):
 	"""
 	base class of width and height constrained widgets such as
 	the top level widget attached to the display object
@@ -77,7 +74,7 @@ def fixed_size(size):
 		raise ValueError("FixedWidget takes only () for size." \
 			"passed: %s" % `size`)
 
-class FixedWidget:
+class FixedWidget(object):
 	def selectable(self):
 		"""Return False.  Not selectable by default."""
 		return False
@@ -104,11 +101,9 @@ class Divider(FlowWidget):
 		top -- number of blank lines above
 		bottom -- number of blank lines below
 		"""
-		c = Text(div_char).render((1,))
-		self.div_char= c.text[0]
-		self.div_cs= c.cs[0][0][0]
-		self.top=top
-		self.bottom=bottom
+		self.div_char = div_char
+		self.top = top
+		self.bottom = bottom
 		
 	
 	def rows(self,(maxcol,), focus=False ):
@@ -117,13 +112,20 @@ class Divider(FlowWidget):
 	
 	def render(self,(maxcol,), focus=False ):
 		"""Render the divider as a canvas and return it."""
-		return Canvas( [""] * self.top + 
-			[ self.div_char * maxcol ] +
-			[""] * self.bottom,
-			None,
-			[[]] * self.top + 
-			[[(self.div_cs, (len(self.div_char)*maxcol))]] +
-			[[]] * self.bottom )
+		canv = CanvasCache.fetch(self, (maxcol,), False)
+		if canv:
+			return canv
+
+		canv = SolidCanvas(self.div_char, maxcol, 1)
+		if self.top or self.bottom:
+			old_canv = canv
+			canv = CompositeCanvas(canv)
+			# HACK to keep a reference to the CompositeCanvas
+			old_canv.keep_alive_link = canv 
+			canv.pad_trim_top_bottom(self.top, self.bottom)
+
+		CanvasCache.store(self, (maxcol,), False, canv)
+		return canv
 	
 
 class SolidFill(BoxWidget):
@@ -131,16 +133,18 @@ class SolidFill(BoxWidget):
 		"""
 		fill_char -- character to fill area with
 		"""
-		c = Text(fill_char).render((1,))
-		self.fill_char= c.text[0]
-		self.fill_cs= c.cs[0][0][0]
+		self.fill_char = fill_char
 	
 	def render(self,(maxcol,maxrow), focus=False ):
 		"""Render the Fill as a canvas and return it."""
-		trow = [ self.fill_char * maxcol ]
-		csrow = [[(self.fill_cs, (len(self.fill_char)*maxcol))]]
-		return Canvas( trow * maxrow, None, csrow*maxrow, 
-			maxcol=maxcol, check_width=False )
+		canv = CanvasCache.fetch(self, (maxcol,maxrow), False)
+		if canv:
+			return canv
+
+		canv = SolidCanvas(self.fill_char, maxcol, maxrow)
+
+		CanvasCache.store(self, (maxcol,maxrow), False, canv)
+		return canv
 	
 	def selectable(self):
 		"""Not selectable."""
@@ -167,10 +171,14 @@ class Text(FlowWidget):
 		self.set_text(markup)
 		self.set_layout(align, wrap, layout)
 	
+	def invalidate(self):
+		self._cache_maxcol = None
+		CanvasCache.invalidate(self)
+
 	def set_text(self,markup):
 		"""Set content of text widget."""
 		self.text, self.attrib = decompose_tagmarkup(markup)
-		self._cache_maxcol = None
+		self.invalidate()
 
 	def get_text(self):
 		"""
@@ -192,7 +200,7 @@ class Text(FlowWidget):
 			raise TextError("Alignment mode %s not supported."%
 				`mode`)
 		self.align_mode = mode
-		self._cache_maxcol = None
+		self.invalidate()
 
 	def set_wrap_mode(self, mode):
 		"""
@@ -206,7 +214,7 @@ class Text(FlowWidget):
 		if not self.layout.supports_wrap_mode(mode):
 			raise TextError("Wrap mode %s not supported"%`mode`)
 		self.wrap_mode = mode
-		self._cache_maxcol = None
+		self.invalidate()
 
 	def set_layout(self, align, wrap, layout=None):
 		"""
@@ -226,12 +234,16 @@ class Text(FlowWidget):
 		"""
 		Render contents with wrapping and alignment.  Return canvas.
 		"""
+		canv = CanvasCache.fetch(self, (maxcol,), False)
+		if canv:
+			return canv
 
 		text, attr = self.get_text()
 		trans = self.get_line_translation( maxcol, (text,attr) )
-			
-		return apply_text_layout( text, attr, trans, maxcol )
+		canv = apply_text_layout( text, attr, trans, maxcol )
 		
+		CanvasCache.store(self, (maxcol,), False, canv)
+		return canv
 
 	def rows(self,(maxcol,), focus=False):
 		"""Return the number of rows the rendered text spans."""
@@ -242,7 +254,7 @@ class Text(FlowWidget):
 		"""
 		# uses cached translation if available.  If set_text is not
 		# used (eg. in subclass) set self._cache_maxcol to None
-		# to None before calling this method.
+		# before calling this method.
 		
 		if not self._cache_maxcol or self._cache_maxcol != maxcol:
 			self._update_cache_translation(maxcol, ta)
@@ -350,12 +362,12 @@ class Edit(Text):
 		"""Deprecated.  Use set_caption and/or set_edit_text instead.
 		
 		Make sure any cached line translation is not reused."""
-		self._cache_maxcol = None
+		self.invalidate()
 
 	def set_caption(self, caption):
 		"""Set the caption markup for this widget."""
 		self.caption, self.attrib = decompose_tagmarkup(caption)
-		self.update_text()
+		self.invalidate()
 	
 	def set_edit_pos(self, pos):
 		"""Set the cursor position with a self.edit_text offset."""
@@ -370,7 +382,7 @@ class Edit(Text):
 		self.edit_text = text
 		if self.edit_pos > len(text):
 			self.edit_pos = len(text)
-		self.update_text()
+		self.invalidate()
 
 	def get_edit_text(self):
 		"""Return the edit text for this widget."""
@@ -510,14 +522,16 @@ class Edit(Text):
 		
 		self._shift_view_to_cursor = not not focus # force bool
 		
-		d = Text.render(self,(maxcol,))
+		canv = Text.render(self,(maxcol,))
 		if focus:
-			d.cursor = self.get_cursor_coords((maxcol,))
+			canv.cursor = self.get_cursor_coords((maxcol,))
+		else:
+			canv.cursor = None
 		# .. will need to FIXME if I want highlight to work again
 		#if self.highlight:
 		#	hstart, hstop = self.highlight_coords()
 		#	d.coords['highlight'] = [ hstart, hstop ]
-		return d
+		return canv
 	
 	def get_line_translation(self, maxcol, ta=None ):
 		trans = Text.get_line_translation(self, maxcol, ta)
@@ -603,6 +617,7 @@ class SelectableIcon(Text):
 	def render(self, (maxcol,), focus=False):
 		c = Text.render(self, (maxcol,), focus )
 		if focus:
+			c = CompositeCanvas(c)
 			c.cursor = self.get_cursor_coords((maxcol,))
 		return c
 	
@@ -1059,7 +1074,7 @@ class GridFlow(FlowWidget):
 class PaddingError(Exception):
 	pass
 
-class Padding:
+class Padding(object):
 	def __init__(self, w, align, width, min_width=None):
 		"""
 		w -- a box, flow or fixed widget to pad on the left and/or right
@@ -1103,8 +1118,9 @@ class Padding:
 		if self.width_type is None:
 			c = self.w.render((), focus)
 		else:
-			c = self.w.render( (maxcol,)+size[1:], focus )
+			c = self.w.render((maxcol,)+size[1:], focus)
 		if left != 0 or right != 0:
+			c = CompositeCanvas(c)
 			c.pad_trim_left_right(left, right)
 		return c
 
@@ -1266,20 +1282,15 @@ class Filler(BoxWidget):
 			c = self.body.render( (maxcol,), focus)
 		else:
 			c = self.body.render( (maxcol,maxrow-top-bottom),focus)
+		c = CompositeCanvas(c)
 		
 		if c.rows() > maxrow and c.cursor is not None:
 			cx, cy = c.cursor
 			if cy >= maxrow:
 				c.trim(cy-maxrow+1,maxrow-top-bottom)
 			
-		c.trim(0, maxrow-top-bottom)
-		
-		l = [c]
-		if top:
-			l = [Canvas(["" for i in range(top)])] + l
-		if bottom:
-			l = l + [Canvas(["" for i in range(bottom)])]
-		c = CanvasCombine( l )
+		#c.trim(0, maxrow-top-bottom)
+		c.pad_trim_top_bottom(top, bottom)
 		return c
 
 
@@ -1483,9 +1494,10 @@ class Overlay(BoxWidget):
 		"""Render top_w overlayed on bottom_w."""
 		left, right, top, bottom = self.calculate_padding_filler(size,
 			focus)
-		bottom_c = self.bottom_w.render( size )
+		bottom_c = CompositeCanvas(self.bottom_w.render(size))
 		top_c = self.top_w.render(
 			self.top_w_size(size, left, right, top, bottom), focus)
+		top_c = CompositeCanvas(top_c)
 		if left<0 or right<0:
 			top_c.pad_trim_left_right(min(0,left), min(0,right))
 		bottom_c.overlay(top_c, max(0,left), max(0,right), top, bottom)
@@ -1834,7 +1846,7 @@ class Frame(BoxWidget):
 
 		
 
-class AttrWrap:
+class AttrWrap(object):
 	"""
 	AttrWrap is a decorator that changes the default attribute for a 
 	FlowWidget or BoxWidget
@@ -1861,17 +1873,17 @@ class AttrWrap:
 		attr = self.attr
 		if focus and self.focus_attr is not None:
 			attr = self.focus_attr
-		r = self.w.render( size, focus=focus )
-		r.fill_attr( attr )
+		canv = self.w.render( size, focus=focus )
+		canv = CompositeCanvas(canv)
+		canv.fill_attr( attr )
 		cols = size[0]
-		r.text = [x.ljust(cols) for x in r.text]
-		return r
+		return canv
 
 	def __getattr__(self,name):
 		"""Call getattr on wrapped widget."""
 		return getattr(self.w, name)
 
-class WidgetWrap:
+class WidgetWrap(object):
 	def __init__(self, w):
 		"""
 		w -- widget to wrap, stored as self.w
@@ -1892,7 +1904,7 @@ class WidgetWrap:
 class PileError(Exception):
 	pass
 		
-class Pile: # either FlowWidget or BoxWidget
+class Pile(object): # either FlowWidget or BoxWidget
 	def __init__(self, widget_list, focus_item=0):
 		"""
 		widget_list -- list of widgets
@@ -2223,7 +2235,7 @@ class ColumnsError(Exception):
 	pass
 
 		
-class Columns: # either FlowWidget or BoxWidget
+class Columns(object): # either FlowWidget or BoxWidget
 	def __init__(self, widget_list, dividechars=0, focus_column=0,
 		min_width=1, box_columns=None):
 		"""
@@ -2549,7 +2561,7 @@ class Columns: # either FlowWidget or BoxWidget
 
 
 
-class BoxAdapter:
+class BoxAdapter(object):
 	"""
 	Adapter for using a box widget where a flow widget would usually go
 	"""
@@ -2612,64 +2624,3 @@ class BoxAdapter:
 		return getattr(self.box_widget, name)
 
 
-
-class _test:
-	def __init__(self):
-		from curses_display import Screen
-	
-		list = []
-		for x in range(ord('a'),ord('z')+1):
-			list.append( Edit("-- %s --\n"% chr(x),"...",1))
-		list.append( Divider("~",0,1) )
-		for x in range(1,10):
-			list.append( Text(("%d"%x)*5*x) )
-			list.append( Divider() )
-		for x in range(ord('A'),ord('Z')+1):
-			list.append( Edit("%s : "% chr(x)) )
-		
-		self.listbox = ListBox(list)
-		self.header = Text("")
-		self.top = Frame(self.header,self.listbox)
-
-		self.ui = Screen()
-		self.ui.register_palette([
-			('command', 'light blue', 'black'),
-			('key', 'light cyan', 'black'),
-			])
-		
-		self.ui.run_wrapper(self.run)
-		
-	def run(self):
-		self.resize()
-		self.draw()
-
-		k = 0
-		while k!='q':
-			k = self.ui.inchar()
-			unhandled = self.listbox.keypress(k)
-			if not unhandled:
-				self.resize()
-				self.draw()
-
-	def resize(self):
-		self.cols, self.rows = self.ui.get_cols_rows()
-		l = [	Text(('command',"rows:")),
-			Text(('key',`self.rows`)),
-			Text(('command',"cols:")),
-			Text(('key',`self.cols`)),
-			Text(('command',"selected:")),
-			Text(('key',`self.listbox.selected`)),
-			Text(('command',"rowoffset:")),
-			Text(('key',`self.listbox.rowoffset`)),
-			]
-		self.top.header = Columns(l)
-
-		self.top.resize(self.cols, self.rows)
-		
-	def draw(self):
-		self.ui.draw_screen( self.top.render() )
-
-	
-
-if '__main__'==__name__:
-	_test()

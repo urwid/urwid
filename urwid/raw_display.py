@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid raw display module
-#    Copyright (C) 2004-2006  Ian Ward
+#    Copyright (C) 2004-2007  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -38,15 +38,12 @@ import popen2
 import util
 import escape
 
-try: True # old python?
-except: False, True = 0, 1
-
 
 # replace control characters with ?'s
 _trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
 
 
-class Screen:
+class Screen(object):
 	def __init__(self):
 		self.palette = {}
 		self.register_palette_entry( None, 'default','default')
@@ -403,6 +400,8 @@ class Screen:
 	def draw_screen(self, (maxcol, maxrow), r ):
 		"""Paint screen with rendered canvas."""
 
+		assert maxrow == r.rows()
+
 		if self.setup_G1:
 			try:
 				if util._use_dec_special:
@@ -426,31 +425,27 @@ class Screen:
 			osb = []
 		sb = []
 
-		lines = r.text
-		line = r.text
 		ins = None
 		cy = 0
-		for y in range(len(lines)):
-			line = lines[y].translate( _trans_table )
-			attr_cs = util.rle_product(r.attr[y], r.cs[y])
-			
-			if osb and osb[y] == (line, attr_cs):
+		y = -1
+		for row in r.content():
+			y += 1
+			if osb and osb[y] == row:
 				sb.append( osb[y] )
 				continue
-			sb.append( (line, attr_cs) )
+			sb.append(row)
 			
 			if cy != y:  
 				o.append( escape.set_cursor_position(0,y) )
 			cy = y+1 # will be here after updating this line
 			
 			if y == maxrow-1:
-				line, attr_cs, ins = self._last_row(
-					maxcol, line, attr_cs)
+				row, back, ins = self._last_row(row)
 
-			col = 0
 			first = True
 			lasta = lastcs = None
-			for (a,cs), run in attr_cs:
+			for (a,cs, run) in row:
+				run = run.translate( _trans_table )
 				assert self.palette.has_key(a), `a`
 				if first or lasta != a:
 					o.append( self.palette[a][0] )
@@ -462,11 +457,10 @@ class Screen:
 					else:
 						o.append( escape.SO )
 					lastcs = cs
-				o.append( line[col:col+run] )
-				col += run
+				o.append( run )
 				first = False
 			if ins:
-				insert, (inserta, insertcs), back = ins
+				(inserta, insertcs, inserttext) = ins
 				ias = self.palette[inserta][0]
 				assert insertcs in [None, "0"], `insertcs`
 				if cs is None:
@@ -475,7 +469,7 @@ class Screen:
 					icss = escape.SO
 				o += [	"\x08"*back, 
 					ias, icss,
-					escape.INSERT_ON, insert,
+					escape.INSERT_ON, inserttext,
 					escape.INSERT_OFF ]
 
 		if r.cursor is not None:
@@ -501,32 +495,53 @@ class Screen:
 				raise
 
 		self.screen_buf = sb
+		self.keep_cache_alive_link = r
 				
 	
-	def _last_row(self, maxcol, line, attr_cs):
+	def _last_row(self, row):
 		"""On the last row we need to slide the bottom right character
 		into place. Calculate the new line, attr and an insert sequence
-		to do that."""
+		to do that.
 		
-		ll = len(line)
-		if ll == 0:
-			return line, attr, None
-		# offset of last position
-		i1, p1 = util.calc_text_pos( line, 0, ll, maxcol-1 )
-		if i1 == 0:
-			return line, attr, None
-		# offset of next-to-last position
-		i2, p2 = util.calc_text_pos( line, 0, ll, p1-1 )
-
-		insert = line[i2:i1] # we will insert this range
-		inserta_cs = util.rle_subseg(attr_cs,i2,i1)[0][0]
-
-		attr_cs = util.rle_subseg(attr_cs, 0, i2) + util.rle_subseg(
-			attr_cs, i1, ll)
-		line = line[0:i2] + line[i1:]
-		back = maxcol-p1
+		eg. last row:
+		XXXXXXXXXXXXXXXXXXXXYZ
 		
-		return line, attr_cs, (insert, inserta_cs, back)
+		Y will be drawn after Z, shifting Z into position.
+		"""
+		
+		new_row = row[:-1]
+		z_attr, z_cs, last_text = row[-1]
+		last_cols = util.calc_width(last_text, 0, len(last_text))
+		last_offs, z_col = util.calc_text_pos(last_text, 0, 
+			len(last_text), last_cols-1)
+		if last_offs == 0:
+			z_text = last_text
+			del new_row[-1]
+			# we need another segment
+			y_attr, y_cs, nlast_text = row[-2]
+			nlast_cols = util.calc_width(nlast_text, 0, 
+				len(nlast_text))
+			nlast_offs, y_col = util.calc_text_pos(nlast_text, 0,
+				len(nlast_text), nlast_cols-1)
+			y_text = nlast_text[nlast_offs:]
+			if nlast_offs:
+				new_row.append((y_attr, y_cs, 
+					nlast_text[:nlast_offs]))
+		else:
+			z_text = last_text[last_offs:]
+			y_attr, y_cs = z_attr, z_cs
+			nlast_cols = util.calc_width(last_text, 0,
+				last_offs)
+			nlast_offs, y_col = util.calc_text_pos(last_text, 0,
+				last_offs, nlast_cols-1)
+			y_text = last_text[nlast_offs:last_offs]
+			if nlast_offs:
+				new_row.append((y_attr, y_cs,
+					last_text[:nlast_offs]))
+		
+		new_row.append((z_attr, z_cs, z_text))
+		return new_row, z_col-y_col, (y_attr, y_cs, y_text)
+
 			
 	
 	def clear(self):
