@@ -638,18 +638,22 @@ class CheckBox(FlowWidget):
 	def selectable(self): return True
 	
 	def __init__(self, label, state=False, has_mixed=False,
-		     on_state_change=None):
+		     on_state_change=None, user_data=None):
 		"""
 		label -- markup for check box label
 		state -- False, True or "mixed"
 		has_mixed -- True if "mixed" is a state to cycle through
 		on_state_change -- callback function for state changes
-		                   on_state_change( check box, new state )
+		                   on_state_change( check box, new state,
+				                    user_data=None)
+		user_data -- additional param for on_press callback,
+		             ommited if None for compatibility reasons
 		"""
 		self.label = Text("")
 		self.has_mixed = has_mixed
 		self.state = None
 		self.on_state_change = on_state_change
+		self.user_data = user_data
 		self.set_label(label)
 		self.set_state(state)
 	
@@ -669,7 +673,11 @@ class CheckBox(FlowWidget):
 		"""
 		if (do_callback and self.state is not None and 
 			self.on_state_change):
-			self.on_state_change( self, state )
+			if self.user_data is None:
+				self.on_state_change(self, state)
+			else:
+				self.on_state_change(self, state,
+						     self.user_data)
 		self.state = state
 		self.display_widget = Columns( [
 			('fixed', self.reserve_columns, self.states[state] ),
@@ -729,13 +737,16 @@ class RadioButton(FlowWidget):
 	def selectable(self): return True
 	
 	def __init__(self, group, label, state="first True",
-		     on_state_change=None):
+		     on_state_change=None, user_data=None):
 		"""
 		group -- list for radio buttons in same group
 		label -- markup for radio button label
 		state -- False, True, "mixed" or "first True"
 		on_state_change -- callback function for state changes
-		                   on_state_change( radio_button, new_state )
+		                   on_state_change( radio_button, new_state,
+				                    user_data=None)
+	        user_data -- additional param for on_press callback,
+		             ommited if None for compatibility reasons
 
 		This function will append the new radio button to group.
 		"first True" will set to True if group is empty.
@@ -748,6 +759,7 @@ class RadioButton(FlowWidget):
 		self.label = Text("")
 		self.state = None
 		self.on_state_change = on_state_change
+		self.user_data = user_data
 		self.set_label(label)
 		self.set_state(state)
 	
@@ -770,7 +782,11 @@ class RadioButton(FlowWidget):
 		"""
 		if (do_callback and self.state is not None and 
 			self.on_state_change):
-			self.on_state_change( self, state )
+			if self.user_data is None:
+				self.on_state_change(self, state)
+			else:
+				self.on_state_change(self, state,
+						     self.user_data)
 		self.state = state
 		self.display_widget = Columns( [
 			('fixed', self.reserve_columns, self.states[state] ),
@@ -826,15 +842,18 @@ class Button(FlowWidget):
 	def selectable(self):
 		return True
 	
-	def __init__(self, label, on_press):
+	def __init__(self, label, on_press=None, user_data=None):
 		"""
 		label -- markup for button label
 		on_press -- callback function for button "press"
-		           on_press( button object )
+		           on_press( button object, user_data=None)
+                user_data -- additional param for on_press callback,
+		           ommited if None for compatibility reasons
 		"""
 			
 		self.set_label( label )
 		self.on_press = on_press
+		self.user_data = user_data
 	
 	def set_label(self, label):
 		self.label = label
@@ -868,9 +887,13 @@ class Button(FlowWidget):
 		"""Call on_press on spage or enter."""
 		if key not in (' ','enter'):
 			return key
-		
-		self.on_press( self )
-	
+
+		if self.on_press:
+			if self.user_data is None:
+				self.on_press(self)
+			else:
+				self.on_press(self, self.user_data)
+
 	def mouse_event(self, (maxcol,), event, button, x, y, focus):
 		"""Call on_press on button 1 press."""
 		if button != 1 or not is_mouse_press(event):
