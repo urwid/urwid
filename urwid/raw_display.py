@@ -521,6 +521,7 @@ class Screen(object):
 			y_attr, y_cs, nlast_text = row[-2]
 			nlast_cols = util.calc_width(nlast_text, 0, 
 				len(nlast_text))
+			z_col += nlast_cols
 			nlast_offs, y_col = util.calc_text_pos(nlast_text, 0,
 				len(nlast_text), nlast_cols-1)
 			y_text = nlast_text[nlast_offs:]
