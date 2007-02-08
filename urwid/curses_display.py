@@ -172,7 +172,6 @@ class Screen(object):
 			curses.meta(1)
 			curses.halfdelay(10) # don't wait longer than 1s for keypress
 			self.s.keypad(0)
-			self.s.scrollok(1)
 			return fn()
 		finally:
 			curses.echo()
@@ -488,19 +487,6 @@ class Screen(object):
 		y = -1
 		for row in r.content():
 			y += 1
-			if y == rows-1:
-				# don't draw in the lower right corner
-				last_attr, last_cs, last_text = row[-1]
-				last_cols = util.calc_width(last_text, 0,
-					len(last_text))
-				last_offs, last_col = util.calc_text_pos(
-					last_text, 0, len(last_text),
-					last_cols -1)
-				row = row[:-1]
-				if last_offs:
-					row.append((last_attr, last_cs, 
-						last_text[:last_offs]))
-				
 			try:
 				self.s.move( y, 0 )
 			except:
@@ -510,6 +496,7 @@ class Screen(object):
 			
 			first = True
 			lasta = None
+			nr = 0
 			for a, cs, seg in row:
 				seg = seg.translate( _trans_table )
 				if first or lasta != a:
@@ -517,13 +504,24 @@ class Screen(object):
 					lasta = a
 				if cs == "0":
 					for i in range(len(seg)):
-						self.s.addch( 0x400000 +
+						try:
+							self.s.addch( 0x400000 +
 							ord(seg[i]) )
+						except:
+							pass
 				else:
 					assert cs is None
-					self.s.addstr( seg )
-					
-			
+					try:
+						self.s.addstr( seg )
+					except:
+						# its ok to get out of the
+						# screen on the lower right
+						if (y == rows-1 and
+						    nr == len(row)-1):
+							pass
+						else:
+							raise
+				nr += 1
 		if r.cursor is not None:
 			x,y = r.cursor
 			self._curs_set(1)
