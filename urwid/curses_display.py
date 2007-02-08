@@ -26,6 +26,7 @@ Curses-based UI implementation
 from __future__ import nested_scopes
 
 import curses
+import _curses
 import sys
 
 import util
@@ -165,7 +166,7 @@ class Screen(object):
 				try:
 					curses.use_default_colors()
 					self.has_default_colors=True
-				except:
+				except _curses.error:
 					self.has_default_colors=False
 			self._setup_colour_pairs()
 			curses.noecho()
@@ -178,7 +179,7 @@ class Screen(object):
 			self._curs_set(1)
 			try:
 				curses.endwin()
-			except:
+			except _curses.error:
 				pass # don't block original error with curses error
 
 	def _setup_colour_pairs(self):
@@ -231,7 +232,7 @@ class Screen(object):
 		try:
 			curses.curs_set(x)
 			self.cursor_state = x
-		except:
+		except _curses.error:
 			self.cursor_state = "fixed"
 
 	
@@ -254,7 +255,7 @@ class Screen(object):
 			try:
 				curses.cbreak()
 				break
-			except:
+			except _curses.error:
 				pass
 			
 		return self.s.getch()
@@ -489,10 +490,10 @@ class Screen(object):
 			y += 1
 			try:
 				self.s.move( y, 0 )
-			except:
+			except _curses.error:
 				# terminal shrunk? 
 				# move failed so stop rendering.
-				break
+				return
 			
 			first = True
 			lasta = None
@@ -502,32 +503,30 @@ class Screen(object):
 				if first or lasta != a:
 					self._setattr(a)
 					lasta = a
-				if cs == "0":
-					for i in range(len(seg)):
-						try:
+				try:
+					if cs == "0":
+						for i in range(len(seg)):
 							self.s.addch( 0x400000 +
-							ord(seg[i]) )
-						except:
-							pass
-				else:
-					assert cs is None
-					try:
+								ord(seg[i]) )
+					else:
+						assert cs is None
 						self.s.addstr( seg )
-					except:
-						# its ok to get out of the
-						# screen on the lower right
-						if (y == rows-1 and
-						    nr == len(row)-1):
-							pass
-						else:
-							raise
+				except _curses.error:
+					# it's ok to get out of the
+					# screen on the lower right
+					if (y == rows-1 and nr == len(row)-1):
+						pass
+					else:
+						# perhaps screen size changed
+						# quietly abort.
+						return
 				nr += 1
 		if r.cursor is not None:
 			x,y = r.cursor
 			self._curs_set(1)
 			try:
 				self.s.move(y,x)
-			except:
+			except _curses.error:
 				pass
 		else:
 			self._curs_set(0)
