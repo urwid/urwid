@@ -20,9 +20,9 @@
 # Urwid web site: http://excess.org/urwid/
 
 try:
-    from setuptools import setup
+	from setuptools import setup, Extension
 except ImportError:
-    from distutils.core import setup
+	from distutils.core import setup, Extension
 
 import os
 
@@ -34,6 +34,7 @@ setup_d = {
 	'version':release,
 	'author':"Ian Ward",
 	'author_email':"ian@excess.org",
+	'ext_modules':[Extension('urwid.str_util', sources=['source/str_util.c'])],
 	'url':"http://excess.org/urwid/",
 	'download_url':"http://excess.org/urwid/urwid-%s.tar.gz"%release,
 	'license':"LGPL",

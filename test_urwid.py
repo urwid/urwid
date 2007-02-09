@@ -28,14 +28,57 @@ import unittest
 from test import test_support
 
 
+class DecodeOneTest(unittest.TestCase):
+	def gwt(self, ch, exp_ord, exp_pos):
+		o, pos = urwid.str_util.decode_one(ch,0)
+		assert o==exp_ord, " got:"+`o`+" expected:"+`exp_ord`
+		assert pos==exp_pos, " got:"+`pos`+" expected:"+`exp_pos`
+	
+	def test1byte(self):
+		self.gwt("ab", ord("a"), 1)
+		self.gwt("\xc0a", ord("?"), 1) # error
+	
+	def test2byte(self):
+		self.gwt("\xc2", ord("?"), 1) # error
+		self.gwt("\xc0\x80", ord("?"), 1) # error
+		self.gwt("\xc2\x80", 0x80, 2)
+		self.gwt("\xdf\xbf", 0x7ff, 2)
+	
+	def test3byte(self):
+		self.gwt("\xe0", ord("?"), 1) # error
+		self.gwt("\xe0\xa0", ord("?"), 1) # error
+		self.gwt("\xe0\x90\x80", ord("?"), 1) # error
+		self.gwt("\xe0\xa0\x80", 0x800, 3)
+		self.gwt("\xef\xbf\xbf", 0xffff, 3)
+
+	def test4byte(self):
+		self.gwt("\xf0", ord("?"), 1) # error
+		self.gwt("\xf0\x90", ord("?"), 1) # error
+		self.gwt("\xf0\x90\x80", ord("?"), 1) # error
+		self.gwt("\xf0\x80\x80\x80", ord("?"), 1) # error
+		self.gwt("\xf0\x90\x80\x80", 0x10000, 4)
+		self.gwt("\xf3\xbf\xbf\xbf", 0xfffff, 4)
+
+
+
 class CalcWidthTest(unittest.TestCase):
 	def wtest(self, desc, s, exp):
 		result = urwid.calc_width( s, 0, len(s))
 		assert result==exp, desc+" got:"+`result`+" expected:"+`exp`
 	def test1(self):
 		urwid.set_encoding("utf-8")
+		self.wtest("narrow", "hello", 5)
 		self.wtest("wide char", '\xe6\x9b\xbf', 2)
 		self.wtest("invalid", '\xe6', 1)
+		self.wtest("zero width", '\xcc\x80', 0)
+		self.wtest("mixed", 'hello\xe6\x9b\xbf\xe6\x9b\xbf', 9)
+	
+	def test2(self):
+		urwid.set_encoding("euc-jp")
+		self.wtest("narrow", "hello", 5)
+		self.wtest("wide", "\xA1\xA1\xA1\xA1", 4)
+		self.wtest("invalid", "\xA1", 1)
+
 
 class ConvertDecSpecialTest(unittest.TestCase):
 	def ctest(self, desc, s, exp, expcs):
@@ -137,6 +180,21 @@ class CalcTextPosTest(unittest.TestCase):
 			(2,21,3, (6,3)),
 			(6,21,7, (15,7)),
 			(6,21,8, (16,8)),
+			]
+		self.ctptest(text, tests)
+	
+	def test4_utf8(self):
+		urwid.set_encoding("utf-8")
+		text = "he\xcc\x80llo \xe6\x9b\xbf world"
+		tests = [
+			(0,15,0, (0,0)),
+			(0,15,1, (1,1)),
+			(0,15,2, (4,2)),
+			(0,15,4, (6,4)),
+			(8,15,0, (8,0)),
+			(8,15,1, (8,0)),
+			(8,15,2, (11,2)),
+			(8,15,5, (14,5)),
 			]
 		self.ctptest(text, tests)
 		
@@ -2085,6 +2143,7 @@ class CanvasPadTrimTest(unittest.TestCase):
 
 def test_main():
 	for t in [
+		DecodeOneTest,
 		CalcWidthTest,
 		ConvertDecSpecialTest,
 		WithinDoubleByteTest,

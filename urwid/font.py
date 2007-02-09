@@ -24,9 +24,8 @@ from __future__ import nested_scopes
 
 import re
 
-import utable
 from escape import utf8decode, SAFE_ASCII_DEC_SPECIAL_RE
-from util import apply_target_encoding
+from util import apply_target_encoding, str_util
 from canvas import Canvas
 
 try: True # old python?
@@ -55,7 +54,7 @@ def separate_glyphs(gdata, height):
 				break
 			c = key_line[key_index]
 		if key_index < len(key_line) and key_line[key_index] == c:
-			end_col += utable.get_width(ord(c))
+			end_col += str_util.get_width(ord(c))
 			key_index += 1
 			continue
 		out = []
@@ -68,7 +67,7 @@ def separate_glyphs(gdata, height):
 				if j >= len(l):
 					fill = end_col - start_col - y
 					break
-				y += utable.get_width(ord(l[j]))
+				y += str_util.get_width(ord(l[j]))
 				j += 1
 			assert y + fill == end_col - start_col, \
 				`y, fill, end_col`

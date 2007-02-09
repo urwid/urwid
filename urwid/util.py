@@ -22,16 +22,24 @@
 
 from __future__ import nested_scopes
 
-import utable
 import escape
 
 import encodings
-import re
 
-SAFE_ASCII_RE = re.compile("^[ -~]*$")
 
-try: True # old python?
-except: False, True = 0, 1
+try:
+	import str_util
+except ImportError:
+	import old_str_util as str_util
+
+# bring str_util functions into our namespace
+calc_text_pos = str_util.calc_text_pos
+calc_width = str_util.calc_width
+is_wide_char = str_util.is_wide_char
+move_next_char = str_util.move_next_char
+move_prev_char = str_util.move_prev_char
+within_double_byte = str_util.within_double_byte
+
 
 # Try to determine if using a supported double-byte encoding
 import locale
@@ -50,9 +58,9 @@ except ValueError, e:
 	else:
 		raise
 
-_byte_encoding = None
 _target_encoding = None
 _use_dec_special = True
+
 
 def set_encoding( encoding ):
 	"""
@@ -61,20 +69,22 @@ def set_encoding( encoding ):
 	"""
 	encoding = encoding.lower()
 
-	global _byte_encoding, _target_encoding, _use_dec_special
+	global _target_encoding, _use_dec_special
 
 	if encoding in ( 'utf-8', 'utf8', 'utf' ):
-		_byte_encoding = "utf8"
+		str_util.set_byte_encoding("utf8")
+			
 		_use_dec_special = False
 	elif encoding in ( 'euc-jp' # JISX 0208 only
 			, 'euc-kr', 'euc-cn', 'euc-tw' # CNS 11643 plain 1 only
 			, 'gb2312', 'gbk', 'big5', 'cn-gb', 'uhc'
 			# these shouldn't happen, should they?
 			, 'eucjp', 'euckr', 'euccn', 'euctw', 'cncb' ):
-		_byte_encoding = "wide"
+		str_util.set_byte_encoding("wide")
+			
 		_use_dec_special = True
 	else:
-		_byte_encoding = "narrow"
+		str_util.set_byte_encoding("narrow")
 		_use_dec_special = True
 
 	# if encoding is valid for conversion from unicode, remember it
@@ -85,13 +95,14 @@ def set_encoding( encoding ):
 			_target_encoding = encoding
 	except LookupError: pass
 
+
 def get_encoding_mode():
 	"""
 	Get the mode Urwid is using when processing text strings.
 	Returns 'narrow' for 8-bit encodings, 'wide' for CJK encodings
 	or 'utf8' for UTF-8 encodings.
 	"""
-	return _byte_encoding
+	return str_util.get_byte_encoding()
 
 
 def apply_target_encoding( s ):
@@ -436,58 +447,6 @@ class LayoutSegment:
 			return [(end-start,self.offs)]
 
 
-		
-def move_prev_char( text, start_offs, end_offs ):
-	"""
-	Return the position of the character before end_offs.
-	"""
-	assert start_offs < end_offs
-	if type(text) == type(u""):
-		return end_offs-1
-	assert type(text) == type("")
-	if _byte_encoding == "utf8":
-		o = end_offs-1
-		while ord(text[o])&0xc0 == 0x80:
-			o -= 1
-		return o
-	if _byte_encoding == "wide" and within_double_byte( text,
-		start_offs, end_offs-1) == 2:
-		return end_offs-2
-	return end_offs-1
-
-def move_next_char( text, start_offs, end_offs ):
-	"""
-	Return the position of the character after start_offs.
-	"""
-	assert start_offs < end_offs
-	if type(text) == type(u""):
-		return start_offs+1
-	assert type(text) == type("")
-	if _byte_encoding == "utf8":
-		o = start_offs+1
-		while o<end_offs and ord(text[o])&0xc0 == 0x80:
-			o += 1
-		return o
-	if _byte_encoding == "wide" and within_double_byte(text, 
-		start_offs, start_offs) == 1:
-		return start_offs +2
-	return start_offs+1
-		
-def is_wide_char( text, offs ):
-	"""
-	Test if the character at offs within text is wide.
-	"""
-	if type(text) == type(u""):
-		o = ord(text[offs])
-		return utable.get_width(o) == 2
-	assert type(text) == type("")
-	if _byte_encoding == "utf8":
-		o, n = utable.decode_one(text, offs)
-		return utable.get_width(o) == 2
-	if _byte_encoding == "wide":
-		return within_double_byte(text, offs, offs) == 1
-	return False
-
 def line_width( segs ):
 	"""
 	Return the screen column width of one line of a text layout structure.
@@ -556,68 +515,6 @@ def trim_line( segs, text, start, end ):
 		l.append( seg )
 	return l
 
-
-def calc_width( text, start_offs, end_offs ):
-	"""
-	Return the screen column width of text between start_offs and end_offs.
-	"""
-	assert start_offs <= end_offs, `start_offs, end_offs`
-	utfs = (type(text) == type("") and _byte_encoding == "utf8")
-	if (type(text) == type(u"") or utfs) and not SAFE_ASCII_RE.match(text):
-		i = start_offs
-		sc = 0
-		n = 1 # number to advance by
-		while i < end_offs:
-			if utfs:
-				o, n = utable.decode_one(text, i)
-			else:
-				o = ord(text[i])
-				n = i + 1
-			w = utable.get_width(o)
-			i = n
-			sc += w
-		return sc
-	# "wide" and "narrow"
-	return end_offs - start_offs
-	
-			
-def calc_text_pos( text, start_offs, end_offs, pref_col ):
-	"""
-	Calculate the closest position to the screen column pref_col in text
-	where start_offs is the offset into text assumed to be screen column 0
-	and end_offs is the end of the range to search.
-	
-	Returns (position, actual_col).
-	"""
-	assert start_offs <= end_offs, `start_offs, end_offs`
-	utfs = (type(text) == type("") and _byte_encoding == "utf8")
-	if type(text) == type(u"") or utfs:
-		i = start_offs
-		sc = 0
-		n = 1 # number to advance by
-		while i < end_offs:
-			if sc == pref_col:
-				return i, sc
-			if utfs:
-				o, n = utable.decode_one(text, i)
-			else:
-				o = ord(text[i])
-				n = i + 1
-			w = utable.get_width(o)
-			if w+sc > pref_col: 
-				return i, sc
-			i = n
-			sc += w
-		return i, sc
-	assert type(text) == type(""), `text`
-	# "wide" and "narrow"
-	i = start_offs+pref_col
-	if i >= end_offs:
-		return end_offs, end_offs-start_offs
-	if _byte_encoding == "wide":
-		if within_double_byte( text, start_offs, i ) == 2:
-			i -= 1
-	return i, i-start_offs
 
 
 def calc_line_pos( text, line_layout, pref_col ):
@@ -704,44 +601,6 @@ def calc_pos( text, layout, pref_col, row ):
 			if pos is not None: return pos
 	return 0
 
-
-	
-
-def within_double_byte(str, line_start, pos):
-	"""Return whether pos is within a double-byte encoded character.
-	
-	str -- string in question
-	line_start -- offset of beginning of line (< pos)
-	pos -- offset in question
-
-	Return values:
-	0 -- not within dbe char, or double_byte_encoding == False
-	1 -- pos is on the 1st half of a dbe char
-	2 -- pos is on the 2nd half og a dbe char
-	"""
-	v = ord(str[pos])
-
-	if v >= 0x40 and v < 0x7f:
-		# might be second half of big5, uhc or gbk encoding
-		if pos == line_start: return 0
-		
-		if ord(str[pos-1]) >= 0x81:
-			if within_double_byte(str, line_start, pos-1) == 1:
-				return 2
-		return 0
-
-	if v < 0x80: return 0
-
-	i = pos -1
-	while i >= line_start:
-		if ord(str[i]) < 0x80:
-			break
-		i -= 1
-	
-	if (pos - i) & 1:
-		return 1
-	return 2
-	
 
 def calc_coords( text, layout, pos, clamp=1 ):
 	"""
@@ -1021,3 +880,9 @@ def is_mouse_event( ev ):
 
 def is_mouse_press( ev ):
 	return ev.find("press")>=0
+
+
+
+
+	
+
