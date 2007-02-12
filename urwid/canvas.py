@@ -28,14 +28,22 @@ from escape import *
 class CanvasCache(object):
 	_widgets = {}
 	_refs = {}
+	_deps = {}
 	hits = 0
 	fetches = 0
 	cleanups = 0
 
-	def store(cls, widget, size, focus, canvas):
+	def store(cls, canvas, depends_on=[]):
 		"""
 		Store a weakref to canvas in the cache.
 		"""
+		assert canvas.widget_info, "Can't store canvas without widget_info"
+		widget, size, focus = canvas.widget_info
+		for w in depends_on:
+			if w not in cls._widgets:
+				return
+		for w in depends_on:
+			cls._deps.setdefault(w,[]).append(widget)
 		ref = weakref.ref(canvas, cls.cleanup)
 		cls._refs[ref] = (widget, size, focus)
 		cls._widgets.setdefault(widget, {})[(size, focus)] = ref
@@ -71,6 +79,15 @@ class CanvasCache(object):
 			del cls._widgets[widget]
 		except KeyError:
 			pass
+		if widget not in cls._deps:
+			return
+		dependants = cls._deps.get(widget, [])
+		try:
+			del cls._deps[widget]
+		except KeyError:
+			pass
+		for w in dependants:
+			cls.invalidate(w)
 	invalidate = classmethod(invalidate)
 
 	def cleanup(cls, ref):
@@ -100,6 +117,7 @@ class CanvasCache(object):
 		"""
 		cls._widgets = {}
 		cls._refs = {}
+		cls._deps = {}
 	clear = classmethod(clear)
 
 		
@@ -108,17 +126,76 @@ class CanvasError(Exception):
 
 class Canvas(object):
 	"""
+	base class for canvases
+	"""
+	def __init__(self, widget_info):
+		"""
+		widget_info -- (widget, size, focus) values when creating 
+		               this canvas or None if this is a smaller
+			       part of a large canvas being rendered.
+		"""
+		if type(widget_info) == type([]):
+			raise CanvasError("Invalid widget_info.  "
+				"Were you looking for TextCanvas?")
+		assert widget_info is None or type(widget_info)==type(())
+		self.widget_info = widget_info
+		self.coords = {}
+		self.shortcuts = {}
+	
+	def content(self, trim_left=0, trim_top=0, cols=None, rows=None, 
+			attr=None):
+		raise NotImplementedError()
+
+	def cols(self):
+		raise NotImplementedError()
+
+	def rows(self):
+		raise NotImplementedError()
+	
+	def content_delta(self):
+		raise NotImplementedError()
+
+	def get_cursor(self):
+		c = self.coords.get("cursor", None)
+		if not c:
+			return
+		return c[:2] # trim off data part
+	def set_cursor(self, c):
+		if c is None:
+			try:
+				del self.coords["cursor"]
+			except KeyError:
+				pass
+			return
+		self.coords["cursor"] = c + (None,) # data part
+	cursor = property(get_cursor, set_cursor)
+
+	def translate_coords(self, dx, dy):
+		"""
+		Return coords shifted by (dx, dy).
+		"""
+		d = {}
+		for name, (x, y, data) in self.coords.items():
+			d[name] = (x+dx, y+dy, data)
+		return d
+
+
+class TextCanvas(Canvas):
+	"""
 	class for storing rendered text and attributes
 	"""
-	def __init__(self,text = None,attr = None, cs = None, 
-		cursor = None, maxcol=None, check_width=True):
+	def __init__(self, widget_info, text=None, attr=None, cs=None, 
+		cursor=None, maxcol=None, check_width=True):
 		"""
+		widget_info -- passed to Canvas
 		text -- list of strings, one for each line
 		attr -- list of run length encoded attributes for text
 		cs -- list of run length encoded character set for text
 		cursor -- (x,y) of cursor or None
 		maxcol -- screen columns taken by this canvas
+		check_width -- check and fix width of all lines in text
 		"""
+		Canvas.__init__(self, widget_info)
 		if text == None: 
 			text = []
 
@@ -246,11 +323,13 @@ class Canvas(object):
 	
 
 
-class BlankCanvas(object):
+class BlankCanvas(Canvas):
 	"""
 	a canvas with nothing on it, only works as part of a composite canvas
 	since it doesn't know its own size
 	"""
+	def __init__(self):
+		Canvas.__init__(self, None)
 
 	def content(self, trim_left, trim_top, cols, rows, attr):
 		"""
@@ -269,16 +348,16 @@ class BlankCanvas(object):
 	def content_delta(self):
 		raise NotImplementedError("BlankCanvas doesn't know its own size!")
 		
-
 blank_canvas = BlankCanvas()
 
 
-class SolidCanvas(object):
+class SolidCanvas(Canvas):
 	"""
 	A canvas filled completely with a single character.
 	"""
-	def __init__(self, fill_char, cols, rows):
-		canv = Canvas([fill_char])
+	def __init__(self, widget_info, fill_char, cols, rows):
+		Canvas.__init__(self, widget_info)
+		canv = TextCanvas(None, [fill_char])
 		attr, self.cs, self.text = list(canv.content(0,0,1,1))[0][0]
 		self.size = cols, rows
 		self.cursor = None
@@ -311,12 +390,13 @@ class SolidCanvas(object):
 
 
 
-class CompositeCanvas(object):
+class CompositeCanvas(Canvas):
 	"""
 	class for storing a combination of canvases
 	"""
-	def __init__(self, canv=None):
+	def __init__(self, widget_info, canv=None):
 		"""
+		widget_info -- passed to Canvas
 		canv -- a Canvas object to wrap this CompositeCanvas around.
 
 		if canv is a CompositeCanvas, make a copy of its contents
@@ -325,25 +405,29 @@ class CompositeCanvas(object):
 		# each cview starting in this shard
 
 		# a "cview" is a tuple that defines a view of a canvas:
-		# (trim_left, trim_top, cols, rows, def_attr, canv, widget)
+		# (trim_left, trim_top, cols, rows, def_attr, canv)
 
 		# a "shard tail" is a list of tuples:
 		# (col_gap, done_rows, content_iter, cview) 
 		
 		# tuples that define the unfinished cviews that are part of
 		# shards following the first shard.
+		Canvas.__init__(self, widget_info)
 
 		if canv is None:
 			self.shards = []
-			self.cursor = None
-		elif hasattr(canv, "shards"):
-			self.shards = canv.shards
-			self.cursor = canv.cursor
+			self.children = []
 		else:
-			self.shards = [(canv.rows(), 
-				[(0, 0, canv.cols(), canv.rows(), None, canv)])]
-			self.cursor = canv.cursor
-
+			if hasattr(canv, "shards"):
+				self.shards = canv.shards
+			else:
+				self.shards = [(canv.rows(), [
+					(0, 0, canv.cols(), canv.rows(), 
+					None, canv)])]
+			self.children = [(0, 0, canv, None)]
+			self.coords.update(canv.coords)
+			for shortcut in canv.shortcuts:
+				self.shortcuts[shortcut] = "wrap"
 
 	def rows(self):
 		return sum(r for r,cv in self.shards)
@@ -417,7 +501,7 @@ class CompositeCanvas(object):
 		if count is not None:
 			self.shards = shards_trim_rows(self.shards, count)
 
-		self.translate_coords(0, -top)
+		self.coords = self.translate_coords(0, -top)
 
 		
 	def trim_end(self, end):
@@ -460,7 +544,7 @@ class CompositeCanvas(object):
 					(0,0,right,rows,None,blank_canvas))
 			shards = [(top_rows, new_top_cviews)] + shards[1:]
 
-		self.translate_coords(left, 0)
+		self.coords = self.translate_coords(left, 0)
 		self.shards = shards
 
 
@@ -480,7 +564,7 @@ class CompositeCanvas(object):
 			self.shards = [(top,
 				[(0,0,cols,top,None,blank_canvas)])] + \
 				self.shards
-			self.translate_coords(0, top)
+			self.coords = self.translate_coords(0, top)
 		
 		if bottom > 0:
 			if orig_shards is self.shards:
@@ -489,14 +573,16 @@ class CompositeCanvas(object):
 				[(0,0,cols,bottom,None,blank_canvas)]))
 
 		
-	def overlay(self, other, left, right, top, bottom ):
+	def overlay(self, other, left, top ):
 		"""Overlay other onto this canvas."""
 		
-		width = self.cols()-left-right
-		height = self.rows()-top-bottom
+		width = other.cols()
+		height = other.rows()
+		right = self.cols() - left - width
+		bottom = self.rows() - top - height
 		
-		assert other.rows() == height, "top canvas of overlay not the size expected!" + `other.rows(),top,bottom,height`
-		assert other.cols() == width, "top canvas of overlay not the size expected!" + `other.cols(),left,right,width`
+		assert right >= 0, "top canvas of overlay not the size expected!" + `other.cols(),left,right,width`
+		assert bottom >= 0, "top canvas of overlay not the size expected!" + `other.rows(),top,bottom,height`
 
 		shards = self.shards
 		top_shards = []
@@ -525,8 +611,7 @@ class CompositeCanvas(object):
 
 		self.shards = top_shards + middle_shards + bottom_shards
 		
-		self.cursor = other.cursor
-		self.translate_coords( left, top )
+		self.coords.update(other.translate_coords(left, top))
 
 
 	def fill_attr(self, a):
@@ -541,14 +626,6 @@ class CompositeCanvas(object):
 				if cv[4] is None:
 					cviews[i] = cv[:4] + (a,) + cv[5:]
 
-
-	def translate_coords(self,dx,dy):
-		"""
-		Shift cursor coords by (dx, dy).
-		"""
-		if self.cursor:
-			x, y = self.cursor
-			self.cursor =  x+dx, y+dy
 
 
 def shard_body_row(sbody):
@@ -825,63 +902,108 @@ def cview_trim_cols(cv, cols):
 
 		
 
-def CanvasCombine(l):
-	"""Stack canvases in l vertically and return resulting canvas."""
-	clist = [CompositeCanvas(c) for c in l]
+def CanvasCombine(widget_info, l):
+	"""Stack canvases in l vertically and return resulting canvas.
 
+	l -- list of (canvas, position, focus) tuples.  position is a value
+	     that widget.set_focus will accept, or None if not allowed.
+	     focus is True if this canvas is the one that would be in focus
+	     if the whole widget is in focus.
+	"""
+	clist = [(CompositeCanvas(None, c),p,f) for c,p,f in l]
+
+	combined_canvas = CompositeCanvas(widget_info)
 	shards = []
+	children = []
 	row = 0
-	cursor = None
-	for canv in clist:
+	focus_index = 0
+	n = 0
+	for canv, pos, focus in clist:
+		if focus: 
+			focus_index = n
+		children.append((0, row, canv, pos))
 		shards.extend(canv.shards)
-		canv_cursor = canv.cursor
-		if canv_cursor:
-			x, y = canv_cursor
-			cursor = (x, y+row)
+		combined_canvas.coords.update(canv.translate_coords(0, row))
+		for shortcut in canv.shortcuts.keys():
+			combined_canvas.shortcuts[shortcut] = pos
 		row += canv.rows()
+		n += 1
 	
-	combined_canvas = CompositeCanvas()
+	if focus_index:
+		children = [children[focus_index]] + children[:focus_index] + \
+			children[focus_index+1:]
+
 	combined_canvas.shards = shards
-	combined_canvas.cursor = cursor
+	combined_canvas.children = children
 	return combined_canvas
 
 
-def CanvasJoin(l):
-	"""Join canvases in l horizontally. Return result.
+def CanvasOverlay(widget_info, top_c, bottom_c, left, top):
+	"""
+	Overlay canvas top_c onto bottom_c at position (left, top).
+	"""
+	overlayed_canvas = CompositeCanvas(widget_info, bottom_c)
+	overlayed_canvas.overlay(top_c, left, top)
+	overlayed_canvas.children = [(left, top, top_c, None), 
+		(0, 0, bottom_c, None)]
+	overlayed_canvas.shortcuts = {} # disable background shortcuts
+	for shortcut in top_c.shortcuts.keys():
+		overlayed_canvas.shortcuts[shortcut]="fg"
+	return overlayed_canvas
 
-	l -- [canvas1, colnum2, canvas2, ... ,colnumN, canvasN]
-		colnumX is the screen column count between the start of
-		canvas(X-1) and canvasX, colnumX >= canvas(X-1).cols()
+
+def CanvasJoin(widget_info, l):
+	"""
+	Join canvases in l horizontally. Return result.
+	l -- list of (canvas, position, focus, cols) tuples.  position is a 
+	     value that widget.set_focus will accept,  or None if not allowed.
+	     focus is True if this canvas is the one that would be in focus if
+	     the whole widget is in focus.  cols is the number of screen
+	     columns that this widget will require, if larger than the actual
+	     canvas.cols() value then this widget will be padded on the right.
 	"""
 	
-	# make silly parameter slightly less silly
-	l = [0] + l
-	l2 = [( l[i], l[i+1].rows(), l[i+1] ) for i in range(0,len(l),2)]
-
-	maxrow = max([rows for col_diff, rows, canv in l2])
-
+	l2 = []
+	focus_item = 0
+	maxrow = 0
+	n = 0 
+	for canv, pos, focus, cols in l:
+		rows = canv.rows()
+		pad_right = cols - canv.cols()
+		if focus:
+			focus_item = n
+		if rows > maxrow:
+			maxrow = rows
+		l2.append((canv, pos, pad_right, rows))
+		n += 1
+	
 	shard_lists = []
-	joined_canvas = CompositeCanvas()
-	col = prev_col = 0
-	for col_diff, rows, canv in l2:
-		canv = CompositeCanvas(canv)
-		if col_diff > col-prev_col:
-			canv.pad_trim_left_right(col_diff - (col-prev_col), 0)
-			prev_col = col + (col_diff - (col-prev_col))
-		else:
-			prev_col = col
+	children = []
+	joined_canvas = CompositeCanvas(widget_info)
+	col = 0
+	for canv, pos, pad_right, rows in l2:
+		canv = CompositeCanvas(None, canv)
+		if pad_right:
+			canv.pad_trim_left_right(0, pad_right)
 		if rows < maxrow:
 			canv.pad_trim_top_bottom(0, maxrow - rows)
-		if canv.cursor:
-			joined_canvas.cursor = canv.cursor
-			joined_canvas.translate_coords(col, 0)
+		joined_canvas.coords.update(canv.translate_coords(col, 0))
+		for shortcut in canv.shortcuts.keys():
+			joined_canvas.shortcuts[shortcut] = pos
 		shard_lists.append(canv.shards)
+		children.append((col, 0, canv, pos))
 		col += canv.cols()
+
+	if focus_item:
+		children = [children[focus_item]] + children[:focus_item] + \
+			children[focus_item+1:]
+
 	joined_canvas.shards = shards_join(shard_lists)
+	joined_canvas.children = children
 	return joined_canvas
 
 
-def apply_text_layout( text, attr, ls, maxcol ):
+def apply_text_layout(widget, text, attr, ls, maxcol):
 	utext = type(text)==type(u"")
 	t = []
 	a = []
@@ -982,7 +1104,7 @@ def apply_text_layout( text, attr, ls, maxcol ):
 		a.append(linea)
 		c.append(linec)
 		
-	return Canvas(t,a,c, maxcol=maxcol)
+	return TextCanvas((widget, (maxcol,), False), t, a, c, maxcol=maxcol)
 
 
 

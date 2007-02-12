@@ -26,6 +26,7 @@ __all__ = [
 	'FlowWidget','Text','Edit','IntEdit','Button','CheckBox','RadioButton',
 	'BarGraph','ProgressBar','GraphVScale','BigText',
 	'Canvas','CanvasCombine','CanvasJoin','CanvasCache','CompositeCanvas',
+        'TextCanvas', 'SolidCanvas',
 	'TextLayout','StandardTextLayout',
 	'set_encoding','get_encoding_mode','supports_unicode',
 	'Thin3x3Font','Thin4x3Font','HalfBlock5x4Font','HalfBlock6x5Font',

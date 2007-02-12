@@ -232,14 +232,13 @@ class ListBox(BoxWidget):
 		middle, top, bottom = self.calculate_visible( 
 			(maxcol, maxrow), focus=focus)
 		if middle is None:
-			return Canvas([""]*maxrow, maxcol=maxcol, 
-				check_width=False)
+			return SolidCanvas(self, " ", maxcol, maxrow)
 		
 		_ignore, focus_widget, focus_pos, focus_rows, cursor = middle
 		trim_top, fill_above = top
 		trim_bottom, fill_below = bottom
 
-		l = []
+		combinelist = []
 		rows = 0
 		fill_above.reverse() # fill_above is in bottom-up order
 		for widget,w_pos,w_rows in fill_above:
@@ -247,7 +246,7 @@ class ListBox(BoxWidget):
 			if w_rows != canvas.rows():
 				raise ListBoxError, "Widget %s at position %s within listbox calculated %d rows but rendered %d!"% (`widget`,`w_pos`,w_rows, canvas.rows())
 			rows += w_rows
-			l.append(canvas)
+			combinelist.append((canvas, w_pos, False))
 		
 		focus_canvas = focus_widget.render((maxcol,), focus=focus)
 		
@@ -258,22 +257,23 @@ class ListBox(BoxWidget):
 			raise ListBoxError, "Focus Widget %s at position %s within listbox calculated cursor coords %s but rendered cursor coords %s!" %(`focus_widget`,`focus_pos`,`cursor`,`c_cursor`)
 			
 		rows += focus_rows
-		l.append( focus_canvas )
+		combinelist.append((focus_canvas, focus_pos, True))
 		
 		for widget,w_pos,w_rows in fill_below:
 			canvas = widget.render((maxcol,))
 			if w_rows != canvas.rows():
 				raise ListBoxError, "Widget %s at position %s within listbox calculated %d rows but rendered %d!"% (`widget`,`w_pos`,w_rows, canvas.rows())
 			rows += w_rows
-			l.append(canvas)
+			combinelist.append((canvas, w_pos, False))
+		
+		final_canvas = CanvasCombine((self, (maxcol, maxrow), focus), 
+			combinelist)
 		
 		if trim_top:	
-			l[0] = CompositeCanvas(l[0])
-			l[0].trim(trim_top)
+			final_canvas.trim(trim_top)
 			rows -= trim_top
 		if trim_bottom:	
-			l[-1] = CompositeCanvas(l[-1])
-			l[-1].trim_end(trim_bottom)
+			final_canvas.trim_end(trim_bottom)
 			rows -= trim_bottom
 		
 		assert rows <= maxrow, "Listbox contents too long!  Probably urwid's fault (please report): %s" % `top,middle,bottom`
@@ -282,9 +282,9 @@ class ListBox(BoxWidget):
 			bottom_pos = focus_pos
 			if fill_below: bottom_pos = fill_below[-1][1]
 			assert trim_bottom==0 and self.body.get_next(bottom_pos) == (None,None), "Listbox contents too short!  Probably urwid's fault (please report): %s" % `top,middle,bottom`
-			l.append( Canvas( [""] * (maxrow-rows), maxcol=maxcol ))
+			final_canvas.pad_trim_top_bottom(0, maxrow - rows)
 
-		return CanvasCombine( l )
+		return final_canvas
 
 
 	def set_focus_valign(self, valign):

@@ -116,15 +116,12 @@ class Divider(FlowWidget):
 		if canv:
 			return canv
 
-		canv = SolidCanvas(self.div_char, maxcol, 1)
+		canv = SolidCanvas(None, self.div_char, maxcol, 1)
+		canv = CompositeCanvas((self, (maxcol,), False), canv)
 		if self.top or self.bottom:
-			old_canv = canv
-			canv = CompositeCanvas(canv)
-			# HACK to keep a reference to the CompositeCanvas
-			old_canv.keep_alive_link = canv 
 			canv.pad_trim_top_bottom(self.top, self.bottom)
 
-		CanvasCache.store(self, (maxcol,), False, canv)
+		CanvasCache.store(canv)
 		return canv
 	
 
@@ -141,9 +138,10 @@ class SolidFill(BoxWidget):
 		if canv:
 			return canv
 
-		canv = SolidCanvas(self.fill_char, maxcol, maxrow)
+		canv = SolidCanvas((self, (maxcol, maxrow), False), 
+			self.fill_char, maxcol, maxrow)
 
-		CanvasCache.store(self, (maxcol,maxrow), False, canv)
+		CanvasCache.store(canv)
 		return canv
 	
 	def selectable(self):
@@ -240,9 +238,9 @@ class Text(FlowWidget):
 
 		text, attr = self.get_text()
 		trans = self.get_line_translation( maxcol, (text,attr) )
-		canv = apply_text_layout( text, attr, trans, maxcol )
+		canv = apply_text_layout(self, text, attr, trans, maxcol)
 		
-		CanvasCache.store(self, (maxcol,), False, canv)
+		CanvasCache.store(canv)
 		return canv
 
 	def rows(self,(maxcol,), focus=False):
@@ -617,8 +615,9 @@ class SelectableIcon(Text):
 	def render(self, (maxcol,), focus=False):
 		c = Text.render(self, (maxcol,), focus )
 		if focus:
-			c = CompositeCanvas(c)
+			c = CompositeCanvas((self, (maxcol,), True), c)
 			c.cursor = self.get_cursor_coords((maxcol,))
+			CanvasCache.store(c)
 		return c
 	
 	def get_cursor_coords(self, (maxcol,)):
@@ -1142,8 +1141,8 @@ class Padding(object):
 			c = self.w.render((), focus)
 		else:
 			c = self.w.render((maxcol,)+size[1:], focus)
+		c = CompositeCanvas((self, size, focus), c)
 		if left != 0 or right != 0:
-			c = CompositeCanvas(c)
 			c.pad_trim_left_right(left, right)
 		return c
 
@@ -1305,7 +1304,7 @@ class Filler(BoxWidget):
 			c = self.body.render( (maxcol,), focus)
 		else:
 			c = self.body.render( (maxcol,maxrow-top-bottom),focus)
-		c = CompositeCanvas(c)
+		c = CompositeCanvas((self, (maxcol,maxrow), focus), c)
 		
 		if c.rows() > maxrow and c.cursor is not None:
 			cx, cy = c.cursor
@@ -1517,14 +1516,15 @@ class Overlay(BoxWidget):
 		"""Render top_w overlayed on bottom_w."""
 		left, right, top, bottom = self.calculate_padding_filler(size,
 			focus)
-		bottom_c = CompositeCanvas(self.bottom_w.render(size))
+		bottom_c = self.bottom_w.render(size)
 		top_c = self.top_w.render(
 			self.top_w_size(size, left, right, top, bottom), focus)
-		top_c = CompositeCanvas(top_c)
 		if left<0 or right<0:
+			top_c = CompositeCanvas(None, top_c)
 			top_c.pad_trim_left_right(min(0,left), min(0,right))
-		bottom_c.overlay(top_c, max(0,left), max(0,right), top, bottom)
-		return bottom_c
+		
+		return CanvasOverlay((self, size, focus), top_c, bottom_c, 
+			max(0,left), top)
 
 	def mouse_event(self, size, event, button, col, row, focus):
 		"""Pass event to top_w, ignore if outside of top_w."""
@@ -1774,33 +1774,42 @@ class Frame(BoxWidget):
 		(htrim, ftrim),(hrows, frows) = self.frame_top_bottom(
 			(maxcol, maxrow), focus)
 		
-		if not ftrim:
-			foot = Canvas()
-		elif ftrim < frows:
-			foot = Filler(self.footer, 'bottom').render(
-				(maxcol, ftrim), 
-				focus and self.focus_part == 'footer')
-		else:
-			foot = self.footer.render((maxcol,),
-				focus and self.focus_part == 'footer')
-			assert foot.rows() == frows, "rows, render mismatch"
+		combinelist = []
 		
-		if not htrim:
-			head = Canvas()
-		elif htrim < hrows:
+		head = None
+		if htrim < hrows:
 			head = Filler(self.header, 'top').render(
 				(maxcol, htrim), 
 				focus and self.focus_part == 'header')
-		else:
+		elif htrim:
 			head = self.header.render((maxcol,),
 				focus and self.focus_part == 'header')
 			assert head.rows() == hrows, "rows, render mismatch"
+		if head:
+			combinelist.append((head, 'header', 
+				self.focus_part == 'header'))
 
 		if ftrim+htrim < maxrow:
 			body = self.body.render((maxcol, maxrow-ftrim-htrim),
 				focus and self.focus_part == 'body')
-			
-		return CanvasCombine( [head,body,foot] )
+			combinelist.append((body, 'body', 
+				self.focus_part == 'body'))
+		
+		foot = None	
+		if ftrim < frows:
+			foot = Filler(self.footer, 'bottom').render(
+				(maxcol, ftrim), 
+				focus and self.focus_part == 'footer')
+		elif ftrim:
+			foot = self.footer.render((maxcol,),
+				focus and self.focus_part == 'footer')
+			assert foot.rows() == frows, "rows, render mismatch"
+		if foot:
+			combinelist.append((foot, 'footer', 
+				self.focus_part == 'footer'))
+
+		return CanvasCombine((self, (maxcol, maxrow), focus), 
+			combinelist)
 
 
 	def keypress(self, (maxcol,maxrow), key):
@@ -1896,10 +1905,9 @@ class AttrWrap(object):
 		attr = self.attr
 		if focus and self.focus_attr is not None:
 			attr = self.focus_attr
-		canv = self.w.render( size, focus=focus )
-		canv = CompositeCanvas(canv)
-		canv.fill_attr( attr )
-		cols = size[0]
+		canv = self.w.render(size, focus=focus)
+		canv = CompositeCanvas((self, size, focus), canv)
+		canv.fill_attr(attr)
 		return canv
 
 	def __getattr__(self,name):
@@ -2075,26 +2083,30 @@ class Pile(object): # either FlowWidget or BoxWidget
 		maxcol = size[0]
 		item_rows = None
 		
-		l = []
+		combinelist = []
 		i = 0
 		for (f, height), w in zip(self.item_types, self.widget_list):
+			item_focus = self.focus_item == w
+			canv = None
 			if f == 'fixed':
-				l.append( w.render( (maxcol, height),
-					focus=focus and self.focus_item == w ))
+				canv = w.render( (maxcol, height),
+					focus=focus and item_focus)
 			elif f == 'flow' or len(size)==1:
-				l.append( w.render( (maxcol,), 
-					focus=focus and	self.focus_item == w ))
+				canv = w.render( (maxcol,), 
+					focus=focus and	item_focus)
 			else:	
 				if item_rows is None:
 					item_rows = self.get_item_rows(size, 
 						focus)
 				rows = item_rows[i]
 				if rows>0:
-					l.append( w.render( (maxcol, rows),
-					focus=focus and	self.focus_item == w ))
+					canv = w.render( (maxcol, rows),
+						focus=focus and	item_focus )
+			if canv:
+				combinelist.append((canv, i, item_focus))
 			i+=1
 
-		return CanvasCombine( l ) 
+		return CanvasCombine((self, size, focus), combinelist)
 	
 	def get_cursor_coords(self, size):
 		"""Return the cursor coordinates of the focus widget."""
@@ -2399,7 +2411,6 @@ class Columns(object): # either FlowWidget or BoxWidget
 				box_maxrow = max(box_maxrow, rows)
 		
 		l = []
-		off = 0
 		for i in range(len(widths)):
 			mc = widths[i]
 			w = self.widget_list[i]
@@ -2408,12 +2419,14 @@ class Columns(object): # either FlowWidget or BoxWidget
 			else:
 				sub_size = (mc,) + size[1:]
 			
-			l.append(w.render(sub_size, 
-				focus = focus and self.focus_col == i) )
+			canv = w.render(sub_size, 
+				focus = focus and self.focus_col == i)
+
+			if i < len(widths)-1:
+				mc += self.dividechars
+			l.append((canv, i, self.focus_col == i, mc))
 				
-			off = mc + self.dividechars
-			l.append(off)
-		return CanvasJoin( l[:-1] )
+		return CanvasJoin((self, size, focus), l)
 
 	def get_cursor_coords(self, size):
 		"""Return the cursor coordinates from the focus widget."""

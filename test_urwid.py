@@ -504,13 +504,13 @@ class CanvasCacheTest(unittest.TestCase):
 	def test1(self):
 		a = urwid.Text("")
 		b = urwid.Text("")
-		blah = urwid.Canvas()
-		blah2 = urwid.Canvas()
-		bloo = urwid.Canvas()
+		blah = urwid.TextCanvas((a, (10,1), False))
+		blah2 = urwid.TextCanvas((a, (15,1), False))
+		bloo = urwid.TextCanvas((b, (20,2), True))
 
-		urwid.CanvasCache.store(a, (10,1), False, blah)
-		urwid.CanvasCache.store(a, (15,1), False, blah2)
-		urwid.CanvasCache.store(b, (20,2), True, bloo)
+		urwid.CanvasCache.store(blah)
+		urwid.CanvasCache.store(blah2)
+		urwid.CanvasCache.store(bloo)
 
 		self.cct(a, (10,1), False, blah)
 		self.cct(a, (15,1), False, blah2)
@@ -526,12 +526,12 @@ class CanvasCacheTest(unittest.TestCase):
 
 class CanvasTest(unittest.TestCase):
 	def ct(self, text, attr, exp_content):
-		c = urwid.Canvas(text, attr)
+		c = urwid.TextCanvas(None, text, attr)
 		content = list(c.content())
 		assert content == exp_content, "got: "+`content`+" expected: "+`exp_content`
 
 	def ct2(self, text, attr, left, top, cols, rows, def_attr, exp_content):
-		c = urwid.Canvas(text, attr)
+		c = urwid.TextCanvas(None, text, attr)
 		content = list(c.content(left, top, cols, rows, def_attr))
 		assert content == exp_content, "got: "+`content`+" expected: "+`exp_content`
 
@@ -2027,45 +2027,55 @@ class SmoothBarGraphTest(unittest.TestCase):
 		
 class CanvasJoinTest(unittest.TestCase):
 	def cjtest(self, desc, l, expected):
-		result = list(urwid.CanvasJoin(l).content())
+		l = [(c, None, False, n) for c, n in l]
+		result = list(urwid.CanvasJoin(None, l).content())
 		
 		assert result == expected, "%s expected %s, got %s"%(
 			desc, `expected`, `result`)
 	
 	def test(self):
-		C = urwid.Canvas
-		self.cjtest("one", [C(["hello"])], 
+		C = urwid.TextCanvas
+		hello = C(None, ["hello"])
+		there = C(None, ["there"], [[("a",5)]])
+		a = C(None, ["a"])
+		hi = C(None, ["hi"])
+		how = C(None, ["how"], [[("a",1)]])
+		dy = C(None, ["dy"])
+		how_you = C(None, ["how","you"])
+
+		self.cjtest("one", [(hello, 5)], 
 			[[(None, None, "hello")]])
-		self.cjtest("two", [C(["hello"]),5,C(["there"],[[("a",5)]])], 
+		self.cjtest("two", [(hello, 5), (there, 5)], 
 			[[(None, None, "hello"), ("a", None, "there")]])
-		self.cjtest("two space", [C(["hello"]),7,C(["there"])], 
+		self.cjtest("two space", [(hello, 7), (there, 5)], 
 			[[(None, None, "hello"),(None,None,"  "),
-			(None,None,"there")]])
-		self.cjtest("three space", 
-			[C(["hi"]),4,C(["how"],[[("a",1)]]),3,C(["dy"])],
+			("a", None, "there")]])
+		self.cjtest("three space", [(hi, 4), (how, 3), (dy, 2)],
 			[[(None, None, "hi"),(None,None,"  "),("a",None,"h"),
 			(None,None,"ow"),(None,None,"dy")]])
-		self.cjtest("four space",
-			[C(["1"]),2,C(["2"]),2,C(["3"]),2,C(["4"])],
-			[[(None, None, "1"),(None,None," "),
-			(None, None, "2"),(None,None," "),
-			(None, None, "3"),(None,None," "),
-			(None, None, "4")]])
-		self.cjtest("pile 2", [C(["hi","you"]),4,C(["how"])],
-			[[(None, None, 'hi '), (None, None, ' '), 
-			(None, None, 'how')],  
-			[(None, None, 'you'), (None, None, '    ')]])
-		self.cjtest("pile 2r", [C(["hi"]),4,C(["how","you"])],
+		self.cjtest("four space", [(a, 2), (hi, 3), (dy, 3), (a, 1)],
+			[[(None, None, "a"),(None,None," "),
+			(None, None, "hi"),(None,None," "),
+			(None, None, "dy"),(None,None," "),
+			(None, None, "a")]])
+		self.cjtest("pile 2", [(how_you, 4), (hi, 2)],
+			[[(None, None, 'how'), (None, None, ' '), 
+			(None, None, 'hi')],  
+			[(None, None, 'you'), (None, None, ' '),
+			(None, None, '  ')]])
+		self.cjtest("pile 2r", [(hi, 4), (how_you, 3)],
 			[[(None, None, 'hi'), (None, None, '  '), 
 			(None, None, 'how')],  
-			[(None, None, '  '), (None, None, '  '),
+			[(None, None, '    '),
 			(None, None, 'you')]])
 
 class CanvasOverlayTest(unittest.TestCase):
 	def cotest(self, desc, bgt, bga, fgt, fga, l, r, et):
-		bg = urwid.CompositeCanvas(urwid.Canvas([bgt],[bga]))
-		fg = urwid.CompositeCanvas(urwid.Canvas([fgt],[fga]))
-		bg.overlay( fg, l, r, 0, 0 )
+		bg = urwid.CompositeCanvas(None, 
+			urwid.TextCanvas(None,[bgt],[bga]))
+		fg = urwid.CompositeCanvas(None,
+			urwid.TextCanvas(None,[fgt],[fga]))
+		bg.overlay(fg, l, 0)
 		result = list(bg.content())
 		assert result == et, "%s expected %s, got %s"%(
 			desc, `et`,`result`)
@@ -2121,7 +2131,8 @@ class CanvasOverlayTest(unittest.TestCase):
 
 class CanvasPadTrimTest(unittest.TestCase):
 	def cptest(self, desc, ct, ca, l, r, et):
-		c = urwid.CompositeCanvas(urwid.Canvas([ct], [ca]))
+		c = urwid.CompositeCanvas(None, 
+			urwid.TextCanvas(None, [ct], [ca]))
 		c.pad_trim_left_right(l, r)
 		result = list(c.content())
 		assert result == et, "%s expected %s, got %s"%(

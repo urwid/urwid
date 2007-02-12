@@ -62,7 +62,6 @@ class BigText(FixedWidget):
 		ai = ak = 0
 		o = []
 		rows = self.font.height
-		cols = 0
 		attrib = self.attrib+[(None,len(self.text))]
 		for ch in self.text:
 			if not ak:
@@ -74,15 +73,14 @@ class BigText(FixedWidget):
 				# ignore invalid characters
 				continue
 			c = self.font.render(ch)
-			c = CompositeCanvas(c)
-			c.fill_attr(a)
-			o.append(c)
-			cols += width
-			o.append(width)
-		
+			if a is not None:
+				c = CompositeCanvas(None, c)
+				c.fill_attr(a)
+			o.append((c, None, False, width))
 		if o:
-			return CanvasJoin(o[:-1])
-		return Canvas([""]*rows, maxcol=0, check_width=False)
+			return CanvasJoin((self, size, False), o)
+		return TextCanvas((self, size, False), self,
+			[""]*rows, maxcol=0, check_width=False)
 		
 
 class LineBox(WidgetWrap):
@@ -466,7 +464,7 @@ class BarGraph(BoxWidget):
 		disp = self.calculate_display( (maxcol,maxrow) )
 		#assert 0, disp
 		
-		r = []
+		combinelist = []
 		for y_count, row in disp:
 			l = []
 			for bar_type, width in row:
@@ -487,9 +485,10 @@ class BarGraph(BoxWidget):
 				l.append( (a, t) )
 			c = Text(l).render( (maxcol,) )
 			assert c.rows() == 1, "Invalid characters in BarGraph!"
-			r += [c] * y_count
+			combinelist += [(c, None, False)] * y_count
 			
-		return CanvasCombine(r)
+		return CanvasCombine((self, (maxcol, maxrow), False), 
+			combinelist)
 
 
 
@@ -680,25 +679,22 @@ class GraphVScale(BoxWidget):
 		"""
 		pl = scale_bar_values( self.pos, self.top, maxrow )
 
-		r = []
+		combinelist = []
 		rows = 0
-		blank = Canvas([""])
 		for p, t in zip(pl, self.txt):
 			p -= 1
 			if p >= maxrow: break
 			if p < rows: continue
+			c = t.render((maxcol,))
 			if p > rows:
 				run = p-rows
-				r += [blank]*run
-				rows += run
-			c = t.render((maxcol,))
+				c = CompositeCanvas(None, c)
+				c.pad_trim_top_bottom(run, 0)
 			rows += c.rows()
-			r.append(c)
-		if rows < maxrow:
-			r += [blank]* (maxrow-rows)
-		c = CanvasCombine(r)
-		if c.rows()>maxrow:
-			c.trim(0,maxrow)
+			combinelist.append((c, None, False))
+		c = CanvasCombine((self, (maxcol, maxrow), False), combinelist)
+		if maxrow - rows:
+			c.pad_trim_top_bottom(0, maxrow - rows)
 		return c
 			
 			

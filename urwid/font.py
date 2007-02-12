@@ -26,7 +26,7 @@ import re
 
 from escape import utf8decode, SAFE_ASCII_DEC_SPECIAL_RE
 from util import apply_target_encoding, str_util
-from canvas import Canvas
+from canvas import TextCanvas
 
 try: True # old python?
 except: False, True = 0, 1
@@ -131,7 +131,8 @@ class Font:
 			t, cs = apply_target_encoding(d)
 			tl.append(t)
 			csl.append(cs)
-		return Canvas(tl, None, csl, maxcol=width, check_width=False )
+		return TextCanvas(None, tl, None, csl, maxcol=width, 
+			check_width=False)
 
 		
 #safe_palette = utf8decode("┘┐┌└┼─├┤┴┬│")
