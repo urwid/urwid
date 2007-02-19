@@ -2005,11 +2005,13 @@ class WidgetWrap(Widget):
 		This object will pass the functions defined in Widget interface
 		definition to self.w.
 		"""
+		self._w = w
+
 	def get_w(self):
 		return self._w
 	def set_w(self, w):
 		self._w = w
-		self.invalidate(self)
+		self.invalidate()
 	w = property(get_w, set_w)
 	
 	def __getattr__(self,name):
@@ -2017,7 +2019,7 @@ class WidgetWrap(Widget):
 		if name in ['get_cursor_coords','get_pref_col','keypress',
 			'move_cursor_to_coords','render','rows','selectable',
 			'mouse_event',]:
-			return getattr(self.w, name)
+			return getattr(self._w, name)
 		raise AttributeError, name
 
 class PileError(Exception):

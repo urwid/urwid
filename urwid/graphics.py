@@ -757,22 +757,23 @@ class ProgressBar( FlowWidget ):
 		if self.satt is not None:
 			cs = int((cf - ccol) * 8)
 		if ccol < 0 or (ccol == 0 and cs == 0):
-			c.attr = [[(self.normal,maxcol)]]
+			c._attr = [[(self.normal,maxcol)]]
 		elif ccol >= maxcol:
-			c.attr = [[(self.complete,maxcol)]]
-		elif cs and c.text[0][ccol] == " ":
-			t = c.text[0]
+			c._attr = [[(self.complete,maxcol)]]
+		elif cs and c._text[0][ccol] == " ":
+			t = c._text[0]
 			cenc = self.eighths[cs].encode("utf-8")
-			c.text[0] = t[:ccol]+cenc+t[ccol+1:]
+			c._text[0] = t[:ccol]+cenc+t[ccol+1:]
 			a = []
 			if ccol > 0:
 				a.append( (self.complete, ccol) )
 			a.append((self.satt,len(cenc)))
 			if maxcol-ccol-1 > 0:
 				a.append( (self.normal, maxcol-ccol-1) )
-			c.attr = [a]
+			c._attr = [a]
+			c._cs = [[(None, len(c._text[0]))]]
 		else:
-			c.attr = [[(self.complete,ccol),
+			c._attr = [[(self.complete,ccol),
 				(self.normal,maxcol-ccol)]]
 		return c
 	

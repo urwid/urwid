@@ -401,8 +401,10 @@ class SolidCanvas(Canvas):
 	"""
 	def __init__(self, widget_info, fill_char, cols, rows):
 		Canvas.__init__(self, widget_info)
-		canv = TextCanvas(None, [fill_char])
-		attr, self.cs, self.text = list(canv.content(0,0,1,1))[0][0]
+		end, col = calc_text_pos(fill_char, 0, len(fill_char), 1)
+		assert col == 1, "Invalid fill_char: %r" % fill_char
+		self.text, cs = apply_target_encoding(fill_char[:end])
+		self.cs = cs[0][0]
 		self.size = cols, rows
 		self.cursor = None
 	
