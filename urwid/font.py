@@ -100,6 +100,7 @@ class Font:
 		assert self.height
 		assert self.data
 		self.char = {}
+		self.canvas = {}
 		self.utf8_required = False
 		for gdata in self.data:
 			self.add_glyphs(gdata)
@@ -124,6 +125,8 @@ class Font:
 		return self.char[c][1]
 
 	def render(self, c):
+		if c in self.canvas:
+			return self.canvas[c]
 		width, l = self.char[c]
 		tl = []
 		csl = []
@@ -131,8 +134,11 @@ class Font:
 			t, cs = apply_target_encoding(d)
 			tl.append(t)
 			csl.append(cs)
-		return TextCanvas(None, tl, None, csl, maxcol=width, 
+		canv = TextCanvas(None, tl, None, csl, maxcol=width, 
 			check_width=False)
+		self.canvas[c] = canv
+		return canv
+	
 
 		
 #safe_palette = utf8decode("┘┐┌└┼─├┤┴┬│")

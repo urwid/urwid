@@ -690,6 +690,7 @@ class CalcDisplay:
 				# something invalid in focus
 				return key
 			self.col_list.append(child)
+			self.columns.invalidate()
 			self.set_link( parent, col, child )
 			self.columns.set_focus_column(len(self.col_list)-1)
 		
@@ -748,6 +749,7 @@ class CalcDisplay:
 		parent.remove_child()
 		pcol.update_results(parent)
 		del self.col_list[i]
+		self.columns.invalidate()
 		
 		# delete children of this column
 		keep_right_cols = []

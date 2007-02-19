@@ -120,6 +120,50 @@ class CanvasCache(object):
 		cls._deps = {}
 	clear = classmethod(clear)
 
+	def widget_render(cls, fn):
+		"""
+		decorator for widget .render() methods.
+		fetches and stores canvases.
+		"""
+		def cached_render(self, size, focus=False):
+			canv = cls.fetch(self, size, focus)
+			if canv:
+				return canv
+
+			canv = fn(self, size, focus)
+			cls.store(canv)
+			return canv
+		return cached_render
+	widget_render = classmethod(widget_render)
+
+	def widget_render_fetch(cls, fn):
+		"""
+		decorator for widget .render() methods.
+		ONLY fetches from cache if available, but does not store.
+		"""
+		def cached_render(self, size, focus=False):
+			canv = cls.fetch(self, size, focus)
+			if canv:
+				return canv
+
+			return fn(self, size, focus)
+		return cached_render
+	widget_render_fetch = classmethod(widget_render_fetch)
+
+	def widget_rows_fetch(cls, fn):
+		"""
+		decorator for widget .rows() methods.
+		returns rows from cached widget if available.
+		"""
+		def cached_rows(self, size, focus=False):
+			canv = cls.fetch(self, size, focus)
+			if canv:
+				return canv.rows()
+
+			return fn(self, size, focus)
+		return cached_rows
+	widget_rows_fetch = classmethod(widget_rows_fetch)
+
 		
 class CanvasError(Exception):
 	pass

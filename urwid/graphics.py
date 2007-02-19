@@ -39,6 +39,7 @@ class BigText(FixedWidget):
 	
 	def set_text(self, markup):
 		self.text, self.attrib = decompose_tagmarkup(markup)
+		self.invalidate()
 	
 	def get_text(self):
 		"""
@@ -48,6 +49,7 @@ class BigText(FixedWidget):
 	
 	def set_font(self, font):
 		self.font = font
+		self.invalidate()
 	
 	def pack(self, size=None, focus=False):
 		rows = self.font.height
@@ -81,6 +83,7 @@ class BigText(FixedWidget):
 			return CanvasJoin((self, size, False), o)
 		return TextCanvas((self, size, False), self,
 			[""]*rows, maxcol=0, check_width=False)
+	render = CanvasCache.widget_render(render)
 		
 
 class LineBox(WidgetWrap):
