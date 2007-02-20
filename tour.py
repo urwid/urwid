@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid tour.  It slices, it dices.. 
-#    Copyright (C) 2004-2006  Ian Ward
+#    Copyright (C) 2004-2007  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -26,9 +26,6 @@ Urwid tour.  Shows many of the standard widget types and features.
 import urwid
 import urwid.raw_display
 import urwid.web_display
-
-try: True # old python?
-except: False, True = 0, 1
 
 # use appropriate Screen class
 if urwid.web_display.is_web_request():

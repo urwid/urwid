@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid keyboard input test app
-#    Copyright (C) 2004-2006  Ian Ward
+#    Copyright (C) 2004-2007  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -30,9 +30,6 @@ import urwid
 
 import sys
 
-try: True # old python?
-except: False, True = 0, 1
-		
 if urwid.web_display.is_web_request():
 	Screen = urwid.web_display.Screen
 else:

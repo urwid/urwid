@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid example lazy directory browser / tree view
-#    Copyright (C) 2004-2006  Ian Ward
+#    Copyright (C) 2004-2007  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -35,9 +35,6 @@ import urwid.raw_display
 
 import os
 
-try: True # old python?
-except: False, True = 0, 1
-		
 
 class TreeWidget(urwid.FlowWidget):
 	"""A widget representing something in the file tree."""

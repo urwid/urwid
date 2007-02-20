@@ -798,6 +798,7 @@ class RadioButton(FlowWidget):
 			self.label ] )
 		self.display_widget.focus_col = 0
 		
+		self.invalidate()
 		if state is not True:
 			return
 
@@ -805,7 +806,6 @@ class RadioButton(FlowWidget):
 			if cb is self: continue
 			if cb.state:
 				cb.set_state(False)
-		self.invalidate()
 	
 	def get_state(self):
 		"""Return the state of the radio button."""
