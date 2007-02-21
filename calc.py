@@ -217,9 +217,10 @@ class ParentEdit(urwid.Edit):
 			return key
 		
 
-class CellWalker:
-	def __init__(self, content ):
-		self.content = content
+class CellWalker(urwid.ListWalker):
+	def __init__(self, content):
+		self.content = urwid.ListDetectModifications(content)
+		self.content.modified = self._modified
 		self.focus = (0,0)
 		# everyone can share the same divider widget
 		self.div = urwid.Divider("-")
@@ -283,8 +284,8 @@ class CellWalker:
 			
 class CellColumn( urwid.WidgetWrap ):
 	def __init__(self, letter):
-		self.content = [ Cell( None ) ]
-		self.walker = CellWalker( self.content )
+		self.walker = CellWalker([Cell(None)])
+		self.content = self.walker.content
 		self.listbox = urwid.ListBox( self.walker )
 		self.set_letter( letter )
 		urwid.WidgetWrap.__init__(self, self.frame)

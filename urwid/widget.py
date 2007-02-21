@@ -27,22 +27,28 @@ from canvas import *
 try: sum # old python?
 except: sum = lambda l: reduce(lambda a,b: a+b, l, 0)
 
+class WidgetMeta(MetaSuper, MetaSignals):
+	pass
+
+
 class Widget(object):
 	"""
 	base class of widgets
 	"""
+	__metaclass__ = WidgetMeta
+	_selectable = False
+
 	def invalidate(self):
 		CanvasCache.invalidate(self)
+	
+	def selectable(self):
+		return self._selectable
 	
 
 class FlowWidget(Widget):
 	"""
 	base class of widgets
 	"""
-	def selectable(self):
-		"""Return False.  Not selectable by default."""
-		return False
-	
 	def rows(self, (maxcol,), focus=False):
 		"""
 		All flow widgets must implement this function.
@@ -61,9 +67,7 @@ class BoxWidget(Widget):
 	base class of width and height constrained widgets such as
 	the top level widget attached to the display object
 	"""
-	def selectable(self):
-		"""Return True.  Selectable by default."""
-		return True
+	_selectable = True
 	
 	def render(self, size, focus=False):
 		"""
@@ -83,10 +87,10 @@ def fixed_size(size):
 			"passed: %s" % `size`)
 
 class FixedWidget(Widget):
-	def selectable(self):
-		"""Return False.  Not selectable by default."""
-		return False
-
+	"""
+	base class of widgets that know their width and height and
+	cannot be resized
+	"""
 	def render(self, size, focus=False):
 		"""
 		All widgets must implement this function.
@@ -109,6 +113,7 @@ class Divider(FlowWidget):
 		top -- number of blank lines above
 		bottom -- number of blank lines below
 		"""
+		self.__super.__init__()
 		self.div_char = div_char
 		self.top = top
 		self.bottom = bottom
@@ -136,6 +141,7 @@ class SolidFill(BoxWidget):
 		"""
 		fill_char -- character to fill area with
 		"""
+		self.__super.__init__()
 		self.fill_char = fill_char
 	
 	def render(self,(maxcol,maxrow), focus=False ):
@@ -165,6 +171,7 @@ class Text(FlowWidget):
 		wrap -- wrap mode for text layout
 		layout -- layout object to use, defaults to StandardTextLayout
 		"""
+		self.__super.__init__()
 		self._cache_maxcol = None
 		self.set_text(markup)
 		self.set_layout(align, wrap, layout)
@@ -321,7 +328,7 @@ class Edit(Text):
 		layout -- layout object
 		"""
 		
-		Text.__init__(self,"", align, wrap, layout)
+		self.__super.__init__("", align, wrap, layout)
 		assert type(edit_text)==type("") or type(edit_text)==type(u"")
 		self.multiline = multiline
 		self.allow_tab = allow_tab
@@ -586,7 +593,7 @@ class IntEdit(Edit):
 		"""
 		if default is not None: val = str(default)
 		else: val = ""
-		Edit.__init__(self,caption,val)
+		self.__super.__init__(caption,val)
 
 	def keypress(self,(maxcol,),key):
 		"""Handle editing keystrokes.  Return others."""
@@ -648,6 +655,7 @@ class CheckBox(FlowWidget):
 		user_data -- additional param for on_press callback,
 		             ommited if None for compatibility reasons
 		"""
+		self.__super.__init__()
 		self.label = Text("")
 		self.has_mixed = has_mixed
 		self.state = None
@@ -755,6 +763,7 @@ class RadioButton(FlowWidget):
 		This function will append the new radio button to group.
 		"first True" will set to True if group is empty.
 		"""
+		self.__super.__init__()
 
 		if state=="first True":
 			state = not group
@@ -858,6 +867,7 @@ class Button(FlowWidget):
                 user_data -- additional param for on_press callback,
 		           ommited if None for compatibility reasons
 		"""
+		self.__super.__init__()
 			
 		self.set_label( label )
 		self.on_press = on_press
@@ -931,6 +941,7 @@ class GridFlow(FlowWidget):
 		align -- horizontal alignment of cells, see "align" parameter
 		         of Padding widget for available options
 		"""
+		self.__super.__init__()
 		self.cells = cells
 		self.cell_width = cell_width
 		self.h_sep = h_sep
@@ -1143,6 +1154,7 @@ class Padding(Widget):
 		be clipped to fit within the space given.  For example,
 		if align is 'left' then w may be clipped on the right.
 		"""
+		self.__super.__init__()
 
 		at,aa,wt,wa=decompose_align_width(align, width, PaddingError)
 		
@@ -1290,6 +1302,7 @@ class Filler(BoxWidget):
 		reducing the valign amount when necessary.  If height still 
 		cannot be satisfied it will also be reduced.
 		"""
+		self.__super.__init__()
 		vt,va,ht,ha=decompose_valign_height(valign,height,FillerError)
 		
 		self.body = body
@@ -1453,6 +1466,7 @@ class Overlay(BoxWidget):
 		when determining the size and position of top_w.  bottom_w is
 		always rendered the full size available "below" top_w.
 		"""
+		self.__super.__init__()
 
 		at,aa,wt,wa=decompose_align_width(align, width, OverlayError)
 		vt,va,ht,ha=decompose_valign_height(valign,height,OverlayError)
@@ -1740,6 +1754,8 @@ class Frame(BoxWidget):
 		footer -- a flow widget for below the body (or None)
 		focus_part -- 'header', 'footer' or 'body'
 		"""
+		self.__super.__init__()
+
 		self._header = header
 		self._body = body
 		self._footer = footer
@@ -1993,6 +2009,9 @@ class AttrWrap(Widget):
 		return canv
 	render = CanvasCache.widget_render_fetch(render)
 
+	def selectable(self):
+		return self.w.selectable()
+
 	def __getattr__(self,name):
 		"""Call getattr on wrapped widget."""
 		return getattr(self.w, name)
@@ -2014,6 +2033,9 @@ class WidgetWrap(Widget):
 		self.invalidate()
 	w = property(get_w, set_w)
 	
+	def selectable(self):
+		return self.w.selectable()
+
 	def __getattr__(self,name):
 		"""Call self.w if name is in Widget interface definition."""
 		if name in ['get_cursor_coords','get_pref_col','keypress',
@@ -2044,6 +2066,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 		If the pile is treated as a box widget there must be at least
 		one 'weight' tuple in widget_list.
 		"""
+		self.__super.__init__()
 		self.widget_list = widget_list
 		self.item_types = []
 		for i in range(len(widget_list)):
@@ -2384,6 +2407,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 		box widget because in that case all columns are treated as box
 		widgets.
 		"""
+		self.__super.__init__()
 		self.widget_list = widget_list
 		self.column_types = []
 		for i in range(len(widget_list)):
@@ -2702,7 +2726,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 
 
 
-class BoxAdapter(Widget):
+class BoxAdapter(FlowWidget):
 	"""
 	Adapter for using a box widget where a flow widget would usually go
 	"""
@@ -2714,6 +2738,7 @@ class BoxAdapter(Widget):
 		box_widget -- box widget
 		height -- number of rows for box widget
 		"""
+		self.__super.__init__()
 		
 		self.height = height
 		self.box_widget = box_widget

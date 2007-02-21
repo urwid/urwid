@@ -21,6 +21,7 @@
 
 __all__ = [
 	'BoxWidget','Frame','Filler','ListBox','SimpleListWalker',
+	'ListWalker','Signals',
 	'WidgetWrap','AttrWrap','Padding','Divider','LineBox','SolidFill',
 	'Columns','Pile','GridFlow','BoxAdapter','Overlay',
 	'FlowWidget','Text','Edit','IntEdit','Button','CheckBox','RadioButton',

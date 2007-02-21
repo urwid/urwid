@@ -27,39 +27,49 @@ from widget import *
 class ListWalkerError(Exception):
 	pass
 
-class SimpleListWalker(object):
+class ListWalker(object):
+	__metaclass__ = MetaSignals
+	
+	signals = ["modified"]
+
+	def _modified(self):
+		Signals.emit(self, "modified")
+
+
+class SimpleListWalker(ListDetectModifications, ListWalker):
 	def __init__(self, contents):
 		"""
 		contents -- list to walk
+		modified_callback -- function to call when list has changed
 		"""
-		self.contents = contents
-		if not type(contents) == type([]) and not hasattr( 
-			contents, '__getitem__' ):
+		if not type(contents) == type([]) and not hasattr(contents, '__getitem__'):
 			raise ListWalkerError, "SimpleListWalker expecting list like object, got: "+`contents`
+		ListDetectModifications.__init__(self, contents)
 		self.focus = 0
-	
-	def _clamp_focus(self):
-		if self.focus >= len(self.contents):
-			self.focus = len(self.contents)-1
+
+	def _modified(self):
+		if self.focus >= len(self):
+			self.focus = len(self)-1
+		super(SimpleListWalker, self)._modified()
 	
 	def get_focus(self):
 		"""Return (focus widget, focus position)."""
-		if len(self.contents) == 0: return None, None
-		self._clamp_focus()
-		return self.contents[self.focus], self.focus
+		if len(self) == 0: return None, None
+		return self[self.focus], self.focus
 
 	def set_focus(self, position):
 		"""Set focus position."""
 		assert type(position) == type(1)
 		self.focus = position
+		self._modified()
 
 	def get_next(self, start_from):
 		"""
 		Return (widget after start_from, position after start_from).
 		"""
 		pos = start_from + 1
-		if len(self.contents) <= pos: return None, None
-		return self.contents[pos],pos
+		if len(self) <= pos: return None, None
+		return self[pos],pos
 
 	def get_prev(self, start_from):
 		"""
@@ -67,7 +77,7 @@ class SimpleListWalker(object):
 		"""
 		pos = start_from - 1
 		if pos < 0: return None, None
-		return self.contents[pos],pos
+		return self[pos],pos
 		
 
 class ListBoxError(Exception):
@@ -84,6 +94,8 @@ class ListBox(BoxWidget):
 			self.body = body
 		else:
 			self.body = SimpleListWalker(body)
+
+		Signals.connect(self.body, "modified", self.invalidate)
 
 		# offset_rows is the number of rows between the top of the view
 		# and the top of the focused item
@@ -229,6 +241,8 @@ class ListBox(BoxWidget):
 		"""
 		Render listbox and return canvas.
 		"""
+		visible_widgets = []
+
 		middle, top, bottom = self.calculate_visible( 
 			(maxcol, maxrow), focus=focus)
 		if middle is None:
@@ -247,9 +261,11 @@ class ListBox(BoxWidget):
 				raise ListBoxError, "Widget %s at position %s within listbox calculated %d rows but rendered %d!"% (`widget`,`w_pos`,w_rows, canvas.rows())
 			rows += w_rows
 			combinelist.append((canvas, w_pos, False))
+			visible_widgets.append(widget)
 		
 		focus_canvas = focus_widget.render((maxcol,), focus=focus)
-		
+		visible_widgets.append(focus_widget)
+
 		if focus_canvas.rows() != focus_rows:
 			raise ListBoxError, "Focus Widget %s at position %s within listbox calculated %d rows but rendered %d!"% (`focus_widget`,`focus_pos`,focus_rows, focus_canvas.rows())
 		c_cursor = focus_canvas.cursor
@@ -265,6 +281,7 @@ class ListBox(BoxWidget):
 				raise ListBoxError, "Widget %s at position %s within listbox calculated %d rows but rendered %d!"% (`widget`,`w_pos`,w_rows, canvas.rows())
 			rows += w_rows
 			combinelist.append((canvas, w_pos, False))
+			visible_widgets.append(widget)
 		
 		final_canvas = CanvasCombine((self, (maxcol, maxrow), focus), 
 			combinelist)
@@ -284,7 +301,10 @@ class ListBox(BoxWidget):
 			assert trim_bottom==0 and self.body.get_next(bottom_pos) == (None,None), "Listbox contents too short!  Probably urwid's fault (please report): %s" % `top,middle,bottom`
 			final_canvas.pad_trim_top_bottom(0, maxrow - rows)
 
+		CanvasCache.store(final_canvas, visible_widgets)
+
 		return final_canvas
+	render = CanvasCache.widget_render_fetch(render)
 
 
 	def set_focus_valign(self, valign):
@@ -343,6 +363,7 @@ class ListBox(BoxWidget):
 		"""
 		Finish setting the position now that we have maxcol & maxrow.
 		"""
+		self.invalidate()
 		if self.set_focus_valign_pending is not None:
 			return self._set_focus_valign_complete(
 				(maxcol,maxrow),focus )
@@ -416,6 +437,7 @@ class ListBox(BoxWidget):
 				raise ListBoxError, "Invalid offset_inset: %s, only %s rows in target!" %(`offset_inset`, `tgt_rows`)
 			self.offset_rows = 0
 			self.inset_fraction = (-offset_inset,tgt_rows)
+		self.invalidate()
 				
 	def update_pref_col_from_focus(self, (maxcol,maxrow) ):
 		"""Update self.pref_col from the focus widget."""
@@ -528,6 +550,7 @@ class ListBox(BoxWidget):
 		for row in attempt_rows:
 			if target.move_cursor_to_coords((maxcol,),pref_col,row):
 				break
+		self.invalidate()
 
 	def get_focus_offset_inset(self,(maxcol, maxrow)):
 		"""Return (offset rows, inset rows) for focus widget."""
@@ -1189,3 +1212,8 @@ class ListBox(BoxWidget):
 				l.append( 'top' )
 
 		return l
+
+
+
+
+	
