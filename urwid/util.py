@@ -25,7 +25,8 @@ from __future__ import nested_scopes
 import escape
 
 import encodings
-
+import weakref
+from UserList import UserList
 
 try:
 	import str_util
@@ -39,6 +40,10 @@ is_wide_char = str_util.is_wide_char
 move_next_char = str_util.move_next_char
 move_prev_char = str_util.move_prev_char
 within_double_byte = str_util.within_double_byte
+
+
+try: enumerate
+except: enumerate = lambda x: zip(range(len(x)),x) # old python
 
 
 # Try to determine if using a supported double-byte encoding
@@ -883,6 +888,93 @@ def is_mouse_press( ev ):
 
 
 
+class MetaSuper(type):
+	"""adding .__super"""
+	def __init__(cls, name, bases, d):
+		super(MetaSuper, cls).__init__(name, bases, d)
+		if hasattr(cls, "_%s__super" % name):
+			raise AttributeError, "Class has same name as one of its super classes"
+		setattr(cls, "_%s__super" % name, super(cls))
 
+
+class MetaSignals(type):
+	"""
+	register the list of signals in the class varable signals,
+	including signals in superclasses.
+	"""
+	def __init__(cls, name, bases, d):
+		signals = d.get("signals", [])
+		for superclass in cls.__bases__:
+			signals.extend(getattr(superclass, 'signals', []))
+		signals = dict([(x,None) for x in signals]).keys()
+		d["signals"] = signals
+		Signals.register(cls, signals)
+		super(MetaSignals, cls).__init__(name, bases, d)
+
+
+class Signals(object):
+	_connections = weakref.WeakKeyDictionary()
+	_supported = {}
+
+	def register(cls, sig_cls, signals):
+		cls._supported[sig_cls] = signals
+	register = classmethod(register)
+
+	def connect(cls, obj, name, callback, user_arg=None):
+		sig_cls = obj.__class__
+		if not name in cls._supported.get(sig_cls, []):
+			raise NameError, "No such signal %r for object %r" % \
+				(name, obj)
+		d = cls._connections.setdefault(obj, {})
+		d.setdefault(name, []).append((callback, user_arg))
+	connect = classmethod(connect)
+		
+	def disconnect(cls, obj, name, callback, user_arg=None):
+		d = cls._connections.get(obj, {})
+		if name not in d:
+			return
+		if (callback, user_arg) not in d[name]:
+			return
+		d[name].remove((callback, user_arg))
+	disconnect = classmethod(disconnect)
+ 
+	def emit(cls, obj, name, *args):
+		result = False
+		d = cls._connections.get(obj, {})
+		for callback, user_arg in d.get(name, []):
+			args_copy = args
+			if user_arg is not None:
+				args_copy = args + [user_arg]
+			result |= bool(callback(*args_copy))
+		return result
+	emit = classmethod(emit)
 	
+
+
+def _call_modified(fn):
+	def call_modified_wrapper(self, *args):
+		rval = fn(self, *args)
+		self._modified()
+		return rval
+	return call_modified_wrapper
+
+class ListDetectModifications(UserList):
+	def _modified(self):
+		pass
+
+	__add__ = _call_modified(UserList.__add__)
+	__delitem__ = _call_modified(UserList.__delitem__)
+	__delslice__ = _call_modified(UserList.__delslice__)
+	__iadd__ = _call_modified(UserList.__iadd__)
+	__imul__ = _call_modified(UserList.__imul__)
+	__rmul__ = _call_modified(UserList.__rmul__)
+	__setitem__ = _call_modified(UserList.__setitem__)
+	__setslice__ = _call_modified(UserList.__setslice__)
+	append = _call_modified(UserList.append)
+	extend = _call_modified(UserList.extend)
+	insert = _call_modified(UserList.insert)
+	pop = _call_modified(UserList.pop)
+	remove = _call_modified(UserList.remove)
+	reverse = _call_modified(UserList.reverse)
+	sort = _call_modified(UserList.sort)
 
