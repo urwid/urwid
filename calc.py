@@ -564,8 +564,8 @@ class CalcDisplay:
 		]
 	
 	def __init__(self):
-		self.col_list = [ HelpColumn(), CellColumn("A") ]
-		self.columns = urwid.Columns( self.col_list, 1 )
+		self.columns = urwid.Columns([HelpColumn(), CellColumn("A")], 1)
+		self.col_list = self.columns.widget_list
 		self.columns.set_focus_column( 1 )
 		self.view = urwid.AttrWrap( self.columns, 'body' )
 		self.col_link = {}

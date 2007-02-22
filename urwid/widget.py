@@ -178,7 +178,7 @@ class Text(FlowWidget):
 	
 	def invalidate(self):
 		self._cache_maxcol = None
-		Widget.invalidate(self)
+		self.__super.invalidate()
 
 	def set_text(self,markup):
 		"""Set content of text widget."""
@@ -2417,7 +2417,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 		widgets.
 		"""
 		self.__super.__init__()
-		self.widget_list = widget_list
+		self.widget_list = ListDetectModifications(widget_list)
 		self.column_types = []
 		for i in range(len(widget_list)):
 			w = widget_list[i]
@@ -2429,6 +2429,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 				self.column_types.append((f,width))
 			else:
 				raise ColumnsError, "widget list item invalid: %s" % `w`
+		self.widget_list.set_modified_callback(self.invalidate)
 		
 		self.dividechars = dividechars
 		self.focus_col = focus_column
@@ -2439,7 +2440,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 	
 	def invalidate(self):
 		self._cache_maxcol = None
-		Widget.invalidate(self)
+		self.__super.invalidate()
 
 	def set_focus_column( self, num ):
 		"""Set the column in focus by its index in self.widget_list."""

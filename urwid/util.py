@@ -961,6 +961,9 @@ def _call_modified(fn):
 class ListDetectModifications(UserList):
 	def _modified(self):
 		pass
+	
+	def set_modified_callback(self, callback):
+		self._modified = callback
 
 	__add__ = _call_modified(UserList.__add__)
 	__delitem__ = _call_modified(UserList.__delitem__)
