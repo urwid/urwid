@@ -2033,14 +2033,23 @@ class WidgetWrap(Widget):
 		self.invalidate()
 	w = property(get_w, set_w)
 	
+	def render(self, size, focus = False ):
+		"""Render self.w."""
+		# This method informs the cache about the relationship
+		# between self.w and self.
+		canv = self.w.render(size, focus=focus)
+		canv = CompositeCanvas((self, size, focus), canv)
+		CanvasCache.store(canv, [self.w])
+		return canv
+	render = CanvasCache.widget_render_fetch(render)
+
 	def selectable(self):
 		return self.w.selectable()
 
 	def __getattr__(self,name):
 		"""Call self.w if name is in Widget interface definition."""
 		if name in ['get_cursor_coords','get_pref_col','keypress',
-			'move_cursor_to_coords','render','rows','selectable',
-			'mouse_event',]:
+			'move_cursor_to_coords','rows','mouse_event',]:
 			return getattr(self._w, name)
 		raise AttributeError, name
 

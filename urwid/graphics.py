@@ -229,6 +229,7 @@ class BarGraph(BoxWidget):
 			hlines = hlines[:] # shallow copy
 			hlines.sort()
 		self.data = bardata, top, hlines
+		self.invalidate()
 	
 	def get_data(self, (maxcol, maxrow)):
 		"""
@@ -256,6 +257,7 @@ class BarGraph(BoxWidget):
 		"""
 		assert width is None or width > 0
 		self.bar_width = width
+		self.invalidate()
 	
 	def calculate_bar_widths(self, (maxcol, maxrow), bardata ):
 		"""
@@ -465,7 +467,6 @@ class BarGraph(BoxWidget):
 		Render BarGraph.
 		"""
 		disp = self.calculate_display( (maxcol,maxrow) )
-		#assert 0, disp
 		
 		combinelist = []
 		for y_count, row in disp:
@@ -490,8 +491,10 @@ class BarGraph(BoxWidget):
 			assert c.rows() == 1, "Invalid characters in BarGraph!"
 			combinelist += [(c, None, False)] * y_count
 			
-		return CanvasCombine((self, (maxcol, maxrow), False), 
+		canv = CanvasCombine((self, (maxcol, maxrow), False), 
 			combinelist)
+		return canv
+	render = CanvasCache.widget_render(render)
 
 
 
