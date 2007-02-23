@@ -34,7 +34,7 @@ class ListWalker(object):
 
 	def _modified(self):
 		Signals.emit(self, "modified")
-
+	
 
 class SimpleListWalker(ListDetectModifications, ListWalker):
 	def __init__(self, contents):
@@ -51,6 +51,16 @@ class SimpleListWalker(ListDetectModifications, ListWalker):
 		if self.focus >= len(self):
 			self.focus = len(self)-1
 		super(SimpleListWalker, self)._modified()
+	
+	def set_modified_callback(self, callback):
+		"""
+		This function inherited from ListDetectModifications is not 
+		implemented in SimleListWalker.
+		
+		Use Signals.connect(list_walker, "modified", ...) instead.
+		"""
+		raise NotImplementedError('Use Signals.connect('
+			'list_walker, "modified", ...) instead.')
 	
 	def get_focus(self):
 		"""Return (focus widget, focus position)."""

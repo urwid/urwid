@@ -170,7 +170,7 @@ static PyObject * get_width(PyObject *self, PyObject *args)
 
 //======================================================================
 static char decode_one_doc[] =
-"decode_one(string text, int pos) -> (int ord, int nextpos)\n\n\  
+"decode_one(string text, int pos) -> (int ord, int nextpos)\n\n\
 Return (ordinal at pos, next position) for UTF-8 encoded text.\n\n\
 text -- string text\n\
 pos -- position in text";

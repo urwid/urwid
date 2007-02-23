@@ -2076,7 +2076,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 		one 'weight' tuple in widget_list.
 		"""
 		self.__super.__init__()
-		self.widget_list = widget_list
+		self.widget_list = ListDetectModifications(widget_list)
 		self.item_types = []
 		for i in range(len(widget_list)):
 			w = widget_list[i]
@@ -2092,7 +2092,8 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 				self.item_types.append((f,height))
 			else:
 				raise PileError, "widget list item invalid %s" % `w`
-			
+		self.widget_list.set_modified_callback(self.invalidate)
+		
 		self.set_focus(focus_item)
 		self.pref_col = None
 
