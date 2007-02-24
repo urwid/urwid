@@ -2057,10 +2057,11 @@ class PileError(Exception):
 	pass
 		
 class Pile(Widget): # either FlowWidget or BoxWidget
-	def __init__(self, widget_list, focus_item=0):
+	def __init__(self, widget_list, focus_item=None):
 		"""
 		widget_list -- list of widgets
-		focus_item -- widget or integer index
+		focus_item -- widget or integer index, if None the first
+			selectable widget will be chosen.
 
 		widget_list may also contain tuples such as:
 		('flow', widget) always treat widget as a flow widget
@@ -2086,14 +2087,20 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 				f, widget = w
 				self.widget_list[i] = widget
 				self.item_types.append((f,None))
+				w = widget
 			elif w[0] in ('fixed', 'weight'):
 				f, height, widget = w
 				self.widget_list[i] = widget
 				self.item_types.append((f,height))
+				w = widget
 			else:
 				raise PileError, "widget list item invalid %s" % `w`
+			if focus_item is None and w.selectable():
+				focus_item = i
 		self.widget_list.set_modified_callback(self.invalidate)
 		
+		if focus_item is None:
+			focus_item = 0
 		self.set_focus(focus_item)
 		self.pref_col = None
 
@@ -2396,12 +2403,13 @@ class ColumnsError(Exception):
 
 		
 class Columns(Widget): # either FlowWidget or BoxWidget
-	def __init__(self, widget_list, dividechars=0, focus_column=0,
+	def __init__(self, widget_list, dividechars=0, focus_column=None,
 		min_width=1, box_columns=None):
 		"""
 		widget_list -- list of flow widgets or list of box widgets
 		dividechars -- blank characters between columns
-		focus_column -- index into widget_list of column in focus
+		focus_column -- index into widget_list of column in focus,
+			if None the first selectable widget will be chosen.
 		min_width -- minimum width for each column before it is hidden
 		box_columns -- a list of column indexes containing box widgets
 			whose maxrow is set to the maximum of the rows 
@@ -2428,11 +2436,17 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 				f,width,widget = w
 				self.widget_list[i] = widget
 				self.column_types.append((f,width))
+				w = widget
 			else:
 				raise ColumnsError, "widget list item invalid: %s" % `w`
+			if focus_column is None and w.selectable():
+				focus_column = i
+				
 		self.widget_list.set_modified_callback(self.invalidate)
 		
 		self.dividechars = dividechars
+		if focus_column is None:
+			focus_column = 0
 		self.focus_col = focus_column
 		self.pref_col = None
 		self.min_width = min_width

@@ -120,7 +120,7 @@ class ListBox(BoxWidget):
 		self.pref_col = 'left'
 
 		# variable for delayed focus change used by set_focus
-		self.set_focus_pending = None
+		self.set_focus_pending = 'first selectable'
 		
 		# variable for delayed valign change used by set_focus_valign
 		self.set_focus_valign_pending = None
@@ -358,6 +358,7 @@ class ListBox(BoxWidget):
 		"""
 		vt,va = self.set_focus_valign_pending
 		self.set_focus_valign_pending = None
+		self.set_focus_pending = None
 
 		focus_widget, focus_pos = self.body.get_focus()
 		if focus_widget is None:
@@ -369,15 +370,47 @@ class ListBox(BoxWidget):
 
 		self.shift_focus((maxcol, maxrow), rtop)
 		
+	def _set_focus_first_selectable(self, (maxcol, maxrow), focus):
+		"""
+		Choose the first visible, selectable widget below the
+		current focus as the focus widget.
+		"""
+		self.set_focus_valign_pending = None
+		self.set_focus_pending = None
+		middle, top, bottom = self.calculate_visible( 
+			(maxcol, maxrow), focus=focus)
+		if middle is None:
+			return
+		
+		row_offset, focus_widget, focus_pos, focus_rows, cursor = middle
+		trim_top, fill_above = top
+		trim_bottom, fill_below = bottom
+
+		if focus_widget.selectable():
+			return
+
+		if trim_bottom:
+			fill_below = fill_below[:-1]
+		new_row_offset = row_offset + focus_rows
+		for widget, pos, rows in fill_below:
+			if widget.selectable():
+				self.body.set_focus(pos)
+				self.shift_focus((maxcol, maxrow), 
+					new_row_offset)
+				return
+			new_row_offset += rows
 
 	def _set_focus_complete(self, (maxcol, maxrow), focus):
 		"""
 		Finish setting the position now that we have maxcol & maxrow.
 		"""
 		self.invalidate()
+		if self.set_focus_pending == "first selectable":
+			return self._set_focus_first_selectable(
+				(maxcol,maxrow), focus)
 		if self.set_focus_valign_pending is not None:
 			return self._set_focus_valign_complete(
-				(maxcol,maxrow),focus )
+				(maxcol,maxrow), focus)
 		coming_from, focus_widget, focus_pos = self.set_focus_pending
 		self.set_focus_pending = None
 		
