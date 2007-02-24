@@ -171,11 +171,9 @@ class ListBox(BoxWidget):
 			elif effective_cy >= maxrow: # cursor below bottom?
 				offset_rows = maxrow - cy -1
 		
-		#    set trim_top and trim_bottom by focus trimmimg
+		#    set trim_top by focus trimmimg
 		trim_top = inset_rows
 		focus_rows = focus_widget.rows((maxcol,),True)
-		trim_bottom = focus_rows + offset_rows - inset_rows - maxrow
-		if trim_bottom < 0: trim_bottom = 0
 		
 		# 2. collect the widgets above the focus
 		pos = focus_pos
@@ -195,6 +193,9 @@ class ListBox(BoxWidget):
 				trim_top = p_rows-fill_lines
 				break
 			fill_lines -= p_rows
+		
+		trim_bottom = focus_rows + offset_rows - inset_rows - maxrow
+		if trim_bottom < 0: trim_bottom = 0
 
 		# 3. collect the widgets below the focus
 		pos = focus_pos
