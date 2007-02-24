@@ -30,7 +30,7 @@ Features:
 import urwid
 import urwid.curses_display
 		
-class FibonacciWalker:
+class FibonacciWalker(urwid.ListWalker):
 	"""ListWalker-compatible class for browsing fibonacci set.
 	
 	positions returned are (value at position-1, value at poistion) tuples.
@@ -41,11 +41,6 @@ class FibonacciWalker:
 	
 	def _get_at_pos(self, pos):
 		"""Return a widget and the position passed."""
-		
-		# Generating widgets this way does not allow the line
-		# translations to be cached and would be inefficient if the 
-		# NumericLayour class wasn't so simple (no searching in the 
-		# text the way StandardTextLayout does)  
 		return urwid.Text("%d"%pos[1], layout=self.numeric_layout), pos
 	
 	def get_focus(self): 
@@ -53,6 +48,7 @@ class FibonacciWalker:
 	
 	def set_focus(self, focus):
 		self.focus = focus
+		self._modified()
 	
 	def get_next(self, start_from):
 		a, b = start_from
@@ -64,7 +60,7 @@ class FibonacciWalker:
 		focus = b-a, a
 		return self._get_at_pos( focus )
 
-class FibonacciDisplay:
+class FibonacciDisplay(object):
 	palette = [
 		('body','black','dark cyan', 'standout'),
 		('foot','light gray', 'black'),

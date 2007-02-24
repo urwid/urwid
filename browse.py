@@ -36,49 +36,49 @@ import urwid.raw_display
 import os
 
 
-class TreeWidget(urwid.FlowWidget):
+class TreeWidget(urwid.WidgetWrap):
 	"""A widget representing something in the file tree."""
-	
-	def __init__(self, dir, name, index):
+	def __init__(self, dir, name, index, display):
 		self.dir = dir
 		self.name = name
 		self.index = index
-		self.widget = None # subclass will set this
-		self.selected = False
-		
+
 		parent, _ign = os.path.split(dir)
 		# we're at the top if parent is same as dir
 		if dir == parent:
 			self.depth = 0
 		else:
 		 	self.depth = dir.count(dir_sep())
-	
-	def rows(self, (maxcol,), focus=False):
-		"""Return rows from display widget."""
-		return self.widget.rows((maxcol,), focus)
+
+		widget = urwid.Text(["  "*self.depth, display])
+		self.widget = widget
+		w = urwid.AttrWrap(widget, None)
+		self.__super.__init__(w)
+		self.selected = False
+		self.update_w()
+		
 	
 	def selectable(self):
-		"""Default to selectable."""
 		return True
-
+	
 	def keypress(self, (maxcol,), key):
 		"""Toggle selected on space, ignore other keys."""
 
 		if key == " ":
 			self.selected = not self.selected
+			self.update_w()
 		else:
 			return key
 
-	def render(self, (maxcol,), **args ):
-		"""Wrap display widget with appropriate attribute."""
-
+	def update_w(self):
+		"""Update the attributes of self.widget based on self.selected.
+		"""
 		if self.selected:
-			wrap = urwid.AttrWrap( self.widget, 'selected', 
-				'selected focus')
+			self.w.attr = 'selected'
+			self.w.focus_attr = 'selected focus'
 		else:
-			wrap = urwid.AttrWrap( self.widget, 'body', 'focus')
-	
-		return wrap.render( (maxcol,), ** args )
+			self.w.attr = 'body'
+			self.w.focus_attr = 'focus'
 		
 	def first_child(self):
 		"""Default to have no children."""
@@ -107,45 +107,41 @@ class TreeWidget(urwid.FlowWidget):
 
 class EmptyWidget(TreeWidget):
 	"""A marker for expanded directories with no contents."""
-	
-	def __init__(self, dir, name, index):
-		TreeWidget.__init__(self, dir, name, index)
-		self.widget = urwid.Text( [ "  "*self.depth,
-			('flag',"(empty directory)")])
 
-	def selectable(self): 
+	def __init__(self, dir, name, index):
+		self.__super.__init__(dir, name, index, 
+			('flag',"(empty directory)"))
+	
+	def selectable(self):
 		return False
+	
 
 class ErrorWidget(TreeWidget):
 	"""A marker for errors reading directories."""
 
 	def __init__(self, dir, name, index):
-		TreeWidget.__init__(self, dir, name, index)
-		self.widget = urwid.Text( [ "  "*self.depth,
-			('error',"(error/permission denied)")])
-
-	def selectable(self): 
+		self.__super.__init__(dir, name, index, 
+			('error',"(error/permission denied)"))
+	
+	def selectable(self):
 		return False
-
 
 class FileWidget(TreeWidget):
 	"""Widget for a simple file (or link, device node, etc)."""
 	
 	def __init__(self, dir, name, index):
-		TreeWidget.__init__(self, dir, name, index)
-		self.widget = urwid.Text("  "*self.depth + name)
+		self.__super.__init__(dir, name, index, name)
 
 
 class DirectoryWidget(TreeWidget):
 	"""Widget for a directory."""
 	
 	def __init__(self, dir, name, index ):
-		TreeWidget.__init__(self, dir, name, index)
+		self.__super.__init__(dir, name, index, "")
 		
 		# check if this directory starts expanded
 		self.expanded = starts_expanded( os.path.join(dir,name) )
 		
-		self.widget = urwid.Text("")
 		self.update_widget()
 	
 	def update_widget(self):
@@ -168,7 +164,7 @@ class DirectoryWidget(TreeWidget):
 			self.expanded = False
 			self.update_widget()
 		else:
-			return TreeWidget.keypress(self, (maxcol,), key)
+			return self.__super.keypress((maxcol,), key)
 	
 	def mouse_event(self, (maxcol,), event, button, col, row, focus):
 		if event != 'mouse press' or button!=1:
@@ -308,7 +304,7 @@ class Directory:
 		
 
 
-class DirectoryWalker:
+class DirectoryWalker(urwid.ListWalker):
 	"""ListWalker-compatible class for browsing directories.
 	
 	positions used are directory,filename tuples."""
@@ -328,6 +324,7 @@ class DirectoryWalker:
 	def set_focus(self, focus):
 		parent, name = focus
 		self.focus = parent, name
+		self._modified()
 	
 	def get_next(self, start_from):
 		parent, name = start_from
