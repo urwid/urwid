@@ -44,7 +44,7 @@ def example_min():
 	ui = urwid.curses_display.Screen()
 
 	def run():
-		canvas = urwid.Canvas( ["Hello World"] )
+		canvas = urwid.TextCanvas(None, ["Hello World"])
 		ui.draw_screen( (20, 1), canvas )
 		
 		while not ui.get_input():
@@ -176,8 +176,8 @@ def example_frlb():
 
 	class Conversation:
 		def __init__(self):
-			self.items = [ self.new_question() ]
-			self.listbox = urwid.ListBox( self.items )
+			self.listbox = urwid.ListBox([self.new_question()])
+			self.items = self.listbox.body
 			instruct = urwid.Text("Press F8 to exit.")
 			header = urwid.AttrWrap( instruct, 'header' )
 			self.top = urwid.Frame(self.listbox, header)
@@ -226,8 +226,8 @@ def example_lbcont():
 
 	class Conversation:
 		def __init__(self):
-			self.items = [ self.new_question() ]
-			self.listbox = urwid.ListBox( self.items )
+			self.listbox = urwid.ListBox([self.new_question()])
+			self.items = self.listbox.body
 			instruct = urwid.Text("Press F8 to exit.")
 			header = urwid.AttrWrap( instruct, 'header' )
 			self.top = urwid.Frame(self.listbox, header)
@@ -365,14 +365,16 @@ def example_wanat():
 			return 1
 		def render( self, (maxcol,), focus=False ):
 			num_pudding = maxcol / len("Pudding")
-			return urwid.Canvas( ["Pudding"*num_pudding] )
+			return urwid.TextCanvas((self, (maxcol,), focus),
+				["Pudding"*num_pudding]) 
 
 	class BoxPudding( urwid.BoxWidget ):
 		def selectable( self ):
 			return False
 		def render( self, (maxcol, maxrow), focus=False ):
 			num_pudding = maxcol / len("Pudding")
-			return urwid.Canvas( ["Pudding"*num_pudding] * maxrow )
+			return urwid.TextCanvas((self, (maxcol, maxrow), focus),
+				["Pudding"*num_pudding] * maxrow)
 
 def example_wanat_new():
 	class NewPudding( urwid.FlowWidget ):
@@ -401,7 +403,8 @@ def example_wanat_multi():
 			else:
 				(maxcol, maxrow) = size
 			num_pudding = maxcol / len("Pudding")
-			return urwid.Canvas( ["Pudding"*num_pudding] * maxrow )
+			return urwid.TextCanvas((self, size, focus),
+				["Pudding"*num_pudding] * maxrow )
 
 examples["wsel"] = ["example_wsel"]
 def example_wsel():
@@ -417,7 +420,8 @@ def example_wsel():
 			pudding = self.pudding
 			if focus: 
 				pudding = pudding.upper()
-			return urwid.Canvas( [pudding*num_pudding] )
+			return urwid.TextCanvas((self, (maxcol,), focus),
+				[pudding*num_pudding] )
 		def keypress( self, (maxcol,), key ):
 			if len(key)>1:
 				return key
@@ -444,7 +448,8 @@ def example_wcur():
 			cursor = None
 			if focus:
 				cursor = self.get_cursor_coords((maxcol,))
-			return urwid.Canvas( ["Pudding"*num_pudding], [], cursor )
+			return urwid.TextCanvas((self, (maxcol,), focus),
+				["Pudding"*num_pudding], [], cursor )
 		def get_cursor_coords( self, (maxcol,) ):
 			col = min(self.cursor_col, maxcol-1)
 			return col, 0

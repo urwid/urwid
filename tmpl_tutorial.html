@@ -108,7 +108,7 @@ class provides access to the curses library.  Its member function
 <a href="reference.html#Screen-run_wrapper">run_wrapper</a> initializes
 curses full-screen mode and then calls the "run" function passed. It will
 also take care of restoring the screen when the "run" function exits.
-<li>A <a href="reference.html#Canvas">Canvas</a> is created
+<li>A <a href="reference.html#TextCanvas">TextCanvas</a> is created
 containing one row with the string "Hello World".
 <li>The canvas is passed to the 
 <a href="reference.html#Screen-draw_screen">draw_screen</a> function along
@@ -531,24 +531,17 @@ from the top or bottom of the ListBox.
 
 {body[pile]}
 <a href="reference.html#Pile">Pile</a>
- widgets are used to combine multiple flow widgets by stacking them
+ widgets are used to combine multiple widgets by stacking them
 vertically. A Pile can manage selectable widgets by keeping track of which
 widget is in focus and it can handle moving the focus between widgets when
 the user presses the UP and DOWN keys. A Pile will also work well when used 
 within a ListBox.
 <br><br>
 A Pile is selectable only if its focus widget is selectable. If you create
-a Pile containing one Text widget and one Edit widget be sure to call
-<a href="reference.html#Pile-set_focus">set_focus</a> 
-on the Pile widget or it won't be possible for the Edit widget
-to become the focus.
-<br><br>
-Pile widgets cannot be used with box widgets. If you want to stack two box
-widgets vertically you can wrap one of the box widgets with a
-<a href="reference.html#BoxAdapter">BoxAdapter</a> then put the BoxAdapter 
-in the header or footer of a 
-<a href="reference.html#Frame">Frame</a> with the other
-widget in the body of the Frame.
+a Pile containing one Text widget and one Edit widget the Pile will
+choose the Edit widget as its default focus widget.
+To change the pile's focus widget you can call
+<a href="reference.html#Pile-set_focus">set_focus</a>.
 {/body[pile]}
 
 <br clear="left"><hr>
@@ -562,7 +555,8 @@ focus between columns when the user presses the LEFT and RIGHT keys.
 Columns widgets also work well when used within a ListBox.
 <br><br>
 Columns widgets are selectable only if the column in focus is selectable.
-The 
+If a focus column is not specified the first selectable widget will be
+chosen as the focus column. The 
 <a href="reference.html#Columns-set_focus">set_focus</a>
 method may be used to select the focus column.
 {/body[cols]}

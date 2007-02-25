@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>Urwid 0.9.7.1 Tutorial</title>
+<title>Urwid ((version)) Tutorial</title>
 <style type="text/css">
 	h1 { text-align: center; }
 	h2 { margin: 40px 0 0 0; padding: 10px;  background: #6d96e8;}
@@ -13,7 +13,7 @@
 </style>
 <body>
 <a name="top"></a>
-<h1>Urwid 0.9.7.1 Tutorial</h1>
+<h1>Urwid ((version)) Tutorial</h1>
 
 <div style="text-align: center;">
 <a href="http://excess.org/urwid/">Urwid Home Page</a> /
@@ -91,7 +91,7 @@ import urwid
 ui = urwid.curses_display.Screen()
 
 def run():
-	canvas = urwid.Canvas( [&quot;Hello World&quot;] )
+	canvas = urwid.TextCanvas(None, [&quot;Hello World&quot;])
 	ui.draw_screen( (20, 1), canvas )
 
 	while not ui.get_input():
@@ -105,7 +105,7 @@ class provides access to the curses library.  Its member function
 <a href="reference.html#Screen-run_wrapper">run_wrapper</a> initializes
 curses full-screen mode and then calls the "run" function passed. It will
 also take care of restoring the screen when the "run" function exits.
-<li>A <a href="reference.html#Canvas">Canvas</a> is created
+<li>A <a href="reference.html#TextCanvas">TextCanvas</a> is created
 containing one row with the string "Hello World".
 <li>The canvas is passed to the 
 <a href="reference.html#Screen-draw_screen">draw_screen</a> function along
@@ -121,7 +121,7 @@ Creating canvases directly is generally only done when
 writing custom widget classes.  Note that the draw_screen
 function must be passed a canvas and a screen size that matches it.
 
-<div align="center"><pre><span style="color:black;background:silver">Hello World</span><span style="color:black;background:silver">         </span>
+<div align="center"><pre><span style="color:black;background:silver">Hello World</span>
 </pre></div>
 
 <br clear="left">
@@ -417,7 +417,7 @@ widget so it supports the same wrapping and alignment modes.
 <div class="shot"><pre><span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">What is your name?   </span>
-<span style="color:black;background:silver"><u> </u>                    </span>
+<span style="color:silver;background:black"> </span><span style="color:black;background:silver">                    </span>
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
@@ -426,15 +426,15 @@ widget so it supports the same wrapping and alignment modes.
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">What is your name?   </span>
 <span style="color:black;background:silver">Arthur, King of the  </span>
-<span style="color:black;background:silver">Britons<u> </u>             </span>
+<span style="color:black;background:silver">Britons</span><span style="color:silver;background:black"> </span><span style="color:black;background:silver">             </span>
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
 </pre></div>
 <div class="shot"><pre><span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
-<span style="color:black;background:silver">Nice to meet you,    </span>
+<span style="color:black;background:silver">What is your name?   </span>
 <span style="color:black;background:silver">Arthur, King of the  </span>
-<span style="color:black;background:silver">Britons.             </span>
+<span style="color:black;background:silver">Britons</span><span style="color:silver;background:black"> </span><span style="color:black;background:silver">             </span>
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
 </pre></div>
@@ -453,8 +453,8 @@ import urwid
 
 class Conversation:
 	def __init__(self):
-		self.items = [ self.new_question() ]
-		self.listbox = urwid.ListBox( self.items )
+		self.listbox = urwid.ListBox([self.new_question()])
+		self.items = self.listbox.body
 		instruct = urwid.Text(&quot;Press F8 to exit.&quot;)
 		header = urwid.AttrWrap( instruct, 'header' )
 		self.top = urwid.Frame(self.listbox, header)
@@ -519,7 +519,7 @@ but the ListBox will still be displaying the old list.
 
 <div class="shot"><pre><span style="color:black;background:teal">Press F8 to exit.    </span>
 <span style="color:black;background:silver">What is your name?</span><span style="color:black;background:silver">   </span>
-<span style="color:black;background:silver"><u> </u>                    </span>
+<span style="color:silver;background:black"> </span><span style="color:black;background:silver">                    </span>
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
 <span style="color:black;background:silver">                     </span>
@@ -527,7 +527,7 @@ but the ListBox will still be displaying the old list.
 </pre></div>
 <div class="shot"><pre><span style="color:black;background:teal">Press F8 to exit.    </span>
 <span style="color:black;background:silver">What is your name?</span><span style="color:black;background:silver">   </span>
-<span style="color:black;background:silver">Tim t<u> </u>               </span>
+<span style="color:black;background:silver">Tim t</span><span style="color:silver;background:black"> </span><span style="color:black;background:silver">               </span>
 <span style="color:black;background:silver">Nice to meet you, Tim</span>
 <span style="color:black;background:silver">t</span><span style="color:black;background:silver">                    </span>
 <span style="color:black;background:silver">                     </span>
@@ -535,7 +535,7 @@ but the ListBox will still be displaying the old list.
 </pre></div>
 <div class="shot"><pre><span style="color:black;background:teal">Press F8 to exit.    </span>
 <span style="color:black;background:silver">What is your name?</span><span style="color:black;background:silver">   </span>
-<span style="color:black;background:silver">Tim the Ench<u> </u>        </span>
+<span style="color:black;background:silver">Tim the Ench</span><span style="color:silver;background:black"> </span><span style="color:black;background:silver">        </span>
 <span style="color:black;background:silver">Nice to meet you, Tim</span>
 <span style="color:black;background:silver">the Ench</span><span style="color:black;background:silver">             </span>
 <span style="color:black;background:silver">                     </span>
@@ -543,7 +543,7 @@ but the ListBox will still be displaying the old list.
 </pre></div>
 <div class="shot"><pre><span style="color:black;background:teal">Press F8 to exit.    </span>
 <span style="color:black;background:silver">What is your name?</span><span style="color:black;background:silver">   </span>
-<span style="color:black;background:silver">Tim the Enchanter<u> </u>   </span>
+<span style="color:black;background:silver">Tim the Enchanter</span><span style="color:silver;background:black"> </span><span style="color:black;background:silver">   </span>
 <span style="color:black;background:silver">Nice to meet you, Tim</span>
 <span style="color:black;background:silver">the Enchanter</span><span style="color:black;background:silver">        </span>
 <span style="color:black;background:silver">                     </span>
@@ -634,7 +634,7 @@ does most of the hard work:
 <span style="color:black;background:silver">Nice to meet you, Abe</span><span style="color:black;background:silver">  </span>
 <span style="color:black;background:silver">                       </span>
 <span style="color:black;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
-<span style="color:black;background:silver">Bob<u> </u>                   </span>
+<span style="color:black;background:silver">Bob</span><span style="color:silver;background:black"> </span><span style="color:black;background:silver">                   </span>
 <span style="color:black;background:silver">                       </span>
 <span style="color:black;background:silver">                       </span>
 <span style="color:black;background:silver">                       </span>
@@ -654,7 +654,7 @@ does most of the hard work:
 <span style="color:black;background:silver">Nice to meet you, Carl</span><span style="color:black;background:silver"> </span>
 <span style="color:black;background:silver">                       </span>
 <span style="color:black;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
-<span style="color:black;background:silver"><u> </u>                      </span>
+<span style="color:silver;background:black"> </span><span style="color:black;background:silver">                      </span>
 </pre></div>
 <div class="shot"><pre><span style="color:black;background:teal">Press F8 to exit.      </span>
 <span style="color:black;background:silver">Nice to meet you, Bob</span><span style="color:black;background:silver">  </span>
@@ -668,7 +668,7 @@ does most of the hard work:
 <span style="color:black;background:silver">Nice to meet you, Dave</span><span style="color:black;background:silver"> </span>
 <span style="color:black;background:silver">                       </span>
 <span style="color:black;background:silver">What is your name?</span><span style="color:black;background:silver">     </span>
-<span style="color:black;background:silver"><u> </u>                      </span>
+<span style="color:silver;background:black"> </span><span style="color:black;background:silver">                      </span>
 </pre></div>
 
 <br clear="left">
@@ -936,24 +936,17 @@ from the top or bottom of the ListBox.
 <span class="back">[<a href="#top">back to top</a>]</span></h3>
 
 <a href="reference.html#Pile">Pile</a>
- widgets are used to combine multiple flow widgets by stacking them
+ widgets are used to combine multiple widgets by stacking them
 vertically. A Pile can manage selectable widgets by keeping track of which
 widget is in focus and it can handle moving the focus between widgets when
 the user presses the UP and DOWN keys. A Pile will also work well when used 
 within a ListBox.
 <br><br>
 A Pile is selectable only if its focus widget is selectable. If you create
-a Pile containing one Text widget and one Edit widget be sure to call
-<a href="reference.html#Pile-set_focus">set_focus</a> 
-on the Pile widget or it won't be possible for the Edit widget
-to become the focus.
-<br><br>
-Pile widgets cannot be used with box widgets. If you want to stack two box
-widgets vertically you can wrap one of the box widgets with a
-<a href="reference.html#BoxAdapter">BoxAdapter</a> then put the BoxAdapter 
-in the header or footer of a 
-<a href="reference.html#Frame">Frame</a> with the other
-widget in the body of the Frame.
+a Pile containing one Text widget and one Edit widget the Pile will
+choose the Edit widget as its default focus widget.
+To change the pile's focus widget you can call
+<a href="reference.html#Pile-set_focus">set_focus</a>.
 
 <br clear="left">
 <br>
@@ -969,7 +962,8 @@ focus between columns when the user presses the LEFT and RIGHT keys.
 Columns widgets also work well when used within a ListBox.
 <br><br>
 Columns widgets are selectable only if the column in focus is selectable.
-The 
+If a focus column is not specified the first selectable widget will be
+chosen as the focus column. The 
 <a href="reference.html#Columns-set_focus">set_focus</a>
 method may be used to select the focus column.
 
@@ -1080,14 +1074,16 @@ methods.
 		return 1
 	def render( self, (maxcol,), focus=False ):
 		num_pudding = maxcol / len(&quot;Pudding&quot;)
-		return urwid.Canvas( [&quot;Pudding&quot;*num_pudding] )
+		return urwid.TextCanvas((self, (maxcol,), focus),
+			[&quot;Pudding&quot;*num_pudding])
 
 class BoxPudding( urwid.BoxWidget ):
 	def selectable( self ):
 		return False
 	def render( self, (maxcol, maxrow), focus=False ):
 		num_pudding = maxcol / len(&quot;Pudding&quot;)
-		return urwid.Canvas( [&quot;Pudding&quot;*num_pudding] * maxrow )</pre>
+		return urwid.TextCanvas((self, (maxcol, maxrow), focus),
+			[&quot;Pudding&quot;*num_pudding] * maxrow)</pre>
 
 The above code implements two widget classes. Pudding is a flow widget and 
 BoxPudding is a box widget. Pudding will render as much "Pudding" as will
@@ -1146,7 +1142,8 @@ or box widget depending on what is required:
 		else:
 			(maxcol, maxrow) = size
 		num_pudding = maxcol / len(&quot;Pudding&quot;)
-		return urwid.Canvas( [&quot;Pudding&quot;*num_pudding] * maxrow )</pre>
+		return urwid.TextCanvas((self, size, focus),
+			[&quot;Pudding&quot;*num_pudding] * maxrow )</pre>
 
 MultiPudding will work in place of either Pudding or BoxPudding above. The
 number of elements in the size tuple determines whether the containing widget
@@ -1176,7 +1173,8 @@ method to handle keyboard input.
 		pudding = self.pudding
 		if focus:
 			pudding = pudding.upper()
-		return urwid.Canvas( [pudding*num_pudding] )
+		return urwid.TextCanvas((self, (maxcol,), focus),
+			[pudding*num_pudding] )
 	def keypress( self, (maxcol,), key ):
 		if len(key)&gt;1:
 			return key
@@ -1225,7 +1223,8 @@ cursor is visible within its focus widget.
 		cursor = None
 		if focus:
 			cursor = self.get_cursor_coords((maxcol,))
-		return urwid.Canvas( [&quot;Pudding&quot;*num_pudding], [], cursor )
+		return urwid.TextCanvas((self, (maxcol,), focus),
+			[&quot;Pudding&quot;*num_pudding], [], cursor )
 	def get_cursor_coords( self, (maxcol,) ):
 		col = min(self.cursor_col, maxcol-1)
 		return col, 0
