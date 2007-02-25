@@ -852,7 +852,8 @@ class EditRenderTest(unittest.TestCase):
 		get_cursor = w.get_cursor_coords((4,))
 		assert get_cursor == expected_cursor, "got: "+`get_cursor`+" expected: "+`expected_cursor`
 		r = w.render((4,), focus = 1)
-		assert r._text == expected_text, "got: "+`r._text`+" expected: "+`expected_text`
+		text = [t for a, cs, t in [ln[0] for ln in r.content()]]
+		assert text == expected_text, "got: "+`text`+" expected: "+`expected_text`
 		assert r.cursor == expected_cursor, "got: "+`r.cursor`+" expected: "+`expected_cursor`
 
 	
@@ -1898,7 +1899,7 @@ class ColumnsTest(unittest.TestCase):
 		assert rval == exp, "%s expected %s, got %s"%(desc,exp,rval)
 
 	def test_widths(self):
-		x = None # sample "column"
+		x = urwid.Text("") # sample "column"
 		self.cwtest( "simple 1", [x], 0, (20,), [20] )
 		self.cwtest( "simple 2", [x,x], 0, (20,), [10,10] )
 		self.cwtest( "simple 2+1", [x,x], 1, (20,), [10,9] )
