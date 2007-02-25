@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid web (CGI/Asynchronous Javascript) display module
-#    Copyright (C) 2004-2006  Ian Ward
+#    Copyright (C) 2004-2007  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -52,22 +52,22 @@ _js_code = r"""
 
 colours = new Object();
 colours = {
-        '0': "black",
-        '1': "#c00000",
-        '2': "green",
-        '3': "#804000",
-        '4': "#0000c0",
-        '5': "#c000c0",
-        '6': "teal",
-        '7': "silver",
-        '8': "gray",
-        '9': "#ff6060",
-        'A': "lime",
-        'B': "yellow",
-        'C': "#8080ff",
-        'D': "#ff40ff",
-        'E': "aqua",
-        'F': "white"
+	'0': "black",
+	'1': "#c00000",
+	'2': "green",
+	'3': "#804000",
+	'4': "#0000c0",
+	'5': "#c000c0",
+	'6': "teal",
+	'7': "silver",
+	'8': "gray",
+	'9': "#ff6060",
+	'A': "lime",
+	'B': "yellow",
+	'C': "#8080ff",
+	'D': "#ff40ff",
+	'E': "aqua",
+	'F': "white"
 };
 
 keycodes = new Object();
@@ -107,7 +107,7 @@ var lastkeydown = null;
 
 function setup_connection() {
 	if (window.XMLHttpRequest) {
-        	conn = new XMLHttpRequest();
+		conn = new XMLHttpRequest();
 	} else if (window.ActiveXObject) {
 		conn = new ActiveXObject("Microsoft.XMLHTTP");
 	}
@@ -135,7 +135,7 @@ function do_poll() {
 		return;
 	}
 	if (window.XMLHttpRequest) {
-        	conn = new XMLHttpRequest();
+		conn = new XMLHttpRequest();
 	} else if (window.ActiveXObject) {
 		conn = new ActiveXObject("Microsoft.XMLHTTP");
 	}
@@ -496,9 +496,6 @@ function body_resize(){
 
 """
 
-try: True # old python?
-except: False, True = 0, 1
-
 ALARM_DELAY = 60
 POLL_CONNECT = 3
 MAX_COLS = 200
@@ -715,8 +712,6 @@ class Screen:
 	def draw_screen(self, (cols, rows), r ):
 		"""Send a screen update to the client."""
 		
-		lines = r.text
-		
 		if cols != self.last_screen_width:
 			self.last_screen = {}
 	
@@ -737,7 +732,7 @@ class Screen:
 			send("\r\n")
 			self.content_head = ""
 		
-		assert len(lines) == rows
+		assert r.rows() == rows
 	
 		if r.cursor is not None:
 			cx, cy = r.cursor
@@ -746,18 +741,14 @@ class Screen:
 		
 		new_screen = {}
 		
-		for y in range(len(lines)):
-			line = lines[y].translate( _trans_table )
-				
-			if len(r.attr) > y:
-				attr = r.attr[y]
-			else:
-				attr = []
-			col = 0
+		y = -1
+		for row in r.content():
+			y += 1
+			row = list(row)
 			
 			l = []
 			
-			sig = (tuple(attr),line)
+			sig = tuple(row)
 			if y == cy: sig = sig + (cx,)
 			new_screen[sig] = new_screen.get(sig,[]) + [y]
 			old_line_numbers = self.last_screen.get(sig, None)
@@ -769,28 +760,25 @@ class Screen:
 				send( "<%d\n"%old_line )
 				continue
 			
-			for a, run in attr:
+			col = 0
+			for (a, cs, run) in row:
+				run = run.translate(_trans_table)
 				if a is None:
 					fg,bg,mono = "black", "light gray", None
 				else:
 					fg,bg,mono = self.palette[a]
-				if y == cy:
-					l.append( code_span( line[col:col+run],
-						fg, bg, cx-col ))
+				if y == cy and col <= cx:
+					run_width = util.calc_width(run, 0, 
+						len(run))
+					if col+run_width > cx:
+						l.append(code_span(run, fg, bg,
+							cx-col))
+					else:
+						l.append(code_span(run, fg, bg))
+					col += run_width
 				else:
-					l.append( code_span( line[col:col+run],
-						fg, bg ))
-				col += run
+					l.append(code_span(run, fg, bg))
 
-			if cols > col:
-				fg,bg,mono = "black", "light gray", None
-				end = line[col:]+" "*(cols-len(line))
-				if y == cy:
-					l.append( code_span( end, 
-						fg, bg, cx-col ))
-				else:
-					l.append( code_span( end,
-						fg, bg ))
 			send("".join(l)+"\n")
 		self.last_screen = new_screen
 		self.last_screen_width = cols
@@ -906,16 +894,13 @@ def code_span( s, fg, bg, cursor = -1):
 	code_fg = _code_colours[ fg ]
 	code_bg = _code_colours[ bg ]
 	
-	if cursor >= 0 and cursor < len(s):
-		c2 = cursor +1
-		w = util.within_double_byte(s, 0, cursor)
-		if w == 1:
-			c2 += 1
-		if w == 2:
-			cursor -= 1
-		return ( code_fg + code_bg + s[:cursor] + "\n" +
-			 code_bg + code_fg + s[cursor:c2] + "\n" +
-			 code_fg + code_bg + s[c2:] + "\n")
+	if cursor >= 0:
+		c_off, _ign = util.calc_text_pos(s, 0, len(s), cursor)
+		c2_off = util.move_next_char(s, c_off, len(s))
+
+		return ( code_fg + code_bg + s[:c_off] + "\n" +
+			 code_bg + code_fg + s[c_off:c2_off] + "\n" +
+			 code_fg + code_bg + s[c2_off:] + "\n")
 	else:
 		return code_fg + code_bg + s + "\n"
 

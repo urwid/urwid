@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid html fragment output wrapper for "screen shots"
-#    Copyright (C) 2004-2006  Ian Ward
+#    Copyright (C) 2004-2007  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -25,9 +25,6 @@ HTML PRE-based UI implementation
 
 import util
 
-try: True # old python?
-except: False, True = 0, 1
-                
 
 _html_colours = {
 	'black':		"black",
@@ -115,46 +112,36 @@ class HtmlGenerator:
 		# collect output in l
 		l = []
 		
-		lines = r.text
-		
-		assert len(lines) == rows
+		assert r.rows() == rows
 	
 		if r.cursor is not None:
 			cx, cy = r.cursor
 		else:
 			cx = cy = None
 		
-		for y in range(len(lines)):
-			line = lines[y].translate( _trans_table )
-				
-			if len(r.attr) > y:
-				attr = r.attr[y]
-			else:
-				attr = []
+		y = -1
+		for row in r.content():
+			y += 1
 			col = 0
 			
-			for a, run in attr:
+			for a, cs, run in row:
+				run = run.translate(_trans_table)
 				if a is None:
 					fg,bg,mono = "black", "light gray", None
 				else:
 					fg,bg,mono = self.palette[a]
-				if y == cy:
-					l.append( html_span( line[col:col+run],
-						fg, bg, cx-col ))
+				if y == cy and col <= cx:
+					run_width = util.calc_width(run, 0,
+						len(run))
+					if col+run_width > cx:
+						l.append(html_span(run,
+							fg, bg, cx-col))
+					else:
+						l.append(html_span(run, fg, bg))
+					col += run_width
 				else:
-					l.append( html_span( line[col:col+run],
-						fg, bg ))
-				col += run
+					l.append(html_span(run, fg, bg))
 
-			if cols > col:
-				fg,bg,mono = "black", "light gray", None
-				end = line[col:]+" "*(cols-len(line))
-				if y == cy:
-					l.append( html_span( end, 
-						fg, bg, cx-col ))
-				else:
-					l.append( html_span( end,
-						fg, bg ))
 			l.append("\n")
 						
 		# add the fragment to the list
@@ -185,20 +172,19 @@ class HtmlGenerator:
 def html_span( s, fg, bg, cursor = -1):
 	html_fg = _html_colours[ fg ]
 	html_bg = _html_colours[ bg ]
+	def html_span(fg, bg, s):
+		if not s: return ""
+		return '<span style="color:%s;background:%s">%s</span>' % \
+			(fg, bg, html_escape(s))
 	
-	if cursor >= 0 and cursor < len(s):
-		# use an underline to approximate a cursor
-		c2 = cursor +1
-		w = util.within_double_byte(s, 0, cursor)
-		if w == 1:
-			c2 += 1
-		if w == 2:
-			cursor -= 1
-		escaped = html_escape(s[:cursor]) + "<u>" + html_escape(s[cursor:c2]) + "</u>" + html_escape(s[c2:])
+	if cursor >= 0:
+		c_off, _ign = util.calc_text_pos(s, 0, len(s), cursor)
+		c2_off = util.move_next_char(s, c_off, len(s))
+		return (html_span(html_fg, html_bg, s[:c_off]) +
+			html_span(html_bg, html_fg, s[c_off:c2_off]) +
+			html_span(html_fg, html_bg, s[c2_off:]))
 	else:
-		escaped = html_escape(s)
-	
-	return '<span style="color:%s;background:%s">%s</span>' % (html_fg, html_bg, escaped)
+		return html_span(html_fg, html_bg, s)
 
 
 def html_escape(text):
