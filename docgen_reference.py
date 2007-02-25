@@ -212,6 +212,7 @@ class WidgetInterface:
 		"""
 
 class ListWalkerInterface:
+
 	def get_focus(self):
 		"""
 		Returns (widget, position).
@@ -228,7 +229,8 @@ class ListWalkerInterface:
 		
 		Returns None.
 		
-		MUST be implemented.
+		MUST be implemented.  Should send "modified" signal (or call
+		self._modified if inheriting from ListWalker)
 		"""
 	
 	def get_next(self, position):
@@ -302,10 +304,12 @@ def main():
 		
 		(None,"Abstract widgets & interfaces",None),
 		(WidgetInterface, "Widget interface definition",None),
+		(urwid.Widget, "Widget",None),
 		(urwid.BoxWidget, "BoxWidget",None),
 		(urwid.FlowWidget, "FlowWidget",None),
 		(urwid.FixedWidget, "FixedWidget",None),
 		(ListWalkerInterface, "List Walker interface definition",None),
+		(urwid.ListWalker, "ListWalker", None),
 		(None,"ListBox list walkers",None),
 		(urwid.SimpleListWalker, "SimpleListWalker",None),
 		
@@ -313,8 +317,12 @@ def main():
 		
 		(None,"Canvas painting", None),
 		(urwid.Canvas, "Canvas", None),
+		(urwid.TextCanvas, "TextCanvas", None),
+		(urwid.CompositeCanvas, "CompositeCanvas", None),
+		(urwid.SolidCanvas, "SolidCanvas", None),
 		(urwid.CanvasCombine, "CanvasCombine", None),
 		(urwid.CanvasJoin, "CanvasJoin", None),
+		(urwid.CanvasOverlay, "CanvasOverlay", None),
 		(None,"Custom formatting rules", None),
 		(urwid.TextLayout,"TextLayout", None),
 		(urwid.StandardTextLayout,"StandardTextLayout", None),

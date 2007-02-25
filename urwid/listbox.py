@@ -40,7 +40,6 @@ class SimpleListWalker(ListDetectModifications, ListWalker):
 	def __init__(self, contents):
 		"""
 		contents -- list to walk
-		modified_callback -- function to call when list has changed
 		"""
 		if not type(contents) == type([]) and not hasattr(contents, '__getitem__'):
 			raise ListWalkerError, "SimpleListWalker expecting list like object, got: "+`contents`
