@@ -58,6 +58,7 @@ class Screen(object):
 		self.gpm_event_pending = False
 		self.last_bstate = 0
 		self.setup_G1 = True
+		self._started = False
 	
 	def register_palette( self, l ):
 		"""Register a list of palette entries.
@@ -173,28 +174,48 @@ class Screen(object):
 		os.waitpid(self.gpm_mev.pid, 0)
 		self.gpm_mev = None
 	
-	def run_wrapper(self,fn):
-		""" Call fn and reset terminal on exit.
+	def start(self):
 		"""
-		old_settings = termios.tcgetattr(0)
+		Initialize the screen and input mode.
+		"""
+		assert not self._started
+		self._old_termios_settings = termios.tcgetattr(0)
+		self.signal_init()
+		tty.setcbreak(sys.stdin.fileno())
+		self._started = True
+	
+	def stop(self):
+		"""
+		Restore the screen.
+		"""
+		if not self._started:
+			return
+		self.signal_restore()
+		termios.tcsetattr(0, termios.TCSADRAIN, 
+			self._old_termios_settings)
+		move_cursor = ""
+		if self.gpm_mev:
+			self._stop_gpm_tracking()
+		if self.maxrow is not None:
+			move_cursor = escape.set_cursor_position( 
+				0, self.maxrow)
+		sys.stdout.write( escape.set_attributes( 
+			'default', 'default') 
+			+ escape.SI
+			+ escape.MOUSE_TRACKING_OFF
+			+ move_cursor + "\n" + escape.SHOW_CURSOR )
+		self._started = False
+
+	def run_wrapper(self,fn):
+		"""
+		Call start to initialize screen, then call fn.  
+		When fn exits call stop to restore the screen to normal.
+		"""
 		try:
-			self.signal_init()
-			tty.setcbreak(sys.stdin.fileno())
+			self.start()
 			return fn()
 		finally:
-			self.signal_restore()
-			termios.tcsetattr(0, termios.TCSADRAIN, old_settings)
-			move_cursor = ""
-			if self.gpm_mev:
-				self._stop_gpm_tracking()
-			if self.maxrow is not None:
-				move_cursor = escape.set_cursor_position( 
-					0, self.maxrow)
-			sys.stdout.write( escape.set_attributes( 
-				'default', 'default') 
-				+ escape.SI
-				+ escape.MOUSE_TRACKING_OFF
-				+ move_cursor + "\n" + escape.SHOW_CURSOR )
+			self.stop()
 			
 	def get_input(self, raw_keys=False):
 		"""Return pending input as a list.
@@ -237,6 +258,7 @@ class Screen(object):
 		Mouse button release: ('mouse release', 0, 18, 13),
 		                      ('ctrl mouse release', 0, 17, 23)
 		"""
+		assert self._started
 		
 		keys, raw = self._get_input( self.max_wait )
 		
@@ -399,6 +421,7 @@ class Screen(object):
 	
 	def draw_screen(self, (maxcol, maxrow), r ):
 		"""Paint screen with rendered canvas."""
+		assert self._started
 
 		assert maxrow == r.rows()
 

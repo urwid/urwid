@@ -73,6 +73,7 @@ class Screen(object):
 		self.prev_input_resize = 0
 		self.set_input_timeouts()
 		self.last_bstate = 0
+		self._started = False
 
 	def register_palette( self, l ):
 		"""Register a list of palette entries.
@@ -114,6 +115,8 @@ class Screen(object):
 			a combination eg. ('bold','underline')
 			
 		"""
+		assert not self._started
+
 		fg_a, fg_b = _curses_colours[foreground]
 		bg_a, bg_b = _curses_colours[background]
 		if bg_b: # can't do bold backgrounds
@@ -146,6 +149,46 @@ class Screen(object):
 			| curses.BUTTON4_PRESSED | curses.BUTTON4_RELEASED
 			| curses.BUTTON_SHIFT | curses.BUTTON_ALT
 			| curses.BUTTON_CTRL )
+
+	def start(self):
+		"""
+		Initialize the screen and input mode.
+		"""
+		assert self._started == False
+
+		self.s = curses.initscr()
+		self._started = True
+		self.has_color = curses.has_colors()
+		if self.has_color:
+			curses.start_color()
+			if curses.COLORS < 8:
+				# not colourful enough
+				self.has_color = False
+		if self.has_color:
+			try:
+				curses.use_default_colors()
+				self.has_default_colors=True
+			except _curses.error:
+				self.has_default_colors=False
+		self._setup_colour_pairs()
+		curses.noecho()
+		curses.meta(1)
+		curses.halfdelay(10) # use set_input_timeouts to adjust
+		self.s.keypad(0)
+		
+	
+	def stop(self):
+		"""
+		Restore the screen.
+		"""
+		if self._started == False:
+			return
+		curses.echo()
+		self._curs_set(1)
+		try:
+			curses.endwin()
+		except _curses.error:
+			pass # don't block original error with curses error
 	
 	def run_wrapper(self,fn):
 		"""Call fn in fullscreen mode.  Return to normal on exit.
@@ -154,33 +197,11 @@ class Screen(object):
 		Exception tracebacks will be displayed in normal mode.
 		"""
 	
-		self.s = curses.initscr()
 		try:
-			self.has_color = curses.has_colors()
-			if self.has_color:
-				curses.start_color()
-				if curses.COLORS < 8:
-					# not colourful enough
-					self.has_color = False
-			if self.has_color:
-				try:
-					curses.use_default_colors()
-					self.has_default_colors=True
-				except _curses.error:
-					self.has_default_colors=False
-			self._setup_colour_pairs()
-			curses.noecho()
-			curses.meta(1)
-			curses.halfdelay(10) # don't wait longer than 1s for keypress
-			self.s.keypad(0)
+			self.start()
 			return fn()
 		finally:
-			curses.echo()
-			self._curs_set(1)
-			try:
-				curses.endwin()
-			except _curses.error:
-				pass # don't block original error with curses error
+			self.stop()
 
 	def _setup_colour_pairs(self):
 	
@@ -323,6 +344,7 @@ class Screen(object):
 		Mouse button release: ('mouse release', 0, 18, 13),
 		                      ('ctrl mouse release', 0, 17, 23)
 		"""
+		assert self._started
 		
 		keys, raw = self._get_input( self.max_tenths )
 		
@@ -482,6 +504,7 @@ class Screen(object):
 			
 	def draw_screen(self, (cols, rows), r ):
 		"""Paint screen with rendered canvas."""
+		assert self._started
 		
 		assert r.rows() == rows, "canvas size and passed size don't match"
 	
