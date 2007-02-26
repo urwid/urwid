@@ -251,7 +251,6 @@ class ListBox(BoxWidget):
 		"""
 		Render listbox and return canvas.
 		"""
-		visible_widgets = []
 
 		middle, top, bottom = self.calculate_visible( 
 			(maxcol, maxrow), focus=focus)
@@ -271,10 +270,8 @@ class ListBox(BoxWidget):
 				raise ListBoxError, "Widget %s at position %s within listbox calculated %d rows but rendered %d!"% (`widget`,`w_pos`,w_rows, canvas.rows())
 			rows += w_rows
 			combinelist.append((canvas, w_pos, False))
-			visible_widgets.append(widget)
 		
 		focus_canvas = focus_widget.render((maxcol,), focus=focus)
-		visible_widgets.append(focus_widget)
 
 		if focus_canvas.rows() != focus_rows:
 			raise ListBoxError, "Focus Widget %s at position %s within listbox calculated %d rows but rendered %d!"% (`focus_widget`,`focus_pos`,focus_rows, focus_canvas.rows())
@@ -291,7 +288,6 @@ class ListBox(BoxWidget):
 				raise ListBoxError, "Widget %s at position %s within listbox calculated %d rows but rendered %d!"% (`widget`,`w_pos`,w_rows, canvas.rows())
 			rows += w_rows
 			combinelist.append((canvas, w_pos, False))
-			visible_widgets.append(widget)
 		
 		final_canvas = CanvasCombine((self, (maxcol, maxrow), focus), 
 			combinelist)
@@ -311,10 +307,7 @@ class ListBox(BoxWidget):
 			assert trim_bottom==0 and self.body.get_next(bottom_pos) == (None,None), "Listbox contents too short!  Probably urwid's fault (please report): %s" % `top,middle,bottom`
 			final_canvas.pad_trim_top_bottom(0, maxrow - rows)
 
-		CanvasCache.store(final_canvas, visible_widgets)
-
 		return final_canvas
-	render = CanvasCache.widget_render_fetch(render)
 
 
 	def set_focus_valign(self, valign):

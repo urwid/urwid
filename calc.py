@@ -535,7 +535,7 @@ class HelpColumn(urwid.BoxWidget):
 		self.body = urwid.AttrWrap( self.listbox, 'help' )
 		self.frame = urwid.Frame( self.body, header=self.head)
 	
-	def render( self, (maxcol, maxrow), **opts ):
+	def render( self, (maxcol, maxrow), focus=False):
 		head_rows = self.head.rows( (maxcol,) )
 		if "bottom" in self.listbox.ends_visible( 
 			(maxcol, maxrow-head_rows) ):
@@ -543,7 +543,7 @@ class HelpColumn(urwid.BoxWidget):
 		else:
 			self.frame.footer = self.foot
 
-		return self.frame.render( (maxcol, maxrow), ** opts )
+		return self.frame.render( (maxcol, maxrow), focus)
 	
 	def keypress( self, size, key ):
 		return self.frame.keypress( size, key )

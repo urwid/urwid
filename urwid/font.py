@@ -95,7 +95,7 @@ def add_font(name, cls):
 	_all_fonts.append((name, cls))
 
 
-class Font:
+class Font(object):
 	def __init__(self):
 		assert self.height
 		assert self.data

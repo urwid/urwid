@@ -33,17 +33,29 @@ class CanvasCache(object):
 	fetches = 0
 	cleanups = 0
 
-	def store(cls, canvas, depends_on=[]):
+	def store(cls, canvas, depends_on=None):
 		"""
 		Store a weakref to canvas in the cache.
 		"""
 		assert canvas.widget_info, "Can't store canvas without widget_info"
 		widget, size, focus = canvas.widget_info
-		for w in depends_on:
-			if w not in cls._widgets:
-				return
-		for w in depends_on:
-			cls._deps.setdefault(w,[]).append(widget)
+		def walk_depends(canv):
+			depends = []
+			for x, y, c, pos in canv.children:
+				if c.widget_info:
+					depends.append(c.widget_info[0])
+				elif hasattr(c, 'children'):
+					depends.extend(walk_depends(c))
+			return depends
+		if depends_on is None and hasattr(canvas, 'children'):
+			depends_on = walk_depends(canvas)
+		if depends_on:
+			for w in depends_on:
+				if w not in cls._widgets:
+					return
+			for w in depends_on:
+				cls._deps.setdefault(w,[]).append(widget)
+
 		ref = weakref.ref(canvas, cls.cleanup)
 		cls._refs[ref] = (widget, size, focus)
 		cls._widgets.setdefault(widget, {})[(size, focus)] = ref
@@ -120,49 +132,35 @@ class CanvasCache(object):
 		cls._deps = {}
 	clear = classmethod(clear)
 
-	def widget_render(cls, fn):
+	def widget_render(cls, fn, ignore_focus):
 		"""
 		decorator for widget .render() methods.
 		fetches and stores canvases.
 		"""
 		def cached_render(self, size, focus=False):
-			canv = cls.fetch(self, size, focus)
+			canv = cls.fetch(self, size, focus and not ignore_focus)
 			if canv:
 				return canv
 
-			canv = fn(self, size, focus)
+			canv = fn(self, size, focus=focus and not ignore_focus)
 			cls.store(canv)
 			return canv
 		return cached_render
 	widget_render = classmethod(widget_render)
 
-	def widget_render_fetch(cls, fn):
-		"""
-		decorator for widget .render() methods.
-		ONLY fetches from cache if available, but does not store.
-		"""
-		def cached_render(self, size, focus=False):
-			canv = cls.fetch(self, size, focus)
-			if canv:
-				return canv
-
-			return fn(self, size, focus)
-		return cached_render
-	widget_render_fetch = classmethod(widget_render_fetch)
-
-	def widget_rows_fetch(cls, fn):
+	def widget_rows(cls, fn, ignore_focus):
 		"""
 		decorator for widget .rows() methods.
 		returns rows from cached widget if available.
 		"""
 		def cached_rows(self, size, focus=False):
-			canv = cls.fetch(self, size, focus)
+			canv = cls.fetch(self, size, focus and not ignore_focus)
 			if canv:
 				return canv.rows()
 
 			return fn(self, size, focus)
 		return cached_rows
-	widget_rows_fetch = classmethod(widget_rows_fetch)
+	widget_rows = classmethod(widget_rows)
 
 		
 class CanvasError(Exception):

@@ -28,7 +28,31 @@ try: sum # old python?
 except: sum = lambda l: reduce(lambda a,b: a+b, l, 0)
 
 class WidgetMeta(MetaSuper, MetaSignals):
-	pass
+	"""
+	Automatic caching of render and rows methods.
+
+	Class variable no_cache is a list of names of methods to not cache.
+	Class variable ignore_focus if defined and True indicates that this
+	widget is not affected by the focus parameter, so it may be ignored
+	when caching.
+	"""
+	def __init__(cls, name, bases, d):
+		no_cache = d.get("no_cache", [])
+		ignore_focus = bool(d.get("ignore_focus",False))
+		
+		super(WidgetMeta, cls).__init__(name, bases, d)
+
+		if "render" in d and "render" not in no_cache:
+			setattr(cls, "render", CanvasCache.widget_render(
+				cls.render, ignore_focus))
+		if "rows" in d and "rows" not in no_cache:
+			setattr(cls, "rows", CanvasCache.widget_rows(
+				cls.rows, ignore_focus))
+		if "no_cache" in d:
+			delattr(cls, "no_cache")
+		if "ignore_focus" in d:
+			delattr(cls, "ignore_focus")
+
 
 
 class Widget(object):
@@ -107,6 +131,8 @@ class Divider(FlowWidget):
 	"""
 	Horizontal divider widget
 	"""
+	ignore_focus = True
+
 	def __init__(self,div_char=" ",top=0,bottom=0):
 		"""
 		div_char -- character to repeat across line
@@ -125,18 +151,17 @@ class Divider(FlowWidget):
 	
 	def render(self, (maxcol,), focus=False):
 		"""Render the divider as a canvas and return it."""
-		canv = CanvasCache.fetch(self, (maxcol,), False)
-		if canv:
-			return canv
 		canv = SolidCanvas(None, self.div_char, maxcol, 1)
 		canv = CompositeCanvas((self, (maxcol,), False), canv)
 		if self.top or self.bottom:
 			canv.pad_trim_top_bottom(self.top, self.bottom)
-		CanvasCache.store(canv)
 		return canv
 	
 
 class SolidFill(BoxWidget):
+	_selectable = False
+	ignore_focus = True
+
 	def __init__(self,fill_char=" "):
 		"""
 		fill_char -- character to fill area with
@@ -148,11 +173,6 @@ class SolidFill(BoxWidget):
 		"""Render the Fill as a canvas and return it."""
 		return SolidCanvas((self, (maxcol, maxrow), False), 
 			self.fill_char, maxcol, maxrow)
-	render = CanvasCache.widget_render(render)
-	
-	def selectable(self):
-		"""Not selectable."""
-		return False
 	
 class TextError(Exception):
 	pass
@@ -161,6 +181,8 @@ class Text(FlowWidget):
 	"""
 	a horizontally resizeable text widget
 	"""
+	ignore_focus = True
+
 	def __init__(self,markup, align='left', wrap='space', layout=None):
 		"""
 		markup -- content of text widget, one of:
@@ -239,14 +261,9 @@ class Text(FlowWidget):
 		"""
 		Render contents with wrapping and alignment.  Return canvas.
 		"""
-		canv = CanvasCache.fetch(self, (maxcol,), False)
-		if canv:
-			return canv
 		text, attr = self.get_text()
 		trans = self.get_line_translation( maxcol, (text,attr) )
-		canv = apply_text_layout(self, text, attr, trans, maxcol)
-		CanvasCache.store(canv)
-		return canv
+		return apply_text_layout(self, text, attr, trans, maxcol)
 
 	def rows(self,(maxcol,), focus=False):
 		"""Return the number of rows the rendered text spans."""
@@ -526,16 +543,12 @@ class Edit(Text):
 		if focus:
 			canv = CompositeCanvas((self, (maxcol,), focus), canv)
 			canv.cursor = self.get_cursor_coords((maxcol,))
-			CanvasCache.store(canv)
-		else:
-			pass # Text has already cached this canvas
 
 		# .. will need to FIXME if I want highlight to work again
 		#if self.highlight:
 		#	hstart, hstop = self.highlight_coords()
 		#	d.coords['highlight'] = [ hstart, hstop ]
 		return canv
-	render = CanvasCache.widget_render_fetch(render)	
 
 	
 	def get_line_translation(self, maxcol, ta=None ):
@@ -614,6 +627,39 @@ class IntEdit(Edit):
 		else:
 			return 0
 
+class WidgetWrap(Widget):
+	def __init__(self, w):
+		"""
+		w -- widget to wrap, stored as self.w
+
+		This object will pass the functions defined in Widget interface
+		definition to self.w.
+		"""
+		self._w = w
+
+	def get_w(self):
+		return self._w
+	def set_w(self, w):
+		self._w = w
+		self.invalidate()
+	w = property(get_w, set_w)
+	
+	def render(self, size, focus = False ):
+		"""Render self.w."""
+		# This method informs the cache about the relationship
+		# between self.w and self.
+		canv = self.w.render(size, focus=focus)
+		return CompositeCanvas((self, size, focus), canv)
+
+	def selectable(self):
+		return self.w.selectable()
+
+	def __getattr__(self,name):
+		"""Call self.w if name is in Widget interface definition."""
+		if name in ['get_cursor_coords','get_pref_col','keypress',
+			'move_cursor_to_coords','rows','mouse_event',]:
+			return getattr(self._w, name)
+		raise AttributeError, name
 
 class SelectableIcon(Text):
 	def selectable(self):
@@ -624,7 +670,6 @@ class SelectableIcon(Text):
 		if focus:
 			c = CompositeCanvas((self, (maxcol,), True), c)
 			c.cursor = self.get_cursor_coords((maxcol,))
-			CanvasCache.store(c)
 		return c
 	
 	def get_cursor_coords(self, (maxcol,)):
@@ -634,7 +679,7 @@ class SelectableIcon(Text):
 	def keypress(self, (maxcol,), key):
 		return key
 
-class CheckBox(FlowWidget):
+class CheckBox(WidgetWrap):
 	states = { 
 		True: SelectableIcon("[X]"),
 		False: SelectableIcon("[ ]"),
@@ -655,7 +700,7 @@ class CheckBox(FlowWidget):
 		user_data -- additional param for on_press callback,
 		             ommited if None for compatibility reasons
 		"""
-		self.__super.__init__()
+		self.__super.__init__(None) # self.w set by set_state below
 		self.label = Text("")
 		self.has_mixed = has_mixed
 		self.state = None
@@ -687,10 +732,10 @@ class CheckBox(FlowWidget):
 				self.on_state_change(self, state,
 						     self.user_data)
 		self.state = state
-		self.display_widget = Columns( [
+		self.w = Columns( [
 			('fixed', self.reserve_columns, self.states[state] ),
 			self.label ] )
-		self.display_widget.focus_col = 0
+		self.w.focus_col = 0
 		self.invalidate()
 		
 	def get_state(self):
@@ -724,22 +769,9 @@ class CheckBox(FlowWidget):
 		self.toggle_state()
 		return True
 	
-	def get_cursor_coords(self, (maxcol,)):
-		"""Return cursor coords from display widget."""
-		return self.display_widget.get_cursor_coords( (maxcol,))
-	
-	def render(self, (maxcol,), focus=False):
-		"""Render check box."""
-		canv = self.display_widget.render( (maxcol,), focus=focus)
-		return CompositeCanvas((self, (maxcol,), focus), canv)
-	render = CanvasCache.widget_render(render)
-	
-	def rows(self, (maxcol,), focus=False):
-		"""Return rows required for check box."""
-		return self.display_widget.rows( (maxcol,), focus=focus)
 		
 
-class RadioButton(FlowWidget):
+class RadioButton(WidgetWrap):
 	states = { 
 		True: SelectableIcon("(X)"),
 		False: SelectableIcon("( )"),
@@ -763,7 +795,7 @@ class RadioButton(FlowWidget):
 		This function will append the new radio button to group.
 		"first True" will set to True if group is empty.
 		"""
-		self.__super.__init__()
+		self.__super.__init__(None) # self.w set by set_state below
 
 		if state=="first True":
 			state = not group
@@ -802,10 +834,10 @@ class RadioButton(FlowWidget):
 				self.on_state_change(self, state,
 						     self.user_data)
 		self.state = state
-		self.display_widget = Columns( [
+		self.w = Columns( [
 			('fixed', self.reserve_columns, self.states[state] ),
 			self.label ] )
-		self.display_widget.focus_col = 0
+		self.w.focus_col = 0
 		
 		self.invalidate()
 		if state is not True:
@@ -838,21 +870,8 @@ class RadioButton(FlowWidget):
 			self.set_state(True)
 		return True
 			
-	def get_cursor_coords(self, (maxcol,)):
-		"""Return cursor coords from display widget."""
-		return self.display_widget.get_cursor_coords( (maxcol,))
-	
-	def render(self, (maxcol,), focus=False):
-		"""Render radio button."""
-		canv = self.display_widget.render( (maxcol,), focus=focus)
-		return CompositeCanvas((self, (maxcol,), focus), canv)
-	render = CanvasCache.widget_render(render)
-	
-	def rows(self, (maxcol,), focus=False):
-		"""Return rows required for radio button."""
-		return self.display_widget.rows( (maxcol,), focus=focus)
 
-class Button(FlowWidget):
+class Button(WidgetWrap):
 	button_left = Text("<")
 	button_right = Text(">")
 
@@ -867,7 +886,7 @@ class Button(FlowWidget):
                 user_data -- additional param for on_press callback,
 		           ommited if None for compatibility reasons
 		"""
-		self.__super.__init__()
+		self.__super.__init__(None) # self.w set by set_label below
 			
 		self.set_label( label )
 		self.on_press = on_press
@@ -875,7 +894,7 @@ class Button(FlowWidget):
 	
 	def set_label(self, label):
 		self.label = label
-		self.display_widget = Columns([
+		self.w = Columns([
 			('fixed', 1, self.button_left),
 			Text( label ),
 			('fixed', 1, self.button_right)],
@@ -887,12 +906,11 @@ class Button(FlowWidget):
 	
 	def render(self, (maxcol,), focus=False):
 		"""Display button. Show a cursor when in focus."""
-		canv = self.display_widget.render( (maxcol,), focus=focus)
+		canv = self.__super.render((maxcol,), focus=focus)
 		canv = CompositeCanvas((self, (maxcol,), focus), canv)
 		if focus and maxcol >2:
 			canv.cursor = (2,0)
 		return canv
-	render = CanvasCache.widget_render(render)
 
 	def get_cursor_coords(self, (maxcol,)):
 		"""Return the location of the cursor."""
@@ -900,10 +918,6 @@ class Button(FlowWidget):
 			return (2,0)
 		return None
 
-	def rows(self, (maxcol,), focus=False):
-		"""Return rows required for button."""
-		return self.display_widget.rows( (maxcol,), focus=focus)
-		
 	def keypress(self, (maxcol,), key):
 		"""Call on_press on spage or enter."""
 		if key not in (' ','enter'):
@@ -1069,16 +1083,12 @@ class GridFlow(FlowWidget):
 		"""Return rows used by this widget."""
 		d = self.get_display_widget((maxcol,))
 		return d.rows((maxcol,), focus=focus)
-	rows = CanvasCache.widget_rows_fetch(rows)
 	
 	def render(self, (maxcol,), focus=False ):
 		"""Use display widget to render."""
 		d = self.get_display_widget((maxcol,))
 		canv = d.render((maxcol,), focus)
-		canv = CompositeCanvas((self, (maxcol,), focus), canv)
-		CanvasCache.store(canv, self.cells) # depend on child widgets
-		return canv
-	render = CanvasCache.widget_render_fetch(render)
+		return CompositeCanvas((self, (maxcol,), focus), canv)
 
 	def get_cursor_coords(self, (maxcol,)):
 		"""Get cursor from display widget."""
@@ -1177,9 +1187,7 @@ class Padding(Widget):
 		if left != 0 or right != 0:
 			canv.pad_trim_left_right(left, right)
 
-		CanvasCache.store(canv, [self.w]) # depend on child widget
 		return canv
-	render = CanvasCache.widget_render_fetch(render)
 
 	def padding_values(self, size, focus):
 		"""Return the number of columns to pad on the left and right.
@@ -1207,7 +1215,6 @@ class Padding(Widget):
 			return height
 		left, right = self.padding_values((maxcol,), focus)
 		return self.w.rows( (maxcol-left-right,), focus=focus )
-	rows = CanvasCache.widget_rows_fetch(rows)
 	
 	def keypress(self, size, key):
 		"""Pass keypress to self.w."""
@@ -1348,11 +1355,7 @@ class Filler(BoxWidget):
 			if cy >= maxrow:
 				canv.trim(cy-maxrow+1,maxrow-top-bottom)
 		canv.pad_trim_top_bottom(top, bottom)
-
-		CanvasCache.store(canv, [self.body]) # depend on child widget
-
 		return canv
-	render = CanvasCache.widget_render_fetch(render)
 
 
 	def keypress(self, (maxcol,maxrow), key):
@@ -1563,12 +1566,8 @@ class Overlay(BoxWidget):
 			top_c = CompositeCanvas(None, top_c)
 			top_c.pad_trim_left_right(min(0,left), min(0,right))
 		
-		canv = CanvasOverlay((self, size, focus), top_c, bottom_c, 
+		return CanvasOverlay((self, size, focus), top_c, bottom_c, 
 			max(0,left), top)
-
-		CanvasCache.store(canv, [self.top_w, self.bottom_w])
-		return canv
-	render = CanvasCache.widget_render_fetch(render)
 
 
 	def mouse_event(self, size, event, button, col, row, focus):
@@ -1880,12 +1879,8 @@ class Frame(BoxWidget):
 				self.focus_part == 'footer'))
 			depends_on.append(self.footer)
 
-		canv = CanvasCombine((self, (maxcol, maxrow), focus), 
+		return CanvasCombine((self, (maxcol, maxrow), focus), 
 			combinelist)
-
-		CanvasCache.store(canv, depends_on)
-		return canv
-	render = CanvasCache.widget_render_fetch(render)
 
 
 	def keypress(self, (maxcol,maxrow), key):
@@ -2005,9 +2000,7 @@ class AttrWrap(Widget):
 		canv = self.w.render(size, focus=focus)
 		canv = CompositeCanvas((self, size, focus), canv)
 		canv.fill_attr(attr)
-		CanvasCache.store(canv, [self.w])
 		return canv
-	render = CanvasCache.widget_render_fetch(render)
 
 	def selectable(self):
 		return self.w.selectable()
@@ -2016,42 +2009,6 @@ class AttrWrap(Widget):
 		"""Call getattr on wrapped widget."""
 		return getattr(self.w, name)
 
-class WidgetWrap(Widget):
-	def __init__(self, w):
-		"""
-		w -- widget to wrap, stored as self.w
-
-		This object will pass the functions defined in Widget interface
-		definition to self.w.
-		"""
-		self._w = w
-
-	def get_w(self):
-		return self._w
-	def set_w(self, w):
-		self._w = w
-		self.invalidate()
-	w = property(get_w, set_w)
-	
-	def render(self, size, focus = False ):
-		"""Render self.w."""
-		# This method informs the cache about the relationship
-		# between self.w and self.
-		canv = self.w.render(size, focus=focus)
-		canv = CompositeCanvas((self, size, focus), canv)
-		CanvasCache.store(canv, [self.w])
-		return canv
-	render = CanvasCache.widget_render_fetch(render)
-
-	def selectable(self):
-		return self.w.selectable()
-
-	def __getattr__(self,name):
-		"""Call self.w if name is in Widget interface definition."""
-		if name in ['get_cursor_coords','get_pref_col','keypress',
-			'move_cursor_to_coords','rows','mouse_event',]:
-			return getattr(self._w, name)
-		raise AttributeError, name
 
 class PileError(Exception):
 	pass
@@ -2234,10 +2191,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 				combinelist.append((canv, i, item_focus))
 			i+=1
 
-		canv = CanvasCombine((self, size, focus), combinelist)
-		CanvasCache.store(canv, self.widget_list)
-		return canv
-	render = CanvasCache.widget_render_fetch(render)
+		return CanvasCombine((self, size, focus), combinelist)
 	
 	def get_cursor_coords(self, size):
 		"""Return the cursor coordinates of the focus widget."""
@@ -2277,7 +2231,6 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 	def rows(self, (maxcol,), focus=False ):
 		"""Return the number of rows required for this widget."""
 		return sum( self.get_item_rows( (maxcol,), focus ) )
-	rows = CanvasCache.widget_rows_fetch(rows)
 
 
 	def keypress(self, size, key ):
@@ -2575,10 +2528,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 				mc += self.dividechars
 			l.append((canv, i, self.focus_col == i, mc))
 				
-		canv = CanvasJoin((self, size, focus), l)
-		CanvasCache.store(canv, self.widget_list)
-		return canv
-	render = CanvasCache.widget_render_fetch(render)
+		return CanvasJoin((self, size, focus), l)
 
 	def get_cursor_coords(self, size):
 		"""Return the cursor coordinates from the focus widget."""
@@ -2706,7 +2656,6 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 			rows = max( rows, w.rows( (mc,), 
 				focus = focus and self.focus_col == i ) )
 		return rows
-	rows = CanvasCache.widget_rows_fetch(rows)
 			
 	def keypress(self, size, key):
 		"""Pass keypress to the focus column.
@@ -2755,6 +2704,7 @@ class BoxAdapter(FlowWidget):
 	"""
 	Adapter for using a box widget where a flow widget would usually go
 	"""
+	no_cache = ["rows"]
 
 	def __init__(self, box_widget, height):
 		"""
@@ -2808,9 +2758,7 @@ class BoxAdapter(FlowWidget):
 	def render(self, (maxcol,), focus=False):
 		canv = self.box_widget.render((maxcol, self.height), focus)
 		canv = CompositeCanvas((self, (maxcol,), focus), canv)
-		CanvasCache.store(canv, [self.box_widget])
 		return canv
-	render = CanvasCache.widget_render_fetch(render)
 	
 	def __getattr__(self, name):
 		"""

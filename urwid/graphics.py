@@ -29,6 +29,8 @@ from escape import utf8decode
 
 
 class BigText(FixedWidget):
+	no_cache = ["render"] # cache it ourselves
+
 	def __init__(self, markup, font):
 		"""
 		markup -- same as Text widget markup
@@ -59,6 +61,9 @@ class BigText(FixedWidget):
 		return cols, rows
 	
 	def render(self, size, focus=False):
+		canv = CanvasCache.fetch(self, size, False)
+		if canv:
+			return canv
 		fixed_size(size) # complain if parameter is wrong
 		a = None
 		ai = ak = 0
@@ -80,10 +85,12 @@ class BigText(FixedWidget):
 				c.fill_attr(a)
 			o.append((c, None, False, width))
 		if o:
-			return CanvasJoin((self, size, False), o)
-		return TextCanvas((self, size, False), self,
+			canv = CanvasJoin((self, size, False), o)
+		else:
+			canv = TextCanvas((self, size, False), self,
 			[""]*rows, maxcol=0, check_width=False)
-	render = CanvasCache.widget_render(render)
+		CanvasCache.store(canv, [])
+		return canv
 		
 
 class LineBox(WidgetWrap):
@@ -123,6 +130,8 @@ class BarGraphError(Exception):
 	pass
 
 class BarGraph(BoxWidget):
+	ignore_focus = True
+
 	eighths = utf8decode(" ▁▂▃▄▅▆▇")
 	hlines =  utf8decode("_⎺⎻─⎼⎽")
 	
@@ -494,7 +503,6 @@ class BarGraph(BoxWidget):
 		canv = CanvasCombine((self, (maxcol, maxrow), False), 
 			combinelist)
 		return canv
-	render = CanvasCache.widget_render(render)
 
 
 
