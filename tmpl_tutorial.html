@@ -112,17 +112,19 @@ also take care of restoring the screen when the "run" function exits.
 containing one row with the string "Hello World".
 <li>The canvas is passed to the 
 <a href="reference.html#Screen-draw_screen">draw_screen</a> function along
-with a fixed screen size of 20 columns and 1 row.  It is likely that the
-terminal window this program is run from is larger than 20 by 1, so the 
+with a fixed screen size of 20 columns and 1 row.  If the
+terminal window this program is run from is larger than 20 by 1 the 
 text will appear in the top left corner.
 <li>The <a href="reference.html#Screen-get_input">get_input</a> function
 is then called until it returns something.  It must be called in a loop
-because it will time out after one second and return an empty list.
+because by default it will time out after one second and return an 
+empty list when there is no input.
 </ul>
 
-Creating canvases directly is generally only done when
+Creating canvases directly in this way is generally only done when
 writing custom widget classes.  Note that the draw_screen
-function must be passed a canvas and a screen size that matches it.
+function must be passed a canvas and a screen size that matches it,
+for backwards compatibility.
 
 <div align="center">%result[0]%</div>
 {/body[min]}

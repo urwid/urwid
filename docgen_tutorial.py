@@ -174,7 +174,7 @@ def example_frlb():
 	import urwid.curses_display
 	import urwid
 
-	class Conversation:
+	class Conversation(object):
 		def __init__(self):
 			self.listbox = urwid.ListBox([self.new_question()])
 			self.items = self.listbox.body
@@ -224,7 +224,7 @@ def example_lbcont():
 	import urwid.curses_display
 	import urwid
 
-	class Conversation:
+	class Conversation(object):
 		def __init__(self):
 			self.listbox = urwid.ListBox([self.new_question()])
 			self.items = self.listbox.body
@@ -301,7 +301,7 @@ def example_lbscr():
 		urwid.Text("The end."),
 	] ]
 	# CUT HERE
-	class RevealFocus:
+	class RevealFocus(object):
 		def __init__(self):
 			self.listbox = urwid.ListBox( CONTENT )
 			self.head = urwid.Text("Pressed:")
@@ -391,7 +391,7 @@ def example_wanat_new():
 			return urwid.Text( "Pudding"*num_pudding )
 
 def example_wanat_multi():
-	class MultiPudding:
+	class MultiPudding( urwid.Widget ):
 		def selectable( self ):
 			return False
 		def rows( self, (maxcol,), focus=False ):
