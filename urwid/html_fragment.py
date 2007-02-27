@@ -101,6 +101,12 @@ class HtmlGenerator:
 		"""Not yet implemented"""
 		pass
 
+	def start(self):
+		pass
+	
+	def stop(self):
+		pass
+
 	def run_wrapper(self,fn):
 		"""Call fn."""
 		return fn()

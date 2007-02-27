@@ -614,9 +614,8 @@ class Screen:
 		"""Not yet implemented"""
 		pass
 
-	def run_wrapper(self,fn):
-		"""Start the application main loop.
-		
+	def start(self):
+		"""	
 		This function reads the initial screen size, generates a
 		unique id and handles cleanup when fn exits.
 		
@@ -651,33 +650,46 @@ class Screen:
 		self.pipe_name = os.path.join(_prefs.pipe_dir,"urwid"+urwid_id)
 		os.mkfifo(self.pipe_name+".in",0600)
 		signal.signal(signal.SIGTERM,self._cleanup_pipe)
-		try:
-			self.input_fd = os.open(self.pipe_name+".in", 
-				os.O_NONBLOCK | os.O_RDONLY)
-			self.input_tail = ""
-			self.content_head = ("Content-type: "
-				"multipart/x-mixed-replace;boundary=ZZ\r\n"
+		
+		self.input_fd = os.open(self.pipe_name+".in", 
+			os.O_NONBLOCK | os.O_RDONLY)
+		self.input_tail = ""
+		self.content_head = ("Content-type: "
+			"multipart/x-mixed-replace;boundary=ZZ\r\n"
+			"X-Urwid-ID: "+urwid_id+"\r\n"
+			"\r\n\r\n"
+			"--ZZ\r\n")
+		if self.update_method=="polling":
+			self.content_head = (
+				"Content-type: text/plain\r\n"
 				"X-Urwid-ID: "+urwid_id+"\r\n"
-				"\r\n\r\n"
-				"--ZZ\r\n")
-			if self.update_method=="polling":
-				self.content_head = (
-					"Content-type: text/plain\r\n"
-					"X-Urwid-ID: "+urwid_id+"\r\n"
-					"\r\n\r\n")
-			#sys.stdout.write(content_head)
-			try:
-				signal.signal(signal.SIGALRM,self._handle_alarm)
-				signal.alarm( ALARM_DELAY )
-				return fn()
-			finally:
-				try:
-					self._close_connection()
-				except:
-					pass
+				"\r\n\r\n")
+		
+		signal.signal(signal.SIGALRM,self._handle_alarm)
+		signal.alarm( ALARM_DELAY )
+
+	def stop(self):
+		"""
+		Restore settings and clean up.  
+		"""
+		try:
+			self._close_connection()
+		except:
+			pass
+		signal.signal(signal.SIGTERM,signal.SIG_DFL)
+		self._cleanup_pipe()
+		
+
+	def run_wrapper(self,fn):
+		"""
+		Run the application main loop, calling start() first
+		and stop() on exit.
+		"""
+		try:
+			self.start()
+			return fn()
 		finally:
-			signal.signal(signal.SIGTERM,signal.SIG_DFL)
-			self._cleanup_pipe()
+			self.stop()
 			
 
 	def _close_connection(self):
