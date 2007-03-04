@@ -400,18 +400,24 @@ class Screen(object):
 
 		processed = []
 		
-		def more_fn(raw=raw,
-				# hide warnings in python 2.1
-				self_getch=self._getch, 
-				self_complete_tenths = self.complete_tenths):
-			key = self_getch(self_complete_tenths)
-			if key >= 0:
+		try:
+			while keys:
+				run, keys = escape.process_keyqueue(keys, True)
+				processed += run
+		except escape.MoreInputRequired:
+			key = self._getch(self.complete_tenths)
+			while key >= 0:
 				raw.append(key)
-			return key
-			
-		while keys:
-			run, keys = escape.process_keyqueue(keys, more_fn)
-			processed += run
+				if key==KEY_RESIZE: 
+					resize = True
+				elif key==KEY_MOUSE:
+					keys += self._encode_mouse_event()
+				else:
+					keys.append(key)
+				key = self._getch_nodelay()
+			while keys:
+				run, keys = escape.process_keyqueue(keys, False)
+				processed += run
 
 		if resize:
 			processed.append('window resize')
@@ -556,6 +562,7 @@ class Screen(object):
 			self.s.move(0,0)
 		
 		self.s.refresh()
+		self.keep_cache_alive_link = r
 
 
 	def clear(self):

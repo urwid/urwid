@@ -23,8 +23,6 @@
 Direct terminal UI implementation
 """
 
-from __future__ import nested_scopes
-
 import fcntl
 import termios
 import os
@@ -129,6 +127,7 @@ class Screen(object):
 
 	def _sigwinch_handler(self, signum, frame):
 		self.resized = True
+		self.screen_buf = None
       
 	def signal_init(self):
 		"""
@@ -174,15 +173,23 @@ class Screen(object):
 		os.waitpid(self.gpm_mev.pid, 0)
 		self.gpm_mev = None
 	
-	def start(self):
+	def start(self, alternate_buffer=True):
 		"""
 		Initialize the screen and input mode.
+		
+		alternate_buffer -- use alternate screen buffer
 		"""
 		assert not self._started
+		if alternate_buffer:
+			sys.stdout.write(escape.SWITCH_TO_ALTERNATE_BUFFER)
 		self._old_termios_settings = termios.tcgetattr(0)
 		self.signal_init()
 		tty.setcbreak(sys.stdin.fileno())
+		self._alternate_buffer = alternate_buffer
+		self._input_iter = self._run_input_iter()
+		self._next_timeout = self.max_wait
 		self._started = True
+
 	
 	def stop(self):
 		"""
@@ -196,7 +203,9 @@ class Screen(object):
 		move_cursor = ""
 		if self.gpm_mev:
 			self._stop_gpm_tracking()
-		if self.maxrow is not None:
+		if self._alternate_buffer:
+			move_cursor = escape.RESTORE_NORMAL_BUFFER
+		elif self.maxrow is not None:
 			move_cursor = escape.set_cursor_position( 
 				0, self.maxrow)
 		sys.stdout.write( escape.set_attributes( 
@@ -204,15 +213,19 @@ class Screen(object):
 			+ escape.SI
 			+ escape.MOUSE_TRACKING_OFF
 			+ move_cursor + "\n" + escape.SHOW_CURSOR )
+		self._input_iter = None
 		self._started = False
 
-	def run_wrapper(self,fn):
+	def run_wrapper(self, fn, alternate_buffer=True):
 		"""
 		Call start to initialize screen, then call fn.  
 		When fn exits call stop to restore the screen to normal.
+
+		alternate_buffer -- use alternate screen buffer and restore
+			normal screen buffer on exit
 		"""
 		try:
-			self.start()
+			self.start(alternate_buffer)
 			return fn()
 		finally:
 			self.stop()
@@ -260,17 +273,20 @@ class Screen(object):
 		"""
 		assert self._started
 		
-		keys, raw = self._get_input( self.max_wait )
+		self._wait_for_input_ready(self._next_timeout)
+		self._next_timeout, keys, raw = self._input_iter.next()
 		
 		# Avoid pegging CPU at 100% when slowly resizing
 		if keys==['window resize'] and self.prev_input_resize:
 			while True:
-				keys, raw2 = self._get_input(self.resize_wait)
+				self._wait_for_input_ready(self.resize_wait)
+				self._next_timeout, keys, raw2 = \
+					self._input_iter.next()
 				raw += raw2
-				if not keys:
-					keys, raw2 = self._get_input( 
-						self.resize_wait)
-					raw += raw2
+				#if not keys:
+				#	keys, raw2 = self._get_input( 
+				#		self.resize_wait)
+				#	raw += raw2
 				if keys!=['window resize']:
 					break
 			if keys[-1:]!=['window resize']:
@@ -286,48 +302,87 @@ class Screen(object):
 		if raw_keys:
 			return keys, raw
 		return keys
-		
-	
-	def _get_input(self, timeout):	
-		key = self._getch(timeout)
-		raw = []
-		keys = []
-		
-		while key >= 0 or self.gpm_event_pending:
-			if self.gpm_event_pending:
-				keys += self._encode_gpm_event()
 
-			if key >= 0:
-				raw.append(key)
-				keys.append(key)
-			key = self._getch_nodelay()
+	def get_input_descriptors(self):
+		"""
+		Return a list of integer file descriptors that should be
+		polled in external event loops to check for user input.
 
-		processed = []
+		Use this method if you are implementing yout own event loop.
+		"""
+		fd_list = [sys.stdin.fileno()]
+		if self.gpm_mev is not None:
+			fd_list.append(self.gpm_mev.fromchild.fileno())
+		return fd_list
 		
+	def get_input_nonblocking(self):
+		"""
+		Return a (next_input_timeout, keys_pressed, raw_keycodes) 
+		tuple.
+
+		Use this method if you are implementing your own event loop.
 		
-		def more_fn(raw=raw,
-				# hide warnings in python 2.1
-				self_getch=self._getch, 
-				self_complete_wait = self.complete_wait):
-			key = self_getch(self_complete_wait)
-			if key >= 0:
-				raw.append(key)
-			return key
+		When there is input waiting on one of the descriptors returned
+		by get_input_descriptors() this method should be called to
+		read and process the input.
+
+		This method expects to be called in next_input_timeout seconds
+		(a floating point number) if there is no input waiting.
+		"""
+		assert self._started
+
+		return self._input_iter.next()
+
+	def _run_input_iter(self):
+		while True:
+			processed = []
+			codes = self._get_gpm_codes() + \
+				self._get_keyboard_codes()
+
+			original_codes = codes
+			try:
+				while codes:
+					run, codes = escape.process_keyqueue(
+						codes, True)
+					processed.extend(run)
+			except escape.MoreInputRequired:
+				k = len(original_codes) - len(codes)
+				yield (self.complete_wait, processed,
+					original_codes[:k])
+				original_codes = codes
+				processed = []
+
+				codes += self._get_keyboard_codes() + \
+					self._get_gpm_codes()
+				while codes:
+					run, codes = escape.process_keyqueue(
+						codes, False)
+					processed.extend(run)
 			
-		while keys:
-			run, keys = escape.process_keyqueue(keys, more_fn)
-			processed += run
+			if self.resized:
+				processed.append('window resize')
+				self.resized = False
 
-		if self.resized:
-			processed.append('window resize')
-			self.resized = False
-			self.screen_buf = None
+			yield (self.max_wait, processed, original_codes)
 
-		return processed, raw
-		
-	def _getch(self, timeout):
+	def _get_keyboard_codes(self):
+		codes = []
+		while True:
+			code = self._getch_nodelay()
+			if code < 0:
+				break
+			codes.append(code)
+		return codes
+
+	def _get_gpm_codes(self):
+		codes = []
+		while self.gpm_event_pending:
+			codes.extend(self._encode_gpm_event())
+		return codes
+
+	def _wait_for_input_ready(self, timeout):
 		ready = None
-		fd_list = [0]
+		fd_list = [sys.stdin.fileno()]
 		if self.gpm_mev is not None:
 			fd_list += [ self.gpm_mev.fromchild ]
 		while True:
@@ -341,11 +396,15 @@ class Screen(object):
 				if self.resized:
 					ready = []
 					break
+		return ready	
+		
+	def _getch(self, timeout):
+		ready = self._wait_for_input_ready(timeout)
 		if self.gpm_mev is not None:
-			if self.gpm_mev.fromchild in ready:
+			if self.gpm_mev.fromchild.fileno() in ready:
 				self.gpm_event_pending = True
-		if 0 in ready:
-			return ord(os.read(0, 1))
+		if sys.stdin.fileno() in ready:
+			return ord(os.read(sys.stdin.fileno(), 1))
 		return -1
 	
 	def _encode_gpm_event( self ):

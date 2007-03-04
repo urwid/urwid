@@ -49,7 +49,7 @@ class SimpleListWalker(ListDetectModifications, ListWalker):
 	def _modified(self):
 		if self.focus >= len(self):
 			self.focus = len(self)-1
-		super(SimpleListWalker, self)._modified()
+		ListWalker._modified(self)
 	
 	def set_modified_callback(self, callback):
 		"""
@@ -255,7 +255,8 @@ class ListBox(BoxWidget):
 		middle, top, bottom = self.calculate_visible( 
 			(maxcol, maxrow), focus=focus)
 		if middle is None:
-			return SolidCanvas(None, " ", maxcol, maxrow)
+			return SolidCanvas((self, (maxcol,maxrow), focus),
+				" ", maxcol, maxrow)
 		
 		_ignore, focus_widget, focus_pos, focus_rows, cursor = middle
 		trim_top, fill_above = top
@@ -696,6 +697,7 @@ class ListBox(BoxWidget):
 		
 		# at this point we must scroll
 		row_offset += 1
+		self.invalidate()
 		
 		if row_offset > 0:
 			# need to scroll in another candidate widget
@@ -773,6 +775,7 @@ class ListBox(BoxWidget):
 		
 		# at this point we must scroll
 		row_offset -= 1
+		self.invalidate()
 		
 		if row_offset < maxrow:
 			# need to scroll in another candidate widget

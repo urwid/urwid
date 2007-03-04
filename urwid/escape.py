@@ -51,6 +51,9 @@ DEC_SPECIAL_RE = re.compile(u"[%s]" % DEC_SPECIAL_CHARS)
 ## Input sequences
 ###################
 
+class MoreInputRequired(Exception):
+	pass
+
 def escape_modifier( digit ):
 	mode = ord(digit) - ord("1")
 	return "shift "*(mode&1) + "meta "*((mode&2)/2) + "ctrl "*((mode&4)/4)
@@ -103,7 +106,7 @@ input_sequences = [
 	('[M', 'mouse')
 ]
 
-class KeyqueueTrie:
+class KeyqueueTrie(object):
 	def __init__( self, sequences ):
 		self.data = {}
 		for s, result in sequences:
@@ -122,30 +125,29 @@ class KeyqueueTrie:
 			return self.add(d, s[1:], result)
 		root[ord(s)] = result
 	
-	def get(self, keys, more_fn):
-		return self.get_recurse(self.data, keys, more_fn)
+	def get(self, keys, more_available):
+		return self.get_recurse(self.data, keys, more_available)
 	
-	def get_recurse(self, root, keys, more_fn):
+	def get_recurse(self, root, keys, more_available):
 		if type(root) != type({}):
 			if root == "mouse":
-				return self.read_mouse_info( keys, more_fn )
+				return self.read_mouse_info(keys, 
+					more_available)
 			return (root, keys)
 		if not keys:
 			# get more keys
-			key = more_fn()
-			if key < 0:
-				return None
-			keys.append(key)
+			if more_available:
+				raise MoreInputRequired()
+			return None
 		if not root.has_key(keys[0]):
 			return None
-		return self.get_recurse( root[keys[0]], keys[1:], more_fn )
+		return self.get_recurse(root[keys[0]], keys[1:], more_available)
 	
-	def read_mouse_info(self, keys, more_fn):
-		while len(keys) < 3:
-			key = more_fn()
-			if key < 0:
-				return None
-			keys.append(key)
+	def read_mouse_info(self, keys, more_available):
+		if len(keys) < 3:
+			if more_available:
+				raise MoreInputRequired()
+			return None
 		
 		b = keys[0] - 32
 		x, y = keys[1] - 33, keys[2] - 33  # start from 0
@@ -214,28 +216,35 @@ _keyconv = {
 
 
 
-def process_keyqueue(keys, more_fn):
-	code = keys.pop(0)
+def process_keyqueue(codes, more_available):
+	"""
+	codes -- list of key codes
+	more_available -- if True then raise MoreInputRequired when in the 
+		middle of a character sequence (escape/utf8/wide) and caller 
+		will attempt to send more key codes on the next call.
+	
+	returns (list of input, list of remaining key codes).
+	"""
+	code = codes[0]
 	if code >= 32 and code <= 126:
 		key = chr(code)
-		return [key],keys
+		return [key], codes[1:]
 	if _keyconv.has_key(code):
-		return [_keyconv[code]],keys
+		return [_keyconv[code]], codes[1:]
 	if code >0 and code <27:
-		return ["ctrl %s" % chr(ord('a')+code-1)],keys
+		return ["ctrl %s" % chr(ord('a')+code-1)], codes[1:]
 	
 	em = util.get_encoding_mode()
 	
 	if (em == 'wide' and code < 256 and  
 		util.within_double_byte(chr(code),0,0)):
-		if not keys:
-			key = more_fn()
-			if key >= 0: keys.append(key)
-		if keys and keys[0] < 256:
-			db = chr(code)+chr(keys[0])
-			if util.within_double_byte( db, 0, 1 ):
-				keys.pop(0)
-				return [db],keys
+		if not codes[1:]:
+			if more_available:
+				raise MoreInputRequired()
+		if codes[1:] and codes[1] < 256:
+			db = chr(code)+chr(codes[1])
+			if util.within_double_byte(db, 0, 1):
+				return [db], codes[2:]
 	if em == 'utf8' and code>127 and code<256:
 		if code & 0xe0 == 0xc0: # 2-byte form
 			need_more = 1
@@ -244,45 +253,45 @@ def process_keyqueue(keys, more_fn):
 		elif code & 0xf8 == 0xf0: # 4-byte form
 			need_more = 3
 		else:
-			return ["<%d>"%code],keys
+			return ["<%d>"%code], codes[1:]
 
 		for i in range(need_more):
-			if len(keys) <= i:
-				key = more_fn()
-				if key >= 0: 
-					keys.append(key)
+			if len(codes)-1 <= i:
+				if more_available:
+					raise MoreInputRequired()
 				else:
-					return ["<%d>"%code],keys
-			k = keys[i]
+					return ["<%d>"%code], codes[1:]
+			k = codes[i+1]
 			if k>256 or k&0xc0 != 0x80:
-				return ["<%d>"%code],keys
+				return ["<%d>"%code], codes[1:]
 		
-		s = "".join([chr(c)for c in [code]+keys[:need_more]])
+		s = "".join([chr(c)for c in codes[:need_more+1]])
 		try:
-			return [s.decode("utf-8")], keys[need_more:]
+			return [s.decode("utf-8")], codes[need_more+1:]
 		except UnicodeDecodeError:
-			return ["<%d>"%code],keys
+			return ["<%d>"%code], codes[1:]
 		
 	if code >127 and code <256:
 		key = chr(code)
-		return [key],keys
+		return [key], codes[1:]
 	if code != 27:
-		return ["<%d>"%code],keys
+		return ["<%d>"%code], codes[1:]
 
-	result = input_trie.get( keys, more_fn )
+	result = input_trie.get(codes[1:], more_available)
 	
 	if result is not None:
-		result, keys = result
-		return [result],keys
+		result, remaining_codes = result
+		return [result], remaining_codes
 
-	if keys:
+	if codes[1:]:
 		# Meta keys -- ESC+Key form
-		run, keys = process_keyqueue(keys, more_fn)
+		run, remaining_codes = process_keyqueue(codes[1:], 
+			more_available)
 		if run[0] == "esc" or run[0].find("meta ") >= 0:
-			return ['esc']+run, keys
-		return ['meta '+run[0]]+run[1:], keys
+			return ['esc']+run, remaining_codes
+		return ['meta '+run[0]]+run[1:], remaining_codes
 		
-	return ['esc'],keys
+	return ['esc'], codes[1:]
 
 
 ####################
@@ -295,6 +304,9 @@ CURSOR_HOME = ESC+"[H"
 
 APP_KEYPAD_MODE = ESC+"="
 NUM_KEYPAD_MODE = ESC+">"
+
+SWITCH_TO_ALTERNATE_BUFFER = ESC+"[?1049h"
+RESTORE_NORMAL_BUFFER = ESC+"[?1049l"
 
 #RESET_SCROLL_REGION = ESC+"[;r"
 #RESET = ESC+"c"
