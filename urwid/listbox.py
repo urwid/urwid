@@ -104,7 +104,7 @@ class ListBox(BoxWidget):
 		else:
 			self.body = SimpleListWalker(body)
 
-		Signals.connect(self.body, "modified", self.invalidate)
+		Signals.connect(self.body, "modified", self._invalidate)
 
 		# offset_rows is the number of rows between the top of the view
 		# and the top of the focused item
@@ -397,7 +397,7 @@ class ListBox(BoxWidget):
 		"""
 		Finish setting the position now that we have maxcol & maxrow.
 		"""
-		self.invalidate()
+		self._invalidate()
 		if self.set_focus_pending == "first selectable":
 			return self._set_focus_first_selectable(
 				(maxcol,maxrow), focus)
@@ -474,7 +474,7 @@ class ListBox(BoxWidget):
 				raise ListBoxError, "Invalid offset_inset: %s, only %s rows in target!" %(`offset_inset`, `tgt_rows`)
 			self.offset_rows = 0
 			self.inset_fraction = (-offset_inset,tgt_rows)
-		self.invalidate()
+		self._invalidate()
 				
 	def update_pref_col_from_focus(self, (maxcol,maxrow) ):
 		"""Update self.pref_col from the focus widget."""
@@ -587,7 +587,7 @@ class ListBox(BoxWidget):
 		for row in attempt_rows:
 			if target.move_cursor_to_coords((maxcol,),pref_col,row):
 				break
-		self.invalidate()
+		self._invalidate()
 
 	def get_focus_offset_inset(self,(maxcol, maxrow)):
 		"""Return (offset rows, inset rows) for focus widget."""
@@ -697,7 +697,7 @@ class ListBox(BoxWidget):
 		
 		# at this point we must scroll
 		row_offset += 1
-		self.invalidate()
+		self._invalidate()
 		
 		if row_offset > 0:
 			# need to scroll in another candidate widget
@@ -775,7 +775,7 @@ class ListBox(BoxWidget):
 		
 		# at this point we must scroll
 		row_offset -= 1
-		self.invalidate()
+		self._invalidate()
 		
 		if row_offset < maxrow:
 			# need to scroll in another candidate widget

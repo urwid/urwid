@@ -41,7 +41,7 @@ class BigText(FixedWidget):
 	
 	def set_text(self, markup):
 		self.text, self.attrib = decompose_tagmarkup(markup)
-		self.invalidate()
+		self._invalidate()
 	
 	def get_text(self):
 		"""
@@ -51,7 +51,7 @@ class BigText(FixedWidget):
 	
 	def set_font(self, font):
 		self.font = font
-		self.invalidate()
+		self._invalidate()
 	
 	def pack(self, size=None, focus=False):
 		rows = self.font.height
@@ -238,7 +238,7 @@ class BarGraph(BoxWidget):
 			hlines = hlines[:] # shallow copy
 			hlines.sort()
 		self.data = bardata, top, hlines
-		self.invalidate()
+		self._invalidate()
 	
 	def get_data(self, (maxcol, maxrow)):
 		"""
@@ -266,7 +266,7 @@ class BarGraph(BoxWidget):
 		"""
 		assert width is None or width > 0
 		self.bar_width = width
-		self.invalidate()
+		self._invalidate()
 	
 	def calculate_bar_widths(self, (maxcol, maxrow), bardata ):
 		"""

@@ -62,8 +62,11 @@ class Widget(object):
 	__metaclass__ = WidgetMeta
 	_selectable = False
 
-	def invalidate(self):
+	def _invalidate(self):
 		CanvasCache.invalidate(self)
+
+	def _emit(self, name, *args):
+		Signals.emit(self, name, *args)
 	
 	def selectable(self):
 		return self._selectable
@@ -198,14 +201,14 @@ class Text(FlowWidget):
 		self.set_text(markup)
 		self.set_layout(align, wrap, layout)
 	
-	def invalidate(self):
+	def _invalidate(self):
 		self._cache_maxcol = None
-		self.__super.invalidate()
+		self.__super._invalidate()
 
 	def set_text(self,markup):
 		"""Set content of text widget."""
 		self.text, self.attrib = decompose_tagmarkup(markup)
-		self.invalidate()
+		self._invalidate()
 
 	def get_text(self):
 		"""
@@ -227,7 +230,7 @@ class Text(FlowWidget):
 			raise TextError("Alignment mode %s not supported."%
 				`mode`)
 		self.align_mode = mode
-		self.invalidate()
+		self._invalidate()
 
 	def set_wrap_mode(self, mode):
 		"""
@@ -241,7 +244,7 @@ class Text(FlowWidget):
 		if not self.layout.supports_wrap_mode(mode):
 			raise TextError("Wrap mode %s not supported"%`mode`)
 		self.wrap_mode = mode
-		self.invalidate()
+		self._invalidate()
 
 	def set_layout(self, align, wrap, layout=None):
 		"""
@@ -378,12 +381,12 @@ class Edit(Text):
 		"""Deprecated.  Use set_caption and/or set_edit_text instead.
 		
 		Make sure any cached line translation is not reused."""
-		self.invalidate()
+		self._invalidate()
 
 	def set_caption(self, caption):
 		"""Set the caption markup for this widget."""
 		self.caption, self.attrib = decompose_tagmarkup(caption)
-		self.invalidate()
+		self._invalidate()
 	
 	def set_edit_pos(self, pos):
 		"""Set the cursor position with a self.edit_text offset."""
@@ -391,7 +394,7 @@ class Edit(Text):
 		self.highlight = None
 		self.pref_col_maxcol = None, None
 		self.edit_pos = pos
-		self.invalidate()
+		self._invalidate()
 	
 	def set_edit_text(self, text):
 		"""Set the edit text for this widget."""
@@ -399,7 +402,7 @@ class Edit(Text):
 		self.edit_text = text
 		if self.edit_pos > len(text):
 			self.edit_pos = len(text)
-		self.invalidate()
+		self._invalidate()
 
 	def get_edit_text(self):
 		"""Return the edit text for this widget."""
@@ -508,7 +511,7 @@ class Edit(Text):
 		if e_pos > len(self.edit_text): e_pos = len(self.edit_text)
 		self.edit_pos = e_pos
 		self.pref_col_maxcol = x, maxcol
-		self.invalidate()
+		self._invalidate()
 		return True
 
 	def mouse_event(self, (maxcol,), event, button, x, y, focus):
@@ -641,7 +644,7 @@ class WidgetWrap(Widget):
 		return self._w
 	def set_w(self, w):
 		self._w = w
-		self.invalidate()
+		self._invalidate()
 	w = property(get_w, set_w)
 	
 	def render(self, size, focus = False ):
@@ -712,7 +715,7 @@ class CheckBox(WidgetWrap):
 	def set_label(self, label):
 		"""Change the check box label."""
 		self.label.set_text(label)
-		self.invalidate()
+		self._invalidate()
 	
 	def get_label(self):
 		"""Return label text."""
@@ -736,7 +739,7 @@ class CheckBox(WidgetWrap):
 			('fixed', self.reserve_columns, self.states[state] ),
 			self.label ] )
 		self.w.focus_col = 0
-		self.invalidate()
+		self._invalidate()
 		
 	def get_state(self):
 		"""Return the state of the checkbox."""
@@ -760,7 +763,7 @@ class CheckBox(WidgetWrap):
 				self.set_state(False)
 		elif self.state == 'mixed':
 			self.set_state(False)
-		self.invalidate()
+		self._invalidate()
 
 	def mouse_event(self, (maxcol,), event, button, x, y, focus):
 		"""Toggle state on button 1 press."""
@@ -813,7 +816,7 @@ class RadioButton(WidgetWrap):
 	def set_label(self, label):
 		"""Change the check box label."""
 		self.label.set_text(label)
-		self.invalidate()
+		self._invalidate()
 	
 	def get_label(self):
 		"""Return label text."""
@@ -839,7 +842,7 @@ class RadioButton(WidgetWrap):
 			self.label ] )
 		self.w.focus_col = 0
 		
-		self.invalidate()
+		self._invalidate()
 		if state is not True:
 			return
 
@@ -899,7 +902,7 @@ class Button(WidgetWrap):
 			Text( label ),
 			('fixed', 1, self.button_right)],
 			dividechars=1)
-		self.invalidate()
+		self._invalidate()
 	
 	def get_label(self):
 		return self.label
@@ -977,7 +980,7 @@ class GridFlow(FlowWidget):
 			assert cell in self.cells
 			self.focus_cell = cell
 		self._cache_maxcol = None
-		self.invalidate()
+		self._invalidate()
 		
 
 	def get_display_widget(self, (maxcol,)):
@@ -1109,7 +1112,7 @@ class GridFlow(FlowWidget):
 			return False
 		
 		self._set_focus_from_display_widget(d)
-		self.invalidate()
+		self._invalidate()
 		return True
 	
 	def mouse_event(self, (maxcol,), event, button, col, row, focus):
@@ -1121,7 +1124,7 @@ class GridFlow(FlowWidget):
 			return False
 		
 		self._set_focus_from_display_widget(d)
-		CanvasCache.invalidate(self)
+		self._invalidate()
 		return True
 		
 	
@@ -1764,21 +1767,21 @@ class Frame(BoxWidget):
 		return self._header
 	def set_header(self, header):
 		self._header = header
-		self.invalidate()
+		self._invalidate()
 	header = property(get_header, set_header)
 		
 	def get_body(self):
 		return self._body
 	def set_body(self, body):
 		self._body = body
-		self.invalidate()
+		self._invalidate()
 	body = property(get_body, set_body)
 
 	def get_footer(self):
 		return self._footer
 	def set_footer(self, footer):
 		self._footer = footer
-		self.invalidate()
+		self._invalidate()
 	footer = property(get_footer, set_footer)
 
 	def set_focus(self, part):
@@ -1788,7 +1791,7 @@ class Frame(BoxWidget):
 		"""
 		assert part in ('header', 'footer', 'body')
 		self.focus_part = part
-		self.invalidate()
+		self._invalidate()
 
 	def frame_top_bottom(self, (maxcol,maxrow), focus):
 		"""Calculate the number of rows for the header and footer.
@@ -1971,21 +1974,21 @@ class AttrWrap(Widget):
 		return self._w
 	def set_w(self, w):
 		self._w = w
-		self.invalidate()
+		self._invalidate()
 	w = property(get_w, set_w)
 	
 	def get_attr(self):
 		return self._attr
 	def set_attr(self, attr):
 		self._attr = attr
-		self.invalidate()
+		self._invalidate()
 	attr = property(get_attr, set_attr)
 	
 	def get_focus_attr(self):
 		return self._focus_attr
 	def set_focus_attr(self, focus_attr):
 		self._focus_attr = focus_attr
-		self.invalidate()
+		self._invalidate()
 	focus_attr = property(get_focus_attr, set_focus_attr)
 		
 	def render(self, size, focus = False ):
@@ -2054,7 +2057,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 				raise PileError, "widget list item invalid %s" % `w`
 			if focus_item is None and w.selectable():
 				focus_item = i
-		self.widget_list.set_modified_callback(self.invalidate)
+		self.widget_list.set_modified_callback(self._invalidate)
 		
 		if focus_item is None:
 			focus_item = 0
@@ -2075,7 +2078,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 		else:
 			assert item in self.widget_list
 			self.focus_item = item
-		self.invalidate()
+		self._invalidate()
 
 	def get_focus(self):
 		"""Return the widget in focus."""
@@ -2395,7 +2398,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 			if focus_column is None and w.selectable():
 				focus_column = i
 				
-		self.widget_list.set_modified_callback(self.invalidate)
+		self.widget_list.set_modified_callback(self._invalidate)
 		
 		self.dividechars = dividechars
 		if focus_column is None:
@@ -2406,14 +2409,14 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 		self.box_columns = box_columns
 		self._cache_maxcol = None
 	
-	def invalidate(self):
+	def _invalidate(self):
 		self._cache_maxcol = None
-		self.__super.invalidate()
+		self.__super._invalidate()
 
 	def set_focus_column( self, num ):
 		"""Set the column in focus by its index in self.widget_list."""
 		self.focus_col = num
-		self.invalidate()
+		self._invalidate()
 	
 	def get_focus_column( self ):
 		"""Return the focus column index."""
@@ -2429,7 +2432,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 		else:
 			position = self.widget_list.index(item)
 		self.focus_col = position
-		self.invalidate()
+		self._invalidate()
 	
 	def get_focus(self):
 		"""Return the widget in focus."""
@@ -2589,7 +2592,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 				
 		self.focus_col = i
 		self.pref_col = col
-		self.invalidate()
+		self._invalidate()
 		return True
 
 	def mouse_event(self, size, event, button, col, row, focus):
