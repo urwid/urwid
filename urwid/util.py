@@ -965,6 +965,11 @@ class ListDetectModifications(UserList):
 	def set_modified_callback(self, callback):
 		self._modified = callback
 
+	def __repr__(self):
+		return "%s.%s(%s)" % (self.__class__.__module__,
+			self.__class__.__name__,
+			UserList.__repr__(self))
+
 	__add__ = _call_modified(UserList.__add__)
 	__delitem__ = _call_modified(UserList.__delitem__)
 	__delslice__ = _call_modified(UserList.__delslice__)
