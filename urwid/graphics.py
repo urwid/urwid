@@ -81,14 +81,15 @@ class BigText(FixedWidget):
 				continue
 			c = self.font.render(ch)
 			if a is not None:
-				c = CompositeCanvas(None, c)
+				c = CompositeCanvas(c)
 				c.fill_attr(a)
 			o.append((c, None, False, width))
 		if o:
-			canv = CanvasJoin((self, size, False), o)
+			canv = CanvasJoin(o)
 		else:
-			canv = TextCanvas((self, size, False), self,
-			[""]*rows, maxcol=0, check_width=False)
+			canv = TextCanvas([""]*rows, maxcol=0, 
+				check_width=False)
+		canv.finalize(self, size, False)
 		CanvasCache.store(canv, [])
 		return canv
 		
@@ -500,8 +501,7 @@ class BarGraph(BoxWidget):
 			assert c.rows() == 1, "Invalid characters in BarGraph!"
 			combinelist += [(c, None, False)] * y_count
 			
-		canv = CanvasCombine((self, (maxcol, maxrow), False), 
-			combinelist)
+		canv = CanvasCombine(combinelist)
 		return canv
 
 
@@ -702,11 +702,11 @@ class GraphVScale(BoxWidget):
 			c = t.render((maxcol,))
 			if p > rows:
 				run = p-rows
-				c = CompositeCanvas(None, c)
+				c = CompositeCanvas(c)
 				c.pad_trim_top_bottom(run, 0)
 			rows += c.rows()
 			combinelist.append((c, None, False))
-		c = CanvasCombine((self, (maxcol, maxrow), False), combinelist)
+		c = CanvasCombine(combinelist)
 		if maxrow - rows:
 			c.pad_trim_top_bottom(0, maxrow - rows)
 		return c
@@ -787,6 +787,5 @@ class ProgressBar( FlowWidget ):
 		else:
 			c._attr = [[(self.complete,ccol),
 				(self.normal,maxcol-ccol)]]
-		c.widget_info = (self, (maxcol,), focus)
 		return c
 	

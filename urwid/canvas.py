@@ -144,14 +144,27 @@ class CanvasCache(object):
 				return canv
 
 			canv = fn(self, size, focus=focus)
-			assert canv.widget_info == (self, size, focus), \
-				"Widget %r rendered canvas with widget_info " \
-				"%r instead of expected widget_info %r" \
-				% (self, canv.widget_info, (self, size, focus))
+			if canv.widget_info:
+				canv = CompositeCanvas(canv)
+			canv.finalize(self, size, focus)
 			cls.store(canv)
 			return canv
 		return cached_render
 	widget_render = classmethod(widget_render)
+
+	def widget_render_nocache(cls, fn):
+		"""
+		decorator for widget .render() methods.
+		finalizes canvas returned.
+		"""
+		def finalize_render(self, size, focus=False):
+			canv = fn(self, size, focus=focus)
+			if canv.widget_info:
+				canv = CompositeCanvas(canv)
+			canv.finalize(self, size, focus)
+			return canv
+		return finalize_render
+	widget_render_nocache = classmethod(widget_render_nocache)
 
 	def widget_rows(cls, fn, ignore_focus):
 		"""
@@ -175,19 +188,53 @@ class Canvas(object):
 	"""
 	base class for canvases
 	"""
-	def __init__(self, widget_info):
+	_finalized_error = CanvasError("This canvas has been finalized. "
+		"Use CompositeCanvas to wrap this canvas if "
+		"you need to make changes.")
+	_renamed_error = CanvasError("The old Canvas class is now called "
+		"TextCanvas. Canvas is now the base class for all canvas "
+		"classes.")
+	_old_repr_error = CanvasError("The internal representation of "
+		"canvases is no longer stored as .text, .attr, and .cs "
+		"lists, please see the TextCanvas class for the new "
+		"representation of canvas content.")
+
+	def __init__(self, value1=None, value2=None, value3=None):
 		"""
-		widget_info -- (widget, size, focus) values when creating 
-		               this canvas or None if this is a smaller
-			       part of a large canvas being rendered.
+		value1, value2, value3 -- if not None, raise a helpful error:
+			the old Canvas class is now called TextCanvas.
 		"""
-		if type(widget_info) == type([]):
-			raise CanvasError("Invalid widget_info.  "
-				"Were you looking for TextCanvas?")
-		assert widget_info is None or type(widget_info)==type(())
-		self.widget_info = widget_info
+		if value1 is not None: 
+			raise _renamed_error
+		self._widget_info = None
 		self.coords = {}
 		self.shortcuts = {}
+	
+	def finalize(self, widget, size, focus):
+		"""
+		Mark this canvas as finalized (should not be any future
+		changes to its content). This is required before caching
+		the canvas.  This happens automatically after a widget's
+		render call returns the canvas thanks to some metaclass
+		magic.
+
+		widget -- widget that rendered this canvas
+		size -- size parameter passed to widget's render method
+		focus -- focus parameter passed to widget's render method
+		"""
+		if self.widget_info:
+			raise self._finalized_error
+		self._widget_info = widget, size, focus
+
+	def _get_widget_info(self):
+		return self._widget_info
+	widget_info = property(_get_widget_info)
+
+	def _raise_old_repr_error(self, val=None):
+		raise self._old_repr_error
+	text = property(_raise_old_repr_error, _raise_old_repr_error)
+	attr = property(_raise_old_repr_error, _raise_old_repr_error)
+	cs = property(_raise_old_repr_error, _raise_old_repr_error)
 	
 	def content(self, trim_left=0, trim_top=0, cols=None, rows=None, 
 			attr=None):
@@ -208,6 +255,8 @@ class Canvas(object):
 			return
 		return c[:2] # trim off data part
 	def set_cursor(self, c):
+		if self.widget_info:
+			raise self._finalized_error
 		if c is None:
 			try:
 				del self.coords["cursor"]
@@ -231,10 +280,9 @@ class TextCanvas(Canvas):
 	"""
 	class for storing rendered text and attributes
 	"""
-	def __init__(self, widget_info, text=None, attr=None, cs=None, 
+	def __init__(self, text=None, attr=None, cs=None, 
 		cursor=None, maxcol=None, check_width=True):
 		"""
-		widget_info -- passed to Canvas
 		text -- list of strings, one for each line
 		attr -- list of run length encoded attributes for text
 		cs -- list of run length encoded character set for text
@@ -242,7 +290,7 @@ class TextCanvas(Canvas):
 		maxcol -- screen columns taken by this canvas
 		check_width -- check and fix width of all lines in text
 		"""
-		Canvas.__init__(self, widget_info)
+		Canvas.__init__(self)
 		if text == None: 
 			text = []
 
@@ -402,12 +450,12 @@ class SolidCanvas(Canvas):
 	"""
 	A canvas filled completely with a single character.
 	"""
-	def __init__(self, widget_info, fill_char, cols, rows):
-		Canvas.__init__(self, widget_info)
+	def __init__(self, fill_char, cols, rows):
+		Canvas.__init__(self)
 		end, col = calc_text_pos(fill_char, 0, len(fill_char), 1)
 		assert col == 1, "Invalid fill_char: %r" % fill_char
-		self.text, cs = apply_target_encoding(fill_char[:end])
-		self.cs = cs[0][0]
+		self._text, cs = apply_target_encoding(fill_char[:end])
+		self._cs = cs[0][0]
 		self.size = cols, rows
 		self.cursor = None
 	
@@ -424,7 +472,7 @@ class SolidCanvas(Canvas):
 		if rows is None:
 			rows = self.size[1]
 
-		line = [(attr, self.cs, self.text*cols)]
+		line = [(attr, self._cs, self._text*cols)]
 		for i in range(rows):
 			yield line
 
@@ -443,9 +491,8 @@ class CompositeCanvas(Canvas):
 	"""
 	class for storing a combination of canvases
 	"""
-	def __init__(self, widget_info, canv=None):
+	def __init__(self, canv=None):
 		"""
-		widget_info -- passed to Canvas
 		canv -- a Canvas object to wrap this CompositeCanvas around.
 
 		if canv is a CompositeCanvas, make a copy of its contents
@@ -461,7 +508,7 @@ class CompositeCanvas(Canvas):
 		
 		# tuples that define the unfinished cviews that are part of
 		# shards following the first shard.
-		Canvas.__init__(self, widget_info)
+		Canvas.__init__(self)
 
 		if canv is None:
 			self.shards = []
@@ -543,6 +590,8 @@ class CompositeCanvas(Canvas):
 		assert top >= 0, "invalid trim amount %d!"%top
 		assert top < self.rows(), "cannot trim %d lines from %d!"%(
 			top, self.rows())
+		if self.widget_info:
+			raise self._finalized_error
 		
 		if top:
 			self.shards = shards_trim_top(self.shards, top)
@@ -561,6 +610,8 @@ class CompositeCanvas(Canvas):
 		assert end > 0, "invalid trim amount %d!"%end
 		assert end < self.rows(), "cannot trim %d lines from %d!"%(
 			end, self.rows())
+		if self.widget_info:
+			raise self._finalized_error
 		
 		self.shards = shards_trim_rows(self.shards, self.rows() - end)
 
@@ -572,6 +623,8 @@ class CompositeCanvas(Canvas):
 		values > 0 indicate screen columns to pad
 		values < 0 indicate screen columns to trim
 		"""
+		if self.widget_info:
+			raise self._finalized_error
 		shards = self.shards
 		if left < 0 or right < 0:
 			trim_left = max(0, -left)
@@ -601,6 +654,8 @@ class CompositeCanvas(Canvas):
 		"""
 		Pad or trim this canvas on the top and bottom.
 		"""
+		if self.widget_info:
+			raise self._finalized_error
 		orig_shards = self.shards
 
 		if top < 0 or bottom < 0:
@@ -624,6 +679,8 @@ class CompositeCanvas(Canvas):
 		
 	def overlay(self, other, left, top ):
 		"""Overlay other onto this canvas."""
+		if self.widget_info:
+			raise self._finalized_error
 		
 		width = other.cols()
 		height = other.rows()
@@ -668,6 +725,8 @@ class CompositeCanvas(Canvas):
 		Apply attribute a to all areas of this canvas with default
 		attribute currently set to None, leaving other attributes
 		intact."""
+		if self.widget_info:
+			raise self._finalized_error
 		
 		for num_rows, cviews in self.shards:
 			for i in range(len(cviews)):
@@ -951,7 +1010,7 @@ def cview_trim_cols(cv, cols):
 
 		
 
-def CanvasCombine(widget_info, l):
+def CanvasCombine(l):
 	"""Stack canvases in l vertically and return resulting canvas.
 
 	l -- list of (canvas, position, focus) tuples.  position is a value
@@ -959,9 +1018,9 @@ def CanvasCombine(widget_info, l):
 	     focus is True if this canvas is the one that would be in focus
 	     if the whole widget is in focus.
 	"""
-	clist = [(CompositeCanvas(None, c),p,f) for c,p,f in l]
+	clist = [(CompositeCanvas(c),p,f) for c,p,f in l]
 
-	combined_canvas = CompositeCanvas(widget_info)
+	combined_canvas = CompositeCanvas()
 	shards = []
 	children = []
 	row = 0
@@ -987,11 +1046,11 @@ def CanvasCombine(widget_info, l):
 	return combined_canvas
 
 
-def CanvasOverlay(widget_info, top_c, bottom_c, left, top):
+def CanvasOverlay(top_c, bottom_c, left, top):
 	"""
 	Overlay canvas top_c onto bottom_c at position (left, top).
 	"""
-	overlayed_canvas = CompositeCanvas(widget_info, bottom_c)
+	overlayed_canvas = CompositeCanvas(bottom_c)
 	overlayed_canvas.overlay(top_c, left, top)
 	overlayed_canvas.children = [(left, top, top_c, None), 
 		(0, 0, bottom_c, None)]
@@ -1001,7 +1060,7 @@ def CanvasOverlay(widget_info, top_c, bottom_c, left, top):
 	return overlayed_canvas
 
 
-def CanvasJoin(widget_info, l):
+def CanvasJoin(l):
 	"""
 	Join canvases in l horizontally. Return result.
 	l -- list of (canvas, position, focus, cols) tuples.  position is a 
@@ -1028,10 +1087,10 @@ def CanvasJoin(widget_info, l):
 	
 	shard_lists = []
 	children = []
-	joined_canvas = CompositeCanvas(widget_info)
+	joined_canvas = CompositeCanvas()
 	col = 0
 	for canv, pos, pad_right, rows in l2:
-		canv = CompositeCanvas(None, canv)
+		canv = CompositeCanvas(canv)
 		if pad_right:
 			canv.pad_trim_left_right(0, pad_right)
 		if rows < maxrow:
@@ -1052,7 +1111,7 @@ def CanvasJoin(widget_info, l):
 	return joined_canvas
 
 
-def apply_text_layout(widget, text, attr, ls, maxcol):
+def apply_text_layout(text, attr, ls, maxcol):
 	utext = type(text)==type(u"")
 	t = []
 	a = []
@@ -1153,7 +1212,7 @@ def apply_text_layout(widget, text, attr, ls, maxcol):
 		a.append(linea)
 		c.append(linec)
 		
-	return TextCanvas((widget, (maxcol,), False), t, a, c, maxcol=maxcol)
+	return TextCanvas(t, a, c, maxcol=maxcol)
 
 
 

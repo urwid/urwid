@@ -255,8 +255,7 @@ class ListBox(BoxWidget):
 		middle, top, bottom = self.calculate_visible( 
 			(maxcol, maxrow), focus=focus)
 		if middle is None:
-			return SolidCanvas((self, (maxcol,maxrow), focus),
-				" ", maxcol, maxrow)
+			return SolidCanvas(" ", maxcol, maxrow)
 		
 		_ignore, focus_widget, focus_pos, focus_rows, cursor = middle
 		trim_top, fill_above = top
@@ -290,8 +289,7 @@ class ListBox(BoxWidget):
 			rows += w_rows
 			combinelist.append((canvas, w_pos, False))
 		
-		final_canvas = CanvasCombine((self, (maxcol, maxrow), focus), 
-			combinelist)
+		final_canvas = CanvasCombine(combinelist)
 		
 		if trim_top:	
 			final_canvas.trim(trim_top)

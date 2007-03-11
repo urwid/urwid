@@ -134,7 +134,7 @@ class Font(object):
 			t, cs = apply_target_encoding(d)
 			tl.append(t)
 			csl.append(cs)
-		canv = TextCanvas(None, tl, None, csl, maxcol=width, 
+		canv = TextCanvas(tl, None, csl, maxcol=width, 
 			check_width=False)
 		self.canvas[c] = canv
 		return canv

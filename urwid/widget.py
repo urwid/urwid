@@ -42,9 +42,15 @@ class WidgetMeta(MetaSuper, MetaSignals):
 		
 		super(WidgetMeta, cls).__init__(name, bases, d)
 
-		if "render" in d and "render" not in no_cache:
-			setattr(cls, "render", CanvasCache.widget_render(
-				cls.render, ignore_focus))
+		if "render" in d:
+			if "render" not in no_cache:
+				render_fn = CanvasCache.widget_render(
+					cls.render, ignore_focus)
+			else:
+				render_fn = CanvasCache.widget_render_nocache(
+					cls.render)
+			setattr(cls, "render", render_fn)
+
 		if "rows" in d and "rows" not in no_cache:
 			setattr(cls, "rows", CanvasCache.widget_rows(
 				cls.rows, ignore_focus))
@@ -154,8 +160,8 @@ class Divider(FlowWidget):
 	
 	def render(self, (maxcol,), focus=False):
 		"""Render the divider as a canvas and return it."""
-		canv = SolidCanvas(None, self.div_char, maxcol, 1)
-		canv = CompositeCanvas((self, (maxcol,), False), canv)
+		canv = SolidCanvas(self.div_char, maxcol, 1)
+		canv = CompositeCanvas(canv)
 		if self.top or self.bottom:
 			canv.pad_trim_top_bottom(self.top, self.bottom)
 		return canv
@@ -174,8 +180,7 @@ class SolidFill(BoxWidget):
 	
 	def render(self,(maxcol,maxrow), focus=False ):
 		"""Render the Fill as a canvas and return it."""
-		return SolidCanvas((self, (maxcol, maxrow), False), 
-			self.fill_char, maxcol, maxrow)
+		return SolidCanvas(self.fill_char, maxcol, maxrow)
 	
 class TextError(Exception):
 	pass
@@ -266,7 +271,7 @@ class Text(FlowWidget):
 		"""
 		text, attr = self.get_text()
 		trans = self.get_line_translation( maxcol, (text,attr) )
-		return apply_text_layout(self, text, attr, trans, maxcol)
+		return apply_text_layout(text, attr, trans, maxcol)
 
 	def rows(self,(maxcol,), focus=False):
 		"""Return the number of rows the rendered text spans."""
@@ -544,7 +549,7 @@ class Edit(Text):
 		
 		canv = Text.render(self,(maxcol,))
 		if focus:
-			canv = CompositeCanvas((self, (maxcol,), focus), canv)
+			canv = CompositeCanvas(canv)
 			canv.cursor = self.get_cursor_coords((maxcol,))
 
 		# .. will need to FIXME if I want highlight to work again
@@ -647,12 +652,10 @@ class WidgetWrap(Widget):
 		self._invalidate()
 	w = property(get_w, set_w)
 	
-	def render(self, size, focus = False ):
+	def render(self, size, focus=False):
 		"""Render self.w."""
-		# This method informs the cache about the relationship
-		# between self.w and self.
 		canv = self.w.render(size, focus=focus)
-		return CompositeCanvas((self, size, focus), canv)
+		return CompositeCanvas(canv)
 
 	def selectable(self):
 		return self.w.selectable()
@@ -671,7 +674,7 @@ class SelectableIcon(Text):
 	def render(self, (maxcol,), focus=False):
 		c = Text.render(self, (maxcol,), focus )
 		if focus:
-			c = CompositeCanvas((self, (maxcol,), True), c)
+			c = CompositeCanvas(c)
 			c.cursor = self.get_cursor_coords((maxcol,))
 		return c
 	
@@ -910,7 +913,7 @@ class Button(WidgetWrap):
 	def render(self, (maxcol,), focus=False):
 		"""Display button. Show a cursor when in focus."""
 		canv = self.__super.render((maxcol,), focus=focus)
-		canv = CompositeCanvas((self, (maxcol,), focus), canv)
+		canv = CompositeCanvas(canv)
 		if focus and maxcol >2:
 			canv.cursor = (2,0)
 		return canv
@@ -1090,8 +1093,7 @@ class GridFlow(FlowWidget):
 	def render(self, (maxcol,), focus=False ):
 		"""Use display widget to render."""
 		d = self.get_display_widget((maxcol,))
-		canv = d.render((maxcol,), focus)
-		return CompositeCanvas((self, (maxcol,), focus), canv)
+		return d.render((maxcol,), focus)
 
 	def get_cursor_coords(self, (maxcol,)):
 		"""Get cursor from display widget."""
@@ -1186,7 +1188,7 @@ class Padding(Widget):
 			canv = self.w.render((), focus)
 		else:
 			canv = self.w.render((maxcol,)+size[1:], focus)
-		canv = CompositeCanvas((self, size, focus), canv)
+		canv = CompositeCanvas(canv)
 		if left != 0 or right != 0:
 			canv.pad_trim_left_right(left, right)
 
@@ -1351,7 +1353,7 @@ class Filler(BoxWidget):
 			canv = self.body.render( (maxcol,), focus)
 		else:
 			canv = self.body.render( (maxcol,maxrow-top-bottom),focus)
-		canv = CompositeCanvas((self, (maxcol,maxrow), focus), canv)
+		canv = CompositeCanvas(canv)
 		
 		if canv.rows() > maxrow and c.cursor is not None:
 			cx, cy = canv.cursor
@@ -1566,11 +1568,10 @@ class Overlay(BoxWidget):
 		top_c = self.top_w.render(
 			self.top_w_size(size, left, right, top, bottom), focus)
 		if left<0 or right<0:
-			top_c = CompositeCanvas(None, top_c)
+			top_c = CompositeCanvas(top_c)
 			top_c.pad_trim_left_right(min(0,left), min(0,right))
 		
-		return CanvasOverlay((self, size, focus), top_c, bottom_c, 
-			max(0,left), top)
+		return CanvasOverlay(top_c, bottom_c, max(0,left), top)
 
 
 	def mouse_event(self, size, event, button, col, row, focus):
@@ -1882,8 +1883,7 @@ class Frame(BoxWidget):
 				self.focus_part == 'footer'))
 			depends_on.append(self.footer)
 
-		return CanvasCombine((self, (maxcol, maxrow), focus), 
-			combinelist)
+		return CanvasCombine(combinelist)
 
 
 	def keypress(self, (maxcol,maxrow), key):
@@ -2001,7 +2001,7 @@ class AttrWrap(Widget):
 		if focus and self.focus_attr is not None:
 			attr = self.focus_attr
 		canv = self.w.render(size, focus=focus)
-		canv = CompositeCanvas((self, size, focus), canv)
+		canv = CompositeCanvas(canv)
 		canv.fill_attr(attr)
 		return canv
 
@@ -2194,7 +2194,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 				combinelist.append((canv, i, item_focus))
 			i+=1
 
-		return CanvasCombine((self, size, focus), combinelist)
+		return CanvasCombine(combinelist)
 	
 	def get_cursor_coords(self, size):
 		"""Return the cursor coordinates of the focus widget."""
@@ -2531,7 +2531,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 				mc += self.dividechars
 			l.append((canv, i, self.focus_col == i, mc))
 				
-		return CanvasJoin((self, size, focus), l)
+		return CanvasJoin(l)
 
 	def get_cursor_coords(self, size):
 		"""Return the cursor coordinates from the focus widget."""
@@ -2760,7 +2760,7 @@ class BoxAdapter(FlowWidget):
 	
 	def render(self, (maxcol,), focus=False):
 		canv = self.box_widget.render((maxcol, self.height), focus)
-		canv = CompositeCanvas((self, (maxcol,), focus), canv)
+		canv = CompositeCanvas(canv)
 		return canv
 	
 	def __getattr__(self, name):
