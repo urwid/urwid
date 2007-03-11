@@ -36,7 +36,7 @@ import urwid
 import urwid.raw_display
 
 
-class LineWalker:
+class LineWalker(urwid.ListWalker):
 	"""ListWalker-compatible class for lazily reading file contents."""
 	
 	def __init__(self, name):
@@ -49,6 +49,7 @@ class LineWalker:
 	
 	def set_focus(self, focus):
 		self.focus = focus
+		self._modified()
 	
 	def get_next(self, start_from):
 		return self._get_at_pos( start_from + 1 )

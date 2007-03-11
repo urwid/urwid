@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# -* coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Urwid graphics widgets
 #    Copyright (C) 2004-2007  Ian Ward
@@ -744,6 +744,7 @@ class ProgressBar( FlowWidget ):
 		current -- current progress
 		"""
 		self.current = current
+		self._invalidate()
 	
 	def rows(self, (maxcol,), focus=False):
 		"""
@@ -786,5 +787,6 @@ class ProgressBar( FlowWidget ):
 		else:
 			c._attr = [[(self.complete,ccol),
 				(self.normal,maxcol-ccol)]]
+		c.widget_info = (self, (maxcol,), focus)
 		return c
 	

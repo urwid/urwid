@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# -* coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Urwid escape sequences common to curses_display and raw_display
 #    Copyright (C) 2004-2006  Ian Ward

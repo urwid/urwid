@@ -138,11 +138,16 @@ class CanvasCache(object):
 		fetches and stores canvases.
 		"""
 		def cached_render(self, size, focus=False):
-			canv = cls.fetch(self, size, focus and not ignore_focus)
+			focus = focus and not ignore_focus
+			canv = cls.fetch(self, size, focus)
 			if canv:
 				return canv
 
-			canv = fn(self, size, focus=focus and not ignore_focus)
+			canv = fn(self, size, focus=focus)
+			assert canv.widget_info == (self, size, focus), \
+				"Widget %r rendered canvas with widget_info " \
+				"%r instead of expected widget_info %r" \
+				% (self, canv.widget_info, (self, size, focus))
 			cls.store(canv)
 			return canv
 		return cached_render

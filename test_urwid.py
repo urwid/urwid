@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# -* coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Urwid unit testing .. ok, ok, ok
 #    Copyright (C) 2004-2007  Ian Ward
