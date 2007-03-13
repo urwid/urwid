@@ -44,7 +44,7 @@ def example_min():
 	ui = urwid.curses_display.Screen()
 
 	def run():
-		canvas = urwid.TextCanvas(None, ["Hello World"])
+		canvas = urwid.TextCanvas(["Hello World"])
 		ui.draw_screen( (20, 1), canvas )
 		
 		while not ui.get_input():
@@ -365,15 +365,14 @@ def example_wanat():
 			return 1
 		def render( self, (maxcol,), focus=False ):
 			num_pudding = maxcol / len("Pudding")
-			return urwid.TextCanvas((self, (maxcol,), focus),
-				["Pudding"*num_pudding]) 
+			return urwid.TextCanvas(["Pudding"*num_pudding]) 
 
 	class BoxPudding( urwid.BoxWidget ):
 		def selectable( self ):
 			return False
 		def render( self, (maxcol, maxrow), focus=False ):
 			num_pudding = maxcol / len("Pudding")
-			return urwid.TextCanvas((self, (maxcol, maxrow), focus),
+			return urwid.TextCanvas(
 				["Pudding"*num_pudding] * maxrow)
 
 def example_wanat_new():
@@ -403,7 +402,7 @@ def example_wanat_multi():
 			else:
 				(maxcol, maxrow) = size
 			num_pudding = maxcol / len("Pudding")
-			return urwid.TextCanvas((self, size, focus),
+			return urwid.TextCanvas(
 				["Pudding"*num_pudding] * maxrow )
 
 examples["wsel"] = ["example_wsel"]
@@ -420,8 +419,7 @@ def example_wsel():
 			pudding = self.pudding
 			if focus: 
 				pudding = pudding.upper()
-			return urwid.TextCanvas((self, (maxcol,), focus),
-				[pudding*num_pudding] )
+			return urwid.TextCanvas( [pudding*num_pudding] )
 		def keypress( self, (maxcol,), key ):
 			if len(key)>1:
 				return key
@@ -448,7 +446,7 @@ def example_wcur():
 			cursor = None
 			if focus:
 				cursor = self.get_cursor_coords((maxcol,))
-			return urwid.TextCanvas((self, (maxcol,), focus),
+			return urwid.TextCanvas(
 				["Pudding"*num_pudding], [], cursor )
 		def get_cursor_coords( self, (maxcol,) ):
 			col = min(self.cursor_col, maxcol-1)
