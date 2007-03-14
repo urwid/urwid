@@ -44,21 +44,65 @@ class WidgetMeta(MetaSuper, MetaSignals):
 
 		if "render" in d:
 			if "render" not in no_cache:
-				render_fn = CanvasCache.widget_render(
-					cls.render, ignore_focus)
+				render_fn = cache_widget_render(cls.render, 
+					ignore_focus)
 			else:
-				render_fn = CanvasCache.widget_render_nocache(
-					cls.render)
+				render_fn = nocache_widget_render(cls.render)
 			setattr(cls, "render", render_fn)
 
 		if "rows" in d and "rows" not in no_cache:
-			setattr(cls, "rows", CanvasCache.widget_rows(
-				cls.rows, ignore_focus))
+			setattr(cls, "rows", cache_widget_rows(cls.rows, 
+				ignore_focus))
 		if "no_cache" in d:
 			delattr(cls, "no_cache")
 		if "ignore_focus" in d:
 			delattr(cls, "ignore_focus")
 
+def cache_widget_render(fn, ignore_focus):
+	"""
+	decorator for widget .render() methods.
+	fetches and stores canvases.
+	"""
+	def cached_render(self, size, focus=False):
+		focus = focus and not ignore_focus
+		canv = CanvasCache.fetch(self, size, focus)
+		if canv:
+			return canv
+
+		canv = fn(self, size, focus=focus)
+		if canv.widget_info:
+			canv = CompositeCanvas(canv)
+		canv.finalize(self, size, focus)
+		CanvasCache.store(canv)
+		return canv
+	return cached_render
+
+def nocache_widget_render(fn):
+	"""
+	decorator for widget .render() methods.
+	finalizes canvas returned.
+	"""
+	def finalize_render(self, size, focus=False):
+		canv = fn(self, size, focus=focus)
+		if canv.widget_info:
+			canv = CompositeCanvas(canv)
+		canv.finalize(self, size, focus)
+		return canv
+	return finalize_render
+
+def cache_widget_rows(fn, ignore_focus):
+	"""
+	decorator for widget .rows() methods.
+	returns rows from cached widget if available.
+	"""
+	def cached_rows(self, size, focus=False):
+		focus = focus and not ignore_focus
+		canv = CanvasCache.fetch(self, size, focus)
+		if canv:
+			return canv.rows()
+
+		return fn(self, size, focus)
+	return cached_rows
 
 
 class Widget(object):

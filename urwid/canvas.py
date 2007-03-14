@@ -132,53 +132,6 @@ class CanvasCache(object):
 		cls._deps = {}
 	clear = classmethod(clear)
 
-	def widget_render(cls, fn, ignore_focus):
-		"""
-		decorator for widget .render() methods.
-		fetches and stores canvases.
-		"""
-		def cached_render(self, size, focus=False):
-			focus = focus and not ignore_focus
-			canv = cls.fetch(self, size, focus)
-			if canv:
-				return canv
-
-			canv = fn(self, size, focus=focus)
-			if canv.widget_info:
-				canv = CompositeCanvas(canv)
-			canv.finalize(self, size, focus)
-			cls.store(canv)
-			return canv
-		return cached_render
-	widget_render = classmethod(widget_render)
-
-	def widget_render_nocache(cls, fn):
-		"""
-		decorator for widget .render() methods.
-		finalizes canvas returned.
-		"""
-		def finalize_render(self, size, focus=False):
-			canv = fn(self, size, focus=focus)
-			if canv.widget_info:
-				canv = CompositeCanvas(canv)
-			canv.finalize(self, size, focus)
-			return canv
-		return finalize_render
-	widget_render_nocache = classmethod(widget_render_nocache)
-
-	def widget_rows(cls, fn, ignore_focus):
-		"""
-		decorator for widget .rows() methods.
-		returns rows from cached widget if available.
-		"""
-		def cached_rows(self, size, focus=False):
-			canv = cls.fetch(self, size, focus and not ignore_focus)
-			if canv:
-				return canv.rows()
-
-			return fn(self, size, focus)
-		return cached_rows
-	widget_rows = classmethod(widget_rows)
 
 		
 class CanvasError(Exception):
