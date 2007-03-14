@@ -127,10 +127,37 @@ class LineBox(WidgetWrap):
 		WidgetWrap.__init__(self, pile)
 
 
+class BarGraphMeta(WidgetMeta):
+	"""
+	Detect subclass get_data() method and dynamic change to
+	get_data() method and disable caching in these cases.
+
+	This is for backwards compatibility only, new programs
+	should use set_data() instead of overriding get_data().
+	"""
+	def __init__(cls, name, bases, d):
+		super(BarGraphMeta, cls).__init__(name, bases, d)
+
+		if "get_data" in d:
+			cls.render = nocache_widget_render(cls)
+			cls._get_data = cls.get_data
+		cls.get_data = property(
+			lambda self: self._get_data,
+			nocache_bargraph_get_data)
+
+def nocache_bargraph_get_data(self, get_data_fn):
+	"""
+	Disable caching on this bargraph because get_data_fn needs
+	to be polled to get the latest data.
+	"""
+	self.render = nocache_widget_render_instance(self)
+	self._get_data = get_data_fn
+
 class BarGraphError(Exception):
 	pass
 
 class BarGraph(BoxWidget):
+	__metaclass__ = BarGraphMeta
 	ignore_focus = True
 
 	eighths = utf8decode(" ▁▂▃▄▅▆▇")
@@ -241,7 +268,7 @@ class BarGraph(BoxWidget):
 		self.data = bardata, top, hlines
 		self._invalidate()
 	
-	def get_data(self, (maxcol, maxrow)):
+	def _get_data(self, (maxcol, maxrow)):
 		"""
 		Return (bardata, top, hlines)
 		

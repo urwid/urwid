@@ -38,31 +38,30 @@ class WidgetMeta(MetaSuper, MetaSignals):
 	"""
 	def __init__(cls, name, bases, d):
 		no_cache = d.get("no_cache", [])
-		ignore_focus = bool(d.get("ignore_focus",False))
 		
 		super(WidgetMeta, cls).__init__(name, bases, d)
 
 		if "render" in d:
 			if "render" not in no_cache:
-				render_fn = cache_widget_render(cls.render, 
-					ignore_focus)
+				render_fn = cache_widget_render(cls)
 			else:
-				render_fn = nocache_widget_render(cls.render)
-			setattr(cls, "render", render_fn)
+				render_fn = nocache_widget_render(cls)
+			cls.render = render_fn
 
 		if "rows" in d and "rows" not in no_cache:
-			setattr(cls, "rows", cache_widget_rows(cls.rows, 
-				ignore_focus))
+			cls.rows = cache_widget_rows(cls)
 		if "no_cache" in d:
-			delattr(cls, "no_cache")
+			del cls.no_cache
 		if "ignore_focus" in d:
-			delattr(cls, "ignore_focus")
+			del cls.ignore_focus
 
-def cache_widget_render(fn, ignore_focus):
+def cache_widget_render(cls):
 	"""
-	decorator for widget .render() methods.
-	fetches and stores canvases.
+	Return a function that wraps the cls.render() method
+	and fetches and stores canvases with CanvasCache.
 	"""
+	ignore_focus = bool(getattr(cls, "ignore_focus", False))
+	fn = cls.render
 	def cached_render(self, size, focus=False):
 		focus = focus and not ignore_focus
 		canv = CanvasCache.fetch(self, size, focus)
@@ -75,26 +74,49 @@ def cache_widget_render(fn, ignore_focus):
 		canv.finalize(self, size, focus)
 		CanvasCache.store(canv)
 		return canv
+	cached_render.original_fn = fn
 	return cached_render
 
-def nocache_widget_render(fn):
+def nocache_widget_render(cls):
 	"""
-	decorator for widget .render() methods.
-	finalizes canvas returned.
+	Return a function that wraps the cls.render() method
+	and finalizes the canvas that it returns.
 	"""
+	fn = cls.render
+	if hasattr(fn, "original_fn"):
+		fn = fn.original_fn
 	def finalize_render(self, size, focus=False):
 		canv = fn(self, size, focus=focus)
 		if canv.widget_info:
 			canv = CompositeCanvas(canv)
 		canv.finalize(self, size, focus)
 		return canv
+	finalize_render.original_fn = fn
 	return finalize_render
 
-def cache_widget_rows(fn, ignore_focus):
+def nocache_widget_render_instance(self):
 	"""
-	decorator for widget .rows() methods.
-	returns rows from cached widget if available.
+	Return a function that wraps the cls.render() method
+	and finalizes the canvas that it returns, but does not 
+	cache the canvas.
 	"""
+	fn = self.render.original_fn
+	def finalize_render(size, focus=False):
+		canv = fn(self, size, focus=focus)
+		if canv.widget_info:
+			canv = CompositeCanvas(canv)
+		canv.finalize(self, size, focus)
+		return canv
+	finalize_render.original_fn = fn
+	return finalize_render
+
+def cache_widget_rows(cls):
+	"""
+	Return a function that wraps the cls.rows() method
+	and returns rows from the CanvasCache if available.
+	"""
+	ignore_focus = bool(getattr(cls, "ignore_focus", False))
+	fn = cls.rows
 	def cached_rows(self, size, focus=False):
 		focus = focus and not ignore_focus
 		canv = CanvasCache.fetch(self, size, focus)
