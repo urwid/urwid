@@ -286,7 +286,8 @@ class TourDisplay:
 		]
 	
 	def __init__(self):
-		self.listbox = urwid.ListBox( CONTENT )
+		walker = urwid.SimpleListWalker( CONTENT )
+		self.listbox = urwid.ListBox( walker )
 		view = urwid.AttrWrap(self.listbox, 'body')
 		self.view = urwid.Frame( view, header=HEADER )
 

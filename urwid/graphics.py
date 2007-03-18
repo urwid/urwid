@@ -29,8 +29,6 @@ from escape import utf8decode
 
 
 class BigText(FixedWidget):
-	no_cache = ["render"] # cache it ourselves
-
 	def __init__(self, markup, font):
 		"""
 		markup -- same as Text widget markup
@@ -61,9 +59,6 @@ class BigText(FixedWidget):
 		return cols, rows
 	
 	def render(self, size, focus=False):
-		canv = CanvasCache.fetch(self, size, False)
-		if canv:
-			return canv
 		fixed_size(size) # complain if parameter is wrong
 		a = None
 		ai = ak = 0
@@ -89,8 +84,8 @@ class BigText(FixedWidget):
 		else:
 			canv = TextCanvas([""]*rows, maxcol=0, 
 				check_width=False)
-		canv.finalize(self, size, False)
-		CanvasCache.store(canv, [])
+			canv = CompositeCanvas(canv)
+		canv.set_depends([])
 		return canv
 		
 

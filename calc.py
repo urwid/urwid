@@ -219,7 +219,7 @@ class ParentEdit(urwid.Edit):
 
 class CellWalker(urwid.ListWalker):
 	def __init__(self, content):
-		self.content = urwid.ListDetectModifications(content)
+		self.content = urwid.MonitoredList(content)
 		self.content.modified = self._modified
 		self.focus = (0,0)
 		# everyone can share the same divider widget
@@ -531,7 +531,7 @@ class HelpColumn(urwid.BoxWidget):
 			urwid.Text(["[text continues.. press ",
 			('key',"?"), " then scroll]"]), 'helpnote' )
 		self.items = [urwid.Text(x) for x in self.help_text]
-		self.listbox = urwid.ListBox( self.items )
+		self.listbox = urwid.ListBox(urwid.SimpleListWalker(self.items))
 		self.body = urwid.AttrWrap( self.listbox, 'help' )
 		self.frame = urwid.Frame( self.body, header=self.head)
 	

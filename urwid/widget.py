@@ -1254,7 +1254,13 @@ class Padding(Widget):
 			canv = self.w.render((), focus)
 		else:
 			canv = self.w.render((maxcol,)+size[1:], focus)
+		if canv.cols() == 0:
+			canv = SolidCanvas(' ', size[0], canv.rows())
+			canv = CompositeCanvas(canv)
+			canv.set_depends([self.w])
+			return canv
 		canv = CompositeCanvas(canv)
+		canv.set_depends([self.w])
 		if left != 0 or right != 0:
 			canv.pad_trim_left_right(left, right)
 
@@ -2103,7 +2109,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 		one 'weight' tuple in widget_list.
 		"""
 		self.__super.__init__()
-		self.widget_list = ListDetectModifications(widget_list)
+		self.widget_list = MonitoredList(widget_list)
 		self.item_types = []
 		for i in range(len(widget_list)):
 			w = widget_list[i]
@@ -2448,7 +2454,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 		widgets.
 		"""
 		self.__super.__init__()
-		self.widget_list = ListDetectModifications(widget_list)
+		self.widget_list = MonitoredList(widget_list)
 		self.column_types = []
 		for i in range(len(widget_list)):
 			w = widget_list[i]

@@ -958,7 +958,7 @@ def _call_modified(fn):
 		return rval
 	return call_modified_wrapper
 
-class ListDetectModifications(UserList):
+class MonitoredList(UserList):
 	def _modified(self):
 		pass
 	

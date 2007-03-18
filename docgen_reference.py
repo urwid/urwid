@@ -311,6 +311,7 @@ def main():
 		(ListWalkerInterface, "List Walker interface definition",None),
 		(urwid.ListWalker, "ListWalker", None),
 		(None,"ListBox list walkers",None),
+		(urwid.PollingListWalker, "PollingListWalker",None),
 		(urwid.SimpleListWalker, "SimpleListWalker",None),
 		
 		(None, None, None),

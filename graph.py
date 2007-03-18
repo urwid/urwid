@@ -283,7 +283,7 @@ class GraphView(urwid.WidgetWrap):
 			urwid.Divider(),
 			self.button("Quit", self.exit_program ),
 			]
-		w = urwid.ListBox( l )
+		w = urwid.ListBox(urwid.SimpleListWalker(l))
 		return w
 
 	def main_window(self): 

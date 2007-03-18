@@ -36,15 +36,71 @@ class ListWalker(object):
 		Signals.emit(self, "modified")
 	
 
-class SimpleListWalker(ListDetectModifications, ListWalker):
+class PollingListWalker(object):  # NOT ListWalker subclass
 	def __init__(self, contents):
 		"""
-		contents -- list to walk
+		contents -- list to poll for changes
+		"""
+		self.contents = contents
+		if not type(contents) == type([]) and not hasattr( 
+			contents, '__getitem__' ):
+			raise ListWalkerError, "SimpleListWalker expecting list like object, got: "+`contents`
+		self.focus = 0
+	
+	def _clamp_focus(self):
+		if self.focus >= len(self.contents):
+			self.focus = len(self.contents)-1
+	
+	def get_focus(self):
+		"""Return (focus widget, focus position)."""
+		if len(self.contents) == 0: return None, None
+		self._clamp_focus()
+		return self.contents[self.focus], self.focus
+
+	def set_focus(self, position):
+		"""Set focus position."""
+		assert type(position) == type(1)
+		self.focus = position
+
+	def get_next(self, start_from):
+		"""
+		Return (widget after start_from, position after start_from).
+		"""
+		pos = start_from + 1
+		if len(self.contents) <= pos: return None, None
+		return self.contents[pos],pos
+
+	def get_prev(self, start_from):
+		"""
+		Return (widget before start_from, position before start_from).
+		"""
+		pos = start_from - 1
+		if pos < 0: return None, None
+		return self.contents[pos],pos
+
+
+class SimpleListWalker(MonitoredList, ListWalker):
+	def __init__(self, contents):
+		"""
+		contents -- list to copy into this object
+
+		Changes made to this object (when it is treated as a list) are
+		detected automatically and will cause ListBox objects using
+		this list walker to be updated.
 		"""
 		if not type(contents) == type([]) and not hasattr(contents, '__getitem__'):
 			raise ListWalkerError, "SimpleListWalker expecting list like object, got: "+`contents`
-		ListDetectModifications.__init__(self, contents)
+		MonitoredList.__init__(self, contents)
 		self.focus = 0
+	
+	def _get_contents(self):
+		"""
+		Return self.
+
+		Provides compatibility with old SimpleListWalker class.
+		"""
+		return self
+	contents = property(_get_contents)
 
 	def _modified(self):
 		if self.focus >= len(self):
@@ -53,7 +109,7 @@ class SimpleListWalker(ListDetectModifications, ListWalker):
 	
 	def set_modified_callback(self, callback):
 		"""
-		This function inherited from ListDetectModifications is not 
+		This function inherited from MonitoredList is not 
 		implemented in SimleListWalker.
 		
 		Use Signals.connect(list_walker, "modified", ...) instead.
@@ -94,17 +150,23 @@ class ListBoxError(Exception):
 
 class ListBox(BoxWidget):
 
-	def __init__(self,body):
+	def __init__(self, body):
 		"""
-		body -- list or a SimpleListWalker-like object that contains
+		body -- a ListWalker-like object that contains
 			widgets to be displayed inside the list box
 		"""
 		if hasattr(body,'get_focus'):
 			self.body = body
 		else:
-			self.body = SimpleListWalker(body)
+			self.body = PollingListWalker(body)
 
-		Signals.connect(self.body, "modified", self._invalidate)
+		try:
+			Signals.connect(self.body, "modified", self._invalidate)
+		except NameError:
+			# our list walker has no modified signal so we must not
+			# cache our canvases because we don't know when our
+			# content has changed
+			self.render = nocache_widget_render_instance(self)
 
 		# offset_rows is the number of rows between the top of the view
 		# and the top of the focused item

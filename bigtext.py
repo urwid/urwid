@@ -132,7 +132,7 @@ class BigTextDisplay:
 			focus_column=1)
 		bt = urwid.Pile([bt, edit], focus_item=1)
 		l = [bt, urwid.Divider(), col]
-		w = urwid.ListBox( l )
+		w = urwid.ListBox(urwid.SimpleListWalker(l))
 		
 		# Frame
 		w = urwid.AttrWrap(w, 'body')

@@ -33,7 +33,7 @@ class CanvasCache(object):
 	fetches = 0
 	cleanups = 0
 
-	def store(cls, canvas, depends_on=None):
+	def store(cls, canvas):
 		"""
 		Store a weakref to canvas in the cache.
 		"""
@@ -47,6 +47,7 @@ class CanvasCache(object):
 				elif hasattr(c, 'children'):
 					depends.extend(walk_depends(c))
 			return depends
+		depends_on = getattr(canvas, 'depends_on', None)
 		if depends_on is None and hasattr(canvas, 'children'):
 			depends_on = walk_depends(canvas)
 		if depends_on:
@@ -687,6 +688,16 @@ class CompositeCanvas(Canvas):
 				if cv[4] is None:
 					cviews[i] = cv[:4] + (a,) + cv[5:]
 
+	def set_depends(self, widget_list):
+		"""
+		Explicitly specify the list of widgets that this canvas
+		depends on.  If any of these widgets change this canvas
+		will have to be updated.
+		"""
+		if self.widget_info:
+			raise self._finalized_error
+
+		self.depends_on = widget_list
 
 
 def shard_body_row(sbody):
