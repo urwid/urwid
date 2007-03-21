@@ -361,7 +361,7 @@ def main():
 	
 	# Exit
 	if exitstring:
-		sys.stderr.write(exitstring)
+		sys.stderr.write(exitstring+"\n")
 	
 	sys.exit(exitcode)
 		

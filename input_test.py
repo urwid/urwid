@@ -43,8 +43,8 @@ class KeyTest:
 		self.ui = Screen()
 		header = urwid.Text("Values from get_input(). Q exits.")
 		header = urwid.AttrWrap(header,'header')
-		self.listbox = urwid.ListBox([])
-		self.l = self.listbox.body
+		self.l = urwid.SimpleListWalker([])
+		self.listbox = urwid.ListBox(self.l)
 		listbox = urwid.AttrWrap(self.listbox, 'listbox')
 		self.top = urwid.Frame( listbox, header )
 		

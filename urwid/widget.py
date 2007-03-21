@@ -55,6 +55,20 @@ class WidgetMeta(MetaSuper, MetaSignals):
 		if "ignore_focus" in d:
 			del cls.ignore_focus
 
+class WidgetError(Exception):
+	pass
+
+def validate_size(widget, size, canv):
+	"""
+	Raise a WidgetError if a canv does not match size size.
+	"""
+	if (size and size[0] != canv.cols()) or \
+		(len(size)>1 and size[1] != canv.rows()):
+		raise WidgetError("Widget %r rendered (%d x %d) canvas"
+			" when passed size %r!" % (widget, canv.cols(),
+			canv.rows(), size))
+
+
 def cache_widget_render(cls):
 	"""
 	Return a function that wraps the cls.render() method
@@ -69,6 +83,7 @@ def cache_widget_render(cls):
 			return canv
 
 		canv = fn(self, size, focus=focus)
+		validate_size(self, size, canv)
 		if canv.widget_info:
 			canv = CompositeCanvas(canv)
 		canv.finalize(self, size, focus)
@@ -89,6 +104,7 @@ def nocache_widget_render(cls):
 		canv = fn(self, size, focus=focus)
 		if canv.widget_info:
 			canv = CompositeCanvas(canv)
+		validate_size(self, size, canv)
 		canv.finalize(self, size, focus)
 		return canv
 	finalize_render.original_fn = fn

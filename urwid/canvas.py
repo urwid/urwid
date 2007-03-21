@@ -806,11 +806,18 @@ def shard_body(cviews, shard_tail, create_iter=True, iter_default=None):
 	cviews_iter = iter(cviews)
 	for col_gap, done_rows, content_iter, tail_cview in shard_tail:
 		while col_gap:
-			cview = cviews_iter.next()
+			try:
+				cview = cviews_iter.next()
+			except StopIteration:
+				raise CanvasError("cviews do not fill gaps in"
+					" shard_tail!")
 			(trim_left, trim_top, cols, rows, def_attr, canv) = \
 				cview[:6]
 			col += cols
 			col_gap -= cols
+			if col_gap < 0:
+				raise CanvasError("cviews overflow gaps in"
+					" shard_tail!")
 			if create_iter and canv:
 				new_iter = canv.content(trim_left, trim_top, 
 					cols, rows, def_attr)
