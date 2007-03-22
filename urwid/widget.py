@@ -2589,6 +2589,8 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 			(maxcol, maxrow) if it contains box widgets.
 		"""
 		widths = self.column_widths( size )
+		if not widths:
+			return SolidCanvas(" ", size[0], (size[1:]+(1,))[0])
 		
 		box_maxrow = None
 		if len(size)==1 and self.box_columns:
@@ -2619,7 +2621,10 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 				mc += self.dividechars
 			l.append((canv, i, self.focus_col == i, mc))
 				
-		return CanvasJoin(l)
+		canv = CanvasJoin(l)
+		if canv.cols() < size[0]:
+			canv.pad_trim_left_right(0, size[0]-canv.cols())
+		return canv
 
 	def get_cursor_coords(self, size):
 		"""Return the cursor coordinates from the focus widget."""
@@ -2631,6 +2636,8 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 			return None
 
 		widths = self.column_widths( size )
+		if len(widths) < self.focus_col+1:
+			return None
 		colw = widths[self.focus_col]
 
 		coords = w.get_cursor_coords( (colw,)+size[1:] )
@@ -2719,6 +2726,8 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 		widths = self.column_widths( (maxcol,) )
 	
 		w = self.widget_list[self.focus_col]
+		if len(widths) < self.focus_col+1:
+			return 0
 		col = None
 		if hasattr(w,'get_pref_col'):
 			col = w.get_pref_col((widths[self.focus_col],)+size[1:])
