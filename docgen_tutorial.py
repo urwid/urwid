@@ -176,8 +176,9 @@ def example_frlb():
 
 	class Conversation(object):
 		def __init__(self):
-			self.listbox = urwid.ListBox([self.new_question()])
-			self.items = self.listbox.body
+			self.items = urwid.SimpleListWalker(
+				[self.new_question()])
+			self.listbox = urwid.ListBox(self.items)
 			instruct = urwid.Text("Press F8 to exit.")
 			header = urwid.AttrWrap( instruct, 'header' )
 			self.top = urwid.Frame(self.listbox, header)
@@ -226,8 +227,9 @@ def example_lbcont():
 
 	class Conversation(object):
 		def __init__(self):
-			self.listbox = urwid.ListBox([self.new_question()])
-			self.items = self.listbox.body
+			self.items = urwid.SimpleListWalker(
+				[self.new_question()])
+			self.listbox = urwid.ListBox(self.items)
 			instruct = urwid.Text("Press F8 to exit.")
 			header = urwid.AttrWrap( instruct, 'header' )
 			self.top = urwid.Frame(self.listbox, header)
