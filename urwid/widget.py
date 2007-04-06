@@ -1443,7 +1443,7 @@ class Filler(BoxWidget):
 			canv = self.body.render( (maxcol,maxrow-top-bottom),focus)
 		canv = CompositeCanvas(canv)
 		
-		if canv.rows() > maxrow and c.cursor is not None:
+		if canv.rows() > maxrow and canv.cursor is not None:
 			cx, cy = canv.cursor
 			if cy >= maxrow:
 				canv.trim(cy-maxrow+1,maxrow-top-bottom)
