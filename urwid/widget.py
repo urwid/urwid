@@ -1447,6 +1447,9 @@ class Filler(BoxWidget):
 			cx, cy = canv.cursor
 			if cy >= maxrow:
 				canv.trim(cy-maxrow+1,maxrow-top-bottom)
+		if canv.rows() > maxrow:
+			canv.trim(0, maxrow)
+			return canv
 		canv.pad_trim_top_bottom(top, bottom)
 		return canv
 
