@@ -208,7 +208,19 @@ class EditDisplay:
 			# move the cursor to the new line and reset pref_col
 			self.view.keypress(size, "down")
 			self.view.keypress(size, "home")
-
+		elif k == "right":
+			w, pos = self.walker.get_focus()
+			w, pos = self.walker.get_next(pos)
+			if w:
+				self.listbox.set_focus(pos, 'above')
+				self.view.keypress(size, "home")
+		elif k == "left":
+			w, pos = self.walker.get_focus()
+			w, pos = self.walker.get_prev(pos)
+			if w:
+				self.listbox.set_focus(pos, 'below')
+				self.view.keypress(size, "end")
+			
 
 	def save_file(self):
 		"""Write the file out to disk."""
