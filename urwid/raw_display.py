@@ -195,6 +195,7 @@ class Screen(object):
 		"""
 		Restore the screen.
 		"""
+		self.clear()
 		if not self._started:
 			return
 		self.signal_restore()
@@ -212,6 +213,7 @@ class Screen(object):
 			'default', 'default') 
 			+ escape.SI
 			+ escape.MOUSE_TRACKING_OFF
+			+ escape.SHOW_CURSOR
 			+ move_cursor + "\n" + escape.SHOW_CURSOR )
 		self._input_iter = None
 		self._started = False
