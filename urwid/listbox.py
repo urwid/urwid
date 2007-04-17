@@ -1316,3 +1316,72 @@ class ListBox(BoxWidget):
 
 
 	
+class HListBox(Widget):
+	
+	def __init__(self, body):
+		"""
+		body -- a ListWalker-like object that contains
+			widgets to be displayed inside the list box
+		"""
+		if hasattr(body,'get_focus'):
+			self.body = body
+		else:
+			self.body = PollingListWalker(body)
+
+		try:
+			Signals.connect(self.body, "modified", self._invalidate)
+		except NameError:
+			# our list walker has no modified signal so we must not
+			# cache our canvases because we don't know when our
+			# content has changed
+			self.render = nocache_widget_render_instance(self)
+
+		# offset_cols is the number of cols between the left side of
+		# the view and the left side of the focused item
+		self.offset_cols = 0
+		# inset_fraction is used when the focused widget is off the 
+		# left side of the view.  it is the fraction of the widget 
+		# cut off at the left side.  (numerator, denominator)
+		self.inset_fraction = (0,1)
+
+		# pref_col is the preferred column for the cursor when moving
+		# between widgets that use the cursor (edit boxes etc.)
+		self.pref_col = 'left'
+
+		# variable for delayed focus change used by set_focus
+		self.set_focus_pending = 'first selectable'
+		
+		# variable for delayed valign change used by set_focus_valign
+		self.set_focus_valign_pending = None
+		
+	
+	def calculate_visible(self, size, focus=False ):
+		""" Return (middle,left,right) or None,None,None.
+
+		middle -- (column offset(when +ve) or inset(when -ve),
+			focus widget, focus position, focus cols, 
+			cursor coords or None)
+		left -- (# columns to trim off left side, 
+			list of (widget, position, cols) tuples left
+			of the focus in order from right to left)
+		right -- (# columns to trim off right side, 
+			list of (widget, position, cols) tuples right
+			of the focus in order from left to right)
+		"""
+		maxcol = size[0]
+		
+		# 0. set the focus if a change is pending
+		if self.set_focus_pending or self.set_focus_valign_pending:
+			self._set_focus_complete(size, focus )
+
+		# 1. start with the focus widget
+		focus_widget, focus_pos = self.body.get_focus()
+		if focus_widget is None: #list box is empty?
+			return None,None,None
+		left_pos = right_pos = focus_pos
+		
+		offset_cols, inset_cols = self.get_focus_offset_inset(size)
+		#    force at least one column of focus to be visible
+		if offset_cols >= maxcol:
+			offset_cols = maxcol -1
+		
