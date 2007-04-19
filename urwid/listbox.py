@@ -1316,7 +1316,7 @@ class ListBox(BoxWidget):
 
 
 	
-class HListBox(Widget):
+class HListBox(FlowWidget):
 	
 	def __init__(self, body):
 		"""
@@ -1379,9 +1379,100 @@ class HListBox(Widget):
 		if focus_widget is None: #list box is empty?
 			return None,None,None
 		left_pos = right_pos = focus_pos
+		focus_size = focus_widget.pack(None, True)
 		
 		offset_cols, inset_cols = self.get_focus_offset_inset(size)
 		#    force at least one column of focus to be visible
 		if offset_cols >= maxcol:
 			offset_cols = maxcol -1
 		
+		#    adjust position so cursor remains visible
+		cursor = None
+		if focus_widget.selectable() and focus:
+			if hasattr(focus_widget,'get_cursor_coords'):
+				cursor=focus_widget.get_cursor_coords((maxcol,))
+		
+		if cursor is not None:
+			cx, cy = cursor
+			effective_cx = cx + offset_cols - inset_cols
+			
+			if effective_cx < 0: # cursor past left?
+				inset_cols = cx
+			elif effective_cx >= maxcol: # cursor past right?
+				offset_cols = maxcol - cx -1
+		
+		#    set trim_top by focus trimmimg
+		trim_left = inset_cols
+		focus_cols = focus_size[0]
+		
+		# 2. collect the widgets left of the focus
+		pos = focus_pos
+		fill_cols = offset_cols
+		fill_left = []
+		left_pos = pos
+		while fill_cols > 0:
+			prev, pos = self.body.get_prev( pos )
+			if prev is None: # run out of widgets to left?
+				offset_cols -= fill_cols
+				break
+			top_pos = pos
+	
+			p_cols = prev.pack(None, False)[0]
+			fill_left.append( (prev, pos, p_cols) )
+			if p_cols > fill_cols: # crosses left edge?
+				trim_left = p_cols-fill_cols
+				break
+			fill_cols -= p_cols
+		
+		trim_right = focus_cols + offset_cols - inset_cols - maxcol
+		if trim_right < 0: trim_right = 0
+
+		# 3. collect the widgets right of the focus
+		pos = focus_pos
+		fill_cols = maxcol - focus_cols - offset_cols + inset_cols
+		fill_right = []
+		while fill_cols > 0:
+			next, pos = self.body.get_next( pos )
+			if next is None: # run out of widgets below?
+				break
+			right_pos = pos
+				
+			n_cols = next.pack(None, False)[0]
+			fill_right.append( (next, pos, n_cols) )
+			if n_cols > fill_cols: # crosses bottom edge?
+				trim_right = n_cols-fill_cols
+				fill_cols -= n_cols
+				break
+			fill_cols -= n_cols
+
+		# 4. fill from left again if necessary & possible
+		fill_cols = max(0, fill_cols)
+		
+		if fill_cols >0 and trim_left >0:
+			if fill_cols <= trim_left:
+				trim_left -= fill_cols
+				offset_cols += fill_cols
+				fill_cols = 0
+			else:
+				fill_cols -= trim_left
+				offset_cols += trim_left
+				trim_left = 0
+		pos = left_pos
+		while fill_cols > 0:
+			prev, pos = self.body.get_prev( pos )
+			if prev is None:
+				break
+
+			p_cols = prev.pack(None, False)[0]
+			fill_left.append( (prev, pos, p_cols) )
+			if p_cols > fill_cols: # more than required
+				trim_left = p_cols-fill_cols
+				offset_cols += fill_cols
+				break
+			fill_cols -= p_cols
+			offset_cols += p_cols
+		
+		# 5. return the interesting bits
+		return ((offset_cols - inset_cols, focus_widget, 
+				focus_pos, focus_cols, cursor ),
+			(trim_left, fill_left), (trim_right, fill_right))
