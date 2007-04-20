@@ -1314,7 +1314,8 @@ class ListBox(BoxWidget):
 
 
 
-
+class HListBoxError(Exception):
+	pass
 	
 class HListBox(FlowWidget):
 	
@@ -1351,8 +1352,8 @@ class HListBox(FlowWidget):
 		# variable for delayed focus change used by set_focus
 		self.set_focus_pending = 'first selectable'
 		
-		# variable for delayed valign change used by set_focus_valign
-		self.set_focus_valign_pending = None
+		# variable for delayed align change used by set_focus_align
+		self.set_focus_align_pending = None
 		
 	
 	def calculate_visible(self, size, focus=False ):
@@ -1371,7 +1372,7 @@ class HListBox(FlowWidget):
 		maxcol = size[0]
 		
 		# 0. set the focus if a change is pending
-		if self.set_focus_pending or self.set_focus_valign_pending:
+		if self.set_focus_pending or self.set_focus_align_pending:
 			self._set_focus_complete(size, focus )
 
 		# 1. start with the focus widget
@@ -1379,7 +1380,7 @@ class HListBox(FlowWidget):
 		if focus_widget is None: #list box is empty?
 			return None,None,None
 		left_pos = right_pos = focus_pos
-		focus_size = focus_widget.pack(None, True)
+		focus_size = focus_widget.pack(None, focus)
 		
 		offset_cols, inset_cols = self.get_focus_offset_inset(size)
 		#    force at least one column of focus to be visible
@@ -1476,3 +1477,113 @@ class HListBox(FlowWidget):
 		return ((offset_cols - inset_cols, focus_widget, 
 				focus_pos, focus_cols, cursor ),
 			(trim_left, fill_left), (trim_right, fill_right))
+
+
+	def render(self, (maxcol,), focus=False ):
+		"""
+		Render listbox and return canvas.
+		"""
+
+		middle, left, right = self.calculate_visible( (maxcol,), 
+			focus=focus)
+		if middle is None:
+			return SolidCanvas(" ", maxcol, 1)
+		
+		_ignore, focus_widget, focus_pos, focus_cols, cursor = middle
+		trim_left, fill_left = left
+		trim_right, fill_right = right
+
+		joinlist = []
+		cols = 0
+		fill_left.reverse() # fill_above is in rtol order
+		for widget,w_pos,w_cols in fill_left:
+			canvas = widget.render((w_cols,))
+			cols += w_cols
+			joinlist.append((canvas, w_pos, False, w_cols))
+		
+		focus_canvas = focus_widget.render((focus_cols,), focus=focus)
+
+		c_cursor = focus_canvas.cursor
+		if cursor != c_cursor:
+			raise HListBoxError, "Focus Widget %s at position %s within listbox calculated cursor coords %s but rendered cursor coords %s!" %(`focus_widget`,`focus_pos`,`cursor`,`c_cursor`)
+			
+		cols += focus_cols
+		joinlist.append((focus_canvas, focus_pos, True, focus_cols))
+		
+		for widget,w_pos,w_cols in fill_below:
+			canvas = widget.render((w_cols,))
+			cols += w_cols
+			joinlist.append((canvas, w_pos, False, w_cols))
+		
+		final_canvas = CanvasJoin(joinlist)
+		
+		if trim_left or trim_right:	
+			final_canvas.pad_trim_left_right(
+				-trim_left, -trim_right)
+			cols -= trim_left + trim_right
+		
+		assert cols <= maxcol, "HListbox contents too long!  Probably urwid's fault (please report): %s" % `left,middle,right`
+		
+		if cols < maxcol:
+			right_pos = focus_pos
+			if fill_right: right_pos = fill_right[-1][1]
+			assert trim_right==0 and self.body.get_next(right_pos) == (None,None), "HListbox contents too short!  Probably urwid's fault (please report): %s" % `top,middle,bottom`
+			final_canvas.pad_trim_left_right(0, maxcol - cols)
+
+		return final_canvas
+
+
+	def set_focus_align(self, align):
+		"""Set the focus widget's display offset and inset.
+
+		align -- one of:
+		    'left', 'center', 'right'
+		    ('fixed left', columns)
+		    ('fixed right', columns)
+		    ('relative', percentage 0=left 100=right)
+		"""
+		vt,va,ht,ha=decompose_valign_height(valign,None,ListBoxError)
+		self.set_focus_align_pending = at,aa
+
+
+	def set_focus(self, position, coming_from=None):
+		"""
+		Set the focus position and try to keep the old focus in view.
+
+		position -- a position compatible with self.body.set_focus
+		coming_from -- set to 'left' or 'right' if you know that
+		               old position is left or right of the new 
+			       position.
+		"""
+		assert coming_from in ('left', 'right', None)
+		focus_widget, focus_pos = self.body.get_focus()
+		
+		self.set_focus_pending = coming_from, focus_widget, focus_pos
+		self.body.set_focus(position)
+
+	def get_focus(self):
+		"""
+		Return a (focus widget, focus position) tuple.
+		"""
+		return self.body.get_focus()
+
+	def _set_focus_align_complete(self, size, focus):
+		"""
+		Finish setting the offset and inset now that we have have a 
+		maxcol & maxrow.
+		"""
+		at,aa = self.set_focus_align_pending
+		self.set_focus_align_pending = None
+		self.set_focus_pending = None
+
+		focus_widget, focus_pos = self.body.get_focus()
+		if focus_widget is None:
+			return
+		
+		cols = focus_widget.pack(None, focus)
+		rleft, rright = calculate_padding( at, aa, 'fixed', cols, 
+			None, maxcol )
+
+		self.shift_focus(size, rtop)
+
+	
