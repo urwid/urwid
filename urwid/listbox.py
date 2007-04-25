@@ -529,7 +529,7 @@ class ListBox(BoxWidget):
 			self.inset_fraction = (0,1)
 		else:
 			target, _ignore = self.body.get_focus()
-			tgt_rows = target.rows( (maxcol,), focus=1 )
+			tgt_rows = target.rows( (maxcol,), True )
 			if offset_inset + tgt_rows <= 0:
 				raise ListBoxError, "Invalid offset_inset: %s, only %s rows in target!" %(`offset_inset`, `tgt_rows`)
 			self.offset_rows = 0
@@ -579,9 +579,10 @@ class ListBox(BoxWidget):
 		else:
 			self.update_pref_col_from_focus((maxcol,maxrow))
 
+		self._invalidate()
 		self.body.set_focus(position)
 		target, _ignore = self.body.get_focus()
-		tgt_rows = target.rows( (maxcol,), focus=1 )
+		tgt_rows = target.rows( (maxcol,), True)
 		if snap_rows is None:
 			snap_rows = maxrow-1
 
@@ -647,7 +648,6 @@ class ListBox(BoxWidget):
 		for row in attempt_rows:
 			if target.move_cursor_to_coords((maxcol,),pref_col,row):
 				break
-		self._invalidate()
 
 	def get_focus_offset_inset(self,(maxcol, maxrow)):
 		"""Return (offset rows, inset rows) for focus widget."""
@@ -736,7 +736,7 @@ class ListBox(BoxWidget):
 	def _keypress_up( self, (maxcol, maxrow) ):
 	
 		middle, top, bottom = self.calculate_visible(
-			(maxcol,maxrow), focus=1 )
+			(maxcol,maxrow), True)
 		if middle is None: return 'up'
 		
 		focus_row_offset,focus_widget,focus_pos,_ignore,cursor = middle
@@ -765,7 +765,7 @@ class ListBox(BoxWidget):
 			if widget is None:
 				# cannot scroll any further
 				return 'up' # keypress not handled
-			rows = widget.rows((maxcol,), focus=1)
+			rows = widget.rows((maxcol,), True)
 			row_offset -= rows
 			if widget.selectable():
 				# this one will do
@@ -794,7 +794,7 @@ class ListBox(BoxWidget):
 					widget, pos = self.body.get_prev(pos)
 					if widget is None:
 						return # can't do anything
-					rows = widget.rows((maxcol,),focus=1)
+					rows = widget.rows((maxcol,), True)
 					row_offset -= rows
 				
 				if -row_offset >= rows:
@@ -813,7 +813,7 @@ class ListBox(BoxWidget):
 	def _keypress_down( self, (maxcol, maxrow) ):
 	
 		middle, top, bottom = self.calculate_visible(
-			(maxcol,maxrow), focus=1 )
+			(maxcol,maxrow), True)
 		if middle is None: return 'down'
 			
 		focus_row_offset,focus_widget,focus_pos,focus_rows,cursor=middle
@@ -895,7 +895,7 @@ class ListBox(BoxWidget):
 	def _keypress_page_up( self, (maxcol, maxrow) ):
 		
 		middle, top, bottom = self.calculate_visible(
-			(maxcol,maxrow), focus=1 )
+			(maxcol,maxrow), True)
 		if middle is None: return 'page up'
 			
 		row_offset, focus_widget, focus_pos, focus_rows, cursor = middle
@@ -1000,7 +1000,7 @@ class ListBox(BoxWidget):
 			
 			# find out where that actually puts us
 			middle, top, bottom = self.calculate_visible(
-				(maxcol,maxrow), focus=1 )
+				(maxcol,maxrow), True)
 			act_row_offset, _ign1, _ign2, _ign3, _ign4 = middle
 			
 			# discard chosen widget if it will reduce scroll amount
@@ -1050,7 +1050,7 @@ class ListBox(BoxWidget):
 		
 		# final check for pathological case where we may fall short
 		middle, top, bottom = self.calculate_visible(
-			(maxcol,maxrow), focus=1 )
+			(maxcol,maxrow), True)
 		act_row_offset, _ign1, pos, _ign2, _ign3 = middle
 		if act_row_offset >= row_offset:
 			# no problem
@@ -1065,7 +1065,7 @@ class ListBox(BoxWidget):
 			# no dice, we're stuck here
 			return
 		# bring in only one row if possible
-		rows = widget.rows((maxcol,), focus=1)
+		rows = widget.rows((maxcol,), True)
 		self.change_focus((maxcol,maxrow), pos, -(rows-1),
 			'below', (self.pref_col, rows-1), 0 )
 		
@@ -1077,7 +1077,7 @@ class ListBox(BoxWidget):
 	def _keypress_page_down( self, (maxcol, maxrow) ):
 		
 		middle, top, bottom = self.calculate_visible(
-			(maxcol,maxrow), focus=1 )
+			(maxcol,maxrow), True)
 		if middle is None: return 'page down'
 			
 		row_offset, focus_widget, focus_pos, focus_rows, cursor = middle
@@ -1177,7 +1177,7 @@ class ListBox(BoxWidget):
 			
 			# find out where that actually puts us
 			middle, top, bottom = self.calculate_visible(
-				(maxcol,maxrow), focus=1 )
+				(maxcol,maxrow), True)
 			act_row_offset, _ign1, _ign2, _ign3, _ign4 = middle
 
 			# discard chosen widget if it will reduce scroll amount
@@ -1223,7 +1223,7 @@ class ListBox(BoxWidget):
 		
 		# final check for pathological case where we may fall short
 		middle, top, bottom = self.calculate_visible(
-			(maxcol,maxrow), focus=1 )
+			(maxcol,maxrow), True)
 		act_row_offset, _ign1, pos, _ign2, _ign3 = middle
 		if act_row_offset <= row_offset:
 			# no problem
@@ -1238,7 +1238,7 @@ class ListBox(BoxWidget):
 			# no dice, we're stuck here
 			return
 		# bring in only one row if possible
-		rows = widget.rows((maxcol,), focus=1)
+		rows = widget.rows((maxcol,), True)
 		self.change_focus((maxcol,maxrow), pos, maxrow-1,
 			'above', (self.pref_col, 0), 0 )
 
@@ -1585,5 +1585,208 @@ class HListBox(FlowWidget):
 			None, maxcol )
 
 		self.shift_focus(size, rtop)
-
 	
+	def _set_focus_first_selectable(self, (maxcol,), focus):
+		"""
+		Choose the first visible, selectable widget below the
+		current focus as the focus widget.
+		"""
+		self.set_focus_align_pending = None
+		self.set_focus_pending = None
+		middle, left, right = self.calculate_visible( 
+			(maxcol,), focus=focus)
+		if middle is None:
+			return
+		
+		col_offset, focus_widget, focus_pos, focus_rows, cursor = middle
+		trim_left, fill_left = top
+		trim_right, fill_right = bottom
+
+		if focus_widget.selectable():
+			return
+
+		if trim_right:
+			fill_right = fill_right[:-1]
+		new_col_offset = col_offset + focus_col
+		for widget, pos, cols in fill_right:
+			if widget.selectable():
+				self.body.set_focus(pos)
+				self.shift_focus((maxcol,), new_col_offset)
+				return
+			new_col_offset += cols
+
+	def _set_focus_complete(self, (maxcol,), focus):
+		"""
+		Finish setting the position now that we have maxcol.
+		"""
+		self._invalidate()
+		if self.set_focus_pending == "first selectable":
+			return self._set_focus_first_selectable(
+				(maxcol,), focus)
+		if self.set_focus_align_pending is not None:
+			return self._set_focus_align_complete(
+				(maxcol,), focus)
+		coming_from, focus_widget, focus_pos = self.set_focus_pending
+		self.set_focus_pending = None
+		
+		# new position
+		new_focus_widget, position = self.body.get_focus()
+		if focus_pos == position:
+			# do nothing
+			return
+			
+		# restore old focus temporarily
+		self.body.set_focus(focus_pos)
+				
+		middle,left,right=self.calculate_visible((maxcol,),focus)
+		focus_offset, focus_widget, focus_pos, focus_cols, cursor=middle
+		trim_left, fill_left = top
+		trim_right, fill_right = bottom
+		
+		offset = focus_offset
+		for widget, pos, cols in fill_left:
+			offset -= cols
+			if pos == position:
+				self.change_focus((maxcol,), pos,
+					offset, 'right' )
+				return
+
+		offset = focus_offset + focus_cols
+		for widget, pos, cols in fill_left:
+			if pos == position:
+				self.change_focus((maxcol,), pos,
+					offset, 'left' )
+				return
+			offset += cols
+
+		# failed to find widget among visible widgets
+		self.body.set_focus( position )
+		widget, position = self.body.get_focus()
+		cols = widget.pack(None, focus)[0]
+
+		if coming_from=='below':
+			offset = 0
+		elif coming_from=='above':
+			offset = maxcol-cols
+		else:
+			offset = (maxcol-cols)/2
+		self.shift_focus((maxcol,), offset)
+	
+
+	def shift_focus(self, (maxcol,), offset_inset ):
+		"""Move the location of the current focus relative to the top.
+		
+		offset_inset -- either the number of columns between the 
+		  left of the HListBox and the start of the focus widget (+ve
+		  value) or the number of columns of the focus widget hidden 
+		  off the left edge of the HListBox (-ve value) or 0 if the 
+		  left edge of the focus widget is aligned with the top edge 
+		  of the HListBox
+		"""
+		
+		if offset_inset >= 0:
+			if offset_inset >= maxcol:
+				raise HListBoxError, "Invalid offset_inset: %s, only %s cols in HListBox"% (`offset_inset`, `maxcol`)
+			self.offset_cols = offset_inset
+			self.inset_fraction = (0,1)
+		else:
+			target, _ignore = self.body.get_focus()
+			tgt_cols = target.pack(None, True)[0]
+			if offset_inset + tgt_cols <= 0:
+				raise HListBoxError, "Invalid offset_inset: %s, only %s rows in target!" %(`offset_inset`, `tgt_rows`)
+			self.offset_cols = 0
+			self.inset_fraction = (-offset_inset,tgt_cols)
+		self._invalidate()
+				
+	def update_pref_col_from_focus(self, (maxcol,) ):
+		"""Update self.pref_col from the focus widget."""
+		
+		widget, old_pos = self.body.get_focus()
+		if widget is None: return
+
+		pref_col = None
+		wcol = widget.pack(None, True)[0]
+		if hasattr(widget,'get_pref_col'):
+			pref_col = widget.get_pref_col((wcol,))
+		if pref_col is None and hasattr(widget,'get_cursor_coords'):
+			coords = widget.get_cursor_coords((wcol,))
+			if type(coords) == type(()):
+				pref_col,y = coords
+		if pref_col is not None: 
+			if type(pref_col) == type(0):
+				offset, inset = self.get_focus_offset_inset()
+				pref_col += offset - inset
+			self.pref_col = pref_col
+
+
+	def change_focus(self, (maxcol,), position, 
+			offset_inset = 0, coming_from = None, 
+			cursor_coords = None, snap_cols = None ):
+		"""Change the current focus widget.
+		
+		position -- a position compatible with self.body.set_focus
+		offset_inset -- either the number of cols between the 
+		  left of the HListBox and the start of the focus widget (+ve
+		  value) or the number of columns of the focus widget hidden 
+		  off the left edge of the HListBox (-ve value) or 0 if the 
+		  left edge of the focus widget is aligned with the left edge 
+		  of the HListBox (default if unspecified)
+		coming_from -- eiter 'left', 'right' or unspecified (None)
+		cursor_coords -- (x, y) tuple indicating the desired
+		  column and row for the cursor, or unspecified (None)
+		snap_cols -- the maximum number of extra cols to scroll
+		  when trying to "snap" a selectable focus into the view
+		"""
+		
+		pref_row = None
+		if cursor_coords:
+			pref_row = cursor_coords[1]
+
+		self._invalidate()
+		self.body.set_focus(position)
+		target, _ignore = self.body.get_focus()
+		tgt_cols = target.pack(None, True)
+		if snap_cols is None:
+			snap_cols = maxcol-1
+
+		# "snap" to selectable widgets
+		align_left = 0
+		align_right = maxcol - tgt_cols
+		
+		if (coming_from == 'left' 
+				and target.selectable()
+				and offset_inset > align_right
+				and align_right >= offset_inset-snap_cols ):
+			offset_inset = align_right
+			
+		if (coming_from == 'below' 
+				and target.selectable() 
+				and offset_inset < align_left
+				and align_left <= offset_inset+snap_cols ):
+			offset_inset = align_left
+		
+		# convert offset_inset to offset_cols or inset_fraction
+		if offset_inset >= 0:
+			self.offset_cols = offset_inset
+			self.inset_fraction = (0,1)
+		else:
+			if offset_inset + tgt_cols <= 0:
+				raise HListBoxError, "Invalid offset_inset: %s, only %s cols in target!" %(offset_inset, tgt_cols)
+			self.offset_cols = 0
+			self.inset_fraction = (-offset_inset,tgt_cols)
+		
+		if cursor_coords is None:
+			if coming_from is None: 
+				return # must either know row or coming_from
+		
+		if not hasattr(target,'move_cursor_to_coords'):
+			return
+			
+		if cursor_coords is None:
+			if coming_from=='left':
+				cursor_coords = (0, pref_row)
+			else:
+				cursor_coords = (tgt_cols-1, pref_row)
+		
+		target.move_cursor_to_coords((tgt_cols,),cursor_coords[0],
+			cursor_coords[1]):
