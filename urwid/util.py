@@ -908,47 +908,48 @@ class MetaSignals(type):
 			signals.extend(getattr(superclass, 'signals', []))
 		signals = dict([(x,None) for x in signals]).keys()
 		d["signals"] = signals
-		Signals.register(cls, signals)
+		register_signal(cls, signals)
 		super(MetaSignals, cls).__init__(name, bases, d)
 
 
 class Signals(object):
-	_connections = weakref.WeakKeyDictionary()
-	_supported = {}
+	def __init__(self):
+		self._connections = weakref.WeakKeyDictionary()
+		self._supported = {}
 
-	def register(cls, sig_cls, signals):
-		cls._supported[sig_cls] = signals
-	register = classmethod(register)
+	def register(self, sig_cls, signals):
+		self._supported[sig_cls] = signals
 
-	def connect(cls, obj, name, callback, user_arg=None):
+	def connect(self, obj, name, callback, user_arg=None):
 		sig_cls = obj.__class__
-		if not name in cls._supported.get(sig_cls, []):
+		if not name in self._supported.get(sig_cls, []):
 			raise NameError, "No such signal %r for object %r" % \
 				(name, obj)
-		d = cls._connections.setdefault(obj, {})
+		d = self._connections.setdefault(obj, {})
 		d.setdefault(name, []).append((callback, user_arg))
-	connect = classmethod(connect)
 		
-	def disconnect(cls, obj, name, callback, user_arg=None):
-		d = cls._connections.get(obj, {})
+	def disconnect(self, obj, name, callback, user_arg=None):
+		d = self._connections.get(obj, {})
 		if name not in d:
 			return
 		if (callback, user_arg) not in d[name]:
 			return
 		d[name].remove((callback, user_arg))
-	disconnect = classmethod(disconnect)
  
-	def emit(cls, obj, name, *args):
+	def emit(self, obj, name, *args):
 		result = False
-		d = cls._connections.get(obj, {})
+		d = self._connections.get(obj, {})
 		for callback, user_arg in d.get(name, []):
 			args_copy = args
 			if user_arg is not None:
 				args_copy = args + [user_arg]
 			result |= bool(callback(*args_copy))
 		return result
-	emit = classmethod(emit)
-	
+_signals = Signals()
+emit_signal = _signals.emit
+register_signal = _signals.register
+connect_signal = _signals.connect
+disconnect_signal = _signals.disconnect
 
 
 def _call_modified(fn):
@@ -986,3 +987,34 @@ class MonitoredList(UserList):
 	reverse = _call_modified(UserList.reverse)
 	sort = _call_modified(UserList.sort)
 
+
+class Commands:
+	_command_defaults = {
+		'tab': 'next selectable',
+		'shift tab': 'prev selectable',
+		'esc': 'menu',
+		'up': 'cursor up',
+		'down': 'cursor down',
+		'left': 'cursor left',
+		'right': 'cursor right',
+		'page up': 'cursor page up',
+		'page down': 'cursor page down',
+	}
+
+	def __init__(self):
+		self.restore_defaults()
+
+	def restore_defaults(self):
+		self._command = dict(self._command_defaults)
+	
+	def input(self, key):
+		return self._command.get(key, None)
+	
+	def set_input(self, key, command):
+		self._command[key] = command
+	
+	def clear_command(self, command):
+		dk = [k for k, v in self._command.items() if v == command]
+		for k in dk:
+			del self._command[key]
+commands = Commands() # shared commands

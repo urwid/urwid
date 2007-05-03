@@ -33,7 +33,7 @@ class ListWalker(object):
 	signals = ["modified"]
 
 	def _modified(self):
-		Signals.emit(self, "modified")
+		emit_signal(self, "modified")
 	
 
 class PollingListWalker(object):  # NOT ListWalker subclass
@@ -112,9 +112,9 @@ class SimpleListWalker(MonitoredList, ListWalker):
 		This function inherited from MonitoredList is not 
 		implemented in SimleListWalker.
 		
-		Use Signals.connect(list_walker, "modified", ...) instead.
+		Use connect_signal(list_walker, "modified", ...) instead.
 		"""
-		raise NotImplementedError('Use Signals.connect('
+		raise NotImplementedError('Use connect_signal('
 			'list_walker, "modified", ...) instead.')
 	
 	def get_focus(self):
@@ -161,7 +161,7 @@ class ListBox(BoxWidget):
 			self.body = PollingListWalker(body)
 
 		try:
-			Signals.connect(self.body, "modified", self._invalidate)
+			connect_signal(self.body, "modified", self._invalidate)
 		except NameError:
 			# our list walker has no modified signal so we must not
 			# cache our canvases because we don't know when our
@@ -1330,7 +1330,7 @@ class HListBox(FlowWidget):
 			self.body = PollingListWalker(body)
 
 		try:
-			Signals.connect(self.body, "modified", self._invalidate)
+			connect_signal(self.body, "modified", self._invalidate)
 		except NameError:
 			# our list walker has no modified signal so we must not
 			# cache our canvases because we don't know when our
@@ -1789,4 +1789,47 @@ class HListBox(FlowWidget):
 				cursor_coords = (tgt_cols-1, pref_row)
 		
 		target.move_cursor_to_coords((tgt_cols,),cursor_coords[0],
-			cursor_coords[1]):
+			cursor_coords[1])
+	
+	def get_focus_offset_inset(self,(maxcol,)):
+		"""Return (offset rows, inset rows) for focus widget."""
+		focus_widget, pos = self.body.get_focus()
+		focus_cols = focus_widget.pack(None, True)[0]
+		offset_cols = self.offset_cols
+		inset_cols = 0
+		if offset_cols == 0:
+			inum, iden = self.inset_fraction
+			if inum < 0 or iden < 0 or inum >= iden:
+				raise HListBoxError, "Invalid inset_fraction: %s"%`self.inset_fraction`
+			inset_cols = focus_cols * inum / iden
+			assert inset_cols < focus_cols, "urwid inset_fraction error (please report)"
+		return offset_cols, inset_cols
+
+
+	def make_cursor_visible(self,(maxcol,)):
+		"""Shift the focus widget so that its cursor is visible."""
+		
+		focus_widget, pos = self.body.get_focus()
+		if focus_widget is None:
+			return
+		if not focus_widget.selectable(): 
+			return
+		if not hasattr(focus_widget,'get_cursor_coords'): 
+			return
+		mc = focus_widget.pack(None, True)[0]
+		cursor = focus_widget.get_cursor_coords((mc,))
+		if cursor is None: 
+			return
+		cx, cy = cursor
+		offset_cols, inset_cols = self.get_focus_offset_inset(
+			(maxcol,))
+		
+		if cx < inset_cols:
+			self.shift_focus((maxcol,), - (cx) )
+			return
+			
+		if offset_cols - inset_cols + cx >= maxcol:
+			self.shift_focus( (maxcol,), maxcol-cx-1 )
+			return
+
+

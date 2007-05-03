@@ -154,7 +154,7 @@ class Widget(object):
 		CanvasCache.invalidate(self)
 
 	def _emit(self, name, *args):
-		Signals.emit(self, name, *args)
+		emit_signal(self, name, *args)
 	
 	def selectable(self):
 		return self._selectable
