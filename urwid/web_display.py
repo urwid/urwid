@@ -614,6 +614,10 @@ class Screen:
 		"""Not yet implemented"""
 		pass
 
+	def tty_signal_keys(self, *args, **vargs):
+		"""Do nothing."""
+		pass
+
 	def start(self):
 		"""	
 		This function reads the initial screen size, generates a

@@ -54,7 +54,12 @@ class KeyTest:
 			('key', 'yellow', 'dark blue', 'bold'),
 			('listbox', 'light gray', 'black' ),
 			])
-		self.ui.run_wrapper(self.run)
+		try:
+			old = self.ui.tty_signal_keys('undefined','undefined',
+				'undefined','undefined','undefined')
+			self.ui.run_wrapper(self.run)
+		finally:
+			self.ui.tty_signal_keys(*old)
 	
 	def run(self):
 		self.ui.set_mouse_tracking()

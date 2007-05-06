@@ -233,6 +233,8 @@ def process_keyqueue(codes, more_available):
 		return [_keyconv[code]], codes[1:]
 	if code >0 and code <27:
 		return ["ctrl %s" % chr(ord('a')+code-1)], codes[1:]
+	if code >27 and code <32:
+		return ["ctrl %s" % chr(ord('A')+code-1)], codes[1:]
 	
 	em = util.get_encoding_mode()
 	

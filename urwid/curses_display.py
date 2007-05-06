@@ -32,6 +32,8 @@ import sys
 import util
 import escape
 
+import raw_display
+
 KEY_RESIZE = 410 # curses.KEY_RESIZE (sometimes not defined)
 KEY_MOUSE = 409 # curses.KEY_MOUSE
 
@@ -60,8 +62,9 @@ _curses_colours = {
 _trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
 
 
-class Screen(object):
+class Screen(raw_display.RealTerminal):
 	def __init__(self):
+		super(Screen,self).__init__()
 		self.curses_pairs = [
 			(None,None), # Can't be sure what pair 0 will default to
 		]
@@ -176,6 +179,9 @@ class Screen(object):
 		curses.halfdelay(10) # use set_input_timeouts to adjust
 		self.s.keypad(0)
 		
+		if not self._signal_keys_set:
+			self._old_signal_keys = self.tty_signal_keys()
+
 	
 	def stop(self):
 		"""
@@ -189,6 +195,9 @@ class Screen(object):
 			curses.endwin()
 		except _curses.error:
 			pass # don't block original error with curses error
+		
+		if self._old_signal_keys:
+			self.tty_signal_keys(*self._old_signal_keys)
 	
 	def run_wrapper(self,fn):
 		"""Call fn in fullscreen mode.  Return to normal on exit.
