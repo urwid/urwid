@@ -62,7 +62,7 @@ def validate_size(widget, size, canv):
 	"""
 	Raise a WidgetError if a canv does not match size size.
 	"""
-	if (size and size[0] != canv.cols()) or \
+	if (size and size[1:] != (0,) and size[0] != canv.cols()) or \
 		(len(size)>1 and size[1] != canv.rows()):
 		raise WidgetError("Widget %r rendered (%d x %d) canvas"
 			" when passed size %r!" % (widget, canv.cols(),
@@ -1443,7 +1443,7 @@ class Filler(BoxWidget):
 			canv = self.body.render( (maxcol,maxrow-top-bottom),focus)
 		canv = CompositeCanvas(canv)
 		
-		if canv.rows() > maxrow and canv.cursor is not None:
+		if maxrow and canv.rows() > maxrow and canv.cursor is not None:
 			cx, cy = canv.cursor
 			if cy >= maxrow:
 				canv.trim(cy-maxrow+1,maxrow-top-bottom)
@@ -1627,6 +1627,8 @@ class Overlay(BoxWidget):
 			top, bottom = calculate_filler(self.valign_type, 
 				self.valign_amount, 'fixed', height,
 				None, maxrow)
+			if maxrow-top-bottom < height:
+				bottom = maxrow-top-height
 		elif self.height_type is None:
 			# top_w is a flow widget
 			height = self.body.rows((maxcol,),focus=focus)
@@ -1661,6 +1663,9 @@ class Overlay(BoxWidget):
 		if left<0 or right<0:
 			top_c = CompositeCanvas(top_c)
 			top_c.pad_trim_left_right(min(0,left), min(0,right))
+		if top<0 or bottom<0:
+			top_c = CompositeCanvas(top_c)
+			top_c.pad_trim_top_bottom(min(0,top), min(0,bottom))
 		
 		return CanvasOverlay(top_c, bottom_c, max(0,left), top)
 
@@ -1921,11 +1926,13 @@ class Frame(BoxWidget):
 
 		elif hrows + frows >= remaining:
 			# self.focus_part == 'body'
+			rless1 = max(0, remaining-1)
 			if frows >= remaining-1:
-				return (0, remaining-1),(hrows, frows)
+				return (0, rless1),(hrows, frows)
 			
 			remaining -= frows
-			return (remaining-1,frows),(hrows, frows)
+			rless1 = max(0, remaining-1)
+			return (rless1,frows),(hrows, frows)
 		
 		return (hrows, frows),(hrows, frows)
 		
@@ -1940,7 +1947,7 @@ class Frame(BoxWidget):
 		depends_on = []
 		
 		head = None
-		if htrim < hrows:
+		if htrim and htrim < hrows:
 			head = Filler(self.header, 'top').render(
 				(maxcol, htrim), 
 				focus and self.focus_part == 'header')
@@ -1961,7 +1968,7 @@ class Frame(BoxWidget):
 			depends_on.append(self.body)
 		
 		foot = None	
-		if ftrim < frows:
+		if ftrim and ftrim < frows:
 			foot = Filler(self.footer, 'bottom').render(
 				(maxcol, ftrim), 
 				focus and self.focus_part == 'footer')

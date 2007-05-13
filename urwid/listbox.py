@@ -214,12 +214,12 @@ class ListBox(BoxWidget):
 		offset_rows, inset_rows = self.get_focus_offset_inset(
 			(maxcol,maxrow))
 		#    force at least one line of focus to be visible
-		if offset_rows >= maxrow:
+		if maxrow and offset_rows >= maxrow:
 			offset_rows = maxrow -1
 		
 		#    adjust position so cursor remains visible
 		cursor = None
-		if focus_widget.selectable() and focus:
+		if maxrow and focus_widget.selectable() and focus:
 			if hasattr(focus_widget,'get_cursor_coords'):
 				cursor=focus_widget.get_cursor_coords((maxcol,))
 		

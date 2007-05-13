@@ -550,7 +550,9 @@ class CompositeCanvas(Canvas):
 		if top:
 			self.shards = shards_trim_top(self.shards, top)
 
-		if count is not None:
+		if count == 0:
+			self.shards = []
+		elif count is not None:
 			self.shards = shards_trim_rows(self.shards, count)
 
 		self.coords = self.translate_coords(0, -top)
@@ -562,7 +564,7 @@ class CompositeCanvas(Canvas):
 		end -- number of lines to remove from the end
 		"""
 		assert end > 0, "invalid trim amount %d!"%end
-		assert end < self.rows(), "cannot trim %d lines from %d!"%(
+		assert end <= self.rows(), "cannot trim %d lines from %d!"%(
 			end, self.rows())
 		if self.widget_info:
 			raise self._finalized_error
@@ -663,7 +665,9 @@ class CompositeCanvas(Canvas):
 			right_shards = [shards_trim_sides(side_shards, 
 				left + width, right)]
 		
-		if left or right:
+		if not self.rows():
+			middle_shards = []
+		elif left or right:
 			middle_shards = shards_join(left_shards + 
 				[other.shards] + right_shards)
 		else:
@@ -876,7 +880,7 @@ def shards_trim_rows(shards, keep_rows):
 	"""
 	Return the topmost keep_rows rows from shards.
 	"""
-	assert keep_rows > 0
+	assert keep_rows >= 0, keep_rows
 
 	shard_tail = []
 	new_shards = []

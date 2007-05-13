@@ -2156,6 +2156,52 @@ class CanvasPadTrimTest(unittest.TestCase):
 		self.cptest("right trim", "asdf", [], 0, -2, 
 			[[(None,None,"as")]])
 
+
+class WidgetSquishTest(unittest.TestCase):
+	def wstest(self, w):
+		c = w.render((80,0), focus=False)
+		assert c.rows() == 0
+		c = w.render((80,0), focus=True)
+		assert c.rows() == 0
+	
+	def test_listbox(self):
+		self.wstest(urwid.ListBox([]))
+		self.wstest(urwid.ListBox([urwid.Text("hello")]))
+	
+	def test_bargraph(self):
+		self.wstest(urwid.BarGraph(['foo','bar']))
+	
+	def test_graphvscale(self):
+		self.wstest(urwid.GraphVScale([(0,"hello")], 1))
+	
+	def test_solidfill(self):
+		self.wstest(urwid.SolidFill())
+
+	def test_filler(self):
+		self.wstest(urwid.Filler(urwid.Text("hello")))
+	
+	def test_overlay(self):
+		self.wstest(urwid.Overlay(
+			urwid.BigText("hello",urwid.Thin6x6Font()),
+			urwid.SolidFill(),
+			'center', None, 'middle', None))
+
+	def test_frame(self):
+		self.wstest(urwid.Frame(urwid.SolidFill()))
+		self.wstest(urwid.Frame(urwid.SolidFill(), 
+			header=urwid.Text("hello")))
+		self.wstest(urwid.Frame(urwid.SolidFill(),
+			header=urwid.Text("hello"),
+			footer=urwid.Text("hello")))
+
+	def test_pile(self):
+		self.wstest(urwid.Pile([urwid.SolidFill()]))
+	
+	def test_columns(self):
+		self.wstest(urwid.Columns([urwid.SolidFill()]))
+	
+
+
 def test_main():
 	for t in [
 		DecodeOneTest,
@@ -2202,6 +2248,7 @@ def test_main():
 		CanvasJoinTest,
 		CanvasOverlayTest,
 		CanvasPadTrimTest,
+		WidgetSquishTest,
 		]:
 		if test_support.run_unittest(t): break
 	
