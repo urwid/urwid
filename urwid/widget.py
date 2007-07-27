@@ -1405,7 +1405,7 @@ class Filler(BoxWidget):
 		self.__super.__init__()
 		vt,va,ht,ha=decompose_valign_height(valign,height,FillerError)
 		
-		self.body = body
+		self._body = body
 		self.valign_type, self.valign_amount = vt, va
 		self.height_type, self.height_amount = ht, ha
 		if self.height_type not in ('fixed', None):
@@ -1413,9 +1413,16 @@ class Filler(BoxWidget):
 		else:
 			self.min_height = None
 	
+	def get_body(self):
+		return self._body
+	def set_body(self, body):
+		self._body = body
+		self._invalidate()
+	body = property(get_body, set_body)
+	
 	def selectable(self):
 		"""Return selectable from body."""
-		return self.body.selectable()
+		return self._body.selectable()
 	
 	def filler_values(self, (maxcol, maxrow), focus):
 		"""Return the number of rows to pad on the top and bottom.
