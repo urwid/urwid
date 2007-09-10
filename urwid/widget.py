@@ -27,6 +27,9 @@ from canvas import *
 try: sum # old python?
 except: sum = lambda l: reduce(lambda a,b: a+b, l, 0)
 
+try: set
+except: set = list # not perfect, but should be good enough for python2.2
+
 class WidgetMeta(MetaSuper, MetaSignals):
 	"""
 	Automatic caching of render and rows methods.
@@ -149,6 +152,7 @@ class Widget(object):
 	"""
 	__metaclass__ = WidgetMeta
 	_selectable = False
+	_sizing = set([])
 
 	def _invalidate(self):
 		CanvasCache.invalidate(self)
@@ -157,20 +161,63 @@ class Widget(object):
 		emit_signal(self, name, *args)
 	
 	def selectable(self):
+		"""
+		Return True if this widget should take focus.  Default
+		implementation returns the value of self._selectable.
+		"""
 		return self._selectable
+	
+	def sizing(self):
+		"""
+		Return a set including one or more of 'box', 'flow' and
+		'fixed'.  Default implementation returns the value of
+		self._sizing.
+		"""
+		return self._sizing
+	
+	def __repr__(self, *words, **attrs):
+		"""
+		Return a helpful description of the widget object.
+
+		words - list of strings that will appear after the widget
+		        name
+		attrs - dictionary of string:value that will be displayed
+		        as "string=value" items
+		"""
+		clsname = self.__class__.__name__
+		words = list(words or [])
+		if self.selectable():
+			words = ["selectable"] + words
+		attrs = dict(attrs or {})
+		alist = attrs.items()
+		alist.sort()
+		widget_desc = clsname
+		if self.sizing():
+			sizing_modes = list(self.sizing())
+			sizing_modes.sort()
+			widget_desc = (widget_desc + " " + 
+			"/".join(sizing_modes))
+		if not words and not attrs:
+			return "<%s widget>" % widget_desc
+		if words and attrs: words.append("")
+		return "<%s widget %s>" % (widget_desc,
+			" ".join(words) +
+			" ".join(["%s=%r" % (k,v) for k,v in alist]))
 	
 
 class FlowWidget(Widget):
 	"""
 	base class of widgets
 	"""
-	def rows(self, (maxcol,), focus=False):
+	_sizing = set(['flow'])
+	
+	def rows(self, size, focus=False):
 		"""
 		All flow widgets must implement this function.
 		"""
 		raise NotImplementedError()
 
-	def render(self, (maxcol,), focus=False):
+	def render(self, size, focus=False):
 		"""
 		All widgets must implement this function.
 		"""
@@ -183,6 +230,7 @@ class BoxWidget(Widget):
 	the top level widget attached to the display object
 	"""
 	_selectable = True
+	_sizing = set(['box'])
 	
 	def render(self, size, focus=False):
 		"""
@@ -206,6 +254,8 @@ class FixedWidget(Widget):
 	base class of widgets that know their width and height and
 	cannot be resized
 	"""
+	_sizing = set(['fixed'])
+	
 	def render(self, size, focus=False):
 		"""
 		All widgets must implement this function.
@@ -218,6 +268,7 @@ class FixedWidget(Widget):
 		"""
 		raise NotImplementedError()
 
+
 class Divider(FlowWidget):
 	"""
 	Horizontal divider widget
@@ -226,22 +277,45 @@ class Divider(FlowWidget):
 
 	def __init__(self,div_char=" ",top=0,bottom=0):
 		"""
+		Create a horizontal divider widget.
+		
 		div_char -- character to repeat across line
 		top -- number of blank lines above
 		bottom -- number of blank lines below
+
+		>>> Divider()
+		<Divider flow widget div_char=' '>
+		>>> Divider('-')
+		<Divider flow widget div_char='-'>
+		>>> Divider('x', 1, 2)
+		<Divider flow widget bottom=2 div_char='x' top=1>
 		"""
 		self.__super.__init__()
 		self.div_char = div_char
 		self.top = top
 		self.bottom = bottom
 		
+	def __repr__(self):
+		attrs = {}
+		if self.top: attrs["top"] = self.top
+		if self.bottom: attrs["bottom"] = self.bottom
+		return self.__super.__repr__(div_char=self.div_char, **attrs)
 	
-	def rows(self, (maxcol,), focus=False):
-		"""Return the number of lines that will be rendered."""
+	def rows(self, size, focus=False):
+		"""
+		Return the number of lines that will be rendered.
+
+		>>> Divider().rows((10,))
+		1
+		>>> Divider('x', 1, 2).rows((10,))
+		4
+		"""
+		(maxcol,) = size
 		return self.top + 1 + self.bottom
 	
-	def render(self, (maxcol,), focus=False):
+	def render(self, size, focus=False):
 		"""Render the divider as a canvas and return it."""
+		(maxcol,) = size
 		canv = SolidCanvas(self.div_char, maxcol, 1)
 		canv = CompositeCanvas(canv)
 		if self.top or self.bottom:
@@ -253,15 +327,25 @@ class SolidFill(BoxWidget):
 	_selectable = False
 	ignore_focus = True
 
-	def __init__(self,fill_char=" "):
+	def __init__(self, fill_char=" "):
 		"""
+		Create a box widget that will fill an area with a single 
+		character.
+		
 		fill_char -- character to fill area with
+
+		>>> SolidFill('8')
+		<SolidFill box widget fill_char='8'>
 		"""
 		self.__super.__init__()
 		self.fill_char = fill_char
 	
-	def render(self,(maxcol,maxrow), focus=False ):
+	def __repr__(self):
+		return self.__super.__repr__(fill_char=self.fill_char)
+	
+	def render(self, size, focus=False ):
 		"""Render the Fill as a canvas and return it."""
+		maxcol, maxrow = size
 		return SolidCanvas(self.fill_char, maxcol, maxrow)
 	
 class TextError(Exception):
@@ -273,7 +357,7 @@ class Text(FlowWidget):
 	"""
 	ignore_focus = True
 
-	def __init__(self,markup, align='left', wrap='space', layout=None):
+	def __init__(self, markup, align='left', wrap='space', layout=None):
 		"""
 		markup -- content of text widget, one of:
 			plain string -- string is displayed
@@ -282,19 +366,43 @@ class Text(FlowWidget):
 		align -- align mode for text layout
 		wrap -- wrap mode for text layout
 		layout -- layout object to use, defaults to StandardTextLayout
+
+		>>> Text("Hello")
+		<Text flow widget 'Hello' align_mode='left' wrap_mode='space'>
+		>>> t = Text(('bold', "stuff"), 'right', 'any')
+		>>> t
+		<Text flow widget 'stuff' align_mode='right' wrap_mode='any'>
+		>>> t.text
+		'stuff'
+		>>> t.attrib
+		[('bold', 5)]
 		"""
 		self.__super.__init__()
 		self._cache_maxcol = None
 		self.set_text(markup)
 		self.set_layout(align, wrap, layout)
 	
+	def __repr__(self):
+		return self.__super.__repr__(repr(self.get_text()[0]),
+			align_mode=self._align_mode, 
+			wrap_mode=self._wrap_mode)
+	
 	def _invalidate(self):
 		self._cache_maxcol = None
 		self.__super._invalidate()
 
 	def set_text(self,markup):
-		"""Set content of text widget."""
-		self.text, self.attrib = decompose_tagmarkup(markup)
+		"""
+		Set content of text widget.
+
+		markup -- see __init__() for description.
+
+		>>> t = Text("foo")
+		>>> t.set_text("bar")
+		>>> t
+		<Text flow widget 'bar' align_mode='left' wrap_mode='space'>
+		"""
+		self._text, self._attrib = decompose_tagmarkup(markup)
 		self._invalidate()
 
 	def get_text(self):
@@ -303,8 +411,18 @@ class Text(FlowWidget):
 		
 		text -- complete string content of text widget
 		attributes -- run length encoded attributes for text
+
+		>>> Text("Hello").get_text()
+		('Hello', [])
+		>>> Text(('bright', "Headline")).get_text()
+		('Headline', [('bright', 8)])
+		>>> Text([('a', "one"), "two", ('b', "three")]).get_text()
+		('onetwothree', [('a', 3), (None, 3), ('b', 5)])
 		"""
-		return self.text, self.attrib
+		return self._text, self._attrib
+
+	text = property(lambda self:self.get_text()[0])
+	attrib = property(lambda self:self.get_text()[1])
 
 	def set_align_mode(self, mode):
 		"""
@@ -316,7 +434,7 @@ class Text(FlowWidget):
 		if not self.layout.supports_align_mode(mode):
 			raise TextError("Alignment mode %s not supported."%
 				`mode`)
-		self.align_mode = mode
+		self._align_mode = mode
 		self._invalidate()
 
 	def set_wrap_mode(self, mode):
@@ -330,7 +448,7 @@ class Text(FlowWidget):
 		"""
 		if not self.layout.supports_wrap_mode(mode):
 			raise TextError("Wrap mode %s not supported"%`mode`)
-		self.wrap_mode = mode
+		self._wrap_mode = mode
 		self._invalidate()
 
 	def set_layout(self, align, wrap, layout=None):
@@ -343,20 +461,26 @@ class Text(FlowWidget):
 		"""
 		if layout is None:
 			layout = default_layout
-		self.layout = layout
-		self.set_align_mode( align )
-		self.set_wrap_mode( wrap )
+		self._layout = layout
+		self.set_align_mode(align)
+		self.set_wrap_mode(wrap)
 
-	def render(self,(maxcol,), focus=False):
+	align_mode = property(lambda self:self._align_mode, set_align_mode)
+	wrap_mode = property(lambda self:self._wrap_mode, set_wrap_mode)
+	layout = property(lambda self:self._layout)
+
+	def render(self, size, focus=False):
 		"""
 		Render contents with wrapping and alignment.  Return canvas.
 		"""
+		(maxcol,) = size
 		text, attr = self.get_text()
 		trans = self.get_line_translation( maxcol, (text,attr) )
 		return apply_text_layout(text, attr, trans, maxcol)
 
-	def rows(self,(maxcol,), focus=False):
+	def rows(self, size, focus=False):
 		"""Return the number of rows the rendered text spans."""
+		(maxcol,) = size
 		return len(self.get_line_translation(maxcol))
 
 	def get_line_translation(self, maxcol, ta=None):
@@ -453,7 +577,7 @@ class Edit(Text):
 		text -- complete text of caption and edit_text
 		attributes -- run length encoded attributes for text
 		"""
-		return self.caption + self.edit_text, self.attrib
+		return self.caption + self.edit_text, self._attrib
 	
 	def get_pref_col(self, (maxcol,)):
 		"""Return the preferred column for the cursor, or the
@@ -472,7 +596,7 @@ class Edit(Text):
 
 	def set_caption(self, caption):
 		"""Set the caption markup for this widget."""
-		self.caption, self.attrib = decompose_tagmarkup(caption)
+		self.caption, self._attrib = decompose_tagmarkup(caption)
 		self._invalidate()
 	
 	def set_edit_pos(self, pos):
@@ -745,7 +869,8 @@ class WidgetWrap(Widget):
 	def __getattr__(self,name):
 		"""Call self.w if name is in Widget interface definition."""
 		if name in ['get_cursor_coords','get_pref_col','keypress',
-			'move_cursor_to_coords','rows','mouse_event',]:
+			'move_cursor_to_coords','rows','mouse_event',
+			'sizing',]:
 			return getattr(self._w, name)
 		raise AttributeError, name
 
@@ -2884,3 +3009,10 @@ class BoxAdapter(FlowWidget):
 		return getattr(self.box_widget, name)
 
 
+def _test():
+	import doctest
+	global urwid
+	doctest.testmod()
+
+if __name__=='__main__':
+	_test()
