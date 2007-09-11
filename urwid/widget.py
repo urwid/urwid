@@ -579,9 +579,10 @@ class Edit(Text):
 		"""
 		return self.caption + self.edit_text, self._attrib
 	
-	def get_pref_col(self, (maxcol,)):
+	def get_pref_col(self, size):
 		"""Return the preferred column for the cursor, or the
 		current cursor x value."""
+		(maxcol,) = size
 		pref_col, then_maxcol = self.pref_col_maxcol
 		if then_maxcol != maxcol:
 			return self.get_cursor_coords((maxcol,))[0]
@@ -626,8 +627,9 @@ class Edit(Text):
 			self.edit_text[p:] )
 		self.set_edit_pos( self.edit_pos + len(text))
 	
-	def keypress(self,(maxcol,),key):
+	def keypress(self, size, key):
 		"""Handle editing keystrokes, return others."""
+		(maxcol,) = size
 
 		p = self.edit_pos
 		if self.valid_char(key):
@@ -706,11 +708,12 @@ class Edit(Text):
 			# key wasn't handled
 			return key
 
-	def move_cursor_to_coords(self, (maxcol,), x, y):
+	def move_cursor_to_coords(self, size, x, y):
 		"""Set the cursor position with (x,y) coordinates.
 
 		Returns True if move succeeded, False otherwise.
 		"""
+		(maxcol,) = size
 		trans = self.get_line_translation(maxcol)
 		top_x, top_y = self.position_coords(maxcol, 0)
 		if y < top_y or y >= len(trans):
@@ -725,10 +728,11 @@ class Edit(Text):
 		self._invalidate()
 		return True
 
-	def mouse_event(self, (maxcol,), event, button, x, y, focus):
+	def mouse_event(self, size, event, button, x, y, focus):
 		"""
 		Move the cursor to the location clicked for button 1.
 		"""
+		(maxcol,) = size
 		if button==1:
 			return self.move_cursor_to_coords( (maxcol,), x, y )
 
@@ -746,11 +750,12 @@ class Edit(Text):
 		self.highlight = None
 		
 		
-	def render(self,(maxcol,), focus=False):
+	def render(self, size, focus=False):
 		""" 
 		Render edit widget and return canvas.  Include cursor when in
 		focus.
 		"""
+		(maxcol,) = size
 		self._shift_view_to_cursor = not not focus # force bool
 		
 		canv = Text.render(self,(maxcol,))
@@ -784,8 +789,9 @@ class Edit(Text):
 		return trans
 			
 
-	def get_cursor_coords(self,(maxcol,)):
+	def get_cursor_coords(self, size):
 		"""Return the (x,y) coordinates of cursor within widget."""
+		(maxcol,) = size
 
 		self._shift_view_to_cursor = True
 		return self.position_coords(maxcol,self.edit_pos)
@@ -822,8 +828,9 @@ class IntEdit(Edit):
 		else: val = ""
 		self.__super.__init__(caption,val)
 
-	def keypress(self,(maxcol,),key):
+	def keypress(self, size, key):
 		"""Handle editing keystrokes.  Return others."""
+		(maxcol,) = size
 	        if key in list("0123456789"):
 			# trim leading zeros
 	                while self.edit_pos > 0 and self.edit_text[:1] == "0":
@@ -878,18 +885,20 @@ class SelectableIcon(Text):
 	def selectable(self):
 		return True
 	
-	def render(self, (maxcol,), focus=False):
+	def render(self, size, focus=False):
+		(maxcol,) = size
 		c = Text.render(self, (maxcol,), focus )
 		if focus:
 			c = CompositeCanvas(c)
 			c.cursor = self.get_cursor_coords((maxcol,))
 		return c
 	
-	def get_cursor_coords(self, (maxcol,)):
+	def get_cursor_coords(self, size):
+		(maxcol,) = size
 		if maxcol>1:
 			return (1,0)
 
-	def keypress(self, (maxcol,), key):
+	def keypress(self, size, key):
 		return key
 
 class CheckBox(WidgetWrap):
@@ -955,7 +964,7 @@ class CheckBox(WidgetWrap):
 		"""Return the state of the checkbox."""
 		return self.state
 		
-	def keypress(self, (maxcol,), key):
+	def keypress(self, size, key):
 		"""Toggle state on space or enter."""
 		if key not in (' ','enter'):
 			return key
@@ -975,7 +984,7 @@ class CheckBox(WidgetWrap):
 			self.set_state(False)
 		self._invalidate()
 
-	def mouse_event(self, (maxcol,), event, button, x, y, focus):
+	def mouse_event(self, size, event, button, x, y, focus):
 		"""Toggle state on button 1 press."""
 		if button != 1 or not is_mouse_press(event):
 			return False
@@ -1065,7 +1074,7 @@ class RadioButton(WidgetWrap):
 		"""Return the state of the radio button."""
 		return self.state
 
-	def keypress(self, (maxcol,), key):
+	def keypress(self, size, key):
 		"""Set state to True on space or enter."""
 		if key not in (' ','enter'):
 			return key
@@ -1075,7 +1084,7 @@ class RadioButton(WidgetWrap):
 		else:
 			return key
 	
-	def mouse_event(self, (maxcol,), event, button, x, y, focus):
+	def mouse_event(self, size, event, button, x, y, focus):
 		"""Set state to True on button 1 press."""
 		if button != 1 or not is_mouse_press(event):
 			return False
@@ -1117,21 +1126,21 @@ class Button(WidgetWrap):
 	def get_label(self):
 		return self.label
 	
-	def render(self, (maxcol,), focus=False):
+	def render(self, size, focus=False):
 		"""Display button. Show a cursor when in focus."""
-		canv = self.__super.render((maxcol,), focus=focus)
+		canv = self.__super.render(size, focus=focus)
 		canv = CompositeCanvas(canv)
 		if focus and maxcol >2:
 			canv.cursor = (2,0)
 		return canv
 
-	def get_cursor_coords(self, (maxcol,)):
+	def get_cursor_coords(self, size):
 		"""Return the location of the cursor."""
 		if maxcol >2:
 			return (2,0)
 		return None
 
-	def keypress(self, (maxcol,), key):
+	def keypress(self, size, key):
 		"""Call on_press on spage or enter."""
 		if key not in (' ','enter'):
 			return key
@@ -1142,7 +1151,7 @@ class Button(WidgetWrap):
 			else:
 				self.on_press(self, self.user_data)
 
-	def mouse_event(self, (maxcol,), event, button, x, y, focus):
+	def mouse_event(self, size, event, button, x, y, focus):
 		"""Call on_press on button 1 press."""
 		if button != 1 or not is_mouse_press(event):
 			return False
@@ -1193,7 +1202,7 @@ class GridFlow(FlowWidget):
 		self._invalidate()
 		
 
-	def get_display_widget(self, (maxcol,)):
+	def get_display_widget(self, size):
 		"""
 		Arrange the cells into columns (and possibly a pile) for 
 		display, input or to calculate rows. 
@@ -1204,14 +1213,15 @@ class GridFlow(FlowWidget):
 
 		self._cache_maxcol = maxcol
 		self._cache_display_widget = self.generate_display_widget(
-			(maxcol,))
+			size)
 
 		return self._cache_display_widget
 
-	def generate_display_widget(self, (maxcol,)):
+	def generate_display_widget(self, size):
 		"""
 		Actually generate display widget (ignoring cache)
 		"""
+		(maxcol,) = size
 		d = Divider()
 		if len(self.cells) == 0: # how dull
 			return d
@@ -1279,44 +1289,44 @@ class GridFlow(FlowWidget):
 		#assert w == self.cells[0], `w, self.cells`
 		self.set_focus(w)
 
-	def keypress(self, (maxcol,), key):
+	def keypress(self, size, key):
 		"""
 		Pass keypress to display widget for handling.  
 		Capture	focus changes."""
 		
-		d = self.get_display_widget((maxcol,))
+		d = self.get_display_widget(size)
 		if not d.selectable():
 			return key
-		key = d.keypress( (maxcol,), key)
+		key = d.keypress(size, key)
 		if key is None:
 			self._set_focus_from_display_widget(d)
 		return key
 
-	def rows(self, (maxcol,), focus=False):
+	def rows(self, size, focus=False):
 		"""Return rows used by this widget."""
-		d = self.get_display_widget((maxcol,))
-		return d.rows((maxcol,), focus=focus)
+		d = self.get_display_widget(size)
+		return d.rows(size, focus=focus)
 	
-	def render(self, (maxcol,), focus=False ):
+	def render(self, size, focus=False ):
 		"""Use display widget to render."""
-		d = self.get_display_widget((maxcol,))
-		return d.render((maxcol,), focus)
+		d = self.get_display_widget(size)
+		return d.render(size, focus)
 
-	def get_cursor_coords(self, (maxcol,)):
+	def get_cursor_coords(self, size):
 		"""Get cursor from display widget."""
-		d = self.get_display_widget((maxcol,))
+		d = self.get_display_widget(size)
 		if not d.selectable():
 			return None
-		return d.get_cursor_coords((maxcol,))
+		return d.get_cursor_coords(size)
 	
-	def move_cursor_to_coords(self, (maxcol,), col, row ):
+	def move_cursor_to_coords(self, size, col, row ):
 		"""Set the widget in focus based on the col + row."""
-		d = self.get_display_widget((maxcol,))
+		d = self.get_display_widget(size)
 		if not d.selectable():
 			# happy is the default
 			return True
 		
-		r =  d.move_cursor_to_coords((maxcol,), col, row)
+		r =  d.move_cursor_to_coords(size, col, row)
 		if not r:
 			return False
 		
@@ -1324,11 +1334,11 @@ class GridFlow(FlowWidget):
 		self._invalidate()
 		return True
 	
-	def mouse_event(self, (maxcol,), event, button, col, row, focus):
+	def mouse_event(self, size, event, button, col, row, focus):
 		"""Send mouse event to contained widget."""
-		d = self.get_display_widget((maxcol,))
+		d = self.get_display_widget(size)
 		
-		r = d.mouse_event( (maxcol,), event, button, col, row, focus )
+		r = d.mouse_event(size, event, button, col, row, focus)
 		if not r:
 			return False
 		
@@ -1337,12 +1347,12 @@ class GridFlow(FlowWidget):
 		return True
 		
 	
-	def get_pref_col(self, (maxcol,)):
+	def get_pref_col(self, size):
 		"""Return pref col from display widget."""
-		d = self.get_display_widget((maxcol,))
+		d = self.get_display_widget(size)
 		if not d.selectable():
 			return None
-		return d.get_pref_col((maxcol,))
+		return d.get_pref_col(size)
 	
 
 
@@ -1426,12 +1436,13 @@ class Padding(Widget):
 		"""Return the selectable value of self.w."""
 		return self.w.selectable()
 
-	def rows(self, (maxcol,), focus=False ):
+	def rows(self, size, focus=False ):
 		"""Return the rows needed for self.w."""
+		(maxcol,) = size
 		if self.width_type is None:
 			ignore, height = self.w.pack(focus)
 			return height
-		left, right = self.padding_values((maxcol,), focus)
+		left, right = self.padding_values(size, focus)
 		return self.w.rows( (maxcol-left-right,), focus=focus )
 	
 	def keypress(self, size, key):
@@ -1549,11 +1560,12 @@ class Filler(BoxWidget):
 		"""Return selectable from body."""
 		return self._body.selectable()
 	
-	def filler_values(self, (maxcol, maxrow), focus):
+	def filler_values(self, size, focus):
 		"""Return the number of rows to pad on the top and bottom.
 		
 		Override this method to define custom padding behaviour."""
-
+		(maxcol, maxrow) = size
+		
 		if self.height_type is None:
 			height = self.body.rows((maxcol,),focus=focus)
 			return calculate_filler( self.valign_type,
@@ -1565,14 +1577,15 @@ class Filler(BoxWidget):
 			self.min_height, maxrow)
 
 	
-	def render(self, (maxcol,maxrow), focus=False):
+	def render(self, size, focus=False):
 		"""Render self.body with space above and/or below."""
-		top, bottom = self.filler_values((maxcol,maxrow), focus)
+		(maxcol, maxrow) = size
+		top, bottom = self.filler_values(size, focus)
 		
 		if self.height_type is None:
-			canv = self.body.render( (maxcol,), focus)
+			canv = self.body.render((maxcol,), focus)
 		else:
-			canv = self.body.render( (maxcol,maxrow-top-bottom),focus)
+			canv = self.body.render((maxcol,maxrow-top-bottom),focus)
 		canv = CompositeCanvas(canv)
 		
 		if maxrow and canv.rows() > maxrow and canv.cursor is not None:
@@ -1586,20 +1599,22 @@ class Filler(BoxWidget):
 		return canv
 
 
-	def keypress(self, (maxcol,maxrow), key):
+	def keypress(self, size, key):
 		"""Pass keypress to self.body."""
+		(maxcol, maxrow) = size
 		if self.height_type is None:
 			return self.body.keypress( (maxcol,), key )
 
 		top, bottom = self.filler_values((maxcol,maxrow), True)
 		return self.body.keypress( (maxcol,maxrow-top-bottom), key )
 
-	def get_cursor_coords(self, (maxcol,maxrow)):
+	def get_cursor_coords(self, size):
 		"""Return cursor coords from self.body if any."""
+		(maxcol, maxrow) = size
 		if not hasattr(self.body, 'get_cursor_coords'):
 			return None
 			
-		top, bottom = self.filler_values((maxcol,maxrow), True)
+		top, bottom = self.filler_values(size, True)
 		if self.height_type is None:
 			coords = self.body.get_cursor_coords((maxcol,))
 		else:
@@ -1612,26 +1627,28 @@ class Filler(BoxWidget):
 			y = maxrow-1
 		return x, y+top
 
-	def get_pref_col(self, (maxcol,maxrow)):
+	def get_pref_col(self, size):
 		"""Return pref_col from self.body if any."""
+		(maxcol, maxrow) = size
 		if not hasattr(self.body, 'get_pref_col'):
 			return None
 		
 		if self.height_type is None:
 			x = self.body.get_pref_col((maxcol,))
 		else:
-			top, bottom = self.filler_values((maxcol,maxrow), True)
+			top, bottom = self.filler_values(size, True)
 			x = self.body.get_pref_col(
 				(maxcol,maxrow-top-bottom))
 
 		return x
 	
-	def move_cursor_to_coords(self, (maxcol,maxrow), col, row):
+	def move_cursor_to_coords(self, size, col, row):
 		"""Pass to self.body."""
+		(maxcol, maxrow) = size
 		if not hasattr(self.body, 'move_cursor_to_coords'):
 			return True
 		
-		top, bottom = self.filler_values((maxcol,maxrow), True)
+		top, bottom = self.filler_values(size, True)
 		if row < top or row >= maxcol-bottom:
 			return False
 
@@ -1641,12 +1658,13 @@ class Filler(BoxWidget):
 		return self.body.move_cursor_to_coords(
 			(maxcol, maxrow-top-bottom), col, row-top)
 	
-	def mouse_event(self, (maxcol,maxrow), event, button, col, row, focus):
+	def mouse_event(self, size, event, button, col, row, focus):
 		"""Pass to self.body."""
+		(maxcol, maxrow) = size
 		if not hasattr(self.body, 'mouse_event'):
 			return False
 		
-		top, bottom = self.filler_values((maxcol,maxrow), True)
+		top, bottom = self.filler_values(size, True)
 		if row < top or row >= maxcol-bottom:
 			return False
 
@@ -1739,8 +1757,9 @@ class Overlay(BoxWidget):
 			y = maxrow-1
 		return x+left, y+top
 	
-	def calculate_padding_filler(self, (maxcol, maxrow), focus):
+	def calculate_padding_filler(self, size, focus):
 		"""Return (padding left, right, filler top, bottom)."""
+		(maxcol, maxrow) = size
 		height = None
 		if self.width_type is None:
 			# top_w is a fixed widget
@@ -2022,12 +2041,13 @@ class Frame(BoxWidget):
 		self.focus_part = part
 		self._invalidate()
 
-	def frame_top_bottom(self, (maxcol,maxrow), focus):
+	def frame_top_bottom(self, size, focus):
 		"""Calculate the number of rows for the header and footer.
 
 		Returns (head rows, foot rows),(orig head, orig foot).
 		orig head/foot are from rows() calls.
 		"""
+		(maxcol, maxrow) = size
 		frows = hrows = 0
 		
 		if self.header:
@@ -2070,8 +2090,9 @@ class Frame(BoxWidget):
 		
 	
 
-	def render(self, (maxcol,maxrow), focus=False):
+	def render(self, size, focus=False):
 		"""Render frame and return it."""
+		(maxcol, maxrow) = size
 		(htrim, ftrim),(hrows, frows) = self.frame_top_bottom(
 			(maxcol, maxrow), focus)
 		
@@ -2116,8 +2137,9 @@ class Frame(BoxWidget):
 		return CanvasCombine(combinelist)
 
 
-	def keypress(self, (maxcol,maxrow), key):
+	def keypress(self, size, key):
 		"""Pass keypress to widget in focus."""
+		(maxcol, maxrow) = size
 		
 		if self.focus_part == 'header' and self.header is not None:
 			if not self.header.selectable():
@@ -2141,11 +2163,12 @@ class Frame(BoxWidget):
 		return self.body.keypress( (maxcol, remaining), key )
 
 
-	def mouse_event(self, (maxcol, maxrow), event, button, col, row, focus):
+	def mouse_event(self, size, event, button, col, row, focus):
 		"""
 		Pass mouse event to appropriate part of frame.
 		Focus may be changed on button 1 press.
 		"""
+		(maxcol, maxrow) = size
 		(htrim, ftrim),(hrows, frows) = self.frame_top_bottom(
 			(maxcol, maxrow), focus)
 		
@@ -2461,9 +2484,9 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 		return x, y
 		
 	
-	def rows(self, (maxcol,), focus=False ):
+	def rows(self, size, focus=False ):
 		"""Return the number of rows required for this widget."""
-		return sum( self.get_item_rows( (maxcol,), focus ) )
+		return sum(self.get_item_rows(size, focus))
 
 
 	def keypress(self, size, key ):
@@ -2884,10 +2907,10 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 			col += sum( widths[:self.focus_col] )
 		return col
 
-	def rows(self, (maxcol,), focus=0 ):
+	def rows(self, size, focus=0 ):
 		"""Return the number of rows required by the columns.
 		Only makes sense if self.widget_list contains flow widgets."""
-		widths = self.column_widths( (maxcol,) )
+		widths = self.column_widths(size)
 	
 		rows = 1
 		for i in range(len(widths)):
@@ -2960,7 +2983,7 @@ class BoxAdapter(FlowWidget):
 		self.height = height
 		self.box_widget = box_widget
 
-	def rows(self, (maxcol,), focus=False):
+	def rows(self, size, focus=False):
 		"""
 		Return self.height
 		"""
@@ -2972,32 +2995,38 @@ class BoxAdapter(FlowWidget):
 		"""
 		return self.box_widget.selectable()
 
-	def get_cursor_coords(self, (maxcol,)):
+	def get_cursor_coords(self, size):
+		(maxcol,) = size
 		if not hasattr(self.box_widget,'get_cursor_coords'):
 			return None
 		return self.box_widget.get_cursor_coords((maxcol, self.height))
 	
-	def get_pref_col(self, (maxcol,)):
+	def get_pref_col(self, size):
+		(maxcol,) = size
 		if not hasattr(self.box_widget,'get_pref_col'):
 			return None
 		return self.box_widget.get_pref_col((maxcol, self.height))
 	
-	def keypress(self, (maxcol,), key):
+	def keypress(self, size, key):
+		(maxcol,) = size
 		return self.box_widget.keypress((maxcol, self.height), key)
 	
-	def move_cursor_to_coords(self, (maxcol,), col, row):
+	def move_cursor_to_coords(self, size, col, row):
+		(maxcol,) = size
 		if not hasattr(self.box_widget,'move_cursor_to_coords'):
 			return True
 		return self.box_widget.move_cursor_to_coords((maxcol,
 			self.height), col, row )
 	
-	def mouse_event(self, (maxcol,), event, button, col, row, focus):
+	def mouse_event(self, size, event, button, col, row, focus):
+		(maxcol,) = size
 		if not hasattr(self.box_widget,'mouse_event'):
 			return False
 		return self.box_widget.mouse_event((maxcol, self.height),
 			event, button, col, row, focus)
 	
-	def render(self, (maxcol,), focus=False):
+	def render(self, size, focus=False):
+		(maxcol,) = size
 		canv = self.box_widget.render((maxcol, self.height), focus)
 		canv = CompositeCanvas(canv)
 		return canv
@@ -3011,7 +3040,6 @@ class BoxAdapter(FlowWidget):
 
 def _test():
 	import doctest
-	global urwid
 	doctest.testmod()
 
 if __name__=='__main__':
