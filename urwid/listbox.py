@@ -187,7 +187,7 @@ class ListBox(BoxWidget):
 		self.set_focus_valign_pending = None
 		
 	
-	def calculate_visible(self, (maxcol, maxrow), focus=False ):
+	def calculate_visible(self, size, focus=False ):
 		""" Return (middle,top,bottom) or None,None,None.
 
 		middle -- ( row offset(when +ve) or inset(when -ve),
@@ -200,6 +200,7 @@ class ListBox(BoxWidget):
 			list of (widget, position, rows) tuples below focus
 			in order from top to bottom )
 		"""
+		(maxcol, maxrow) = size
 
 		# 0. set the focus if a change is pending
 		if self.set_focus_pending or self.set_focus_valign_pending:
@@ -309,10 +310,11 @@ class ListBox(BoxWidget):
 			(trim_top, fill_above), (trim_bottom, fill_below))
 
 	
-	def render(self, (maxcol, maxrow), focus=False ):
+	def render(self, size, focus=False ):
 		"""
 		Render listbox and return canvas.
 		"""
+		(maxcol, maxrow) = size
 
 		middle, top, bottom = self.calculate_visible( 
 			(maxcol, maxrow), focus=focus)
@@ -404,11 +406,12 @@ class ListBox(BoxWidget):
 		"""
 		return self.body.get_focus()
 
-	def _set_focus_valign_complete(self, (maxcol, maxrow), focus):
+	def _set_focus_valign_complete(self, size, focus):
 		"""
 		Finish setting the offset and inset now that we have have a 
 		maxcol & maxrow.
 		"""
+		(maxcol, maxrow) = size
 		vt,va = self.set_focus_valign_pending
 		self.set_focus_valign_pending = None
 		self.set_focus_pending = None
@@ -423,11 +426,12 @@ class ListBox(BoxWidget):
 
 		self.shift_focus((maxcol, maxrow), rtop)
 		
-	def _set_focus_first_selectable(self, (maxcol, maxrow), focus):
+	def _set_focus_first_selectable(self, size, focus):
 		"""
 		Choose the first visible, selectable widget below the
 		current focus as the focus widget.
 		"""
+		(maxcol, maxrow) = size
 		self.set_focus_valign_pending = None
 		self.set_focus_pending = None
 		middle, top, bottom = self.calculate_visible( 
@@ -453,10 +457,11 @@ class ListBox(BoxWidget):
 				return
 			new_row_offset += rows
 
-	def _set_focus_complete(self, (maxcol, maxrow), focus):
+	def _set_focus_complete(self, size, focus):
 		"""
 		Finish setting the position now that we have maxcol & maxrow.
 		"""
+		(maxcol, maxrow) = size
 		self._invalidate()
 		if self.set_focus_pending == "first selectable":
 			return self._set_focus_first_selectable(
@@ -511,7 +516,7 @@ class ListBox(BoxWidget):
 		self.shift_focus((maxcol, maxrow), offset)
 	
 
-	def shift_focus(self, (maxcol,maxrow), offset_inset ):
+	def shift_focus(self, size, offset_inset):
 		"""Move the location of the current focus relative to the top.
 		
 		offset_inset -- either the number of rows between the 
@@ -521,6 +526,7 @@ class ListBox(BoxWidget):
 		  of the focus widget is aligned with the top edge of the
 		  listbox
 		"""
+		(maxcol, maxrow) = size
 		
 		if offset_inset >= 0:
 			if offset_inset >= maxrow:
@@ -536,8 +542,9 @@ class ListBox(BoxWidget):
 			self.inset_fraction = (-offset_inset,tgt_rows)
 		self._invalidate()
 				
-	def update_pref_col_from_focus(self, (maxcol,maxrow) ):
+	def update_pref_col_from_focus(self, size):
 		"""Update self.pref_col from the focus widget."""
+		(maxcol, maxrow) = size
 		
 		widget, old_pos = self.body.get_focus()
 		if widget is None: return
@@ -553,9 +560,9 @@ class ListBox(BoxWidget):
 			self.pref_col = pref_col
 
 
-	def change_focus(self, (maxcol,maxrow), position, 
+	def change_focus(self, size, position, 
 			offset_inset = 0, coming_from = None, 
-			cursor_coords = None, snap_rows = None ):
+			cursor_coords = None, snap_rows = None):
 		"""Change the current focus widget.
 		
 		position -- a position compatible with self.body.set_focus
@@ -572,6 +579,7 @@ class ListBox(BoxWidget):
 		snap_rows -- the maximum number of extra rows to scroll
 		  when trying to "snap" a selectable focus into the view
 		"""
+		(maxcol, maxrow) = size
 		
 		# update pref_col before change
 		if cursor_coords:
@@ -649,8 +657,9 @@ class ListBox(BoxWidget):
 			if target.move_cursor_to_coords((maxcol,),pref_col,row):
 				break
 
-	def get_focus_offset_inset(self,(maxcol, maxrow)):
+	def get_focus_offset_inset(self, size):
 		"""Return (offset rows, inset rows) for focus widget."""
+		(maxcol, maxrow) = size
 		focus_widget, pos = self.body.get_focus()
 		focus_rows = focus_widget.rows((maxcol,), True)
 		offset_rows = self.offset_rows
@@ -664,8 +673,9 @@ class ListBox(BoxWidget):
 		return offset_rows, inset_rows
 
 
-	def make_cursor_visible(self,(maxcol,maxrow)):
+	def make_cursor_visible(self, size):
 		"""Shift the focus widget so that its cursor is visible."""
+		(maxcol, maxrow) = size
 		
 		focus_widget, pos = self.body.get_focus()
 		if focus_widget is None:
@@ -690,7 +700,7 @@ class ListBox(BoxWidget):
 			return
 
 
-	def keypress(self,(maxcol,maxrow), key):
+	def keypress(self, size, key):
 		"""Move selection through the list elements scrolling when 
 		necessary. 'up' and 'down' are first passed to widget in focus
 		in case that widget can handle them. 'page up' and 'page down'
@@ -702,6 +712,7 @@ class ListBox(BoxWidget):
 		 'page up'   move cursor up one listbox length
 		 'page down' move cursor down one listbox length
 		"""
+		(maxcol, maxrow) = size
 
 		if self.set_focus_pending or self.set_focus_valign_pending:
 			self._set_focus_complete( (maxcol,maxrow), focus=True )
@@ -733,7 +744,8 @@ class ListBox(BoxWidget):
 		return key
 		
 	
-	def _keypress_up( self, (maxcol, maxrow) ):
+	def _keypress_up(self, size):
+		(maxcol, maxrow) = size
 	
 		middle, top, bottom = self.calculate_visible(
 			(maxcol,maxrow), True)
@@ -810,7 +822,8 @@ class ListBox(BoxWidget):
 			
 			
 				
-	def _keypress_down( self, (maxcol, maxrow) ):
+	def _keypress_down(self, size):
+		(maxcol, maxrow) = size
 	
 		middle, top, bottom = self.calculate_visible(
 			(maxcol,maxrow), True)
@@ -892,7 +905,8 @@ class ListBox(BoxWidget):
 				
 				
 			
-	def _keypress_page_up( self, (maxcol, maxrow) ):
+	def _keypress_page_up(self, size):
+		(maxcol, maxrow) = size
 		
 		middle, top, bottom = self.calculate_visible(
 			(maxcol,maxrow), True)
@@ -1074,7 +1088,8 @@ class ListBox(BoxWidget):
 		
 		
 		
-	def _keypress_page_down( self, (maxcol, maxrow) ):
+	def _keypress_page_down(self, size):
+		(maxcol, maxrow) = size
 		
 		middle, top, bottom = self.calculate_visible(
 			(maxcol,maxrow), True)
@@ -1242,11 +1257,12 @@ class ListBox(BoxWidget):
 		self.change_focus((maxcol,maxrow), pos, maxrow-1,
 			'above', (self.pref_col, 0), 0 )
 
-	def mouse_event(self, (maxcol, maxrow), event, button, col, row, focus):
+	def mouse_event(self, size, event, button, col, row, focus):
 		"""
 		Pass the event to the contained widgets.
 		May change focus on button 1 press.
 		"""
+		(maxcol, maxrow) = size
 		middle, top, bottom = self.calculate_visible((maxcol, maxrow),
 			focus=True)
 		if middle is None:
@@ -1281,12 +1297,13 @@ class ListBox(BoxWidget):
 			focus)
 
 
-	def ends_visible(self, (maxcol, maxrow), focus=False):
+	def ends_visible(self, size, focus=False):
 		"""Return a list that may contain 'top' and/or 'bottom'.
 		
 		convenience function for checking whether the top and bottom
 		of the list are visible
 		"""
+		(maxcol, maxrow) = size
 		l = []
 		middle,top,bottom = self.calculate_visible( (maxcol,maxrow), 
 			focus=focus )
@@ -1479,10 +1496,11 @@ class HListBox(FlowWidget):
 			(trim_left, fill_left), (trim_right, fill_right))
 
 
-	def render(self, (maxcol,), focus=False ):
+	def render(self, size, focus=False ):
 		"""
 		Render listbox and return canvas.
 		"""
+		(maxcol,) = size
 
 		middle, left, right = self.calculate_visible( (maxcol,), 
 			focus=focus)
@@ -1586,11 +1604,12 @@ class HListBox(FlowWidget):
 
 		self.shift_focus(size, rtop)
 	
-	def _set_focus_first_selectable(self, (maxcol,), focus):
+	def _set_focus_first_selectable(self, size, focus):
 		"""
 		Choose the first visible, selectable widget below the
 		current focus as the focus widget.
 		"""
+		(maxcol,) = size
 		self.set_focus_align_pending = None
 		self.set_focus_pending = None
 		middle, left, right = self.calculate_visible( 
@@ -1615,10 +1634,11 @@ class HListBox(FlowWidget):
 				return
 			new_col_offset += cols
 
-	def _set_focus_complete(self, (maxcol,), focus):
+	def _set_focus_complete(self, size, focus):
 		"""
 		Finish setting the position now that we have maxcol.
 		"""
+		(maxcol,) = size
 		self._invalidate()
 		if self.set_focus_pending == "first selectable":
 			return self._set_focus_first_selectable(
@@ -1673,7 +1693,7 @@ class HListBox(FlowWidget):
 		self.shift_focus((maxcol,), offset)
 	
 
-	def shift_focus(self, (maxcol,), offset_inset ):
+	def shift_focus(self, size, offset_inset ):
 		"""Move the location of the current focus relative to the top.
 		
 		offset_inset -- either the number of columns between the 
@@ -1683,6 +1703,7 @@ class HListBox(FlowWidget):
 		  left edge of the focus widget is aligned with the top edge 
 		  of the HListBox
 		"""
+		(maxcol,) = size
 		
 		if offset_inset >= 0:
 			if offset_inset >= maxcol:
@@ -1698,8 +1719,9 @@ class HListBox(FlowWidget):
 			self.inset_fraction = (-offset_inset,tgt_cols)
 		self._invalidate()
 				
-	def update_pref_col_from_focus(self, (maxcol,) ):
+	def update_pref_col_from_focus(self, size):
 		"""Update self.pref_col from the focus widget."""
+		(maxcol,) = size
 		
 		widget, old_pos = self.body.get_focus()
 		if widget is None: return
@@ -1719,7 +1741,7 @@ class HListBox(FlowWidget):
 			self.pref_col = pref_col
 
 
-	def change_focus(self, (maxcol,), position, 
+	def change_focus(self, size, position, 
 			offset_inset = 0, coming_from = None, 
 			cursor_coords = None, snap_cols = None ):
 		"""Change the current focus widget.
@@ -1737,6 +1759,7 @@ class HListBox(FlowWidget):
 		snap_cols -- the maximum number of extra cols to scroll
 		  when trying to "snap" a selectable focus into the view
 		"""
+		(maxcol,) = size
 		
 		pref_row = None
 		if cursor_coords:
@@ -1791,8 +1814,9 @@ class HListBox(FlowWidget):
 		target.move_cursor_to_coords((tgt_cols,),cursor_coords[0],
 			cursor_coords[1])
 	
-	def get_focus_offset_inset(self,(maxcol,)):
+	def get_focus_offset_inset(self, size):
 		"""Return (offset rows, inset rows) for focus widget."""
+		(maxcol,) = size
 		focus_widget, pos = self.body.get_focus()
 		focus_cols = focus_widget.pack(None, True)[0]
 		offset_cols = self.offset_cols
@@ -1806,8 +1830,9 @@ class HListBox(FlowWidget):
 		return offset_cols, inset_cols
 
 
-	def make_cursor_visible(self,(maxcol,)):
+	def make_cursor_visible(self, size):
 		"""Shift the focus widget so that its cursor is visible."""
+		(maxcol,) = size
 		
 		focus_widget, pos = self.body.get_focus()
 		if focus_widget is None:

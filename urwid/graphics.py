@@ -263,7 +263,7 @@ class BarGraph(BoxWidget):
 		self.data = bardata, top, hlines
 		self._invalidate()
 	
-	def _get_data(self, (maxcol, maxrow)):
+	def _get_data(self, size):
 		"""
 		Return (bardata, top, hlines)
 		
@@ -273,6 +273,7 @@ class BarGraph(BoxWidget):
 		This implementation will truncate the bardata list returned 
 		if not all bars will fit within maxcol.
 		"""
+		(maxcol, maxrow) = size
 		bardata, top, hlines = self.data
 		widths = self.calculate_bar_widths((maxcol,maxrow),bardata)
 		
@@ -291,13 +292,14 @@ class BarGraph(BoxWidget):
 		self.bar_width = width
 		self._invalidate()
 	
-	def calculate_bar_widths(self, (maxcol, maxrow), bardata ):
+	def calculate_bar_widths(self, size, bardata):
 		"""
 		Return a list of bar widths, one for each bar in data.
 		
 		If self.bar_width is None this implementation will stretch 
 		the bars across the available space specified by maxcol.
 		"""
+		(maxcol, maxrow) = size
 		
 		if self.bar_width is not None:
 			return [self.bar_width] * min(
@@ -326,10 +328,11 @@ class BarGraph(BoxWidget):
 	def use_smoothed(self):
 		return self.satt and get_encoding_mode()=="utf8"
 		
-	def calculate_display(self, (maxcol, maxrow) ):
+	def calculate_display(self, size):
 		"""
 		Calculate display data.
 		"""
+		(maxcol, maxrow) = size
 		bardata, top, hlines = self.get_data( (maxcol, maxrow) )
 		widths = self.calculate_bar_widths( (maxcol, maxrow), bardata )
 
@@ -494,10 +497,11 @@ class BarGraph(BoxWidget):
 		return [(y/8, row) for (y,row) in o]
 			
 			
-	def render(self, (maxcol, maxrow), focus=False):
+	def render(self, size, focus=False):
 		"""
 		Render BarGraph.
 		"""
+		(maxcol, maxrow) = size
 		disp = self.calculate_display( (maxcol,maxrow) )
 		
 		combinelist = []
@@ -709,10 +713,11 @@ class GraphVScale(BoxWidget):
 		"""
 		return False
 	
-	def render(self, (maxcol, maxrow), focus=False):
+	def render(self, size, focus=False):
 		"""
 		Render GraphVScale.
 		"""
+		(maxcol, maxrow) = size
 		pl = scale_bar_values( self.pos, self.top, maxrow )
 
 		combinelist = []
@@ -768,16 +773,17 @@ class ProgressBar( FlowWidget ):
 		self.current = current
 		self._invalidate()
 	
-	def rows(self, (maxcol,), focus=False):
+	def rows(self, size, focus=False):
 		"""
 		Return 1.
 		"""
 		return 1
 
-	def render(self, (maxcol,), focus=False):
+	def render(self, size, focus=False):
 		"""
 		Render the progress bar.
 		"""
+		(maxcol,) = size
 		percent = int( self.current*100/self.done )
 		if percent < 0: percent = 0
 		if percent > 100: percent = 100
