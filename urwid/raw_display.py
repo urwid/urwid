@@ -550,6 +550,7 @@ class Screen(RealTerminal):
 			try:
 				if util._use_dec_special:
 					sys.stdout.write(
+						escape.CURSOR_HOME +
 						escape.DESIGNATE_G1_SPECIAL)
 					sys.stdout.flush()
 				self.setup_G1 = False
