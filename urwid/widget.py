@@ -314,7 +314,16 @@ class Divider(FlowWidget):
 		return self.top + 1 + self.bottom
 	
 	def render(self, size, focus=False):
-		"""Render the divider as a canvas and return it."""
+		"""
+		Render the divider as a canvas and return it.
+		
+		>>> Divider().render((10,)).text
+		['          ']
+		>>> Divider('-', top=1).render((10,)).text
+		['          ', '----------']
+		>>> Divider('x', bottom=2).render((5,)).text
+		['xxxxx', '     ', '     ']
+		"""
 		(maxcol,) = size
 		canv = SolidCanvas(self.div_char, maxcol, 1)
 		canv = CompositeCanvas(canv)
@@ -344,7 +353,14 @@ class SolidFill(BoxWidget):
 		return self.__super.__repr__(fill_char=self.fill_char)
 	
 	def render(self, size, focus=False ):
-		"""Render the Fill as a canvas and return it."""
+		"""
+		Render the Fill as a canvas and return it.
+
+		>>> SolidFill().render((4,2)).text
+		['    ', '    ']
+		>>> SolidFill('#').render((5,3)).text
+		['#####', '#####', '#####']
+		"""
 		maxcol, maxrow = size
 		return SolidCanvas(self.fill_char, maxcol, maxrow)
 	
@@ -398,9 +414,11 @@ class Text(FlowWidget):
 		markup -- see __init__() for description.
 
 		>>> t = Text("foo")
+		>>> t.text
+		'foo'
 		>>> t.set_text("bar")
-		>>> t
-		<Text flow widget 'bar' align_mode='left' wrap_mode='space'>
+		>>> t.text
+		'bar'
 		"""
 		self._text, self._attrib = decompose_tagmarkup(markup)
 		self._invalidate()
@@ -430,6 +448,20 @@ class Text(FlowWidget):
 		
 		Valid modes for StandardTextLayout are: 
 			'left', 'center' and 'right'
+
+		>>> t = Text("word")
+		>>> t.set_align_mode('right')
+		>>> t.align_mode
+		'right'
+		>>> t.render((10,)).text
+		['      word']
+		>>> t.align_mode = 'center'  # Urwid 0.9.9 or later
+		>>> t.render((10,)).text
+		['   word   ']
+		>>> t.align_mode = 'somewhere'
+		Traceback (most recent call last):
+		    ...
+		TextError: Alignment mode 'somewhere' not supported.
 		"""
 		if not self.layout.supports_align_mode(mode):
 			raise TextError("Alignment mode %s not supported."%
@@ -445,9 +477,25 @@ class Text(FlowWidget):
 			'any'	: wrap at any character
 			'space'	: wrap on space character
 			'clip'	: truncate lines instead of wrapping
+		
+		>>> t = Text("some words")
+		>>> t.render((6,)).text
+		['some  ', 'words ']
+		>>> t.set_wrap_mode('clip')
+		>>> t.wrap_mode
+		'clip'
+		>>> t.render((6,)).text
+		['some w']
+		>>> t.wrap_mode = 'any'  # Urwid 0.9.9 or later
+		>>> t.render((6,)).text
+		['some w', 'ords  ']
+		>>> t.wrap_mode = 'somehow'
+		Traceback (most recent call last):
+		    ...
+		TextError: Wrap mode 'somehow' not supported.
 		"""
 		if not self.layout.supports_wrap_mode(mode):
-			raise TextError("Wrap mode %s not supported"%`mode`)
+			raise TextError("Wrap mode %s not supported."%`mode`)
 		self._wrap_mode = mode
 		self._invalidate()
 
@@ -472,6 +520,11 @@ class Text(FlowWidget):
 	def render(self, size, focus=False):
 		"""
 		Render contents with wrapping and alignment.  Return canvas.
+
+		>>> Text("important things").render((18,)).text
+		['important things  ']
+		>>> Text("important things").render((11,)).text
+		['important  ', 'things     ']
 		"""
 		(maxcol,) = size
 		text, attr = self.get_text()
@@ -479,12 +532,26 @@ class Text(FlowWidget):
 		return apply_text_layout(text, attr, trans, maxcol)
 
 	def rows(self, size, focus=False):
-		"""Return the number of rows the rendered text spans."""
+		"""
+		Return the number of rows the rendered text spans.
+		
+		>>> Text("important things").rows((18,))
+		1
+		>>> Text("important things").rows((11,))
+		2
+		"""
 		(maxcol,) = size
 		return len(self.get_line_translation(maxcol))
 
 	def get_line_translation(self, maxcol, ta=None):
-		"""Return layout structure for mapping self.text to a canvas.
+		"""
+		Return layout structure used to map self.text to a canvas.
+		This method is used internally, but may be useful for
+		debugging custom layout classes.
+
+		maxcol -- columns available for display
+		ta -- None or the (text, attr) tuple returned from
+		      self.get_text()
 		"""
 		if not self._cache_maxcol or self._cache_maxcol != maxcol:
 			self._update_cache_translation(maxcol, ta)
@@ -512,6 +579,13 @@ class Text(FlowWidget):
 
 		size -- None for unlimited screen columns or (maxcol,) to
 		        specify a maximum column size
+
+		>>> Text("important things").pack()
+		(16,)
+		>>> Text("important things").pack((15,))
+		(9,)
+		>>> Text("important things").pack((8,))
+		(8,)
 		"""
 		text, attr = self.get_text()
 		

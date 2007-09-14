@@ -25,6 +25,8 @@ import weakref
 from util import *
 from escape import * 
 
+import sys
+
 class CanvasCache(object):
 	_widgets = {}
 	_refs = {}
@@ -169,7 +171,7 @@ class Canvas(object):
 		Mark this canvas as finalized (should not be any future
 		changes to its content). This is required before caching
 		the canvas.  This happens automatically after a widget's
-		render call returns the canvas thanks to some metaclass
+		'render call returns the canvas thanks to some metaclass
 		magic.
 
 		widget -- widget that rendered this canvas
@@ -186,7 +188,16 @@ class Canvas(object):
 
 	def _raise_old_repr_error(self, val=None):
 		raise self._old_repr_error
-	text = property(_raise_old_repr_error, _raise_old_repr_error)
+	
+	def _text_content(self):
+		"""
+		Return the text content of the canvas as a list of strings,
+		one for each row.
+		"""
+		return ["".join([text for (attr, cs, text) in row])
+			for row in self.content()]
+
+	text = property(_text_content, _raise_old_repr_error)
 	attr = property(_raise_old_repr_error, _raise_old_repr_error)
 	cs = property(_raise_old_repr_error, _raise_old_repr_error)
 	
@@ -228,6 +239,7 @@ class Canvas(object):
 		for name, (x, y, data) in self.coords.items():
 			d[name] = (x+dx, y+dy, data)
 		return d
+
 
 
 class TextCanvas(Canvas):
