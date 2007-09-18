@@ -174,33 +174,45 @@ class Widget(object):
 		self._sizing.
 		"""
 		return self._sizing
-	
-	def __repr__(self, *words, **attrs):
+
+	def _repr_ex(self, *words, **attrs):
 		"""
-		Return a helpful description of the widget object.
+		Extended __repr__ function that allows addition of
+		strings and key/value pairs to a widget description.
 
 		words - list of strings that will appear after the widget
 		        name
 		attrs - dictionary of string:value that will be displayed
 		        as "string=value" items
 		"""
-		clsname = self.__class__.__name__
-		words = list(words or [])
+	
+	def _repr_words(self):
+		words = []
 		if self.selectable():
 			words = ["selectable"] + words
-		attrs = dict(attrs or {})
-		alist = attrs.items()
-		alist.sort()
-		widget_desc = clsname
 		if self.sizing():
 			sizing_modes = list(self.sizing())
 			sizing_modes.sort()
-			widget_desc = (widget_desc + " " + 
-			"/".join(sizing_modes))
+			words.append("/".join(sizing_modes))
+		return words + ["widget"]
+	
+	def _repr_attrs(self):
+		return {}
+
+	def __repr__(self):
+		"""
+		Return a helpful description of the widget object.
+		
+		Calls self._repr_words() and self._repr_attrs() to add
+		to the description of the widget.
+		"""
+		alist = self._repr_attrs().items()
+		alist.sort()
+		words = self._repr_words()
 		if not words and not attrs:
-			return "<%s widget>" % widget_desc
-		if words and attrs: words.append("")
-		return "<%s widget %s>" % (widget_desc,
+			return self.__super.__repr__()
+		if words and alist: words.append("")
+		return "<%s %s>" % (self.__class__.__name__,
 			" ".join(words) +
 			" ".join(["%s=%r" % (k,v) for k,v in alist]))
 	
@@ -295,11 +307,12 @@ class Divider(FlowWidget):
 		self.top = top
 		self.bottom = bottom
 		
-	def __repr__(self):
-		attrs = {}
-		if self.top: attrs["top"] = self.top
-		if self.bottom: attrs["bottom"] = self.bottom
-		return self.__super.__repr__(div_char=self.div_char, **attrs)
+	def _repr_attrs(self):
+		attrs = dict(self.__super._repr_attrs(),
+			div_char=self.div_char)
+		if self.top: attrs['top'] = self.top
+		if self.bottom: attrs['bottom'] = self.bottom
+		return attrs
 	
 	def rows(self, size, focus=False):
 		"""
@@ -349,8 +362,9 @@ class SolidFill(BoxWidget):
 		self.__super.__init__()
 		self.fill_char = fill_char
 	
-	def __repr__(self):
-		return self.__super.__repr__(fill_char=self.fill_char)
+	def _repr_attrs(self):
+		return dict(self.__super._repr_attrs(),
+			fill_char=self.fill_char)
 	
 	def render(self, size, focus=False ):
 		"""
@@ -398,8 +412,12 @@ class Text(FlowWidget):
 		self.set_text(markup)
 		self.set_layout(align, wrap, layout)
 	
-	def __repr__(self):
-		return self.__super.__repr__(repr(self.get_text()[0]),
+	def _repr_words(self):
+		return self.__super._repr_words() + [
+			repr(self.get_text()[0])]
+	
+	def _repr_attrs(self):
+		return dict(self.__super._repr_attrs(),
 			align_mode=self._align_mode, 
 			wrap_mode=self._wrap_mode)
 	
@@ -506,6 +524,11 @@ class Text(FlowWidget):
 		align -- align mode for text layout
 		wrap -- wrap mode for text layout
 		layout -- layout object to use, defaults to StandardTextLayout
+
+		>>> t = Text("hi")
+		>>> t.set_layout('right', 'clip')
+		>>> t
+		<Text flow widget 'hi' align_mode='right' wrap_mode='clip'>
 		"""
 		if layout is None:
 			layout = default_layout
@@ -608,7 +631,11 @@ class Text(FlowWidget):
 				cols = c
 			i = j+1
 		return (cols,)
-		
+
+
+class EditError(TextError):
+	pass
+			
 
 class Edit(Text):
 	"""Text edit widget"""
@@ -631,10 +658,18 @@ class Edit(Text):
 		allow_tab -- True: 'tab' inserts 1-8 spaces  False: return it
 		edit_pos -- initial position for cursor, None:at end
 		layout -- layout object
+
+		>>> Edit()
+		<Edit selectable flow widget '' edit_pos=0>
+		>>> Edit("Y/n? ", "yes")
+		<Edit selectable flow widget 'yes' caption='Y/n? ' edit_pos=3>
+		>>> Edit("Name ", "Smith", edit_pos=1)
+		<Edit selectable flow widget 'Smith' caption='Name ' edit_pos=1>
+		>>> Edit("", "3.14", align='right')
+		<Edit selectable flow widget '3.14' align_mode='right' edit_pos=4>
 		"""
 		
 		self.__super.__init__("", align, wrap, layout)
-		assert type(edit_text)==type("") or type(edit_text)==type(u"")
 		self.multiline = multiline
 		self.allow_tab = allow_tab
 		self.edit_pos = 0
@@ -645,14 +680,53 @@ class Edit(Text):
 		self.set_edit_pos(edit_pos)
 		self._shift_view_to_cursor = False
 	
+	def _repr_words(self):
+		return self.__super._repr_words()[:-1] + [
+			repr(self._edit_text)] + [
+			'multiline'] * (self.multiline is True)
+
+	def _repr_attrs(self):
+		attrs = dict(self.__super._repr_attrs(),
+			edit_pos = self.edit_pos)
+		if attrs['align_mode'] == 'left':
+			del attrs['align_mode']
+		if attrs['wrap_mode'] == 'space':
+			del attrs['wrap_mode']
+		if self._caption:
+			attrs['caption'] = self._caption
+		return attrs
+	
 	def get_text(self):
-		"""get_text() -> text, attributes
+		"""
+		Returns (text, attributes).
 		
 		text -- complete text of caption and edit_text
 		attributes -- run length encoded attributes for text
+
+		>>> Edit("What? ","oh, nothing.").get_text()
+		('What? oh, nothing.', [])
+		>>> Edit(('bright',"user@host:~$ "),"ls").get_text()
+		('user@host:~$ ls', [('bright', 13)])
 		"""
-		return self.caption + self.edit_text, self._attrib
+		return self._caption + self._edit_text, self._attrib
 	
+	def set_text(self, markup):
+		"""
+		Not supported by Edit widget.
+
+		>>> Edit().set_text("test")
+		Traceback (most recent call last):
+		    ...
+		EditError: set_text() not supported.  Use set_caption() or set_edit_text() instead.
+		"""
+		# hack to let Text.__init__() work
+		if not hasattr(self, '_text') and markup == "":
+			self._text = None
+			return
+
+		raise EditError("set_text() not supported.  Use set_caption()"
+			" or set_edit_text() instead.")
+
 	def get_pref_col(self, size):
 		"""Return the preferred column for the cursor, or the
 		current cursor x value."""
@@ -664,16 +738,24 @@ class Edit(Text):
 			return pref_col
 	
 	def update_text(self):
-		"""Deprecated.  Use set_caption and/or set_edit_text instead.
+		"""
+		No longer supported.
 		
-		Make sure any cached line translation is not reused."""
-		self._invalidate()
+		>>> Edit().update_text()
+		Traceback (most recent call last):
+		    ...
+		EditError: update_text() has been removed.  Use set_caption() or set_edit_text instead.
+		"""
+		raise EditError("update_text() has been removed.  Use "
+			"set_caption() or set_edit_text instead.")
 
 	def set_caption(self, caption):
 		"""Set the caption markup for this widget."""
-		self.caption, self._attrib = decompose_tagmarkup(caption)
+		self._caption, self._attrib = decompose_tagmarkup(caption)
 		self._invalidate()
 	
+	caption = property(lambda self:self._caption)
+
 	def set_edit_pos(self, pos):
 		"""Set the cursor position with a self.edit_text offset."""
 		assert pos >= 0 and pos <= len(self.edit_text), "out of range"
@@ -683,23 +765,31 @@ class Edit(Text):
 		self._invalidate()
 	
 	def set_edit_text(self, text):
-		"""Set the edit text for this widget."""
+		"""
+		Set the edit text for this widget.
+		
+		>>> Edit().set_edit_text("yes")
+		"""
+		if type(text) not in [type(""), type(u"")]:
+			raise EditError("Edit text must be a string.")
 		self.highlight = None
-		self.edit_text = text
+		self._edit_text = text
 		if self.edit_pos > len(text):
 			self.edit_pos = len(text)
 		self._invalidate()
 
 	def get_edit_text(self):
 		"""Return the edit text for this widget."""
-		return self.edit_text
+		return self._edit_text
+	
+	edit_text = property(get_edit_text, set_edit_text)
 
 	def insert_text(self, text):
 		"""Insert text at the cursor position and update cursor."""
 		p = self.edit_pos
-		self.set_edit_text( self.edit_text[:p] + text + 
-			self.edit_text[p:] )
-		self.set_edit_pos( self.edit_pos + len(text))
+		self.set_edit_text(self._edit_text[:p] + text + 
+			self._edit_text[p:])
+		self.set_edit_pos(self.edit_pos + len(text))
 	
 	def keypress(self, size, key):
 		"""Handle editing keystrokes, return others."""
