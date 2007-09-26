@@ -728,8 +728,36 @@ class Edit(Text):
 			" or set_edit_text() instead.")
 
 	def get_pref_col(self, size):
-		"""Return the preferred column for the cursor, or the
-		current cursor x value."""
+		"""
+		Return the preferred column for the cursor, or the
+		current cursor x value.  May also return 'left' or 'right'
+		to indicate the leftmost or rightmost column available.
+
+		This method is used internally and by other widgets when
+		moving the cursor up or down between widgets so that the 
+		column selected is one that the user would expect.
+
+		>>> size = (10,)
+		>>> Edit().get_pref_col(size)
+		0
+		>>> e = Edit("","word")
+		>>> e.get_pref_col(size)
+		4
+		>>> e.keypress(size, 'left')
+		>>> e.get_pref_col(size)
+		3
+		>>> e.keypress(size, 'end')
+		>>> e.get_pref_col(size)
+		'right'
+		>>> e = Edit("","2\\nwords")
+		>>> e.keypress(size, 'left')
+		>>> e.keypress(size, 'up')
+		>>> e.get_pref_col(size)
+		4
+		>>> e.keypress(size, 'left')
+		>>> e.get_pref_col(size)
+		0
+		"""
 		(maxcol,) = size
 		pref_col, then_maxcol = self.pref_col_maxcol
 		if then_maxcol != maxcol:
