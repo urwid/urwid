@@ -729,16 +729,16 @@ class ListBox(BoxWidget):
 				return
 		
 		# pass off the heavy lifting
-		if key == 'up':
+		if command_map[key] == 'cursor up':
 			return self._keypress_up((maxcol, maxrow))
 			
-		if key == 'down':
+		if command_map[key] == 'cursor down':
 			return self._keypress_down((maxcol, maxrow))
 
-		if key == 'page up':
+		if command_map[key] == 'cursor page up':
 			return self._keypress_page_up((maxcol, maxrow))
 			
-		if key == 'page down':
+		if command_map[key] == 'cursor page down':
 			return self._keypress_page_down((maxcol, maxrow))
 
 		return key
