@@ -840,17 +840,17 @@ class Edit(Text):
 			key = "\n"
 			self.insert_text( key )
 
-		elif key=="left":
+		elif command_map[key] == 'cursor left':
 			if p==0: return key
 			p = move_prev_char(self.edit_text,0,p)
 			self.set_edit_pos(p)
 		
-		elif key=="right":
+		elif command_map[key] == 'cursor right':
 			if p >= len(self.edit_text): return key
 			p = move_next_char(self.edit_text,p,len(self.edit_text))
 			self.set_edit_pos(p)
 		
-		elif key in ("up","down"):
+		elif command_map[key] in ('cursor up', 'cursor down'):
 			self.highlight = None
 			
 			x,y = self.get_cursor_coords((maxcol,))
@@ -859,8 +859,8 @@ class Edit(Text):
 			#if pref_col is None: 
 			#	pref_col = x
 
-			if key == "up": y -= 1
-			else:		y += 1
+			if command_map[key] == 'cursor up': y -= 1
+			else: y += 1
 
 			if not self.move_cursor_to_coords((maxcol,),pref_col,y):
 				return key
@@ -883,13 +883,13 @@ class Edit(Text):
 			self.set_edit_text( self.edit_text[:self.edit_pos] + 
 				self.edit_text[p:] )
 		
-		elif key in ("home", "end"):
+		elif command_map[key] in ('cursor max left', 'cursor max right'):
 			self.highlight = None
 			self.pref_col_maxcol = None, None
 			
 			x,y = self.get_cursor_coords((maxcol,))
 			
-			if key == "home":
+			if command_map[key] == 'cursor max left':
 				self.move_cursor_to_coords((maxcol,),'left',y)
 			else:
 				self.move_cursor_to_coords((maxcol,),'right',y)
@@ -2695,12 +2695,12 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 		if self.focus_item.selectable():
 			tsize = self.get_item_size(size,i,True,item_rows)
 			key = self.focus_item.keypress( tsize, key )
-			if key not in ('up', 'down'):
+			if command_map[key] not in ('cursor up', 'cursor down'):
 				return key
 
-		if key == 'up':
+		if command_map[key] == 'cursor up':
 			candidates = range(i-1, -1, -1) # count backwards to 0
-		else: # key == 'down'
+		else: # command_map[key] == 'cursor down'
 			candidates = range(i+1, len(self.widget_list))
 		
 		if not item_rows:
@@ -2718,9 +2718,9 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 
 			f, height = self.item_types[j]
 			rows = item_rows[j]
-			if key=='up':
+			if command_map[key] == 'cursor up':
 				rowlist = range(rows-1, -1, -1)
-			else: # key == 'down'
+			else: # command_map[key] == 'cursor down'
 				rowlist = range(rows)
 			for row in rowlist:
 				tsize=self.get_item_size(size,j,True,item_rows)
@@ -3129,14 +3129,15 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 		i = self.focus_col
 		mc = widths[i]
 		w = self.widget_list[i]
-		if key not in ('up','down','page up','page down'):
+		if command_map[key] not in ('cursor up', 'cursor down',
+			'cursor page up', 'cursor page down'):
 			self.pref_col = None
 		key = w.keypress( (mc,)+size[1:], key )
 		
-		if key not in ('left','right'):
+		if command_map[key] not in ('cursor left', 'cursor right'):
 			return key
 
-		if key == 'left':
+		if command_map[key] == 'cursor left':
 			candidates = range(i-1, -1, -1) # count backwards to 0
 		else: # key == 'right'
 			candidates = range(i+1, len(widths))

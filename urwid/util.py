@@ -988,10 +988,13 @@ class MonitoredList(UserList):
 	sort = _call_modified(UserList.sort)
 
 
-class Commands:
+class CommandMap:
 	_command_defaults = {
 		'tab': 'next selectable',
+		'ctrl n': 'next selectable',
 		'shift tab': 'prev selectable',
+		'ctrl p': 'prev selectable',
+		'ctrl l': 'refresh',
 		'esc': 'menu',
 		'up': 'cursor up',
 		'down': 'cursor down',
@@ -999,6 +1002,8 @@ class Commands:
 		'right': 'cursor right',
 		'page up': 'cursor page up',
 		'page down': 'cursor page down',
+		'home': 'cursor max left',
+		'end': 'cursor max right',
 	}
 
 	def __init__(self):
@@ -1007,14 +1012,17 @@ class Commands:
 	def restore_defaults(self):
 		self._command = dict(self._command_defaults)
 	
-	def input(self, key):
+	def __getitem__(self, key):
 		return self._command.get(key, None)
 	
-	def set_input(self, key, command):
+	def __setitem__(self, key, command):
 		self._command[key] = command
+
+	def __delitem__(self, key):
+		del self._command[key]
 	
 	def clear_command(self, command):
 		dk = [k for k, v in self._command.items() if v == command]
 		for k in dk:
 			del self._command[key]
-commands = Commands() # shared commands
+command_map = CommandMap() # shared command mappings
