@@ -437,6 +437,10 @@ class Text(FlowWidget):
 		>>> t.set_text("bar")
 		>>> t.text
 		'bar'
+		>>> t.text = "baz"  # not supported because text stores text but set_text() takes markup
+		Traceback (most recent call last):
+		    ...  
+		AttributeError: can't set attribute
 		"""
 		self._text, self._attrib = decompose_tagmarkup(markup)
 		self._invalidate()
@@ -672,7 +676,7 @@ class Edit(Text):
 		self.__super.__init__("", align, wrap, layout)
 		self.multiline = multiline
 		self.allow_tab = allow_tab
-		self.edit_pos = 0
+		self._edit_pos = 0
 		self.set_caption(caption)
 		self.set_edit_text(edit_text)
 		if edit_pos is None:
@@ -772,31 +776,78 @@ class Edit(Text):
 		>>> Edit().update_text()
 		Traceback (most recent call last):
 		    ...
-		EditError: update_text() has been removed.  Use set_caption() or set_edit_text instead.
+		EditError: update_text() has been removed.  Use set_caption() or set_edit_text() instead.
 		"""
 		raise EditError("update_text() has been removed.  Use "
-			"set_caption() or set_edit_text instead.")
+			"set_caption() or set_edit_text() instead.")
 
 	def set_caption(self, caption):
-		"""Set the caption markup for this widget."""
+		"""
+		Set the caption markup for this widget.
+
+		caption -- see Text.__init__() for description of markup
+		
+		>>> e = Edit("")
+		>>> e.set_caption("cap1")
+		>>> e.caption
+		'cap1'
+		>>> e.set_caption(('bold', "cap2"))
+		>>> e.caption
+		'cap2'
+		>>> e.attrib
+		[('bold', 4)]
+		>>> e.caption = "cap3"  # not supported because caption stores text but set_caption() takes markup
+		Traceback (most recent call last):
+		    ...  
+		AttributeError: can't set attribute
+		"""
 		self._caption, self._attrib = decompose_tagmarkup(caption)
 		self._invalidate()
 	
 	caption = property(lambda self:self._caption)
 
 	def set_edit_pos(self, pos):
-		"""Set the cursor position with a self.edit_text offset."""
-		assert pos >= 0 and pos <= len(self.edit_text), "out of range"
+		"""
+		Set the cursor position with a self.edit_text offset.  
+		Clips pos to [0, len(edit_text)].
+
+		>>> e = Edit("", "word")
+		>>> e.edit_pos
+		4
+		>>> e.set_edit_pos(2)
+		>>> e.edit_pos
+		2
+		>>> e.edit_pos = -1  # Urwid 0.9.9 or later
+		>>> e.edit_pos
+		0
+		>>> e.edit_pos = 20
+		>>> e.edit_pos
+		4
+		"""
+		if pos < 0:
+			pos = 0
+		if pos > len(self._edit_text):
+			pos = len(self._edit_text)
 		self.highlight = None
 		self.pref_col_maxcol = None, None
-		self.edit_pos = pos
+		self._edit_pos = pos
 		self._invalidate()
+	
+	edit_pos = property(lambda self:self._edit_pos, set_edit_pos)
 	
 	def set_edit_text(self, text):
 		"""
 		Set the edit text for this widget.
 		
-		>>> Edit().set_edit_text("yes")
+		>>> e = Edit()
+		>>> e.set_edit_text("yes")
+		>>> e.edit_text
+		'yes'
+		>>> e
+		<Edit selectable flow widget 'yes' edit_pos=0>
+		>>> e.edit_text = "no"  # Urwid 0.9.9 or later
+		>>> e.edit_text
+		'no'
 		"""
 		if type(text) not in [type(""), type(u"")]:
 			raise EditError("Edit text must be a string.")
@@ -807,13 +858,34 @@ class Edit(Text):
 		self._invalidate()
 
 	def get_edit_text(self):
-		"""Return the edit text for this widget."""
+		"""
+		Return the edit text for this widget.
+
+		>>> e = Edit("What? ", "oh, nothing.")
+		>>> e.get_edit_text()
+		'oh, nothing.'
+		>>> e.edit_text
+		'oh, nothing.'
+		"""
 		return self._edit_text
 	
 	edit_text = property(get_edit_text, set_edit_text)
 
 	def insert_text(self, text):
-		"""Insert text at the cursor position and update cursor."""
+		"""
+		Insert text at the cursor position and update cursor.
+		This method is used by the keypress() method when inserting
+		one or more characters into edit_text.
+
+		>>> e = Edit("", "42")
+		>>> e.insert_text(".5")
+		>>> e
+		<Edit selectable flow widget '42.5' edit_pos=4>
+		>>> e.set_edit_pos(2)
+		>>> e.insert_text("a")
+		>>> e.edit_text
+		'42a.5'
+		"""
 		p = self.edit_pos
 		self.set_edit_text(self._edit_text[:p] + text + 
 			self._edit_text[p:])
