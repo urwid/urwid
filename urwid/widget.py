@@ -1424,6 +1424,7 @@ class Button(WidgetWrap):
 	
 	def render(self, size, focus=False):
 		"""Display button. Show a cursor when in focus."""
+		(maxcol,) = size
 		canv = self.__super.render(size, focus=focus)
 		canv = CompositeCanvas(canv)
 		if focus and maxcol >2:
@@ -1432,6 +1433,7 @@ class Button(WidgetWrap):
 
 	def get_cursor_coords(self, size):
 		"""Return the location of the cursor."""
+		(maxcol,) = size
 		if maxcol >2:
 			return (2,0)
 		return None
