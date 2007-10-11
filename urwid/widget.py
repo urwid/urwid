@@ -1505,6 +1505,7 @@ class GridFlow(FlowWidget):
 		Arrange the cells into columns (and possibly a pile) for 
 		display, input or to calculate rows. 
 		"""
+		(maxcol,) = size
 		# use cache if possible
 		if self._cache_maxcol == maxcol:
 			return self._cache_display_widget
