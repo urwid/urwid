@@ -1454,8 +1454,10 @@ class Button(WidgetWrap):
 		if button != 1 or not is_mouse_press(event):
 			return False
 			
-		self.on_press( self )
-		return True
+		if self.on_press:
+			self.on_press( self )
+			return True
+		return False
 	
 
 
