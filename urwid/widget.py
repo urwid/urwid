@@ -892,7 +892,23 @@ class Edit(Text):
 		self.set_edit_pos(self.edit_pos + len(text))
 	
 	def keypress(self, size, key):
-		"""Handle editing keystrokes, return others."""
+		"""
+		Handle editing keystrokes, return others.
+		
+		>>> e, size = Edit(), (20,)
+		>>> e.keypress(size, 'x')
+		>>> e.keypress(size, 'left')
+		>>> e.keypress(size, '1')
+		>>> e.edit_text
+		'1x'
+		>>> e.keypress(size, 'backspace')
+		>>> e.keypress(size, 'end')
+		>>> e.keypress(size, '2')
+		>>> e.edit_text
+		'x2'
+		>>> e.keypress(size, 'shift f1')
+		'shift f1'
+		"""
 		(maxcol,) = size
 
 		p = self.edit_pos
@@ -973,9 +989,22 @@ class Edit(Text):
 			return key
 
 	def move_cursor_to_coords(self, size, x, y):
-		"""Set the cursor position with (x,y) coordinates.
-
+		"""
+		Set the cursor position with (x,y) coordinates.
 		Returns True if move succeeded, False otherwise.
+		
+		>>> size = (10,)
+		>>> e = Edit("","edit\\ntext")
+		>>> e.move_cursor_to_coords(size, 5, 0)
+		True
+		>>> e.edit_pos
+		4
+		>>> e.move_cursor_to_coords(size, 5, 3)
+		False
+		>>> e.move_cursor_to_coords(size, 0, 1)
+		True
+		>>> e.edit_pos
+		5
 		"""
 		(maxcol,) = size
 		trans = self.get_line_translation(maxcol)
