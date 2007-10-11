@@ -1026,3 +1026,52 @@ class CommandMap:
 		for k in dk:
 			del self._command[key]
 command_map = CommandMap() # shared command mappings
+
+
+class ExitMainLoop(Exception):
+	pass
+
+def generic_main_loop(topmost_widget, palette=[], screen=None,
+	handle_mouse=True):
+	"""
+	Initialize the palette and start a generic main loop handling
+	input events and updating the screen.  The loop will continue
+	until an ExitMainLoop exception is raised.
+
+	topmost_widget -- the widget used to draw the screen and handle input
+	palette -- a palette to pass to the screen object's register_palette()
+	screen -- a screen object, if None raw_display.Screen will be used.
+	handle_mouse -- True: attempt to handle mouse events
+	"""
+
+	def run():
+		if handle_mouse:
+			screen.set_mouse_tracking()
+		size = screen.get_cols_rows()
+		while True:
+			canvas = topmost_widget.render(size, focus=True)
+			screen.draw_screen(size, canvas)
+			keys = None
+			while not keys:
+				keys = screen.get_input()
+			for k in keys:
+				if is_mouse_event(k):
+					event, button, col, row = k
+					topmost_widget.mouse_event(size, event,
+						button, col, row, focus=True )
+				else:
+					topmost_widget.keypress(size, k)
+			if 'window resize' in keys:
+				size = screen.get_cols_rows()
+	
+	if not screen:
+		import raw_display
+		screen = raw_display.Screen()
+
+	screen.register_palette(palette)
+	try:
+		screen.run_wrapper(run)
+	except ExitMainLoop:
+		pass
+
+	

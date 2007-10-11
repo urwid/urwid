@@ -644,6 +644,8 @@ class EditError(TextError):
 class Edit(Text):
 	"""Text edit widget"""
 	
+	signals = ["change"]
+	
 	def valid_char(self, ch):
 		"""Return true for printable characters."""
 		return is_wide_char(ch,0) or (len(ch)==1 and ord(ch) >= 32)
@@ -852,6 +854,7 @@ class Edit(Text):
 		if type(text) not in [type(""), type(u"")]:
 			raise EditError("Edit text must be a string.")
 		self.highlight = None
+		self._emit("change", text)
 		self._edit_text = text
 		if self.edit_pos > len(text):
 			self.edit_pos = len(text)
