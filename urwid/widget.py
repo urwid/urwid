@@ -1027,6 +1027,13 @@ class Edit(Text):
 	def mouse_event(self, size, event, button, x, y, focus):
 		"""
 		Move the cursor to the location clicked for button 1.
+
+		>>> size = (20,)
+		>>> e = Edit("","words here")
+		>>> e.mouse_event(size, 'mouse press', 1, 2, 0, True)
+		True
+		>>> e.edit_pos
+		2
 		"""
 		(maxcol,) = size
 		if button==1:
@@ -1050,9 +1057,15 @@ class Edit(Text):
 		""" 
 		Render edit widget and return canvas.  Include cursor when in
 		focus.
+
+		>>> c = Edit("? ","yes").render((10,), focus=True)
+		>>> c.text
+		['? yes     ']
+		>>> c.cursor
+		(5, 0)
 		"""
 		(maxcol,) = size
-		self._shift_view_to_cursor = not not focus # force bool
+		self._shift_view_to_cursor = bool(focus)
 		
 		canv = Text.render(self,(maxcol,))
 		if focus:
@@ -1086,7 +1099,12 @@ class Edit(Text):
 			
 
 	def get_cursor_coords(self, size):
-		"""Return the (x,y) coordinates of cursor within widget."""
+		"""
+		Return the (x,y) coordinates of cursor within widget.
+		
+		>>> Edit("? ","yes").get_cursor_coords((10,))
+		(5, 0)
+		"""
 		(maxcol,) = size
 
 		self._shift_view_to_cursor = True
@@ -1112,33 +1130,57 @@ class IntEdit(Edit):
 	"""Edit widget for integer values"""
 
 	def valid_char(self, ch):
-		"""Return true for decimal digits."""
-		return len(ch)==1 and ord(ch)>=ord('0') and ord(ch)<=ord('9')
+		"""
+		Return true for decimal digits.
+		"""
+		return len(ch)==1 and ch in "0123456789"
 	
 	def __init__(self,caption="",default=None):
 		"""
 		caption -- caption markup
 		default -- default edit value
+
+		>>> IntEdit("", 42)
+		<IntEdit selectable flow widget '42' edit_pos=2>
 		"""
 		if default is not None: val = str(default)
 		else: val = ""
 		self.__super.__init__(caption,val)
 
 	def keypress(self, size, key):
-		"""Handle editing keystrokes.  Return others."""
+		"""
+		Handle editing keystrokes.  Remove leading zeros.
+		
+		>>> e, size = IntEdit("", 5002), (10,)
+		>>> e.keypress(size, 'home')
+		>>> e.keypress(size, 'delete')
+		>>> e.edit_text
+		'002'
+		>>> e.keypress(size, 'end')
+		>>> e.edit_text
+		'2'
+		"""
 		(maxcol,) = size
-	        if key in list("0123456789"):
+	        unhandled = Edit.keypress(self,(maxcol,),key)
+
+	        if not unhandled:
 			# trim leading zeros
 	                while self.edit_pos > 0 and self.edit_text[:1] == "0":
 	                        self.set_edit_pos( self.edit_pos - 1)
 	                        self.set_edit_text(self.edit_text[1:])
 
-	        unhandled = Edit.keypress(self,(maxcol,),key)
-
 		return unhandled
 
 	def value(self):
-		"""Return the numeric value of self.edit_text."""
+		"""
+		Return the numeric value of self.edit_text.
+		
+		>>> e, size = IntEdit(), (10,)
+		>>> e.keypress(size, '5')
+		>>> e.keypress(size, '1')
+		>>> e.value() == 51
+		True
+		"""
 		if self.edit_text:
 			return long(self.edit_text)
 		else:
