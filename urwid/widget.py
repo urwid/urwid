@@ -186,6 +186,8 @@ class Widget(object):
 		        as "string=value" items
 		"""
 	
+	base_widget = property(lambda self:self)
+	
 	def _repr_words(self):
 		words = []
 		if self.selectable():
@@ -1196,34 +1198,54 @@ class WidgetWrap(Widget):
 		"""
 		self._w = w
 
-	def get_w(self):
-		return self._w
 	def set_w(self, w):
+		"""
+		Change the wrapped widget.
+
+		>>> size = (10,)
+		>>> ww = WidgetWrap(Edit("hello? ","hi"))
+		>>> ww.render(size).text
+		['hello? hi ']
+		>>> ww.selectable()
+		True
+		>>> ww.w = Text("goodbye")
+		>>> ww.render(size).text
+		['goodbye   ']
+		>>> ww.selectable()
+		False
+		"""
 		self._w = w
 		self._invalidate()
-	w = property(get_w, set_w)
-	
+	w = property(lambda self:self._w, set_w)
+
 	def render(self, size, focus=False):
 		"""Render self.w."""
 		canv = self.w.render(size, focus=focus)
 		return CompositeCanvas(canv)
 
-	def selectable(self):
-		return self.w.selectable()
-
-	def __getattr__(self,name):
-		"""Call self.w if name is in Widget interface definition."""
-		if name in ['get_cursor_coords','get_pref_col','keypress',
-			'move_cursor_to_coords','rows','mouse_event',
-			'sizing',]:
-			return getattr(self._w, name)
-		raise AttributeError, name
+	selectable = property(lambda self:self._w.selectable)
+	get_cursor_coords = property(lambda self:self._w.get_cursor_coords)
+	get_pref_col = property(lambda self:self._w.get_pref_col)
+	keypress = property(lambda self:self._w.keypress)
+	move_cursor_to_coords = property(lambda self:self._w.move_cursor_to_coords)
+	rows = property(lambda self:self._w.rows)
+	mouse_event = property(lambda self:self._w.mouse_event)
+	sizing = property(lambda self:self._w.sizing)
 
 class SelectableIcon(Text):
-	def selectable(self):
-		return True
+	_selectable = True
 	
 	def render(self, size, focus=False):
+		"""
+		Render the text content of this widget with a cursor at
+		position (1,0) when in focus.
+
+		>>> si = SelectableIcon("[!]")
+		>>> si
+		<SelectableIcon selectable flow widget '[!]'>
+		>>> si.render((4,),focus=True).cursor
+		(1,0)
+		"""
 		(maxcol,) = size
 		c = Text.render(self, (maxcol,), focus )
 		if focus:
@@ -1232,11 +1254,19 @@ class SelectableIcon(Text):
 		return c
 	
 	def get_cursor_coords(self, size):
+		"""
+		Return the position of the cursor if visible.  This method
+		is required for widgets that display a cursor.
+		"""
 		(maxcol,) = size
 		if maxcol>1:
 			return (1,0)
 
 	def keypress(self, size, key):
+		"""
+		No keys are handled by this widget.  This method is
+		required for selectable widgets.
+		"""
 		return key
 
 class CheckBox(WidgetWrap):
@@ -1246,7 +1276,8 @@ class CheckBox(WidgetWrap):
 		'mixed': SelectableIcon("[#]") }
 	reserve_columns = 4
 
-	def selectable(self): return True
+	_selectable = True
+	signals = ['change']
 	
 	def __init__(self, label, state=False, has_mixed=False,
 		     on_state_change=None, user_data=None):
@@ -1255,52 +1286,89 @@ class CheckBox(WidgetWrap):
 		state -- False, True or "mixed"
 		has_mixed -- True if "mixed" is a state to cycle through
 		on_state_change -- callback function for state changes
-		                   on_state_change( check box, new state,
-				                    user_data=None)
-		user_data -- additional param for on_press callback,
+		                   on_state_change(check box, new state)
+		user_data -- additional param for on_state_change callback,
 		             ommited if None for compatibility reasons
+
+		>>> CheckBox("Confirm")
+		<CheckBox selectable flow widget 'Confirm' state=False>
+		>>> CheckBox("Fries", "mixed", True)
+		<CheckBox selectable flow widget 'Fries' state='mixed'>
 		"""
 		self.__super.__init__(None) # self.w set by set_state below
-		self.label = Text("")
+		self._label = Text("")
 		self.has_mixed = has_mixed
-		self.state = None
-		self.on_state_change = on_state_change
-		self.user_data = user_data
+		self._state = None
+		if on_state_change:
+			connect_signal(self, 'change', on_state_change, user_data)
 		self.set_label(label)
 		self.set_state(state)
 	
+	def _repr_words(self):
+		return self.__super._repr_words() + [
+			repr(self.label)]
+	
+	def _repr_attrs(self):
+		return dict(self.__super._repr_attrs(),
+			state=self.state)
+	
 	def set_label(self, label):
-		"""Change the check box label."""
-		self.label.set_text(label)
-		self._invalidate()
+		"""
+		Change the check box label.
+
+		label -- markup for label.  See Text widget for description
+		of text markup.
+
+		>>> cb = CheckBox("foo")
+		>>> cb.set_label("bar")
+		>>> cb.get_label()
+		'bar'
+		"""
+		self._label.set_text(label)
 	
 	def get_label(self):
-		"""Return label text."""
-		text, attr = self.label.get_text()
-		return text
+		"""
+		Return label text.
+
+		>>> cb = CheckBox("Seriously")
+		>>> cb.get_label()
+		'Seriously'
+		>>> cb.label  # Urwid 0.9.9 or later
+		'Seriously'
+		"""
+		return self._label.text
+	label = property(get_label)
 	
 	def set_state(self, state, do_callback=True):
 		"""
-		Call on_state_change if do_callback is True,
+		Signal state change if do_callback is True,
 		then change the check box state.
+		
+		>>> changes = []
+		>>> def callback(cb, state): 
+		...     changes.append(state)
+		>>> cb = CheckBox('test', False, False, callback)
+		>>> cb.set_state(True)
+		>>> cb.state
+		True
+		>>> cb.set_state(False)
+		>>> cb.state
+		False
+		>>> changes
+		[True, False]
 		"""
-		if (do_callback and self.state is not None and 
-			self.on_state_change):
-			if self.user_data is None:
-				self.on_state_change(self, state)
-			else:
-				self.on_state_change(self, state,
-						     self.user_data)
-		self.state = state
+		if do_callback and self._state is not None:
+			self._emit('change', self, state)
+		self._state = state
 		self.w = Columns( [
 			('fixed', self.reserve_columns, self.states[state] ),
-			self.label ] )
+			self._label ] )
 		self.w.focus_col = 0
-		self._invalidate()
 		
 	def get_state(self):
 		"""Return the state of the checkbox."""
-		return self.state
+		return self._state
+	state = property(get_state, set_state)
 		
 	def keypress(self, size, key):
 		"""Toggle state on space or enter."""
