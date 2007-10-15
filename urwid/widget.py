@@ -1189,6 +1189,8 @@ class IntEdit(Edit):
 			return 0
 
 class WidgetWrap(Widget):
+	no_cache = ["rows"]
+
 	def __init__(self, w):
 		"""
 		w -- widget to wrap, stored as self.w

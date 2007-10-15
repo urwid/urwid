@@ -130,7 +130,8 @@ def main():
 
 	
 	def button_press(button):
-		frame.footer.set_text(["Pressed: ",button.get_label()])
+		frame.footer = urwid.AttrWrap(urwid.Text(
+			["Pressed: ",button.get_label()]), 'header')
 	
 	radio_button_group = []
 
