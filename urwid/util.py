@@ -1032,7 +1032,7 @@ class ExitMainLoop(Exception):
 	pass
 
 def generic_main_loop(topmost_widget, palette=[], screen=None,
-	handle_mouse=True):
+	handle_mouse=True, input_filter=None, unhandled_input=None):
 	"""
 	Initialize the palette and start a generic main loop handling
 	input events and updating the screen.  The loop will continue
@@ -1042,6 +1042,11 @@ def generic_main_loop(topmost_widget, palette=[], screen=None,
 	palette -- a palette to pass to the screen object's register_palette()
 	screen -- a screen object, if None raw_display.Screen will be used.
 	handle_mouse -- True: attempt to handle mouse events
+	input_filter -- a function that is passed each input event and
+		may return a new event or None to remove that event from
+		further processing
+	unhandled_input -- a function that is passed input events
+		that neither input_filter nor the widgets have handled
 	"""
 
 	def run():
@@ -1055,12 +1060,19 @@ def generic_main_loop(topmost_widget, palette=[], screen=None,
 			while not keys:
 				keys = screen.get_input()
 			for k in keys:
+				if input_filter:
+					k = input_filter(k)
 				if is_mouse_event(k):
 					event, button, col, row = k
-					topmost_widget.mouse_event(size, event,
-						button, col, row, focus=True )
+					if topmost_widget.mouse_event(size, 
+						event, button, col, row, 
+						focus=True ):
+						k = None
 				else:
-					topmost_widget.keypress(size, k)
+					k = topmost_widget.keypress(size, k)
+				if k and unhandled_input:
+					unhandled_input(k)
+			
 			if 'window resize' in keys:
 				size = screen.get_cols_rows()
 	
