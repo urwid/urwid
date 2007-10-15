@@ -274,7 +274,10 @@ class Screen(raw_display.RealTerminal):
 	def _getch(self, wait_tenths):
 		if wait_tenths==0:
 			return self._getch_nodelay()
-		curses.halfdelay(wait_tenths)
+		if wait_tenths is None:
+			curses.cbreak()
+		else:
+			curses.halfdelay(wait_tenths)
 		self.s.nodelay(0)
 		return self.s.getch()
 	
@@ -290,15 +293,16 @@ class Screen(raw_display.RealTerminal):
 			
 		return self.s.getch()
 
-	def set_input_timeouts(self, max_wait=0.5, complete_wait=0.1, 
+	def set_input_timeouts(self, max_wait=None, complete_wait=0.1, 
 		resize_wait=0.1):
 		"""
 		Set the get_input timeout values.  All values have a granularity
 		of 0.1s, ie. any value between 0.15 and 0.05 will be treated as
-		0.1 and any value less than 0.05 will be treated as 0. 
+		0.1 and any value less than 0.05 will be treated as 0.  The
+		maximum timeout value for this module is 25.5 seconds.
 	
 		max_wait -- amount of time in seconds to wait for input when
-			there is no input pending
+			there is no input pending, wait forever if None
 		complete_wait -- amount of time in seconds to wait when
 			get_input detects an incomplete escape sequence at the
 			end of the available input
@@ -309,6 +313,8 @@ class Screen(raw_display.RealTerminal):
 		"""
 
 		def convert_to_tenths( s ):
+			if s is None:
+				return None
 			return int( (s+0.05)*10 )
 
 		self.max_tenths = convert_to_tenths(max_wait)

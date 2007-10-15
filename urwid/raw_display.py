@@ -156,14 +156,14 @@ class Screen(RealTerminal):
 		self.palette[name] = (escape.set_attributes(
 			foreground, background), mono)
 
-	def set_input_timeouts(self, max_wait=0.5, complete_wait=0.1, 
+	def set_input_timeouts(self, max_wait=None, complete_wait=0.1, 
 		resize_wait=0.1):
 		"""
 		Set the get_input timeout values.  All values have are floating
 		point number of seconds.
 		
 		max_wait -- amount of time in seconds to wait for input when
-			there is no input pending
+			there is no input pending, wait forever if None
 		complete_wait -- amount of time in seconds to wait when
 			get_input detects an incomplete escape sequence at the
 			end of the available input
@@ -449,8 +449,12 @@ class Screen(RealTerminal):
 			fd_list += [ self.gpm_mev.fromchild ]
 		while True:
 			try:
-				ready,w,err = select.select(
-					fd_list,[],fd_list, timeout)
+				if timeout is None:
+					ready,w,err = select.select(
+						fd_list, [], fd_list)
+				else:
+					ready,w,err = select.select(
+						fd_list,[],fd_list, timeout)
 				break
 			except select.error, e:
 				if e.args[0] != 4: 
