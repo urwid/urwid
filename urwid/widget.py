@@ -1396,7 +1396,22 @@ class CheckBox(WidgetWrap):
 		self.toggle_state()
 		
 	def toggle_state(self):
-		"""Cycle to the next valid state."""
+		"""
+		Cycle to the next valid state.
+		
+		>>> cb = CheckBox("3-state", has_mixed=True)
+		>>> cb.state
+		False
+		>>> cb.toggle_state()
+		>>> cb.state
+		True
+		>>> cb.toggle_state()
+		>>> cb.state
+		'mixed'
+		>>> cb.toggle_state()
+		>>> cb.state
+		False
+		"""
 		if self.state == False:
 			self.set_state(True)
 		elif self.state == True:
@@ -1409,7 +1424,18 @@ class CheckBox(WidgetWrap):
 		self._invalidate()
 
 	def mouse_event(self, size, event, button, x, y, focus):
-		"""Toggle state on button 1 press."""
+		"""
+		Toggle state on button 1 press.
+		
+		>>> size = (20,)
+		>>> cb = CheckBox("clickme")
+		>>> cb.state
+		False
+		>>> cb.mouse_event(size, 'mouse press', 1, 2, 0, True)
+		True
+		>>> cb.state
+		True
+		"""
 		if button != 1 or not is_mouse_press(event):
 			return False
 		self.toggle_state()
