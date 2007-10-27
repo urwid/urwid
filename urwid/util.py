@@ -942,7 +942,7 @@ class Signals(object):
 		for callback, user_arg in d.get(name, []):
 			args_copy = args
 			if user_arg is not None:
-				args_copy = args + [user_arg]
+				args_copy = args + (user_arg,)
 			result |= bool(callback(*args_copy))
 		return result
 _signals = Signals()
@@ -994,7 +994,7 @@ class CommandMap:
 		'ctrl n': 'next selectable',
 		'shift tab': 'prev selectable',
 		'ctrl p': 'prev selectable',
-		'ctrl l': 'refresh',
+		'ctrl l': 'redraw screen',
 		'esc': 'menu',
 		'up': 'cursor up',
 		'down': 'cursor down',
@@ -1003,7 +1003,9 @@ class CommandMap:
 		'page up': 'cursor page up',
 		'page down': 'cursor page down',
 		'home': 'cursor max left',
-		'end': 'cursor max right',
+		'end': 'cursor max right', 
+		' ': 'activate',
+		'enter': 'activate',
 	}
 
 	def __init__(self):
@@ -1071,7 +1073,9 @@ def generic_main_loop(topmost_widget, palette=[], screen=None,
 				else:
 					k = topmost_widget.keypress(size, k)
 				if k and unhandled_input:
-					unhandled_input(k)
+					k = unhandled_input(k)
+				if k and command_map[k] == 'redraw screen':
+					screen.clear()
 			
 			if 'window resize' in keys:
 				size = screen.get_cols_rows()

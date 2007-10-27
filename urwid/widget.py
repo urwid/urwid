@@ -1347,9 +1347,10 @@ class CheckBox(WidgetWrap):
 		then change the check box state.
 		
 		>>> changes = []
-		>>> def callback(cb, state): 
+		>>> def callback(cb, state, user_data): 
 		...     changes.append(state)
-		>>> cb = CheckBox('test', False, False, callback)
+		...     changes.append(user_data)
+		>>> cb = CheckBox('test', False, False, callback, 'foo1')
 		>>> cb.set_state(True)
 		>>> cb.state
 		True
@@ -1357,7 +1358,7 @@ class CheckBox(WidgetWrap):
 		>>> cb.state
 		False
 		>>> changes
-		[True, False]
+		[True, 'foo1', False, 'foo1']
 		"""
 		if do_callback and self._state is not None:
 			self._emit('change', self, state)
@@ -1373,8 +1374,23 @@ class CheckBox(WidgetWrap):
 	state = property(get_state, set_state)
 		
 	def keypress(self, size, key):
-		"""Toggle state on space or enter."""
-		if key not in (' ','enter'):
+		"""
+		Toggle state on 'activate' command.  
+
+		>>> assert command_map[' '] == 'activate'
+		>>> assert command_map['enter'] == 'activate'
+		>>> size = (10,)
+		>>> cb = CheckBox('press me')
+		>>> cb.state
+		False
+		>>> cb.keypress(size, ' ')
+		>>> cb.state
+		True
+		>>> cb.keypress(size, ' ')
+		>>> cb.state
+		False
+		"""
+		if command_map[key] != 'activate':
 			return key
 		
 		self.toggle_state()
