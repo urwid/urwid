@@ -573,6 +573,9 @@ class Screen:
 	def __init__(self):
 		self.palette = {}
 		self.has_color = True
+		self._started = False
+	
+	started = property(lambda self: self._started)
 	
 	def register_palette( self, l ):
 		"""Register a list of palette entries.
@@ -627,6 +630,8 @@ class Screen:
 		this function for the preferences to take effect
 		"""
 		global _prefs
+
+		assert not self._started
 		
 		client_init = sys.stdin.read(50)
 		assert client_init.startswith("window resize "),client_init
@@ -671,17 +676,20 @@ class Screen:
 		
 		signal.signal(signal.SIGALRM,self._handle_alarm)
 		signal.alarm( ALARM_DELAY )
+		self._started = True
 
 	def stop(self):
 		"""
 		Restore settings and clean up.  
 		"""
+		assert self._started
 		try:
 			self._close_connection()
 		except:
 			pass
 		signal.signal(signal.SIGTERM,signal.SIG_DFL)
 		self._cleanup_pipe()
+		self._started = False
 		
 
 	def run_wrapper(self,fn):

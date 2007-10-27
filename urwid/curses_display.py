@@ -77,6 +77,8 @@ class Screen(raw_display.RealTerminal):
 		self.set_input_timeouts()
 		self.last_bstate = 0
 		self._started = False
+	
+	started = property(lambda self: self._started)
 
 	def register_palette( self, l ):
 		"""Register a list of palette entries.

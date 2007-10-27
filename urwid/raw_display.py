@@ -109,6 +109,8 @@ class Screen(RealTerminal):
 		self.setup_G1 = True
 		self._started = False
 	
+	started = property(lambda self: self._started)
+
 	def register_palette( self, l ):
 		"""Register a list of palette entries.
 

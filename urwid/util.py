@@ -1038,7 +1038,10 @@ def generic_main_loop(topmost_widget, palette=[], screen=None,
 	"""
 	Initialize the palette and start a generic main loop handling
 	input events and updating the screen.  The loop will continue
-	until an ExitMainLoop exception is raised.
+	until an ExitMainLoop exception is raised.  
+	
+	This function will call screen.run_wrapper() if screen.start() 
+	has not already	been called.
 
 	topmost_widget -- the widget used to draw the screen and handle input
 	palette -- a palette to pass to the screen object's register_palette()
@@ -1084,9 +1087,13 @@ def generic_main_loop(topmost_widget, palette=[], screen=None,
 		import raw_display
 		screen = raw_display.Screen()
 
-	screen.register_palette(palette)
+	if palette:
+		screen.register_palette(palette)
 	try:
-		screen.run_wrapper(run)
+		if screen.started:
+			run()
+		else:
+			screen.run_wrapper(run)
 	except ExitMainLoop:
 		pass
 

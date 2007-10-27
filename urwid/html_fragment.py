@@ -56,6 +56,7 @@ class HtmlGenerator:
 	fragments = []
 	sizes = []
 	keys = []
+	started = True
 
 	def __init__(self):
 		self.palette = {}

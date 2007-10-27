@@ -9,37 +9,6 @@ import traceback
 
 Screen = urwid.raw_display.Screen
 
-class ShellManager(object):
-    def __init__(self):
-        self.ui = Screen()
-        self.view = urwid.AttrWrap(ShellWindow(), 'body')
-
-    def main(self):
-        self.ui.register_palette([
-            ('body', 'light gray', 'black'),
-            ('prompt', 'yellow', 'black'),
-            ('error', 'light red', 'black'),
-            ])
-        self.ui.run_wrapper(self.run)
-
-    def run(self):
-        size = self.ui.get_cols_rows()
-
-        keys = ['force update']
-        while 'alt x' not in keys:
-            if keys:
-                self.ui.draw_screen(size, self.view.render(size, focus=True))
-            keys = self.ui.get_input()
-            if 'window resize' in keys:
-                size = self.ui.get_cols_rows()
-            for k in keys:
-                if urwid.is_mouse_event(k):
-                    event, button, col, row = k
-                    self.view.mouse_event(size, event, button, col, row, 
-                        focus=True)
-                else:
-                    k = self.view.keypress(size, k)
-
 
 
 class AssertAlways(object):
@@ -129,7 +98,22 @@ class ShellEdit(urwid.Edit):
 
 
 def main():
-    ShellManager().main()
+    view = urwid.AttrWrap(ShellWindow(), 'body')
+    screen = urwid.raw_display.Screen()
+    # use the original display buffer so that text mixes with the command line
+    screen.start(alternate_buffer=False)
+    try:
+        urwid.generic_main_loop(view, [
+            ('body', 'light gray', 'black'),
+            ('prompt', 'yellow', 'black'),
+            ('error', 'light red', 'black'),
+            ], screen)
+    finally:
+        # since we start()ed the screen we need to clean it up ourselves
+        screen.stop()
+
+
+
 
 if __name__ == "__main__":
     main()
