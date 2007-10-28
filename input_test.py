@@ -79,12 +79,13 @@ class KeyTest:
 			t = []
 			a = []
 			for k in keys:
-				if urwid.is_mouse_event(k):
-					t += ["('",('key',k[0]),
-						"', ", ('key',`k[1]`),
-						", ", ('key',`k[2]`),
-						", ", ('key',`k[3]`),
-						") "]
+				if type(k) == type(()):
+					out = []
+					for v in k:
+						if out:
+							out += [', ']
+						out += [('key',repr(v))]
+					t += ["("] + out + [")"]
 				else:
 					t += ["'",('key',k),"' "]
 			

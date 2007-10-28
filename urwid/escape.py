@@ -103,7 +103,9 @@ input_sequences = [
 		'f12','f13','f14','f15','f16','f17','f18','f19','f20'))
 ] + [
 	# mouse reporting (special handling done in KeyqueueTrie)
-	('[M', 'mouse')
+	('[M', 'mouse'),
+	# report status response
+	('[0n', 'status ok')
 ]
 
 class KeyqueueTrie(object):
@@ -126,7 +128,10 @@ class KeyqueueTrie(object):
 		root[ord(s)] = result
 	
 	def get(self, keys, more_available):
-		return self.get_recurse(self.data, keys, more_available)
+		result = self.get_recurse(self.data, keys, more_available)
+		if not result:
+			result = self.read_cursor_position(keys, more_available)
+		return result
 	
 	def get_recurse(self, root, keys, more_available):
 		if type(root) != type({}):
@@ -171,6 +176,51 @@ class KeyqueueTrie(object):
 			action = "press"
 
 		return ( (prefix + "mouse " + action, button, x, y), keys[3:] )
+	
+	def read_cursor_position(self, keys, more_available):
+		if not keys:
+			if more_available:
+				raise MoreInputRequired()
+			return None
+		if keys[0] != ord('['):
+			return None
+		# read y value
+		y = 0
+		i = 1
+		for k in keys[i:]:
+			i += 1
+			if k == ord(';'):
+				if not y:
+					return None
+				break
+			if k < ord('0') or k > ord('9'):
+				return None
+			if not y and k == ord('0'):
+				return None
+			y = y * 10 + k - ord('0')
+		if not keys[i:]:
+			if more_available:
+				raise MoreInputRequired()
+			return None
+		# read x value
+		x = 0
+		for k in keys[i:]:
+			i += 1
+			if k == ord('R'):
+				if not x:
+					return None
+				return (("cursor position", x-1, y-1), keys[i:])
+			if k < ord('0') or k > ord('9'):
+				return None
+			if not x and k == ord('0'):
+				return None
+			x = x * 10 + k - ord('0')
+		if not keys[i:]:
+			if more_available:
+				raise MoreInputRequired()
+		return None
+
+
 
 
 # This is added to button value to signal mouse release by curses_display
@@ -284,7 +334,7 @@ def process_keyqueue(codes, more_available):
 	if result is not None:
 		result, remaining_codes = result
 		return [result], remaining_codes
-
+	
 	if codes[1:]:
 		# Meta keys -- ESC+Key form
 		run, remaining_codes = process_keyqueue(codes[1:], 
@@ -313,6 +363,7 @@ RESTORE_NORMAL_BUFFER = ESC+"[?1049l"
 #RESET_SCROLL_REGION = ESC+"[;r"
 #RESET = ESC+"c"
 
+REPORT_STATUS = ESC + "[5n"
 REPORT_CURSOR_POSITION = ESC+"[6n"
 
 INSERT_ON = ESC + "[4h"
