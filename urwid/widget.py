@@ -2770,7 +2770,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 		if focus_item is None:
 			focus_item = 0
 		self.set_focus(focus_item)
-		self.pref_col = None
+		self.pref_col = 0
 
 	def selectable(self):
 		"""Return True if the focus item is selectable."""
