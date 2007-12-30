@@ -22,18 +22,21 @@
 from util import *
 from canvas import *
 from widget import *
+import signals
+from monitored_list import MonitoredList
+from command_map import command_map
 
 
 class ListWalkerError(Exception):
 	pass
 
 class ListWalker(object):
-	__metaclass__ = MetaSignals
+	__metaclass__ = signals.MetaSignals
 	
 	signals = ["modified"]
 
 	def _modified(self):
-		emit_signal(self, "modified")
+		signals.emit_signal(self, "modified")
 	
 
 class PollingListWalker(object):  # NOT ListWalker subclass

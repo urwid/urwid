@@ -22,7 +22,11 @@
 import string
 
 from util import *
+import signals
+import text_layout
 from canvas import *
+from monitored_list import MonitoredList
+from command_map import command_map
 
 try: sum # old python?
 except: sum = lambda l: reduce(lambda a,b: a+b, l, 0)
@@ -30,7 +34,7 @@ except: sum = lambda l: reduce(lambda a,b: a+b, l, 0)
 try: set
 except: set = list # not perfect, but should be good enough for python2.2
 
-class WidgetMeta(MetaSuper, MetaSignals):
+class WidgetMeta(MetaSuper, signals.MetaSignals):
 	"""
 	Automatic caching of render and rows methods.
 
@@ -158,7 +162,7 @@ class Widget(object):
 		CanvasCache.invalidate(self)
 
 	def _emit(self, name, *args):
-		emit_signal(self, name, *args)
+		signals.emit_signal(self, name, *args)
 	
 	def selectable(self):
 		"""
@@ -537,7 +541,7 @@ class Text(FlowWidget):
 		<Text flow widget 'hi' align_mode='right' wrap_mode='clip'>
 		"""
 		if layout is None:
-			layout = default_layout
+			layout = text_layout.default_layout
 		self._layout = layout
 		self.set_align_mode(align)
 		self.set_wrap_mode(wrap)

@@ -32,7 +32,7 @@ import sys
 import util
 import escape
 
-import raw_display
+from display_common import RealTerminal
 
 KEY_RESIZE = 410 # curses.KEY_RESIZE (sometimes not defined)
 KEY_MOUSE = 409 # curses.KEY_MOUSE
@@ -62,7 +62,7 @@ _curses_colours = {
 _trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
 
 
-class Screen(raw_display.RealTerminal):
+class Screen(RealTerminal):
 	def __init__(self):
 		super(Screen,self).__init__()
 		self.curses_pairs = [

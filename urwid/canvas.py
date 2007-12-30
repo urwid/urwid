@@ -24,6 +24,7 @@ import weakref
 
 from util import *
 from escape import * 
+from text_layout import *
 
 import sys
 

@@ -21,18 +21,23 @@
 
 __all__ = [
 	'BoxWidget','Frame','Filler','ListBox','SimpleListWalker',
-	'ListWalker','Signals',
+	'ListWalker',
 	'WidgetWrap','AttrWrap','Padding','Divider','LineBox','SolidFill',
 	'Columns','Pile','GridFlow','BoxAdapter','Overlay',
 	'FlowWidget','Text','Edit','IntEdit','Button','CheckBox','RadioButton',
 	'BarGraph','ProgressBar','GraphVScale','BigText',
 	'Canvas','CanvasCombine','CanvasJoin','CanvasCache','CompositeCanvas',
-        'TextCanvas', 'SolidCanvas',
-	'TextLayout','StandardTextLayout',
+	'TextCanvas', 'SolidCanvas',
+	'TextLayout', 'StandardTextLayout', 'default_layout',
 	'set_encoding','get_encoding_mode','supports_unicode',
 	'Thin3x3Font','Thin4x3Font','HalfBlock5x4Font','HalfBlock6x5Font',
 	'HalfBlockHeavy6x5Font','Thin6x6Font','HalfBlock7x7Font',
 	'Font','get_all_fonts',
+	'MetaSignals', 
+	'emit_signal', 'register_signal', 'connect_signal', 'disconnect_signal',
+	'MonitoredList',
+	'command_map',
+	'generic_main_loop',
 	]
 __version__ = "0.9.8"
 
@@ -42,3 +47,8 @@ from listbox import *
 from graphics import *
 from canvas import *
 from font import *
+from signals import *
+from monitored_list import *
+from command_map import *
+from main_loop import *
+from text_layout import *
