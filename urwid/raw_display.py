@@ -51,12 +51,14 @@ class Screen(RealTerminal):
 		self.prev_input_resize = 0
 		self.set_input_timeouts()
 		self.screen_buf = None
-		self.resized = False
+		self._resized = False
 		self.maxrow = None
 		self.gpm_mev = None
 		self.gpm_event_pending = False
 		self.last_bstate = 0
-		self.setup_G1 = True
+		self._setup_G1_done = False
+		self._rows_used = None
+		self._cy = 0
 		self._started = False
 	
 	started = property(lambda self: self._started)
@@ -129,7 +131,7 @@ class Screen(RealTerminal):
 		self.resize_wait = resize_wait
 
 	def _sigwinch_handler(self, signum, frame):
-		self.resized = True
+		self._resized = True
 		self.screen_buf = None
       
 	def signal_init(self):
@@ -185,6 +187,9 @@ class Screen(RealTerminal):
 		assert not self._started
 		if alternate_buffer:
 			sys.stdout.write(escape.SWITCH_TO_ALTERNATE_BUFFER)
+			self._rows_used = None
+		else:
+			self._rows_used = 0
 		self._old_termios_settings = termios.tcgetattr(0)
 		self.signal_init()
 		tty.setcbreak(sys.stdin.fileno())
@@ -373,9 +378,9 @@ class Screen(RealTerminal):
 						codes, False)
 					processed.extend(run)
 			
-			if self.resized:
+			if self._resized:
 				processed.append('window resize')
-				self.resized = False
+				self._resized = False
 
 			yield (self.max_wait, processed, original_codes)
 
@@ -411,7 +416,7 @@ class Screen(RealTerminal):
 			except select.error, e:
 				if e.args[0] != 4: 
 					raise
-				if self.resized:
+				if self._resized:
 					ready = []
 					break
 		return ready	
@@ -495,6 +500,23 @@ class Screen(RealTerminal):
 		y, x = struct.unpack('hh', buf)
 		self.maxrow = y
 		return x, y
+
+	def _setup_G1(self):
+		"""
+		Initialize the G1 character set to graphics mode if required.
+		"""
+		if self._setup_G1_done:
+			return
+		
+		while True:
+			try:
+				sys.stdout.write(escape.DESIGNATE_G1_SPECIAL)
+				sys.stdout.flush()
+				break
+			except IOError, e:
+				pass
+		self._setup_G1_done = True
+
 	
 	def draw_screen(self, (maxcol, maxrow), r ):
 		"""Paint screen with rendered canvas."""
@@ -502,46 +524,70 @@ class Screen(RealTerminal):
 
 		assert maxrow == r.rows()
 
-		if self.setup_G1:
-			try:
-				if util._use_dec_special:
-					sys.stdout.write(
-						escape.CURSOR_HOME +
-						escape.DESIGNATE_G1_SPECIAL)
-					sys.stdout.flush()
-				self.setup_G1 = False
-			except IOError, e:
-				pass
+		self._setup_G1()
 		
-		if self.resized: 
+		if self._resized: 
 			# handle resize before trying to draw screen
 			return
 		
-		o = [	escape.HIDE_CURSOR, escape.CURSOR_HOME, 
+		o = [	escape.HIDE_CURSOR,
 			escape.set_attributes('default','default') ]
 		
+		if self._rows_used is None:
+			o.append(escape.CURSOR_HOME)
+
 		if self.screen_buf:
 			osb = self.screen_buf
 		else:
 			osb = []
 		sb = []
-
-		ins = None
-		#cy = 0
+		cy = self._cy
 		y = -1
+
+		def set_cursor_home():
+			if self._rows_used is None:
+				return escape.set_cursor_position(0, 0)
+			return (escape.CURSOR_HOME_COL + 
+				escape.move_cursor_up(cy))
+		
+		def set_cursor_row(y):
+			if self._rows_used is None:
+				return escape.set_cursor_position(0, y)
+			return escape.move_cursor_down(y - cy)
+
+		def set_cursor_position(x, y):
+			if self._rows_used is None:
+				return escape.set_cursor_position(x, y)
+			if cy > y:
+				return ('\b' + escape.CURSOR_HOME_COL +
+					escape.move_cursor_up(cy - y) +
+					escape.move_cursor_right(x))
+			return ('\b' + escape.CURSOR_HOME_COL +
+				escape.move_cursor_down(y - cy) +
+				escape.move_cursor_right(x))
+			
+		ins = None
+		o.append(set_cursor_home())
+		cy = 0
 		for row in r.content():
 			y += 1
 			if osb and osb[y] == row:
 				sb.append( osb[y] )
 				continue
+
+			if self._rows_used is not None and y > self._rows_used:
+				pass
+
+
 			sb.append(row)
 			
-			#if cy != y:  
-			o.append( escape.set_cursor_position(0,y) )
-			#cy = y+1 # will be here after updating this line
+			if y:
+				o.append(set_cursor_row(y))
+			cy = y+1 # will be here after updating this line
 			
 			if y == maxrow-1:
 				row, back, ins = self._last_row(row)
+				cy = y
 
 			first = True
 			lasta = lastcs = None
@@ -575,10 +621,11 @@ class Screen(RealTerminal):
 
 		if r.cursor is not None:
 			x,y = r.cursor
-			o += [  escape.set_cursor_position( x, y ), 
+			o += [set_cursor_position(x, y), 
 				escape.SHOW_CURSOR  ]
+			self._cy = y
 		
-		if self.resized: 
+		if self._resized: 
 			# handle resize before trying to draw screen
 			return
 		try:
@@ -586,7 +633,7 @@ class Screen(RealTerminal):
 			for l in o:
 				sys.stdout.write( l )
 				k += len(l)
-				if k > 100:
+				if k > 1024:
 					sys.stdout.flush()
 					k = 0
 			sys.stdout.flush()

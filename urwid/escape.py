@@ -353,6 +353,7 @@ def process_keyqueue(codes, more_available):
 ESC = "\x1b"
 
 CURSOR_HOME = ESC+"[H"
+CURSOR_HOME_COL = "\r"
 
 APP_KEYPAD_MODE = ESC+"="
 NUM_KEYPAD_MODE = ESC+">"
@@ -375,7 +376,16 @@ def set_cursor_position( x, y ):
 	return ESC+"[%d;%dH" %(y+1, x+1)
 
 def move_cursor_right(x):
+	if x < 1: return ""
 	return ESC+"[%dC" % x
+
+def move_cursor_up(x):
+	if x < 1: return ""
+	return ESC+"[%dA" % x
+
+def move_cursor_down(x):
+	if x < 1: return ""
+	return ESC+"[%dB" % x
 
 HIDE_CURSOR = ESC+"[?25l"
 SHOW_CURSOR = ESC+"[?25h"

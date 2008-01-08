@@ -9,6 +9,8 @@ import traceback
 
 Screen = urwid.raw_display.Screen
 
+ps1 = ">>> "
+ps2 = "... "
 
 
 class AssertAlways(object):
@@ -73,11 +75,11 @@ class ShellWindow(urwid.WidgetWrap):
 
     def execute_edit(self):
         et = self.edit.get_edit_text()
-        self.lines[-1] = urwid.Text([('prompt',">>> "),et])
+        self.lines[-1] = urwid.Text([('prompt', ps1),et])
         result, err = self.shenv.run(et)
         if result:
-            if result[-1] == '\n': result = result[:-1]
-            self.lines.append(urwid.Text(result[:-1]))
+            if result[-1:] == '\n': result = result[:-1]
+            self.lines.append(urwid.Text(result))
         if err:
             trace = traceback.format_exception_only(*err[:2])
             trace = "".join(trace)
@@ -89,7 +91,7 @@ class ShellWindow(urwid.WidgetWrap):
 class ShellEdit(urwid.Edit):
     def __init__(self, parent):
         self.parent = parent
-        self.__super.__init__(('prompt',">>> "))
+        self.__super.__init__(('prompt', ps1))
 
     def keypress(self, size, k):
         k = self.__super.keypress(size, k)
