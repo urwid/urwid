@@ -104,7 +104,7 @@ class LineBox(WidgetWrap):
 			
 		tline = use_attr( tline, Divider(utf8decode("─")))
 		bline = use_attr( bline, Divider(utf8decode("─")))
-		lline = use_attr( rline, SolidFill(utf8decode("│")))
+		lline = use_attr( lline, SolidFill(utf8decode("│")))
 		rline = use_attr( rline, SolidFill(utf8decode("│")))
 		tlcorner = use_attr( tlcorner, Text(utf8decode("┌")))
 		trcorner = use_attr( trcorner, Text(utf8decode("┐")))
