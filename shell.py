@@ -38,8 +38,8 @@ class ShellEnvironment(object):
         if err:
             return None, err
 
-        save_stdin = sys.stdin
-        sys.stdin = AssertAlways()
+        #save_stdin = sys.stdin
+        #sys.stdin = AssertAlways()
         save_stdout = sys.stdout
         sys.stdout = StringIO.StringIO()
         output = None
@@ -51,7 +51,7 @@ class ShellEnvironment(object):
             output = sys.stdout.getvalue()
         finally:
             sys.stdout = save_stdout
-            sys.stdin = save_stdin
+            #sys.stdin = save_stdin
 
         return output, err
 

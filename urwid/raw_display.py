@@ -565,7 +565,15 @@ class Screen(RealTerminal):
 			return ('\b' + escape.CURSOR_HOME_COL +
 				escape.move_cursor_down(y - cy) +
 				escape.move_cursor_right(x))
-			
+		
+		def is_blank_row(row):
+			if len(row) > 1:
+				return False
+			if row[0][2].strip():
+				return False
+			return True
+
+
 		ins = None
 		o.append(set_cursor_home())
 		cy = 0
@@ -575,11 +583,14 @@ class Screen(RealTerminal):
 				sb.append( osb[y] )
 				continue
 
-			if self._rows_used is not None and y > self._rows_used:
-				pass
-
-
 			sb.append(row)
+			
+			# leave blank lines off display when we are using
+			# the default screen buffer (allows partial screen)
+			if self._rows_used is not None and y > self._rows_used:
+				if is_blank_row(row):
+					continue
+				self._rows_used = y
 			
 			if y:
 				o.append(set_cursor_row(y))

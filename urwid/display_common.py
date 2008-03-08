@@ -563,6 +563,15 @@ class AttrSpec(object):
 
     background = property(_background, _set_background)
 
+    def get_rgb_values():
+        """
+        Return (fg_red, fg_green, fg_blue, bg_red, bg_green, bg_blue) colour
+        components.  Each component is in the range 0-255.  Values are taken
+        from the XTerm defaults and may not exactly match the user's terminal.
+        
+        If the foreground or background is 'default' then all their compenents
+        will be returned as None.
+        """
 
 
 
