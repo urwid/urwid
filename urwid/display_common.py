@@ -44,11 +44,22 @@ _GRAY_STEPS_256 = [0x08, 0x12, 0x1c, 0x26, 0x30, 0x3a, 0x44, 0x4e, 0x58, 0x62,
 _CUBE_STEPS_88 = [0x00, 0x8b, 0xcd, 0xff]
 _GRAY_STEPS_88 = [0x2e, 0x5c, 0x73, 0x8b, 0xa2, 0xb9, 0xd0, 0xe7]
 # values copied from X11/rgb.txt and XTerm-col.ad:
-_BASIC_COLOURS = [(0,0,0), (205, 0, 0), (0, 205, 0), (205, 205, 0),
+_BASIC_COLOUR_VALUES = [(0,0,0), (205, 0, 0), (0, 205, 0), (205, 205, 0),
     (0, 0, 238), (205, 0, 205), (0, 205, 205), (229, 229, 229),
     (127, 127, 127), (255, 0, 0), (0, 255, 0), (255, 255, 0),
     (0x5c, 0x5c, 0xff), (255, 0, 255), (0, 255, 255), (255, 255, 255)]
 
+_COLOUR_VALUES_256 = (_BASIC_COLOUR_VALUES +
+    [(r, g, b) for r in _CUBE_STEPS_256 for g in _CUBE_STEPS_256 
+    for b in _CUBE_STEPS_256] +
+    [(gr, gr, gr) for gr in _GRAY_STEPS_256])
+_COLOUR_VALUES_88 = (_BASIC_COLOUR_VALUES +
+    [(r, g, b) for r in _CUBE_STEPS_88 for g in _CUBE_STEPS_88 
+    for b in _CUBE_STEPS_88] +
+    [(gr, gr, gr) for gr in _GRAY_STEPS_88])
+
+assert len(_COLOUR_VALUES_256) == 256
+assert len(_COLOUR_VALUES_88) == 88
 
 _FG_COLOUR_MASK = 0x000000ff
 _BG_COLOUR_MASK = 0x0000ff00
@@ -563,7 +574,7 @@ class AttrSpec(object):
 
     background = property(_background, _set_background)
 
-    def get_rgb_values():
+    def get_rgb_values(self):
         """
         Return (fg_red, fg_green, fg_blue, bg_red, bg_green, bg_blue) colour
         components.  Each component is in the range 0-255.  Values are taken
@@ -571,7 +582,31 @@ class AttrSpec(object):
         
         If the foreground or background is 'default' then all their compenents
         will be returned as None.
+
+        >>> AttrSpec('yellow', '#ccf', colours=88).get_rgb_values()
+        (255, 255, 0, 205, 205, 255)
+        >>> AttrSpec('default', 'g92').get_rgb_values()
+        (None, None, None, 238, 238, 238)
         """
+        if not self._value & (_FG_BASIC_COLOUR | _FG_HIGH_COLOUR):
+            vals = (None, None, None)
+        elif self._value & _HIGH_88_COLOUR:
+            assert self._value & _FG_COLOUR_MASK < 88, \
+                "Invalid AttrSpec _value"
+            vals = _COLOUR_VALUES_88[self._value & _FG_COLOUR_MASK]
+        else:
+            vals = _COLOUR_VALUES_256[self._value & _FG_COLOUR_MASK]
+
+        if not self._value & (_BG_BASIC_COLOUR | _BG_HIGH_COLOUR):
+            return vals + (None, None, None)
+        elif self._value & _HIGH_88_COLOUR:
+            assert (self._value & _BG_COLOUR_MASK) >> _BG_SHIFT < 88, \
+                "Invalid AttrSpec _value"
+            return vals + _COLOUR_VALUES_88[
+                (self._value & _BG_COLOUR_MASK) >> _BG_SHIFT]
+        else:
+            return vals + _COLOUR_VALUES_256[
+                (self._value & _BG_COLOUR_MASK) >> _BG_SHIFT]
 
 
 
