@@ -27,6 +27,7 @@ import text_layout
 from canvas import *
 from monitored_list import MonitoredList
 from command_map import command_map
+from signals import connect_signal
 
 try: sum # old python?
 except: sum = lambda l: reduce(lambda a,b: a+b, l, 0)
@@ -648,8 +649,15 @@ class EditError(TextError):
 			
 
 class Edit(Text):
-	"""Text edit widget"""
+	"""
+	Text editing widget implements cursor movement, text insertion and 
+	deletion.  A caption may prefix the editing area.  Uses text class 
+	for text layout.
+	"""
 	
+	# allow users of this class to listen for change events
+	# sent when the value of edit_text changes
+	# (this variable is picked up by the MetaSignals metaclass)
 	signals = ["change"]
 	
 	def valid_char(self, ch):
@@ -1365,7 +1373,7 @@ class CheckBox(WidgetWrap):
 		[True, 'foo1', False, 'foo1']
 		"""
 		if do_callback and self._state is not None:
-			self._emit('change', self, state)
+			self._emit('change', (self, state))
 		self._state = state
 		self.w = Columns( [
 			('fixed', self.reserve_columns, self.states[state] ),
@@ -1446,6 +1454,8 @@ class CheckBox(WidgetWrap):
 		return True
 	
 		
+class RadioButtonError(Exception):
+	pass
 
 class RadioButton(WidgetWrap):
 	states = { 
@@ -1454,22 +1464,34 @@ class RadioButton(WidgetWrap):
 		'mixed': SelectableIcon("(#)") }
 	reserve_columns = 4
 
-	def selectable(self): return True
-	
+	# allow users of this class to listen for change events
+	# sent when the state of this widget is modified
+	# (this variable is picked up by the MetaSignals metaclass)
+	signals = ["change"]
+
 	def __init__(self, group, label, state="first True",
 		     on_state_change=None, user_data=None):
 		"""
 		group -- list for radio buttons in same group
 		label -- markup for radio button label
 		state -- False, True, "mixed" or "first True"
-		on_state_change -- callback function for state changes
-		                   on_state_change( radio_button, new_state,
-				                    user_data=None)
-	        user_data -- additional param for on_press callback,
-		             ommited if None for compatibility reasons
+
+		on_state_change and user_data are deprecated, please use
+		connect_signal(radio_button, 'change', callback [,user_data])
+		instead.
 
 		This function will append the new radio button to group.
 		"first True" will set to True if group is empty.
+
+		>>> bgroup = [] # button group
+		>>> b1 = RadioButton(bgroup, "Agree")
+		>>> b2 = RadioButton(bgroup, "Disagree")
+		>>> len(bgroup)
+		2
+		>>> b1
+		<RadioButton selectable flow widget 'Agree' state=True>
+		>>> b2
+		<RadioButton selectable flow widget 'Disagree' state=False>
 		"""
 		self.__super.__init__(None) # self.w set by set_state below
 
@@ -1477,63 +1499,115 @@ class RadioButton(WidgetWrap):
 			state = not group
 		self.group = group
 
-		self.label = Text("")
-		self.state = None
-		self.on_state_change = on_state_change
-		self.user_data = user_data
+		self._label = Text("")
+		self._state = None
+		
+		# The old way of listening for a change was to pass the callback
+		# in to the constructor.  Just convert it to the new way:
+		if on_state_change:
+			connect_signal(self, 'change', on_state_change, user_data)
+
 		self.set_label(label)
 		self.set_state(state)
 	
 		group.append(self)
 	
+	def _repr_words(self):
+		return self.__super._repr_words() + [
+			repr(self.label)]
+	
+	def _repr_attrs(self):
+		return dict(self.__super._repr_attrs(),
+			state=self.state) 
+	
 	def set_label(self, label):
-		"""Change the check box label."""
-		self.label.set_text(label)
+		"""
+		Change the check box label markup.  
+		
+		>>> bgroup = [] # button group
+		>>> b = RadioButton(bgroup, "Unsure")
+		>>> b.label
+		'Unsure'
+		>>> b.set_label("positive")
+		>>> b.label
+		'positive'
+		>>> b.set_label(('bright', "flashy"))
+		>>> b.label
+		'flashy'
+		"""
+		self._label.set_text(label)
 		self._invalidate()
 	
 	def get_label(self):
-		"""Return label text."""
-		text, attr = self.label.get_text()
+		"""
+		Return label text.  Attributes are not included.
+
+		>>> bgroup = [] # button group
+		>>> b = RadioButton(bgroup, "label-text")
+		>>> b.get_label()
+		'label-text'
+		>>> b.label  # also works
+		'label-text'
+		>>> b.set_label([('attr', "one"), "two"])
+		>>> b.label  # attributes not included
+		'onetwo'
+		"""
+		text, attr = self._label.get_text()
 		return text
+
+	label = property(get_label)
 	
 	def set_state(self, state, do_callback=True):
 		"""
-		Call on_state_change if do_callback is True,
-		then change the radio button state.
-		if state is True set all other radio buttons in group to False.
+		Set the RadioButton state.
+
+		state -- True, False or "mixed"
+		do_callback -- False to supress signal from this change
+
+		If state is True all other radio buttons in the same button
+		group will be set to False.
 		"""
-		if (do_callback and self.state is not None and 
-			self.on_state_change):
-			if self.user_data is None:
-				self.on_state_change(self, state)
-			else:
-				self.on_state_change(self, state,
-						     self.user_data)
-		self.state = state
-		self.w = Columns( [
-			('fixed', self.reserve_columns, self.states[state] ),
-			self.label ] )
+		if self._state == state:
+			return
+
+		if state not in self.states:
+			raise RadioButtonError("Invalid state: %s" % repr(state))
+
+		# self._state is None is a special case when the RadioButton 
+		# has just been created
+		if do_callback and self.state is not None:
+			self._emit('change', (self, state))
+		self._state = state
+		# rebuild the display widget with the new state
+		self.w = Columns([
+			('fixed', self.reserve_columns, self.states[state]),
+			self.label])
 		self.w.focus_col = 0
 		
 		self._invalidate()
+		# if we're clearing the state we don't have to worry about
+		# other buttons in the button group
 		if state is not True:
 			return
 
+		# clear the state of each other radio button
 		for cb in self.group:
 			if cb is self: continue
-			if cb.state:
+			if cb._state:
 				cb.set_state(False)
 	
 	def get_state(self):
 		"""Return the state of the radio button."""
-		return self.state
+		return self._state
+
+	state = property(get_state, set_state)
 
 	def keypress(self, size, key):
 		"""Set state to True on space or enter."""
-		if key not in (' ','enter'):
+		if command_map[key] == 'activate':
 			return key
 		
-		if self.state is not True:
+		if self._state is not True:
 			self.set_state(True)
 		else:
 			return key
