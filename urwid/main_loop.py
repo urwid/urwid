@@ -158,5 +158,8 @@ def iterable_main_loop(topmost_widget, palette=[], screen=None,
 	if screen.started:
 		return run()
 	else:
-		return screen.run_wrapper(run)
+		screen.start()
+		return run()
+		# FIXME: need to clean up after iterable
+		# design an api that can do this cleanly
 
