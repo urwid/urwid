@@ -569,11 +569,39 @@ Status: <span id="status">Set up</span>
 </html>
 """]
 
+def cgi_start_response(status, response_headers, exc_info=None):
+	"""
+	A start_response function for use from CGI
+	"""
+	sys.stdout.write('Status: %s\r\n' % status)
+        for header in response_headers:
+		sys.stdout.write('%s: %s\r\n' % header)
+	sys.stdout.write('\r\n')
+
+
+class ApplicationExit(Exception):
+	pass
+
 class Screen:
-	def __init__(self):
+	def __init__(self, environ=None, start_response=None):
+		"""
+		environ -- WSGI environment or None for CGI
+		start_response -- WSGI start_response function or None for CGI
+		"""
 		self.palette = {}
 		self.has_color = True
 		self._started = False
+		self.pipe_name = None
+
+		self._stdin = sys.stdin
+		self._environ = os.environ
+		self._start_response = cgi_start_response
+		self._using_cgi = True
+		if environ:
+			self._stdin = environ['wsgi.input']
+			self._environ = environ
+			self._start_response = start_response
+			self._using_cgi = False
 	
 	started = property(lambda self: self._started)
 	
@@ -632,8 +660,9 @@ class Screen:
 		global _prefs
 
 		assert not self._started
+		self._started = True
 		
-		client_init = sys.stdin.read(50)
+		client_init = self._stdin.read(50)
 		assert client_init.startswith("window resize "),client_init
 		ignore1,ignore2,x,y = client_init.split(" ",3)
 		x = int(x)
@@ -642,17 +671,18 @@ class Screen:
 		self.last_screen = {}
 		self.last_screen_width = 0
 	
-		self.update_method = os.environ["HTTP_X_URWID_METHOD"]
+		self.update_method = self._environ["HTTP_X_URWID_METHOD"]
 		assert self.update_method in ("multipart","polling")
 	
-		if self.update_method == "polling" and not _prefs.allow_polling:
-			sys.stdout.write("Status: 403 Forbidden\r\n\r\n")
-			sys.exit(0)
+		if self.update_method == "polling" and (
+			not _prefs.allow_polling or not self._using_cgi):
+			self._start_response("403 Forbidden", [])
+			raise ApplicationExit()
 		
 		clients = glob.glob(os.path.join(_prefs.pipe_dir,"urwid*.in"))
 		if len(clients) >= _prefs.max_clients:
-			sys.stdout.write("Status: 503 Sever Busy\r\n\r\n")
-			sys.exit(0)
+			self._start_response("503 Sever Busy", [])
+			raise ApplicationExit()
 		
 		urwid_id = "%09d%09d"%(random.randrange(10**9),
 			random.randrange(10**9))
@@ -663,20 +693,19 @@ class Screen:
 		self.input_fd = os.open(self.pipe_name+".in", 
 			os.O_NONBLOCK | os.O_RDONLY)
 		self.input_tail = ""
-		self.content_head = ("Content-type: "
-			"multipart/x-mixed-replace;boundary=ZZ\r\n"
-			"X-Urwid-ID: "+urwid_id+"\r\n"
-			"\r\n\r\n"
-			"--ZZ\r\n")
+		
+		headers = [("Content-type",
+			"multipart/x-mixed-replace;boundary=ZZ"),
+			("X-Urwid-ID",urwid_id)]
+		self.content_head = "--ZZ\r\n"
 		if self.update_method=="polling":
-			self.content_head = (
-				"Content-type: text/plain\r\n"
-				"X-Urwid-ID: "+urwid_id+"\r\n"
-				"\r\n\r\n")
+			self.content_head = ""
+			headers = [("Content-type:","text/plain"),
+				("X-Urwid-ID",urwid_id)]
 		
 		signal.signal(signal.SIGALRM,self._handle_alarm)
 		signal.alarm( ALARM_DELAY )
-		self._started = True
+		self._start_response("200 OK", headers)
 
 	def stop(self):
 		"""
@@ -711,7 +740,7 @@ class Screen:
 			socket.sendall("Z")
 			socket.close()
 		
-		if self.update_method == "multipart":
+		if self.update_method == "multipart" and self._using_cgi:
 			sys.stdout.write("\r\nZ"
 				"\r\n--ZZ--\r\n")
 			sys.stdout.flush()
@@ -808,16 +837,22 @@ class Screen:
 		self.last_screen_width = cols
 		
 		if self.update_method == "polling":
+			assert self._using_cgi, "polling method can't be " \
+				"used with WSGI"
 			sys.stdout.write("".join(sendq))
 			sys.stdout.flush()
 			sys.stdout.close()
 			self._fork_child()
+
 		elif self.update_method == "polling child":
 			s.close()
 		else: # update_method == "multipart"
 			send("\r\n--ZZ\r\n")
-			sys.stdout.write("".join(sendq))
-			sys.stdout.flush()
+			if self._using_cgi:
+				sys.stdout.write("".join(sendq))
+				sys.stdout.flush()
+			else:
+				return "".join(sendq)
 		
 		signal.alarm( ALARM_DELAY )
 	
@@ -855,8 +890,8 @@ class Screen:
 				s, addr = self.server_socket.accept()
 				s.close()
 			except socket.timeout, e:
-				sys.exit(0)
-		else:
+				raise ApplicationExit()
+		elif self._using_cgi:
 			# send empty update
 			sys.stdout.write("\r\n\r\n--ZZ\r\n")
 			sys.stdout.flush()
@@ -937,68 +972,100 @@ def html_escape(text):
 	return text
 
 	
-def is_web_request():
+def is_web_request(environ=None):
 	"""
-	Return True if this is a CGI web request.
+	Return True if this is a CGI or WSGI web request.
+	WSGI environ dictionary must be passed for WSGI detection to work.
 	"""
-	return os.environ.has_key('REQUEST_METHOD')
+	if not environ: 
+		environ = os.environ
+	return environ.has_key('REQUEST_METHOD')
 
-def handle_short_request():
+def handle_short_request(environ=None, start_response=None):
 	"""
 	Handle short requests such as passing keystrokes to the application
-	or sending the initial html page.  If returns True, then this
-	function recognised and handled a short request, and the calling
-	script should immediately exit.
+	or sending the initial html page.  If returns anything other than
+	False, then this function recognised and handled a short request, 
+	and the calling	script should immediately exit in the CGI case, or
+	return the return value from the application function in the WSGI
+	case. eg:
+
+	resp = urwid.web_display.handle_short_request(environ, start_response)
+	if resp is not False:
+		return resp
 
 	web_display.set_preferences(..) should be called before calling this
 	function for the preferences to take effect
 	"""
 	global _prefs
 	
-	if not is_web_request():
+	if not is_web_request(environ):
 		return False
+	
+	def wsgi_response(str):
+		# WSGI wants the response sent as an iterable of strings
+		return [str]
+	
+	def cgi_response(str):
+		# CGI needs the string sent to stdout
+		sys.stdout.write(str)
+
+	if start_response:
+		# WSGI is being used
+		response = wsgi_response
+		stdin = environ['wsgi.input']
+	else:
+		# CGI is being used
+		start_response = cgi_start_response
+		environ = os.environ
+		response = cgi_response
+		stdin = sys.stdin
 		
-	if os.environ['REQUEST_METHOD'] == "GET":
+
+	if environ['REQUEST_METHOD'] == "GET":
 		# Initial request, send the HTML and javascript.
-		sys.stdout.write("Content-type: text/html\r\n\r\n" +
-			html_escape(_prefs.app_name).join(_html_page))
-		return True
+		start_response("200 OK", [("Content-type","text/html")])
+		return response(html_escape(_prefs.app_name).join(_html_page))
 	
-	if os.environ['REQUEST_METHOD'] != "POST":
+	if environ['REQUEST_METHOD'] != "POST":
 		# Don't know what to do with head requests etc.
-		return False
+		start_response("403 Forbidden", [])
+		return []
 	
-	if not os.environ.has_key('HTTP_X_URWID_ID'):
+	if not environ.has_key('HTTP_X_URWID_ID'):
 		# If no urwid id, then the application should be started.
 		return False
 
-	urwid_id = os.environ['HTTP_X_URWID_ID']
+	urwid_id = environ['HTTP_X_URWID_ID']
 	if len(urwid_id)>20:
 		#invalid. handle by ignoring
 		#assert 0, "urwid id too long!"
-		sys.stdout.write("Status: 414 URI Too Long\r\n\r\n")
-		return True
+		start_response("414 URI Too Long", [])
+		return []
 	for c in urwid_id:
 		if c not in "0123456789":
 			# invald. handle by ignoring
 			#assert 0, "invalid chars in id!"
-			sys.stdout.write("Status: 403 Forbidden\r\n\r\n")
-			return True
+			start_response("403 Forbidden", [])
+			return []
 	
-	if os.environ.get('HTTP_X_URWID_METHOD',None) == "polling":
+	if environ.get('HTTP_X_URWID_METHOD',None) == "polling":
 		# this is a screen update request
 		s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 		try:
 			s.connect( os.path.join(_prefs.pipe_dir,
 				"urwid"+urwid_id+".update") )
-			data = "Content-type: text/plain\r\n\r\n"+s.recv(BUF_SZ)
+			start_response("200 OK", 
+				[("Content-type", "text/plain")])
+			out = []
+			data = s.recv(BUF_SZ)
 			while data:
-				sys.stdout.write(data)
+				out.append(data)
 				data = s.recv(BUF_SZ)
-			return True
+			return response("".join(data))
 		except socket.error,e:
-			sys.stdout.write("Status: 404 Not Found\r\n\r\n")
-			return True
+			start_response("404 Not Found", [])
+			return []
 		
 		
 	
@@ -1007,15 +1074,15 @@ def handle_short_request():
 		fd = os.open((os.path.join(_prefs.pipe_dir,
 			"urwid"+urwid_id+".in")), os.O_WRONLY)
 	except OSError,e:
-		sys.stdout.write("Status: 404 Not Found\r\n\r\n")
-		return True
+		raise e
+		start_response("404 Not Found", [])
+		return []
 		
-	keydata = sys.stdin.read(MAX_READ)
+	keydata = stdin.read(MAX_READ)
 	os.write(fd,keydata)
 	os.close(fd)
-	sys.stdout.write("Content-type: text/plain\r\n\r\n")
-	
-	return True
+	start_response("200 OK", [("Content-type","text/plain")])
+	return []
 
 
 class _Preferences:
@@ -1047,7 +1114,7 @@ def set_preferences( app_name, pipe_dir="/tmp", allow_polling=True,
 	_prefs.max_clients = max_clients
 
 
-class ErrorLog:
+class ErrorLog(object):
 	def __init__(self, errfile ):
 		self.errfile = errfile
 	def write(self, err):

@@ -89,3 +89,74 @@ def generic_main_loop(topmost_widget, palette=[], screen=None,
 	except ExitMainLoop:
 		pass
 
+
+def iterable_main_loop(topmost_widget, palette=[], screen=None,
+	handle_mouse=True, input_filter=None, unhandled_input=None):
+	"""
+	Initialize the palette and start an iterable main loop handling
+	input events and updating the screen.  The loop will continue
+	until an ExitMainLoop exception is raised.
+	
+	This function differs from generic_main_loop() in that it
+	immediately returns an iterable object that must be iterated
+	over to execute the loop.  The values returned are from the
+	screen object's draw_screen method.  
+	
+	This function will call screen.run_wrapper() if screen.start() 
+	has not already	been called.
+
+	topmost_widget -- the widget used to draw the screen and handle input
+	palette -- a palette to pass to the screen object's register_palette()
+	screen -- a screen object, if None raw_display.Screen will be used.
+	handle_mouse -- True: attempt to handle mouse events
+	input_filter -- a function that is passed each input event and
+		may return a new event or None to remove that event from
+		further processing
+	unhandled_input -- a function that is passed input events
+		that neither input_filter nor the widgets have handled
+	"""
+
+	def run():
+		if handle_mouse:
+			screen.set_mouse_tracking()
+		size = screen.get_cols_rows()
+		try:
+			while True:
+				canvas = topmost_widget.render(size, focus=True)
+				yield screen.draw_screen(size, canvas)
+				keys = None
+				while not keys:
+					keys = screen.get_input()
+				for k in keys:
+					if input_filter:
+						k = input_filter(k)
+					if is_mouse_event(k):
+						event, button, col, row = k
+						if topmost_widget.mouse_event(size, 
+							event, button, col, row, 
+							focus=True ):
+							k = None
+					else:
+						k = topmost_widget.keypress(size, k)
+					if k and unhandled_input:
+						k = unhandled_input(k)
+					if k and command_map[k] == 'redraw screen':
+						screen.clear()
+				
+				if 'window resize' in keys:
+					size = screen.get_cols_rows()
+		except ExitMainLoop:
+			return
+	
+	if not screen:
+		import raw_display
+		screen = raw_display.Screen()
+
+	if palette:
+		screen.register_palette(palette)
+	
+	if screen.started:
+		return run()
+	else:
+		return screen.run_wrapper(run)
+
