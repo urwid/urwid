@@ -1581,7 +1581,7 @@ class RadioButton(WidgetWrap):
 		# rebuild the display widget with the new state
 		self.w = Columns([
 			('fixed', self.reserve_columns, self.states[state]),
-			self.label])
+			self._label])
 		self.w.focus_col = 0
 		
 		self._invalidate()
