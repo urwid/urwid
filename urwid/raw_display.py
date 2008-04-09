@@ -533,7 +533,12 @@ class Screen(RealTerminal):
 		o = [	escape.HIDE_CURSOR,
 			escape.set_attributes('default','default') ]
 		
-		if self._rows_used is None:
+		def partial_display():
+			# returns True if the screen is in partial display mode
+			# ie. only some rows belong to the display
+			return self._rows_used is not None
+
+		if not partial_display():
 			o.append(escape.CURSOR_HOME)
 
 		if self.screen_buf:
@@ -545,18 +550,18 @@ class Screen(RealTerminal):
 		y = -1
 
 		def set_cursor_home():
-			if self._rows_used is None:
+			if not partial_display():
 				return escape.set_cursor_position(0, 0)
 			return (escape.CURSOR_HOME_COL + 
 				escape.move_cursor_up(cy))
 		
 		def set_cursor_row(y):
-			if self._rows_used is None:
+			if not partial_display():
 				return escape.set_cursor_position(0, y)
 			return escape.move_cursor_down(y - cy)
 
 		def set_cursor_position(x, y):
-			if self._rows_used is None:
+			if not partial_display():
 				return escape.set_cursor_position(x, y)
 			if cy > y:
 				return ('\b' + escape.CURSOR_HOME_COL +
@@ -579,7 +584,9 @@ class Screen(RealTerminal):
 		cy = 0
 		for row in r.content():
 			y += 1
-			if osb and osb[y] == row:
+			if False and osb and osb[y] == row:
+				# this row of the screen buffer matches what is
+				# currently displayed, so we can skip this line
 				sb.append( osb[y] )
 				continue
 
@@ -587,18 +594,20 @@ class Screen(RealTerminal):
 			
 			# leave blank lines off display when we are using
 			# the default screen buffer (allows partial screen)
-			if self._rows_used is not None and y > self._rows_used:
+			if partial_display() and y > self._rows_used:
 				if is_blank_row(row):
 					continue
 				self._rows_used = y
 			
-			if y:
-				o.append(set_cursor_row(y))
-			cy = y+1 # will be here after updating this line
+			if y or partial_display():
+				o.append(set_cursor_position(0, y))
+			# after updating the line we will be just over the
+			# edge, but terminals still treat this as being
+			# on the same line
+			cy = y 
 			
 			if y == maxrow-1:
 				row, back, ins = self._last_row(row)
-				cy = y
 
 			first = True
 			lasta = lastcs = None

@@ -178,6 +178,11 @@ class KeyqueueTrie(object):
 		return ( (prefix + "mouse " + action, button, x, y), keys[3:] )
 	
 	def read_cursor_position(self, keys, more_available):
+		"""
+		Interpret cursor position information being sent by the
+		user's terminal.  Returned as ('cursor position', x, y)
+		where (x, y) == (0, 0) is the top left of the screen.
+		"""
 		if not keys:
 			if more_available:
 				raise MoreInputRequired()
