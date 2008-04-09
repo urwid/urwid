@@ -27,7 +27,7 @@ import text_layout
 from canvas import *
 from monitored_list import MonitoredList
 from command_map import command_map
-from signals import connect_signal
+from signals import connect_signal, connect_signal, disconnect_signal
 
 try: sum # old python?
 except: sum = lambda l: reduce(lambda a,b: a+b, l, 0)
@@ -1290,8 +1290,10 @@ class CheckBox(WidgetWrap):
 		'mixed': SelectableIcon("[#]") }
 	reserve_columns = 4
 
-	_selectable = True
-	signals = ['change']
+	# allow users of this class to listen for change events
+	# sent when the state of this widget is modified
+	# (this variable is picked up by the MetaSignals metaclass)
+	signals = ["change"]
 	
 	def __init__(self, label, state=False, has_mixed=False,
 		     on_state_change=None, user_data=None):
@@ -1299,20 +1301,30 @@ class CheckBox(WidgetWrap):
 		label -- markup for check box label
 		state -- False, True or "mixed"
 		has_mixed -- True if "mixed" is a state to cycle through
-		on_state_change -- callback function for state changes
-		                   on_state_change(check box, new state)
-		user_data -- additional param for on_state_change callback,
-		             ommited if None for compatibility reasons
+		
+		on_state_change and user_data are deprecated as of 0.9.9.
+		See below for new signal usage:
+		
+		Signals supported: 'change'
+		Register signal handler with:
+		  connect_signal(check_box, 'change', callback [,user_data])
+		where signal is signal(check_box, new_state [,user_data])
+		Unregister signal handlers with:
+		  disconnect_signal(check_box, 'change', callback [,user_data])
 
 		>>> CheckBox("Confirm")
 		<CheckBox selectable flow widget 'Confirm' state=False>
-		>>> CheckBox("Fries", "mixed", True)
-		<CheckBox selectable flow widget 'Fries' state='mixed'>
+		>>> CheckBox("Yogourt", "mixed", True)
+		<CheckBox selectable flow widget 'Yogourt' state='mixed'>
+		>>> CheckBox("Extra onions", True)
+		<CheckBox selectable flow widget 'Extra onions' state=True>
 		"""
 		self.__super.__init__(None) # self.w set by set_state below
 		self._label = Text("")
 		self.has_mixed = has_mixed
 		self._state = None
+		# The old way of listening for a change was to pass the callback
+		# in to the constructor.  Just convert it to the new way:
 		if on_state_change:
 			connect_signal(self, 'change', on_state_change, user_data)
 		self.set_label(label)
@@ -1334,11 +1346,15 @@ class CheckBox(WidgetWrap):
 		of text markup.
 
 		>>> cb = CheckBox("foo")
-		>>> cb.set_label("bar")
-		>>> cb.get_label()
-		'bar'
+		>>> cb
+		<CheckBox selectable flow widget 'foo' state=False>
+		>>> cb.set_label(('bright_attr', "bar"))
+		>>> cb
+		<CheckBox selectable flow widget 'bar' state=False>
 		"""
 		self._label.set_text(label)
+		# no need to call self._invalidate(). WidgetWrap takes care of
+		# that when self.w changes
 	
 	def get_label(self):
 		"""
@@ -1349,32 +1365,55 @@ class CheckBox(WidgetWrap):
 		'Seriously'
 		>>> cb.label  # Urwid 0.9.9 or later
 		'Seriously'
+		>>> cb.set_label([('bright_attr', "flashy"), " normal"])
+		>>> cb.label  #  only text is returned 
+		'flashy normal'
 		"""
 		return self._label.text
 	label = property(get_label)
 	
 	def set_state(self, state, do_callback=True):
 		"""
-		Signal state change if do_callback is True,
-		then change the check box state.
+		Set the CheckBox state.
+
+		state -- True, False or "mixed"
+		do_callback -- False to supress signal from this change
 		
 		>>> changes = []
-		>>> def callback(cb, state, user_data): 
-		...     changes.append(state)
-		...     changes.append(user_data)
-		>>> cb = CheckBox('test', False, False, callback, 'foo1')
+		>>> def callback_a(cb, state, user_data): 
+		...     changes.append(("A", state, user_data))
+		>>> def callback_b(cb, state): 
+		...     changes.append(("B", state))
+		>>> cb = CheckBox('test', False, False)
+		>>> connect_signal(cb, 'change', callback_a, "user_a")
+		>>> connect_signal(cb, 'change', callback_b)
+		>>> cb.set_state(True) # both callbacks will be triggered
+		>>> cb.state
+		True
+		>>> disconnect_signal(cb, 'change', callback_a, "user_a")
+		>>> cb.state = False  # Urwid 0.9.9 or later
+		>>> cb.state
+		False
 		>>> cb.set_state(True)
 		>>> cb.state
 		True
-		>>> cb.set_state(False)
-		>>> cb.state
-		False
+		>>> cb.set_state(False, False) # don't send signal
 		>>> changes
-		[True, 'foo1', False, 'foo1']
+		[('A', True, 'user_a'), ('B', True), ('B', False), ('B', True)]
 		"""
+		if self._state == state:
+			return
+
+		if state not in self.states:
+			raise CheckBoxError("%s Invalid state: %s" % (
+				repr(self), repr(state)))
+
+		# self._state is None is a special case when the CheckBox
+		# has just been created
 		if do_callback and self._state is not None:
-			self._emit('change', (self, state))
+			self._emit('change', self, state)
 		self._state = state
+		# rebuild the display widget with the new state
 		self.w = Columns( [
 			('fixed', self.reserve_columns, self.states[state] ),
 			self._label ] )
@@ -1457,17 +1496,12 @@ class CheckBox(WidgetWrap):
 class RadioButtonError(Exception):
 	pass
 
-class RadioButton(WidgetWrap):
+class RadioButton(CheckBox):
 	states = { 
 		True: SelectableIcon("(X)"),
 		False: SelectableIcon("( )"),
 		'mixed': SelectableIcon("(#)") }
 	reserve_columns = 4
-
-	# allow users of this class to listen for change events
-	# sent when the state of this widget is modified
-	# (this variable is picked up by the MetaSignals metaclass)
-	signals = ["change"]
 
 	def __init__(self, group, label, state="first True",
 		     on_state_change=None, user_data=None):
@@ -1493,69 +1527,15 @@ class RadioButton(WidgetWrap):
 		>>> b2
 		<RadioButton selectable flow widget 'Disagree' state=False>
 		"""
-		self.__super.__init__(None) # self.w set by set_state below
-
 		if state=="first True":
 			state = not group
-		self.group = group
-
-		self._label = Text("")
-		self._state = None
 		
-		# The old way of listening for a change was to pass the callback
-		# in to the constructor.  Just convert it to the new way:
-		if on_state_change:
-			connect_signal(self, 'change', on_state_change, user_data)
-
-		self.set_label(label)
-		self.set_state(state)
-	
+		self.group = group
+		self.__super.__init__(label, state, False, on_state_change, 
+			user_data)
 		group.append(self)
 	
-	def _repr_words(self):
-		return self.__super._repr_words() + [
-			repr(self.label)]
-	
-	def _repr_attrs(self):
-		return dict(self.__super._repr_attrs(),
-			state=self.state) 
-	
-	def set_label(self, label):
-		"""
-		Change the check box label markup.  
-		
-		>>> bgroup = [] # button group
-		>>> b = RadioButton(bgroup, "Unsure")
-		>>> b.label
-		'Unsure'
-		>>> b.set_label("positive")
-		>>> b.label
-		'positive'
-		>>> b.set_label(('bright', "flashy"))
-		>>> b.label
-		'flashy'
-		"""
-		self._label.set_text(label)
-		self._invalidate()
-	
-	def get_label(self):
-		"""
-		Return label text.  Attributes are not included.
 
-		>>> bgroup = [] # button group
-		>>> b = RadioButton(bgroup, "label-text")
-		>>> b.get_label()
-		'label-text'
-		>>> b.label  # also works
-		'label-text'
-		>>> b.set_label([('attr', "one"), "two"])
-		>>> b.label  # attributes not included
-		'onetwo'
-		"""
-		text, attr = self._label.get_text()
-		return text
-
-	label = property(get_label)
 	
 	def set_state(self, state, do_callback=True):
 		"""
@@ -1566,25 +1546,22 @@ class RadioButton(WidgetWrap):
 
 		If state is True all other radio buttons in the same button
 		group will be set to False.
+
+		>>> bgroup = [] # button group
+		>>> b1 = RadioButton(bgroup, "Agree")
+		>>> b2 = RadioButton(bgroup, "Disagree")
+		>>> b3 = RadioButton(bgroup, "Unsure")
+		>>> b1.state, b2.state, b3.state
+		(True, False, False)
+		>>> b3.set_state(True)
+		>>> b1.state, b2.state, b3.state
+		(False, False, True)
 		"""
 		if self._state == state:
 			return
 
-		if state not in self.states:
-			raise RadioButtonError("Invalid state: %s" % repr(state))
+		self.__super.set_state(state, do_callback)
 
-		# self._state is None is a special case when the RadioButton 
-		# has just been created
-		if do_callback and self.state is not None:
-			self._emit('change', (self, state))
-		self._state = state
-		# rebuild the display widget with the new state
-		self.w = Columns([
-			('fixed', self.reserve_columns, self.states[state]),
-			self._label])
-		self.w.focus_col = 0
-		
-		self._invalidate()
 		# if we're clearing the state we don't have to worry about
 		# other buttons in the button group
 		if state is not True:
@@ -1596,29 +1573,25 @@ class RadioButton(WidgetWrap):
 			if cb._state:
 				cb.set_state(False)
 	
-	def get_state(self):
-		"""Return the state of the radio button."""
-		return self._state
-
-	state = property(get_state, set_state)
-
-	def keypress(self, size, key):
-		"""Set state to True on space or enter."""
-		if command_map[key] == 'activate':
-			return key
-		
-		if self._state is not True:
-			self.set_state(True)
-		else:
-			return key
 	
-	def mouse_event(self, size, event, button, x, y, focus):
-		"""Set state to True on button 1 press."""
-		if button != 1 or not is_mouse_press(event):
-			return False
-		if self.state is not True:
-			self.set_state(True)
-		return True
+	def toggle_state(self):
+		"""
+		Set state to True.
+		
+		>>> bgroup = [] # button group
+		>>> b1 = RadioButton(bgroup, "Agree")
+		>>> b2 = RadioButton(bgroup, "Disagree")
+		>>> b1.state, b2.state
+		(True, False)
+		>>> b2.toggle_state()
+		>>> b1.state, b2.state
+		(False, True)
+		>>> b2.toggle_state()
+		>>> b1.state, b2.state
+		(False, True)
+		"""
+		self.set_state(True)
+
 			
 
 class Button(WidgetWrap):

@@ -1859,26 +1859,26 @@ class PileTest(unittest.TestCase):
 	def test_select_change(self):
 		T,S,E = urwid.Text, SelectableText, urwid.Edit
 
-		self.ktest("simple up", [S("")], 0, "up", "up", 0, None)
-		self.ktest("simple down", [S("")], 0, "down", "down", 0, None)
-		self.ktest("ignore up", [T(""),S("")], 1, "up", "up", 1, None)
+		self.ktest("simple up", [S("")], 0, "up", "up", 0, 0)
+		self.ktest("simple down", [S("")], 0, "down", "down", 0, 0)
+		self.ktest("ignore up", [T(""),S("")], 1, "up", "up", 1, 0)
 		self.ktest("ignore down", [S(""),T("")], 0, "down", 
-			"down", 0, None)
-		self.ktest("step up", [S(""),S("")], 1, "up", None, 0, None)
+			"down", 0, 0)
+		self.ktest("step up", [S(""),S("")], 1, "up", None, 0, 0)
 		self.ktest("step down", [S(""),S("")], 0, "down", 
-			None, 1, None)
+			None, 1, 0)
 		self.ktest("skip step up", [S(""),T(""),S("")], 2, "up", 
-			None, 0, None)
+			None, 0, 0)
 		self.ktest("skip step down", [S(""),T(""),S("")], 0, "down", 
-			None, 2, None)
+			None, 2, 0)
 		self.ktest("pad skip step up", [T(""),S(""),T(""),S("")], 3, 
-			"up", None, 1, None)
+			"up", None, 1, 0)
 		self.ktest("pad skip step down", [S(""),T(""),S(""),T("")], 0, 
-			"down", None, 2, None)
+			"down", None, 2, 0)
 		self.ktest("padi skip step up", [S(""),T(""),S(""),T(""),S("")],
-			4, "up", None, 2, None)
+			4, "up", None, 2, 0)
 		self.ktest("padi skip step down", [S(""),T(""),S(""),T(""),
-			S("")], 0, "down", None, 2, None)
+			S("")], 0, "down", None, 2, 0)
 		e = E("","abcd", edit_pos=1)
 		e.keypress((20,),"right") # set a pref_col
 		self.ktest("pref step up", [S(""),T(""),e], 2, "up", 
