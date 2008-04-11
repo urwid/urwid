@@ -25,8 +25,9 @@ from __future__ import nested_scopes
 from util import *
 from canvas import *
 from widget import *
+from container import *
 from escape import utf8decode
-
+from display_common import AttrSpec
 
 class BigText(FixedWidget):
 	def __init__(self, markup, font):
@@ -817,3 +818,34 @@ class ProgressBar( FlowWidget ):
 				(self.normal,maxcol-ccol)]]
 		return c
 	
+class PythonLogo(FixedWidget):
+	def __init__(self):
+		"""
+		Create canvas containing an ASCII version of the Python
+		Logo and store it.
+		"""
+		blu = AttrSpec('light blue', 'default')
+		yel = AttrSpec('yellow', 'default')
+		width = 17
+		self._canvas = Text([
+			(blu, "     ______\n"),
+			(blu, "   _|_o__  |"), (yel, "__\n"),
+			(blu, "  |   _____|"), (yel, "  |\n"),
+			(blu, "  |__|  "), (yel, "______|\n"),
+			(yel, "     |____o_|")]).render((width,))
+
+	def pack(self, size=None, focus=False):
+		"""
+		Return the size from our pre-rendered canvas.
+		"""
+		return self._canvas.cols(), self._canvas.rows()
+
+	def render(self, size, focus=False):
+		"""
+		Return the pre-rendered canvas.
+		"""
+		fixed_size(size)
+		return self._canvas
+
+
+
