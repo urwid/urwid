@@ -43,6 +43,8 @@ __version__ = "0.9.8"
 
 
 from widget import *
+from container import *
+from wimp import *
 from listbox import *
 from graphics import *
 from canvas import *

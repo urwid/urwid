@@ -61,6 +61,9 @@ class SelectableIcon(Text):
 		"""
 		return key
 
+class CheckBoxError(Exception):
+	pass
+
 class CheckBox(WidgetWrap):
 	states = { 
 		True: SelectableIcon("[X]"),
@@ -270,9 +273,6 @@ class CheckBox(WidgetWrap):
 		return True
 	
 		
-class RadioButtonError(Exception):
-	pass
-
 class RadioButton(CheckBox):
 	states = { 
 		True: SelectableIcon("(X)"),
@@ -440,3 +440,10 @@ class Button(WidgetWrap):
 		return False
 	
 
+
+def _test():
+	import doctest
+	doctest.testmod()
+
+if __name__=='__main__':
+	_test()

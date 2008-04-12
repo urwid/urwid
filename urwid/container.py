@@ -68,6 +68,8 @@ class WidgetWrap(Widget):
 	rows = property(lambda self:self._w.rows)
 	mouse_event = property(lambda self:self._w.mouse_event)
 	sizing = property(lambda self:self._w.sizing)
+	
+
 class GridFlow(FlowWidget):
 
 	def selectable(self): 
@@ -1945,3 +1947,11 @@ class BoxAdapter(FlowWidget):
 		Pass calls to box widget.
 		"""
 		return getattr(self.box_widget, name)
+
+
+def _test():
+	import doctest
+	doctest.testmod()
+
+if __name__=='__main__':
+	_test()
