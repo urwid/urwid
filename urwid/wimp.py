@@ -26,23 +26,39 @@ from command_map import command_map
 
 class SelectableIcon(Text):
 	_selectable = True
+	def __init__(self, text, cursor_position=1):
+		"""
+		text -- markup for this widget
+		cursor_position -- position the cursor will appear in when this
+			widget is in focus
+
+		This is a text widget that is selectable with a cursor
+		displayed at a fixed location in the text when in focus
+		"""
+		self.__super.__init__(text)
+		self._cursor_position = cursor_position
 	
 	def render(self, size, focus=False):
 		"""
-		Render the text content of this widget with a cursor at
-		position (1,0) when in focus.
+		Render the text content of this widget with a cursor when
+		in focus.
 
 		>>> si = SelectableIcon("[!]")
 		>>> si
 		<SelectableIcon selectable flow widget '[!]'>
-		>>> si.render((4,),focus=True).cursor
+		>>> si.render((4,), focus=True).cursor
 		(1,0)
+		>>> si = SelectableIcon("((*))", 2)
+		>>> si.render((8,), focus=True).cursor
+		(2,0)
+		>>> si.render((2,), focus=True).cursor
+		(1,1)
 		"""
-		(maxcol,) = size
-		c = Text.render(self, (maxcol,), focus )
+		c = self.__super.render(size, focus)
 		if focus:
+			# create a new canvas so we can add a cursor
 			c = CompositeCanvas(c)
-			c.cursor = self.get_cursor_coords((maxcol,))
+			c.cursor = self.get_cursor_coords(size)
 		return c
 	
 	def get_cursor_coords(self, size):
@@ -50,9 +66,14 @@ class SelectableIcon(Text):
 		Return the position of the cursor if visible.  This method
 		is required for widgets that display a cursor.
 		"""
+		if self._cursor_position > len(self.text):
+			return None
+		# find out where the cursor will be displayed based on
+		# the text layout
 		(maxcol,) = size
-		if maxcol>1:
-			return (1,0)
+		trans = self.get_line_translation(maxcol)
+		x, y = calc_coords(self.text, trans, self._cursor_position)
+		return x, y
 
 	def keypress(self, size, key):
 		"""
@@ -88,7 +109,7 @@ class CheckBox(WidgetWrap):
 		Signals supported: 'change'
 		Register signal handler with:
 		  connect_signal(check_box, 'change', callback [,user_data])
-		where signal is signal(check_box, new_state [,user_data])
+		where callback is callback(check_box, new_state [,user_data])
 		Unregister signal handlers with:
 		  disconnect_signal(check_box, 'change', callback [,user_data])
 
@@ -96,8 +117,11 @@ class CheckBox(WidgetWrap):
 		<CheckBox selectable flow widget 'Confirm' state=False>
 		>>> CheckBox("Yogourt", "mixed", True)
 		<CheckBox selectable flow widget 'Yogourt' state='mixed'>
-		>>> CheckBox("Extra onions", True)
+		>>> cb = CheckBox("Extra onions", True)
+		>>> cb
 		<CheckBox selectable flow widget 'Extra onions' state=True>
+		>>> cb.render((20,), focus=True).text  # preview CheckBox
+		['[X] Extra onions    ']
 		"""
 		self.__super.__init__(None) # self.w set by set_state below
 		self._label = Text("")
@@ -161,9 +185,9 @@ class CheckBox(WidgetWrap):
 		
 		>>> changes = []
 		>>> def callback_a(cb, state, user_data): 
-		...     changes.append(("A", state, user_data))
+		...     changes.append("A %r %r" % (state, user_data))
 		>>> def callback_b(cb, state): 
-		...     changes.append(("B", state))
+		...     changes.append("B %r" % state)
 		>>> cb = CheckBox('test', False, False)
 		>>> connect_signal(cb, 'change', callback_a, "user_a")
 		>>> connect_signal(cb, 'change', callback_b)
@@ -179,7 +203,7 @@ class CheckBox(WidgetWrap):
 		True
 		>>> cb.set_state(False, False) # don't send signal
 		>>> changes
-		[('A', True, 'user_a'), ('B', True), ('B', False), ('B', True)]
+		["A True 'user_a'", 'B True', 'B False', 'B True']
 		"""
 		if self._state == state:
 			return
@@ -252,7 +276,6 @@ class CheckBox(WidgetWrap):
 				self.set_state(False)
 		elif self.state == 'mixed':
 			self.set_state(False)
-		self._invalidate()
 
 	def mouse_event(self, size, event, button, x, y, focus):
 		"""
@@ -287,10 +310,17 @@ class RadioButton(CheckBox):
 		label -- markup for radio button label
 		state -- False, True, "mixed" or "first True"
 		on_state_change, user_data -- shorthand for connect_signal()
-			function call for a single callback
+			function call for a single 'change' callback
 
 		This function will append the new radio button to group.
 		"first True" will set to True if group is empty.
+		
+		Signals supported: 'change'
+		Register signal handler with:
+		  connect_signal(radio_button, 'change', callback [,user_data])
+		where callback is callback(radio_button, new_state [,user_data])
+		Unregister signal handlers with:
+		  disconnect_signal(radio_button, 'change', callback [,user_data])
 
 		>>> bgroup = [] # button group
 		>>> b1 = RadioButton(bgroup, "Agree")
@@ -301,6 +331,8 @@ class RadioButton(CheckBox):
 		<RadioButton selectable flow widget 'Agree' state=True>
 		>>> b2
 		<RadioButton selectable flow widget 'Disagree' state=False>
+		>>> b2.render((15,), focus=True).text  # preview RadioButton
+		['( ) Disagree   ']
 		"""
 		if state=="first True":
 			state = not group
@@ -328,9 +360,17 @@ class RadioButton(CheckBox):
 		>>> b3 = RadioButton(bgroup, "Unsure")
 		>>> b1.state, b2.state, b3.state
 		(True, False, False)
-		>>> b3.set_state(True)
+		>>> b2.set_state(True)
 		>>> b1.state, b2.state, b3.state
-		(False, False, True)
+		(False, True, False)
+		>>> def relabel_button(radio_button, new_state):
+		...     radio_button.set_label("Think Harder!")
+		>>> connect_signal(b3, 'change', relabel_button)
+		>>> b3
+		<RadioButton selectable flow widget 'Unsure' state=False>
+		>>> b3.set_state(True) # this will trigger the callback
+		>>> b3
+		<RadioButton selectable flow widget 'Think Harder!' state=True>
 		"""
 		if self._state == state:
 			return
@@ -373,72 +413,117 @@ class Button(WidgetWrap):
 	button_left = Text("<")
 	button_right = Text(">")
 
-	def selectable(self):
-		return True
+	signals = ["click"]
 	
 	def __init__(self, label, on_press=None, user_data=None):
 		"""
 		label -- markup for button label
-		on_press -- callback function for button "press"
-		           on_press( button object, user_data=None)
-                user_data -- additional param for on_press callback,
-		           ommited if None for compatibility reasons
+		on_press, user_data -- shorthand for connect_signal()
+			function call for a single callback
+		
+		Signals supported: 'click'
+		Register signal handler with:
+		  connect_signal(button, 'click', callback [,user_data])
+		where callback is callback(button [,user_data])
+		Unregister signal handlers with:
+		  disconnect_signal(button, 'click', callback [,user_data])
+
+		>>> Button("Ok")
+		<Button selectable flow widget 'Ok'>
+		>>> b = Button("Cancel")
+		>>> b.render((15,), focus=True).text  # preview Button
+		['< Cancel      >']
 		"""
-		self.__super.__init__(None) # self.w set by set_label below
-			
-		self.set_label( label )
-		self.on_press = on_press
-		self.user_data = user_data
-	
-	def set_label(self, label):
-		self.label = label
-		self.w = Columns([
+		self._label = SelectableIcon("", 0)	
+		cols = Columns([
 			('fixed', 1, self.button_left),
-			Text( label ),
+			self._label,
 			('fixed', 1, self.button_right)],
 			dividechars=1)
-		self._invalidate()
+		self.__super.__init__(cols) 
+		
+		# The old way of listening for a change was to pass the callback
+		# in to the constructor.  Just convert it to the new way:
+		if on_press:
+			connect_signal(self, 'click', on_presss, user_data)
+
+		self.set_label(label)
+	
+	def _repr_words(self):
+		# include button.label in repr(button)
+		return self.__super._repr_words() + [
+			repr(self.label)]
+
+	def set_label(self, label):
+		"""
+		Change the button label.
+
+		label -- markup for button label
+
+		>>> b = Button("Ok")
+		>>> b.set_label("Yup yup")
+		>>> b
+		<Button selectable flow widget 'Yup yup'>
+		"""
+		self._label.set_text(label)
 	
 	def get_label(self):
-		return self.label
+		"""
+		Return label text.
+
+		>>> b = Button("Ok")
+		>>> b.get_label()
+		'Ok'
+		>>> b.label  # Urwid 0.9.9 or later
+		'Ok'
+		"""
+		return self._label.text
+	label = property(get_label)
 	
-	def render(self, size, focus=False):
-		"""Display button. Show a cursor when in focus."""
-		(maxcol,) = size
-		canv = self.__super.render(size, focus=focus)
-		canv = CompositeCanvas(canv)
-		if focus and maxcol >2:
-			canv.cursor = (2,0)
-		return canv
-
-	def get_cursor_coords(self, size):
-		"""Return the location of the cursor."""
-		(maxcol,) = size
-		if maxcol >2:
-			return (2,0)
-		return None
-
 	def keypress(self, size, key):
-		"""Call on_press on spage or enter."""
-		if key not in (' ','enter'):
+		"""
+		Send 'click' signal on 'activate' command.
+		
+		>>> assert command_map[' '] == 'activate'
+		>>> assert command_map['enter'] == 'activate'
+		>>> size = (15,)
+		>>> b = Button("Cancel")
+		>>> clicked_buttons = []
+		>>> def handle_click(button):
+		...     clicked_buttons.append(button.label)
+		>>> connect_signal(b, 'click', handle_click)
+		>>> b.keypress(size, 'enter')
+		>>> b.keypress(size, ' ')
+		>>> clicked_buttons
+		['Cancel', 'Cancel']
+		"""
+		if command_map[key] != 'activate':
 			return key
 
-		if self.on_press:
-			if self.user_data is None:
-				self.on_press(self)
-			else:
-				self.on_press(self, self.user_data)
+		self._emit('click', self)
 
 	def mouse_event(self, size, event, button, x, y, focus):
-		"""Call on_press on button 1 press."""
+		"""
+		Send 'click' signal on button 1 press.
+
+		>>> size = (15,)
+		>>> b = Button("Ok")
+		>>> clicked_buttons = []
+		>>> def handle_click(button):
+		...     clicked_buttons.append(button.label)
+		>>> connect_signal(b, 'click', handle_click)
+		>>> b.mouse_event(size, 'mouse press', 1, 4, 0, True)
+		True
+		>>> b.mouse_event(size, 'mouse press', 2, 4, 0, True) # ignored
+		False
+		>>> clicked_buttons
+		['Ok']
+		"""
 		if button != 1 or not is_mouse_press(event):
 			return False
 			
-		if self.on_press:
-			self.on_press( self )
-			return True
-		return False
-	
+		self._emit('click', self)
+		return True
 
 
 def _test():
