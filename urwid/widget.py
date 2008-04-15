@@ -1199,6 +1199,51 @@ class IntEdit(Edit):
 			return 0
 
 
+class WidgetWrap(Widget):
+	no_cache = ["rows"]
+
+	def __init__(self, w):
+		"""
+		w -- widget to wrap, stored as self.w
+
+		This object will pass the functions defined in Widget interface
+		definition to self.w.
+		"""
+		self._w = w
+
+	def set_w(self, w):
+		"""
+		Change the wrapped widget.
+
+		>>> size = (10,)
+		>>> ww = WidgetWrap(Edit("hello? ","hi"))
+		>>> ww.render(size).text
+		['hello? hi ']
+		>>> ww.selectable()
+		True
+		>>> ww.w = Text("goodbye")
+		>>> ww.render(size).text
+		['goodbye   ']
+		>>> ww.selectable()
+		False
+		"""
+		self._w = w
+		self._invalidate()
+	w = property(lambda self:self._w, set_w)
+
+	def render(self, size, focus=False):
+		"""Render self.w."""
+		canv = self.w.render(size, focus=focus)
+		return CompositeCanvas(canv)
+
+	selectable = property(lambda self:self._w.selectable)
+	get_cursor_coords = property(lambda self:self._w.get_cursor_coords)
+	get_pref_col = property(lambda self:self._w.get_pref_col)
+	keypress = property(lambda self:self._w.keypress)
+	move_cursor_to_coords = property(lambda self:self._w.move_cursor_to_coords)
+	rows = property(lambda self:self._w.rows)
+	mouse_event = property(lambda self:self._w.mouse_event)
+	sizing = property(lambda self:self._w.sizing)
 
 
 def _test():
