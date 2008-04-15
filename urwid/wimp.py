@@ -445,7 +445,7 @@ class Button(WidgetWrap):
 		# The old way of listening for a change was to pass the callback
 		# in to the constructor.  Just convert it to the new way:
 		if on_press:
-			connect_signal(self, 'click', on_presss, user_data)
+			connect_signal(self, 'click', on_press, user_data)
 
 		self.set_label(label)
 	

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Urwid decoration widget classes
+# Urwid widget decoration classes
 #    Copyright (C) 2004-2008  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
@@ -24,10 +24,34 @@ from util import *
 from widget import *
 
 
+class WidgetDecoration(Widget):
+	def __init__(self, original_widget):
+		"""
+		original_widget -- the widget being decorated
+		"""
+		self._original_widget = original_widget
+	
+	def _get_original_widget(self):
+		return self._original_widget
+	def _set_original_widget(self, original_widget):
+		self._original_widget = original_widget
+		self._invalidate()
+	original_widget = property(_get_original_widget, _set_original_widget)
 
-class AttrWrap(Widget):
+	def get_undecorated_widget(self):
+		w = self
+		while hasattr(w, '_original_widget'):
+			w = w._original_widget
+		return w
+
+	def selectable(self):
+		return self._original_widget.selectable()
+
+
+
+class AttrWrap(WidgetDecoration):
 	"""
-	AttrWrap is a decorator that changes the default attribute for a 
+	AttrWrap is a decoration that changes the default attribute for a 
 	FlowWidget or BoxWidget
 	"""
 	def __init__(self, w, attr, focus_attr = None):
@@ -39,15 +63,13 @@ class AttrWrap(Widget):
 		This object will pass all function calls and variable references
 		to the wrapped widget.
 		"""
-		self._w = w
+		self.__super.__init__(w)
 		self._attr = attr
 		self._focus_attr = focus_attr
 	
-	def get_w(self):
-		return self._w
-	def set_w(self, w):
-		self._w = w
-		self._invalidate()
+	# backwards compatibility, widget used to be stored as w
+	get_w = WidgetDecoration._get_original_widget
+	set_w = WidgetDecoration._set_original_widget
 	w = property(get_w, set_w)
 	
 	def get_attr(self):
@@ -64,8 +86,9 @@ class AttrWrap(Widget):
 		self._invalidate()
 	focus_attr = property(get_focus_attr, set_focus_attr)
 		
-	def render(self, size, focus = False ):
-		"""Render self.w and apply attribute. Return canvas.
+	def render(self, size, focus=False):
+		"""
+		Render wrapped widget and apply attribute. Return canvas.
 		
 		size -- (maxcol,) if self.w contains a flow widget or
 			(maxcol, maxrow) if it contains a box widget.
@@ -73,17 +96,14 @@ class AttrWrap(Widget):
 		attr = self.attr
 		if focus and self.focus_attr is not None:
 			attr = self.focus_attr
-		canv = self.w.render(size, focus=focus)
+		canv = self._original_widget.render(size, focus=focus)
 		canv = CompositeCanvas(canv)
 		canv.fill_attr(attr)
 		return canv
 
-	def selectable(self):
-		return self.w.selectable()
-
 	def __getattr__(self,name):
 		"""Call getattr on wrapped widget."""
-		return getattr(self.w, name)
+		return getattr(self._original_widget, name)
 
 
 class BoxAdapter(FlowWidget):
