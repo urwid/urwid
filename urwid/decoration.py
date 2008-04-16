@@ -28,8 +28,16 @@ class WidgetDecoration(Widget):
 	def __init__(self, original_widget):
 		"""
 		original_widget -- the widget being decorated
+
+		This is a base class for decoration widgets, widgets
+		that contain one or more widgets and only ever have
+		a single focus.  This type of widget will affect the
+		display or behaviour of the original_widget but it is
+		not part of determining a chain of focus.
 		"""
 		self._original_widget = original_widget
+	def _repr_attrs(self):
+		return dict(original_widget=self._original_widget)
 	
 	def _get_original_widget(self):
 		return self._original_widget
@@ -106,11 +114,15 @@ class AttrWrap(WidgetDecoration):
 		return getattr(self._original_widget, name)
 
 
-class BoxAdapter(FlowWidget):
+class BoxAdapterError(Exception):
+	pass
+
+class BoxAdapter(WidgetDecoration):
 	"""
 	Adapter for using a box widget where a flow widget would usually go
 	"""
 	no_cache = ["rows"]
+	_sizing = set(['flow']) # flow widget
 
 	def __init__(self, box_widget, height):
 		"""
@@ -119,10 +131,15 @@ class BoxAdapter(FlowWidget):
 		box_widget -- box widget
 		height -- number of rows for box widget
 		"""
-		self.__super.__init__()
+		if 'box' not in box_widget.sizing():
+			raise BoxAdapterError("%r is not a box widget" % 
+				box_widget)
+		self.__super.__init__(box_widget)
 		
 		self.height = height
-		self.box_widget = box_widget
+
+	box_widget = property(WidgetDecoration._get_original_widget, 
+		WidgetDecoration._set_original_widget)
 
 	def rows(self, size, focus=False):
 		"""
@@ -130,45 +147,39 @@ class BoxAdapter(FlowWidget):
 		"""
 		return self.height
 
-	def selectable(self):
-		"""
-		Return box widget's selectable value
-		"""
-		return self.box_widget.selectable()
-
 	def get_cursor_coords(self, size):
 		(maxcol,) = size
-		if not hasattr(self.box_widget,'get_cursor_coords'):
+		if not hasattr(self._original_widget,'get_cursor_coords'):
 			return None
-		return self.box_widget.get_cursor_coords((maxcol, self.height))
+		return self._original_widget.get_cursor_coords((maxcol, self.height))
 	
 	def get_pref_col(self, size):
 		(maxcol,) = size
-		if not hasattr(self.box_widget,'get_pref_col'):
+		if not hasattr(self._original_widget,'get_pref_col'):
 			return None
-		return self.box_widget.get_pref_col((maxcol, self.height))
+		return self._original_widget.get_pref_col((maxcol, self.height))
 	
 	def keypress(self, size, key):
 		(maxcol,) = size
-		return self.box_widget.keypress((maxcol, self.height), key)
+		return self._original_widget.keypress((maxcol, self.height), key)
 	
 	def move_cursor_to_coords(self, size, col, row):
 		(maxcol,) = size
-		if not hasattr(self.box_widget,'move_cursor_to_coords'):
+		if not hasattr(self._original_widget,'move_cursor_to_coords'):
 			return True
-		return self.box_widget.move_cursor_to_coords((maxcol,
+		return self._original_widget.move_cursor_to_coords((maxcol,
 			self.height), col, row )
 	
 	def mouse_event(self, size, event, button, col, row, focus):
 		(maxcol,) = size
-		if not hasattr(self.box_widget,'mouse_event'):
+		if not hasattr(self._original_widget,'mouse_event'):
 			return False
-		return self.box_widget.mouse_event((maxcol, self.height),
+		return self._original_widget.mouse_event((maxcol, self.height),
 			event, button, col, row, focus)
 	
 	def render(self, size, focus=False):
 		(maxcol,) = size
-		canv = self.box_widget.render((maxcol, self.height), focus)
+		canv = self._original_widget.render((maxcol, self.height), focus)
 		canv = CompositeCanvas(canv)
 		return canv
 	
