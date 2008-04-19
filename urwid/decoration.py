@@ -34,10 +34,15 @@ class WidgetDecoration(Widget):
 		a single focus.  This type of widget will affect the
 		display or behaviour of the original_widget but it is
 		not part of determining a chain of focus.
+
+		Don't actually do this -- use a WidgetDecoration subclass
+		instead, these are not real widgets:
+		>>> WidgetDecoration(Text("hi"))
+		<WidgetDecoration widget <Text flow widget 'hi' align_mode='left' wrap_mode='space'>>
 		"""
 		self._original_widget = original_widget
-	def _repr_attrs(self):
-		return dict(original_widget=self._original_widget)
+	def _repr_words(self):
+		return self.__super._repr_words() + [repr(self._original_widget)]
 	
 	def _get_original_widget(self):
 		return self._original_widget
@@ -47,6 +52,19 @@ class WidgetDecoration(Widget):
 	original_widget = property(_get_original_widget, _set_original_widget)
 
 	def get_undecorated_widget(self):
+		"""
+		Return the widget without decorations.  If there is only one
+		Decoration then this is the same as original_widget.
+
+		>>> t = Text('hello')
+		>>> wd1 = WidgetDecoration(t)
+		>>> wd2 = WidgetDecoration(wd1)
+		>>> wd3 = WidgetDecoration(wd2)
+		>>> wd3.original_widget is wd2
+		True
+		>>> wd3.get_undecorated_widget() is t
+		True
+		"""
 		w = self
 		while hasattr(w, '_original_widget'):
 			w = w._original_widget
@@ -64,16 +82,28 @@ class AttrWrap(WidgetDecoration):
 	"""
 	def __init__(self, w, attr, focus_attr = None):
 		"""
-		w -- widget to wrap
+		w -- widget to wrap (stored as original_widget)
 		attr -- attribute to apply to w
 		focus_attr -- attribute to apply when in focus, if None use attr
 		
 		This object will pass all function calls and variable references
 		to the wrapped widget.
+
+		>>> AttrWrap(Divider("!"), 'bright')
+		<AttrWrap flow widget <Divider flow widget div_char='!'> attr='bright'>
+		>>> AttrWrap(Edit(), 'notfocus', 'focus')
+		<AttrWrap selectable flow widget <Edit selectable flow widget '' edit_pos=0> attr='notfocus' focus_attr='focus'>
 		"""
 		self.__super.__init__(w)
 		self._attr = attr
 		self._focus_attr = focus_attr
+	
+	def _repr_attrs(self):
+		# only include the focus_attr when it takes effect (not None)
+		d = dict(self.__super._repr_attrs(), attr=self._attr)
+		if self._focus_attr is not None:
+			d['focus_attr'] = self._focus_attr
+		return d
 	
 	# backwards compatibility, widget used to be stored as w
 	get_w = WidgetDecoration._get_original_widget
@@ -98,8 +128,13 @@ class AttrWrap(WidgetDecoration):
 		"""
 		Render wrapped widget and apply attribute. Return canvas.
 		
-		size -- (maxcol,) if self.w contains a flow widget or
-			(maxcol, maxrow) if it contains a box widget.
+		>>> size = (5,)
+		>>> assert False # FIXME not running due to decorator
+		>>> aw = AttrWrap(Text("hi"), 'greeting', 'fgreet')
+		>>> aw.render(size, focus=False).content()[0]
+		[('greeting', None, 'hi   ')]
+		>>> aw.render(size, focus=True).content()[0]
+		[('fgreet', None, 'hi   ')]
 		"""
 		attr = self.attr
 		if focus and self.focus_attr is not None:
@@ -108,6 +143,9 @@ class AttrWrap(WidgetDecoration):
 		canv = CompositeCanvas(canv)
 		canv.fill_attr(attr)
 		return canv
+
+	def sizing(self):
+		return self._original_widget.sizing()
 
 	def __getattr__(self,name):
 		"""Call getattr on wrapped widget."""
