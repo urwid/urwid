@@ -218,10 +218,10 @@ class CheckBox(WidgetWrap):
 			self._emit('change', self, state)
 		self._state = state
 		# rebuild the display widget with the new state
-		self.w = Columns( [
+		self._w = Columns( [
 			('fixed', self.reserve_columns, self.states[state] ),
 			self._label ] )
-		self.w.focus_col = 0
+		self._w.focus_col = 0
 		
 	def get_state(self):
 		"""Return the state of the checkbox."""

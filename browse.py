@@ -71,14 +71,15 @@ class TreeWidget(urwid.WidgetWrap):
 			return key
 
 	def update_w(self):
-		"""Update the attributes of self.widget based on self.selected.
+		"""
+		Update the attributes of wrapped widget based on self.selected.
 		"""
 		if self.selected:
-			self.w.attr = 'selected'
-			self.w.focus_attr = 'selected focus'
+			self._w.attr = 'selected'
+			self._w.focus_attr = 'selected focus'
 		else:
-			self.w.attr = 'body'
-			self.w.focus_attr = 'focus'
+			self._w.attr = 'body'
+			self._w.focus_attr = 'focus'
 		
 	def first_child(self):
 		"""Default to have no children."""
