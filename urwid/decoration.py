@@ -24,7 +24,7 @@ from util import *
 from widget import *
 
 
-class WidgetDecoration(Widget):
+class WidgetDecoration(Widget):  # "decorator" was already taken
 	def __init__(self, original_widget):
 		"""
 		original_widget -- the widget being decorated
@@ -82,7 +82,7 @@ class AttrWrap(WidgetDecoration):
 	"""
 	def __init__(self, w, attr, focus_attr = None):
 		"""
-		w -- widget to wrap (stored as original_widget)
+		w -- widget to wrap (stored as self.original_widget)
 		attr -- attribute to apply to w
 		focus_attr -- attribute to apply when in focus, if None use attr
 		
@@ -124,18 +124,19 @@ class AttrWrap(WidgetDecoration):
 		self._invalidate()
 	focus_attr = property(get_focus_attr, set_focus_attr)
 		
+	
 	def render(self, size, focus=False):
 		"""
 		Render wrapped widget and apply attribute. Return canvas.
 		
 		>>> size = (5,)
-		>>> assert False # FIXME not running due to decorator
 		>>> aw = AttrWrap(Text("hi"), 'greeting', 'fgreet')
-		>>> aw.render(size, focus=False).content()[0]
+		>>> aw.render(size, focus=False).content().next()
 		[('greeting', None, 'hi   ')]
-		>>> aw.render(size, focus=True).content()[0]
+		>>> aw.render(size, focus=True).content().next()
 		[('fgreet', None, 'hi   ')]
-		"""
+		""" ### NOTE: these tests aren't being run [Python issue1108]
+		
 		attr = self.attr
 		if focus and self.focus_attr is not None:
 			attr = self.focus_attr
@@ -155,36 +156,47 @@ class AttrWrap(WidgetDecoration):
 class BoxAdapterError(Exception):
 	pass
 
-class BoxAdapter(WidgetDecoration):
+class BoxAdapter(WidgetDecoration, FlowWidget):
 	"""
 	Adapter for using a box widget where a flow widget would usually go
 	"""
 	no_cache = ["rows"]
-	_sizing = set(['flow']) # flow widget
 
 	def __init__(self, box_widget, height):
 		"""
 		Create a flow widget that contains a box widget
 
-		box_widget -- box widget
+		box_widget -- box widget (stored as self.original_widget)
 		height -- number of rows for box widget
+
+		>>> BoxAdapter(SolidFill("x"), 5) # 5-rows of x's
+		<BoxAdapter flow widget <SolidFill box widget 'x'> height=5>
 		"""
-		if 'box' not in box_widget.sizing():
+		if BOX not in box_widget.sizing():
 			raise BoxAdapterError("%r is not a box widget" % 
 				box_widget)
-		self.__super.__init__(box_widget)
+		WidgetDecoration.__init__(self,box_widget)
 		
 		self.height = height
+	
+	def _repr_attrs(self):
+		return dict(self.__super._repr_attrs(), height=self.height)
 
+	# originally stored as box_widget, keep for compatibility
 	box_widget = property(WidgetDecoration._get_original_widget, 
 		WidgetDecoration._set_original_widget)
 
 	def rows(self, size, focus=False):
 		"""
-		Return self.height
+		Return the predetermined height (behave like a flow widget)
+		
+		>>> BoxAdapter(SolidFill("x"), 5).height((20,))
+		5
 		"""
 		return self.height
 
+	# The next few functions simply tack-on our height and pass through
+	# to self._original_widget
 	def get_cursor_coords(self, size):
 		(maxcol,) = size
 		if not hasattr(self._original_widget,'get_cursor_coords'):
@@ -232,7 +244,7 @@ class BoxAdapter(WidgetDecoration):
 class PaddingError(Exception):
 	pass
 
-class Padding(Widget):
+class Padding(WidgetDecoration):
 	def __init__(self, w, align, width, min_width=None):
 		"""
 		w -- a box, flow or fixed widget to pad on the left and/or right

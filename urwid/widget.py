@@ -33,6 +33,14 @@ except: sum = lambda l: reduce(lambda a,b: a+b, l, 0)
 try: set
 except: set = list # not perfect, but should be good enough for python2.2
 
+
+# Widget sizing methods
+# (use the same string objects to make some comparisons faster)
+FLOW = 'flow'
+BOX = 'box'
+FIXED = 'fixed'
+
+
 class WidgetMeta(MetaSuper, signals.MetaSignals):
 	"""
 	Automatic caching of render and rows methods.
@@ -74,6 +82,16 @@ def validate_size(widget, size, canv):
 			" when passed size %r!" % (widget, canv.cols(),
 			canv.rows(), size))
 
+def update_wrapper(new_fn, fn):
+	"""
+	Copy as much of the function detail from fn to new_fn
+	as we can.
+	"""
+	new_fn.__name__ = fn.__name__
+	new_fn.__dict__.update(fn.__dict__)
+	new_fn.__doc__ = fn.__doc__
+	new_fn.__module__ = fn.__module__
+
 
 def cache_widget_render(cls):
 	"""
@@ -96,6 +114,7 @@ def cache_widget_render(cls):
 		CanvasCache.store(canv)
 		return canv
 	cached_render.original_fn = fn
+	update_wrapper(cached_render, fn)
 	return cached_render
 
 def nocache_widget_render(cls):
@@ -114,6 +133,7 @@ def nocache_widget_render(cls):
 		canv.finalize(self, size, focus)
 		return canv
 	finalize_render.original_fn = fn
+	update_wrapper(finalize_render, fn)
 	return finalize_render
 
 def nocache_widget_render_instance(self):
@@ -130,6 +150,7 @@ def nocache_widget_render_instance(self):
 		canv.finalize(self, size, focus)
 		return canv
 	finalize_render.original_fn = fn
+	update_wrapper(finalize_render, fn)
 	return finalize_render
 
 def cache_widget_rows(cls):
@@ -146,6 +167,7 @@ def cache_widget_rows(cls):
 			return canv.rows()
 
 		return fn(self, size, focus)
+	update_wrapper(cached_rows, fn)
 	return cached_rows
 
 
@@ -224,9 +246,10 @@ class Widget(object):
 
 class FlowWidget(Widget):
 	"""
-	base class of widgets
+	base class of widgets that determine their rows from the number of
+	columns available.
 	"""
-	_sizing = set(['flow'])
+	_sizing = set([FLOW])
 	
 	def rows(self, size, focus=False):
 		"""
@@ -247,7 +270,7 @@ class BoxWidget(Widget):
 	the top level widget attached to the display object
 	"""
 	_selectable = True
-	_sizing = set(['box'])
+	_sizing = set([BOX])
 	
 	def render(self, size, focus=False):
 		"""
@@ -271,7 +294,7 @@ class FixedWidget(Widget):
 	base class of widgets that know their width and height and
 	cannot be resized
 	"""
-	_sizing = set(['fixed'])
+	_sizing = set([FIXED])
 	
 	def render(self, size, focus=False):
 		"""
@@ -335,7 +358,7 @@ class Divider(FlowWidget):
 		"""
 		Render the divider as a canvas and return it.
 		
-		>>> Divider().render((10,)).text
+		>>> Divider().render((10,)).text 
 		['          ']
 		>>> Divider('-', top=1).render((10,)).text
 		['          ', '----------']
@@ -362,14 +385,13 @@ class SolidFill(BoxWidget):
 		fill_char -- character to fill area with
 
 		>>> SolidFill('8')
-		<SolidFill box widget fill_char='8'>
+		<SolidFill box widget '8'>
 		"""
 		self.__super.__init__()
 		self.fill_char = fill_char
 	
-	def _repr_attrs(self):
-		return dict(self.__super._repr_attrs(),
-			fill_char=self.fill_char)
+	def _repr_words(self):
+		return self.__super._repr_words() + [repr(self.fill_char)]
 	
 	def render(self, size, focus=False ):
 		"""
