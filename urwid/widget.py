@@ -26,6 +26,7 @@ from canvas import *
 from monitored_list import MonitoredList
 from command_map import command_map
 from signals import connect_signal, connect_signal, disconnect_signal
+from split_repr import split_repr, remove_defaults
 
 try: sum # old python?
 except: sum = lambda l: reduce(lambda a,b: a+b, l, 0)
@@ -39,6 +40,22 @@ except: set = list # not perfect, but should be good enough for python2.2
 FLOW = 'flow'
 BOX = 'box'
 FIXED = 'fixed'
+
+# Text alignment modes 
+LEFT = 'left'
+RIGHT = 'right'
+CENTER = 'center'
+
+# Text wrapping modes
+SPACE = 'space'
+ANY = 'any'
+CLIP = 'clip'
+
+# Extras for Padding
+FIXED_LEFT = 'fixed left'
+FIXED_RIGHT = 'fixed right'
+RELATIVE = 'relative'
+PACK = 'pack'
 
 
 class WidgetMeta(MetaSuper, signals.MetaSignals):
@@ -200,19 +217,15 @@ class Widget(object):
 		"""
 		return self._sizing
 
-	def _repr_ex(self, *words, **attrs):
-		"""
-		Extended __repr__ function that allows addition of
-		strings and key/value pairs to a widget description.
-
-		words - list of strings that will appear after the widget
-		        name
-		attrs - dictionary of string:value that will be displayed
-		        as "string=value" items
-		"""
-	
+	# this property returns the widget without any decorations, default
+	# implementation returns self.
 	base_widget = property(lambda self:self)
 	
+
+	# Use the split_repr module to create __repr__ from _repr_words
+	# and _repr_attrs
+	__repr__ = split_repr
+
 	def _repr_words(self):
 		words = []
 		if self.selectable():
@@ -222,26 +235,9 @@ class Widget(object):
 			sizing_modes.sort()
 			words.append("/".join(sizing_modes))
 		return words + ["widget"]
-	
+
 	def _repr_attrs(self):
 		return {}
-
-	def __repr__(self):
-		"""
-		Return a helpful description of the widget object.
-		
-		Calls self._repr_words() and self._repr_attrs() to add
-		to the description of the widget.
-		"""
-		alist = self._repr_attrs().items()
-		alist.sort()
-		words = self._repr_words()
-		if not words and not attrs:
-			return self.__super.__repr__()
-		if words and alist: words.append("")
-		return "<%s %s>" % (self.__class__.__name__,
-			" ".join(words) +
-			" ".join(["%s=%r" % (k,v) for k,v in alist]))
 	
 
 class FlowWidget(Widget):
@@ -414,7 +410,7 @@ class Text(FlowWidget):
 	"""
 	ignore_focus = True
 
-	def __init__(self, markup, align='left', wrap='space', layout=None):
+	def __init__(self, markup, align=LEFT, wrap=SPACE, layout=None):
 		"""
 		markup -- content of text widget, one of:
 			plain string -- string is displayed
@@ -425,10 +421,10 @@ class Text(FlowWidget):
 		layout -- layout object to use, defaults to StandardTextLayout
 
 		>>> Text("Hello")
-		<Text flow widget 'Hello' align_mode='left' wrap_mode='space'>
+		<Text flow widget 'Hello'>
 		>>> t = Text(('bold', "stuff"), 'right', 'any')
 		>>> t
-		<Text flow widget 'stuff' align_mode='right' wrap_mode='any'>
+		<Text flow widget 'stuff' align='right' wrap='any'>
 		>>> t.text
 		'stuff'
 		>>> t.attrib
@@ -444,9 +440,10 @@ class Text(FlowWidget):
 			repr(self.get_text()[0])]
 	
 	def _repr_attrs(self):
-		return dict(self.__super._repr_attrs(),
-			align_mode=self._align_mode, 
-			wrap_mode=self._wrap_mode)
+		attrs = dict(self.__super._repr_attrs(),
+			align=self._align_mode, 
+			wrap=self._wrap_mode)
+		return remove_defaults(attrs, Text.__init__)
 	
 	def _invalidate(self):
 		self._cache_maxcol = None
@@ -500,14 +497,14 @@ class Text(FlowWidget):
 
 		>>> t = Text("word")
 		>>> t.set_align_mode('right')
-		>>> t.align_mode
+		>>> t.align
 		'right'
 		>>> t.render((10,)).text
 		['      word']
-		>>> t.align_mode = 'center'  # Urwid 0.9.9 or later
+		>>> t.align = 'center'
 		>>> t.render((10,)).text
 		['   word   ']
-		>>> t.align_mode = 'somewhere'
+		>>> t.align = 'somewhere'
 		Traceback (most recent call last):
 		    ...
 		TextError: Alignment mode 'somewhere' not supported.
@@ -531,14 +528,14 @@ class Text(FlowWidget):
 		>>> t.render((6,)).text
 		['some  ', 'words ']
 		>>> t.set_wrap_mode('clip')
-		>>> t.wrap_mode
+		>>> t.wrap
 		'clip'
 		>>> t.render((6,)).text
 		['some w']
-		>>> t.wrap_mode = 'any'  # Urwid 0.9.9 or later
+		>>> t.wrap = 'any'  # Urwid 0.9.9 or later
 		>>> t.render((6,)).text
 		['some w', 'ords  ']
-		>>> t.wrap_mode = 'somehow'
+		>>> t.wrap = 'somehow'
 		Traceback (most recent call last):
 		    ...
 		TextError: Wrap mode 'somehow' not supported.
@@ -559,7 +556,7 @@ class Text(FlowWidget):
 		>>> t = Text("hi")
 		>>> t.set_layout('right', 'clip')
 		>>> t
-		<Text flow widget 'hi' align_mode='right' wrap_mode='clip'>
+		<Text flow widget 'hi' align='right' wrap='clip'>
 		"""
 		if layout is None:
 			layout = text_layout.default_layout
@@ -567,8 +564,8 @@ class Text(FlowWidget):
 		self.set_align_mode(align)
 		self.set_wrap_mode(wrap)
 
-	align_mode = property(lambda self:self._align_mode, set_align_mode)
-	wrap_mode = property(lambda self:self._wrap_mode, set_wrap_mode)
+	align = property(lambda self:self._align_mode, set_align_mode)
+	wrap = property(lambda self:self._wrap_mode, set_wrap_mode)
 	layout = property(lambda self:self._layout)
 
 	def render(self, size, focus=False):
@@ -623,7 +620,7 @@ class Text(FlowWidget):
 	def _calc_line_translation(self, text, maxcol ):
 		return self.layout.layout(
 			text, self._cache_maxcol, 
-			self.align_mode, self.wrap_mode )
+			self._align_mode, self._wrap_mode )
 	
 	def pack(self, size=None, focus=False):
 		"""
@@ -686,9 +683,9 @@ class Edit(Text):
 	
 	def selectable(self): return True
 
-	def __init__(self, caption = "", edit_text = "", multiline = False,
-			align = 'left', wrap = 'space', allow_tab = False,
-			edit_pos = None, layout=None):
+	def __init__(self, caption="", edit_text="", multiline=False,
+			align=LEFT, wrap=SPACE, allow_tab=False,
+			edit_pos=None, layout=None):
 		"""
 		caption -- markup for caption preceeding edit_text
 		edit_text -- text string for editing
@@ -706,7 +703,7 @@ class Edit(Text):
 		>>> Edit("Name ", "Smith", edit_pos=1)
 		<Edit selectable flow widget 'Smith' caption='Name ' edit_pos=1>
 		>>> Edit("", "3.14", align='right')
-		<Edit selectable flow widget '3.14' align_mode='right' edit_pos=4>
+		<Edit selectable flow widget '3.14' align='right' edit_pos=4>
 		"""
 		
 		self.__super.__init__("", align, wrap, layout)
@@ -727,14 +724,9 @@ class Edit(Text):
 
 	def _repr_attrs(self):
 		attrs = dict(self.__super._repr_attrs(),
-			edit_pos = self.edit_pos)
-		if attrs['align_mode'] == 'left':
-			del attrs['align_mode']
-		if attrs['wrap_mode'] == 'space':
-			del attrs['wrap_mode']
-		if self._caption:
-			attrs['caption'] = self._caption
-		return attrs
+			edit_pos=self._edit_pos,
+			caption=self._caption)
+		return remove_defaults(attrs, Edit.__init__)
 	
 	def get_text(self):
 		"""
@@ -1015,9 +1007,9 @@ class Edit(Text):
 			x,y = self.get_cursor_coords((maxcol,))
 			
 			if command_map[key] == 'cursor max left':
-				self.move_cursor_to_coords((maxcol,),'left',y)
+				self.move_cursor_to_coords((maxcol,), LEFT, y)
 			else:
-				self.move_cursor_to_coords((maxcol,),'right',y)
+				self.move_cursor_to_coords((maxcol,), RIGHT, y)
 			return
 			
 			

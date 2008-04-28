@@ -244,7 +244,7 @@ class BoxAdapter(WidgetDecoration, FlowWidget):
 class PaddingError(Exception):
 	pass
 
-class Padding(WidgetDecoration):
+class Padding(Widget):
 	def __init__(self, w, align, width, min_width=None):
 		"""
 		w -- a box, flow or fixed widget to pad on the left and/or right
