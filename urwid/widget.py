@@ -52,10 +52,11 @@ ANY = 'any'
 CLIP = 'clip'
 
 # Extras for Padding
-FIXED_LEFT = 'fixed left'
-FIXED_RIGHT = 'fixed right'
-RELATIVE = 'relative'
 PACK = 'pack'
+GIVEN = 'given'
+RELATIVE = 'relative'
+RELATIVE_100 = (RELATIVE, 100)
+CLIP = 'clip'
 
 
 class WidgetMeta(MetaSuper, signals.MetaSignals):
@@ -216,6 +217,13 @@ class Widget(object):
 		self._sizing.
 		"""
 		return self._sizing
+
+	def pack(self, size, focus=False):
+		"""
+		Return a 'packed' size for this widget.  Default 
+		implementation (no packing defined) returns size unaltered.
+		"""
+		return size
 
 	# this property returns the widget without any decorations, default
 	# implementation returns self.

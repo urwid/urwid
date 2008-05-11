@@ -22,6 +22,7 @@
 
 from util import *
 from widget import *
+from split_repr import remove_defaults
 
 
 class WidgetDecoration(Widget):  # "decorator" was already taken
@@ -38,7 +39,7 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
 		Don't actually do this -- use a WidgetDecoration subclass
 		instead, these are not real widgets:
 		>>> WidgetDecoration(Text("hi"))
-		<WidgetDecoration widget <Text flow widget 'hi' align_mode='left' wrap_mode='space'>>
+		<WidgetDecoration widget <Text flow widget 'hi'>>
 		"""
 		self._original_widget = original_widget
 	def _repr_words(self):
@@ -51,7 +52,7 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
 		self._invalidate()
 	original_widget = property(_get_original_widget, _set_original_widget)
 
-	def get_undecorated_widget(self):
+	def _get_base_widget(self):
 		"""
 		Return the widget without decorations.  If there is only one
 		Decoration then this is the same as original_widget.
@@ -62,13 +63,15 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
 		>>> wd3 = WidgetDecoration(wd2)
 		>>> wd3.original_widget is wd2
 		True
-		>>> wd3.get_undecorated_widget() is t
+		>>> wd3.base_widget is t
 		True
 		"""
 		w = self
 		while hasattr(w, '_original_widget'):
 			w = w._original_widget
 		return w
+	
+	base_widget = property(_get_base_widget)
 
 	def selectable(self):
 		return self._original_widget.selectable()
@@ -93,6 +96,12 @@ class AttrWrap(WidgetDecoration):
 		<AttrWrap flow widget <Divider flow widget div_char='!'> attr='bright'>
 		>>> AttrWrap(Edit(), 'notfocus', 'focus')
 		<AttrWrap selectable flow widget <Edit selectable flow widget '' edit_pos=0> attr='notfocus' focus_attr='focus'>
+		>>> size = (5,)
+		>>> aw = AttrWrap(Text("hi"), 'greeting', 'fgreet')
+		>>> aw.render(size, focus=False).content().next()
+		[('greeting', None, 'hi   ')]
+		>>> aw.render(size, focus=True).content().next()
+		[('fgreet', None, 'hi   ')]
 		"""
 		self.__super.__init__(w)
 		self._attr = attr
@@ -128,14 +137,7 @@ class AttrWrap(WidgetDecoration):
 	def render(self, size, focus=False):
 		"""
 		Render wrapped widget and apply attribute. Return canvas.
-		
-		>>> size = (5,)
-		>>> aw = AttrWrap(Text("hi"), 'greeting', 'fgreet')
-		>>> aw.render(size, focus=False).content().next()
-		[('greeting', None, 'hi   ')]
-		>>> aw.render(size, focus=True).content().next()
-		[('fgreet', None, 'hi   ')]
-		""" ### NOTE: these tests aren't being run [Python issue1108]
+		"""
 		
 		attr = self.attr
 		if focus and self.focus_attr is not None:
@@ -190,7 +192,7 @@ class BoxAdapter(WidgetDecoration, FlowWidget):
 		"""
 		Return the predetermined height (behave like a flow widget)
 		
-		>>> BoxAdapter(SolidFill("x"), 5).height((20,))
+		>>> BoxAdapter(SolidFill("x"), 5).rows((20,))
 		5
 		"""
 		return self.height
@@ -244,41 +246,115 @@ class BoxAdapter(WidgetDecoration, FlowWidget):
 class PaddingError(Exception):
 	pass
 
-class Padding(Widget):
-	def __init__(self, w, align, width, min_width=None):
-		"""
+class Padding(WidgetDecoration):
+	def __init__(self, w, align=LEFT, width=PACK, min_width=None, 
+		left=0, right=0):
+		r"""
 		w -- a box, flow or fixed widget to pad on the left and/or right
+		    this widget is stored as self.original_widget
 		align -- one of:
 		    'left', 'center', 'right'
-		    ('fixed left', columns)
-		    ('fixed right', columns)
 		    ('relative', percentage 0=left 100=right)
 		width -- one of:
-		    number of columns wide 
-		    ('fixed right', columns)  Only if align is 'fixed left'
-		    ('fixed left', columns)  Only if align is 'fixed right'
+		    fixed number of columns for self.original_widget 
+		    'pack'   try to pack self.original_widget to its ideal size
 		    ('relative', percentage of total width)
-		    None   to enable clipping mode
-		min_width -- the minimum number of columns for w or None
+		    'clip'   to enable clipping mode for a fixed widget
+		min_width -- the minimum number of columns for 
+		    self.original_widget or None
+		left -- a fixed number of columns to pad on the left
+		right -- a fixed number of columns to pad on thr right
 			
-		Padding widgets will try to satisfy width argument first by
-		reducing the align amount when necessary.  If width still 
-		cannot be satisfied it will also be reduced.
+		Clipping Mode: (width=None)
+		In clipping mode this padding widget will behave as a flow
+		widget and self.original_widget will be treated as a fixed 
+		widget.  self.original_widget will will be clipped to fit
+		the available number of columns.  For example if align is 
+		'left' then self.original_widget may be clipped on the right.
 
-		Clipping Mode:
-		In clipping mode w is treated as a fixed widget and this 
-		widget expects to be treated as a flow widget.  w will
-		be clipped to fit within the space given.  For example,
-		if align is 'left' then w may be clipped on the right.
+		>>> size = (7,)
+		>>> Padding(Text("Head"), ('relative', 20)).render(size).text
+		[' Head  ']
+		>>> Padding(Divider("-"), left=2, right=1).render(size).text
+		['  ---- ']
+		>>> Padding(Divider("*"), 'center', 3).render(size).text
+		['  ***  ']
+		>>> p=Padding(Text("1234"), 'left', 2, None, 1, 1)
+		>>> p
+		<Padding flow widget <Text flow widget '1234'> left=1 right=1 width=2>
+		>>> p.render(size).text   # align against left
+		[' 12    ', ' 34    ']
+		>>> p.align = 'right'
+		>>> p.render(size).text   # align against right
+		['    12 ', '    34 ']
+		>>> Padding(Text("hi\nthere"), 'right').render(size).text
+		['  hi   ', '  there']
+
 		"""
-		self.__super.__init__()
+		self.__super.__init__(w)
 
-		at,aa,wt,wa=decompose_align_width(align, width, PaddingError)
-		
-		self.w = w
-		self.align_type, self.align_amount = at, aa
-		self.width_type, self.width_amount = wt, wa
+		# convert obsolete parameters 'fixed left' and 'fixed right':
+		if type(align) == type(()) and align[0] in ('fixed left', 
+			'fixed right'):
+			if align[0]=='fixed left':
+				left = align[1]
+			else:
+				right = align[1]
+			align = LEFT
+		if type(width) == type(()) and width[0] in ('fixed left', 
+			'fixed right'):
+			if width[0]=='fixed left':
+				left = width[1]
+			else:
+				right = width[1]
+			width = RELATIVE_100
+
+		# convert old clipping mode width=None to width='clip'
+		if width is None:
+			width = CLIP
+
+		self.left = left
+		self.right = right
+		self._align_type, self._align_amount = normalize_align(align,
+			PaddingError)
+		self._width_type, self._width_amount = normalize_width(width,
+			PaddingError)
 		self.min_width = min_width
+	
+	def _repr_attrs(self):
+		attrs = dict(self.__super._repr_attrs(),
+			align=self.align,
+			width=self.width,
+			left=self.left,
+			right=self.right,
+			min_width=self.min_width)
+		return remove_defaults(attrs, Padding.__init__)
+	
+	def _get_align(self):
+		"""
+		Return the padding alignment setting.
+		"""
+		return simplify_align(self._align_type, self._align_amount)
+	def _set_align(self, align):
+		"""
+		Set the padding alignment.
+		"""
+		self._align_type, self._align_amount = normalize_align(align,
+			PaddingError)
+	align = property(_get_align, _set_align)
+
+	def _get_width(self):
+		"""
+		Return the padding widthment setting.
+		"""
+		return simplify_width(self._width_type, self._width_amount)
+	def _set_width(self, width):
+		"""
+		Set the padding width.
+		"""
+		self._width_type, self._width_amount = normalize_width(width,
+			PaddingError)
+	width = property(_get_width, _set_width)
 		
 	def render(self, size, focus=False):	
 		left, right = self.padding_values(size, focus)
@@ -286,17 +362,17 @@ class Padding(Widget):
 		maxcol = size[0]
 		maxcol -= left+right
 
-		if self.width_type is None:
-			canv = self.w.render((), focus)
+		if self._width_type == CLIP:
+			canv = self._original_widget.render((), focus)
 		else:
-			canv = self.w.render((maxcol,)+size[1:], focus)
+			canv = self._original_widget.render((maxcol,)+size[1:], focus)
 		if canv.cols() == 0:
 			canv = SolidCanvas(' ', size[0], canv.rows())
 			canv = CompositeCanvas(canv)
-			canv.set_depends([self.w])
+			canv.set_depends([self._original_widget])
 			return canv
 		canv = CompositeCanvas(canv)
-		canv.set_depends([self.w])
+		canv.set_depends([self._original_widget])
 		if left != 0 or right != 0:
 			canv.pad_trim_left_right(left, right)
 
@@ -307,19 +383,24 @@ class Padding(Widget):
 		
 		Override this method to define custom padding behaviour."""
 		maxcol = size[0]
-		if self.width_type is None:
-			width, ignore = self.w.pack(focus=focus)
-			return calculate_padding(self.align_type,
-				self.align_amount, 'fixed', width, 
-				None, maxcol, clip=True )
-
-		return calculate_padding( self.align_type, self.align_amount,
-			self.width_type, self.width_amount,
-			self.min_width, maxcol )
-
-	def selectable(self):
-		"""Return the selectable value of self.w."""
-		return self.w.selectable()
+		if self._width_type == CLIP:
+			width, ignore = self._original_widget.pack(focus=focus)
+			return calculate_left_right_padding(maxcol,
+				self._align_type, self._align_amount, 
+				CLIP, width, None, self.left, self.right)
+		if self._width_type == PACK:
+			maxwidth = max(maxcol - self.left - self.right, 
+				self.min_width or 0)
+			(width,) = self._original_widget.pack((maxwidth,),
+				focus=focus)
+			return calculate_left_right_padding(maxcol,
+				self._align_type, self._align_amount, 
+				GIVEN, width, self.min_width, 
+				self.left, self.right) 
+		return calculate_left_right_padding(maxcol, 
+			self._align_type, self._align_amount,
+			self._width_type, self._width_amount,
+			self.min_width, self.left, self.right)
 
 	def rows(self, size, focus=False ):
 		"""Return the rows needed for self.w."""
@@ -560,7 +641,56 @@ class Filler(BoxWidget):
 			event, button,col, row-top, focus)
 
 		
+def normalize_align(align, err):
+	"""
+	Split align into (align_type, align_amount).  Raise exception err
+	if align doesn't match a valid alignment.
+	"""
+	if align in (LEFT, CENTER, RIGHT):
+		return (align, 0)
+	elif type(align) == type(()) and len(align) == 2 and align[0] == RELATIVE:
+		return align
+	raise err("align value %s is not one of 'left', 'center', "
+		"'right', ('relative', percentage 0=left 100=right)" 
+		% `align`)
+
+def simplify_align(align_type, align_amount):
+	"""
+	Recombine (align_type, align_amount) into an align value.
+	Inverse of normalize_align.
+	"""
+	if align_type == RELATIVE:
+		return (align_type, align_amount)
+	return align_type
+
+def normalize_width(width, err):
+	"""
+	Split width into (width_type, width_amount).  Raise exception err
+	if width doesn't match a valid alignment.
+	"""
+	if width in (CLIP, PACK):
+		return (width, 0)
+	elif type(width) == type(0):
+		return (GIVEN, width)
+	elif type(width) == type(()) and len(width) == 2 and width[0] == RELATIVE:
+		return width
+	raise err("width value %s is not one of fixed number of columns, "
+		"'pack', ('relative', percentage of total width), 'clip'" 
+		% `width`)
+
+def simplify_width(width_type, width_amount):
+	"""
+	Recombine (width_type, width_amount) into an width value.
+	Inverse of normalize_width.
+	"""
+	if width_type in (CLIP, PACK):
+		return width_type
+	elif width_type == GIVEN:
+		return width_amount
+	return (width_type, width_amount)
+		
 def decompose_align_width( align, width, err ):
+	# FIXME: remove this once it is no longer called from Overlay
 	try:
 		if align in ('left','center','right'):
 			align = (align,0)
@@ -669,8 +799,80 @@ def calculate_filler( valign_type, valign_amount, height_type, height_amount,
 	return top, bottom 	
 
 
+def calculate_left_right_padding(maxcol, align_type, align_amount, 
+	width_type, width_amount, min_width, left, right):
+	"""
+	Return the amount of padding (or clipping) on the left and
+	right part of maxcol columns to satisfy the following:
+
+	align_type -- 'left', 'center', 'right', 'relative'
+	align_amount -- a percentage when align_type=='relative'
+	width_type -- 'fixed', 'relative', 'clip'
+	width_amount -- a percentage when width_type=='relative'
+		otherwise equal to the width of the widget
+	min_width -- a desired minimum width for the widget or None
+	left -- a fixed number of columns to pad on the left
+	right -- a fixed number of columns to pad on the right
+
+	>>> clrp = calculate_left_right_padding
+	>>> clrp(15, 'left', 0, 'fixed', 10, None, 2, 0)
+	(2, 3)
+	>>> clrp(15, 'relative', 0, 'fixed', 10, None, 2, 0)
+	(2, 3)
+	>>> clrp(15, 'relative', 100, 'fixed', 10, None, 2, 0)
+	(5, 0)
+	>>> clrp(15, 'center', 0, 'fixed', 4, None, 2, 0)
+	(6, 5)
+	>>> clrp(15, 'left', 0, 'clip', 18, None, 0, 0)
+	(0, -3)
+	>>> clrp(15, 'right', 0, 'clip', 18, None, 0, -1)
+	(-2, -1)
+	>>> clrp(15, 'center', 0, 'fixed', 18, None, 2, 0)
+	(0, 0)
+	>>> clrp(20, 'left', 0, 'relative', 60, None, 0, 0)
+	(0, 8)
+	>>> clrp(20, 'relative', 30, 'relative', 60, None, 0, 0)
+	(2, 6)
+	>>> clrp(20, 'relative', 30, 'relative', 60, 14, 0, 0)
+	(2, 4)
+	"""
+	if width_type == RELATIVE:
+		maxwidth = max(maxcol - left - right, 0)
+		width = int_scale(width_amount, 101, maxwidth + 1)
+		if min_width is not None:
+			width = max(width, min_width)
+	else:
+		width = width_amount
+	
+	standard_alignments = {LEFT:0, CENTER:50, RIGHT:100}
+	align = standard_alignments.get(align_type, align_amount)
+
+	# add the remainder of left/right the padding
+	padding = maxcol - width - left - right
+	right += int_scale(100 - align, 101, padding + 1) 
+	left = maxcol - width - right
+
+	# reduce padding if we are clipping an edge
+	if right < 0 and left > 0:
+		shift = min(left, -right)
+		left -= shift
+		right += shift
+	elif left < 0 and right > 0:
+		shift = min(right, -left)
+		right -= shift
+		left += shift
+	
+	# only clip if width_type == 'clip'
+	if width_type != CLIP and (left < 0 or right < 0):
+		left = max(left, 0)
+		right = max(right, 0)
+	
+	return left, right
+
+
 def calculate_padding( align_type, align_amount, width_type, width_amount,
 		min_width, maxcol, clip=False ):
+	# FIXME: remove this when Overlay is no longer calling it
 	if width_type == 'fixed':
 		width = width_amount
 	elif width_type == 'relative':
