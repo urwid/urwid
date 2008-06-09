@@ -109,6 +109,7 @@ class CanvasCache(object):
 	def cleanup(cls, ref):
 		cls.cleanups += 1
 		w = cls._refs.get(ref, None)
+		del cls._refs[ref]
 		if not w:
 			return
 		widget, size, focus = w
@@ -122,9 +123,9 @@ class CanvasCache(object):
 		if not sizes:
 			try:
 				del cls._widgets[widget]
+				del cls._deps[widget]
 			except KeyError:
 				pass
-		del cls._refs[ref]
 	cleanup = classmethod(cleanup)
 
 	def clear(cls):
