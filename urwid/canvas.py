@@ -699,12 +699,17 @@ class CompositeCanvas(Canvas):
 		intact."""
 		if self.widget_info:
 			raise self._finalized_error
-		
-		for num_rows, cviews in self.shards:
-			for i in range(len(cviews)):
-				cv = cviews[i]
+
+		shards = []
+		for num_rows, original_cviews in self.shards:
+			new_cviews = []
+			for cv in original_cviews:
 				if cv[4] is None:
-					cviews[i] = cv[:4] + (a,) + cv[5:]
+					new_cviews.append(cv[:4] + (a,) + cv[5:])
+				else:
+					new_cviews.append(cv)
+			shards.append((num_rows, new_cviews))
+		self.shards = shards
 
 	def set_depends(self, widget_list):
 		"""
