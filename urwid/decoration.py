@@ -402,14 +402,14 @@ class Padding(WidgetDecoration):
 			self._width_type, self._width_amount,
 			self.min_width, self.left, self.right)
 
-	def rows(self, size, focus=False ):
-		"""Return the rows needed for self.w."""
+	def rows(self, size, focus=False):
+		"""Return the rows needed for self.original_widget."""
+		if self.width_type == PACK:
+			pcols, prows = self.pack(size, focus)
+			return prows
 		(maxcol,) = size
-		if self.width_type is None:
-			ignore, height = self.w.pack(focus)
-			return height
 		left, right = self.padding_values(size, focus)
-		return self.w.rows( (maxcol-left-right,), focus=focus )
+		return self._original_widget.rows((maxcol-left-right,), focus=focus)
 	
 	def keypress(self, size, key):
 		"""Pass keypress to self.w."""

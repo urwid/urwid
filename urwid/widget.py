@@ -632,19 +632,19 @@ class Text(FlowWidget):
 	
 	def pack(self, size=None, focus=False):
 		"""
-		Return the number of screen columns required for this Text
-		widget to be displayed without wrapping or clipping, as a 
-		single element tuple.
+		Return the number of screen columns and rows required for
+		this Text widget to be displayed without wrapping or 
+		clipping, as a single element tuple.
 
 		size -- None for unlimited screen columns or (maxcol,) to
 		        specify a maximum column size
 
 		>>> Text("important things").pack()
-		(16,)
+		(16, 1)
 		>>> Text("important things").pack((15,))
-		(9,)
+		(9, 2)
 		>>> Text("important things").pack((8,))
-		(8,)
+		(8, 2)
 		"""
 		text, attr = self.get_text()
 		
@@ -654,7 +654,7 @@ class Text(FlowWidget):
 				return size
 			trans = self.get_line_translation( maxcol, (text,attr))
 			cols = self.layout.pack( maxcol, trans )
-			return (cols,)
+			return (cols, len(trans))
 	
 		i = 0
 		cols = 0
@@ -666,7 +666,7 @@ class Text(FlowWidget):
 			if c>cols:
 				cols = c
 			i = j+1
-		return (cols,)
+		return (cols, text.count('\n') + 1)
 
 
 class EditError(TextError):
