@@ -404,7 +404,7 @@ class Padding(WidgetDecoration):
 
 	def rows(self, size, focus=False):
 		"""Return the rows needed for self.original_widget."""
-		if self.width_type == PACK:
+		if self._width_type == PACK:
 			pcols, prows = self.pack(size, focus)
 			return prows
 		(maxcol,) = size
