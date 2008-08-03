@@ -27,7 +27,7 @@ import urwid
 import urwid.raw_display
 import urwid.web_display
 
-def main(environ=None, start_response=None):
+def main():
 	text_header = ("Welcome to the urwid tour!  "
 		"UP / DOWN / PAGE UP / PAGE DOWN scroll.  F8 exits.")
 	text_intro = [('important',"Text"),
@@ -308,34 +308,26 @@ def main(environ=None, start_response=None):
 		]
 
 		
+	# use appropriate Screen class
+	if urwid.web_display.is_web_request():
+		screen = urwid.web_display.Screen()
+	else:
+		screen = urwid.raw_display.Screen()
+
 	def unhandled(key):
 		if key == 'f8':
 			raise urwid.ExitMainLoop()
 
-	# use appropriate Screen class
-	if urwid.web_display.is_web_request(environ):
-		screen = urwid.web_display.Screen(environ, start_response)
-	else:
-		screen = urwid.raw_display.Screen() 
-	
-	if environ:
-		return urwid.iterable_main_loop(frame, palette, screen,
-			unhandled_input=unhandled)
-
-	return urwid.generic_main_loop(frame, palette, screen,
+	urwid.generic_main_loop(frame, palette, screen,
 		unhandled_input=unhandled)
 
-# mod_wsgi will use the application() function as an entry point
-# for requests. 
-def application(environ=None, start_response=None):
+def setup():
 	urwid.web_display.set_preferences("Urwid Tour")
 	# try to handle short web requests quickly
-	resp = urwid.web_display.handle_short_request(environ, start_response)
-	if resp is not False:
-		return resp
+	if urwid.web_display.handle_short_request():
+		return
 		
-	return main(environ, start_response)
-
-# CGI requests will be recognised by urwid.web_display.is_web_request()
+	main()
+	
 if '__main__'==__name__ or urwid.web_display.is_web_request():
-	application()
+	setup()
