@@ -1074,6 +1074,7 @@ def handle_short_request(environ=None, start_response=None):
 		fd = os.open((os.path.join(_prefs.pipe_dir,
 			"urwid"+urwid_id+".in")), os.O_WRONLY)
 	except OSError,e:
+		raise e
 		start_response("404 Not Found", [])
 		return []
 		
