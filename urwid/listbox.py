@@ -107,7 +107,7 @@ class SimpleListWalker(MonitoredList, ListWalker):
 
 	def _modified(self):
 		if self.focus >= len(self):
-			self.focus = len(self)-1
+			self.focus = max(0, len(self)-1)
 		ListWalker._modified(self)
 	
 	def set_modified_callback(self, callback):
