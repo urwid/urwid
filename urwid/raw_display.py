@@ -35,18 +35,22 @@ import popen2
 
 import util
 import escape
-from display_common import RealTerminal
+from display_common import *
+import signals
 
 # replace control characters with ?'s
 _trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
 
+class ScreenError(Exception):
+    pass
 
-class Screen(RealTerminal):
+class Screen(BaseScreen, RealTerminal):
     def __init__(self):
         super(Screen, self).__init__()
         self.palette = {}
         self.register_palette_entry( None, 'default','default')
         self.has_color = True # FIXME: detect this
+        self.colours = 256 # FIXME: detect this
         self._keyqueue = []
         self.prev_input_resize = 0
         self.set_input_timeouts()
@@ -60,61 +64,22 @@ class Screen(RealTerminal):
         self._rows_used = None
         self._cy = 0
         self._started = False
+        self.bright_is_bold = os.environ.get('TERM',None) != "xterm"
+        self.palette = {}
+        signals.connect_signal(self, UPDATE_PALETTE_ENTRY, 
+            self._on_update_palette_entry)
     
     started = property(lambda self: self._started)
 
-    def register_palette( self, l ):
-        """Register a list of palette entries.
+    def _on_update_palette_entry(self, name, *attrspecs):
+        # copy the attribute to a dictionary containing the escape seqences
+        self.palette[name] = map(self._attrspec_to_escape, attrspecs)
 
-        l -- list of (name, foreground, background, mono),
-             (name, foreground, background) or
-             (name, same_as_other_name) palette entries.
-
-        calls self.register_palette_entry for each item in l
+    def set_input_timeouts(self, max_wait=None, complete_wait=0.125, 
+        resize_wait=0.125):
         """
-        
-        for item in l:
-            if len(item) in (3,4):
-                self.register_palette_entry( *item )
-                continue
-            assert len(item) == 2, "Invalid register_palette usage"
-            name, like_name = item
-            if not self.palette.has_key(like_name):
-                raise Exception("palette entry '%s' doesn't exist"%like_name)
-            self.palette[name] = self.palette[like_name]
-
-    def register_palette_entry( self, name, foreground, background,
-        mono=None):
-        """Register a single palette entry.
-
-        name -- new entry/attribute name
-        foreground -- foreground colour, one of: 'black', 'dark red',
-            'dark green', 'brown', 'dark blue', 'dark magenta',
-            'dark cyan', 'light gray', 'dark gray', 'light red',
-            'light green', 'yellow', 'light blue', 'light magenta',
-            'light cyan', 'white', 'default' (black if unable to
-            use terminal's default)
-        background -- background colour, one of: 'black', 'dark red',
-            'dark green', 'brown', 'dark blue', 'dark magenta',
-            'dark cyan', 'light gray', 'default' (light gray if
-            unable to use terminal's default)
-        mono -- monochrome terminal attribute, one of: None (default),
-            'bold',    'underline', 'standout', or a tuple containing
-            a combination eg. ('bold','underline')
-            
-        """
-        assert (mono is None or 
-            mono in (None, 'bold', 'underline', 'standout') or
-            type(mono)==type(()))
-        
-        self.palette[name] = (escape.set_attributes(
-            foreground, background), mono)
-
-    def set_input_timeouts(self, max_wait=None, complete_wait=0.1, 
-        resize_wait=0.1):
-        """
-        Set the get_input timeout values.  All values have are floating
-        point number of seconds.
+        Set the get_input timeout values.  All values are in floating
+        point numbers of seconds.
         
         max_wait -- amount of time in seconds to wait for input when
             there is no input pending, wait forever if None
@@ -221,8 +186,7 @@ class Screen(RealTerminal):
         elif self.maxrow is not None:
             move_cursor = escape.set_cursor_position( 
                 0, self.maxrow)
-        sys.stdout.write( escape.set_attributes( 
-            'default', 'default') 
+        sys.stdout.write(self._attrspec_to_escape(AttrSpec('','')) 
             + escape.SI
             + escape.MOUSE_TRACKING_OFF
             + escape.SHOW_CURSOR
@@ -530,8 +494,7 @@ class Screen(RealTerminal):
             # handle resize before trying to draw screen
             return
         
-        o = [    escape.HIDE_CURSOR,
-            escape.set_attributes('default','default') ]
+        o = [escape.HIDE_CURSOR, self._attrspec_to_escape(AttrSpec('',''))]
         
         def partial_display():
             # returns True if the screen is in partial display mode
@@ -720,4 +683,53 @@ class Screen(RealTerminal):
         """
         self.screen_buf = None
         self.setup_G1 = True
+
         
+    def _attrspec_to_escape(self, a):
+        """
+        Convert AttrSpec instance a to an escape sequence for the terminal
+
+        >>> s = Screen()
+        >>> a2e = s._attrspec_to_escape
+        >>> a2e(s.AttrSpec('brown', 'dark green'))
+        '\\x1b[0;33;42m'
+        >>> a2e(s.AttrSpec('#fea,underline', '#d0d'))
+        '\\x1b[0;48;5;229;4;38;5;164m'
+        """
+        if a.foreground_high:
+            fg = "48;5;%d" % a.foreground_number
+        elif a.foreground_basic:
+            if a.foreground_number > 7:
+                if self.bright_is_bold:
+                    fg = "1;%d" % (a.foreground_number - 8 + 30)
+                else:
+                    fg = "%d" % (a.foreground_number - 8 + 90)
+            else:
+                fg = "%d" % (a.foreground_number + 30)
+        else:
+            fg = "39"
+        st = "1;" * a.bold + "4;" * a.underline + "7;" * a.standout
+        if a.background_high:
+            bg = "38;5;%d" % a.background_number
+        elif a.background_basic:
+            if a.background_number > 7:
+                # this doesn't work on most terminals
+                bg = "%d" % (a.background_number - 8 + 100)
+            else:
+                bg = "%d" % (a.background_number + 40)
+        else:
+            bg = "49"
+        return escape.ESC + "[0;%s;%s%sm" % (fg, st, bg)
+
+
+    # shortcut for creating an AttrSpec with this screen object's
+    # number of colours
+    AttrSpec = lambda self, fg, bg: AttrSpec(fg, bg, self.colours)
+    
+
+def _test():
+	import doctest
+	doctest.testmod()
+
+if __name__=='__main__':
+	_test()

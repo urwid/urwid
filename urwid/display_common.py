@@ -22,7 +22,13 @@ import sys
 import termios
 
 from util import int_scale
+import signals
 
+# signals sent by BaseScreen
+UPDATE_PALETTE_ENTRY = "update palette entry"
+
+
+# AttrSpec internal values
 _BASIC_START = 0 # first index of basic colour aliases
 _CUBE_START = 16 # first index of colour cube
 _CUBE_SIZE_256 = 6 # one side of the colour cube
@@ -76,23 +82,41 @@ _FG_MASK = (_FG_COLOUR_MASK | _FG_BASIC_COLOUR | _FG_HIGH_COLOUR |
     _STANDOUT | _UNDERLINE | _BOLD)
 _BG_MASK = _BG_COLOUR_MASK | _BG_BASIC_COLOUR | _BG_HIGH_COLOUR
 
+DEFAULT = 'default'
+BLACK = 'black'
+DARK_RED = 'dark red'
+DARK_GREEN = 'dark green'
+BROWN = 'brown'
+DARK_BLUE = 'dark blue'
+DARK_MAGENTA = 'dark magenta'
+DARK_CYAN = 'dark cyan'
+LIGHT_GRAY = 'light gray'
+DARK_GRAY = 'dark gray'
+LIGHT_RED = 'light red'
+LIGHT_GREEN = 'light green'
+YELLOW = 'yellow'
+LIGHT_BLUE = 'light blue'
+LIGHT_MAGENTA = 'light magenta'
+LIGHT_CYAN = 'light cyan'
+WHITE = 'white'
+
 _BASIC_COLOURS = [
-    'black',
-    'dark red',
-    'dark green',
-    'brown',
-    'dark blue',
-    'dark magenta',
-    'dark cyan',
-    'light gray',
-    'dark gray',
-    'light red',
-    'light green',
-    'yellow',
-    'light blue',
-    'light magenta',
-    'light cyan',
-    'white',
+    BLACK,
+    DARK_RED,
+    DARK_GREEN,
+    BROWN,
+    DARK_BLUE,
+    DARK_MAGENTA,
+    DARK_CYAN,
+    LIGHT_GRAY,
+    DARK_GRAY,
+    LIGHT_RED,
+    LIGHT_GREEN,
+    YELLOW,
+    LIGHT_BLUE,
+    LIGHT_MAGENTA,
+    LIGHT_CYAN,
+    WHITE,
 ]
 
 _ATTRIBUTES = {
@@ -456,6 +480,17 @@ class AttrSpec(object):
                 'more colours than have been specified (%d).') %
                 (repr(foreground), repr(background), colours))
 
+    foreground_basic = property(lambda s: s._value & _FG_BASIC_COLOUR != 0)
+    foreground_high = property(lambda s: s._value & _FG_HIGH_COLOUR != 0)
+    foreground_number = property(lambda s: s._value & _FG_COLOUR_MASK)
+    background_basic = property(lambda s: s._value & _BG_BASIC_COLOUR != 0)
+    background_high = property(lambda s: s._value & _BG_HIGH_COLOUR != 0)
+    background_number = property(lambda s: (s._value & _BG_COLOUR_MASK) 
+        >> _BG_SHIFT)
+    bold = property(lambda s: s._value & _BOLD != 0)
+    underline = property(lambda s: s._value & _UNDERLINE != 0)
+    standout = property(lambda s: s._value & _STANDOUT != 0)
+
     def _colours(self):
         """
         Return the maximum colours required for this object.
@@ -487,10 +522,10 @@ class AttrSpec(object):
         if not self._value & (_FG_BASIC_COLOUR | _FG_HIGH_COLOUR):
             return 'default'
         if self._value & _FG_BASIC_COLOUR:
-            return _BASIC_COLOURS[self._value & _FG_COLOUR_MASK]
+            return _BASIC_COLOURS[self.foreground_number]
         if self._value & _HIGH_88_COLOUR:
-            return _colour_desc_88(self._value & _FG_COLOUR_MASK)
-        return _colour_desc_256(self._value & _FG_COLOUR_MASK)
+            return _colour_desc_88(self.foreground_number)
+        return _colour_desc_256(self.foreground_number)
 
     def _foreground(self):
         colour = self._foreground_colour()
@@ -530,29 +565,26 @@ class AttrSpec(object):
                 flags |= _FG_HIGH_COLOUR
             # _parse_colour_*() return None for unrecognised colours
             if scolour is None:
-                raise AttrSpecError(("Unrecognised colour specification %s" +
-                    "in foreground (%s)") % (repr(part), repr(foreground)))
+                scolour = 0
             if colour is not None:
                 raise AttrSpecError(("More than one colour given for " +
                     "foreground (%s)") % (repr(foreground),))
             colour = scolour
         if colour is None:
-            raise AttrSpecError("No colour specified for foreground (%s)"
-                % (repr(foreground),))
+            colour = 0 # use default if not specified
         self._value = (self._value & ~_FG_MASK) | colour | flags
 
     foreground = property(_foreground, _set_foreground)
 
     def _background(self):
         """Return the background colour."""
-        if not self._value & (_BG_BASIC_COLOUR | _BG_HIGH_COLOUR):
+        if not self.background_basic or self.background_high:
             return 'default'
-        if self._value & _BG_BASIC_COLOUR:
-            return _BASIC_COLOURS[(self._value & _BG_COLOUR_MASK) >> _BG_SHIFT]
+        if self.background_basic:
+            return _BASIC_COLOURS[self.background_number]
         if self._value & _HIGH_88_COLOUR:
-            return _colour_desc_88((self._value & _BG_COLOUR_MASK) >> 
-                _BG_SHIFT)
-        return _colour_desc_256((self._value & _BG_COLOUR_MASK) >> _BG_SHIFT)
+            return _colour_desc_88(self.background_number)
+        return _colour_desc_256(self.background_number)
         
     def _set_background(self, background):
         flags = 0
@@ -568,8 +600,7 @@ class AttrSpec(object):
             colour = _parse_colour_256(background)
             flags |= _BG_HIGH_COLOUR
         if colour is None:
-            raise AttrSpecError(("Unrecognised colour specification " +
-                "in background (%s)") % (repr(background),))
+            colour = 0
         self._value = (self._value & ~_BG_MASK) | (colour << _BG_SHIFT) | flags
 
     background = property(_background, _set_background)
@@ -588,25 +619,21 @@ class AttrSpec(object):
         >>> AttrSpec('default', 'g92').get_rgb_values()
         (None, None, None, 238, 238, 238)
         """
-        if not self._value & (_FG_BASIC_COLOUR | _FG_HIGH_COLOUR):
+        if not self.foreground_basic or self.foreground_high:
             vals = (None, None, None)
-        elif self._value & _HIGH_88_COLOUR:
-            assert self._value & _FG_COLOUR_MASK < 88, \
-                "Invalid AttrSpec _value"
-            vals = _COLOUR_VALUES_88[self._value & _FG_COLOUR_MASK]
+        elif self.colours == 88:
+            assert self.foreground_number < 88, "Invalid AttrSpec _value"
+            vals = _COLOUR_VALUES_88[self.foreground_number]
         else:
-            vals = _COLOUR_VALUES_256[self._value & _FG_COLOUR_MASK]
+            vals = _COLOUR_VALUES_256[self.foreground_number]
 
-        if not self._value & (_BG_BASIC_COLOUR | _BG_HIGH_COLOUR):
+        if not self.background_basic or self.background_high:
             return vals + (None, None, None)
-        elif self._value & _HIGH_88_COLOUR:
-            assert (self._value & _BG_COLOUR_MASK) >> _BG_SHIFT < 88, \
-                "Invalid AttrSpec _value"
-            return vals + _COLOUR_VALUES_88[
-                (self._value & _BG_COLOUR_MASK) >> _BG_SHIFT]
+        elif self.colours == 88:
+            assert self.background_number < 88, "Invalid AttrSpec _value"
+            return vals + _COLOUR_VALUES_88[self.background_number]
         else:
-            return vals + _COLOUR_VALUES_256[
-                (self._value & _BG_COLOUR_MASK) >> _BG_SHIFT]
+            return vals + _COLOUR_VALUES_256[self.background_number]
 
 
 
@@ -657,7 +684,124 @@ class RealTerminal(object):
             self._signal_keys_set = True
         
         return skeys
-      
+
+
+class BaseScreen(object):
+    """
+    Base class for Screen classes (raw_display.Screen, .. etc)
+    """
+    __metaclass__ = signals.MetaSignals
+    signals = [UPDATE_PALETTE_ENTRY]
+
+    def __init__(self):
+        super(BaseScreen,self).__init__()
+        self._palette = {}
+
+    def register_palette(self, palette):
+        """Register a set of palette entries.
+
+        palette -- a list of (name, like_other_name) or 
+            (name, foreground, background, mono, foreground_high, 
+            background_high) tuples
+
+            The (name, like_other_name) format will copy the settings
+            from the palette entry like_other_name, which must appear
+            before this tuple in the list.
+            
+            The mono and foreground/background_high values are 
+            optional ie. the second tuple format may have 3, 4 or 6 
+            values.  See register_palette_entry() for a description 
+            of the tuple values.
+        """
+        
+        for item in palette:
+            if len(item) in (3,4,6):
+                self.register_palette_entry(*item)
+                continue
+            if len(item) != 2:
+                raise ScreenError("Invalid register_palette entry: %s"%item)
+            name, like_name = item
+            if not self.palette.has_key(like_name):
+                raise ScreenError("palette entry '%s' doesn't exist"%like_name)
+            self.palette[name] = self.palette[like_name]
+
+    def register_palette_entry(self, name, foreground, background,
+        mono=None, foreground_high=None, background_high=None):
+        """Register a single palette entry.
+
+        name -- new entry/attribute name
+        foreground -- a string containing a comma-separated foreground 
+            colour and settings
+
+            Colour values:
+            'default' (use the terminal's default foreground),
+            'black', 'dark red', 'dark green', 'brown', 'dark blue',
+            'dark magenta', 'dark cyan', 'light gray', 'dark gray',
+            'light red', 'light green', 'yellow', 'light blue', 
+            'light magenta', 'light cyan', 'white'
+
+            Settings:
+            'bold', 'underline', 'blink', 'standout'
+
+            Some terminals use 'bold' for bright colours.  Most terminals
+            ignore the 'blink' setting.  If the colour is not given then
+            'default' will be assumed. 
+
+        background -- a string containing the background colour
+
+            Background colour values:
+            'default' (use the terminal's default background),
+            'black', 'dark red', 'dark green', 'brown', 'dark blue',
+            'dark magenta', 'dark cyan', 'light gray'
+        
+        mono -- a comma-separated string containing monochrome terminal 
+            settings (see "Settings" above.)
+
+            None = no terminal settings (same as 'default')
+
+        foreground_high -- a string containing a comma-separated 
+            foreground colour and settings, standard foreground
+            colours (see "Colour values" above) or high-colours may 
+            be used
+
+            High-colour example values:
+            '#009' (0% red, 0% green, 60% red, like HTML colours)
+            '#fcc' (100% red, 80% green, 80% blue)
+            'g40' (40% gray, decimal), 'g#cc' (80% gray, hex),
+            '#000', 'g0', 'g#00' (black),
+            '#fff', 'g100', 'g#ff' (white)
+            'h8' (colour number 8), 'h255' (colour number 255)
+
+            None = use foreground parameter value
+
+        background_high -- a string containing the background colour,
+            standard background colours (see "Background colours" above)
+            or high-colours (see "High-colour example values" above)
+            may be used
+
+            None = use background parameter value
+        """
+        basic = AttrSpec(foreground, background, 16)
+
+        if type(mono) == type(()):
+            # old style of specifying mono attributes was to put them
+            # in a tuple.  convert to comma-separated string
+            mono = ",".join(mono)
+        if mono is None:
+            mono = DEFAULT
+        mono = AttrSpec(mono, DEFAULT, 1)
+        
+        if foreground_high is None:
+            foreground_high = foreground
+        if background_high is None:
+            background_high = background
+        high_88 = AttrSpec(foreground_high, background_high, 88)
+        high_256 = AttrSpec(foreground_high, background_high, 256)
+
+        signals.emit_signal(self, UPDATE_PALETTE_ENTRY,
+            name, basic, mono, high_88, high_256)
+        self._palette[name] = (basic, mono, high_88, high_256)
+        
 
 
 def _test():
