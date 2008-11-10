@@ -519,23 +519,18 @@ class AttrSpec(object):
 
     def _foreground_colour(self):
         """Return only the colour component of the foreground."""
-        if not self._value & (_FG_BASIC_COLOUR | _FG_HIGH_COLOUR):
+        if not (self.foreground_basic or self.foreground_high):
             return 'default'
-        if self._value & _FG_BASIC_COLOUR:
+        if self.foreground_basic:
             return _BASIC_COLOURS[self.foreground_number]
-        if self._value & _HIGH_88_COLOUR:
+        if self.colours == 88:
             return _colour_desc_88(self.foreground_number)
         return _colour_desc_256(self.foreground_number)
 
     def _foreground(self):
-        colour = self._foreground_colour()
-        if self._value & _BOLD:
-            colour = colour + ',bold'
-        if self._value & _STANDOUT:
-            colour = colour + ',standout'
-        if self._value & _UNDERLINE:
-            colour = colour + ',underline'
-        return colour
+        return (self._foreground_colour() +
+            ',bold' * self.bold + ',standout' * self.standout +
+            ',underline' * self.underline)
 
     def _set_foreground(self, foreground):
         colour = None
@@ -578,7 +573,7 @@ class AttrSpec(object):
 
     def _background(self):
         """Return the background colour."""
-        if not self.background_basic or self.background_high:
+        if not (self.background_basic or self.background_high):
             return 'default'
         if self.background_basic:
             return _BASIC_COLOURS[self.background_number]
@@ -619,7 +614,7 @@ class AttrSpec(object):
         >>> AttrSpec('default', 'g92').get_rgb_values()
         (None, None, None, 238, 238, 238)
         """
-        if not self.foreground_basic or self.foreground_high:
+        if not (self.foreground_basic or self.foreground_high):
             vals = (None, None, None)
         elif self.colours == 88:
             assert self.foreground_number < 88, "Invalid AttrSpec _value"
@@ -627,7 +622,7 @@ class AttrSpec(object):
         else:
             vals = _COLOUR_VALUES_256[self.foreground_number]
 
-        if not self.background_basic or self.background_high:
+        if not (self.background_basic or self.background_high):
             return vals + (None, None, None)
         elif self.colours == 88:
             assert self.background_number < 88, "Invalid AttrSpec _value"
