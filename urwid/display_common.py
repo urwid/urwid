@@ -231,7 +231,7 @@ def _colour_desc_256(num):
     'g11'
 
     """
-    assert num > 0 and num < 256
+    assert num >= 0 and num < 256, num
     if num < _CUBE_START:
         return 'h%d' % num
     if num < _GRAY_START_256:
@@ -547,7 +547,7 @@ class AttrSpec(object):
                 flags |= _ATTRIBUTES[part]
                 continue
             # past this point we must be specifying a colour
-            if part == 'default':
+            if part in ('', 'default'):
                 scolour = 0
             elif part in _BASIC_COLOURS:
                 scolour = _BASIC_COLOURS.index(part)
@@ -560,13 +560,15 @@ class AttrSpec(object):
                 flags |= _FG_HIGH_COLOUR
             # _parse_colour_*() return None for unrecognised colours
             if scolour is None:
-                scolour = 0
+                raise AttrSpecError(("Unrecognised colour specification %s" +
+                    "in foreground (%s)") % (repr(part), repr(foreground)))
             if colour is not None:
                 raise AttrSpecError(("More than one colour given for " +
                     "foreground (%s)") % (repr(foreground),))
             colour = scolour
         if colour is None:
-            colour = 0 # use default if not specified
+            raise AttrSpecError("No colour specified for foreground (%s)"
+                % (repr(foreground),))
         self._value = (self._value & ~_FG_MASK) | colour | flags
 
     foreground = property(_foreground, _set_foreground)
@@ -583,7 +585,7 @@ class AttrSpec(object):
         
     def _set_background(self, background):
         flags = 0
-        if background == 'default':
+        if background in ('', 'default'):
             colour = 0
         elif background in _BASIC_COLOURS:
             colour = _BASIC_COLOURS.index(background)
@@ -595,7 +597,8 @@ class AttrSpec(object):
             colour = _parse_colour_256(background)
             flags |= _BG_HIGH_COLOUR
         if colour is None:
-            colour = 0
+            raise AttrSpecError(("Unrecognised colour specification " +
+                "in background (%s)") % (repr(background),))
         self._value = (self._value & ~_BG_MASK) | (colour << _BG_SHIFT) | flags
 
     background = property(_background, _set_background)
