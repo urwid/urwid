@@ -478,7 +478,7 @@ class AttrSpec(object):
         if self.colours > colours:
             raise AttrSpecError(('foreground/background (%s/%s) require ' +
                 'more colours than have been specified (%d).') %
-                (repr(foreground), repr(background), colours))
+                (repr(fg), repr(bg), colours))
 
     foreground_basic = property(lambda s: s._value & _FG_BASIC_COLOUR != 0)
     foreground_high = property(lambda s: s._value & _FG_HIGH_COLOUR != 0)

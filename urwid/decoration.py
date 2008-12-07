@@ -412,31 +412,31 @@ class Padding(WidgetDecoration):
 		return self._original_widget.rows((maxcol-left-right,), focus=focus)
 	
 	def keypress(self, size, key):
-		"""Pass keypress to self.w."""
+		"""Pass keypress to self._original_widget."""
 		maxcol = size[0]
 		left, right = self.padding_values(size, True)
 		maxvals = (maxcol-left-right,)+size[1:] 
-		return self.w.keypress(maxvals, key)
+		return self._original_widget.keypress(maxvals, key)
 
 	def get_cursor_coords(self,size):
-		"""Return the (x,y) coordinates of cursor within self.w."""
-		if not hasattr(self.w,'get_cursor_coords'):
+		"""Return the (x,y) coordinates of cursor within self._original_widget."""
+		if not hasattr(self._original_widget,'get_cursor_coords'):
 			return None
 		left, right = self.padding_values(size, True)
 		maxcol = size[0]
 		maxvals = (maxcol-left-right,)+size[1:] 
-		coords = self.w.get_cursor_coords(maxvals)
+		coords = self._original_widget.get_cursor_coords(maxvals)
 		if coords is None: 
 			return None
 		x, y = coords
 		return x+left, y
 
 	def move_cursor_to_coords(self, size, x, y):
-		"""Set the cursor position with (x,y) coordinates of self.w.
+		"""Set the cursor position with (x,y) coordinates of self._original_widget.
 
 		Returns True if move succeeded, False otherwise.
 		"""
-		if not hasattr(self.w,'move_cursor_to_coords'):
+		if not hasattr(self._original_widget,'move_cursor_to_coords'):
 			return True
 		left, right = self.padding_values(size, True)
 		maxcol = size[0]
@@ -447,29 +447,29 @@ class Padding(WidgetDecoration):
 			elif x >= maxcol-right: 
 				x = maxcol-right-1
 			x -= left
-		return self.w.move_cursor_to_coords(maxvals, x, y)
+		return self._original_widget.move_cursor_to_coords(maxvals, x, y)
 	
 	def mouse_event(self, size, event, button, x, y, focus):
-		"""Send mouse event if position is within self.w."""
-		if not hasattr(self.w,'mouse_event'):
+		"""Send mouse event if position is within self._original_widget."""
+		if not hasattr(self._original_widget,'mouse_event'):
 			return False
 		left, right = self.padding_values(size, focus)
 		maxcol = size[0]
 		if x < left or x >= maxcol-right: 
 			return False
 		maxvals = (maxcol-left-right,)+size[1:] 
-		return self.w.mouse_event(maxvals, event, button, x-left, y,
+		return self._original_widget.mouse_event(maxvals, event, button, x-left, y,
 			focus)
 		
 
 	def get_pref_col(self, size):
-		"""Return the preferred column from self.w, or None."""
-		if not hasattr(self.w,'get_pref_col'):
+		"""Return the preferred column from self._original_widget, or None."""
+		if not hasattr(self._original_widget,'get_pref_col'):
 			return None
 		left, right = self.padding_values(size, True)
 		maxcol = size[0]
 		maxvals = (maxcol-left-right,)+size[1:] 
-		x = self.w.get_pref_col(maxvals)
+		x = self._original_widget.get_pref_col(maxvals)
 		if type(x) == type(0):
 			return x+left
 		return x

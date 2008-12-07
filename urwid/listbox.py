@@ -385,6 +385,7 @@ class ListBox(BoxWidget):
 			('fixed bottom', rows)
 			('relative', percentage 0=top 100=bottom)
 		"""
+                from urwid.decoration import decompose_valign_height
 		vt,va,ht,ha=decompose_valign_height(valign,None,ListBoxError)
 		self.set_focus_valign_pending = vt,va
 

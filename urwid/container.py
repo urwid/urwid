@@ -143,7 +143,7 @@ class GridFlow(FlowWidget):
 		"""Set the focus to the item in focus in the display widget."""
 		if isinstance(w, Padding):
 			# unwrap padding
-			w = w.w
+			w = w._original_widget
 		w = w.get_focus()
 		if w in self.cells:
 			self.set_focus(w)
@@ -329,7 +329,7 @@ class Overlay(BoxWidget):
 				bottom = maxrow-top-height
 		elif self.height_type is None:
 			# top_w is a flow widget
-			height = self.body.rows((maxcol,),focus=focus)
+			height = self.top_w.rows((maxcol,),focus=focus)
 			top, bottom =  calculate_filler( self.valign_type,
 				self.valign_amount, 'fixed', height, 
 				None, maxrow )

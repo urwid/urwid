@@ -21,8 +21,10 @@
 
 try:
 	from setuptools import setup, Extension
+        have_setuptools = True
 except ImportError:
 	from distutils.core import setup, Extension
+        have_setuptools = False
 
 import os
 
@@ -82,6 +84,10 @@ Example Program Screenshots:
 		],
 	'packages':['urwid'],
      }
+
+if have_setuptools:
+        setup_d['zip_safe'] = False
+
 
 try:
 	True
