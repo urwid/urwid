@@ -567,8 +567,7 @@ class AttrSpec(object):
                     "foreground (%s)") % (repr(foreground),))
             colour = scolour
         if colour is None:
-            raise AttrSpecError("No colour specified for foreground (%s)"
-                % (repr(foreground),))
+            colour = 0
         self._value = (self._value & ~_FG_MASK) | colour | flags
 
     foreground = property(_foreground, _set_foreground)

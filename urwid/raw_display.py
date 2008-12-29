@@ -48,6 +48,8 @@ class Screen(BaseScreen, RealTerminal):
     def __init__(self):
         super(Screen, self).__init__()
         self.palette = {}
+        signals.connect_signal(self, UPDATE_PALETTE_ENTRY, 
+            self._on_update_palette_entry)
         self.register_palette_entry( None, 'default','default')
         self.has_color = True # FIXME: detect this
         self.colours = 256 # FIXME: detect this
@@ -65,9 +67,6 @@ class Screen(BaseScreen, RealTerminal):
         self._cy = 0
         self._started = False
         self.bright_is_bold = os.environ.get('TERM',None) != "xterm"
-        self.palette = {}
-        signals.connect_signal(self, UPDATE_PALETTE_ENTRY, 
-            self._on_update_palette_entry)
     
     started = property(lambda self: self._started)
 

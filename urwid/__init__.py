@@ -38,6 +38,7 @@ __all__ = [
 	'MonitoredList',
 	'command_map',
 	'generic_main_loop',
+        'AttrSpec', 'AttrSpecError',
 	]
 __version__ = "0.9.8"
 
@@ -55,3 +56,4 @@ from monitored_list import *
 from command_map import *
 from main_loop import *
 from text_layout import *
+from display_common import *
