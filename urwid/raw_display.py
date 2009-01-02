@@ -540,6 +540,15 @@ class Screen(BaseScreen, RealTerminal):
                 return False
             return True
 
+        def attr_to_escape(a):
+            if a in self.palette:
+                return self.palette[a][0]
+            elif isinstance(a, AttrSpec):
+                return self._attrspec_to_escape(a)
+            # undefined attributes use default/default
+            # TODO: track and report these
+            return self._attrspec_to_escape(
+                AttrSpec('default','default'))
 
         ins = None
         o.append(set_cursor_home())
@@ -575,9 +584,8 @@ class Screen(BaseScreen, RealTerminal):
             lasta = lastcs = None
             for (a,cs, run) in row:
                 run = run.translate( _trans_table )
-                assert self.palette.has_key(a), `a`
                 if first or lasta != a:
-                    o.append( self.palette[a][0] )
+                    o.append(attr_to_escape(a))
                     lasta = a
                 if first or lastcs != cs:
                     assert cs in [None, "0"], `cs`
@@ -590,7 +598,7 @@ class Screen(BaseScreen, RealTerminal):
                 first = False
             if ins:
                 (inserta, insertcs, inserttext) = ins
-                ias = self.palette[inserta][0]
+                ias = attr_to_escape(inserta)
                 assert insertcs in [None, "0"], `insertcs`
                 if cs is None:
                     icss = escape.SI
@@ -696,7 +704,7 @@ class Screen(BaseScreen, RealTerminal):
         '\\x1b[0;48;5;229;4;38;5;164m'
         """
         if a.foreground_high:
-            fg = "48;5;%d" % a.foreground_number
+            fg = "38;5;%d" % a.foreground_number
         elif a.foreground_basic:
             if a.foreground_number > 7:
                 if self.bright_is_bold:
@@ -709,7 +717,7 @@ class Screen(BaseScreen, RealTerminal):
             fg = "39"
         st = "1;" * a.bold + "4;" * a.underline + "7;" * a.standout
         if a.background_high:
-            bg = "38;5;%d" % a.background_number
+            bg = "48;5;%d" % a.background_number
         elif a.background_basic:
             if a.background_number > 7:
                 # this doesn't work on most terminals
