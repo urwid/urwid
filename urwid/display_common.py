@@ -29,9 +29,9 @@ UPDATE_PALETTE_ENTRY = "update palette entry"
 
 
 # AttrSpec internal values
-_BASIC_START = 0 # first index of basic colour aliases
-_CUBE_START = 16 # first index of colour cube
-_CUBE_SIZE_256 = 6 # one side of the colour cube
+_BASIC_START = 0 # first index of basic color aliases
+_CUBE_START = 16 # first index of color cube
+_CUBE_SIZE_256 = 6 # one side of the color cube
 _GRAY_SIZE_256 = 24
 _GRAY_START_256 = _CUBE_SIZE_256 ** 3 + _CUBE_START
 _CUBE_WHITE_256 = _GRAY_START_256 -1
@@ -50,37 +50,37 @@ _GRAY_STEPS_256 = [0x08, 0x12, 0x1c, 0x26, 0x30, 0x3a, 0x44, 0x4e, 0x58, 0x62,
 _CUBE_STEPS_88 = [0x00, 0x8b, 0xcd, 0xff]
 _GRAY_STEPS_88 = [0x2e, 0x5c, 0x73, 0x8b, 0xa2, 0xb9, 0xd0, 0xe7]
 # values copied from X11/rgb.txt and XTerm-col.ad:
-_BASIC_COLOUR_VALUES = [(0,0,0), (205, 0, 0), (0, 205, 0), (205, 205, 0),
+_BASIC_COLOR_VALUES = [(0,0,0), (205, 0, 0), (0, 205, 0), (205, 205, 0),
     (0, 0, 238), (205, 0, 205), (0, 205, 205), (229, 229, 229),
     (127, 127, 127), (255, 0, 0), (0, 255, 0), (255, 255, 0),
     (0x5c, 0x5c, 0xff), (255, 0, 255), (0, 255, 255), (255, 255, 255)]
 
-_COLOUR_VALUES_256 = (_BASIC_COLOUR_VALUES +
+_COLOR_VALUES_256 = (_BASIC_COLOR_VALUES +
     [(r, g, b) for r in _CUBE_STEPS_256 for g in _CUBE_STEPS_256 
     for b in _CUBE_STEPS_256] +
     [(gr, gr, gr) for gr in _GRAY_STEPS_256])
-_COLOUR_VALUES_88 = (_BASIC_COLOUR_VALUES +
+_COLOR_VALUES_88 = (_BASIC_COLOR_VALUES +
     [(r, g, b) for r in _CUBE_STEPS_88 for g in _CUBE_STEPS_88 
     for b in _CUBE_STEPS_88] +
     [(gr, gr, gr) for gr in _GRAY_STEPS_88])
 
-assert len(_COLOUR_VALUES_256) == 256
-assert len(_COLOUR_VALUES_88) == 88
+assert len(_COLOR_VALUES_256) == 256
+assert len(_COLOR_VALUES_88) == 88
 
-_FG_COLOUR_MASK = 0x000000ff
-_BG_COLOUR_MASK = 0x0000ff00
-_FG_BASIC_COLOUR = 0x00010000
-_FG_HIGH_COLOUR = 0x00020000
-_BG_BASIC_COLOUR = 0x00040000
-_BG_HIGH_COLOUR = 0x00080000
+_FG_COLOR_MASK = 0x000000ff
+_BG_COLOR_MASK = 0x0000ff00
+_FG_BASIC_COLOR = 0x00010000
+_FG_HIGH_COLOR = 0x00020000
+_BG_BASIC_COLOR = 0x00040000
+_BG_HIGH_COLOR = 0x00080000
 _BG_SHIFT = 8
-_HIGH_88_COLOUR = 0x00100000
+_HIGH_88_COLOR = 0x00100000
 _STANDOUT = 0x02000000
 _UNDERLINE = 0x04000000
 _BOLD = 0x08000000
-_FG_MASK = (_FG_COLOUR_MASK | _FG_BASIC_COLOUR | _FG_HIGH_COLOUR |
+_FG_MASK = (_FG_COLOR_MASK | _FG_BASIC_COLOR | _FG_HIGH_COLOR |
     _STANDOUT | _UNDERLINE | _BOLD)
-_BG_MASK = _BG_COLOUR_MASK | _BG_BASIC_COLOUR | _BG_HIGH_COLOUR
+_BG_MASK = _BG_COLOR_MASK | _BG_BASIC_COLOR | _BG_HIGH_COLOR
 
 DEFAULT = 'default'
 BLACK = 'black'
@@ -100,7 +100,7 @@ LIGHT_MAGENTA = 'light magenta'
 LIGHT_CYAN = 'light cyan'
 WHITE = 'white'
 
-_BASIC_COLOURS = [
+_BASIC_COLORS = [
     BLACK,
     DARK_RED,
     DARK_GREEN,
@@ -150,7 +150,7 @@ _GRAY_256_LOOKUP = _value_lookup_table([0] + _GRAY_STEPS_256 + [0xff], 256)
 _CUBE_88_LOOKUP = _value_lookup_table(_CUBE_STEPS_88, 256)
 _GRAY_88_LOOKUP = _value_lookup_table([0] + _GRAY_STEPS_88 + [0xff], 256)
 
-# convert steps to values that will be used by string versions of the colours
+# convert steps to values that will be used by string versions of the colors
 # 1 hex digit for rgb and 0..100 for grayscale
 _CUBE_STEPS_256_16 = [int_scale(n, 0x100, 0x10) for n in _CUBE_STEPS_256]
 _GRAY_STEPS_256_101 = [int_scale(n, 0x100, 101) for n in _GRAY_STEPS_256]
@@ -169,17 +169,17 @@ _GRAY_88_LOOKUP_101 = [_GRAY_88_LOOKUP[int_scale(n, 101, 0x100)]
 
 
 # The functions _gray_num_256() and _gray_num_88() do not include the gray 
-# values from the colour cube so that the gray steps are an even width.  
-# The colour cube grays are available by using the rgb functions.  Pure 
-# white and black are taken from the colour cube, since the gray range does 
-# not include them, and the basic colours are more likely to have been 
+# values from the color cube so that the gray steps are an even width.  
+# The color cube grays are available by using the rgb functions.  Pure 
+# white and black are taken from the color cube, since the gray range does 
+# not include them, and the basic colors are more likely to have been 
 # customized by an end-user.
 
 
 def _gray_num_256(gnum):
-    """Return ths colour number for gray number gnum.
+    """Return ths color number for gray number gnum.
 
-    Colour cube black and white are returned for 0 and %d respectively
+    Color cube black and white are returned for 0 and %d respectively
     since those values aren't included in the gray scale.
 
     """ % (_GRAY_SIZE_256+1)
@@ -194,9 +194,9 @@ def _gray_num_256(gnum):
 
 
 def _gray_num_88(gnum):
-    """Return ths colour number for gray number gnum.
+    """Return ths color number for gray number gnum.
 
-    Colour cube black and white are returned for 0 and %d respectively
+    Color cube black and white are returned for 0 and %d respectively
     since those values aren't included in the gray scale.
 
     """ % (_GRAY_SIZE_88+1)
@@ -210,24 +210,24 @@ def _gray_num_88(gnum):
     return _GRAY_START_88 + gnum
 
 
-def _colour_desc_256(num):
+def _color_desc_256(num):
     """
-    Return a string description of colour number num.
-    0..15 -> 'h0'..'h15' basic colours (as high-colours)
-    16..231 -> '#000'..'#fff' colour cube colours
+    Return a string description of color number num.
+    0..15 -> 'h0'..'h15' basic colors (as high-colors)
+    16..231 -> '#000'..'#fff' color cube colors
     232..255 -> 'g3'..'g93' grays
 
-    >>> _colour_desc_256(15)
+    >>> _color_desc_256(15)
     'h15'
-    >>> _colour_desc_256(16)
+    >>> _color_desc_256(16)
     '#000'
-    >>> _colour_desc_256(17)
+    >>> _color_desc_256(17)
     '#006'
-    >>> _colour_desc_256(230)
+    >>> _color_desc_256(230)
     '#ffd'
-    >>> _colour_desc_256(233)
+    >>> _color_desc_256(233)
     'g7'
-    >>> _colour_desc_256(234)
+    >>> _color_desc_256(234)
     'g11'
 
     """
@@ -243,24 +243,24 @@ def _colour_desc_256(num):
             _CUBE_STEPS_256_16[b])
     return 'g%d' % _GRAY_STEPS_256_101[num - _GRAY_START_256]
 
-def _colour_desc_88(num):
+def _color_desc_88(num):
     """
-    Return a string description of colour number num.
-    0..15 -> 'h0'..'h15' basic colours (as high-colours)
-    16..79 -> '#000'..'#fff' colour cube colours
+    Return a string description of color number num.
+    0..15 -> 'h0'..'h15' basic colors (as high-colors)
+    16..79 -> '#000'..'#fff' color cube colors
     80..87 -> 'g18'..'g90' grays
     
-    >>> _colour_desc_88(15)
+    >>> _color_desc_88(15)
     'h15'
-    >>> _colour_desc_88(16)
+    >>> _color_desc_88(16)
     '#000'
-    >>> _colour_desc_88(17)
+    >>> _color_desc_88(17)
     '#008'
-    >>> _colour_desc_88(78)
+    >>> _color_desc_88(78)
     '#ffc'
-    >>> _colour_desc_88(81)
+    >>> _color_desc_88(81)
     'g36'
-    >>> _colour_desc_88(82)
+    >>> _color_desc_88(82)
     'g45'
 
     """
@@ -275,23 +275,23 @@ def _colour_desc_88(num):
             _CUBE_STEPS_88_16[b])
     return 'g%d' % _GRAY_STEPS_88_101[num - _GRAY_START_88]
 
-def _parse_colour_256(desc):
+def _parse_color_256(desc):
     """
-    Return a colour number for the description desc.
-    'h0'..'h255' -> 0..255 actual colour number
-    '#000'..'#fff' -> 16..231 colour cube colours
-    'g0'..'g100' -> 16, 232..255, 231 grays and colour cube black/white
-    'g#00'..'g#ff' -> 16, 232...255, 231 gray and colour cube black/white
+    Return a color number for the description desc.
+    'h0'..'h255' -> 0..255 actual color number
+    '#000'..'#fff' -> 16..231 color cube colors
+    'g0'..'g100' -> 16, 232..255, 231 grays and color cube black/white
+    'g#00'..'g#ff' -> 16, 232...255, 231 gray and color cube black/white
     
     Returns None if desc is invalid.
 
-    >>> _parse_colour_256('h142')
+    >>> _parse_color_256('h142')
     142
-    >>> _parse_colour_256('#f00')
+    >>> _parse_color_256('#f00')
     196
-    >>> _parse_colour_256('g100')
+    >>> _parse_color_256('g100')
     231
-    >>> _parse_colour_256('g#80')
+    >>> _parse_color_256('g#80')
     244
     """
     if len(desc) > 4:
@@ -299,14 +299,14 @@ def _parse_colour_256(desc):
         return None
     try:
         if desc.startswith('h'):
-            # high-colour number
+            # high-color number
             num = int(desc[1:], 10)
             if num < 0 or num > 255:
                 return None
             return num
 
         if desc.startswith('#') and len(desc) == 4:
-            # colour-cube coordinates
+            # color-cube coordinates
             rgb = int(desc[1:], 16)
             if rgb < 0:
                 return None
@@ -343,24 +343,24 @@ def _parse_colour_256(desc):
     except ValueError:
         return None
 
-def _parse_colour_88(desc):
+def _parse_color_88(desc):
     """
-    Return a colour number for the description desc.
-    'h0'..'h87' -> 0..87 actual colour number
-    '#000'..'#fff' -> 16..79 colour cube colours
-    'g0'..'g100' -> 16, 80..87, 79 grays and colour cube black/white
-    'g#00'..'g#ff' -> 16, 80...87, 79 gray and colour cube black/white
+    Return a color number for the description desc.
+    'h0'..'h87' -> 0..87 actual color number
+    '#000'..'#fff' -> 16..79 color cube colors
+    'g0'..'g100' -> 16, 80..87, 79 grays and color cube black/white
+    'g#00'..'g#ff' -> 16, 80...87, 79 gray and color cube black/white
     
     Returns None if desc is invalid.
     
-    >>> _parse_colour_88('h142')
-    >>> _parse_colour_88('h42')
+    >>> _parse_color_88('h142')
+    >>> _parse_color_88('h42')
     42
-    >>> _parse_colour_88('#f00')
+    >>> _parse_color_88('#f00')
     64
-    >>> _parse_colour_88('g100')
+    >>> _parse_color_88('g100')
     79
-    >>> _parse_colour_88('g#80')
+    >>> _parse_color_88('g#80')
     83
     """
     if len(desc) > 4:
@@ -368,14 +368,14 @@ def _parse_colour_88(desc):
         return None
     try:
         if desc.startswith('h'):
-            # high-colour number
+            # high-color number
             num = int(desc[1:], 10)
             if num < 0 or num > 87:
                 return None
             return num
 
         if desc.startswith('#') and len(desc) == 4:
-            # colour-cube coordinates
+            # color-cube coordinates
             rgb = int(desc[1:], 16)
             if rgb < 0:
                 return None
@@ -416,95 +416,95 @@ class AttrSpecError(Exception):
     pass
 
 class AttrSpec(object):
-    def __init__(self, fg, bg, colours=256):
+    def __init__(self, fg, bg, colors=256):
         """
-        fg -- a string containing a comma-separated foreground colour
+        fg -- a string containing a comma-separated foreground color
               and settings
 
-              Colour values:
+              Color values:
               'default' (use the terminal's default foreground),
               'black', 'dark red', 'dark green', 'brown', 'dark blue',
               'dark magenta', 'dark cyan', 'light gray', 'dark gray',
               'light red', 'light green', 'yellow', 'light blue', 
               'light magenta', 'light cyan', 'white'
 
-              High-colour example values:
-              '#009' (0% red, 0% green, 60% red, like HTML colours)
+              High-color example values:
+              '#009' (0% red, 0% green, 60% red, like HTML colors)
               '#fcc' (100% red, 80% green, 80% blue)
               'g40' (40% gray, decimal), 'g#cc' (80% gray, hex),
               '#000', 'g0', 'g#00' (black),
               '#fff', 'g100', 'g#ff' (white)
-              'h8' (colour number 8), 'h255' (colour number 255)
+              'h8' (color number 8), 'h255' (color number 255)
 
               Setting:
               'bold', 'underline', 'blink', 'standout'
 
-              Some terminals use 'bold' for bright colours.  Most terminals
-              ignore the 'blink' setting.  If the colour is not given then
+              Some terminals use 'bold' for bright colors.  Most terminals
+              ignore the 'blink' setting.  If the color is not given then
               'default' will be assumed.
 
-        bg -- a string containing the background colour
+        bg -- a string containing the background color
 
-              Colour values:
+              Color values:
               'default' (use the terminal's default background),
               'black', 'dark red', 'dark green', 'brown', 'dark blue',
               'dark magenta', 'dark cyan', 'light gray'
 
-              High-colour exaples:
+              High-color exaples:
               see fg examples above
 
               An empty string will be treated the same as 'default'.
 
-        colours -- the maximum colours available for the specification
+        colors -- the maximum colors available for the specification
 
-                   Valid values include: 1, 16, 88 and 256.  High-colour 
-                   values are only usable with 88 or 256 colours.  With
-                   1 colour only the foreground settings may be used.
+                   Valid values include: 1, 16, 88 and 256.  High-color 
+                   values are only usable with 88 or 256 colors.  With
+                   1 color only the foreground settings may be used.
 
         >>> AttrSpec('dark red', 'light gray', 16)
         AttrSpec('dark red', 'light gray')
         >>> AttrSpec('yellow, underline, bold', 'dark blue')
         AttrSpec('yellow,bold,underline', 'dark blue')
-        >>> AttrSpec('#ddb', '#004', 256) # closest colours will be found
+        >>> AttrSpec('#ddb', '#004', 256) # closest colors will be found
         AttrSpec('#dda', '#006')
         >>> AttrSpec('#ddb', '#004', 88)
-        AttrSpec('#ccc', '#000', colours=88)
+        AttrSpec('#ccc', '#000', colors=88)
         """
-        if colours not in (1, 16, 88, 256):
-            raise AttrSpecError('invalid number of colours (%d).' % colours)
-        self._value = 0 | _HIGH_88_COLOUR * (colours == 88)
+        if colors not in (1, 16, 88, 256):
+            raise AttrSpecError('invalid number of colors (%d).' % colors)
+        self._value = 0 | _HIGH_88_COLOR * (colors == 88)
         self.foreground = fg
         self.background = bg
-        if self.colours > colours:
+        if self.colors > colors:
             raise AttrSpecError(('foreground/background (%s/%s) require ' +
-                'more colours than have been specified (%d).') %
-                (repr(fg), repr(bg), colours))
+                'more colors than have been specified (%d).') %
+                (repr(fg), repr(bg), colors))
 
-    foreground_basic = property(lambda s: s._value & _FG_BASIC_COLOUR != 0)
-    foreground_high = property(lambda s: s._value & _FG_HIGH_COLOUR != 0)
-    foreground_number = property(lambda s: s._value & _FG_COLOUR_MASK)
-    background_basic = property(lambda s: s._value & _BG_BASIC_COLOUR != 0)
-    background_high = property(lambda s: s._value & _BG_HIGH_COLOUR != 0)
-    background_number = property(lambda s: (s._value & _BG_COLOUR_MASK) 
+    foreground_basic = property(lambda s: s._value & _FG_BASIC_COLOR != 0)
+    foreground_high = property(lambda s: s._value & _FG_HIGH_COLOR != 0)
+    foreground_number = property(lambda s: s._value & _FG_COLOR_MASK)
+    background_basic = property(lambda s: s._value & _BG_BASIC_COLOR != 0)
+    background_high = property(lambda s: s._value & _BG_HIGH_COLOR != 0)
+    background_number = property(lambda s: (s._value & _BG_COLOR_MASK) 
         >> _BG_SHIFT)
     bold = property(lambda s: s._value & _BOLD != 0)
     underline = property(lambda s: s._value & _UNDERLINE != 0)
     standout = property(lambda s: s._value & _STANDOUT != 0)
 
-    def _colours(self):
+    def _colors(self):
         """
-        Return the maximum colours required for this object.
+        Return the maximum colors required for this object.
 
         Returns 256, 88, 16 or 1.
         """
-        if self._value & _HIGH_88_COLOUR:
+        if self._value & _HIGH_88_COLOR:
             return 88
-        if self._value & (_BG_HIGH_COLOUR | _FG_HIGH_COLOUR):
+        if self._value & (_BG_HIGH_COLOR | _FG_HIGH_COLOR):
             return 256
-        if self._value & (_BG_BASIC_COLOUR | _BG_BASIC_COLOUR):
+        if self._value & (_BG_BASIC_COLOR | _BG_BASIC_COLOR):
             return 16
         return 1
-    colours = property(_colours)
+    colors = property(_colors)
 
     def __repr__(self):
         """
@@ -512,28 +512,28 @@ class AttrSpec(object):
         object.
         """
         args = "%r, %r" % (self.foreground, self.background)
-        if self.colours == 88:
-            # 88-colour mode is the only one that is handled differently
-            args = args + ", colours=88"
+        if self.colors == 88:
+            # 88-color mode is the only one that is handled differently
+            args = args + ", colors=88"
         return "%s(%s)" % (self.__class__.__name__, args)
 
-    def _foreground_colour(self):
-        """Return only the colour component of the foreground."""
+    def _foreground_color(self):
+        """Return only the color component of the foreground."""
         if not (self.foreground_basic or self.foreground_high):
             return 'default'
         if self.foreground_basic:
-            return _BASIC_COLOURS[self.foreground_number]
-        if self.colours == 88:
-            return _colour_desc_88(self.foreground_number)
-        return _colour_desc_256(self.foreground_number)
+            return _BASIC_COLORS[self.foreground_number]
+        if self.colors == 88:
+            return _color_desc_88(self.foreground_number)
+        return _color_desc_256(self.foreground_number)
 
     def _foreground(self):
-        return (self._foreground_colour() +
+        return (self._foreground_color() +
             ',bold' * self.bold + ',standout' * self.standout +
             ',underline' * self.underline)
 
     def _set_foreground(self, foreground):
-        colour = None
+        color = None
         flags = 0
         # handle comma-separated foreground
         for part in foreground.split(','):
@@ -546,91 +546,91 @@ class AttrSpec(object):
                         repr(foreground)))
                 flags |= _ATTRIBUTES[part]
                 continue
-            # past this point we must be specifying a colour
+            # past this point we must be specifying a color
             if part in ('', 'default'):
-                scolour = 0
-            elif part in _BASIC_COLOURS:
-                scolour = _BASIC_COLOURS.index(part)
-                flags |= _FG_BASIC_COLOUR
-            elif self._value & _HIGH_88_COLOUR:
-                scolour = _parse_colour_88(part)
-                flags |= _FG_HIGH_COLOUR
+                scolor = 0
+            elif part in _BASIC_COLORS:
+                scolor = _BASIC_COLORS.index(part)
+                flags |= _FG_BASIC_COLOR
+            elif self._value & _HIGH_88_COLOR:
+                scolor = _parse_color_88(part)
+                flags |= _FG_HIGH_COLOR
             else:
-                scolour = _parse_colour_256(part)
-                flags |= _FG_HIGH_COLOUR
-            # _parse_colour_*() return None for unrecognised colours
-            if scolour is None:
-                raise AttrSpecError(("Unrecognised colour specification %s" +
+                scolor = _parse_color_256(part)
+                flags |= _FG_HIGH_COLOR
+            # _parse_color_*() return None for unrecognised colors
+            if scolor is None:
+                raise AttrSpecError(("Unrecognised color specification %s" +
                     "in foreground (%s)") % (repr(part), repr(foreground)))
-            if colour is not None:
-                raise AttrSpecError(("More than one colour given for " +
+            if color is not None:
+                raise AttrSpecError(("More than one color given for " +
                     "foreground (%s)") % (repr(foreground),))
-            colour = scolour
-        if colour is None:
-            colour = 0
-        self._value = (self._value & ~_FG_MASK) | colour | flags
+            color = scolor
+        if color is None:
+            color = 0
+        self._value = (self._value & ~_FG_MASK) | color | flags
 
     foreground = property(_foreground, _set_foreground)
 
     def _background(self):
-        """Return the background colour."""
+        """Return the background color."""
         if not (self.background_basic or self.background_high):
             return 'default'
         if self.background_basic:
-            return _BASIC_COLOURS[self.background_number]
-        if self._value & _HIGH_88_COLOUR:
-            return _colour_desc_88(self.background_number)
-        return _colour_desc_256(self.background_number)
+            return _BASIC_COLORS[self.background_number]
+        if self._value & _HIGH_88_COLOR:
+            return _color_desc_88(self.background_number)
+        return _color_desc_256(self.background_number)
         
     def _set_background(self, background):
         flags = 0
         if background in ('', 'default'):
-            colour = 0
-        elif background in _BASIC_COLOURS:
-            colour = _BASIC_COLOURS.index(background)
-            flags |= _BG_BASIC_COLOUR
-        elif self._value & _HIGH_88_COLOUR:
-            colour = _parse_colour_88(background)
-            flags |= _BG_HIGH_COLOUR
+            color = 0
+        elif background in _BASIC_COLORS:
+            color = _BASIC_COLORS.index(background)
+            flags |= _BG_BASIC_COLOR
+        elif self._value & _HIGH_88_COLOR:
+            color = _parse_color_88(background)
+            flags |= _BG_HIGH_COLOR
         else:
-            colour = _parse_colour_256(background)
-            flags |= _BG_HIGH_COLOUR
-        if colour is None:
-            raise AttrSpecError(("Unrecognised colour specification " +
+            color = _parse_color_256(background)
+            flags |= _BG_HIGH_COLOR
+        if color is None:
+            raise AttrSpecError(("Unrecognised color specification " +
                 "in background (%s)") % (repr(background),))
-        self._value = (self._value & ~_BG_MASK) | (colour << _BG_SHIFT) | flags
+        self._value = (self._value & ~_BG_MASK) | (color << _BG_SHIFT) | flags
 
     background = property(_background, _set_background)
 
     def get_rgb_values(self):
         """
-        Return (fg_red, fg_green, fg_blue, bg_red, bg_green, bg_blue) colour
+        Return (fg_red, fg_green, fg_blue, bg_red, bg_green, bg_blue) color
         components.  Each component is in the range 0-255.  Values are taken
         from the XTerm defaults and may not exactly match the user's terminal.
         
         If the foreground or background is 'default' then all their compenents
         will be returned as None.
 
-        >>> AttrSpec('yellow', '#ccf', colours=88).get_rgb_values()
+        >>> AttrSpec('yellow', '#ccf', colors=88).get_rgb_values()
         (255, 255, 0, 205, 205, 255)
         >>> AttrSpec('default', 'g92').get_rgb_values()
         (None, None, None, 238, 238, 238)
         """
         if not (self.foreground_basic or self.foreground_high):
             vals = (None, None, None)
-        elif self.colours == 88:
+        elif self.colors == 88:
             assert self.foreground_number < 88, "Invalid AttrSpec _value"
-            vals = _COLOUR_VALUES_88[self.foreground_number]
+            vals = _COLOR_VALUES_88[self.foreground_number]
         else:
-            vals = _COLOUR_VALUES_256[self.foreground_number]
+            vals = _COLOR_VALUES_256[self.foreground_number]
 
         if not (self.background_basic or self.background_high):
             return vals + (None, None, None)
-        elif self.colours == 88:
+        elif self.colors == 88:
             assert self.background_number < 88, "Invalid AttrSpec _value"
-            return vals + _COLOUR_VALUES_88[self.background_number]
+            return vals + _COLOR_VALUES_88[self.background_number]
         else:
-            return vals + _COLOUR_VALUES_256[self.background_number]
+            return vals + _COLOR_VALUES_256[self.background_number]
 
 
 
@@ -728,9 +728,9 @@ class BaseScreen(object):
 
         name -- new entry/attribute name
         foreground -- a string containing a comma-separated foreground 
-            colour and settings
+            color and settings
 
-            Colour values:
+            Color values:
             'default' (use the terminal's default foreground),
             'black', 'dark red', 'dark green', 'brown', 'dark blue',
             'dark magenta', 'dark cyan', 'light gray', 'dark gray',
@@ -740,13 +740,13 @@ class BaseScreen(object):
             Settings:
             'bold', 'underline', 'blink', 'standout'
 
-            Some terminals use 'bold' for bright colours.  Most terminals
-            ignore the 'blink' setting.  If the colour is not given then
+            Some terminals use 'bold' for bright colors.  Most terminals
+            ignore the 'blink' setting.  If the color is not given then
             'default' will be assumed. 
 
-        background -- a string containing the background colour
+        background -- a string containing the background color
 
-            Background colour values:
+            Background color values:
             'default' (use the terminal's default background),
             'black', 'dark red', 'dark green', 'brown', 'dark blue',
             'dark magenta', 'dark cyan', 'light gray'
@@ -757,23 +757,23 @@ class BaseScreen(object):
             None = no terminal settings (same as 'default')
 
         foreground_high -- a string containing a comma-separated 
-            foreground colour and settings, standard foreground
-            colours (see "Colour values" above) or high-colours may 
+            foreground color and settings, standard foreground
+            colors (see "Color values" above) or high-colors may 
             be used
 
-            High-colour example values:
-            '#009' (0% red, 0% green, 60% red, like HTML colours)
+            High-color example values:
+            '#009' (0% red, 0% green, 60% red, like HTML colors)
             '#fcc' (100% red, 80% green, 80% blue)
             'g40' (40% gray, decimal), 'g#cc' (80% gray, hex),
             '#000', 'g0', 'g#00' (black),
             '#fff', 'g100', 'g#ff' (white)
-            'h8' (colour number 8), 'h255' (colour number 255)
+            'h8' (color number 8), 'h255' (color number 255)
 
             None = use foreground parameter value
 
-        background_high -- a string containing the background colour,
-            standard background colours (see "Background colours" above)
-            or high-colours (see "High-colour example values" above)
+        background_high -- a string containing the background color,
+            standard background colors (see "Background colors" above)
+            or high-colors (see "High-color example values" above)
             may be used
 
             None = use background parameter value

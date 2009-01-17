@@ -52,7 +52,7 @@ class Screen(BaseScreen, RealTerminal):
             self._on_update_palette_entry)
         self.register_palette_entry( None, 'default','default')
         self.has_color = True # FIXME: detect this
-        self.colours = 256 # FIXME: detect this
+        self.colors = 256 # FIXME: detect this
         self._keyqueue = []
         self.prev_input_resize = 0
         self.set_input_timeouts()
@@ -730,8 +730,8 @@ class Screen(BaseScreen, RealTerminal):
 
 
     # shortcut for creating an AttrSpec with this screen object's
-    # number of colours
-    AttrSpec = lambda self, fg, bg: AttrSpec(fg, bg, self.colours)
+    # number of colors
+    AttrSpec = lambda self, fg, bg: AttrSpec(fg, bg, self.colors)
     
 
 def _test():

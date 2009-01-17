@@ -20,8 +20,6 @@
 # Urwid web site: http://excess.org/urwid/
 
 
-#from UserList import UserList
-
 
 def _call_modified(fn):
 	def call_modified_wrapper(self, *args):
