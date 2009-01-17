@@ -494,7 +494,7 @@ class CompositeCanvas(Canvas):
 				self.shortcuts[shortcut] = "wrap"
 
 	def rows(self):
-		return sum(r for r,cv in self.shards)
+		return sum([r for r,cv in self.shards])
 
 	def cols(self):
 		if not self.shards:

@@ -105,10 +105,13 @@ def update_wrapper(new_fn, fn):
 	Copy as much of the function detail from fn to new_fn
 	as we can.
 	"""
-	new_fn.__name__ = fn.__name__
-	new_fn.__dict__.update(fn.__dict__)
-	new_fn.__doc__ = fn.__doc__
-	new_fn.__module__ = fn.__module__
+	try:
+		new_fn.__name__ = fn.__name__
+		new_fn.__dict__.update(fn.__dict__)
+		new_fn.__doc__ = fn.__doc__
+		new_fn.__module__ = fn.__module__
+	except TypeError:
+		pass # python2.3 ignore read-only attributes
 
 
 def cache_widget_render(cls):

@@ -35,6 +35,8 @@ class ListWalker(object):
 	
 	signals = ["modified"]
 
+	def __hash__(self): return id(self)
+
 	def _modified(self):
 		signals.emit_signal(self, "modified")
 	
@@ -95,6 +97,8 @@ class SimpleListWalker(MonitoredList, ListWalker):
 			raise ListWalkerError, "SimpleListWalker expecting list like object, got: "+`contents`
 		MonitoredList.__init__(self, contents)
 		self.focus = 0
+
+	def __hash__(self): return id(self)
 	
 	def _get_contents(self):
 		"""
