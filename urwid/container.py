@@ -150,7 +150,7 @@ class GridFlow(FlowWidget):
 			return
 		if isinstance(w, Padding):
 			# unwrap padding
-			w = w.w
+			w = w._original_widget
 		w = w.get_focus()
 		#assert w == self.cells[0], `w, self.cells`
 		self.set_focus(w)

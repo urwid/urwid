@@ -197,7 +197,7 @@ class GraphView(urwid.WidgetWrap):
 		self.graph = self.bar_graph( state )
 		self.graph_wrap._w = self.graph
 		self.animate_progress = self.progress_bar( state )
-		self.animate_progress_wrap.w = self.animate_progress
+		self.animate_progress_wrap._w = self.animate_progress
 		
 		self.update_graph( True )
 		
