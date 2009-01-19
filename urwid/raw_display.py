@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid raw display module
-#    Copyright (C) 2004-2007  Ian Ward
+#    Copyright (C) 2004-2009  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -47,12 +47,12 @@ class ScreenError(Exception):
 class Screen(BaseScreen, RealTerminal):
     def __init__(self):
         super(Screen, self).__init__()
-        self.palette = {}
+        self._pal_escape = {}
         signals.connect_signal(self, UPDATE_PALETTE_ENTRY, 
             self._on_update_palette_entry)
+        self.colors = 16 # FIXME: detect this
+        self.has_underline = True # FIXME: detect this
         self.register_palette_entry( None, 'default','default')
-        self.has_color = True # FIXME: detect this
-        self.colors = 256 # FIXME: detect this
         self._keyqueue = []
         self.prev_input_resize = 0
         self.set_input_timeouts()
@@ -72,7 +72,8 @@ class Screen(BaseScreen, RealTerminal):
 
     def _on_update_palette_entry(self, name, *attrspecs):
         # copy the attribute to a dictionary containing the escape seqences
-        self.palette[name] = map(self._attrspec_to_escape, attrspecs)
+        self._pal_escape[name] = self._attrspec_to_escape(
+            attrspecs[{16:0,1:1,88:2,256:3}[self.colors]])
 
     def set_input_timeouts(self, max_wait=None, complete_wait=0.125, 
         resize_wait=0.125):
@@ -541,8 +542,8 @@ class Screen(BaseScreen, RealTerminal):
             return True
 
         def attr_to_escape(a):
-            if a in self.palette:
-                return self.palette[a][0]
+            if a in self._pal_escape:
+                return self._pal_escape[a]
             elif isinstance(a, AttrSpec):
                 return self._attrspec_to_escape(a)
             # undefined attributes use default/default
@@ -727,6 +728,78 @@ class Screen(BaseScreen, RealTerminal):
         else:
             bg = "49"
         return escape.ESC + "[0;%s;%s%sm" % (fg, st, bg)
+
+
+    def set_terminal_properties(self, colors=None, bright_is_bold=None,
+        has_underline=None):
+        """
+        colors -- number of colors terminal supports (1, 16, 88 or 256)
+            or None to leave unchanged
+        bright_is_bold -- set to True if this terminal uses the bold 
+            setting to create bright colors (numbers 8-15), set to False
+            if this Terminal can create bright colors without bold or
+            None to leave unchanged
+        has_underline -- set to True if this terminal can use the
+            underline setting, False if it cannot or None to leave
+            unchanged
+        """
+        if colors is None:
+            colors = self.colors
+        if bright_is_bold is None:
+            bright_is_bold = self.bright_is_bold
+        if has_underline is None:
+            has_unerline = self.has_underline
+
+        if colors == self.colors and bright_is_bold == self.bright_is_bold \
+            and has_underline == self.has_underline:
+            return
+
+        self.colors = colors
+        self.bright_is_bold = bright_is_bold
+        self.has_underline = has_underline
+            
+        self.clear()
+        self._pal_escape = {}
+        for p,v in self._palette.items():
+            self._on_update_palette_entry(p, *v)
+
+
+
+    def reset_default_terminal_palette(self):
+        """
+        Attempt to set the terminal palette to default values as taken
+        from xterm.  Uses number of colors from current 
+        set_terminal_properties() screen setting.
+        """
+        if self.colors == 1:
+            return
+
+        def rgb_values(n):
+            if self.colors == 16:
+                aspec = AttrSpec("h%d"%n, "", 256)
+            else:
+                aspec = AttrSpec("h%d"%n, "", self.colors)
+            return aspec.get_rgb_values()[:3]
+
+        entries = [(n,) + rgb_values(n) for n in range(self.colors)]
+        self.modify_terminal_palette(entries)
+
+
+    def modify_terminal_palette(self, entries):
+        """
+        entries - list of (index, red, green, blue) tuples.
+
+        Attempt to set part of the terminal pallette (this does not work
+        on all terminals.)  The changes are sent as a single escape
+        sequence so they should all take effect at the same time.
+        
+        0 <= index < 256 (some terminals will only have 16 or 88 colors)
+        0 <= red, green, blue < 256
+        """
+
+        modify = ["%d;rgb:%02x/%02x/%02x" % (index, red, green, blue)
+            for index, red, green, blue in entries]
+        seq = sys.stdout.write("\x1b]4;"+";".join(modify)+"\x1b\\")
 
 
     # shortcut for creating an AttrSpec with this screen object's

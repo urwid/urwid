@@ -4,6 +4,7 @@ import re
 import sys
 
 import urwid
+import urwid.raw_display
 
 CHART_256 = """
 brown__   dark_red_   dark_magenta_   dark_blue_   dark_cyan_   dark_green_
@@ -51,6 +52,13 @@ yellow_   light_red   light_magenta   light_blue   light_cyan   light_green
                         #f00#f08#f0c#f0f        g0__g19_g35_g46_g52
 """
 
+CHART_16 = """
+brown__   dark_red_   dark_magenta_   dark_blue_   dark_cyan_   dark_green_
+yellow_   light_red   light_magenta   light_blue   light_cyan   light_green
+
+black_______    dark_gray___    light_gray__    white_______           
+"""
+
 ATTR_RE = re.compile("(?P<whitespace>[ \n]*)(?P<entry>[^ \n]+)")
 SHORT_ATTR = 4 # length of short high-colour descriptions which may
 # be packed one after the next
@@ -84,65 +92,135 @@ def parse_chart(chart, convert):
             out.append((attr, text.ljust(elen)))
     return out
             
-def foreground_chart(chart, background, colours):
+def foreground_chart(chart, background, colors):
     """
     Create text markup for a foreground colour chart
 
     chart -- palette chart as string
     background -- colour to use for background of chart
-    colours -- number of colours (88 or 256)
+    colors -- number of colors (88 or 256)
     """
     def convert_foreground(entry):
         try:
-            attr = urwid.AttrSpec(entry, background, colours)
+            attr = urwid.AttrSpec(entry, background, colors)
         except urwid.AttrSpecError:
             return None
         return attr, entry
     return parse_chart(chart, convert_foreground)
 
-def background_chart(chart, foreground, colours):
+def background_chart(chart, foreground, colors):
     """
     Create text markup for a background colour chart
 
     chart -- palette chart as string
     foreground -- colour to use for foreground of chart
-    colours -- number of colours (88 or 256)
+    colors -- number of colors (88 or 256)
 
     This will remap 8 <= colour < 16 to high-colour versions
     in the hopes of greater compatibility
     """
     def convert_background(entry):
         try:
-            attr = urwid.AttrSpec(foreground, entry, colours)
+            attr = urwid.AttrSpec(foreground, entry, colors)
         except urwid.AttrSpecError:
             return None
         # fix 8 <= colour < 16
-        if attr.background_basic and attr.background_number >= 8:
+        if colors > 16 and attr.background_basic and \
+            attr.background_number >= 8:
             # use high-colour with same number
             entry = 'h%d'%attr.background_number
-            attr = urwid.AttrSpec(foreground, entry, colours)
+            attr = urwid.AttrSpec(foreground, entry, colors)
         return attr, entry
     return parse_chart(chart, convert_background)
 
 
 def main():
-    if '88' in sys.argv:
-        colours = 88
-        chart = CHART_88
-    elif '256' in sys.argv:
-        colours = 256
-        chart = CHART_256
-    else:
-        print "Usage: '%s 88' or '%s 256'"%(sys.argv[0], sys.argv[0])
-        return
-    lb = urwid.ListBox([
-        urwid.Text(foreground_chart(chart, 'default', colours), wrap='clip'),
-        urwid.Text(background_chart(chart, 'default', colours), wrap='clip'),
+    palette = [
+        ('header', 'black,underline', 'light gray', 'standout,underline',
+            'black,underline', '#88a'),
+        ('panel', 'light gray', 'dark blue', '',
+            '#ffd', '#00a'),
+        ('focus', 'light gray', 'dark cyan', 'standout',
+            '#ff8', '#806'),
+        ]
+
+    screen = urwid.raw_display.Screen()
+    screen.register_palette(palette)
+
+    lb = urwid.SimpleListWalker([])
+    chart_offset = None  # offset of chart in lb list
+
+    mode_radio_buttons = []
+    chart_radio_buttons = []
+
+    def fcs(widget):
+        # wrap widgets that can take focus
+        return urwid.AttrWrap(widget, None, 'focus')
+
+    def set_mode(colors, is_foreground_chart):
+        # set terminal mode and redraw chart
+        screen.set_terminal_properties(colors)
+        screen.reset_default_terminal_palette()
+
+        chart_fn = (background_chart, foreground_chart)[is_foreground_chart]
+        if colors == 1:
+            lb[chart_offset] = urwid.Divider()
+        else:
+            chart = {16: CHART_16, 88: CHART_88, 256: CHART_256}[colors]
+            txt = chart_fn(chart, 'default', colors)
+            lb[chart_offset] = urwid.Text(txt, wrap='clip')
+
+    def on_mode_change(rb, state, colors):
+        # if this radio button is checked
+        if state:
+            is_foreground_chart = chart_radio_buttons[0].state
+            set_mode(colors, is_foreground_chart)
+            
+    def mode_rb(text, colors, state=False):
+        # mode radio buttons
+        rb = urwid.RadioButton(mode_radio_buttons, text, state)
+        urwid.connect_signal(rb, 'change', on_mode_change, colors)
+        return fcs(rb)
+
+    def on_chart_change(rb, state):
+        # handle foreground check box state change
+        set_mode(screen.colors, state)
+        
+    def click_exit(button):
+        raise urwid.ExitMainLoop()
+    
+    lb.extend([
+        urwid.AttrWrap(urwid.Text("Urwid Palette Test"), 'header'),
+        urwid.AttrWrap(urwid.Columns([
+            urwid.Pile([
+                mode_rb("Monochrome", 1),
+                mode_rb("16-Color", 16, True),
+                mode_rb("88-Color", 88),
+                mode_rb("256-Color", 256),]),
+            urwid.Pile([
+                fcs(urwid.RadioButton(chart_radio_buttons,
+                    "Foreground Colors", True, on_chart_change)),
+                fcs(urwid.RadioButton(chart_radio_buttons,
+                    "Background Colors")),
+                urwid.Divider(),
+                fcs(urwid.Button("Exit", click_exit)),
+                ]),
+            ]),'panel')
         ])
-    def cause_exit(key):
+
+    chart_offset = len(lb)
+    lb.extend([
+        urwid.Divider() # placeholder for the chart
+        ])
+
+    set_mode(16, True) # displays the chart
+    
+    def unhandled_input(key):
         if key in ('Q','q','esc'):
             raise urwid.ExitMainLoop()
-    urwid.generic_main_loop(lb, unhandled_input=cause_exit)
+
+    urwid.generic_main_loop(urwid.ListBox(lb), screen=screen,
+        unhandled_input=unhandled_input)
 
 if __name__ == "__main__":
     main()
