@@ -198,6 +198,8 @@ class Screen(RealTerminal):
 		except _curses.error:
 			pass # don't block original error with curses error
 		
+		self._started = False
+		
 		if self._old_signal_keys:
 			self.tty_signal_keys(*self._old_signal_keys)
 	
