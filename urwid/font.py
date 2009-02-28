@@ -185,6 +185,42 @@ class HalfBlock5x4Font(Font):
    ▀█▀█▀   ▀  █
    ▀█▀█▀   ▀ ▐▌
     ▀ ▀  ▀   ▀
+'''), utf8decode('''
+AAAAABBBBBCCCCCDDDDDEEEEEFFFFFGGGGGHHHHHIIJJJJJKKKKK
+▄▀▀▄ █▀▀▄ ▄▀▀▄ █▀▀▄ █▀▀▀ █▀▀▀ ▄▀▀▄ █  █ █    █ █  █  
+█▄▄█ █▄▄▀ █    █  █ █▄▄  █▄▄  █    █▄▄█ █    █ █▄▀    
+█  █ █  █ █  ▄ █  █ █    █    █ ▀█ █  █ █ ▄  █ █ ▀▄  
+▀  ▀ ▀▀▀   ▀▀  ▀▀▀  ▀▀▀▀ ▀     ▀▀  ▀  ▀ ▀  ▀▀  ▀  ▀  
+'''), utf8decode('''
+LLLLLMMMMMMNNNNNOOOOOPPPPPQQQQQRRRRRSSSSSTTTTTT
+█    █▄ ▄█ ██ █ ▄▀▀▄ █▀▀▄ ▄▀▀▄ █▀▀▄ ▄▀▀▄ ▀▀█▀▀
+█    █ ▀ █ █▐▌█ █  █ █▄▄▀ █  █ █▄▄▀ ▀▄▄    █  
+█    █   █ █ ██ █  █ █    █ ▌█ █  █ ▄  █   █
+▀▀▀▀ ▀   ▀ ▀  ▀  ▀▀  ▀     ▀▀▌ ▀  ▀  ▀▀    ▀
+'''), utf8decode('''
+UUUUUVVVVVVWWWWWWXXXXXXYYYYYYZZZZZ
+█  █ █   █ █   █ █   █ █   █ ▀▀▀█      
+█  █ ▐▌ ▐▌ █ ▄ █  ▀▄▀   ▀▄▀   ▄▀  
+█  █  █ █  ▐▌█▐▌ ▄▀ ▀▄   █   █    
+ ▀▀    ▀    ▀ ▀  ▀   ▀   ▀   ▀▀▀▀     
+'''), utf8decode('''
+aaaaabbbbbcccccdddddeeeeeffffggggghhhhhiijjjjkkkkk
+     █            █       ▄▀▀     █    ▄   ▄ █
+ ▀▀▄ █▀▀▄ ▄▀▀▄ ▄▀▀█ ▄▀▀▄ ▀█▀ ▄▀▀▄ █▀▀▄ ▄   ▄ █ ▄▀    
+▄▀▀█ █  █ █  ▄ █  █ █▀▀   █  ▀▄▄█ █  █ █   █ █▀▄   
+ ▀▀▀ ▀▀▀   ▀▀   ▀▀▀  ▀▀   ▀   ▄▄▀ ▀  ▀ ▀ ▄▄▀ ▀  ▀  
+'''), utf8decode('''
+llmmmmmmnnnnnooooopppppqqqqqrrrrssssstttt
+█                                     █  
+█ █▀▄▀▄ █▀▀▄ ▄▀▀▄ █▀▀▄ ▄▀▀█ █▀▀ ▄▀▀▀ ▀█▀  
+█ █ █ █ █  █ █  █ █  █ █  █ █    ▀▀▄  █
+▀ ▀   ▀ ▀  ▀  ▀▀  █▀▀   ▀▀█ ▀   ▀▀▀    ▀
+'''), utf8decode('''
+uuuuuvvvvvwwwwwwxxxxxxyyyyyzzzzz
+                           
+█  █ █  █ █ ▄ █ ▀▄ ▄▀ █  █ ▀▀█▀
+█  █ ▐▌▐▌ ▐▌█▐▌  ▄▀▄  ▀▄▄█ ▄▀   
+ ▀▀   ▀▀   ▀ ▀  ▀   ▀  ▄▄▀ ▀▀▀▀
 ''')]
 add_font("Half Block 5x4",HalfBlock5x4Font)
 
