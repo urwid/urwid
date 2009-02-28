@@ -223,9 +223,21 @@ class Widget(object):
 
     def pack(self, size, focus=False):
         """
-        Return a 'packed' size for this widget.  Default 
-        implementation (no packing defined) returns size unaltered.
+        Return a 'packed' (maxcol, maxrow) for this widget.  Default 
+        implementation (no packing defined) returns size, and
+        calculates maxrow if not given.
         """
+        if size == ():
+            if FIXED in self.sizing():
+                raise NotImplementedError('Fixed widgets must override'
+                    ' Widget.size()')
+            raise WidgetError('Cannot pack () size, this is not a fixed'
+                ' widget: %s' % repr(self))
+        elif len(size) == 1:
+            if FLOW in self.sizing():
+                return size + (self.rows(size, focus),)
+            raise WidgetError('Cannot pack (maxcol,) size, this is not a'
+                ' flow widget: %s' % repr(self))
         return size
 
     # this property returns the widget without any decorations, default

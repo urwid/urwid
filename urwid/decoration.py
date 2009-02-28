@@ -39,7 +39,7 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
         Don't actually do this -- use a WidgetDecoration subclass
         instead, these are not real widgets:
         >>> WidgetDecoration(Text("hi"))
-        <WidgetDecoration widget <Text flow widget 'hi'>>
+        <WidgetDecoration flow widget <Text flow widget 'hi'>>
         """
         self._original_widget = original_widget
     def _repr_words(self):
@@ -76,6 +76,8 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
     def selectable(self):
         return self._original_widget.selectable()
 
+    def sizing(self):
+        return self._original_widget.sizing()
 
 
 class AttrWrap(WidgetDecoration):
@@ -158,7 +160,7 @@ class AttrWrap(WidgetDecoration):
 class BoxAdapterError(Exception):
     pass
 
-class BoxAdapter(WidgetDecoration, FlowWidget):
+class BoxAdapter(WidgetDecoration):
     """
     Adapter for using a box widget where a flow widget would usually go
     """
@@ -187,6 +189,9 @@ class BoxAdapter(WidgetDecoration, FlowWidget):
     # originally stored as box_widget, keep for compatibility
     box_widget = property(WidgetDecoration._get_original_widget, 
         WidgetDecoration._set_original_widget)
+
+    def sizing(self):
+        return set([FLOW])
 
     def rows(self, size, focus=False):
         """
@@ -265,7 +270,7 @@ class Padding(WidgetDecoration):
         left -- a fixed number of columns to pad on the left
         right -- a fixed number of columns to pad on thr right
             
-        Clipping Mode: (width=None)
+        Clipping Mode: (width='clip')
         In clipping mode this padding widget will behave as a flow
         widget and self.original_widget will be treated as a fixed 
         widget.  self.original_widget will will be clipped to fit
@@ -321,6 +326,11 @@ class Padding(WidgetDecoration):
             PaddingError)
         self.min_width = min_width
     
+    def sizing(self):
+        if self._width_type == CLIP:
+            return set([FLOW])
+        return self.original_widget.sizing()
+
     def _repr_attrs(self):
         attrs = dict(self.__super._repr_attrs(),
             align=self.align,
@@ -391,7 +401,7 @@ class Padding(WidgetDecoration):
         if self._width_type == PACK:
             maxwidth = max(maxcol - self.left - self.right, 
                 self.min_width or 0)
-            (width,) = self._original_widget.pack((maxwidth,),
+            (width, ignore) = self._original_widget.pack((maxwidth,),
                 focus=focus)
             return calculate_left_right_padding(maxcol,
                 self._align_type, self._align_amount, 
