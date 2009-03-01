@@ -1315,6 +1315,8 @@ class ListBox(BoxWidget):
 		l = []
 		middle,top,bottom = self.calculate_visible( (maxcol,maxrow), 
 			focus=focus )
+		if middle is None: # empty listbox
+			return ['top','bottom']
 		trim_top, above = top
 		trim_bottom, below = bottom
 
