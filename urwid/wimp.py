@@ -215,7 +215,7 @@ class CheckBox(WidgetWrap):
 		# self._state is None is a special case when the CheckBox
 		# has just been created
 		if do_callback and self._state is not None:
-			self._emit('change', self, state)
+			self._emit('change', state)
 		self._state = state
 		# rebuild the display widget with the new state
 		self._w = Columns( [
@@ -500,7 +500,7 @@ class Button(WidgetWrap):
 		if command_map[key] != 'activate':
 			return key
 
-		self._emit('click', self)
+		self._emit('click')
 
 	def mouse_event(self, size, event, button, x, y, focus):
 		"""
@@ -522,7 +522,7 @@ class Button(WidgetWrap):
 		if button != 1 or not is_mouse_press(event):
 			return False
 			
-		self._emit('click', self)
+		self._emit('click')
 		return True
 
 

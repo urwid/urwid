@@ -27,27 +27,14 @@ import urwid
 import urwid.raw_display
 
 
-class EditWithCallback(urwid.Edit):
-	def __init__(self, *argl, **argd):
-		self.on_change = argd['on_change']
-		del argd['on_change']
-		self.edit_text = ""
-		urwid.Edit.__init__(self, *argl, **argd)
-		
-	def set_edit_text(self, text):
-		if self.on_change and text != self.edit_text:
-			self.on_change(self, text)
-		urwid.Edit.set_edit_text(self, text)
-		
-
 class SwitchingPadding(urwid.Padding):
 	def padding_values(self, size, focus):
 		maxcol = size[0]
-		width, ignore = self.w.pack(focus=focus)
+		width, ignore = self.original_widget.pack(size, focus=focus)
 		if maxcol > width:
-			self.align_type = "left"
+			self.align = "left"
 		else:
-			self.align_type = "right"
+			self.align = "right"
 		return urwid.Padding.padding_values(self, size, focus)
 
 
@@ -76,7 +63,9 @@ class BigTextDisplay:
 		return w
 	
 	def create_edit(self, label, text, fn):
-		w = EditWithCallback(label, text, on_change = fn)
+		w = urwid.Edit(label, text)
+		urwid.connect_signal(w, 'change', fn)
+		fn(w, text)
 		w = urwid.AttrWrap(w, 'edit')
 		return w
 
@@ -85,7 +74,7 @@ class BigTextDisplay:
 			self.bigtext.set_font(w.font)
 			self.chars_avail.set_text(w.font.characters())
 
-	def edit_change_event(self, w, text):
+	def edit_change_event(self, widget, text):
 		self.bigtext.set_text(text)
 
 	def setup_view(self):
