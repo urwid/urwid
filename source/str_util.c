@@ -450,6 +450,13 @@ static int Py_IsWideChar(PyObject *text, int offs)
         ustr = PyUnicode_AS_UNICODE(text);
         return (Py_GetWidth((long int)ustr[offs]) == 2);
     }
+
+    if ( text->ob_type != Py_BuildValue("s","")->ob_type ) {
+
+        PyErr_SetString(PyExc_TypeError,
+            "is_wide_char: Argument \"text\" is not a string.");
+        return -1;
+    }
     
     str = (const unsigned char *)PyString_AsString(text);
     str_len = (int) PyString_Size(text);
@@ -477,6 +484,10 @@ static PyObject * is_wide_char(PyObject *self, PyObject *args)
         return NULL;
 
     ret = Py_IsWideChar(text, offs);
+
+    if ( ret == -1) // error
+        return NULL;
+
     return Py_BuildValue("O", to_bool(ret));
 }
 
