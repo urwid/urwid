@@ -338,11 +338,11 @@ user presses ENTER:
   <li>If the current position is at the end of the list, a response is 
   appended followed by a new question. If the current position is not at the
   end then a previous response is replaced with an updated one.
-  <li>The focus is moved down two positions to the next question by calling
-  <a href="reference.html#ListBox-set_focus">set_focus</a>.
-  <li>Finally, the cursor position within the new focus widget is moved to
-  the far left by calling 
+  <li>The cursor position is moved to the far left by calling 
   <a href="reference.html#Edit-set_edit_pos">set_edit_pos</a>.
+  <li>Finally, the focus is moved down two positions to the next question 
+  by calling
+  <a href="reference.html#ListBox-set_focus">set_focus</a>.
   </ul>
 <li>All other keys are passed to the top widget to handle. The ListBox widget
 does most of the hard work:

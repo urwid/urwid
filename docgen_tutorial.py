@@ -270,9 +270,8 @@ def example_lbcont():
 				else:
 					self.items[pos+1:pos+2] = [answer]
 
-				self.listbox.set_focus( pos+2, coming_from='above' )
-				widget, pos = self.listbox.get_focus()
 				widget.set_edit_pos(0)
+				self.listbox.set_focus( pos+2, coming_from='above' )
 			else:
 				self.top.keypress( size, k )
 		# CUT HERE
