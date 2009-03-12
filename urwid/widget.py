@@ -123,7 +123,7 @@ def cache_widget_render(cls):
     fn = cls.render
     def cached_render(self, size, focus=False):
         focus = focus and not ignore_focus
-        canv = CanvasCache.fetch(self, size, focus)
+        canv = CanvasCache.fetch(self, cls, size, focus)
         if canv:
             return canv
 
@@ -132,7 +132,7 @@ def cache_widget_render(cls):
         if canv.widget_info:
             canv = CompositeCanvas(canv)
         canv.finalize(self, size, focus)
-        CanvasCache.store(canv)
+        CanvasCache.store(cls, canv)
         return canv
     cached_render.original_fn = fn
     update_wrapper(cached_render, fn)
@@ -183,7 +183,7 @@ def cache_widget_rows(cls):
     fn = cls.rows
     def cached_rows(self, size, focus=False):
         focus = focus and not ignore_focus
-        canv = CanvasCache.fetch(self, size, focus)
+        canv = CanvasCache.fetch(self, cls, size, focus)
         if canv:
             return canv.rows()
 

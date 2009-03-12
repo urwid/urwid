@@ -29,6 +29,21 @@ from text_layout import *
 import sys
 
 class CanvasCache(object):
+	"""
+	Cache for rendered canvases.  Automatically populated and
+	accessed by Widget render() MetaClass magic, cleared by 
+	Widget._invalidate().
+
+	Stores weakrefs to the canvas objects, so an external class
+	must maintain a reference for this cache to be effective.
+	At present the Screen classes store the last topmost canvas 
+	after redrawing the screen, keeping the canvases from being 
+	garbage collected.
+
+	_widgets[widget] = {(wcls, size, focus): weakref.ref(canvas), ...}
+	_refs[weakref.ref(canvas)] = (widget, wcls, size, focus)
+	_deps[widget} = [dependent_widget, ...]
+	"""
 	_widgets = {}
 	_refs = {}
 	_deps = {}
@@ -36,13 +51,22 @@ class CanvasCache(object):
 	fetches = 0
 	cleanups = 0
 
-	def store(cls, canvas):
+	def store(cls, wcls, canvas):
 		"""
 		Store a weakref to canvas in the cache.
+
+		wcls -- widget class that contains render() function
+		canvas -- rendered canvas with widget_info (widget, size, focus)
 		"""
 		assert canvas.widget_info, "Can't store canvas without widget_info"
 		widget, size, focus = canvas.widget_info
 		def walk_depends(canv):
+			"""
+			Collect all child widgets for determining who we
+			depend on.
+			"""
+			# FIXME: is this recursion necessary?  The cache 
+			# invalidating might work with only one level.
 			depends = []
 			for x, y, c, pos in canv.children:
 				if c.widget_info:
@@ -50,6 +74,8 @@ class CanvasCache(object):
 				elif hasattr(c, 'children'):
 					depends.extend(walk_depends(c))
 			return depends
+
+		# use explicit depends_on if available from the canvas
 		depends_on = getattr(canvas, 'depends_on', None)
 		if depends_on is None and hasattr(canvas, 'children'):
 			depends_on = walk_depends(canvas)
@@ -61,24 +87,29 @@ class CanvasCache(object):
 				cls._deps.setdefault(w,[]).append(widget)
 
 		ref = weakref.ref(canvas, cls.cleanup)
-		cls._refs[ref] = (widget, size, focus)
-		cls._widgets.setdefault(widget, {})[(size, focus)] = ref
+		cls._refs[ref] = (widget, wcls, size, focus)
+		cls._widgets.setdefault(widget, {})[(wcls, size, focus)] = ref
 	store = classmethod(store)
 
-	def fetch(cls, widget, size, focus):
+	def fetch(cls, widget, wcls, size, focus):
 		"""
-		Return the cached canvas for (widget, size, focus) or None.
+		Return the cached canvas or None.
+
+		widget -- widget object requested
+		wcls -- widget class that contains render() function
+		size, focus -- render() parameters
 		"""
-		cls.fetches += 1
+		cls.fetches += 1 # collect stats
+
 		sizes = cls._widgets.get(widget, None)
 		if not sizes:
 			return None
-		ref = sizes.get((size, focus), None)
+		ref = sizes.get((wcls, size, focus), None)
 		if not ref:
 			return None
 		canv = ref()
 		if canv:
-			cls.hits += 1
+			cls.hits += 1 # more stats
 		return canv
 	fetch = classmethod(fetch)
 	
@@ -107,17 +138,18 @@ class CanvasCache(object):
 	invalidate = classmethod(invalidate)
 
 	def cleanup(cls, ref):
-		cls.cleanups += 1
+		cls.cleanups += 1 # collect stats
+
 		w = cls._refs.get(ref, None)
 		del cls._refs[ref]
 		if not w:
 			return
-		widget, size, focus = w
+		widget, wcls, size, focus = w
 		sizes = cls._widgets.get(widget, None)
 		if not sizes:
 			return
 		try:
-			del sizes[(size, focus)]
+			del sizes[(wcls, size, focus)]
 		except KeyError:
 			pass
 		if not sizes:
