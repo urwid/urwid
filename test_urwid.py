@@ -498,7 +498,7 @@ class CanvasCacheTest(unittest.TestCase):
 		urwid.CanvasCache._widgets.clear()
 
 	def cct(self, widget, size, focus, expected):
-		got = urwid.CanvasCache.fetch(widget, size, focus)
+		got = urwid.CanvasCache.fetch(widget, urwid.Widget, size, focus)
 		assert expected==got, "got: %s expected: %s"%(got, expected)
 
 	def test1(self):
@@ -511,9 +511,9 @@ class CanvasCacheTest(unittest.TestCase):
 		bloo = urwid.TextCanvas()
 		bloo.finalize(b, (20,2), True)
 
-		urwid.CanvasCache.store(blah)
-		urwid.CanvasCache.store(blah2)
-		urwid.CanvasCache.store(bloo)
+		urwid.CanvasCache.store(urwid.Widget, blah)
+		urwid.CanvasCache.store(urwid.Widget, blah2)
+		urwid.CanvasCache.store(urwid.Widget, bloo)
 
 		self.cct(a, (10,1), False, blah)
 		self.cct(a, (15,1), False, blah2)
