@@ -290,7 +290,8 @@ class Overlay(BoxWidget):
 	
 	def keypress(self, size, key):
 		"""Pass keypress to top_w."""
-		return self.top_w.keypress( size, key)
+		return self.top_w.keypress(self.top_w_size(size,
+                       *self.calculate_padding_filler(size, True)), key)
 	
 	def get_cursor_coords(self, size):
 		"""Return cursor coords from top_w, if any."""
