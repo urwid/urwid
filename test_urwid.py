@@ -1667,10 +1667,6 @@ class PaddingTest(unittest.TestCase):
 		self.petest("invalid pad type",('bad',2),5)
 		self.petest("invalid width",'center','42')
 		self.petest("invalid width type",'center',('gouranga',4))
-		self.petest("invalid combination",('relative',20),
-			('fixed right',4))
-		self.petest("invalid combination 2",('relative',20),
-			('fixed left',4))
 		
 	def test_values(self):	
 		self.ptest("left align 5 7",'left',5,7,0,2)

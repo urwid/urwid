@@ -303,9 +303,10 @@ class Padding(WidgetDecoration):
             'fixed right'):
             if align[0]=='fixed left':
                 left = align[1]
+                align = LEFT
             else:
                 right = align[1]
-            align = LEFT
+                align = RIGHT
         if type(width) == type(()) and width[0] in ('fixed left', 
             'fixed right'):
             if width[0]=='fixed left':
@@ -415,7 +416,7 @@ class Padding(WidgetDecoration):
     def rows(self, size, focus=False):
         """Return the rows needed for self.original_widget."""
         if self._width_type == PACK:
-            pcols, prows = self.pack(size, focus)
+            pcols, prows = self._original_widget.pack(size, focus)
             return prows
         if self._width_type == CLIP:
             fcols, frows = self._original_widget.pack((), focus)
