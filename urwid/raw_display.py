@@ -67,6 +67,7 @@ class Screen(BaseScreen, RealTerminal):
         self._cy = 0
         self._started = False
         self.bright_is_bold = os.environ.get('TERM',None) != "xterm"
+        self._next_timeout = None
     
     started = property(lambda self: self._started)
 
@@ -92,6 +93,11 @@ class Screen(BaseScreen, RealTerminal):
             window resize operation
         """
         self.max_wait = max_wait
+        if max_wait is not None:
+            if self._next_timeout is None:
+                self._next_timeout = max_wait
+            else:
+                self._next_timeout = min(self._next_timeout, self.max_wait)
         self.complete_wait = complete_wait
         self.resize_wait = resize_wait
 
@@ -800,6 +806,7 @@ class Screen(BaseScreen, RealTerminal):
         modify = ["%d;rgb:%02x/%02x/%02x" % (index, red, green, blue)
             for index, red, green, blue in entries]
         seq = sys.stdout.write("\x1b]4;"+";".join(modify)+"\x1b\\")
+        sys.stdout.flush()
 
 
     # shortcut for creating an AttrSpec with this screen object's
