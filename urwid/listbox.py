@@ -22,6 +22,7 @@
 from util import *
 from canvas import *
 from widget import *
+from decoration import calculate_filler, decompose_valign_height
 import signals
 from monitored_list import MonitoredList
 from command_map import command_map
@@ -389,7 +390,6 @@ class ListBox(BoxWidget):
 			('fixed bottom', rows)
 			('relative', percentage 0=top 100=bottom)
 		"""
-                from urwid.decoration import decompose_valign_height
 		vt,va,ht,ha=decompose_valign_height(valign,None,ListBoxError)
 		self.set_focus_valign_pending = vt,va
 
