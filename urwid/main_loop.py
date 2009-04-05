@@ -19,12 +19,184 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+
+import time
+import heapq
+
+
 from util import *
 from command_map import command_map
 
 
 class ExitMainLoop(Exception):
     pass
+
+
+class GenericMainLoop(object):
+    def __init__(self, widget, palette=[], screen=None, 
+        handle_mouse=True):
+        """
+        Initialize a screen object and palette to be used for
+        a generic main loop.
+
+        widget -- topmost widget used for painting the screen,
+            stored as self.widget, may be modified
+        palette -- initial palette for screen
+        screen -- screen object or None to use raw_display.Screen,
+            stored as self.screen
+        handle_mouse -- True to process mouse events
+        """
+        self.widget = widget
+        self.handle_mouse = handle_mouse
+        
+        if not screen:
+            import raw_display
+            screen = raw_display.Screen()
+
+        if palette:
+            screen.register_palette(palette)
+
+        self.screen = screen
+        self.screen_size = None
+
+        self._alarms = []
+
+    def set_alarm_in(self, sec, callback, user_data=None):
+        """
+        Schedule an alarm in sec seconds that will call
+        callback(main_loop, user_data) from the within the run()
+        function.
+
+        sec -- floating point seconds until alarm
+        callback -- callback(main_loop, user_data) callback function
+        user_data -- object to pass to callback
+        """
+        self.set_alarm_at(time.time() + sec, callback, user_data)
+
+    def set_alarm_at(self, tm, callback, user_data=None):
+        """
+        Schedule at tm time that will call 
+        callback(main_loop, user_data) from the within the run()
+        function.
+
+        tm -- floating point local time of alarm
+        callback -- callback(main_loop, user_data) callback function
+        user_data -- object to pass to callback
+        """
+        heapq.heappush(self._alarms, (tm, callback, user_data))
+
+    def run(self):
+        """
+        Start a generic main loop handling input events and updating 
+        the screen.  The loop will continue until an ExitMainLoop 
+        exception is raised.  
+        
+        This function will call screen.run_wrapper() if screen.start() 
+        has not already been called.
+        """
+        try:
+            if self.screen.started:
+                self._run()
+            else:
+                self.screen.run_wrapper(self._run)
+        except ExitMainLoop:
+            pass
+
+    def _run(self):
+        next_alarm = None
+        if self.handle_mouse:
+            self.screen.set_mouse_tracking()
+
+        while True:
+            self.draw_screen()
+
+            if not next_alarm and self._alarms:
+                next_alarm = heapq.heappop(self._alarms)
+
+            keys = None
+            while not keys:
+                if next_alarm:
+                    sec = max(0, next_alarm[0] - time.time())
+                    self.screen.set_input_timeouts(sec)
+                else:
+                    self.screen.set_input_timeouts(None)
+                keys = self.screen.get_input()
+                if not keys and next_alarm: 
+                    sec = next_alarm[0] - time.time()
+                    if sec <= 0:
+                        break
+            
+            if keys:
+                self.process_input(keys)
+            
+            while next_alarm:
+                sec = next_alarm[0] - time.time()
+                if sec > 0:
+                    break
+                tm, callback, user_data = next_alarm
+                callback(self, user_data)
+                
+                if self._alarms:
+                    next_alarm = heapq.heappop(self._alarms)
+                else:
+                    next_alarm = None
+            
+            if 'window resize' in keys:
+                self.screen_size = None
+
+    def process_input(self, keys):
+        """
+        This function will pass keyboard input and mouse events
+        to self.widget.  This function is called automatically
+        from the run() method when there is input, but may also be
+        called to simulate input from the user.
+
+        keys -- list of input returned from self.screen.get_input()
+        """
+        for k in keys:
+            k = self.input_filter(k)
+            if is_mouse_event(k):
+                event, button, col, row = k
+                if self.widget.mouse_event(self.screen_size, 
+                    event, button, col, row, focus=True ):
+                    k = None
+            else:
+                k = self.widget.keypress(self.screen_size, k)
+            if k:
+                k = self.unhandled_input(k)
+            if k and command_map[k] == 'redraw screen':
+                self.screen.clear()
+
+    def input_filter(self, input):
+        """
+        This function is passed each input event and returns the
+        input or None to not pass this input to the widgets.
+
+        inout -- keyboard or mouse input
+        """
+        return input
+
+    def unhandled_input(self, input):
+        """
+        This function is called with any input that was not handled
+        by the widgets.
+
+        input -- keyboard or mouse input
+        """
+        pass
+
+    def draw_screen(self):
+        """
+        Renter the widgets and paint the screen.  This function is
+        called automatically from run() but may be called additional 
+        times if repainting is required without also processing input.
+        """
+        if not self.screen_size:
+            self.screen_size = self.screen.get_cols_rows()
+        canvas = self.widget.render(self.screen_size, focus=True)
+        self.screen.draw_screen(self.screen_size, canvas)
+
+
 
 def generic_main_loop(topmost_widget, palette=[], screen=None,
     handle_mouse=True, input_filter=None, unhandled_input=None):
