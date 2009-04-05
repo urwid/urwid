@@ -372,7 +372,7 @@ class Overlay(BoxWidget):
         height = None
         if self.width_type is None:
             # top_w is a fixed widget
-            width, height = self.top_w.pack(focus=focus)
+            width, height = self.top_w.pack((),focus=focus)
             assert height, "fixed widget must have a height"
             left, right = calculate_padding(self.align_type,
                 self.align_amount, 'fixed', width, 
