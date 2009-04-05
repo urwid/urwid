@@ -24,7 +24,68 @@ from widget import *
 from decoration import *
 from command_map import command_map
 
-    
+
+class WidgetContainer(Widget):
+    def __init__(self, widget_list):
+        self.__super.__init__()
+        self._widget_list = MonitoredList([])
+        self._set_widget_list(widget_list)
+        self._widget_list.set_modified_callback(self._invalidate)
+
+
+    def _get_widget_list(self):
+        return self._widget_list
+    def _set_widget_list(self, widget_list):
+        """
+        widget_list -- iterable containing widgets
+
+        Copy the values from widget_list into self.widget_list 
+        """
+    widget_list = property(_get_widget_list, _set_widget_list)
+
+    def __getitem__(self, index):
+        """
+        Return the base widget of the widget at self.widget_list[index].
+        """
+        w = self._widget_list[index]
+        if hasattr(w, 'base_widget'):
+            w = w.base_widget
+        return w
+
+    def __len__(self):
+        return len(self._widget_list)
+
+    def __iter__(self):
+        i = 0
+        try:
+            while True:
+                v = self[i]
+                yield v
+                i += 1
+        except IndexError:
+            return
+
+    def __contains__(self, value):
+        for v in self:
+            if v == value:
+                return True
+        return False
+
+    def __reversed__(self):
+        for i in reversed(range(len(self))):
+            yield self[i]
+
+    def index(self, value):
+        for i, v in enumerate(self):
+            if v == value:
+                return i
+        raise ValueError
+
+    def count(self, value):
+        return sum(1 for v in self if v == value)
+
+
+
 
 class GridFlow(FlowWidget):
 
