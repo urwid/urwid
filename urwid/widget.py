@@ -46,6 +46,11 @@ LEFT = 'left'
 RIGHT = 'right'
 CENTER = 'center'
 
+# Filler alignment modes 
+TOP = 'top'
+MIDDLE = 'middle'
+BOTTOM = 'bottom'
+
 # Text wrapping modes
 SPACE = 'space'
 ANY = 'any'
