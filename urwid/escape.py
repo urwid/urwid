@@ -246,6 +246,7 @@ _keyconv = {
 	8:'backspace',
 	9:'tab',
 	10:'enter',
+	13:'enter',
 	127:'backspace',
 	# curses-only keycodes follow..  (XXX: are these used anymore?)
 	258:'down',
