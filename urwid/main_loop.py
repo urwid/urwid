@@ -2,6 +2,7 @@
 #
 # Urwid main loop code
 #    Copyright (C) 2004-2008  Ian Ward, Walter Mundt
+#    Copyright (C) 2009       Andrew Psaltis
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -27,6 +28,35 @@ import heapq
 from util import *
 from command_map import command_map
 
+# These are overridden by whatever loop class is used.
+def _handle_exceptions(exc):
+    pass
+
+def _quit_loop():
+    pass
+
+def wrap_exceptions(func):
+    """
+    Decorator function used to ensure that wrapped functions die properly
+    when an exception is thrown.
+    You may need to wrap some alarms/timeouts with this function to ensure
+    that your program doesn't break your terminal upon failure, if you use the
+    GLib or Twisted MainLoops.
+    func -- function to be wrapped
+    """
+    def wrapper(*args, **kargs):
+            try:
+                return func(*args, **kargs)
+            except ExitMainLoop:
+                _quit_loop()
+            except Exception as exc:
+                _handle_exceptions(exc)
+
+    wrapper.__name__ = func.__name__
+    wrapper.__module__ = func.__module__
+    wrapper.__dict__ = func.__dict__
+    wrapper.__doc__ = func.__doc__
+    return wrapper
 
 class ExitMainLoop(Exception):
     pass
@@ -60,6 +90,7 @@ class GenericMainLoop(object):
         self.screen_size = None
 
         self._alarms = []
+        self._timeouts = []
 
     def set_alarm_in(self, sec, callback, user_data=None):
         """
@@ -410,4 +441,256 @@ def twisted_main_loop(topmost_widget, palette=[], screen=None,
         reactor.run()
     else:
         return d
+
+
+# GLib main loop
+try:
+    import gobject
+except:
+    # Do nothing, the user should have pygobject if they want to use this.
+    pass
+class GLibMainLoop(object):
+    def __init__(self, widget, palette=[], screen=None, 
+        handle_mouse=True):
+        """
+        Initialize a screen object and palette to be used for
+        a generic main loop.
+
+        widget -- topmost widget used for painting the screen,
+            stored as self.widget, may be modified
+        palette -- initial palette for screen
+        screen -- screen object or None to use raw_display.Screen,
+            stored as self.screen
+        handle_mouse -- True to process mouse events
+        """
+        global _handle_exceptions,_quit_loop
+        self.widget = widget
+        self.handle_mouse = handle_mouse
+        
+        if not screen:
+            import raw_display
+            screen = raw_display.Screen()
+
+        if palette:
+            screen.register_palette(palette)
+
+        self.screen = screen
+        self.screen_size = None
+
+        self.update_tag = None
+        
+        self._timeouts = []
+
+        _handle_exceptions = self.handle_exceptions
+        _quit_loop = self.quit_loop
+        
+        self._loop = gobject.MainLoop()
+
+    def _set_screen_alarm(self,sec):
+        def ret_false():
+            self._run()
+            return False
+        return gobject.timeout_add(sec*1000,ret_false)
+
+    def set_alarm_in(self, sec, callback, user_data=None):
+        """
+        Schedule an alarm in sec seconds that will call
+        callback(main_loop, user_data) as a timeout in the glib mainloop
+        in sec seconds.
+
+        This returns the file descriptor that glib gives us.
+
+        sec -- floating point seconds until alarm
+        callback -- callback(main_loop, user_data) callback function
+        user_data -- object to pass to callback
+        """
+        def ret_false(callback):
+            callback(self,user_data)
+            return False
+        tag = gobject.timeout_add(sec*1000, ret_false)
+        self._timeouts.append(tag)
+        return tag
+
+    def set_alarm_at(self, tm, callback, user_data=None):
+        """
+        Schedule an alarm at sec seconds that will call
+        callback(main_loop, user_data) as a timeout in the glib mainloop.
+        
+        This returns the file descriptor that glib gives us.
+
+        tm -- floating point local time of alarm
+        callback -- callback(main_loop, user_data) callback function
+        user_data -- object to pass to callback
+        """
+        return self.set_alarm_in(sec-time.time(),callback,user_data)
+
+    def set_timeout(self, tm, callback, user_data=None):
+        """
+        Sechedule a call to callback(main_loop,user_data) to occur in int
+        seconds, repeating every tm seconds until it returns False.  This 
+        returns the file descriptor that glib gives us.
+
+        tm -- floating point seconds until timeout is processed
+        callback -- callback(main_loop, user_data) callback function
+        user_data -- object to pass to callback
+        """
+        tag = gobject.timeout_add(sec*1000, callback,user_data)
+        self._timeouts.append(tag)
+        return tag
+
+    def remove_timeout(self,tag):
+        """
+        Remove the timeout (or alarm or whatever) represented by the tag value.
+
+        Calls gobject.source_remove(tag) and returns the tag if we know about
+        the tag in question.  Else, return None.
+
+        tag -- tag of the timeout/idle function/io watch to remove
+        """
+        if tag in _timeouts:
+            return gobject.source_remove(tag)
+        else:
+            return None
+
+    @wrap_exceptions
+    def run(self):
+        """
+        Start a glib main loop handling input events and updating 
+        the screen.  The loop will continue until an ExitMainLoop 
+        (or some other) exception is raised.  
+        """
+        #This function will call screen.run_wrapper() if screen.start() 
+        #has not already been called.
+        #"""
+        if self.handle_mouse:
+            self.screen.set_mouse_tracking()
+        #gobject.idle_add(self._run)
+
+        # Set up the UI, this starts setting up other timeouts/alarms for
+        # the input
+        try:
+            if not self.screen.started:
+                self.screen.run_wrapper(self._prerun)
+            else:
+                self._prerun()
+        except ExitMainLoop:
+            screen._loop.quit()
+            pass
+        
+    #@wrap_exceptions
+    def _prerun(self):
+        self._run()
+
+        # Account for file descriptors
+        fds = self.screen.get_input_descriptors()
+        for fd in fds:
+            gobject.io_add_watch(fd, gobject.IO_IN,self._call_run)
+
+        self._loop.run()
+
+    def _call_run(self,source,cb_condition):
+        self._run()
+        return True
+
+    @wrap_exceptions
+    def _run(self):
+        input_data = self.screen.get_input_nonblocking()
+        max_wait = input_data[0]
+        keys = input_data[1]
+
+        # Resolve any "alarms" in the waiting
+        if self.update_tag != None:
+            self.remove_timeout(self.update_tag)
+        if max_wait == None:
+            max_wait = 0.050
+
+        self.update_tag = self._set_screen_alarm(max_wait)
+        
+        if keys:
+            self.process_input(keys)
+            
+            if 'window resize' in keys:
+                self.screen_size = None
+        # If the "Quit" key is pressed, burn, baby, burn.
+        if not self.screen.started:
+            return False
+        self.draw_screen()
+        return True
+
+    def process_input(self, keys):
+        """
+        This function will pass keyboard input and mouse events
+        to self.widget.  This function is called automatically
+        from the run() method when there is input, but may also be
+        called to simulate input from the user.
+
+        keys -- list of input returned from self.screen.get_input()
+        """
+        for k in keys:
+            k = self.input_filter(k)
+            if is_mouse_event(k):
+                event, button, col, row = k
+                if self.widget.mouse_event(self.screen_size, 
+                    event, button, col, row, focus=True ):
+                    k = None
+            else:
+                k = self.widget.keypress(self.screen_size, k)
+            if k:
+                k = self.unhandled_input(k)
+            if k and command_map[k] == 'redraw screen':
+                self.screen.clear()
+
+    def input_filter(self, input):
+        """
+        This function is passed each input event and returns the
+        input or None to not pass this input to the widgets.
+
+        input -- keyboard or mouse input
+        """
+        return input
+
+    def unhandled_input(self, input):
+        """
+        This function is called with any input that was not handled
+        by the widgets.
+
+        input -- keyboard or mouse input
+        """
+        pass
+
+    def draw_screen(self):
+        """
+        Renter the widgets and paint the screen.  This function is
+        called automatically from run() but may be called additional 
+        times if repainting is required without also processing input.
+        """
+        if not self.screen_size:
+            self.screen_size = self.screen.get_cols_rows()
+        canvas = self.widget.render(self.screen_size, focus=True)
+        self.screen.draw_screen(self.screen_size, canvas)
+
+    def handle_exceptions(self, exc):
+        """
+        Handle exceptions that are caught by the wrap_exceptions decorator.
+        
+        This method is called to handle all exceptions except 
+        urwid.ExitMainLoop, which is simply used to trigger an exit.
+
+        Unless overridden, this just kills the loop and then raises
+        the exception.
+
+        exc -- Exception to be processed.
+        """
+        #if type(exc) == type(ExitMainLoop):
+        #    quit_loop()
+        self.quit_loop()
+        raise
+    def quit_loop(self):
+        """
+        Quit the mainloop.  This is called by wrap_exceptions on ExitMainLoop
+        and is used in the default handle_exceptions to quit the loop before
+        raising the exception.
+        """
+        self.screen.stop()
+        self._loop.quit()
 
