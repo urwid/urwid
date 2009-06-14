@@ -202,7 +202,7 @@ class Screen(BaseScreen, RealTerminal):
             + escape.MOUSE_TRACKING_OFF
             + escape.SHOW_CURSOR
             + move_cursor + "\n" + escape.SHOW_CURSOR )
-        self._input_iter = None
+        self._input_iter = self._fake_input_iter()
 
         if self._old_signal_keys:
             self.tty_signal_keys(*self._old_signal_keys)
@@ -368,6 +368,14 @@ class Screen(BaseScreen, RealTerminal):
 
             yield (self.max_wait, processed, original_codes)
             empty_resize_pipe()
+
+    def _fake_input_iter(self):
+        """
+        This generator is a placeholder for when the screen is stopped
+        to always return that no input is available.
+        """
+        while True:
+            yield (self.max_wait, [], [])
 
     def _get_keyboard_codes(self):
         codes = []
