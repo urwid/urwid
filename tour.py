@@ -318,8 +318,8 @@ def main():
 		if key == 'f8':
 			raise urwid.ExitMainLoop()
 
-	urwid.generic_main_loop(frame, palette, screen,
-		unhandled_input=unhandled)
+	urwid.MainLoop(frame, palette, screen,
+		unhandled_input=unhandled).run()
 
 def setup():
 	urwid.web_display.set_preferences("Urwid Tour")

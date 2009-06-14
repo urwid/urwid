@@ -219,8 +219,8 @@ def main():
         if key in ('Q','q','esc'):
             raise urwid.ExitMainLoop()
 
-    urwid.generic_main_loop(urwid.ListBox(lb), screen=screen,
-        unhandled_input=unhandled_input)
+    urwid.MainLoop(urwid.ListBox(lb), screen=screen,
+        unhandled_input=unhandled_input).run()
 
 if __name__ == "__main__":
     main()

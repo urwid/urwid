@@ -68,6 +68,9 @@ class Screen(BaseScreen, RealTerminal):
         self._started = False
         self.bright_is_bold = os.environ.get('TERM',None) != "xterm"
         self._next_timeout = None
+        # pipe for signalling external event loops about resize events
+        self._resize_pipe_rd, self._resize_pipe_wr = os.pipe()
+        fcntl.fcntl(self._resize_pipe_rd, fcntl.F_SETFL, os.O_NONBLOCK)
     
     started = property(lambda self: self._started)
 
@@ -104,6 +107,8 @@ class Screen(BaseScreen, RealTerminal):
     def _sigwinch_handler(self, signum, frame):
         self._resized = True
         self.screen_buf = None
+        # signal external event loops
+        os.write(self._resize_pipe_wr, "R")
       
     def signal_init(self):
         """
@@ -299,7 +304,7 @@ class Screen(BaseScreen, RealTerminal):
 
         Use this method if you are implementing yout own event loop.
         """
-        fd_list = [sys.stdin.fileno()]
+        fd_list = [sys.stdin.fileno(), self._resize_pipe_rd]
         if self.gpm_mev is not None:
             fd_list.append(self.gpm_mev.fromchild.fileno())
         return fd_list
@@ -323,6 +328,14 @@ class Screen(BaseScreen, RealTerminal):
         return self._input_iter.next()
 
     def _run_input_iter(self):
+        def empty_resize_pipe():
+            # clean out the pipe used to signal external event loops
+            # that a resize has occured
+            try:
+                while True: os.read(self._resize_pipe_rd, 1)
+            except OSError:
+                pass
+
         while True:
             processed = []
             codes = self._get_gpm_codes() + \
@@ -338,6 +351,7 @@ class Screen(BaseScreen, RealTerminal):
                 k = len(original_codes) - len(codes)
                 yield (self.complete_wait, processed,
                     original_codes[:k])
+                empty_resize_pipe()
                 original_codes = codes
                 processed = []
 
@@ -353,6 +367,7 @@ class Screen(BaseScreen, RealTerminal):
                 self._resized = False
 
             yield (self.max_wait, processed, original_codes)
+            empty_resize_pipe()
 
     def _get_keyboard_codes(self):
         codes = []
