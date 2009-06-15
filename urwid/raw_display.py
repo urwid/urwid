@@ -31,12 +31,17 @@ import struct
 import sys
 import tty
 import signal
-import popen2
 
 import util
 import escape
 from display_common import *
 import signals
+
+try:
+    # python >= 2.4
+    from subprocess import Popen, PIPE
+except ImportError:
+    Popen = None
 
 # replace control characters with ?'s
 _trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
@@ -146,12 +151,16 @@ class Screen(BaseScreen, RealTerminal):
             return
         if not os.environ.get('TERM',"").lower().startswith("linux"):
             return
-        m = popen2.Popen3("/usr/bin/mev -e 158")
+        if not Popen:
+            return
+        m = Popen(["/usr/bin/mev","-e","158"], stdin=PIPE, stdout=PIPE,
+            close_fds=True)
+        fcntl.fcntl(m.stdout.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
         self.gpm_mev = m
     
     def _stop_gpm_tracking(self):
-        os.kill(self.gpm_mev.pid, signal.SIGINT)
-        os.waitpid(self.gpm_mev.pid, 0)
+        os.kill(self.gpm_mev.pid, signal.SIGKILL)
+        #os.waitpid(self.gpm_mev.pid, 0)
         self.gpm_mev = None
     
     def start(self, alternate_buffer=True):
@@ -306,7 +315,7 @@ class Screen(BaseScreen, RealTerminal):
         """
         fd_list = [sys.stdin.fileno(), self._resize_pipe_rd]
         if self.gpm_mev is not None:
-            fd_list.append(self.gpm_mev.fromchild.fileno())
+            fd_list.append(self.gpm_mev.stdout.fileno())
         return fd_list
         
     def get_input_nonblocking(self):
@@ -388,15 +397,19 @@ class Screen(BaseScreen, RealTerminal):
 
     def _get_gpm_codes(self):
         codes = []
-        while self.gpm_event_pending:
-            codes.extend(self._encode_gpm_event())
+        try:
+            while True:
+                codes.extend(self._encode_gpm_event())
+        except IOError, e:
+            if e.args[0] != 11:
+                raise
         return codes
 
     def _wait_for_input_ready(self, timeout):
         ready = None
         fd_list = [sys.stdin.fileno()]
         if self.gpm_mev is not None:
-            fd_list += [ self.gpm_mev.fromchild ]
+            fd_list += [ self.gpm_mev.stdout ]
         while True:
             try:
                 if timeout is None:
@@ -417,7 +430,7 @@ class Screen(BaseScreen, RealTerminal):
     def _getch(self, timeout):
         ready = self._wait_for_input_ready(timeout)
         if self.gpm_mev is not None:
-            if self.gpm_mev.fromchild.fileno() in ready:
+            if self.gpm_mev.stdout.fileno() in ready:
                 self.gpm_event_pending = True
         if sys.stdin.fileno() in ready:
             return ord(os.read(sys.stdin.fileno(), 1))
@@ -425,7 +438,7 @@ class Screen(BaseScreen, RealTerminal):
     
     def _encode_gpm_event( self ):
         self.gpm_event_pending = False
-        s = self.gpm_mev.fromchild.readline()
+        s = self.gpm_mev.stdout.readline()
         l = s.split(",")
         if len(l) != 6:
             # unexpected output, stop tracking

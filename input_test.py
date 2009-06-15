@@ -66,12 +66,13 @@ def key_test():
         
         rawt = urwid.Text(", ".join(["%d"%r for r in raw]))
         
-        lw.append(
-            urwid.Columns([
-                ('weight',2,urwid.Text(t)),
-                rawt])
-            )
-        listbox.set_focus(len(lw)-1,'above')
+        if t:
+            lw.append(
+                urwid.Columns([
+                    ('weight',2,urwid.Text(t)),
+                    rawt])
+                )
+            listbox.set_focus(len(lw)-1,'above')
         return []
 
     loop = urwid.MainLoop(top, [
