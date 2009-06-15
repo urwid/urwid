@@ -46,6 +46,9 @@ class ScreenError(Exception):
 
 class Screen(BaseScreen, RealTerminal):
     def __init__(self):
+        """Initialize a screen that directly prints escape codes to an output
+        terminal.
+        """
         super(Screen, self).__init__()
         self._pal_escape = {}
         signals.connect_signal(self, UPDATE_PALETTE_ENTRY, 
@@ -68,7 +71,10 @@ class Screen(BaseScreen, RealTerminal):
         self._started = False
         self.bright_is_bold = os.environ.get('TERM',None) != "xterm"
         self._next_timeout = None
-    
+
+        self._term_output_file = sys.stdout
+        self._term_input_file = sys.stdin
+
     started = property(lambda self: self._started)
 
     def _on_update_palette_entry(self, name, *attrspecs):
@@ -132,7 +138,7 @@ class Screen(BaseScreen, RealTerminal):
         After calling this function get_input will include mouse
         click events along with keystrokes.
         """
-        sys.stdout.write(escape.MOUSE_TRACKING_ON)
+        self._term_output_file.write(escape.MOUSE_TRACKING_ON)
 
         self._start_gpm_tracking()
     
@@ -157,13 +163,13 @@ class Screen(BaseScreen, RealTerminal):
         """
         assert not self._started
         if alternate_buffer:
-            sys.stdout.write(escape.SWITCH_TO_ALTERNATE_BUFFER)
+            self._term_output_file.write(escape.SWITCH_TO_ALTERNATE_BUFFER)
             self._rows_used = None
         else:
             self._rows_used = 0
         self._old_termios_settings = termios.tcgetattr(0)
         self.signal_init()
-        tty.setcbreak(sys.stdin.fileno())
+        tty.setcbreak(self._term_input_file.fileno())
         self._alternate_buffer = alternate_buffer
         self._input_iter = self._run_input_iter()
         self._next_timeout = self.max_wait
@@ -192,7 +198,7 @@ class Screen(BaseScreen, RealTerminal):
         elif self.maxrow is not None:
             move_cursor = escape.set_cursor_position( 
                 0, self.maxrow)
-        sys.stdout.write(self._attrspec_to_escape(AttrSpec('','')) 
+        self._term_output_file.write(self._attrspec_to_escape(AttrSpec('','')) 
             + escape.SI
             + escape.MOUSE_TRACKING_OFF
             + escape.SHOW_CURSOR
@@ -299,7 +305,7 @@ class Screen(BaseScreen, RealTerminal):
 
         Use this method if you are implementing yout own event loop.
         """
-        fd_list = [sys.stdin.fileno()]
+        fd_list = [self._term_input_file.fileno()]
         if self.gpm_mev is not None:
             fd_list.append(self.gpm_mev.fromchild.fileno())
         return fd_list
@@ -371,7 +377,7 @@ class Screen(BaseScreen, RealTerminal):
 
     def _wait_for_input_ready(self, timeout):
         ready = None
-        fd_list = [sys.stdin.fileno()]
+        fd_list = [self._term_input_file.fileno()]
         if self.gpm_mev is not None:
             fd_list += [ self.gpm_mev.fromchild ]
         while True:
@@ -396,8 +402,8 @@ class Screen(BaseScreen, RealTerminal):
         if self.gpm_mev is not None:
             if self.gpm_mev.fromchild.fileno() in ready:
                 self.gpm_event_pending = True
-        if sys.stdin.fileno() in ready:
-            return ord(os.read(sys.stdin.fileno(), 1))
+        if self._term_input_file.fileno() in ready:
+            return ord(os.read(self._term_input_file.fileno(), 1))
         return -1
     
     def _encode_gpm_event( self ):
@@ -480,8 +486,8 @@ class Screen(BaseScreen, RealTerminal):
         
         while True:
             try:
-                sys.stdout.write(escape.DESIGNATE_G1_SPECIAL)
-                sys.stdout.flush()
+                self._term_output_file.write(escape.DESIGNATE_G1_SPECIAL)
+                self._term_output_file.flush()
                 break
             except IOError, e:
                 pass
@@ -628,12 +634,12 @@ class Screen(BaseScreen, RealTerminal):
         try:
             k = 0
             for l in o:
-                sys.stdout.write( l )
+                self._term_output_file.write( l )
                 k += len(l)
                 if k > 1024:
-                    sys.stdout.flush()
+                    self._term_output_file.flush()
                     k = 0
-            sys.stdout.flush()
+            self._term_output_file.flush()
         except IOError, e:
             # ignore interrupted syscall
             if e.args[0] != 4:
@@ -805,8 +811,8 @@ class Screen(BaseScreen, RealTerminal):
 
         modify = ["%d;rgb:%02x/%02x/%02x" % (index, red, green, blue)
             for index, red, green, blue in entries]
-        seq = sys.stdout.write("\x1b]4;"+";".join(modify)+"\x1b\\")
-        sys.stdout.flush()
+        seq = self._term_output_file.write("\x1b]4;"+";".join(modify)+"\x1b\\")
+        self._term_output_file.flush()
 
 
     # shortcut for creating an AttrSpec with this screen object's
