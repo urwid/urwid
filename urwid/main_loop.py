@@ -173,6 +173,9 @@ class MainLoop(object):
             pass
     
     def _run(self):
+        if self.handle_mouse:
+            self.screen.set_mouse_tracking()
+
         self.draw_screen()
 
         if not hasattr(self.screen, 'get_input_descriptors'):
@@ -242,8 +245,6 @@ class MainLoop(object):
         are modified by this method.
         """
         next_alarm = None
-        if self.handle_mouse:
-            self.screen.set_mouse_tracking()
 
         while True:
             self.draw_screen()
