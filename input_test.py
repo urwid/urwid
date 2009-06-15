@@ -38,65 +38,55 @@ else:
     else:
         Screen = urwid.curses_display.Screen
 
-class KeyTest:
-    def __init__(self):
-        self.ui = Screen()
-        header = urwid.Text("Values from get_input(). Q exits.")
-        header = urwid.AttrWrap(header,'header')
-        self.l = urwid.SimpleListWalker([])
-        self.listbox = urwid.ListBox(self.l)
-        listbox = urwid.AttrWrap(self.listbox, 'listbox')
-        self.top = urwid.Frame( listbox, header )
+def key_test():
+    screen = Screen()
+    header = urwid.Text("Values from get_input(). Q exits.")
+    header = urwid.AttrWrap(header,'header')
+    lw = urwid.SimpleListWalker([])
+    listbox = urwid.ListBox(lw)
+    listbox = urwid.AttrWrap(listbox, 'listbox')
+    top = urwid.Frame(listbox, header)
         
-    def main(self):
-        self.ui.register_palette([
-            ('header', 'black', 'dark cyan', 'standout'),
-            ('key', 'yellow', 'dark blue', 'bold'),
-            ('listbox', 'light gray', 'black' ),
-            ])
-        try:
-            old = self.ui.tty_signal_keys('undefined','undefined',
-                'undefined','undefined','undefined')
-            self.ui.run_wrapper(self.run)
-        finally:
-            self.ui.tty_signal_keys(*old)
-    
-    def run(self):
-        self.ui.set_mouse_tracking()
-        
-        cols, rows = self.ui.get_cols_rows()
+    def input_filter(keys, raw):
+        if 'q' in keys or 'Q' in keys:
+            raise urwid.ExitMainLoop
 
-        keys = ['not q']
-        while 'q' not in keys and 'Q' not in keys:
-            if keys:
-                self.ui.draw_screen((cols,rows),
-                    self.top.render((cols,rows),focus=True))
-            keys, raw = self.ui.get_input(raw_keys=True)
-            if 'window resize' in keys:
-                cols, rows = self.ui.get_cols_rows()
-            if not keys:
-                continue
-            t = []
-            a = []
-            for k in keys:
-                if type(k) == type(()):
-                    out = []
-                    for v in k:
-                        if out:
-                            out += [', ']
-                        out += [('key',repr(v))]
-                    t += ["("] + out + [")"]
-                else:
-                    t += ["'",('key',k),"' "]
-            
-            rawt = urwid.Text(", ".join(["%d"%r for r in raw]))
-            
-            self.l.append(
-                urwid.Columns([
-                    ('weight',2,urwid.Text(t)),
-                    rawt])
-                )
-            self.listbox.set_focus(len(self.l)-1,'above')
+        t = []
+        a = []
+        for k in keys:
+            if type(k) == type(()):
+                out = []
+                for v in k:
+                    if out:
+                        out += [', ']
+                    out += [('key',repr(v))]
+                t += ["("] + out + [")"]
+            else:
+                t += ["'",('key',k),"' "]
+        
+        rawt = urwid.Text(", ".join(["%d"%r for r in raw]))
+        
+        lw.append(
+            urwid.Columns([
+                ('weight',2,urwid.Text(t)),
+                rawt])
+            )
+        listbox.set_focus(len(lw)-1,'above')
+        return []
+
+    loop = urwid.MainLoop(top, [
+        ('header', 'black', 'dark cyan', 'standout'),
+        ('key', 'yellow', 'dark blue', 'bold'),
+        ('listbox', 'light gray', 'black' ),
+        ], screen, input_filter=input_filter)
+
+    try:
+        old = screen.tty_signal_keys('undefined','undefined',
+            'undefined','undefined','undefined')
+        loop.run()
+    finally:
+        screen.tty_signal_keys(*old)
+    
                 
 
 
@@ -104,7 +94,7 @@ def main():
     urwid.web_display.set_preferences('Input Test')
     if urwid.web_display.handle_short_request():
         return
-    KeyTest().main()
+    key_test()
     
 
 if '__main__'==__name__ or urwid.web_display.is_web_request():

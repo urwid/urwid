@@ -48,12 +48,24 @@ class MainLoop(object):
         handle_mouse -- True to process mouse events, passed to
             self.screen
         input_filter -- a function to filter input before sending
-            it to self.widget (return None to remove input), called
-            from self.input_filter
+            it to self.widget, called from self.input_filter
         unhandled_input -- a function called when input is not
             handled by self.widget, called from self.unhandled_input
-        event_loop -- event loop object or None to use
+        event_loop -- if screen supports external an event loop it
+            may be given here, or leave as None to use 
             SelectEventLoop, stored as self.event_loop
+
+        This is a standard main loop implementation with a single
+        screen.  
+    
+        The widget passed must be a selectable box widget.  It will
+        be sent input with keypress() and mouse_event() and is
+        expected to be able to handle it.
+
+        raw_display.Screen is the only screen type that currently
+        supports external event loops.  Other screen types include
+        curses_display.Screen, web_display.Screen and
+        html_fragment.HtmlGenerator.
         """
         self.widget = widget
         self.handle_mouse = handle_mouse
@@ -71,7 +83,11 @@ class MainLoop(object):
         self._unhandled_input = unhandled_input
         self._input_filter = input_filter
 
-        if not event_loop:
+        if not hasattr(screen, 'get_input_descriptors'
+                ) and event_loop is not None:
+            raise NotImplementedError("screen object passed "
+                "%r does not support external event loops" % (screen,))
+        if event_loop is None:
             event_loop = SelectEventLoop()
         self.event_loop = event_loop
 
@@ -159,6 +175,9 @@ class MainLoop(object):
     def _run(self):
         self.draw_screen()
 
+        if not hasattr(self.screen, 'get_input_descriptors'):
+            return self._run_screen_event_loop()
+
         # insert our input descriptors
         fds = self.screen.get_input_descriptors()
         for fd in fds:
@@ -205,6 +224,8 @@ class MainLoop(object):
             self._input_timeout = self.set_alarm_in(max_wait, self._update, 
                 user_data=True) # call with timeout=True
 
+        keys = self.input_filter(keys, raw)
+
         if keys:
             self.process_input(keys)
             if 'window resize' in keys:
@@ -212,6 +233,56 @@ class MainLoop(object):
 
         self.draw_screen()
 
+    def _run_screen_event_loop(self):
+        """
+        This method is used when the screen does not support using
+        external event loops.
+
+        The alarms stored in the SelectEventLoop in self.event_loop 
+        are modified by this method.
+        """
+        next_alarm = None
+        if self.handle_mouse:
+            self.screen.set_mouse_tracking()
+
+        while True:
+            self.draw_screen()
+
+            if not next_alarm and self.event_loop._alarms:
+                next_alarm = heapq.heappop(self._alarms)
+
+            keys = None
+            while not keys:
+                if next_alarm:
+                    sec = max(0, next_alarm[0] - time.time())
+                    self.screen.set_input_timeouts(sec)
+                else:
+                    self.screen.set_input_timeouts(None)
+                keys, raw = self.screen.get_input(True)
+                if not keys and next_alarm: 
+                    sec = next_alarm[0] - time.time()
+                    if sec <= 0:
+                        break
+
+            keys = self.input_filter(keys, raw)
+            
+            if keys:
+                self.process_input(keys)
+            
+            while next_alarm:
+                sec = next_alarm[0] - time.time()
+                if sec > 0:
+                    break
+                tm, callback, user_data = next_alarm
+                callback(self, user_data)
+                
+                if self._alarms:
+                    next_alarm = heapq.heappop(self.event_loop._alarms)
+                else:
+                    next_alarm = None
+            
+            if 'window resize' in keys:
+                self.screen_size = None
 
     def process_input(self, keys):
         """
@@ -235,7 +306,6 @@ class MainLoop(object):
             self.screen_size = self.screen.get_cols_rows()
 
         for k in keys:
-            k = self.input_filter(k)
             if is_mouse_event(k):
                 event, button, col, row = k
                 if self.widget.mouse_event(self.screen_size, 
@@ -248,24 +318,27 @@ class MainLoop(object):
             elif k:
                 self.unhandled_input(k)
 
-    def input_filter(self, input):
+    def input_filter(self, keys, raw):
         """
-        This function is passed each input event and calls the
-        input_filter function passed to the constructor.  If that
-        function returns None the input will not be passed to the
-        widgets to handle.
+        This function is passed each all the input events and raw
+        keystroke values.  These values are passed to the
+        input_filter function passed to the constructor.  That
+        function must return a list of keys to be passed to the
+        widgets to handle.  If no input_filter was defined this
+        implementation will return all the input events.
 
         input -- keyboard or mouse input
         """
         if self._input_filter:
-            return self._input_filter(input)
-        return input
+            return self._input_filter(keys, raw)
+        return keys
 
     def unhandled_input(self, input):
         """
         This function is called with any input that was not handled
         by the widgets, and calls the unhandled_input function passed
-        to the constructor.
+        to the constructor.  If no unhandled_input was defined then
+        the input will be ignored.
 
         input -- keyboard or mouse input
         """
