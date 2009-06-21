@@ -71,9 +71,11 @@ class Screen(BaseScreen, RealTerminal):
         self._started = False
         self.bright_is_bold = os.environ.get('TERM',None) != "xterm"
         self._next_timeout = None
-
         self._term_output_file = sys.stdout
         self._term_input_file = sys.stdin
+        # pipe for signalling external event loops about resize events
+        self._resize_pipe_rd, self._resize_pipe_wr = os.pipe()
+        fcntl.fcntl(self._resize_pipe_rd, fcntl.F_SETFL, os.O_NONBLOCK)
 
     started = property(lambda self: self._started)
 
@@ -147,7 +149,11 @@ class Screen(BaseScreen, RealTerminal):
             return
         if not os.environ.get('TERM',"").lower().startswith("linux"):
             return
-        m = popen2.Popen3("/usr/bin/mev -e 158")
+        if not Popen:
+            return
+        m = Popen(["/usr/bin/mev","-e","158"], stdin=PIPE, stdout=PIPE,
+            close_fds=True)
+        fcntl.fcntl(m.stdout.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
         self.gpm_mev = m
     
     def _stop_gpm_tracking(self):
@@ -203,7 +209,7 @@ class Screen(BaseScreen, RealTerminal):
             + escape.MOUSE_TRACKING_OFF
             + escape.SHOW_CURSOR
             + move_cursor + "\n" + escape.SHOW_CURSOR )
-        self._input_iter = None
+        self._input_iter = self._fake_input_iter()
 
         if self._old_signal_keys:
             self.tty_signal_keys(*self._old_signal_keys)
@@ -305,9 +311,9 @@ class Screen(BaseScreen, RealTerminal):
 
         Use this method if you are implementing yout own event loop.
         """
-        fd_list = [self._term_input_file.fileno()]
+        fd_list = [self._term_input_file.fileno(), self._resize_pipe_rd]
         if self.gpm_mev is not None:
-            fd_list.append(self.gpm_mev.fromchild.fileno())
+            fd_list.append(self.gpm_mev.stdout.fileno())
         return fd_list
         
     def get_input_nonblocking(self):
@@ -329,6 +335,14 @@ class Screen(BaseScreen, RealTerminal):
         return self._input_iter.next()
 
     def _run_input_iter(self):
+        def empty_resize_pipe():
+            # clean out the pipe used to signal external event loops
+            # that a resize has occured
+            try:
+                while True: os.read(self._resize_pipe_rd, 1)
+            except OSError:
+                pass
+
         while True:
             processed = []
             codes = self._get_gpm_codes() + \
@@ -344,6 +358,7 @@ class Screen(BaseScreen, RealTerminal):
                 k = len(original_codes) - len(codes)
                 yield (self.complete_wait, processed,
                     original_codes[:k])
+                empty_resize_pipe()
                 original_codes = codes
                 processed = []
 
@@ -359,6 +374,15 @@ class Screen(BaseScreen, RealTerminal):
                 self._resized = False
 
             yield (self.max_wait, processed, original_codes)
+            empty_resize_pipe()
+
+    def _fake_input_iter(self):
+        """
+        This generator is a placeholder for when the screen is stopped
+        to always return that no input is available.
+        """
+        while True:
+            yield (self.max_wait, [], [])
 
     def _get_keyboard_codes(self):
         codes = []
@@ -371,15 +395,19 @@ class Screen(BaseScreen, RealTerminal):
 
     def _get_gpm_codes(self):
         codes = []
-        while self.gpm_event_pending:
-            codes.extend(self._encode_gpm_event())
+        try:
+            while True:
+                codes.extend(self._encode_gpm_event())
+        except IOError, e:
+            if e.args[0] != 11:
+                raise
         return codes
 
     def _wait_for_input_ready(self, timeout):
         ready = None
         fd_list = [self._term_input_file.fileno()]
         if self.gpm_mev is not None:
-            fd_list += [ self.gpm_mev.fromchild ]
+            fd_list += [ self.gpm_mev.stdout ]
         while True:
             try:
                 if timeout is None:
@@ -400,7 +428,7 @@ class Screen(BaseScreen, RealTerminal):
     def _getch(self, timeout):
         ready = self._wait_for_input_ready(timeout)
         if self.gpm_mev is not None:
-            if self.gpm_mev.fromchild.fileno() in ready:
+            if self.gpm_mev.stdout.fileno() in ready:
                 self.gpm_event_pending = True
         if self._term_input_file.fileno() in ready:
             return ord(os.read(self._term_input_file.fileno(), 1))
@@ -408,7 +436,7 @@ class Screen(BaseScreen, RealTerminal):
     
     def _encode_gpm_event( self ):
         self.gpm_event_pending = False
-        s = self.gpm_mev.fromchild.readline()
+        s = self.gpm_mev.stdout.readline()
         l = s.split(",")
         if len(l) != 6:
             # unexpected output, stop tracking
