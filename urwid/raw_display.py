@@ -31,12 +31,17 @@ import struct
 import sys
 import tty
 import signal
-import popen2
 
 import util
 import escape
 from display_common import *
 import signals
+
+try:
+    # python >= 2.4
+    from subprocess import Popen, PIPE
+except ImportError:
+    Popen = None
 
 # replace control characters with ?'s
 _trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
