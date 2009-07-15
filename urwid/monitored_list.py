@@ -22,8 +22,8 @@
 
 
 def _call_modified(fn):
-	def call_modified_wrapper(self, *args):
-		rval = fn(self, *args)
+	def call_modified_wrapper(self, *args, **kwargs):
+		rval = fn(self, *args, **kwargs)
 		self._modified()
 		return rval
 	return call_modified_wrapper
