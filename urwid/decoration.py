@@ -80,83 +80,128 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
         return self._original_widget.sizing()
 
 
+class AttrMapError(WidgetError):
+    pass
+
 class AttrMap(WidgetDecoration):
     """
     AttrMap is a decoration that maps one set of attributes to another for
     a FlowWidget or BoxWidget
     """
-    def __init__(self, w, attr, focus_attr=None):
+    def __init__(self, w, attr_map, focus_map=None):
         """
         w -- widget to wrap (stored as self.original_widget)
-        attr -- attribute to apply to w, or dictionary of attribute mappings
-        focus_attr -- attribute to apply when in focus or dictionary of
+        attr_map -- attribute to apply to w, or dictionary of attribute mappings
+        focus_map -- attribute to apply when in focus or dictionary of
             attribute mappings, if None use attr
         
         This object will pass all function calls and variable references
         to the wrapped widget.
 
-        >>> AttrMap(Divider("!"), {None:'bright'})
-        <AttrMap flow widget <Divider flow widget div_char='!'> attr={None: 'bright'}>
-        >>> AttrMap(Edit(), {None:'notfocus'}, {None: 'focus'})
-        <AttrMap selectable flow widget <Edit selectable flow widget '' edit_pos=0> attr={None: 'notfocus'} focus_attr={None: 'focus'}>
+        >>> AttrMap(Divider("!"), 'bright')
+        <AttrMap flow widget <Divider flow widget div_char='!'> attr_map={None: 'bright'}>
+        >>> AttrMap(Edit(), 'notfocus', 'focus')
+        <AttrMap selectable flow widget <Edit selectable flow widget '' edit_pos=0> attr_map={None: 'notfocus'} focus_map={None: 'focus'}>
         >>> size = (5,)
-        >>> am = AttrMap(Text("hi"), {None:'greeting'}, {None:'fgreet'})
+        >>> am = AttrMap(Text("hi"), 'greeting', 'fgreet')
         >>> am.render(size, focus=False).content().next()
         [('greeting', None, 'hi   ')]
         >>> am.render(size, focus=True).content().next()
         [('fgreet', None, 'hi   ')]
         >>> am2 = AttrMap(Text(('word', "hi")), {None:'bg', 'word':'greeting'})
         >>> am2
-        <AttrMap flow widget <Text flow widget 'hi'> attr={None: 'bg', 'word': 'greeting'}>
+        <AttrMap flow widget <Text flow widget 'hi'> attr_map={None: 'bg', 'word': 'greeting'}>
         >>> am2.render(size).content().next()
         [('greeting', None, 'hi'), ('bg', None, '   ')]
         """
         self.__super.__init__(w)
-        self._attr = attr
-        self._focus_attr = focus_attr
+
+        if type(attr_map) != dict:
+            self.set_attr_map({None: attr_map})
+        else:
+            self.set_attr_map(attr_map)
+
+        if focus_map is not None and type(focus_map) != dict:
+            self.set_focus_map({None: focus_map})
+        else:
+            self.set_focus_map(focus_map)
     
     def _repr_attrs(self):
         # only include the focus_attr when it takes effect (not None)
-        d = dict(self.__super._repr_attrs(), attr=self._attr)
-        if self._focus_attr is not None:
-            d['focus_attr'] = self._focus_attr
+        d = dict(self.__super._repr_attrs(), attr_map=self._attr_map)
+        if self._focus_map is not None:
+            d['focus_map'] = self._focus_map
         return d
     
-    # backwards compatibility, widget used to be stored as w
-    get_w = WidgetDecoration._get_original_widget
-    set_w = WidgetDecoration._set_original_widget
-    w = property(get_w, set_w)
-    
-    def get_attr(self):
-        return self._attr
-    def set_attr(self, attr):
-        self._attr = attr
+    def get_attr_map(self):
+        # make a copy so ours is not accidentally modified
+        # FIXME: a dictionary that detects modifications would be better
+        return dict(self._attr_map)
+    def set_attr_map(self, attr_map):
+        """
+        Set the attribute mapping dictionary {from_attr: to_attr, ...}
+
+        Note this function does not accept a single attribute the way the
+        constructor does.  You must specify {None: attribute} instead.
+
+        >> w = AttrMap(Text("hi"), None)
+        >> w.set_attr({'a':'b'})
+        >> w
+        <AttrMap flow widget <Text flow widget 'hi'> attr_map={'a': 'b'}>
+        """
+        for from_attr, to_attr in attr_map.items():
+            if not from_attr.__hash__ or not to_attr.__hash__:
+                raise AttrMapError("%r:%r attribute mapping is invalid.  "
+                    "Attributes must be hashable" % (from_attr, to_attr))
+        self._attr_map = attr_map
         self._invalidate()
-    attr = property(get_attr, set_attr)
+    attr_map = property(get_attr_map, set_attr_map)
     
-    def get_focus_attr(self):
-        return self._focus_attr
-    def set_focus_attr(self, focus_attr):
-        self._focus_attr = focus_attr
+    def get_focus_map(self):
+        # make a copy so ours is not accidentally modified
+        # FIXME: a dictionary that detects modifications would be better
+        if self._focus_map:
+            return dict(self._focus_map)
+    def set_focus_map(self, focus_map):
+        """
+        Set the focus attribute mapping dictionary 
+        {from_attr: to_attr, ...}
+        
+        If None this widget will use the attr mapping instead (no change 
+        when in focus).
+        
+        Note this function does not accept a single attribute the way the
+        constructor does.  You must specify {None: attribute} instead.
+
+        >> w = AttrMap(Text("hi"), {})
+        >> w.set_focus_map({'a':'b'})
+        >> w
+        <AttrMap flow widget <Text flow widget 'hi'> attr_map={} focus_map={'a': 'b'}>
+        >> w.set_focus_map(None)
+        >> w
+        <AttrMap flow widget <Text flow widget 'hi'> attr_map={}>
+        """
+        if focus_map is not None:
+            for from_attr, to_attr in focus_map.items():
+                if not from_attr.__hash__ or not to_attr.__hash__:
+                    raise AttrMapError("%r:%r attribute mapping is invalid.  "
+                        "Attributes must be hashable" % (from_attr, to_attr))
+        self._focus_map = focus_map
         self._invalidate()
-    focus_attr = property(get_focus_attr, set_focus_attr)
+    focus_map = property(get_focus_map, set_focus_map)
         
     
     def render(self, size, focus=False):
         """
         Render wrapped widget and apply attribute. Return canvas.
         """
-        
-        attr = self.attr
-        if focus and self.focus_attr is not None:
-            attr = self.focus_attr
+        attr_map = self._attr_map
+        if focus and self._focus_map is not None:
+            attr_map = self._focus_map
         canv = self._original_widget.render(size, focus=focus)
         canv = CompositeCanvas(canv)
-        canv.fill_attr_apply(attr)
+        canv.fill_attr_apply(attr_map)
         return canv
-
-    def sizing(self):
-        return self._original_widget.sizing()
 
 
 
@@ -183,17 +228,59 @@ class AttrWrap(AttrMap):
         >>> aw.render(size, focus=True).content().next()
         [('fgreet', None, 'hi   ')]
         """
-        if focus_attr is not None:
-            focus_attr = {None: focus_attr}
-
-        self.__super.__init__(w, {None:attr}, focus_attr)
+        self.__super.__init__(w, attr, focus_attr)
     
     def _repr_attrs(self):
         # only include the focus_attr when it takes effect (not None)
-        d = dict(self.__super._repr_attrs(), attr=self._attr[None])
-        if self._focus_attr is not None:
-            d['focus_attr'] = self._focus_attr[None]
+        d = dict(self.__super._repr_attrs(), attr=self.attr)
+        del d['attr_map']
+        if 'focus_map' in d:
+            del d['focus_map']
+        if self.focus_attr is not None:
+            d['focus_attr'] = self.focus_attr
         return d
+    
+    # backwards compatibility, widget used to be stored as w
+    get_w = WidgetDecoration._get_original_widget
+    set_w = WidgetDecoration._set_original_widget
+    w = property(get_w, set_w)
+    
+    def get_attr(self):
+        return self.attr_map[None]
+    def set_attr(self, attr):
+        """
+        Set the attribute to apply to the wrapped widget
+
+        >> w = AttrWrap(Divider("-"), None)
+        >> w.set_attr('new_attr')
+        >> w
+        <AttrWrap flow widget <Divider flow widget '-'> attr='new_attr'>
+        """
+        self.set_attr_map({None: attr})
+    attr = property(get_attr, set_attr)
+    
+    def get_focus_attr(self):
+        focus_map = self.focus_map
+        if focus_map:
+            return focus_map[None]
+    def set_focus_attr(self, focus_attr):
+        """
+        Set the attribute to apply to the wapped widget when it is in
+        focus
+        
+        If None this widget will use the attr instead (no change when in 
+        focus).
+
+        >> w = AttrWrap(Divider("-"), 'old')
+        >> w.set_focus_attr('new_attr')
+        >> w
+        <AttrWrap flow widget <Divider flow widget '-'> attr='old' focus_attr='new_attr'>
+        >> w.set_focus_attr(None)
+        >> w
+        <AttrWrap flow widget <Divider flow widget '-'> attr='old'>
+        """
+        self.set_focus_map({None: focus_attr})
+    focus_attr = property(get_focus_attr, set_focus_attr)
 
     def __getattr__(self,name):
         """
@@ -203,6 +290,9 @@ class AttrWrap(AttrMap):
         """
         return getattr(self._original_widget, name)
 
+
+    def sizing(self):
+        return self._original_widget.sizing()
 
 
 class BoxAdapterError(Exception):
