@@ -360,7 +360,7 @@ class TextCanvas(Canvas):
         return None
 
     def content(self, trim_left=0, trim_top=0, cols=None, rows=None,
-            def_attr=None):
+            attr_map=None):
         """
         Return the canvas content as a list of rows where each row
         is a list of (attr, cs, text) tuples.
@@ -397,8 +397,8 @@ class TextCanvas(Canvas):
             i = 0
             row = []
             for (a, cs), run in attr_cs:
-                if a is None:
-                    a = def_attr
+                if attr_map and a in attr_map:
+                    a = attr_map[a]
                 row.append((a, cs, text[i:i+run]))
                 i += run
             yield row
@@ -428,9 +428,12 @@ class BlankCanvas(Canvas):
 
     def content(self, trim_left, trim_top, cols, rows, attr):
         """
-        return (cols, rows) of spaces with def_attr attribute.
+        return (cols, rows) of spaces with default attributes.
         """
-        line = [(attr, None, " "*cols)]
+        def_attr = None
+        if attr and None in attr:
+            def_attr = attr[None]
+        line = [(def_attr, None, " "*cols)]
         for i in range(rows):
             yield line
 
@@ -471,8 +474,11 @@ class SolidCanvas(Canvas):
             cols = self.size[0]
         if rows is None:
             rows = self.size[1]
+        def_attr = None
+        if attr and None in attr:
+            def_attr = attr[None]
 
-        line = [(attr, self._cs, self._text*cols)]
+        line = [(def_attr, self._cs, self._text*cols)]
         for i in range(rows):
             yield line
 
@@ -501,7 +507,7 @@ class CompositeCanvas(Canvas):
         # each cview starting in this shard
 
         # a "cview" is a tuple that defines a view of a canvas:
-        # (trim_left, trim_top, cols, rows, def_attr, canv)
+        # (trim_left, trim_top, cols, rows, attr_map, canv)
 
         # a "shard tail" is a list of tuples:
         # (col_gap, done_rows, content_iter, cview) 
@@ -729,6 +735,14 @@ class CompositeCanvas(Canvas):
         Apply attribute a to all areas of this canvas with default
         attribute currently set to None, leaving other attributes
         intact."""
+        self.fill_attr_apply({None:a})
+    
+    def fill_attr_apply(self, mapping):
+        """
+        Apply an attribute-mapping dictionary to the canvas.
+
+        mapping -- dictionary of original-attribute:new-attribute items
+        """
         if self.widget_info:
             raise self._finalized_error
 
@@ -737,7 +751,8 @@ class CompositeCanvas(Canvas):
             new_cviews = []
             for cv in original_cviews:
                 if cv[4] is None:
-                    new_cviews.append(cv[:4] + (a,) + cv[5:])
+                    new_cviews.append(cv[:4] + 
+                        (mapping,) + cv[5:])
                 else:
                     new_cviews.append(cv)
             shards.append((num_rows, new_cviews))
@@ -866,7 +881,7 @@ def shard_body(cviews, shard_tail, create_iter=True, iter_default=None):
             except StopIteration:
                 raise CanvasError("cviews do not fill gaps in"
                     " shard_tail!")
-            (trim_left, trim_top, cols, rows, def_attr, canv) = \
+            (trim_left, trim_top, cols, rows, attr_map, canv) = \
                 cview[:6]
             col += cols
             col_gap -= cols
@@ -875,17 +890,17 @@ def shard_body(cviews, shard_tail, create_iter=True, iter_default=None):
                     " shard_tail!")
             if create_iter and canv:
                 new_iter = canv.content(trim_left, trim_top, 
-                    cols, rows, def_attr)
+                    cols, rows, attr_map)
             else:
                 new_iter = iter_default
             body.append((0, new_iter, cview))
         body.append((done_rows, content_iter, tail_cview))
     for cview in cviews_iter:
-        (trim_left, trim_top, cols, rows, def_attr, canv) = \
+        (trim_left, trim_top, cols, rows, attr_map, canv) = \
             cview[:6]
         if create_iter and canv:
             new_iter = canv.content(trim_left, trim_top, cols, rows, 
-                def_attr)
+                attr_map)
         else:
             new_iter = iter_default
         body.append((0, new_iter, cview))

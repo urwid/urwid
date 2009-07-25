@@ -80,30 +80,36 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
         return self._original_widget.sizing()
 
 
-class AttrWrap(WidgetDecoration):
+class AttrMap(WidgetDecoration):
     """
-    AttrWrap is a decoration that changes the default attribute for a 
-    FlowWidget or BoxWidget
+    AttrMap is a decoration that maps one set of attributes to another for
+    a FlowWidget or BoxWidget
     """
-    def __init__(self, w, attr, focus_attr = None):
+    def __init__(self, w, attr, focus_attr=None):
         """
         w -- widget to wrap (stored as self.original_widget)
-        attr -- attribute to apply to w
-        focus_attr -- attribute to apply when in focus, if None use attr
+        attr -- attribute to apply to w, or dictionary of attribute mappings
+        focus_attr -- attribute to apply when in focus or dictionary of
+            attribute mappings, if None use attr
         
         This object will pass all function calls and variable references
         to the wrapped widget.
 
-        >>> AttrWrap(Divider("!"), 'bright')
-        <AttrWrap flow widget <Divider flow widget div_char='!'> attr='bright'>
-        >>> AttrWrap(Edit(), 'notfocus', 'focus')
-        <AttrWrap selectable flow widget <Edit selectable flow widget '' edit_pos=0> attr='notfocus' focus_attr='focus'>
+        >>> AttrMap(Divider("!"), {None:'bright'})
+        <AttrMap flow widget <Divider flow widget div_char='!'> attr={None: 'bright'}>
+        >>> AttrMap(Edit(), {None:'notfocus'}, {None: 'focus'})
+        <AttrMap selectable flow widget <Edit selectable flow widget '' edit_pos=0> attr={None: 'notfocus'} focus_attr={None: 'focus'}>
         >>> size = (5,)
-        >>> aw = AttrWrap(Text("hi"), 'greeting', 'fgreet')
-        >>> aw.render(size, focus=False).content().next()
+        >>> am = AttrMap(Text("hi"), {None:'greeting'}, {None:'fgreet'})
+        >>> am.render(size, focus=False).content().next()
         [('greeting', None, 'hi   ')]
-        >>> aw.render(size, focus=True).content().next()
+        >>> am.render(size, focus=True).content().next()
         [('fgreet', None, 'hi   ')]
+        >>> am2 = AttrMap(Text(('word', "hi")), {None:'bg', 'word':'greeting'})
+        >>> am2
+        <AttrMap flow widget <Text flow widget 'hi'> attr={None: 'bg', 'word': 'greeting'}>
+        >>> am2.render(size).content().next()
+        [('greeting', None, 'hi'), ('bg', None, '   ')]
         """
         self.__super.__init__(w)
         self._attr = attr
@@ -146,15 +152,57 @@ class AttrWrap(WidgetDecoration):
             attr = self.focus_attr
         canv = self._original_widget.render(size, focus=focus)
         canv = CompositeCanvas(canv)
-        canv.fill_attr(attr)
+        canv.fill_attr_apply(attr)
         return canv
 
     def sizing(self):
         return self._original_widget.sizing()
 
+
+
+class AttrWrap(AttrMap):
+    def __init__(self, w, attr, focus_attr=None):
+        """
+        w -- widget to wrap (stored as self.original_widget)
+        attr -- attribute to apply to w
+        focus_attr -- attribute to apply when in focus, if None use attr
+        
+        This widget is a special case of the new AttrMap widget, and it
+        will pass all function calls and variable references to the wrapped 
+        widget.  This class is maintained for backwards compatibility only,
+        new code should use AttrMap instead.
+
+        >>> AttrWrap(Divider("!"), 'bright')
+        <AttrWrap flow widget <Divider flow widget div_char='!'> attr='bright'>
+        >>> AttrWrap(Edit(), 'notfocus', 'focus')
+        <AttrWrap selectable flow widget <Edit selectable flow widget '' edit_pos=0> attr='notfocus' focus_attr='focus'>
+        >>> size = (5,)
+        >>> aw = AttrWrap(Text("hi"), 'greeting', 'fgreet')
+        >>> aw.render(size, focus=False).content().next()
+        [('greeting', None, 'hi   ')]
+        >>> aw.render(size, focus=True).content().next()
+        [('fgreet', None, 'hi   ')]
+        """
+        if focus_attr is not None:
+            focus_attr = {None: focus_attr}
+
+        self.__super.__init__(w, {None:attr}, focus_attr)
+    
+    def _repr_attrs(self):
+        # only include the focus_attr when it takes effect (not None)
+        d = dict(self.__super._repr_attrs(), attr=self._attr[None])
+        if self._focus_attr is not None:
+            d['focus_attr'] = self._focus_attr[None]
+        return d
+
     def __getattr__(self,name):
-        """Call getattr on wrapped widget."""
+        """
+        Call getattr on wrapped widget.  This has been the longstanding
+        behaviour of AttrWrap, but is discouraged.  New code should be
+        using AttrMap and .base_widget or .original_widget instad.
+        """
         return getattr(self._original_widget, name)
+
 
 
 class BoxAdapterError(Exception):
