@@ -190,7 +190,6 @@ class AttrMap(WidgetDecoration):
         self._invalidate()
     focus_map = property(get_focus_map, set_focus_map)
         
-    
     def render(self, size, focus=False):
         """
         Render wrapped widget and apply attribute. Return canvas.
@@ -202,6 +201,34 @@ class AttrMap(WidgetDecoration):
         canv = CompositeCanvas(canv)
         canv.fill_attr_apply(attr_map)
         return canv
+    
+    # these methods just pass along calls to _original_widget
+    def rows(self, size, focus=False):
+        return self._original_widget.rows(size, focus)
+    
+    def get_cursor_coords(self, size):
+        if not hasattr(self._original_widget, 'get_cursor_coords'):
+            return None
+        return self._original_widget.get_cursor_coords(size)
+    
+    def get_pref_col(self, size):
+        if not hasattr(self._original_widget, 'get_pref_col'):
+            return None
+        return self._original_widget.get_pref_col(self)
+    
+    def keypress(self, size, key):
+        return self._original_widget.keypress(size, key)
+    
+    def move_cursor_to_coords(self, size, col, row):
+        if not hasattr(self._original_widget, 'move_cursor_to_coords'):
+            return True
+        return self._original_widget.move_cursor_to_coords(size, col, row )
+    
+    def mouse_event(self, size, event, button, col, row, focus):
+        if not hasattr(self._original_widget, 'mouse_event'):
+            return False
+        return self._original_widget.mouse_event(size,
+            event, button, col, row, focus)
 
 
 
