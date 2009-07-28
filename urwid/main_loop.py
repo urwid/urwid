@@ -224,8 +224,8 @@ class MainLoop(object):
         if max_wait is not None:
             # if get_input_nonblocking wants to be called back
             # make sure it happens with an alarm
-            self._input_timeout = self.set_alarm_in(max_wait, self._update, 
-                user_data=True) # call with timeout=True
+            self._input_timeout = self.event_loop.alarm(max_wait, 
+                lambda: self._update(timeout=True)) 
 
         keys = self.input_filter(keys, raw)
 
