@@ -214,7 +214,7 @@ class AttrMap(WidgetDecoration):
     def get_pref_col(self, size):
         if not hasattr(self._original_widget, 'get_pref_col'):
             return None
-        return self._original_widget.get_pref_col(self)
+        return self._original_widget.get_pref_col(size)
     
     def keypress(self, size, key):
         return self._original_widget.keypress(size, key)
