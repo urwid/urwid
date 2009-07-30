@@ -115,6 +115,8 @@ class Screen(BaseScreen, RealTerminal):
         self.resize_wait = resize_wait
 
     def _sigwinch_handler(self, signum, frame):
+        if not self._resized:
+            os.write(self._resize_pipe_wr, 'R')
         self._resized = True
         self.screen_buf = None
       

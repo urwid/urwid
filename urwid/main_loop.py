@@ -216,7 +216,7 @@ class MainLoop(object):
         """
         if self._input_timeout is not None and not timeout:
             # cancel the timeout, something else triggered the update
-            self.remove_alarm(self._input_timeout)
+            self.event_loop.remove_alarm(self._input_timeout)
         self._input_timeout = None
 
         max_wait, keys, raw = self.screen.get_input_nonblocking()
