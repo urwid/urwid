@@ -519,8 +519,131 @@ class SelectEventLoop(object):
         for fd in ready:
             self._watch_files[fd]()
 
+class GLibEventLoop(object):
+    def __init__(self):
+        """
+        Event loop based on gobject.MainLoop
 
+        """
+        import gobject
+        self.gobject = gobject
+        self._alarms = []
+        self._watch_files = {}
+        self._loop = self.gobject.MainLoop()
+        self._exc_info = None
 
+    def alarm(self, seconds, callback):
+        """
+        Call callback() given time from from now.  No parameters are
+        passed to callback.
+
+        Returns a handle that may be passed to remove_alarm()
+
+        seconds -- floating point time to wait before calling callback
+        callback -- function to call from event loop
+        """
+        @self.handle_exit
+        def ret_false():
+            callback()
+            return False
+        fd = self.gobject.timeout_add(seconds*1000, callback)
+        self._alarms.append(fd)
+        return (fd, callback)
+
+    def remove_alarm(self, handle):
+        """
+        Remove an alarm.
+
+        Returns True if the alarm exists, False otherwise
+
+        >>> evl = GLibEventLoop()
+        >>> handle = evl.alarm(50, lambda: None)
+        >>> evl.remove_alarm(handle)
+        True
+        >>> evl.remove_alarm(handle)
+        False
+        """
+        try:
+            self._alarms.remove(handle[0])
+            self.gobject.source_remove(handle[0])
+            return True
+        except ValueError:
+            return False
+
+    def watch_file(self, fd, callback):
+        """
+        Call callback() when fd has some data to read.  No parameters
+        are passed to callback.
+
+        Returns a handle that may be passed to remove_watch_file()
+
+        fd -- file descriptor to watch for input
+        callback -- function to call when input is available
+        """
+        @self.handle_exit
+        def io_callback(source, cb_condition):
+            callback()
+            return True
+        self._watch_files[fd] = \
+             self.gobject.io_add_watch(fd,self.gobject.IO_IN,io_callback)
+        return fd
+
+    def remove_watch_file(self, handle):
+        """
+        Remove an input file.
+
+        Returns True if the input file exists, False otherwise
+
+        >>> evl = GLibEventLoop()
+        >>> handle = evl.watch_file(5, lambda: None)
+        >>> evl.remove_watch_file(handle)
+        True
+        >>> evl.remove_watch_file(handle)
+        False
+        """
+        if handle in self._watch_files:
+            self.gobject.source_remove(handle)
+            del self._watch_files[handle]
+            return True
+        return False
+
+    def run(self):
+        """
+        Start the event loop.  Exit the loop when any callback raises
+        an exception.  If ExitMainLoop is raised, exit cleanly.
+        """
+        #self.gobject.threads_init()
+        context = self._loop.get_context()
+        try:
+            self._loop.run()
+        finally:
+            if self._loop.is_running():
+                self._loop._quit()
+        if self._exc_info:
+            # An exception caused us to exit, raise it now
+            exc_info = self._exc_info
+            self._exc_info = None
+            raise exc_info[0], exc_info[1], exc_info[2]
+    def handle_exit(self,f):
+        """
+        Decorator that cleanly exits the GLibEventLoop if ExitMainLoop is
+        thrown inside of the wrapped function.  Store the exception info if 
+        some other exception occurs, it will be reraised after the loop quits.
+        f -- function to be wrapped
+
+        """
+        def wrapper(*args,**kargs):
+            try:
+                return f(*args,**kargs)
+            except ExitMainLoop:
+                self._loop.quit()
+                pass
+            except:
+                import sys
+                self._exc_info = sys.exc_info()
+                if self._loop.is_running():
+                    self._loop.quit()
+        return wrapper
 
 
 
