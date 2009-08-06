@@ -154,6 +154,7 @@ class MainLoop(object):
         >>> evl = _refl("event_loop")
         >>> ml = MainLoop(w, [], scr, event_loop=evl)
         >>> ml.run()    # doctest:+ELLIPSIS
+        screen.set_mouse_tracking()
         screen.get_cols_rows()
         widget.render((20, 10), focus=True)
         screen.draw_screen((20, 10), 'fake canvas')
@@ -525,6 +526,20 @@ class GLibEventLoop(object):
         """
         Event loop based on gobject.MainLoop
 
+        >>> import os
+        >>> rd, wr = os.pipe()
+        >>> evl = GLibEventLoop()
+        >>> def step1():
+        ...     print "writing"
+        ...     os.write(wr, "hi")
+        >>> def step2():
+        ...     print os.read(rd, 2)
+        ...     raise ExitMainLoop
+        >>> handle = evl.alarm(0, step1)
+        >>> handle = evl.watch_file(rd, step2)
+        >>> evl.run()
+        writing
+        hi
         """
         import gobject
         self.gobject = gobject
@@ -547,7 +562,7 @@ class GLibEventLoop(object):
         def ret_false():
             callback()
             return False
-        fd = self.gobject.timeout_add(seconds*1000, callback)
+        fd = self.gobject.timeout_add(int(seconds*1000), ret_false)
         self._alarms.append(fd)
         return (fd, callback)
 
@@ -596,14 +611,14 @@ class GLibEventLoop(object):
         Returns True if the input file exists, False otherwise
 
         >>> evl = GLibEventLoop()
-        >>> handle = evl.watch_file(5, lambda: None)
+        >>> handle = evl.watch_file(1, lambda: None)
         >>> evl.remove_watch_file(handle)
         True
         >>> evl.remove_watch_file(handle)
         False
         """
         if handle in self._watch_files:
-            self.gobject.source_remove(handle)
+            self.gobject.source_remove(self._watch_files[handle])
             del self._watch_files[handle]
             return True
         return False
@@ -612,13 +627,46 @@ class GLibEventLoop(object):
         """
         Start the event loop.  Exit the loop when any callback raises
         an exception.  If ExitMainLoop is raised, exit cleanly.
+        
+        >>> import os
+        >>> rd, wr = os.pipe()
+        >>> os.write(wr, "data") # something to read from rd
+        4
+        >>> evl = GLibEventLoop()
+        >>> def say_hello():
+        ...     print "hello"
+        >>> def exit_clean():
+        ...     print "clean exit"
+        ...     raise ExitMainLoop
+        >>> def exit_error():
+        ...     1/0
+        >>> handle = evl.alarm(0.0625, exit_clean)
+        >>> handle = evl.alarm(0, say_hello)
+        >>> evl.run()
+        hello
+        clean exit
+        >>> handle = evl.watch_file(rd, exit_clean)
+        >>> evl.run()
+        clean exit
+        >>> evl.remove_watch_file(handle)
+        True
+        >>> handle = evl.alarm(0, exit_error)
+        >>> evl.run()
+        Traceback (most recent call last):
+           ...
+        ZeroDivisionError: integer division or modulo by zero
+        >>> handle = evl.watch_file(rd, exit_error)
+        >>> evl.run()
+        Traceback (most recent call last):
+           ...
+        ZeroDivisionError: integer division or modulo by zero
         """
         context = self._loop.get_context()
         try:
             self._loop.run()
         finally:
             if self._loop.is_running():
-                self._loop._quit()
+                self._loop.quit()
         if self._exc_info:
             # An exception caused us to exit, raise it now
             exc_info = self._exc_info
@@ -638,12 +686,12 @@ class GLibEventLoop(object):
                 return f(*args,**kargs)
             except ExitMainLoop:
                 self._loop.quit()
-                pass
             except:
                 import sys
                 self._exc_info = sys.exc_info()
                 if self._loop.is_running():
                     self._loop.quit()
+            return False
         return wrapper
 
 
