@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid MonitoredList class
-#    Copyright (C) 2004-2007  Ian Ward
+#    Copyright (C) 2004-2009  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -29,10 +29,33 @@ def _call_modified(fn):
     return call_modified_wrapper
 
 class MonitoredList(list):
+    """
+    This class triggers a callback any time its contents are changed
+    with the usual list operations append, extend, etc.
+    """
     def _modified(self):
         pass
     
     def set_modified_callback(self, callback):
+        """
+        Assign a callback function in with no parameters.
+        Callback's return value is ignored.
+
+        >>> import sys
+        >>> ml = MonitoredList([1,2,3])
+        >>> ml.set_modified_callback(lambda: sys.stdout.write("modified\\n"))
+        >>> list(ml)
+        [1, 2, 3]
+        >>> ml.append(10)
+        modified
+        >>> len(ml)
+        4
+        >>> ml += [11, 12, 13]; ml[:] = ml[:2] + ml[-2:]
+        modified
+        modified
+        >>> list(ml)
+        [1, 2, 12, 13]
+        """
         self._modified = callback
 
     def __repr__(self):
@@ -55,3 +78,13 @@ class MonitoredList(list):
     remove = _call_modified(list.remove)
     reverse = _call_modified(list.reverse)
     sort = _call_modified(list.sort)
+
+
+
+def _test():
+    import doctest
+    doctest.testmod()
+
+if __name__=='__main__':
+    _test()
+
