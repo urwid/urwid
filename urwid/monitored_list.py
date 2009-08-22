@@ -102,7 +102,7 @@ class MonitoredFocusList(MonitoredList):
         MonitoredFocusList([50, 51, 52, 53, 99, 14], focus=4)
         >>> ml[:] = []
         >>> ml
-        MonitoredFocusList([], focus=0)
+        MonitoredFocusList([], focus=None)
         """
         focus = 0
         if 'focus' in argd:
@@ -115,16 +115,19 @@ class MonitoredFocusList(MonitoredList):
         self._focus_modified = lambda self, range, new_item: None
 
     def __repr__(self):
-        return "%s(%r, focus=%d)" % (
-            self.__class__.__name__, list(self), self._focus)
+        return "%s(%r, focus=%r)" % (
+            self.__class__.__name__, list(self), self.get_focus())
 
     def get_focus(self):
         """
         Return the index of the item "in focus" or None if
-        the list is empty.
+        the list is empty.  May also be accessed as .focus
+
         >>> MonitoredFocusList([1,2,3], focus=2).get_focus()
         2
         >>> MonitoredFocusList().get_focus()
+        >>> MonitoredFocusList([1,2,3], focus=1).focus
+        1
         """
         if not self:
             return None
@@ -139,12 +142,16 @@ class MonitoredFocusList(MonitoredList):
             the end, any index out of range will raise an IndexError
         
         Negative indexes work the same way they do in slicing.
+
+        May also be set using .focus
         
         >>> ml = MonitoredFocusList([9, 10, 11])
         >>> ml.set_focus(2); ml.get_focus()
         2
         >>> ml.set_focus(-2); ml.get_focus()
         1
+        >>> ml.focus = 0; ml.get_focus()
+        0
         """
         if not self:
             self._focus = 0
@@ -154,6 +161,8 @@ class MonitoredFocusList(MonitoredList):
         if index < 0 or index >= len(self):
             raise IndexError('list index out of range')
         self._focus = int(index)
+
+    focus = property(get_focus, set_focus)
 
     def set_focus_modified_callback(self, callback):
         """
@@ -201,19 +210,47 @@ class MonitoredFocusList(MonitoredList):
             # adjust for removed items
             self._focus -= len(range(start, self._focus, step))
 
+    def _clamp_focus(self):
+        """
+        adjust the focus if it is out of range
+        """
+        if self._focus >= len(self):
+            self._focus = len(self)-1
+        if self._focus < 0:
+            self._focus = 0
 
     # override all the list methods that might affect our focus
     
     def __delitem__(self, y):
+        """
+        >>> ml = MonitoredFocusList([0,1,2,3], focus=2)
+        >>> del ml[3]; ml
+        MonitoredFocusList([0, 1, 2], focus=2)
+        >>> del ml[0]; ml
+        MonitoredFocusList([1, 2], focus=1)
+        >>> del ml[1]; ml
+        MonitoredFocusList([1], focus=0)
+        >>> del ml[0]; ml
+        MonitoredFocusList([], focus=None)
+        >>> ml = MonitoredFocusList([5,4,6,4,5,4,6,4,5], focus=4)
+        >>> del ml[1::2]; ml
+        MonitoredFocusList([5, 6, 5, 6, 5], focus=2)
+        >>> del ml[::2]; ml
+        MonitoredFocusList([6, 6], focus=1)
+        """
         if isinstance(y, slice):
             self._handle_possible_focus_modified(y)
         else:
             self._handle_possible_focus_modified(slice(y, y+1))
-        return super(MonitoredFocusList, self).__delitem__(y)
+        rval = super(MonitoredFocusList, self).__delitem__(y)
+        self._clamp_focus()
+        return rval
 
     def __setitem__(self, i, y):
         if isinstance(y, slice):
             self._handle_possible_focus_modified(y)
+        else:
+            self._handle_possible_focus_modified(slice(i, i+1), [y])
         return super(MonitoredFocusList, self).__setitem__(i, y)
 
     def __delslice__(self, i, j):
