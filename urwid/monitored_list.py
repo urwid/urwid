@@ -30,7 +30,7 @@ def _call_modified(fn):
 
 class MonitoredList(list):
     """
-    This class triggers a callback any time its contents are changed
+    This class can trigger a callback any time its contents are changed
     with the usual list operations append, extend, etc.
     """
     def _modified(self):
@@ -44,8 +44,8 @@ class MonitoredList(list):
         >>> import sys
         >>> ml = MonitoredList([1,2,3])
         >>> ml.set_modified_callback(lambda: sys.stdout.write("modified\\n"))
-        >>> list(ml)
-        [1, 2, 3]
+        >>> ml
+        MonitoredList([1, 2, 3])
         >>> ml.append(10)
         modified
         >>> len(ml)
@@ -53,15 +53,13 @@ class MonitoredList(list):
         >>> ml += [11, 12, 13]; ml[:] = ml[:2] + ml[-2:]
         modified
         modified
-        >>> list(ml)
-        [1, 2, 12, 13]
+        >>> ml
+        MonitoredList([1, 2, 12, 13])
         """
         self._modified = callback
 
     def __repr__(self):
-        return "%s.%s(%s)" % (self.__class__.__module__,
-            self.__class__.__name__,
-            list.__repr__(self))
+        return "%s(%r)" % (self.__class__.__name__, list(self))
 
     __add__ = _call_modified(list.__add__)
     __delitem__ = _call_modified(list.__delitem__)
@@ -78,6 +76,180 @@ class MonitoredList(list):
     remove = _call_modified(list.remove)
     reverse = _call_modified(list.reverse)
     sort = _call_modified(list.sort)
+
+
+class MonitoredFocusList(MonitoredList):
+    """
+    This class can trigger a callback any time its contents are changed
+    and any time the item "in focus" is modified or removed
+    """
+    def __init__(self, *argl, **argd):
+        """
+        This is a list that tracks one item as the focus item.  If items
+        are inserted or removed it will update the focus.
+
+        >>> ml = MonitoredFocusList([10, 11, 12, 13, 14], focus=3)
+        >>> ml
+        MonitoredFocusList([10, 11, 12, 13, 14], focus=3)
+        >>> del(ml[1])
+        >>> ml
+        MonitoredFocusList([10, 12, 13, 14], focus=2)
+        >>> ml[:2] = [50, 51, 52, 53]
+        >>> ml
+        MonitoredFocusList([50, 51, 52, 53, 13, 14], focus=4)
+        >>> ml[4] = 99
+        >>> ml
+        MonitoredFocusList([50, 51, 52, 53, 99, 14], focus=4)
+        >>> ml[:] = []
+        >>> ml
+        MonitoredFocusList([], focus=0)
+        """
+        focus = 0
+        if 'focus' in argd:
+            focus = argd['focus']
+            del argd['focus']
+
+        super(MonitoredFocusList, self).__init__(*argl, **argd)
+
+        self.set_focus(focus)
+        self._focus_modified = lambda self, range, new_item: None
+
+    def __repr__(self):
+        return "%s(%r, focus=%d)" % (
+            self.__class__.__name__, list(self), self._focus)
+
+    def get_focus(self):
+        """
+        Return the index of the item "in focus" or None if
+        the list is empty.
+        >>> MonitoredFocusList([1,2,3], focus=2).get_focus()
+        2
+        >>> MonitoredFocusList().get_focus()
+        """
+        if not self:
+            return None
+        if self._focus >= len(self):
+            # should't happen.. but just in case
+            return len(self)-1
+        return self._focus
+
+    def set_focus(self, index):
+        """
+        index -- index into self.widget_list, negative indexes count from
+            the end, any index out of range will raise an IndexError
+        
+        Negative indexes work the same way they do in slicing.
+        
+        >>> ml = MonitoredFocusList([9, 10, 11])
+        >>> ml.set_focus(2); ml.get_focus()
+        2
+        >>> ml.set_focus(-2); ml.get_focus()
+        1
+        """
+        if not self:
+            self._focus = 0
+            return
+        if index < 0:
+            index += len(self)
+        if index < 0 or index >= len(self):
+            raise IndexError('list index out of range')
+        self._focus = int(index)
+
+    def set_focus_modified_callback(self, callback):
+        """
+        Assign a function to handle updating the focus when the item
+        in focus is about to be changed.  The callback is in the form:
+
+        callback(monitored_list, slc, new_items)
+        slc -- a slice object covering the items being modified
+        new_items -- a list of items replacing those in slc
+        
+        The only valid action for the callback is to call set_focus().
+        Modifying the list in the callback has undefined behaviour.
+        """
+        _focus_modified = callback
+
+    def _handle_possible_focus_modified(self, slc, new_items=[]):
+        """
+        Default behaviour is to move the focus to the item following
+        any removed items, or the last item in the list if that doesn't
+        exist.
+        """
+        num_new_items = len(new_items)
+        start, stop, step = slc.indices(len(self))
+        if step == 1:
+            if start + num_new_items <= self._focus < stop:
+                # call user handler, which might modify focus
+                self._focus_modified(self, slc, new_items)
+
+            if start + num_new_items <= self._focus < stop:
+                self._focus = stop
+            # adjust for added/removed items
+            if stop <= self._focus:
+                self._focus += num_new_items - (stop - start)
+
+        elif not num_new_items:
+            # extended slice being removed
+            removed = range(start, stop, step)
+            if self._focus in removed:
+                # call user handler, which might modify focus
+                self._focus_modified(self, slc, new_items)
+
+            if self._focus in removed:
+                self._focus += 1
+
+            # adjust for removed items
+            self._focus -= len(range(start, self._focus, step))
+
+
+    # override all the list methods that might affect our focus
+    
+    def __delitem__(self, y):
+        if isinstance(y, slice):
+            self._handle_possible_focus_modified(y)
+        else:
+            self._handle_possible_focus_modified(slice(y, y+1))
+        return super(MonitoredFocusList, self).__delitem__(y)
+
+    def __setitem__(self, i, y):
+        if isinstance(y, slice):
+            self._handle_possible_focus_modified(y)
+        return super(MonitoredFocusList, self).__setitem__(i, y)
+
+    def __delslice__(self, i, j):
+        self._handle_possible_focus_modified(slice(i, j))
+        return super(MonitoredFocusList, self).__delslice__(i, j)
+
+    def __setslice__(self, i, j, y):
+        self._handle_possible_focus_modified(slice(i, j), y)
+        return super(MonitoredFocusList, self).__setslice__(i, j, y)
+    
+    def insert(self, index, object):
+        self._handle_possible_focus_modified(slice(index, index), [object])
+        return super(MonitoredFocusList, self).insert(index, object)
+
+    def pop(self, index=-1):
+        self._handle_possible_focus_modified(slice(index, index+1))
+        return super(MonitoredFocusList, self).pop(index)
+
+    def remove(self, value):
+        index = self.index(value)
+        self._handle_possible_focus_modified(slice(index, index+1))
+        return super(MonitoredFocusList, self).remove(index)
+
+    def reverse(self):
+        self._focus = len(self) - self._focus - 1
+        return super(MonitoredFocusList, self).reverse()
+
+    def sort(self):
+        if not self:
+            return
+        value = self[self._focus]
+        rval = super(MonitoredFocusList, self).sort()
+        self._focus = self.index(value)
+        return rval
+
+
 
 
 
