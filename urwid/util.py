@@ -378,11 +378,7 @@ def _tagmarkup_recurse( tm, attr ):
     tm -- tagmarkup
     attr -- current attribute or None"""
     
-    if type(tm) == type("") or type(tm) == type( u"" ):
-        # text
-        return [tm], [(attr, len(tm))]
-        
-    if type(tm) == type([]):
+    if type(tm) == list:
         # for lists recurse to process each subelement
         rtl = [] 
         ral = []
@@ -407,7 +403,16 @@ def _tagmarkup_recurse( tm, attr ):
         attr, element = tm
         return _tagmarkup_recurse( element, attr )
     
-    raise TagMarkupException, "Invalid markup element: %s" % `tm`
+    if type(tm) not in (str, unicode):
+        # last ditch, try converting the object to unicode
+        try:
+            tm = uncode(tm)
+        except:
+            raise TagMarkupException, "Invalid markup element: %r" % tm
+    
+    # text
+    return [tm], [(attr, len(tm))]
+
 
 
 def is_mouse_event( ev ):

@@ -909,8 +909,11 @@ class Edit(Text):
         >>> e.edit_text
         'no'
         """
-        if type(text) not in [type(""), type(u"")]:
-            raise EditError("Edit text must be a string.")
+        if type(text) not in (str, unicode):
+            try:
+                text = unicode(text)
+            except:
+                raise EditError("Can't convert edit text to a string!")
         self.highlight = None
         self._emit("change", text)
         self._edit_text = text
