@@ -40,7 +40,7 @@ __all__ = [
 	'generic_main_loop',
         'AttrSpec', 'AttrSpecError',
 	]
-__version__ = "0.9.8"
+__version__ = "0.9.9-pre"
 
 
 from widget import *
