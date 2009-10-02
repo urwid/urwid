@@ -40,7 +40,9 @@ __all__ = [
 	'generic_main_loop',
         'AttrSpec', 'AttrSpecError',
 	]
-__version__ = "0.9.9-pre"
+
+VERSION = (0, 9, 9, 'pre')
+__version__ = ''.join(['-.'[type(x) == int]+str(x) for x in VERSION])[1:]
 
 
 from widget import *
