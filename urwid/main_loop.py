@@ -313,7 +313,7 @@ class MainLoop(object):
                 if self.widget.mouse_event(self.screen_size, 
                     event, button, col, row, focus=True ):
                     k = None
-            else:
+            elif self.widget.selectable():
                 k = self.widget.keypress(self.screen_size, k)
             if k and command_map[k] == 'redraw screen':
                 self.screen.clear()
