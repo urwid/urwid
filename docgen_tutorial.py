@@ -38,317 +38,191 @@ cut_comment = "# CUT HERE"
 
 examples["min"] = ["example_min"]
 def example_min():
-    import urwid.curses_display
     import urwid
 
-    ui = urwid.curses_display.Screen()
+    txt = urwid.Text("Hello World")
+    fill = urwid.Filler(txt, 'top')
+    loop = urwid.MainLoop(fill)
+    loop.run()
 
-    def run():
-        canvas = urwid.TextCanvas(["Hello World"])
-        ui.draw_screen( (20, 1), canvas )
-        
-        while not ui.get_input():
-            pass
-    
-    ui.run_wrapper( run )
 
 examples["text"] = ["example_text"]
 def example_text():
-    import urwid.curses_display
     import urwid
 
-    ui = urwid.curses_display.Screen()
+    def exit_always(input):
+        raise urwid.ExitMainLoop()
 
-    def run():
-        cols, rows = ui.get_cols_rows()
+    txt = urwid.Text("Hello World")
+    fill = urwid.Filler(txt, 'top')
+    loop = urwid.MainLoop(fill, unhandled_input=exit_always)
+    loop.run()
 
-        txt = urwid.Text("Hello World", align="center")
-        fill = urwid.Filler( txt )
-
-        canvas = fill.render( (cols, rows) )
-        ui.draw_screen( (cols, rows), canvas )
-
-        while not ui.get_input():
-            pass
-
-    ui.run_wrapper( run )
 
 examples["attr"] = ["example_attr"]
 def example_attr():
-    import urwid.curses_display
     import urwid
 
-    ui = urwid.curses_display.Screen()
-
-    ui.register_palette( [
-        ('banner', 'black', 'light gray', ('standout', 'underline')),
+    palette = [('banner', 'black', 'light gray', ('standout', 'underline')),
         ('streak', 'black', 'dark red', 'standout'),
-        ('bg', 'black', 'dark blue'),
-        ] )
+        ('bg', 'black', 'dark blue'),]
 
-    def run():
-        cols, rows = ui.get_cols_rows()
+    txt = urwid.Text(('banner', " Hello World "), align='center')
+    wrap1 = urwid.AttrMap(txt, 'streak')
+    fill = urwid.Filler(wrap1)
+    wrap2 = urwid.AttrMap(fill, 'bg')
 
-        txt = urwid.Text(('banner', " Hello World "), align="center")
-        wrap1 = urwid.AttrWrap( txt, 'streak' )
-        fill = urwid.Filler( wrap1 )
-        wrap2 = urwid.AttrWrap( fill, 'bg' )
+    def exit_always(input):
+        raise urwid.ExitMainLoop()
 
-        canvas = wrap2.render( (cols, rows) )
-        ui.draw_screen( (cols, rows), canvas )
+    loop = urwid.MainLoop(wrap2, palette, unhandled_input=exit_always)
+    loop.run()
 
-        while not ui.get_input():
-            pass
-
-    ui.run_wrapper( run )
 
 examples["resize"] = ["example_resize"]
 def example_resize():
-    import urwid.curses_display
     import urwid
 
-    ui = urwid.curses_display.Screen()
-
-    ui.register_palette( [
-        ('banner', 'black', 'light gray', ('standout', 'underline')),
+    palette = [('banner', 'black', 'light gray', ('standout', 'underline')),
         ('streak', 'black', 'dark red', 'standout'),
-        ('bg', 'black', 'dark blue'),
-        ] )
+        ('bg', 'black', 'dark blue'),]
 
-    def run():
-        cols, rows = ui.get_cols_rows()
+    txt = urwid.Text(('banner', " Hello World "), align='center')
+    wrap1 = urwid.AttrMap(txt, 'streak')
+    fill = urwid.Filler(wrap1)
+    wrap2 = urwid.AttrMap(fill, 'bg')
 
-        txt = urwid.Text(('banner', " Hello World "), align="center")
-        wrap1 = urwid.AttrWrap( txt, 'streak' )
-        fill = urwid.Filler( wrap1 )
-        wrap2 = urwid.AttrWrap( fill, 'bg' )
+    def exit_on_q(input):
+        if input in ('q', 'Q'):
+            raise urwid.ExitMainLoop()
 
-        while True:
-            canvas = wrap2.render( (cols, rows) )
-            ui.draw_screen( (cols, rows), canvas )
+    loop = urwid.MainLoop(wrap2, palette, unhandled_input=exit_on_q)
+    loop.run()
 
-            keys = ui.get_input()
-            if "q" in keys or "Q" in keys:
-                break
-            if "window resize" in keys:
-                cols, rows = ui.get_cols_rows()    
-
-    ui.run_wrapper( run )
 
 examples["edit"] = ["example_edit"]
 def example_edit():
-    import urwid.curses_display
     import urwid
 
-    ui = urwid.curses_display.Screen()
+    ask = urwid.Edit("What is your name?\n")
+    fill = urwid.Filler( ask )
 
-    def run():
-        cols, rows = ui.get_cols_rows()
+    def do_reply(input):
+        if input != 'enter':
+            return
+        if fill.body == ask:
+            fill.body = urwid.Text( "Nice to meet you,\n"+
+                ask.edit_text+"." )
+        else:
+            raise urwid.ExitMainLoop()
 
-        ask = urwid.Edit("What is your name?\n")
-        fill = urwid.Filler( ask )
-        reply = None
+    loop = urwid.MainLoop(fill, unhandled_input=do_reply)
+    loop.run()
 
-        while True:
-            canvas = fill.render( (cols, rows), focus=True )
-            ui.draw_screen( (cols, rows), canvas )
-
-            keys = ui.get_input()
-            for k in keys:
-                if k == "window resize":
-                    cols, rows = ui.get_cols_rows()
-                    continue
-                if reply is not None:
-                    return
-                if k == "enter": 
-                    reply = urwid.Text( "Nice to meet you,\n"+
-                        ask.edit_text+"." )
-                    fill.body = reply
-                if fill.selectable():
-                    fill.keypress( (cols, rows), k )
-
-    ui.run_wrapper( run )
 
 examples["frlb"] = ["example_frlb"]
 def example_frlb():
-    import urwid.curses_display
     import urwid
 
-    class Conversation(object):
-        def __init__(self):
-            self.items = urwid.SimpleListWalker(
-                [self.new_question()])
-            self.listbox = urwid.ListBox(self.items)
-            instruct = urwid.Text("Press F8 to exit.")
-            header = urwid.AttrWrap( instruct, 'header' )
-            self.top = urwid.Frame(self.listbox, header)
+    palette = [('I say', 'default,bold', 'default', 'bold'),]
 
-        def main(self):
-            self.ui = urwid.curses_display.Screen()
-            self.ui.register_palette([
-                ('header', 'black', 'dark cyan', 'standout'),
-                ('I say', 'default', 'default', 'bold'),
-                ])
-            self.ui.run_wrapper( self.run )
-        # CUT HERE                
-        def run(self):
-            size = self.ui.get_cols_rows()
+    ask = urwid.Edit(('I say', "What is your name?\n"))
+    reply = urwid.Text("")
+    content = urwid.SimpleListWalker([ask, reply])
+    listbox = urwid.ListBox(content)
 
-            while True:
-                self.draw_screen( size )
-                keys = self.ui.get_input()
-                if "f8" in keys: 
-                    break
-                for k in keys:
-                    if k == "window resize":
-                        size = self.ui.get_cols_rows()
-                        continue
-                    self.top.keypress( size, k )
-                if keys:
-                    name = self.items[0].edit_text
-                    self.items[1:2] = [self.new_answer(name)]
-        # CUT HERE
-        def draw_screen(self, size):
-            canvas = self.top.render( size, focus=True )
-            self.ui.draw_screen( size, canvas )
-        
-        def new_question(self):
-            return urwid.Edit(('I say',"What is your name?\n"))
-        
-        def new_answer(self, name):
-            return urwid.Text(('I say',"Nice to meet you, "+name+"\n"))
-            
-    Conversation().main()
+    def on_ask_change(edit, new_edit_text):
+        assert edit is ask # we are passed our edit widget
+        reply.set_text(('I say', 
+            "Nice to meet you, " + new_edit_text))
+    
+    urwid.connect_signal(ask, 'change', on_ask_change)
+
+    def exit_on_cr(input):
+        if input == 'enter':
+            raise urwid.ExitMainLoop()
+
+    loop = urwid.MainLoop(listbox, palette, unhandled_input=exit_on_cr)
+    loop.run()
+    
 
 examples["lbcont"]=["example_lbcont"]
 def example_lbcont():
-    import urwid.curses_display
     import urwid
 
-    class Conversation(object):
-        def __init__(self):
-            self.items = urwid.SimpleListWalker(
-                [self.new_question()])
-            self.listbox = urwid.ListBox(self.items)
-            instruct = urwid.Text("Press F8 to exit.")
-            header = urwid.AttrWrap( instruct, 'header' )
-            self.top = urwid.Frame(self.listbox, header)
+    palette = [('I say', 'default,bold', 'default', 'bold'),]
 
-        def main(self):
-            self.ui = urwid.curses_display.Screen()
-            self.ui.register_palette([
-                ('header', 'black', 'dark cyan', 'standout'),
-                ('I say', 'default', 'default', 'bold'),
-                ])
-            self.ui.run_wrapper( self.run )
-        # CUT HERE                
-        def run(self):
-            size = self.ui.get_cols_rows()
+    def new_question():
+        return urwid.Edit(('I say',"What is your name?\n"))
+    
+    def new_answer(name):
+        return urwid.Text(('I say',"Nice to meet you, "+name+"\n"))
 
-            while True:
-                self.draw_screen( size )
-                keys = self.ui.get_input()
-                if "f8" in keys: 
-                    break
-                for k in keys:
-                    if k == "window resize":
-                        size = self.ui.get_cols_rows()
-                        continue
-                    self.keypress( size, k )
-                        
-        def keypress(self, size, k):
-            if k == "enter":
-                widget, pos = self.listbox.get_focus()
-                if not hasattr(widget,'get_edit_text'):
-                    return
-                
-                answer = self.new_answer( widget.get_edit_text() )
-                
-                if pos == len(self.items)-1:
-                    self.items.append( answer )
-                    self.items.append( self.new_question() )
-                else:
-                    self.items[pos+1:pos+2] = [answer]
+    content = urwid.SimpleListWalker([new_question()])
+    listbox = urwid.ListBox(content)
 
-                widget.set_edit_pos(0)
-                self.listbox.set_focus( pos+2, coming_from='above' )
-            else:
-                self.top.keypress( size, k )
-        # CUT HERE
-        def draw_screen(self, size):
-            canvas = self.top.render( size, focus=True )
-            self.ui.draw_screen( size, canvas )
-        
-        def new_question(self):
-            return urwid.Edit(('I say',"What is your name?\n"))
-        
-        def new_answer(self, name):
-            return urwid.Text(('I say',"Nice to meet you, "+name+"\n"))
-            
-    Conversation().main()
+    def update_on_cr(input):
+        if input != 'enter':
+            return
+        focus_widget, position = listbox.get_focus()
+        if not hasattr(focus_widget, 'edit_text'):
+            return
+        if not focus_widget.edit_text:
+            raise urwid.ExitMainLoop()
+        content[position+1:position+2] = [
+            new_answer(focus_widget.edit_text)]
+        if not content[position+2:position + 3]:
+            content.append(new_question())
+        listbox.set_focus(position + 2)
+
+    loop = urwid.MainLoop(listbox, palette, unhandled_input=update_on_cr)
+    loop.run()
+
 
 examples["lbscr"] = ["example_lbscr"]
 def example_lbscr():
-    import urwid.curses_display
     import urwid
-    # CUT HERE
-    CONTENT = [ urwid.AttrWrap( w, None, 'reveal focus' ) for w in [
+
+    palette = [('header', 'white', 'black'),
+        ('reveal focus', 'black', 'dark cyan', 'standout'),]
+    content = urwid.SimpleListWalker([
+        urwid.AttrMap(w, None, 'reveal focus') for w in [
         urwid.Text("This is a text string that is fairly long"),
         urwid.Divider("-"),
         urwid.Text("Short one"),
         urwid.Text("Another"),
         urwid.Divider("-"),
         urwid.Text("What could be after this?"),
-        urwid.Text("The end."),
-    ] ]
-    # CUT HERE
-    class RevealFocus(object):
-        def __init__(self):
-            self.listbox = urwid.ListBox( CONTENT )
-            self.head = urwid.Text("Pressed:")
-            self.head = urwid.AttrWrap(self.head, 'header')
-            self.top = urwid.Frame(self.listbox, self.head)
+        urwid.Text("The end."),]])
+    listbox = urwid.ListBox(content)
+    show_key = urwid.Text("", wrap='clip')
+    head = urwid.AttrMap(show_key, 'header')
+    top = urwid.Frame(listbox, head)
 
-        def main(self):
-            self.ui = urwid.curses_display.Screen()
-            self.ui.register_palette([
-                ('header', 'white', 'black'),
-                ('reveal focus', 'black', 'dark cyan', 'standout'),
-                ])
-            self.ui.run_wrapper( self.run )
-        
-        def run(self):
-            size = self.ui.get_cols_rows()
+    def show_all_input(input, raw):
+        show_key.set_text("Pressed: " + " ".join([
+            unicode(i) for i in input]))
+        return input
 
-            while True:
-                self.draw_screen( size )
-                keys = self.ui.get_input()
-                if "f8" in keys: 
-                    break
-                self.head.set_text("Pressed:")
-                for k in keys:
-                    if k == "window resize":
-                        size = self.ui.get_cols_rows()
-                        continue
-                    self.head.set_text("Pressed: "+k)
-                    self.top.keypress( size, k )
+    def exit_on_cr(input):
+        if input == 'enter':
+            raise urwid.ExitMainLoop()
+    
+    loop = urwid.MainLoop(top, palette, 
+        input_filter=show_all_input, unhandled_input=exit_on_cr)
+    loop.run()
 
-        def draw_screen(self, size):
-            canvas = self.top.render( size, focus=True )
-            self.ui.draw_screen( size, canvas )
-        
-    RevealFocus().main()
 
 examples["wmod"] = ["example_wmod"]
 def example_wmod():
-    class QuestionnaireItem( urwid.WidgetWrap ):
+    class QuestionnaireItem(urwid.WidgetWrap):
         def __init__(self):
             self.options = []
-            unsure = urwid.RadioButton( self.options, "Unsure" )
-            yes = urwid.RadioButton( self.options, "Yes" )
-            no = urwid.RadioButton( self.options, "No" )
-            display_widget = urwid.GridFlow( [unsure, yes, no],
-                15, 3, 1, 'left' )
+            unsure = urwid.RadioButton(self.options, "Unsure")
+            yes = urwid.RadioButton(self.options, "Yes")
+            no = urwid.RadioButton(self.options, "No")
+            display_widget = urwid.GridFlow([unsure, yes, no],
+                15, 3, 1, 'left')
             urwid.WidgetWrap.__init__(self, display_widget)
         
         def get_state(self):
@@ -359,44 +233,47 @@ def example_wmod():
         
 examples["wanat"] = ["example_wanat","example_wanat_new","example_wanat_multi"]
 def example_wanat():
-    class Pudding( urwid.FlowWidget ):
-        def selectable( self ):
+    class Pudding(urwid.FlowWidget):
+        def selectable(self):
             return False
-        def rows( self, (maxcol,), focus=False ):
+        def rows(self, size, focus=False):
             return 1
-        def render( self, (maxcol,), focus=False ):
+        def render(self, size, focus=False):
+            (maxcol,) = size
             num_pudding = maxcol / len("Pudding")
             return urwid.TextCanvas(["Pudding"*num_pudding]) 
 
-    class BoxPudding( urwid.BoxWidget ):
-        def selectable( self ):
+    class BoxPudding(urwid.BoxWidget):
+        def selectable(self):
             return False
-        def render( self, (maxcol, maxrow), focus=False ):
+        def render(self, size, focus=False):
+            (maxcol, maxrow) = size
             num_pudding = maxcol / len("Pudding")
             return urwid.TextCanvas(
                 ["Pudding"*num_pudding] * maxrow)
 
 def example_wanat_new():
-    class NewPudding( urwid.FlowWidget ):
-        def selectable( self ):
+    class NewPudding(urwid.FlowWidget):
+        def selectable(self):
             return False
-        def rows( self, (maxcol,), focus=False ):
-            w = self.display_widget( (maxcol,), focus )
-            return w.rows( (maxcol,), focus )
-        def render( self, (maxcol,), focus=False ):
-            w = self.display_widget( (maxcol,), focus )
-            return w.render( (maxcol,), focus )
-        def display_widget( self, (maxcol,), focus ):
+        def rows(self, size, focus=False):
+            w = self.display_widget(size, focus)
+            return w.rows(size, focus)
+        def render(self, size, focus=False):
+            w = self.display_widget(size, focus)
+            return w.render(size, focus)
+        def display_widget(self, size, focus):
+            (maxcol,) = size
             num_pudding = maxcol / len("Pudding")
-            return urwid.Text( "Pudding"*num_pudding )
+            return urwid.Text("Pudding"*num_pudding)
 
 def example_wanat_multi():
-    class MultiPudding( urwid.Widget ):
-        def selectable( self ):
+    class MultiPudding(urwid.Widget):
+        def selectable(self):
             return False
-        def rows( self, (maxcol,), focus=False ):
+        def rows(self, size, focus=False):
             return 1
-        def render( self, size, focus=False ):
+        def render(self, size, focus=False):
             if len(size) == 1:
                 (maxcol,) = size
                 maxrow = 1
@@ -404,24 +281,26 @@ def example_wanat_multi():
                 (maxcol, maxrow) = size
             num_pudding = maxcol / len("Pudding")
             return urwid.TextCanvas(
-                ["Pudding"*num_pudding] * maxrow )
+                ["Pudding"*num_pudding] * maxrow)
 
 examples["wsel"] = ["example_wsel"]
 def example_wsel():
-    class SelectablePudding( urwid.FlowWidget ):
-        def __init__( self ):
+    class SelectablePudding(urwid.FlowWidget):
+        def __init__(self):
             self.pudding = "pudding"
-        def selectable( self ):
+        def selectable(self):
             return True
-        def rows( self, (maxcol,), focus=False ):
+        def rows(self, size, focus=False):
             return 1
-        def render( self, (maxcol,), focus=False ):
+        def render(self, size, focus=False):
+            (maxcol,) = size
             num_pudding = maxcol / len(self.pudding)
             pudding = self.pudding
             if focus: 
                 pudding = pudding.upper()
-            return urwid.TextCanvas( [pudding*num_pudding] )
-        def keypress( self, (maxcol,), key ):
+            return urwid.TextCanvas([pudding*num_pudding])
+        def keypress(self, size, key):
+            (maxcol,) = size
             if len(key)>1:
                 return key
             if key.lower() in self.pudding:
@@ -435,31 +314,34 @@ def example_wsel():
 
 examples["wcur"] = ["example_wcur"]
 def example_wcur():
-    class CursorPudding( urwid.FlowWidget ):
-        def __init__( self ):
+    class CursorPudding(urwid.FlowWidget):
+        def __init__(self):
             self.cursor_col = 0
-        def selectable( self ):
+        def selectable(self):
             return True
-        def rows( self, (maxcol,), focus=False ):
+        def rows(self, size, focus=False):
             return 1
-        def render( self, (maxcol,), focus=False ):
+        def render(self, size, focus=False):
+            (maxcol,) = size
             num_pudding = maxcol / len("Pudding")
             cursor = None
             if focus:
-                cursor = self.get_cursor_coords((maxcol,))
+                cursor = self.get_cursor_coords(size)
             return urwid.TextCanvas(
-                ["Pudding"*num_pudding], [], cursor )
-        def get_cursor_coords( self, (maxcol,) ):
+                ["Pudding"*num_pudding], [], cursor)
+        def get_cursor_coords(self, size):
+            (maxcol,) = size
             col = min(self.cursor_col, maxcol-1)
             return col, 0
-        def keypress( self, (maxcol,), key ):
+        def keypress(self, size, key):
+            (maxcol,) = size
             if key == 'left':
                 col = self.cursor_col -1
             elif key == 'right':
                 col = self.cursor_col +1
             else:
                 return key
-            self.cursor_x = max(0, min( maxcol-1, col ))
+            self.cursor_x = max(0, min(maxcol-1, col))
         # CUT HERE
         def get_pref_col( self, (maxcol,) ):
             return self.cursor_x
@@ -604,21 +486,6 @@ def cut_example_code(blocks):
     converted examples."""
 
     ## do the conversions and the checks
-    head1, ignore, tail1 = (
-        blocks["example_frlb"].split(cut_comment+"\n") )
-    blocks["example_frlb"] = (
-        blocks["example_frlb"].replace(cut_comment,"") )
-    
-    head2, blocks["example_lbcont"], tail2 = (
-        blocks["example_lbcont"].split(cut_comment+"\n") )
-    assert head1 == head2, "frlb and lbcont have differing heads: "+\
-        `head1, head2`
-    assert tail1 == tail2, "frlb and lbcont have differing tails: "+\
-        `tail1, tail2`
-
-    ignore, blocks["example_lbscr"], ignore = (
-        blocks["example_lbscr"].split(cut_comment+"\n") )
-
     blocks["example_wcur"], blocks["example_wcur2"] = (
         blocks["example_wcur"].split(cut_comment+"\n") )
     examples["wcur"].append("example_wcur2")
@@ -640,7 +507,7 @@ def generate_example_results():
     init = urwid.html_fragment.screenshot_init
     collect = urwid.html_fragment.screenshot_collect
 
-    init([],[[" "]])
+    init([(11,1)],[[" "]])
     example_min()
     results["min"] = collect()[:1]
 
@@ -660,18 +527,18 @@ def generate_example_results():
     example_edit()
     results["edit"] = collect()[:3]
 
-    init([(21,7)],[list("Tim t"),list("he Ench"),list("anter"),["f8"]])
+    init([(21,7)],[list("Tim t"),list("he Ench"),list("anter"),["enter"]])
     example_frlb()
     results["frlb"] = collect()[:4]
 
     init([(23,13)],[list("Abe")+["enter"]+list("Bob"),["enter"]+
-        list("Carl")+["enter"], list("Dave")+["enter"], ["f8"]])
+        list("Carl")+["enter"], list("Dave")+["enter"], ["enter"]])
     example_lbcont()
     results["lbcont"] = collect()[1:4]
 
     init([(15,7), (20,9), (25,7), (11,13)],
     [["down"],["down"],["down"],["up"],["up"]] +
-    [["window resize"]]*3 + [["f8"]])
+    [["window resize"]]*3 + [["enter"]])
     example_lbscr()
     results["lbscr"] = collect()[:9]
 

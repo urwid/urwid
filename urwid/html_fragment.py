@@ -24,29 +24,15 @@ HTML PRE-based UI implementation
 """
 
 import util
+from main_loop import ExitMainLoop
+from display_common import AttrSpec
 
-
-_html_colours = {
-    'black':        "black",
-    'dark red':        "#c00000",
-    'dark green':        "green",
-    'brown':        "#804000",
-    'dark blue':        "#0000c0",
-    'dark magenta':        "#c000c0",
-    'dark cyan':        "teal",
-    'light gray':        "silver",
-    'dark gray':        "gray",
-    'light red':        "#ff6060",
-    'light green':        "lime",
-    'yellow':        "yellow",
-    'light blue':        "#8080ff",
-    'light magenta':    "#ff40ff",
-    'light cyan':        "aqua",
-    'white':        "white",
-}
 
 # replace control characters with ?'s
 _trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 256)])
+
+_default_foreground = 'black'
+_default_background = 'light gray'
 
 class HtmlGeneratorSimulationError(Exception):
     pass
@@ -92,10 +78,6 @@ class HtmlGenerator:
 
         See curses_display.register_palette_entry for more info.
         """
-        if foreground == "default":
-            foreground = "black"
-        if background == "default":
-            background = "light gray"
         self.palette[name] = (foreground, background, mono)
     
     def set_mouse_tracking(self):
@@ -106,6 +88,9 @@ class HtmlGenerator:
         pass
     
     def stop(self):
+        pass
+    
+    def set_input_timeouts(self, *args):
         pass
 
     def run_wrapper(self,fn):
@@ -134,7 +119,7 @@ class HtmlGenerator:
             for a, cs, run in row:
                 run = run.translate(_trans_table)
                 if a is None:
-                    fg,bg,mono = "black", "light gray", None
+                    fg,bg,mono = _default_foreground, _default_background, None
                 else:
                     fg,bg,mono = self.palette[a]
                 if y == cy and col <= cx:
@@ -169,20 +154,37 @@ class HtmlGenerator:
             raise HtmlGeneratorSimulationError, "Ran out of screen sizes to return!"
         return self.sizes.pop(0)
 
-    def get_input(self):
+    def get_input(self, raw_keys=False):
         """Return the next list of keypresses in HtmlGenerator.keys."""
         if not self.keys:
-            raise HtmlGeneratorSimulationError, "Ran out of key lists to return!"
+            raise ExitMainLoop()
+        if raw_keys:
+            return (self.keys.pop(0), [])
         return self.keys.pop(0)
-    
 
-def html_span( s, fg, bg, cursor = -1):
-    html_fg = _html_colours[ fg ]
-    html_bg = _html_colours[ bg ]
+_default_aspec = AttrSpec(_default_foreground, _default_background)
+(_d_fg_r, _d_fg_g, _d_fg_b, _d_bg_r, _d_bg_g, _d_bg_b) = (
+    _default_aspec.get_rgb_values())
+
+def html_span(s, fg, bg, cursor = -1):
+    aspec = AttrSpec(fg, bg)
+    fg_r, fg_g, fg_b, bg_r, bg_g, bg_b = aspec.get_rgb_values()
+    # use real colours instead of default fg/bg
+    if fg_r is None:
+        fg_r, fg_g, fg_b = _d_fg_r, _d_fg_g, _d_fg_b
+    if bg_r is None:
+        bg_r, bg_g, bg_b = _d_bg_r, _d_bg_g, _d_bg_b
+    html_fg = "#%02x%02x%02x" % (fg_r, fg_g, fg_b)
+    html_bg = "#%02x%02x%02x" % (bg_r, bg_g, bg_b)
+    if aspec.standout:
+        html_fg, html_bg = html_bg, html_fg
+    extra = (";text-decoration:underline" * aspec.underline +
+        ";font-weight:bold" * aspec.bold)
     def html_span(fg, bg, s):
         if not s: return ""
-        return '<span style="color:%s;background:%s">%s</span>' % \
-            (fg, bg, html_escape(s))
+        return ('<span style="color:%s;'
+            'background:%s%s">%s</span>' % 
+            (fg, bg, extra, html_escape(s)))
     
     if cursor >= 0:
         c_off, _ign = util.calc_text_pos(s, 0, len(s), cursor)
