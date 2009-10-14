@@ -679,7 +679,7 @@ http://excess.org/templayer/
         out_file = tmpl.start_file()
         (body, toc_slots) = generate_body( tmpl, sections,
                                            code_blocks, results )
-        bottom = out_file.open( ** toc_slots )
+        bottom = out_file.open(version=urwid.__version__, ** toc_slots)
         bottom.write( body )
         out_file.close()
 
