@@ -177,10 +177,10 @@ class MainLoop(object):
         if self.handle_mouse:
             self.screen.set_mouse_tracking()
 
-        self.draw_screen()
-
         if not hasattr(self.screen, 'get_input_descriptors'):
             return self._run_screen_event_loop()
+
+        self.draw_screen()
 
         # insert our input descriptors
         fds = self.screen.get_input_descriptors()
