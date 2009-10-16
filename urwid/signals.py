@@ -20,7 +20,6 @@
 # Urwid web site: http://excess.org/urwid/
 
 
-import weakref
 
 
 class MetaSignals(type):
@@ -37,10 +36,18 @@ class MetaSignals(type):
         register_signal(cls, signals)
         super(MetaSignals, cls).__init__(name, bases, d)
 
+def setdefaultattr(obj, name, value):
+    # like dict.setdefault() for object attributes
+    if hasattr(obj, name):
+        return getattr(obj, name)
+    setattr(obj, name, value)
+    return value
+
 
 class Signals(object):
+    _signal_attr = '_urwid_signals' # attribute to attach to signal senders
+
     def __init__(self):
-        self._connections = weakref.WeakKeyDictionary()
         self._supported = {}
 
     def register(self, sig_cls, signals):
@@ -77,7 +84,7 @@ class Signals(object):
         if not name in self._supported.get(sig_cls, []):
             raise NameError, "No such signal %r for object %r" % \
                 (name, obj)
-        d = self._connections.setdefault(obj, {})
+        d = setdefaultattr(obj, self._signal_attr, {})
         d.setdefault(name, []).append((callback, user_arg))
         
     def disconnect(self, obj, name, callback, user_arg=None):
@@ -88,7 +95,7 @@ class Signals(object):
         This function will remove a callback from the list connected
         to a signal with connect_signal().
         """
-        d = self._connections.get(obj, {})
+        d = setdefaultattr(obj, self._signal_attr, {})
         if name not in d:
             return
         if (callback, user_arg) not in d[name]:
@@ -111,7 +118,7 @@ class Signals(object):
         This function returns True if any of the callbacks returned True.
         """
         result = False
-        d = self._connections.get(obj, {})
+        d = getattr(obj, self._signal_attr, {})
         for callback, user_arg in d.get(name, []):
             args_copy = args
             if user_arg is not None:
