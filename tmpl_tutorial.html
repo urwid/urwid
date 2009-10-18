@@ -2,14 +2,14 @@
 <head>
 <title>Urwid %version% Tutorial</title>
 <style type="text/css">
-	h1 { text-align: center; }
-	h2 { margin: 40px 0 0 0; padding: 10px;  background: #6d96e8;}
-	h3 { margin: 0 0 3px 0; padding: 12px 6px 6px 6px; background: #efef96;}
-	.code { background: #dddddd; padding: 5px; margin: 7px 20px; }
-	.l1 { margin: 12px 0 0 0; }
-	.l2 { margin-left: 20px; }
-	.shot { padding: 5px 20px 5px 0px; float: left; }
-	.back { font-size:small; padding-left: 20px; }
+    h1 { text-align: center; }
+    h2 { margin: 40px 0 0 0; padding: 10px;  background: #6d96e8;}
+    h3 { margin: 0 0 3px 0; padding: 12px 6px 6px 6px; background: #efef96;}
+    .code { background: #dddddd; padding: 5px; margin: 7px 20px; }
+    .l1 { margin: 12px 0 0 0; }
+    .l2 { margin-left: 20px; }
+    .shot { padding: 5px 20px 5px 0px; float: left; }
+    .back { font-size:small; padding-left: 20px; }
 </style>
 <body>
 <a name="top"></a>
@@ -30,7 +30,14 @@ Tutorial /
 %toc_right%
 </td></tr></table>
 
+<p>
+The programs in this tutorial are available in your Urwid distribution. 
+Run the command "./docgen_tutorial.py -s" to output the example scripts.
+</p>
+
 {contents}
+
+
 <div style="background:#ffff33; padding: 5px">
 <h1>Urwid Tutorial Template File</h1>
 This file is used by <b>docgen_tutorial.py</b> to generate the tutorial
@@ -38,42 +45,49 @@ documentation <b>tutorial.html</b>.
 <p>
 </div>
 <div style="background:#ffffaa;">
-<br>
+<p>
 Items in the list that follows are parsed by docgen_tutorial.py. 
-Each item has a tag and a name, separated by a tab character.  
-Items without tags are new sections.  
+Each item has a tag and a name, separated by a comma.  Whitespace
+on either side of the comma is stripped.
+</p><p>
+Items without tags are new sections.
+</p><p>
 A --- separates the left and right columns in the table of contents.
+</p>
+
 <pre>
-<b>Tag	Section or Item Name</b>
+<b>Tag, Section or Item Name</b>
 {section_data}
-	Hello World Example
-min	Minimal Urwid Application
-text	Text and Filler Widgets
-attr	AttrWrap Widgets and Text Attributes
-resize	Live Resizing
-	Conversation Example
-edit	Edit Widgets
-frlb	Frame and ListBox Widgets
-lbcont	Modifying ListBox Content
-	Zen of ListBox
-lbscr	ListBox Focus and Scrolling
-lbdyn	Dynamic ListBox with List Walker
-lbfocus	Setting the Focus
+,            Hello World Example
+min,         Minimal Urwid Application
+input,       Handling Input
+attr,        AttrMap Widgets and Text Attributes
+highcolors,  High Color Mode
+,            Conversation Example
+edit,        Edit Widgets
+frlb,        Frame and ListBox Widgets
+lbcont,      Modifying ListBox Content
+,            Zen of ListBox
+lbscr,       ListBox Focus and Scrolling
+lbdyn,       Dynamic ListBox with List Walker
+lbfocus,     Setting the Focus
 ---
-	Combining Widgets
-pile	Piling Widgets
-cols	Dividing into Columns
-grid	GridFlow Arrangement
-overlay	Overlay Widgets
-	Creating Custom Widgets
-wmod	Modifying Existing Widgets
-wanat	Anatomy of a Widget
-wsel	Creating Selectable Widgets
-wcur	Widgets Displaying the Cursor
+,            Combining Widgets
+pile,        Piling Widgets
+cols,        Dividing into Columns
+grid,        GridFlow Arrangement
+overlay,     Overlay Widgets
+,            Creating Custom Widgets
+wmod,        Modifying Existing Widgets
+wanat,       Anatomy of a Widget
+wsel,        Creating Selectable Widgets
+wcur,        Widgets Displaying the Cursor
 {/section_data}
 </pre>
 </div>
-<p>
+
+
+ <p>
 {toc_section}
 <div class="l1">%snum%. %name%</div>
 {/toc_section}
@@ -96,79 +110,59 @@ wcur	Widgets Displaying the Cursor
 
 <br clear="left"><hr>
 
+
+
 {body[min]}
 This program displays the string "Hello World" in the top left corner
-of the screen and waits for a keypress before exiting.
+of the screen and will run until interrupted with CTRL+C (^C).
 
 <pre class="code">%example[0]%</pre>
 
 <ul>
-<li>The <a href="reference.html#curses_display.Screen">curses_display.Screen</a>
-class provides access to the curses library.  Its member function
-<a href="reference.html#Screen-run_wrapper">run_wrapper</a> initializes
-curses full-screen mode and then calls the "run" function passed. It will
-also take care of restoring the screen when the "run" function exits.
-<li>A <a href="reference.html#TextCanvas">TextCanvas</a> is created
-containing one row with the string "Hello World".
-<li>The canvas is passed to the 
-<a href="reference.html#Screen-draw_screen">draw_screen</a> function along
-with a fixed screen size of 20 columns and 1 row.  If the
-terminal window this program is run from is larger than 20 by 1 the 
-text will appear in the top left corner.
-<li>The <a href="reference.html#Screen-get_input">get_input</a> function
-is then called until it returns something.  It must be called in a loop
-because by default it will time out after one second and return an 
-empty list when there is no input.
-</ul>
-
-Creating canvases directly in this way is generally only done when
-writing custom widget classes.  Note that the draw_screen
-function must be passed a canvas and a screen size that matches it,
-for backwards compatibility.
+<li>The <a href="reference.html#Text">Text</a>
+widget handles formatting blocks of text, wrapping to the next line when
+necessary.  Widgets like this are called "flow widgets" because their
+sizing can have a number of columns given, in this case the full screen
+width, then they will flow to fill as many rows as necessary.
+<li>The <a href="reference.html#Filler">Filler</a> is widget fills in blank
+lines above or below flow widgets so that they can be displayed in a fixed
+number of rows.  This Filler will align our Text to the top of the screen,
+filling all the rows below with blank lines.  Widgets which are given both
+the number of columns and number of rows they must be displayed in are called
+"box widgets".  The "topmost" widget displayed on the screen must be 
+a box widget.
+<li>The <a href="reference.html#MainLoop">MainLoop</a> class handles displaying
+our widgets as well as input from the user.  In this case our widgets can't
+handle the input so we need to interrupt the program to exit with ^C.</ul>
 
 <div align="center">%result[0]%</div>
 {/body[min]}
 
 <br clear="left"><hr>
 
-{body[text]}
-This program displays the string "Hello World" in the center of the screen
-and waits for a keypress before exiting.
+{body[input]}
+This program initially displays the string "Hello World", then it displays
+each key pressed, exiting when the user presses Q.
 
 <pre class="code">%example[0]%</pre>
 
 <ul>
-<li><a href="reference.html#Screen-get_cols_rows">get_cols_rows</a>
-is used to get the dimensions from the terminal and store them as "cols"
-and "rows".
-<li>A <a href="reference.html#Text">Text</a> widget is created containing
-the string "Hello World". It is set to display with "center" alignment. 
-Text widgets are a kind of <a href="reference.html#FlowWidget">FlowWidget</a>.
-Flow widgets can fill one or more rows, depending on their content and 
-the number of columns available. Text widgets use more than one row when
-they contain newline characters or when the text must be split across rows.
-<li>A <a href="reference.html#Filler">Filler</a> widget is created to
-wrap the text widget. Filler widgets are a kind of 
-<a href="reference.html#BoxWidget">BoxWidget</a>. Box widgets have a fixed
-number of columns and rows displayed. This widget will pad the "Hello World" 
-text widget until it fills the required number of rows.
-<li>A canvas is created by calling the 
-<a href="reference.html#Filler-render">render</a> function on the topmost
-widget. The filler render function will call the render function 
-of the "Hello World" text widget and combine its canvas with
-padding rows to fill the terminal window.
+<li>The MainLoop class has an optional function parameter unhandled_input
+This function will be called once for each keypress that is not handled
+by the widgets being displayed.
+<li>None of the widgets being displayed here handle input, so every key
+the user presses will be passed to the show_or_exit function.
+<li>The ExitMainLoop exception is used to 
+exit cleanly from the MainLoop.run() function when the user presses Q.  All
+other input is displayed by replacing the current Text widget's content.
 </ul>
 
-Flow widgets and box widgets are not interchangeable.  The first parameter
-of the render function of a box widget is a two-element tuple (columns,
-rows) and the first parameter of the render function of a flow widget is 
-a one-element tuple (columns, ).  
-This difference makes sure that when the wrong type of widget is used,
-such as a box widget inside a filler widget, a ValueError exception will 
-be thrown.
-
-<div align="center">%result[0]%</div>
-{/body[text]}
+<div class="shot">%result[0]%</div>
+<div class="shot">%result[1]%</div>
+<div class="shot">%result[2]%</div>
+<div class="shot">%result[3]%</div>
+<div class="shot">%result[4]%</div>
+{/body[input]}
 
 <br clear="left"><hr>
 
@@ -198,7 +192,7 @@ to set up some attributes:
 the string " Hello World " with attribute "banner". The attributes of text
 in a Text widget is set by using a (attribute, text) tuple instead of a
 simple text string.
-<li>An <a href="reference.html#AttrWrap">AttrWrap</a> widget is created to
+<li>An <a href="reference.html#AttrMap">AttrWrap</a> widget is created to
 wrap the text widget with attribute "streak". AttrWrap widgets will set 
 the attribute of everything that they wrap that does not already have an
 attribute set. In this case the text has an attribute, so only the areas
@@ -219,12 +213,15 @@ the text widget's render function the same way. The second AttrWrap is
 used as the topmost widget and treated as a box widget, so it calls the 
 filler render function in the same way.
 
-<div align="center">%result[0]%</div>
+<div class="shot">%result[0]%</div>
+<div class="shot">%result[1]%</div>
+<div class="shot">%result[2]%</div>
+<div class="shot">%result[3]%</div>
 {/body[attr]}
 
 <br clear="left"><hr>
 
-{body[resize]}
+{body[highcolors]}
 This program displays the string "Hello World" in the center of the screen.
 It uses different attributes for the text, the space on either side
 of the text and the space above and below the text.  When the window is
@@ -237,11 +234,8 @@ return "window resize" among keys pressed when the window is resized.  It
 is a good idea to check for uppercase and lowercase letters on input
 to avoid confusing users.
 
-<div class="shot">%result[0]%</div>
-<div class="shot">%result[1]%</div>
-<div class="shot">%result[2]%</div>
-<div class="shot">%result[3]%</div>
-{/body[resize]}
+<div align="center">%result[0]%</div>
+{/body[highcolors]}
 
 <br clear="left"><hr>
 

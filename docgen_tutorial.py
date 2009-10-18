@@ -46,16 +46,19 @@ def example_min():
     loop.run()
 
 
-examples["text"] = ["example_text"]
-def example_text():
+examples["input"] = ["example_input"]
+def example_input():
     import urwid
-
-    def exit_always(input):
-        raise urwid.ExitMainLoop()
 
     txt = urwid.Text("Hello World")
     fill = urwid.Filler(txt, 'top')
-    loop = urwid.MainLoop(fill, unhandled_input=exit_always)
+
+    def show_or_exit(input):
+        if input in ('q', 'Q'):
+            raise urwid.ExitMainLoop()
+        txt.set_text(repr(input))
+
+    loop = urwid.MainLoop(fill, unhandled_input=show_or_exit)
     loop.run()
 
 
@@ -63,40 +66,52 @@ examples["attr"] = ["example_attr"]
 def example_attr():
     import urwid
 
-    palette = [('banner', 'black', 'light gray', ('standout', 'underline')),
+    palette = [
+        ('banner', 'black', 'light gray', 'standout,underline'),
         ('streak', 'black', 'dark red', 'standout'),
         ('bg', 'black', 'dark blue'),]
 
     txt = urwid.Text(('banner', " Hello World "), align='center')
-    wrap1 = urwid.AttrMap(txt, 'streak')
-    fill = urwid.Filler(wrap1)
-    wrap2 = urwid.AttrMap(fill, 'bg')
-
-    def exit_always(input):
-        raise urwid.ExitMainLoop()
-
-    loop = urwid.MainLoop(wrap2, palette, unhandled_input=exit_always)
-    loop.run()
-
-
-examples["resize"] = ["example_resize"]
-def example_resize():
-    import urwid
-
-    palette = [('banner', 'black', 'light gray', ('standout', 'underline')),
-        ('streak', 'black', 'dark red', 'standout'),
-        ('bg', 'black', 'dark blue'),]
-
-    txt = urwid.Text(('banner', " Hello World "), align='center')
-    wrap1 = urwid.AttrMap(txt, 'streak')
-    fill = urwid.Filler(wrap1)
-    wrap2 = urwid.AttrMap(fill, 'bg')
+    map1 = urwid.AttrMap(txt, 'streak')
+    fill = urwid.Filler(map1)
+    map2 = urwid.AttrMap(fill, 'bg')
 
     def exit_on_q(input):
         if input in ('q', 'Q'):
             raise urwid.ExitMainLoop()
 
-    loop = urwid.MainLoop(wrap2, palette, unhandled_input=exit_on_q)
+    loop = urwid.MainLoop(map2, palette, unhandled_input=exit_on_q)
+    loop.run()
+
+
+examples["highcolors"] = ["example_highcolors"]
+def example_highcolors():
+    import urwid
+
+    palette = [
+        ('banner', '', '', '', '#ffa', '#086'),
+        ('streak', '', '', '', 'g50', '#08a'),
+        ('inside', '', '', '', 'g38', '#08d'),
+        ('outside', '', '', '', 'g27', '#08f'),
+        ('bg', '', '', '', 'g7', '#68f'),]
+
+    txt = urwid.Text(('banner', " Hello World "), align='center')
+    map1 = urwid.AttrMap(txt, 'streak')
+    pile = urwid.Pile([
+        urwid.AttrMap(urwid.Divider(), 'outside'),
+        urwid.AttrMap(urwid.Divider(), 'inside'),
+        map1, 
+        urwid.AttrMap(urwid.Divider(), 'inside'),
+        urwid.AttrMap(urwid.Divider(), 'outside')])
+    fill = urwid.Filler(pile)
+    map2 = urwid.AttrMap(fill, 'bg')
+
+    def exit_on_q(input):
+        if input in ('q', 'Q'):
+            raise urwid.ExitMainLoop()
+
+    loop = urwid.MainLoop(map2, palette, unhandled_input=exit_on_q)
+    loop.screen.set_terminal_properties(colors=256)
     loop.run()
 
 
@@ -365,8 +380,8 @@ def read_sections(tmpl):
         if ln == col_break:
             sections.append([])
             continue
-        tag, desc = ln.split("\t",1)
-        sections[-1].append( (tag, desc) )
+        tag, desc = ln.split(",",1)
+        sections[-1].append( (tag.rstrip(), desc.lstrip()) )
     return sections
 
 def read_example_code():
@@ -507,21 +522,21 @@ def generate_example_results():
     init = urwid.html_fragment.screenshot_init
     collect = urwid.html_fragment.screenshot_collect
 
-    init([(11,1)],[[" "]])
+    init([(21,7)],[[" "]])
     example_min()
     results["min"] = collect()[:1]
 
-    init([(21,7)],[[" "]])
-    example_text()
-    results["text"] = collect()[:1]
-
-    init([(21,7)],[[" "]])
-    example_attr()
-    results["attr"] = collect()[:1]
+    init([(12,3)],[["enter"], ["N"], ["O"], ["P"], ["Q"]])
+    example_input()
+    results["input"] = collect()[:5]
 
     init([(21,7),(10,9),(30,3),(15,2)],[["window resize"]]*3+[["q"]])
-    example_resize()
-    results["resize"] = collect()[:4]
+    example_attr()
+    results["attr"] = collect()[:4]
+
+    init([(26,9)],[["q"]])
+    example_highcolors()
+    results["highcolors"] = collect()[:1]
 
     init([(21,7)],[list("Arthur, King of the Britons"),["enter"],[" "]])
     example_edit()
