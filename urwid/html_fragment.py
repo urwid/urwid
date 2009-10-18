@@ -25,7 +25,7 @@ HTML PRE-based UI implementation
 
 import util
 from main_loop import ExitMainLoop
-from display_common import AttrSpec
+from display_common import AttrSpec, BaseScreen
 
 
 # replace control characters with ?'s
@@ -37,7 +37,7 @@ _default_background = 'light gray'
 class HtmlGeneratorSimulationError(Exception):
     pass
 
-class HtmlGenerator:
+class HtmlGenerator(BaseScreen):
     # class variables
     fragments = []
     sizes = []
@@ -45,41 +45,27 @@ class HtmlGenerator:
     started = True
 
     def __init__(self):
-        self.palette = {}
-        self.has_color = True
-    
-    def register_palette( self, l ):
-        """Register a list of palette entries.
+        super(HtmlGenerator, self).__init__()
+        self.colors = 16
+        self.bright_is_bold = False # ignored
+        self.has_underline = True # ignored
+        self.register_palette_entry(None, 
+            _default_foreground, _default_background)
 
-        l -- list of (name, foreground, background) or
-             (name, same_as_other_name) palette entries.
-
-        calls self.register_palette_entry for each item in l
-        """
+    def set_terminal_properties(self, colors=None, bright_is_bold=None,
+        has_underline=None):
         
-        for item in l:
-            if len(item) in (3,4):
-                self.register_palette_entry( *item )
-                continue
-            assert len(item) == 2, "Invalid register_palette usage"
-            name, like_name = item
-            if not self.palette.has_key(like_name):
-                raise Exception("palette entry '%s' doesn't exist"%like_name)
-            self.palette[name] = self.palette[like_name]
+        if colors is None:
+            colors = self.colors
+        if bright_is_bold is None:
+            bright_is_bold = self.bright_is_bold
+        if has_underline is None:
+            has_unerline = self.has_underline
 
-    def register_palette_entry( self, name, foreground, background, 
-        mono=None):
-        """Register a single palette entry.
+        self.colors = colors
+        self.bright_is_bold = bright_is_bold
+        self.has_underline = has_underline
 
-        name -- new entry/attribute name
-        foreground -- foreground colour
-        background -- background colour
-        mono -- monochrome terminal attribute
-
-        See curses_display.register_palette_entry for more info.
-        """
-        self.palette[name] = (foreground, background, mono)
-    
     def set_mouse_tracking(self):
         """Not yet implemented"""
         pass
@@ -118,21 +104,20 @@ class HtmlGenerator:
             
             for a, cs, run in row:
                 run = run.translate(_trans_table)
-                if a is None:
-                    fg,bg,mono = _default_foreground, _default_background, None
-                else:
-                    fg,bg,mono = self.palette[a]
+                aspec = self._palette[a][
+                        {1: 1, 16: 0, 88:2, 256:3}[self.colors]]
+
                 if y == cy and col <= cx:
                     run_width = util.calc_width(run, 0,
                         len(run))
                     if col+run_width > cx:
                         l.append(html_span(run,
-                            fg, bg, cx-col))
+                            aspec, cx-col))
                     else:
-                        l.append(html_span(run, fg, bg))
+                        l.append(html_span(run, aspec))
                     col += run_width
                 else:
-                    l.append(html_span(run, fg, bg))
+                    l.append(html_span(run, aspec))
 
             l.append("\n")
                         
@@ -166,8 +151,7 @@ _default_aspec = AttrSpec(_default_foreground, _default_background)
 (_d_fg_r, _d_fg_g, _d_fg_b, _d_bg_r, _d_bg_g, _d_bg_b) = (
     _default_aspec.get_rgb_values())
 
-def html_span(s, fg, bg, cursor = -1):
-    aspec = AttrSpec(fg, bg)
+def html_span(s, aspec, cursor = -1):
     fg_r, fg_g, fg_b, bg_r, bg_g, bg_b = aspec.get_rgb_values()
     # use real colours instead of default fg/bg
     if fg_r is None:
