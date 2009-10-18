@@ -683,6 +683,9 @@ class RealTerminal(object):
         return skeys
 
 
+class ScreenError(Exception):
+    pass
+
 class BaseScreen(object):
     """
     Base class for Screen classes (raw_display.Screen, .. etc)
@@ -716,11 +719,12 @@ class BaseScreen(object):
                 self.register_palette_entry(*item)
                 continue
             if len(item) != 2:
-                raise ScreenError("Invalid register_palette entry: %s"%item)
+                raise ScreenError("Invalid register_palette entry: %s" % 
+                    repr(item))
             name, like_name = item
-            if not self.palette.has_key(like_name):
+            if not self._palette.has_key(like_name):
                 raise ScreenError("palette entry '%s' doesn't exist"%like_name)
-            self.palette[name] = self.palette[like_name]
+            self._palette[name] = self._palette[like_name]
 
     def register_palette_entry(self, name, foreground, background,
         mono=None, foreground_high=None, background_high=None):

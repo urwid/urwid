@@ -46,9 +46,6 @@ except ImportError:
 # replace control characters with ?'s
 _trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
 
-class ScreenError(Exception):
-    pass
-
 class Screen(BaseScreen, RealTerminal):
     def __init__(self):
         """Initialize a screen that directly prints escape codes to an output
