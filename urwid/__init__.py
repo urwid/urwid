@@ -20,26 +20,26 @@
 # Urwid web site: http://excess.org/urwid/
 
 __all__ = [
-	'BoxWidget','Frame','Filler','ListBox','SimpleListWalker',
-	'ListWalker',
-	'WidgetWrap','AttrWrap','Padding','Divider','LineBox','SolidFill',
-	'Columns','Pile','GridFlow','BoxAdapter','Overlay',
-	'FlowWidget','Text','Edit','IntEdit','Button','CheckBox','RadioButton',
-	'BarGraph','ProgressBar','GraphVScale','BigText',
-	'Canvas','CanvasCombine','CanvasJoin','CanvasCache','CompositeCanvas',
-	'TextCanvas', 'SolidCanvas',
-	'TextLayout', 'StandardTextLayout', 'default_layout',
-	'set_encoding','get_encoding_mode','supports_unicode',
-	'Thin3x3Font','Thin4x3Font','HalfBlock5x4Font','HalfBlock6x5Font',
-	'HalfBlockHeavy6x5Font','Thin6x6Font','HalfBlock7x7Font',
-	'Font','get_all_fonts',
-	'MetaSignals', 
-	'emit_signal', 'register_signal', 'connect_signal', 'disconnect_signal',
-	'MonitoredList',
-	'command_map',
-	'generic_main_loop',
-        'AttrSpec', 'AttrSpecError',
-	]
+    'BoxWidget','Frame','Filler','ListBox','SimpleListWalker',
+    'ListWalker',
+    'WidgetWrap','AttrWrap','Padding','Divider','LineBox','SolidFill',
+    'Columns','Pile','GridFlow','BoxAdapter','Overlay',
+    'FlowWidget','Text','Edit','IntEdit','Button','CheckBox','RadioButton',
+    'BarGraph','ProgressBar','GraphVScale','BigText',
+    'Canvas','CanvasCombine','CanvasJoin','CanvasCache','CompositeCanvas',
+    'TextCanvas', 'SolidCanvas',
+    'TextLayout', 'StandardTextLayout', 'default_layout',
+    'set_encoding','get_encoding_mode','supports_unicode',
+    'Thin3x3Font','Thin4x3Font','HalfBlock5x4Font','HalfBlock6x5Font',
+    'HalfBlockHeavy6x5Font','Thin6x6Font','HalfBlock7x7Font',
+    'Font','get_all_fonts',
+    'MetaSignals', 
+    'emit_signal', 'register_signal', 'connect_signal', 'disconnect_signal',
+    'MonitoredList',
+    'command_map',
+    'generic_main_loop',
+    'AttrSpec', 'AttrSpecError',
+    ]
 
 VERSION = (0, 9, 9, 'pre')
 __version__ = ''.join(['-.'[type(x) == int]+str(x) for x in VERSION])[1:]
