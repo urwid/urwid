@@ -45,7 +45,7 @@ class SelectableIcon(Text):
 
         >>> si = SelectableIcon("[!]")
         >>> si
-        <SelectableIcon selectable flow widget '[!]'>
+        <SelectableIcon selectable widget '[!]'>
         >>> si.render((4,), focus=True).cursor
         (1,0)
         >>> si = SelectableIcon("((*))", 2)
@@ -114,12 +114,12 @@ class CheckBox(WidgetWrap):
           disconnect_signal(check_box, 'change', callback [,user_data])
 
         >>> CheckBox("Confirm")
-        <CheckBox selectable flow widget 'Confirm' state=False>
+        <CheckBox selectable widget 'Confirm' state=False>
         >>> CheckBox("Yogourt", "mixed", True)
-        <CheckBox selectable flow widget 'Yogourt' state='mixed'>
+        <CheckBox selectable widget 'Yogourt' state='mixed'>
         >>> cb = CheckBox("Extra onions", True)
         >>> cb
-        <CheckBox selectable flow widget 'Extra onions' state=True>
+        <CheckBox selectable widget 'Extra onions' state=True>
         >>> cb.render((20,), focus=True).text  # preview CheckBox
         ['[X] Extra onions    ']
         """
@@ -151,10 +151,10 @@ class CheckBox(WidgetWrap):
 
         >>> cb = CheckBox("foo")
         >>> cb
-        <CheckBox selectable flow widget 'foo' state=False>
+        <CheckBox selectable widget 'foo' state=False>
         >>> cb.set_label(('bright_attr', "bar"))
         >>> cb
-        <CheckBox selectable flow widget 'bar' state=False>
+        <CheckBox selectable widget 'bar' state=False>
         """
         self._label.set_text(label)
         # no need to call self._invalidate(). WidgetWrap takes care of
@@ -328,9 +328,9 @@ class RadioButton(CheckBox):
         >>> len(bgroup)
         2
         >>> b1
-        <RadioButton selectable flow widget 'Agree' state=True>
+        <RadioButton selectable widget 'Agree' state=True>
         >>> b2
-        <RadioButton selectable flow widget 'Disagree' state=False>
+        <RadioButton selectable widget 'Disagree' state=False>
         >>> b2.render((15,), focus=True).text  # preview RadioButton
         ['( ) Disagree   ']
         """
@@ -367,10 +367,10 @@ class RadioButton(CheckBox):
         ...     radio_button.set_label("Think Harder!")
         >>> connect_signal(b3, 'change', relabel_button)
         >>> b3
-        <RadioButton selectable flow widget 'Unsure' state=False>
+        <RadioButton selectable widget 'Unsure' state=False>
         >>> b3.set_state(True) # this will trigger the callback
         >>> b3
-        <RadioButton selectable flow widget 'Think Harder!' state=True>
+        <RadioButton selectable widget 'Think Harder!' state=True>
         """
         if self._state == state:
             return
@@ -429,7 +429,7 @@ class Button(WidgetWrap):
           disconnect_signal(button, 'click', callback [,user_data])
 
         >>> Button("Ok")
-        <Button selectable flow widget 'Ok'>
+        <Button selectable widget 'Ok'>
         >>> b = Button("Cancel")
         >>> b.render((15,), focus=True).text  # preview Button
         ['< Cancel      >']
@@ -463,7 +463,7 @@ class Button(WidgetWrap):
         >>> b = Button("Ok")
         >>> b.set_label("Yup yup")
         >>> b
-        <Button selectable flow widget 'Yup yup'>
+        <Button selectable widget 'Yup yup'>
         """
         self._label.set_text(label)
     
