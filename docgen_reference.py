@@ -30,7 +30,7 @@ import types
 
 html_template = """<html>
 <head>
-<title>Urwid ((version)) Reference</title>
+<title>Urwid %version% Reference</title>
 <style type="text/css">
     h1 { text-align: center; }
     h2 { margin: 40px 0 0 0; padding: 10px;  background: #6d96e8;}
@@ -40,7 +40,7 @@ html_template = """<html>
 </style>
 <body>
 <a name="top"></a>
-<h1>Urwid ((version)) Reference</h1>
+<h1>Urwid %version% Reference</h1>
 
 <div style="text-align: center;">
 <a href="http://excess.org/urwid/">Urwid Home Page</a> /
@@ -264,17 +264,16 @@ def main():
     contents.append('<table width="100%"><tr><td width="33%" valign="top">')
     
     for obj, name, flag in [
-        (None,"User interface wrappers",None),
-        (urwid.raw_display.Screen, "raw_display.Screen",None),
-        (urwid.curses_display.Screen, "curses_display.Screen",None),
-        (urwid.web_display.Screen,"web_display.Screen",None),
+        (None,"MainLoop & event loops", None),
+        (urwid.MainLoop, "MainLoop", None),
+        (urwid.SelectEventLoop, "SelectEventLoop", None),
+        (urwid.GLibEventLoop, "GLibEventLoop", None),
         (None,"Top-level widgets",None),
         (urwid.Frame, "Frame", "B"),
         (urwid.Filler, "Filler", "B"),
         (urwid.ListBox, "ListBox", "B"),
         (None,"Decorations", None),
-        (urwid.WidgetWrap, "WidgetWrap", "FB"),
-        (urwid.AttrWrap, "AttrWrap", "FB"),
+        (urwid.AttrMap, "AttrMap", "FB"),
         (urwid.Padding, "Padding", "FB"),
         (urwid.Divider, "Divider", "F"),
         (urwid.LineBox, "LineBox", "FB"),
@@ -285,9 +284,6 @@ def main():
         (urwid.GridFlow, "GridFlow", "F"),
         (urwid.BoxAdapter,"BoxAdapter", "F"),
         (urwid.Overlay,"Overlay", "B"),
-        
-        (None, None, None),
-
         (None,"Content widgets", None),
         (urwid.Text, "Text", "F"),
         (urwid.Edit, "Edit", "F"),
@@ -295,27 +291,29 @@ def main():
         (urwid.Button, "Button", "F"),
         (urwid.CheckBox, "CheckBox", "F"),
         (urwid.RadioButton, "RadioButton", "F"),
+        
+        (None, None, None),
+
         (None, "Graphics",None),
         (urwid.BarGraph, "BarGraph","B"),
         (urwid.GraphVScale, "GraphVScale","B"),
         (urwid.ProgressBar, "ProgressBar","F"),
         (urwid.BigText, "BigText","X"),
         (urwid.get_all_fonts, "get_all_fonts",None),
-        
+        (None,"Build custom widgets",None),
+        (urwid.WidgetWrap, "WidgetWrap",None),
         (None,"Abstract widgets & interfaces",None),
         (WidgetInterface, "Widget interface definition",None),
         (urwid.Widget, "Widget",None),
         (urwid.BoxWidget, "BoxWidget",None),
         (urwid.FlowWidget, "FlowWidget",None),
         (urwid.FixedWidget, "FixedWidget",None),
+        (urwid.WidgetDecoration, "WidgetDecoration", None),
         (ListWalkerInterface, "List Walker interface definition",None),
         (urwid.ListWalker, "ListWalker", None),
         (None,"ListBox list walkers",None),
         (urwid.PollingListWalker, "PollingListWalker",None),
         (urwid.SimpleListWalker, "SimpleListWalker",None),
-        
-        (None, None, None),
-        
         (None,"Canvas painting", None),
         (urwid.Canvas, "Canvas", None),
         (urwid.TextCanvas, "TextCanvas", None),
@@ -324,6 +322,10 @@ def main():
         (urwid.CanvasCombine, "CanvasCombine", None),
         (urwid.CanvasJoin, "CanvasJoin", None),
         (urwid.CanvasOverlay, "CanvasOverlay", None),
+        (None, None, None),
+        
+        (None,"Raw screen attributes", None),
+        (urwid.AttrSpec, "AttrSpec", None),
         (None,"Custom formatting rules", None),
         (urwid.TextLayout,"TextLayout", None),
         (urwid.StandardTextLayout,"StandardTextLayout", None),
@@ -331,6 +333,15 @@ def main():
         (urwid.set_encoding,"set_encoding", None),
         (urwid.get_encoding_mode,"get_encoding_mode", None),
         (urwid.supports_unicode,"supports_unicode", None),
+        (None,"Signals", None),
+        (urwid.connect_signal,"connect_signal", None),
+        (urwid.disconnect_signal,"disconnect_signal", None),
+        (urwid.register_signal,"register_signal", None),
+        (urwid.emit_signal,"emit_signal", None),
+        (None,"User interface wrappers",None),
+        (urwid.raw_display.Screen, "raw_display.Screen",None),
+        (urwid.curses_display.Screen, "curses_display.Screen",None),
+        (urwid.web_display.Screen,"web_display.Screen",None),
         (None,"Screen capture", None),
         (urwid.html_fragment.screenshot_init, 
             "html_fragment.screenshot_init", None),
@@ -367,6 +378,7 @@ def main():
     h = html_template
     h = h.replace("%toc%", "".join(contents))
     h = h.replace("%contents%", "".join(doc))
+    h = h.replace("%version%", urwid.__version__)
     print h
 
 if __name__ == "__main__":
