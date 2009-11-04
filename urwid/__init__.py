@@ -37,7 +37,7 @@ __all__ = [
     'emit_signal', 'register_signal', 'connect_signal', 'disconnect_signal',
     'MonitoredList',
     'command_map',
-    'generic_main_loop',
+    'MainLoop', 'SelectEventLoop', 'GLibEventLoop',
     'AttrSpec', 'AttrSpecError',
     ]
 
