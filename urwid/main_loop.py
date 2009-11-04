@@ -38,7 +38,7 @@ class MainLoop(object):
         handle_mouse=True, input_filter=None, unhandled_input=None,
         event_loop=None):
         """
-        Simple main loop implementation with a single screen.
+        Simple main loop implementation.
 
         widget -- topmost widget used for painting the screen, 
             stored as self.widget, may be modified
@@ -56,11 +56,9 @@ class MainLoop(object):
             SelectEventLoop, stored as self.event_loop
 
         This is a standard main loop implementation with a single
-        screen.  
-    
-        The widget passed must be a selectable box widget.  It will
-        be sent input with keypress() and mouse_event() and is
-        expected to be able to handle it.
+        screen. 
+        
+        The widget passed must be a box widget.
 
         raw_display.Screen is the only screen type that currently
         supports external event loops.  Other screen types include
