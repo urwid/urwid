@@ -90,9 +90,9 @@ class BigText(FixedWidget):
         return canv
         
 
-class LineBox(WidgetWrap):
-    def __init__(self, w):
-        """Draw a line around w."""
+class LineBox(WidgetDecoration, WidgetWrap):
+    def __init__(self, original_widget):
+        """Draw a line around original_widget."""
         
         tlcorner=None; tline=None; lline=None
         trcorner=None; blcorner=None; rline=None
@@ -114,12 +114,14 @@ class LineBox(WidgetWrap):
         top = Columns([ ('fixed', 1, tlcorner),
             tline, ('fixed', 1, trcorner) ])
         middle = Columns( [('fixed', 1, lline),
-            w, ('fixed', 1, rline)], box_columns = [0,2],
+            original_widget, ('fixed', 1, rline)], box_columns = [0,2],
             focus_column = 1)
         bottom = Columns([ ('fixed', 1, blcorner),
             bline, ('fixed', 1, brcorner) ])
         pile = Pile([('flow',top),middle,('flow',bottom)],
             focus_item = 1)
+        
+        WidgetDecoration.__init__(self, original_widget)
         WidgetWrap.__init__(self, pile)
 
 
