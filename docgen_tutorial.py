@@ -89,11 +89,11 @@ def example_highcolors():
     import urwid
 
     palette = [
-        ('banner', '', '', '', '#ffa', '#086'),
-        ('streak', '', '', '', 'g50', '#08a'),
-        ('inside', '', '', '', 'g38', '#08d'),
-        ('outside', '', '', '', 'g27', '#08f'),
-        ('bg', '', '', '', 'g7', '#68f'),]
+        ('banner', '', '', '', '#ffa', '#60d'),
+        ('streak', '', '', '', 'g50', '#60a'),
+        ('inside', '', '', '', 'g38', '#808'),
+        ('outside', '', '', '', 'g27', '#a06'),
+        ('bg', '', '', '', 'g7', '#d06'),]
 
     txt = urwid.Text(('banner', " Hello World "), align='center')
     map1 = urwid.AttrMap(txt, 'streak')
