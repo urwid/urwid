@@ -806,8 +806,8 @@ class BaseScreen(object):
 
 
 def _test():
-	import doctest
-	doctest.testmod()
+    import doctest
+    doctest.testmod()
 
 if __name__=='__main__':
-	_test()
+    _test()
