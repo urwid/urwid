@@ -51,16 +51,17 @@ Urwid is a console user interface library.  It includes many features
 useful for text console application developers including:
 
 - Fluid interface resizing (xterm window resizing / fbset on Linux console)
-- Web application display mode using Apache and CGI
 - Support for UTF-8, simple 8-bit and CJK encodings
+- 256 and 88 color mode support
 - Multiple text alignment and wrapping modes built-in
 - Ability to create user-defined text layout classes
 - Simple markup for setting text attributes
 - Powerful list box that handles scrolling between different widget types
 - List box contents may be managed with a user-defined class
 - Flexible edit box for editing many different types of text
-- Buttons, check boxes and radio boxes
+- Buttons, check boxes and radio buttons
 - Customizable layout for all widgets
+- Web application display mode using Apache and CGI
 - Easy interface for creating HTML screen shots
 
 
