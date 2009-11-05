@@ -26,6 +26,7 @@ import urwid
 
 import unittest
 from test import test_support
+from doctest import DocTestSuite
 
 
 class DecodeOneTest(unittest.TestCase):
@@ -2246,8 +2247,21 @@ def test_main():
         CanvasPadTrimTest,
         WidgetSquishTest,
         ]:
-        if test_support.run_unittest(t): break
-    
+        if test_support.run_unittest(t): 
+            return
+    for mod in [
+        urwid.widget,
+        urwid.wimp,
+        urwid.decoration,
+        urwid.display_common,
+        urwid.main_loop,
+        urwid.monitored_list,
+        urwid.raw_display,
+        'urwid.split_repr', # override function with same name
+        urwid.util,
+        ]:
+        if test_support.run_unittest(DocTestSuite(mod)):
+            return    
 
 if __name__ == '__main__': test_main()
 
