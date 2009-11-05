@@ -191,6 +191,7 @@ class MainLoop(object):
         """
         >>> w = _refl("widget")
         >>> w.render_rval = "fake canvas"
+        >>> w.selectable_rval = True
         >>> scr = _refl("screen")
         >>> scr.get_cols_rows_rval = (15, 5)
         >>> scr.get_input_nonblocking_rval = 1, ['y'], [121]
@@ -202,6 +203,7 @@ class MainLoop(object):
         screen.get_input_nonblocking()
         event_loop.alarm(1, <function ...>)
         screen.get_cols_rows()
+        widget.selectable()
         widget.keypress((15, 5), 'y')
         widget.render((15, 5), focus=True)
         screen.draw_screen((15, 5), 'fake canvas')
@@ -294,11 +296,13 @@ class MainLoop(object):
         keys -- list of input returned from self.screen.get_input()
         
         >>> w = _refl("widget")
+        >>> w.selectable_rval = True
         >>> scr = _refl("screen")
         >>> scr.get_cols_rows_rval = (10, 5)
         >>> ml = MainLoop(w, [], scr)
         >>> ml.process_input(['enter', ('mouse drag', 1, 14, 20)])
         screen.get_cols_rows()
+        widget.selectable()
         widget.keypress((10, 5), 'enter')
         widget.mouse_event((10, 5), 'mouse drag', 1, 14, 20, focus=True)
         """
