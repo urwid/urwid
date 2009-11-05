@@ -46,9 +46,6 @@ except ImportError:
 # replace control characters with ?'s
 _trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
 
-class ScreenError(Exception):
-    pass
-
 class Screen(BaseScreen, RealTerminal):
     def __init__(self):
         """Initialize a screen that directly prints escape codes to an output
@@ -746,11 +743,12 @@ class Screen(BaseScreen, RealTerminal):
         Convert AttrSpec instance a to an escape sequence for the terminal
 
         >>> s = Screen()
+        >>> s.set_terminal_properties(colors=256)
         >>> a2e = s._attrspec_to_escape
         >>> a2e(s.AttrSpec('brown', 'dark green'))
         '\\x1b[0;33;42m'
         >>> a2e(s.AttrSpec('#fea,underline', '#d0d'))
-        '\\x1b[0;48;5;229;4;38;5;164m'
+        '\\x1b[0;38;5;229;4;48;5;164m'
         """
         if a.foreground_high:
             fg = "38;5;%d" % a.foreground_number
@@ -857,8 +855,8 @@ class Screen(BaseScreen, RealTerminal):
     
 
 def _test():
-	import doctest
-	doctest.testmod()
+    import doctest
+    doctest.testmod()
 
 if __name__=='__main__':
-	_test()
+    _test()

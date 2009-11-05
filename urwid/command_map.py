@@ -22,42 +22,42 @@
 
 
 class CommandMap:
-	_command_defaults = {
-		'tab': 'next selectable',
-		'ctrl n': 'next selectable',
-		'shift tab': 'prev selectable',
-		'ctrl p': 'prev selectable',
-		'ctrl l': 'redraw screen',
-		'esc': 'menu',
-		'up': 'cursor up',
-		'down': 'cursor down',
-		'left': 'cursor left',
-		'right': 'cursor right',
-		'page up': 'cursor page up',
-		'page down': 'cursor page down',
-		'home': 'cursor max left',
-		'end': 'cursor max right', 
-		' ': 'activate',
-		'enter': 'activate',
-	}
+    _command_defaults = {
+        'tab': 'next selectable',
+        'ctrl n': 'next selectable',
+        'shift tab': 'prev selectable',
+        'ctrl p': 'prev selectable',
+        'ctrl l': 'redraw screen',
+        'esc': 'menu',
+        'up': 'cursor up',
+        'down': 'cursor down',
+        'left': 'cursor left',
+        'right': 'cursor right',
+        'page up': 'cursor page up',
+        'page down': 'cursor page down',
+        'home': 'cursor max left',
+        'end': 'cursor max right', 
+        ' ': 'activate',
+        'enter': 'activate',
+    }
 
-	def __init__(self):
-		self.restore_defaults()
+    def __init__(self):
+        self.restore_defaults()
 
-	def restore_defaults(self):
-		self._command = dict(self._command_defaults)
-	
-	def __getitem__(self, key):
-		return self._command.get(key, None)
-	
-	def __setitem__(self, key, command):
-		self._command[key] = command
+    def restore_defaults(self):
+        self._command = dict(self._command_defaults)
+    
+    def __getitem__(self, key):
+        return self._command.get(key, None)
+    
+    def __setitem__(self, key, command):
+        self._command[key] = command
 
-	def __delitem__(self, key):
-		del self._command[key]
-	
-	def clear_command(self, command):
-		dk = [k for k, v in self._command.items() if v == command]
-		for k in dk:
-			del self._command[key]
+    def __delitem__(self, key):
+        del self._command[key]
+    
+    def clear_command(self, command):
+        dk = [k for k, v in self._command.items() if v == command]
+        for k in dk:
+            del self._command[key]
 command_map = CommandMap() # shared command mappings

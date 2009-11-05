@@ -1,19 +1,19 @@
 <html>
 <head>
-<title>Urwid ((version)) Tutorial</title>
+<title>Urwid %version% Tutorial</title>
 <style type="text/css">
-	h1 { text-align: center; }
-	h2 { margin: 40px 0 0 0; padding: 10px;  background: #6d96e8;}
-	h3 { margin: 0 0 3px 0; padding: 12px 6px 6px 6px; background: #efef96;}
-	.code { background: #dddddd; padding: 5px; margin: 7px 20px; }
-	.l1 { margin: 12px 0 0 0; }
-	.l2 { margin-left: 20px; }
-	.shot { padding: 5px 20px 5px 0px; float: left; }
-	.back { font-size:small; padding-left: 20px; }
+    h1 { text-align: center; }
+    h2 { margin: 40px 0 0 0; padding: 10px;  background: #6d96e8;}
+    h3 { margin: 0 0 3px 0; padding: 12px 6px 6px 6px; background: #efef96;}
+    .code { background: #dddddd; padding: 5px; margin: 7px 20px; }
+    .l1 { margin: 12px 0 0 0; }
+    .l2 { margin-left: 20px; }
+    .shot { padding: 5px 20px 5px 0px; float: left; }
+    .back { font-size:small; padding-left: 20px; }
 </style>
 <body>
 <a name="top"></a>
-<h1>Urwid ((version)) Tutorial</h1>
+<h1>Urwid %version% Tutorial</h1>
 
 <div style="text-align: center;">
 <a href="http://excess.org/urwid/">Urwid Home Page</a> /
@@ -30,7 +30,14 @@ Tutorial /
 %toc_right%
 </td></tr></table>
 
+<p>
+The programs in this tutorial are available in your Urwid distribution. 
+Run the command "./docgen_tutorial.py -s" to output the example scripts.
+</p>
+
 {contents}
+
+
 <div style="background:#ffff33; padding: 5px">
 <h1>Urwid Tutorial Template File</h1>
 This file is used by <b>docgen_tutorial.py</b> to generate the tutorial
@@ -38,42 +45,49 @@ documentation <b>tutorial.html</b>.
 <p>
 </div>
 <div style="background:#ffffaa;">
-<br>
+<p>
 Items in the list that follows are parsed by docgen_tutorial.py. 
-Each item has a tag and a name, separated by a tab character.  
-Items without tags are new sections.  
+Each item has a tag and a name, separated by a comma.  Whitespace
+on either side of the comma is stripped.
+</p><p>
+Items without tags are new sections.
+</p><p>
 A --- separates the left and right columns in the table of contents.
+</p>
+
 <pre>
-<b>Tag	Section or Item Name</b>
+<b>Tag, Section or Item Name</b>
 {section_data}
-	Hello World Example
-min	Minimal Urwid Application
-text	Text and Filler Widgets
-attr	AttrWrap Widgets and Text Attributes
-resize	Live Resizing
-	Conversation Example
-edit	Edit Widgets
-frlb	Frame and ListBox Widgets
-lbcont	Modifying ListBox Content
-	Zen of ListBox
-lbscr	ListBox Focus and Scrolling
-lbdyn	Dynamic ListBox with List Walker
-lbfocus	Setting the Focus
+,            Hello World Example
+min,         Minimal Urwid Application
+input,       Handling Input
+attr,        AttrMap Widgets and Text Attributes
+highcolors,  High Color Modes
+,            Conversation Example
+edit,        Edit Widgets
+frlb,        Events and ListBox Widgets
+lbcont,      Modifying ListBox Content
+,            Zen of ListBox
+lbscr,       ListBox Focus and Scrolling
+lbdyn,       Dynamic ListBox with List Walker
+lbfocus,     Setting the Focus
 ---
-	Combining Widgets
-pile	Piling Widgets
-cols	Dividing into Columns
-grid	GridFlow Arrangement
-overlay	Overlay Widgets
-	Creating Custom Widgets
-wmod	Modifying Existing Widgets
-wanat	Anatomy of a Widget
-wsel	Creating Selectable Widgets
-wcur	Widgets Displaying the Cursor
+,            Combining Widgets
+pile,        Piling Widgets
+cols,        Dividing into Columns
+grid,        GridFlow Arrangement
+overlay,     Overlay Widgets
+,            Creating Custom Widgets
+wmod,        Modifying Existing Widgets
+wanat,       Anatomy of a Widget
+wsel,        Creating Selectable Widgets
+wcur,        Widgets Displaying the Cursor
 {/section_data}
 </pre>
 </div>
-<p>
+
+
+ <p>
 {toc_section}
 <div class="l1">%snum%. %name%</div>
 {/toc_section}
@@ -96,79 +110,59 @@ wcur	Widgets Displaying the Cursor
 
 <br clear="left"><hr>
 
+
+
 {body[min]}
 This program displays the string "Hello World" in the top left corner
-of the screen and waits for a keypress before exiting.
+of the screen and will run until interrupted with CTRL+C (^C).
 
 <pre class="code">%example[0]%</pre>
 
 <ul>
-<li>The <a href="reference.html#curses_display.Screen">curses_display.Screen</a>
-class provides access to the curses library.  Its member function
-<a href="reference.html#Screen-run_wrapper">run_wrapper</a> initializes
-curses full-screen mode and then calls the "run" function passed. It will
-also take care of restoring the screen when the "run" function exits.
-<li>A <a href="reference.html#TextCanvas">TextCanvas</a> is created
-containing one row with the string "Hello World".
-<li>The canvas is passed to the 
-<a href="reference.html#Screen-draw_screen">draw_screen</a> function along
-with a fixed screen size of 20 columns and 1 row.  If the
-terminal window this program is run from is larger than 20 by 1 the 
-text will appear in the top left corner.
-<li>The <a href="reference.html#Screen-get_input">get_input</a> function
-is then called until it returns something.  It must be called in a loop
-because by default it will time out after one second and return an 
-empty list when there is no input.
-</ul>
-
-Creating canvases directly in this way is generally only done when
-writing custom widget classes.  Note that the draw_screen
-function must be passed a canvas and a screen size that matches it,
-for backwards compatibility.
+<li>The <a href="reference.html#Text">Text</a>
+widget handles formatting blocks of text, wrapping to the next line when
+necessary.  Widgets like this are called "flow widgets" because their
+sizing can have a number of columns given, in this case the full screen
+width, then they will flow to fill as many rows as necessary.
+<li>The <a href="reference.html#Filler">Filler</a> is widget fills in blank
+lines above or below flow widgets so that they can be displayed in a fixed
+number of rows.  This Filler will align our Text to the top of the screen,
+filling all the rows below with blank lines.  Widgets which are given both
+the number of columns and number of rows they must be displayed in are called
+"box widgets".  The "topmost" widget displayed on the screen must be 
+a box widget.
+<li>The <a href="reference.html#MainLoop">MainLoop</a> class handles displaying
+our widgets as well as input from the user.  In this case our widgets can't
+handle the input so we need to interrupt the program to exit with ^C.</ul>
 
 <div align="center">%result[0]%</div>
 {/body[min]}
 
 <br clear="left"><hr>
 
-{body[text]}
-This program displays the string "Hello World" in the center of the screen
-and waits for a keypress before exiting.
+{body[input]}
+This program initially displays the string "Hello World", then it displays
+each key pressed, exiting when the user presses Q.
 
 <pre class="code">%example[0]%</pre>
 
 <ul>
-<li><a href="reference.html#Screen-get_cols_rows">get_cols_rows</a>
-is used to get the dimensions from the terminal and store them as "cols"
-and "rows".
-<li>A <a href="reference.html#Text">Text</a> widget is created containing
-the string "Hello World". It is set to display with "center" alignment. 
-Text widgets are a kind of <a href="reference.html#FlowWidget">FlowWidget</a>.
-Flow widgets can fill one or more rows, depending on their content and 
-the number of columns available. Text widgets use more than one row when
-they contain newline characters or when the text must be split across rows.
-<li>A <a href="reference.html#Filler">Filler</a> widget is created to
-wrap the text widget. Filler widgets are a kind of 
-<a href="reference.html#BoxWidget">BoxWidget</a>. Box widgets have a fixed
-number of columns and rows displayed. This widget will pad the "Hello World" 
-text widget until it fills the required number of rows.
-<li>A canvas is created by calling the 
-<a href="reference.html#Filler-render">render</a> function on the topmost
-widget. The filler render function will call the render function 
-of the "Hello World" text widget and combine its canvas with
-padding rows to fill the terminal window.
+<li>The MainLoop class has an optional function parameter unhandled_input
+This function will be called once for each keypress that is not handled
+by the widgets being displayed.
+<li>None of the widgets being displayed here handle input, so every key
+the user presses will be passed to the show_or_exit function.
+<li>The ExitMainLoop exception is used to 
+exit cleanly from the MainLoop.run() function when the user presses Q.  All
+other input is displayed by replacing the current Text widget's content.
 </ul>
 
-Flow widgets and box widgets are not interchangeable.  The first parameter
-of the render function of a box widget is a two-element tuple (columns,
-rows) and the first parameter of the render function of a flow widget is 
-a one-element tuple (columns, ).  
-This difference makes sure that when the wrong type of widget is used,
-such as a box widget inside a filler widget, a ValueError exception will 
-be thrown.
-
-<div align="center">%result[0]%</div>
-{/body[text]}
+<div class="shot">%result[0]%</div>
+<div class="shot">%result[1]%</div>
+<div class="shot">%result[2]%</div>
+<div class="shot">%result[3]%</div>
+<div class="shot">%result[4]%</div>
+{/body[input]}
 
 <br clear="left"><hr>
 
@@ -181,67 +175,76 @@ a keypress before exiting.
 <pre class="code">%example[0]%</pre>
 
 <ul>
-<li>After creating the 
-<a href="reference.html#curses_display.Screen">curses_display.Screen</a> object
-and before calling <a href="reference.html#Screen-run_wrapper">run_wrapper</a>,
-<a href="reference.html#Screen-register_palette">register_palette</a> is called
-to set up some attributes:
-  <ul>
-  <li>"banner" is black text on a light gray background, or reversed attributes
-  and underlined in monochrome mode
-  <li>"streak" is black text on a dark red background, or reversed attributes
-  in monochrome mode
-  <li>"bg" is black text on a dark blue background, or normal in
-  monochrome mode
-  </ul>
+<li>Attributes are defined as part of a palette.  Valid foreground,
+background and setting values are documented in the
+<a href="reference.html#AttrSpec">AttrSpec class</a>.
+A palette is a list of tuples containing:
+  <ol>
+  <li>Name of the attribute, typically a string
+  <li>Foreground color and settings for 16-color (normal) mode
+  <li>Background color for normal mode
+  <li>Settings for monochrome mode (optional)
+  <li>Foreground color and settings for 88 and 256-color modes (optional, see next example)
+  <li>Background color for 88 and 256-color modes (optional)
+  </ol>
+<li>The palette is passed to MainLoop to make it available to our program
 <li>A <a href="reference.html#Text">Text</a> widget is created containing
 the string " Hello World " with attribute "banner". The attributes of text
 in a Text widget is set by using a (attribute, text) tuple instead of a
-simple text string.
-<li>An <a href="reference.html#AttrWrap">AttrWrap</a> widget is created to
-wrap the text widget with attribute "streak". AttrWrap widgets will set 
-the attribute of everything that they wrap that does not already have an
-attribute set. In this case the text has an attribute, so only the areas
-around the text used for alignment will be have the new attribute.
-<li>A <a href="reference.html#Filler">Filler</a> widget is created to
-wrap the AttrWrap widget and fill the rows above and below it.
-<li>A second <a href="reference.html#AttrWrap">AttrWrap</a> widget is created to
+simple text string.  Text attributes will flow with the text, and
+multiple attributes may be specified by combining tuples into a
+list.
+<li>An <a href="reference.html#AttrMap">AttrMap</a> widget is created to
+wrap the text widget with attribute "streak". AttrMap widgets allow you
+to map any attribute to any other attribute, but by default they will 
+set the attribute of everything that does not already have an
+attribute. In this case the text has an attribute, so only 
+the areas around the text used for alignment will be have the new attribute.
+<li>A second AttrMap widget is created to
 wrap the filler widget with attribute "bg".
-<li>A canvas is created by calling the 
-<a href="reference.html#AttrWrap-render">render</a> function on the topmost
-widget. 
 </ul>
 
-AttrWrap widgets will behave like flow widgets or box widgets depending on
-how they are called. The filler widget treats the first AttrWrap widget as
-a flow widget when calling its render function, so the AttrWrap widget calls 
-the text widget's render function the same way. The second AttrWrap is
-used as the topmost widget and treated as a box widget, so it calls the 
-filler render function in the same way.
-
-<div align="center">%result[0]%</div>
-{/body[attr]}
-
-<br clear="left"><hr>
-
-{body[resize]}
-This program displays the string "Hello World" in the center of the screen.
-It uses different attributes for the text, the space on either side
-of the text and the space above and below the text.  When the window is
-resized it will repaint the screen, and it will exit when Q is pressed.
-
-<pre class="code">%example[0]%</pre>
-
-The <a href="reference.html#Screen-get_input">get_input</a> function will
-return "window resize" among keys pressed when the window is resized.  It
-is a good idea to check for uppercase and lowercase letters on input
-to avoid confusing users.
+When this program is run you can now clearly
+see the separation of the text, the alignment around the text, and
+the filler above and below the text.  This is how these widgets
+react to being resized:
 
 <div class="shot">%result[0]%</div>
 <div class="shot">%result[1]%</div>
 <div class="shot">%result[2]%</div>
 <div class="shot">%result[3]%</div>
-{/body[resize]}
+{/body[attr]}
+
+<br clear="left"><hr>
+
+{body[highcolors]}
+This program displays the string "Hello World" in the center of the screen.
+It uses a number of 256-color-mode background attributes to decorate the
+text, and will work in any terminal that supports 256-color mode.
+It will exit when Q is pressed.
+
+<pre class="code">%example[0]%</pre>
+
+<ul>
+<li>This palette only defines values for the high color foreground
+and backgrounds, because only the high colors will be used.
+A real application should define values for all the modes in their
+palette.
+<li><a href="reference.html#Divider">Divider</a> widgets are used to
+create blank lines, colored with AttrMap.
+<li>A <a href="reference.html#Pile">Pile</a> widget arranges the
+Divider widgets above and below our text.
+<li>Behind the scenes our MainLoop class has created a 
+raw_display.Screen object for drawing the screen.
+The program is put into 256-color mode by using the screen
+object's
+<a href="reference.html#Screen-set_terminal_properties"
+>set_terminal_properties</a> method.  This method works only when 
+using the default raw_display Screen class in our MainLoop.
+</ul>
+
+<div align="center">%result[0]%</div>
+{/body[highcolors]}
 
 <br clear="left"><hr>
 
@@ -254,18 +257,12 @@ This program asks for your name then responds "Nice to meet you, (your name)."
 <li>An <a href="reference.html#Edit">Edit</a> widget is created with the
 caption "What is your name?". A newline at the end of the caption makes
 the user input start on the next row.
-<li>A <a href="reference.html#Filler">Filler</a> widget is created to wrap
-the edit widget. Its <a href="reference.html#Filler-render">render</a>
-function is called to create the canvas. The render function is called with
-the optional parameter "focus" set to True. This parameter allows the
-wrapped Edit widget to render its cursor.
-<li>Keys are processed one at a time. Most keys are sent to the Filler widget's
-<a href="reference.html#Filler-keypress">keypress</a> function which will
-call the Edit widget's <a href="reference.html#Edit-keypress">keypress</a>
-function to handle the key.
-<li>Once the ENTER key is pressed the wrapped object in the Filler widget
-is changed to a reply text.
-<li>Any keypress then causes the program to exit.
+<li>Most keystrokes will be handled by the Edit widget, allowing
+the user to enter their name.
+<li>The unhandled_input function will replace the Edit widget inside
+the Filler widget with a reply when the user presses ENTER.
+<li>When the user presses ENTER again the unhandled_input function
+will cause the program to exit.
 </ul>
 
 The Edit widget has many capabilities. It lets you make corrections and move
@@ -281,30 +278,30 @@ widget so it supports the same wrapping and alignment modes.
 
 {body[frlb]}
 This program asks for your name and responds "Nice to meet you, (your name)"
-<i>while</i> you type your name.  F8 exits.
+<i>while</i> you type your name.  ENTER exits.
 
 <pre class="code">%example[0]%</pre>
 
 <ul>
-<li>In the __init__ function a list called self.items is created. It 
-contains an Edit widget with the caption "What is your name?".
-<li>A <a href="reference.html#ListBox">ListBox</a> widget called 
-self.listbox is created that is passed the self.items list.
-This ListBox widget will display and scroll through the widgets in that list.
-ListBox widgets default to using the first item in the list as the focus.
-<li>A <a href="reference.html#Frame">Frame</a> widget called self.top
-is created that contains self.listbox and some header text. Frame widgets
-wrap around a box widget and may have header and footer flow widgets.
-The header and footer are always displayed. The contained box widget uses the
-remaining space in between.
-<li>When a key is pressed the reply text is inserted or updated in 
-self.items.  This updated text will be displayed by self.listbox.
+<li>An Edit widget and Text reply widget are created, like in the
+previous example.
+<li>A <a href="reference.html#SimpleListWalker">SimpleListWalker</a>
+is then created to manage the contents and focus of our ListBox.
+The SimpleListWalker behaves just like a list of widgets, and can
+be modified like a regular list.
+<li>A <a href="reference.html#ListBox">ListBox</a> is created
+and passed the SimpleListWalker.  The ListBox is a box widget and
+allows scrolling through its contents.  This example is simple enough
+that we could have used a Pile widget and Filler widget instead, but
+we will see how the ListBox can be useful in later examples.
+<li>The <a href="reference.html#connect_signal">connect_signal</a>
+function is used to attach our on_ask_change function to our Edit
+widget's "change" event.  Now any time the content of the Edit
+widget changes on_ask_change will be called and passed the new 
+content.
+<li>Now on_ask_change updates the reply text as the user enters their
+name.
 </ul>
-
-When changing the contents of ListBox widgets remember to use in-place 
-editing operations on the list, eg. "list = list + [something]" will not work,
-use "list += [something]" instead.  The former code will create a new list
-but the ListBox will still be displaying the old list.
 
 <div class="shot">%result[0]%</div>
 <div class="shot">%result[1]%</div>
@@ -317,14 +314,12 @@ but the ListBox will still be displaying the old list.
 {body[lbcont]}
 This program asks for your name and responds "Nice to meet you, (your name)."
 It then asks again, and again. Old values may be changed and the responses
-will be updated when you press ENTER. F8 exits.
+will be updated when you press ENTER.  ENTER on a blank line exits.
 <br><br>
-Update the <a href="#frlb">previous program</a> with this code:
 <pre class="code">%example[0]%</pre>
 
 <ul>
-<li>In this version only the ENTER key receives special attention. When the
-user presses ENTER:
+<li>When the user presses ENTER:
   <ul>
   <li>The widget in focus and its current position is retrieved by calling the
   <a href="reference.html#ListBox-get_focus">get_focus</a> function.
@@ -333,15 +328,13 @@ user presses ENTER:
   One of the Text widgets might receive focus
   if it covers the entire visible area of the ListBox widget and there is
   no Edit widget to take focus. While this is unlikely, it should be handled
-  or the program will fail when trying to call 
-  <a href="reference.html#Edit-get_edit_text">get_edit_text</a>.
-  <li>If the current position is at the end of the list, a response is 
-  appended followed by a new question. If the current position is not at the
-  end then a previous response is replaced with an updated one.
-  <li>The cursor position is moved to the far left by calling 
-  <a href="reference.html#Edit-set_edit_pos">set_edit_pos</a>.
-  <li>Finally, the focus is moved down two positions to the next question 
-  by calling
+  or the program will fail when trying to access it.
+  <li>If there is no edit text we exit the program.
+  <li>The widget after the widget in focus (if any exists) is replaced
+  with a response.
+  <li>If there is no widget after that widget, a new Edit widget is
+  created.
+  <li>The focus is then moved to the next Edit widget by calling
   <a href="reference.html#ListBox-set_focus">set_focus</a>.
   </ul>
 <li>All other keys are passed to the top widget to handle. The ListBox widget

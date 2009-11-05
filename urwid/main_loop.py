@@ -38,7 +38,7 @@ class MainLoop(object):
         handle_mouse=True, input_filter=None, unhandled_input=None,
         event_loop=None):
         """
-        Simple main loop implementation with a single screen.
+        Simple main loop implementation.
 
         widget -- topmost widget used for painting the screen, 
             stored as self.widget, may be modified
@@ -56,11 +56,9 @@ class MainLoop(object):
             SelectEventLoop, stored as self.event_loop
 
         This is a standard main loop implementation with a single
-        screen.  
-    
-        The widget passed must be a selectable box widget.  It will
-        be sent input with keypress() and mouse_event() and is
-        expected to be able to handle it.
+        screen. 
+        
+        The widget passed must be a box widget.
 
         raw_display.Screen is the only screen type that currently
         supports external event loops.  Other screen types include
@@ -177,10 +175,10 @@ class MainLoop(object):
         if self.handle_mouse:
             self.screen.set_mouse_tracking()
 
-        self.draw_screen()
-
         if not hasattr(self.screen, 'get_input_descriptors'):
             return self._run_screen_event_loop()
+
+        self.draw_screen()
 
         # insert our input descriptors
         fds = self.screen.get_input_descriptors()
@@ -193,6 +191,7 @@ class MainLoop(object):
         """
         >>> w = _refl("widget")
         >>> w.render_rval = "fake canvas"
+        >>> w.selectable_rval = True
         >>> scr = _refl("screen")
         >>> scr.get_cols_rows_rval = (15, 5)
         >>> scr.get_input_nonblocking_rval = 1, ['y'], [121]
@@ -204,6 +203,7 @@ class MainLoop(object):
         screen.get_input_nonblocking()
         event_loop.alarm(1, <function ...>)
         screen.get_cols_rows()
+        widget.selectable()
         widget.keypress((15, 5), 'y')
         widget.render((15, 5), focus=True)
         screen.draw_screen((15, 5), 'fake canvas')
@@ -296,11 +296,13 @@ class MainLoop(object):
         keys -- list of input returned from self.screen.get_input()
         
         >>> w = _refl("widget")
+        >>> w.selectable_rval = True
         >>> scr = _refl("screen")
         >>> scr.get_cols_rows_rval = (10, 5)
         >>> ml = MainLoop(w, [], scr)
         >>> ml.process_input(['enter', ('mouse drag', 1, 14, 20)])
         screen.get_cols_rows()
+        widget.selectable()
         widget.keypress((10, 5), 'enter')
         widget.mouse_event((10, 5), 'mouse drag', 1, 14, 20, focus=True)
         """
@@ -313,7 +315,7 @@ class MainLoop(object):
                 if self.widget.mouse_event(self.screen_size, 
                     event, button, col, row, focus=True ):
                     k = None
-            else:
+            elif self.widget.selectable():
                 k = self.widget.keypress(self.screen_size, k)
             if k and command_map[k] == 'redraw screen':
                 self.screen.clear()
