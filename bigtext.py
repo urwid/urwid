@@ -136,49 +136,22 @@ class BigTextDisplay:
 
 
     def main(self):
-        self.ui = urwid.raw_display.Screen()
-        self.ui.register_palette(self.palette)
-        self.ui.set_input_timeouts(5)
         self.view, self.exit_view = self.setup_view()
-        self.ui.run_wrapper(self.run)
+        self.loop = urwid.MainLoop(self.view, self.palette, 
+            unhandled_input=self.unhandled_input)
+        self.loop.run()
     
-    def run(self):
-        self.ui.set_mouse_tracking()
-        size = self.ui.get_cols_rows()
-        show_exit = False
-        do_exit = False
-        while True:
-            if show_exit:
-                canvas = self.exit_view.render(size)
-            else:
-                canvas = self.view.render(size, focus=True)
-                
-            self.ui.draw_screen(size, canvas)
-            if do_exit:
-                break
-                
-            keys = self.ui.get_input()
-                
-            if show_exit:
-                if 'y' in keys or 'Y' in keys:
-                    do_exit = True
-                show_exit = False
-                continue
-
-            self.handle_input(size, keys)
-            if 'window resize' in keys:
-                size = self.ui.get_cols_rows()
-            if 'f8' in keys:
-                show_exit = True
+    def unhandled_input(self, key):
+        if key == 'f8':
+            self.loop.widget = self.exit_view
+            return
+        if self.loop.widget != self.exit_view:
+            return
+        if key in ('y', 'Y'):
+            raise urwid.ExitMainLoop()
+        if key in ('n', 'N'):
+            self.loop.widget = self.view
     
-    def handle_input(self, size, keys):
-        for k in keys:
-            if urwid.is_mouse_event(k):
-                event, button, col, row = k
-                self.view.mouse_event( size, event, 
-                    button, col, row, focus=True )
-            elif k != 'window resize':
-                self.view.keypress( size, k )
 
 def main():
     BigTextDisplay().main()
