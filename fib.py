@@ -28,7 +28,6 @@ Features:
 """
 
 import urwid
-import urwid.curses_display
         
 class FibonacciWalker(urwid.ListWalker):
     """ListWalker-compatible class for browsing fibonacci set.
@@ -44,7 +43,7 @@ class FibonacciWalker(urwid.ListWalker):
         return urwid.Text("%d"%pos[1], layout=self.numeric_layout), pos
     
     def get_focus(self): 
-        return self._get_at_pos( self.focus )
+        return self._get_at_pos(self.focus)
     
     def set_focus(self, focus):
         self.focus = focus
@@ -53,14 +52,14 @@ class FibonacciWalker(urwid.ListWalker):
     def get_next(self, start_from):
         a, b = start_from
         focus = b, a+b
-        return self._get_at_pos( focus )
+        return self._get_at_pos(focus)
     
     def get_prev(self, start_from):
         a, b = start_from
         focus = b-a, a
-        return self._get_at_pos( focus )
+        return self._get_at_pos(focus)
 
-class FibonacciDisplay(object):
+def main():
     palette = [
         ('body','black','dark cyan', 'standout'),
         ('foot','light gray', 'black'),
@@ -76,32 +75,15 @@ class FibonacciDisplay(object):
         ('key', "Q"), " exits",
         ]
     
-    def __init__(self):
-        self.listbox = urwid.ListBox( FibonacciWalker() )
-        self.footer = urwid.AttrWrap( urwid.Text( self.footer_text ),
-            'foot')
-        self.view = urwid.Frame( urwid.AttrWrap( self.listbox, 'body'),
-            footer=self.footer )
+    def exit_on_q(input):
+        if input in ('q', 'Q'):
+            raise urwid.ExitMainLoop()
 
-    def main(self):
-        self.ui = urwid.curses_display.Screen()
-        self.ui.register_palette( self.palette )
-        self.ui.run_wrapper( self.run )
-
-    def run(self):
-        size = self.ui.get_cols_rows()
-        while 1:
-            canvas = self.view.render( size, focus=1 )
-            self.ui.draw_screen( size, canvas )
-            keys = None
-            while not keys: 
-                keys = self.ui.get_input()
-            for k in keys:
-                if k == 'window resize':
-                    size = self.ui.get_cols_rows()
-                elif k in ('q','Q'):
-                    return
-                self.view.keypress( size, k )
+    listbox = urwid.ListBox(FibonacciWalker())
+    footer = urwid.AttrMap(urwid.Text(footer_text), 'foot')
+    view = urwid.Frame(urwid.AttrWrap(listbox, 'body'), footer=footer)
+    loop = urwid.MainLoop(view, palette, unhandled_input=exit_on_q)
+    loop.run()
 
 
 class NumericLayout(urwid.TextLayout):
@@ -124,11 +106,6 @@ class NumericLayout(urwid.TextLayout):
         else:
             linestarts = range( 0, lt, width )
             return [[(width, x, x+width)] for x in linestarts]
-
-
-def main():
-    FibonacciDisplay().main()
-    
 
 
 if __name__=="__main__": 
