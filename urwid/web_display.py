@@ -691,6 +691,8 @@ class Screen:
         self._cleanup_pipe()
         self._started = False
         
+    def set_input_timeouts(self, *args):
+        pass
 
     def run_wrapper(self,fn):
         """
