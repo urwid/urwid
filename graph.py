@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid graphics example program
-#    Copyright (C) 2004-2007  Ian Ward
+#    Copyright (C) 2004-2009  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -24,13 +24,14 @@ Urwid graphics example program.
 """
 
 import urwid
-import urwid.raw_display
 
 import math
 import time
 
 try: sum # old python?
 except: sum = lambda l: reduce(lambda a,b: a+b, l, 0)
+
+UPDATE_INTERVAL = 0.2
 
 def sin100( x ):
     """ 
@@ -83,10 +84,6 @@ class GraphModel:
             offset += len(segment)
             l += segment
         return l, self.data_max_value, len(d)
-
-
-class ExitProgram(Exception):
-    pass
 
 
 class GraphView(urwid.WidgetWrap):
@@ -241,7 +238,7 @@ class GraphView(urwid.WidgetWrap):
                 0, 1)
 
     def exit_program(self, w):
-        raise ExitProgram
+        raise urwid.ExitMainLoop()
 
     def graph_controls(self):
         modes = self.controller.get_modes()
@@ -330,40 +327,15 @@ class GraphController:
     
 
     def main(self):
-        self.ui = urwid.raw_display.Screen()
-        self.ui.register_palette( self.view.palette )
-        self.ui.set_input_timeouts( 0.125 )
-        try:
-            self.ui.run_wrapper( self.run )
-        except ExitProgram:
-            pass
-    
-    def run(self):
-        self.ui.set_mouse_tracking()
-        size = self.ui.get_cols_rows()
+        self.loop = urwid.MainLoop(self.view, self.view.palette)
+        self.update_graph()
+        self.loop.run()
+
+    def update_graph(self, loop=None, user_data=None):
+        """update the graph and schedule the next update"""
         self.view.update_graph()
-        while True:
-            canvas = self.view.render( size, focus=True )
-            self.ui.draw_screen( size, canvas )
-            while True:
-                keys = self.ui.get_input()
-                self.handle_input( size, keys )
-                if 'window resize' in keys:
-                    size = self.ui.get_cols_rows()
-                updated = self.view.update_graph()
-                if keys or updated:
-                    break
+        self.loop.set_alarm_in(UPDATE_INTERVAL, self.update_graph)
     
-    def handle_input(self, size, keys):
-        for k in keys:
-            if urwid.is_mouse_event(k):
-                event, button, col, row = k
-                self.view.mouse_event( size, event, 
-                    button, col, row, focus=True )
-            elif k == 'window resize':
-                size = self.ui.get_cols_rows()
-            else:
-                self.view.keypress( size, k )
 
 def main():
     GraphController().main()
