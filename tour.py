@@ -96,8 +96,8 @@ def main():
         "Pile")," to combine two or more widgets."]
     text_col_columns = "Columns may be placed inside other columns."
     text_col_21 = "Col 2.1"
-        text_col_22 = "Col 2.2"
-        text_col_23 = "Col 2.3"
+    text_col_22 = "Col 2.2"
+    text_col_23 = "Col 2.3"
     text_column_widths = ("Columns may also have uneven relative "
         "weights or fixed widths.  Use a minimum width so that "
         "columns don't become too small.")
