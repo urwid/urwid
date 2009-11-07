@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid example similar to dialog(1) program
-#    Copyright (C) 2004-2007  Ian Ward
+#    Copyright (C) 2004-2009  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -27,7 +27,6 @@ Urwid example similar to dialog(1) program
 import sys
 
 import urwid
-import urwid.raw_display
 
 
 class DialogExit(Exception):
@@ -98,40 +97,14 @@ class DialogDisplay:
         raise DialogExit(button.exitcode)
 
     def main(self):
-        self.ui = urwid.raw_display.Screen()
-        self.ui.register_palette( self.palette )
-        return self.ui.run_wrapper( self.run )
-
-    def run(self):
-        self.ui.set_mouse_tracking()
-        size = self.ui.get_cols_rows()
+        self.loop = urwid.MainLoop(self.view, self.palette)
         try:
-            while True:
-                canvas = self.view.render( size, focus=True )
-                self.ui.draw_screen( size, canvas )
-                keys = None
-                while not keys: 
-                    keys = self.ui.get_input()
-                for k in keys:
-                    if urwid.is_mouse_event(k):
-                        event, button, col, row = k
-                        self.view.mouse_event( size, 
-                            event, button, col, row,
-                            focus=True)
-                    if k == 'window resize':
-                        size = self.ui.get_cols_rows()
-                    k = self.view.keypress( size, k )
-
-                    if k:
-                        self.unhandled_key( size, k)
+            self.loop.run()
         except DialogExit, e:
             return self.on_exit( e.args[0] )
         
     def on_exit(self, exitcode):
         return exitcode, ""
-
-    def unhandled_key(self, size, key):
-        pass
         
 
 
