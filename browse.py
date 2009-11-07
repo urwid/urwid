@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid example lazy directory browser / tree view
-#    Copyright (C) 2004-2007  Ian Ward
+#    Copyright (C) 2004-2009  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -29,11 +29,9 @@ Features:
 - outputs a quoted list of files and directories "selected" on exit
 """
 
+import os
 
 import urwid
-import urwid.raw_display
-
-import os
 
 
 class TreeWidget(urwid.WidgetWrap):
@@ -48,7 +46,7 @@ class TreeWidget(urwid.WidgetWrap):
         if dir == parent:
             self.depth = 0
         else:
-             self.depth = dir.count(dir_sep())
+            self.depth = dir.count(dir_sep())
 
         widget = urwid.Text(["  "*self.depth, display])
         self.widget = widget
@@ -61,7 +59,7 @@ class TreeWidget(urwid.WidgetWrap):
     def selectable(self):
         return True
     
-    def keypress(self, (maxcol,), key):
+    def keypress(self, size, key):
         """Toggle selected on space, ignore other keys."""
 
         if key == " ":
@@ -137,11 +135,11 @@ class FileWidget(TreeWidget):
 class DirectoryWidget(TreeWidget):
     """Widget for a directory."""
     
-    def __init__(self, dir, name, index ):
+    def __init__(self, dir, name, index):
         self.__super.__init__(dir, name, index, "")
         
         # check if this directory starts expanded
-        self.expanded = starts_expanded( os.path.join(dir,name) )
+        self.expanded = starts_expanded(os.path.join(dir,name))
         
         self.update_widget()
     
@@ -152,22 +150,22 @@ class DirectoryWidget(TreeWidget):
             mark = "+"
         else:
             mark = "-"
-        self.widget.set_text( ["  "*(self.depth),
-            ('dirmark', mark), " ", self.name] )
+        self.widget.set_text(["  "*(self.depth),
+            ('dirmark', mark), " ", self.name])
 
-    def keypress(self, (maxcol,), key ):
+    def keypress(self, size, key):
         """Handle expand & collapse requests."""
         
-        if key == "+":
+        if key in ("+", "right"):
             self.expanded = True
             self.update_widget()
         elif key == "-":
             self.expanded = False
             self.update_widget()
         else:
-            return self.__super.keypress((maxcol,), key)
+            return self.__super.keypress(size, key)
     
-    def mouse_event(self, (maxcol,), event, button, col, row, focus):
+    def mouse_event(self, size, event, button, col, row, focus):
         if event != 'mouse press' or button!=1:
             return False
 
@@ -184,7 +182,7 @@ class DirectoryWidget(TreeWidget):
         if not self.expanded: 
             return None
         full_dir = os.path.join(self.dir, self.name)
-        dir = get_directory( full_dir )
+        dir = get_directory(full_dir)
         return dir.get_first()
     
     def last_child(self):
@@ -193,7 +191,7 @@ class DirectoryWidget(TreeWidget):
         if not self.expanded:
             return None
         full_dir = os.path.join(self.dir, self.name)
-        dir = get_directory( full_dir )
+        dir = get_directory(full_dir)
         widget = dir.get_last()
         sub = widget.last_child()
         if sub is not None:
@@ -215,11 +213,11 @@ class Directory:
             # separate dirs and files
             for a in os.listdir(path):
                 if os.path.isdir(os.path.join(path,a)):
-                    dirs.append( a )
+                    dirs.append(a)
                 else:
-                    files.append( a )
+                    files.append(a)
         except OSError, e:
-            self.widgets[None] = ErrorWidget( self.path, None, 0 )
+            self.widgets[None] = ErrorWidget(self.path, None, 0)
 
         # sort dirs and files
         dirs.sort(sensible_cmp)
@@ -236,11 +234,11 @@ class Directory:
     def get_widget(self, name):
         """Return the widget for a given file.  Create if necessary."""
         
-        if self.widgets.has_key( name ):
+        if self.widgets.has_key(name):
             return self.widgets[name]
         
         # determine the correct TreeWidget type (constructor)
-        index = self.items.index( name )
+        index = self.items.index(name)
         if name is None:
             constructor = EmptyWidget
         elif index < self.dir_count:
@@ -248,7 +246,7 @@ class Directory:
         else:
             constructor = FileWidget
 
-        widget = constructor( self.path, name, index )
+        widget = constructor(self.path, name, index)
         
         self.widgets[name] = widget
         return widget
@@ -268,9 +266,9 @@ class Directory:
         if parent == self.path: return None
 
         # find my location in parent, and return next inorder
-        pdir = get_directory( parent )
-        mywidget = pdir.get_widget( myname )
-        return pdir.next_inorder_from( mywidget.index )
+        pdir = get_directory(parent)
+        mywidget = pdir.get_widget(myname)
+        return pdir.next_inorder_from(mywidget.index)
         
     def prev_inorder_from(self, index):
         """Return the TreeWidget preceeding index depth first."""
@@ -290,8 +288,8 @@ class Directory:
         if parent == self.path: return None
 
         # find myself in parent, and return
-        pdir = get_directory( parent )
-        return pdir.get_widget( myname )
+        pdir = get_directory(parent)
+        return pdir.get_widget(myname)
 
     def get_first(self):
         """Return the first TreeWidget in the directory."""
@@ -310,26 +308,29 @@ class DirectoryWalker(urwid.ListWalker):
     
     positions used are directory,filename tuples."""
     
-    def __init__(self, start_from ):
+    def __init__(self, start_from, new_focus_callback):
         parent = start_from
         dir = get_directory(parent)
         widget = dir.get_first()
         self.focus = parent, widget.name
+        self._new_focus_callback = new_focus_callback
+        new_focus_callback(self.focus)
 
     def get_focus(self):
         parent, name = self.focus
-        dir = get_directory( parent )
-        widget = dir.get_widget( name )
+        dir = get_directory(parent)
+        widget = dir.get_widget(name)
         return widget, self.focus
         
     def set_focus(self, focus):
         parent, name = focus
+        self._new_focus_callback(focus)
         self.focus = parent, name
         self._modified()
     
     def get_next(self, start_from):
         parent, name = start_from
-        dir = get_directory( parent )
+        dir = get_directory(parent)
         widget = dir.get_widget(name)
         target = widget.next_inorder()
         if target is None:
@@ -338,7 +339,7 @@ class DirectoryWalker(urwid.ListWalker):
 
     def get_prev(self, start_from):
         parent, name = start_from
-        dir = get_directory( parent )
+        dir = get_directory(parent)
         widget = dir.get_widget(name)
         target = widget.prev_inorder()
         if target is None:
@@ -368,7 +369,7 @@ class DirectoryBrowser:
         ('key', "UP"), ",", ('key', "DOWN"), ",",
         ('key', "PAGE UP"), ",", ('key', "PAGE DOWN"),
         "  ",
-        ('key', "SPACE" ), "  ",
+        ('key', "SPACE"), "  ",
         ('key', "+"), ",",
         ('key', "-"), "  ",
         ('key', "LEFT"), "  ",
@@ -380,119 +381,83 @@ class DirectoryBrowser:
     
     def __init__(self):
         cwd = os.getcwd()
-        store_initial_cwd( cwd )
-        self.listbox = urwid.ListBox( DirectoryWalker( cwd ) )
+        store_initial_cwd(cwd)
+        self.header = urwid.Text("")
+        self.listbox = urwid.ListBox(DirectoryWalker(cwd, self.show_focus))
         self.listbox.offset_rows = 1
-        self.header = urwid.Text( "" )
-        self.footer = urwid.AttrWrap( urwid.Text( self.footer_text ),
+        self.footer = urwid.AttrWrap(urwid.Text(self.footer_text),
             'foot')
-        self.view = urwid.Frame( 
-            urwid.AttrWrap( self.listbox, 'body' ), 
-            header=urwid.AttrWrap(self.header, 'head' ), 
-            footer=self.footer )
+        self.view = urwid.Frame(
+            urwid.AttrWrap(self.listbox, 'body'), 
+            header=urwid.AttrWrap(self.header, 'head'), 
+            footer=self.footer)
+
+    def show_focus(self, focus):
+        parent, ignore = focus
+        self.header.set_text(parent)
 
     def main(self):
         """Run the program."""
         
-        self.ui = urwid.raw_display.Screen()
-        self.ui.register_palette( self.palette )
-        self.ui.run_wrapper( self.run )
+        self.loop = urwid.MainLoop(self.view, self.palette,
+            unhandled_input=self.unhandled_input)
+        self.loop.run()
     
         # on exit, write the selected filenames to the console
         names = [escape_filename_sh(x) for x in get_selected_names()]
         print " ".join(names)
 
-    def run(self):
-        """Handle user input and display updating."""
-        
-        self.ui.set_mouse_tracking()
-        
-        size = self.ui.get_cols_rows()
-        while 1:
-            focus, _ign = self.listbox.body.get_focus()
+    def unhandled_input(self, k):
             # update display of focus directory
-            self.header.set_text( focus.dir )
-            canvas = self.view.render( size, focus=1 )
-            self.ui.draw_screen( size, canvas )
-            keys = None
-            while not keys: 
-                keys = self.ui.get_input()
-            for k in keys:
-                if urwid.is_mouse_event(k):
-                    event, button, col, row = k
-                    self.view.mouse_event( size, 
-                        event, button, col, row,
-                        focus=True )
-                    continue
-
-                if k == 'window resize':
-                    size = self.ui.get_cols_rows()
-                elif k in ('q','Q'):
-                    return
-                elif k == 'right':
-                    # right can behave like +
-                    k = "+"
-                k = self.view.keypress( size, k )
-                # k = unhandled key or None
-                if k == 'left':
-                    self.move_focus_to_parent( size )
-                elif k == '-':
-                    self.collapse_focus_parent( size )
-                elif k == 'home':
-                    self.focus_home( size )
-                elif k == 'end':
-                    self.focus_end( size )
+            if k in ('q','Q'):
+                raise urwid.ExitMainLoop()
+            elif k == 'left':
+                self.move_focus_to_parent()
+            elif k == '-':
+                self.collapse_focus_parent()
+            elif k == 'home':
+                self.focus_home()
+            elif k == 'end':
+                self.focus_end()
                     
-    def collapse_focus_parent(self, size):
+    def collapse_focus_parent(self):
         """Collapse parent directory."""
         
         widget, pos = self.listbox.body.get_focus()
-        self.move_focus_to_parent( size )
+        self.move_focus_to_parent()
         
         pwidget, ppos = self.listbox.body.get_focus()
         if widget.dir != pwidget.dir:
-            self.view.keypress( size, "-")
+            self.loop.process_input(["-"])
 
-    def move_focus_to_parent(self, size):
+    def move_focus_to_parent(self):
         """Move focus to parent of widget in focus."""
-        
-        middle,top,bottom = self.listbox.calculate_visible( size )
-        
-        row_offset, focus_widget, focus_pos, focus_rows, cursor = middle
-        trim_top, fill_above = top
-
-        parent,name = os.path.split(focus_widget.dir)
+        focus_widget, position = self.listbox.get_focus()
+        parent, name = os.path.split(focus_widget.dir)
         
         if parent == focus_widget.dir:
             # no root dir, choose first element instead
-            self.focus_home( size )
+            self.focus_home()
             return
         
-        for widget, pos, rows in fill_above:
-            row_offset -= rows
-            if pos == (parent,name):
-                self.listbox.change_focus(size, pos, row_offset)
-                return
-        
-        self.listbox.change_focus( size, (parent, name) )
+        self.listbox.set_focus((parent, name), 'below')
         return 
         
-    def focus_home(    self, size ):
+    def focus_home(self):
         """Move focus to very top."""
         
         dir = get_directory("/")
         widget = dir.get_first()
         parent, name = widget.dir, widget.name
-        self.listbox.change_focus( size, (parent, name) )
+        self.listbox.set_focus((parent, name), 'below')
 
-    def focus_end( self, size ):
+    def focus_end(self):
         """Move focus to far bottom."""
         
-        maxrow, maxcol = size
         dir = get_directory("/")
         widget = dir.get_last()
         parent, name = widget.dir, widget.name
-        self.listbox.change_focus( size, (parent, name), maxrow-1 )
+        self.listbox.set_focus((parent, name), 'above')
 
 
 
@@ -528,7 +493,7 @@ def get_selected_names():
     for d in _dir_cache.values():
         for w in d.widgets.values():
             if w.selected:
-                l.append( os.path.join( w.dir, w.name ) )
+                l.append(os.path.join(w.dir, w.name))
     return l
             
 
@@ -537,17 +502,17 @@ def get_selected_names():
 # store path components of initial current working directory
 _initial_cwd = []
 
-def store_initial_cwd( name ):
+def store_initial_cwd(name):
     """Store the initial current working directory path components."""
     
     global _initial_cwd
-    _initial_cwd = name.split( dir_sep() )
+    _initial_cwd = name.split(dir_sep())
 
-def starts_expanded( name ):
+def starts_expanded(name):
     """Return True if directory is a parent of initial cwd."""
     
-    l = name.split( dir_sep() )
-    if len(l) > len( _initial_cwd ):
+    l = name.split(dir_sep())
+    if len(l) > len(_initial_cwd):
         return False
     
     if l != _initial_cwd[:len(l)]:
@@ -556,14 +521,14 @@ def starts_expanded( name ):
     return True
 
 
-def escape_filename_sh( name ):
+def escape_filename_sh(name):
     """Return a hopefully safe shell-escaped version of a filename."""
 
     # check whether we have unprintable characters
     for ch in name: 
         if ord(ch) < 32: 
             # found one so use the ansi-c escaping
-            return escape_filename_sh_ansic( name )
+            return escape_filename_sh_ansic(name)
             
     # all printable characters, so return a double-quoted version
     name.replace('\\','\\\\')
@@ -573,7 +538,7 @@ def escape_filename_sh( name ):
     return '"'+name+'"'
 
 
-def escape_filename_sh_ansic( name ):
+def escape_filename_sh_ansic(name):
     """Return an ansi-c shell-escaped version of a filename."""
     
     out =[]
@@ -584,13 +549,13 @@ def escape_filename_sh_ansic( name ):
         elif ch == '\\':
             out.append('\\\\')
         else:
-            out.append( ch )
+            out.append(ch)
             
     # slap them back together in an ansi-c quote  $'...'
     return "$'" + "".join(out) + "'"
 
 
-def sensible_cmp( name_a, name_b ):
+def sensible_cmp(name_a, name_b):
     """Case insensitive compare with sensible numeric ordering.
     
     "blah7" < "BLAH08" < "blah9" < "blah10" """
@@ -598,7 +563,7 @@ def sensible_cmp( name_a, name_b ):
     # ai, bi are indexes into name_a, name_b
     ai = bi = 0
     
-    def next_atom( name, i ):
+    def next_atom(name, i):
         """Return the next 'atom' and the next index.
         
         An 'atom' is either a nonnegative integer or an uppercased 
@@ -615,8 +580,8 @@ def sensible_cmp( name_a, name_b ):
         
     # compare one atom at a time
     while ai < len(name_a) and bi < len(name_b):
-        a, ai = next_atom( name_a, ai )
-        b, bi = next_atom( name_b, bi )
+        a, ai = next_atom(name_a, ai)
+        b, bi = next_atom(name_b, bi)
         if a < b: return -1
         if a > b: return 1
     
