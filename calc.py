@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid advanced example column calculator application
-#    Copyright (C) 2004-2007  Ian Ward
+#    Copyright (C) 2004-2009  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -535,8 +535,9 @@ class HelpColumn(urwid.BoxWidget):
         self.body = urwid.AttrWrap( self.listbox, 'help' )
         self.frame = urwid.Frame( self.body, header=self.head)
     
-    def render( self, (maxcol, maxrow), focus=False):
-        head_rows = self.head.rows( (maxcol,) )
+    def render(self, size, focus=False):
+        maxcol, maxrow = size
+        head_rows = self.head.rows((maxcol,))
         if "bottom" in self.listbox.ends_visible( 
             (maxcol, maxrow-head_rows) ):
             self.frame.footer = None
@@ -567,13 +568,14 @@ class CalcDisplay:
         self.columns = urwid.Columns([HelpColumn(), CellColumn("A")], 1)
         self.col_list = self.columns.widget_list
         self.columns.set_focus_column( 1 )
-        self.view = urwid.AttrWrap( self.columns, 'body' )
+        view = urwid.AttrWrap(self.columns, 'body')
+        self.view = urwid.Frame(view) # for showing messages
         self.col_link = {}
 
     def main(self):
-        self.ui = Screen()
-        self.ui.register_palette( self.palette )
-        self.ui.run_wrapper( self.run )
+        self.loop = urwid.MainLoop(self.view, self.palette, screen=Screen(),
+            input_filter=self.input_filter)
+        self.loop.run()
 
         # on exit write the formula and the result to the console
         expression, result = self.get_expression_result()
@@ -581,56 +583,29 @@ class CalcDisplay:
         print expression
         print "Result:", result
 
-    def run(self):
-        """Update screen and accept user input."""
-        self.ui.set_mouse_tracking()
-        size = self.ui.get_cols_rows()
-        self.event = None
-        while 1:
-            # draw the screen
-            view = self.view
-            if self.event is not None:
-                # show the event too
-                view = urwid.Frame( view, 
-                    footer=self.event.widget() )
-            canvas = view.render( size, focus=1 )
-            self.ui.draw_screen( size, canvas )
+    def input_filter(self, input, raw_input):
+        if 'q' in input or 'Q' in input:
+            raise urwid.ExitMainLoop()
+        
+        # handle other keystrokes
+        for k in input:
+            try:
+                self.wrap_keypress(k)
+                self.event = None
+                self.view.footer = None
+            except CalcEvent, e:
+                # display any message
+                self.event = e
+                self.view.footer = e.widget()
+        
+        # remove all input from further processing by MainLoop
+        return []
             
-            # wait until we get some input
-            keys = None
-            while not keys: 
-                # this call returns None when it times out
-                keys = self.ui.get_input()
-                
-            # handle each key one at a time
-            for k in keys:
-                if urwid.is_mouse_event(k):
-                    event, button, col, row = k
-                    view.mouse_event( size, event, button,
-                        col, row, focus=True )
-                    continue
-            
-                if k == 'window resize':
-                    # read the new screen size
-                    size = self.ui.get_cols_rows()
-                    continue
-                    
-                elif k in ('q','Q'):
-                    # exit main loop
-                    return
-                
-                # handle other keystrokes
-                try:
-                    self.wrap_keypress( size, k )
-                    self.event = None
-                except CalcEvent, e:
-                    self.event = e
-            
-    def wrap_keypress(self, size, key):
+    def wrap_keypress(self, key):
         """Handle confirmation and throw event on bad input."""
         
         try:
-            key = self.keypress(size, key)
+            key = self.keypress(key)
             
         except ColumnDeleteEvent, e:
             if e.letter == COLUMN_KEYS[1]:
@@ -658,14 +633,11 @@ class CalcDisplay:
         if key not in EDIT_KEYS and key not in MOVEMENT_KEYS:
             raise CalcEvent, E_invalid_key % key.upper()
         
-    def keypress(self, size, key):
+    def keypress(self, key):
         """Handle a keystroke."""
+
+        self.loop.process_input([key])
         
-        # let the view try to handle it first
-        key = self.view.keypress( size, key )
-        if key is None: 
-            return
-    
         if key.upper() in COLUMN_KEYS:
             # column switch
             i = COLUMN_KEYS.index(key.upper())
