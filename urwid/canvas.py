@@ -750,11 +750,16 @@ class CompositeCanvas(Canvas):
         for num_rows, original_cviews in self.shards:
             new_cviews = []
             for cv in original_cviews:
+                # cv[4] == attr_map
                 if cv[4] is None:
                     new_cviews.append(cv[:4] + 
                         (mapping,) + cv[5:])
                 else:
-                    new_cviews.append(cv)
+                    combined = dict(mapping)
+                    combined.update([
+                        (k, mapping.get(v, v)) for k,v in cv[4].items()])
+                    new_cviews.append(cv[:4] +
+                        (combined,) + cv[5:])
             shards.append((num_rows, new_cviews))
         self.shards = shards
 
