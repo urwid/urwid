@@ -251,7 +251,7 @@ class MainLoop(object):
             self.draw_screen()
 
             if not next_alarm and self.event_loop._alarms:
-                next_alarm = heapq.heappop(self._alarms)
+                next_alarm = heapq.heappop(self.event_loop._alarms)
 
             keys = None
             while not keys:
