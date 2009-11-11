@@ -717,7 +717,7 @@ class TwistedInputDescriptor(FileDescriptor):
 
 
 class TwistedEventLoop(object):
-    def __init__(self):
+    def __init__(self, reactor=None):
         """
         Event loop based on Twisted
 
@@ -736,7 +736,9 @@ class TwistedEventLoop(object):
         writing
         hi
         """
-        from twisted.internet import reactor
+        if reactor is None:
+            import twisted.internet.reactor
+            reactor = twisted.internet.reactor
         self.reactor = reactor
         self._alarms = []
         self._watch_files = {}
@@ -865,14 +867,12 @@ class TwistedEventLoop(object):
         f -- function to be wrapped
 
         """
-        from twisted.internet.error import ReactorNotRunning
         def wrapper(*args,**kargs):
             try:
                 return f(*args,**kargs)
             except ExitMainLoop:
                 self.reactor.crash()
             except:
-                print "got other error"
                 import sys
                 print sys.exc_info()
                 self._exc_info = sys.exc_info()
