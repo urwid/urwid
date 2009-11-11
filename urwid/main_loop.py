@@ -697,8 +697,188 @@ class GLibEventLoop(object):
         return wrapper
 
 
+try:
+    from twisted.internet.abstract import FileDescriptor
+except:
+    FileDescriptor = object
+
+class TwistedInputDescriptor(FileDescriptor):
+    def __init__(self, reactor, fd, cb):
+        self._fileno = fd
+        self.cb = cb
+        FileDescriptor.__init__(self, reactor)
+
+    def fileno(self):
+        return self._fileno
+
+    def doRead(self):
+        return self.cb()
 
 
+
+class TwistedEventLoop(object):
+    def __init__(self):
+        """
+        Event loop based on Twisted
+
+        >>> import os
+        >>> rd, wr = os.pipe()
+        >>> evl = TwistedEventLoop()
+        >>> def step1():
+        ...     print "writing"
+        ...     os.write(wr, "hi")
+        >>> def step2():
+        ...     print os.read(rd, 2)
+        ...     raise ExitMainLoop
+        >>> handle = evl.alarm(0, step1)
+        >>> handle = evl.watch_file(rd, step2)
+        >>> evl.run()
+        writing
+        hi
+        """
+        from twisted.internet import reactor
+        self.reactor = reactor
+        self._alarms = []
+        self._watch_files = {}
+        self._exc_info = None
+
+    def alarm(self, seconds, callback):
+        """
+        Call callback() given time from from now.  No parameters are
+        passed to callback.
+
+        Returns a handle that may be passed to remove_alarm()
+
+        seconds -- floating point time to wait before calling callback
+        callback -- function to call from event loop
+        """
+        handle = self.reactor.callLater(seconds, self.handle_exit(callback))
+        return handle
+
+    def remove_alarm(self, handle):
+        """
+        Remove an alarm.
+
+        Returns True if the alarm exists, False otherwise
+
+        >>> evl = TwistedEventLoop()
+        >>> handle = evl.alarm(50, lambda: None)
+        >>> evl.remove_alarm(handle)
+        True
+        >>> evl.remove_alarm(handle)
+        False
+        """
+        from twisted.internet.error import AlreadyCancelled, AlreadyCalled
+        try:
+            handle.cancel()
+            return True
+        except AlreadyCancelled:
+            return False
+        except AlreadyCalled:
+            return False
+
+    def watch_file(self, fd, callback):
+        """
+        Call callback() when fd has some data to read.  No parameters
+        are passed to callback.
+
+        Returns a handle that may be passed to remove_watch_file()
+
+        fd -- file descriptor to watch for input
+        callback -- function to call when input is available
+        """
+        ind = TwistedInputDescriptor(self.reactor, fd,
+            self.handle_exit(callback))
+        self._watch_files[fd] = ind
+        self.reactor.addReader(ind)
+        return fd
+
+    def remove_watch_file(self, handle):
+        """
+        Remove an input file.
+
+        Returns True if the input file exists, False otherwise
+
+        >>> evl = TwistedEventLoop()
+        >>> handle = evl.watch_file(1, lambda: None)
+        >>> evl.remove_watch_file(handle)
+        True
+        >>> evl.remove_watch_file(handle)
+        False
+        """
+        if handle in self._watch_files:
+            self.reactor.removeReader(self._watch_files[handle])
+            del self._watch_files[handle]
+            return True
+        return False
+
+    def run(self):
+        """
+        Start the event loop.  Exit the loop when any callback raises
+        an exception.  If ExitMainLoop is raised, exit cleanly.
+        
+        >>> import os
+        >>> rd, wr = os.pipe()
+        >>> os.write(wr, "data") # something to read from rd
+        4
+        >>> evl = TwistedEventLoop()
+        >>> def say_hello():
+        ...     print "hello"
+        >>> def exit_clean():
+        ...     print "clean exit"
+        ...     raise ExitMainLoop
+        >>> def exit_error():
+        ...     1/0
+        >>> handle = evl.alarm(0.0625, exit_clean)
+        >>> handle = evl.alarm(0, say_hello)
+        >>> evl.run()
+        hello
+        clean exit
+        >>> handle = evl.watch_file(rd, exit_clean)
+        >>> evl.run()
+        clean exit
+        >>> evl.remove_watch_file(handle)
+        True
+        >>> handle = evl.alarm(0, exit_error)
+        >>> evl.run()
+        Traceback (most recent call last):
+           ...
+        ZeroDivisionError: integer division or modulo by zero
+        >>> handle = evl.watch_file(rd, exit_error)
+        >>> evl.run()
+        Traceback (most recent call last):
+           ...
+        ZeroDivisionError: integer division or modulo by zero
+        """
+        self.reactor.run()
+        if self._exc_info:
+            # An exception caused us to exit, raise it now
+            exc_info = self._exc_info
+            self._exc_info = None
+            raise exc_info[0], exc_info[1], exc_info[2]
+
+    def handle_exit(self,f):
+        """
+        Decorator that cleanly exits the TwistedEventLoop if ExitMainLoop is
+        thrown inside of the wrapped function.  Store the exception info if 
+        some other exception occurs, it will be reraised after the loop quits.
+        f -- function to be wrapped
+
+        """
+        from twisted.internet.error import ReactorNotRunning
+        def wrapper(*args,**kargs):
+            try:
+                return f(*args,**kargs)
+            except ExitMainLoop:
+                self.reactor.crash()
+            except:
+                print "got other error"
+                import sys
+                print sys.exc_info()
+                self._exc_info = sys.exc_info()
+                self.reactor.crash()
+        return wrapper
+    
 def twisted_main_loop(topmost_widget, palette=[], screen=None,
                handle_mouse=True, input_filter=None, unhandled_input=None,
                handle_reactor=True):
