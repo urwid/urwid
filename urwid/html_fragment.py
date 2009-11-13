@@ -79,6 +79,9 @@ class HtmlGenerator(BaseScreen):
     def set_input_timeouts(self, *args):
         pass
 
+    def reset_default_terminal_palette(self, *args):
+        pass
+
     def run_wrapper(self,fn):
         """Call fn."""
         return fn()
@@ -104,7 +107,10 @@ class HtmlGenerator(BaseScreen):
             
             for a, cs, run in row:
                 run = run.translate(_trans_table)
-                aspec = self._palette[a][
+                if isinstance(a, AttrSpec):
+                    aspec = a
+                else:
+                    aspec = self._palette[a][
                         {1: 1, 16: 0, 88:2, 256:3}[self.colors]]
 
                 if y == cy and col <= cx:

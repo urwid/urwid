@@ -20,7 +20,9 @@
 # Urwid web site: http://excess.org/urwid/
 
 """
-Urwid graphics example program.
+Urwid example demonstrating use of the BarGraph widget and creating a 
+floating-window appearance.  Also shows use of alarms to create timed
+animation.
 """
 
 import urwid
@@ -162,18 +164,22 @@ class GraphView(urwid.WidgetWrap):
 
     def on_animate_button(self, button):
         """Toggle started state and button text."""
-        if self.started:
+        if self.started: # stop animation
             button.set_label("Start")
             self.offset = self.get_offset_now()
             self.started = False
+            self.controller.stop_animation()
         else:
             button.set_label("Stop")
             self.started = True
             self.start_time = time.time()
+            self.controller.animate_graph()
+            
     
     def on_reset_button(self, w):
         self.offset = 0
         self.start_time = time.time()
+        self.update_graph(True)
 
     def on_mode_button(self, button, state):
         """Notify the controller of a new mode setting."""
@@ -195,7 +201,6 @@ class GraphView(urwid.WidgetWrap):
         self.graph_wrap._w = self.graph
         self.animate_progress = self.progress_bar( state )
         self.animate_progress_wrap._w = self.animate_progress
-        
         self.update_graph( True )
         
 
@@ -305,6 +310,7 @@ class GraphController:
     the application.
     """
     def __init__(self):
+        self.animate_alarm = None
         self.model = GraphModel()
         self.view = GraphView( self )
         # use the first mode as the default
@@ -312,6 +318,7 @@ class GraphController:
         self.model.set_mode( mode )
         # update the view
         self.view.on_mode_change( mode )
+        self.view.update_graph(True)
 
     def get_modes(self):
         """Allow our view access to the list of modes."""
@@ -319,7 +326,9 @@ class GraphController:
     
     def set_mode(self, m):
         """Allow our view to set the mode."""
-        return self.model.set_mode( m )
+        rval = self.model.set_mode( m )
+        self.view.update_graph(True)
+        return rval
     
     def get_data(self, offset, range):
         """Provide data to our view for the graph."""
@@ -328,13 +337,19 @@ class GraphController:
 
     def main(self):
         self.loop = urwid.MainLoop(self.view, self.view.palette)
-        self.update_graph()
         self.loop.run()
 
-    def update_graph(self, loop=None, user_data=None):
+    def animate_graph(self, loop=None, user_data=None):
         """update the graph and schedule the next update"""
         self.view.update_graph()
-        self.loop.set_alarm_in(UPDATE_INTERVAL, self.update_graph)
+        self.animate_alarm = self.loop.set_alarm_in(
+            UPDATE_INTERVAL, self.animate_graph)
+
+    def stop_animation(self):
+        """stop animating the graph"""
+        if self.animate_alarm:
+            self.loop.remove_alarm(self.animate_alarm)
+        self.animate_alarm = None
     
 
 def main():

@@ -20,7 +20,7 @@
 # Urwid web site: http://excess.org/urwid/
 
 """
-Urwid example lazy text editor suitable for tabbed and format=flowed text
+Urwid example lazy text editor suitable for tabbed and flowing text
 
 Features:
 - custom list walker for lazily loading text file

@@ -251,7 +251,7 @@ class MainLoop(object):
             self.draw_screen()
 
             if not next_alarm and self.event_loop._alarms:
-                next_alarm = heapq.heappop(self._alarms)
+                next_alarm = heapq.heappop(self.event_loop._alarms)
 
             keys = None
             while not keys:
@@ -697,155 +697,188 @@ class GLibEventLoop(object):
         return wrapper
 
 
-
-
-def twisted_main_loop(topmost_widget, palette=[], screen=None,
-               handle_mouse=True, input_filter=None, unhandled_input=None,
-               handle_reactor=True):
-    """
-    A version of generic_main_loop that uses the twisted library.
-    Most parameters are the same as generic_main_loop.
-
-    handle_reactor - if False, rather than looping the function simply 
-                     returns a twisted Deferred that will trigger when 
-                     the UI shuts down
-    """
-    from twisted.internet import reactor
-    from twisted.internet.defer import Deferred
-    from twisted.python.failure import Failure
+try:
     from twisted.internet.abstract import FileDescriptor
+except:
+    FileDescriptor = object
+
+class TwistedInputDescriptor(FileDescriptor):
+    def __init__(self, reactor, fd, cb):
+        self._fileno = fd
+        self.cb = cb
+        FileDescriptor.__init__(self, reactor)
+
+    def fileno(self):
+        return self._fileno
+
+    def doRead(self):
+        return self.cb()
+
+
+
+class TwistedEventLoop(object):
+    def __init__(self, reactor=None):
+        """
+        Event loop based on Twisted
+
+        >>> import os
+        >>> rd, wr = os.pipe()
+        >>> evl = TwistedEventLoop()
+        >>> def step1():
+        ...     print "writing"
+        ...     os.write(wr, "hi")
+        >>> def step2():
+        ...     print os.read(rd, 2)
+        ...     raise ExitMainLoop
+        >>> handle = evl.alarm(0, step1)
+        >>> handle = evl.watch_file(rd, step2)
+        >>> evl.run()
+        writing
+        hi
+        """
+        if reactor is None:
+            import twisted.internet.reactor
+            reactor = twisted.internet.reactor
+        self.reactor = reactor
+        self._alarms = []
+        self._watch_files = {}
+        self._exc_info = None
+
+    def alarm(self, seconds, callback):
+        """
+        Call callback() given time from from now.  No parameters are
+        passed to callback.
+
+        Returns a handle that may be passed to remove_alarm()
+
+        seconds -- floating point time to wait before calling callback
+        callback -- function to call from event loop
+        """
+        handle = self.reactor.callLater(seconds, self.handle_exit(callback))
+        return handle
+
+    def remove_alarm(self, handle):
+        """
+        Remove an alarm.
+
+        Returns True if the alarm exists, False otherwise
+
+        >>> evl = TwistedEventLoop()
+        >>> handle = evl.alarm(50, lambda: None)
+        >>> evl.remove_alarm(handle)
+        True
+        >>> evl.remove_alarm(handle)
+        False
+        """
+        from twisted.internet.error import AlreadyCancelled, AlreadyCalled
+        try:
+            handle.cancel()
+            return True
+        except AlreadyCancelled:
+            return False
+        except AlreadyCalled:
+            return False
+
+    def watch_file(self, fd, callback):
+        """
+        Call callback() when fd has some data to read.  No parameters
+        are passed to callback.
+
+        Returns a handle that may be passed to remove_watch_file()
+
+        fd -- file descriptor to watch for input
+        callback -- function to call when input is available
+        """
+        ind = TwistedInputDescriptor(self.reactor, fd,
+            self.handle_exit(callback))
+        self._watch_files[fd] = ind
+        self.reactor.addReader(ind)
+        return fd
+
+    def remove_watch_file(self, handle):
+        """
+        Remove an input file.
+
+        Returns True if the input file exists, False otherwise
+
+        >>> evl = TwistedEventLoop()
+        >>> handle = evl.watch_file(1, lambda: None)
+        >>> evl.remove_watch_file(handle)
+        True
+        >>> evl.remove_watch_file(handle)
+        False
+        """
+        if handle in self._watch_files:
+            self.reactor.removeReader(self._watch_files[handle])
+            del self._watch_files[handle]
+            return True
+        return False
+
+    def run(self):
+        """
+        Start the event loop.  Exit the loop when any callback raises
+        an exception.  If ExitMainLoop is raised, exit cleanly.
+        
+        >>> import os
+        >>> rd, wr = os.pipe()
+        >>> os.write(wr, "data") # something to read from rd
+        4
+        >>> evl = TwistedEventLoop()
+        >>> def say_hello():
+        ...     print "hello"
+        >>> def exit_clean():
+        ...     print "clean exit"
+        ...     raise ExitMainLoop
+        >>> def exit_error():
+        ...     1/0
+        >>> handle = evl.alarm(0.0625, exit_clean)
+        >>> handle = evl.alarm(0, say_hello)
+        >>> evl.run()
+        hello
+        clean exit
+        >>> handle = evl.watch_file(rd, exit_clean)
+        >>> evl.run()
+        clean exit
+        >>> evl.remove_watch_file(handle)
+        True
+        >>> handle = evl.alarm(0, exit_error)
+        >>> evl.run()
+        Traceback (most recent call last):
+           ...
+        ZeroDivisionError: integer division or modulo by zero
+        >>> handle = evl.watch_file(rd, exit_error)
+        >>> evl.run()
+        Traceback (most recent call last):
+           ...
+        ZeroDivisionError: integer division or modulo by zero
+        """
+        self.reactor.run()
+        if self._exc_info:
+            # An exception caused us to exit, raise it now
+            exc_info = self._exc_info
+            self._exc_info = None
+            raise exc_info[0], exc_info[1], exc_info[2]
+
+    def handle_exit(self,f):
+        """
+        Decorator that cleanly exits the TwistedEventLoop if ExitMainLoop is
+        thrown inside of the wrapped function.  Store the exception info if 
+        some other exception occurs, it will be reraised after the loop quits.
+        f -- function to be wrapped
+
+        """
+        def wrapper(*args,**kargs):
+            try:
+                return f(*args,**kargs)
+            except ExitMainLoop:
+                self.reactor.crash()
+            except:
+                import sys
+                print sys.exc_info()
+                self._exc_info = sys.exc_info()
+                self.reactor.crash()
+        return wrapper
     
-    class InputDescriptor(FileDescriptor):
-        def __init__(self, fd, cb):
-            self._fileno = fd
-            self.cb = cb
-            FileDescriptor.__init__(self, reactor)
-
-        def fileno(self):
-            return self._fileno
-
-        def doRead(self):
-            return self.cb()
-
-    class TwistedLoopManager(object):
-        def __init__(self, screen, topmost_widget, input_filter, unhandled_input,
-                           need_stop, handle_reactor):
-            self.screen = screen
-            self.topmost_widget = topmost_widget
-            self.failure = None
-            self.handle_reactor = handle_reactor
-            if input_filter:
-                self.input_filter = input_filter
-            if unhandled_input:
-                self.unhandled_input = unhandled_input
-            self.need_stop = need_stop
-
-        def input_filter(self, k):
-            return k
-
-        def unhandled_input(self, k):
-            pass
-
-        def stop(self, failure=None):
-            if self.need_stop:
-                self.screen.stop()
-                self.need_stop = False
-            self.running = False
-            if failure:
-                self.d.errback(failure)
-            else:
-                self.d.callback(True)
-            if self.handle_reactor:
-                reactor.stop()
-                self.handle_reactor = False
-            elif self.triggerid:
-                self.removeSystemEventTrigger(self.triggerid)
-                self.triggerid = None
-
-        def refresh(self):
-            if not self.running:
-                return
-            try:
-                canvas = self.topmost_widget.render(self.size, focus=True)
-                self.screen.draw_screen(self.size, canvas)
-            except ExitMainLoop:
-                self.stop()
-            except:
-                self.stop(Failure())
-
-        def onShutdown(self):
-            if self.need_stop:
-                self.screen.stop()
-                self.need_stop = False
-            if self.running:
-                self.stop()
-
-        def inputCallback(self):
-            if self.running:
-                timeout, events, raw = self.screen.get_input_nonblocking()
-                if events:
-                    for event in events:
-                        self.onInput(event)
-            self.refresh()
-
-        def run(self):
-            self.d = Deferred()
-            self.running = True
-            self.triggerid = reactor.addSystemEventTrigger('before', 'shutdown', self.onShutdown)
-
-            self.size = self.screen.get_cols_rows()
-            self.refresh()
-            for desc in self.screen.get_input_descriptors():
-                id = InputDescriptor(desc, self.inputCallback)
-                reactor.addReader(id)
-
-            return self.d
-
-        def onInput(self, event):
-            if not self.running:
-                return
-            try:
-                if event == 'window resize':
-                    self.size = self.screen.get_cols_rows()
-                event = self.input_filter(event)
-                if is_mouse_event(event):
-                    if self.topmost_widget.mouse_event(self.size, focus=True, *event):
-                        event = None
-                else:
-                    event = self.topmost_widget.keypress(self.size, event)
-                if event:
-                    self.unhandled_input(event)
-            except ExitMainLoop:
-                self.stop()
-            except:
-                self.stop(Failure())
-
-    if not screen:
-        import raw_display
-        screen = raw_display.Screen()
-
-    if palette:
-        screen.register_palette(palette)
-
-    needstop = False
-    handleStartStop = not screen.started
-    if handleStartStop:
-        screen.start()
-        needstop = True
-
-    mgr = TwistedLoopManager(screen, topmost_widget, input_filter,
-                             unhandled_input, needstop, handle_reactor)
-
-    if handle_mouse:
-        screen.set_mouse_tracking()
-
-    d = mgr.run()
-    if handle_reactor:
-        d.addErrback(lambda fail: fail.printTraceback())
-        reactor.run()
-    else:
-        return d
-
 
 
 def _refl(name, rval=None, exit=False):

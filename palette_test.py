@@ -1,4 +1,28 @@
 #!/usr/bin/python
+#
+# Urwid Palette Test.  Showing off highcolor support
+#    Copyright (C) 2004-2009  Ian Ward
+#
+#    This library is free software; you can redistribute it and/or
+#    modify it under the terms of the GNU Lesser General Public
+#    License as published by the Free Software Foundation; either
+#    version 2.1 of the License, or (at your option) any later version.
+#
+#    This library is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public
+#    License along with this library; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+# Urwid web site: http://excess.org/urwid/
+
+"""
+Palette test.  Shows the available foreground and background settings
+in monochrome, 16 color, 88 color and 256 color modes.
+"""
 
 import re
 import sys
@@ -155,7 +179,7 @@ def main():
 
     def fcs(widget):
         # wrap widgets that can take focus
-        return urwid.AttrWrap(widget, None, 'focus')
+        return urwid.AttrMap(widget, None, 'focus')
 
     def set_mode(colors, is_foreground_chart):
         # set terminal mode and redraw chart
@@ -190,8 +214,8 @@ def main():
         raise urwid.ExitMainLoop()
     
     lb.extend([
-        urwid.AttrWrap(urwid.Text("Urwid Palette Test"), 'header'),
-        urwid.AttrWrap(urwid.Columns([
+        urwid.AttrMap(urwid.Text("Urwid Palette Test"), 'header'),
+        urwid.AttrMap(urwid.Columns([
             urwid.Pile([
                 mode_rb("Monochrome", 1),
                 mode_rb("16-Color", 16, True),

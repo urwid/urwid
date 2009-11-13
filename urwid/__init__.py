@@ -37,11 +37,11 @@ __all__ = [
     'emit_signal', 'register_signal', 'connect_signal', 'disconnect_signal',
     'MonitoredList',
     'command_map',
-    'MainLoop', 'SelectEventLoop', 'GLibEventLoop',
+    'MainLoop', 'SelectEventLoop', 'GLibEventLoop', 'TwistedEventLoop',
     'AttrSpec', 'AttrSpecError',
     ]
 
-VERSION = (0, 9, 9, 'pre')
+VERSION = (0, 9, 9)
 __version__ = ''.join(['-.'[type(x) == int]+str(x) for x in VERSION])[1:]
 
 

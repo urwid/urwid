@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid BigText example program
-#    Copyright (C) 2004-2007  Ian Ward
+#    Copyright (C) 2004-2009  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -20,7 +20,7 @@
 # Urwid web site: http://excess.org/urwid/
 
 """
-Urwid graphics example program.
+Urwid example demonstrating use of the BigText widget.
 """
 
 import urwid
