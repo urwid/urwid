@@ -21,10 +21,10 @@
 
 try:
     from setuptools import setup, Extension
-        have_setuptools = True
+    have_setuptools = True
 except ImportError:
     from distutils.core import setup, Extension
-        have_setuptools = False
+    have_setuptools = False
 
 import os
 
@@ -87,7 +87,7 @@ Example Program Screenshots:
      }
 
 if have_setuptools:
-        setup_d['zip_safe'] = False
+    setup_d['zip_safe'] = False
 
 
 try:
