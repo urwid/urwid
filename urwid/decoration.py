@@ -642,7 +642,6 @@ class FillerError(Exception):
     pass
 
 class Filler(WidgetDecoration):
-    _sizing = set([BOX]) # always a box widget
 
     def __init__(self, body, valign="middle", height=None, min_height=None):
         """
@@ -680,6 +679,9 @@ class Filler(WidgetDecoration):
         else:
             self.min_height = None
     
+    def sizing(self):
+        return set([BOX]) # always a box widget
+
     # backwards compatibility, widget used to be stored as body
     get_body = WidgetDecoration._get_original_widget
     set_body = WidgetDecoration._set_original_widget
