@@ -15,16 +15,19 @@ Urwid 0.9.9
       display and one of a number of new event loops, removing the 
       need for tedious, error-prone boilerplate code
 
-    * New GLibEventLoop allows running Urwid applications with glib
+    * New GLibEventLoop allows running Urwid applications with GLib
+      (makes D-Bus integration easier)
+
+    * New TwistedEventLoop allows running Urwid with a Twisted reactor
 
     * Added new docstrings and doctests to many widget classes
 
     * New AttrMap widget supports mapping any attribute to any other
       attribute, replaces AttrWrap widget
 
-    * New WidgetDecoration base class for AttrMap, BoxAdapter, Padding
-      and LineBox widgets creates a common method for accessing and
-      updating the contained widgets
+    * New WidgetDecoration base class for AttrMap, BoxAdapter, Padding,
+      Filler and LineBox widgets creates a common method for accessing 
+      and updating their contained widgets
 
     * New left and right values may be specified in Padding widgets 
 

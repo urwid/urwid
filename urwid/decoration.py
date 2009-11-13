@@ -641,10 +641,13 @@ class Padding(WidgetDecoration):
 class FillerError(Exception):
     pass
 
-class Filler(BoxWidget):
+class Filler(WidgetDecoration):
+    _sizing = set([BOX]) # always a box widget
+
     def __init__(self, body, valign="middle", height=None, min_height=None):
         """
-        body -- a flow widget or box widget to be filled around
+        body -- a flow widget or box widget to be filled around (stored 
+            as self.original_widget)
         valign -- one of:
             'top', 'middle', 'bottom'
             ('fixed top', rows)
@@ -667,10 +670,9 @@ class Filler(BoxWidget):
         reducing the valign amount when necessary.  If height still 
         cannot be satisfied it will also be reduced.
         """
-        self.__super.__init__()
+        self.__super.__init__(body)
         vt,va,ht,ha=decompose_valign_height(valign,height,FillerError)
         
-        self._body = body
         self.valign_type, self.valign_amount = vt, va
         self.height_type, self.height_amount = ht, ha
         if self.height_type not in ('fixed', None):
@@ -678,16 +680,14 @@ class Filler(BoxWidget):
         else:
             self.min_height = None
     
-    def get_body(self):
-        return self._body
-    def set_body(self, body):
-        self._body = body
-        self._invalidate()
+    # backwards compatibility, widget used to be stored as body
+    get_body = WidgetDecoration._get_original_widget
+    set_body = WidgetDecoration._set_original_widget
     body = property(get_body, set_body)
     
     def selectable(self):
         """Return selectable from body."""
-        return self._body.selectable()
+        return self._original_widget.selectable()
     
     def filler_values(self, size, focus):
         """Return the number of rows to pad on the top and bottom.
@@ -696,7 +696,7 @@ class Filler(BoxWidget):
         (maxcol, maxrow) = size
         
         if self.height_type is None:
-            height = self.body.rows((maxcol,),focus=focus)
+            height = self._original_widget.rows((maxcol,),focus=focus)
             return calculate_filler( self.valign_type,
                 self.valign_amount, 'fixed', height, 
                 None, maxrow )
@@ -707,14 +707,14 @@ class Filler(BoxWidget):
 
     
     def render(self, size, focus=False):
-        """Render self.body with space above and/or below."""
+        """Render self.original_widget with space above and/or below."""
         (maxcol, maxrow) = size
         top, bottom = self.filler_values(size, focus)
         
         if self.height_type is None:
-            canv = self.body.render((maxcol,), focus)
+            canv = self._original_widget.render((maxcol,), focus)
         else:
-            canv = self.body.render((maxcol,maxrow-top-bottom),focus)
+            canv = self._original_widget.render((maxcol,maxrow-top-bottom),focus)
         canv = CompositeCanvas(canv)
         
         if maxrow and canv.rows() > maxrow and canv.cursor is not None:
@@ -729,25 +729,25 @@ class Filler(BoxWidget):
 
 
     def keypress(self, size, key):
-        """Pass keypress to self.body."""
+        """Pass keypress to self.original_widget."""
         (maxcol, maxrow) = size
         if self.height_type is None:
-            return self.body.keypress( (maxcol,), key )
+            return self._original_widget.keypress((maxcol,), key)
 
         top, bottom = self.filler_values((maxcol,maxrow), True)
-        return self.body.keypress( (maxcol,maxrow-top-bottom), key )
+        return self._original_widget.keypress((maxcol,maxrow-top-bottom), key)
 
     def get_cursor_coords(self, size):
-        """Return cursor coords from self.body if any."""
+        """Return cursor coords from self.original_widget if any."""
         (maxcol, maxrow) = size
-        if not hasattr(self.body, 'get_cursor_coords'):
+        if not hasattr(self._original_widget, 'get_cursor_coords'):
             return None
             
         top, bottom = self.filler_values(size, True)
         if self.height_type is None:
-            coords = self.body.get_cursor_coords((maxcol,))
+            coords = self._original_widget.get_cursor_coords((maxcol,))
         else:
-            coords = self.body.get_cursor_coords(
+            coords = self._original_widget.get_cursor_coords(
                 (maxcol,maxrow-top-bottom))
         if not coords:
             return None
@@ -757,24 +757,24 @@ class Filler(BoxWidget):
         return x, y+top
 
     def get_pref_col(self, size):
-        """Return pref_col from self.body if any."""
+        """Return pref_col from self.original_widget if any."""
         (maxcol, maxrow) = size
-        if not hasattr(self.body, 'get_pref_col'):
+        if not hasattr(self._original_widget, 'get_pref_col'):
             return None
         
         if self.height_type is None:
-            x = self.body.get_pref_col((maxcol,))
+            x = self._original_widget.get_pref_col((maxcol,))
         else:
             top, bottom = self.filler_values(size, True)
-            x = self.body.get_pref_col(
-                (maxcol,maxrow-top-bottom))
+            x = self._original_widget.get_pref_col(
+                (maxcol, maxrow-top-bottom))
 
         return x
     
     def move_cursor_to_coords(self, size, col, row):
-        """Pass to self.body."""
+        """Pass to self.original_widget."""
         (maxcol, maxrow) = size
-        if not hasattr(self.body, 'move_cursor_to_coords'):
+        if not hasattr(self._original_widget, 'move_cursor_to_coords'):
             return True
         
         top, bottom = self.filler_values(size, True)
@@ -782,15 +782,15 @@ class Filler(BoxWidget):
             return False
 
         if self.height_type is None:
-            return self.body.move_cursor_to_coords((maxcol,),
+            return self._original_widget.move_cursor_to_coords((maxcol,),
                 col, row-top)
-        return self.body.move_cursor_to_coords(
+        return self._original_widget.move_cursor_to_coords(
             (maxcol, maxrow-top-bottom), col, row-top)
     
     def mouse_event(self, size, event, button, col, row, focus):
-        """Pass to self.body."""
+        """Pass to self.original_widget."""
         (maxcol, maxrow) = size
-        if not hasattr(self.body, 'mouse_event'):
+        if not hasattr(self._original_widget, 'mouse_event'):
             return False
         
         top, bottom = self.filler_values(size, True)
@@ -798,9 +798,9 @@ class Filler(BoxWidget):
             return False
 
         if self.height_type is None:
-            return self.body.mouse_event((maxcol,),
+            return self._original_widget.mouse_event((maxcol,),
                 event, button, col, row-top, focus)
-        return self.body.mouse_event( (maxcol, maxrow-top-bottom), 
+        return self._original_widget.mouse_event((maxcol, maxrow-top-bottom), 
             event, button,col, row-top, focus)
 
         
