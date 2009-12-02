@@ -54,8 +54,25 @@ def split_repr(self):
     if words and alist: words.append("")
     return "<%s %s>" % (self.__class__.__name__,
         " ".join(words) +
-        " ".join(["%s=%r" % (k,v) for k,v in alist]))
+        " ".join(["%s=%s" % (k,normalize_repr(v)) for k,v in alist]))
     
+def normalize_repr(v):
+    """
+    Return dictionary repr sorted by keys, leave others unchanged
+
+    >>> normalize_repr({1:2,3:4,5:6,7:8})
+    '{1: 2, 3: 4, 5: 6, 7: 8}'
+    >>> normalize_repr('foo')
+    "'foo'"
+    """
+    if isinstance(v, dict):
+        items = v.items()
+        items.sort()
+        return "{" + ", ".join([
+            repr(k) + ": " + repr(v) for k, v in items]) + "}"
+
+    return repr(v)
+
     
 def remove_defaults(d, fn):
     """

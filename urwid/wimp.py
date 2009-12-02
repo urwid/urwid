@@ -45,14 +45,14 @@ class SelectableIcon(Text):
 
         >>> si = SelectableIcon("[!]")
         >>> si
-        <SelectableIcon selectable widget '[!]'>
+        <SelectableIcon selectable flow widget '[!]'>
         >>> si.render((4,), focus=True).cursor
-        (1,0)
+        (1, 0)
         >>> si = SelectableIcon("((*))", 2)
         >>> si.render((8,), focus=True).cursor
-        (2,0)
+        (2, 0)
         >>> si.render((2,), focus=True).cursor
-        (1,1)
+        (0, 1)
         """
         c = self.__super.render(size, focus)
         if focus:
