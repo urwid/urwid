@@ -179,10 +179,10 @@ _GRAY_88_LOOKUP_101 = [_GRAY_88_LOOKUP[int_scale(n, 101, 0x100)]
 def _gray_num_256(gnum):
     """Return ths color number for gray number gnum.
 
-    Color cube black and white are returned for 0 and %d respectively
+    Color cube black and white are returned for 0 and 25 respectively
     since those values aren't included in the gray scale.
 
-    """ % (_GRAY_SIZE_256+1)
+    """
     # grays start from index 1
     gnum -= 1
 
@@ -196,10 +196,10 @@ def _gray_num_256(gnum):
 def _gray_num_88(gnum):
     """Return ths color number for gray number gnum.
 
-    Color cube black and white are returned for 0 and %d respectively
+    Color cube black and white are returned for 0 and 9 respectively
     since those values aren't included in the gray scale.
 
-    """ % (_GRAY_SIZE_88+1)
+    """
     # gnums start from index 1
     gnum -= 1
 
