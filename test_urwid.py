@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Urwid unit testing .. ok, ok, ok
-#    Copyright (C) 2004-2007  Ian Ward
+#    Copyright (C) 2004-2010  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -1084,7 +1084,7 @@ class ListBoxChangeFocusTest(unittest.TestCase):
             l, 1, -2, 'below', None, 2, 0, (0,1), None )
     
         self.cftest( "large selectable almost snap up", 
-            l, 1, -2, 'below', None, 1, 0, (2,7), None )
+            l, 1, -2, 'below', None, 1, 0, (1,7), None )
     
         self.cftest( "large selectable snap down", 
             l, 1, 0, 'above', None, None, 0, (2,7), None )
@@ -1093,7 +1093,14 @@ class ListBoxChangeFocusTest(unittest.TestCase):
             l, 1, 0, 'above', None, 2, 0, (2,7), None )
             
         self.cftest( "large selectable almost snap down", 
-            l, 1, 0, 'above', None, 1, 0, (0,1), None )
+            l, 1, 0, 'above', None, 1, 0, (1,7), None )
+
+        m = [T("\n\n\n\n"), S("\n\n\n\n\n"), T("\n\n\n\n")]
+        self.cftest( "large selectable outside view down",
+            m, 1, 4, 'above', None, None, 0, (0,1), None )
+
+        self.cftest( "large selectable outside view up",
+            m, 1, -5, 'below', None, None, 0, (1,6), None )
     
     def test4cursor(self):
         T,E = urwid.Text, urwid.Edit
@@ -1436,7 +1443,7 @@ class ListBoxKeypressTest(unittest.TestCase):
             
         self.ktest( "selectable to cut off selectable", 'page up',
             [S("\n\n"),T("\n"),T("\n"),S("\n"),T("\n\n")], 3, 1,
-            0, -2, None )
+            0, -1, None )
             
         self.ktest( "seletable to selectable", 'page up',
             [T("\n\n"),S("\n"),T("\n"),S("\n"),T("\n\n")], 3, 1,
@@ -1450,7 +1457,7 @@ class ListBoxKeypressTest(unittest.TestCase):
         e.set_edit_pos(11)
         self.ktest( "within very long cursor widget", 'page up',
             [S(""),e,T("\n")], 1, -6,
-            1, -2, (2, 0) )
+            1, -1, (2, 1) )
 
         self.ktest( "pathological cursor widget", 'page up',
             [T(""),E("\n\n\n\n\n\n\n\n","ab"),T("")], 1, -5,
@@ -1547,7 +1554,7 @@ class ListBoxKeypressTest(unittest.TestCase):
             
         self.ktest( "selectable to cut off selectable", 'page down',
             [T("\n\n"),S("\n"),T("\n"),T("\n"),S("\n\n")], 1, 2,
-            4, 4, None )
+            4, 3, None )
             
         self.ktest( "seletable to selectable", 'page down',
             [T("\n\n"),S("\n"),T("\n"),S("\n"),T("\n\n")], 1, 1,
@@ -1561,7 +1568,7 @@ class ListBoxKeypressTest(unittest.TestCase):
         e.set_edit_pos(2)
         self.ktest( "within very long cursor widget", 'page down',
             [T("\n"),e,S("")], 1, 2,
-            1, -2, (1, 4) )
+            1, -3, (1, 3) )
 
         odd_e = E("","ab\n\n\n\n\n\n\n\n\n")
         odd_e.set_edit_pos( 1 )

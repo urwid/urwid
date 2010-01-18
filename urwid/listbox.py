@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid listbox class
-#    Copyright (C) 2004-2007  Ian Ward
+#    Copyright (C) 2004-2010  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -574,7 +574,7 @@ class ListBox(BoxWidget):
         """Change the current focus widget.
         
         position -- a position compatible with self.body.set_focus
-        offset_inset_rows -- either the number of rows between the 
+        offset_inset -- either the number of rows between the 
           top of the listbox and the start of the focus widget (+ve
           value) or the number of lines of the focus widget hidden off 
           the top edge of the listbox (-ve value) or 0 if the top edge
@@ -600,7 +600,7 @@ class ListBox(BoxWidget):
         target, _ignore = self.body.get_focus()
         tgt_rows = target.rows( (maxcol,), True)
         if snap_rows is None:
-            snap_rows = maxrow-1
+            snap_rows = maxrow - 1
 
         # "snap" to selectable widgets
         align_top = 0
@@ -608,15 +608,19 @@ class ListBox(BoxWidget):
         
         if ( coming_from == 'above' 
                 and target.selectable()
-                and offset_inset > align_bottom
-                and align_bottom >= offset_inset-snap_rows ):
-            offset_inset = align_bottom
+                and offset_inset > align_bottom ):
+            if snap_rows >= offset_inset - align_bottom:
+                offset_inset = align_bottom
+            else:
+                offset_inset -= snap_rows
             
         if ( coming_from == 'below' 
                 and target.selectable() 
-                and offset_inset < align_top
-                and align_top <= offset_inset+snap_rows ):
-            offset_inset = align_top
+                and offset_inset < align_top ):
+            if snap_rows >= align_top - offset_inset:
+                offset_inset = align_top
+            else:
+                offset_inset += snap_rows
         
         # convert offset_inset to offset_rows or inset_fraction
         if offset_inset >= 0:
