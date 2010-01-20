@@ -611,6 +611,8 @@ class ListBox(BoxWidget):
                 and offset_inset > align_bottom ):
             if snap_rows >= offset_inset - align_bottom:
                 offset_inset = align_bottom
+            elif snap_rows >= offset_inset - align_top:
+                offset_inset = align_top
             else:
                 offset_inset -= snap_rows
             
@@ -619,6 +621,8 @@ class ListBox(BoxWidget):
                 and offset_inset < align_top ):
             if snap_rows >= align_top - offset_inset:
                 offset_inset = align_top
+            elif snap_rows >= align_bottom - offset_inset:
+                offset_inset = align_bottom
             else:
                 offset_inset += snap_rows
         
