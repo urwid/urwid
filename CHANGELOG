@@ -12,6 +12,8 @@ Urwid 0.9.9.1
 
     * Fix for a doctest failure under powerpc
 
+    * Fix for systems with gpm_mev installed but not running gpm
+
 
 Urwid 0.9.9
 
