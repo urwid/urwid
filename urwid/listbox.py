@@ -219,7 +219,7 @@ class ListBox(BoxWidget):
         focus_widget, focus_pos = self.body.get_focus()
         if focus_widget is None: #list box is empty?
             return None,None,None
-        top_pos = bottom_pos = focus_pos
+        top_pos = focus_pos
         
         offset_rows, inset_rows = self.get_focus_offset_inset(
             (maxcol,maxrow))
@@ -276,7 +276,6 @@ class ListBox(BoxWidget):
             next, pos = self.body.get_next( pos )
             if next is None: # run out of widgets below?
                 break
-            bottom_pos = pos
                 
             n_rows = next.rows( (maxcol,) )
             fill_below.append( (next, pos, n_rows) )

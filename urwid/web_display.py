@@ -749,7 +749,7 @@ class Screen:
             signal.alarm( 0 )
             try:
                 s, addr = self.server_socket.accept()
-            except socket.timeout, e:
+            except socket.timeout:
                 sys.exit(0)
             send = s.sendall
         else:
@@ -856,7 +856,7 @@ class Screen:
             try:
                 s, addr = self.server_socket.accept()
                 s.close()
-            except socket.timeout, e:
+            except socket.timeout:
                 sys.exit(0)
         else:
             # send empty update
@@ -998,7 +998,7 @@ def handle_short_request():
                 sys.stdout.write(data)
                 data = s.recv(BUF_SZ)
             return True
-        except socket.error,e:
+        except socket.error:
             sys.stdout.write("Status: 404 Not Found\r\n\r\n")
             return True
         
@@ -1008,7 +1008,7 @@ def handle_short_request():
     try:
         fd = os.open((os.path.join(_prefs.pipe_dir,
             "urwid"+urwid_id+".in")), os.O_WRONLY)
-    except OSError,e:
+    except OSError:
         sys.stdout.write("Status: 404 Not Found\r\n\r\n")
         return True
         

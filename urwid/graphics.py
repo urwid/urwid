@@ -568,7 +568,6 @@ def calculate_bargraph_display( bardata, top, bar_widths, maxrow ):
     maxcol = sum(bar_widths)
 
     # build intermediate data structure
-    bars = len(bardata)
     rows = [None]*maxrow
     def add_segment( seg_num, col, row, width, rows=rows ):
         if rows[row]:

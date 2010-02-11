@@ -952,7 +952,6 @@ def shards_trim_rows(shards, keep_rows):
     """
     assert keep_rows >= 0, keep_rows
 
-    shard_tail = []
     new_shards = []
     done_rows = 0
     for num_rows, cviews in shards:
@@ -1157,7 +1156,6 @@ def CanvasJoin(l):
 
 
 def apply_text_layout(text, attr, ls, maxcol):
-    utext = type(text)==type(u"")
     t = []
     a = []
     c = []

@@ -522,7 +522,7 @@ class Screen(BaseScreen, RealTerminal):
                 self._term_output_file.write(escape.DESIGNATE_G1_SPECIAL)
                 self._term_output_file.flush()
                 break
-            except IOError, e:
+            except IOError:
                 pass
         self._setup_G1_done = True
 
@@ -845,7 +845,7 @@ class Screen(BaseScreen, RealTerminal):
 
         modify = ["%d;rgb:%02x/%02x/%02x" % (index, red, green, blue)
             for index, red, green, blue in entries]
-        seq = self._term_output_file.write("\x1b]4;"+";".join(modify)+"\x1b\\")
+        self._term_output_file.write("\x1b]4;"+";".join(modify)+"\x1b\\")
         self._term_output_file.flush()
 
 

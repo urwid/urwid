@@ -186,7 +186,6 @@ def calc_trim_text( text, start_offs, end_offs, start_col, end_col ):
     pad_left -- 0 for no pad or 1 for one space to be added
     pad_right -- 0 for no pad or 1 for one space to be added
     """
-    l = []
     spos = start_offs
     pad_left = pad_right = 0
     if start_col > 0:

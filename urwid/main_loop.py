@@ -663,7 +663,6 @@ class GLibEventLoop(object):
            ...
         ZeroDivisionError: integer division or modulo by zero
         """
-        context = self._loop.get_context()
         try:
             self._loop.run()
         finally:

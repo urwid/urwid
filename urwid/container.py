@@ -888,7 +888,6 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         """Pass the keypress to the widget in focus.
         Unhandled 'up' and 'down' keys may cause a focus change."""
 
-        maxcol = size[0]
         item_rows = None
         if len(size)==2:
             item_rows = self.get_item_rows( size, focus=True )
@@ -914,7 +913,6 @@ class Pile(Widget): # either FlowWidget or BoxWidget
                 continue
             
             self._update_pref_col_from_focus(size)
-            old_focus = self.focus_item
             self.set_focus(j)
             if not hasattr(self.focus_item,'move_cursor_to_coords'):
                 return
@@ -1107,7 +1105,6 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         
         weighted = []
         shared = maxcol + self.dividechars
-        growable = 0
         
         i = 0
         for t, width in col_types:
