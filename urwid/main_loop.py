@@ -26,7 +26,7 @@ import time
 import heapq
 import select
 
-from util import *
+from util import is_mouse_event
 from command_map import command_map
 
 

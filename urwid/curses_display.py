@@ -27,9 +27,7 @@ from __future__ import nested_scopes
 
 import curses
 import _curses
-import sys
 
-import util
 import escape
 
 from display_common import RealTerminal

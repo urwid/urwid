@@ -24,8 +24,6 @@ from __future__ import nested_scopes
 
 import escape
 
-import encodings
-
 try:
     import str_util
 except ImportError:

@@ -19,13 +19,14 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from util import *
+from util import MetaSuper, decompose_tagmarkup, calc_width, is_wide_char, \
+    move_prev_char, move_next_char
+from text_layout import calc_pos, calc_coords, shift_line
 import signals
 import text_layout
-from canvas import *
-from monitored_list import MonitoredList
+from canvas import CanvasCache, CompositeCanvas, SolidCanvas, \
+    apply_text_layout
 from command_map import command_map
-from signals import connect_signal, connect_signal, disconnect_signal
 from split_repr import split_repr, remove_defaults
 
 try: sum # old python?

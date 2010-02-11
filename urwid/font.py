@@ -22,8 +22,6 @@
 
 from __future__ import nested_scopes
 
-import re
-
 from escape import utf8decode, SAFE_ASCII_DEC_SPECIAL_RE
 from util import apply_target_encoding, str_util
 from canvas import TextCanvas

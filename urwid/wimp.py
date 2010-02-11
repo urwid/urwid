@@ -19,9 +19,14 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from widget import *
-from container import *
+from widget import Text, WidgetWrap
+from canvas import CompositeCanvas
+from signals import connect_signal
+from container import Columns
 from command_map import command_map
+from util import is_mouse_press
+from text_layout import calc_coords
+from signals import disconnect_signal # doctests
 
 
 class SelectableIcon(Text):

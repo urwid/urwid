@@ -59,5 +59,6 @@ from command_map import *
 from main_loop import *
 from text_layout import *
 from display_common import *
+from util import *
 
 import raw_display

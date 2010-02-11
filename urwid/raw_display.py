@@ -34,7 +34,8 @@ import signal
 
 import util
 import escape
-from display_common import *
+from display_common import BaseScreen, RealTerminal, UPDATE_PALETTE_ENTRY, \
+    AttrSpec
 import signals
 
 try:

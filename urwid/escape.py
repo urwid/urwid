@@ -25,7 +25,6 @@ Terminal Escape Sequences for input and display
 """
 
 import util
-import os
 import re
 
 import encodings

@@ -19,11 +19,12 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from util import *
-from canvas import *
-from widget import *
+from util import is_mouse_press
+from canvas import SolidCanvas, CanvasCombine
+from widget import BoxWidget, nocache_widget_render_instance
 from decoration import calculate_filler, decompose_valign_height
 import signals
+from signals import connect_signal
 from monitored_list import MonitoredList
 from command_map import command_map
 
