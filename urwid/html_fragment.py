@@ -60,7 +60,7 @@ class HtmlGenerator(BaseScreen):
         if bright_is_bold is None:
             bright_is_bold = self.bright_is_bold
         if has_underline is None:
-            has_unerline = self.has_underline
+            has_underline = self.has_underline
 
         self.colors = colors
         self.bright_is_bold = bright_is_bold

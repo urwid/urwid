@@ -793,7 +793,7 @@ class Screen(BaseScreen, RealTerminal):
         if bright_is_bold is None:
             bright_is_bold = self.bright_is_bold
         if has_underline is None:
-            has_unerline = self.has_underline
+            has_underline = self.has_underline
 
         if colors == self.colors and bright_is_bold == self.bright_is_bold \
             and has_underline == self.has_underline:
