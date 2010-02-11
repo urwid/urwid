@@ -399,13 +399,12 @@ class Screen(BaseScreen, RealTerminal):
 
     def _get_gpm_codes(self):
         codes = []
-        if self.gpm_mev is not None:
-            try:
-                while True:
-                    codes.extend(self._encode_gpm_event())
-            except IOError, e:
-                if e.args[0] != 11:
-                    raise
+        try:
+            while self.gpm_mev is not None:
+                codes.extend(self._encode_gpm_event())
+        except IOError, e:
+            if e.args[0] != 11:
+                raise
         return codes
 
     def _wait_for_input_ready(self, timeout):

@@ -268,6 +268,7 @@ def main():
         (urwid.MainLoop, "MainLoop", None),
         (urwid.SelectEventLoop, "SelectEventLoop", None),
         (urwid.GLibEventLoop, "GLibEventLoop", None),
+        (urwid.TwistedEventLoop, "TwistedEventLoop", None),
         (None,"Top-level widgets",None),
         (urwid.Frame, "Frame", "B"),
         (urwid.Filler, "Filler", "B"),

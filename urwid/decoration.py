@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid widget decoration classes
-#    Copyright (C) 2004-2008  Ian Ward
+#    Copyright (C) 2004-2010  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -325,7 +325,7 @@ class BoxAdapter(WidgetDecoration):
         >>> BoxAdapter(SolidFill("x"), 5) # 5-rows of x's
         <BoxAdapter flow widget <SolidFill box widget 'x'> height=5>
         """
-        if BOX not in box_widget.sizing():
+        if hasattr(box_widget, 'sizing') and BOX not in box_widget.sizing():
             raise BoxAdapterError("%r is not a box widget" % 
                 box_widget)
         WidgetDecoration.__init__(self,box_widget)

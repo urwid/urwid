@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid __init__.py 
-#    Copyright (C) 2004-2007  Ian Ward
+#    Copyright (C) 2004-2010  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -41,7 +41,7 @@ __all__ = [
     'AttrSpec', 'AttrSpecError',
     ]
 
-VERSION = (0, 9, 9)
+VERSION = (0, 9, 9, 1)
 __version__ = ''.join(['-.'[type(x) == int]+str(x) for x in VERSION])[1:]
 
 

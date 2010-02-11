@@ -1,5 +1,20 @@
 # -*- coding: utf-8 -*-
 
+Urwid 0.9.9.1
+
+    * Fix for ListBox snapping to selectable widgets taller than the
+      ListBox itself
+
+    * raw_display switching to alternate buffer now works properly with 
+      Terminal.app
+
+    * Fix for BoxAdapter backwards incompatibility introduced in 0.9.9
+
+    * Fix for a doctest failure under powerpc
+
+    * Fix for systems with gpm_mev installed but not running gpm
+
+
 Urwid 0.9.9
 
     * New support for 256 and 88 color terminals with raw_display
