@@ -195,7 +195,7 @@ class Canvas(object):
             the old Canvas class is now called TextCanvas.
         """
         if value1 is not None: 
-            raise _renamed_error
+            raise self._renamed_error
         self._widget_info = None
         self.coords = {}
         self.shortcuts = {}

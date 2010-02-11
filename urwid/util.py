@@ -406,7 +406,7 @@ def _tagmarkup_recurse( tm, attr ):
     if type(tm) not in (str, unicode):
         # last ditch, try converting the object to unicode
         try:
-            tm = uncode(tm)
+            tm = unicode(tm)
         except:
             raise TagMarkupException, "Invalid markup element: %r" % tm
     
