@@ -362,6 +362,7 @@ class Overlay(BoxWidget):
         """Return cursor coords from top_w, if any."""
         if not hasattr(self.body, 'get_cursor_coords'):
             return None
+        (maxcol, maxrow) = size
         left, right, top, bottom = self.calculate_padding_filler(size,
             True)
         x, y = self.top_w.get_cursor_coords(
