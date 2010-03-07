@@ -26,7 +26,7 @@ import urwid.html_fragment
 import urwid
 try:
     import templayer
-except:
+except ImportError:
     templayer = None
 
 examples = {}

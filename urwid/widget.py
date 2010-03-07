@@ -30,7 +30,7 @@ from urwid.command_map import command_map
 from urwid.split_repr import split_repr, remove_defaults
 
 try: set
-except: set = list # not perfect, but should be good enough for python2.3
+except NameError: set = list # not perfect, but should be good enough for python2.3
 
 
 # Widget sizing methods
@@ -910,7 +910,7 @@ class Edit(Text):
         if type(text) not in (str, unicode):
             try:
                 text = unicode(text)
-            except:
+            except Exception:
                 raise EditError("Can't convert edit text to a string!")
         self.highlight = None
         self._emit("change", text)

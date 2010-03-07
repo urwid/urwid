@@ -698,7 +698,7 @@ class GLibEventLoop(object):
 
 try:
     from twisted.internet.abstract import FileDescriptor
-except:
+except ImportError:
     FileDescriptor = object
 
 class TwistedInputDescriptor(FileDescriptor):

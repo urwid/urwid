@@ -226,7 +226,7 @@ def screenshot_init( sizes, keys ):
         for (row,col) in sizes:
             assert type(row) == int
             assert row>0 and col>0
-    except:
+    except (AssertionError, ValueError):
         raise Exception, "sizes must be in the form [ (col1,row1), (col2,row2), ...]"
     
     try:
@@ -234,7 +234,7 @@ def screenshot_init( sizes, keys ):
             assert type(l) == list
             for k in l:
                 assert type(k) == str
-    except:
+    except (AssertionError, ValueError):
         raise Exception, "keys must be in the form [ [keyA1, keyA2, ..], [keyB1, ..], ...]"
     
     import curses_display

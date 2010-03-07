@@ -683,9 +683,10 @@ class Screen:
         Restore settings and clean up.  
         """
         assert self._started
+        # XXX which exceptions does this actually raise? EnvironmentError?
         try:
             self._close_connection()
-        except:
+        except Exception:
             pass
         signal.signal(signal.SIGTERM,signal.SIG_DFL)
         self._cleanup_pipe()
@@ -720,10 +721,11 @@ class Screen:
                 
     def _cleanup_pipe(self, *args):
         if not self.pipe_name: return
+        # XXX which exceptions does this actually raise? EnvironmentError?
         try:
             os.remove(self.pipe_name+".in")
             os.remove(self.pipe_name+".update")
-        except:
+        except Exception:
             pass
 
     def _set_screen_size(self, cols, rows ):

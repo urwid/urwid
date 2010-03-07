@@ -230,7 +230,7 @@ class BarGraph(BoxWidget):
         for i in satt.items():
             try:
                 (fg,bg), attr = i
-            except:
+            except ValueError:
                 raise BarGraphError, "satt not in (fg,bg:attr) form: %r"%(i,)
             if type(fg) != int or fg >= len(attlist):
                 raise BarGraphError, "fg not valid integer: %r"%(fg,)
