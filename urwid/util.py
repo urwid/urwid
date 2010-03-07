@@ -36,10 +36,6 @@ move_prev_char = str_util.move_prev_char
 within_double_byte = str_util.within_double_byte
 
 
-try: enumerate
-except: enumerate = lambda x: zip(range(len(x)),x) # old python
-
-
 # Try to determine if using a supported double-byte encoding
 import locale
 try:

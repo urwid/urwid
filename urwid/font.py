@@ -24,8 +24,6 @@ from urwid.escape import utf8decode, SAFE_ASCII_DEC_SPECIAL_RE
 from urwid.util import apply_target_encoding, str_util
 from urwid.canvas import TextCanvas
 
-try: True # old python?
-except: False, True = 0, 1
 
 def separate_glyphs(gdata, height):
     """return (dictionary of glyphs, utf8 required)"""

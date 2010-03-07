@@ -29,11 +29,8 @@ from urwid.canvas import CanvasCache, CompositeCanvas, SolidCanvas, \
 from urwid.command_map import command_map
 from urwid.split_repr import split_repr, remove_defaults
 
-try: sum # old python?
-except: sum = lambda l: reduce(lambda a,b: a+b, l, 0)
-
 try: set
-except: set = list # not perfect, but should be good enough for python2.2
+except: set = list # not perfect, but should be good enough for python2.3
 
 
 # Widget sizing methods

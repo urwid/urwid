@@ -30,9 +30,6 @@ import urwid
 import math
 import time
 
-try: sum # old python?
-except: sum = lambda l: reduce(lambda a,b: a+b, l, 0)
-
 UPDATE_INTERVAL = 0.2
 
 def sin100( x ):
