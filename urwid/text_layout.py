@@ -61,7 +61,7 @@ class StandardTextLayout(TextLayout):
         #tab_stops -- list of screen column indexes for tab stops
         #tab_stop_every -- repeated interval for following tab stops
         #"""
-        #assert tab_stop_every is None or type(tab_stop_every)==type(0)
+        #assert tab_stop_every is None or type(tab_stop_every)==int
         #if not tab_stops and tab_stop_every:
         #    self.tab_stops = (tab_stop_every,)
         #self.tab_stops = tab_stops
@@ -241,29 +241,29 @@ class LayoutSegment:
     def __init__(self, seg):
         """Create object from line layout segment structure"""
         
-        assert type(seg) == type(()), repr(seg)
+        assert type(seg) == tuple, repr(seg)
         assert len(seg) in (2,3), repr(seg)
         
         self.sc, self.offs = seg[:2]
         
-        assert type(self.sc) == type(0), repr(self.sc)
+        assert type(self.sc) == int, repr(self.sc)
         
         if len(seg)==3:
-            assert type(self.offs) == type(0), repr(self.offs)
+            assert type(self.offs) == int, repr(self.offs)
             assert self.sc > 0, repr(seg)
             t = seg[2]
-            if type(t) == type(""):
+            if type(t) == str:
                 self.text = t
                 self.end = None
             else:
-                assert type(t) == type(0), repr(t)
+                assert type(t) == int, repr(t)
                 self.text = None
                 self.end = t
         else:
             assert len(seg) == 2, repr(seg)
             if self.offs is not None:
                 assert self.sc >= 0, repr(seg)
-                assert type(self.offs)==type(0)
+                assert type(self.offs)==int
             self.text = self.end = None
             
     def subseg(self, text, start, end):
@@ -322,7 +322,7 @@ def shift_line( segs, amount ):
     segs -- line of a layout structure
     amount -- screen columns to shift right (+ve) or left (-ve)
     """
-    assert type(amount)==type(0), repr(amount)
+    assert type(amount)==int, repr(amount)
     
     if segs and len(segs[0])==2 and segs[0][1]==None:
         # existing shift
@@ -422,7 +422,7 @@ def calc_line_pos( text, line_layout, pref_col ):
                 break
         current_sc += s.sc
     
-    if closest_pos is None or type(closest_pos) == type(0):
+    if closest_pos is None or type(closest_pos) == int:
         return closest_pos
 
     # return the last positions in the segment "closest_pos"

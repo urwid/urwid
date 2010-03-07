@@ -210,7 +210,7 @@ class BarGraph(BoxWidget):
             raise BarGraphError, "attlist must include at least background and seg1: %r" % (attlist,)
         assert len(attlist) >= 2, 'must at least specify bg and fg!'
         for a in attlist:
-            if type(a)!=type(()):
+            if type(a)!=tuple:
                 self.attr.append(a)
                 self.char.append(' ')
             else:
@@ -221,7 +221,7 @@ class BarGraph(BoxWidget):
         self.hatt = []
         if hatt is None:
             hatt = [self.attr[0]]
-        elif type(hatt)!=type([]):
+        elif type(hatt)!=list:
             hatt = [hatt]
         self.hatt = hatt
         
@@ -232,9 +232,9 @@ class BarGraph(BoxWidget):
                 (fg,bg), attr = i
             except:
                 raise BarGraphError, "satt not in (fg,bg:attr) form: %r"%(i,)
-            if type(fg) != type(0) or fg >= len(attlist):
+            if type(fg) != int or fg >= len(attlist):
                 raise BarGraphError, "fg not valid integer: %r"%(fg,)
-            if type(bg) != type(0) or bg >= len(attlist):
+            if type(bg) != int or bg >= len(attlist):
                 raise BarGraphError, "bg not valid integer: %r"%(fg,)
             if fg<=bg:
                 raise BarGraphError, "fg (%s) not > bg (%s)" %(fg,bg)
@@ -400,7 +400,7 @@ class BarGraph(BoxWidget):
         def fill_row( row, chnum ):
             rout = []
             for bar_type, width in row:
-                if (type(bar_type) == type(0) and 
+                if (type(bar_type) == int and 
                         len(self.hatt) > bar_type ):
                     rout.append( ((bar_type, chnum), width))
                     continue
@@ -450,7 +450,7 @@ class BarGraph(BoxWidget):
                 l1 = (bt1, w1-w2)
             elif w2>w1:
                 l2 = (bt2, w2-w1)
-            if type(bt1)==type(()):
+            if type(bt1)==tuple:
                 return (bt1,wmin), l1, l2
             if not self.satt.has_key( (bt2, bt1) ):
                 if r<4:
@@ -512,7 +512,7 @@ class BarGraph(BoxWidget):
         for y_count, row in disp:
             l = []
             for bar_type, width in row:
-                if type(bar_type) == type(()):
+                if type(bar_type) == tuple:
                     if len(bar_type) == 3:
                         # vertical eighths
                         fg,bg,k = bar_type

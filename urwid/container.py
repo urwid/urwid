@@ -122,7 +122,7 @@ class GridFlow(FlowWidget):
         """Set the cell in focus.  
         
         cell -- widget or integer index into self.cells"""
-        if type(cell) == type(0):
+        if type(cell) == int:
             assert cell>=0 and cell<len(self.cells)
             self.focus_cell = self.cells[cell]
         else:
@@ -689,7 +689,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         self.item_types = []
         for i in range(len(widget_list)):
             w = widget_list[i]
-            if type(w) != type(()):
+            if type(w) != tuple:
                 self.item_types.append(('weight',1))
             elif w[0] == 'flow':
                 f, widget = w
@@ -720,7 +720,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         """Set the item in focus.  
         
         item -- widget or integer index"""
-        if type(item) == type(0):
+        if type(item) == int:
             assert item>=0 and item<len(self.widget_list)
             self.focus_item = self.widget_list[item]
         else:
@@ -1032,7 +1032,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         self.column_types = []
         for i in range(len(widget_list)):
             w = widget_list[i]
-            if type(w) != type(()):
+            if type(w) != tuple:
                 self.column_types.append(('weight',1))
             elif w[0] in ('fixed', 'weight'):
                 f,width,widget = w
@@ -1072,7 +1072,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         """Set the item in focus.  
         
         item -- widget or integer index"""
-        if type(item) == type(0):
+        if type(item) == int:
             assert item>=0 and item<len(self.widget_list)
             position = item
         else:
@@ -1233,7 +1233,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         i, x, end = best
         w = self.widget_list[i]
         if hasattr(w,'move_cursor_to_coords'):
-            if type(col)==type(0):
+            if type(col)==int:
                 move_x = min(max(0,col-x),end-x-1)
             else:
                 move_x = col
@@ -1288,7 +1288,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         col = None
         if hasattr(w,'get_pref_col'):
             col = w.get_pref_col((widths[self.focus_col],)+size[1:])
-            if type(col)==type(0):
+            if type(col)==int:
                 col += self.focus_col * self.dividechars
                 col += sum( widths[:self.focus_col] )
         if col is None:

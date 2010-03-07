@@ -117,11 +117,11 @@ class KeyqueueTrie(object):
     def __init__( self, sequences ):
         self.data = {}
         for s, result in sequences:
-            assert type(result) != type({})
+            assert type(result) != dict
             self.add(self.data, s, result)
     
     def add(self, root, s, result):
-        assert type(root) == type({}), "trie conflict detected"
+        assert type(root) == dict, "trie conflict detected"
         assert len(s) > 0, "trie conflict detected"
         
         if root.has_key(ord(s[0])):
@@ -139,7 +139,7 @@ class KeyqueueTrie(object):
         return result
     
     def get_recurse(self, root, keys, more_available):
-        if type(root) != type({}):
+        if type(root) != dict:
             if root == "mouse":
                 return self.read_mouse_info(keys, 
                     more_available)
@@ -382,8 +382,8 @@ INSERT_ON = ESC + "[4h"
 INSERT_OFF = ESC + "[4l"
 
 def set_cursor_position( x, y ):
-    assert type(x) == type(0)
-    assert type(y) == type(0)
+    assert type(x) == int
+    assert type(y) == int
     return ESC+"[%d;%dH" %(y+1, x+1)
 
 def move_cursor_right(x):

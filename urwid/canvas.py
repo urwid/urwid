@@ -295,11 +295,11 @@ class TextCanvas(Canvas):
         if check_width:
             widths = []
             for t in text:
-                if type(t) != type(""):
+                if type(t) != str:
                     raise CanvasError("Canvas text must be plain strings encoded in the screen's encoding", repr(text))
                 widths.append( calc_width( t, 0, len(t)) )
         else:
-            assert type(maxcol) == type(0)
+            assert type(maxcol) == int
             widths = [maxcol] * len(text)
 
         if maxcol is None:
@@ -577,7 +577,7 @@ class CompositeCanvas(Canvas):
             for i in range(num_rows):
                 # if whole shard is unchanged, don't keep 
                 # calling shard_body_row
-                if len(row) != 1 or type(row[0]) != type(0):
+                if len(row) != 1 or type(row[0]) != int:
                     row = shard_body_row(sbody)
                 yield row
 
@@ -785,7 +785,7 @@ def shard_body_row(sbody):
             row.extend(content_iter.next())
         else:
             # need to skip this unchanged canvas
-            if row and type(row[-1]) == type(0):
+            if row and type(row[-1]) == int:
                 row[-1] = row[-1] + cview[2]
             else:
                 row.append(cview[2])

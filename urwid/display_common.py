@@ -784,7 +784,7 @@ class BaseScreen(object):
         """
         basic = AttrSpec(foreground, background, 16)
 
-        if type(mono) == type(()):
+        if type(mono) == tuple:
             # old style of specifying mono attributes was to put them
             # in a tuple.  convert to comma-separated string
             mono = ",".join(mono)

@@ -54,7 +54,7 @@ def key_test():
         t = []
         a = []
         for k in keys:
-            if type(k) == type(()):
+            if type(k) == tuple:
                 out = []
                 for v in k:
                     if out:

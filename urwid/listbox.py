@@ -49,7 +49,7 @@ class PollingListWalker(object):  # NOT ListWalker subclass
         contents -- list to poll for changes
         """
         self.contents = contents
-        if not type(contents) == type([]) and not hasattr( 
+        if not type(contents) == list and not hasattr( 
             contents, '__getitem__' ):
             raise ListWalkerError, "SimpleListWalker expecting list like object, got: %r"%(contents,)
         self.focus = 0
@@ -66,7 +66,7 @@ class PollingListWalker(object):  # NOT ListWalker subclass
 
     def set_focus(self, position):
         """Set focus position."""
-        assert type(position) == type(1)
+        assert type(position) == int
         self.focus = position
 
     def get_next(self, start_from):
@@ -95,7 +95,7 @@ class SimpleListWalker(MonitoredList, ListWalker):
         detected automatically and will cause ListBox objects using
         this list walker to be updated.
         """
-        if not type(contents) == type([]) and not hasattr(contents, '__getitem__'):
+        if not type(contents) == list and not hasattr(contents, '__getitem__'):
             raise ListWalkerError, "SimpleListWalker expecting list like object, got: %r"%(contents,)
         MonitoredList.__init__(self, contents)
         self.focus = 0
@@ -133,7 +133,7 @@ class SimpleListWalker(MonitoredList, ListWalker):
 
     def set_focus(self, position):
         """Set focus position."""
-        assert type(position) == type(1)
+        assert type(position) == int
         self.focus = position
         self._modified()
 
@@ -562,7 +562,7 @@ class ListBox(BoxWidget):
             pref_col = widget.get_pref_col((maxcol,))
         if pref_col is None and hasattr(widget,'get_cursor_coords'):
             coords = widget.get_cursor_coords((maxcol,))
-            if type(coords) == type(()):
+            if type(coords) == tuple:
                 pref_col,y = coords
         if pref_col is not None: 
             self.pref_col = pref_col

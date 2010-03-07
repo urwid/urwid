@@ -104,7 +104,7 @@ def apply_target_encoding( s ):
     """
     Return (encoded byte string, character set rle).
     """
-    if _use_dec_special and type(s) == type(u""):
+    if _use_dec_special and type(s) == unicode:
         # first convert drawing characters
         try:
             s = s.translate( escape.DEC_SPECIAL_CHARMAP )
@@ -114,7 +114,7 @@ def apply_target_encoding( s ):
                     escape.ALT_DEC_SPECIAL_CHARS):
                 s = s.replace( c, escape.SO+alt+escape.SI )
     
-    if type(s) == type(u""):
+    if type(s) == unicode:
         s = s.replace( escape.SI+escape.SO, u"" ) # remove redundant shifts
         s = s.encode( _target_encoding )
 
@@ -261,7 +261,7 @@ def rle_len( rle ):
     
     run = 0
     for v in rle:
-        assert type(v) == type(()), repr(rle)
+        assert type(v) == tuple, repr(rle)
         a, r = v
         run += r
     return run
@@ -386,7 +386,7 @@ def _tagmarkup_recurse( tm, attr ):
             ral += al
         return rtl, ral
         
-    if type(tm) == type(()):
+    if type(tm) == tuple:
         # tuples mark a new attribute boundary
         if len(tm) != 2: 
             raise TagMarkupException, "Tuples must be in the form (attribute, tagmarkup): %r" % (tm,)
@@ -403,7 +403,7 @@ def _tagmarkup_recurse( tm, attr ):
 
 
 def is_mouse_event( ev ):
-    return type(ev) == type(()) and len(ev)==4 and ev[0].find("mouse")>=0
+    return type(ev) == tuple and len(ev)==4 and ev[0].find("mouse")>=0
 
 def is_mouse_press( ev ):
     return ev.find("press")>=0

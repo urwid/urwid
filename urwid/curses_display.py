@@ -124,7 +124,7 @@ class Screen(RealTerminal):
             raise Exception("%s is not a supported background colour"%background )
         assert (mono is None or 
             mono in (None, 'bold', 'underline', 'standout') or
-            type(mono)==type(()))
+            type(mono)==tuple)
     
         for i in range(len(self.curses_pairs)):
             pair = self.curses_pairs[i]
@@ -234,7 +234,7 @@ class Screen(RealTerminal):
             if self.has_color:
                 self.attrconv[name] = curses.color_pair(cp)
                 if a: self.attrconv[name] |= curses.A_BOLD
-            elif type(mono)==type(()):
+            elif type(mono)==tuple:
                 attr = 0
                 for m in mono:
                     attr |= self._curses_attr(m)
@@ -637,7 +637,7 @@ class _test:
             t = ""
             a = []
             for k in keys:
-                if type(k) == type(u""): k = k.encode("utf-8")
+                if type(k) == unicode: k = k.encode("utf-8")
                 t += "'"+k + "' "
                 a += [(None,1), ('yellow on dark blue',len(k)),
                     (None,2)]

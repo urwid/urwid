@@ -454,7 +454,7 @@ class Padding(WidgetDecoration):
         self.__super.__init__(w)
 
         # convert obsolete parameters 'fixed left' and 'fixed right':
-        if type(align) == type(()) and align[0] in ('fixed left', 
+        if type(align) == tuple and align[0] in ('fixed left', 
             'fixed right'):
             if align[0]=='fixed left':
                 left = align[1]
@@ -462,7 +462,7 @@ class Padding(WidgetDecoration):
             else:
                 right = align[1]
                 align = RIGHT
-        if type(width) == type(()) and width[0] in ('fixed left', 
+        if type(width) == tuple and width[0] in ('fixed left', 
             'fixed right'):
             if width[0]=='fixed left':
                 left = width[1]
@@ -610,7 +610,7 @@ class Padding(WidgetDecoration):
         left, right = self.padding_values(size, True)
         maxcol = size[0]
         maxvals = (maxcol-left-right,)+size[1:] 
-        if type(x)==type(0):
+        if type(x)==int:
             if x < left: 
                 x = left
             elif x >= maxcol-right: 
@@ -639,7 +639,7 @@ class Padding(WidgetDecoration):
         maxcol = size[0]
         maxvals = (maxcol-left-right,)+size[1:] 
         x = self._original_widget.get_pref_col(maxvals)
-        if type(x) == type(0):
+        if type(x) == int:
             return x+left
         return x
         
@@ -819,7 +819,7 @@ def normalize_align(align, err):
     """
     if align in (LEFT, CENTER, RIGHT):
         return (align, 0)
-    elif type(align) == type(()) and len(align) == 2 and align[0] == RELATIVE:
+    elif type(align) == tuple and len(align) == 2 and align[0] == RELATIVE:
         return align
     raise err("align value %r is not one of 'left', 'center', "
         "'right', ('relative', percentage 0=left 100=right)" 
@@ -841,9 +841,9 @@ def normalize_width(width, err):
     """
     if width in (CLIP, PACK):
         return (width, 0)
-    elif type(width) == type(0):
+    elif type(width) == int:
         return (GIVEN, width)
-    elif type(width) == type(()) and len(width) == 2 and width[0] == RELATIVE:
+    elif type(width) == tuple and len(width) == 2 and width[0] == RELATIVE:
         return width
     raise err("width value %r is not one of fixed number of columns, "
         "'pack', ('relative', percentage of total width), 'clip'" 
@@ -877,7 +877,7 @@ def decompose_align_width( align, width, err ):
     try:
         if width is None:
             width = None, None
-        elif type(width) == type(0):
+        elif type(width) == int:
             width = 'fixed', width
         width_type, width_amount = width
         assert width_type in ('fixed','fixed right','fixed left',
@@ -909,7 +909,7 @@ def decompose_valign_height( valign, height, err ):
     try:
         if height is None:
             height = None, None
-        elif type(height) == type(0):
+        elif type(height) == int:
             height=('fixed',height)
         height_type, height_amount = height
         assert height_type in (None, 'fixed','fixed bottom','fixed top','relative')
