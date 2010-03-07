@@ -20,8 +20,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import nested_scopes
-
 from urwid import escape
 
 try:

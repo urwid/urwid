@@ -20,8 +20,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import nested_scopes
-
 from urwid.escape import utf8decode, SAFE_ASCII_DEC_SPECIAL_RE
 from urwid.util import apply_target_encoding, str_util
 from urwid.canvas import TextCanvas

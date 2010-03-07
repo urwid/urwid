@@ -20,8 +20,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import nested_scopes
-
 from urwid.util import decompose_tagmarkup, get_encoding_mode
 from urwid.canvas import CompositeCanvas, CanvasJoin, TextCanvas, CanvasCombine
 from urwid.widget import WidgetMeta, BoxWidget, FlowWidget, FixedWidget, \

@@ -23,8 +23,6 @@
 Curses-based UI implementation
 """
 
-from __future__ import nested_scopes
-
 import curses
 import _curses
 
