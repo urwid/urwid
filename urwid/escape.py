@@ -44,7 +44,7 @@ DEC_SPECIAL_CHARS = utf8decode("◆▒°±┘┐┌└┼⎺⎻─⎼⎽├┤�
 ALT_DEC_SPECIAL_CHARS = u"`afgjklmnopqrstuvwxyz{|}~"
 
 DEC_SPECIAL_CHARMAP = {}
-assert len(DEC_SPECIAL_CHARS) == len(ALT_DEC_SPECIAL_CHARS), `DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS`
+assert len(DEC_SPECIAL_CHARS) == len(ALT_DEC_SPECIAL_CHARS), repr((DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS))
 for c, alt in zip(DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS):
     DEC_SPECIAL_CHARMAP[ord(c)] = SO + alt + SI
 

@@ -634,7 +634,7 @@ class Screen(BaseScreen, RealTerminal):
                     o.append(attr_to_escape(a))
                     lasta = a
                 if first or lastcs != cs:
-                    assert cs in [None, "0"], `cs`
+                    assert cs in [None, "0"], repr(cs)
                     if cs is None:
                         o.append( escape.SI )
                     else:
@@ -645,7 +645,7 @@ class Screen(BaseScreen, RealTerminal):
             if ins:
                 (inserta, insertcs, inserttext) = ins
                 ias = attr_to_escape(inserta)
-                assert insertcs in [None, "0"], `insertcs`
+                assert insertcs in [None, "0"], repr(insertcs)
                 if cs is None:
                     icss = escape.SI
                 else:

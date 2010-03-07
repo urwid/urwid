@@ -818,9 +818,9 @@ def normalize_align(align, err):
         return (align, 0)
     elif type(align) == type(()) and len(align) == 2 and align[0] == RELATIVE:
         return align
-    raise err("align value %s is not one of 'left', 'center', "
+    raise err("align value %r is not one of 'left', 'center', "
         "'right', ('relative', percentage 0=left 100=right)" 
-        % `align`)
+        % (align,))
 
 def simplify_align(align_type, align_amount):
     """
@@ -842,9 +842,9 @@ def normalize_width(width, err):
         return (GIVEN, width)
     elif type(width) == type(()) and len(width) == 2 and width[0] == RELATIVE:
         return width
-    raise err("width value %s is not one of fixed number of columns, "
+    raise err("width value %r is not one of fixed number of columns, "
         "'pack', ('relative', percentage of total width), 'clip'" 
-        % `width`)
+        % (width,))
 
 def simplify_width(width_type, width_amount):
     """
@@ -866,10 +866,10 @@ def decompose_align_width( align, width, err ):
         assert align_type in ('left','center','right','fixed left',
             'fixed right','relative')
     except:
-        raise err("align value %s is not one of 'left', 'center', "
+        raise err("align value %r is not one of 'left', 'center', "
             "'right', ('fixed left', columns), ('fixed right', "
             "columns), ('relative', percentage 0=left 100=right)" 
-            % `align`)
+            % (align,))
 
     try:
         if width is None:
@@ -880,9 +880,9 @@ def decompose_align_width( align, width, err ):
         assert width_type in ('fixed','fixed right','fixed left',
             'relative', None)
     except:
-        raise err("width value %s is not one of ('fixed', columns "
+        raise err("width value %r is not one of ('fixed', columns "
             "width), ('fixed right', columns), ('relative', "
-            "percentage of total width), None" % `width`)
+            "percentage of total width), None" % (width,))
         
     if width_type == 'fixed left' and align_type != 'fixed right':
         raise err("fixed left width may only be used with fixed "
@@ -901,7 +901,7 @@ def decompose_valign_height( valign, height, err ):
         valign_type, valign_amount = valign
         assert valign_type in ('top','middle','bottom','fixed top','fixed bottom','relative')
     except:
-        raise err, "Invalid valign: %s" % `valign`
+        raise err, "Invalid valign: %r" % (valign,)
 
     try:
         if height is None:
@@ -911,7 +911,7 @@ def decompose_valign_height( valign, height, err ):
         height_type, height_amount = height
         assert height_type in (None, 'fixed','fixed bottom','fixed top','relative')
     except:
-        raise err, "Invalid height: %s"%`height`
+        raise err, "Invalid height: %r"%(height,)
         
     if height_type == 'fixed top' and valign_type != 'fixed bottom':
         raise err, "fixed top height may only be used with fixed bottom valign"

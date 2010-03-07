@@ -267,7 +267,7 @@ def rle_len( rle ):
     
     run = 0
     for v in rle:
-        assert type(v) == type(()), `rle`
+        assert type(v) == type(()), repr(rle)
         a, r = v
         run += r
     return run
@@ -395,7 +395,7 @@ def _tagmarkup_recurse( tm, attr ):
     if type(tm) == type(()):
         # tuples mark a new attribute boundary
         if len(tm) != 2: 
-            raise TagMarkupException, "Tuples must be in the form (attribute, tagmarkup): %s" % `tm`
+            raise TagMarkupException, "Tuples must be in the form (attribute, tagmarkup): %r" % (tm,)
 
         attr, element = tm
         return _tagmarkup_recurse( element, attr )

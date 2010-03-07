@@ -297,7 +297,7 @@ class TextCanvas(Canvas):
             widths = []
             for t in text:
                 if type(t) != type(""):
-                    raise CanvasError("Canvas text must be plain strings encoded in the screen's encoding", `text`)
+                    raise CanvasError("Canvas text must be plain strings encoded in the screen's encoding", repr(text))
                 widths.append( calc_width( t, 0, len(t)) )
         else:
             assert type(maxcol) == type(0)
@@ -319,18 +319,18 @@ class TextCanvas(Canvas):
         for i in range(len(text)):
             w = widths[i]
             if w > maxcol: 
-                raise CanvasError("Canvas text is wider than the maxcol specified \n%s\n%s\n%s"%(`maxcol`,`widths`,`text`))
+                raise CanvasError("Canvas text is wider than the maxcol specified \n%r\n%r\n%r"%(maxcol,widths,text))
             if w < maxcol:
                 text[i] = text[i] + " "*(maxcol-w)
             a_gap = len(text[i]) - rle_len( attr[i] )
             if a_gap < 0:
-                raise CanvasError("Attribute extends beyond text \n%s\n%s" % (`text[i]`,`attr[i]`) )
+                raise CanvasError("Attribute extends beyond text \n%r\n%r" % (text[i],attr[i]) )
             if a_gap:
                 rle_append_modify( attr[i], (None, a_gap))
             
             cs_gap = len(text[i]) - rle_len( cs[i] )
             if cs_gap < 0:
-                raise CanvasError("Character Set extends beyond text \n%s\n%s" % (`text[i]`,`cs[i]`) )
+                raise CanvasError("Character Set extends beyond text \n%r\n%r" % (text[i],cs[i]) )
             if cs_gap:
                 rle_append_modify( cs[i], (None, cs_gap))
             
@@ -694,8 +694,8 @@ class CompositeCanvas(Canvas):
         right = self.cols() - left - width
         bottom = self.rows() - top - height
         
-        assert right >= 0, "top canvas of overlay not the size expected!" + `other.cols(),left,right,width`
-        assert bottom >= 0, "top canvas of overlay not the size expected!" + `other.rows(),top,bottom,height`
+        assert right >= 0, "top canvas of overlay not the size expected!" + repr((other.cols(),left,right,width))
+        assert bottom >= 0, "top canvas of overlay not the size expected!" + repr((other.rows(),top,bottom,height))
 
         shards = self.shards
         top_shards = []

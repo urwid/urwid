@@ -894,7 +894,7 @@ class Screen:
         os.close(self.input_fd)
         self.input_fd = os.open(self.pipe_name+".in", 
             os.O_NONBLOCK | os.O_RDONLY)
-        #sys.stderr.write( `keydata,self.input_tail`+"\n" )
+        #sys.stderr.write( repr((keydata,self.input_tail))+"\n" )
         keys = keydata.split("\n")
         keys[0] = self.input_tail + keys[0]
         self.input_tail = keys[-1]

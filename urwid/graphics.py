@@ -209,7 +209,7 @@ class BarGraph(BoxWidget):
         self.attr = []
         self.char = []
         if len(attlist) < 2:
-            raise BarGraphError, "attlist must include at least background and seg1: %s" % `attlist`
+            raise BarGraphError, "attlist must include at least background and seg1: %r" % (attlist,)
         assert len(attlist) >= 2, 'must at least specify bg and fg!'
         for a in attlist:
             if type(a)!=type(()):
@@ -233,11 +233,11 @@ class BarGraph(BoxWidget):
             try:
                 (fg,bg), attr = i
             except:
-                raise BarGraphError, "satt not in (fg,bg:attr) form: %s"%`i`
+                raise BarGraphError, "satt not in (fg,bg:attr) form: %r"%(i,)
             if type(fg) != type(0) or fg >= len(attlist):
-                raise BarGraphError, "fg not valid integer: %s"%`fg`
+                raise BarGraphError, "fg not valid integer: %r"%(fg,)
             if type(bg) != type(0) or bg >= len(attlist):
-                raise BarGraphError, "bg not valid integer: %s"%`fg`
+                raise BarGraphError, "bg not valid integer: %r"%(fg,)
             if fg<=bg:
                 raise BarGraphError, "fg (%s) not > bg (%s)" %(fg,bg)
         self.satt = satt
@@ -609,7 +609,7 @@ def calculate_bargraph_display( bardata, top, bar_widths, maxrow ):
         col += width
         barnum += 1
     
-    #print `rows`
+    #print repr(rows)
     # build rowsets data structure
     rowsets = []
     y_count = 0
@@ -666,7 +666,7 @@ def calculate_bargraph_display( bardata, top, bar_widths, maxrow ):
             c += ln
             if c == maxcol:
                 break
-            assert i<len(last), `on, maxcol`
+            assert i<len(last), repr((on, maxcol))
             la, ln = last[i]
     
         if i < len(last): 

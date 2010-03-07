@@ -32,8 +32,8 @@ from doctest import DocTestSuite
 class DecodeOneTest(unittest.TestCase):
     def gwt(self, ch, exp_ord, exp_pos):
         o, pos = urwid.str_util.decode_one(ch,0)
-        assert o==exp_ord, " got:"+`o`+" expected:"+`exp_ord`
-        assert pos==exp_pos, " got:"+`pos`+" expected:"+`exp_pos`
+        assert o==exp_ord, " got:%r expected:%r" % (o, exp_ord)
+        assert pos==exp_pos, " got:%r expected:%r" % (pos, exp_pos)
     
     def test1byte(self):
         self.gwt("ab", ord("a"), 1)
@@ -65,7 +65,7 @@ class DecodeOneTest(unittest.TestCase):
 class CalcWidthTest(unittest.TestCase):
     def wtest(self, desc, s, exp):
         result = urwid.calc_width( s, 0, len(s))
-        assert result==exp, desc+" got:"+`result`+" expected:"+`exp`
+        assert result==exp, "%s got:%r expected:%r" % (desc, result, exp)
     def test1(self):
         urwid.set_encoding("utf-8")
         self.wtest("narrow", "hello", 5)
@@ -86,9 +86,10 @@ class ConvertDecSpecialTest(unittest.TestCase):
         urwid.set_encoding('ascii')
         c = urwid.Text(s).render((5,))
         result = c._text[0]
-        assert result==exp, desc+" got:"+`result`+" expected:"+`exp`
+        assert result==exp, "%s got:%r expected:%r" % (desc, result, exp)
         resultcs = c._cs[0]
-        assert resultcs==expcs, desc+" got:"+`resultcs`+" expected:"+`expcs`
+        assert resultcs==expcs, "%s got:%r expected:%r" % (desc,
+                                                           resultcs, expcs)
         
 
     def test1(self):
@@ -107,7 +108,8 @@ class WithinDoubleByteTest(unittest.TestCase):
         urwid.set_encoding("euc-jp")
     def wtest(self, str, ls, pos, expected, desc):
         result = urwid.within_double_byte(str, ls, pos)
-        assert result==expected, desc+" got:"+`result`+" expected:"+`expected`
+        assert result==expected, "%s got:%r expected: %r" % (desc,
+                                                             result, expected)
     def test1(self):
         self.wtest("mnopqr",0,2,0,'simple no high bytes')
         self.wtest("mn\xA1\xA1qr",0,2,1,'simple 1st half')
@@ -144,7 +146,8 @@ class CalcTextPosTest(unittest.TestCase):
     def ctptest(self, text, tests):
         for s,e,p, expected in tests:
             got = urwid.calc_text_pos( text, s, e, p )
-            assert got == expected, `s,e,p`+" got: "+`got`+" expected:"+`expected`
+            assert got == expected, "%r got:%r expected:%r" % ((s,e,p),
+                                                               got, expected)
     def test1(self):
         text = "hello world out there"
         tests = [
@@ -203,10 +206,10 @@ class CalcBreaksTest(unittest.TestCase):
     def cbtest(self, width, exp):
         result = urwid.default_layout.calculate_text_segments( 
             self.text, width, self.mode )
-        assert len(result) == len(exp), `result, exp`
+        assert len(result) == len(exp), repr((result, exp))
         for l,e in zip(result, exp):
             end = l[-1][-1]
-            assert end == e, `result,exp`
+            assert end == e, repr((result,exp))
     
     def test(self):
         for width, exp in self.do:
@@ -283,7 +286,7 @@ class SubsegTest(unittest.TestCase):
     def st(self, seg, text, start, end, exp):
         s = urwid.LayoutSegment(seg)
         result = s.subseg( text, start, end )
-        assert result == exp, "Expected %s, got %s"%(`exp`,`result`)
+        assert result == exp, "Expected %r, got %r"%(exp,result)
         
     def test1_padding(self):
         self.st( (10, None), "", 0, 8,    [(8, None)] )
@@ -465,7 +468,8 @@ class CalcPosTest(unittest.TestCase):
     def tests(self):
         for x,y, expected in self.mytests:
             got = urwid.calc_pos( self.text, self.trans, x, y )
-            assert got == expected, `x,y`+" got: "+`got`+" expected:"+`expected`
+            assert got == expected, "%r got:%r expected:%r" % ((x, y), got,
+                                                               expected)
 
 
 class Pos2CoordsTest(unittest.TestCase):
@@ -489,8 +493,7 @@ class Pos2CoordsTest(unittest.TestCase):
         for t, answer in self.mytests:
             for pos,a in zip(self.pos_list,answer) :
                 r = urwid.calc_coords( self.text, t, pos)
-                assert r==a, "%s got: %s expected: %s"%(
-                    `t`,`r`,`a`)
+                assert r==a, "%r got: %r expected: %r"%(t,r,a)
 
 
 class CanvasCacheTest(unittest.TestCase):
@@ -532,12 +535,14 @@ class CanvasTest(unittest.TestCase):
     def ct(self, text, attr, exp_content):
         c = urwid.TextCanvas(text, attr)
         content = list(c.content())
-        assert content == exp_content, "got: "+`content`+" expected: "+`exp_content`
+        assert content == exp_content, "got: %r expected: %r" % (content,
+                                                                 exp_content)
 
     def ct2(self, text, attr, left, top, cols, rows, def_attr, exp_content):
         c = urwid.TextCanvas(text, attr)
         content = list(c.content(left, top, cols, rows, def_attr))
-        assert content == exp_content, "got: "+`content`+" expected: "+`exp_content`
+        assert content == exp_content, "got: %r expected: %r" % (content,
+                                                                 exp_content)
 
     def test1(self):
         self.ct(["Hello world"], None, [[(None, None, "Hello world")]])
@@ -563,15 +568,15 @@ class CanvasTest(unittest.TestCase):
 class ShardBodyTest(unittest.TestCase):
     def sbt(self, shards, shard_tail, expected):
         result = urwid.shard_body(shards, shard_tail, False)
-        assert result == expected, "got: "+`result`+" expected: "+`expected`
+        assert result == expected, "got: %r expected: %r" % (result, expected)
     
     def sbttail(self, num_rows, sbody, expected):
         result = urwid.shard_body_tail(num_rows, sbody)
-        assert result == expected, "got: "+`result`+" expected: "+`expected`
+        assert result == expected, "got: %r expected: %r" % (result, expected)
     
     def sbtrow(self, sbody, expected):
         result = list(urwid.shard_body_row(sbody))
-        assert result == expected, "got: "+`result`+" expected: "+`expected`
+        assert result == expected, "got: %r expected: %r" % (result, expected)
 
     
     def test1(self):
@@ -624,15 +629,15 @@ class ShardBodyTest(unittest.TestCase):
 class ShardsTrimTest(unittest.TestCase):
     def sttop(self, shards, top, expected):
         result = urwid.shards_trim_top(shards, top)
-        assert result == expected, "got: "+`result`+" expected: "+`expected`
+        assert result == expected, "got: %r expected: %r" (result, expected)
 
     def strows(self, shards, rows, expected):
         result = urwid.shards_trim_rows(shards, rows)
-        assert result == expected, "got: "+`result`+" expected: "+`expected`
+        assert result == expected, "got: %r expected: %r" (result, expected)
     
     def stsides(self, shards, left, cols, expected):
         result = urwid.shards_trim_sides(shards, left, cols)
-        assert result == expected, "got: "+`result`+" expected: "+`expected`
+        assert result == expected, "got: %r expected: %r" (result, expected)
 
 
     def test1(self):
@@ -714,7 +719,7 @@ class ShardsTrimTest(unittest.TestCase):
 class ShardsJoinTest(unittest.TestCase):
     def sjt(self, shard_lists, expected):
         result = urwid.shards_join(shard_lists)
-        assert result == expected, "got: "+`result`+" expected: "+`expected`
+        assert result == expected, "got: %r expected: %r" (result, expected)
 
     def test(self):
         shards1 = [(5, [(0,0,10,5,None,"foo"), (0,0,5,8,None,"baz")]),
@@ -755,8 +760,8 @@ class TagMarkupTest(unittest.TestCase):
     def test(self):
         for input, text, attr in self.mytests:
             restext,resattr = urwid.decompose_tagmarkup( input )
-            assert restext == text, "got: "+`restext`+" expected: "+`text`
-            assert resattr == attr, "got: "+`resattr`+" expected: "+`attr`
+            assert restext == text, "got: %r expected: %r" % (restext, text)
+            assert resattr == attr, "got: %r expected: %r" % (resattr, attr)
     def test_bad_tuple(self):
         try:
             urwid.decompose_tagmarkup((1,2,3))
@@ -782,25 +787,25 @@ class TextTest(unittest.TestCase):
     def test1_wrap(self):
         expected = ["I walk the","city in   ","the night "]
         got = self.t.render((10,))._text
-        assert got == expected, "got: "+`got`+" expected:"+`expected`
+        assert got == expected, "got: %r expected: %r" (got, expected)
     
     def test2_left(self):
         self.t.set_align_mode('left')
         expected = ["I walk the        ","city in the night "]
         got = self.t.render((18,))._text
-        assert got == expected, "got: "+`got`+" expected:"+`expected`
+        assert got == expected, "got: %r expected: %r" (got, expected)
     
     def test3_right(self):
         self.t.set_align_mode('right')
         expected = ["        I walk the"," city in the night"]
         got = self.t.render((18,))._text
-        assert got == expected, "got: "+`got`+" expected:"+`expected`
+        assert got == expected, "got: %r expected: %r" (got, expected)
     
     def test4_center(self):
         self.t.set_align_mode('center')
         expected = ["    I walk the    "," city in the night"]
         got = self.t.render((18,))._text
-        assert got == expected, "got: "+`got`+" expected:"+`expected`
+        assert got == expected, "got: %r expected: %r" (got, expected)
 
 
 
@@ -812,8 +817,10 @@ class EditTest(unittest.TestCase):
     
     def ktest(self, e, key, expected, pos, desc):
         got= e.keypress((12,),key)
-        assert got == expected, desc+ ".  got: "+`got`+" expected:"+`expected`
-        assert e.edit_pos == pos, desc+ ". pos: "+`e.edit_pos`+" expected pos: "+`pos`
+        assert got == expected, "%s.  got: %r expected:%r" % (desc, got,
+                                                              expected)
+        assert e.edit_pos == pos, "%s. pos: %r expected pos: " % (
+            desc, e.edit_pos, pos)
     
     def test1_left(self):
         self.t1.set_edit_pos(0)
@@ -854,11 +861,14 @@ class EditTest(unittest.TestCase):
 class EditRenderTest(unittest.TestCase):
     def rtest(self, w, expected_text, expected_cursor):
         get_cursor = w.get_cursor_coords((4,))
-        assert get_cursor == expected_cursor, "got: "+`get_cursor`+" expected: "+`expected_cursor`
+        assert get_cursor == expected_cursor, "got: %r expected: %r" % (
+            get_cursor, expected_cursor)
         r = w.render((4,), focus = 1)
         text = [t for a, cs, t in [ln[0] for ln in r.content()]]
-        assert text == expected_text, "got: "+`text`+" expected: "+`expected_text`
-        assert r.cursor == expected_cursor, "got: "+`r.cursor`+" expected: "+`expected_cursor`
+        assert text == expected_text, "got: %r expected: %r" % (text,
+                                                                expected_text)
+        assert r.cursor == expected_cursor, "got: %r expected: %r" % (
+            r.cursor, expected_cursor)
 
     
     def test1_SpaceWrap(self):
@@ -930,8 +940,8 @@ class ListBoxCalculateVisibleTest(unittest.TestCase):
             y += offset_inset
             cursor = x, y
                 
-        assert offset_inset == exp_offset_inset, "%s got: %s expected: %s" %(desc,`offset_inset`,`exp_offset_inset`)
-        assert cursor == exp_cur, "%s (cursor) got: %s expected: %s" %(desc,`cursor`,`exp_cur`)
+        assert offset_inset == exp_offset_inset, "%s got: %r expected: %r" %(desc,offset_inset,exp_offset_inset)
+        assert cursor == exp_cur, "%s (cursor) got: %r expected: %r" %(desc,cursor,exp_cur)
     
     def test1_simple(self):
         T = urwid.Text
@@ -1024,7 +1034,7 @@ class ListBoxChangeFocusTest(unittest.TestCase):
                 cursor=focus_widget.get_cursor_coords((4,))
             
         assert act == exp, "%s got: %s expected: %s" %(desc, act, exp)
-        assert cursor == exp_cur, "%s (cursor) got: %s expected: %s" %(desc,`cursor`,`exp_cur`)
+        assert cursor == exp_cur, "%s (cursor) got: %r expected: %r" %(desc,cursor,exp_cur)
     
         
     def test1unselectable(self):
@@ -1121,8 +1131,8 @@ class ListBoxRenderTest(unittest.TestCase):
 
         cursor = canvas.cursor
         
-        assert text == exp_text, "%s (text) got: %s expected: %s" %(desc,`text`,`exp_text`)
-        assert cursor == exp_cur, "%s (cursor) got: %s expected: %s" %(desc,`cursor`,`exp_cur`)
+        assert text == exp_text, "%s (text) got: %r expected: %r" %(desc,text,exp_text)
+        assert cursor == exp_cur, "%s (cursor) got: %r expected: %r" %(desc,cursor,exp_cur)
         
     
     def test1Simple(self):
@@ -1216,8 +1226,8 @@ class ListBoxKeypressTest(unittest.TestCase):
                 
         exp = exp_focus, exp_offset_inset
         act = focus_pos, offset_inset
-        assert act == exp, "%s got: %s expected: %s" %(desc,`act`,`exp`)
-        assert cursor == exp_cur, "%s (cursor) got: %s expected: %s" %(desc,`cursor`,`exp_cur`)
+        assert act == exp, "%s got: %r expected: %r" %(desc,act,exp)
+        assert cursor == exp_cur, "%s (cursor) got: %r expected: %r" %(desc,cursor,exp_cur)
         return ret_key,lbox
         
         
@@ -1811,8 +1821,8 @@ class FrameTest(unittest.TestCase):
 
         rval = f.frame_top_bottom(size, focus)
         exp = (top, bottom), (header_rows, footer_rows)
-        assert exp == rval, "%s expected %s but got %s"%(
-            desc,`exp`,`rval`)
+        assert exp == rval, "%s expected %r but got %r"%(
+            desc,exp,rval)
         
     def test(self):
         self.ftbtest("simple", 'body', 0, 0, (9, 10), True, 0, 0)
@@ -1850,15 +1860,15 @@ class PileTest(unittest.TestCase):
             rkey, rfocus, rpref_col):
         p = urwid.Pile( l, focus_item )
         rval = p.keypress( (20,), key )
-        assert rkey == rval, "%s key expected %s but got %s" %(
-            desc, `rkey`, `rval`)
+        assert rkey == rval, "%s key expected %r but got %r" %(
+            desc, rkey, rval)
         new_focus = l.index(p.get_focus())
-        assert new_focus == rfocus, "%s focus expected %s but got %s" %(
-            desc, `rfocus`, `new_focus`)
+        assert new_focus == rfocus, "%s focus expected %r but got %r" %(
+            desc, rfocus, new_focus)
         new_pref = p.get_pref_col((20,))
         assert new_pref == rpref_col, (
-            "%s pref_col expected %s but got %s" % (
-            desc, `rpref_col`, `new_pref`))
+            "%s pref_col expected %r but got %r" % (
+            desc, rpref_col, new_pref))
     
     def test_select_change(self):
         T,S,E = urwid.Text, SelectableText, urwid.Edit
@@ -1937,7 +1947,7 @@ class ColumnsTest(unittest.TestCase):
     def mctest(self, desc, l, divide, size, col, row, exp, f_col, pref_col):
         c = urwid.Columns( l, divide )
         rval = c.move_cursor_to_coords( size, col, row )
-        assert rval == exp, "%s expected %s, got %s"%(desc,`exp`,`rval`)
+        assert rval == exp, "%s expected %r, got %r"%(desc,exp,rval)
         assert c.focus_col == f_col, "%s expected focus_col %s got %s"%(
             desc, f_col, c.focus_col)
         pc = c.get_pref_col( size )
@@ -1970,7 +1980,7 @@ class ColumnsTest(unittest.TestCase):
 class BarGraphTest(unittest.TestCase):
     def bgtest(self, desc, data, top, widths, maxrow, exp ):
         rval = urwid.calculate_bargraph_display(data,top,widths,maxrow)
-        assert rval == exp, "%s expected %s, got %s"%(desc,`exp`,`rval`)
+        assert rval == exp, "%s expected %r, got %r"%(desc,exp,rval)
     
     def test1(self):
         self.bgtest('simplest',[[0]],5,[1],1,
@@ -2018,7 +2028,7 @@ class SmoothBarGraphTest(unittest.TestCase):
                 None, {(1,0):'red/black', (2,1):'blue/red'})
         g.set_data( data, top )
         rval = g.calculate_display((5,3))
-        assert rval == exp, "%s expected %s, got %s"%(desc,`exp`,`rval`)
+        assert rval == exp, "%s expected %r, got %r"%(desc,exp,rval)
     
     def test1(self):
         self.sbgtest('simple', [[3]], 5, 
@@ -2038,8 +2048,8 @@ class CanvasJoinTest(unittest.TestCase):
         l = [(c, None, False, n) for c, n in l]
         result = list(urwid.CanvasJoin(l).content())
         
-        assert result == expected, "%s expected %s, got %s"%(
-            desc, `expected`, `result`)
+        assert result == expected, "%s expected %r, got %r"%(
+            desc, expected, result)
     
     def test(self):
         C = urwid.TextCanvas
@@ -2085,8 +2095,8 @@ class CanvasOverlayTest(unittest.TestCase):
             urwid.TextCanvas([fgt],[fga]))
         bg.overlay(fg, l, 0)
         result = list(bg.content())
-        assert result == et, "%s expected %s, got %s"%(
-            desc, `et`,`result`)
+        assert result == et, "%s expected %r, got %r"%(
+            desc, et, result)
     
     def test1(self):
         self.cotest("left", "qxqxqxqx", [], "HI", [], 0, 6,
@@ -2143,8 +2153,8 @@ class CanvasPadTrimTest(unittest.TestCase):
             urwid.TextCanvas([ct], [ca]))
         c.pad_trim_left_right(l, r)
         result = list(c.content())
-        assert result == et, "%s expected %s, got %s"%(
-            desc, `et`,`result`)
+        assert result == et, "%s expected %r, got %r"%(
+            desc, et, result)
     
     def test1(self):
         self.cptest("none", "asdf", [], 0, 0, 

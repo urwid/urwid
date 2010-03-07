@@ -160,7 +160,7 @@ def calc_text_pos( text, start_offs, end_offs, pref_col ):
     
     Returns (position, actual_col).
     """
-    assert start_offs <= end_offs, `start_offs, end_offs`
+    assert start_offs <= end_offs, repr((start_offs, end_offs))
     utfs = (type(text) == type("") and _byte_encoding == "utf8")
     if type(text) == type(u"") or utfs:
         i = start_offs
@@ -178,7 +178,7 @@ def calc_text_pos( text, start_offs, end_offs, pref_col ):
             i = n
             sc += w
         return i, sc
-    assert type(text) == type(""), `text`
+    assert type(text) == type(""), repr(text)
     # "wide" and "narrow"
     i = start_offs+pref_col
     if i >= end_offs:
@@ -192,7 +192,7 @@ def calc_width( text, start_offs, end_offs ):
     """
     Return the screen column width of text between start_offs and end_offs.
     """
-    assert start_offs <= end_offs, `start_offs, end_offs`
+    assert start_offs <= end_offs, repr((start_offs, end_offs))
     utfs = (type(text) == type("") and _byte_encoding == "utf8")
     if (type(text) == type(u"") or utfs) and not SAFE_ASCII_RE.match(text):
         i = start_offs
@@ -333,7 +333,7 @@ def process_east_asian_width():
 
     print "widths = ["
     for o in out[1:]:  # treat control characters same as ascii
-        print "\t"+`o`+","
+        print "\t%r," % (o,)
     print "]"
         
 if __name__ == "__main__":

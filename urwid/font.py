@@ -36,7 +36,7 @@ def separate_glyphs(gdata, height):
     del gl[-1]
     for g in gl:
         assert "\t" not in g
-    assert len(gl) == height+1, `gdata`
+    assert len(gl) == height+1, repr(gdata)
     key_line = gl[0]
     del gl[0]
     c = None # current character
@@ -68,7 +68,7 @@ def separate_glyphs(gdata, height):
                 y += str_util.get_width(ord(l[j]))
                 j += 1
             assert y + fill == end_col - start_col, \
-                `y, fill, end_col`
+                repr((y, fill, end_col))
             
             segment = l[jl[k]:j]
             if not SAFE_ASCII_DEC_SPECIAL_RE.match(segment):

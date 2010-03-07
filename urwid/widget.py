@@ -316,7 +316,7 @@ def fixed_size(size):
     """
     if size != ():
         raise ValueError("FixedWidget takes only () for size." \
-            "passed: %s" % `size`)
+            "passed: %r" % (size,))
 
 class FixedWidget(Widget):
     """
@@ -543,8 +543,8 @@ class Text(FlowWidget):
         TextError: Alignment mode 'somewhere' not supported.
         """
         if not self.layout.supports_align_mode(mode):
-            raise TextError("Alignment mode %s not supported."%
-                `mode`)
+            raise TextError("Alignment mode %r not supported."%
+                (mode,))
         self._align_mode = mode
         self._invalidate()
 
@@ -574,7 +574,7 @@ class Text(FlowWidget):
         TextError: Wrap mode 'somehow' not supported.
         """
         if not self.layout.supports_wrap_mode(mode):
-            raise TextError("Wrap mode %s not supported."%`mode`)
+            raise TextError("Wrap mode %r not supported."%(mode,))
         self._wrap_mode = mode
         self._invalidate()
 

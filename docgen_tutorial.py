@@ -609,18 +609,18 @@ def generate_body(tmpl, sections, blocks, results):
                 # new section -- do its first item next time
                 snum += 1
                 inum = 0
-                t = tmpl.format('toc_section', snum=`snum`,
+                t = tmpl.format('toc_section', snum=repr(snum),
                     name=name )
                 toc_slots[slot].append( t )
-                b = tmpl.format('section_head', snum=`snum`,
+                b = tmpl.format('section_head', snum=repr(snum),
                     name=name )
                 body.append( b )
                 continue
 
             # new item inside a section
             inum += 1
-            t = tmpl.format('toc_item', snum=`snum`, 
-                inum=`inum`, name=name, tag=tag)
+            t = tmpl.format('toc_item', snum=repr(snum), 
+                inum=repr(inum), name=name, tag=tag)
             toc_slots[slot].append( t )
 
             slots = {}
@@ -633,8 +633,8 @@ def generate_body(tmpl, sections, blocks, results):
                 slots['result[%d]'%i] = templayer.RawHTML(res)
                 i += 1
             b = tmpl.format('body[%s]'%tag, ** slots )
-            b = tmpl.format('section_body', snum=`snum`,
-                inum=`inum`, name=name, tag=tag,
+            b = tmpl.format('section_body', snum=repr(snum),
+                inum=repr(inum), name=name, tag=tag,
                 content = b)
             body.append( b )
             

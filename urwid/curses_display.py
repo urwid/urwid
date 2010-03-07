@@ -520,7 +520,7 @@ class Screen(RealTerminal):
             self.s.attrset( 0 )
             return
         if not self.attrconv.has_key(a):
-            raise Exception, "Attribute %s not registered!"%`a`
+            raise Exception, "Attribute %r not registered!"%(a,)
         self.s.attrset( self.attrconv[a] )
                 
             
@@ -608,7 +608,7 @@ class _test:
     def run(self):
         class FakeRender: pass
         r = FakeRender()
-        text = ["  has_color = "+`self.ui.has_color`,""]
+        text = ["  has_color = "+repr(self.ui.has_color),""]
         attr = [[],[]]
         r.coords = {}
         r.cursor = None
@@ -644,7 +644,7 @@ class _test:
                 a += [(None,1), ('yellow on dark blue',len(k)),
                     (None,2)]
             
-            text.append(t + ": "+ `raw`)
+            text.append(t + ": "+ repr(raw))
             attr.append(a)
             text = text[-rows:]
             attr = attr[-rows:]

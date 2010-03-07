@@ -217,7 +217,7 @@ class GridFlow(FlowWidget):
             # unwrap padding
             w = w._original_widget
         w = w.get_focus()
-        #assert w == self.cells[0], `w, self.cells`
+        #assert w == self.cells[0], repr((w, self.cells))
         self.set_focus(w)
 
     def keypress(self, size, key):
@@ -702,7 +702,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
                 self.item_types.append((f,height))
                 w = widget
             else:
-                raise PileError, "widget list item invalid %s" % `w`
+                raise PileError, "widget list item invalid %r" % (w,)
             if focus_item is None and w.selectable():
                 focus_item = i
         self.widget_list.set_modified_callback(self._invalidate)
@@ -1040,7 +1040,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
                 self.column_types.append((f,width))
                 w = widget
             else:
-                raise ColumnsError, "widget list item invalid: %s" % `w`
+                raise ColumnsError, "widget list item invalid: %r" % (w,)
             if focus_column is None and w.selectable():
                 focus_column = i
                 
