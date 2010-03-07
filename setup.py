@@ -90,13 +90,6 @@ if have_setuptools:
     setup_d['zip_safe'] = False
 
 
-try:
-    True
-except:
-    # python 2.1's distutils doesn't understand these:
-    del setup_d['classifiers']
-    del setup_d['download_url']
-
 if __name__ == "__main__":
     setup( ** setup_d )
 
