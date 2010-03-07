@@ -26,7 +26,37 @@ from escape import utf8decode
 
 
 class LCDScreen(BaseScreen):
-    pass
+    def set_terminal_properties(self, colors=None, bright_is_bold=None,
+        has_underline=None):
+        pass
+
+    def set_mouse_tracking(self):
+        pass
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
+    def set_input_timeouts(self, *args):
+        pass
+
+    def reset_default_terminal_palette(self, *args):
+        pass
+
+    def run_wrapper(self,fn):
+        return fn()
+    
+    def draw_screen(self, (cols, rows), r ):
+        pass
+
+    def clear(self):
+        pass
+
+    def get_cols_rows(self):
+        return self.DISPLAY_SIZE
+
 
 
 class CFLCDScreen(LCDScreen):
@@ -56,13 +86,18 @@ class CFLCDScreen(LCDScreen):
     CURSOR_BLINKING_BLOCK_UNDERSCORE = 3
     CURSOR_INVERTING_BLINKING_BLOCK = 4
 
-    def __init__(self, device_path, baud=115200):
+    colors = 1
+    has_underline = False
+
+    def __init__(self, device_path, baud):
         """
         device_path -- eg. '/dev/ttyUSB0'
+        baud -- baud rate
         """
         self.device_path = device_path
         from serial import Serial
         self._device = Serial(device_path, baud, timeout=0)
+
 
     @classmethod
     def get_crc(cls, buf):
@@ -112,11 +147,21 @@ class CFLCDScreen(LCDScreen):
 
 
 class CF635Screen(CFLCDScreen):
-    """
+    u"""
     Crystal Fontz 635 display
 
     20x4 character display + cursor
     no foreground/background colors or settings supported
+
+    see CGROM for list of close unicode matches to characters available
+     * ① through ⑧ are programmable CGRAM (chars 0-7, repeated at 8-15)
+     * double arrows (⇑⇓) appear as double arrowheads (chars 18, 19)
+     * ⑴ resembles a bell
+     * ⑵ resembles a filled-in "Y"
+     * ⑶ is the letters "Pt" together
+     * partial blocks (▇▆▄▃▁) are actually shorter versions of (▉▋▌▍▏)
+       both groups are intended to draw horizontal bars with pixel
+       precision, use ▇*[▆▄▃▁]? for a thin bar or ▉*[▋▌▍▏]? for a thick bar
 
     6 button input
     up, down, left, right, enter (check mark), exit (cross)
@@ -124,8 +169,8 @@ class CF635Screen(CFLCDScreen):
     DISPLAY_SIZE = (20, 4)
 
     CGROM = utf8decode(
-        "①②③④⑤⑥⑦⑧①②③④⑤⑥⑦⑧" # ① -⑧  programmable CGRAM
-        "►◄⇑⇓«»↖↗↙↘▲▼↲^ˇ█" # double arrows (⇑⇓) appear as double arrowheads
+        "①②③④⑤⑥⑦⑧①②③④⑤⑥⑦⑧"
+        "►◄⇑⇓«»↖↗↙↘▲▼↲^ˇ█"
         " !\"#¤%&'()*+,-./"  
         "0123456789:;<=>?"
         "¡ABCDEFGHIJKLMNO"
@@ -133,17 +178,53 @@ class CF635Screen(CFLCDScreen):
         "¿abcdefghijklmno"
         "pqrstuvwxyzäöñüà"
         "⁰¹²³⁴⁵⁶⁷⁸⁹½¼±≥≤μ"
-        "♪♫Ⓐ♥♦Ⓑ⌜⌟“”()αɛδ∞" # Ⓐ resembles a bell   Ⓑ filled-in "Y"?
+        "♪♫⑴♥♦⑵⌜⌟“”()αɛδ∞"
         "@£$¥èéùìòÇᴾØøʳÅå"
-        "⌂¢ΦτλΩπΨΣθΞ⚫ÆæßÉ"
+        "⌂¢ΦτλΩπΨΣθΞ♈ÆæßÉ"
         "ΓΛΠϒ_ÈÊêçğŞşİι~◊"
-        "▇▆▄▃▁ƒ▉▋▌▍▏Ⓒ◽▪↑→" # Ⓒ is the letters "Pt" together
-        # partial blocks (▇▆▄▃▁) actually shorter versions of (▉▋▌▍▏)
+        "▇▆▄▃▁ƒ▉▋▌▍▏⑶◽▪↑→"
         "↓←ÁÍÓÚÝáíóúýÔôŮů"
         "ČĔŘŠŽčĕřšž[\]{|}")
 
-    cursor_style = CURSOR_UNDERSCORE # change this if you like
+    cursor_style = CFLCDScreen.CURSOR_UNDERSCORE
 
-    
+    def __init__(self, device_path, baud=115200, repeat_delay=0.5, 
+            repeat_next=0.125, 
+            key_map=['up', 'down', 'left', 'right', 'enter', 'esc']):
+        """
+        device_path -- eg. '/dev/ttyUSB0'
+        baud -- baud rate
+        repeat_delay -- seconds to wait before starting to repeat keys
+        repeat_next -- time between each repeated key
+        key_map -- the keys to send for this device's buttons
+        """
+        super(CF635Screen, self).__init__(device_path, baud)
 
+        self.repeat_delay = repeat_delay
+        self.repeat_next = repeat_next
+        self.key_map = key_map
+
+
+    def get_input_descriptors(self):
+        """
+        return the fd from our serial device so we get called
+        on input and responses
+        """
+        return [self._device.fd]
+
+    def get_input_nonblocking(self):
+        """
+        Return a (next_input_timeout, keys_pressed, raw_keycodes)
+        tuple.
+
+        The protocol for our device requires waiting for acks between
+        each command, so this method responds to those as well as key
+        press and release events.
+
+        Key repeat events are simulated here as the device doesn't send
+        any for us.
+
+        raw_keycodes are the bytes of messages we received, which might
+        not seem to have any correspondence to keys_pressed.
+        """
 
