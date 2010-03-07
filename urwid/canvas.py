@@ -19,7 +19,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import generators
 import weakref
 
 from urwid.util import rle_len, rle_append_modify, rle_join_modify, rle_product, \
