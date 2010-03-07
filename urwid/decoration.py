@@ -27,6 +27,9 @@ from urwid.split_repr import remove_defaults
 from urwid.canvas import CompositeCanvas, SolidCanvas
 from urwid.widget import Divider, Edit, Text, SolidFill # doctests
 
+try: set
+except NameError: set = list # not perfect, but should be good enough for python2.3
+
 
 class WidgetDecoration(Widget):  # "decorator" was already taken
     def __init__(self, original_widget):
