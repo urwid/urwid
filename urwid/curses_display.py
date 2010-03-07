@@ -28,9 +28,9 @@ from __future__ import nested_scopes
 import curses
 import _curses
 
-import escape
+from urwid import escape
 
-from display_common import RealTerminal
+from urwid.display_common import RealTerminal
 
 KEY_RESIZE = 410 # curses.KEY_RESIZE (sometimes not defined)
 KEY_MOUSE = 409 # curses.KEY_MOUSE

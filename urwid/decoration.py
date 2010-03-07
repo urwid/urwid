@@ -20,12 +20,12 @@
 # Urwid web site: http://excess.org/urwid/
 
 
-from util import int_scale
-from widget import Widget, WidgetError, \
+from urwid.util import int_scale
+from urwid.widget import Widget, WidgetError, \
     BOX, FLOW, LEFT, CENTER, RIGHT, PACK, CLIP, GIVEN, RELATIVE, RELATIVE_100
-from split_repr import remove_defaults
-from canvas import CompositeCanvas, SolidCanvas
-from widget import Divider, Edit, Text, SolidFill # doctests
+from urwid.split_repr import remove_defaults
+from urwid.canvas import CompositeCanvas, SolidCanvas
+from urwid.widget import Divider, Edit, Text, SolidFill # doctests
 
 
 class WidgetDecoration(Widget):  # "decorator" was already taken

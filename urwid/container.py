@@ -19,13 +19,13 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from util import is_mouse_press
-from widget import Widget, BoxWidget, FlowWidget, Divider
-from decoration import Padding, Filler, calculate_padding, calculate_filler, \
+from urwid.util import is_mouse_press
+from urwid.widget import Widget, BoxWidget, FlowWidget, Divider
+from urwid.decoration import Padding, Filler, calculate_padding, calculate_filler, \
     decompose_align_width, decompose_valign_height
-from command_map import command_map
-from monitored_list import MonitoredList
-from canvas import CompositeCanvas, CanvasOverlay, CanvasCombine, \
+from urwid.command_map import command_map
+from urwid.monitored_list import MonitoredList
+from urwid.canvas import CompositeCanvas, CanvasOverlay, CanvasCombine, \
     SolidCanvas, CanvasJoin
 
 

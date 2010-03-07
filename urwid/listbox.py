@@ -19,14 +19,14 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from util import is_mouse_press
-from canvas import SolidCanvas, CanvasCombine
-from widget import BoxWidget, nocache_widget_render_instance
-from decoration import calculate_filler, decompose_valign_height
-import signals
-from signals import connect_signal
-from monitored_list import MonitoredList
-from command_map import command_map
+from urwid.util import is_mouse_press
+from urwid.canvas import SolidCanvas, CanvasCombine
+from urwid.widget import BoxWidget, nocache_widget_render_instance
+from urwid.decoration import calculate_filler, decompose_valign_height
+from urwid import signals
+from urwid.signals import connect_signal
+from urwid.monitored_list import MonitoredList
+from urwid.command_map import command_map
 
 
 class ListWalkerError(Exception):

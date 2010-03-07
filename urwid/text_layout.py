@@ -19,7 +19,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from util import calc_width, calc_text_pos, calc_trim_text, is_wide_char, \
+from urwid.util import calc_width, calc_text_pos, calc_trim_text, is_wide_char, \
     move_prev_char, move_next_char
 
 class TextLayout:

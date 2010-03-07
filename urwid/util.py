@@ -22,7 +22,7 @@
 
 from __future__ import nested_scopes
 
-import escape
+from urwid import escape
 
 try:
     import str_util

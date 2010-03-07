@@ -26,8 +26,8 @@ import time
 import heapq
 import select
 
-from util import is_mouse_event
-from command_map import command_map
+from urwid.util import is_mouse_event
+from urwid.command_map import command_map
 
 
 class ExitMainLoop(Exception):

@@ -30,9 +30,9 @@ import encodings
 utf8decode = lambda s: encodings.codecs.utf_8_decode(s)[0]
 
 try:
-    import str_util
+    from urwid import str_util
 except ImportError:
-    import old_str_util as str_util
+    from urwid import old_str_util as str_util
 
 within_double_byte = str_util.within_double_byte
 

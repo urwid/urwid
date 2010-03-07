@@ -19,15 +19,15 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from util import MetaSuper, decompose_tagmarkup, calc_width, is_wide_char, \
+from urwid.util import MetaSuper, decompose_tagmarkup, calc_width, is_wide_char, \
     move_prev_char, move_next_char
-from text_layout import calc_pos, calc_coords, shift_line
-import signals
-import text_layout
-from canvas import CanvasCache, CompositeCanvas, SolidCanvas, \
+from urwid.text_layout import calc_pos, calc_coords, shift_line
+from urwid import signals
+from urwid import text_layout
+from urwid.canvas import CanvasCache, CompositeCanvas, SolidCanvas, \
     apply_text_layout
-from command_map import command_map
-from split_repr import split_repr, remove_defaults
+from urwid.command_map import command_map
+from urwid.split_repr import split_repr, remove_defaults
 
 try: sum # old python?
 except: sum = lambda l: reduce(lambda a,b: a+b, l, 0)

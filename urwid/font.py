@@ -22,9 +22,9 @@
 
 from __future__ import nested_scopes
 
-from escape import utf8decode, SAFE_ASCII_DEC_SPECIAL_RE
-from util import apply_target_encoding, str_util
-from canvas import TextCanvas
+from urwid.escape import utf8decode, SAFE_ASCII_DEC_SPECIAL_RE
+from urwid.util import apply_target_encoding, str_util
+from urwid.canvas import TextCanvas
 
 try: True # old python?
 except: False, True = 0, 1

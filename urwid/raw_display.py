@@ -32,11 +32,11 @@ import sys
 import tty
 import signal
 
-import util
-import escape
-from display_common import BaseScreen, RealTerminal, UPDATE_PALETTE_ENTRY, \
+from urwid import util
+from urwid import escape
+from urwid.display_common import BaseScreen, RealTerminal, UPDATE_PALETTE_ENTRY, \
     AttrSpec
-import signals
+from urwid import signals
 
 try:
     # python >= 2.4

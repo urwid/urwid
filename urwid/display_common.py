@@ -21,8 +21,8 @@
 import sys
 import termios
 
-from util import int_scale
-import signals
+from urwid.util import int_scale
+from urwid import signals
 
 # signals sent by BaseScreen
 UPDATE_PALETTE_ENTRY = "update palette entry"

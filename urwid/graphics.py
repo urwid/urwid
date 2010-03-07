@@ -22,15 +22,15 @@
 
 from __future__ import nested_scopes
 
-from util import decompose_tagmarkup, get_encoding_mode
-from canvas import CompositeCanvas, CanvasJoin, TextCanvas, CanvasCombine
-from widget import WidgetMeta, BoxWidget, FlowWidget, FixedWidget, \
+from urwid.util import decompose_tagmarkup, get_encoding_mode
+from urwid.canvas import CompositeCanvas, CanvasJoin, TextCanvas, CanvasCombine
+from urwid.widget import WidgetMeta, BoxWidget, FlowWidget, FixedWidget, \
     nocache_widget_render, nocache_widget_render_instance, fixed_size, \
     WidgetWrap, Divider, SolidFill, Text
-from container import Pile, Columns
-from escape import utf8decode
-from display_common import AttrSpec
-from decoration import WidgetDecoration, AttrWrap
+from urwid.container import Pile, Columns
+from urwid.escape import utf8decode
+from urwid.display_common import AttrSpec
+from urwid.decoration import WidgetDecoration, AttrWrap
 
 class BigText(FixedWidget):
     def __init__(self, markup, font):
