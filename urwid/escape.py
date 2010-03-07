@@ -24,12 +24,18 @@
 Terminal Escape Sequences for input and display
 """
 
-import util
 import os
 import re
 
 import encodings
 utf8decode = lambda s: encodings.codecs.utf_8_decode(s)[0]
+
+try:
+    import str_util
+except ImportError:
+    import old_str_util as str_util
+
+within_double_byte = str_util.within_double_byte
 
 SO = "\x0e"
 SI = "\x0f"
@@ -292,16 +298,16 @@ def process_keyqueue(codes, more_available):
     if code >27 and code <32:
         return ["ctrl %s" % chr(ord('A')+code-1)], codes[1:]
     
-    em = util.get_encoding_mode()
+    em = str_util.get_byte_encoding()
     
     if (em == 'wide' and code < 256 and  
-        util.within_double_byte(chr(code),0,0)):
+        within_double_byte(chr(code),0,0)):
         if not codes[1:]:
             if more_available:
                 raise MoreInputRequired()
         if codes[1:] and codes[1] < 256:
             db = chr(code)+chr(codes[1])
-            if util.within_double_byte(db, 0, 1):
+            if within_double_byte(db, 0, 1):
                 return [db], codes[2:]
     if em == 'utf8' and code>127 and code<256:
         if code & 0xe0 == 0xc0: # 2-byte form
