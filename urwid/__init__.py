@@ -45,20 +45,20 @@ VERSION = (0, 9, 9, 1)
 __version__ = ''.join(['-.'[type(x) == int]+str(x) for x in VERSION])[1:]
 
 
-from widget import *
-from decoration import *
-from container import *
-from wimp import *
-from listbox import *
-from graphics import *
-from canvas import *
-from font import *
-from signals import *
-from monitored_list import *
-from command_map import *
-from main_loop import *
-from text_layout import *
-from display_common import *
-from util import *
+from urwid.widget import *
+from urwid.decoration import *
+from urwid.container import *
+from urwid.wimp import *
+from urwid.listbox import *
+from urwid.graphics import *
+from urwid.canvas import *
+from urwid.font import *
+from urwid.signals import *
+from urwid.monitored_list import *
+from urwid.command_map import *
+from urwid.main_loop import *
+from urwid.text_layout import *
+from urwid.display_common import *
+from urwid.util import *
 
-import raw_display
+from urwid import raw_display
