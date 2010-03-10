@@ -58,7 +58,7 @@ _curses_colours = {
 _trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
 
 
-class Screen(RealTerminal):
+class Screen(BaseScreen, RealTerminal):
     def __init__(self):
         super(Screen,self).__init__()
         self.curses_pairs = [
@@ -72,32 +72,9 @@ class Screen(RealTerminal):
         self.prev_input_resize = 0
         self.set_input_timeouts()
         self.last_bstate = 0
-        self._started = False
     
-    started = property(lambda self: self._started)
-
-    def register_palette( self, l ):
-        """Register a list of palette entries.
-
-        l -- list of (name, foreground, background, mono),
-             (name, foreground, background) or
-             (name, same_as_other_name) palette entries.
-
-        calls self.register_palette_entry for each item in l
-        """
-        
-        for item in l:
-            if len(item) in (3,4):
-                self.register_palette_entry( *item )
-                continue
-            assert len(item) == 2, "Invalid register_palette usage"
-            name, like_name = item
-            if not self.palette.has_key(like_name):
-                raise Exception("palette entry '%s' doesn't exist"%like_name)
-            self.palette[name] = self.palette[like_name]
-
     def register_palette_entry( self, name, foreground, background,
-        mono=None):
+        mono=None, ignored_foreground_high=None, ignored_background_high=None):
         """Register a single palette entry.
 
         name -- new entry/attribute name
@@ -158,7 +135,6 @@ class Screen(RealTerminal):
         assert self._started == False
 
         self.s = curses.initscr()
-        self._started = True
         self.has_color = curses.has_colors()
         if self.has_color:
             curses.start_color()
@@ -180,6 +156,8 @@ class Screen(RealTerminal):
         if not self._signal_keys_set:
             self._old_signal_keys = self.tty_signal_keys()
 
+        super(Screen, self).start()
+
     
     def stop(self):
         """
@@ -194,10 +172,11 @@ class Screen(RealTerminal):
         except _curses.error:
             pass # don't block original error with curses error
         
-        self._started = False
-        
         if self._old_signal_keys:
             self.tty_signal_keys(*self._old_signal_keys)
+
+        super(Screen, self).stop()
+
     
     def run_wrapper(self,fn):
         """Call fn in fullscreen mode.  Return to normal on exit.
