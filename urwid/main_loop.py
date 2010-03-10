@@ -192,6 +192,7 @@ class MainLoop(object):
         >>> w = _refl("widget")
         >>> w.render_rval = "fake canvas"
         >>> w.selectable_rval = True
+        >>> w.mouse_event_rval = True
         >>> scr = _refl("screen")
         >>> scr.get_cols_rows_rval = (15, 5)
         >>> scr.get_input_nonblocking_rval = 1, ['y'], [121]
@@ -214,6 +215,9 @@ class MainLoop(object):
         widget.mouse_event((15, 5), 'mouse press', 1, 5, 4, focus=True)
         widget.render((15, 5), focus=True)
         screen.draw_screen((15, 5), 'fake canvas')
+        >>> scr.get_input_nonblocking_rval = None, [], []
+        >>> ml._update()
+        screen.get_input_nonblocking()
         """
         if self._input_timeout is not None and not timeout:
             # cancel the timeout, something else triggered the update
@@ -231,11 +235,12 @@ class MainLoop(object):
         keys = self.input_filter(keys, raw)
 
         if keys:
-            self.process_input(keys)
+            handled_something = self.process_input(keys)
             if 'window resize' in keys:
                 self.screen_size = None
 
-        self.draw_screen()
+            if handled_something:
+                self.draw_screen()
 
     def _run_screen_event_loop(self):
         """
@@ -294,6 +299,12 @@ class MainLoop(object):
         called to simulate input from the user.
 
         keys -- list of input returned from self.screen.get_input()
+
+        Returns True if any key was handled by a widget or the
+        unhandled_input() method.  This return value is used by
+        update to determine if it should redraw the screen.  When
+        calling this method yourself you will need to also call
+        draw_screen() as well if you want the screen updated.
         
         >>> w = _refl("widget")
         >>> w.selectable_rval = True
@@ -305,9 +316,12 @@ class MainLoop(object):
         widget.selectable()
         widget.keypress((10, 5), 'enter')
         widget.mouse_event((10, 5), 'mouse drag', 1, 14, 20, focus=True)
+        True
         """
         if not self.screen_size:
             self.screen_size = self.screen.get_cols_rows()
+
+        something_handled = False
 
         for k in keys:
             if is_mouse_event(k):
@@ -317,10 +331,17 @@ class MainLoop(object):
                     k = None
             elif self.widget.selectable():
                 k = self.widget.keypress(self.screen_size, k)
-            if k and command_map[k] == 'redraw screen':
-                self.screen.clear()
-            elif k:
-                self.unhandled_input(k)
+            if k:
+                if command_map[k] == 'redraw screen':
+                    self.screen.clear()
+                    something_handled = True
+                else:
+                    something_handled |= bool(self.unhandled_input(k))
+            else:
+                something_handled = True
+
+        return something_handled
+
 
     def input_filter(self, keys, raw):
         """
@@ -345,6 +366,9 @@ class MainLoop(object):
         the input will be ignored.
 
         input -- keyboard or mouse input
+
+        The unhandled_input method should return True if it handled
+        the input.
         """
         if self._unhandled_input:
             return self._unhandled_input(input)
