@@ -24,6 +24,7 @@
 from display_common import BaseScreen
 from escape import utf8decode
 
+import time
 
 class LCDScreen(BaseScreen):
     def set_terminal_properties(self, colors=None, bright_is_bold=None,
@@ -80,11 +81,17 @@ class CFLCDScreen(LCDScreen):
     CMD_LCD_DATA = 31 # data = [col, row] + text
     CMD_GPO = 34 # data = [pin(0-12), value(0-100)]
 
+    # sent from device
+    CMD_KEY_ACTIVITY = 0x80
+    CMD_ACK = 0x40  # in high two bits ie. & 0xc0
+
     CURSOR_NONE = 0
     CURSOR_BLINKING_BLOCK = 1
     CURSOR_UNDERSCORE = 2
     CURSOR_BLINKING_BLOCK_UNDERSCORE = 3
     CURSOR_INVERTING_BLINKING_BLOCK = 4
+
+    MAX_PACKET_DATA_LENGTH = 22
 
     colors = 1
     has_underline = False
@@ -94,9 +101,11 @@ class CFLCDScreen(LCDScreen):
         device_path -- eg. '/dev/ttyUSB0'
         baud -- baud rate
         """
+        super(CFLCDScreen, self).__init__()
         self.device_path = device_path
         from serial import Serial
         self._device = Serial(device_path, baud, timeout=0)
+        self._unprocessed = ""
 
 
     @classmethod
@@ -115,16 +124,13 @@ class CFLCDScreen(LCDScreen):
                 newCRC >>= 1
                 # The new MSB of the CRC accumulator comes
                 # from the LSB of the current data byte.
-                if byte & 0x01:
+                if ord(byte) & (0x01 << bit_count):
                     newCRC |= 0x00800000
                 # If the low bit of the current CRC accumulator was set
                 # before the shift, then we need to XOR the accumulator
                 # with the polynomial (center 16 bits of 0x00840800)
                 if newCRC & 0x00000080:
                     newCRC ^= 0x00840800
-                # Shift the data byte to put the next bit of the stream
-                # into position 0.
-                byte >>= 1
         # All the data has been done. Do 16 more bits of 0 data.
         for bit_count in range(16):
             # Shift the CRC accumulator
@@ -138,12 +144,119 @@ class CFLCDScreen(LCDScreen):
         # complement that is sent in the packet.
         return ((~newCRC)>>8) & 0xffff
 
-    def _send_packet(command, data):
+    def _send_packet(self, command, data):
         """
         low-level packet sending.  
         Following the protocol requires waiting for ack packet between 
         sending each packet to the device.
         """
+        buf = chr(command) + chr(len(data)) + data
+        crc = self.get_crc(buf)
+        buf = buf + chr(crc & 0xff) + chr(crc >> 8)
+        self._device.write(buf)
+    
+    def _read_packet(self):
+        """
+        low-level packet reading.
+        returns (command/report code, data) or None
+
+        This method stored data read and tries to resync when bad data
+        is received.
+        """
+        # pull in any new data available
+        self._unprocessed = self._unprocessed + self._device.read()
+        while True:
+            try:
+                command, data, unprocessed = self._parse_data(self._unprocessed)
+                self._unprocessed = unprocessed
+                return command, data
+            except self.MoreDataRequired:
+                return 
+            except self.InvalidPacket:
+                # throw out a byte and try to parse again
+                self._unprocessed = self._unprocessed[1:]
+
+    class InvalidPacket(Exception):
+        pass
+    class MoreDataRequired(Exception):
+        pass
+
+    @classmethod
+    def _parse_data(cls, data):
+        """
+        Try to read a packet from the start of data, returning
+        (command/report code, packet_data, remaining_data)
+        or raising InvalidPacket or MoreDataRequired
+        """
+        if len(data) < 2:
+            raise cls.MoreDataRequired
+        command = ord(data[0])
+        plen = ord(data[1])
+        if plen > cls.MAX_PACKET_DATA_LENGTH:
+            raise cls.InvalidPacket("length value too large")
+        if len(data) < plen + 4:
+            raise cls.MoreDataRequired
+        crc = cls.get_crc(data[:2 + plen])
+        pcrc = ord(data[2 + plen]) + (ord(data[3 + plen]) << 8 )
+        if crc != pcrc:
+            raise cls.InvalidPacket("CRC doesn't match")
+        return (command, data[2:2 + plen], data[4 + plen:])
+
+
+
+class KeyRepeatSimulator(object):
+    """
+    Provide simulated repeat key events when given press and 
+    release events.
+    
+    If two or more keys are pressed disable repeating until all
+    keys are released.
+    """
+    def __init__(self, repeat_delay, repeat_next):
+        """
+        repeat_delay -- seconds to wait before starting to repeat keys
+        repeat_next -- time between each repeated key
+        """
+        self.repeat_delay = repeat_delay
+        self.repeat_next = repeat_next
+        self.pressed = {}
+        self.multiple_pressed = False
+
+    def press(self, key):
+        if self.pressed:
+            self.multiple_pressed = True
+        self.pressed[key] = time.time()
+
+    def release(self, key):
+        if key not in self.pressed:
+            return # ignore extra release events
+        del self.pressed[key]
+        if not self.pressed:
+            self.multiple_pressed = False
+
+    def next_event(self):
+        """
+        Return (remaining, key) where remaining is the number of seconds 
+        (float) until the key repeat event should be sent, or None if no
+        events are pending.
+        """
+        if len(self.pressed) != 1 or self.multiple_pressed:
+            return
+        for key in self.pressed:
+            return max(0, self.pressed[key] + self.repeat_delay
+                - time.time()), key
+
+    def sent_event(self):
+        """
+        Cakk this method when you have sent a key repeat event so the
+        timer will be reset for the next event
+        """
+        if len(self.pressed) != 1:
+            return # ignore event that shouldn't have been sent
+        for key in self.pressed:
+            self.pressed[key] = (
+                time.time() - self.repeat_delay + self.repeat_next)
+            return
 
 
 class CF635Screen(CFLCDScreen):
@@ -188,8 +301,8 @@ class CF635Screen(CFLCDScreen):
 
     cursor_style = CFLCDScreen.CURSOR_UNDERSCORE
 
-    def __init__(self, device_path, baud=115200, repeat_delay=0.5, 
-            repeat_next=0.125, 
+    def __init__(self, device_path, baud=115200, 
+            repeat_delay=0.5, repeat_next=0.125, 
             key_map=['up', 'down', 'left', 'right', 'enter', 'esc']):
         """
         device_path -- eg. '/dev/ttyUSB0'
@@ -202,7 +315,12 @@ class CF635Screen(CFLCDScreen):
 
         self.repeat_delay = repeat_delay
         self.repeat_next = repeat_next
+        self.key_repeat = KeyRepeatSimulator(repeat_delay, repeat_next)
         self.key_map = key_map
+
+        self._last_command = None
+        self._last_command_time = 0
+        self._command_queue = []
 
 
     def get_input_descriptors(self):
@@ -227,4 +345,81 @@ class CF635Screen(CFLCDScreen):
         raw_keycodes are the bytes of messages we received, which might
         not seem to have any correspondence to keys_pressed.
         """
+        input = []
+        raw_input = []
+        timeout = None
+
+        while True:
+            packet = self._read_packet()
+            if not packet:
+                break
+            command, data = packet
+            
+            if command == self.CMD_KEY_ACTIVITY and data:
+                d0 = ord(data[0])
+                if 1 <= d0 <= 12:
+                    release = d0 > 6
+                    keycode = d0 - (release * 6) - 1
+                    key = self.key_map[keycode]
+                    if release:
+                        self.key_repeat.release(key)
+                    else:
+                        input.append(key)
+                        self.key_repeat.press(key)
+                    raw_input.append(d0)
+
+            elif command & 0xc0 == 0x40: # "ACK"
+                if command & 0x3f == self._last_command:
+                    self._send_next_command()
+        
+        next_repeat = self.key_repeat.next_event()
+        if next_repeat:
+            timeout, key = next_repeat
+            if not timeout:
+                input.append(key)
+                self.key_repeat.sent_event()
+                timeout = None
+
+        return timeout, input, []
+
+
+    def _send_next_command(self):
+        """
+        send out the next command in the queue
+        """
+        if not self._command_queue:
+            self._last_command = None
+            return
+        command, data = self._command_queue.pop(0)
+        self._send_packet(command, data)
+        self._last_command = command # record command for ACK
+        self._last_command_time = time.time()
+
+    def queue_command(self, command, data):
+        self._command_queue.append((command, data))
+        # not waiting? send away!
+        if self._last_command is None:
+            self._send_next_command()
+
+    def draw_screen(self, size, canvas):
+        assert size == self.DISPLAY_SIZE
+
+        y = 0
+        for row in canvas.content():
+            text = []
+            for a, cs, run in row:
+                text.append(run)
+            self.queue_command(self.CMD_LCD_DATA, chr(0) + chr(y) +
+                "".join(text))
+            y += 1
+
+        if canvas.cursor is None:
+            self.queue_command(self.CMD_CURSOR_STYLE, chr(self.CURSOR_NONE))
+        else:
+            x, y = canvas.cursor
+            self.queue_command(self.CMD_CURSOR_POSITION, chr(x) + chr(y))
+            self.queue_command(self.CMD_CURSOR_STYLE, chr(self.cursor_style))
+
+
+
 
