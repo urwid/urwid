@@ -419,6 +419,9 @@ class DirectoryBrowser:
                 self.focus_home()
             elif k == 'end':
                 self.focus_end()
+            else:
+                return
+            return True
                     
     def collapse_focus_parent(self):
         """Collapse parent directory."""

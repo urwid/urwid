@@ -126,6 +126,7 @@ def example_edit():
         if fill.body == ask:
             fill.body = urwid.Text( "Nice to meet you,\n"+
                 ask.edit_text+"." )
+            return True
         else:
             raise urwid.ExitMainLoop()
 
@@ -187,6 +188,7 @@ def example_lbcont():
         if not content[position+2:position + 3]:
             content.append(new_question())
         listbox.set_focus(position + 2)
+        return True
 
     loop = urwid.MainLoop(listbox, palette, unhandled_input=update_on_cr)
     loop.run()

@@ -144,13 +144,14 @@ class BigTextDisplay:
     def unhandled_input(self, key):
         if key == 'f8':
             self.loop.widget = self.exit_view
-            return
+            return True
         if self.loop.widget != self.exit_view:
             return
         if key in ('y', 'Y'):
             raise urwid.ExitMainLoop()
         if key in ('n', 'N'):
             self.loop.widget = self.view
+            return True
     
 
 def main():

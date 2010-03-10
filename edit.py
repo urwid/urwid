@@ -194,6 +194,9 @@ class EditDisplay:
             if w:
                 self.listbox.set_focus(pos, 'below')
                 self.loop.process_input(["end"])
+        else:
+            return
+        return True
             
 
     def save_file(self):
