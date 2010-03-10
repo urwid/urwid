@@ -696,6 +696,16 @@ class BaseScreen(object):
     def __init__(self):
         super(BaseScreen,self).__init__()
         self._palette = {}
+        self._started = False
+    
+    started = property(lambda self: self._started)
+
+    def start(self):
+        self._started = True
+
+    def stop(self):
+        self._started = False
+
 
     def register_palette(self, palette):
         """Register a set of palette entries.

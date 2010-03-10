@@ -71,7 +71,6 @@ class Screen(BaseScreen, RealTerminal):
         self._setup_G1_done = False
         self._rows_used = None
         self._cy = 0
-        self._started = False
         self.bright_is_bold = os.environ.get('TERM',None) != "xterm"
         self._next_timeout = None
         self._term_output_file = sys.stdout
@@ -79,8 +78,6 @@ class Screen(BaseScreen, RealTerminal):
         # pipe for signalling external event loops about resize events
         self._resize_pipe_rd, self._resize_pipe_wr = os.pipe()
         fcntl.fcntl(self._resize_pipe_rd, fcntl.F_SETFL, os.O_NONBLOCK)
-
-    started = property(lambda self: self._started)
 
     def _on_update_palette_entry(self, name, *attrspecs):
         # copy the attribute to a dictionary containing the escape seqences
@@ -188,7 +185,7 @@ class Screen(BaseScreen, RealTerminal):
         if not self._signal_keys_set:
             self._old_signal_keys = self.tty_signal_keys()
 
-        self._started = True
+        super(Screen, self).start()
 
     
     def stop(self):
@@ -219,7 +216,7 @@ class Screen(BaseScreen, RealTerminal):
         if self._old_signal_keys:
             self.tty_signal_keys(*self._old_signal_keys)
         
-        self._started = False
+        super(Screen, self).stop()
         
 
     def run_wrapper(self, fn, alternate_buffer=True):
