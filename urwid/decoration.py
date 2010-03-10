@@ -868,7 +868,7 @@ def decompose_align_width( align, width, err ):
         align_type, align_amount = align
         assert align_type in ('left','center','right','fixed left',
             'fixed right','relative')
-    except (AssertionError, ValueError):
+    except (AssertionError, ValueError, TypeError):
         raise err("align value %r is not one of 'left', 'center', "
             "'right', ('fixed left', columns), ('fixed right', "
             "columns), ('relative', percentage 0=left 100=right)" 
@@ -882,7 +882,7 @@ def decompose_align_width( align, width, err ):
         width_type, width_amount = width
         assert width_type in ('fixed','fixed right','fixed left',
             'relative', None)
-    except (AssertionError, ValueError):
+    except (AssertionError, ValueError, TypeError):
         raise err("width value %r is not one of ('fixed', columns "
             "width), ('fixed right', columns), ('relative', "
             "percentage of total width), None" % (width,))
@@ -903,7 +903,7 @@ def decompose_valign_height( valign, height, err ):
             valign = (valign,0)
         valign_type, valign_amount = valign
         assert valign_type in ('top','middle','bottom','fixed top','fixed bottom','relative')
-    except (AssertionError, ValueError):
+    except (AssertionError, ValueError, TypeError):
         raise err, "Invalid valign: %r" % (valign,)
 
     try:
@@ -913,7 +913,7 @@ def decompose_valign_height( valign, height, err ):
             height=('fixed',height)
         height_type, height_amount = height
         assert height_type in (None, 'fixed','fixed bottom','fixed top','relative')
-    except (AssertionError, ValueError):
+    except (AssertionError, ValueError, TypeError):
         raise err, "Invalid height: %r"%(height,)
         
     if height_type == 'fixed top' and valign_type != 'fixed bottom':
