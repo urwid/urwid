@@ -97,36 +97,66 @@ class Menu(urwid.ListBox):
         """
         Go back to the previous menu on cancel button (mapped to esc)
         """
-        if key == 'esc' and self.menu_parent:
+        if urwid.command_map[key] == 'exit' and self.menu_parent:
             show_menu(self.menu_parent)
         else:
             return self.__super.keypress(size, key)
 
 def build_menus():
     cursor_option_group = []
+    def cursor_option(label, style):
+        "a radio button that sets the cursor style"
+        def on_change(b, state):
+            if state: screen.set_cursor_style(style)
+        b = LCDRadioButton(cursor_option_group, label,
+            screen.cursor_style == style)
+        urwid.connect_signal(b, 'change', on_change)
+        return b
 
-    m_display = Menu([
-        LCDCheckBox('check'),
-        LCDCheckBox('it out'),
-        ])
-    m_cursor = Menu([
-        LCDRadioButton(cursor_option_group, "one"),
-        LCDRadioButton(cursor_option_group, "two"),
-        LCDRadioButton(cursor_option_group, "three"),
-        ])
-    m_leds = Menu([])
-    m_about = Menu([urwid.Text("some about text")])
+    menu_structure = [
+        ('Display Settings', [
+            LCDCheckBox('check'),
+            LCDCheckBox('it out'),
+            ]),
+        ('Cursor Settings', [
+            cursor_option('Block', screen.CURSOR_BLINKING_BLOCK),
+            cursor_option('Underscore', screen.CURSOR_UNDERSCORE),
+            cursor_option('Block + Underscore', 
+                screen.CURSOR_BLINKING_BLOCK_UNDERSCORE),
+            cursor_option('Inverting Block', 
+                screen.CURSOR_INVERTING_BLINKING_BLOCK),
+            ]),
+        ('LEDs', [
+            ]),
+        ('About this Demo', [
+            urwid.Text("This is a demo of Urwid's CF635Display "
+                "module. If you need an interface for a limited "
+                "character display device this should serve as a "
+                "good example for implmenting your own display "
+                "module and menu-driven application."),
+            ])
+        ]
 
-    o_display = MenuOption('Display Settings', m_display)
-    o_cursor = MenuOption('Cursor Settings', m_cursor)
-    o_leds = MenuOption('LEDs', m_leds)
-    o_about = MenuOption('About this Demo', m_about)
+    def build_submenu(ms):
+        """
+        Recursive menu building from structure above
+        """
+        options = []
+        submenus = []
+        for opt in ms:
+            # shortform for MenuOptions
+            if type(opt) == tuple:
+                name, sub = opt
+                submenu = build_submenu(sub)
+                opt = MenuOption(name, submenu)
+                submenus.append(submenu)
+            options.append(opt)
+        menu = Menu(options)
+        for s in submenus:
+            s.menu_parent = menu
+        return menu
+    return build_submenu(menu_structure)
 
-    m_root = Menu([o_display, o_cursor, o_leds, o_about])
-    m_display.menu_parent = m_cursor.menu_parent = m_root
-    m_leds.menu_parent = m_about.menu_parent = m_root
-
-    return m_root
 
 screen = urwid.lcd_display.CF635Screen('/dev/ttyUSB0')
 # set up our font
@@ -135,6 +165,12 @@ loop = urwid.MainLoop(build_menus(), screen=screen)
 # FIXME: want screen to know it is in narrow mode, or better yet, 
 # do the unicode conversion for us
 urwid.set_encoding('narrow')
+# customize command keys
+urwid.command_map['enter'] = 'activate' # this is a default
+urwid.command_map['right'] = 'activate'
+urwid.command_map['esc'] = 'exit'
+urwid.command_map['left'] = 'exit'
+
 
 def show_menu(menu):
     loop.widget = menu

@@ -324,6 +324,7 @@ class CF635Screen(CFLCDScreen):
         self._command_queue = []
         self._screen_buf = None
         self._previous_canvas = None
+        self._update_cursor = False
 
 
     def get_input_descriptors(self):
@@ -425,7 +426,8 @@ class CF635Screen(CFLCDScreen):
             y += 1
 
         if (self._previous_canvas and 
-                self._previous_canvas.cursor == canvas.cursor):
+                self._previous_canvas.cursor == canvas.cursor and
+                (not self._update_cursor or not canvas.cursor)):
             pass
         elif canvas.cursor is None:
             self.queue_command(self.CMD_CURSOR_STYLE, chr(self.CURSOR_NONE))
@@ -434,6 +436,7 @@ class CF635Screen(CFLCDScreen):
             self.queue_command(self.CMD_CURSOR_POSITION, chr(x) + chr(y))
             self.queue_command(self.CMD_CURSOR_STYLE, chr(self.cursor_style))
 
+        self._update_cursor = False
         self._screen_buf = sb
         self._previous_canvas = canvas
 
@@ -448,7 +451,16 @@ class CF635Screen(CFLCDScreen):
         """
         assert 0 <= index <= 7
         assert len(data) == 8
-        self._send_packet(self.CMD_CGRAM, chr(index) + 
+        self.queue_command(self.CMD_CGRAM, chr(index) + 
             "".join([chr(x) for x in data]))
 
+    def set_cursor_style(self, style):
+        """
+        style -- CURSOR_BLINKING_BLOCK, CURSOR_UNDERSCORE,
+            CURSOR_BLINKING_BLOCK_UNDERSCORE or
+            CURSOR_INVERTING_BLINKING_BLOCK
+        """
+        assert 1 <= style <= 4
+        self.cursor_style = style
+        self._update_cursor = True
 
