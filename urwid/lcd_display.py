@@ -74,6 +74,7 @@ class CFLCDScreen(LCDScreen):
     CMD_PING = 0
     CMD_VERSION = 1
     CMD_CLEAR = 6
+    CMD_CGRAM = 9
     CMD_CURSOR_POSITION = 11 # data = [col, row]
     CMD_CURSOR_STYLE = 12 # data = [style (0-4)]
     CMD_LCD_CONTRAST = 13 # data = [contrast (0-255)]
@@ -299,7 +300,7 @@ class CF635Screen(CFLCDScreen):
         "↓←ÁÍÓÚÝáíóúýÔôŮů"
         "ČĔŘŠŽčĕřšž[\]{|}")
 
-    cursor_style = CFLCDScreen.CURSOR_UNDERSCORE
+    cursor_style = CFLCDScreen.CURSOR_INVERTING_BLINKING_BLOCK
 
     def __init__(self, device_path, baud=115200, 
             repeat_delay=0.5, repeat_next=0.125, 
@@ -321,6 +322,8 @@ class CF635Screen(CFLCDScreen):
         self._last_command = None
         self._last_command_time = 0
         self._command_queue = []
+        self._screen_buf = None
+        self._previous_canvas = None
 
 
     def get_input_descriptors(self):
@@ -404,22 +407,48 @@ class CF635Screen(CFLCDScreen):
     def draw_screen(self, size, canvas):
         assert size == self.DISPLAY_SIZE
 
+        if self._screen_buf:
+            osb = self._screen_buf
+        else:
+            osb = []
+        sb = []
+
         y = 0
         for row in canvas.content():
             text = []
             for a, cs, run in row:
                 text.append(run)
-            self.queue_command(self.CMD_LCD_DATA, chr(0) + chr(y) +
-                "".join(text))
+            if not osb or osb[y] != text:
+                self.queue_command(self.CMD_LCD_DATA, chr(0) + chr(y) +
+                    "".join(text))
+            sb.append(text)
             y += 1
 
-        if canvas.cursor is None:
+        if (self._previous_canvas and 
+                self._previous_canvas.cursor == canvas.cursor):
+            pass
+        elif canvas.cursor is None:
             self.queue_command(self.CMD_CURSOR_STYLE, chr(self.CURSOR_NONE))
         else:
             x, y = canvas.cursor
             self.queue_command(self.CMD_CURSOR_POSITION, chr(x) + chr(y))
             self.queue_command(self.CMD_CURSOR_STYLE, chr(self.cursor_style))
 
+        self._screen_buf = sb
+        self._previous_canvas = canvas
 
+    def program_cgram(self, index, data):
+        """
+        Program character data.  Characters available as chr(0) through 
+        chr(7), and repeated as chr(8) through chr(15).
+
+        index -- 0 to 7 index of character to program
+        data -- list of 8, 6-bit integer values top to bottom with MSB 
+            on the left side of the character.
+        """
+        assert 0 <= index <= 7
+        assert len(data) == 8
+        self._send_packet(self.CMD_CGRAM, chr(index) + 
+            "".join([chr(x) for x in data]))
 
 
