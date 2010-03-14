@@ -464,3 +464,31 @@ class CF635Screen(CFLCDScreen):
         self.cursor_style = style
         self._update_cursor = True
 
+    def set_backlight(self, value):
+        """
+        Set backlight brightness
+
+        value -- 0 to 100
+        """
+        assert 0 <= value <= 100
+        self.queue_command(self.CMD_BACKLIGHT, chr(value))
+
+    def set_lcd_contrast(self, value):
+        """
+        value -- 0 to 255
+        """
+        assert 0 <= value <= 255
+        self.queue_command(self.CMD_LCD_CONTRAST, chr(value))
+
+    def set_led_pin(self, led, rg, value):
+        """
+        led -- 0 to 3
+        rg -- 0 for red, 1 for green
+        value -- 0 to 100
+        """
+        assert 0 <= led <= 3
+        assert rg in (0, 1)
+        assert 0 <= value <= 100
+        self.queue_command(self.CMD_GPO, chr(12 - 2 * led - rg) + 
+            chr(value))
+
