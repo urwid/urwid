@@ -953,13 +953,13 @@ class Edit(Text):
             self._edit_text[p:])
         self.set_edit_pos(self.edit_pos + len(text))
 
-    def insert_text_result(self, ch):
+    def insert_text_result(self, text):
         """
-        Return result of insert_text(ch) without actually performing the
+        Return result of insert_text(text) without actually performing the
         insertion.  Handy for pre-validation.
         """
 
-        # if there's highlighted text, it'll get replaced by this character
+        # if there's highlighted text, it'll get replaced by the new text
         if self.highlight:
             start, stop = self.highlight
             btext, etext = self.edit_text[:start], self.edit_text[stop:]
@@ -969,10 +969,12 @@ class Edit(Text):
             result_text = self.edit_text
             result_pos = self.edit_pos
 
-        if type(ch) == type(u""):
-            ch = ch.encode("utf-8")
+        if type(text) == type(u""):
+            text = text.encode("utf-8")
 
-        result_text = result_text[:result_pos] + ch + result_text[result_pos:]
+        result_text = (result_text[:result_pos] + text + 
+            result_text[result_pos:])
+        result_pos += len(text)
         return (result_text, result_pos)
     
     def keypress(self, size, key):
