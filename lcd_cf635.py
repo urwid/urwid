@@ -18,6 +18,7 @@ horizontal slider control, selected check box and selected radio button
 respectively.
 """
 
+import sys
 import urwid.lcd_display
 
 CGRAM = """
@@ -274,7 +275,7 @@ def build_menus():
     return build_submenu(menu_structure)
 
 
-screen = urwid.lcd_display.CF635Screen('/dev/ttyUSB0')
+screen = urwid.lcd_display.CF635Screen(sys.argv[1])
 # set up our font
 program_cgram(screen)
 loop = urwid.MainLoop(build_menus(), screen=screen)
