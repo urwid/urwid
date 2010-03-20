@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid basic widget classes
-#    Copyright (C) 2004-2007  Ian Ward
+#    Copyright (C) 2004-2010  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -948,10 +948,10 @@ class Edit(Text):
         >>> e.edit_text
         '42a.5'
         """
-        p = self.edit_pos
-        self.set_edit_text(self._edit_text[:p] + text + 
-            self._edit_text[p:])
-        self.set_edit_pos(self.edit_pos + len(text))
+        result_text, result_pos = self.insert_text_result(text)
+        self.set_edit_text(result_text)
+        self.set_edit_pos(result_pos)
+        self.highlight = None
 
     def insert_text_result(self, text):
         """
@@ -969,7 +969,7 @@ class Edit(Text):
             result_text = self.edit_text
             result_pos = self.edit_pos
 
-        if type(text) == type(u""):
+        if type(text) == unicode:
             text = text.encode("utf-8")
 
         result_text = (result_text[:result_pos] + text + 
@@ -999,16 +999,13 @@ class Edit(Text):
 
         p = self.edit_pos
         if self.valid_char(key):
-            self._delete_highlighted()
             self.insert_text( key )
             
         elif key=="tab" and self.allow_tab:
-            self._delete_highlighted() 
             key = " "*(8-(self.edit_pos%8))
             self.insert_text( key )
 
         elif key=="enter" and self.multiline:
-            self._delete_highlighted() 
             key = "\n"
             self.insert_text( key )
 
@@ -1038,22 +1035,22 @@ class Edit(Text):
                 return key
         
         elif key=="backspace":
-            self._delete_highlighted()
             self.pref_col_maxcol = None, None
-            if p == 0: return key
-            p = move_prev_char(self.edit_text,0,p)
-            self.set_edit_text( self.edit_text[:p] + 
-                self.edit_text[self.edit_pos:] )
-            self.set_edit_pos( p )
+            if not self._delete_highlighted():
+                if p == 0: return key
+                p = move_prev_char(self.edit_text,0,p)
+                self.set_edit_text( self.edit_text[:p] + 
+                    self.edit_text[self.edit_pos:] )
+                self.set_edit_pos( p )
 
         elif key=="delete":
-            self._delete_highlighted()
             self.pref_col_maxcol = None, None
-            if p >= len(self.edit_text):
-                return key
-            p = move_next_char(self.edit_text,p,len(self.edit_text))
-            self.set_edit_text( self.edit_text[:self.edit_pos] + 
-                self.edit_text[p:] )
+            if not self._delete_highlighted():
+                if p >= len(self.edit_text):
+                    return key
+                p = move_next_char(self.edit_text,p,len(self.edit_text))
+                self.set_edit_text( self.edit_text[:self.edit_pos] + 
+                    self.edit_text[p:] )
         
         elif command_map[key] in ('cursor max left', 'cursor max right'):
             self.highlight = None
@@ -1132,6 +1129,7 @@ class Edit(Text):
         self.set_edit_text( btext + etext )
         self.edit_pos = start
         self.highlight = None
+        return True
         
         
     def render(self, size, focus=False):
