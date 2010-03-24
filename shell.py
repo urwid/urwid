@@ -1,27 +1,21 @@
 #!/usr/bin/python
 
 import urwid
-import urwid.raw_display
 
 import sys
 import StringIO
 import traceback
 
-Screen = urwid.raw_display.Screen
-
 ps1 = ">>> "
 ps2 = "... "
 
-
 class AssertAlways(object):
     def __getattr__(self, name):
-        assert 0, name  # FIXME 
-
+        assert 0, name  # FIXME
 
 class ShellEnvironment(object):
     def __init__(self):
         self.globals = {}
-
 
     def run(self, statement):
         """
@@ -55,10 +49,6 @@ class ShellEnvironment(object):
 
         return output, err
 
-               
-
-    
-
 class ShellWindow(urwid.WidgetWrap):
     def __init__(self):
         self.lines = []
@@ -87,7 +77,6 @@ class ShellWindow(urwid.WidgetWrap):
             self.lines.append(urwid.Text(('error', trace)))
         self.new_edit()
 
-
 class ShellEdit(urwid.Edit):
     def __init__(self, parent):
         self.parent = parent
@@ -98,24 +87,15 @@ class ShellEdit(urwid.Edit):
         if k == 'enter':
             self.parent.execute_edit()
 
-
 def main():
     view = urwid.AttrWrap(ShellWindow(), 'body')
-    screen = urwid.raw_display.Screen()
-    # use the original display buffer so that text mixes with the command line
-    screen.start(alternate_buffer=False)
-    try:
-        urwid.generic_main_loop(view, [
-            ('body', 'light gray', 'black'),
-            ('prompt', 'yellow', 'black'),
-            ('error', 'light red', 'black'),
-            ], screen)
-    finally:
-        # since we start()ed the screen we need to clean it up ourselves
-        screen.stop()
-
-
-
+    palette = [
+        ('body', 'light gray', 'black'),
+        ('prompt', 'yellow', 'black'),
+        ('error', 'light red', 'black')
+    ]
+    urwid.MainLoop(view).run()
 
 if __name__ == "__main__":
     main()
+
