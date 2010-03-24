@@ -740,24 +740,20 @@ class TwistedInputDescriptor(FileDescriptor):
 
 
 class TwistedEventLoop(object):
-    def __init__(self, reactor=None):
+    def __init__(self, reactor=None, manage_reactor=True):
         """
         Event loop based on Twisted
 
-        >>> import os
-        >>> rd, wr = os.pipe()
-        >>> evl = TwistedEventLoop()
-        >>> def step1():
-        ...     print "writing"
-        ...     os.write(wr, "hi")
-        >>> def step2():
-        ...     print os.read(rd, 2)
-        ...     raise ExitMainLoop
-        >>> handle = evl.alarm(0, step1)
-        >>> handle = evl.watch_file(rd, step2)
-        >>> evl.run()
-        writing
-        hi
+        reactor -- reactor object to use, if None defaults to
+                twisted.internet.reactor
+        manage_reactor -- True if you want this event loop to run
+                and stop the reactor          
+
+        *** WARNING ***
+        Twisted's reactor doesn't like to be stopped and run again.
+        If you need to stop and run your MainLoop, consider setting 
+        manage_reactor=False and take care of running/stopping
+        the reactor at the beginning/ending of your program yourself.
         """
         if reactor is None:
             import twisted.internet.reactor
@@ -766,6 +762,7 @@ class TwistedEventLoop(object):
         self._alarms = []
         self._watch_files = {}
         self._exc_info = None
+        self.manage_reactor = manage_reactor
 
     def alarm(self, seconds, callback):
         """
@@ -847,34 +844,24 @@ class TwistedEventLoop(object):
         >>> os.write(wr, "data") # something to read from rd
         4
         >>> evl = TwistedEventLoop()
+        >>> def say_hello_data():
+        ...     print "hello data"
+        ...     os.read(rd, 4)
         >>> def say_hello():
         ...     print "hello"
-        >>> def exit_clean():
-        ...     print "clean exit"
+        >>> handle = evl.watch_file(rd, say_hello_data)
+        >>> def say_being_twisted():
+        ...     print "oh I'm messed up"
         ...     raise ExitMainLoop
-        >>> def exit_error():
-        ...     1/0
-        >>> handle = evl.alarm(0.0625, exit_clean)
-        >>> handle = evl.alarm(0, say_hello)
+        >>> handle = evl.alarm(0.0625, say_being_twisted)
+        >>> handle = evl.alarm(0.03125, say_hello)
         >>> evl.run()
+        hello data
         hello
-        clean exit
-        >>> handle = evl.watch_file(rd, exit_clean)
-        >>> evl.run()
-        clean exit
-        >>> evl.remove_watch_file(handle)
-        True
-        >>> handle = evl.alarm(0, exit_error)
-        >>> evl.run()
-        Traceback (most recent call last):
-           ...
-        ZeroDivisionError: integer division or modulo by zero
-        >>> handle = evl.watch_file(rd, exit_error)
-        >>> evl.run()
-        Traceback (most recent call last):
-           ...
-        ZeroDivisionError: integer division or modulo by zero
+        oh I'm messed up
         """
+        if not self.manage_reactor:
+            return
         self.reactor.run()
         if self._exc_info:
             # An exception caused us to exit, raise it now
@@ -894,12 +881,14 @@ class TwistedEventLoop(object):
             try:
                 return f(*args,**kargs)
             except ExitMainLoop:
-                self.reactor.crash()
+                if self.manage_reactor:
+                    self.reactor.stop()
             except:
                 import sys
                 print sys.exc_info()
                 self._exc_info = sys.exc_info()
-                self.reactor.crash()
+                if self.manage_reactor:
+                    self.reactor.crash()
         return wrapper
     
 
