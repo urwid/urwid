@@ -1,7 +1,9 @@
 #!/usr/bin/python
 #
 # Urwid example lazy directory browser / tree view
-#    Copyright (C) 2004-2009  Ian Ward
+#    Original version:
+#      Copyright (C) 2004-2010  Ian Ward
+#    Modified by Rob Lanphier to use general TreeWidget/TreeWalker classes
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -34,182 +36,109 @@ import os
 import urwid
 
 
-class TreeWidget(urwid.WidgetWrap):
-    """A widget representing something in the file tree."""
-    def __init__(self, dir, name, index, display):
-        self.dir = dir
-        self.name = name
-        self.index = index
+class FileTreeWidget(urwid.TreeWidget):
+    """Widget for individual files."""
 
-        parent, _ign = os.path.split(dir)
-        # we're at the top if parent is same as dir
-        if dir == parent:
-            self.depth = 0
-        else:
-            self.depth = dir.count(dir_sep())
+    def __init__(self, node):
+        self.__super.__init__(node)
+        path = node.get_value()
+        add_widget(path, self)
 
-        widget = urwid.Text(["  "*self.depth, display])
-        self.widget = widget
-        w = urwid.AttrWrap(widget, None)
-        self.__super.__init__(w)
-        self.selected = False
-        self.update_w()
-        
-    
-    def selectable(self):
-        return True
-    
-    def keypress(self, size, key):
-        """Toggle selected on space, ignore other keys."""
-
-        if key == " ":
-            self.selected = not self.selected
-            self.update_w()
-        else:
-            return key
-
-    def update_w(self):
-        """
-        Update the attributes of wrapped widget based on self.selected.
-        """
-        if self.selected:
-            self._w.attr = 'selected'
-            self._w.focus_attr = 'selected focus'
-        else:
-            self._w.attr = 'body'
-            self._w.focus_attr = 'focus'
-        
-    def first_child(self):
-        """Default to have no children."""
-        return None
-    
-    def last_child(self):
-        """Default to have no children."""
-        return None
-    
-    def next_inorder(self):
-        """Return the next TreeWidget depth first from this one."""
-        
-        child = self.first_child()
-        if child: 
-            return child
-        else:
-            dir = get_directory(self.dir)
-            return dir.next_inorder_from(self.index)
-    
-    def prev_inorder(self):
-        """Return the previous TreeWidget depth first from this one."""
-        
-        dir = get_directory(self.dir)
-        return dir.prev_inorder_from(self.index)
+    def get_display_text(self):
+        return self.get_node().get_key()
 
 
-class EmptyWidget(TreeWidget):
+class EmptyWidget(FileTreeWidget):
     """A marker for expanded directories with no contents."""
 
-    def __init__(self, dir, name, index):
-        self.__super.__init__(dir, name, index, 
-            ('flag',"(empty directory)"))
-    
+    def get_display_text(self):
+        return ('flag', '(empty directory)')
+
     def selectable(self):
         return False
     
 
-class ErrorWidget(TreeWidget):
+class ErrorWidget(FileTreeWidget):
     """A marker for errors reading directories."""
 
-    def __init__(self, dir, name, index):
-        self.__super.__init__(dir, name, index, 
-            ('error',"(error/permission denied)"))
-    
+    def get_display_text(self):
+        return ('error', "(error/permission denied)")
+
     def selectable(self):
         return False
 
-class FileWidget(TreeWidget):
-    """Widget for a simple file (or link, device node, etc)."""
-    
-    def __init__(self, dir, name, index):
-        self.__super.__init__(dir, name, index, name)
 
-
-class DirectoryWidget(TreeWidget):
+class DirectoryWidget(urwid.ParentWidget):
     """Widget for a directory."""
-    
-    def __init__(self, dir, name, index):
-        self.__super.__init__(dir, name, index, "")
-        
-        # check if this directory starts expanded
-        self.expanded = starts_expanded(os.path.join(dir,name))
-        
+
+    def __init__(self, node):
+        self.__super.__init__(node)
+
+        path = self.get_node().get_value()
+        add_widget(path, self)
+        self.expanded = starts_expanded(path)
         self.update_widget()
-    
-    def update_widget(self):
-        """Update display widget text."""
-        
-        if self.expanded:
-            mark = "+"
+
+    def get_display_text(self):
+        node = self.get_node()
+        if node.get_depth() == 0:
+            return "/"
         else:
-            mark = "-"
-        self.widget.set_text(["  "*(self.depth),
-            ('dirmark', mark), " ", self.name])
+            return node.get_key()
 
-    def keypress(self, size, key):
-        """Handle expand & collapse requests."""
-        
-        if key in ("+", "right"):
-            self.expanded = True
-            self.update_widget()
-        elif key == "-":
-            self.expanded = False
-            self.update_widget()
+
+class FileNode(urwid.TreeNode):
+    """Metadata storage for individual files"""
+
+    def __init__(self, path, parent=None):
+        depth = path.count(dir_sep())
+        key = os.path.basename(path)
+        urwid.TreeNode.__init__(self, path, key=key, parent=parent, depth=depth)
+
+    def load_parent(self):
+        parentname, myname = os.path.split(self.get_value())
+        parent = DirectoryNode(parentname)
+        parent.set_child_node(self.get_key(), self)
+        return parent
+
+    def load_widget(self):
+        return FileTreeWidget(self)
+
+
+class EmptyNode(urwid.TreeNode):
+    def load_widget(self):
+        return EmptyWidget(self)
+
+
+class ErrorNode(urwid.TreeNode):
+    def load_widget(self):
+        return ErrorWidget(self)
+
+
+class DirectoryNode(urwid.ParentNode):
+    """Metadata storage for directories"""
+
+    def __init__(self, path, parent=None):
+        if path == dir_sep():
+            depth = 0
+            key = None
         else:
-            return self.__super.keypress(size, key)
-    
-    def mouse_event(self, size, event, button, col, row, focus):
-        if event != 'mouse press' or button!=1:
-            return False
+            depth = path.count(dir_sep())
+            key = os.path.basename(path)
+        urwid.ParentNode.__init__(self, path, key=key, parent=parent, 
+                                  depth=depth)
 
-        if row == 0 and col == 2*self.depth:
-            self.expanded = not self.expanded
-            self.update_widget()
-            return True
-        
-        return False
-    
-    def first_child(self):
-        """Return first child if expanded."""
-        
-        if not self.expanded: 
-            return None
-        full_dir = os.path.join(self.dir, self.name)
-        dir = get_directory(full_dir)
-        return dir.get_first()
-    
-    def last_child(self):
-        """Return last child if expanded."""
-        
-        if not self.expanded:
-            return None
-        full_dir = os.path.join(self.dir, self.name)
-        dir = get_directory(full_dir)
-        widget = dir.get_last()
-        sub = widget.last_child()
-        if sub is not None:
-            return sub
-        return widget
-        
-        
+    def load_parent(self):
+        parentname, myname = os.path.split(self.get_value())
+        parent = DirectoryNode(parentname)
+        parent.set_child_node(self.get_key(), self)
+        return parent
 
-class Directory:
-    """Store sorted directory contents and cache TreeWidget objects."""
-    
-    def __init__(self, path):
-        self.path = path
-        self.widgets = {}
-
+    def load_child_keys(self):
         dirs = []
         files = []
         try:
+            path = self.get_value()
             # separate dirs and files
             for a in os.listdir(path):
                 if os.path.isdir(os.path.join(path,a)):
@@ -217,7 +146,10 @@ class Directory:
                 else:
                     files.append(a)
         except OSError, e:
-            self.widgets[None] = ErrorWidget(self.path, None, 0)
+            depth = self.get_depth() + 1
+            self._children[None] = ErrorNode(self, parent=self, key=None, 
+                                             depth=depth)
+            return [None]
 
         # sort dirs and files
         dirs.sort(sensible_cmp)
@@ -225,129 +157,31 @@ class Directory:
         # store where the first file starts
         self.dir_count = len(dirs)
         # collect dirs and files together again
-        self.items = dirs + files
+        keys = dirs + files
+        if len(keys) == 0:
+            depth=self.get_depth() + 1
+            self._children[None] = EmptyNode(self, parent=self, key=None, 
+                                             depth=depth)
+            keys = [None]
+        return keys
 
-        # if no items, put a dummy None item in the list
-        if not self.items:
-            self.items = [None]
-
-    def get_widget(self, name):
-        """Return the widget for a given file.  Create if necessary."""
-        
-        if self.widgets.has_key(name):
-            return self.widgets[name]
-        
-        # determine the correct TreeWidget type (constructor)
-        index = self.items.index(name)
-        if name is None:
-            constructor = EmptyWidget
-        elif index < self.dir_count:
-            constructor = DirectoryWidget
+    def load_child_node(self, key):
+        """Return either a FileNode or DirectoryNode"""
+        index = self.get_child_index(key)
+        if key is None:
+            return EmptyNode(None)
         else:
-            constructor = FileWidget
-
-        widget = constructor(self.path, name, index)
-        
-        self.widgets[name] = widget
-        return widget
-
-        
-    def next_inorder_from(self, index):
-        """Return the TreeWidget following index depth first."""
-    
-        index += 1
-        # try to get the next item at same level
-        if index < len(self.items):
-            return self.get_widget(self.items[index])
-            
-        # need to go up a level
-        parent, myname = os.path.split(self.path)
-        # give up if we can't go higher
-        if parent == self.path: return None
-
-        # find my location in parent, and return next inorder
-        pdir = get_directory(parent)
-        mywidget = pdir.get_widget(myname)
-        return pdir.next_inorder_from(mywidget.index)
-        
-    def prev_inorder_from(self, index):
-        """Return the TreeWidget preceeding index depth first."""
-        
-        index -= 1
-        if index >= 0:
-            widget = self.get_widget(self.items[index])
-            widget_child = widget.last_child()
-            if widget_child: 
-                return widget_child
+            path = os.path.join(self.get_value(), key)
+            if index < self.dir_count:
+                return DirectoryNode(path, parent=self)
             else:
-                return widget
+                path = os.path.join(self.get_value(), key)
+                return FileNode(path, parent=self)
 
-        # need to go up a level
-        parent, myname = os.path.split(self.path)
-        # give up if we can't go higher
-        if parent == self.path: return None
-
-        # find myself in parent, and return
-        pdir = get_directory(parent)
-        return pdir.get_widget(myname)
-
-    def get_first(self):
-        """Return the first TreeWidget in the directory."""
-        
-        return self.get_widget(self.items[0])
-    
-    def get_last(self):
-        """Return the last TreeWIdget in the directory."""
-        
-        return self.get_widget(self.items[-1])
-        
+    def load_widget(self):
+        return DirectoryWidget(self)
 
 
-class DirectoryWalker(urwid.ListWalker):
-    """ListWalker-compatible class for browsing directories.
-    
-    positions used are directory,filename tuples."""
-    
-    def __init__(self, start_from, new_focus_callback):
-        parent = start_from
-        dir = get_directory(parent)
-        widget = dir.get_first()
-        self.focus = parent, widget.name
-        self._new_focus_callback = new_focus_callback
-        new_focus_callback(self.focus)
-
-    def get_focus(self):
-        parent, name = self.focus
-        dir = get_directory(parent)
-        widget = dir.get_widget(name)
-        return widget, self.focus
-        
-    def set_focus(self, focus):
-        parent, name = focus
-        self._new_focus_callback(focus)
-        self.focus = parent, name
-        self._modified()
-    
-    def get_next(self, start_from):
-        parent, name = start_from
-        dir = get_directory(parent)
-        widget = dir.get_widget(name)
-        target = widget.next_inorder()
-        if target is None:
-            return None, None
-        return target, (target.dir, target.name)
-
-    def get_prev(self, start_from):
-        parent, name = start_from
-        dir = get_directory(parent)
-        widget = dir.get_widget(name)
-        target = widget.prev_inorder()
-        if target is None:
-            return None, None
-        return target, (target.dir, target.name)
-                
-
-        
 class DirectoryBrowser:
     palette = [
         ('body', 'black', 'light gray'),
@@ -383,7 +217,7 @@ class DirectoryBrowser:
         cwd = os.getcwd()
         store_initial_cwd(cwd)
         self.header = urwid.Text("")
-        self.listbox = urwid.ListBox(DirectoryWalker(cwd, self.show_focus))
+        self.listbox = urwid.TreeListBox(urwid.TreeWalker(DirectoryNode(cwd)))
         self.listbox.offset_rows = 1
         self.footer = urwid.AttrWrap(urwid.Text(self.footer_text),
             'foot')
@@ -391,10 +225,6 @@ class DirectoryBrowser:
             urwid.AttrWrap(self.listbox, 'body'), 
             header=urwid.AttrWrap(self.header, 'head'), 
             footer=self.footer)
-
-    def show_focus(self, focus):
-        parent, ignore = focus
-        self.header.set_text(parent)
 
     def main(self):
         """Run the program."""
@@ -408,63 +238,9 @@ class DirectoryBrowser:
         print " ".join(names)
 
     def unhandled_input(self, k):
-            # update display of focus directory
-            if k in ('q','Q'):
-                raise urwid.ExitMainLoop()
-            elif k == 'left':
-                self.move_focus_to_parent()
-            elif k == '-':
-                self.collapse_focus_parent()
-            elif k == 'home':
-                self.focus_home()
-            elif k == 'end':
-                self.focus_end()
-            else:
-                return
-            return True
-                    
-    def collapse_focus_parent(self):
-        """Collapse parent directory."""
-        
-        widget, pos = self.listbox.body.get_focus()
-        self.move_focus_to_parent()
-        
-        pwidget, ppos = self.listbox.body.get_focus()
-        if widget.dir != pwidget.dir:
-            self.loop.process_input(["-"])
-
-    def move_focus_to_parent(self):
-        """Move focus to parent of widget in focus."""
-        focus_widget, position = self.listbox.get_focus()
-        parent, name = os.path.split(focus_widget.dir)
-        
-        if parent == focus_widget.dir:
-            # no root dir, choose first element instead
-            self.focus_home()
-            return
-        
-        self.listbox.set_focus((parent, name), 'below')
-        return 
-        
-    def focus_home(self):
-        """Move focus to very top."""
-        
-        dir = get_directory("/")
-        widget = dir.get_first()
-        parent, name = widget.dir, widget.name
-        self.listbox.set_focus((parent, name), 'below')
-
-    def focus_end(self):
-        """Move focus to far bottom."""
-        
-        dir = get_directory("/")
-        widget = dir.get_last()
-        parent, name = widget.dir, widget.name
-        self.listbox.set_focus((parent, name), 'above')
-
-
-
-
+        # update display of focus directory
+        if k in ('q','Q'):
+            raise urwid.ExitMainLoop()
 
 
 def main():
@@ -474,29 +250,21 @@ def main():
 
 
 #######
-# global cache of directory information
-_dir_cache = {}
+# global cache of widgets
+_widget_cache = {}
 
-def get_directory(name):
-    """Return the Directory object for a given path.  Create if necessary."""
-    
-    if not _dir_cache.has_key(name):
-        _dir_cache[name] = Directory(name)
-    return _dir_cache[name]
+def add_widget(path, widget):
+    """Add the widget for a given path"""
 
-def directory_cached(name):
-    """Return whether the directory is in the cache."""
-    
-    return _dir_cache.has_key(name)
+    _widget_cache[path] = widget
 
 def get_selected_names():
     """Return a list of all filenames marked as selected."""
     
     l = []
-    for d in _dir_cache.values():
-        for w in d.widgets.values():
-            if w.selected:
-                l.append(os.path.join(w.dir, w.name))
+    for w in _widget_cache.values():
+        if w.selected:
+            l.append(w.get_node().get_value())
     return l
             
 
@@ -513,6 +281,9 @@ def store_initial_cwd(name):
 
 def starts_expanded(name):
     """Return True if directory is a parent of initial cwd."""
+
+    if name is '/':
+        return True
     
     l = name.split(dir_sep())
     if len(l) > len(_initial_cwd):

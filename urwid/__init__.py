@@ -39,6 +39,8 @@ __all__ = [
     'command_map',
     'MainLoop', 'SelectEventLoop', 'GLibEventLoop', 'TwistedEventLoop',
     'AttrSpec', 'AttrSpecError',
+    'TreeWidget', 'ParentWidget', 'TreeNode', 'ParentNode', 'TreeWalker',
+    'TreeListBox',
     ]
 
 VERSION = (0, 9, 9, 1)
@@ -60,5 +62,6 @@ from urwid.main_loop import *
 from urwid.text_layout import *
 from urwid.display_common import *
 from urwid.util import *
+from urwid.treetools import *
 
 from urwid import raw_display
