@@ -41,6 +41,8 @@ class TreeWidgetError(RuntimeError):
 
 class TreeWidget(urwid.WidgetWrap):
     """A widget representing something in the file tree."""
+    indent_cols = 3
+
     def __init__(self, node):
         self._node = node
         self._innerwidget = None
@@ -50,17 +52,8 @@ class TreeWidget(urwid.WidgetWrap):
 
         w = urwid.AttrWrap(widget, None)
         self.__super.__init__(w)
-        # Compatibility fix for 0.9.9+
-        if not hasattr(self, 'get_w'):
-            self.get_w = self._retro_get_w
         self.update_w()
     
-    def _retro_get_w(self):
-        """
-        Implementation of get_w() if the base urwid install doesn't support it.
-        """
-        return self._w
-
     def get_indented_widget(self):
         leftmargin = urwid.Text("")
         widgetlist = [self.get_inner_widget()]
@@ -70,7 +63,7 @@ class TreeWidget(urwid.WidgetWrap):
         return urwid.Columns(widgetlist)
 
     def get_indent_cols(self):
-        return 3 * self.get_node().get_depth()
+        return self.indent_cols * self.get_node().get_depth()
 
     def get_inner_widget(self):
         if self._innerwidget is None:
@@ -98,13 +91,13 @@ class TreeWidget(urwid.WidgetWrap):
 
     def keypress(self, size, key):
         """allow subclasses to intercept keystrokes"""
-        w = self.get_w()
         try:
-            key = w.keypress(size, key)
+            key = self._w.keypress(size, key)
         except AttributeError:
             # no biggie...we'll just handle the keypress here
             pass
-        key = self.unhandled_keys(size, key)
+        if key:
+            key = self.unhandled_keys(size, key)
         return key
 
     def unhandled_keys(self, size, key):
@@ -122,11 +115,11 @@ class TreeWidget(urwid.WidgetWrap):
         """Update the attributes of self.widget based on self.selected.
         """
         if self.selected:
-            self.get_w().attr = 'selected'
-            self.get_w().focus_attr = 'selected focus'
+            self._w.attr = 'selected'
+            self._w.focus_attr = 'selected focus'
         else:
-            self.get_w().attr = 'body'
-            self.get_w().focus_attr = 'focus'
+            self._w.attr = 'body'
+            self._w.focus_attr = 'focus'
 
     def next_inorder(self):
         """Return the next TreeWidget depth first from this one."""
