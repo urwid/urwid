@@ -2,8 +2,7 @@
 #
 # Generic TreeWidget/TreeWalker class 
 #    Copyright (c) 2010  Rob Lanphier
-# Derived from Urwid example lazy directory browser / tree view:
-#    Copyright (C) 2004-2009  Ian Ward
+#    Copyright (C) 2004-2010  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -31,6 +30,7 @@ Features:
 
 
 import urwid
+from urwid.wimp import SelectableIcon
 
 import os
 
@@ -42,25 +42,38 @@ class TreeWidgetError(RuntimeError):
 class TreeWidget(urwid.WidgetWrap):
     """A widget representing something in the file tree."""
     indent_cols = 3
+    unexpanded_icon = SelectableIcon('+', 0)
+    expanded_icon = SelectableIcon('-', 0)
 
     def __init__(self, node):
         self._node = node
         self._innerwidget = None
-        self.selected = False
-
+        self.is_leaf = not hasattr(node, 'get_first_child')
+        self.expanded = True
         widget = self.get_indented_widget()
-
-        w = urwid.AttrWrap(widget, None)
-        self.__super.__init__(w)
-        self.update_w()
+        self.__super.__init__(widget)
+    
+    def selectable(self):
+        """
+        Allow selection of non-leaf nodes so children may be (un)expanded
+        """
+        return not self.is_leaf
     
     def get_indented_widget(self):
-        leftmargin = urwid.Text("")
-        widgetlist = [self.get_inner_widget()]
+        widget = self.get_inner_widget()
+        if not self.is_leaf:
+            widget = urwid.Columns([('fixed', 1,
+                [self.unexpanded_icon, self.expanded_icon][self.expanded]),
+                widget], dividechars=1)
         indent_cols = self.get_indent_cols()
-        if indent_cols > 0:
-            widgetlist.insert(0, ('fixed', indent_cols, leftmargin))
-        return urwid.Columns(widgetlist)
+        return urwid.Padding(widget, 
+            width=('relative', 100), left=indent_cols)
+    
+    def update_expanded_icon(self):
+        """Update display widget text for parent widgets"""
+        # icon is first element in colums indented widget
+        self._w.base_widget.widget_list[0] = [
+            self.unexpanded_icon, self.expanded_icon][self.expanded]
 
     def get_indent_cols(self):
         return self.indent_cols * self.get_node().get_depth()
@@ -79,47 +92,6 @@ class TreeWidget(urwid.WidgetWrap):
     def get_display_text(self):
         return (self.get_node().get_key() + ": " + 
                 str(self.get_node().get_value()))
-
-    def selectable(self):
-        return True
-    
-    def is_selected(self):
-        return self.selected
-
-    def set_selected(self, value=True):
-        self.selected = value
-
-    def keypress(self, size, key):
-        """allow subclasses to intercept keystrokes"""
-        try:
-            key = self._w.keypress(size, key)
-        except AttributeError:
-            # no biggie...we'll just handle the keypress here
-            pass
-        if key:
-            key = self.unhandled_keys(size, key)
-        return key
-
-    def unhandled_keys(self, size, key):
-        """
-        Override this method to intercept keystrokes in subclasses.
-        Default behavior: Toggle selected on space, ignore other keys.
-        """
-        if key == " ":
-            self.selected = not self.selected
-            self.update_w()
-        else:
-            return key
-
-    def update_w(self):
-        """Update the attributes of self.widget based on self.selected.
-        """
-        if self.selected:
-            self._w.attr = 'selected'
-            self._w.focus_attr = 'selected focus'
-        else:
-            self._w.attr = 'body'
-            self._w.focus_attr = 'focus'
 
     def next_inorder(self):
         """Return the next TreeWidget depth first from this one."""
@@ -166,58 +138,36 @@ class TreeWidget(urwid.WidgetWrap):
                 prevnode = thisnode.get_parent()
             return prevnode.get_widget()
 
-    def first_child(self):
-        """Default to have no children."""
-        return None
-    
-    def last_child(self):
-        """Default to have no children."""
-        return None
-
-class ParentWidget(TreeWidget):
-    """Widget for an interior tree node."""
-
-    def __init__(self, node):
-        self.__super.__init__(node)
-        self.expanded = True
-        
-        self.update_widget()
-    
-    def update_widget(self):
-        """Update display widget text."""
-        
-        if self.expanded:
-            mark = "-"
-        else:
-            mark = "+"
-        self._innerwidget.set_text([('dirmark', mark), " ", self.get_display_text()] )
-
     def keypress(self, size, key):
-        """Handle expand & collapse requests."""
+        """Handle expand & collapse requests (non-leaf nodes)"""
+        if self.is_leaf:
+            return key
         
         if key in ("+", "right"):
             self.expanded = True
-            self.update_widget()
+            self.update_expanded_icon()
         elif key == "-":
             self.expanded = False
-            self.update_widget()
-        else:
+            self.update_expanded_icon()
+        elif self._w.selectable():
             return self.__super.keypress(size, key)
+        else:
+            return key
     
     def mouse_event(self, size, event, button, col, row, focus):
-        if event != 'mouse press' or button!=1:
+        if self.is_leaf or event != 'mouse press' or button!=1:
             return False
 
         if row == 0 and col == self.get_indent_cols():
             self.expanded = not self.expanded
-            self.update_widget()
+            self.update_expanded_icon()
             return True
         
         return False
-    
+
     def first_child(self):
         """Return first child if expanded."""
-        if not self.expanded: 
+        if self.is_leaf or not self.expanded: 
             return None
         else:
             if self._node.has_children():
@@ -228,7 +178,7 @@ class ParentWidget(TreeWidget):
 
     def last_child(self):
         """Return last child if expanded."""
-        if not self.expanded:
+        if self.is_leaf or not self.expanded:
             return None
         else:
             if self._node.has_children():
@@ -326,12 +276,6 @@ class TreeNode(object):
         while root.get_parent() is not None:
             root = root.get_parent()
         return root
-
-    def get_selected_nodes(self):
-        if self.get_widget().is_selected():
-            return [self]
-        else:
-            return []
         
         
 class ParentNode(TreeNode):
@@ -341,9 +285,6 @@ class ParentNode(TreeNode):
 
         self._child_keys = None
         self._children = {}
-
-    def load_widget(self):
-        return ParentWidget(self)
 
     def get_child_keys(self, reload=False):
         """Return a possibly ordered list of child keys"""
@@ -436,15 +377,6 @@ class ParentNode(TreeNode):
     def has_children(self):
         """Does this node have any children?"""
         return len(self.get_child_keys())>0
-
-    def get_selected_nodes(self):
-        retval = []
-        if self.get_widget().is_selected():
-            retval.append(self)
-        for key in self.get_child_keys():
-            child = self.get_child_node(key)
-            retval += child.get_selected_nodes()
-        return retval
 
 
 class TreeWalker(urwid.ListWalker):

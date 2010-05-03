@@ -29,7 +29,6 @@ Features:
 - custom selectable widgets for files and directories
 - custom message widgets to identify access errors and empty directories
 - custom list walker for displaying widgets in a tree fashion
-- outputs a quoted list of files and directories "selected" on exit
 """
 
 import urwid
@@ -38,12 +37,6 @@ import os
 
 class ExampleTreeWidget(urwid.TreeWidget):
     """ Display widget for leaf nodes """
-    def get_display_text(self):
-        return self.get_node().get_value()['name']
-
-
-class ExampleParentWidget(urwid.ParentWidget):
-    """ Display widget for interior/parent nodes """
     def get_display_text(self):
         return self.get_node().get_value()['name']
 
@@ -57,7 +50,7 @@ class ExampleNode(urwid.TreeNode):
 class ExampleParentNode(urwid.ParentNode):
     """ Data storage object for interior/parent nodes """
     def load_widget(self):
-        return ExampleParentWidget(self)
+        return ExampleTreeWidget(self)
 
     def load_child_keys(self):
         data = self.get_value()
@@ -77,15 +70,11 @@ class ExampleParentNode(urwid.ParentNode):
 class ExampleTreeBrowser:
     palette = [
         ('body', 'black', 'light gray'),
-        ('selected', 'black', 'dark green', ('bold','underline')),
         ('focus', 'light gray', 'dark blue', 'standout'),
-        ('selected focus', 'yellow', 'dark cyan', 
-                ('bold','standout','underline')),
         ('head', 'yellow', 'black', 'standout'),
         ('foot', 'light gray', 'black'),
         ('key', 'light cyan', 'black','underline'),
         ('title', 'white', 'black', 'bold'),
-        ('dirmark', 'black', 'dark cyan', 'bold'),
         ('flag', 'dark gray', 'light gray'),
         ('error', 'dark red', 'light gray'),
         ]
@@ -95,7 +84,6 @@ class ExampleTreeBrowser:
         ('key', "UP"), ",", ('key', "DOWN"), ",",
         ('key', "PAGE UP"), ",", ('key', "PAGE DOWN"),
         "  ",
-        ('key', "SPACE" ), "  ",
         ('key', "+"), ",",
         ('key', "-"), "  ",
         ('key', "LEFT"), "  ",
@@ -122,12 +110,6 @@ class ExampleTreeBrowser:
         self.loop = urwid.MainLoop(self.view, self.palette,
             unhandled_input=self.unhandled_input)
         self.loop.run()
-
-        # on exit, write the selected filenames to the console
-        names = []
-        for node in self.topnode.get_selected_nodes():
-            names.append(node.get_value()['name'])
-        print '"' + '", "'.join(names) + '"'
 
     def unhandled_input(self, k):
         if k in ('q','Q'):

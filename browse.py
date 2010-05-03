@@ -36,9 +36,60 @@ import os
 import urwid
 
 
-class FileTreeWidget(urwid.TreeWidget):
-    """Widget for individual files."""
+class SelectableFileWidget(urwid.TreeWidget):
+    # apply an attribute to the expand/unexpand icons
+    unexpanded_icon = urwid.AttrMap(urwid.TreeWidget.unexpanded_icon,
+        'dirmark')
+    expanded_icon = urwid.AttrMap(urwid.TreeWidget.expanded_icon,
+        'dirmark')
 
+    def __init__(self, node):
+        self.__super.__init__(node)
+        # insert an extra AttrWrap for our own use
+        self._w = urwid.AttrWrap(self._w, None)
+        self.selected = False
+        self.update_w()
+
+    def is_selected(self):
+        return self.selected
+
+    def set_selected(self, value=True):
+        self.selected = value
+    
+    def selectable(self):
+        return True
+
+    def keypress(self, size, key):
+        """allow subclasses to intercept keystrokes"""
+        key = self.__super.keypress(size, key)
+        if key:
+            key = self.unhandled_keys(size, key)
+        return key
+
+    def unhandled_keys(self, size, key):
+        """
+        Override this method to intercept keystrokes in subclasses.
+        Default behavior: Toggle selected on space, ignore other keys.
+        """
+        if key == " ":
+            self.selected = not self.selected
+            self.update_w()
+        else:
+            return key
+
+    def update_w(self):
+        """Update the attributes of self.widget based on self.selected.
+        """
+        if self.selected:
+            self._w.attr = 'selected'
+            self._w.focus_attr = 'selected focus'
+        else:
+            self._w.attr = 'body'
+            self._w.focus_attr = 'focus'
+
+
+class FileTreeWidget(SelectableFileWidget):
+    """Widget for individual files."""
     def __init__(self, node):
         self.__super.__init__(node)
         path = node.get_value()
@@ -46,38 +97,30 @@ class FileTreeWidget(urwid.TreeWidget):
 
     def get_display_text(self):
         return self.get_node().get_key()
+    
 
 
-class EmptyWidget(FileTreeWidget):
+class EmptyWidget(urwid.TreeWidget):
     """A marker for expanded directories with no contents."""
-
     def get_display_text(self):
         return ('flag', '(empty directory)')
 
-    def selectable(self):
-        return False
-    
 
-class ErrorWidget(FileTreeWidget):
+class ErrorWidget(urwid.TreeWidget):
     """A marker for errors reading directories."""
 
     def get_display_text(self):
         return ('error', "(error/permission denied)")
 
-    def selectable(self):
-        return False
 
-
-class DirectoryWidget(urwid.ParentWidget):
+class DirectoryWidget(SelectableFileWidget):
     """Widget for a directory."""
-
     def __init__(self, node):
         self.__super.__init__(node)
-
-        path = self.get_node().get_value()
+        path = node.get_value()
         add_widget(path, self)
         self.expanded = starts_expanded(path)
-        self.update_widget()
+        self.update_expanded_icon()
 
     def get_display_text(self):
         node = self.get_node()
@@ -103,6 +146,12 @@ class FileNode(urwid.TreeNode):
 
     def load_widget(self):
         return FileTreeWidget(self)
+
+    def get_selected_nodes(self):
+        if self.get_widget().is_selected():
+            return [self]
+        else:
+            return []
 
 
 class EmptyNode(urwid.TreeNode):
@@ -180,6 +229,15 @@ class DirectoryNode(urwid.ParentNode):
 
     def load_widget(self):
         return DirectoryWidget(self)
+
+    def get_selected_nodes(self):
+        retval = []
+        if self.get_widget().is_selected():
+            retval.append(self)
+        for key in self.get_child_keys():
+            child = self.get_child_node(key)
+            retval += child.get_selected_nodes()
+        return retval
 
 
 class DirectoryBrowser:
