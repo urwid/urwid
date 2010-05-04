@@ -36,7 +36,7 @@ import os
 import urwid
 
 
-class SelectableFileWidget(urwid.TreeWidget):
+class FlagFileWidget(urwid.TreeWidget):
     # apply an attribute to the expand/unexpand icons
     unexpanded_icon = urwid.AttrMap(urwid.TreeWidget.unexpanded_icon,
         'dirmark')
@@ -47,15 +47,9 @@ class SelectableFileWidget(urwid.TreeWidget):
         self.__super.__init__(node)
         # insert an extra AttrWrap for our own use
         self._w = urwid.AttrWrap(self._w, None)
-        self.selected = False
+        self.flagged = False
         self.update_w()
 
-    def is_selected(self):
-        return self.selected
-
-    def set_selected(self, value=True):
-        self.selected = value
-    
     def selectable(self):
         return True
 
@@ -69,26 +63,26 @@ class SelectableFileWidget(urwid.TreeWidget):
     def unhandled_keys(self, size, key):
         """
         Override this method to intercept keystrokes in subclasses.
-        Default behavior: Toggle selected on space, ignore other keys.
+        Default behavior: Toggle flagged on space, ignore other keys.
         """
         if key == " ":
-            self.selected = not self.selected
+            self.flagged = not self.flagged
             self.update_w()
         else:
             return key
 
     def update_w(self):
-        """Update the attributes of self.widget based on self.selected.
+        """Update the attributes of self.widget based on self.flagged.
         """
-        if self.selected:
-            self._w.attr = 'selected'
-            self._w.focus_attr = 'selected focus'
+        if self.flagged:
+            self._w.attr = 'flagged'
+            self._w.focus_attr = 'flagged focus'
         else:
             self._w.attr = 'body'
             self._w.focus_attr = 'focus'
 
 
-class FileTreeWidget(SelectableFileWidget):
+class FileTreeWidget(FlagFileWidget):
     """Widget for individual files."""
     def __init__(self, node):
         self.__super.__init__(node)
@@ -113,7 +107,7 @@ class ErrorWidget(urwid.TreeWidget):
         return ('error', "(error/permission denied)")
 
 
-class DirectoryWidget(SelectableFileWidget):
+class DirectoryWidget(FlagFileWidget):
     """Widget for a directory."""
     def __init__(self, node):
         self.__super.__init__(node)
@@ -146,12 +140,6 @@ class FileNode(urwid.TreeNode):
 
     def load_widget(self):
         return FileTreeWidget(self)
-
-    def get_selected_nodes(self):
-        if self.get_widget().is_selected():
-            return [self]
-        else:
-            return []
 
 
 class EmptyNode(urwid.TreeNode):
@@ -230,22 +218,13 @@ class DirectoryNode(urwid.ParentNode):
     def load_widget(self):
         return DirectoryWidget(self)
 
-    def get_selected_nodes(self):
-        retval = []
-        if self.get_widget().is_selected():
-            retval.append(self)
-        for key in self.get_child_keys():
-            child = self.get_child_node(key)
-            retval += child.get_selected_nodes()
-        return retval
-
 
 class DirectoryBrowser:
     palette = [
         ('body', 'black', 'light gray'),
-        ('selected', 'black', 'dark green', ('bold','underline')),
+        ('flagged', 'black', 'dark green', ('bold','underline')),
         ('focus', 'light gray', 'dark blue', 'standout'),
-        ('selected focus', 'yellow', 'dark cyan', 
+        ('flagged focus', 'yellow', 'dark cyan', 
                 ('bold','standout','underline')),
         ('head', 'yellow', 'black', 'standout'),
         ('foot', 'light gray', 'black'),
@@ -291,8 +270,8 @@ class DirectoryBrowser:
             unhandled_input=self.unhandled_input)
         self.loop.run()
     
-        # on exit, write the selected filenames to the console
-        names = [escape_filename_sh(x) for x in get_selected_names()]
+        # on exit, write the flagged filenames to the console
+        names = [escape_filename_sh(x) for x in get_flagged_names()]
         print " ".join(names)
 
     def unhandled_input(self, k):
@@ -316,12 +295,12 @@ def add_widget(path, widget):
 
     _widget_cache[path] = widget
 
-def get_selected_names():
-    """Return a list of all filenames marked as selected."""
+def get_flagged_names():
+    """Return a list of all filenames marked as flagged."""
     
     l = []
     for w in _widget_cache.values():
-        if w.selected:
+        if w.flagged:
             l.append(w.get_node().get_value())
     return l
             
