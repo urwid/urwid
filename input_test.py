@@ -46,7 +46,7 @@ def key_test():
     listbox = urwid.ListBox(lw)
     listbox = urwid.AttrWrap(listbox, 'listbox')
     top = urwid.Frame(listbox, header)
-        
+
     def input_filter(keys, raw):
         if 'q' in keys or 'Q' in keys:
             raise urwid.ExitMainLoop
@@ -73,7 +73,9 @@ def key_test():
                     rawt])
                 )
             listbox.set_focus(len(lw)-1,'above')
-        return keys
+        loop.draw_screen()
+        # we have handled all the input
+        return []
 
     loop = urwid.MainLoop(top, [
         ('header', 'black', 'dark cyan', 'standout'),
