@@ -28,7 +28,7 @@ import _curses
 
 from urwid import escape
 
-from urwid.display_common import RealTerminal
+from urwid.display_common import BaseScreen, RealTerminal
 
 KEY_RESIZE = 410 # curses.KEY_RESIZE (sometimes not defined)
 KEY_MOUSE = 409 # curses.KEY_MOUSE
