@@ -238,6 +238,7 @@ class MainLoop(object):
             handled_something = self.process_input(keys)
             if 'window resize' in keys:
                 self.screen_size = None
+                handled_something = True
 
             if handled_something:
                 self.draw_screen()
