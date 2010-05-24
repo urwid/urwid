@@ -154,13 +154,15 @@ class EditDisplay:
         self.save_name = name
         self.walker = LineWalker(name) 
         self.listbox = urwid.ListBox(self.walker)
-        self.footer = urwid.AttrWrap(urwid.Text(self.footer_text),
-            "foot")
-        self.view = urwid.Frame(urwid.AttrWrap(self.listbox, 'body'),
-            footer=self.footer)
+        #self.footer = urwid.AttrWrap(urwid.Text(self.footer_text),
+            #"foot")
+        #self.view = urwid.Frame(urwid.AttrWrap(self.listbox, 'body'))
+        #self.view = urwid.Frame(urwid.AttrWrap(self.listbox, 'body'),
+            #footer=self.footer)
 
     def main(self):
-        self.loop = urwid.MainLoop(self.view, self.palette,
+        #self.loop = urwid.MainLoop(self.view, self.palette,
+        self.loop = urwid.MainLoop(self.listbox, self.palette,
             unhandled_input=self.unhandled_keypress)
         self.loop.run()
     

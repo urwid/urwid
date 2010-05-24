@@ -178,7 +178,7 @@ def calc_text_pos( text, start_offs, end_offs, pref_col ):
             i = n
             sc += w
         return i, sc
-    assert type(text) == str, repr(text)
+    assert type(text) == bytes, repr(text)
     # "wide" and "narrow"
     i = start_offs+pref_col
     if i >= end_offs:

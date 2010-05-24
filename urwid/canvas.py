@@ -341,7 +341,9 @@ class TextCanvas(Canvas):
 
     def rows(self):
         """Return the number of rows in this canvas."""
-        return len(self._text)
+        rows = len(self._text)
+        assert isinstance(rows, int)
+        return rows
 
     def cols(self):
         """Return the screen column width of this canvas."""
@@ -530,12 +532,21 @@ class CompositeCanvas(Canvas):
                 self.shortcuts[shortcut] = "wrap"
 
     def rows(self):
-        return sum([r for r,cv in self.shards])
+        for r,cv in self.shards:
+            try:
+                assert isinstance(r, int)
+            except AssertionError:
+                raise AssertionError(r, cv)
+        rows = sum([r for r,cv in self.shards])
+        assert isinstance(rows, int)
+        return rows
 
     def cols(self):
         if not self.shards:
             return 0
-        return sum([cv[2] for cv in self.shards[0][1]])
+        cols = sum([cv[2] for cv in self.shards[0][1]])
+        assert isinstance(cols, int)
+        return cols
 
         
     def content(self):
@@ -1246,7 +1257,7 @@ def apply_text_layout(text, attr, ls, maxcol):
                     line.append(b" "*s.sc)
                     attrrange( s.offs, s.offs, s.sc )
             else:
-                line.append(" "*s.sc)
+                line.append(b" "*s.sc)
                 linea.append((None, s.sc))
                 linec.append((None, s.sc))
         

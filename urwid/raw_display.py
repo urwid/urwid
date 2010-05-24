@@ -44,8 +44,13 @@ try:
 except ImportError:
     Popen = None
 
-# replace control characters with ?'s
-_trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
+if bytes is str:
+    # python 2
+    _trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
+else:
+    # python 3
+    _trans_table = b"?"*32+bytes(range(32,256))
+
 
 class Screen(BaseScreen, RealTerminal):
     def __init__(self):
@@ -626,6 +631,7 @@ class Screen(BaseScreen, RealTerminal):
             first = True
             lasta = lastcs = None
             for (a,cs, run) in row:
+                assert isinstance(run, bytes)
                 run = run.translate( _trans_table )
                 if first or lasta != a:
                     o.append(attr_to_escape(a))
@@ -664,7 +670,10 @@ class Screen(BaseScreen, RealTerminal):
         try:
             k = 0
             for l in o:
-                self._term_output_file.write( l )
+                if isinstance(l, bytes) and bytes is not str:
+                    # for python 3
+                    l = l.decode('utf-8')
+                self._term_output_file.write(l)
                 k += len(l)
                 if k > 1024:
                     self._term_output_file.flush()
