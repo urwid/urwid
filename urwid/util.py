@@ -117,10 +117,20 @@ def apply_target_encoding( s ):
     if type(s) == unicode:
         s = s.replace( escape.SI+escape.SO, u"" ) # remove redundant shifts
         s = s.encode( _target_encoding )
-
-    sis = s.split( escape.SO )
-
-    sis0 = sis[0].replace( escape.SI, "" )
+    
+    assert isinstance(s, bytes)
+    SO = escape.SO
+    SI = escape.SI
+    if not isinstance(SO, bytes):
+        # python 3
+        SO = SO.encode('ascii')
+        SI = SI.encode('ascii')
+    
+    sis = s.split( SO )
+    
+    assert isinstance(sis[0], bytes)
+    
+    sis0 = sis[0].replace( SI, b"" )
     sout = []
     cout = []
     if sis0:
@@ -131,14 +141,17 @@ def apply_target_encoding( s ):
         return sis0, cout
     
     for sn in sis[1:]:
-        sl = sn.split( escape.SI, 1 ) 
+        assert isinstance(sn, bytes)
+        sl = sn.split( SI, 1 ) 
+        assert isinstance(sl, bytes)
         if len(sl) == 1:
             sin = sl[0]
+            assert isinstance(sin, bytes)
             sout.append(sin)
-            rle_append_modify(cout, (escape.DEC_TAG, len(sin)))
+            rle_append_modify(cout, (escape.DEC_TAG.encode('ascii'), len(sin)))
             continue
         sin, son = sl
-        son = son.replace( escape.SI, "" )
+        son = son.replace( SI, b"" )
         if sin:
             sout.append(sin)
             rle_append_modify(cout, (escape.DEC_TAG, len(sin)))
@@ -146,7 +159,8 @@ def apply_target_encoding( s ):
             sout.append(son)
             rle_append_modify(cout, (None, len(son)))
     
-    return "".join(sout), cout
+    outstr = b"".join(sout)
+    return outstr, cout
     
     
 ######################################################################
@@ -438,5 +452,5 @@ def int_scale(val, val_range, out_range):
     num = int(val * (out_range-1) * 2 + (val_range-1))
     dem = ((val_range-1) * 2)
     # if num % dem == 0 then we are exactly half-way and have rounded up.
-    return num / dem
+    return num // dem
 

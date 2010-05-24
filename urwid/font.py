@@ -20,7 +20,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from urwid.escape import utf8decode, SAFE_ASCII_DEC_SPECIAL_RE
+from urwid.escape import SAFE_ASCII_DEC_SPECIAL_RE
 from urwid.util import apply_target_encoding, str_util
 from urwid.canvas import TextCanvas
 
@@ -135,87 +135,87 @@ class Font(object):
     
 
         
-#safe_palette = utf8decode("┘┐┌└┼─├┤┴┬│")
-#more_palette = utf8decode("═║╒╓╔╕╖╗╘╙╚╛╜╝╞╟╠╡╢╣╤╥╦╧╨╩╪╫╬○")
-#block_palette = utf8decode("▄#█#▀#▌#▐#▖#▗#▘#▙#▚#▛#▜#▝#▞#▟")
+#safe_palette = u"┘┐┌└┼─├┤┴┬│"
+#more_palette = u"═║╒╓╔╕╖╗╘╙╚╛╜╝╞╟╠╡╢╣╤╥╦╧╨╩╪╫╬○"
+#block_palette = u"▄#█#▀#▌#▐#▖#▗#▘#▙#▚#▛#▜#▝#▞#▟"
 
 
 class Thin3x3Font(Font):
     height = 3
-    data = [utf8decode("""
+    data = [u"""
 000111222333444555666777888999  !
 ┌─┐ ┐ ┌─┐┌─┐  ┐┌─ ┌─ ┌─┐┌─┐┌─┐  │
 │ │ │ ┌─┘ ─┤└─┼└─┐├─┐  ┼├─┤└─┤  │
 └─┘ ┴ └─ └─┘  ┴ ─┘└─┘  ┴└─┘ ─┘  .
-"""), utf8decode(r"""
+""", ur"""
 "###$$$%%%'*++,--.///:;==???[[\\\]]^__`
 " ┼┼┌┼┐O /'         /.. _┌─┐┌ \   ┐^  `
   ┼┼└┼┐ /  * ┼  ─  / ., _ ┌┘│  \  │     
     └┼┘/ O    ,  ./       . └   \ ┘ ──
-""")]
+"""]
 add_font("Thin 3x3",Thin3x3Font)
 
 class Thin4x3Font(Font):
     height = 3
-    data = Thin3x3Font.data + [utf8decode("""
+    data = Thin3x3Font.data + [u"""
 0000111122223333444455556666777788889999  ####$$$$
 ┌──┐  ┐ ┌──┐┌──┐   ┐┌── ┌── ┌──┐┌──┐┌──┐   ┼─┼┌┼┼┐
 │  │  │ ┌──┘  ─┤└──┼└──┐├──┐   ┼├──┤└──┤   ┼─┼└┼┼┐
 └──┘  ┴ └── └──┘   ┴ ──┘└──┘   ┴└──┘ ──┘      └┼┼┘
-""")]
+"""]
 add_font("Thin 4x3",Thin4x3Font)
 
 class HalfBlock5x4Font(Font):
     height = 4
-    data = [utf8decode("""
+    data = [u"""
 00000111112222233333444445555566666777778888899999  !!
 ▄▀▀▄  ▄█  ▄▀▀▄ ▄▀▀▄ ▄  █ █▀▀▀ ▄▀▀  ▀▀▀█ ▄▀▀▄ ▄▀▀▄   █ 
 █  █   █    ▄▀   ▄▀ █▄▄█ █▄▄  █▄▄    ▐▌ ▀▄▄▀ ▀▄▄█   █ 
 █  █   █  ▄▀   ▄  █    █    █ █  █   █  █  █    █   ▀ 
  ▀▀   ▀▀▀ ▀▀▀▀  ▀▀     ▀ ▀▀▀   ▀▀    ▀   ▀▀   ▀▀    ▀ 
-"""), utf8decode('''
+""", u'''
 """######$$$$$$%%%%%&&&&&((()))******++++++,,,-----..////:::;;
 █▐▌ █ █  ▄▀█▀▄ ▐▌▐▌ ▄▀▄   █ █   ▄ ▄    ▄              ▐▌      
    ▀█▀█▀ ▀▄█▄    █  ▀▄▀  ▐▌ ▐▌ ▄▄█▄▄ ▄▄█▄▄    ▄▄▄▄    █  ▀  ▀ 
    ▀█▀█▀ ▄ █ █  ▐▌▄ █ ▀▄▌▐▌ ▐▌  ▄▀▄    █             ▐▌  ▀ ▄▀ 
     ▀ ▀   ▀▀▀   ▀ ▀  ▀▀   ▀ ▀              ▄▀      ▀ ▀        
-'''), utf8decode(r"""
+''', ur"""
 <<<<<=====>>>>>?????@@@@@@[[[[\\\\]]]]^^^^____```{{{{||}}}}~~~~''´´´
   ▄▀      ▀▄   ▄▀▀▄ ▄▀▀▀▄ █▀▀ ▐▌  ▀▀█ ▄▀▄     ▀▄  ▄▀ █ ▀▄   ▄  █ ▄▀ 
 ▄▀   ▀▀▀▀   ▀▄   ▄▀ █ █▀█ █    █    █            ▄▀  █  ▀▄ ▐▐▌▌     
  ▀▄  ▀▀▀▀  ▄▀    ▀  █ ▀▀▀ █    ▐▌   █             █  █  █    ▀      
    ▀      ▀      ▀   ▀▀▀  ▀▀▀   ▀ ▀▀▀     ▀▀▀▀     ▀ ▀ ▀            
-"""), utf8decode('''
+""", (u'''
 AAAAABBBBBCCCCCDDDDDEEEEEFFFFFGGGGGHHHHHIIJJJJJKKKKK
 ▄▀▀▄ █▀▀▄ ▄▀▀▄ █▀▀▄ █▀▀▀ █▀▀▀ ▄▀▀▄ █  █ █    █ █  █  
 █▄▄█ █▄▄▀ █    █  █ █▄▄  █▄▄  █    █▄▄█ █    █ █▄▀    
 █  █ █  █ █  ▄ █  █ █    █    █ ▀█ █  █ █ ▄  █ █ ▀▄  
 ▀  ▀ ▀▀▀   ▀▀  ▀▀▀  ▀▀▀▀ ▀     ▀▀  ▀  ▀ ▀  ▀▀  ▀  ▀  
-'''), utf8decode('''
+'''), (u'''
 LLLLLMMMMMMNNNNNOOOOOPPPPPQQQQQRRRRRSSSSSTTTTT
 █    █▄ ▄█ ██ █ ▄▀▀▄ █▀▀▄ ▄▀▀▄ █▀▀▄ ▄▀▀▄ ▀▀█▀▀
 █    █ ▀ █ █▐▌█ █  █ █▄▄▀ █  █ █▄▄▀ ▀▄▄    █  
 █    █   █ █ ██ █  █ █    █ ▌█ █  █ ▄  █   █
 ▀▀▀▀ ▀   ▀ ▀  ▀  ▀▀  ▀     ▀▀▌ ▀  ▀  ▀▀    ▀
-'''), utf8decode('''
+'''), (u'''
 UUUUUVVVVVVWWWWWWXXXXXXYYYYYYZZZZZ
 █  █ █   █ █   █ █   █ █   █ ▀▀▀█      
 █  █ ▐▌ ▐▌ █ ▄ █  ▀▄▀   ▀▄▀   ▄▀  
 █  █  █ █  ▐▌█▐▌ ▄▀ ▀▄   █   █    
  ▀▀    ▀    ▀ ▀  ▀   ▀   ▀   ▀▀▀▀     
-'''), utf8decode('''
+'''), (u'''
 aaaaabbbbbcccccdddddeeeeeffffggggghhhhhiijjjjkkkkk
      █            █       ▄▀▀     █    ▄   ▄ █
  ▀▀▄ █▀▀▄ ▄▀▀▄ ▄▀▀█ ▄▀▀▄ ▀█▀ ▄▀▀▄ █▀▀▄ ▄   ▄ █ ▄▀    
 ▄▀▀█ █  █ █  ▄ █  █ █▀▀   █  ▀▄▄█ █  █ █   █ █▀▄   
  ▀▀▀ ▀▀▀   ▀▀   ▀▀▀  ▀▀   ▀   ▄▄▀ ▀  ▀ ▀ ▄▄▀ ▀  ▀  
-'''), utf8decode('''
+'''), (u'''
 llmmmmmmnnnnnooooopppppqqqqqrrrrssssstttt
 █                                     █  
 █ █▀▄▀▄ █▀▀▄ ▄▀▀▄ █▀▀▄ ▄▀▀█ █▀▀ ▄▀▀▀ ▀█▀  
 █ █ █ █ █  █ █  █ █  █ █  █ █    ▀▀▄  █
 ▀ ▀   ▀ ▀  ▀  ▀▀  █▀▀   ▀▀█ ▀   ▀▀▀    ▀
-'''), utf8decode('''
+'''), (u'''
 uuuuuvvvvvwwwwwwxxxxxxyyyyyzzzzz
                            
 █  █ █  █ █ ▄ █ ▀▄ ▄▀ █  █ ▀▀█▀
@@ -226,7 +226,7 @@ add_font("Half Block 5x4",HalfBlock5x4Font)
 
 class HalfBlock6x5Font(Font):
     height = 5
-    data = [utf8decode("""
+    data = [(u"""
 000000111111222222333333444444555555666666777777888888999999  ..::////
 ▄▀▀▀▄  ▄█   ▄▀▀▀▄ ▄▀▀▀▄ ▄  █  █▀▀▀▀ ▄▀▀▀  ▀▀▀▀█ ▄▀▀▀▄ ▄▀▀▀▄         █
 █   █   █       █     █ █  █  █     █        ▐▌ █   █ █   █     ▀  ▐▌
@@ -238,7 +238,7 @@ add_font("Half Block 6x5",HalfBlock6x5Font)
 
 class HalfBlockHeavy6x5Font(Font):
     height = 5
-    data = [utf8decode("""
+    data = [(u"""
 000000111111222222333333444444555555666666777777888888999999  ..::////
 ▄███▄  ▐█▌  ▄███▄ ▄███▄    █▌ █████ ▄███▄ █████ ▄███▄ ▄███▄         █▌
 █▌ ▐█  ▀█▌  ▀  ▐█ ▀  ▐█ █▌ █▌ █▌    █▌       █▌ █▌ ▐█ █▌ ▐█     █▌ ▐█
@@ -250,7 +250,7 @@ add_font("Half Block Heavy 6x5",HalfBlockHeavy6x5Font)
 
 class Thin6x6Font(Font):
     height = 6
-    data = [utf8decode("""
+    data = [(u"""
 000000111111222222333333444444555555666666777777888888999999''
 ┌───┐   ┐   ┌───┐ ┌───┐    ┐  ┌───  ┌───  ┌───┐ ┌───┐ ┌───┐ │
 │   │   │       │     │ ┌  │  │     │         │ │   │ │   │  
@@ -258,7 +258,7 @@ class Thin6x6Font(Font):
 │   │   │   │         │    │      │ │   │     │ │   │     │ 
 └───┘   ┴   └───  └───┘    ┴   ───┘ └───┘     ┴ └───┘  ───┘ 
 
-"""),utf8decode(r'''
+"""),(ur'''
 !!   """######$$$$$$%%%%%%&&&&&&((()))******++++++
 │    ││  ┌ ┌  ┌─┼─┐ ┌┐  /  ┌─┐   / \      
 │       ─┼─┼─ │ │   └┘ /   │ │  │   │  \ /    │
@@ -266,7 +266,7 @@ class Thin6x6Font(Font):
 │       ─┼─┼─   │ │  / ┌┐ │  \, │   │  / \    │
 .        ┘ ┘  └─┼─┘ /  └┘ └───\  \ /  
 
-'''),utf8decode(r"""
+'''),(ur"""
 ,,-----..//////::;;<<<<=====>>>>??????@@@@@@
              /                  ┌───┐ ┌───┐
             /  . .   / ──── \       │ │┌──┤
@@ -274,7 +274,7 @@ class Thin6x6Font(Font):
           /    . ,  \  ────  /    │   │└──┘
 ,      . /           \      /     .   └───┘
 
-"""),utf8decode(r"""
+"""),(ur"""
 [[\\\\\\]]^^^____``{{||}}~~~~~~
 ┌ \     ┐ /\     \ ┌ │ ┐ 
 │  \    │          │ │ │ ┌─┐
@@ -282,7 +282,7 @@ class Thin6x6Font(Font):
 │    \  │          │ │ │ 
 └     \ ┘    ────  └ │ ┘ 
 
-"""),utf8decode("""
+"""),(u"""
 AAAAAABBBBBBCCCCCCDDDDDDEEEEEEFFFFFFGGGGGGHHHHHHIIJJJJJJ
 ┌───┐ ┬───┐ ┌───┐ ┬───┐ ┬───┐ ┬───┐ ┌───┐ ┬   ┬ ┬     ┬
 │   │ │   │ │     │   │ │     │     │     │   │ │     │
@@ -290,7 +290,7 @@ AAAAAABBBBBBCCCCCCDDDDDDEEEEEEFFFFFFGGGGGGHHHHHHIIJJJJJJ
 │   │ │   │ │     │   │ │     │     │   │ │   │ │ ┬   │
 ┴   ┴ ┴───┘ └───┘ ┴───┘ ┴───┘ ┴     └───┘ ┴   ┴ ┴ └───┘
 
-"""),utf8decode("""
+"""),(u"""
 KKKKKKLLLLLLMMMMMMNNNNNNOOOOOOPPPPPPQQQQQQRRRRRRSSSSSS
 ┬   ┬ ┬     ┌─┬─┐ ┬─┐ ┬ ┌───┐ ┬───┐ ┌───┐ ┬───┐ ┌───┐
 │ ┌─┘ │     │ │ │ │ │ │ │   │ │   │ │   │ │   │ │
@@ -298,7 +298,7 @@ KKKKKKLLLLLLMMMMMMNNNNNNOOOOOOPPPPPPQQQQQQRRRRRRSSSSSS
 │  └┐ │     │   │ │ │ │ │   │ │     │  ┐│ │ └─┐     │
 ┴   ┴ ┴───┘ ┴   ┴ ┴ └─┴ └───┘ ┴     └──┼┘ ┴   ┴ └───┘
                                        └
-"""),utf8decode("""
+"""),(u"""
 TTTTTTUUUUUUVVVVVVWWWWWWXXXXXXYYYYYYZZZZZZ
 ┌─┬─┐ ┬   ┬ ┬   ┬ ┬   ┬ ┬   ┬ ┬   ┬ ┌───┐ 
   │   │   │ │   │ │   │ └┐ ┌┘ │   │   ┌─┘ 
@@ -306,7 +306,7 @@ TTTTTTUUUUUUVVVVVVWWWWWWXXXXXXYYYYYYZZZZZZ
   │   │   │ └┐ ┌┘ │ │ │ ┌┘ └┐   │   ┌┘    
   ┴   └───┘  └─┘  └─┴─┘ ┴   ┴   ┴   └───┘ 
                                         
-"""),utf8decode("""
+"""),(u"""
 aaaaaabbbbbbccccccddddddeeeeeefffgggggghhhhhhiijjj
                               ┌─┐      
       │               │       │        │     .  .
@@ -314,7 +314,7 @@ aaaaaabbbbbbccccccddddddeeeeeefffgggggghhhhhhiijjj
 ┌───┤ │   │ │     │   │ ├───┘ │  │   │ │   │ │  │
 └───┴ └───┘ └───┘ └───┘ └───┘ ┴  └───┤ ┴   ┴ ┴  │
                                  └───┘         ─┘
-"""),utf8decode("""
+"""),(u"""
 kkkkkkllmmmmmmnnnnnnooooooppppppqqqqqqrrrrrssssss
                                 
 │     │                                   
@@ -322,7 +322,7 @@ kkkkkkllmmmmmmnnnnnnooooooppppppqqqqqqrrrrrssssss
 ├─┴┐  │ │ │ │ │   │ │   │ │   │ │   │ │    └───┐
 ┴  └─ └ ┴   ┴ ┴   ┴ └───┘ ├───┘ └───┤ ┴    └───┘
                           │         │     
-"""),utf8decode("""
+"""),(u"""
 ttttuuuuuuvvvvvvwwwwwwxxxxxxyyyyyyzzzzzz
                 
  │                        
@@ -336,7 +336,7 @@ add_font("Thin 6x6",Thin6x6Font)
 
 class HalfBlock7x7Font(Font):
     height = 7
-    data = [utf8decode("""
+    data = [(u"""
 0000000111111122222223333333444444455555556666666777777788888889999999'''
  ▄███▄   ▐█▌   ▄███▄  ▄███▄     █▌ ▐█████▌ ▄███▄ ▐█████▌ ▄███▄  ▄███▄ ▐█
 ▐█   █▌  ▀█▌  ▐█   █▌▐█   █▌▐█  █▌ ▐█     ▐█         ▐█ ▐█   █▌▐█   █▌▐█
@@ -345,7 +345,7 @@ class HalfBlock7x7Font(Font):
 ▐█   █▌   █▌   ▄█▀   ▐█   █▌    █▌      █▌▐█   █▌   █▌  ▐█   █▌     █▌  
  ▀███▀   ███▌ ▐█████▌ ▀███▀     █▌ ▐████▀  ▀███▀   ▐█    ▀███▀  ▀███▀ 
 
-"""),utf8decode('''
+"""),(u'''
 !!!   """""#######$$$$$$$%%%%%%%&&&&&&&(((())))*******++++++
 ▐█    ▐█ █▌ ▐█ █▌    █    ▄  █▌   ▄█▄    █▌▐█   ▄▄ ▄▄    
 ▐█    ▐█ █▌▐█████▌ ▄███▄ ▐█▌▐█   ▐█ █▌  ▐█  █▌  ▀█▄█▀   ▐█
@@ -354,7 +354,7 @@ class HalfBlock7x7Font(Font):
             ▐█ █▌  ▀███▀   █▌▐█▌▐█  █▌  ▐█  █▌  ▀▀ ▀▀    
 ▐█                   █    ▐█  ▀  ▀██▀█▌  █▌▐█ 
                    
-'''),utf8decode("""
+'''),(u"""
 ,,,------.../////:::;;;<<<<<<<======>>>>>>>???????@@@@@@@
                █▌          ▄█▌      ▐█▄     ▄███▄  ▄███▄       
               ▐█ ▐█ ▐█   ▄█▀  ▐████▌  ▀█▄  ▐█   █▌▐█ ▄▄█▌   
@@ -363,7 +363,7 @@ class HalfBlock7x7Font(Font):
              █▌     ▀      ▀█▌      ▐█▀           ▐█ ▀▀▀    
 ▐█       ▐█ ▐█                                █▌   ▀███▀ 
 ▀                          
-"""),utf8decode(r"""
+"""),(ur"""
 [[[[\\\\\]]]]^^^^^^^_____```{{{{{|||}}}}}~~~~~~~´´´
 ▐██▌▐█   ▐██▌  ▐█▌       ▐█    █▌▐█ ▐█           █▌  
 ▐█   █▌    █▌ ▐█ █▌       █▌  █▌ ▐█  ▐█   ▄▄    ▐█ 
@@ -372,7 +372,7 @@ class HalfBlock7x7Font(Font):
 ▐█    ▐█   █▌                 █▌ ▐█  ▐█ 
 ▐██▌   █▌▐██▌       █████      █▌▐█ ▐█  
                                       
-"""),utf8decode("""
+"""),(u"""
 AAAAAAABBBBBBBCCCCCCCDDDDDDDEEEEEEEFFFFFFFGGGGGGGHHHHHHHIIIIJJJJJJJ
  ▄███▄ ▐████▄  ▄███▄ ▐████▄ ▐█████▌▐█████▌ ▄███▄ ▐█   █▌ ██▌     █▌ 
 ▐█   █▌▐█   █▌▐█     ▐█   █▌▐█     ▐█     ▐█     ▐█   █▌ ▐█      █▌  
@@ -381,7 +381,7 @@ AAAAAAABBBBBBBCCCCCCCDDDDDDDEEEEEEEFFFFFFFGGGGGGGHHHHHHHIIIIJJJJJJJ
 ▐█   █▌▐█   █▌▐█     ▐█   █▌▐█     ▐█     ▐█   █▌▐█   █▌ ▐█ ▐█   █▌
 ▐█   █▌▐████▀  ▀███▀ ▐████▀ ▐█████▌▐█      ▀███▀ ▐█   █▌ ██▌ ▀███▀ 
                      
-"""),utf8decode("""
+"""),(u"""
 KKKKKKKLLLLLLLMMMMMMMMNNNNNNNOOOOOOOPPPPPPPQQQQQQQRRRRRRRSSSSSSS
 ▐█   █▌▐█      ▄█▌▐█▄ ▐██  █▌ ▄███▄ ▐████▄  ▄███▄ ▐████▄  ▄███▄ 
 ▐█  █▌ ▐█     ▐█ ▐▌ █▌▐██▌ █▌▐█   █▌▐█   █▌▐█   █▌▐█   █▌▐█     
@@ -390,7 +390,7 @@ KKKKKKKLLLLLLLMMMMMMMMNNNNNNNOOOOOOOPPPPPPPQQQQQQQRRRRRRRSSSSSSS
 ▐█  █▌ ▐█     ▐█    █▌▐█ ▐██▌▐█   █▌▐█     ▐█ █▌█▌▐█   █▌     █▌
 ▐█   █▌▐█████▌▐█    █▌▐█  ██▌ ▀███▀ ▐█      ▀███▀ ▐█   █▌ ▀███▀ 
                                                ▀▀ 
-"""),utf8decode("""
+"""),(u"""
 TTTTTTTUUUUUUUVVVVVVVWWWWWWWWXXXXXXXYYYYYYYZZZZZZZ
  █████▌▐█   █▌▐█   █▌▐█    █▌▐█   █▌ █▌  █▌▐█████▌ 
    █▌  ▐█   █▌ █▌ ▐█ ▐█    █▌ ▐█ █▌  ▐█ ▐█     █▌    
@@ -399,7 +399,7 @@ TTTTTTTUUUUUUUVVVVVVVWWWWWWWWXXXXXXXYYYYYYYZZZZZZZ
    █▌  ▐█   █▌  ▐█▌  ▐█ ▐▌ █▌ █▌ ▐█    █▌   █▌
    █▌   ▀███▀    █    ▀█▌▐█▀ ▐█   █▌   █▌  ▐█████▌       
                                                
-"""),utf8decode("""
+"""),(u"""
 aaaaaaabbbbbbbcccccccdddddddeeeeeeefffffggggggghhhhhhhiiijjjj
        ▐█                 █▌         ▄█▌       ▐█      █▌  █▌
        ▐█                 █▌        ▐█         ▐█            
@@ -408,7 +408,7 @@ aaaaaaabbbbbbbcccccccdddddddeeeeeeefffffggggggghhhhhhhiiijjjj
 ▐█▀▀▀█▌▐█   █▌▐█     ▐█   █▌▐█▀▀▀   ▐█  ▐█▄▄▄█▌▐█   █▌ █▌  █▌
  ▀████▌▐████▀  ▀███▀  ▀████▌ ▀███▀  ▐█    ▀▀▀█▌▐█   █▌ █▌  █▌
                                          ▀███▀           ▐██ 
-"""),utf8decode("""
+"""),(u"""
 kkkkkkkllllmmmmmmmmnnnnnnnooooooopppppppqqqqqqqrrrrrrsssssss
 ▐█      ██                                                  
 ▐█      ▐█                                                  
@@ -417,7 +417,7 @@ kkkkkkkllllmmmmmmmmnnnnnnnooooooopppppppqqqqqqqrrrrrrsssssss
 ▐█▀▀█▄  ▐█ ▐█ ▐▌ █▌▐█   █▌▐█   █▌▐█   █▌▐█   █▌▐█      ▀▀▀█▌
 ▐█   █▌ ▐█▌▐█    █▌▐█   █▌ ▀███▀ ▐████▀  ▀████▌▐█     ▀███▀ 
                                  ▐█          █▌
-"""),utf8decode("""
+"""),(u"""
 tttttuuuuuuuvvvvvvvwwwwwwwwxxxxxxxyyyyyyyzzzzzzz
   █▌
   █▌

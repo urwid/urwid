@@ -26,7 +26,6 @@ from urwid.widget import WidgetMeta, BoxWidget, FlowWidget, FixedWidget, \
     nocache_widget_render, nocache_widget_render_instance, fixed_size, \
     WidgetWrap, Divider, SolidFill, Text
 from urwid.container import Pile, Columns
-from urwid.escape import utf8decode
 from urwid.display_common import AttrSpec
 from urwid.decoration import WidgetDecoration, AttrWrap
 
@@ -104,14 +103,14 @@ class LineBox(WidgetDecoration, WidgetWrap):
                 t = AttrWrap(t, a)
             return t
             
-        tline = use_attr( tline, Divider(utf8decode("─")))
-        bline = use_attr( bline, Divider(utf8decode("─")))
-        lline = use_attr( lline, SolidFill(utf8decode("│")))
-        rline = use_attr( rline, SolidFill(utf8decode("│")))
-        tlcorner = use_attr( tlcorner, Text(utf8decode("┌")))
-        trcorner = use_attr( trcorner, Text(utf8decode("┐")))
-        blcorner = use_attr( blcorner, Text(utf8decode("└")))
-        brcorner = use_attr( brcorner, Text(utf8decode("┘")))
+        tline = use_attr( tline, Divider(u"─"))
+        bline = use_attr( bline, Divider(u"─"))
+        lline = use_attr( lline, SolidFill(u"│"))
+        rline = use_attr( rline, SolidFill(u"│"))
+        tlcorner = use_attr( tlcorner, Text(u"┌"))
+        trcorner = use_attr( trcorner, Text(u"┐"))
+        blcorner = use_attr( blcorner, Text(u"└"))
+        brcorner = use_attr( brcorner, Text(u"┘"))
         top = Columns([ ('fixed', 1, tlcorner),
             tline, ('fixed', 1, trcorner) ])
         middle = Columns( [('fixed', 1, lline),
@@ -159,8 +158,8 @@ class BarGraph(BoxWidget):
     __metaclass__ = BarGraphMeta
     ignore_focus = True
 
-    eighths = utf8decode(" ▁▂▃▄▅▆▇")
-    hlines =  utf8decode("_⎺⎻─⎼⎽")
+    eighths = u" ▁▂▃▄▅▆▇"
+    hlines =  u"_⎺⎻─⎼⎽"
     
     def __init__(self, attlist, hatt=None, satt=None):
         """
@@ -751,7 +750,7 @@ def scale_bar_values( bar, top, maxrow ):
 
 
 class ProgressBar( FlowWidget ):
-    eighths = utf8decode(" ▏▎▍▌▋▊▉")
+    eighths = u" ▏▎▍▌▋▊▉"
     def __init__(self, normal, complete, current=0, done=100, satt=None):
         """
         normal -- attribute for uncomplete part of progress bar

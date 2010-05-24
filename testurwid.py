@@ -1,20 +1,27 @@
 import urwid
 from contextlib import contextmanager
 
-from urwid import raw_display
+from urwid import raw_display, curses_display
 
 @contextmanager
-def sstarter():
+def sstarter(module):
     try:
-        s=raw_display.Screen()
+        s=module.Screen()
         s.start()
         yield s
     finally:
         s.stop()
 
-with sstarter() as s:
-    input = s.get_input()
+def inputtest():
+    input = []
+    with sstarter(raw_display) as s:
+        input.append(s.get_input())
+    with sstarter(curses_display) as s:
+        input.append(s.get_input())
 
-for s in input:
-    print repr(s)
-    print s
+    for s in input:
+        print repr(s)
+        print s
+
+if __name__ == '__main__':
+    inputtest()

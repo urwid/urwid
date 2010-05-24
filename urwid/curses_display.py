@@ -55,7 +55,14 @@ _curses_colours = {
 
 
 # replace control characters with ?'s
-_trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
+if bytes is str:
+    # python 2
+    _trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
+else:
+    # python 3
+    _trans_table = b"?"*32+bytes(range(32,256))
+
+assert isinstance(_trans_table, bytes)
 
 
 class Screen(BaseScreen, RealTerminal):
@@ -507,7 +514,6 @@ class Screen(BaseScreen, RealTerminal):
         assert self._started
         
         assert r.rows() == rows, "canvas size and passed size don't match"
-    
         y = -1
         for row in r.content():
             y += 1
@@ -523,6 +529,7 @@ class Screen(BaseScreen, RealTerminal):
             nr = 0
             for a, cs, seg in row:
                 seg = seg.translate( _trans_table )
+                assert isinstance(seg, bytes)
                 if first or lasta != a:
                     self._setattr(a)
                     lasta = a
@@ -533,7 +540,11 @@ class Screen(BaseScreen, RealTerminal):
                                 ord(seg[i]) )
                     else:
                         assert cs is None
-                        self.s.addstr( seg )
+                        if str is bytes:
+                            self.s.addstr( seg )
+                        else:
+                            assert isinstance(seg, bytes)
+                            self.s.addstr( seg.decode('utf-8') )
                 except _curses.error:
                     # it's ok to get out of the
                     # screen on the lower right

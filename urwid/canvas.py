@@ -295,7 +295,7 @@ class TextCanvas(Canvas):
         if check_width:
             widths = []
             for t in text:
-                if type(t) != str:
+                if type(t) != bytes:
                     raise CanvasError("Canvas text must be plain strings encoded in the screen's encoding", repr(text))
                 widths.append( calc_width( t, 0, len(t)) )
         else:
@@ -320,7 +320,7 @@ class TextCanvas(Canvas):
             if w > maxcol: 
                 raise CanvasError("Canvas text is wider than the maxcol specified \n%r\n%r\n%r"%(maxcol,widths,text))
             if w < maxcol:
-                text[i] = text[i] + " "*(maxcol-w)
+                text[i] = text[i] + b" "*(maxcol-w)
             a_gap = len(text[i]) - rle_len( attr[i] )
             if a_gap < 0:
                 raise CanvasError("Attribute extends beyond text \n%r\n%r" % (text[i],attr[i]) )
@@ -431,7 +431,7 @@ class BlankCanvas(Canvas):
         def_attr = None
         if attr and None in attr:
             def_attr = attr[None]
-        line = [(def_attr, None, " "*cols)]
+        line = [(def_attr, None, b" "*cols)]
         for i in range(rows):
             yield line
 
@@ -1243,14 +1243,16 @@ def apply_text_layout(text, attr, ls, maxcol):
                 rle_join_modify( linec, cs )
             elif s.offs:
                 if s.sc:
-                    line.append(" "*s.sc)
+                    line.append(b" "*s.sc)
                     attrrange( s.offs, s.offs, s.sc )
             else:
                 line.append(" "*s.sc)
                 linea.append((None, s.sc))
                 linec.append((None, s.sc))
-            
-        t.append("".join(line))
+        
+        #raise AssertionError(repr(line))
+        t.append(b"".join(line))
+        
         a.append(linea)
         c.append(linec)
         
