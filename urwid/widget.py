@@ -451,12 +451,12 @@ class Text(FlowWidget):
         layout -- layout object to use, defaults to StandardTextLayout
 
         >>> Text("Hello")
-        <Text flow widget 'Hello'>
+        <Text flow widget u'Hello'>
         >>> t = Text(('bold', "stuff"), 'right', 'any')
         >>> t
-        <Text flow widget 'stuff' align='right' wrap='any'>
+        <Text flow widget u'stuff' align='right' wrap='any'>
         >>> t.text
-        'stuff'
+        u'stuff'
         >>> t.attrib
         [('bold', 5)]
         """
@@ -487,10 +487,10 @@ class Text(FlowWidget):
 
         >>> t = Text("foo")
         >>> t.text
-        'foo'
+        u'foo'
         >>> t.set_text("bar")
         >>> t.text
-        'bar'
+        u'bar'
         >>> t.text = "baz"  # not supported because text stores text but set_text() takes markup
         Traceback (most recent call last):
             ...  
@@ -503,15 +503,15 @@ class Text(FlowWidget):
         """
         Returns (text, attributes).
         
-        text -- complete string content of text widget
+        text -- complete string content (unicode) of text widget
         attributes -- run length encoded attributes for text
 
         >>> Text("Hello").get_text()
-        ('Hello', [])
+        (u'Hello', [])
         >>> Text(('bright', "Headline")).get_text()
-        ('Headline', [('bright', 8)])
+        (u'Headline', [('bright', 8)])
         >>> Text([('a', "one"), "two", ('b', "three")]).get_text()
-        ('onetwothree', [('a', 3), (None, 3), ('b', 5)])
+        (u'onetwothree', [('a', 3), (None, 3), ('b', 5)])
         """
         return self._text, self._attrib
 
@@ -586,7 +586,7 @@ class Text(FlowWidget):
         >>> t = Text("hi")
         >>> t.set_layout('right', 'clip')
         >>> t
-        <Text flow widget 'hi' align='right' wrap='clip'>
+        <Text flow widget u'hi' align='right' wrap='clip'>
         """
         if layout is None:
             layout = text_layout.default_layout
@@ -609,6 +609,7 @@ class Text(FlowWidget):
         """
         (maxcol,) = size
         text, attr = self.get_text()
+        assert isinstance(text, unicode)
         trans = self.get_line_translation( maxcol, (text,attr) )
         return apply_text_layout(text, attr, trans, maxcol)
 
@@ -729,9 +730,9 @@ class Edit(Text):
         >>> Edit()
         <Edit selectable flow widget '' edit_pos=0>
         >>> Edit("Y/n? ", "yes")
-        <Edit selectable flow widget 'yes' caption='Y/n? ' edit_pos=3>
+        <Edit selectable flow widget 'yes' caption=u'Y/n? ' edit_pos=3>
         >>> Edit("Name ", "Smith", edit_pos=1)
-        <Edit selectable flow widget 'Smith' caption='Name ' edit_pos=1>
+        <Edit selectable flow widget 'Smith' caption=u'Name ' edit_pos=1>
         >>> Edit("", "3.14", align='right')
         <Edit selectable flow widget '3.14' align='right' edit_pos=4>
         """
@@ -766,9 +767,9 @@ class Edit(Text):
         attributes -- run length encoded attributes for text
 
         >>> Edit("What? ","oh, nothing.").get_text()
-        ('What? oh, nothing.', [])
+        (u'What? oh, nothing.', [])
         >>> Edit(('bright',"user@host:~$ "),"ls").get_text()
-        ('user@host:~$ ls', [('bright', 13)])
+        (u'user@host:~$ ls', [('bright', 13)])
         """
         return self._caption + self._edit_text, self._attrib
     
@@ -848,10 +849,10 @@ class Edit(Text):
         >>> e = Edit("")
         >>> e.set_caption("cap1")
         >>> e.caption
-        'cap1'
+        u'cap1'
         >>> e.set_caption(('bold', "cap2"))
         >>> e.caption
-        'cap2'
+        u'cap2'
         >>> e.attrib
         [('bold', 4)]
         >>> e.caption = "cap3"  # not supported because caption stores text but set_caption() takes markup

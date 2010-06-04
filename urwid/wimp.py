@@ -50,7 +50,7 @@ class SelectableIcon(Text):
 
         >>> si = SelectableIcon("[!]")
         >>> si
-        <SelectableIcon selectable flow widget '[!]'>
+        <SelectableIcon selectable flow widget u'[!]'>
         >>> si.render((4,), focus=True).cursor
         (1, 0)
         >>> si = SelectableIcon("((*))", 2)
@@ -159,7 +159,7 @@ class CheckBox(WidgetWrap):
         <CheckBox selectable widget 'foo' state=False>
         >>> cb.set_label(('bright_attr', "bar"))
         >>> cb
-        <CheckBox selectable widget 'bar' state=False>
+        <CheckBox selectable widget u'bar' state=False>
         """
         self._label.set_text(label)
         # no need to call self._invalidate(). WidgetWrap takes care of
@@ -333,9 +333,9 @@ class RadioButton(CheckBox):
         >>> len(bgroup)
         2
         >>> b1
-        <RadioButton selectable widget 'Agree' state=True>
+        <RadioButton selectable widget u'Agree' state=True>
         >>> b2
-        <RadioButton selectable widget 'Disagree' state=False>
+        <RadioButton selectable widget u'Disagree' state=False>
         >>> b2.render((15,), focus=True).text  # preview RadioButton
         ['( ) Disagree   ']
         """
@@ -372,10 +372,10 @@ class RadioButton(CheckBox):
         ...     radio_button.set_label("Think Harder!")
         >>> connect_signal(b3, 'change', relabel_button)
         >>> b3
-        <RadioButton selectable widget 'Unsure' state=False>
+        <RadioButton selectable widget u'Unsure' state=False>
         >>> b3.set_state(True) # this will trigger the callback
         >>> b3
-        <RadioButton selectable widget 'Think Harder!' state=True>
+        <RadioButton selectable widget u'Think Harder!' state=True>
         """
         if self._state == state:
             return

@@ -125,6 +125,9 @@ def apply_target_encoding( s ):
         # python 3
         SO = SO.encode('ascii')
         SI = SI.encode('ascii')
+    else:
+        SI = bytes(SI)
+        SO = bytes(SO)
     
     sis = s.split( SO )
     
@@ -142,8 +145,8 @@ def apply_target_encoding( s ):
     
     for sn in sis[1:]:
         assert isinstance(sn, bytes)
+        assert isinstance(SI, bytes)
         sl = sn.split( SI, 1 ) 
-        assert isinstance(sl, bytes)
         if len(sl) == 1:
             sin = sl[0]
             assert isinstance(sin, bytes)
@@ -370,7 +373,7 @@ def decompose_tagmarkup( tm ):
     """Return (text string, attribute list) for tagmarkup passed."""
     
     tl, al = _tagmarkup_recurse( tm, None )
-    text = "".join(tl)
+    text = u"".join(tl)
     
     if al and al[-1][0] is None:
         del al[-1]
