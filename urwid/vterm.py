@@ -679,7 +679,7 @@ if __name__ == '__main__':
 
     mainframe = urwid.Frame(
         urwid.Pile([
-            urwid.WidgetWrap(TerminalWidget(None, event_loop)),
+            TerminalWidget(None, event_loop),
             ('fixed', 1, urwid.Filler(urwid.Edit('focus test edit: '))),
         ]),
         header=urwid.Text('some header'),
