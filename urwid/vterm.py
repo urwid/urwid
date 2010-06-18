@@ -507,6 +507,8 @@ class TermCanvas(urwid.Canvas):
         return self.content()
 
 class TerminalWidget(urwid.BoxWidget):
+    signals = ['closed']
+
     def __init__(self, command, event_loop, escape_sequence=None):
         self.__super.__init__()
 
@@ -636,6 +638,7 @@ class TerminalWidget(urwid.BoxWidget):
             data = os.read(self.master, 4096)
         except OSError: # End Of File
             self.terminate()
+            self._emit('closed')
             return
         self.term.addstr(data)
 
