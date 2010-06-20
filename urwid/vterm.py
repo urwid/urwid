@@ -34,7 +34,7 @@ ESC = chr(27)
 
 KEY_TRANSLATIONS = {
     'enter':     chr(10),
-    'backspace': chr(8),
+    'backspace': chr(127),
     'tab':       chr(9),
     'esc':       ESC,
     'up':        ESC + '[A',
