@@ -107,11 +107,11 @@ def wrap_store(function):
 urwid.CanvasCache.store = wrap_store(urwid.CanvasCache.store)
 
 class TermCanvas(urwid.Canvas):
-    def __init__(self, width, height, response_callback=None):
+    def __init__(self, width, height, widget):
         urwid.Canvas.__init__(self)
 
         self.width, self.height = width, height
-        self.response_callback = response_callback
+        self.widget = widget
 
         self.scrollback_buffer = []
 
@@ -200,7 +200,7 @@ class TermCanvas(urwid.Canvas):
             if y > 0:
                 self.cursor = (x, y - 1)
         elif char == chr(7): # beep
-            pass # not implemented in urwid?
+            self.widget.beep()
         elif self.within_escape:
             self.parse_escape(char)
         else:
@@ -233,13 +233,6 @@ class TermCanvas(urwid.Canvas):
             y = 0
 
         return x, y
-
-    def respond(self, string):
-        """
-        Respond to the underlying application with 'string'.
-        """
-        if self.response_callback is not None:
-            self.response_callback(string)
 
     def newline(self):
         """
@@ -517,10 +510,10 @@ class TermCanvas(urwid.Canvas):
         """
         if mode == 5:
             # terminal OK
-            self.respond(ESC + '[0n')
+            self.widget.respond(ESC + '[0n')
         elif mode == 6:
             x, y = self.cursor
-            self.respond(ESC + '[%d;%dR' % (y + 1, x + 1))
+            self.widget.respond(ESC + '[%d;%dR' % (y + 1, x + 1))
 
     def csi_erase_line(self, mode):
         """
@@ -581,7 +574,7 @@ class TermCanvas(urwid.Canvas):
         return self.content()
 
 class TerminalWidget(urwid.BoxWidget):
-    signals = ['closed']
+    signals = ['closed', 'beep']
 
     def __init__(self, command, event_loop, escape_sequence=None):
         self.__super.__init__()
@@ -651,7 +644,13 @@ class TerminalWidget(urwid.BoxWidget):
 
             os.close(self.master)
 
+    def beep(self):
+        self._emit('beep')
+
     def respond(self, string):
+        """
+        Respond to the underlying application with 'string'.
+        """
         os.write(self.master, string)
 
     def set_termsize(self, width, height):
@@ -669,7 +668,7 @@ class TerminalWidget(urwid.BoxWidget):
             return
 
         if not self.term:
-            self.term = TermCanvas(width, height, response_callback=self.respond)
+            self.term = TermCanvas(width, height, self)
         else:
             self.term.resize(width, height)
 
