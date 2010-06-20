@@ -127,7 +127,7 @@ class TermCanvas(urwid.Canvas):
         return [self.empty_char()] * self.width
 
     def empty_char(self):
-        return ((), None, ' ')
+        return (self.attrspec, None, ' ')
 
     def addstr(self, data):
         x, y = self.cursor
