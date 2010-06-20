@@ -73,7 +73,7 @@ CSI_COMMANDS = {
     'X': (1, lambda s, (number,), q: s.erase(s.cursor, (s.cursor[0]+number-1,
                                                         s.cursor[1]))),
     'a': ('alias', 'C'),
-    'c': (0, lambda s, (spec,), q: s.respond(ESC + '[?6c') if not q else None),
+    'c': (0, lambda s, (spec,), q: None if q else s.widget.respond(ESC+'[?6c')),
     'd': (1, lambda s, (row,), q: s.move_cursor(0, row - 1, relative_x=True)),
     'e': ('alias', 'B'),
     'f': ('alias', 'H'),
