@@ -80,7 +80,7 @@ CSI_COMMANDS = {
     'g': None,
     'h': None,
     'l': None,
-    'm': None,
+    'm': (1, lambda s, attrs, q: s.csi_set_attr(attrs)),
     'n': (1, lambda s, (mode,), q: s.csi_status_report(mode)),
     'q': None,
     'r': None,
@@ -118,6 +118,7 @@ class TermCanvas(urwid.Canvas):
         self.csi_args = ''
         self.within_escape = False
         self.parsestate = 0
+        self.attrspec = None
 
         # initialize self.term
         self.clear()
@@ -215,7 +216,7 @@ class TermCanvas(urwid.Canvas):
         if y is None:
             y = self.cursor[1]
 
-        self.term[y][x] = ((), None, char)
+        self.term[y][x] = (self.attrspec, None, char)
 
     def constrain_coords(self, x, y):
         """
@@ -433,6 +434,79 @@ class TermCanvas(urwid.Canvas):
                 self.blank_line(y)
 
             y += 1
+
+    def csi_set_attr(self, attrs):
+        """
+        Set graphics rendition.
+        """
+        if attrs[-1] == 0:
+            self.attrspec = None
+
+        attributes = set()
+        if self.attrspec is None:
+            fg = bg = None
+        else:
+            # set default values from previous attrspec
+            fg = self.attrspec.foreground_number
+            bg = self.attrspec.background_number
+            if fg >= 8: fg -= 8
+            if bg >= 8: bg -= 8
+            for attr in ('bold', 'underline', 'standout'):
+                if not getattr(self.attrspec, attr):
+                    continue
+
+                attributes.add(attr)
+
+        for attr in attrs:
+            if 30 <= attr <= 37:
+                fg = attr - 30
+            elif 40 <= attr <= 47:
+                bg = attr - 40
+            elif attr == 38:
+                # set default foreground color, set underline
+                attributes.add('underline')
+                fg = None
+            elif attr == 39:
+                # set default foreground color, remove underline
+                attributes.discard('underline')
+                fg = None
+            elif attr == 49:
+                # set default background color
+                bg = None
+            elif attr == 1:
+                attributes.add('bold')
+            elif attr == 4:
+                attributes.add('underline')
+            elif attr == 7:
+                attributes.add('standout')
+            elif attr == 24:
+                attributes.discard('underline')
+            elif attr == 27:
+                attributes.discard('standout')
+            elif attr == 0:
+                fg = bg = None
+                attributes.clear()
+
+        if 'bold' in attributes and fg is not None:
+            fg += 8
+
+        if fg is not None:
+            fg = urwid.display_common._BASIC_COLORS[fg]
+        else:
+            fg = 'default'
+
+        if bg is not None:
+            bg = urwid.display_common._BASIC_COLORS[bg]
+        else:
+            bg = 'default'
+
+        if len(attributes) > 0:
+            fg = ','.join([fg] + list(attributes))
+
+        if fg == 'default' and bg == 'default':
+            self.attrspec = None
+        else:
+            self.attrspec = urwid.AttrSpec(fg, bg)
 
     def csi_status_report(self, mode):
         """
