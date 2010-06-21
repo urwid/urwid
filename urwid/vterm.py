@@ -33,7 +33,7 @@ import urwid
 ESC = chr(27)
 
 KEY_TRANSLATIONS = {
-    'enter':     chr(10),
+    'enter':     chr(13),
     'backspace': chr(127),
     'tab':       chr(9),
     'esc':       ESC,
