@@ -655,7 +655,7 @@ class TerminalWidget(urwid.BoxWidget):
         if self.pid == 0:
             os.execvpe(self.command[0], self.command, env)
             # this should never be reached!
-            raise SystemExit
+            os._exit(0)
 
         atexit.register(self.terminate)
 
@@ -724,6 +724,10 @@ class TerminalWidget(urwid.BoxWidget):
         if process_opened:
             self.add_watch()
 
+    def propagate_sigint(self, sig, stack):
+        if sig == signal.SIGINT:
+            os.write(self.master, chr(3))
+
     def change_focus(self, has_focus):
         """
         Ignore SIGINT if this widget has focus.
@@ -732,7 +736,7 @@ class TerminalWidget(urwid.BoxWidget):
             return
 
         if has_focus:
-            signal.signal(signal.SIGINT, signal.SIG_IGN)
+            signal.signal(signal.SIGINT, self.propagate_sigint)
         else:
             signal.signal(signal.SIGINT, self._default_handler)
 
@@ -790,6 +794,10 @@ class TerminalWidget(urwid.BoxWidget):
             return
 
         if key.startswith("ctrl "):
+            if key == 'c':
+                # C-c is handled by propagate_sigint()
+                return
+
             if key[-1].islower():
                 key = chr(ord(key[-1]) - ord('a') + 1)
             else:
