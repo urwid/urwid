@@ -458,7 +458,7 @@ class TermCanvas(urwid.Canvas):
                 for x in xrange(sx, self.width):
                     self.term[y][x] = self.empty_char()
             elif y == ey:
-                for x in xrange(ex):
+                for x in xrange(ex + 1):
                     self.term[y][x] = self.empty_char()
             else:
                 self.blank_line(y)
