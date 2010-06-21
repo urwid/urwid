@@ -726,6 +726,7 @@ class TerminalWidget(urwid.BoxWidget):
 
     def propagate_sigint(self, sig, stack):
         if sig == signal.SIGINT:
+            self.escape_mode = False
             os.write(self.master, chr(3))
 
     def change_focus(self, has_focus):
@@ -734,6 +735,8 @@ class TerminalWidget(urwid.BoxWidget):
         """
         if self.has_focus == has_focus:
             return
+
+        self.has_focus = has_focus
 
         if has_focus:
             signal.signal(signal.SIGINT, self.propagate_sigint)
@@ -790,6 +793,7 @@ class TerminalWidget(urwid.BoxWidget):
             return key
         elif self.escape_sequence == key:
             # don't handle next keypress
+            self.change_focus(False)
             self.escape_mode = True
             return
 
