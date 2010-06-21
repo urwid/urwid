@@ -675,6 +675,7 @@ class TerminalWidget(urwid.BoxWidget):
 
         self.terminated = True
         self.remove_watch()
+        self.change_focus(False)
 
         if self.pid > 0:
             self.set_termsize(0, 0)
@@ -754,10 +755,11 @@ class TerminalWidget(urwid.BoxWidget):
             signal.signal(signal.SIGINT, self._default_handler)
 
     def render(self, size, focus=False):
-        self.change_focus(focus)
+        if not self.terminated:
+            self.change_focus(focus)
 
-        width, height = size
-        self.touch_term(width, height)
+            width, height = size
+            self.touch_term(width, height)
 
         return self.term
 
