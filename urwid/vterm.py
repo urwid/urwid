@@ -812,7 +812,11 @@ if __name__ == '__main__':
 
     mainframe = urwid.Frame(
         urwid.Pile([
-            TerminalWidget(None, event_loop),
+            urwid.Columns([
+                urwid.SolidFill('['),
+                ('weight', 70, TerminalWidget(None, event_loop)),
+                urwid.SolidFill(']'),
+            ], box_columns=[1]),
             ('fixed', 1, urwid.Filler(urwid.Edit('focus test edit: '))),
         ]),
         header=urwid.Text('some header'),
