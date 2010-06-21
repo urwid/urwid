@@ -73,7 +73,7 @@ CSI_COMMANDS = {
     'X': (1, lambda s, (number,), q: s.erase(s.cursor, (s.cursor[0]+number-1,
                                                         s.cursor[1]))),
     'a': ('alias', 'C'),
-    'c': (0, lambda s, (spec,), q: None if q else s.widget.respond(ESC+'[?6c')),
+    'c': (0, lambda s, (t,), q: None if q else s.widget.respond(ESC + '[?6c')),
     'd': (1, lambda s, (row,), q: s.move_cursor(0, row - 1, relative_x=True)),
     'e': ('alias', 'B'),
     'f': ('alias', 'H'),
@@ -115,7 +115,7 @@ class TermCanvas(urwid.Canvas):
 
         self.scrollback_buffer = []
 
-        self.csi_args = ''
+        self.escbuf = ''
         self.within_escape = False
         self.parsestate = 0
         self.attrspec = None
@@ -123,11 +123,11 @@ class TermCanvas(urwid.Canvas):
         # initialize self.term
         self.clear()
 
-    def empty_line(self):
-        return [self.empty_char()] * self.width
+    def empty_line(self, char=' '):
+        return [self.empty_char(char)] * self.width
 
-    def empty_char(self):
-        return (self.attrspec, None, ' ')
+    def empty_char(self, char=' '):
+        return (self.attrspec, None, char)
 
     def addstr(self, data):
         x, y = self.cursor
@@ -139,16 +139,16 @@ class TermCanvas(urwid.Canvas):
         self.height = height
 
     def parse_csi(self, char):
-        qmark = self.csi_args.startswith('?')
+        qmark = self.escbuf.startswith('?')
 
-        csi_args = []
-        for arg in self.csi_args[qmark and 1 or 0:].split(';'):
+        escbuf = []
+        for arg in self.escbuf[qmark and 1 or 0:].split(';'):
             try:
                 num = int(arg)
             except ValueError:
                 num = 0
 
-            csi_args.append(num)
+            escbuf.append(num)
 
         if CSI_COMMANDS[char] is not None:
             if CSI_COMMANDS[char][0] == 'alias':
@@ -157,25 +157,41 @@ class TermCanvas(urwid.Canvas):
                 csi_cmd = CSI_COMMANDS[char]
 
             number_of_args, cmd = csi_cmd
-            while len(csi_args) < number_of_args:
-                csi_args.append(0)
-            cmd(self, csi_args, qmark)
+            while len(escbuf) < number_of_args:
+                escbuf.append(0)
+            cmd(self, escbuf, qmark)
+
+    def parse_noncsi(self, char, mod=None):
+        if mod == '#' and char == '8':
+            self.decaln()
 
     def parse_escape(self, char):
         if self.parsestate == 1:
+            # within CSI
             if char in CSI_COMMANDS.keys():
                 self.parse_csi(char)
                 self.parsestate = 0
-            elif char in '0123456789;' or (self.csi_args == '' and char == '?'):
-                self.csi_args += char
+            elif char in '0123456789;' or (self.escbuf == '' and char == '?'):
+                self.escbuf += char
                 return
-        elif char == '[':
-            self.csi_args = ''
+        elif self.parsestate == 0 and char == '[':
+            # start of CSI
+            self.escbuf = ''
             self.parsestate = 1
             return
+        elif self.parsestate == 0 and char in ('%', '#', '(', ')'):
+            # non-CSI sequence
+            self.escbuf = char
+            self.parsestate = 3
+            return
+        elif self.parsestate == 3:
+            self.parse_noncsi(char, self.escbuf)
+        elif char in ('c', 'D', 'E', 'H', 'M', 'Z', '7', '8', '>', '='):
+            self.parse_noncsi(char)
 
         self.within_escape = False
         self.parsestate = 0
+        self.escbuf = ''
 
     def addch(self, char):
         """
@@ -314,6 +330,14 @@ class TermCanvas(urwid.Canvas):
         killed = self.term.pop(0)
         self.scrollback_buffer.append(killed)
         self.term.append(self.empty_line())
+
+    def decaln(self):
+        """
+        DEC screen alignment test.
+        Fill screen with E's form top to current line.
+        """
+        for row in xrange(self.cursor[1] + 1):
+            self.term[row] = self.empty_line('E')
 
     def blank_line(self, row):
         """
