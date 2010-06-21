@@ -45,6 +45,19 @@ KEY_TRANSLATIONS = {
     'end':       ESC + '[4~',
     'page up':   ESC + '[5~',
     'page down': ESC + '[6~',
+
+    'f1':        ESC + '[[A',
+    'f2':        ESC + '[[B',
+    'f3':        ESC + '[[C',
+    'f4':        ESC + '[[D',
+    'f5':        ESC + '[[E',
+    'f6':        ESC + '[17~',
+    'f7':        ESC + '[18~',
+    'f8':        ESC + '[19~',
+    'f9':        ESC + '[20~',
+    'f10':       ESC + '[21~',
+    'f11':       ESC + '[23~',
+    'f12':       ESC + '[24~',
 }
 
 CSI_COMMANDS = {
