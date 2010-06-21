@@ -633,6 +633,7 @@ class TerminalWidget(urwid.BoxWidget):
         self._default_handler = signal.getsignal(signal.SIGINT)
 
         self.escape_mode = False
+        self.response_buffer = []
 
         self.event_loop = event_loop
 
@@ -692,7 +693,12 @@ class TerminalWidget(urwid.BoxWidget):
         """
         Respond to the underlying application with 'string'.
         """
-        os.write(self.master, string)
+        self.response_buffer.append(string)
+
+    def flush_responses(self):
+        for string in self.response_buffer:
+            os.write(self.master, string)
+        self.response_buffer = []
 
     def set_termsize(self, width, height):
         winsize = struct.pack("HHHH", height, width, 0, 0)
@@ -755,6 +761,8 @@ class TerminalWidget(urwid.BoxWidget):
             self._emit('closed')
             return
         self.term.addstr(data)
+
+        self.flush_responses()
 
         # XXX: any "nicer" way of doing this?
         for update_method in self.event_loop._watch_files.values():
