@@ -109,10 +109,9 @@ def wrap_store(function):
     """
     @classmethod
     def _wrap(cls, wcls, canvas):
-        ret = function(wcls, canvas)
         if isinstance(canvas, TermCanvas):
-            canvas._widget_info = None
-        return ret
+            return
+        return function(wcls, canvas)
 
     return _wrap
 
@@ -135,6 +134,17 @@ class TermCanvas(urwid.Canvas):
 
         # initialize self.term
         self.clear()
+
+    def _get_cursor(self):
+        return self._cursor
+    def _set_cursor(self, pos):
+        if pos is None:
+            self.coords.pop("cursor", None)
+            return
+
+        self.coords["cursor"] = pos + (None,)
+        self._cursor = pos
+    cursor = property(_get_cursor, _set_cursor)
 
     def empty_line(self, char=' '):
         return [self.empty_char(char)] * self.width
