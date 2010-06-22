@@ -28,7 +28,9 @@ import signal
 import atexit
 import termios
 
-import urwid
+from urwid.canvas import Canvas
+from urwid.widget import BoxWidget
+from urwid.display_common import AttrSpec, _BASIC_COLORS
 
 ESC = chr(27)
 
@@ -102,11 +104,11 @@ CSI_COMMANDS = {
     '`': ('alias', 'G'),
 }
 
-class TermCanvas(urwid.Canvas):
+class TermCanvas(Canvas):
     cacheable = False
 
     def __init__(self, width, height, widget):
-        urwid.Canvas.__init__(self)
+        Canvas.__init__(self)
 
         self.width, self.height = width, height
         self.widget = widget
@@ -508,8 +510,7 @@ class TermCanvas(urwid.Canvas):
         if 'bold' in attributes and fg is not None:
             fg += 8
 
-        defaulter = lambda a: 'default' if a is None else \
-                              urwid.display_common._BASIC_COLORS[a]
+        defaulter = lambda a: 'default' if a is None else _BASIC_COLORS[a]
 
         fg = defaulter(fg)
         bg = defaulter(bg)
@@ -520,7 +521,7 @@ class TermCanvas(urwid.Canvas):
         if fg == 'default' and bg == 'default':
             return None
         else:
-            return urwid.AttrSpec(fg, bg)
+            return AttrSpec(fg, bg)
 
     def csi_set_attr(self, attrs):
         """
@@ -618,7 +619,7 @@ class TermCanvas(urwid.Canvas):
             return [self.cols()]*self.rows()
         return self.content()
 
-class TerminalWidget(urwid.BoxWidget):
+class TerminalWidget(BoxWidget):
     signals = ['closed', 'beep']
 
     def __init__(self, command, event_loop, escape_sequence=None):
@@ -824,29 +825,3 @@ class TerminalWidget(urwid.BoxWidget):
             key = KEY_TRANSLATIONS.get(key, key)
 
         os.write(self.master, key)
-
-if __name__ == '__main__':
-    event_loop = urwid.SelectEventLoop()
-
-    mainframe = urwid.Frame(
-        urwid.Pile([
-            urwid.Columns([
-                urwid.SolidFill('['),
-                ('weight', 70, TerminalWidget(None, event_loop)),
-                urwid.SolidFill(']'),
-            ], box_columns=[1]),
-            ('fixed', 1, urwid.Filler(urwid.Edit('focus test edit: '))),
-        ]),
-        header=urwid.Text('some header'),
-        footer=urwid.Text('some footer')
-    )
-
-    def quit(key):
-        if key in ('q', 'Q'):
-            raise urwid.ExitMainLoop()
-
-    loop = urwid.MainLoop(
-        mainframe,
-        unhandled_input=quit,
-        event_loop=event_loop
-    ).run()
