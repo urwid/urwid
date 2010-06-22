@@ -88,7 +88,7 @@ CSI_COMMANDS = {
     'X': (1, lambda s, (number,), q: s.erase(s.cursor, (s.cursor[0]+number-1,
                                                         s.cursor[1]))),
     'a': ('alias', 'C'),
-    'c': (0, lambda s, (t,), q: None if q else s.widget.respond(ESC + '[?6c')),
+    'c': (0, lambda s, (t,), q: s.csi_get_device_attributes(q)),
     'd': (1, lambda s, (row,), q: s.move_cursor(0, row - 1, relative_x=True)),
     'e': ('alias', 'B'),
     'f': ('alias', 'H'),
@@ -510,10 +510,14 @@ class TermCanvas(Canvas):
         if 'bold' in attributes and fg is not None:
             fg += 8
 
-        defaulter = lambda a: 'default' if a is None else _BASIC_COLORS[a]
+        def _defaulter(color):
+            if color is None:
+                return 'default'
+            else:
+                return _BASIC_COLORS[color]
 
-        fg = defaulter(fg)
-        bg = defaulter(bg)
+        fg = _defaulter(fg)
+        bg = _defaulter(bg)
 
         if len(attributes) > 0:
             fg = ','.join([fg] + list(attributes))
@@ -546,6 +550,14 @@ class TermCanvas(Canvas):
                 attributes.add(attr)
 
         self.attrspec = self.sgi_to_attrspec(attrs, fg, bg, attributes)
+
+    def csi_get_device_attributes(self, qmark):
+        """
+        Report device attributes (what are you?). In our case, we'll report
+        ourself as a VT102 terminal.
+        """
+        if not qmark:
+            self.widget.respond(ESC + '[?6c')
 
     def csi_status_report(self, mode):
         """
