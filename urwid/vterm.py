@@ -158,8 +158,26 @@ class TermCanvas(urwid.Canvas):
             self.addch(char)
 
     def resize(self, width, height):
+        if width > self.width:
+            for y in xrange(self.height):
+                self.term[y] += [self.empty_char()] * (width - self.width)
+        elif width < self.width:
+            for y in xrange(self.height):
+                self.term[y] = self.term[y][:width]
+
         self.width = width
+
+        if height > self.height:
+            for y in xrange(height - self.height):
+                self.term.append(self.empty_line())
+        elif height < self.height:
+            for y in xrange(self.height - height):
+                self.term.pop(0)
+
         self.height = height
+
+        x, y = self.constrain_coords(*self.cursor)
+        self.cursor = (x, y)
 
     def parse_csi(self, char):
         qmark = self.escbuf.startswith('?')
@@ -255,6 +273,7 @@ class TermCanvas(urwid.Canvas):
         if y is None:
             y = self.cursor[1]
 
+        x, y = self.constrain_coords(x, y)
         self.term[y][x] = (self.attrspec, None, char)
 
     def constrain_coords(self, x, y):
@@ -725,12 +744,15 @@ class TerminalWidget(urwid.BoxWidget):
         if self.width == width and self.height == height:
             return
 
+        self.set_termsize(width, height)
+
         if not self.term:
             self.term = TermCanvas(width, height, self)
         else:
             self.term.resize(width, height)
 
-        self.set_termsize(width, height)
+        self.width = width
+        self.height = height
 
         if process_opened:
             self.add_watch()
@@ -794,6 +816,11 @@ class TerminalWidget(urwid.BoxWidget):
     def keypress(self, size, key):
         if self.terminated:
             return key
+
+        if key == "window resize":
+            width, height = size
+            self.touch_term(width, height)
+            return
 
         if self.escape_mode and self.escape_sequence == key:
             # twice the escape key will pass
