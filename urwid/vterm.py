@@ -102,23 +102,9 @@ CSI_COMMANDS = {
     '`': ('alias', 'G'),
 }
 
-def wrap_store(function):
-    """
-    Ensures that the TermCanvas will lose its finalized state
-    after being stored to the cache.
-    """
-    @classmethod
-    def _wrap(cls, wcls, canvas):
-        if isinstance(canvas, TermCanvas):
-            return
-        return function(wcls, canvas)
-
-    return _wrap
-
-# XXX: monkey-patching...
-urwid.CanvasCache.store = wrap_store(urwid.CanvasCache.store)
-
 class TermCanvas(urwid.Canvas):
+    cacheable = False
+
     def __init__(self, width, height, widget):
         urwid.Canvas.__init__(self)
 
@@ -134,17 +120,6 @@ class TermCanvas(urwid.Canvas):
 
         # initialize self.term
         self.clear()
-
-    def _get_cursor(self):
-        return self._cursor
-    def _set_cursor(self, pos):
-        if pos is None:
-            self.coords.pop("cursor", None)
-            return
-
-        self.coords["cursor"] = pos + (None,)
-        self._cursor = pos
-    cursor = property(_get_cursor, _set_cursor)
 
     def empty_line(self, char=' '):
         return [self.empty_char(char)] * self.width
