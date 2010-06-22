@@ -56,6 +56,9 @@ class CanvasCache(object):
         wcls -- widget class that contains render() function
         canvas -- rendered canvas with widget_info (widget, size, focus)
         """
+        if not canvas.cacheable:
+            return
+
         assert canvas.widget_info, "Can't store canvas without widget_info"
         widget, size, focus = canvas.widget_info
         def walk_depends(canv):
@@ -176,6 +179,8 @@ class Canvas(object):
     """
     base class for canvases
     """
+    cacheable = True
+
     _finalized_error = CanvasError("This canvas has been finalized. "
         "Use CompositeCanvas to wrap this canvas if "
         "you need to make changes.")
@@ -252,7 +257,7 @@ class Canvas(object):
             return
         return c[:2] # trim off data part
     def set_cursor(self, c):
-        if self.widget_info:
+        if self.widget_info and self.cacheable:
             raise self._finalized_error
         if c is None:
             try:
