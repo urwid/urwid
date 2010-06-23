@@ -120,6 +120,8 @@ class TermCanvas(Canvas):
         self.parsestate = 0
         self.attrspec = None
 
+        self.is_rotten_cursor = False
+
         # initialize self.term
         self.clear()
 
@@ -323,7 +325,13 @@ class TermCanvas(Canvas):
 
         x += 1
 
-        if x >= self.width:
+        if x >= self.width and not self.is_rotten_cursor:
+            # "rotten cursor" - this is when the cursor gets to the rightmost
+            # position of the screen, the cursor position remains the same but
+            # one last push_cursor is allowed for that piece of sh^H^Hborder.
+            self.is_rotten_cursor = True
+            return
+        elif x >= self.width and self.is_rotten_cursor:
             if y >= self.height - 1:
                 self.scroll()
             else:
@@ -332,6 +340,7 @@ class TermCanvas(Canvas):
             x = 0
 
         self.cursor = (x, y)
+        self.is_rotten_cursor = False
 
     def tab(self, tabstop=8):
         """
