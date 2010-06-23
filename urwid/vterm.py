@@ -93,7 +93,7 @@ CSI_COMMANDS = {
     'd': (1, 1, lambda s, (row,), q: s.move_cursor(0, row - 1, relative_x=True)),
     'e': ('alias', 'B'),
     'f': ('alias', 'H'),
-    'g': None,
+    'g': (1, 0, lambda s, (mode,), q: s.csi_clear_tabstop(mode)),
     'h': (1, 0, lambda s, (mode,), q: s.csi_set_mode(mode, q)),
     'l': (1, 0, lambda s, (mode,), q: s.csi_set_mode(mode, q, reset=True)),
     'm': (1, 0, lambda s, attrs, q: s.csi_set_attr(attrs)),
@@ -150,11 +150,46 @@ class TermCanvas(Canvas):
         self.scrollregion_start = 0
         self.scrollregion_end = self.height - 1
 
+        self.init_tabstops()
+
         # terminal modes
         self.modes.reset()
 
         # initialize self.term
         self.clear()
+
+    def init_tabstops(self, extend=False):
+        tablen, mod = divmod(self.width, 8)
+        if mod > 0:
+            tablen += 1
+
+        if extend:
+            while len(self.tabstops) < tablen:
+                self.tabstops.append(1 << 0)
+        else:
+            self.tabstops = [1 << 0] * tablen
+
+    def set_tabstop(self, x=None, remove=False, clear=False):
+        if clear:
+            for tab in xrange(len(self.tabstops)):
+                self.tabstops[tab] = 0
+            return
+
+        if x is None:
+            x = self.cursor[0]
+
+        div, mod = divmod(x, 8)
+        if remove:
+            self.tabstops[div] &= ~(1 << mod)
+        else:
+            self.tabstops[div] |= (1 << mod)
+
+    def is_tabstop(self, x=None):
+        if x is None:
+            x = self.cursor[0]
+
+        div, mod = divmod(x, 8)
+        return (self.tabstops[div] & (1 << mod)) > 0
 
     def empty_line(self, char=' '):
         return [self.empty_char(char)] * self.width
@@ -196,6 +231,9 @@ class TermCanvas(Canvas):
         self.scrollregion_start = min(self.scrollregion_start,
                                       self.scrollregion_end - 1)
 
+        # extend tabs
+        init_tabstops(extend=True)
+
     def parse_csi(self, char):
         qmark = self.escbuf.startswith('?')
 
@@ -231,6 +269,8 @@ class TermCanvas(Canvas):
             self.reset()
         elif char == 'E': # newline
             self.newline()
+        elif char == 'H': # set tabstop
+            self.set_tabstop()
         elif char == 'Z': # DECID
             self.widget.respond(ESC + '[?6c')
         elif char == '7': # save current state
@@ -447,11 +487,11 @@ class TermCanvas(Canvas):
         """
         x, y = self.cursor
 
-        while x < self.width:
+        while x < self.width - 1:
             self.set_char(" ")
             x += 1
 
-            if x % tabstop == 0:
+            if self.is_tabstop(x):
                 break
 
         self.cursor = x, y
@@ -764,6 +804,16 @@ class TermCanvas(Canvas):
             self.scrollregion_end = self.constrain_coords(0, bottom - 1)[1]
 
             self.move_cursor(0, 0)
+
+    def csi_clear_tabstop(self, mode=0):
+        """
+        Clear tabstop at current position or if 'mode' is 3, delete all
+        tabstops.
+        """
+        if mode == 0:
+            self.set_tabstop(remove=True)
+        elif mode == 3:
+            self.set_tabstop(clear=True)
 
     def csi_get_device_attributes(self, qmark):
         """
