@@ -716,7 +716,7 @@ class TermCanvas(Canvas):
         if mode == 0:
             self.erase(self.cursor, (self.width - 1, y))
         elif mode == 1:
-            self.erase((0, y), (x - 1, y))
+            self.erase((0, y), (x, y))
         elif mode == 2:
             self.blank_line(y)
 
