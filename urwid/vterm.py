@@ -231,6 +231,8 @@ class TermCanvas(Canvas):
             self.reset()
         elif char == 'E': # newline
             self.newline()
+        elif char == 'Z': # DECID
+            self.widget.respond(ESC + '[?6c')
         elif char == '7': # save current state
             self.save_cursor(with_attrs=True)
         elif char == '8': # restore current state
