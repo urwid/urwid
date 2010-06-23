@@ -99,7 +99,7 @@ CSI_COMMANDS = {
     'm': (1, lambda s, attrs, q: s.csi_set_attr(attrs)),
     'n': (1, lambda s, (mode,), q: s.csi_status_report(mode)),
     'q': None,
-    'r': None,
+    'r': (2, lambda s, (top, bottom), q: s.csi_set_scroll(top, bottom)),
     's': (0, lambda s, (t,), q: s.save_cursor()),
     'u': (0, lambda s, (t,), q: s.restore_cursor()),
     '`': ('alias', 'G'),
@@ -140,6 +140,9 @@ class TermCanvas(Canvas):
 
         self.is_rotten_cursor = False
 
+        self.scrollregion_start = 0
+        self.scrollregion_end = self.height - 1
+
         # terminal modes
         self.modes.reset()
 
@@ -178,6 +181,12 @@ class TermCanvas(Canvas):
 
         x, y = self.constrain_coords(*self.cursor)
         self.cursor = (x, y)
+
+        # adjust scrolling region
+        self.scrollregion_end = min(self.scrollregion_end,
+                                    height - 1)
+        self.scrollregion_start = min(self.scrollregion_start,
+                                      self.scrollregion_end - 1)
 
     def parse_csi(self, char):
         qmark = self.escbuf.startswith('?')
@@ -312,12 +321,12 @@ class TermCanvas(Canvas):
         x, y = self.cursor
 
         if reverse:
-            if y <= 0:
+            if y <= self.scrollregion_start:
                 self.scroll(reverse=True)
             else:
                 y -= 1
         else:
-            if y >= self.height - 1:
+            if y >= self.scrollregion_end:
                 self.scroll()
             else:
                 y += 1
@@ -374,7 +383,7 @@ class TermCanvas(Canvas):
             self.is_rotten_cursor = True
             return
         elif x >= self.width and self.is_rotten_cursor:
-            if y >= self.height - 1:
+            if y >= self.scrollregion_end:
                 self.scroll()
             else:
                 y += 1
@@ -424,12 +433,12 @@ class TermCanvas(Canvas):
         scrollback buffer.
         """
         if reverse:
-            self.term.pop()
-            self.term.insert(0, self.empty_line())
+            self.term.pop(self.scrollregion_end)
+            self.term.insert(self.scrollregion_start, self.empty_line())
         else:
-            killed = self.term.pop(0)
+            killed = self.term.pop(self.scrollregion_start)
             self.scrollback_buffer.append(killed)
-            self.term.append(self.empty_line())
+            self.term.insert(self.scrollregion_end, self.empty_line())
 
     def decaln(self):
         """
@@ -491,13 +500,15 @@ class TermCanvas(Canvas):
         """
         if row is None:
             row = self.cursor[1]
+        else:
+            row = self.scrollregion_start
 
         if lines == 0:
             lines = 1
 
         while lines > 0:
             self.term.insert(row, self.empty_line())
-            self.term.pop()
+            self.term.pop(self.scrollregion_end)
             lines -= 1
 
     def remove_lines(self, row=None, lines=1):
@@ -508,13 +519,15 @@ class TermCanvas(Canvas):
         """
         if row is None:
             row = self.cursor[1]
+        else:
+            row = self.scrollregion_start
 
         if lines == 0:
             lines = 1
 
         while lines > 0:
             self.term.pop(row)
-            self.term.append(self.empty_line())
+            self.term.insert(self.scrollregion_end, self.empty_line())
             lines -= 1
 
     def erase(self, start, end):
@@ -651,6 +664,23 @@ class TermCanvas(Canvas):
             # DEC private mode
             if mode == 20:
                 self.modes.lfnl_mode = not reset
+
+    def csi_set_scroll(self, top=0, bottom=0):
+        """
+        Set scrolling region, 'top' is the line number of first line in the
+        scrolling region. 'bottom' is the line number of bottom line. If both
+        are set to 0, the whole screen will be used (default).
+        """
+        if top == 0:
+            top = 1
+        if bottom == 0:
+            bottom = self.height
+
+        if top < bottom <= self.height:
+            self.scrollregion_start = self.constrain_coords(0, top - 1)[1]
+            self.scrollregion_end = self.constrain_coords(0, bottom - 1)[1]
+
+            self.move_cursor(0, 0)
 
     def csi_get_device_attributes(self, qmark):
         """
