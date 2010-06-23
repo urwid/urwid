@@ -99,7 +99,7 @@ CSI_COMMANDS = {
     'l': (1, 0, lambda s, (mode,), q: s.csi_set_mode(mode, q, reset=True)),
     'm': (1, 0, lambda s, attrs, q: s.csi_set_attr(attrs)),
     'n': (1, 0, lambda s, (mode,), q: s.csi_status_report(mode)),
-    'q': None,
+    'q': (1, 0, lambda s, (mode,) q: s.csi_set_keyboard_leds(mode)),
     'r': (2, 0, lambda s, (top, bottom), q: s.csi_set_scroll(top, bottom)),
     's': (0, 0, lambda s, (t,), q: s.save_cursor()),
     'u': (0, 0, lambda s, (t,), q: s.restore_cursor()),
@@ -895,6 +895,27 @@ class TermCanvas(Canvas):
         elif mode == 2:
             self.clear(cursor=self.term_cursor)
 
+    def csi_set_keyboard_leds(self, mode=0):
+        """
+        Set keyboard LEDs, modes are:
+            0 -> clear all LEDs
+            1 -> set scroll lock LED
+            2 -> set num lock LED
+            3 -> set caps lock LED
+
+        This currently just emits a signal, so it can be processed by another
+        widget or the main application.
+        """
+        states = {
+            0: 'clear',
+            1: 'scroll_lock',
+            2: 'num_lock',
+            3: 'caps_lock',
+        }
+
+        if mode in states:
+            self.widget.leds(states[mode])
+
     def clear(self, cursor=None):
         """
         Clears the whole terminal screen and resets the cursor position
@@ -924,7 +945,7 @@ class TermCanvas(Canvas):
         return self.content()
 
 class TerminalWidget(BoxWidget):
-    signals = ['closed', 'beep']
+    signals = ['closed', 'beep', 'leds']
 
     def __init__(self, command, event_loop, escape_sequence=None):
         self.__super.__init__()
@@ -1000,6 +1021,9 @@ class TerminalWidget(BoxWidget):
 
     def beep(self):
         self._emit('beep')
+
+    def leds(self, which):
+        self._emit('leds', which)
 
     def respond(self, string):
         """
