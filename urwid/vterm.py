@@ -115,6 +115,12 @@ class TermCanvas(Canvas):
 
         self.scrollback_buffer = []
 
+        self.reset()
+
+    def reset(self):
+        """
+        Reset the terminal.
+        """
         self.escbuf = ''
         self.within_escape = False
         self.parsestate = 0
@@ -186,6 +192,8 @@ class TermCanvas(Canvas):
             self.decaln()
         elif char == 'M': # reverse line feed
             self.newline(reverse=True)
+        elif char == 'c': # reset terminal
+            self.reset()
 
     def parse_escape(self, char):
         if self.parsestate == 1:
