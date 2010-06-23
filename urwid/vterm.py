@@ -442,10 +442,9 @@ class TermCanvas(Canvas):
 
     def decaln(self):
         """
-        DEC screen alignment test.
-        Fill screen with E's form top to current line.
+        DEC screen alignment test: Fill screen with E's.
         """
-        for row in xrange(self.cursor[1] + 1):
+        for row in xrange(self.height):
             self.term[row] = self.empty_line('E')
 
     def blank_line(self, row):
