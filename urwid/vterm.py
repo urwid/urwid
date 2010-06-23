@@ -110,7 +110,9 @@ class TermModes(object):
         self.reset()
 
     def reset(self):
-        self.lfnl_mode = False
+        # ECMA-48
+        self.insert = False
+        self.lfnl = False
 
 class TermCanvas(Canvas):
     cacheable = False
@@ -265,7 +267,7 @@ class TermCanvas(Canvas):
             self.carriage_return()
         elif char in (chr(10), chr(11), chr(12)): # line feed
             self.linefeed()
-            if self.modes.lfnl_mode:
+            if self.modes.lfnl:
                 self.carriage_return()
         elif char == chr(12): # form feed
             self.clear()
@@ -372,7 +374,10 @@ class TermCanvas(Canvas):
         x, y = self.cursor
 
         if char is not None:
-            self.set_char(char)
+            if self.modes.insert:
+                self.insert_chars(char=char)
+            else:
+                self.set_char(char)
 
         x += 1
 
@@ -453,11 +458,11 @@ class TermCanvas(Canvas):
         """
         self.term[row] = self.empty_line()
 
-    def insert_chars(self, position=None, chars=1):
+    def insert_chars(self, position=None, chars=1, char=None):
         """
-        Insert 'chars' number of empty characters before 'position' (or the
-        current position if not specified) pushing subsequent characters of the
-        line to the right without wrapping.
+        Insert 'chars' number of either empty characters - or those specified by
+        'char' - before 'position' (or the current position if not specified)
+        pushing subsequent characters of the line to the right without wrapping.
         """
         if position is None:
             position = self.cursor
@@ -465,10 +470,15 @@ class TermCanvas(Canvas):
         if chars == 0:
             chars = 1
 
+        if char is None:
+            char = self.empty_char()
+        else:
+            char = (self.attrspec, None, char)
+
         x, y = position
 
         while chars > 0:
-            self.term[y].insert(x, self.empty_char())
+            self.term[y].insert(x, char)
             self.term[y].pop()
             chars -= 1
 
@@ -657,12 +667,14 @@ class TermCanvas(Canvas):
         Set (DECSET/ECMA-48) or reset mode (DECRST/ECMA-48) if reset is True.
         """
         if qmark:
-            # ECMA-48
+            # DEC private mode
             pass
         else:
-            # DEC private mode
-            if mode == 20:
-                self.modes.lfnl_mode = not reset
+            # ECMA-48
+            if mode == 4:
+                self.modes.insert = not reset
+            elif mode == 20:
+                self.modes.lfnl = not reset
 
     def csi_set_scroll(self, top=0, bottom=0):
         """
@@ -961,7 +973,7 @@ class TerminalWidget(BoxWidget):
             key = KEY_TRANSLATIONS.get(key, key)
 
         # ENTER transmits both a carriage return and linefeed in LF/NL mode.
-        if self.term_modes.lfnl_mode and key == chr(13):
+        if self.term_modes.lfnl and key == chr(13):
             key += chr(10)
 
         os.write(self.master, key)
