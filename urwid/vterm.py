@@ -114,6 +114,9 @@ class TermModes(object):
         self.insert = False
         self.lfnl = False
 
+        # DEC private modes
+        self.reverse_video = False
+
 class TermCanvas(Canvas):
     cacheable = False
 
@@ -575,6 +578,11 @@ class TermCanvas(Canvas):
             y += 1
 
     def sgi_to_attrspec(self, attrs, fg, bg, attributes):
+        """
+        Parse SGI sequence and return an AttrSpec representing the sequence
+        including all earlier sequences specified as 'fg', 'bg' and
+        'attributes'.
+        """
         for attr in attrs:
             if 30 <= attr <= 37:
                 fg = attr - 30
@@ -660,21 +668,57 @@ class TermCanvas(Canvas):
 
                 attributes.add(attr)
 
-        self.attrspec = self.sgi_to_attrspec(attrs, fg, bg, attributes)
+        attrspec = self.sgi_to_attrspec(attrs, fg, bg, attributes)
+
+        if self.modes.reverse_video:
+            self.attrspec = self.reverse_attrspec(attrspec)
+        else:
+            self.attrspec = attrspec
+
+    def reverse_attrspec(self, attrspec, undo=False):
+        """
+        Put standout mode to the 'attrspec' given and remove it if 'undo' is
+        True.
+        """
+        if attrspec is None:
+            attrspec = AttrSpec('default', 'default')
+        attrs = [fg.strip() for fg in attrspec.foreground.split(',')]
+        if 'standout' in attrs and undo:
+            attrs.remove('standout')
+            attrspec.foreground = ','.join(attrs)
+        elif 'standout' not in attrs and not undo:
+            attrs.append('standout')
+            attrspec.foreground = ','.join(attrs)
+        return attrspec
+
+    def reverse_video(self, undo=False):
+        """
+        Reverse video/scanmode (DECSCNM) by swapping fg and bg colors.
+        """
+        for y in xrange(self.height):
+            for x in xrange(self.width):
+                char = self.term[y][x]
+                attrs = self.reverse_attrspec(char[0], undo=undo)
+                self.term[y][x] = (attrs,) + char[1:]
 
     def csi_set_mode(self, mode, qmark, reset=False):
         """
         Set (DECSET/ECMA-48) or reset mode (DECRST/ECMA-48) if reset is True.
         """
+        flag = not reset
+
         if qmark:
             # DEC private mode
-            pass
+            if mode == 5:
+                if self.modes.reverse_video != flag:
+                    self.reverse_video(undo=not flag)
+                self.modes.reverse_video = flag
         else:
             # ECMA-48
             if mode == 4:
-                self.modes.insert = not reset
+                self.modes.insert = flag
             elif mode == 20:
-                self.modes.lfnl = not reset
+                self.modes.lfnl = flag
 
     def csi_set_scroll(self, top=0, bottom=0):
         """
