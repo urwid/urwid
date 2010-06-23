@@ -30,7 +30,7 @@ import termios
 
 from urwid.canvas import Canvas
 from urwid.widget import BoxWidget
-from urwid.display_common import AttrSpec, _BASIC_COLORS
+from urwid.display_common import AttrSpec, RealTerminal, _BASIC_COLORS
 
 ESC = chr(27)
 
@@ -648,6 +648,7 @@ class TerminalWidget(BoxWidget):
             self.command = command
 
         self._default_handler = signal.getsignal(signal.SIGINT)
+        self._old_tios = None
 
         self.escape_mode = False
         self.response_buffer = []
@@ -745,24 +746,20 @@ class TerminalWidget(BoxWidget):
         if process_opened:
             self.add_watch()
 
-    def propagate_sigint(self, sig, stack):
-        if sig == signal.SIGINT:
-            self.escape_mode = False
-            os.write(self.master, chr(3))
-
     def change_focus(self, has_focus):
         """
         Ignore SIGINT if this widget has focus.
         """
-        if self.has_focus == has_focus:
+        if self.terminated or self.has_focus == has_focus:
             return
 
         self.has_focus = has_focus
 
         if has_focus:
-            signal.signal(signal.SIGINT, self.propagate_sigint)
+            self.old_tios = RealTerminal().tty_signal_keys()
+            RealTerminal().tty_signal_keys(*(['undefined'] * 5))
         else:
-            signal.signal(signal.SIGINT, self._default_handler)
+            RealTerminal().tty_signal_keys(*self.old_tios)
 
     def render(self, size, focus=False):
         if not self.terminated:
@@ -825,10 +822,6 @@ class TerminalWidget(BoxWidget):
             return
 
         if key.startswith("ctrl "):
-            if key == 'c':
-                # C-c is handled by propagate_sigint()
-                return
-
             if key[-1].islower():
                 key = chr(ord(key[-1]) - ord('a') + 1)
             else:
