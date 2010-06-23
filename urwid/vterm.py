@@ -22,6 +22,7 @@
 import os
 import pty
 import time
+import copy
 import fcntl
 import struct
 import signal
@@ -99,8 +100,8 @@ CSI_COMMANDS = {
     'n': (1, lambda s, (mode,), q: s.csi_status_report(mode)),
     'q': None,
     'r': None,
-    's': None,
-    'u': None,
+    's': (0, lambda s, (t,), q: s.save_cursor()),
+    'u': (0, lambda s, (t,), q: s.restore_cursor()),
     '`': ('alias', 'G'),
 }
 
@@ -133,6 +134,9 @@ class TermCanvas(Canvas):
         self.within_escape = False
         self.parsestate = 0
         self.attrspec = None
+
+        self.saved_cursor = None
+        self.saved_attrs = None
 
         self.is_rotten_cursor = False
 
@@ -207,6 +211,10 @@ class TermCanvas(Canvas):
             self.reset()
         elif char == 'E': # newline
             self.newline()
+        elif char == '7': # save current state
+            self.save_cursor(with_attrs=True)
+        elif char == '8': # restore current state
+            self.restore_cursor(with_attrs=True)
 
     def parse_escape(self, char):
         if self.parsestate == 1:
@@ -375,6 +383,21 @@ class TermCanvas(Canvas):
 
         self.cursor = (x, y)
         self.is_rotten_cursor = False
+
+    def save_cursor(self, with_attrs=False):
+        self.saved_cursor = tuple(self.cursor)
+        if with_attrs:
+            self.saved_attrs = copy.copy(self.attrspec)
+
+    def restore_cursor(self, with_attrs=False):
+        if self.saved_cursor is None:
+            return
+
+        x, y = self.saved_cursor
+        self.cursor = self.constrain_coords(x, y)
+
+        if with_attrs:
+            self.attrspec = copy.copy(self.saved_attrs)
 
     def tab(self, tabstop=8):
         """
