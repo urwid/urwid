@@ -182,6 +182,8 @@ class TermCanvas(Canvas):
     def parse_noncsi(self, char, mod=None):
         if mod == '#' and char == '8':
             self.decaln()
+        elif char == 'M': # reverse line feed
+            self.newline(reverse=True)
 
     def parse_escape(self, char):
         if self.parsestate == 1:
@@ -269,17 +271,23 @@ class TermCanvas(Canvas):
 
         return x, y
 
-    def newline(self):
+    def newline(self, reverse=False):
         """
-        Move the cursor down one line but don't reset horizontal
-        position.
+        Move the cursor down (or up if reverse is True) one line but don't reset
+        horizontal position.
         """
         x, y = self.cursor
 
-        if y >= self.height - 1:
-            self.scroll()
+        if reverse:
+            if y <= 0:
+                self.scroll(reverse=True)
+            else:
+                y -= 1
         else:
-            y += 1
+            if y >= self.height - 1:
+                self.scroll()
+            else:
+                y += 1
 
         self.cursor = (x, y)
 
@@ -341,14 +349,21 @@ class TermCanvas(Canvas):
 
         self.cursor = x, y
 
-    def scroll(self):
+    def scroll(self, reverse=False):
         """
         Append a new line at the bottom and put the topmost line into the
         scrollback buffer.
+
+        If reverse is True, do exactly the opposite, but don't save into
+        scrollback buffer.
         """
-        killed = self.term.pop(0)
-        self.scrollback_buffer.append(killed)
-        self.term.append(self.empty_line())
+        if reverse:
+            self.term.pop()
+            self.term.insert(0, self.empty_line())
+        else:
+            killed = self.term.pop(0)
+            self.scrollback_buffer.append(killed)
+            self.term.append(self.empty_line())
 
     def decaln(self):
         """
