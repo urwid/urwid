@@ -93,8 +93,8 @@ CSI_COMMANDS = {
     'e': ('alias', 'B'),
     'f': ('alias', 'H'),
     'g': None,
-    'h': None,
-    'l': None,
+    'h': (1, lambda s, (mode,), q: s.csi_set_mode(mode, q)),
+    'l': (1, lambda s, (mode,), q: s.csi_set_mode(mode, q, reset=True)),
     'm': (1, lambda s, attrs, q: s.csi_set_attr(attrs)),
     'n': (1, lambda s, (mode,), q: s.csi_status_report(mode)),
     'q': None,
@@ -104,6 +104,13 @@ CSI_COMMANDS = {
     '`': ('alias', 'G'),
 }
 
+class TermModes(object):
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.lfnl_mode = False
+
 class TermCanvas(Canvas):
     cacheable = False
 
@@ -112,6 +119,7 @@ class TermCanvas(Canvas):
 
         self.width, self.height = width, height
         self.widget = widget
+        self.modes = widget.term_modes
 
         self.scrollback_buffer = []
 
@@ -127,6 +135,9 @@ class TermCanvas(Canvas):
         self.attrspec = None
 
         self.is_rotten_cursor = False
+
+        # terminal modes
+        self.modes.reset()
 
         # initialize self.term
         self.clear()
@@ -191,9 +202,11 @@ class TermCanvas(Canvas):
         if mod == '#' and char == '8':
             self.decaln()
         elif char == 'M': # reverse line feed
-            self.newline(reverse=True)
+            self.linefeed(reverse=True)
         elif char == 'c': # reset terminal
             self.reset()
+        elif char == 'E': # newline
+            self.newline()
 
     def parse_escape(self, char):
         if self.parsestate == 1:
@@ -232,9 +245,11 @@ class TermCanvas(Canvas):
         if char == chr(27): # escape
             self.within_escape = True
         elif char == chr(13): # carriage return
-            self.cursor = (0, y)
+            self.carriage_return()
         elif char in (chr(10), chr(11), chr(12)): # line feed
-            self.newline()
+            self.linefeed()
+            if self.modes.lfnl_mode:
+                self.carriage_return()
         elif char == chr(12): # form feed
             self.clear()
         elif char == chr(9): # char tab
@@ -281,7 +296,7 @@ class TermCanvas(Canvas):
 
         return x, y
 
-    def newline(self, reverse=False):
+    def linefeed(self, reverse=False):
         """
         Move the cursor down (or up if reverse is True) one line but don't reset
         horizontal position.
@@ -300,6 +315,17 @@ class TermCanvas(Canvas):
                 y += 1
 
         self.cursor = (x, y)
+
+    def carriage_return(self):
+        x, y = self.cursor
+        self.cursor = (0, y)
+
+    def newline(self):
+        """
+        Do a carriage return followed by a line feed.
+        """
+        self.carriage_return()
+        self.linefeed()
 
     def move_cursor(self, x, y, relative_x=False, relative_y=False,
                     relative=False):
@@ -591,6 +617,18 @@ class TermCanvas(Canvas):
 
         self.attrspec = self.sgi_to_attrspec(attrs, fg, bg, attributes)
 
+    def csi_set_mode(self, mode, qmark, reset=False):
+        """
+        Set (DECSET/ECMA-48) or reset mode (DECRST/ECMA-48) if reset is True.
+        """
+        if qmark:
+            # ECMA-48
+            pass
+        else:
+            # DEC private mode
+            if mode == 20:
+                self.modes.lfnl_mode = not reset
+
     def csi_get_device_attributes(self, qmark):
         """
         Report device attributes (what are you?). In our case, we'll report
@@ -692,6 +730,8 @@ class TerminalWidget(BoxWidget):
 
         self.escape_mode = False
         self.response_buffer = []
+
+        self.term_modes = TermModes()
 
         self.event_loop = event_loop
 
@@ -868,5 +908,9 @@ class TerminalWidget(BoxWidget):
                 key = chr(ord(key[-1]) - ord('A') + 1)
         else:
             key = KEY_TRANSLATIONS.get(key, key)
+
+        # ENTER transmits both a carriage return and linefeed in LF/NL mode.
+        if self.term_modes.lfnl_mode and key == chr(13):
+            key += chr(10)
 
         os.write(self.master, key)
