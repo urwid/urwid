@@ -302,6 +302,9 @@ class TermCanvas(Canvas):
         elif char in ('c', 'D', 'E', 'H', 'M', 'Z', '7', '8', '>', '='):
             self.parse_noncsi(char)
 
+        self.leave_escape()
+
+    def leave_escape(self):
         self.within_escape = False
         self.parsestate = 0
         self.escbuf = ''
@@ -332,8 +335,16 @@ class TermCanvas(Canvas):
                 self.cursor = (x, y - 1)
         elif char == chr(7): # beep
             self.widget.beep()
+        elif char in (chr(24), chr(26)): # CAN/SUB
+            self.leave_escape()
+        elif char == chr(127): # DEL
+            pass # this is ignored
         elif self.within_escape:
             self.parse_escape(char)
+        elif char == chr(155): # CSI (equivalent to "ESC [")
+            self.within_escape = True
+            self.escbuf = ''
+            self.parsestate = 1
         else:
             self.push_cursor(char)
 
