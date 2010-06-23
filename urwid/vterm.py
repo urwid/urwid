@@ -86,8 +86,9 @@ CSI_COMMANDS = {
     'L': (1, 1, lambda s, (number,), q: s.insert_lines(lines=number)),
     'M': (1, 1, lambda s, (number,), q: s.remove_lines(lines=number)),
     'P': (1, 1, lambda s, (number,), q: s.remove_chars(chars=number)),
-    'X': (1, 1, lambda s, (number,), q: s.erase(s.cursor, (s.cursor[0]+number-1,
-                                                           s.cursor[1]))),
+    'X': (1, 1, lambda s, (number,), q: s.erase(s.term_cursor,
+                                                (s.term_cursor[0]+number-1,
+                                                 s.term_cursor[1]))),
     'a': ('alias', 'C'),
     'c': (0, 0, lambda s, (t,), q: s.csi_get_device_attributes(q)),
     'd': (1, 1, lambda s, (row,), q: s.move_cursor(0, row - 1, relative_x=True)),
@@ -118,6 +119,7 @@ class TermModes(object):
         self.reverse_video = False
         self.constrain_scrolling = False
         self.autowrap = True
+        self.visible_cursor = True
 
 class TermCanvas(Canvas):
     cacheable = False
@@ -131,7 +133,22 @@ class TermCanvas(Canvas):
 
         self.scrollback_buffer = []
 
+        self.coords["cursor"] = (0, 0, None)
+
         self.reset()
+
+    def set_term_cursor(self, x=None, y=None):
+        if x is None:
+            x = self.term_cursor[0]
+        if y is None:
+            y = self.term_cursor[1]
+
+        self.term_cursor = (x, y)
+
+        if self.modes.visible_cursor:
+            self.cursor = (x, y)
+        else:
+            self.cursor = None
 
     def reset(self):
         """
@@ -176,7 +193,7 @@ class TermCanvas(Canvas):
             return
 
         if x is None:
-            x = self.cursor[0]
+            x = self.term_cursor[0]
 
         div, mod = divmod(x, 8)
         if remove:
@@ -186,7 +203,7 @@ class TermCanvas(Canvas):
 
     def is_tabstop(self, x=None):
         if x is None:
-            x = self.cursor[0]
+            x = self.term_cursor[0]
 
         div, mod = divmod(x, 8)
         return (self.tabstops[div] & (1 << mod)) > 0
@@ -198,8 +215,7 @@ class TermCanvas(Canvas):
         return (self.attrspec, None, char)
 
     def addstr(self, data):
-        x, y = self.cursor
-        print >>open('log', 'a'), data
+        x, y = self.term_cursor
         for char in data:
             self.addch(char)
 
@@ -222,8 +238,8 @@ class TermCanvas(Canvas):
 
         self.height = height
 
-        x, y = self.constrain_coords(*self.cursor)
-        self.cursor = (x, y)
+        x, y = self.constrain_coords(*self.term_cursor)
+        self.set_term_cursor(x, y)
 
         # adjust scrolling region
         self.scrollregion_end = min(self.scrollregion_end,
@@ -313,7 +329,7 @@ class TermCanvas(Canvas):
         """
         Add a single character to the terminal state machine.
         """
-        x, y = self.cursor
+        x, y = self.term_cursor
 
         if char == chr(27): # escape
             self.within_escape = True
@@ -329,10 +345,10 @@ class TermCanvas(Canvas):
             self.tab()
         elif char == chr(8): # backspace
             if x > 0:
-                self.cursor = (x - 1, y)
+                self.set_term_cursor(x - 1, y)
         elif char == chr(11): # line tab
             if y > 0:
-                self.cursor = (x, y - 1)
+                self.set_term_cursor(x, y - 1)
         elif char == chr(7): # beep
             self.widget.beep()
         elif char in (chr(24), chr(26)): # CAN/SUB
@@ -354,9 +370,9 @@ class TermCanvas(Canvas):
         or a position given by 'x' and/or 'y' to 'char'.
         """
         if x is None:
-            x = self.cursor[0]
+            x = self.term_cursor[0]
         if y is None:
-            y = self.cursor[1]
+            y = self.term_cursor[1]
 
         x, y = self.constrain_coords(x, y)
         self.term[y][x] = (self.attrspec, None, char)
@@ -388,7 +404,7 @@ class TermCanvas(Canvas):
         Move the cursor down (or up if reverse is True) one line but don't reset
         horizontal position.
         """
-        x, y = self.cursor
+        x, y = self.term_cursor
 
         if reverse:
             if y <= self.scrollregion_start:
@@ -401,11 +417,10 @@ class TermCanvas(Canvas):
             else:
                 y += 1
 
-        self.cursor = (x, y)
+        self.set_term_cursor(x, y)
 
     def carriage_return(self):
-        x, y = self.cursor
-        self.cursor = (0, y)
+        self.set_term_cursor(0, self.term_cursor[1])
 
     def newline(self):
         """
@@ -426,13 +441,13 @@ class TermCanvas(Canvas):
             relative_y = relative_x = True
 
         if relative_x:
-            x = self.cursor[0] + x
+            x = self.term_cursor[0] + x
         if relative_y:
-            y = self.cursor[1] + y
+            y = self.term_cursor[1] + y
 
         x, y = self.constrain_coords(x, y)
 
-        self.cursor = (x, y)
+        self.set_term_cursor(x, y)
 
     def push_char(self, char, x, y, advance=True):
         """
@@ -444,14 +459,14 @@ class TermCanvas(Canvas):
             else:
                 self.set_char(char)
 
-        self.cursor = (x, y)
+        self.set_term_cursor(x, y)
 
     def push_cursor(self, char=None):
         """
         Move cursor one character forward wrapping lines as needed.
         If 'char' is given, put the character into the former position.
         """
-        x, y = self.cursor
+        x, y = self.term_cursor
 
         if x + 1 >= self.width and not self.is_rotten_cursor:
             # "rotten cursor" - this is when the cursor gets to the rightmost
@@ -470,14 +485,14 @@ class TermCanvas(Canvas):
                         y += 1
 
                 x = 1
-                self.cursor = (0, y)
+                self.set_term_cursor(0, y)
 
             self.push_char(char, x, y)
 
             self.is_rotten_cursor = False
 
     def save_cursor(self, with_attrs=False):
-        self.saved_cursor = tuple(self.cursor)
+        self.saved_cursor = tuple(self.term_cursor)
         if with_attrs:
             self.saved_attrs = copy.copy(self.attrspec)
 
@@ -486,7 +501,7 @@ class TermCanvas(Canvas):
             return
 
         x, y = self.saved_cursor
-        self.cursor = self.constrain_coords(x, y)
+        self.set_term_cursor(*self.constrain_coords(x, y))
 
         if with_attrs:
             self.attrspec = copy.copy(self.saved_attrs)
@@ -496,7 +511,7 @@ class TermCanvas(Canvas):
         Moves cursor to the next 'tabstop' filling everything in between
         with spaces.
         """
-        x, y = self.cursor
+        x, y = self.term_cursor
 
         while x < self.width - 1:
             self.set_char(" ")
@@ -505,7 +520,7 @@ class TermCanvas(Canvas):
             if self.is_tabstop(x):
                 break
 
-        self.cursor = x, y
+        self.set_term_cursor(x, y)
 
     def scroll(self, reverse=False):
         """
@@ -543,7 +558,7 @@ class TermCanvas(Canvas):
         pushing subsequent characters of the line to the right without wrapping.
         """
         if position is None:
-            position = self.cursor
+            position = self.term_cursor
 
         if chars == 0:
             chars = 1
@@ -567,7 +582,7 @@ class TermCanvas(Canvas):
         the left without joining any subsequent lines.
         """
         if position is None:
-            position = self.cursor
+            position = self.term_cursor
 
         if chars == 0:
             chars = 1
@@ -586,7 +601,7 @@ class TermCanvas(Canvas):
         row is used.
         """
         if row is None:
-            row = self.cursor[1]
+            row = self.term_cursor[1]
         else:
             row = self.scrollregion_start
 
@@ -605,7 +620,7 @@ class TermCanvas(Canvas):
         is used.
         """
         if row is None:
-            row = self.cursor[1]
+            row = self.term_cursor[1]
         else:
             row = self.scrollregion_start
 
@@ -792,6 +807,8 @@ class TermCanvas(Canvas):
                 self.modes.constrain_scrolling = flag
             elif mode == 7:
                 self.modes.autowrap = flag
+            elif mode == 25:
+                self.modes.visible_cursor = flag
         else:
             # ECMA-48
             if mode == 4:
@@ -845,7 +862,7 @@ class TermCanvas(Canvas):
             # terminal OK
             self.widget.respond(ESC + '[0n')
         elif mode == 6:
-            x, y = self.cursor
+            x, y = self.term_cursor
             self.widget.respond(ESC + '[%d;%dR' % (y + 1, x + 1))
 
     def csi_erase_line(self, mode):
@@ -855,10 +872,10 @@ class TermCanvas(Canvas):
             1 -> erase from start of line to cursor.
             2 -> erase whole line.
         """
-        x, y = self.cursor
+        x, y = self.term_cursor
 
         if mode == 0:
-            self.erase(self.cursor, (self.width - 1, y))
+            self.erase(self.term_cursor, (self.width - 1, y))
         elif mode == 1:
             self.erase((0, y), (x, y))
         elif mode == 2:
@@ -872,11 +889,11 @@ class TermCanvas(Canvas):
             2 -> erase the whole display.
         """
         if mode == 0:
-            self.erase(self.cursor, (self.width - 1, self.height - 1))
+            self.erase(self.term_cursor, (self.width - 1, self.height - 1))
         if mode == 1:
-            self.erase((0, 0), (self.cursor[0] - 1, self.cursor[1]))
+            self.erase((0, 0), (self.term_cursor[0] - 1, self.term_cursor[1]))
         elif mode == 2:
-            self.clear(cursor=self.cursor)
+            self.clear(cursor=self.term_cursor)
 
     def clear(self, cursor=None):
         """
@@ -886,9 +903,9 @@ class TermCanvas(Canvas):
         self.term = [self.empty_line() for x in xrange(self.height)]
 
         if cursor is None:
-            self.cursor = (0, 0)
+            self.set_term_cursor(0, 0)
         else:
-            self.cursor = cursor
+            self.set_term_cursor(*cursor)
 
     def cols(self):
         return self.width
