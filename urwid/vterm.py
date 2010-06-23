@@ -725,7 +725,6 @@ class TerminalWidget(BoxWidget):
         else:
             self.command = command
 
-        self._default_handler = signal.getsignal(signal.SIGINT)
         self._old_tios = None
 
         self.escape_mode = False
