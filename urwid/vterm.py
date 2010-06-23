@@ -539,10 +539,18 @@ class TermCanvas(Canvas):
             fg = bg = None
         else:
             # set default values from previous attrspec
-            fg = self.attrspec.foreground_number
-            bg = self.attrspec.background_number
-            if fg >= 8: fg -= 8
-            if bg >= 8: bg -= 8
+            if 'default' in self.attrspec.foreground:
+                fg = None
+            else:
+                fg = self.attrspec.foreground_number
+                if fg >= 8: fg -= 8
+
+            if 'default' in self.attrspec.background:
+                bg = None
+            else:
+                bg = self.attrspec.background_number
+                if bg >= 8: bg -= 8
+
             for attr in ('bold', 'underline', 'standout'):
                 if not getattr(self.attrspec, attr):
                     continue
