@@ -31,6 +31,7 @@ def main():
 
     loop = urwid.MainLoop(
         mainframe,
+        handle_mouse=False,
         unhandled_input=quit,
         event_loop=event_loop
     ).run()
