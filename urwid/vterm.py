@@ -116,6 +116,7 @@ class TermModes(object):
 
         # DEC private modes
         self.reverse_video = False
+        self.constrain_scrolling = False
 
 class TermCanvas(Canvas):
     cacheable = False
@@ -311,10 +312,16 @@ class TermCanvas(Canvas):
         elif x < 0:
             x = 0
 
-        if y >= self.height:
-            y = self.height - 1
-        elif y < 0:
-            y = 0
+        if self.modes.constrain_scrolling:
+            if y > self.scrollregion_end:
+                y = self.scrollregion_end
+            elif y < self.scrollregion_start:
+                y = self.scrollregion_start
+        else:
+            if y >= self.height:
+                y = self.height - 1
+            elif y < 0:
+                y = 0
 
         return x, y
 
@@ -713,6 +720,8 @@ class TermCanvas(Canvas):
                 if self.modes.reverse_video != flag:
                     self.reverse_video(undo=not flag)
                 self.modes.reverse_video = flag
+            elif mode == 6:
+                self.modes.constrain_scrolling = flag
         else:
             # ECMA-48
             if mode == 4:
