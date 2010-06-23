@@ -66,42 +66,42 @@ KEY_TRANSLATIONS = {
 CSI_COMMANDS = {
     # possible values:
     #     None -> ignore sequence
-    #     (<minimum number of args>, callback)
+    #     (<minimum number of args>, <fallback if no argument>, callback)
     #     ('alias', <symbol>)
     #
     # while callback is executed as:
     #     callback(<instance of TermCanvas>, arguments, has_question_mark)
 
-    '@': (1, lambda s, (number,), q: s.insert_chars(chars=number)),
-    'A': (1, lambda s, (rows,), q: s.move_cursor(0, -rows, relative=True)),
-    'B': (1, lambda s, (rows,), q: s.move_cursor(0, rows, relative=True)),
-    'C': (1, lambda s, (cols,), q: s.move_cursor(cols, 0, relative=True)),
-    'D': (1, lambda s, (cols,), q: s.move_cursor(-cols, 0, relative=True)),
-    'E': (1, lambda s, (rows,), q: s.move_cursor(0, rows, relative_y=True)),
-    'F': (1, lambda s, (rows,), q: s.move_cursor(0, -rows, relative_y=True)),
-    'G': (1, lambda s, (col,), q: s.move_cursor(col - 1, 0, relative_y=True)),
-    'H': (2, lambda s, (x, y), q: s.move_cursor(y - 1, x - 1)),
-    'J': (1, lambda s, (mode,), q: s.csi_erase_display(mode)),
-    'K': (1, lambda s, (mode,), q: s.csi_erase_line(mode)),
-    'L': (1, lambda s, (number,), q: s.insert_lines(lines=number)),
-    'M': (1, lambda s, (number,), q: s.remove_lines(lines=number)),
-    'P': (1, lambda s, (number,), q: s.remove_chars(chars=number)),
-    'X': (1, lambda s, (number,), q: s.erase(s.cursor, (s.cursor[0]+number-1,
-                                                        s.cursor[1]))),
+    '@': (1, 1, lambda s, (number,), q: s.insert_chars(chars=number)),
+    'A': (1, 1, lambda s, (rows,), q: s.move_cursor(0, -rows, relative=True)),
+    'B': (1, 1, lambda s, (rows,), q: s.move_cursor(0, rows, relative=True)),
+    'C': (1, 1, lambda s, (cols,), q: s.move_cursor(cols, 0, relative=True)),
+    'D': (1, 1, lambda s, (cols,), q: s.move_cursor(-cols, 0, relative=True)),
+    'E': (1, 1, lambda s, (rows,), q: s.move_cursor(0, rows, relative_y=True)),
+    'F': (1, 1, lambda s, (rows,), q: s.move_cursor(0, -rows, relative_y=True)),
+    'G': (1, 1, lambda s, (col,), q: s.move_cursor(col - 1, 0, relative_y=True)),
+    'H': (2, 1, lambda s, (x, y), q: s.move_cursor(y - 1, x - 1)),
+    'J': (1, 0, lambda s, (mode,), q: s.csi_erase_display(mode)),
+    'K': (1, 0, lambda s, (mode,), q: s.csi_erase_line(mode)),
+    'L': (1, 1, lambda s, (number,), q: s.insert_lines(lines=number)),
+    'M': (1, 1, lambda s, (number,), q: s.remove_lines(lines=number)),
+    'P': (1, 1, lambda s, (number,), q: s.remove_chars(chars=number)),
+    'X': (1, 1, lambda s, (number,), q: s.erase(s.cursor, (s.cursor[0]+number-1,
+                                                           s.cursor[1]))),
     'a': ('alias', 'C'),
-    'c': (0, lambda s, (t,), q: s.csi_get_device_attributes(q)),
-    'd': (1, lambda s, (row,), q: s.move_cursor(0, row - 1, relative_x=True)),
+    'c': (0, 0, lambda s, (t,), q: s.csi_get_device_attributes(q)),
+    'd': (1, 1, lambda s, (row,), q: s.move_cursor(0, row - 1, relative_x=True)),
     'e': ('alias', 'B'),
     'f': ('alias', 'H'),
     'g': None,
-    'h': (1, lambda s, (mode,), q: s.csi_set_mode(mode, q)),
-    'l': (1, lambda s, (mode,), q: s.csi_set_mode(mode, q, reset=True)),
-    'm': (1, lambda s, attrs, q: s.csi_set_attr(attrs)),
-    'n': (1, lambda s, (mode,), q: s.csi_status_report(mode)),
+    'h': (1, 0, lambda s, (mode,), q: s.csi_set_mode(mode, q)),
+    'l': (1, 0, lambda s, (mode,), q: s.csi_set_mode(mode, q, reset=True)),
+    'm': (1, 0, lambda s, attrs, q: s.csi_set_attr(attrs)),
+    'n': (1, 0, lambda s, (mode,), q: s.csi_status_report(mode)),
     'q': None,
-    'r': (2, lambda s, (top, bottom), q: s.csi_set_scroll(top, bottom)),
-    's': (0, lambda s, (t,), q: s.save_cursor()),
-    'u': (0, lambda s, (t,), q: s.restore_cursor()),
+    'r': (2, 0, lambda s, (top, bottom), q: s.csi_set_scroll(top, bottom)),
+    's': (0, 0, lambda s, (t,), q: s.save_cursor()),
+    'u': (0, 0, lambda s, (t,), q: s.restore_cursor()),
     '`': ('alias', 'G'),
 }
 
@@ -117,6 +117,7 @@ class TermModes(object):
         # DEC private modes
         self.reverse_video = False
         self.constrain_scrolling = False
+        self.autowrap = True
 
 class TermCanvas(Canvas):
     cacheable = False
@@ -163,6 +164,7 @@ class TermCanvas(Canvas):
 
     def addstr(self, data):
         x, y = self.cursor
+        print >>open('log', 'a'), data
         for char in data:
             self.addch(char)
 
@@ -202,7 +204,7 @@ class TermCanvas(Canvas):
             try:
                 num = int(arg)
             except ValueError:
-                num = 0
+                num = None
 
             escbuf.append(num)
 
@@ -212,9 +214,12 @@ class TermCanvas(Canvas):
             else:
                 csi_cmd = CSI_COMMANDS[char]
 
-            number_of_args, cmd = csi_cmd
+            number_of_args, default_value, cmd = csi_cmd
             while len(escbuf) < number_of_args:
-                escbuf.append(0)
+                escbuf.append(default_value)
+            for i in xrange(len(escbuf)):
+                if escbuf[i] is None:
+                    escbuf[i] = default_value
             cmd(self, escbuf, qmark)
 
     def parse_noncsi(self, char, mod=None):
@@ -376,6 +381,18 @@ class TermCanvas(Canvas):
 
         self.cursor = (x, y)
 
+    def push_char(self, char, x, y, advance=True):
+        """
+        Push one character to current position and advance cursor to x/y.
+        """
+        if char is not None:
+            if self.modes.insert:
+                self.insert_chars(char=char)
+            else:
+                self.set_char(char)
+
+        self.cursor = (x, y)
+
     def push_cursor(self, char=None):
         """
         Move cursor one character forward wrapping lines as needed.
@@ -383,30 +400,28 @@ class TermCanvas(Canvas):
         """
         x, y = self.cursor
 
-        if char is not None:
-            if self.modes.insert:
-                self.insert_chars(char=char)
-            else:
-                self.set_char(char)
-
-        x += 1
-
-        if x >= self.width and not self.is_rotten_cursor:
+        if x + 1 >= self.width and not self.is_rotten_cursor:
             # "rotten cursor" - this is when the cursor gets to the rightmost
             # position of the screen, the cursor position remains the same but
-            # one last push_cursor is allowed for that piece of sh^H^Hborder.
+            # one last set_char() is allowed for that piece of sh^H^H"border".
             self.is_rotten_cursor = True
-            return
-        elif x >= self.width and self.is_rotten_cursor:
-            if y >= self.scrollregion_end:
-                self.scroll()
-            else:
-                y += 1
+            self.push_char(char, x, y)
+        else:
+            x += 1
 
-            x = 0
+            if x >= self.width and self.is_rotten_cursor:
+                if self.modes.autowrap:
+                    if y >= self.scrollregion_end:
+                        self.scroll()
+                    else:
+                        y += 1
 
-        self.cursor = (x, y)
-        self.is_rotten_cursor = False
+                x = 1
+                self.cursor = (0, y)
+
+            self.push_char(char, x, y)
+
+            self.is_rotten_cursor = False
 
     def save_cursor(self, with_attrs=False):
         self.saved_cursor = tuple(self.cursor)
@@ -722,6 +737,8 @@ class TermCanvas(Canvas):
                 self.modes.reverse_video = flag
             elif mode == 6:
                 self.modes.constrain_scrolling = flag
+            elif mode == 7:
+                self.modes.autowrap = flag
         else:
             # ECMA-48
             if mode == 4:
