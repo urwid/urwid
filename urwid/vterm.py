@@ -99,7 +99,7 @@ CSI_COMMANDS = {
     'l': (1, 0, lambda s, (mode,), q: s.csi_set_mode(mode, q, reset=True)),
     'm': (1, 0, lambda s, attrs, q: s.csi_set_attr(attrs)),
     'n': (1, 0, lambda s, (mode,), q: s.csi_status_report(mode)),
-    'q': (1, 0, lambda s, (mode,) q: s.csi_set_keyboard_leds(mode)),
+    'q': (1, 0, lambda s, (mode,), q: s.csi_set_keyboard_leds(mode)),
     'r': (2, 0, lambda s, (top, bottom), q: s.csi_set_scroll(top, bottom)),
     's': (0, 0, lambda s, (t,), q: s.save_cursor()),
     'u': (0, 0, lambda s, (t,), q: s.restore_cursor()),
@@ -248,7 +248,7 @@ class TermCanvas(Canvas):
                                       self.scrollregion_end - 1)
 
         # extend tabs
-        init_tabstops(extend=True)
+        self.init_tabstops(extend=True)
 
     def parse_csi(self, char):
         qmark = self.escbuf.startswith('?')
