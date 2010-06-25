@@ -248,7 +248,7 @@ class TermCanvas(Canvas):
                                       self.scrollregion_end - 1)
 
         # extend tabs
-        init_tabstops(extend=True)
+        self.init_tabstops(extend=True)
 
     def parse_csi(self, char):
         qmark = self.escbuf.startswith('?')
