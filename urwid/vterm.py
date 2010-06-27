@@ -70,39 +70,39 @@ CSI_COMMANDS = {
     #     ('alias', <symbol>)
     #
     # while callback is executed as:
-    #     callback(<instance of TermCanvas>, arguments, has_question_mark)
+    #     callback(<instance of TermCanvas>, has_question_mark, *arguments)
 
-    '@': (1, 1, lambda s, (number,), q: s.insert_chars(chars=number)),
-    'A': (1, 1, lambda s, (rows,), q: s.move_cursor(0, -rows, relative=True)),
-    'B': (1, 1, lambda s, (rows,), q: s.move_cursor(0, rows, relative=True)),
-    'C': (1, 1, lambda s, (cols,), q: s.move_cursor(cols, 0, relative=True)),
-    'D': (1, 1, lambda s, (cols,), q: s.move_cursor(-cols, 0, relative=True)),
-    'E': (1, 1, lambda s, (rows,), q: s.move_cursor(0, rows, relative_y=True)),
-    'F': (1, 1, lambda s, (rows,), q: s.move_cursor(0, -rows, relative_y=True)),
-    'G': (1, 1, lambda s, (col,), q: s.move_cursor(col - 1, 0, relative_y=True)),
-    'H': (2, 1, lambda s, (x, y), q: s.move_cursor(y - 1, x - 1)),
-    'J': (1, 0, lambda s, (mode,), q: s.csi_erase_display(mode)),
-    'K': (1, 0, lambda s, (mode,), q: s.csi_erase_line(mode)),
-    'L': (1, 1, lambda s, (number,), q: s.insert_lines(lines=number)),
-    'M': (1, 1, lambda s, (number,), q: s.remove_lines(lines=number)),
-    'P': (1, 1, lambda s, (number,), q: s.remove_chars(chars=number)),
-    'X': (1, 1, lambda s, (number,), q: s.erase(s.term_cursor,
+    '@': (1, 1, lambda s, q, number: s.insert_chars(chars=number)),
+    'A': (1, 1, lambda s, q, rows: s.move_cursor(0, -rows, relative=True)),
+    'B': (1, 1, lambda s, q, rows: s.move_cursor(0, rows, relative=True)),
+    'C': (1, 1, lambda s, q, cols: s.move_cursor(cols, 0, relative=True)),
+    'D': (1, 1, lambda s, q, cols: s.move_cursor(-cols, 0, relative=True)),
+    'E': (1, 1, lambda s, q, rows: s.move_cursor(0, rows, relative_y=True)),
+    'F': (1, 1, lambda s, q, rows: s.move_cursor(0, -rows, relative_y=True)),
+    'G': (1, 1, lambda s, q, col: s.move_cursor(col - 1, 0, relative_y=True)),
+    'H': (2, 1, lambda s, q, x, y: s.move_cursor(y - 1, x - 1)),
+    'J': (1, 0, lambda s, q, mode: s.csi_erase_display(mode)),
+    'K': (1, 0, lambda s, q, mode: s.csi_erase_line(mode)),
+    'L': (1, 1, lambda s, q, number: s.insert_lines(lines=number)),
+    'M': (1, 1, lambda s, q, number: s.remove_lines(lines=number)),
+    'P': (1, 1, lambda s, q, number: s.remove_chars(chars=number)),
+    'X': (1, 1, lambda s, q, number: s.erase(s.term_cursor,
                                                 (s.term_cursor[0]+number-1,
                                                  s.term_cursor[1]))),
     'a': ('alias', 'C'),
-    'c': (0, 0, lambda s, (t,), q: s.csi_get_device_attributes(q)),
-    'd': (1, 1, lambda s, (row,), q: s.move_cursor(0, row - 1, relative_x=True)),
+    'c': (0, 0, lambda s, q: s.csi_get_device_attributes(q)),
+    'd': (1, 1, lambda s, q, row: s.move_cursor(0, row - 1, relative_x=True)),
     'e': ('alias', 'B'),
     'f': ('alias', 'H'),
-    'g': (1, 0, lambda s, (mode,), q: s.csi_clear_tabstop(mode)),
-    'h': (1, 0, lambda s, (mode,), q: s.csi_set_mode(mode, q)),
-    'l': (1, 0, lambda s, (mode,), q: s.csi_set_mode(mode, q, reset=True)),
-    'm': (1, 0, lambda s, attrs, q: s.csi_set_attr(attrs)),
-    'n': (1, 0, lambda s, (mode,), q: s.csi_status_report(mode)),
-    'q': (1, 0, lambda s, (mode,), q: s.csi_set_keyboard_leds(mode)),
-    'r': (2, 0, lambda s, (top, bottom), q: s.csi_set_scroll(top, bottom)),
-    's': (0, 0, lambda s, (t,), q: s.save_cursor()),
-    'u': (0, 0, lambda s, (t,), q: s.restore_cursor()),
+    'g': (1, 0, lambda s, q, mode: s.csi_clear_tabstop(mode)),
+    'h': (1, 0, lambda s, q, mode: s.csi_set_mode(mode, q)),
+    'l': (1, 0, lambda s, q, mode: s.csi_set_mode(mode, q, reset=True)),
+    'm': (1, 0, lambda s, q, *attrs: s.csi_set_attr(attrs)),
+    'n': (1, 0, lambda s, q, mode: s.csi_status_report(mode)),
+    'q': (1, 0, lambda s, q, mode: s.csi_set_keyboard_leds(mode)),
+    'r': (2, 0, lambda s, q, top, bottom: s.csi_set_scroll(top, bottom)),
+    's': (0, 0, lambda s, q: s.save_cursor()),
+    'u': (0, 0, lambda s, q: s.restore_cursor()),
     '`': ('alias', 'G'),
 }
 
@@ -274,7 +274,13 @@ class TermCanvas(Canvas):
             for i in xrange(len(escbuf)):
                 if escbuf[i] is None:
                     escbuf[i] = default_value
-            cmd(self, escbuf, qmark)
+            try:
+                cmd(self, qmark, *escbuf)
+            except TypeError as orig:
+                msg = 'Command for character {0} did not accept {1:d} arguments'
+                msg = msg.format(char, 2 + len(escbuf))
+                msg += '\n' + orig.message
+                raise TypeError(msg)
 
     def parse_noncsi(self, char, mod=None):
         if mod == '#' and char == '8':
