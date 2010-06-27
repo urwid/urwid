@@ -41,6 +41,7 @@ __all__ = [
     'AttrSpec', 'AttrSpecError',
     'TreeWidget', 'ParentWidget', 'TreeNode', 'ParentNode', 'TreeWalker',
     'TreeListBox',
+    'TerminalWidget', 'TermCanvas',
     ]
 
 VERSION = (0, 9, 9, 1)
@@ -63,5 +64,6 @@ from urwid.text_layout import *
 from urwid.display_common import *
 from urwid.util import *
 from urwid.treetools import *
+from urwid.vterm import *
 
 from urwid import raw_display
