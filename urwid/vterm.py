@@ -109,7 +109,7 @@ CSI_COMMANDS = {
 class TermModes(object):
     def __init__(self):
         self.reset()
-
+    
     def reset(self):
         # ECMA-48
         self.insert = False
@@ -136,6 +136,14 @@ class TermCanvas(Canvas):
         self.coords["cursor"] = (0, 0, None)
 
         self.reset()
+        self.verify()
+
+    
+    
+    def verify(self):
+        for line in self.term:
+            for attrs, something, char in line:
+                assert isinstance(char, bytes)
 
     def set_term_cursor(self, x=None, y=None):
         if x is None:
@@ -175,6 +183,7 @@ class TermCanvas(Canvas):
         # initialize self.term
         self.clear()
 
+
     def init_tabstops(self, extend=False):
         tablen, mod = divmod(self.width, 8)
         if mod > 0:
@@ -208,16 +217,19 @@ class TermCanvas(Canvas):
         div, mod = divmod(x, 8)
         return (self.tabstops[div] & (1 << mod)) > 0
 
-    def empty_line(self, char=' '):
+    def empty_line(self, char=b' '):
         return [self.empty_char(char)] * self.width
-
-    def empty_char(self, char=' '):
+    
+    def empty_char(self, char=b' '):
         return (self.attrspec, None, char)
 
     def addstr(self, data):
+        self.verify()
         x, y = self.term_cursor
         for char in data:
+            self.verify()
             self.addch(char)
+            self.verify()
 
     def resize(self, width, height):
         if width > self.width:
@@ -336,7 +348,7 @@ class TermCanvas(Canvas):
         Add a single character to the terminal state machine.
         """
         x, y = self.term_cursor
-
+        
         if char == chr(27): # escape
             self.within_escape = True
         elif char == chr(13): # carriage return
@@ -369,6 +381,11 @@ class TermCanvas(Canvas):
             self.parsestate = 1
         else:
             self.push_cursor(char)
+        try:
+            self.verify()
+        except AssertionError:
+            raise AssertionError("Verify failed while adding char %r" % char)
+        
 
     def set_char(self, char, x=None, y=None):
         """
@@ -933,6 +950,7 @@ class TermCanvas(Canvas):
             self.set_term_cursor(0, 0)
         else:
             self.set_term_cursor(*cursor)
+        self.verify()
 
     def cols(self):
         return self.width
@@ -942,6 +960,7 @@ class TermCanvas(Canvas):
 
     def content(self, trim_left=0, trim_right=0, cols=None, rows=None,
                 attr_map=None):
+        self.verify()
         for line in self.term:
             yield line
 

@@ -631,7 +631,7 @@ class Screen(BaseScreen, RealTerminal):
             first = True
             lasta = lastcs = None
             for (a,cs, run) in row:
-                assert isinstance(run, bytes)
+                assert isinstance(run, bytes) # canvases should render with bytes
                 run = run.translate( _trans_table )
                 if first or lasta != a:
                     o.append(attr_to_escape(a))
