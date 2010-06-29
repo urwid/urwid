@@ -48,6 +48,9 @@ class TermTest(unittest.TestCase):
     def write(self, data):
         self.command.write(data.replace('\e', '\x1b'))
 
+    def flush(self):
+        self.write(chr(0x7f))
+
     def read(self):
         self.term.wait_and_feed()
         content = self.term.render(self.termsize, focus=False).text
@@ -95,8 +98,10 @@ class TermTest(unittest.TestCase):
         self.expect('1-' + ' ' * 76 + '-2' + '\n' * 22
                          + '3-' + ' ' * 76 + '-4')
         self.resize(78, 24, soft=True)
+        self.flush()
         self.expect('1-' + '\n' * 22 + '3-')
         self.resize(80, 24, soft=True)
+        self.flush()
         self.expect('1-' + '\n' * 22 + '3-')
 
     def test_vertical_resize(self):
@@ -110,6 +115,7 @@ class TermTest(unittest.TestCase):
             desc = "try to rescale to 80x%d."
             self.expect('\n' * (y - 2) + '3-' + ' ' * 76 + '-4', desc)
         self.resize(80, 24, soft=True)
+        self.flush()
         self.expect('1-' + ' ' * 76 + '-2' + '\n' * 22
                          + '3-' + ' ' * 76 + '-4')
 
