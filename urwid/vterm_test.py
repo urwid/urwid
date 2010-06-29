@@ -13,6 +13,9 @@ class DummyCommand(object):
         self.reader, self.writer = os.pipe()
 
     def __call__(self):
+        # reset
+        sys.stdout.write('\x1bc')
+
         while True:
             data = os.read(self.reader, 1024)
             if self.QUITSTRING == data:
@@ -25,7 +28,6 @@ class DummyCommand(object):
 
     def quit(self):
         self.write(self.QUITSTRING)
-
 
 class TermTest(unittest.TestCase):
     def setUp(self):
