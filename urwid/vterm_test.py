@@ -108,5 +108,11 @@ class TermTest(unittest.TestCase):
         self.write('1234567890\x1b[5D\x1b[K\n1234567890\x1b[5D\x1b[1K\naaaaaaaaaaaaaaa\x1b[2Ka')
         self.assertEqual(self.read(), '12345\n      7890\n               a')
 
+    def test_erase_display(self):
+        self.write('1234567890\x1b[5D\x1b[Ja')
+        self.assertEqual(self.read(), '12345a')
+        self.write('98765\x1b[8D\x1b[1Jx')
+        self.assertEqual(self.read(), '   x5a98765')
+
 if __name__ == '__main__':
     unittest.main()
