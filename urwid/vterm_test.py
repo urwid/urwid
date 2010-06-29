@@ -46,7 +46,7 @@ class TermTest(unittest.TestCase):
             self.term.render(self.termsize, focus=False)
 
     def write(self, data):
-        self.command.write(data)
+        self.command.write(data.replace('\e', '\x1b'))
 
     def read(self):
         self.term.wait_and_feed()
@@ -67,15 +67,15 @@ class TermTest(unittest.TestCase):
         self.assertEqual(self.read(), 'world')
 
     def test_insertlines(self):
-        self.write('\x1b[0;0flast\x1b[0;0f\x1b[10L\x1b[0;0ffirst\nsecond\n\x1b[11D')
+        self.write('\e[0;0flast\e[0;0f\e[10L\e[0;0ffirst\nsecond\n\e[11D')
         self.assertEqual(self.read(), 'first\nsecond\n\n\n\n\n\n\n\n\nlast')
 
     def test_deletelines(self):
-        self.write('1\n2\n3\n4\x1b[2;1f\x1b[2M')
+        self.write('1\n2\n3\n4\e[2;1f\e[2M')
         self.assertEqual(self.read(), '1\n4')
 
     def edgewall(self):
-        edgewall = '1-\x1b[1;%(x)df-2\x1b[%(y)d;1f3-\x1b[%(y)d;%(x)df-4\x0d'
+        edgewall = '1-\e[1;%(x)df-2\e[%(y)d;1f3-\e[%(y)d;%(x)df-4\x0d'
         self.write(edgewall % {'x': self.termsize[0] - 1,
                                'y': self.termsize[1] - 1})
 
@@ -101,17 +101,17 @@ class TermTest(unittest.TestCase):
                          + '3-' + ' ' * 76 + '-4')
 
     def test_defargs(self):
-        self.write('XXX\n\x1b[faaa\x1b[Bccc\x1b[Addd\x1b[Bfff\x1b[Cbbb\x1b[A\x1b[Deee')
+        self.write('XXX\n\e[faaa\e[Bccc\e[Addd\e[Bfff\e[Cbbb\e[A\e[Deee')
         self.assertEqual(self.read(), 'aaa   ddd      eee\n   ccc   fff bbb')
 
     def test_erase_line(self):
-        self.write('1234567890\x1b[5D\x1b[K\n1234567890\x1b[5D\x1b[1K\naaaaaaaaaaaaaaa\x1b[2Ka')
+        self.write('1234567890\e[5D\e[K\n1234567890\e[5D\e[1K\naaaaaaaaaaaaaaa\e[2Ka')
         self.assertEqual(self.read(), '12345\n      7890\n               a')
 
     def test_erase_display(self):
-        self.write('1234567890\x1b[5D\x1b[Ja')
+        self.write('1234567890\e[5D\e[Ja')
         self.assertEqual(self.read(), '12345a')
-        self.write('98765\x1b[8D\x1b[1Jx')
+        self.write('98765\e[8D\e[1Jx')
         self.assertEqual(self.read(), '   x5a98765')
 
 if __name__ == '__main__':
