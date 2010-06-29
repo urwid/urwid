@@ -100,5 +100,9 @@ class TermTest(unittest.TestCase):
         self.assertEqual(self.read(), '1-' + ' ' * 76 + '-2' + '\n' * 22
                          + '3-' + ' ' * 76 + '-4')
 
+    def test_defargs(self):
+        self.write('XXX\n\x1b[faaa\x1b[Bccc\x1b[Addd\x1b[Bfff\x1b[Cbbb\x1b[A\x1b[Deee')
+        self.assertEqual(self.read(), 'aaa   ddd      eee\n   ccc   fff bbb')
+
 if __name__ == '__main__':
     unittest.main()
