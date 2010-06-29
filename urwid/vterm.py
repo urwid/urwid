@@ -478,12 +478,16 @@ class TermCanvas(Canvas):
         x, y = self.term_cursor
 
         if reverse:
-            if y <= self.scrollregion_start:
+            if y <= 0 < self.scrollregion_start:
+                pass
+            elif y == self.scrollregion_start:
                 self.scroll(reverse=True)
             else:
                 y -= 1
         else:
-            if y >= self.scrollregion_end:
+            if y >= self.height - 1 > self.scrollregion_end:
+                pass
+            elif y == self.scrollregion_end:
                 self.scroll()
             else:
                 y += 1

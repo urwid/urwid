@@ -164,9 +164,17 @@ class TermTest(unittest.TestCase):
         self.write('98765\e[8D\e[1Jx')
         self.expect('   x5a98765')
 
-    def test_scrolling_region(self):
+    def test_scrolling_region_simple(self):
         self.write('\e[10;20r\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\e[faa')
         self.expect('aa' + '\n' * 9 + '2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12')
+
+    def test_scrolling_region_reverse(self):
+        self.write('\e[2J\e[1;2r\e[5Baaa\r\eM\eM\eMbbb\nXXX')
+        self.expect('\n\nbbb\nXXX\n\naaa')
+
+    def test_scrolling_region_move(self):
+        self.write('\e[10;20r\e[2J\e[10Bfoo\rbar\rblah\rmooh\r\e[10Aone\r\eM\eMtwo\r\eM\eMthree\r\eM\eMa')
+        self.expect('ahree\n\n\n\n\n\n\n\n\n\nmooh')
 
     def test_cursor_scrolling_region(self):
         self.write('\e[?6h\e[10;20r\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\e[faa')
