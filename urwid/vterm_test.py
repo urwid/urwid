@@ -54,6 +54,12 @@ class TermTest(unittest.TestCase):
         lines = [line.rstrip() for line in content]
         return '\n'.join(lines).rstrip()
 
+    def expect(self, what, desc=None, omit_details=False):
+        got = self.read()
+        if not omit_details:
+            desc += '\nExpected:\n%r\nGot:\n%r' % (what, got)
+        self.assertEqual(got, what, desc)
+
     def test_simplestring(self):
         self.write('hello world')
         self.assertEqual(self.read(), 'hello world')
@@ -94,8 +100,11 @@ class TermTest(unittest.TestCase):
         self.edgewall()
         self.assertEqual(self.read(), '1-' + ' ' * 76 + '-2' + '\n' * 22
                          + '3-' + ' ' * 76 + '-4')
-        self.resize(80, 23, soft=True)
-        self.assertEqual(self.read(), '\n' * 21 + '3-' + ' ' * 76 + '-4')
+        for y in xrange(23, 1, -1):
+            self.resize(80, y, soft=True)
+            self.write('\e[%df\e[J3-\e[%d;%df-4' % (y, y, 79))
+            desc = "try to rescale to 80x%d."
+            self.expect('\n' * (y - 2) + '3-' + ' ' * 76 + '-4', desc)
         self.resize(80, 24, soft=True)
         self.assertEqual(self.read(), '1-' + ' ' * 76 + '-2' + '\n' * 22
                          + '3-' + ' ' * 76 + '-4')
