@@ -334,6 +334,14 @@ class TermCanvas(Canvas):
         elif char == '8': # restore current state
             self.restore_cursor(with_attrs=True)
 
+    def parse_osc(self, buf):
+        """
+        Parse operating system command.
+        """
+        if buf.startswith('3;'): # set window title
+            title = buf[2:]
+            # TODO: maybe implement this one day ;-)
+
     def parse_escape(self, char):
         if self.parsestate == 1:
             # within CSI
@@ -343,6 +351,27 @@ class TermCanvas(Canvas):
             elif char in '0123456789;' or (self.escbuf == '' and char == '?'):
                 self.escbuf += char
                 return
+        elif self.parsestate == 0 and char == ']':
+            # start of OSC
+            self.escbuf = ''
+            self.parsestate = 2
+            return
+        elif self.parsestate == 2 and char == chr(7):
+            # end of OSC
+            self.parse_osc(self.escbuf.lstrip('0'))
+        elif self.parsestate == 2 and self.escbuf[-1:] + char == ESC + '\\':
+            # end of OSC
+            self.parse_osc(self.escbuf[:-1])
+        elif self.parsestate == 2 and self.escbuf.startswith('P') and \
+             len(self.escbuf) == 8:
+            # set palette (ESC]Pnrrggbb)
+            pass
+        elif self.parsestate == 2 and self.escbuf == '' and char == 'R':
+            # reset palette
+            pass
+        elif self.parsestate == 2:
+            self.escbuf += char
+            return
         elif self.parsestate == 0 and char == '[':
             # start of CSI
             self.escbuf = ''
@@ -389,7 +418,9 @@ class TermCanvas(Canvas):
         elif char == chr(11): # line tab
             if y > 0:
                 self.set_term_cursor(x, y - 1)
-        elif char == chr(7): # beep
+        elif char == chr(7) and self.parsestate != 3: # beep
+            # we need to check if we're in parsestate 3, as an OSC can be
+            # terminated by the BEL character!
             self.widget.beep()
         elif char in (chr(24), chr(26)): # CAN/SUB
             self.leave_escape()
