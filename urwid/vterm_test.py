@@ -112,7 +112,7 @@ class TermTest(unittest.TestCase):
         for y in xrange(23, 1, -1):
             self.resize(80, y, soft=True)
             self.write('\e[%df\e[J3-\e[%d;%df-4' % (y, y, 79))
-            desc = "try to rescale to 80x%d."
+            desc = "try to rescale to 80x%d." % y
             self.expect('\n' * (y - 2) + '3-' + ' ' * 76 + '-4', desc)
         self.resize(80, 24, soft=True)
         self.flush()
