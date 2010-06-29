@@ -273,7 +273,7 @@ class TermCanvas(Canvas):
             while len(escbuf) < number_of_args:
                 escbuf.append(default_value)
             for i in xrange(len(escbuf)):
-                if escbuf[i] is None:
+                if escbuf[i] is None or escbuf[i] == 0:
                     escbuf[i] = default_value
             cmd(self, escbuf, qmark)
 

@@ -100,8 +100,16 @@ class TermTest(unittest.TestCase):
         self.assertEqual(self.read(), '1-' + ' ' * 76 + '-2' + '\n' * 22
                          + '3-' + ' ' * 76 + '-4')
 
+    def write_movements(self, arg):
+        fmt = 'XXX\n\e[faaa\e[Bccc\e[Addd\e[Bfff\e[Cbbb\e[A\e[Deee'
+        self.write(fmt.replace('\e[', '\e['+arg))
+
     def test_defargs(self):
-        self.write('XXX\n\e[faaa\e[Bccc\e[Addd\e[Bfff\e[Cbbb\e[A\e[Deee')
+        self.write_movements('')
+        self.assertEqual(self.read(), 'aaa   ddd      eee\n   ccc   fff bbb')
+
+    def test_nullargs(self):
+        self.write_movements('0')
         self.assertEqual(self.read(), 'aaa   ddd      eee\n   ccc   fff bbb')
 
     def test_erase_line(self):
