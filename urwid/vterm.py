@@ -232,10 +232,10 @@ class TermCanvas(Canvas):
 
         if height > self.height:
             for y in xrange(height - self.height):
-                self.term.append(self.empty_line())
+                self.term.insert(0, self.scrollback_buffer.pop())
         elif height < self.height:
             for y in xrange(self.height - height):
-                self.term.pop(0)
+                self.scrollback_buffer.append(self.term.pop(0))
 
         self.height = height
 

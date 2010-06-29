@@ -31,16 +31,19 @@ class TermTest(unittest.TestCase):
     def setUp(self):
         self.command = DummyCommand()
 
-        self.termsize = (80, 24)
         self.term = TerminalWidget(self.command)
-
-        self.term.render(self.termsize, focus=False)
+        self.resize(80, 24)
 
     def tearDown(self):
         self.command.quit()
 
     def caught_beep(self, obj):
         self.beeped = True
+
+    def resize(self, width, height, soft=False):
+        self.termsize = (width, height)
+        if not soft:
+            self.term.render(self.termsize, focus=False)
 
     def write(self, data):
         self.command.write(data)
@@ -67,12 +70,31 @@ class TermTest(unittest.TestCase):
         self.write('\x1b[0;0flast\x1b[0;0f\x1b[10L\x1b[0;0ffirst\nsecond\n\x1b[11D')
         self.assertEqual(self.read(), 'first\nsecond\n\n\n\n\n\n\n\n\nlast')
 
-    def test_horizontal_resize(self):
-        x, y = self.termsize
+    def edgewall(self):
+        edgewall = '1-\x1b[0;%(x)df-2\x1b[%(y)d;1f3-\x1b[%(y)d;%(x)df-4\x0d'
+        self.write(edgewall % {'x': self.termsize[0] - 1,
+                               'y': self.termsize[1] - 1})
 
-        self.write('1\x1b[0;%(x)df2\x1b[%(y)d;1f3\x1b[%(y)d;%(x)df4\x0d' % locals())
-        self.termsize = (79, 24)
-        self.assertEqual(self.read(), '1' + '\n' * (y - 1) + '3')
+    def test_horizontal_resize(self):
+        self.resize(80, 24)
+        self.edgewall()
+        self.assertEqual(self.read(), '1-' + ' ' * 76 + '-2' + '\n' * 22
+                         + '3-' + ' ' * 76 + '-4')
+        self.resize(78, 24, soft=True)
+        self.assertEqual(self.read(), '1-' + '\n' * 22 + '3-')
+        self.resize(80, 24, soft=True)
+        self.assertEqual(self.read(), '1-' + '\n' * 22 + '3-')
+
+    def test_vertical_resize(self):
+        self.resize(80, 24)
+        self.edgewall()
+        self.assertEqual(self.read(), '1-' + ' ' * 76 + '-2' + '\n' * 22
+                         + '3-' + ' ' * 76 + '-4')
+        self.resize(80, 23, soft=True)
+        self.assertEqual(self.read(), '\n' * 21 + '3-' + ' ' * 76 + '-4')
+        self.resize(80, 24, soft=True)
+        self.assertEqual(self.read(), '1-' + ' ' * 76 + '-2' + '\n' * 22
+                         + '3-' + ' ' * 76 + '-4')
 
 if __name__ == '__main__':
     unittest.main()
