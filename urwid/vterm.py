@@ -24,6 +24,7 @@ import pty
 import time
 import copy
 import fcntl
+import select
 import struct
 import signal
 import atexit
@@ -947,7 +948,21 @@ class TermCanvas(Canvas):
 class TerminalWidget(BoxWidget):
     signals = ['closed', 'beep', 'leds']
 
-    def __init__(self, command, event_loop, escape_sequence=None):
+    def __init__(self, command, event_loop=None, escape_sequence=None):
+        """
+        A terminal emulatur within a widget.
+
+        'command' is the command to execute inside the tirmanal, provided as a
+        list of the command followed by its arguments.  If 'command' is None,
+        the command is the current user's shell. You can also provide a callable
+        instead of a command, which will be executed in the subprocess.
+
+        'event_loop' should be provided, because the canvas state machine needs
+        to act on input from the PTY master device.
+
+        'escape_sequence' is the urwid key symbol which should be used to break
+        out of the terminal widget. If it's not specified, "ctrl a" is used.
+        """
         self.__super.__init__()
 
         if escape_sequence is None:
@@ -985,9 +1000,15 @@ class TerminalWidget(BoxWidget):
         self.pid, self.master = pty.fork()
 
         if self.pid == 0:
-            os.execvpe(self.command[0], self.command, env)
-            # this should never be reached!
+            if callable(self.command):
+                self.command()
+            else:
+                os.execvpe(self.command[0], self.command, env)
+
             os._exit(0)
+
+        if self.event_loop is None:
+            fcntl.fcntl(self.master, fcntl.F_SETFL, os.O_NONBLOCK)
 
         atexit.register(self.terminate)
 
@@ -1085,35 +1106,52 @@ class TerminalWidget(BoxWidget):
             width, height = size
             self.touch_term(width, height)
 
+            if self.event_loop is None:
+                self.feed()
+
         return self.term
 
     def add_watch(self):
+        if self.event_loop is None:
+            return
+
         self.event_loop.watch_file(self.master, self.feed)
 
     def remove_watch(self):
+        if self.event_loop is None:
+            return
+
         self.event_loop.remove_watch_file(self.master)
 
     def selectable(self):
         return True
 
+    def wait_and_feed(self, timeout=1.0):
+        select.select([self.master], [], [], timeout)
+        self.feed()
+
     def feed(self):
         try:
             data = os.read(self.master, 4096)
-        except OSError: # End Of File
-            self.terminate()
-            self._emit('closed')
+        except OSError, e: # End Of File
+            if e[0] == 5:
+                self.terminate()
+                self._emit('closed')
+            elif e[0] != 11:
+                raise
             return
         self.term.addstr(data)
 
         self.flush_responses()
 
-        # XXX: any "nicer" way of doing this?
-        for update_method in self.event_loop._watch_files.values():
-            if update_method.im_class.__name__ != 'MainLoop':
-                continue
+        if self.event_loop is not None:
+            # XXX: any "nicer" way of doing this?
+            for update_method in self.event_loop._watch_files.values():
+                if update_method.im_class.__name__ != 'MainLoop':
+                    continue
 
-            update_method.im_self.draw_screen()
-            break
+                update_method.im_self.draw_screen()
+                break
 
     def keypress(self, size, key):
         if self.terminated:
