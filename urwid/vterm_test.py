@@ -28,14 +28,13 @@ class DummyCommand(object):
 
 
 class TermTest(unittest.TestCase):
-    TERMSIZE = (80, 24)
-
     def setUp(self):
         self.command = DummyCommand()
 
+        self.termsize = (80, 24)
         self.term = TerminalWidget(self.command)
 
-        self.term.render(self.TERMSIZE, focus=False)
+        self.term.render(self.termsize, focus=False)
 
     def tearDown(self):
         self.command.quit()
@@ -48,7 +47,7 @@ class TermTest(unittest.TestCase):
 
     def read(self):
         self.term.wait_and_feed()
-        content = self.term.render(self.TERMSIZE, focus=False).text
+        content = self.term.render(self.termsize, focus=False).text
         lines = [line.rstrip() for line in content]
         return '\n'.join(lines).rstrip()
 
@@ -67,6 +66,13 @@ class TermTest(unittest.TestCase):
     def test_insertlines(self):
         self.write('\x1b[0;0flast\x1b[0;0f\x1b[10L\x1b[0;0ffirst\nsecond\n\x1b[11D')
         self.assertEqual(self.read(), 'first\nsecond\n\n\n\n\n\n\n\n\nlast')
+
+    def test_horizontal_resize(self):
+        x, y = self.termsize
+
+        self.write('1\x1b[0;%(x)df2\x1b[%(y)d;1f3\x1b[%(y)d;%(x)df4\x0d' % locals())
+        self.termsize = (79, 24)
+        self.assertEqual(self.read(), '1' + '\n' * (y - 1) + '3')
 
 if __name__ == '__main__':
     unittest.main()
