@@ -57,28 +57,32 @@ class TermTest(unittest.TestCase):
     def expect(self, what, desc=None, omit_details=False):
         got = self.read()
         if not omit_details:
-            desc += '\nExpected:\n%r\nGot:\n%r' % (what, got)
+            if desc is None:
+                desc = ''
+            else:
+                desc += '\n'
+            desc += 'Expected:\n%r\nGot:\n%r' % (what, got)
         self.assertEqual(got, what, desc)
 
     def test_simplestring(self):
         self.write('hello world')
-        self.assertEqual(self.read(), 'hello world')
+        self.expect('hello world')
 
     def test_linefeed(self):
         self.write('hello\x0aworld')
-        self.assertEqual(self.read(), 'hello\nworld')
+        self.expect('hello\nworld')
 
     def test_carriage_return(self):
         self.write('hello\x0dworld')
-        self.assertEqual(self.read(), 'world')
+        self.expect('world')
 
     def test_insertlines(self):
         self.write('\e[0;0flast\e[0;0f\e[10L\e[0;0ffirst\nsecond\n\e[11D')
-        self.assertEqual(self.read(), 'first\nsecond\n\n\n\n\n\n\n\n\nlast')
+        self.expect('first\nsecond\n\n\n\n\n\n\n\n\nlast')
 
     def test_deletelines(self):
         self.write('1\n2\n3\n4\e[2;1f\e[2M')
-        self.assertEqual(self.read(), '1\n4')
+        self.expect('1\n4')
 
     def edgewall(self):
         edgewall = '1-\e[1;%(x)df-2\e[%(y)d;1f3-\e[%(y)d;%(x)df-4\x0d'
@@ -88,17 +92,17 @@ class TermTest(unittest.TestCase):
     def test_horizontal_resize(self):
         self.resize(80, 24)
         self.edgewall()
-        self.assertEqual(self.read(), '1-' + ' ' * 76 + '-2' + '\n' * 22
+        self.expect('1-' + ' ' * 76 + '-2' + '\n' * 22
                          + '3-' + ' ' * 76 + '-4')
         self.resize(78, 24, soft=True)
-        self.assertEqual(self.read(), '1-' + '\n' * 22 + '3-')
+        self.expect('1-' + '\n' * 22 + '3-')
         self.resize(80, 24, soft=True)
-        self.assertEqual(self.read(), '1-' + '\n' * 22 + '3-')
+        self.expect('1-' + '\n' * 22 + '3-')
 
     def test_vertical_resize(self):
         self.resize(80, 24)
         self.edgewall()
-        self.assertEqual(self.read(), '1-' + ' ' * 76 + '-2' + '\n' * 22
+        self.expect('1-' + ' ' * 76 + '-2' + '\n' * 22
                          + '3-' + ' ' * 76 + '-4')
         for y in xrange(23, 1, -1):
             self.resize(80, y, soft=True)
@@ -106,7 +110,7 @@ class TermTest(unittest.TestCase):
             desc = "try to rescale to 80x%d."
             self.expect('\n' * (y - 2) + '3-' + ' ' * 76 + '-4', desc)
         self.resize(80, 24, soft=True)
-        self.assertEqual(self.read(), '1-' + ' ' * 76 + '-2' + '\n' * 22
+        self.expect('1-' + ' ' * 76 + '-2' + '\n' * 22
                          + '3-' + ' ' * 76 + '-4')
 
     def write_movements(self, arg):
@@ -115,29 +119,29 @@ class TermTest(unittest.TestCase):
 
     def test_defargs(self):
         self.write_movements('')
-        self.assertEqual(self.read(), 'aaa   ddd      eee\n   ccc   fff bbb')
+        self.expect('aaa   ddd      eee\n   ccc   fff bbb')
 
     def test_nullargs(self):
         self.write_movements('0')
-        self.assertEqual(self.read(), 'aaa   ddd      eee\n   ccc   fff bbb')
+        self.expect('aaa   ddd      eee\n   ccc   fff bbb')
 
     def test_erase_line(self):
         self.write('1234567890\e[5D\e[K\n1234567890\e[5D\e[1K\naaaaaaaaaaaaaaa\e[2Ka')
-        self.assertEqual(self.read(), '12345\n      7890\n               a')
+        self.expect('12345\n      7890\n               a')
 
     def test_erase_display(self):
         self.write('1234567890\e[5D\e[Ja')
-        self.assertEqual(self.read(), '12345a')
+        self.expect('12345a')
         self.write('98765\e[8D\e[1Jx')
-        self.assertEqual(self.read(), '   x5a98765')
+        self.expect('   x5a98765')
 
     def test_scrolling_region(self):
         self.write('\e[10;20r\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\e[faa')
-        self.assertEqual(self.read(), 'aa' + '\n' * 9 + '2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12')
+        self.expect('aa' + '\n' * 9 + '2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12')
 
     def test_cursor_scrolling_region(self):
         self.write('\e[?6h\e[10;20r\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\e[faa')
-        self.assertEqual(self.read(), '\n' * 9 + 'aa\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12')
+        self.expect('\n' * 9 + 'aa\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12')
 
 if __name__ == '__main__':
     unittest.main()
