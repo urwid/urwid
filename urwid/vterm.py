@@ -46,6 +46,8 @@ KEY_TRANSLATIONS = {
     'right':     ESC + '[C',
     'left':      ESC + '[D',
     'home':      ESC + '[1~',
+    'insert':    ESC + '[2~',
+    'delete':    ESC + '[3~',
     'end':       ESC + '[4~',
     'page up':   ESC + '[5~',
     'page down': ESC + '[6~',
