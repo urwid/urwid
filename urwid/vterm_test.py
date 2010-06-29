@@ -70,8 +70,12 @@ class TermTest(unittest.TestCase):
         self.write('\x1b[0;0flast\x1b[0;0f\x1b[10L\x1b[0;0ffirst\nsecond\n\x1b[11D')
         self.assertEqual(self.read(), 'first\nsecond\n\n\n\n\n\n\n\n\nlast')
 
+    def test_deletelines(self):
+        self.write('1\n2\n3\n4\x1b[2;1f\x1b[2M')
+        self.assertEqual(self.read(), '1\n4')
+
     def edgewall(self):
-        edgewall = '1-\x1b[0;%(x)df-2\x1b[%(y)d;1f3-\x1b[%(y)d;%(x)df-4\x0d'
+        edgewall = '1-\x1b[1;%(x)df-2\x1b[%(y)d;1f3-\x1b[%(y)d;%(x)df-4\x0d'
         self.write(edgewall % {'x': self.termsize[0] - 1,
                                'y': self.termsize[1] - 1})
 
