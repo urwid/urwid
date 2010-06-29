@@ -122,5 +122,13 @@ class TermTest(unittest.TestCase):
         self.write('98765\e[8D\e[1Jx')
         self.assertEqual(self.read(), '   x5a98765')
 
+    def test_scrolling_region(self):
+        self.write('\e[10;20r\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\e[faa')
+        self.assertEqual(self.read(), 'aa' + '\n' * 9 + '2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12')
+
+    def test_cursor_scrolling_region(self):
+        self.write('\e[?6h\e[10;20r\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\e[faa')
+        self.assertEqual(self.read(), '\n' * 9 + 'aa\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12')
+
 if __name__ == '__main__':
     unittest.main()
