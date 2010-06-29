@@ -151,6 +151,13 @@ class TermCanvas(Canvas):
         else:
             self.cursor = None
 
+    def reset_scroll(self):
+        """
+        Reset scrolling region to full terminal size.
+        """
+        self.scrollregion_start = 0
+        self.scrollregion_end = self.height - 1
+
     def reset(self):
         """
         Reset the terminal.
@@ -165,8 +172,7 @@ class TermCanvas(Canvas):
 
         self.is_rotten_cursor = False
 
-        self.scrollregion_start = 0
-        self.scrollregion_end = self.height - 1
+        self.reset_scroll()
 
         self.init_tabstops()
 
@@ -216,42 +222,70 @@ class TermCanvas(Canvas):
         return (self.attrspec, None, char)
 
     def addstr(self, data):
-        x, y = self.term_cursor
+        if self.width <= 0 or self.height <= 0:
+            # not displayable, do nothing!
+            return
+
         for char in data:
             self.addch(char)
 
     def resize(self, width, height):
+        """
+        Resize the terminal to the given width and height.
+        """
+        x, y = self.term_cursor
+
         if width > self.width:
+            # grow
             for y in xrange(self.height):
                 self.term[y] += [self.empty_char()] * (width - self.width)
         elif width < self.width:
+            # shrink
             for y in xrange(self.height):
                 self.term[y] = self.term[y][:width]
 
         self.width = width
 
         if height > self.height:
-            for y in xrange(height - self.height):
-                self.term.insert(0, self.scrollback_buffer.pop())
+            # grow
+            for y in xrange(self.height, height):
+                try:
+                    last_line = self.scrollback_buffer.pop()
+                except IndexError:
+                    # nothing in scrollback buffer, append an empty line
+                    self.term.append(self.empty_line())
+                    self.scrollregion_end += 1
+                    continue
+
+                # adjust x axis of scrollback buffer to the current width
+                if len(last_line) < self.width:
+                    last_line += [self.empty_char()] * \
+                                 (self.width - len(last_line))
+                else:
+                    last_line = last_line[:self.width]
+
+                y += 1
+
+                self.term.insert(0, last_line)
         elif height < self.height:
-            for y in xrange(self.height - height):
+            # shrink
+            for y in xrange(height, self.height):
                 self.scrollback_buffer.append(self.term.pop(0))
 
         self.height = height
 
-        x, y = self.constrain_coords(*self.term_cursor)
-        self.set_term_cursor(x, y)
+        self.reset_scroll()
 
-        # adjust scrolling region
-        self.scrollregion_end = min(self.scrollregion_end,
-                                    height - 1)
-        self.scrollregion_start = min(self.scrollregion_start,
-                                      self.scrollregion_end - 1)
+        x, y = self.constrain_coords(x, y)
+        self.set_term_cursor(x, y)
 
         # extend tabs
         self.init_tabstops(extend=True)
 
     def parse_csi(self, char):
+        """
+        Parse ECMA-48 CSI (Control Sequence Introducer) sequences.
+        """
         qmark = self.escbuf.startswith('?')
 
         escbuf = []
@@ -278,6 +312,9 @@ class TermCanvas(Canvas):
             cmd(self, escbuf, qmark)
 
     def parse_noncsi(self, char, mod=None):
+        """
+        Parse escape sequences which are not CSI.
+        """
         if mod == '#' and char == '8':
             self.decaln()
         elif char == 'M': # reverse line feed
