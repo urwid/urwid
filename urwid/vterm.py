@@ -311,7 +311,13 @@ class TermCanvas(Canvas):
             for i in xrange(len(escbuf)):
                 if escbuf[i] is None or escbuf[i] == 0:
                     escbuf[i] = default_value
-            cmd(self, escbuf, qmark)
+
+            try:
+                cmd(self, escbuf, qmark)
+            except ValueError:
+                # ignore commands that don't match the
+                # unpacked tuples in CSI_COMMANDS.
+                pass
 
     def parse_noncsi(self, char, mod=None):
         """
