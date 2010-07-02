@@ -400,7 +400,7 @@ class Screen(BaseScreen, RealTerminal):
     def _get_gpm_codes(self):
         codes = []
         try:
-            while self.gpm_mev is not None:
+            while self.gpm_mev is not None and self.gpm_event_pending:
                 codes.extend(self._encode_gpm_event())
         except IOError, e:
             if e.args[0] != 11:
