@@ -24,6 +24,7 @@ import pty
 import time
 import copy
 import fcntl
+import select
 import struct
 import signal
 import atexit
@@ -45,6 +46,8 @@ KEY_TRANSLATIONS = {
     'right':     ESC + '[C',
     'left':      ESC + '[D',
     'home':      ESC + '[1~',
+    'insert':    ESC + '[2~',
+    'delete':    ESC + '[3~',
     'end':       ESC + '[4~',
     'page up':   ESC + '[5~',
     'page down': ESC + '[6~',
@@ -150,6 +153,13 @@ class TermCanvas(Canvas):
         else:
             self.cursor = None
 
+    def reset_scroll(self):
+        """
+        Reset scrolling region to full terminal size.
+        """
+        self.scrollregion_start = 0
+        self.scrollregion_end = self.height - 1
+
     def reset(self):
         """
         Reset the terminal.
@@ -164,8 +174,7 @@ class TermCanvas(Canvas):
 
         self.is_rotten_cursor = False
 
-        self.scrollregion_start = 0
-        self.scrollregion_end = self.height - 1
+        self.reset_scroll()
 
         self.init_tabstops()
 
@@ -215,42 +224,70 @@ class TermCanvas(Canvas):
         return (self.attrspec, None, char)
 
     def addstr(self, data):
-        x, y = self.term_cursor
+        if self.width <= 0 or self.height <= 0:
+            # not displayable, do nothing!
+            return
+
         for char in data:
             self.addch(char)
 
     def resize(self, width, height):
+        """
+        Resize the terminal to the given width and height.
+        """
+        x, y = self.term_cursor
+
         if width > self.width:
+            # grow
             for y in xrange(self.height):
                 self.term[y] += [self.empty_char()] * (width - self.width)
         elif width < self.width:
+            # shrink
             for y in xrange(self.height):
                 self.term[y] = self.term[y][:width]
 
         self.width = width
 
         if height > self.height:
-            for y in xrange(height - self.height):
-                self.term.append(self.empty_line())
+            # grow
+            for y in xrange(self.height, height):
+                try:
+                    last_line = self.scrollback_buffer.pop()
+                except IndexError:
+                    # nothing in scrollback buffer, append an empty line
+                    self.term.append(self.empty_line())
+                    self.scrollregion_end += 1
+                    continue
+
+                # adjust x axis of scrollback buffer to the current width
+                if len(last_line) < self.width:
+                    last_line += [self.empty_char()] * \
+                                 (self.width - len(last_line))
+                else:
+                    last_line = last_line[:self.width]
+
+                y += 1
+
+                self.term.insert(0, last_line)
         elif height < self.height:
-            for y in xrange(self.height - height):
-                self.term.pop(0)
+            # shrink
+            for y in xrange(height, self.height):
+                self.scrollback_buffer.append(self.term.pop(0))
 
         self.height = height
 
-        x, y = self.constrain_coords(*self.term_cursor)
-        self.set_term_cursor(x, y)
+        self.reset_scroll()
 
-        # adjust scrolling region
-        self.scrollregion_end = min(self.scrollregion_end,
-                                    height - 1)
-        self.scrollregion_start = min(self.scrollregion_start,
-                                      self.scrollregion_end - 1)
+        x, y = self.constrain_coords(x, y)
+        self.set_term_cursor(x, y)
 
         # extend tabs
         self.init_tabstops(extend=True)
 
     def parse_csi(self, char):
+        """
+        Parse ECMA-48 CSI (Control Sequence Introducer) sequences.
+        """
         qmark = self.escbuf.startswith('?')
 
         escbuf = []
@@ -272,11 +309,14 @@ class TermCanvas(Canvas):
             while len(escbuf) < number_of_args:
                 escbuf.append(default_value)
             for i in xrange(len(escbuf)):
-                if escbuf[i] is None:
+                if escbuf[i] is None or escbuf[i] == 0:
                     escbuf[i] = default_value
             cmd(self, escbuf, qmark)
 
     def parse_noncsi(self, char, mod=None):
+        """
+        Parse escape sequences which are not CSI.
+        """
         if mod == '#' and char == '8':
             self.decaln()
         elif char == 'M': # reverse line feed
@@ -294,6 +334,14 @@ class TermCanvas(Canvas):
         elif char == '8': # restore current state
             self.restore_cursor(with_attrs=True)
 
+    def parse_osc(self, buf):
+        """
+        Parse operating system command.
+        """
+        if buf.startswith('3;'): # set window title
+            title = buf[2:]
+            # TODO: maybe implement this one day ;-)
+
     def parse_escape(self, char):
         if self.parsestate == 1:
             # within CSI
@@ -303,6 +351,27 @@ class TermCanvas(Canvas):
             elif char in '0123456789;' or (self.escbuf == '' and char == '?'):
                 self.escbuf += char
                 return
+        elif self.parsestate == 0 and char == ']':
+            # start of OSC
+            self.escbuf = ''
+            self.parsestate = 2
+            return
+        elif self.parsestate == 2 and char == chr(7):
+            # end of OSC
+            self.parse_osc(self.escbuf.lstrip('0'))
+        elif self.parsestate == 2 and self.escbuf[-1:] + char == ESC + '\\':
+            # end of OSC
+            self.parse_osc(self.escbuf[:-1])
+        elif self.parsestate == 2 and self.escbuf.startswith('P') and \
+             len(self.escbuf) == 8:
+            # set palette (ESC]Pnrrggbb)
+            pass
+        elif self.parsestate == 2 and self.escbuf == '' and char == 'R':
+            # reset palette
+            pass
+        elif self.parsestate == 2:
+            self.escbuf += char
+            return
         elif self.parsestate == 0 and char == '[':
             # start of CSI
             self.escbuf = ''
@@ -349,7 +418,9 @@ class TermCanvas(Canvas):
         elif char == chr(11): # line tab
             if y > 0:
                 self.set_term_cursor(x, y - 1)
-        elif char == chr(7): # beep
+        elif char == chr(7) and self.parsestate != 3: # beep
+            # we need to check if we're in parsestate 3, as an OSC can be
+            # terminated by the BEL character!
             self.widget.beep()
         elif char in (chr(24), chr(26)): # CAN/SUB
             self.leave_escape()
@@ -407,12 +478,16 @@ class TermCanvas(Canvas):
         x, y = self.term_cursor
 
         if reverse:
-            if y <= self.scrollregion_start:
+            if y <= 0 < self.scrollregion_start:
+                pass
+            elif y == self.scrollregion_start:
                 self.scroll(reverse=True)
             else:
                 y -= 1
         else:
-            if y >= self.scrollregion_end:
+            if y >= self.height - 1 > self.scrollregion_end:
+                pass
+            elif y == self.scrollregion_end:
                 self.scroll()
             else:
                 y += 1
@@ -947,7 +1022,21 @@ class TermCanvas(Canvas):
 class TerminalWidget(BoxWidget):
     signals = ['closed', 'beep', 'leds']
 
-    def __init__(self, command, event_loop, escape_sequence=None):
+    def __init__(self, command, event_loop=None, escape_sequence=None):
+        """
+        A terminal emulatur within a widget.
+
+        'command' is the command to execute inside the tirmanal, provided as a
+        list of the command followed by its arguments.  If 'command' is None,
+        the command is the current user's shell. You can also provide a callable
+        instead of a command, which will be executed in the subprocess.
+
+        'event_loop' should be provided, because the canvas state machine needs
+        to act on input from the PTY master device.
+
+        'escape_sequence' is the urwid key symbol which should be used to break
+        out of the terminal widget. If it's not specified, "ctrl a" is used.
+        """
         self.__super.__init__()
 
         if escape_sequence is None:
@@ -985,9 +1074,15 @@ class TerminalWidget(BoxWidget):
         self.pid, self.master = pty.fork()
 
         if self.pid == 0:
-            os.execvpe(self.command[0], self.command, env)
-            # this should never be reached!
+            if callable(self.command):
+                self.command()
+            else:
+                os.execvpe(self.command[0], self.command, env)
+
             os._exit(0)
+
+        if self.event_loop is None:
+            fcntl.fcntl(self.master, fcntl.F_SETFL, os.O_NONBLOCK)
 
         atexit.register(self.terminate)
 
@@ -1085,35 +1180,52 @@ class TerminalWidget(BoxWidget):
             width, height = size
             self.touch_term(width, height)
 
+            if self.event_loop is None:
+                self.feed()
+
         return self.term
 
     def add_watch(self):
+        if self.event_loop is None:
+            return
+
         self.event_loop.watch_file(self.master, self.feed)
 
     def remove_watch(self):
+        if self.event_loop is None:
+            return
+
         self.event_loop.remove_watch_file(self.master)
 
     def selectable(self):
         return True
 
+    def wait_and_feed(self, timeout=1.0):
+        select.select([self.master], [], [], timeout)
+        self.feed()
+
     def feed(self):
         try:
             data = os.read(self.master, 4096)
-        except OSError: # End Of File
-            self.terminate()
-            self._emit('closed')
+        except OSError, e: # End Of File
+            if e[0] == 5:
+                self.terminate()
+                self._emit('closed')
+            elif e[0] != 11:
+                raise
             return
         self.term.addstr(data)
 
         self.flush_responses()
 
-        # XXX: any "nicer" way of doing this?
-        for update_method in self.event_loop._watch_files.values():
-            if update_method.im_class.__name__ != 'MainLoop':
-                continue
+        if self.event_loop is not None:
+            # XXX: any "nicer" way of doing this?
+            for update_method in self.event_loop._watch_files.values():
+                if update_method.im_class.__name__ != 'MainLoop':
+                    continue
 
-            update_method.im_self.draw_screen()
-            break
+                update_method.im_self.draw_screen()
+                break
 
     def keypress(self, size, key):
         if self.terminated:

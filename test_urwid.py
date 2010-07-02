@@ -25,6 +25,7 @@ import urwid
 import unittest
 from test import test_support
 from doctest import DocTestSuite
+from urwid.vterm_test import TermTest
 
 
 class DecodeOneTest(unittest.TestCase):
@@ -2261,6 +2262,7 @@ def test_main():
         CanvasOverlayTest,
         CanvasPadTrimTest,
         WidgetSquishTest,
+        TermTest,
         ]:
         if test_support.run_unittest(t): 
             return
