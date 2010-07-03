@@ -160,7 +160,7 @@ class TermCanvas(Canvas):
         if y is None:
             y = self.term_cursor[1]
 
-        self.term_cursor = (x, y)
+        self.term_cursor = self.constrain_coords(x, y)
 
         if self.modes.visible_cursor:
             self.cursor = (x, y)
@@ -540,8 +540,6 @@ class TermCanvas(Canvas):
         if relative_y:
             y = self.term_cursor[1] + y
 
-        x, y = self.constrain_coords(x, y)
-
         self.set_term_cursor(x, y)
 
     def push_char(self, char, x, y, advance=True):
@@ -596,7 +594,7 @@ class TermCanvas(Canvas):
             return
 
         x, y = self.saved_cursor
-        self.set_term_cursor(*self.constrain_coords(x, y))
+        self.set_term_cursor(x, y)
 
         if with_attrs:
             self.attrspec = copy.copy(self.saved_attrs)
@@ -901,6 +899,7 @@ class TermCanvas(Canvas):
                 self.modes.reverse_video = flag
             elif mode == 6:
                 self.modes.constrain_scrolling = flag
+                self.set_term_cursor(0, 0)
             elif mode == 7:
                 self.modes.autowrap = flag
             elif mode == 25:
@@ -936,7 +935,7 @@ class TermCanvas(Canvas):
             self.scrollregion_start = self.constrain_coords(0, top - 1)[1]
             self.scrollregion_end = self.constrain_coords(0, bottom - 1)[1]
 
-            self.move_cursor(0, 0)
+            self.set_term_cursor(0, 0)
 
     def csi_clear_tabstop(self, mode=0):
         """
