@@ -99,8 +99,8 @@ CSI_COMMANDS = {
     'e': ('alias', 'B'),
     'f': ('alias', 'H'),
     'g': (1, 0, lambda s, (mode,), q: s.csi_clear_tabstop(mode)),
-    'h': (1, 0, lambda s, (mode,), q: s.csi_set_mode(mode, q)),
-    'l': (1, 0, lambda s, (mode,), q: s.csi_set_mode(mode, q, reset=True)),
+    'h': (1, 0, lambda s, modes, q: s.csi_set_modes(modes, q)),
+    'l': (1, 0, lambda s, modes, q: s.csi_set_modes(modes, q, reset=True)),
     'm': (1, 0, lambda s, attrs, q: s.csi_set_attr(attrs)),
     'n': (1, 0, lambda s, (mode,), q: s.csi_status_report(mode)),
     'q': (1, 0, lambda s, (mode,), q: s.csi_set_keyboard_leds(mode)),
@@ -873,12 +873,10 @@ class TermCanvas(Canvas):
                 attrs = self.reverse_attrspec(char[0], undo=undo)
                 self.term[y][x] = (attrs,) + char[1:]
 
-    def csi_set_mode(self, mode, qmark, reset=False):
+    def set_mode(self, mode, flag, qmark, reset):
         """
-        Set (DECSET/ECMA-48) or reset mode (DECRST/ECMA-48) if reset is True.
+        Helper method for csi_set_modes: set single mode.
         """
-        flag = not reset
-
         if qmark:
             # DEC private mode
             if mode == 5:
@@ -897,6 +895,15 @@ class TermCanvas(Canvas):
                 self.modes.insert = flag
             elif mode == 20:
                 self.modes.lfnl = flag
+
+    def csi_set_modes(self, modes, qmark, reset=False):
+        """
+        Set (DECSET/ECMA-48) or reset modes (DECRST/ECMA-48) if reset is True.
+        """
+        flag = not reset
+
+        for mode in modes:
+            self.set_mode(mode, flag, qmark, reset)
 
     def csi_set_scroll(self, top=0, bottom=0):
         """

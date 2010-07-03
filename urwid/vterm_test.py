@@ -180,5 +180,15 @@ class TermTest(unittest.TestCase):
         self.write('\e[?6h\e[10;20r\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\e[faa')
         self.expect('\n' * 9 + 'aa\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12')
 
+    def test_set_multiple_modes(self):
+        self.write('\e[?6;5htest')
+        self.expect('test')
+        self.assertTrue(self.term.term_modes.constrain_scrolling)
+        self.assertTrue(self.term.term_modes.reverse_video)
+        self.write('\e[?6;5l')
+        self.expect('test')
+        self.assertFalse(self.term.term_modes.constrain_scrolling)
+        self.assertFalse(self.term.term_modes.reverse_video)
+
 if __name__ == '__main__':
     unittest.main()
