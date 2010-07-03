@@ -67,6 +67,18 @@ KEY_TRANSLATIONS = {
     'f12':       ESC + '[24~',
 }
 
+KEY_TRANSLATIONS_DECCKM = {
+    'up':        ESC + 'OA',
+    'down':      ESC + 'OB',
+    'right':     ESC + 'OC',
+    'left':      ESC + 'OD',
+    'f1':        ESC + 'OP',
+    'f2':        ESC + 'OQ',
+    'f3':        ESC + 'OR',
+    'f4':        ESC + 'OS',
+    'f5':        ESC + '[15~',
+}
+
 CSI_COMMANDS = {
     # possible values:
     #     None -> ignore sequence
@@ -120,6 +132,7 @@ class TermModes(object):
         self.lfnl = False
 
         # DEC private modes
+        self.keys_decckm = False
         self.reverse_video = False
         self.constrain_scrolling = False
         self.autowrap = True
@@ -879,7 +892,10 @@ class TermCanvas(Canvas):
         """
         if qmark:
             # DEC private mode
-            if mode == 5:
+            if mode == 1:
+                # cursor keys send an ESC O prefix, rather than ESC [
+                self.modes.keys_decckm = flag
+            elif mode == 5:
                 if self.modes.reverse_video != flag:
                     self.reverse_video(undo=not flag)
                 self.modes.reverse_video = flag
@@ -1293,7 +1309,10 @@ class TerminalWidget(BoxWidget):
             else:
                 key = chr(ord(key[-1]) - ord('A') + 1)
         else:
-            key = KEY_TRANSLATIONS.get(key, key)
+            if self.term_modes.keys_decckm and key in KEY_TRANSLATIONS_DECCKM:
+                key = KEY_TRANSLATIONS_DECCKM.get(key)
+            else:
+                key = KEY_TRANSLATIONS.get(key, key)
 
         # ENTER transmits both a carriage return and linefeed in LF/NL mode.
         if self.term_modes.lfnl and key == chr(13):
