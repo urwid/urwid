@@ -468,16 +468,18 @@ class TermCanvas(Canvas):
         x, y = self.constrain_coords(x, y)
         self.term[y][x] = (self.attrspec, None, char)
 
-    def constrain_coords(self, x, y):
+    def constrain_coords(self, x, y, ignore_scrolling=False):
         """
         Checks if x/y are within the terminal and returns the corrected version.
+        If 'ignore_scrolling' is set, constrain within the full size of the
+        screen and not within scrolling region.
         """
         if x >= self.width:
             x = self.width - 1
         elif x < 0:
             x = 0
 
-        if self.modes.constrain_scrolling:
+        if self.modes.constrain_scrolling and not ignore_scrolling:
             if y > self.scrollregion_end:
                 y = self.scrollregion_end
             elif y < self.scrollregion_start:
@@ -932,8 +934,12 @@ class TermCanvas(Canvas):
             bottom = self.height
 
         if top < bottom <= self.height:
-            self.scrollregion_start = self.constrain_coords(0, top - 1)[1]
-            self.scrollregion_end = self.constrain_coords(0, bottom - 1)[1]
+            self.scrollregion_start = self.constrain_coords(
+                0, top - 1, ignore_scrolling=True
+            )[1]
+            self.scrollregion_end = self.constrain_coords(
+                0, bottom - 1, ignore_scrolling=True
+            )[1]
 
             self.set_term_cursor(0, 0)
 

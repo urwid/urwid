@@ -176,6 +176,10 @@ class TermTest(unittest.TestCase):
         self.write('\e[10;20r\e[2J\e[10Bfoo\rbar\rblah\rmooh\r\e[10Aone\r\eM\eMtwo\r\eM\eMthree\r\eM\eMa')
         self.expect('ahree\n\n\n\n\n\n\n\n\n\nmooh')
 
+    def test_scrolling_twice(self):
+        self.write('\e[?6h\e[10;20r\e[2;5rtest')
+        self.expect('\ntest')
+
     def test_cursor_scrolling_region(self):
         self.write('\e[?6h\e[10;20r\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\e[faa')
         self.expect('\n' * 9 + 'aa\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12')
