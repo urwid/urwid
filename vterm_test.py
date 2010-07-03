@@ -24,11 +24,13 @@ import urwid
 def main():
     event_loop = urwid.SelectEventLoop()
 
+    term = urwid.TerminalWidget(None, event_loop)
+
     mainframe = urwid.Frame(
         urwid.Columns([
             ('fixed', 3, urwid.SolidFill('|')),
             urwid.Pile([
-                ('weight', 70, urwid.TerminalWidget(None, event_loop)),
+                ('weight', 70, term),
                 ('fixed', 1, urwid.Filler(urwid.Edit('focus test edit: '))),
             ]),
             ('fixed', 3, urwid.SolidFill('|')),
@@ -45,14 +47,19 @@ def main():
         ]),
     )
 
-    def quit(key):
+    def quit(*args, **kwargs):
+        raise urwid.ExitMainLoop()
+
+    def handle_key(key):
         if key in ('q', 'Q'):
-            raise urwid.ExitMainLoop()
+            quit()
+
+    urwid.connect_signal(term, 'closed', quit)
 
     loop = urwid.MainLoop(
         mainframe,
         handle_mouse=False,
-        unhandled_input=quit,
+        unhandled_input=handle_key,
         event_loop=event_loop
     ).run()
 
