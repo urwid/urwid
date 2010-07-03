@@ -32,6 +32,7 @@ import termios
 
 from urwid.canvas import Canvas
 from urwid.widget import BoxWidget
+from urwid.command_map import command_map
 from urwid.display_common import AttrSpec, RealTerminal, _BASIC_COLORS
 
 ESC = chr(27)
@@ -1057,7 +1058,9 @@ class TerminalWidget(BoxWidget):
 
         self._old_tios = None
 
-        self.escape_mode = False
+        self.keygrab = False
+        self.last_key = None
+
         self.response_buffer = []
 
         self.term_modes = TermModes()
@@ -1242,19 +1245,40 @@ class TerminalWidget(BoxWidget):
             self.touch_term(width, height)
             return
 
-        if self.escape_mode and self.escape_sequence == key:
-            # twice the escape key will pass
-            # it once to the terminal
-            self.escape_mode = False
-        elif self.escape_mode:
-            # pass through the keypress
-            self.escape_mode = False
-            return key
-        elif self.escape_sequence == key:
-            # don't handle next keypress
-            self.change_focus(False)
-            self.escape_mode = True
-            return
+        if (self.last_key == self.escape_sequence
+            and key == self.escape_sequence):
+            # escape sequence pressed twice...
+            self.last_key = key
+            self.keygrab = True
+            # ... so pass it to the terminal
+        elif self.keygrab:
+            if self.escape_sequence == key:
+                # stop grabbing the terminal
+                self.keygrab = False
+                self.last_key = key
+                return
+        else:
+            if (self.last_key == self.escape_sequence
+                and key != self.escape_sequence):
+                # hand down keypress directly after ungrab.
+                self.last_key = key
+                return key
+            elif self.escape_sequence == key:
+                # start grabbing the terminal
+                self.keygrab = True
+                self.last_key = key
+                return
+            elif command_map[key] is None:
+                # printable character or escape sequence means:
+                # lock in terminal...
+                self.keygrab = True
+                # ... and do key processing
+            else:
+                # hand down keypress
+                self.last_key = key
+                return key
+
+        self.last_key = key
 
         if key.startswith("ctrl "):
             if key[-1].islower():
