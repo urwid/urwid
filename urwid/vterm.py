@@ -901,6 +901,9 @@ class TermCanvas(Canvas):
             if mode == 1:
                 # cursor keys send an ESC O prefix, rather than ESC [
                 self.modes.keys_decckm = flag
+            elif mode == 3:
+                # deccolm just clears the screen
+                self.clear()
             elif mode == 5:
                 if self.modes.reverse_video != flag:
                     self.reverse_video(undo=not flag)
