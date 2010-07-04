@@ -430,16 +430,11 @@ class TermCanvas(Canvas):
             self.linefeed()
             if self.modes.lfnl:
                 self.carriage_return()
-        elif char == "\x0c": # form feed
-            self.clear()
         elif char == "\x09": # char tab
             self.tab()
         elif char == "\x08": # backspace
             if x > 0:
                 self.set_term_cursor(x - 1, y)
-        elif char == "\x0b": # line tab
-            if y > 0:
-                self.set_term_cursor(x, y - 1)
         elif char == "\x07" and self.parsestate != 3: # beep
             # we need to check if we're in parsestate 3, as an OSC can be
             # terminated by the BEL character!
