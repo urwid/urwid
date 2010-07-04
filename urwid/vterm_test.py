@@ -184,6 +184,10 @@ class TermTest(unittest.TestCase):
         self.write('\e[?6h\e[10;20r\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\e[faa')
         self.expect('\n' * 9 + 'aa\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12')
 
+    def test_relative_region_jump(self):
+        self.write('\e[21H---\e[10;20r\e[?6h\e[18Htest')
+        self.expect('\n' * 19 + 'test\n---')
+
     def test_set_multiple_modes(self):
         self.write('\e[?6;5htest')
         self.expect('test')
@@ -195,11 +199,11 @@ class TermTest(unittest.TestCase):
         self.assertFalse(self.term.term_modes.reverse_video)
 
     def test_wrap_simple(self):
-        self.write('\e[2J\e[?7h\e[1;%dHtt' % self.term.width)
+        self.write('\e[?7h\e[1;%dHtt' % self.term.width)
         self.expect(' ' * (self.term.width - 1) + 't\nt')
 
     def test_wrap_backspace_tab(self):
-        self.write('\e[2J\e[?7h\e[1;%dHt\b\b\t\ta' % self.term.width)
+        self.write('\e[?7h\e[1;%dHt\b\b\t\ta' % self.term.width)
         self.expect(' ' * (self.term.width - 1) + 'a')
 
 if __name__ == '__main__':

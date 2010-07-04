@@ -539,8 +539,11 @@ class TermCanvas(Canvas):
 
         if relative_x:
             x = self.term_cursor[0] + x
+
         if relative_y:
             y = self.term_cursor[1] + y
+        elif self.modes.constrain_scrolling:
+            y += self.scrollregion_start
 
         self.set_term_cursor(x, y)
 
