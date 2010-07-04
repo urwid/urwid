@@ -378,7 +378,7 @@ class TermCanvas(Canvas):
             self.escbuf = ''
             self.parsestate = 2
             return
-        elif self.parsestate == 2 and char == chr(7):
+        elif self.parsestate == 2 and char == "\x07":
             # end of OSC
             self.parse_osc(self.escbuf.lstrip('0'))
         elif self.parsestate == 2 and self.escbuf[-1:] + char == ESC + '\\':
@@ -422,35 +422,35 @@ class TermCanvas(Canvas):
         """
         x, y = self.term_cursor
 
-        if char == chr(27): # escape
+        if char == "\x1b": # escape
             self.within_escape = True
-        elif char == chr(13): # carriage return
+        elif char == "\x0d": # carriage return
             self.carriage_return()
-        elif char in (chr(10), chr(11), chr(12)): # line feed
+        elif char in "\x0a\x0b\x0c": # line feed
             self.linefeed()
             if self.modes.lfnl:
                 self.carriage_return()
-        elif char == chr(12): # form feed
+        elif char == "\x0c": # form feed
             self.clear()
-        elif char == chr(9): # char tab
+        elif char == "\x09": # char tab
             self.tab()
-        elif char == chr(8): # backspace
+        elif char == "\x08": # backspace
             if x > 0:
                 self.set_term_cursor(x - 1, y)
-        elif char == chr(11): # line tab
+        elif char == "\x0b": # line tab
             if y > 0:
                 self.set_term_cursor(x, y - 1)
-        elif char == chr(7) and self.parsestate != 3: # beep
+        elif char == "\x07" and self.parsestate != 3: # beep
             # we need to check if we're in parsestate 3, as an OSC can be
             # terminated by the BEL character!
             self.widget.beep()
-        elif char in (chr(24), chr(26)): # CAN/SUB
+        elif char in "\x18\x1a": # CAN/SUB
             self.leave_escape()
-        elif char == chr(127): # DEL
+        elif char == "\x7f": # DEL
             pass # this is ignored
         elif self.within_escape:
             self.parse_escape(char)
-        elif char == chr(155): # CSI (equivalent to "ESC [")
+        elif char == "\x9b": # CSI (equivalent to "ESC [")
             self.within_escape = True
             self.escbuf = ''
             self.parsestate = 1
@@ -1336,7 +1336,7 @@ class TerminalWidget(BoxWidget):
                 key = KEY_TRANSLATIONS.get(key, key)
 
         # ENTER transmits both a carriage return and linefeed in LF/NL mode.
-        if self.term_modes.lfnl and key == chr(13):
-            key += chr(10)
+        if self.term_modes.lfnl and key == "\x0d":
+            key += "\x0a"
 
         os.write(self.master, key)
