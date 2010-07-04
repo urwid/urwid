@@ -194,5 +194,13 @@ class TermTest(unittest.TestCase):
         self.assertFalse(self.term.term_modes.constrain_scrolling)
         self.assertFalse(self.term.term_modes.reverse_video)
 
+    def test_wrap_simple(self):
+        self.write('\e[2J\e[?7h\e[1;%dHtt' % self.term.width)
+        self.expect(' ' * (self.term.width - 1) + 't\nt')
+
+    def test_wrap_backspace_tab(self):
+        self.write('\e[2J\e[?7h\e[1;%dHt\b\b\t\ta' % self.term.width)
+        self.expect(' ' * (self.term.width - 1) + 'a')
+
 if __name__ == '__main__':
     unittest.main()

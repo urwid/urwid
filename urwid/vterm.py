@@ -590,6 +590,7 @@ class TermCanvas(Canvas):
             if x + 1 < self.width:
                 x += 1
 
+            self.is_rotten_cursor = False
             self.push_char(char, x, y)
 
     def save_cursor(self, with_attrs=False):
@@ -621,6 +622,7 @@ class TermCanvas(Canvas):
             if self.is_tabstop(x):
                 break
 
+        self.is_rotten_cursor = False
         self.set_term_cursor(x, y)
 
     def scroll(self, reverse=False):
