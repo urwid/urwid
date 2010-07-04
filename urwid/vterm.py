@@ -383,7 +383,7 @@ class TermCanvas(Canvas):
             self.parse_osc(self.escbuf.lstrip('0'))
         elif self.parsestate == 2 and self.escbuf[-1:] + char == ESC + '\\':
             # end of OSC
-            self.parse_osc(self.escbuf[:-1])
+            self.parse_osc(self.escbuf[:-1].lstrip('0'))
         elif self.parsestate == 2 and self.escbuf.startswith('P') and \
              len(self.escbuf) == 8:
             # set palette (ESC]Pnrrggbb)
