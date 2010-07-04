@@ -98,6 +98,10 @@ class TermTest(unittest.TestCase):
         self.write('hello\x0aworld')
         self.expect('hello\nworld')
 
+    def test_linefeed2(self):
+        self.write('aa\b\b\eDbb')
+        self.expect('aa\nbb')
+
     def test_carriage_return(self):
         self.write('hello\x0dworld')
         self.expect('world')

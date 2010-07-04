@@ -341,6 +341,8 @@ class TermCanvas(Canvas):
             self.decaln()
         elif char == 'M': # reverse line feed
             self.linefeed(reverse=True)
+        elif char == 'D': # line feed
+            self.linefeed()
         elif char == 'c': # reset terminal
             self.reset()
         elif char == 'E': # newline
