@@ -1312,7 +1312,7 @@ class TerminalWidget(BoxWidget):
                 self.keygrab = True
                 self.last_key = key
                 return
-            elif command_map[key] is None:
+            elif command_map[key] is None or key == 'enter':
                 # printable character or escape sequence means:
                 # lock in terminal...
                 self.keygrab = True
