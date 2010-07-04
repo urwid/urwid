@@ -544,7 +544,7 @@ class TermCanvas(Canvas):
 
         self.set_term_cursor(x, y)
 
-    def push_char(self, char, x, y, advance=True):
+    def push_char(self, char, x, y):
         """
         Push one character to current position and advance cursor to x/y.
         """
@@ -563,28 +563,34 @@ class TermCanvas(Canvas):
         """
         x, y = self.term_cursor
 
-        if x + 1 >= self.width and not self.is_rotten_cursor:
-            # "rotten cursor" - this is when the cursor gets to the rightmost
-            # position of the screen, the cursor position remains the same but
-            # one last set_char() is allowed for that piece of sh^H^H"border".
-            self.is_rotten_cursor = True
-            self.push_char(char, x, y)
-        else:
-            x += 1
+        if self.modes.autowrap:
+            if x + 1 >= self.width and not self.is_rotten_cursor:
+                # "rotten cursor" - this is when the cursor gets to the rightmost
+                # position of the screen, the cursor position remains the same but
+                # one last set_char() is allowed for that piece of sh^H^H"border".
+                self.is_rotten_cursor = True
+                self.push_char(char, x, y)
+            else:
+                x += 1
 
-            if x >= self.width and self.is_rotten_cursor:
-                if self.modes.autowrap:
+                if x >= self.width and self.is_rotten_cursor:
                     if y >= self.scrollregion_end:
                         self.scroll()
                     else:
                         y += 1
 
-                x = 1
-                self.set_term_cursor(0, y)
+                    x = 1
+
+                    self.set_term_cursor(0, y)
+
+                self.push_char(char, x, y)
+
+                self.is_rotten_cursor = False
+        else:
+            if x + 1 < self.width:
+                x += 1
 
             self.push_char(char, x, y)
-
-            self.is_rotten_cursor = False
 
     def save_cursor(self, with_attrs=False):
         self.saved_cursor = tuple(self.term_cursor)
