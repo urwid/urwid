@@ -210,5 +210,13 @@ class TermTest(unittest.TestCase):
         self.write('\e[?7h\e[1;%dHt\b\b\t\ta' % self.term.width)
         self.expect(' ' * (self.term.width - 1) + 'a')
 
+    def test_cursor_visibility(self):
+        self.write('\e[?25linvisible')
+        self.expect('invisible')
+        self.assertEqual(self.term.term.cursor, None)
+        self.write('\rvisible\e[?25h\e[K')
+        self.expect('visible')
+        self.assertNotEqual(self.term.term.cursor, None)
+
 if __name__ == '__main__':
     unittest.main()

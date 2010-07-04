@@ -917,6 +917,7 @@ class TermCanvas(Canvas):
                 self.modes.autowrap = flag
             elif mode == 25:
                 self.modes.visible_cursor = flag
+                self.set_term_cursor()
         else:
             # ECMA-48
             if mode == 4:
