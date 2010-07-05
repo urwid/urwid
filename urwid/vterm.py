@@ -182,6 +182,7 @@ class TermCanvas(Canvas):
         self.modes = widget.term_modes
 
         self.scrollback_buffer = []
+        self.scrolling_up = 0
 
         self.utf8_eat_bytes = None
         self.utf8_buffer = ""
@@ -198,7 +199,7 @@ class TermCanvas(Canvas):
 
         self.term_cursor = self.constrain_coords(x, y)
 
-        if self.modes.visible_cursor:
+        if self.modes.visible_cursor and self.scrolling_up == 0:
             self.cursor = (x, y)
         else:
             self.cursor = None
@@ -209,6 +210,35 @@ class TermCanvas(Canvas):
         """
         self.scrollregion_start = 0
         self.scrollregion_end = self.height - 1
+
+    def scroll_buffer(self, up=True, reset=False, lines=None):
+        """
+        Scroll the scrolling buffer up (up=True) or down (up=False) the given
+        amount of lines or half the screen height.
+
+        If just 'reset' is True, set the scrollbuffer view to the current
+        terminal content.
+        """
+        if reset:
+            self.scrolling_up = 0
+            self.set_term_cursor()
+            return
+
+        if lines is None:
+            lines = self.height // 2
+
+        if not up:
+            lines = -lines
+
+        maxscroll = len(self.scrollback_buffer)
+        self.scrolling_up += lines
+
+        if self.scrolling_up > maxscroll:
+            self.scrolling_up = maxscroll
+        elif self.scrolling_up < 0:
+            self.scrolling_up = 0
+
+        self.set_term_cursor()
 
     def reset(self):
         """
@@ -1173,8 +1203,13 @@ class TermCanvas(Canvas):
 
     def content(self, trim_left=0, trim_right=0, cols=None, rows=None,
                 attr_map=None):
-        for line in self.term:
-            yield line
+        if self.scrolling_up == 0:
+            for line in self.term:
+                yield line
+        else:
+            buf = self.scrollback_buffer + self.term
+            for line in buf[-(self.height+self.scrolling_up):-self.scrolling_up]:
+                yield line
 
     def content_delta(self, other):
         if other is self:
@@ -1413,7 +1448,17 @@ class TerminalWidget(BoxWidget):
                 self.last_key = key
                 return
         else:
-            if (self.last_key == self.escape_sequence
+            if key == 'page up':
+                self.term.scroll_buffer()
+                self.last_key = key
+                self._invalidate()
+                return
+            elif key == 'page down':
+                self.term.scroll_buffer(False)
+                self.last_key = key
+                self._invalidate()
+                return
+            elif (self.last_key == self.escape_sequence
                 and key != self.escape_sequence):
                 # hand down keypress directly after ungrab.
                 self.last_key = key
@@ -1434,6 +1479,8 @@ class TerminalWidget(BoxWidget):
                 return key
 
         self.last_key = key
+
+        self.term.scroll_buffer(reset=True)
 
         if key.startswith("ctrl "):
             if key[-1].islower():
