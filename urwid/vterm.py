@@ -171,6 +171,29 @@ class TermCharset(object):
         else:
             self.current = None
 
+class TermScroller(list):
+    """
+    List subclass that handles the terminal scrollback buffer,
+    truncating it as necessary.
+    """
+    SCROLLBACK_LINES = 10000
+
+    def trunc(self):
+        if len(self) >= self.SCROLLBACK_LINES:
+            self.pop(0)
+
+    def append(self, obj):
+        self.trunc()
+        super(TermScroller, self).append(obj)
+
+    def insert(self, idx, obj):
+        self.trunc()
+        super(TermScroller, self).insert(idx, obj)
+
+    def extend(self, seq):
+        self.trunc()
+        super(TermScroller, self).extend(seq)
+
 class TermCanvas(Canvas):
     cacheable = False
 
@@ -181,7 +204,7 @@ class TermCanvas(Canvas):
         self.widget = widget
         self.modes = widget.term_modes
 
-        self.scrollback_buffer = []
+        self.scrollback_buffer = TermScroller()
         self.scrolling_up = 0
 
         self.utf8_eat_bytes = None
