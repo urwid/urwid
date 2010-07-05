@@ -23,7 +23,7 @@ import os
 import sys
 import unittest
 
-from urwid.vterm import TerminalWidget
+from urwid import vterm
 from urwid.main_loop import SelectEventLoop
 from urwid import signals
 
@@ -54,7 +54,7 @@ class TermTest(unittest.TestCase):
     def setUp(self):
         self.command = DummyCommand()
 
-        self.term = TerminalWidget(self.command)
+        self.term = vterm.TerminalWidget(self.command)
         self.resize(80, 24)
 
     def tearDown(self):
@@ -217,6 +217,29 @@ class TermTest(unittest.TestCase):
         self.write('\rvisible\e[?25h\e[K')
         self.expect('visible')
         self.assertNotEqual(self.term.term.cursor, None)
+
+    def test_get_utf8_len(self):
+        length = self.term.term.get_utf8_len(chr(int("11110000", 2)))
+        self.assertEqual(length, 3)
+        length = self.term.term.get_utf8_len(chr(int("11000000", 2)))
+        self.assertEqual(length, 1)
+        length = self.term.term.get_utf8_len(chr(int("11111101", 2)))
+        self.assertEqual(length, 5)
+
+    def test_encoding_unicode(self):
+        vterm.util._target_encoding = 'utf-8'
+        self.write('\e%G\xe2\x80\x94')
+        self.expect('\xe2\x80\x94')
+
+    def test_encoding_unicode(self):
+        vterm.util._target_encoding = 'ascii'
+        self.write('\e%G\xe2\x80\x94')
+        self.expect('?')
+
+    def test_encoding_wrong_unicode(self):
+        vterm.util._target_encoding = 'utf-8'
+        self.write('\e%G\xc0\x99')
+        self.expect('')
 
 if __name__ == '__main__':
     unittest.main()

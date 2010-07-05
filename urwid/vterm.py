@@ -30,6 +30,7 @@ import signal
 import atexit
 import termios
 
+from urwid import util
 from urwid.canvas import Canvas
 from urwid.widget import BoxWidget
 from urwid.command_map import command_map
@@ -122,6 +123,9 @@ CSI_COMMANDS = {
     '`': ('alias', 'G'),
 }
 
+CHARSET_DEFAULT = 1
+CHARSET_UTF8 = 2
+
 class TermModes(object):
     def __init__(self):
         self.reset()
@@ -138,6 +142,35 @@ class TermModes(object):
         self.autowrap = True
         self.visible_cursor = True
 
+        # charset stuff
+        self.main_charset = CHARSET_DEFAULT
+
+class TermCharset(object):
+    def __init__(self):
+        self._g = [
+            'default',
+            'vt100',
+        ]
+
+        self.activate()
+
+    def define(self, g, charset):
+        """
+        Redefine G'g' with new mapping.
+        """
+        self._g[g] = charset
+
+    def activate(self, g=0):
+        """
+        Activate a given charset slot or G0 if not specified.
+        """
+        if self._g[g] == 'default':
+            self.current = None
+        elif self._g[g] == 'vt100':
+            self.current = '0'
+        else:
+            self.current = None
+
 class TermCanvas(Canvas):
     cacheable = False
 
@@ -149,6 +182,9 @@ class TermCanvas(Canvas):
         self.modes = widget.term_modes
 
         self.scrollback_buffer = []
+
+        self.utf8_eat_bytes = None
+        self.utf8_buffer = ""
 
         self.coords["cursor"] = (0, 0, None)
 
@@ -181,7 +217,9 @@ class TermCanvas(Canvas):
         self.escbuf = ''
         self.within_escape = False
         self.parsestate = 0
+
         self.attrspec = None
+        self.charset = TermCharset()
 
         self.saved_cursor = None
         self.saved_attrs = None
@@ -235,15 +273,15 @@ class TermCanvas(Canvas):
         return [self.empty_char(char)] * self.width
 
     def empty_char(self, char=' '):
-        return (self.attrspec, None, char)
+        return (self.attrspec, self.charset.current, char)
 
     def addstr(self, data):
         if self.width <= 0 or self.height <= 0:
             # not displayable, do nothing!
             return
 
-        for char in data:
-            self.addch(char)
+        for byte in data:
+            self.addbyte(byte)
 
     def resize(self, width, height):
         """
@@ -298,6 +336,25 @@ class TermCanvas(Canvas):
         # extend tabs
         self.init_tabstops(extend=True)
 
+    def set_g01(self, char, mod):
+        """
+        Set G0 or G1 according to 'char' and modifier 'mod'.
+        """
+        if self.modes.main_charset == CHARSET_DEFAULT:
+            return
+
+        if mod == '(':
+            g = 0
+        else:
+            g = 1
+
+        if char == '0':
+            cset = 'vt100'
+        else:
+            cset = 'default'
+
+        self.charset.define(g, cset)
+
     def parse_csi(self, char):
         """
         Parse ECMA-48 CSI (Control Sequence Introducer) sequences.
@@ -339,6 +396,14 @@ class TermCanvas(Canvas):
         """
         if mod == '#' and char == '8':
             self.decaln()
+        elif mod == '%': # select main character set
+            if char == '@':
+                self.modes.main_charset = CHARSET_DEFAULT
+            elif char in 'G8':
+                # 8 is obsolete and only for backwards compatibility
+                self.modes.main_charset = CHARSET_UTF8
+        elif mod == '(' or mod == ')': # define G0/G1
+            self.set_g01(char, mod)
         elif char == 'M': # reverse line feed
             self.linefeed(reverse=True)
         elif char == 'D': # line feed
@@ -416,9 +481,53 @@ class TermCanvas(Canvas):
         self.parsestate = 0
         self.escbuf = ''
 
-    def addch(self, char):
+    def get_utf8_len(self, startbyte):
         """
-        Add a single character to the terminal state machine.
+        Process startbyte and return the number of bytes following it to get a
+        valid UTF-8 multibyte sequence.
+        """
+        bytenum = ord(startbyte)
+        length = 0
+
+        while bytenum & 0x40:
+            bytenum <<= 1
+            length += 1
+
+        return length
+
+    def addbyte(self, byte):
+        """
+        Parse main charset and add the processed byte(s) to the terminal state
+        machine.
+        """
+        if self.modes.main_charset == CHARSET_UTF8:
+            if byte >= "\xc0":
+                # start multibyte sequence
+                self.utf8_eat_bytes = self.get_utf8_len(byte)
+                self.utf8_buffer = byte
+                return
+            elif "\x80" <= byte < "\xc0" and self.utf8_eat_bytes is not None:
+                if self.utf8_eat_bytes > 1:
+                    # continue multibyte sequence
+                    self.utf8_eat_bytes -= 1
+                    self.utf8_buffer += byte
+                    return
+                else:
+                    # end multibyte sequence
+                    self.utf8_eat_bytes = None
+                    sequence = (self.utf8_buffer+byte).decode('utf-8', 'ignore')
+                    char = sequence.encode(util._target_encoding, 'replace')
+            else:
+                self.utf8_eat_bytes = None
+                char = byte
+        else:
+            char = byte
+
+        self.process_char(char)
+
+    def process_char(self, char):
+        """
+        Process a single character (single- and multi-byte).
         """
         x, y = self.term_cursor
 
@@ -426,6 +535,10 @@ class TermCanvas(Canvas):
             self.within_escape = True
         elif char == "\x0d": # carriage return
             self.carriage_return()
+        elif char == "\x0f": # activate G0
+            self.charset.activate(0)
+        elif char == "\x0e": # activate G1
+            self.charset.activate(1)
         elif char in "\x0a\x0b\x0c": # line feed
             self.linefeed()
             if self.modes.lfnl:
@@ -463,7 +576,7 @@ class TermCanvas(Canvas):
             y = self.term_cursor[1]
 
         x, y = self.constrain_coords(x, y)
-        self.term[y][x] = (self.attrspec, None, char)
+        self.term[y][x] = (self.attrspec, self.charset.current, char)
 
     def constrain_coords(self, x, y, ignore_scrolling=False):
         """
@@ -596,7 +709,8 @@ class TermCanvas(Canvas):
     def save_cursor(self, with_attrs=False):
         self.saved_cursor = tuple(self.term_cursor)
         if with_attrs:
-            self.saved_attrs = copy.copy(self.attrspec)
+            self.saved_attrs = (copy.copy(self.attrspec),
+                                copy.copy(self.charset))
 
     def restore_cursor(self, with_attrs=False):
         if self.saved_cursor is None:
@@ -605,8 +719,9 @@ class TermCanvas(Canvas):
         x, y = self.saved_cursor
         self.set_term_cursor(x, y)
 
-        if with_attrs:
-            self.attrspec = copy.copy(self.saved_attrs)
+        if with_attrs and self.saved_attrs is not None:
+            self.attrspec, self.charset = (copy.copy(self.saved_attrs[0]),
+                                           copy.copy(self.saved_attrs[1]))
 
     def tab(self, tabstop=8):
         """
@@ -669,7 +784,7 @@ class TermCanvas(Canvas):
         if char is None:
             char = self.empty_char()
         else:
-            char = (self.attrspec, None, char)
+            char = (self.attrspec, self.charset.current, char)
 
         x, y = position
 
