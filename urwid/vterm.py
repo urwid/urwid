@@ -215,6 +215,10 @@ class TermCanvas(Canvas):
         self.reset()
 
     def set_term_cursor(self, x=None, y=None):
+        """
+        Set terminal cursor to x/y and update canvas cursor. If one or both axes
+        are omitted, use the values of the current position.
+        """
         if x is None:
             x = self.term_cursor[0]
         if y is None:
@@ -222,8 +226,8 @@ class TermCanvas(Canvas):
 
         self.term_cursor = self.constrain_coords(x, y)
 
-        if self.modes.visible_cursor and self.scrolling_up == 0:
-            self.cursor = (x, y)
+        if self.modes.visible_cursor and self.scrolling_up < self.height - y:
+            self.cursor = (x, y + self.scrolling_up)
         else:
             self.cursor = None
 
@@ -1477,7 +1481,7 @@ class TerminalWidget(BoxWidget):
                 self._invalidate()
                 return
             elif key == 'page down':
-                self.term.scroll_buffer(False)
+                self.term.scroll_buffer(up=False)
                 self.last_key = key
                 self._invalidate()
                 return
