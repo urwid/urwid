@@ -146,30 +146,34 @@ class TermModes(object):
         self.main_charset = CHARSET_DEFAULT
 
 class TermCharset(object):
+    MAPPING = {
+        'default': None,
+        'vt100':   '0',
+        'null':    None,
+        'user':    None,
+    }
+
     def __init__(self):
         self._g = [
             'default',
             'vt100',
         ]
 
-        self.activate()
+        self.activate(0)
 
     def define(self, g, charset):
         """
         Redefine G'g' with new mapping.
         """
         self._g[g] = charset
+        self.activate(g=self.active)
 
-    def activate(self, g=0):
+    def activate(self, g):
         """
-        Activate a given charset slot or G0 if not specified.
+        Activate the given charset slot.
         """
-        if self._g[g] == 'default':
-            self.current = None
-        elif self._g[g] == 'vt100':
-            self.current = '0'
-        else:
-            self.current = None
+        self.active = g
+        self.current = self.MAPPING.get(self._g[g], None)
 
 class TermScroller(list):
     """
@@ -397,7 +401,7 @@ class TermCanvas(Canvas):
         """
         Set G0 or G1 according to 'char' and modifier 'mod'.
         """
-        if self.modes.main_charset == CHARSET_DEFAULT:
+        if self.modes.main_charset != CHARSET_DEFAULT:
             return
 
         if mod == '(':
@@ -407,6 +411,10 @@ class TermCanvas(Canvas):
 
         if char == '0':
             cset = 'vt100'
+        elif char == 'U':
+            cset = 'null'
+        elif char == 'K':
+            cset = 'user'
         else:
             cset = 'default'
 

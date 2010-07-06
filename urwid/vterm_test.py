@@ -23,6 +23,8 @@ import os
 import sys
 import unittest
 
+from itertools import dropwhile
+
 from urwid import vterm
 from urwid.main_loop import SelectEventLoop
 from urwid import signals
@@ -74,20 +76,27 @@ class TermTest(unittest.TestCase):
     def flush(self):
         self.write(chr(0x7f))
 
-    def read(self):
+    def read(self, raw=False):
         self.term.wait_and_feed()
-        content = self.term.render(self.termsize, focus=False).text
-        lines = [line.rstrip() for line in content]
-        return '\n'.join(lines).rstrip()
+        rendered = self.term.render(self.termsize, focus=False)
+        if raw:
+            is_empty = lambda c: c == (None, None, ' ')
+            content = list(rendered.content())
+            lines = [list(dropwhile(is_empty, reversed(line)))
+                     for line in content]
+            return [list(reversed(line)) for line in lines if len(line)]
+        else:
+            content = rendered.text
+            lines = [line.rstrip() for line in content]
+            return '\n'.join(lines).rstrip()
 
-    def expect(self, what, desc=None, omit_details=False):
-        got = self.read()
-        if not omit_details:
-            if desc is None:
-                desc = ''
-            else:
-                desc += '\n'
-            desc += 'Expected:\n%r\nGot:\n%r' % (what, got)
+    def expect(self, what, desc=None, raw=False):
+        got = self.read(raw=raw)
+        if desc is None:
+            desc = ''
+        else:
+            desc += '\n'
+        desc += 'Expected:\n%r\nGot:\n%r' % (what, got)
         self.assertEqual(got, what, desc)
 
     def test_simplestring(self):
@@ -240,6 +249,14 @@ class TermTest(unittest.TestCase):
         vterm.util._target_encoding = 'utf-8'
         self.write('\e%G\xc0\x99')
         self.expect('')
+
+    def test_encoding_vt100_graphics(self):
+        self.write('\e)0\e(0\x0fg\x0eg\e)Bn\e)0g\e)B\e(B\x0fn')
+        self.expect([[
+            (None, '0', 'g'), (None, '0', 'g'),
+            (None, None, 'n'), (None, '0', 'g'),
+            (None, None, 'n')
+        ]], raw=True)
 
 if __name__ == '__main__':
     unittest.main()
