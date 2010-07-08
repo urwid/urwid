@@ -478,9 +478,10 @@ class TermCanvas(Canvas):
         """
         Parse operating system command.
         """
-        if buf.startswith('3;'): # set window title
-            title = buf[2:]
-            # TODO: maybe implement this one day ;-)
+        if buf.startswith(';'): # set window title and icon
+            self.widget.set_title(buf[1:])
+        elif buf.startswith('3;'): # set window title
+            self.widget.set_title(buf[2:])
 
     def parse_escape(self, char):
         if self.parsestate == 1:
@@ -584,7 +585,7 @@ class TermCanvas(Canvas):
         """
         x, y = self.term_cursor
 
-        if char == "\x1b": # escape
+        if char == "\x1b" and self.parsestate != 2: # escape
             self.within_escape = True
         elif char == "\x0d": # carriage return
             self.carriage_return()
@@ -601,8 +602,8 @@ class TermCanvas(Canvas):
         elif char == "\x08": # backspace
             if x > 0:
                 self.set_term_cursor(x - 1, y)
-        elif char == "\x07" and self.parsestate != 3: # beep
-            # we need to check if we're in parsestate 3, as an OSC can be
+        elif char == "\x07" and self.parsestate != 2: # beep
+            # we need to check if we're in parsestate 2, as an OSC can be
             # terminated by the BEL character!
             self.widget.beep()
         elif char in "\x18\x1a": # CAN/SUB
@@ -1240,7 +1241,7 @@ class TermCanvas(Canvas):
         return self.content()
 
 class TerminalWidget(BoxWidget):
-    signals = ['closed', 'beep', 'leds']
+    signals = ['closed', 'beep', 'leds', 'title']
 
     def __init__(self, command, event_loop=None, escape_sequence=None):
         """
@@ -1379,6 +1380,9 @@ class TerminalWidget(BoxWidget):
 
         if process_opened:
             self.add_watch()
+
+    def set_title(self, title):
+        self._emit('title', title)
 
     def change_focus(self, has_focus):
         """

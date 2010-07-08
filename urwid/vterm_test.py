@@ -241,5 +241,19 @@ class TermTest(unittest.TestCase):
         self.write('\e%G\xc0\x99')
         self.expect('')
 
+    def test_set_title(self):
+        self._the_title = None
+
+        def _change_title(widget, title):
+            self._the_title = title
+
+        signals.connect_signal(self.term, 'title', _change_title)
+        self.write('\e]666parsed right?\e\\te\e]0;test title\007st1')
+        self.expect('test1')
+        self.assertEqual(self._the_title, 'test title')
+        self.write('\e]3;stupid title\e\\\e[0G\e[2Ktest2')
+        self.expect('test2')
+        self.assertEqual(self._the_title, 'stupid title')
+
 if __name__ == '__main__':
     unittest.main()
