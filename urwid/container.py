@@ -1012,16 +1012,16 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         dividechars -- blank characters between columns
         focus_column -- index into widget_list of column in focus,
             if None the first selectable widget will be chosen.
-        min_width -- minimum width for each column before it is hidden
+        min_width -- minimum width for each column
         box_columns -- a list of column indexes containing box widgets
-            whose maxrow is set to the maximum of the rows 
+            whose maxrow is set to the maximum of the rows
             required by columns not listed in box_columns.
 
         widget_list may also contain tuples such as:
         ('fixed', width, widget) give this column a fixed width
         ('weight', weight, widget) give this column a relative weight
 
-        widgets not in a tuple are the same as ('weight', 1, widget)    
+        widgets not in a tuple are the same as ('weight', 1, widget)
 
         box_columns is ignored when this widget is being used as a
         box widget because in that case all columns are treated as box
