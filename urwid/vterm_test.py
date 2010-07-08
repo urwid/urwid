@@ -271,6 +271,7 @@ class TermTest(unittest.TestCase):
         self.write('\e]3;stupid title\e\\\e[0G\e[2Ktest2')
         self.expect('test2')
         self.assertEqual(self._the_title, 'stupid title')
+        signals.disconnect_signal(self.term, 'title', _change_title)
 
 if __name__ == '__main__':
     unittest.main()
