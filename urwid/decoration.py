@@ -564,14 +564,15 @@ class Padding(WidgetDecoration):
 
     def rows(self, size, focus=False):
         """Return the rows needed for self.original_widget."""
+        (maxcol,) = size
+        left, right = self.padding_values(size, focus)
         if self._width_type == PACK:
-            pcols, prows = self._original_widget.pack(size, focus)
+            pcols, prows = self._original_widget.pack((maxcol-left-right,), 
+                focus)
             return prows
         if self._width_type == CLIP:
             fcols, frows = self._original_widget.pack((), focus)
             return frows
-        (maxcol,) = size
-        left, right = self.padding_values(size, focus)
         return self._original_widget.rows((maxcol-left-right,), focus=focus)
     
     def keypress(self, size, key):
