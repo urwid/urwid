@@ -149,7 +149,7 @@ class TermCharset(object):
     MAPPING = {
         'default': None,
         'vt100':   '0',
-        'null':    None,
+        'ibmpc':   None,
         'user':    None,
     }
 
@@ -158,6 +158,8 @@ class TermCharset(object):
             'default',
             'vt100',
         ]
+
+        self._sgr_mapping = False
 
         self.activate(0)
 
@@ -174,6 +176,27 @@ class TermCharset(object):
         """
         self.active = g
         self.current = self.MAPPING.get(self._g[g], None)
+
+    def set_sgr_ibmpc(self):
+        """
+        Set graphics rendition mapping to IBM PC CP437.
+        """
+        self._sgr_mapping = True
+
+    def reset_sgr_ibmpc(self):
+        """
+        Reset graphics rendition mapping to IBM PC CP437.
+        """
+        self._sgr_mapping = False
+        self.activate(g=self.active)
+
+    def apply_mapping(self, char):
+        if self._sgr_mapping or self._g[self.active] == 'ibmpc':
+            char, attr = util.apply_target_encoding(char.decode('cp437'))
+            self.current = attr[0][0]
+            return char
+        else:
+            return char
 
 class TermScroller(list):
     """
@@ -412,7 +435,7 @@ class TermCanvas(Canvas):
         if char == '0':
             cset = 'vt100'
         elif char == 'U':
-            cset = 'null'
+            cset = 'ibmpc'
         elif char == 'K':
             cset = 'user'
         else:
@@ -729,6 +752,7 @@ class TermCanvas(Canvas):
         Push one character to current position and advance cursor to x/y.
         """
         if char is not None:
+            char = self.charset.apply_mapping(char)
             if self.modes.insert:
                 self.insert_chars(char=char)
             else:
@@ -974,6 +998,10 @@ class TermCanvas(Canvas):
             elif attr == 49:
                 # set default background color
                 bg = None
+            elif attr == 10:
+                self.charset.reset_sgr_ibmpc()
+            elif attr in (11, 12):
+                self.charset.set_sgr_ibmpc()
 
             # set attributes
             elif attr == 1:

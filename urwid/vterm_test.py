@@ -258,6 +258,12 @@ class TermTest(unittest.TestCase):
             (None, None, 'n')
         ]], raw=True)
 
+    def test_ibmpc_mapping(self):
+        self.write('\e[11m\xc4\e[10m\xc4')
+        self.expect('q\xc4')
+        self.write('\ec\e)U\x0e\xc4\x0f\xc4')
+        self.expect('q\xc4')
+
     def test_set_title(self):
         self._the_title = None
 
@@ -272,6 +278,7 @@ class TermTest(unittest.TestCase):
         self.expect('test2')
         self.assertEqual(self._the_title, 'stupid title')
         signals.disconnect_signal(self.term, 'title', _change_title)
+
 
 if __name__ == '__main__':
     unittest.main()
