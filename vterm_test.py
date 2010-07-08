@@ -26,26 +26,15 @@ def main():
 
     term = urwid.TerminalWidget(None, event_loop)
 
-    mainframe = urwid.Frame(
-        urwid.Columns([
-            ('fixed', 3, urwid.SolidFill('|')),
-            urwid.Pile([
-                ('weight', 70, term),
-                ('fixed', 1, urwid.Filler(urwid.Edit('focus test edit: '))),
-            ]),
-            ('fixed', 3, urwid.SolidFill('|')),
-        ], box_columns=[1]),
-        header=urwid.Columns([
-            ('fixed', 3, urwid.Text('.,:')),
-            urwid.Divider('-'),
-            ('fixed', 3, urwid.Text(':,.')),
-        ]),
-        footer=urwid.Columns([
-            ('fixed', 3, urwid.Text('`"*')),
-            urwid.Divider('-'),
-            ('fixed', 3, urwid.Text('*"\'')),
+    mainframe = urwid.LineBox(
+        urwid.Pile([
+            ('weight', 70, term),
+            ('fixed', 1, urwid.Filler(urwid.Edit('focus test edit: '))),
         ]),
     )
+
+    def set_title(widget, title):
+        mainframe.set_title(title)
 
     def quit(*args, **kwargs):
         raise urwid.ExitMainLoop()
@@ -54,6 +43,7 @@ def main():
         if key in ('q', 'Q'):
             quit()
 
+    urwid.connect_signal(term, 'title', set_title)
     urwid.connect_signal(term, 'closed', quit)
 
     loop = urwid.MainLoop(
