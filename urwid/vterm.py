@@ -566,7 +566,8 @@ class TermCanvas(Canvas):
         Parse main charset and add the processed byte(s) to the terminal state
         machine.
         """
-        if self.modes.main_charset == CHARSET_UTF8:
+        if (self.modes.main_charset == CHARSET_UTF8 or
+            util._target_encoding == 'utf8'):
             if byte >= "\xc0":
                 # start multibyte sequence
                 self.utf8_eat_bytes = self.get_utf8_len(byte)
