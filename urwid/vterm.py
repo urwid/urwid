@@ -606,6 +606,9 @@ class TermCanvas(Canvas):
                     # end multibyte sequence
                     self.utf8_eat_bytes = None
                     sequence = (self.utf8_buffer+byte).decode('utf-8', 'ignore')
+                    if len(sequence) == 0:
+                        # invalid multibyte sequence, stop processing
+                        return
                     char = sequence.encode(util._target_encoding, 'replace')
             else:
                 self.utf8_eat_bytes = None
