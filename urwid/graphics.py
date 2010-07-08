@@ -100,11 +100,27 @@ class LineBox(WidgetDecoration, WidgetWrap):
     ACS_LLCORNER = utf8decode("└")
     ACS_LRCORNER = utf8decode("┘")
 
-    def __init__(self, original_widget,
+    def __init__(self, original_widget, title="",
                  tlcorner=None, tline=None, lline=None,
                  trcorner=None, blcorner=None, rline=None,
                  bline=None, brcorner=None):
-        """Draw a line around original_widget."""
+        """
+        Draw a line around original_widget.
+
+        Use 'title' to set an initial title text with will be centered
+        on top of the box.
+
+        You can also override the widgets used for the lines/corners:
+            tline: top line
+            bline: bottom line
+            lline: left line
+            rline: right line
+            tlcorner: top left corner
+            trcorner: top right corner
+            blcorner: bottom left corner
+            brcorner: bottom right corner
+        """
+        self.title_widget = Text(self.format_title(title))
 
         def use_attr( a, t ):
             if a is not None:
@@ -112,7 +128,13 @@ class LineBox(WidgetDecoration, WidgetWrap):
             else:
                 return t
 
-        tline = use_attr( tline, Divider(self.ACS_HLINE))
+        self.tline_widget = Columns([
+            Divider(self.ACS_HLINE),
+            ('flow', self.title_widget),
+            Divider(self.ACS_HLINE),
+        ])
+
+        tline = use_attr( tline, self.tline_widget)
         bline = use_attr( bline, Divider(self.ACS_HLINE))
         lline = use_attr( lline, SolidFill(self.ACS_VLINE))
         rline = use_attr( rline, SolidFill(self.ACS_VLINE))
@@ -133,6 +155,15 @@ class LineBox(WidgetDecoration, WidgetWrap):
         WidgetDecoration.__init__(self, original_widget)
         WidgetWrap.__init__(self, pile)
 
+    def format_title(self, text):
+        if len(text) > 0:
+            return " %s " % text
+        else:
+            return ""
+
+    def set_title(self, text):
+        self.title_widget.set_text(self.format_title(text))
+        self.tline_widget._invalidate()
 
 class BarGraphMeta(WidgetMeta):
     """
