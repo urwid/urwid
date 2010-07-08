@@ -146,30 +146,34 @@ class TermModes(object):
         self.main_charset = CHARSET_DEFAULT
 
 class TermCharset(object):
+    MAPPING = {
+        'default': None,
+        'vt100':   '0',
+        'null':    None,
+        'user':    None,
+    }
+
     def __init__(self):
         self._g = [
             'default',
             'vt100',
         ]
 
-        self.activate()
+        self.activate(0)
 
     def define(self, g, charset):
         """
         Redefine G'g' with new mapping.
         """
         self._g[g] = charset
+        self.activate(g=self.active)
 
-    def activate(self, g=0):
+    def activate(self, g):
         """
-        Activate a given charset slot or G0 if not specified.
+        Activate the given charset slot.
         """
-        if self._g[g] == 'default':
-            self.current = None
-        elif self._g[g] == 'vt100':
-            self.current = '0'
-        else:
-            self.current = None
+        self.active = g
+        self.current = self.MAPPING.get(self._g[g], None)
 
 class TermScroller(list):
     """
@@ -215,6 +219,10 @@ class TermCanvas(Canvas):
         self.reset()
 
     def set_term_cursor(self, x=None, y=None):
+        """
+        Set terminal cursor to x/y and update canvas cursor. If one or both axes
+        are omitted, use the values of the current position.
+        """
         if x is None:
             x = self.term_cursor[0]
         if y is None:
@@ -222,8 +230,8 @@ class TermCanvas(Canvas):
 
         self.term_cursor = self.constrain_coords(x, y)
 
-        if self.modes.visible_cursor and self.scrolling_up == 0:
-            self.cursor = (x, y)
+        if self.modes.visible_cursor and self.scrolling_up < self.height - y:
+            self.cursor = (x, y + self.scrolling_up)
         else:
             self.cursor = None
 
@@ -393,7 +401,7 @@ class TermCanvas(Canvas):
         """
         Set G0 or G1 according to 'char' and modifier 'mod'.
         """
-        if self.modes.main_charset == CHARSET_DEFAULT:
+        if self.modes.main_charset != CHARSET_DEFAULT:
             return
 
         if mod == '(':
@@ -403,6 +411,10 @@ class TermCanvas(Canvas):
 
         if char == '0':
             cset = 'vt100'
+        elif char == 'U':
+            cset = 'null'
+        elif char == 'K':
+            cset = 'user'
         else:
             cset = 'default'
 
@@ -1292,7 +1304,7 @@ class TerminalWidget(BoxWidget):
 
     def spawn(self):
         env = dict(os.environ)
-        env['TERM'] = 'linux'
+        env['TERM'] = 'xterm'
 
         self.pid, self.master = pty.fork()
 
@@ -1481,7 +1493,7 @@ class TerminalWidget(BoxWidget):
                 self._invalidate()
                 return
             elif key == 'page down':
-                self.term.scroll_buffer(False)
+                self.term.scroll_buffer(up=False)
                 self.last_key = key
                 self._invalidate()
                 return
