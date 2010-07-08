@@ -1304,7 +1304,7 @@ class TerminalWidget(BoxWidget):
 
     def spawn(self):
         env = dict(os.environ)
-        env['TERM'] = 'xterm'
+        env['TERM'] = 'linux'
 
         self.pid, self.master = pty.fork()
 
