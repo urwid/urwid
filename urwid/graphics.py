@@ -92,26 +92,34 @@ class BigText(FixedWidget):
         
 
 class LineBox(WidgetDecoration, WidgetWrap):
-    def __init__(self, original_widget):
+    ACS_HLINE = utf8decode("─")
+    ACS_VLINE = utf8decode("│")
+
+    ACS_ULCORNER = utf8decode("┌")
+    ACS_URCORNER = utf8decode("┐")
+    ACS_LLCORNER = utf8decode("└")
+    ACS_LRCORNER = utf8decode("┘")
+
+    def __init__(self, original_widget,
+                 tlcorner=None, tline=None, lline=None,
+                 trcorner=None, blcorner=None, rline=None,
+                 bline=None, brcorner=None):
         """Draw a line around original_widget."""
-        
-        tlcorner=None; tline=None; lline=None
-        trcorner=None; blcorner=None; rline=None
-        bline=None; brcorner=None
-        
+
         def use_attr( a, t ):
             if a is not None:
-                t = AttrWrap(t, a)
-            return t
-            
-        tline = use_attr( tline, Divider(utf8decode("─")))
-        bline = use_attr( bline, Divider(utf8decode("─")))
-        lline = use_attr( lline, SolidFill(utf8decode("│")))
-        rline = use_attr( rline, SolidFill(utf8decode("│")))
-        tlcorner = use_attr( tlcorner, Text(utf8decode("┌")))
-        trcorner = use_attr( trcorner, Text(utf8decode("┐")))
-        blcorner = use_attr( blcorner, Text(utf8decode("└")))
-        brcorner = use_attr( brcorner, Text(utf8decode("┘")))
+                return a
+            else:
+                return t
+
+        tline = use_attr( tline, Divider(self.ACS_HLINE))
+        bline = use_attr( bline, Divider(self.ACS_HLINE))
+        lline = use_attr( lline, SolidFill(self.ACS_VLINE))
+        rline = use_attr( rline, SolidFill(self.ACS_VLINE))
+        tlcorner = use_attr( tlcorner, Text(self.ACS_ULCORNER))
+        trcorner = use_attr( trcorner, Text(self.ACS_URCORNER))
+        blcorner = use_attr( blcorner, Text(self.ACS_LLCORNER))
+        brcorner = use_attr( brcorner, Text(self.ACS_LRCORNER))
         top = Columns([ ('fixed', 1, tlcorner),
             tline, ('fixed', 1, trcorner) ])
         middle = Columns( [('fixed', 1, lline),
@@ -121,7 +129,7 @@ class LineBox(WidgetDecoration, WidgetWrap):
             bline, ('fixed', 1, brcorner) ])
         pile = Pile([('flow',top),middle,('flow',bottom)],
             focus_item = 1)
-        
+
         WidgetDecoration.__init__(self, original_widget)
         WidgetWrap.__init__(self, pile)
 
