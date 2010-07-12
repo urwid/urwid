@@ -62,6 +62,21 @@ class TermTest(unittest.TestCase):
     def tearDown(self):
         self.command.quit()
 
+    def connect_signal(self, signal):
+        self._sig_response = None
+
+        def _set_signal_response(widget, *args, **kwargs):
+            self._sig_response = (args, kwargs)
+        self._set_signal_response = _set_signal_response
+
+        signals.connect_signal(self.term, signal, self._set_signal_response)
+
+    def expect_signal(self, *args, **kwargs):
+        self.assertEqual(self._sig_response, (args, kwargs))
+
+    def disconnect_signal(self, signal):
+        signals.disconnect_signal(self.term, signal, self._set_signal_response)
+
     def caught_beep(self, obj):
         self.beeped = True
 
@@ -284,15 +299,24 @@ class TermTest(unittest.TestCase):
         def _change_title(widget, title):
             self._the_title = title
 
-        signals.connect_signal(self.term, 'title', _change_title)
+        self.connect_signal('title')
         self.write('\e]666parsed right?\e\\te\e]0;test title\007st1')
         self.expect('test1')
-        self.assertEqual(self._the_title, 'test title')
+        self.expect_signal('test title')
         self.write('\e]3;stupid title\e\\\e[0G\e[2Ktest2')
         self.expect('test2')
-        self.assertEqual(self._the_title, 'stupid title')
-        signals.disconnect_signal(self.term, 'title', _change_title)
+        self.expect_signal('stupid title')
+        self.disconnect_signal('title')
 
+    def test_set_leds(self):
+        self.connect_signal('leds')
+        self.write('\e[0qtest1')
+        self.expect('test1')
+        self.expect_signal('clear')
+        self.write('\e[3q\e[H\e[Ktest2')
+        self.expect('test2')
+        self.expect_signal('caps_lock')
+        self.disconnect_signal('leds')
 
 if __name__ == '__main__':
     unittest.main()
