@@ -123,6 +123,20 @@ class TermTest(unittest.TestCase):
         self.write('1\n2\n3\n4\e[2;1f\e[2M')
         self.expect('1\n4')
 
+    def test_movement(self):
+        self.write('\e[10;20H11\e[10;0f\e[20C\e[K')
+        self.expect('\n' * 9 + ' ' * 19 + '1')
+        self.write('\e[A\e[B\e[C\e[D\b\e[K')
+        self.expect('')
+        self.write('\e[50A2')
+        self.expect(' ' * 19 + '2')
+        self.write('\b\e[K\e[50B3')
+        self.expect('\n' * 23 + ' ' * 19 + '3')
+        self.write('\b\e[K' + '\eM' * 30 + '\e[100C4')
+        self.expect(' ' * 79 + '4')
+        self.write('\e[100D\e[K5')
+        self.expect('5')
+
     def edgewall(self):
         edgewall = '1-\e[1;%(x)df-2\e[%(y)d;1f3-\e[%(y)d;%(x)df-4\x0d'
         self.write(edgewall % {'x': self.termsize[0] - 1,
