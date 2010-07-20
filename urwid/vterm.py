@@ -20,6 +20,7 @@
 # Urwid web site: http://excess.org/urwid/
 
 import os
+import sys
 import pty
 import time
 import copy
@@ -623,6 +624,9 @@ class TermCanvas(Canvas):
         Process a single character (single- and multi-byte).
         """
         x, y = self.term_cursor
+
+        if isinstance(char, int):
+            char = chr(char)
 
         if char == "\x1b" and self.parsestate != 2: # escape
             self.within_escape = True
@@ -1567,5 +1571,8 @@ class TerminalWidget(BoxWidget):
         # ENTER transmits both a carriage return and linefeed in LF/NL mode.
         if self.term_modes.lfnl and key == "\x0d":
             key += "\x0a"
+
+        if sys.version_info[0] >= 3:
+            key = bytes(key, 'ascii')
 
         os.write(self.master, key)
