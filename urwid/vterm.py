@@ -1291,7 +1291,7 @@ class TermCanvas(Canvas):
 class TerminalWidget(BoxWidget):
     signals = ['closed', 'beep', 'leds', 'title']
 
-    def __init__(self, command, event_loop=None, escape_sequence=None):
+    def __init__(self, command, env=None, event_loop=None, escape_sequence=None):
         """
         A terminal emulatur within a widget.
 
@@ -1299,6 +1299,9 @@ class TerminalWidget(BoxWidget):
         list of the command followed by its arguments.  If 'command' is None,
         the command is the current user's shell. You can also provide a callable
         instead of a command, which will be executed in the subprocess.
+
+        'env' can be used to pass custom environment variables. If omitted,
+        os.environ is used.
 
         'event_loop' should be provided, because the canvas state machine needs
         to act on input from the PTY master device.
@@ -1313,8 +1316,13 @@ class TerminalWidget(BoxWidget):
         else:
             self.escape_sequence = escape_sequence
 
+        if env is None:
+            self.env = dict(os.environ)
+        else:
+            self.env = dict(env)
+
         if command is None:
-            self.command = [os.getenv('SHELL')]
+            self.command = [self.env.get('SHELL', '/bin/sh')]
         else:
             self.command = command
 
@@ -1339,7 +1347,7 @@ class TerminalWidget(BoxWidget):
         self.terminated = False
 
     def spawn(self):
-        env = dict(os.environ)
+        env = self.env
         env['TERM'] = 'linux'
 
         self.pid, self.master = pty.fork()
