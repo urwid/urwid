@@ -1477,11 +1477,11 @@ class TerminalWidget(BoxWidget):
     def feed(self):
         try:
             data = os.read(self.master, 4096)
-        except OSError, e: # End Of File
-            if e[0] == 5:
+        except OSError, e:
+            if e.errno == 5: # End Of File
                 self.terminate()
                 self._emit('closed')
-            elif e[0] != 11:
+            elif e.errno != 11:
                 raise
             return
         self.term.addstr(data)
