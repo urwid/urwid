@@ -1015,12 +1015,16 @@ class TermCanvas(Canvas):
                 attributes.add('bold')
             elif attr == 4:
                 attributes.add('underline')
+            elif attr == 5:
+                attributes.add('blink')
             elif attr == 7:
                 attributes.add('standout')
 
             # unset attributes
             elif attr == 24:
                 attributes.discard('underline')
+            elif attr == 25:
+                attributes.discard('blink')
             elif attr == 27:
                 attributes.discard('standout')
             elif attr == 0:
@@ -1072,7 +1076,7 @@ class TermCanvas(Canvas):
                 bg = self.attrspec.background_number
                 if bg >= 8: bg -= 8
 
-            for attr in ('bold', 'underline', 'standout'):
+            for attr in ('bold', 'underline', 'blink', 'standout'):
                 if not getattr(self.attrspec, attr):
                     continue
 
@@ -1542,7 +1546,7 @@ class TerminalWidget(BoxWidget):
                 self._invalidate()
                 return
             elif (self.last_key == self.escape_sequence
-                and key != self.escape_sequence):
+                  and key != self.escape_sequence):
                 # hand down keypress directly after ungrab.
                 self.last_key = key
                 return key
