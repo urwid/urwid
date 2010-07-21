@@ -78,8 +78,9 @@ _HIGH_88_COLOR = 0x00100000
 _STANDOUT = 0x02000000
 _UNDERLINE = 0x04000000
 _BOLD = 0x08000000
+_BLINK = 0x10000000
 _FG_MASK = (_FG_COLOR_MASK | _FG_BASIC_COLOR | _FG_HIGH_COLOR |
-    _STANDOUT | _UNDERLINE | _BOLD)
+    _STANDOUT | _UNDERLINE | _BLINK | _BOLD)
 _BG_MASK = _BG_COLOR_MASK | _BG_BASIC_COLOR | _BG_HIGH_COLOR
 
 DEFAULT = 'default'
@@ -122,6 +123,7 @@ _BASIC_COLORS = [
 _ATTRIBUTES = {
     'bold': _BOLD,
     'underline': _UNDERLINE,
+    'blink': _BLINK,
     'standout': _STANDOUT,
 }
 
@@ -489,6 +491,7 @@ class AttrSpec(object):
         >> _BG_SHIFT)
     bold = property(lambda s: s._value & _BOLD != 0)
     underline = property(lambda s: s._value & _UNDERLINE != 0)
+    blink = property(lambda s: s._value & _BLINK != 0)
     standout = property(lambda s: s._value & _STANDOUT != 0)
 
     def _colors(self):
@@ -530,7 +533,7 @@ class AttrSpec(object):
     def _foreground(self):
         return (self._foreground_color() +
             ',bold' * self.bold + ',standout' * self.standout +
-            ',underline' * self.underline)
+            ',blink' * self.blink + ',underline' * self.underline)
 
     def _set_foreground(self, foreground):
         color = None

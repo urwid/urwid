@@ -100,7 +100,7 @@ class Screen(BaseScreen, RealTerminal):
         if bg_b: # can't do bold backgrounds
             raise Exception("%s is not a supported background colour"%background )
         assert (mono is None or 
-            mono in (None, 'bold', 'underline', 'standout') or
+            mono in (None, 'bold', 'underline', 'blink', 'standout') or
             type(mono)==tuple)
     
         for i in range(len(self.curses_pairs)):
@@ -229,6 +229,8 @@ class Screen(BaseScreen, RealTerminal):
             return curses.A_STANDOUT
         elif a == 'underline':
             return curses.A_UNDERLINE
+        elif a == 'blink':
+            return curses.A_BLINK
         else:
             return 0
                 
