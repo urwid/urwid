@@ -26,9 +26,6 @@ Terminal Escape Sequences for input and display
 
 import re
 
-import encodings
-utf8decode = lambda s: encodings.codecs.utf_8_decode(s)[0]
-
 try:
     from urwid import str_util
 except ImportError:
@@ -40,8 +37,11 @@ SO = "\x0e"
 SI = "\x0f"
 
 DEC_TAG = "0"
-DEC_SPECIAL_CHARS = utf8decode("◆▒°±┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥π≠£·")
-ALT_DEC_SPECIAL_CHARS = u"`afgjklmnopqrstuvwxyz{|}~"
+DEC_SPECIAL_CHARS = (u'\u25ae\u25c6\u2592\u2409\u240c\u240d\u240a\u00b0\u00b1'
+                    +u'\u2424\u240b\u2518\u2510\u250c\u2514\u253c\u23ba\u23bb'
+                    +u'\u2500\u23bc\u23bd\u251c\u2524\u2534\u252c\u2502\u2264'
+                    +u'\u2265\u03c0\u2260\u00a3\u00b7')
+ALT_DEC_SPECIAL_CHARS = u"_`abcdefghijklmnopqrstuvwxyz{|}~"
 
 DEC_SPECIAL_CHARMAP = {}
 assert len(DEC_SPECIAL_CHARS) == len(ALT_DEC_SPECIAL_CHARS), repr((DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS))

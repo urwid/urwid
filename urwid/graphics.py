@@ -26,7 +26,6 @@ from urwid.widget import WidgetMeta, BoxWidget, FlowWidget, FixedWidget, \
     nocache_widget_render, nocache_widget_render_instance, fixed_size, \
     WidgetWrap, Divider, SolidFill, Text
 from urwid.container import Pile, Columns
-from urwid.escape import utf8decode
 from urwid.display_common import AttrSpec
 from urwid.decoration import WidgetDecoration, AttrWrap
 
@@ -92,13 +91,13 @@ class BigText(FixedWidget):
         
 
 class LineBox(WidgetDecoration, WidgetWrap):
-    ACS_HLINE = utf8decode("─")
-    ACS_VLINE = utf8decode("│")
+    ACS_HLINE = u'\u2500'
+    ACS_VLINE = u'\u2502'
 
-    ACS_ULCORNER = utf8decode("┌")
-    ACS_URCORNER = utf8decode("┐")
-    ACS_LLCORNER = utf8decode("└")
-    ACS_LRCORNER = utf8decode("┘")
+    ACS_ULCORNER = u'\u250c'
+    ACS_URCORNER = u'\u2510'
+    ACS_LLCORNER = u'\u2514'
+    ACS_LRCORNER = u'\u2518'
 
     def __init__(self, original_widget, title="",
                  tlcorner=None, tline=None, lline=None,
@@ -198,9 +197,9 @@ class BarGraph(BoxWidget):
     __metaclass__ = BarGraphMeta
     ignore_focus = True
 
-    eighths = utf8decode(" ▁▂▃▄▅▆▇")
-    hlines =  utf8decode("_⎺⎻─⎼⎽")
-    
+    eighths = u' \u2581\u2582\u2583\u2584\u2585\u2586\u2587'
+    hlines  = u'_\u23ba\u23bb\u2500\u23bc\u23bd'
+
     def __init__(self, attlist, hatt=None, satt=None):
         """
         Create a bar graph with the passed display characteristics.
@@ -790,7 +789,7 @@ def scale_bar_values( bar, top, maxrow ):
 
 
 class ProgressBar( FlowWidget ):
-    eighths = utf8decode(" ▏▎▍▌▋▊▉")
+    eighths = u' \u2581\u2582\u2583\u2584\u2585\u2586\u2587'
     def __init__(self, normal, complete, current=0, done=100, satt=None):
         """
         normal -- attribute for uncomplete part of progress bar
