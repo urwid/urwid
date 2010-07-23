@@ -35,6 +35,8 @@ within_double_byte = str_util.within_double_byte
 
 SO = "\x0e"
 SI = "\x0f"
+IBMPC_ON = "\x1b[11m"
+IBMPC_OFF = "\x1b[10m"
 
 DEC_TAG = "0"
 DEC_SPECIAL_CHARS = (u'\u25ae\u25c6\u2592\u2409\u240c\u240d\u240a\u00b0\u00b1'

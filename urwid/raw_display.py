@@ -631,9 +631,14 @@ class Screen(BaseScreen, RealTerminal):
                     o.append(attr_to_escape(a))
                     lasta = a
                 if first or lastcs != cs:
-                    assert cs in [None, "0"], repr(cs)
+                    assert cs in [None, "0", "U"], repr(cs)
+                    if lastcs == "U":
+                        o.append( escape.IBMPC_OFF )
+
                     if cs is None:
                         o.append( escape.SI )
+                    elif cs == "U":
+                        o.append( escape.IBMPC_ON )
                     else:
                         o.append( escape.SO )
                     lastcs = cs
@@ -642,15 +647,20 @@ class Screen(BaseScreen, RealTerminal):
             if ins:
                 (inserta, insertcs, inserttext) = ins
                 ias = attr_to_escape(inserta)
-                assert insertcs in [None, "0"], repr(insertcs)
+                assert insertcs in [None, "0", "U"], repr(insertcs)
                 if cs is None:
                     icss = escape.SI
+                elif cs == "U":
+                    icss = escape.IBMPC_ON
                 else:
                     icss = escape.SO
                 o += [    "\x08"*back, 
                     ias, icss,
                     escape.INSERT_ON, inserttext,
                     escape.INSERT_OFF ]
+
+                if cs == "U":
+                    o.append(escape.IBMPC_OFF)
 
         if r.cursor is not None:
             x,y = r.cursor
