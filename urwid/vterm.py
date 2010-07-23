@@ -32,6 +32,7 @@ import atexit
 import termios
 
 from urwid import util
+from urwid.escape import DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS
 from urwid.canvas import Canvas
 from urwid.widget import BoxWidget
 from urwid.command_map import command_map
@@ -133,6 +134,7 @@ class TermModes(object):
 
     def reset(self):
         # ECMA-48
+        self.display_ctrl = False
         self.insert = False
         self.lfnl = False
 
@@ -150,7 +152,7 @@ class TermCharset(object):
     MAPPING = {
         'default': None,
         'vt100':   '0',
-        'ibmpc':   None,
+        'ibmpc':   'U',
         'user':    None,
     }
 
@@ -193,9 +195,13 @@ class TermCharset(object):
 
     def apply_mapping(self, char):
         if self._sgr_mapping or self._g[self.active] == 'ibmpc':
-            char, attr = util.apply_target_encoding(char.decode('cp437'))
-            self.current = attr[0][0]
-            return char
+            dec_pos = DEC_SPECIAL_CHARS.find(char.decode('cp437'))
+            if dec_pos >= 0:
+                self.current = '0'
+                return str(ALT_DEC_SPECIAL_CHARS[dec_pos])
+            else:
+                self.current = 'U'
+                return char
         else:
             return char
 
@@ -628,34 +634,36 @@ class TermCanvas(Canvas):
         if isinstance(char, int):
             char = chr(char)
 
+        dc = self.modes.display_ctrl
+
         if char == "\x1b" and self.parsestate != 2: # escape
             self.within_escape = True
-        elif char == "\x0d": # carriage return
+        elif not dc and char == "\x0d": # carriage return
             self.carriage_return()
-        elif char == "\x0f": # activate G0
+        elif not dc and char == "\x0f": # activate G0
             self.charset.activate(0)
-        elif char == "\x0e": # activate G1
+        elif not dc and char == "\x0e": # activate G1
             self.charset.activate(1)
-        elif char in "\x0a\x0b\x0c": # line feed
+        elif not dc and char in "\x0a\x0b\x0c": # line feed
             self.linefeed()
             if self.modes.lfnl:
                 self.carriage_return()
-        elif char == "\x09": # char tab
+        elif not dc and char == "\x09": # char tab
             self.tab()
-        elif char == "\x08": # backspace
+        elif not dc and char == "\x08": # backspace
             if x > 0:
                 self.set_term_cursor(x - 1, y)
-        elif char == "\x07" and self.parsestate != 2: # beep
+        elif not dc and char == "\x07" and self.parsestate != 2: # beep
             # we need to check if we're in parsestate 2, as an OSC can be
             # terminated by the BEL character!
             self.widget.beep()
-        elif char in "\x18\x1a": # CAN/SUB
+        elif not dc and char in "\x18\x1a": # CAN/SUB
             self.leave_escape()
-        elif char == "\x7f": # DEL
+        elif not dc and char == "\x7f": # DEL
             pass # this is ignored
         elif self.within_escape:
             self.parse_escape(char)
-        elif char == "\x9b": # CSI (equivalent to "ESC [")
+        elif not dc and char == "\x9b": # CSI (equivalent to "ESC [")
             self.within_escape = True
             self.escbuf = ''
             self.parsestate = 1
@@ -1007,8 +1015,10 @@ class TermCanvas(Canvas):
                 bg = None
             elif attr == 10:
                 self.charset.reset_sgr_ibmpc()
+                self.modes.display_ctrl = False
             elif attr in (11, 12):
                 self.charset.set_sgr_ibmpc()
+                self.modes.display_ctrl = True
 
             # set attributes
             elif attr == 1:
@@ -1141,7 +1151,9 @@ class TermCanvas(Canvas):
                 self.set_term_cursor()
         else:
             # ECMA-48
-            if mode == 4:
+            if mode == 3:
+                self.modes.display_ctrl = flag
+            elif mode == 4:
                 self.modes.insert = flag
             elif mode == 20:
                 self.modes.lfnl = flag

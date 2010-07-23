@@ -280,6 +280,7 @@ class TermTest(unittest.TestCase):
         self.expect('')
 
     def test_encoding_vt100_graphics(self):
+        vterm.util._target_encoding = 'ascii'
         self.write('\e)0\e(0\x0fg\x0eg\e)Bn\e)0g\e)B\e(B\x0fn')
         self.expect([[
             (None, '0', 'g'), (None, '0', 'g'),
@@ -288,10 +289,19 @@ class TermTest(unittest.TestCase):
         ]], raw=True)
 
     def test_ibmpc_mapping(self):
-        self.write('\e[11m\xc4\e[10m\xc4')
-        self.expect('q\xc4')
-        self.write('\ec\e)U\x0e\xc4\x0f\xc4')
-        self.expect('q\xc4')
+        vterm.util._target_encoding = 'ascii'
+
+        self.write('\e[11m\x18\e[10m\x18')
+        self.expect([[(None, 'U', '\x18')]], raw=True)
+
+        self.write('\ec\e)U\x0e\x18\x0f\e[3h\x18\e[3l\x18')
+        self.expect([[(None, None, '\x18')]], raw=True)
+
+        self.write('\ec\e[11m\xdb\x18\e[10m\xdb')
+        self.expect([[
+            (None, 'U', '\xdb'), (None, 'U', '\x18'),
+            (None, None, '\xdb')
+        ]], raw=True)
 
     def test_set_title(self):
         self._the_title = None
