@@ -626,7 +626,9 @@ class Screen(BaseScreen, RealTerminal):
             first = True
             lasta = lastcs = None
             for (a,cs, run) in row:
-                run = run.translate( _trans_table )
+                if cs != 'U':
+                    run = run.translate( _trans_table )
+
                 if first or lasta != a:
                     o.append(attr_to_escape(a))
                     lasta = a

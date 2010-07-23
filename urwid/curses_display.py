@@ -498,7 +498,9 @@ class Screen(BaseScreen, RealTerminal):
             lasta = None
             nr = 0
             for a, cs, seg in row:
-                seg = seg.translate( _trans_table )
+                if cs != 'U':
+                    seg = seg.translate( _trans_table )
+
                 if first or lasta != a:
                     self._setattr(a)
                     lasta = a
