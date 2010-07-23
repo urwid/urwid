@@ -91,26 +91,57 @@ class BigText(FixedWidget):
         
 
 class LineBox(WidgetDecoration, WidgetWrap):
-    def __init__(self, original_widget):
-        """Draw a line around original_widget."""
-        
-        tlcorner=None; tline=None; lline=None
-        trcorner=None; blcorner=None; rline=None
-        bline=None; brcorner=None
-        
+    ACS_HLINE = u"─"
+    ACS_VLINE = u"│"
+
+    ACS_ULCORNER = u"┌"
+    ACS_URCORNER = u"┐"
+    ACS_LLCORNER = u"└"
+    ACS_LRCORNER = u"┘"
+
+    def __init__(self, original_widget, title="",
+                 tlcorner=None, tline=None, lline=None,
+                 trcorner=None, blcorner=None, rline=None,
+                 bline=None, brcorner=None):
+        """
+        Draw a line around original_widget.
+
+        Use 'title' to set an initial title text with will be centered
+        on top of the box.
+
+        You can also override the widgets used for the lines/corners:
+            tline: top line
+            bline: bottom line
+            lline: left line
+            rline: right line
+            tlcorner: top left corner
+            trcorner: top right corner
+            blcorner: bottom left corner
+            brcorner: bottom right corner
+        """
+        self.title_widget = Text(self.format_title(title))
+
         def use_attr( a, t ):
             if a is not None:
                 t = AttrWrap(t, a)
-            return t
-            
-        tline = use_attr( tline, Divider(u"─"))
-        bline = use_attr( bline, Divider(u"─"))
-        lline = use_attr( lline, SolidFill(u"│"))
-        rline = use_attr( rline, SolidFill(u"│"))
-        tlcorner = use_attr( tlcorner, Text(u"┌"))
-        trcorner = use_attr( trcorner, Text(u"┐"))
-        blcorner = use_attr( blcorner, Text(u"└"))
-        brcorner = use_attr( brcorner, Text(u"┘"))
+                return t
+            else:
+                return t
+
+        self.tline_widget = Columns([
+            Divider(self.ACS_HLINE),
+            ('flow', self.title_widget),
+            Divider(self.ACS_HLINE),
+        ])
+
+        tline = use_attr( tline, self.tline_widget)
+        bline = use_attr( bline, Divider(self.ACS_HLINE))
+        lline = use_attr( lline, SolidFill(self.ACS_VLINE))
+        rline = use_attr( rline, SolidFill(self.ACS_VLINE))
+        tlcorner = use_attr( tlcorner, Text(self.ACS_ULCORNER))
+        trcorner = use_attr( trcorner, Text(self.ACS_URCORNER))
+        blcorner = use_attr( blcorner, Text(self.ACS_LLCORNER))
+        brcorner = use_attr( brcorner, Text(self.ACS_LRCORNER))
         top = Columns([ ('fixed', 1, tlcorner),
             tline, ('fixed', 1, trcorner) ])
         middle = Columns( [('fixed', 1, lline),
@@ -120,10 +151,19 @@ class LineBox(WidgetDecoration, WidgetWrap):
             bline, ('fixed', 1, brcorner) ])
         pile = Pile([('flow',top),middle,('flow',bottom)],
             focus_item = 1)
-        
+
         WidgetDecoration.__init__(self, original_widget)
         WidgetWrap.__init__(self, pile)
 
+    def format_title(self, text):
+        if len(text) > 0:
+            return " %s " % text
+        else:
+            return ""
+
+    def set_title(self, text):
+        self.title_widget.set_text(self.format_title(text))
+        self.tline_widget._invalidate()
 
 class BarGraphMeta(WidgetMeta):
     """

@@ -1012,16 +1012,18 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         dividechars -- blank characters between columns
         focus_column -- index into widget_list of column in focus,
             if None the first selectable widget will be chosen.
-        min_width -- minimum width for each column before it is hidden
+        min_width -- minimum width for each column which is not
+            designated as flow widget in widget_list.
         box_columns -- a list of column indexes containing box widgets
-            whose maxrow is set to the maximum of the rows 
+            whose maxrow is set to the maximum of the rows
             required by columns not listed in box_columns.
 
         widget_list may also contain tuples such as:
+        ('flow', widget) always treat widget as a flow widget
         ('fixed', width, widget) give this column a fixed width
         ('weight', weight, widget) give this column a relative weight
 
-        widgets not in a tuple are the same as ('weight', 1, widget)    
+        widgets not in a tuple are the same as ('weight', 1, widget)
 
         box_columns is ignored when this widget is being used as a
         box widget because in that case all columns are treated as box
@@ -1030,10 +1032,17 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         self.__super.__init__()
         self.widget_list = MonitoredList(widget_list)
         self.column_types = []
+        self.has_flow_type = False
         for i in range(len(widget_list)):
             w = widget_list[i]
             if type(w) != tuple:
                 self.column_types.append(('weight',1))
+            elif w[0] == 'flow':
+                f, widget = w
+                self.widget_list[i] = widget
+                self.column_types.append((f,None))
+                self.has_flow_type = True
+                w = widget
             elif w[0] in ('fixed', 'weight'):
                 f,width,widget = w
                 self.widget_list[i] = widget
@@ -1084,14 +1093,14 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         """Return the widget in focus."""
         return self.widget_list[self.focus_col]
 
-    def column_widths( self, size ):
+    def column_widths( self, size, focus=False ):
         """Return a list of column widths.
 
         size -- (maxcol,) if self.widget_list contains flow widgets or
             (maxcol, maxrow) if it contains box widgets.
         """
         maxcol = size[0]
-        if maxcol == self._cache_maxcol:
+        if maxcol == self._cache_maxcol and not self.has_flow_type:
             return self._cache_column_widths
 
         col_types = self.column_types
@@ -1110,15 +1119,17 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         for t, width in col_types:
             if t == 'fixed':
                 static_w = width
+            elif t == 'flow':
+                static_w = self.widget_list[i].pack((maxcol,), focus)[0]
             else:
                 static_w = self.min_width
                 
             if shared < static_w + self.dividechars:
                 break
         
-            widths.append( static_w )    
+            widths.append( static_w )
             shared -= static_w + self.dividechars
-            if t != 'fixed':
+            if t not in ('fixed', 'flow'):
                 weighted.append( (width,i) )
         
             i += 1
@@ -1145,7 +1156,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         size -- (maxcol,) if self.widget_list contains flow widgets or
             (maxcol, maxrow) if it contains box widgets.
         """
-        widths = self.column_widths( size )
+        widths = self.column_widths( size, focus )
         if not widths:
             return SolidCanvas(" ", size[0], (size[1:]+(1,))[0])
         
@@ -1165,6 +1176,11 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         l = []
         for i in range(len(widths)):
             mc = widths[i]
+
+            # if the widget has a width of 0, hide it
+            if mc <= 0:
+                continue
+
             w = self.widget_list[i]
             if box_maxrow and i in self.box_columns:
                 sub_size = (mc, box_maxrow)
@@ -1303,7 +1319,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
     def rows(self, size, focus=0 ):
         """Return the number of rows required by the columns.
         Only makes sense if self.widget_list contains flow widgets."""
-        widths = self.column_widths(size)
+        widths = self.column_widths(size, focus)
     
         rows = 1
         for i in range(len(widths)):

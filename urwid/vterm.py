@@ -24,13 +24,16 @@ import pty
 import time
 import copy
 import fcntl
+import select
 import struct
 import signal
 import atexit
 import termios
 
+from urwid import util
 from urwid.canvas import Canvas
 from urwid.widget import BoxWidget
+from urwid.command_map import command_map
 from urwid.display_common import AttrSpec, RealTerminal, _BASIC_COLORS
 
 ESC = chr(27)
@@ -45,6 +48,8 @@ KEY_TRANSLATIONS = {
     'right':     ESC + '[C',
     'left':      ESC + '[D',
     'home':      ESC + '[1~',
+    'insert':    ESC + '[2~',
+    'delete':    ESC + '[3~',
     'end':       ESC + '[4~',
     'page up':   ESC + '[5~',
     'page down': ESC + '[6~',
@@ -61,6 +66,18 @@ KEY_TRANSLATIONS = {
     'f10':       ESC + '[21~',
     'f11':       ESC + '[23~',
     'f12':       ESC + '[24~',
+}
+
+KEY_TRANSLATIONS_DECCKM = {
+    'up':        ESC + 'OA',
+    'down':      ESC + 'OB',
+    'right':     ESC + 'OC',
+    'left':      ESC + 'OD',
+    'f1':        ESC + 'OP',
+    'f2':        ESC + 'OQ',
+    'f3':        ESC + 'OR',
+    'f4':        ESC + 'OS',
+    'f5':        ESC + '[15~',
 }
 
 CSI_COMMANDS = {
@@ -106,6 +123,9 @@ CSI_COMMANDS = {
     '`': ('alias', 'G'),
 }
 
+CHARSET_DEFAULT = 1
+CHARSET_UTF8 = 2
+
 class TermModes(object):
     def __init__(self):
         self.reset()
@@ -116,10 +136,90 @@ class TermModes(object):
         self.lfnl = False
 
         # DEC private modes
+        self.keys_decckm = False
         self.reverse_video = False
         self.constrain_scrolling = False
         self.autowrap = True
         self.visible_cursor = True
+
+        # charset stuff
+        self.main_charset = CHARSET_DEFAULT
+
+class TermCharset(object):
+    MAPPING = {
+        'default': None,
+        'vt100':   '0',
+        'ibmpc':   None,
+        'user':    None,
+    }
+
+    def __init__(self):
+        self._g = [
+            'default',
+            'vt100',
+        ]
+
+        self._sgr_mapping = False
+
+        self.activate(0)
+
+    def define(self, g, charset):
+        """
+        Redefine G'g' with new mapping.
+        """
+        self._g[g] = charset
+        self.activate(g=self.active)
+
+    def activate(self, g):
+        """
+        Activate the given charset slot.
+        """
+        self.active = g
+        self.current = self.MAPPING.get(self._g[g], None)
+
+    def set_sgr_ibmpc(self):
+        """
+        Set graphics rendition mapping to IBM PC CP437.
+        """
+        self._sgr_mapping = True
+
+    def reset_sgr_ibmpc(self):
+        """
+        Reset graphics rendition mapping to IBM PC CP437.
+        """
+        self._sgr_mapping = False
+        self.activate(g=self.active)
+
+    def apply_mapping(self, char):
+        if self._sgr_mapping or self._g[self.active] == 'ibmpc':
+            char, attr = util.apply_target_encoding(char.decode('cp437'))
+            self.current = attr[0][0]
+            return char
+        else:
+            return char
+
+class TermScroller(list):
+    """
+    List subclass that handles the terminal scrollback buffer,
+    truncating it as necessary.
+    """
+    SCROLLBACK_LINES = 10000
+
+    def trunc(self):
+        if len(self) >= self.SCROLLBACK_LINES:
+            self.pop(0)
+
+    def append(self, obj):
+        self.trunc()
+        super(TermScroller, self).append(obj)
+
+    def insert(self, idx, obj):
+        self.trunc()
+        super(TermScroller, self).insert(idx, obj)
+
+    def extend(self, seq):
+        self.trunc()
+        super(TermScroller, self).extend(seq)
 
 class TermCanvas(Canvas):
     cacheable = False
@@ -131,7 +231,11 @@ class TermCanvas(Canvas):
         self.widget = widget
         self.modes = widget.term_modes
 
-        self.scrollback_buffer = []
+        self.scrollback_buffer = TermScroller()
+        self.scrolling_up = 0
+
+        self.utf8_eat_bytes = None
+        self.utf8_buffer = ""
 
         self.coords["cursor"] = (0, 0, None)
 
@@ -146,17 +250,57 @@ class TermCanvas(Canvas):
                 assert isinstance(char, bytes)
 
     def set_term_cursor(self, x=None, y=None):
+        """
+        Set terminal cursor to x/y and update canvas cursor. If one or both axes
+        are omitted, use the values of the current position.
+        """
         if x is None:
             x = self.term_cursor[0]
         if y is None:
             y = self.term_cursor[1]
 
-        self.term_cursor = (x, y)
+        self.term_cursor = self.constrain_coords(x, y)
 
-        if self.modes.visible_cursor:
-            self.cursor = (x, y)
+        if self.modes.visible_cursor and self.scrolling_up < self.height - y:
+            self.cursor = (x, y + self.scrolling_up)
         else:
             self.cursor = None
+
+    def reset_scroll(self):
+        """
+        Reset scrolling region to full terminal size.
+        """
+        self.scrollregion_start = 0
+        self.scrollregion_end = self.height - 1
+
+    def scroll_buffer(self, up=True, reset=False, lines=None):
+        """
+        Scroll the scrolling buffer up (up=True) or down (up=False) the given
+        amount of lines or half the screen height.
+
+        If just 'reset' is True, set the scrollbuffer view to the current
+        terminal content.
+        """
+        if reset:
+            self.scrolling_up = 0
+            self.set_term_cursor()
+            return
+
+        if lines is None:
+            lines = self.height // 2
+
+        if not up:
+            lines = -lines
+
+        maxscroll = len(self.scrollback_buffer)
+        self.scrolling_up += lines
+
+        if self.scrolling_up > maxscroll:
+            self.scrolling_up = maxscroll
+        elif self.scrolling_up < 0:
+            self.scrolling_up = 0
+
+        self.set_term_cursor()
 
     def reset(self):
         """
@@ -165,15 +309,16 @@ class TermCanvas(Canvas):
         self.escbuf = ''
         self.within_escape = False
         self.parsestate = 0
+
         self.attrspec = None
+        self.charset = TermCharset()
 
         self.saved_cursor = None
         self.saved_attrs = None
 
         self.is_rotten_cursor = False
 
-        self.scrollregion_start = 0
-        self.scrollregion_end = self.height - 1
+        self.reset_scroll()
 
         self.init_tabstops()
 
@@ -219,50 +364,97 @@ class TermCanvas(Canvas):
 
     def empty_line(self, char=b' '):
         return [self.empty_char(char)] * self.width
-    
     def empty_char(self, char=b' '):
-        return (self.attrspec, None, char)
+        return (self.attrspec, self.charset.current, char)
 
     def addstr(self, data):
-        self.verify()
-        x, y = self.term_cursor
-        for char in data:
-            self.verify()
-            self.addch(char)
-            self.verify()
+        if self.width <= 0 or self.height <= 0:
+            # not displayable, do nothing!
+            return
+
+        for byte in data:
+            self.addbyte(byte)
 
     def resize(self, width, height):
+        """
+        Resize the terminal to the given width and height.
+        """
+        x, y = self.term_cursor
+
         if width > self.width:
+            # grow
             for y in xrange(self.height):
                 self.term[y] += [self.empty_char()] * (width - self.width)
         elif width < self.width:
+            # shrink
             for y in xrange(self.height):
                 self.term[y] = self.term[y][:width]
 
         self.width = width
 
         if height > self.height:
-            for y in xrange(height - self.height):
-                self.term.append(self.empty_line())
+            # grow
+            for y in xrange(self.height, height):
+                try:
+                    last_line = self.scrollback_buffer.pop()
+                except IndexError:
+                    # nothing in scrollback buffer, append an empty line
+                    self.term.append(self.empty_line())
+                    self.scrollregion_end += 1
+                    continue
+
+                # adjust x axis of scrollback buffer to the current width
+                if len(last_line) < self.width:
+                    last_line += [self.empty_char()] * \
+                                 (self.width - len(last_line))
+                else:
+                    last_line = last_line[:self.width]
+
+                y += 1
+
+                self.term.insert(0, last_line)
         elif height < self.height:
-            for y in xrange(self.height - height):
-                self.term.pop(0)
+            # shrink
+            for y in xrange(height, self.height):
+                self.scrollback_buffer.append(self.term.pop(0))
 
         self.height = height
 
-        x, y = self.constrain_coords(*self.term_cursor)
-        self.set_term_cursor(x, y)
+        self.reset_scroll()
 
-        # adjust scrolling region
-        self.scrollregion_end = min(self.scrollregion_end,
-                                    height - 1)
-        self.scrollregion_start = min(self.scrollregion_start,
-                                      self.scrollregion_end - 1)
+        x, y = self.constrain_coords(x, y)
+        self.set_term_cursor(x, y)
 
         # extend tabs
         self.init_tabstops(extend=True)
 
+    def set_g01(self, char, mod):
+        """
+        Set G0 or G1 according to 'char' and modifier 'mod'.
+        """
+        if self.modes.main_charset != CHARSET_DEFAULT:
+            return
+
+        if mod == '(':
+            g = 0
+        else:
+            g = 1
+
+        if char == '0':
+            cset = 'vt100'
+        elif char == 'U':
+            cset = 'ibmpc'
+        elif char == 'K':
+            cset = 'user'
+        else:
+            cset = 'default'
+
+        self.charset.define(g, cset)
+
     def parse_csi(self, char):
+        """
+        Parse ECMA-48 CSI (Control Sequence Introducer) sequences.
+        """
         qmark = self.escbuf.startswith('?')
 
         escbuf = []
@@ -284,21 +476,33 @@ class TermCanvas(Canvas):
             while len(escbuf) < number_of_args:
                 escbuf.append(default_value)
             for i in xrange(len(escbuf)):
-                if escbuf[i] is None:
+                if escbuf[i] is None or escbuf[i] == 0:
                     escbuf[i] = default_value
             try:
                 cmd(self, qmark, *escbuf)
-            except TypeError as orig:
-                msg = 'Command for character {0} did not accept {1:d} arguments'
-                msg = msg.format(char, 2 + len(escbuf))
-                msg += '\n' + orig.message
-                raise TypeError(msg)
+            except ValueError:
+                # ignore commands that don't match the
+                # unpacked tuples in CSI_COMMANDS.
+                pass
 
     def parse_noncsi(self, char, mod=None):
+        """
+        Parse escape sequences which are not CSI.
+        """
         if mod == '#' and char == '8':
             self.decaln()
+        elif mod == '%': # select main character set
+            if char == '@':
+                self.modes.main_charset = CHARSET_DEFAULT
+            elif char in 'G8':
+                # 8 is obsolete and only for backwards compatibility
+                self.modes.main_charset = CHARSET_UTF8
+        elif mod == '(' or mod == ')': # define G0/G1
+            self.set_g01(char, mod)
         elif char == 'M': # reverse line feed
             self.linefeed(reverse=True)
+        elif char == 'D': # line feed
+            self.linefeed()
         elif char == 'c': # reset terminal
             self.reset()
         elif char == 'E': # newline
@@ -312,6 +516,15 @@ class TermCanvas(Canvas):
         elif char == '8': # restore current state
             self.restore_cursor(with_attrs=True)
 
+    def parse_osc(self, buf):
+        """
+        Parse operating system command.
+        """
+        if buf.startswith(';'): # set window title and icon
+            self.widget.set_title(buf[1:])
+        elif buf.startswith('3;'): # set window title
+            self.widget.set_title(buf[2:])
+
     def parse_escape(self, char):
         if self.parsestate == 1:
             # within CSI
@@ -321,6 +534,27 @@ class TermCanvas(Canvas):
             elif char in '0123456789;' or (self.escbuf == '' and char == '?'):
                 self.escbuf += char
                 return
+        elif self.parsestate == 0 and char == ']':
+            # start of OSC
+            self.escbuf = ''
+            self.parsestate = 2
+            return
+        elif self.parsestate == 2 and char == "\x07":
+            # end of OSC
+            self.parse_osc(self.escbuf.lstrip('0'))
+        elif self.parsestate == 2 and self.escbuf[-1:] + char == ESC + '\\':
+            # end of OSC
+            self.parse_osc(self.escbuf[:-1].lstrip('0'))
+        elif self.parsestate == 2 and self.escbuf.startswith('P') and \
+             len(self.escbuf) == 8:
+            # set palette (ESC]Pnrrggbb)
+            pass
+        elif self.parsestate == 2 and self.escbuf == '' and char == 'R':
+            # reset palette
+            pass
+        elif self.parsestate == 2:
+            self.escbuf += char
+            return
         elif self.parsestate == 0 and char == '[':
             # start of CSI
             self.escbuf = ''
@@ -343,39 +577,87 @@ class TermCanvas(Canvas):
         self.parsestate = 0
         self.escbuf = ''
 
-    def addch(self, char):
+    def get_utf8_len(self, startbyte):
         """
-        Add a single character to the terminal state machine.
+        Process startbyte and return the number of bytes following it to get a
+        valid UTF-8 multibyte sequence.
+        """
+        bytenum = ord(startbyte)
+        length = 0
+
+        while bytenum & 0x40:
+            bytenum <<= 1
+            length += 1
+
+        return length
+
+    def addbyte(self, byte):
+        """
+        Parse main charset and add the processed byte(s) to the terminal state
+        machine.
+        """
+        if (self.modes.main_charset == CHARSET_UTF8 or
+            util._target_encoding == 'utf8'):
+            if byte >= "\xc0":
+                # start multibyte sequence
+                self.utf8_eat_bytes = self.get_utf8_len(byte)
+                self.utf8_buffer = byte
+                return
+            elif "\x80" <= byte < "\xc0" and self.utf8_eat_bytes is not None:
+                if self.utf8_eat_bytes > 1:
+                    # continue multibyte sequence
+                    self.utf8_eat_bytes -= 1
+                    self.utf8_buffer += byte
+                    return
+                else:
+                    # end multibyte sequence
+                    self.utf8_eat_bytes = None
+                    sequence = (self.utf8_buffer+byte).decode('utf-8', 'ignore')
+                    if len(sequence) == 0:
+                        # invalid multibyte sequence, stop processing
+                        return
+                    char = sequence.encode(util._target_encoding, 'replace')
+            else:
+                self.utf8_eat_bytes = None
+                char = byte
+        else:
+            char = byte
+
+        self.process_char(char)
+
+    def process_char(self, char):
+        """
+        Process a single character (single- and multi-byte).
         """
         x, y = self.term_cursor
-        
-        if char == chr(27): # escape
+        if char == "\x1b" and self.parsestate != 2: # escape
             self.within_escape = True
-        elif char == chr(13): # carriage return
+        elif char == "\x0d": # carriage return
             self.carriage_return()
-        elif char in (chr(10), chr(11), chr(12)): # line feed
+        elif char == "\x0f": # activate G0
+            self.charset.activate(0)
+        elif char == "\x0e": # activate G1
+            self.charset.activate(1)
+        elif char in "\x0a\x0b\x0c": # line feed
             self.linefeed()
             if self.modes.lfnl:
                 self.carriage_return()
-        elif char == chr(12): # form feed
-            self.clear()
-        elif char == chr(9): # char tab
+        elif char == "\x09": # char tab
             self.tab()
-        elif char == chr(8): # backspace
+        elif char == "\x08": # backspace
             if x > 0:
                 self.set_term_cursor(x - 1, y)
-        elif char == chr(11): # line tab
-            if y > 0:
-                self.set_term_cursor(x, y - 1)
-        elif char == chr(7): # beep
+        elif char == "\x07" and self.parsestate != 2: # beep
+            # we need to check if we're in parsestate 2, as an OSC can be
+            # terminated by the BEL character!
             self.widget.beep()
-        elif char in (chr(24), chr(26)): # CAN/SUB
+        elif char in "\x18\x1a": # CAN/SUB
             self.leave_escape()
-        elif char == chr(127): # DEL
+        elif char == "\x7f": # DEL
             pass # this is ignored
         elif self.within_escape:
             self.parse_escape(char)
-        elif char == chr(155): # CSI (equivalent to "ESC [")
+        elif char == "\x9b": # CSI (equivalent to "ESC [")
             self.within_escape = True
             self.escbuf = ''
             self.parsestate = 1
@@ -398,18 +680,20 @@ class TermCanvas(Canvas):
             y = self.term_cursor[1]
 
         x, y = self.constrain_coords(x, y)
-        self.term[y][x] = (self.attrspec, None, char)
+        self.term[y][x] = (self.attrspec, self.charset.current, char)
 
-    def constrain_coords(self, x, y):
+    def constrain_coords(self, x, y, ignore_scrolling=False):
         """
         Checks if x/y are within the terminal and returns the corrected version.
+        If 'ignore_scrolling' is set, constrain within the full size of the
+        screen and not within scrolling region.
         """
         if x >= self.width:
             x = self.width - 1
         elif x < 0:
             x = 0
 
-        if self.modes.constrain_scrolling:
+        if self.modes.constrain_scrolling and not ignore_scrolling:
             if y > self.scrollregion_end:
                 y = self.scrollregion_end
             elif y < self.scrollregion_start:
@@ -430,12 +714,16 @@ class TermCanvas(Canvas):
         x, y = self.term_cursor
 
         if reverse:
-            if y <= self.scrollregion_start:
+            if y <= 0 < self.scrollregion_start:
+                pass
+            elif y == self.scrollregion_start:
                 self.scroll(reverse=True)
             else:
                 y -= 1
         else:
-            if y >= self.scrollregion_end:
+            if y >= self.height - 1 > self.scrollregion_end:
+                pass
+            elif y == self.scrollregion_end:
                 self.scroll()
             else:
                 y += 1
@@ -465,18 +753,20 @@ class TermCanvas(Canvas):
 
         if relative_x:
             x = self.term_cursor[0] + x
+
         if relative_y:
             y = self.term_cursor[1] + y
-
-        x, y = self.constrain_coords(x, y)
+        elif self.modes.constrain_scrolling:
+            y += self.scrollregion_start
 
         self.set_term_cursor(x, y)
 
-    def push_char(self, char, x, y, advance=True):
+    def push_char(self, char, x, y):
         """
         Push one character to current position and advance cursor to x/y.
         """
         if char is not None:
+            char = self.charset.apply_mapping(char)
             if self.modes.insert:
                 self.insert_chars(char=char)
             else:
@@ -491,43 +781,52 @@ class TermCanvas(Canvas):
         """
         x, y = self.term_cursor
 
-        if x + 1 >= self.width and not self.is_rotten_cursor:
-            # "rotten cursor" - this is when the cursor gets to the rightmost
-            # position of the screen, the cursor position remains the same but
-            # one last set_char() is allowed for that piece of sh^H^H"border".
-            self.is_rotten_cursor = True
-            self.push_char(char, x, y)
-        else:
-            x += 1
+        if self.modes.autowrap:
+            if x + 1 >= self.width and not self.is_rotten_cursor:
+                # "rotten cursor" - this is when the cursor gets to the rightmost
+                # position of the screen, the cursor position remains the same but
+                # one last set_char() is allowed for that piece of sh^H^H"border".
+                self.is_rotten_cursor = True
+                self.push_char(char, x, y)
+            else:
+                x += 1
 
-            if x >= self.width and self.is_rotten_cursor:
-                if self.modes.autowrap:
+                if x >= self.width and self.is_rotten_cursor:
                     if y >= self.scrollregion_end:
                         self.scroll()
                     else:
                         y += 1
 
-                x = 1
-                self.set_term_cursor(0, y)
+                    x = 1
 
-            self.push_char(char, x, y)
+                    self.set_term_cursor(0, y)
+
+                self.push_char(char, x, y)
+
+                self.is_rotten_cursor = False
+        else:
+            if x + 1 < self.width:
+                x += 1
 
             self.is_rotten_cursor = False
+            self.push_char(char, x, y)
 
     def save_cursor(self, with_attrs=False):
         self.saved_cursor = tuple(self.term_cursor)
         if with_attrs:
-            self.saved_attrs = copy.copy(self.attrspec)
+            self.saved_attrs = (copy.copy(self.attrspec),
+                                copy.copy(self.charset))
 
     def restore_cursor(self, with_attrs=False):
         if self.saved_cursor is None:
             return
 
         x, y = self.saved_cursor
-        self.set_term_cursor(*self.constrain_coords(x, y))
+        self.set_term_cursor(x, y)
 
-        if with_attrs:
-            self.attrspec = copy.copy(self.saved_attrs)
+        if with_attrs and self.saved_attrs is not None:
+            self.attrspec, self.charset = (copy.copy(self.saved_attrs[0]),
+                                           copy.copy(self.saved_attrs[1]))
 
     def tab(self, tabstop=8):
         """
@@ -543,6 +842,7 @@ class TermCanvas(Canvas):
             if self.is_tabstop(x):
                 break
 
+        self.is_rotten_cursor = False
         self.set_term_cursor(x, y)
 
     def scroll(self, reverse=False):
@@ -589,7 +889,7 @@ class TermCanvas(Canvas):
         if char is None:
             char = self.empty_char()
         else:
-            char = (self.attrspec, None, char)
+            char = (self.attrspec, self.charset.current, char)
 
         x, y = position
 
@@ -712,6 +1012,10 @@ class TermCanvas(Canvas):
             elif attr == 49:
                 # set default background color
                 bg = None
+            elif attr == 10:
+                self.charset.reset_sgr_ibmpc()
+            elif attr in (11, 12):
+                self.charset.set_sgr_ibmpc()
 
             # set attributes
             elif attr == 1:
@@ -814,30 +1118,45 @@ class TermCanvas(Canvas):
                 attrs = self.reverse_attrspec(char[0], undo=undo)
                 self.term[y][x] = (attrs,) + char[1:]
 
-    def csi_set_mode(self, mode, qmark, reset=False):
+    def set_mode(self, mode, flag, qmark, reset):
         """
-        Set (DECSET/ECMA-48) or reset mode (DECRST/ECMA-48) if reset is True.
+        Helper method for csi_set_modes: set single mode.
         """
-        flag = not reset
-
         if qmark:
             # DEC private mode
-            if mode == 5:
+            if mode == 1:
+                # cursor keys send an ESC O prefix, rather than ESC [
+                self.modes.keys_decckm = flag
+            elif mode == 3:
+                # deccolm just clears the screen
+                self.clear()
+            elif mode == 5:
                 if self.modes.reverse_video != flag:
                     self.reverse_video(undo=not flag)
                 self.modes.reverse_video = flag
             elif mode == 6:
                 self.modes.constrain_scrolling = flag
+                self.set_term_cursor(0, 0)
             elif mode == 7:
                 self.modes.autowrap = flag
             elif mode == 25:
                 self.modes.visible_cursor = flag
+                self.set_term_cursor()
         else:
             # ECMA-48
             if mode == 4:
                 self.modes.insert = flag
             elif mode == 20:
                 self.modes.lfnl = flag
+
+    def csi_set_modes(self, modes, qmark, reset=False):
+        """
+        Set (DECSET/ECMA-48) or reset modes (DECRST/ECMA-48) if reset is True.
+        """
+        flag = not reset
+
+        for mode in modes:
+            self.set_mode(mode, flag, qmark, reset)
 
     def csi_set_scroll(self, top=0, bottom=0):
         """
@@ -851,10 +1170,14 @@ class TermCanvas(Canvas):
             bottom = self.height
 
         if top < bottom <= self.height:
-            self.scrollregion_start = self.constrain_coords(0, top - 1)[1]
-            self.scrollregion_end = self.constrain_coords(0, bottom - 1)[1]
+            self.scrollregion_start = self.constrain_coords(
+                0, top - 1, ignore_scrolling=True
+            )[1]
+            self.scrollregion_end = self.constrain_coords(
+                0, bottom - 1, ignore_scrolling=True
+            )[1]
 
-            self.move_cursor(0, 0)
+            self.set_term_cursor(0, 0)
 
     def csi_clear_tabstop(self, mode=0):
         """
@@ -960,9 +1283,13 @@ class TermCanvas(Canvas):
 
     def content(self, trim_left=0, trim_right=0, cols=None, rows=None,
                 attr_map=None):
-        self.verify()
-        for line in self.term:
-            yield line
+        if self.scrolling_up == 0:
+            for line in self.term:
+                yield line
+        else:
+            buf = self.scrollback_buffer + self.term
+            for line in buf[-(self.height+self.scrolling_up):-self.scrolling_up]:
+                yield line
 
     def content_delta(self, other):
         if other is self:
@@ -970,9 +1297,23 @@ class TermCanvas(Canvas):
         return self.content()
 
 class TerminalWidget(BoxWidget):
-    signals = ['closed', 'beep', 'leds']
+    signals = ['closed', 'beep', 'leds', 'title']
 
-    def __init__(self, command, event_loop, escape_sequence=None):
+    def __init__(self, command, event_loop=None, escape_sequence=None):
+        """
+        A terminal emulatur within a widget.
+
+        'command' is the command to execute inside the tirmanal, provided as a
+        list of the command followed by its arguments.  If 'command' is None,
+        the command is the current user's shell. You can also provide a callable
+        instead of a command, which will be executed in the subprocess.
+
+        'event_loop' should be provided, because the canvas state machine needs
+        to act on input from the PTY master device.
+
+        'escape_sequence' is the urwid key symbol which should be used to break
+        out of the terminal widget. If it's not specified, "ctrl a" is used.
+        """
         self.__super.__init__()
 
         if escape_sequence is None:
@@ -987,7 +1328,9 @@ class TerminalWidget(BoxWidget):
 
         self._old_tios = None
 
-        self.escape_mode = False
+        self.keygrab = False
+        self.last_key = None
+
         self.response_buffer = []
 
         self.term_modes = TermModes()
@@ -1010,9 +1353,15 @@ class TerminalWidget(BoxWidget):
         self.pid, self.master = pty.fork()
 
         if self.pid == 0:
-            os.execvpe(self.command[0], self.command, env)
-            # this should never be reached!
+            if callable(self.command):
+                self.command()
+            else:
+                os.execvpe(self.command[0], self.command, env)
+
             os._exit(0)
+
+        if self.event_loop is None:
+            fcntl.fcntl(self.master, fcntl.F_SETFL, os.O_NONBLOCK)
 
         atexit.register(self.terminate)
 
@@ -1088,6 +1437,9 @@ class TerminalWidget(BoxWidget):
         if process_opened:
             self.add_watch()
 
+    def set_title(self, title):
+        self._emit('title', title)
+
     def change_focus(self, has_focus):
         """
         Ignore SIGINT if this widget has focus.
@@ -1110,35 +1462,52 @@ class TerminalWidget(BoxWidget):
             width, height = size
             self.touch_term(width, height)
 
+            if self.event_loop is None:
+                self.feed()
+
         return self.term
 
     def add_watch(self):
+        if self.event_loop is None:
+            return
+
         self.event_loop.watch_file(self.master, self.feed)
 
     def remove_watch(self):
+        if self.event_loop is None:
+            return
+
         self.event_loop.remove_watch_file(self.master)
 
     def selectable(self):
         return True
 
+    def wait_and_feed(self, timeout=1.0):
+        select.select([self.master], [], [], timeout)
+        self.feed()
+
     def feed(self):
         try:
             data = os.read(self.master, 4096)
-        except OSError: # End Of File
-            self.terminate()
-            self._emit('closed')
+        except OSError, e: # End Of File
+            if e[0] == 5:
+                self.terminate()
+                self._emit('closed')
+            elif e[0] != 11:
+                raise
             return
         self.term.addstr(data)
 
         self.flush_responses()
 
-        # XXX: any "nicer" way of doing this?
-        for update_method in self.event_loop._watch_files.values():
-            if update_method.im_class.__name__ != 'MainLoop':
-                continue
+        if self.event_loop is not None:
+            # XXX: any "nicer" way of doing this?
+            for update_method in self.event_loop._watch_files.values():
+                if update_method.im_class.__name__ != 'MainLoop':
+                    continue
 
-            update_method.im_self.draw_screen()
-            break
+                update_method.im_self.draw_screen()
+                break
 
     def keypress(self, size, key):
         if self.terminated:
@@ -1149,19 +1518,52 @@ class TerminalWidget(BoxWidget):
             self.touch_term(width, height)
             return
 
-        if self.escape_mode and self.escape_sequence == key:
-            # twice the escape key will pass
-            # it once to the terminal
-            self.escape_mode = False
-        elif self.escape_mode:
-            # pass through the keypress
-            self.escape_mode = False
-            return key
-        elif self.escape_sequence == key:
-            # don't handle next keypress
-            self.change_focus(False)
-            self.escape_mode = True
-            return
+        if (self.last_key == self.escape_sequence
+            and key == self.escape_sequence):
+            # escape sequence pressed twice...
+            self.last_key = key
+            self.keygrab = True
+            # ... so pass it to the terminal
+        elif self.keygrab:
+            if self.escape_sequence == key:
+                # stop grabbing the terminal
+                self.keygrab = False
+                self.last_key = key
+                return
+        else:
+            if key == 'page up':
+                self.term.scroll_buffer()
+                self.last_key = key
+                self._invalidate()
+                return
+            elif key == 'page down':
+                self.term.scroll_buffer(up=False)
+                self.last_key = key
+                self._invalidate()
+                return
+            elif (self.last_key == self.escape_sequence
+                and key != self.escape_sequence):
+                # hand down keypress directly after ungrab.
+                self.last_key = key
+                return key
+            elif self.escape_sequence == key:
+                # start grabbing the terminal
+                self.keygrab = True
+                self.last_key = key
+                return
+            elif command_map[key] is None or key == 'enter':
+                # printable character or escape sequence means:
+                # lock in terminal...
+                self.keygrab = True
+                # ... and do key processing
+            else:
+                # hand down keypress
+                self.last_key = key
+                return key
+
+        self.last_key = key
+
+        self.term.scroll_buffer(reset=True)
 
         if key.startswith("ctrl "):
             if key[-1].islower():
@@ -1169,10 +1571,13 @@ class TerminalWidget(BoxWidget):
             else:
                 key = chr(ord(key[-1]) - ord('A') + 1)
         else:
-            key = KEY_TRANSLATIONS.get(key, key)
+            if self.term_modes.keys_decckm and key in KEY_TRANSLATIONS_DECCKM:
+                key = KEY_TRANSLATIONS_DECCKM.get(key)
+            else:
+                key = KEY_TRANSLATIONS.get(key, key)
 
         # ENTER transmits both a carriage return and linefeed in LF/NL mode.
-        if self.term_modes.lfnl and key == chr(13):
-            key += chr(10)
+        if self.term_modes.lfnl and key == "\x0d":
+            key += "\x0a"
 
         os.write(self.master, key)
