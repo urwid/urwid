@@ -1231,7 +1231,8 @@ class Columns(Widget): # either FlowWidget or BoxWidget
             w = self.widget_list[i]
             end = x + widths[i]
             if w.selectable():
-                assert isinstance(x, int) and isinstance(col, int), (x, col)
+                # sometimes, col == 'left' - that doesn't seem like its handled here, does it?
+                # assert isinstance(x, int) and isinstance(col, int), (x, col)
                 if x > col and best is None:
                     # no other choice
                     best = i, x, end

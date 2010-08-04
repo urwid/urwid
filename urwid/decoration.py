@@ -44,8 +44,8 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
 
         Don't actually do this -- use a WidgetDecoration subclass
         instead, these are not real widgets:
-        >>> WidgetDecoration(Text("hi"))
-        <WidgetDecoration flow widget <Text flow widget 'hi'>>
+        >>> WidgetDecoration(Text(u"hi"))
+        <WidgetDecoration flow widget <Text flow widget u'hi'>>
         """
         self._original_widget = original_widget
     def _repr_words(self):
@@ -116,9 +116,9 @@ class AttrMap(WidgetDecoration):
         [('greeting', None, 'hi   ')]
         >>> am.render(size, focus=True).content().next()
         [('fgreet', None, 'hi   ')]
-        >>> am2 = AttrMap(Text(('word', "hi")), {None:'bg', 'word':'greeting'})
+        >>> am2 = AttrMap(Text(('word', u"hi")), {None:'bg', 'word':'greeting'})
         >>> am2
-        <AttrMap flow widget <Text flow widget 'hi'> attr_map={None: 'bg', 'word': 'greeting'}>
+        <AttrMap flow widget <Text flow widget u'hi'> attr_map={None: 'bg', 'word': 'greeting'}>
         >>> am2.render(size).content().next()
         [('greeting', None, 'hi'), ('bg', None, '   ')]
         """
@@ -439,9 +439,9 @@ class Padding(WidgetDecoration):
         ['  ---- ']
         >>> Padding(Divider("*"), 'center', 3).render(size).text
         ['  ***  ']
-        >>> p=Padding(Text("1234"), 'left', 2, None, 1, 1)
+        >>> p=Padding(Text(u"1234"), 'left', 2, None, 1, 1)
         >>> p
-        <Padding flow widget <Text flow widget '1234'> left=1 right=1 width=2>
+        <Padding flow widget <Text flow widget u'1234'> left=1 right=1 width=2>
         >>> p.render(size).text   # align against left
         [' 12    ', ' 34    ']
         >>> p.align = 'right'

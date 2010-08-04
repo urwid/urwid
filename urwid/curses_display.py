@@ -23,12 +23,13 @@
 Curses-based UI implementation
 """
 
+import sys
 import curses
 import _curses
 
 from urwid import escape
 
-from urwid.display_common import BaseScreen, RealTerminal
+from urwid.display_common import BaseScreen, RealTerminal, AttrSpec
 
 KEY_RESIZE = 410 # curses.KEY_RESIZE (sometimes not defined)
 KEY_MOUSE = 409 # curses.KEY_MOUSE
@@ -55,14 +56,7 @@ _curses_colours = {
 
 
 # replace control characters with ?'s
-if bytes is str:
-    # python 2
-    _trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
-else:
-    # python 3
-    _trans_table = b"?"*32+bytes(range(32,256))
-
-assert isinstance(_trans_table, bytes)
+_trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
 
 
 class Screen(BaseScreen, RealTerminal):
@@ -79,47 +73,14 @@ class Screen(BaseScreen, RealTerminal):
         self.prev_input_resize = 0
         self.set_input_timeouts()
         self.last_bstate = 0
-    
-    def register_palette_entry( self, name, foreground, background,
-        mono=None, ignored_foreground_high=None, ignored_background_high=None):
-        """Register a single palette entry.
 
-        name -- new entry/attribute name
-        foreground -- foreground colour, one of: 'black', 'dark red',
-            'dark green', 'brown', 'dark blue', 'dark magenta',
-            'dark cyan', 'light gray', 'dark gray', 'light red',
-            'light green', 'yellow', 'light blue', 'light magenta',
-            'light cyan', 'white', 'default' (black if unable to
-            use terminal's default)
-        background -- background colour, one of: 'black', 'dark red',
-            'dark green', 'brown', 'dark blue', 'dark magenta',
-            'dark cyan', 'light gray', 'default' (light gray if
-            unable to use terminal's default)
-        mono -- monochrome terminal attribute, one of: None (default),
-            'bold',    'underline', 'standout', or a tuple containing
-            a combination eg. ('bold','underline')
-            
-        """
-        assert not self._started
+        self.register_palette_entry(None, 'default','default')
 
-        fg_a, fg_b = _curses_colours[foreground]
-        bg_a, bg_b = _curses_colours[background]
-        if bg_b: # can't do bold backgrounds
-            raise Exception("%s is not a supported background colour"%background )
-        assert (mono is None or 
-            mono in (None, 'bold', 'underline', 'standout') or
-            type(mono)==tuple)
-    
-        for i in range(len(self.curses_pairs)):
-            pair = self.curses_pairs[i]
-            if pair == (fg_a, bg_a): break
-        else:
-            i = len(self.curses_pairs)
-            self.curses_pairs.append( (fg_a, bg_a) )
-        
-        self.palette[name] = (i, fg_b, mono)
-        
-    
+    def get_input_descriptors(self):
+        # XXX: Find a better solution for getting the file
+        # descriptors, espeacially for GPM and the like.
+        return [sys.stdin.fileno()]
+
     def set_mouse_tracking(self):
         """
         Enable mouse tracking.  
@@ -199,48 +160,23 @@ class Screen(BaseScreen, RealTerminal):
             self.stop()
 
     def _setup_colour_pairs(self):
-    
-        k = 1
-        if self.has_color:
-            if len(self.curses_pairs) > curses.COLOR_PAIRS:
-                raise Exception("Too many colour pairs!  Use fewer combinations.")
-        
-            for fg,bg in self.curses_pairs[1:]:
-                if not self.has_default_colors and fg == -1:
-                    fg = _curses_colours["black"][0]
-                if not self.has_default_colors and bg == -1:
-                    bg = _curses_colours["light gray"][0]
-                curses.init_pair(k,fg,bg)
-                k+=1
-        else:
-            wh, bl = curses.COLOR_WHITE, curses.COLOR_BLACK
-        
-        self.attrconv = {}
-        for name, (cp, a, mono) in self.palette.items():
-            if self.has_color:
-                self.attrconv[name] = curses.color_pair(cp)
-                if a: self.attrconv[name] |= curses.A_BOLD
-            elif type(mono)==tuple:
-                attr = 0
-                for m in mono:
-                    attr |= self._curses_attr(m)
-                self.attrconv[name] = attr
-            else:
-                attr = self._curses_attr(mono)
-                self.attrconv[name] = attr
-    
-    def _curses_attr(self, a):
-        if a == 'bold':
-            return curses.A_BOLD
-        elif a == 'standout':
-            return curses.A_STANDOUT
-        elif a == 'underline':
-            return curses.A_UNDERLINE
-        else:
-            return 0
-                
-                
+        """
+        Initialize all 63 color pairs based on the term:
+        bg * 8 + 7 - fg
+        So to get a color, we just need to use that term and get the right color
+        pair number.
+        """
+        if not self.has_color:
+            return
 
+        for fg in xrange(8):
+            for bg in xrange(8):
+                # leave out white on black
+                if fg == curses.COLOR_WHITE and \
+                   bg == curses.COLOR_BLACK:
+                    continue
+
+                curses.init_pair(bg * 8 + 7 - fg, fg, bg)
 
     def _curs_set(self,x):
         if self.cursor_state== "fixed" or x == self.cursor_state: 
@@ -306,7 +242,13 @@ class Screen(BaseScreen, RealTerminal):
         self.max_tenths = convert_to_tenths(max_wait)
         self.complete_tenths = convert_to_tenths(complete_wait)
         self.resize_tenths = convert_to_tenths(resize_wait)
-    
+
+    def get_input_nonblocking(self):
+        self.s.timeout(0)
+        keys, raw = self.get_input(raw_keys=True)
+        self.s.timeout(-1)
+        return (self.max_tenths, keys, raw)
+
     def get_input(self, raw_keys=False):
         """Return pending input as a list.
 
@@ -501,19 +443,47 @@ class Screen(BaseScreen, RealTerminal):
 
     def _setattr(self, a):
         if a is None:
-            self.s.attrset( 0 )
+            self.s.attrset(0)
             return
-        if not self.attrconv.has_key(a):
-            raise Exception, "Attribute %r not registered!"%(a,)
-        self.s.attrset( self.attrconv[a] )
-                
-            
-            
+        elif not isinstance(a, AttrSpec):
+            p = self._palette.get(a, (AttrSpec('default', 'default'),))
+            a = p[0]
+
+        if self.has_color:
+            if a.foreground_basic:
+                if a.foreground_number >= 8:
+                    fg = a.foreground_number - 8
+                else:
+                    fg = a.foreground_number
+            else:
+                fg = 7
+
+            if a.background_basic:
+                bg = a.background_number
+            else:
+                bg = 0
+
+            attr = curses.color_pair(bg * 8 + 7 - fg)
+        else:
+            attr = 0
+
+        if a.bold:
+            attr |= curses.A_BOLD
+        if a.standout:
+            attr |= curses.A_STANDOUT
+        if a.underline:
+            attr |= curses.A_UNDERLINE
+        if a.blink:
+            attr |= curses.A_BLINK
+
+        self.s.attrset(attr)
+
     def draw_screen(self, (cols, rows), r ):
         """Paint screen with rendered canvas."""
         assert self._started
         
         assert r.rows() == rows, "canvas size and passed size don't match"
+    
         y = -1
         for row in r.content():
             y += 1
@@ -528,13 +498,15 @@ class Screen(BaseScreen, RealTerminal):
             lasta = None
             nr = 0
             for a, cs, seg in row:
-                seg = seg.translate( _trans_table )
-                assert isinstance(seg, bytes)
+                if cs != 'U':
+                    seg = seg.translate( _trans_table )
+                    assert isinstance(seg, bytes)
+
                 if first or lasta != a:
                     self._setattr(a)
                     lasta = a
                 try:
-                    if cs == "0":
+                    if cs in ("0", "U"):
                         for i in range(len(seg)):
                             self.s.addch( 0x400000 +
                                 ord(seg[i]) )

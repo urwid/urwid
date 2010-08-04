@@ -24,7 +24,7 @@ import urwid
 def main():
     event_loop = urwid.SelectEventLoop()
 
-    term = urwid.TerminalWidget(None, event_loop)
+    term = urwid.TerminalWidget(None, event_loop=event_loop)
 
     mainframe = urwid.LineBox(
         urwid.Pile([

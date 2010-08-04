@@ -118,13 +118,13 @@ class CheckBox(WidgetWrap):
         Unregister signal handlers with:
           disconnect_signal(check_box, 'change', callback [,user_data])
 
-        >>> CheckBox("Confirm")
-        <CheckBox selectable widget 'Confirm' state=False>
-        >>> CheckBox("Yogourt", "mixed", True)
-        <CheckBox selectable widget 'Yogourt' state='mixed'>
-        >>> cb = CheckBox("Extra onions", True)
+        >>> CheckBox(u"Confirm")
+        <CheckBox selectable widget u'Confirm' state=False>
+        >>> CheckBox(u"Yogourt", "mixed", True)
+        <CheckBox selectable widget u'Yogourt' state='mixed'>
+        >>> cb = CheckBox(u"Extra onions", True)
         >>> cb
-        <CheckBox selectable widget 'Extra onions' state=True>
+        <CheckBox selectable widget u'Extra onions' state=True>
         >>> cb.render((20,), focus=True).text  # preview CheckBox
         ['[X] Extra onions    ']
         """
@@ -154,9 +154,9 @@ class CheckBox(WidgetWrap):
         label -- markup for label.  See Text widget for description
         of text markup.
 
-        >>> cb = CheckBox("foo")
+        >>> cb = CheckBox(u"foo")
         >>> cb
-        <CheckBox selectable widget 'foo' state=False>
+        <CheckBox selectable widget u'foo' state=False>
         >>> cb.set_label(('bright_attr', "bar"))
         >>> cb
         <CheckBox selectable widget u'bar' state=False>
@@ -169,14 +169,14 @@ class CheckBox(WidgetWrap):
         """
         Return label text.
 
-        >>> cb = CheckBox("Seriously")
+        >>> cb = CheckBox(u"Seriously")
         >>> cb.get_label()
-        'Seriously'
+        u'Seriously'
         >>> cb.label  # Urwid 0.9.9 or later
-        'Seriously'
-        >>> cb.set_label([('bright_attr', "flashy"), " normal"])
+        u'Seriously'
+        >>> cb.set_label([('bright_attr', u"flashy"), u" normal"])
         >>> cb.label  #  only text is returned 
-        'flashy normal'
+        u'flashy normal'
         """
         return self._label.text
     label = property(get_label)
@@ -433,8 +433,8 @@ class Button(WidgetWrap):
         Unregister signal handlers with:
           disconnect_signal(button, 'click', callback [,user_data])
 
-        >>> Button("Ok")
-        <Button selectable widget 'Ok'>
+        >>> Button(u"Ok")
+        <Button selectable widget u'Ok'>
         >>> b = Button("Cancel")
         >>> b.render((15,), focus=True).text  # preview Button
         ['< Cancel      >']
@@ -466,9 +466,9 @@ class Button(WidgetWrap):
         label -- markup for button label
 
         >>> b = Button("Ok")
-        >>> b.set_label("Yup yup")
+        >>> b.set_label(u"Yup yup")
         >>> b
-        <Button selectable widget 'Yup yup'>
+        <Button selectable widget u'Yup yup'>
         """
         self._label.set_text(label)
     
@@ -476,11 +476,11 @@ class Button(WidgetWrap):
         """
         Return label text.
 
-        >>> b = Button("Ok")
+        >>> b = Button(u"Ok")
         >>> b.get_label()
-        'Ok'
+        u'Ok'
         >>> b.label  # Urwid 0.9.9 or later
-        'Ok'
+        u'Ok'
         """
         return self._label.text
     label = property(get_label)
@@ -492,7 +492,7 @@ class Button(WidgetWrap):
         >>> assert command_map[' '] == 'activate'
         >>> assert command_map['enter'] == 'activate'
         >>> size = (15,)
-        >>> b = Button("Cancel")
+        >>> b = Button(u"Cancel")
         >>> clicked_buttons = []
         >>> def handle_click(button):
         ...     clicked_buttons.append(button.label)
@@ -500,7 +500,7 @@ class Button(WidgetWrap):
         >>> b.keypress(size, 'enter')
         >>> b.keypress(size, ' ')
         >>> clicked_buttons
-        ['Cancel', 'Cancel']
+        [u'Cancel', u'Cancel']
         """
         if command_map[key] != 'activate':
             return key
@@ -512,7 +512,7 @@ class Button(WidgetWrap):
         Send 'click' signal on button 1 press.
 
         >>> size = (15,)
-        >>> b = Button("Ok")
+        >>> b = Button(u"Ok")
         >>> clicked_buttons = []
         >>> def handle_click(button):
         ...     clicked_buttons.append(button.label)
@@ -522,7 +522,7 @@ class Button(WidgetWrap):
         >>> b.mouse_event(size, 'mouse press', 2, 4, 0, True) # ignored
         False
         >>> clicked_buttons
-        ['Ok']
+        [u'Ok']
         """
         if button != 1 or not is_mouse_press(event):
             return False

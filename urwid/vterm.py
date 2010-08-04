@@ -20,6 +20,7 @@
 # Urwid web site: http://excess.org/urwid/
 
 import os
+import sys
 import pty
 import time
 import copy
@@ -31,6 +32,7 @@ import atexit
 import termios
 
 from urwid import util
+from urwid.escape import DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS
 from urwid.canvas import Canvas
 from urwid.widget import BoxWidget
 from urwid.command_map import command_map
@@ -87,39 +89,39 @@ CSI_COMMANDS = {
     #     ('alias', <symbol>)
     #
     # while callback is executed as:
-    #     callback(<instance of TermCanvas>, has_question_mark, *arguments)
+    #     callback(<instance of TermCanvas>, arguments, has_question_mark)
 
-    '@': (1, 1, lambda s, q, number: s.insert_chars(chars=number)),
-    'A': (1, 1, lambda s, q, rows: s.move_cursor(0, -rows, relative=True)),
-    'B': (1, 1, lambda s, q, rows: s.move_cursor(0, rows, relative=True)),
-    'C': (1, 1, lambda s, q, cols: s.move_cursor(cols, 0, relative=True)),
-    'D': (1, 1, lambda s, q, cols: s.move_cursor(-cols, 0, relative=True)),
-    'E': (1, 1, lambda s, q, rows: s.move_cursor(0, rows, relative_y=True)),
-    'F': (1, 1, lambda s, q, rows: s.move_cursor(0, -rows, relative_y=True)),
-    'G': (1, 1, lambda s, q, col: s.move_cursor(col - 1, 0, relative_y=True)),
-    'H': (2, 1, lambda s, q, x, y: s.move_cursor(y - 1, x - 1)),
-    'J': (1, 0, lambda s, q, mode: s.csi_erase_display(mode)),
-    'K': (1, 0, lambda s, q, mode: s.csi_erase_line(mode)),
-    'L': (1, 1, lambda s, q, number: s.insert_lines(lines=number)),
-    'M': (1, 1, lambda s, q, number: s.remove_lines(lines=number)),
-    'P': (1, 1, lambda s, q, number: s.remove_chars(chars=number)),
-    'X': (1, 1, lambda s, q, number: s.erase(s.term_cursor,
-                                                (s.term_cursor[0]+number-1,
+    '@': (1, 1, lambda s, number, q: s.insert_chars(chars=number[0])),
+    'A': (1, 1, lambda s, rows, q: s.move_cursor(0, -rows[0], relative=True)),
+    'B': (1, 1, lambda s, rows, q: s.move_cursor(0, rows[0], relative=True)),
+    'C': (1, 1, lambda s, cols, q: s.move_cursor(cols[0], 0, relative=True)),
+    'D': (1, 1, lambda s, cols, q: s.move_cursor(-cols[0], 0, relative=True)),
+    'E': (1, 1, lambda s, rows, q: s.move_cursor(0, rows[0], relative_y=True)),
+    'F': (1, 1, lambda s, rows, q: s.move_cursor(0, -rows[0], relative_y=True)),
+    'G': (1, 1, lambda s, col, q: s.move_cursor(col[0] - 1, 0, relative_y=True)),
+    'H': (2, 1, lambda s, x_y, q: s.move_cursor(x_y[1] - 1, x_y[0] - 1)),
+    'J': (1, 0, lambda s, mode, q: s.csi_erase_display(mode[0])),
+    'K': (1, 0, lambda s, mode, q: s.csi_erase_line(mode[0])),
+    'L': (1, 1, lambda s, number, q: s.insert_lines(lines=number[0])),
+    'M': (1, 1, lambda s, number, q: s.remove_lines(lines=number[0])),
+    'P': (1, 1, lambda s, number, q: s.remove_chars(chars=number[0])),
+    'X': (1, 1, lambda s, number, q: s.erase(s.term_cursor,
+                                                (s.term_cursor[0]+number[0] - 1,
                                                  s.term_cursor[1]))),
     'a': ('alias', 'C'),
-    'c': (0, 0, lambda s, q: s.csi_get_device_attributes(q)),
-    'd': (1, 1, lambda s, q, row: s.move_cursor(0, row - 1, relative_x=True)),
+    'c': (0, 0, lambda s, none, q: s.csi_get_device_attributes(q)),
+    'd': (1, 1, lambda s, row, q: s.move_cursor(0, row[0] - 1, relative_x=True)),
     'e': ('alias', 'B'),
     'f': ('alias', 'H'),
-    'g': (1, 0, lambda s, q, mode: s.csi_clear_tabstop(mode)),
-    'h': (1, 0, lambda s, q, mode: s.csi_set_modes((mode,), q)),
-    'l': (1, 0, lambda s, q, mode: s.csi_set_modes((mode,), q, reset=True)),
-    'm': (1, 0, lambda s, q, *attrs: s.csi_set_attr(attrs)),
-    'n': (1, 0, lambda s, q, mode: s.csi_status_report(mode)),
-    'q': (1, 0, lambda s, q, mode: s.csi_set_keyboard_leds(mode)),
-    'r': (2, 0, lambda s, q, top, bottom: s.csi_set_scroll(top, bottom)),
-    's': (0, 0, lambda s, q: s.save_cursor()),
-    'u': (0, 0, lambda s, q: s.restore_cursor()),
+    'g': (1, 0, lambda s, mode, q: s.csi_clear_tabstop(mode[0])),
+    'h': (1, 0, lambda s, modes, q: s.csi_set_modes(modes, q)),
+    'l': (1, 0, lambda s, modes, q: s.csi_set_modes(modes, q, reset=True)),
+    'm': (1, 0, lambda s, attrs, q: s.csi_set_attr(attrs)),
+    'n': (1, 0, lambda s, mode, q: s.csi_status_report(mode[0])),
+    'q': (1, 0, lambda s, mode, q: s.csi_set_keyboard_leds(mode[0])),
+    'r': (2, 0, lambda s, t_b, q: s.csi_set_scroll(t_b[0], t_b[1])),
+    's': (0, 0, lambda s, none, q: s.save_cursor()),
+    'u': (0, 0, lambda s, none, q: s.restore_cursor()),
     '`': ('alias', 'G'),
 }
 
@@ -129,9 +131,10 @@ CHARSET_UTF8 = 2
 class TermModes(object):
     def __init__(self):
         self.reset()
-    
+
     def reset(self):
         # ECMA-48
+        self.display_ctrl = False
         self.insert = False
         self.lfnl = False
 
@@ -149,7 +152,7 @@ class TermCharset(object):
     MAPPING = {
         'default': None,
         'vt100':   '0',
-        'ibmpc':   None,
+        'ibmpc':   'U',
         'user':    None,
     }
 
@@ -192,9 +195,13 @@ class TermCharset(object):
 
     def apply_mapping(self, char):
         if self._sgr_mapping or self._g[self.active] == 'ibmpc':
-            char, attr = util.apply_target_encoding(char.decode('cp437'))
-            self.current = attr[0][0]
-            return char
+            dec_pos = DEC_SPECIAL_CHARS.find(char.decode('cp437'))
+            if dec_pos >= 0:
+                self.current = '0'
+                return str(ALT_DEC_SPECIAL_CHARS[dec_pos])
+            else:
+                self.current = 'U'
+                return char
         else:
             return char
 
@@ -240,14 +247,6 @@ class TermCanvas(Canvas):
         self.coords["cursor"] = (0, 0, None)
 
         self.reset()
-        self.verify()
-
-    
-    
-    def verify(self):
-        for line in self.term:
-            for attrs, something, char in line:
-                assert isinstance(char, bytes)
 
     def set_term_cursor(self, x=None, y=None):
         """
@@ -328,7 +327,6 @@ class TermCanvas(Canvas):
         # initialize self.term
         self.clear()
 
-
     def init_tabstops(self, extend=False):
         tablen, mod = divmod(self.width, 8)
         if mod > 0:
@@ -362,9 +360,10 @@ class TermCanvas(Canvas):
         div, mod = divmod(x, 8)
         return (self.tabstops[div] & (1 << mod)) > 0
 
-    def empty_line(self, char=b' '):
+    def empty_line(self, char=' '):
         return [self.empty_char(char)] * self.width
-    def empty_char(self, char=b' '):
+
+    def empty_char(self, char=' '):
         return (self.attrspec, self.charset.current, char)
 
     def addstr(self, data):
@@ -478,8 +477,9 @@ class TermCanvas(Canvas):
             for i in xrange(len(escbuf)):
                 if escbuf[i] is None or escbuf[i] == 0:
                     escbuf[i] = default_value
+
             try:
-                cmd(self, qmark, *escbuf)
+                cmd(self, escbuf, qmark)
             except ValueError:
                 # ignore commands that don't match the
                 # unpacked tuples in CSI_COMMANDS.
@@ -630,44 +630,45 @@ class TermCanvas(Canvas):
         Process a single character (single- and multi-byte).
         """
         x, y = self.term_cursor
+
+        if isinstance(char, int):
+            char = chr(char)
+
+        dc = self.modes.display_ctrl
+
         if char == "\x1b" and self.parsestate != 2: # escape
             self.within_escape = True
-        elif char == "\x0d": # carriage return
+        elif not dc and char == "\x0d": # carriage return
             self.carriage_return()
-        elif char == "\x0f": # activate G0
+        elif not dc and char == "\x0f": # activate G0
             self.charset.activate(0)
-        elif char == "\x0e": # activate G1
+        elif not dc and char == "\x0e": # activate G1
             self.charset.activate(1)
-        elif char in "\x0a\x0b\x0c": # line feed
+        elif not dc and char in "\x0a\x0b\x0c": # line feed
             self.linefeed()
             if self.modes.lfnl:
                 self.carriage_return()
-        elif char == "\x09": # char tab
+        elif not dc and char == "\x09": # char tab
             self.tab()
-        elif char == "\x08": # backspace
+        elif not dc and char == "\x08": # backspace
             if x > 0:
                 self.set_term_cursor(x - 1, y)
-        elif char == "\x07" and self.parsestate != 2: # beep
+        elif not dc and char == "\x07" and self.parsestate != 2: # beep
             # we need to check if we're in parsestate 2, as an OSC can be
             # terminated by the BEL character!
             self.widget.beep()
-        elif char in "\x18\x1a": # CAN/SUB
+        elif not dc and char in "\x18\x1a": # CAN/SUB
             self.leave_escape()
-        elif char == "\x7f": # DEL
+        elif not dc and char == "\x7f": # DEL
             pass # this is ignored
         elif self.within_escape:
             self.parse_escape(char)
-        elif char == "\x9b": # CSI (equivalent to "ESC [")
+        elif not dc and char == "\x9b": # CSI (equivalent to "ESC [")
             self.within_escape = True
             self.escbuf = ''
             self.parsestate = 1
         else:
             self.push_cursor(char)
-        try:
-            self.verify()
-        except AssertionError:
-            raise AssertionError("Verify failed while adding char %r" % char)
-        
 
     def set_char(self, char, x=None, y=None):
         """
@@ -1014,20 +1015,26 @@ class TermCanvas(Canvas):
                 bg = None
             elif attr == 10:
                 self.charset.reset_sgr_ibmpc()
+                self.modes.display_ctrl = False
             elif attr in (11, 12):
                 self.charset.set_sgr_ibmpc()
+                self.modes.display_ctrl = True
 
             # set attributes
             elif attr == 1:
                 attributes.add('bold')
             elif attr == 4:
                 attributes.add('underline')
+            elif attr == 5:
+                attributes.add('blink')
             elif attr == 7:
                 attributes.add('standout')
 
             # unset attributes
             elif attr == 24:
                 attributes.discard('underline')
+            elif attr == 25:
+                attributes.discard('blink')
             elif attr == 27:
                 attributes.discard('standout')
             elif attr == 0:
@@ -1079,7 +1086,7 @@ class TermCanvas(Canvas):
                 bg = self.attrspec.background_number
                 if bg >= 8: bg -= 8
 
-            for attr in ('bold', 'underline', 'standout'):
+            for attr in ('bold', 'underline', 'blink', 'standout'):
                 if not getattr(self.attrspec, attr):
                     continue
 
@@ -1144,7 +1151,9 @@ class TermCanvas(Canvas):
                 self.set_term_cursor()
         else:
             # ECMA-48
-            if mode == 4:
+            if mode == 3:
+                self.modes.display_ctrl = flag
+            elif mode == 4:
                 self.modes.insert = flag
             elif mode == 20:
                 self.modes.lfnl = flag
@@ -1273,7 +1282,6 @@ class TermCanvas(Canvas):
             self.set_term_cursor(0, 0)
         else:
             self.set_term_cursor(*cursor)
-        self.verify()
 
     def cols(self):
         return self.width
@@ -1299,7 +1307,7 @@ class TermCanvas(Canvas):
 class TerminalWidget(BoxWidget):
     signals = ['closed', 'beep', 'leds', 'title']
 
-    def __init__(self, command, event_loop=None, escape_sequence=None):
+    def __init__(self, command, env=None, event_loop=None, escape_sequence=None):
         """
         A terminal emulatur within a widget.
 
@@ -1307,6 +1315,9 @@ class TerminalWidget(BoxWidget):
         list of the command followed by its arguments.  If 'command' is None,
         the command is the current user's shell. You can also provide a callable
         instead of a command, which will be executed in the subprocess.
+
+        'env' can be used to pass custom environment variables. If omitted,
+        os.environ is used.
 
         'event_loop' should be provided, because the canvas state machine needs
         to act on input from the PTY master device.
@@ -1321,8 +1332,13 @@ class TerminalWidget(BoxWidget):
         else:
             self.escape_sequence = escape_sequence
 
+        if env is None:
+            self.env = dict(os.environ)
+        else:
+            self.env = dict(env)
+
         if command is None:
-            self.command = [os.getenv('SHELL')]
+            self.command = [self.env.get('SHELL', '/bin/sh')]
         else:
             self.command = command
 
@@ -1347,7 +1363,7 @@ class TerminalWidget(BoxWidget):
         self.terminated = False
 
     def spawn(self):
-        env = dict(os.environ)
+        env = self.env
         env['TERM'] = 'linux'
 
         self.pid, self.master = pty.fork()
@@ -1489,11 +1505,11 @@ class TerminalWidget(BoxWidget):
     def feed(self):
         try:
             data = os.read(self.master, 4096)
-        except OSError, e: # End Of File
-            if e[0] == 5:
+        except OSError, e:
+            if e.errno == 5: # End Of File
                 self.terminate()
                 self._emit('closed')
-            elif e[0] != 11:
+            elif e.errno != 11:
                 raise
             return
         self.term.addstr(data)
@@ -1542,7 +1558,7 @@ class TerminalWidget(BoxWidget):
                 self._invalidate()
                 return
             elif (self.last_key == self.escape_sequence
-                and key != self.escape_sequence):
+                  and key != self.escape_sequence):
                 # hand down keypress directly after ungrab.
                 self.last_key = key
                 return key
@@ -1579,5 +1595,8 @@ class TerminalWidget(BoxWidget):
         # ENTER transmits both a carriage return and linefeed in LF/NL mode.
         if self.term_modes.lfnl and key == "\x0d":
             key += "\x0a"
+
+        if sys.version_info[0] >= 3:
+            key = bytes(key, 'ascii')
 
         os.write(self.master, key)
