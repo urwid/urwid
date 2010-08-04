@@ -231,7 +231,7 @@ def trim_text_attr_cs( text, attr, cs, start_col, end_col ):
         rle_append_modify( attrtr, (al, 1) )
         rle_append_modify( cstr, (None, 1) )
     
-    return " "*pad_left + text[spos:epos] + " "*pad_right, attrtr, cstr
+    return b" "*pad_left + text[spos:epos] + b" "*pad_right, attrtr, cstr
     
         
 def rle_get_at( rle, pos ):
