@@ -56,7 +56,11 @@ _curses_colours = {
 
 
 # replace control characters with ?'s
-_trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
+if str is bytes: #  python2
+    _trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
+else: #python3
+    _trans_table = b"?"*32+bytes(range(32,256))
+
 
 
 class Screen(BaseScreen, RealTerminal):
