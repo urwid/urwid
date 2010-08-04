@@ -1,0 +1,53 @@
+#!/usr/bin/python
+
+import optparse
+import subprocess
+import sys
+import os, os.path
+import shutil
+
+optparser = optparse.OptionParser()
+optparser.add_option('-x','--exit',dest='exit', action='store_true',
+        help='Exit on failure')
+optparser.add_option('-f','--force',dest='force', action='store_true',
+        help='Copy and run 2to3 regardless of timestamp')
+(opts, args) = optparser.parse_args()
+
+if len(args) > 2:
+    optparser.print_usage()
+    exit()
+
+base = '.'
+newbase = '../urwid3'
+if len(args) > 0:
+    base = args[0]
+if len(args) > 1:
+    newbase = args[1]
+
+def forcecopy(loc, dst):
+    os.path.makedirs(os.path.dirname(dst))
+    shutil.copy(loc, dst)
+    shutil.copystat(loc, dst)
+
+unwanteddirs = ['build', '.hg', '.git']
+for dir, dirs, files in os.walk(base):
+    for unwanteddir in unwanteddirs:
+        if unwanteddir in dirs:
+            dirs.remove(unwanteddir)
+    for p in files:
+        locrelpath = os.path.relpath(p, base)
+        newloc = os.path.join(newbase,locrelpath)
+        fname, sep, ext = os.extsep.rpartition(p)
+        if ext != 'py':
+            continue
+        if (not opts.force and os.path.exists(p) 
+            and os.stat(p).st_mtime <= os.stat(newloc).st_mtime):
+            continue
+        
+        print newloc
+        forcecopy(p, newloc)
+        proc = subprocess.Popen(['2to3','-w', '--no-diffs', '-n', str(newloc)], stdout = sys.stdout, stderr = sys.stderr)
+        retval = proc.wait()
+        if opts.exit:
+            print "2to3 returned", retval
+            break

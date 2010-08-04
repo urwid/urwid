@@ -20,7 +20,7 @@
 # Urwid web site: http://excess.org/urwid/
 
 import re
-SAFE_ASCII_RE = re.compile("^[ -~]*$")
+SAFE_ASCII_RE = re.compile(u"^[ -~]*$")
 
 _byte_encoding = None
 
@@ -83,6 +83,7 @@ def get_width( o ):
 
 def decode_one( text, pos ):
     """Return (ordinal at pos, next position) for UTF-8 encoded text."""
+    assert isinstance(text, bytes)
     b1 = ord(text[pos])
     if not b1 & 0x80: 
         return b1, pos+1
@@ -161,54 +162,32 @@ def calc_text_pos( text, start_offs, end_offs, pref_col ):
     Returns (position, actual_col).
     """
     assert start_offs <= end_offs, repr((start_offs, end_offs))
-    utfs = (type(text) == str and _byte_encoding == "utf8")
-    if type(text) == unicode or utfs:
+    if type(text) == bytes:
+        text = text.decode(_byte_encoding)
+    if type(text) == unicode:
         i = start_offs
         sc = 0
         n = 1 # number to advance by
         while i < end_offs:
-            if utfs:
-                o, n = decode_one(text, i)
-            else:
-                o = ord(text[i])
-                n = i + 1
+            o = ord(text[i])
+            n = i + 1
             w = get_width(o)
             if w+sc > pref_col: 
                 return i, sc
             i = n
             sc += w
         return i, sc
-    assert type(text) == bytes, repr(text)
-    # "wide" and "narrow"
-    i = start_offs+pref_col
-    if i >= end_offs:
-        return end_offs, end_offs-start_offs
-    if _byte_encoding == "wide":
-        if within_double_byte( text, start_offs, i ) == 2:
-            i -= 1
-    return i, i-start_offs
 
 def calc_width( text, start_offs, end_offs ):
     """
     Return the screen column width of text between start_offs and end_offs.
     """
+    # Rewritten by Wendell to use simple builtins. It was really complicated 
+    # before, probably from back in the days of early Python before unicode
+    # really worked at all.
     assert start_offs <= end_offs, repr((start_offs, end_offs))
-    utfs = (type(text) == str and _byte_encoding == "utf8")
-    if (type(text) == unicode or utfs) and not SAFE_ASCII_RE.match(text):
-        i = start_offs
-        sc = 0
-        n = 1 # number to advance by
-        while i < end_offs:
-            if utfs:
-                o, n = decode_one(text, i)
-            else:
-                o = ord(text[i])
-                n = i + 1
-            w = get_width(o)
-            i = n
-            sc += w
-        return sc
-    # "wide" and "narrow"
+    if not isinstance(text, unicode):
+        return len(text[start_offs:end_offs].decode(_byte_encoding))
     return end_offs - start_offs
     
 def is_wide_char( text, offs ):
@@ -218,7 +197,7 @@ def is_wide_char( text, offs ):
     if type(text) == unicode:
         o = ord(text[offs])
         return get_width(o) == 2
-    assert type(text) == str
+    assert type(text) == bytes
     if _byte_encoding == "utf8":
         o, n = decode_one(text, offs)
         return get_width(o) == 2
@@ -233,7 +212,7 @@ def move_prev_char( text, start_offs, end_offs ):
     assert start_offs < end_offs
     if type(text) == unicode:
         return end_offs-1
-    assert type(text) == str
+    assert type(text) == bytes
     if _byte_encoding == "utf8":
         o = end_offs-1
         while ord(text[o])&0xc0 == 0x80:
@@ -251,7 +230,7 @@ def move_next_char( text, start_offs, end_offs ):
     assert start_offs < end_offs
     if type(text) == unicode:
         return start_offs+1
-    assert type(text) == str
+    assert type(text) == bytes
     if _byte_encoding == "utf8":
         o = start_offs+1
         while o<end_offs and ord(text[o])&0xc0 == 0x80:

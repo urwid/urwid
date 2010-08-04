@@ -23,7 +23,10 @@
 import urwid
 
 import unittest
-from test import test_support
+if str is bytes:
+    from test import test_support
+else:
+    from test import support as test_support
 from doctest import DocTestSuite
 from urwid.vterm_test import TermTest
 

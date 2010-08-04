@@ -728,13 +728,13 @@ class Edit(Text):
         layout -- layout object
 
         >>> Edit()
-        <Edit selectable flow widget '' edit_pos=0>
-        >>> Edit("Y/n? ", "yes")
-        <Edit selectable flow widget 'yes' caption=u'Y/n? ' edit_pos=3>
-        >>> Edit("Name ", "Smith", edit_pos=1)
-        <Edit selectable flow widget 'Smith' caption=u'Name ' edit_pos=1>
-        >>> Edit("", "3.14", align='right')
-        <Edit selectable flow widget '3.14' align='right' edit_pos=4>
+        <Edit selectable flow widget u'' edit_pos=0>
+        >>> Edit(u"Y/n? ", u"yes")
+        <Edit selectable flow widget u'yes' caption=u'Y/n? ' edit_pos=3>
+        >>> Edit(u"Name ", u"Smith", edit_pos=1)
+        <Edit selectable flow widget u'Smith' caption=u'Name ' edit_pos=1>
+        >>> Edit(u"", u"3.14", align='right')
+        <Edit selectable flow widget u'3.14' align='right' edit_pos=4>
         """
         
         self.__super.__init__("", align, wrap, layout)
@@ -899,20 +899,19 @@ class Edit(Text):
         Set the edit text for this widget.
         
         >>> e = Edit()
-        >>> e.set_edit_text("yes")
+        >>> e.set_edit_text(u"yes")
         >>> e.edit_text
-        'yes'
+        u'yes'
         >>> e
-        <Edit selectable flow widget 'yes' edit_pos=0>
-        >>> e.edit_text = "no"  # Urwid 0.9.9 or later
+        <Edit selectable flow widget u'yes' edit_pos=0>
+        >>> e.edit_text = u"no"  # Urwid 0.9.9 or later
         >>> e.edit_text
-        'no'
+        u'no'
         """
-        if type(text) not in (str, unicode):
-            try:
-                text = unicode(text)
-            except Exception:
-                raise EditError("Can't convert edit text to a string!")
+        try:
+            text = unicode(text)
+        except Exception:
+            raise EditError("Can't convert edit text to a string!")
         self.highlight = None
         self._emit("change", text)
         self._edit_text = text
@@ -924,11 +923,11 @@ class Edit(Text):
         """
         Return the edit text for this widget.
 
-        >>> e = Edit("What? ", "oh, nothing.")
+        >>> e = Edit(u"What? ", u"oh, nothing.")
         >>> e.get_edit_text()
-        'oh, nothing.'
+        u'oh, nothing.'
         >>> e.edit_text
-        'oh, nothing.'
+        u'oh, nothing.'
         """
         return self._edit_text
     
@@ -940,15 +939,19 @@ class Edit(Text):
         This method is used by the keypress() method when inserting
         one or more characters into edit_text.
 
-        >>> e = Edit("", "42")
-        >>> e.insert_text(".5")
+        >>> e = Edit(u"", u"42")
+        >>> e.insert_text(u".5")
         >>> e
-        <Edit selectable flow widget '42.5' edit_pos=4>
+        <Edit selectable flow widget u'42.5' edit_pos=4>
         >>> e.set_edit_pos(2)
-        >>> e.insert_text("a")
+        >>> e.insert_text(u"a")
         >>> e.edit_text
-        '42a.5'
+        u'42a.5'
         """
+        if str is bytes:
+            # python 2
+            text = unicode(text)
+        assert isinstance(text, unicode)
         result_text, result_pos = self.insert_text_result(text)
         self.set_edit_text(result_text)
         self.set_edit_pos(result_pos)
@@ -961,6 +964,10 @@ class Edit(Text):
         """
 
         # if there's highlighted text, it'll get replaced by the new text
+        if str is bytes:
+            # python 2
+            text = unicode(text)
+        assert isinstance(text, unicode)
         if self.highlight:
             start, stop = self.highlight
             btext, etext = self.edit_text[:start], self.edit_text[stop:]
@@ -970,9 +977,7 @@ class Edit(Text):
             result_text = self.edit_text
             result_pos = self.edit_pos
 
-        if type(text) == unicode:
-            text = text.encode("utf-8")
-
+        
         result_text = (result_text[:result_pos] + text + 
             result_text[result_pos:])
         result_pos += len(text)
@@ -987,12 +992,12 @@ class Edit(Text):
         >>> e.keypress(size, 'left')
         >>> e.keypress(size, '1')
         >>> e.edit_text
-        '1x'
+        u'1x'
         >>> e.keypress(size, 'backspace')
         >>> e.keypress(size, 'end')
         >>> e.keypress(size, '2')
         >>> e.edit_text
-        'x2'
+        u'x2'
         >>> e.keypress(size, 'shift f1')
         'shift f1'
         """
@@ -1220,8 +1225,8 @@ class IntEdit(Edit):
         caption -- caption markup
         default -- default edit value
 
-        >>> IntEdit("", 42)
-        <IntEdit selectable flow widget '42' edit_pos=2>
+        >>> IntEdit(u"", 42)
+        <IntEdit selectable flow widget u'42' edit_pos=2>
         """
         if default is not None: val = str(default)
         else: val = ""
@@ -1231,14 +1236,14 @@ class IntEdit(Edit):
         """
         Handle editing keystrokes.  Remove leading zeros.
         
-        >>> e, size = IntEdit("", 5002), (10,)
+        >>> e, size = IntEdit(u"", 5002), (10,)
         >>> e.keypress(size, 'home')
         >>> e.keypress(size, 'delete')
         >>> e.edit_text
-        '002'
+        u'002'
         >>> e.keypress(size, 'end')
         >>> e.edit_text
-        '2'
+        u'2'
         """
         (maxcol,) = size
         unhandled = Edit.keypress(self,(maxcol,),key)

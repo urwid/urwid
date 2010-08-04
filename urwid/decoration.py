@@ -109,7 +109,7 @@ class AttrMap(WidgetDecoration):
         >>> AttrMap(Divider("!"), 'bright')
         <AttrMap flow widget <Divider flow widget div_char='!'> attr_map={None: 'bright'}>
         >>> AttrMap(Edit(), 'notfocus', 'focus')
-        <AttrMap selectable flow widget <Edit selectable flow widget '' edit_pos=0> attr_map={None: 'notfocus'} focus_map={None: 'focus'}>
+        <AttrMap selectable flow widget <Edit selectable flow widget u'' edit_pos=0> attr_map={None: 'notfocus'} focus_map={None: 'focus'}>
         >>> size = (5,)
         >>> am = AttrMap(Text("hi"), 'greeting', 'fgreet')
         >>> am.render(size, focus=False).content().next()
@@ -237,7 +237,7 @@ class AttrWrap(AttrMap):
         >>> AttrWrap(Divider("!"), 'bright')
         <AttrWrap flow widget <Divider flow widget div_char='!'> attr='bright'>
         >>> AttrWrap(Edit(), 'notfocus', 'focus')
-        <AttrWrap selectable flow widget <Edit selectable flow widget '' edit_pos=0> attr='notfocus' focus_attr='focus'>
+        <AttrWrap selectable flow widget <Edit selectable flow widget u'' edit_pos=0> attr='notfocus' focus_attr='focus'>
         >>> size = (5,)
         >>> aw = AttrWrap(Text("hi"), 'greeting', 'fgreet')
         >>> aw.render(size, focus=False).content().next()
