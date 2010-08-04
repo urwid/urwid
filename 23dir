@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+from __future__ import print_function
+
 import optparse
 import subprocess
 import sys
@@ -11,43 +13,85 @@ optparser.add_option('-x','--exit',dest='exit', action='store_true',
         help='Exit on failure')
 optparser.add_option('-f','--force',dest='force', action='store_true',
         help='Copy and run 2to3 regardless of timestamp')
+optparser.add_option('-v', '--verbose', dest='verbose', action='store_true')
+optparser.add_option('-q', '--quiet', dest='quiet', action='store_true')
+optparser.set_usage('23dir [options] [basedir [finaldir]]')
+
 (opts, args) = optparser.parse_args()
 
 if len(args) > 2:
-    optparser.print_usage()
+    print("More than 2 args not allowed.")
+    optparser.print_help()
     exit()
 
+printlevel = 1
+if opts.verbose:
+    printlevel = 2
+if opts.quiet:
+    printlevel = 0
+
 base = '.'
-newbase = '../urwid3'
 if len(args) > 0:
     base = args[0]
 if len(args) > 1:
     newbase = args[1]
+else:
+    newbase = os.path.join(base, '../urwid3')
+
+if not os.path.exists(base):
+    print("Starting directory", base, "does not exist.")
+    exit()
+
+if not os.path.exists(newbase):
+    print("Destination directory", newbase, "does not exist.")
+    exit()
+
+if printlevel >= 2:
+    print('Translating all files from', os.path.realpath(base), 'to',
+            os.path.realpath(newbase))
 
 def forcecopy(loc, dst):
-    os.path.makedirs(os.path.dirname(dst))
+    dirname = os.path.dirname(dst)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
     shutil.copy(loc, dst)
     shutil.copystat(loc, dst)
 
+stderr, stdout = sys.stderr, sys.stdout
+if printlevel == 0:
+    stderr = stdout = subprocess.PIPE
 unwanteddirs = ['build', '.hg', '.git']
+
+count = 0
 for dir, dirs, files in os.walk(base):
     for unwanteddir in unwanteddirs:
         if unwanteddir in dirs:
             dirs.remove(unwanteddir)
     for p in files:
+        p = os.path.join(dir, p)
         locrelpath = os.path.relpath(p, base)
         newloc = os.path.join(newbase,locrelpath)
-        fname, sep, ext = os.extsep.rpartition(p)
+        fname, sep, ext = p.rpartition(os.extsep)
         if ext != 'py':
+            printlevel >= 2 and print('skipping', p)
             continue
-        if (not opts.force and os.path.exists(p) 
+        if (not opts.force and os.path.exists(newloc) 
             and os.stat(p).st_mtime <= os.stat(newloc).st_mtime):
+            printlevel >= 2 and print('already up to date:', p)
             continue
         
-        print newloc
+        printlevel >= 1 and print(newloc)
         forcecopy(p, newloc)
-        proc = subprocess.Popen(['2to3','-w', '--no-diffs', '-n', str(newloc)], stdout = sys.stdout, stderr = sys.stderr)
-        retval = proc.wait()
+        proc = subprocess.Popen(['2to3','-w', '--no-diffs', '-n', str(newloc)],
+                stdout = stdout, stderr = stderr)
+        proc.communicate()
         if opts.exit:
-            print "2to3 returned", retval
+            print("2to3 returned", proc.returncode)
             break
+        count += 1
+
+if printlevel > 0:
+    if count == 0:
+        print('All files up to date')
+    else:
+        print('Updated {0} files.'.format(count))
