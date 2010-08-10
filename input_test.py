@@ -73,7 +73,6 @@ def key_test():
                     rawt])
                 )
             listbox.set_focus(len(lw)-1,'above')
-        loop.draw_screen()
         # we have handled all the input
         return []
 

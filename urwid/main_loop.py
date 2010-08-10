@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid main loop code
-#    Copyright (C) 2004-2009  Ian Ward
+#    Copyright (C) 2004-2010  Ian Ward
 #    Copyright (C) 2008 Walter Mundt
 #    Copyright (C) 2009 Andrew Psaltis
 #
@@ -104,7 +104,6 @@ class MainLoop(object):
         """
         def cb():
             callback(self, user_data)
-            self.draw_screen()
         return self.event_loop.alarm(sec, cb)
 
     def set_alarm_at(self, tm, callback, user_data=None):
@@ -121,7 +120,6 @@ class MainLoop(object):
         """
         def cb():
             callback(self, user_data)
-            self.draw_screen()
         return self.event_loop.alarm(tm - time.time(), cb)
 
     def remove_alarm(self, handle):
@@ -182,10 +180,19 @@ class MainLoop(object):
 
         # insert our input descriptors
         fds = self.screen.get_input_descriptors()
-        for fd in fds:
-            self.event_loop.watch_file(fd, self._update)
+        fd_handles = [self.event_loop.watch_file(fd, self._update) 
+            for fd in fds]
 
+        idle_handle = self.event_loop.idle(self._enter_idle)
+
+        # Go..
         self.event_loop.run()
+
+        # tidy up
+        self.event_loop.remove_idle(idle_handle)
+        for handle in fd_handles:
+            self.event_loop.remove_watch_file(handle)
+
 
     def _update(self, timeout=False):
         """
@@ -235,13 +242,9 @@ class MainLoop(object):
         keys = self.input_filter(keys, raw)
 
         if keys:
-            handled_something = self.process_input(keys)
+            self.process_input(keys)
             if 'window resize' in keys:
                 self.screen_size = None
-                handled_something = True
-
-            if handled_something:
-                self.draw_screen()
 
     def _run_screen_event_loop(self):
         """
@@ -302,11 +305,8 @@ class MainLoop(object):
         keys -- list of input returned from self.screen.get_input()
 
         Returns True if any key was handled by a widget or the
-        unhandled_input() method.  This return value is used by
-        update to determine if it should redraw the screen.  When
-        calling this method yourself you will need to also call
-        draw_screen() as well if you want the screen updated.
-        
+        unhandled_input() method.         
+
         >>> w = _refl("widget")
         >>> w.selectable_rval = True
         >>> scr = _refl("screen")
@@ -374,6 +374,15 @@ class MainLoop(object):
         if self._unhandled_input:
             return self._unhandled_input(input)
 
+    def _enter_idle(self):
+        """
+        This function is called whenever the event loop is about
+        to enter the idle state.  self.draw_screen() is called here
+        to update the screen if anything has changed.
+        """
+        if self.screen.started:
+            self.draw_screen()
+
     def draw_screen(self):
         """
         Renter the widgets and paint the screen.  This function is
@@ -413,6 +422,8 @@ class SelectEventLoop(object):
         """
         self._alarms = []
         self._watch_files = {}
+        self._idle_handle = 0
+        self._idle_callbacks = {}
 
     def alarm(self, seconds, callback):
         """
@@ -479,6 +490,35 @@ class SelectEventLoop(object):
             return True
         return False
 
+    def idle(self, callback):
+        """
+        Add a callback for entering idle.  
+        
+        Returns a handle that may be passed to remove_idle()
+        """
+        self._idle_handle += 1
+        self._idle_callbacks[self._idle_handle] = callback
+        return self._idle_handle
+
+    def remove_idle(self, handle):
+        """
+        Remove an idle callback.
+
+        Returns True if the handle was removed.
+        """
+        try:
+            del self._idle_callbacks[handle]
+        except KeyError:
+            return False
+        return True
+
+    def _enter_idle(self):
+        """
+        Call all the registered idle callbacks.
+        """
+        for callback in self._idle_callbacks.values():
+            callback()
+
     def run(self):
         """
         Start the event loop.  Exit the loop when any callback raises
@@ -518,6 +558,7 @@ class SelectEventLoop(object):
         ZeroDivisionError: integer division or modulo by zero
         """
         try:
+            self._did_something = False
             while True:
                 try:
                     self._loop()
@@ -531,21 +572,32 @@ class SelectEventLoop(object):
 
     def _loop(self):
         fds = self._watch_files.keys()
-        if self._alarms:
-            tm = self._alarms[0][0]
-            timeout = max(0, tm - time.time())
+        if self._alarms or self._did_something:
+            if self._alarms:
+                tm = self._alarms[0][0]
+                timeout = max(0, tm - time.time())
+            if self._did_something and (not self._alarms or 
+                    (self._alarms and timeout > 0)):
+                timeout = 0
+                tm = 'idle'
             ready, w, err = select.select(fds, [], fds, timeout)
         else:
             tm = None
             ready, w, err = select.select(fds, [], fds)
 
-        if not ready and tm is not None:
-            # must have been a timeout
-            tm, alarm_callback = self._alarms.pop(0)
-            alarm_callback()
+        if not ready:
+            if tm == 'idle':
+                self._enter_idle()
+                self._did_something = False
+            elif tm is not None:
+                # must have been a timeout
+                tm, alarm_callback = self._alarms.pop(0)
+                alarm_callback()
+                self._did_something = True
 
         for fd in ready:
             self._watch_files[fd]()
+            self._did_something = True
 
 
 class GLibEventLoop(object):
