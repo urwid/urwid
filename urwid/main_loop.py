@@ -148,6 +148,8 @@ class MainLoop(object):
         >>> scr.get_cols_rows_rval = (20, 10)
         >>> scr.started = True
         >>> evl = _refl("event_loop")
+        >>> evl.enter_idle_rval = 1
+        >>> evl.watch_file_rval = 2
         >>> ml = MainLoop(w, [], scr, event_loop=evl)
         >>> ml.run()    # doctest:+ELLIPSIS
         screen.set_mouse_tracking()
@@ -156,7 +158,10 @@ class MainLoop(object):
         screen.draw_screen((20, 10), 'fake canvas')
         screen.get_input_descriptors()
         event_loop.watch_file(42, <bound method ...>)
+        event_loop.enter_idle(<bound method ...>)
         event_loop.run()
+        event_loop.remove_enter_idle(1)
+        event_loop.remove_watch_file(2)
         >>> scr.started = False
         >>> ml.run()    # doctest:+ELLIPSIS
         screen.run_wrapper(<bound method ...>)
@@ -183,13 +188,13 @@ class MainLoop(object):
         fd_handles = [self.event_loop.watch_file(fd, self._update) 
             for fd in fds]
 
-        idle_handle = self.event_loop.idle(self._enter_idle)
+        idle_handle = self.event_loop.enter_idle(self.entering_idle)
 
         # Go..
         self.event_loop.run()
 
         # tidy up
-        self.event_loop.remove_idle(idle_handle)
+        self.event_loop.remove_enter_idle(idle_handle)
         for handle in fd_handles:
             self.event_loop.remove_watch_file(handle)
 
@@ -197,7 +202,6 @@ class MainLoop(object):
     def _update(self, timeout=False):
         """
         >>> w = _refl("widget")
-        >>> w.render_rval = "fake canvas"
         >>> w.selectable_rval = True
         >>> w.mouse_event_rval = True
         >>> scr = _refl("screen")
@@ -213,15 +217,11 @@ class MainLoop(object):
         screen.get_cols_rows()
         widget.selectable()
         widget.keypress((15, 5), 'y')
-        widget.render((15, 5), focus=True)
-        screen.draw_screen((15, 5), 'fake canvas')
         >>> scr.get_input_nonblocking_rval = None, [("mouse press", 1, 5, 4)
         ... ], []
         >>> ml._update()
         screen.get_input_nonblocking()
         widget.mouse_event((15, 5), 'mouse press', 1, 5, 4, focus=True)
-        widget.render((15, 5), focus=True)
-        screen.draw_screen((15, 5), 'fake canvas')
         >>> scr.get_input_nonblocking_rval = None, [], []
         >>> ml._update()
         screen.get_input_nonblocking()
@@ -374,7 +374,7 @@ class MainLoop(object):
         if self._unhandled_input:
             return self._unhandled_input(input)
 
-    def _enter_idle(self):
+    def entering_idle(self):
         """
         This function is called whenever the event loop is about
         to enter the idle state.  self.draw_screen() is called here
@@ -490,7 +490,7 @@ class SelectEventLoop(object):
             return True
         return False
 
-    def idle(self, callback):
+    def enter_idle(self, callback):
         """
         Add a callback for entering idle.  
         
@@ -500,7 +500,7 @@ class SelectEventLoop(object):
         self._idle_callbacks[self._idle_handle] = callback
         return self._idle_handle
 
-    def remove_idle(self, handle):
+    def remove_enter_idle(self, handle):
         """
         Remove an idle callback.
 
@@ -512,7 +512,7 @@ class SelectEventLoop(object):
             return False
         return True
 
-    def _enter_idle(self):
+    def _entering_idle(self):
         """
         Call all the registered idle callbacks.
         """
@@ -531,15 +531,21 @@ class SelectEventLoop(object):
         >>> evl = SelectEventLoop()
         >>> def say_hello():
         ...     print "hello"
+        >>> def say_waiting():
+        ...     print "waiting"
         >>> def exit_clean():
         ...     print "clean exit"
         ...     raise ExitMainLoop
         >>> def exit_error():
         ...     1/0
-        >>> handle = evl.alarm(0.0625, exit_clean)
-        >>> handle = evl.alarm(0, say_hello)
+        >>> handle = evl.alarm(0.01, exit_clean)
+        >>> handle = evl.alarm(0.005, say_hello)
+        >>> evl.enter_idle(say_waiting)
+        1
         >>> evl.run()
+        waiting
         hello
+        waiting
         clean exit
         >>> handle = evl.watch_file(rd, exit_clean)
         >>> evl.run()
@@ -558,7 +564,7 @@ class SelectEventLoop(object):
         ZeroDivisionError: integer division or modulo by zero
         """
         try:
-            self._did_something = False
+            self._did_something = True
             while True:
                 try:
                     self._loop()
@@ -571,6 +577,9 @@ class SelectEventLoop(object):
         
 
     def _loop(self):
+        """
+        A single iteration of the event loop
+        """
         fds = self._watch_files.keys()
         if self._alarms or self._did_something:
             if self._alarms:
@@ -587,7 +596,7 @@ class SelectEventLoop(object):
 
         if not ready:
             if tm == 'idle':
-                self._enter_idle()
+                self._entering_idle()
                 self._did_something = False
             elif tm is not None:
                 # must have been a timeout
@@ -624,8 +633,12 @@ class GLibEventLoop(object):
         self.gobject = gobject
         self._alarms = []
         self._watch_files = {}
+        self._idle_handle = 0
+        self._glib_idle_enabled = False # have we called glib.idle_add?
+        self._idle_callbacks = {}
         self._loop = self.gobject.MainLoop()
         self._exc_info = None
+        self._enable_glib_idle()
 
     def alarm(self, seconds, callback):
         """
@@ -640,6 +653,7 @@ class GLibEventLoop(object):
         @self.handle_exit
         def ret_false():
             callback()
+            self._enable_glib_idle()
             return False
         fd = self.gobject.timeout_add(int(seconds*1000), ret_false)
         self._alarms.append(fd)
@@ -678,6 +692,7 @@ class GLibEventLoop(object):
         @self.handle_exit
         def io_callback(source, cb_condition):
             callback()
+            self._enable_glib_idle()
             return True
         self._watch_files[fd] = \
              self.gobject.io_add_watch(fd,self.gobject.IO_IN,io_callback)
@@ -702,6 +717,41 @@ class GLibEventLoop(object):
             return True
         return False
 
+    def enter_idle(self, callback):
+        """
+        Add a callback for entering idle.
+
+        Returns a handle that may be passed to remove_enter_idle()
+        """
+        self._idle_handle += 1
+        self._idle_callbacks[self._idle_handle] = callback
+        return self._idle_handle
+
+    def _enable_glib_idle(self):
+        if self._glib_idle_enabled:
+            return
+        self.gobject.idle_add(self._glib_idle_callback)
+        self._glib_idle_enabled = True
+        
+    def _glib_idle_callback(self):
+        for callback in self._idle_callbacks.values():
+            callback()
+        self._glib_idle_enabled = False
+        return False # ask glib not to call again (or we would be called
+
+    def remove_enter_idle(self, handle):
+        """
+        Remove an idle callback.
+
+        Returns True if the handle was removed.
+        """
+        try:
+            del self._idle_callbacks[handle]
+        except KeyError:
+            return False
+        return True
+
+
     def run(self):
         """
         Start the event loop.  Exit the loop when any callback raises
@@ -714,15 +764,21 @@ class GLibEventLoop(object):
         >>> evl = GLibEventLoop()
         >>> def say_hello():
         ...     print "hello"
+        >>> def say_waiting():
+        ...     print "waiting"
         >>> def exit_clean():
         ...     print "clean exit"
         ...     raise ExitMainLoop
         >>> def exit_error():
         ...     1/0
-        >>> handle = evl.alarm(0.0625, exit_clean)
-        >>> handle = evl.alarm(0, say_hello)
+        >>> handle = evl.alarm(0.01, exit_clean)
+        >>> handle = evl.alarm(0.005, say_hello)
+        >>> evl.enter_idle(say_waiting)
+        1
         >>> evl.run()
+        waiting
         hello
+        waiting
         clean exit
         >>> handle = evl.watch_file(rd, exit_clean)
         >>> evl.run()
