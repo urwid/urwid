@@ -732,7 +732,7 @@ class GLibEventLoop(object):
             return
         self.gobject.idle_add(self._glib_idle_callback)
         self._glib_idle_enabled = True
-        
+
     def _glib_idle_callback(self):
         for callback in self._idle_callbacks.values():
             callback()
@@ -849,6 +849,8 @@ class TwistedInputDescriptor(FileDescriptor):
 
 
 class TwistedEventLoop(object):
+    _idle_emulation_delay = 1.0/256 # a short time (in seconds)
+
     def __init__(self, reactor=None, manage_reactor=True):
         """
         Event loop based on Twisted
@@ -856,11 +858,11 @@ class TwistedEventLoop(object):
         reactor -- reactor object to use, if None defaults to
                 twisted.internet.reactor
         manage_reactor -- True if you want this event loop to run
-                and stop the reactor          
+                and stop the reactor
 
         *** WARNING ***
         Twisted's reactor doesn't like to be stopped and run again.
-        If you need to stop and run your MainLoop, consider setting 
+        If you need to stop and run your MainLoop, consider setting
         manage_reactor=False and take care of running/stopping
         the reactor at the beginning/ending of your program yourself.
         """
@@ -870,8 +872,12 @@ class TwistedEventLoop(object):
         self.reactor = reactor
         self._alarms = []
         self._watch_files = {}
+        self._idle_handle = 0
+        self._twisted_idle_enabled = False
+        self._idle_callbacks = {}
         self._exc_info = None
         self.manage_reactor = manage_reactor
+        self._enable_twisted_idle()
 
     def alarm(self, seconds, callback):
         """
@@ -943,11 +949,53 @@ class TwistedEventLoop(object):
             return True
         return False
 
+    def enter_idle(self, callback):
+        """
+        Add a callback for entering idle.
+
+        Returns a handle that may be passed to remove_enter_idle()
+        """
+        self._idle_handle += 1
+        self._idle_callbacks[self._idle_handle] = callback
+        return self._idle_handle
+
+    def _enable_twisted_idle(self):
+        """
+        Twisted's reactors don't have an idle or enter-idle callback
+        so the best we can do for now is to set a timer event in a very
+        short time to approximate an enter-idle callback.
+
+        XXX: This will perform worse than the other event loops until we
+        can find a fix or workaround
+        """
+        if self._twisted_idle_enabled:
+            return
+        self.reactor.callLater(self._idle_emulation_delay,
+            self.handle_exit(self._twisted_idle_callback, enable_idle=False))
+        self._twisted_idle_enabled = True
+
+    def _twisted_idle_callback(self):
+        for callback in self._idle_callbacks.values():
+            callback()
+        self._twisted_idle_enabled = False
+
+    def remove_enter_idle(self, handle):
+        """
+        Remove an idle callback.
+
+        Returns True if the handle was removed.
+        """
+        try:
+            del self._idle_callbacks[handle]
+        except KeyError:
+            return False
+        return True
+
     def run(self):
         """
         Start the event loop.  Exit the loop when any callback raises
         an exception.  If ExitMainLoop is raised, exit cleanly.
-        
+
         >>> import os
         >>> rd, wr = os.pipe()
         >>> os.write(wr, "data") # something to read from rd
@@ -956,6 +1004,8 @@ class TwistedEventLoop(object):
         >>> def say_hello_data():
         ...     print "hello data"
         ...     os.read(rd, 4)
+        >>> def say_waiting():
+        ...     print "waiting"
         >>> def say_hello():
         ...     print "hello"
         >>> handle = evl.watch_file(rd, say_hello_data)
@@ -964,9 +1014,13 @@ class TwistedEventLoop(object):
         ...     raise ExitMainLoop
         >>> handle = evl.alarm(0.0625, say_being_twisted)
         >>> handle = evl.alarm(0.03125, say_hello)
+        >>> evl.enter_idle(say_waiting)
+        1
         >>> evl.run()
         hello data
+        waiting
         hello
+        waiting
         oh I'm messed up
         """
         if not self.manage_reactor:
@@ -978,17 +1032,18 @@ class TwistedEventLoop(object):
             self._exc_info = None
             raise exc_info[0], exc_info[1], exc_info[2]
 
-    def handle_exit(self,f):
+    def handle_exit(self, f, enable_idle=True):
         """
         Decorator that cleanly exits the TwistedEventLoop if ExitMainLoop is
-        thrown inside of the wrapped function.  Store the exception info if 
+        thrown inside of the wrapped function.  Store the exception info if
         some other exception occurs, it will be reraised after the loop quits.
         f -- function to be wrapped
 
         """
         def wrapper(*args,**kargs):
+            rval = None
             try:
-                return f(*args,**kargs)
+                rval = f(*args,**kargs)
             except ExitMainLoop:
                 if self.manage_reactor:
                     self.reactor.stop()
@@ -998,8 +1053,11 @@ class TwistedEventLoop(object):
                 self._exc_info = sys.exc_info()
                 if self.manage_reactor:
                     self.reactor.crash()
+            if enable_idle:
+                self._enable_twisted_idle()
+            return rval
         return wrapper
-    
+
 
 
 def _refl(name, rval=None, exit=False):
