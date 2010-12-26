@@ -88,16 +88,16 @@ class BigText(FixedWidget):
             canv = CompositeCanvas(canv)
         canv.set_depends([])
         return canv
-        
+
 
 class LineBox(WidgetDecoration, WidgetWrap):
-    ACS_HLINE = u'\u2500'
-    ACS_VLINE = u'\u2502'
+    ACS_HLINE = u'─'
+    ACS_VLINE = u'│'
 
-    ACS_ULCORNER = u'\u250c'
-    ACS_URCORNER = u'\u2510'
-    ACS_LLCORNER = u'\u2514'
-    ACS_LRCORNER = u'\u2518'
+    ACS_ULCORNER = u'┌'
+    ACS_URCORNER = u'┐'
+    ACS_LLCORNER = u'└'
+    ACS_LRCORNER = u'┘'
 
     def __init__(self, original_widget, title="",
                  tlcorner=None, tline=None, lline=None,
@@ -197,8 +197,8 @@ class BarGraph(BoxWidget):
     __metaclass__ = BarGraphMeta
     ignore_focus = True
 
-    eighths = u' \u2581\u2582\u2583\u2584\u2585\u2586\u2587'
-    hlines  = u'_\u23ba\u23bb\u2500\u23bc\u23bd'
+    eighths = u' ▁▂▃▄▅▆▇'
+    hlines  = u'_⎺⎻─⎼⎽'
 
     def __init__(self, attlist, hatt=None, satt=None):
         """
@@ -789,7 +789,7 @@ def scale_bar_values( bar, top, maxrow ):
 
 
 class ProgressBar( FlowWidget ):
-    eighths = u' \u2581\u2582\u2583\u2584\u2585\u2586\u2587'
+    eighths = u' ▏▎▍▌▋▊▉'
     def __init__(self, normal, complete, current=0, done=100, satt=None):
         """
         normal -- attribute for uncomplete part of progress bar
