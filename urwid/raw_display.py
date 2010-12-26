@@ -63,6 +63,7 @@ class Screen(BaseScreen, RealTerminal):
         self.prev_input_resize = 0
         self.set_input_timeouts()
         self.screen_buf = None
+        self._screen_buf_canvas = None
         self._resized = False
         self.maxrow = None
         self.gpm_mev = None
@@ -530,6 +531,10 @@ class Screen(BaseScreen, RealTerminal):
 
         assert maxrow == r.rows()
 
+        # quick return if nothing has changed
+        if self.screen_buf and r is self._screen_buf_canvas:
+            return
+
         self._setup_G1()
         
         if self._resized: 
@@ -688,7 +693,7 @@ class Screen(BaseScreen, RealTerminal):
                 raise
 
         self.screen_buf = sb
-        self.keep_cache_alive_link = r
+        self._screen_buf_canvas = r
                 
     
     def _last_row(self, row):
