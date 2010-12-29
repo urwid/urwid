@@ -123,7 +123,8 @@ class LineBox(WidgetDecoration, WidgetWrap):
 
         def use_attr( a, t ):
             if a is not None:
-                return a
+                t = AttrWrap(t, a)
+                return t
             else:
                 return t
 
