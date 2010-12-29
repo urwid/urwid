@@ -80,7 +80,7 @@ E_invalid_in_help_col = [
 CALC_LAYOUT = None
 
 
-class CalcEvent:
+class CalcEvent(Exception):
     """Events triggered by user input."""
     
     attr = 'event'
@@ -103,7 +103,7 @@ class ColumnDeleteEvent(CalcEvent):
             " again to confirm column removal."]
         self.letter = letter
 
-class UpdateParentEvent:
+class UpdateParentEvent(Exception):
     """Sent when parent columns may need to be updated."""
     pass
 
