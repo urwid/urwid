@@ -327,12 +327,12 @@ def process_keyqueue(codes, more_available):
             if k>256 or k&0xc0 != 0x80:
                 return ["<%d>"%code], codes[1:]
         
-        if bytes is not str:
-            # for python 3
-            s=bytes(codes[:need_more+1])
-        else:
+        if str is bytes:
             # for python 2
             s = "".join([chr(c)for c in codes[:need_more+1]])
+        else:
+            # for python 3
+            s=bytes(codes[:need_more+1])
         assert isinstance(s, bytes)
         try:
             return [s.decode("utf-8")], codes[need_more+1:]

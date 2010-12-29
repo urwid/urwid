@@ -44,7 +44,7 @@ try:
 except ImportError:
     Popen = None
 
-if bytes is str:
+if str is bytes:
     # python 2
     _trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
 else:
@@ -675,7 +675,7 @@ class Screen(BaseScreen, RealTerminal):
         try:
             k = 0
             for l in o:
-                if isinstance(l, bytes) and bytes is not str:
+                if isinstance(l, bytes) and not str is bytes:
                     # for python 3
                     l = l.decode('utf-8')
                 self._term_output_file.write(l)
