@@ -381,6 +381,25 @@ class ListBox(BoxWidget):
         return final_canvas
 
 
+    def get_cursor_coords(self, size):
+        (maxcol, maxrow) = size
+        
+        middle, top, bottom = self.calculate_visible(
+            (maxcol, maxrow), True)
+        if middle is None:
+            return None
+
+        offset_inset, _ignore1, _ignore2, _ignore3, cursor = middle
+        if not cursor:
+            return None
+
+        x, y = cursor
+        y += offset_inset
+        if y < 0 or y >= maxrow:
+            return None
+        return (x, y)
+
+
     def set_focus_valign(self, valign):
         """Set the focus widget's display offset and inset.
 

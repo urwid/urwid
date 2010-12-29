@@ -132,6 +132,10 @@ class GridFlow(FlowWidget):
         self._invalidate()
         
 
+    def get_focus (self):
+        """Return the widget in focus."""
+        return self.focus_cell
+
     def get_display_widget(self, size):
         """
         Arrange the cells into columns (and possibly a pile) for 
@@ -496,6 +500,13 @@ class Frame(BoxWidget):
         assert part in ('header', 'footer', 'body')
         self.focus_part = part
         self._invalidate()
+
+    def get_focus (self):
+        """Return the part of the frame that is in focus.
+
+        Will be one of 'header', 'footer' or 'body'.
+        """
+        return self.focus_part
 
     def frame_top_bottom(self, size, focus):
         """Calculate the number of rows for the header and footer.

@@ -716,7 +716,7 @@ class Edit(Text):
 
     def __init__(self, caption="", edit_text="", multiline=False,
             align=LEFT, wrap=SPACE, allow_tab=False,
-            edit_pos=None, layout=None):
+            edit_pos=None, layout=None, mask=None):
         """
         caption -- markup for caption preceeding edit_text
         edit_text -- text string for editing
@@ -726,6 +726,7 @@ class Edit(Text):
         allow_tab -- True: 'tab' inserts 1-8 spaces  False: return it
         edit_pos -- initial position for cursor, None:at end
         layout -- layout object
+        mask -- character to mask away text with, None means no masking
 
         >>> Edit()
         <Edit selectable flow widget u'' edit_pos=0>
@@ -746,6 +747,7 @@ class Edit(Text):
         if edit_pos is None:
             edit_pos = len(edit_text)
         self.set_edit_pos(edit_pos)
+        self.set_mask(mask)
         self._shift_view_to_cursor = False
     
     def _repr_words(self):
@@ -763,7 +765,7 @@ class Edit(Text):
         """
         Returns (text, attributes).
         
-        text -- complete text of caption and edit_text
+        text -- complete text of caption and edit_text, maybe masked away
         attributes -- run length encoded attributes for text
 
         >>> Edit("What? ","oh, nothing.").get_text()
@@ -771,7 +773,11 @@ class Edit(Text):
         >>> Edit(('bright',"user@host:~$ "),"ls").get_text()
         (u'user@host:~$ ls', [('bright', 13)])
         """
-        return self._caption + self._edit_text, self._attrib
+
+        if self._mask is None:
+            return self._caption + self._edit_text, self._attrib
+        else:
+            return self._caption + (self._mask * len(self._edit_text)), self._attrib
     
     def set_text(self, markup):
         """
@@ -893,6 +899,14 @@ class Edit(Text):
         self._invalidate()
     
     edit_pos = property(lambda self:self._edit_pos, set_edit_pos)
+
+    def set_mask(self, mask):
+        """
+        Set the character for masking text away. Empty means no masking.
+        """
+
+        self._mask = mask
+        self._invalidate()
     
     def set_edit_text(self, text):
         """

@@ -281,26 +281,23 @@ class CF635Screen(CFLCDScreen):
     """
     DISPLAY_SIZE = (20, 4)
 
-    CGROM = (u'\u2460\u2461\u2462\u2463\u2464\u2465\u2466\u2467\u2460\u2461'
-            +u'\u2462\u2463\u2464\u2465\u2466\u2467\u25ba\u25c4\u21d1\u21d3'
-            +u'\xab\xbb\u2196\u2197\u2199\u2198\u25b2\u25bc\u21b2^\u02c7\u2588'
-            +u' !"#\xa4%&\'()*+,-./'
-            +u'0123456789:;<=>?'
-            +u'\xa1ABCDEFGHIJKLMNO'
-            +u'PQRSTUVWXYZ\xc4\xd6\xd1\xdc\xa7'
-            +u'\xbfabcdefghijklmno'
-            +u'pqrstuvwxyz\xe4\xf6\xf1\xfc\xe0'
-            +u'\u2070\xb9\xb2\xb3\u2074\u2075\u2076\u2077\u2078\u2079\xbd\xbc'
-            +u'\xb1\u2265\u2264\u03bc\u266a\u266b\u2474\u2665\u2666\u2475'
-            +u'\u231c\u231f\u201c\u201d()\u03b1\u025b\u03b4\u221e@\xa3$\xa5'
-            +u'\xe8\xe9\xf9\xec\xf2\xc7\u1d3e\xd8\xf8\u02b3\xc5\xe5\u2302\xa2'
-            +u'\u03a6\u03c4\u03bb\u03a9\u03c0\u03a8\u03a3\u03b8\u039e\u2648'
-            +u'\xc6\xe6\xdf\xc9\u0393\u039b\u03a0\u03d2_\xc8\xca\xea\xe7\u011f'
-            +u'\u015e\u015f\u0130\u03b9~\u25ca\u2587\u2586\u2584\u2583\u2581'
-            +u'\u0192\u2589\u258b\u258c\u258d\u258f\u2476\u25fd\u25aa\u2191'
-            +u'\u2192\u2193\u2190\xc1\xcd\xd3\xda\xdd\xe1\xed\xf3\xfa\xfd\xd4'
-            +u'\xf4\u016e\u016f\u010c\u0114\u0158\u0160\u017d\u010d\u0115'
-            +u'\u0159\u0161\u017e[\\]{|}')
+    CGROM = (
+        u"①②③④⑤⑥⑦⑧①②③④⑤⑥⑦⑧"
+        u"►◄⇑⇓«»↖↗↙↘▲▼↲^ˇ█"
+        u" !\"#¤%&'()*+,-./"
+        u"0123456789:;<=>?"
+        u"¡ABCDEFGHIJKLMNO"
+        u"PQRSTUVWXYZÄÖÑÜ§"
+        u"¿abcdefghijklmno"
+        u"pqrstuvwxyzäöñüà"
+        u"⁰¹²³⁴⁵⁶⁷⁸⁹½¼±≥≤μ"
+        u"♪♫⑴♥♦⑵⌜⌟“”()αɛδ∞"
+        u"@£$¥èéùìòÇᴾØøʳÅå"
+        u"⌂¢ΦτλΩπΨΣθΞ♈ÆæßÉ"
+        u"ΓΛΠϒ_ÈÊêçğŞşİι~◊"
+        u"▇▆▄▃▁ƒ▉▋▌▍▏⑶◽▪↑→"
+        u"↓←ÁÍÓÚÝáíóúýÔôŮů"
+        u"ČĔŘŠŽčĕřšž[\]{|}")
 
     cursor_style = CFLCDScreen.CURSOR_INVERTING_BLINKING_BLOCK
 
