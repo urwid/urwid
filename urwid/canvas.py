@@ -1265,10 +1265,8 @@ def apply_text_layout(text, attr, ls, maxcol):
                 line.append(b" "*s.sc)
                 linea.append((None, s.sc))
                 linec.append((None, s.sc))
-        
-        #raise AssertionError(repr(line))
+            
         t.append(b"".join(line))
-        
         a.append(linea)
         c.append(linec)
         
