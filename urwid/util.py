@@ -124,15 +124,8 @@ def apply_target_encoding( s ):
         s = s.encode( _target_encoding )
 
     assert isinstance(s, bytes)
-    SO = escape.SO
-    SI = escape.SI
-    if not isinstance(SO, bytes):
-        # python 3
-        SO = SO.encode('ascii')
-        SI = SI.encode('ascii')
-    else:
-        SI = bytes(SI)
-        SO = bytes(SO)
+    SO = escape.SO.encode('ascii')
+    SI = escape.SI.encode('ascii')
 
     sis = s.split(SO)
 
