@@ -139,7 +139,7 @@ def _value_lookup_table(values, size):
     [0, 0, 0, 0, 1, 1, 1, 1, 2, 2]
     """
 
-    middle_values = [0] + [(values[i] + values[i + 1] + 1) >> 1
+    middle_values = [0] + [(values[i] + values[i + 1] + 1) // 2
         for i in range(len(values) - 1)] + [size]
     lookup_table = []
     for i in range(len(middle_values)-1):
@@ -238,8 +238,8 @@ def _color_desc_256(num):
         return 'h%d' % num
     if num < _GRAY_START_256:
         num -= _CUBE_START
-        b, num = num % _CUBE_SIZE_256, int(num / _CUBE_SIZE_256)
-        g, num = num % _CUBE_SIZE_256, int(num / _CUBE_SIZE_256)
+        b, num = num % _CUBE_SIZE_256, num // _CUBE_SIZE_256
+        g, num = num % _CUBE_SIZE_256, num // _CUBE_SIZE_256
         r = num % _CUBE_SIZE_256
         return '#%x%x%x' % (_CUBE_STEPS_256_16[r], _CUBE_STEPS_256_16[g],
             _CUBE_STEPS_256_16[b])
@@ -271,8 +271,8 @@ def _color_desc_88(num):
         return 'h%d' % num
     if num < _GRAY_START_88:
         num -= _CUBE_START
-        b, num = num % _CUBE_SIZE_88, int(num / _CUBE_SIZE_88)
-        g, r= num % _CUBE_SIZE_88, int(num / _CUBE_SIZE_88)
+        b, num = num % _CUBE_SIZE_88, num // _CUBE_SIZE_88
+        g, r= num % _CUBE_SIZE_88, num // _CUBE_SIZE_88
         return '#%x%x%x' % (_CUBE_STEPS_88_16[r], _CUBE_STEPS_88_16[g],
             _CUBE_STEPS_88_16[b])
     return 'g%d' % _GRAY_STEPS_88_101[num - _GRAY_START_88]
@@ -312,8 +312,8 @@ def _parse_color_256(desc):
             rgb = int(desc[1:], 16)
             if rgb < 0:
                 return None
-            b, rgb = rgb % 16, rgb >> 4
-            g, r = rgb % 16, rgb >> 4
+            b, rgb = rgb % 16, rgb // 16
+            g, r = rgb % 16, rgb // 16
             # find the closest rgb values
             r = _CUBE_256_LOOKUP_16[r]
             g = _CUBE_256_LOOKUP_16[g]
@@ -381,8 +381,8 @@ def _parse_color_88(desc):
             rgb = int(desc[1:], 16)
             if rgb < 0:
                 return None
-            b, rgb = rgb % 16, rgb >> 4
-            g, r = rgb % 16, rgb >> 4
+            b, rgb = rgb % 16, rgb // 16
+            g, r = rgb % 16, rgb // 16
             # find the closest rgb values
             r = _CUBE_88_LOOKUP_16[r]
             g = _CUBE_88_LOOKUP_16[g]

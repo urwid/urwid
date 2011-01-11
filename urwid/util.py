@@ -461,5 +461,5 @@ def int_scale(val, val_range, out_range):
     num = int(val * (out_range-1) * 2 + (val_range-1))
     dem = ((val_range-1) * 2)
     # if num % dem == 0 then we are exactly half-way and have rounded up.
-    return int(num / dem) # XXX: unfortunately not int math for python3
+    return num // dem
 
