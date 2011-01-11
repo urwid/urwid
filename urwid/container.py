@@ -160,14 +160,14 @@ class GridFlow(FlowWidget):
         d = Divider()
         if len(self.cells) == 0: # how dull
             return d
-        
+
         if self.v_sep > 1:
             # increase size of divider
             d.top = self.v_sep-1
-        
+
         # cells per row
-        bpr = (maxcol+self.h_sep) // (self.cell_width+self.h_sep)
-        
+        bpr = int((maxcol+self.h_sep) / (self.cell_width+self.h_sep))
+
         if bpr == 0: # too narrow, pile them on top of eachother
             l = [self.cells[0]]
             f = 0
@@ -814,7 +814,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         for (f, height), li in zip(self.item_types, l):
             if li is None:
                 rows = int(float(remaining)*height
-                    //wtotal+0.5)
+                    /wtotal+0.5)
                 l[i] = rows
                 remaining -= rows
                 wtotal -= height
@@ -1323,7 +1323,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         if col is None:
             col = self.pref_col
         if col is None and w.selectable():
-            col = widths[self.focus_col]//2
+            col = widths[self.focus_col] >> 1
             col += self.focus_col * self.dividechars
             col += sum( widths[:self.focus_col] )
         return col

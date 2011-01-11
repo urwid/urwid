@@ -105,9 +105,9 @@ class StandardTextLayout(TextLayout):
                 out.append([(width-sc, None)] + l)
                 continue
             assert align == 'center'
-            out.append([((width-sc+1)//2, None)] + l)
+            out.append([((width-sc+1) >> 1, None)] + l)
         return out
-        
+
 
     def calculate_text_segments( self, text, width, wrap ):
         """

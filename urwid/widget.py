@@ -29,8 +29,10 @@ from urwid.canvas import CanvasCache, CompositeCanvas, SolidCanvas, \
 from urwid.command_map import command_map
 from urwid.split_repr import split_repr, remove_defaults
 
-try: set
-except NameError: set = list # not perfect, but should be good enough for python2.3
+try: # python 2.4 and 2.5 compat
+    bytes
+except NameError:
+    bytes = str
 
 
 # Widget sizing methods

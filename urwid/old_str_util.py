@@ -20,6 +20,12 @@
 # Urwid web site: http://excess.org/urwid/
 
 import re
+
+try: # python 2.4 and 2.5 compat
+    bytes
+except NameError:
+    bytes = str
+
 SAFE_ASCII_RE = re.compile(u"^[ -~]*$")
 
 _byte_encoding = None

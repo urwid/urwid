@@ -539,9 +539,9 @@ class ListBox(BoxWidget):
         elif coming_from=='above':
             offset = maxrow-rows
         else:
-            offset = (maxrow-rows)//2
+            offset = (maxrow-rows) >> 1
         self.shift_focus((maxcol, maxrow), offset)
-    
+
 
     def shift_focus(self, size, offset_inset):
         """Move the location of the current focus relative to the top.
@@ -703,7 +703,7 @@ class ListBox(BoxWidget):
             inum, iden = self.inset_fraction
             if inum < 0 or iden < 0 or inum >= iden:
                 raise ListBoxError, "Invalid inset_fraction: %r"%(self.inset_fraction,)
-            inset_rows = focus_rows * inum // iden
+            inset_rows = int(focus_rows * inum / iden)
             assert inset_rows < focus_rows, "urwid inset_fraction error (please report)"
         return offset_rows, inset_rows
 

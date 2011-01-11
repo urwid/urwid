@@ -23,9 +23,9 @@
 import urwid
 
 import unittest
-if str is bytes:
+try:
     from test import test_support
-else:
+except ImportError:
     from test import support as test_support
 from doctest import DocTestSuite
 from urwid.vterm_test import TermTest

@@ -25,6 +25,10 @@ from urwid.util import rle_len, rle_append_modify, rle_join_modify, rle_product,
     calc_width, calc_text_pos, apply_target_encoding, trim_text_attr_cs
 from urwid.text_layout import trim_line, LayoutSegment
 
+try: # python 2.4 and 2.5 compat
+    bytes
+except NameError:
+    bytes = str
 
 class CanvasCache(object):
     """
@@ -318,14 +322,14 @@ class TextCanvas(Canvas):
             attr = [[] for x in range(len(text))]
         if cs == None:
             cs = [[] for x in range(len(text))]
-        
+
         # pad text and attr to maxcol
         for i in range(len(text)):
             w = widths[i]
             if w > maxcol: 
                 raise CanvasError("Canvas text is wider than the maxcol specified \n%r\n%r\n%r"%(maxcol,widths,text))
             if w < maxcol:
-                text[i] = text[i] + b" "*(maxcol-w)
+                text[i] = text[i] + bytes().rjust(maxcol-w)
             a_gap = len(text[i]) - rle_len( attr[i] )
             if a_gap < 0:
                 raise CanvasError("Attribute extends beyond text \n%r\n%r" % (text[i],attr[i]) )
@@ -438,7 +442,7 @@ class BlankCanvas(Canvas):
         def_attr = None
         if attr and None in attr:
             def_attr = attr[None]
-        line = [(def_attr, None, b" "*cols)]
+        line = [(def_attr, None, bytes().rjust(cols))]
         for i in range(rows):
             yield line
 
@@ -1259,17 +1263,17 @@ def apply_text_layout(text, attr, ls, maxcol):
                 rle_join_modify( linec, cs )
             elif s.offs:
                 if s.sc:
-                    line.append(b" "*s.sc)
+                    line.append(bytes().rjust(s.sc))
                     attrrange( s.offs, s.offs, s.sc )
             else:
-                line.append(b" "*s.sc)
+                line.append(bytes().rjust(s.sc))
                 linea.append((None, s.sc))
                 linec.append((None, s.sc))
-            
-        t.append(b"".join(line))
+
+        t.append(bytes().join(line))
         a.append(linea)
         c.append(linec)
-        
+
     return TextCanvas(t, a, c, maxcol=maxcol)
 
 

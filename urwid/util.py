@@ -27,6 +27,11 @@ try:
 except ImportError:
     import old_str_util as str_util
 
+try: # python 2.4 and 2.5 compat
+    bytes
+except NameError:
+    bytes = str
+
 # bring str_util functions into our namespace
 calc_text_pos = str_util.calc_text_pos
 calc_width = str_util.calc_width
@@ -117,7 +122,7 @@ def apply_target_encoding( s ):
     if type(s) == unicode:
         s = s.replace( escape.SI+escape.SO, u"" ) # remove redundant shifts
         s = s.encode( _target_encoding )
-    
+
     assert isinstance(s, bytes)
     SO = escape.SO
     SI = escape.SI
@@ -128,12 +133,12 @@ def apply_target_encoding( s ):
     else:
         SI = bytes(SI)
         SO = bytes(SO)
-    
-    sis = s.split( SO )
-    
+
+    sis = s.split(SO)
+
     assert isinstance(sis[0], bytes)
-    
-    sis0 = sis[0].replace( SI, b"" )
+
+    sis0 = sis[0].replace(SI, bytes())
     sout = []
     cout = []
     if sis0:
@@ -146,7 +151,7 @@ def apply_target_encoding( s ):
     for sn in sis[1:]:
         assert isinstance(sn, bytes)
         assert isinstance(SI, bytes)
-        sl = sn.split( SI, 1 ) 
+        sl = sn.split(SI, 1)
         if len(sl) == 1:
             sin = sl[0]
             assert isinstance(sin, bytes)
@@ -154,18 +159,18 @@ def apply_target_encoding( s ):
             rle_append_modify(cout, (escape.DEC_TAG.encode('ascii'), len(sin)))
             continue
         sin, son = sl
-        son = son.replace( SI, b"" )
+        son = son.replace(SI, bytes())
         if sin:
             sout.append(sin)
             rle_append_modify(cout, (escape.DEC_TAG, len(sin)))
         if son:
             sout.append(son)
             rle_append_modify(cout, (None, len(son)))
-    
-    outstr = b"".join(sout)
+
+    outstr = bytes().join(sout)
     return outstr, cout
-    
-    
+
+
 ######################################################################
 # Try to set the encoding using the one detected by the locale module
 set_encoding( detected_encoding )
@@ -230,10 +235,11 @@ def trim_text_attr_cs( text, attr, cs, start_col, end_col ):
         al = rle_get_at( attr, epos )
         rle_append_modify( attrtr, (al, 1) )
         rle_append_modify( cstr, (None, 1) )
-    
-    return b" "*pad_left + text[spos:epos] + b" "*pad_right, attrtr, cstr
-    
-        
+
+    return (bytes().rjust(pad_left) + text[spos:epos] +
+        bytes().rjust(pad_right), attrtr, cstr)
+
+
 def rle_get_at( rle, pos ):
     """
     Return the attribute at offset pos.
@@ -455,5 +461,5 @@ def int_scale(val, val_range, out_range):
     num = int(val * (out_range-1) * 2 + (val_range-1))
     dem = ((val_range-1) * 2)
     # if num % dem == 0 then we are exactly half-way and have rounded up.
-    return num // dem
+    return int(num / dem) # XXX: unfortunately not int math for python3
 

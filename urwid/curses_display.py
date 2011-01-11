@@ -31,6 +31,11 @@ from urwid import escape
 
 from urwid.display_common import BaseScreen, RealTerminal, AttrSpec
 
+try: # python 2.4 and 2.5 compat
+    bytes
+except NameError:
+    bytes = str
+
 KEY_RESIZE = 410 # curses.KEY_RESIZE (sometimes not defined)
 KEY_MOUSE = 409 # curses.KEY_MOUSE
 

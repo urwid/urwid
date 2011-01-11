@@ -38,18 +38,19 @@ from urwid.display_common import BaseScreen, RealTerminal, UPDATE_PALETTE_ENTRY,
     AttrSpec
 from urwid import signals
 
-try:
-    # python >= 2.4
-    from subprocess import Popen, PIPE
-except ImportError:
-    Popen = None
+from subprocess import Popen, PIPE
+
+try: # python 2.4 and 2.5 compat
+    bytes
+except NameError:
+    bytes = str
 
 if str is bytes:
     # python 2
     _trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
 else:
     # python 3
-    _trans_table = b"?"*32+bytes(range(32,256))
+    _trans_table = bytes("?", "ascii")*32+bytes(range(32,256))
 
 
 class Screen(BaseScreen, RealTerminal):

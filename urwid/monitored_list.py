@@ -19,6 +19,10 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+try: # python 2.4 and 2.5 compat
+    bytes
+except NameError:
+    bytes = str
 
 
 def _call_modified(fn):
