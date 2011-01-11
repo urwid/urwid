@@ -30,13 +30,15 @@ import os
 
 import urwid
 release = urwid.__version__
+python3 = not str is bytes
 
 setup_d = {
     'name':"urwid",
     'version':release,
     'author':"Ian Ward",
     'author_email':"ian@excess.org",
-    'ext_modules':[Extension('urwid.str_util', sources=['source/str_util.c'])],
+    'ext_modules':[Extension('urwid.str_util',
+        sources=['source/str_util%s.c' % ("_python3" * python3)])],
     'url':"http://excess.org/urwid/",
     'download_url':"http://excess.org/urwid/urwid-%s.tar.gz"%release,
     'license':"LGPL",
