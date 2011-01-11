@@ -638,14 +638,20 @@ class Screen(BaseScreen, RealTerminal):
             lasta = lastcs = None
             for (a,cs, run) in row:
                 assert isinstance(run, bytes) # canvases should render with bytes
-                run = run.translate( _trans_table )
+                if cs != 'U':
+                    run = run.translate( _trans_table )
                 if first or lasta != a:
                     o.append(attr_to_escape(a))
                     lasta = a
                 if first or lastcs != cs:
-                    assert cs in [None, "0"], repr(cs)
+                    assert cs in [None, "0", "U"], repr(cs)
+                    if lastcs == "U":
+                        o.append( escape.IBMPC_OFF )
+
                     if cs is None:
                         o.append( escape.SI )
+                    elif cs == "U":
+                        o.append( escape.IBMPC_ON )
                     else:
                         o.append( escape.SO )
                     lastcs = cs
@@ -654,15 +660,20 @@ class Screen(BaseScreen, RealTerminal):
             if ins:
                 (inserta, insertcs, inserttext) = ins
                 ias = attr_to_escape(inserta)
-                assert insertcs in [None, "0"], repr(insertcs)
+                assert insertcs in [None, "0", "U"], repr(insertcs)
                 if cs is None:
                     icss = escape.SI
+                elif cs == "U":
+                    icss = escape.IBMPC_ON
                 else:
                     icss = escape.SO
                 o += [    "\x08"*back, 
                     ias, icss,
                     escape.INSERT_ON, inserttext,
                     escape.INSERT_OFF ]
+
+                if cs == "U":
+                    o.append(escape.IBMPC_OFF)
 
         if r.cursor is not None:
             x,y = r.cursor
@@ -774,7 +785,8 @@ class Screen(BaseScreen, RealTerminal):
                 fg = "%d" % (a.foreground_number + 30)
         else:
             fg = "39"
-        st = "1;" * a.bold + "4;" * a.underline + "7;" * a.standout
+        st = ("1;" * a.bold + "4;" * a.underline +
+              "5;" * a.blink + "7;" * a.standout)
         if a.background_high:
             bg = "48;5;%d" % a.background_number
         elif a.background_basic:
