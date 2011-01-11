@@ -23,7 +23,7 @@
 from urwid import escape
 
 try:
-    import str_util
+    from urwid import str_util
 except ImportError:
     import old_str_util as str_util
 
