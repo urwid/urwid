@@ -159,43 +159,83 @@ def set_byte_encoding(enc):
 def get_byte_encoding():
     return _byte_encoding
 
-def calc_text_pos( text, start_offs, end_offs, pref_col ):
+def calc_text_pos(text, start_offs, end_offs, pref_col):
     """
     Calculate the closest position to the screen column pref_col in text
     where start_offs is the offset into text assumed to be screen column 0
     and end_offs is the end of the range to search.
-    
+
+    text may be unicode or a byte string in the target _byte_encoding
+
     Returns (position, actual_col).
     """
     assert start_offs <= end_offs, repr((start_offs, end_offs))
-    if type(text) == bytes:
-        text = text.decode(_byte_encoding)
-    if type(text) == unicode:
+    utfs = (type(text) == bytes and _byte_encoding == "utf8")
+    if type(text) != bytes or utfs:
         i = start_offs
         sc = 0
         n = 1 # number to advance by
         while i < end_offs:
-            o = ord(text[i])
-            n = i + 1
+            if utfs:
+                o, n = decode_one(text, i)
+            elif str is bytes or type(text) != bytes:
+                # python2 or python3 unicode
+                o = ord(text[i])
+                n = i + 1
+            else: # python3 byte string
+                o = text[i]
+                n = i + 1
             w = get_width(o)
             if w+sc > pref_col: 
                 return i, sc
             i = n
             sc += w
         return i, sc
+    assert type(text) == bytes, repr(text)
+    # "wide" and "narrow"
+    i = start_offs+pref_col
+    if i >= end_offs:
+        return end_offs, end_offs-start_offs
+    if _byte_encoding == "wide":
+        if within_double_byte(text, start_offs, i) == 2:
+            i -= 1
+    return i, i-start_offs
 
-def calc_width( text, start_offs, end_offs ):
+def calc_width(text, start_offs, end_offs):
     """
     Return the screen column width of text between start_offs and end_offs.
+
+    text may be unicode or a byte string in the target _byte_encoding
+
+    Some characters are wide (take two columns) and others affect the
+    previous character (take zero columns).  Use the widths table above
+    to calculate the screen column width of text[start_offs:end_offs]
     """
-    # Rewritten by Wendell to use simple builtins. It was really complicated 
-    # before, probably from back in the days of early Python before unicode
-    # really worked at all.
+
     assert start_offs <= end_offs, repr((start_offs, end_offs))
-    if not isinstance(text, unicode):
-        return len(text[start_offs:end_offs].decode(_byte_encoding))
+
+    utfs = (type(text) == bytes and _byte_encoding == "utf8")
+    if (type(text) != bytes or utfs) and not SAFE_ASCII_RE.match(text):
+        i = start_offs
+        sc = 0
+        n = 1 # number to advance by
+        while i < end_offs:
+            if utfs:
+                o, n = decode_one(text, i)
+            elif str is bytes or type(text) != bytes:
+                # python2 or python3 unicode
+                o = ord(text[i])
+                n = i + 1
+            else: # python3 byte string
+                o = text[i]
+                n = i + 1
+            w = get_width(o)
+            i = n
+            sc += w
+        return sc
+    # "wide", "narrow" or all printable ASCII, just return the character count
     return end_offs - start_offs
-    
+
 def is_wide_char( text, offs ):
     """
     Test if the character at offs within text is wide.
