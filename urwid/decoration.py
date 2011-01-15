@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid widget decoration classes
-#    Copyright (C) 2004-2010  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -930,7 +930,7 @@ def calculate_filler( valign_type, valign_amount, height_type, height_amount,
     if height_type == 'fixed':
         height = height_amount
     elif height_type == 'relative':
-        height = int(height_amount*maxrow/100+.5)
+        height = int(height_amount*maxrow // 100)
         if min_height is not None:
                 height = max(height, min_height)
     else:
@@ -956,7 +956,7 @@ def calculate_filler( valign_type, valign_amount, height_type, height_amount,
         # need to shrink bottom
         return 0, maxrow-height        
     elif valign_type == 'relative':
-        top = int( (maxrow-height)*valign_amount/100+.5 )
+        top = int( (maxrow-height)*valign_amount // 100)
     elif valign_type == 'bottom':
         top = maxrow-height    
     elif valign_type == 'middle':

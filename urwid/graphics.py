@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Urwid graphics widgets
-#    Copyright (C) 2004-2007  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -531,13 +531,13 @@ class BarGraph(BoxWidget):
             assert r == 0
             # copy whole blocks
             if y_count > 7:
-                o.append( (y_count/8*8 , row) )
+                o.append( (y_count // 8 * 8 , row) )
                 y_count = y_count %8
                 if not y_count:
                     continue
             o.append( (y_count, row) )
             r = y_count
-        return [(y/8, row) for (y,row) in o]
+        return [(y // 8, row) for (y,row) in o]
             
             
     def render(self, size, focus=False):
