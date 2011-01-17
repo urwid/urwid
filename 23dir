@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-from __future__ import print_function
-
 import optparse
 import subprocess
 import sys
@@ -69,21 +67,21 @@ for dir, dirs, files in os.walk(base):
             dirs.remove(unwanteddir)
     for p in files:
         p = os.path.join(dir, p)
-        locrelpath = os.path.relpath(p, base)
+        locrelpath = os.path.join(base, p)
         newloc = os.path.join(newbase,locrelpath)
         fname, sep, ext = p.rpartition(os.extsep)
         if ext not in ('py', 'c'):
-            printlevel >= 2 and print('skipping', p)
+            if printlevel >= 2: print('skipping', p)
             continue
         if (not opts.force and os.path.exists(newloc) 
             and os.stat(p).st_mtime <= os.stat(newloc).st_mtime):
-            printlevel >= 2 and print('already up to date:', p)
+            if printlevel >= 2: print('already up to date:', p)
             continue
 
-        printlevel >= 1 and print(newloc)
+        if printlevel >= 1: print(newloc)
         forcecopy(p, newloc)
         if ext == 'py':
-            proc = subprocess.Popen(['2to3','-w', '--no-diffs', '-n', 
+            proc = subprocess.Popen(['2to3','-w', '-n', #'--no-diffs',
                 str(newloc)], stdout = stdout, stderr = stderr)
             proc.communicate()
             if opts.exit:
@@ -95,4 +93,4 @@ if printlevel > 0:
     if count == 0:
         print('All files up to date')
     else:
-        print('Updated {0} files.'.format(count))
+        print('Updated %d files.' % count)
