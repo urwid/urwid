@@ -28,9 +28,22 @@ except ImportError:
     import old_str_util as str_util
 
 try: # python 2.4 and 2.5 compat
-    bytes
+    bytes = bytes
 except NameError:
     bytes = str
+
+PYTHON3 = str is not bytes
+
+def B(t):
+    """
+    return a byte string in all supported python versions
+
+    B("hello") <=> b"hello" in python3
+    B("hello") <=> "hello" in python2
+    """
+    if PYTHON3:
+        return t.encode('iso8859-1')
+    return t
 
 # bring str_util functions into our namespace
 calc_text_pos = str_util.calc_text_pos
@@ -41,22 +54,26 @@ move_prev_char = str_util.move_prev_char
 within_double_byte = str_util.within_double_byte
 
 
-# Try to determine if using a supported double-byte encoding
-import locale
-try:
+def detect_encoding():
+    # Try to determine if using a supported double-byte encoding
+    import locale
     try:
-        locale.setlocale( locale.LC_ALL, "" )
-    except locale.Error:
-        pass
-    detected_encoding = locale.getlocale()[1]
-    if not detected_encoding:
-        detected_encoding = ""
-except ValueError, e:
-    # with invalid LANG value python will throw ValueError
-    if e.args and e.args[0].startswith("unknown locale"):
-        detected_encoding = ""
-    else:
-        raise
+        try:
+            locale.setlocale(locale.LC_ALL, "")
+        except locale.Error:
+            pass
+        return locale.getlocale()[1] or ""
+    except ValueError, e:
+        # with invalid LANG value python will throw ValueError
+        if e.args and e.args[0].startswith("unknown locale"):
+            return ""
+        else:
+            raise
+
+if 'detected_encoding' not in locals():
+    detected_encoding = detect_encoding()
+else:
+    assert 0, "It worked!"
 
 _target_encoding = None
 _use_dec_special = True
