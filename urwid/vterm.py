@@ -1369,12 +1369,13 @@ class TerminalWidget(BoxWidget):
         self.pid, self.master = pty.fork()
 
         if self.pid == 0:
-            if callable(self.command):
-                self.command()
-            else:
-                os.execvpe(self.command[0], self.command, env)
-
-            os._exit(0)
+            try:
+                if callable(self.command):
+                    self.command()
+                else:
+                    os.execvpe(self.command[0], self.command, env)
+            finally:
+                os._exit(0)
 
         if self.event_loop is None:
             fcntl.fcntl(self.master, fcntl.F_SETFL, os.O_NONBLOCK)
