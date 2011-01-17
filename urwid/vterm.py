@@ -30,6 +30,7 @@ import struct
 import signal
 import atexit
 import termios
+import traceback
 
 from urwid import util
 from urwid.escape import DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS
@@ -1369,13 +1370,17 @@ class TerminalWidget(BoxWidget):
         self.pid, self.master = pty.fork()
 
         if self.pid == 0:
-            try:
-                if callable(self.command):
-                    self.command()
-                else:
-                    os.execvpe(self.command[0], self.command, env)
-            finally:
-                os._exit(0)
+            if callable(self.command):
+                try:
+                    try:
+                        self.command()
+                    except:
+                        sys.stderr.write(traceback.format_exc())
+                        sys.stderr.flush()
+                finally:
+                    os._exit(0)
+            else:
+                os.execvpe(self.command[0], self.command, env)
 
         if self.event_loop is None:
             fcntl.fcntl(self.master, fcntl.F_SETFL, os.O_NONBLOCK)

@@ -28,6 +28,7 @@ from itertools import dropwhile
 from urwid import vterm
 from urwid.main_loop import SelectEventLoop
 from urwid import signals
+from urwid.util import B
 
 class DummyCommand(object):
     QUITSTRING = '|||quit|||'
@@ -37,16 +38,18 @@ class DummyCommand(object):
 
     def __call__(self):
         # reset
-        sys.stdout.write('\x1bc')
+        stdout = sys.stdout.buffer
+        stdout.write(B('\x1bc'))
 
         while True:
             data = os.read(self.reader, 1024)
             if self.QUITSTRING == data:
                 break
-            sys.stdout.write(data)
-            sys.stdout.flush()
+            stdout.write(data)
+            stdout.flush()
 
     def write(self, data):
+        data = B(data)
         os.write(self.writer, data)
 
     def quit(self):
