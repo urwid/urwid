@@ -34,6 +34,17 @@ except NameError:
 
 PYTHON3 = str is not bytes
 
+# for iterating over byte strings:
+# ord2 calls ord in python2 only
+# chr2 converts an ordinal value to a length-1 byte string
+if PYTHON3:
+    ord2 = lambda x: x
+    chr2 = lambda x: bytes([x])
+else:
+    ord2 = ord
+    chr2 = chr
+
+
 def B(t):
     """
     return a byte string in all supported python versions

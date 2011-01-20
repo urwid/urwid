@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid canvas class and functions
-#    Copyright (C) 2004-2007  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -24,11 +24,8 @@ import weakref
 from urwid.util import rle_len, rle_append_modify, rle_join_modify, rle_product, \
     calc_width, calc_text_pos, apply_target_encoding, trim_text_attr_cs
 from urwid.text_layout import trim_line, LayoutSegment
+from urwid.util import bytes
 
-try: # python 2.4 and 2.5 compat
-    bytes
-except NameError:
-    bytes = str
 
 class CanvasCache(object):
     """
@@ -235,7 +232,7 @@ class Canvas(object):
         Return the text content of the canvas as a list of strings,
         one for each row.
         """
-        return ["".join([text for (attr, cs, text) in row])
+        return [bytes().join([text for (attr, cs, text) in row])
             for row in self.content()]
 
     text = property(_text_content, _raise_old_repr_error)

@@ -2,6 +2,7 @@
 #
 # Urwid terminal emulation widget
 #    Copyright (C) 2010  aszlig
+#    Copyright (C) 2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -38,10 +39,13 @@ from urwid.canvas import Canvas
 from urwid.widget import BoxWidget
 from urwid.command_map import command_map
 from urwid.display_common import AttrSpec, RealTerminal, _BASIC_COLORS
+from urwid.util import ord2, chr2, B
+
+Bdict = lambda x: dict([(B(k), B(v)) for k, v in x.items()])
 
 ESC = chr(27)
 
-KEY_TRANSLATIONS = {
+KEY_TRANSLATIONS = Bdict({
     'enter':     chr(13),
     'backspace': chr(127),
     'tab':       chr(9),
@@ -69,9 +73,9 @@ KEY_TRANSLATIONS = {
     'f10':       ESC + '[21~',
     'f11':       ESC + '[23~',
     'f12':       ESC + '[24~',
-}
+})
 
-KEY_TRANSLATIONS_DECCKM = {
+KEY_TRANSLATIONS_DECCKM = Bdict({
     'up':        ESC + 'OA',
     'down':      ESC + 'OB',
     'right':     ESC + 'OC',
@@ -81,7 +85,7 @@ KEY_TRANSLATIONS_DECCKM = {
     'f3':        ESC + 'OR',
     'f4':        ESC + 'OS',
     'f5':        ESC + '[15~',
-}
+})
 
 CSI_COMMANDS = {
     # possible values:
@@ -92,38 +96,38 @@ CSI_COMMANDS = {
     # while callback is executed as:
     #     callback(<instance of TermCanvas>, arguments, has_question_mark)
 
-    '@': (1, 1, lambda s, number, q: s.insert_chars(chars=number[0])),
-    'A': (1, 1, lambda s, rows, q: s.move_cursor(0, -rows[0], relative=True)),
-    'B': (1, 1, lambda s, rows, q: s.move_cursor(0, rows[0], relative=True)),
-    'C': (1, 1, lambda s, cols, q: s.move_cursor(cols[0], 0, relative=True)),
-    'D': (1, 1, lambda s, cols, q: s.move_cursor(-cols[0], 0, relative=True)),
-    'E': (1, 1, lambda s, rows, q: s.move_cursor(0, rows[0], relative_y=True)),
-    'F': (1, 1, lambda s, rows, q: s.move_cursor(0, -rows[0], relative_y=True)),
-    'G': (1, 1, lambda s, col, q: s.move_cursor(col[0] - 1, 0, relative_y=True)),
-    'H': (2, 1, lambda s, x_y, q: s.move_cursor(x_y[1] - 1, x_y[0] - 1)),
-    'J': (1, 0, lambda s, mode, q: s.csi_erase_display(mode[0])),
-    'K': (1, 0, lambda s, mode, q: s.csi_erase_line(mode[0])),
-    'L': (1, 1, lambda s, number, q: s.insert_lines(lines=number[0])),
-    'M': (1, 1, lambda s, number, q: s.remove_lines(lines=number[0])),
-    'P': (1, 1, lambda s, number, q: s.remove_chars(chars=number[0])),
-    'X': (1, 1, lambda s, number, q: s.erase(s.term_cursor,
+    B('@'): (1, 1, lambda s, number, q: s.insert_chars(chars=number[0])),
+    B('A'): (1, 1, lambda s, rows, q: s.move_cursor(0, -rows[0], relative=True)),
+    B('B'): (1, 1, lambda s, rows, q: s.move_cursor(0, rows[0], relative=True)),
+    B('C'): (1, 1, lambda s, cols, q: s.move_cursor(cols[0], 0, relative=True)),
+    B('D'): (1, 1, lambda s, cols, q: s.move_cursor(-cols[0], 0, relative=True)),
+    B('E'): (1, 1, lambda s, rows, q: s.move_cursor(0, rows[0], relative_y=True)),
+    B('F'): (1, 1, lambda s, rows, q: s.move_cursor(0, -rows[0], relative_y=True)),
+    B('G'): (1, 1, lambda s, col, q: s.move_cursor(col[0] - 1, 0, relative_y=True)),
+    B('H'): (2, 1, lambda s, x_y, q: s.move_cursor(x_y[1] - 1, x_y[0] - 1)),
+    B('J'): (1, 0, lambda s, mode, q: s.csi_erase_display(mode[0])),
+    B('K'): (1, 0, lambda s, mode, q: s.csi_erase_line(mode[0])),
+    B('L'): (1, 1, lambda s, number, q: s.insert_lines(lines=number[0])),
+    B('M'): (1, 1, lambda s, number, q: s.remove_lines(lines=number[0])),
+    B('P'): (1, 1, lambda s, number, q: s.remove_chars(chars=number[0])),
+    B('X'): (1, 1, lambda s, number, q: s.erase(s.term_cursor,
                                                 (s.term_cursor[0]+number[0] - 1,
                                                  s.term_cursor[1]))),
-    'a': ('alias', 'C'),
-    'c': (0, 0, lambda s, none, q: s.csi_get_device_attributes(q)),
-    'd': (1, 1, lambda s, row, q: s.move_cursor(0, row[0] - 1, relative_x=True)),
-    'e': ('alias', 'B'),
-    'f': ('alias', 'H'),
-    'g': (1, 0, lambda s, mode, q: s.csi_clear_tabstop(mode[0])),
-    'h': (1, 0, lambda s, modes, q: s.csi_set_modes(modes, q)),
-    'l': (1, 0, lambda s, modes, q: s.csi_set_modes(modes, q, reset=True)),
-    'm': (1, 0, lambda s, attrs, q: s.csi_set_attr(attrs)),
-    'n': (1, 0, lambda s, mode, q: s.csi_status_report(mode[0])),
-    'q': (1, 0, lambda s, mode, q: s.csi_set_keyboard_leds(mode[0])),
-    'r': (2, 0, lambda s, t_b, q: s.csi_set_scroll(t_b[0], t_b[1])),
-    's': (0, 0, lambda s, none, q: s.save_cursor()),
-    'u': (0, 0, lambda s, none, q: s.restore_cursor()),
-    '`': ('alias', 'G'),
+    B('a'): ('alias', B('C')),
+    B('c'): (0, 0, lambda s, none, q: s.csi_get_device_attributes(q)),
+    B('d'): (1, 1, lambda s, row, q: s.move_cursor(0, row[0] - 1, relative_x=True)),
+    B('e'): ('alias', B('B')),
+    B('f'): ('alias', B('H')),
+    B('g'): (1, 0, lambda s, mode, q: s.csi_clear_tabstop(mode[0])),
+    B('h'): (1, 0, lambda s, modes, q: s.csi_set_modes(modes, q)),
+    B('l'): (1, 0, lambda s, modes, q: s.csi_set_modes(modes, q, reset=True)),
+    B('m'): (1, 0, lambda s, attrs, q: s.csi_set_attr(attrs)),
+    B('n'): (1, 0, lambda s, mode, q: s.csi_status_report(mode[0])),
+    B('q'): (1, 0, lambda s, mode, q: s.csi_set_keyboard_leds(mode[0])),
+    B('r'): (2, 0, lambda s, t_b, q: s.csi_set_scroll(t_b[0], t_b[1])),
+    B('s'): (0, 0, lambda s, none, q: s.save_cursor()),
+    B('u'): (0, 0, lambda s, none, q: s.restore_cursor()),
+    B('`'): ('alias', B('G')),
 }
 
 CHARSET_DEFAULT = 1
@@ -243,7 +247,7 @@ class TermCanvas(Canvas):
         self.scrolling_up = 0
 
         self.utf8_eat_bytes = None
-        self.utf8_buffer = ""
+        self.utf8_buffer = bytes()
 
         self.coords["cursor"] = (0, 0, None)
 
@@ -306,7 +310,7 @@ class TermCanvas(Canvas):
         """
         Reset the terminal.
         """
-        self.escbuf = ''
+        self.escbuf = bytes()
         self.within_escape = False
         self.parsestate = 0
 
@@ -361,10 +365,10 @@ class TermCanvas(Canvas):
         div, mod = divmod(x, 8)
         return (self.tabstops[div] & (1 << mod)) > 0
 
-    def empty_line(self, char=' '):
+    def empty_line(self, char=B(' ')):
         return [self.empty_char(char)] * self.width
 
-    def empty_char(self, char=' '):
+    def empty_char(self, char=B(' ')):
         return (self.attrspec, self.charset.current, char)
 
     def addstr(self, data):
@@ -373,7 +377,7 @@ class TermCanvas(Canvas):
             return
 
         for byte in data:
-            self.addbyte(byte)
+            self.addbyte(ord2(byte))
 
     def resize(self, width, height):
         """
@@ -435,16 +439,16 @@ class TermCanvas(Canvas):
         if self.modes.main_charset != CHARSET_DEFAULT:
             return
 
-        if mod == '(':
+        if mod == B('('):
             g = 0
         else:
             g = 1
 
-        if char == '0':
+        if char == B('0'):
             cset = 'vt100'
-        elif char == 'U':
+        elif char == B('U'):
             cset = 'ibmpc'
-        elif char == 'K':
+        elif char == B('K'):
             cset = 'user'
         else:
             cset = 'default'
@@ -455,10 +459,10 @@ class TermCanvas(Canvas):
         """
         Parse ECMA-48 CSI (Control Sequence Introducer) sequences.
         """
-        qmark = self.escbuf.startswith('?')
+        qmark = self.escbuf.startswith(B('?'))
 
         escbuf = []
-        for arg in self.escbuf[qmark and 1 or 0:].split(';'):
+        for arg in self.escbuf[qmark and 1 or 0:].split(B(';')):
             try:
                 num = int(arg)
             except ValueError:
@@ -490,40 +494,40 @@ class TermCanvas(Canvas):
         """
         Parse escape sequences which are not CSI.
         """
-        if mod == '#' and char == '8':
+        if mod == B('#') and char == B('8'):
             self.decaln()
-        elif mod == '%': # select main character set
-            if char == '@':
+        elif mod == B('%'): # select main character set
+            if char == B('@'):
                 self.modes.main_charset = CHARSET_DEFAULT
-            elif char in 'G8':
+            elif char in B('G8'):
                 # 8 is obsolete and only for backwards compatibility
                 self.modes.main_charset = CHARSET_UTF8
-        elif mod == '(' or mod == ')': # define G0/G1
+        elif mod == B('(') or mod == B(')'): # define G0/G1
             self.set_g01(char, mod)
-        elif char == 'M': # reverse line feed
+        elif char == B('M'): # reverse line feed
             self.linefeed(reverse=True)
-        elif char == 'D': # line feed
+        elif char == B('D'): # line feed
             self.linefeed()
-        elif char == 'c': # reset terminal
+        elif char == B('c'): # reset terminal
             self.reset()
-        elif char == 'E': # newline
+        elif char == B('E'): # newline
             self.newline()
-        elif char == 'H': # set tabstop
+        elif char == B('H'): # set tabstop
             self.set_tabstop()
-        elif char == 'Z': # DECID
+        elif char == B('Z'): # DECID
             self.widget.respond(ESC + '[?6c')
-        elif char == '7': # save current state
+        elif char == B('7'): # save current state
             self.save_cursor(with_attrs=True)
-        elif char == '8': # restore current state
+        elif char == B('8'): # restore current state
             self.restore_cursor(with_attrs=True)
 
     def parse_osc(self, buf):
         """
         Parse operating system command.
         """
-        if buf.startswith(';'): # set window title and icon
+        if buf.startswith(B(';')): # set window title and icon
             self.widget.set_title(buf[1:])
-        elif buf.startswith('3;'): # set window title
+        elif buf.startswith(B('3;')): # set window title
             self.widget.set_title(buf[2:])
 
     def parse_escape(self, char):
@@ -532,43 +536,43 @@ class TermCanvas(Canvas):
             if char in CSI_COMMANDS.keys():
                 self.parse_csi(char)
                 self.parsestate = 0
-            elif char in '0123456789;' or (self.escbuf == '' and char == '?'):
+            elif char in B('0123456789;') or (not self.escbuf and char == B('?')):
                 self.escbuf += char
                 return
-        elif self.parsestate == 0 and char == ']':
+        elif self.parsestate == 0 and char == B(']'):
             # start of OSC
-            self.escbuf = ''
+            self.escbuf = bytes()
             self.parsestate = 2
             return
-        elif self.parsestate == 2 and char == "\x07":
+        elif self.parsestate == 2 and char == B("\x07"):
             # end of OSC
-            self.parse_osc(self.escbuf.lstrip('0'))
-        elif self.parsestate == 2 and self.escbuf[-1:] + char == ESC + '\\':
+            self.parse_osc(self.escbuf.lstrip(B('0')))
+        elif self.parsestate == 2 and self.escbuf[-1:] + char == B(ESC + '\\'):
             # end of OSC
-            self.parse_osc(self.escbuf[:-1].lstrip('0'))
-        elif self.parsestate == 2 and self.escbuf.startswith('P') and \
+            self.parse_osc(self.escbuf[:-1].lstrip(B('0')))
+        elif self.parsestate == 2 and self.escbuf.startswith(B('P')) and \
              len(self.escbuf) == 8:
             # set palette (ESC]Pnrrggbb)
             pass
-        elif self.parsestate == 2 and self.escbuf == '' and char == 'R':
+        elif self.parsestate == 2 and not self.escbuf and char == B('R'):
             # reset palette
             pass
         elif self.parsestate == 2:
             self.escbuf += char
             return
-        elif self.parsestate == 0 and char == '[':
+        elif self.parsestate == 0 and char == B('['):
             # start of CSI
-            self.escbuf = ''
+            self.escbuf = bytes()
             self.parsestate = 1
             return
-        elif self.parsestate == 0 and char in ('%', '#', '(', ')'):
+        elif self.parsestate == 0 and char in (B('%'), B('#'), B('('), B(')')):
             # non-CSI sequence
             self.escbuf = char
             self.parsestate = 3
             return
         elif self.parsestate == 3:
             self.parse_noncsi(char, self.escbuf)
-        elif char in ('c', 'D', 'E', 'H', 'M', 'Z', '7', '8', '>', '='):
+        elif char in (B('c'), B('D'), B('E'), B('H'), B('M'), B('Z'), B('7'), B('8'), B('>'), B('=')):
             self.parse_noncsi(char)
 
         self.leave_escape()
@@ -576,14 +580,15 @@ class TermCanvas(Canvas):
     def leave_escape(self):
         self.within_escape = False
         self.parsestate = 0
-        self.escbuf = ''
+        self.escbuf = bytes()
 
-    def get_utf8_len(self, startbyte):
+    def get_utf8_len(self, bytenum):
         """
         Process startbyte and return the number of bytes following it to get a
         valid UTF-8 multibyte sequence.
+
+        bytenum -- an integer ordinal
         """
-        bytenum = ord(startbyte)
         length = 0
 
         while bytenum & 0x40:
@@ -596,39 +601,43 @@ class TermCanvas(Canvas):
         """
         Parse main charset and add the processed byte(s) to the terminal state
         machine.
+
+        byte -- an integer ordinal
         """
         if (self.modes.main_charset == CHARSET_UTF8 or
             util._target_encoding == 'utf8'):
-            if byte >= "\xc0":
+            if byte >= 0xc0:
                 # start multibyte sequence
                 self.utf8_eat_bytes = self.get_utf8_len(byte)
-                self.utf8_buffer = byte
+                self.utf8_buffer = chr2(byte)
                 return
-            elif "\x80" <= byte < "\xc0" and self.utf8_eat_bytes is not None:
+            elif 0x80 <= byte < 0xc0 and self.utf8_eat_bytes is not None:
                 if self.utf8_eat_bytes > 1:
                     # continue multibyte sequence
                     self.utf8_eat_bytes -= 1
-                    self.utf8_buffer += byte
+                    self.utf8_buffer += chr2(byte)
                     return
                 else:
                     # end multibyte sequence
                     self.utf8_eat_bytes = None
-                    sequence = (self.utf8_buffer+byte).decode('utf-8', 'ignore')
+                    sequence = (self.utf8_buffer+chr2(byte)).decode('utf-8', 'ignore')
                     if len(sequence) == 0:
                         # invalid multibyte sequence, stop processing
                         return
                     char = sequence.encode(util._target_encoding, 'replace')
             else:
                 self.utf8_eat_bytes = None
-                char = byte
+                char = chr2(byte)
         else:
-            char = byte
+            char = chr2(byte)
 
         self.process_char(char)
 
     def process_char(self, char):
         """
         Process a single character (single- and multi-byte).
+
+        char -- a byte string
         """
         x, y = self.term_cursor
 
@@ -637,36 +646,36 @@ class TermCanvas(Canvas):
 
         dc = self.modes.display_ctrl
 
-        if char == "\x1b" and self.parsestate != 2: # escape
+        if char == B("\x1b") and self.parsestate != 2: # escape
             self.within_escape = True
-        elif not dc and char == "\x0d": # carriage return
+        elif not dc and char == B("\x0d"): # carriage return
             self.carriage_return()
-        elif not dc and char == "\x0f": # activate G0
+        elif not dc and char == B("\x0f"): # activate G0
             self.charset.activate(0)
-        elif not dc and char == "\x0e": # activate G1
+        elif not dc and char == B("\x0e"): # activate G1
             self.charset.activate(1)
-        elif not dc and char in "\x0a\x0b\x0c": # line feed
+        elif not dc and char in B("\x0a\x0b\x0c"): # line feed
             self.linefeed()
             if self.modes.lfnl:
                 self.carriage_return()
-        elif not dc and char == "\x09": # char tab
+        elif not dc and char == B("\x09"): # char tab
             self.tab()
-        elif not dc and char == "\x08": # backspace
+        elif not dc and char == B("\x08"): # backspace
             if x > 0:
                 self.set_term_cursor(x - 1, y)
-        elif not dc and char == "\x07" and self.parsestate != 2: # beep
+        elif not dc and char == B("\x07") and self.parsestate != 2: # beep
             # we need to check if we're in parsestate 2, as an OSC can be
             # terminated by the BEL character!
             self.widget.beep()
-        elif not dc and char in "\x18\x1a": # CAN/SUB
+        elif not dc and char in B("\x18\x1a"): # CAN/SUB
             self.leave_escape()
-        elif not dc and char == "\x7f": # DEL
+        elif not dc and char == B("\x7f"): # DEL
             pass # this is ignored
         elif self.within_escape:
             self.parse_escape(char)
-        elif not dc and char == "\x9b": # CSI (equivalent to "ESC [")
+        elif not dc and char == B("\x9b"): # CSI (equivalent to "ESC [")
             self.within_escape = True
-            self.escbuf = ''
+            self.escbuf = bytes()
             self.parsestate = 1
         else:
             self.push_cursor(char)
@@ -838,7 +847,7 @@ class TermCanvas(Canvas):
         x, y = self.term_cursor
 
         while x < self.width - 1:
-            self.set_char(" ")
+            self.set_char(B(" "))
             x += 1
 
             if self.is_tabstop(x):
