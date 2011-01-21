@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid MonitoredList class
-#    Copyright (C) 2004-2009  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -19,10 +19,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-try: # python 2.4 and 2.5 compat
-    bytes
-except NameError:
-    bytes = str
+
+from urwid.util import bytes
 
 
 def _call_modified(fn):

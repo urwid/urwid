@@ -87,6 +87,13 @@ for dir, dirs, files in os.walk(base):
             if opts.exit:
                 print("2to3 returned", proc.returncode)
                 break
+            # then fix doctests
+            proc = subprocess.Popen(['2to3','-w', '-n', '-d',
+                str(newloc)], stdout = stdout, stderr = stderr)
+            proc.communicate()
+            if opts.exit:
+                print("2to3 returned", proc.returncode)
+                break
         count += 1
 
 if printlevel > 0:

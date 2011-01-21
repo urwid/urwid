@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid basic widget classes
-#    Copyright (C) 2004-2010  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -19,20 +19,16 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from urwid.util import MetaSuper, decompose_tagmarkup, calc_width, is_wide_char, \
-    move_prev_char, move_next_char
+from urwid.util import MetaSuper, decompose_tagmarkup, calc_width, \
+    is_wide_char, move_prev_char, move_next_char, \
+    bytes, PYTHON3
 from urwid.text_layout import calc_pos, calc_coords, shift_line
 from urwid import signals
 from urwid import text_layout
 from urwid.canvas import CanvasCache, CompositeCanvas, SolidCanvas, \
     apply_text_layout
 from urwid.command_map import command_map
-from urwid.split_repr import split_repr, remove_defaults
-
-try: # python 2.4 and 2.5 compat
-    bytes
-except NameError:
-    bytes = str
+from urwid.split_repr import split_repr, remove_defaults, python3_repr
 
 
 # Widget sizing methods
@@ -343,55 +339,58 @@ class Divider(FlowWidget):
     """
     ignore_focus = True
 
-    def __init__(self,div_char=" ",top=0,bottom=0):
+    def __init__(self,div_char=u" ",top=0,bottom=0):
         """
         Create a horizontal divider widget.
-        
+
         div_char -- character to repeat across line
         top -- number of blank lines above
         bottom -- number of blank lines below
 
         >>> Divider()
-        <Divider flow widget div_char=' '>
-        >>> Divider('-')
-        <Divider flow widget div_char='-'>
-        >>> Divider('x', 1, 2)
-        <Divider flow widget bottom=2 div_char='x' top=1>
+        <Divider flow widget>
+        >>> Divider(u'-')
+        <Divider flow widget '-'>
+        >>> Divider(u'x', 1, 2)
+        <Divider flow widget 'x' bottom=2 top=1>
         """
         self.__super.__init__()
         self.div_char = div_char
         self.top = top
         self.bottom = bottom
-        
+
+    def _repr_words(self):
+        return self.__super._repr_words() + [
+            python3_repr(self.div_char)] * (self.div_char != u" ")
+
     def _repr_attrs(self):
-        attrs = dict(self.__super._repr_attrs(),
-            div_char=self.div_char)
+        attrs = dict(self.__super._repr_attrs())
         if self.top: attrs['top'] = self.top
         if self.bottom: attrs['bottom'] = self.bottom
         return attrs
-    
+
     def rows(self, size, focus=False):
         """
         Return the number of lines that will be rendered.
 
         >>> Divider().rows((10,))
         1
-        >>> Divider('x', 1, 2).rows((10,))
+        >>> Divider(u'x', 1, 2).rows((10,))
         4
         """
         (maxcol,) = size
         return self.top + 1 + self.bottom
-    
+
     def render(self, size, focus=False):
         """
         Render the divider as a canvas and return it.
-        
-        >>> Divider().render((10,)).text 
-        ['          ']
-        >>> Divider('-', top=1).render((10,)).text
-        ['          ', '----------']
-        >>> Divider('x', bottom=2).render((5,)).text
-        ['xxxxx', '     ', '     ']
+
+        >>> Divider().render((10,)).text # ... = b in Python 3
+        [...'          ']
+        >>> Divider(u'-', top=1).render((10,)).text
+        [...'          ', ...'----------']
+        >>> Divider(u'x', bottom=2).render((5,)).text
+        [...'xxxxx', ...'     ', ...'     ']
         """
         (maxcol,) = size
         canv = SolidCanvas(self.div_char, maxcol, 1)
@@ -399,7 +398,7 @@ class Divider(FlowWidget):
         if self.top or self.bottom:
             canv.pad_trim_top_bottom(self.top, self.bottom)
         return canv
-    
+
 
 class SolidFill(BoxWidget):
     _selectable = False
@@ -409,30 +408,30 @@ class SolidFill(BoxWidget):
         """
         Create a box widget that will fill an area with a single 
         character.
-        
+
         fill_char -- character to fill area with
 
-        >>> SolidFill('8')
+        >>> SolidFill(u'8')
         <SolidFill box widget '8'>
         """
         self.__super.__init__()
         self.fill_char = fill_char
-    
+
     def _repr_words(self):
-        return self.__super._repr_words() + [repr(self.fill_char)]
-    
+        return self.__super._repr_words() + [python3_repr(self.fill_char)]
+
     def render(self, size, focus=False ):
         """
         Render the Fill as a canvas and return it.
 
-        >>> SolidFill().render((4,2)).text
-        ['    ', '    ']
+        >>> SolidFill().render((4,2)).text # ... = b in Python 3
+        [...'    ', ...'    ']
         >>> SolidFill('#').render((5,3)).text
-        ['#####', '#####', '#####']
+        [...'#####', ...'#####', ...'#####']
         """
         maxcol, maxrow = size
         return SolidCanvas(self.fill_char, maxcol, maxrow)
-    
+
 class TextError(Exception):
     pass
 
@@ -441,6 +440,7 @@ class Text(FlowWidget):
     a horizontally resizeable text widget
     """
     ignore_focus = True
+    _repr_content_length_max = 140
 
     def __init__(self, markup, align=LEFT, wrap=SPACE, layout=None):
         """
@@ -452,13 +452,13 @@ class Text(FlowWidget):
         wrap -- wrap mode for text layout
         layout -- layout object to use, defaults to StandardTextLayout
 
-        >>> Text("Hello")
-        <Text flow widget u'Hello'>
-        >>> t = Text(('bold', "stuff"), 'right', 'any')
+        >>> Text(u"Hello")
+        <Text flow widget 'Hello'>
+        >>> t = Text(('bold', u"stuff"), 'right', 'any')
         >>> t
-        <Text flow widget u'stuff' align='right' wrap='any'>
-        >>> t.text
-        u'stuff'
+        <Text flow widget 'stuff' align='right' wrap='any'>
+        >>> print t.text
+        stuff
         >>> t.attrib
         [('bold', 5)]
         """
@@ -466,11 +466,20 @@ class Text(FlowWidget):
         self._cache_maxcol = None
         self.set_text(markup)
         self.set_layout(align, wrap, layout)
-    
+
     def _repr_words(self):
-        return self.__super._repr_words() + [
-            repr(self.get_text()[0])]
-    
+        """
+        Show the text in the repr in python3 format (b prefix for byte
+        strings) and truncate if it's too long
+        """
+        first = self.__super._repr_words()
+        text = self.get_text()[0]
+        rest = python3_repr(text)
+        if len(rest) > self._repr_content_length_max:
+            rest = (rest[:self._repr_content_length_max * 2 // 3 - 3] +
+                '...' + rest[-self._repr_content_length_max // 3:])
+        return first + [rest]
+
     def _repr_attrs(self):
         attrs = dict(self.__super._repr_attrs(),
             align=self._align_mode, 
@@ -487,15 +496,14 @@ class Text(FlowWidget):
 
         markup -- see __init__() for description.
 
-        >>> t = Text("foo")
-        >>> t.text
-        u'foo'
-        >>> t.set_text("bar")
-        >>> t.text
-        u'bar'
-        >>> t.text = "baz"  # not supported because text stores text but set_text() takes markup
+        >>> t = Text(u"foo")
+        >>> print t.text
+        foo
+        >>> t.set_text(u"bar")
+        >>> print t.text
+        bar
+        >>> t.text = u"baz"  # not supported because text stores text but set_text() takes markup
         Traceback (most recent call last):
-            ...  
         AttributeError: can't set attribute
         """
         self._text, self._attrib = decompose_tagmarkup(markup)
@@ -504,16 +512,16 @@ class Text(FlowWidget):
     def get_text(self):
         """
         Returns (text, attributes).
-        
+
         text -- complete string content (unicode) of text widget
         attributes -- run length encoded attributes for text
 
-        >>> Text("Hello").get_text()
-        (u'Hello', [])
-        >>> Text(('bright', "Headline")).get_text()
-        (u'Headline', [('bright', 8)])
-        >>> Text([('a', "one"), "two", ('b', "three")]).get_text()
-        (u'onetwothree', [('a', 3), (None, 3), ('b', 5)])
+        >>> Text(u"Hello").get_text() # ... = u in Python 2
+        (...'Hello', [])
+        >>> Text(('bright', u"Headline")).get_text()
+        (...'Headline', [('bright', 8)])
+        >>> Text([('a', u"one"), u"two", ('b', u"three")]).get_text()
+        (...'onetwothree', [('a', 3), (None, 3), ('b', 5)])
         """
         return self._text, self._attrib
 
@@ -522,23 +530,22 @@ class Text(FlowWidget):
 
     def set_align_mode(self, mode):
         """
-        Set text alignment / justification.  
-        
-        Valid modes for StandardTextLayout are: 
+        Set text alignment / justification.
+
+        Valid modes for StandardTextLayout are:
             'left', 'center' and 'right'
 
-        >>> t = Text("word")
+        >>> t = Text(u"word")
         >>> t.set_align_mode('right')
         >>> t.align
         'right'
-        >>> t.render((10,)).text
-        ['      word']
+        >>> t.render((10,)).text # ... = b in Python 3
+        [...'      word']
         >>> t.align = 'center'
         >>> t.render((10,)).text
-        ['   word   ']
+        [...'   word   ']
         >>> t.align = 'somewhere'
         Traceback (most recent call last):
-            ...
         TextError: Alignment mode 'somewhere' not supported.
         """
         if not self.layout.supports_align_mode(mode):
@@ -549,27 +556,26 @@ class Text(FlowWidget):
 
     def set_wrap_mode(self, mode):
         """
-        Set wrap mode.  
-        
+        Set wrap mode.
+
         Valid modes for StandardTextLayout are :
             'any'    : wrap at any character
             'space'    : wrap on space character
             'clip'    : truncate lines instead of wrapping
-        
-        >>> t = Text("some words")
-        >>> t.render((6,)).text
-        ['some  ', 'words ']
+
+        >>> t = Text(u"some words")
+        >>> t.render((6,)).text # ... = b in Python 3
+        [...'some  ', ...'words ']
         >>> t.set_wrap_mode('clip')
         >>> t.wrap
         'clip'
         >>> t.render((6,)).text
-        ['some w']
+        [...'some w']
         >>> t.wrap = 'any'  # Urwid 0.9.9 or later
         >>> t.render((6,)).text
-        ['some w', 'ords  ']
+        [...'some w', ...'ords  ']
         >>> t.wrap = 'somehow'
         Traceback (most recent call last):
-            ...
         TextError: Wrap mode 'somehow' not supported.
         """
         if not self.layout.supports_wrap_mode(mode):
@@ -580,15 +586,15 @@ class Text(FlowWidget):
     def set_layout(self, align, wrap, layout=None):
         """
         Set layout object, align and wrap modes.
-        
+
         align -- align mode for text layout
         wrap -- wrap mode for text layout
         layout -- layout object to use, defaults to StandardTextLayout
 
-        >>> t = Text("hi")
+        >>> t = Text(u"hi")
         >>> t.set_layout('right', 'clip')
         >>> t
-        <Text flow widget u'hi' align='right' wrap='clip'>
+        <Text flow widget 'hi' align='right' wrap='clip'>
         """
         if layout is None:
             layout = text_layout.default_layout
@@ -604,10 +610,10 @@ class Text(FlowWidget):
         """
         Render contents with wrapping and alignment.  Return canvas.
 
-        >>> Text("important things").render((18,)).text
-        ['important things  ']
-        >>> Text("important things").render((11,)).text
-        ['important  ', 'things     ']
+        >>> Text(u"important things").render((18,)).text # ... = b in Python 3
+        [...'important things  ']
+        >>> Text(u"important things").render((11,)).text
+        [...'important  ', ...'things     ']
         """
         (maxcol,) = size
         text, attr = self.get_text()
@@ -618,10 +624,10 @@ class Text(FlowWidget):
     def rows(self, size, focus=False):
         """
         Return the number of rows the rendered text spans.
-        
-        >>> Text("important things").rows((18,))
+
+        >>> Text(u"important things").rows((18,))
         1
-        >>> Text("important things").rows((11,))
+        >>> Text(u"important things").rows((11,))
         2
         """
         (maxcol,) = size
@@ -649,12 +655,12 @@ class Text(FlowWidget):
         self._cache_maxcol = maxcol
         self._cache_translation = self._calc_line_translation(
             text, maxcol )
-    
+
     def _calc_line_translation(self, text, maxcol ):
         return self.layout.layout(
             text, self._cache_maxcol, 
             self._align_mode, self._wrap_mode )
-    
+
     def pack(self, size=None, focus=False):
         """
         Return the number of screen columns and rows required for
@@ -664,15 +670,15 @@ class Text(FlowWidget):
         size -- None for unlimited screen columns or (maxcol,) to
                 specify a maximum column size
 
-        >>> Text("important things").pack()
+        >>> Text(u"important things").pack()
         (16, 1)
-        >>> Text("important things").pack((15,))
+        >>> Text(u"important things").pack((15,))
         (9, 2)
-        >>> Text("important things").pack((8,))
+        >>> Text(u"important things").pack((8,))
         (8, 2)
         """
         text, attr = self.get_text()
-        
+
         if size is not None:
             (maxcol,) = size
             if not hasattr(self.layout, "pack"):
@@ -680,7 +686,7 @@ class Text(FlowWidget):
             trans = self.get_line_translation( maxcol, (text,attr))
             cols = self.layout.pack( maxcol, trans )
             return (cols, len(trans))
-    
+
         i = 0
         cols = 0
         while i < len(text):
@@ -696,27 +702,27 @@ class Text(FlowWidget):
 
 class EditError(TextError):
     pass
-            
+
 
 class Edit(Text):
     """
-    Text editing widget implements cursor movement, text insertion and 
-    deletion.  A caption may prefix the editing area.  Uses text class 
+    Text editing widget implements cursor movement, text insertion and
+    deletion.  A caption may prefix the editing area.  Uses text class
     for text layout.
     """
-    
+
     # allow users of this class to listen for change events
     # sent when the value of edit_text changes
     # (this variable is picked up by the MetaSignals metaclass)
     signals = ["change"]
-    
+
     def valid_char(self, ch):
         """Return true for printable characters."""
         return is_wide_char(ch,0) or (len(ch)==1 and ord(ch) >= 32)
-    
+
     def selectable(self): return True
 
-    def __init__(self, caption="", edit_text="", multiline=False,
+    def __init__(self, caption=u"", edit_text=u"", multiline=False,
             align=LEFT, wrap=SPACE, allow_tab=False,
             edit_pos=None, layout=None, mask=None):
         """
@@ -731,15 +737,15 @@ class Edit(Text):
         mask -- character to mask away text with, None means no masking
 
         >>> Edit()
-        <Edit selectable flow widget u'' edit_pos=0>
+        <Edit selectable flow widget '' edit_pos=0>
         >>> Edit(u"Y/n? ", u"yes")
-        <Edit selectable flow widget u'yes' caption=u'Y/n? ' edit_pos=3>
+        <Edit selectable flow widget 'yes' caption='Y/n? ' edit_pos=3>
         >>> Edit(u"Name ", u"Smith", edit_pos=1)
-        <Edit selectable flow widget u'Smith' caption=u'Name ' edit_pos=1>
+        <Edit selectable flow widget 'Smith' caption='Name ' edit_pos=1>
         >>> Edit(u"", u"3.14", align='right')
-        <Edit selectable flow widget u'3.14' align='right' edit_pos=4>
+        <Edit selectable flow widget '3.14' align='right' edit_pos=4>
         """
-        
+
         self.__super.__init__("", align, wrap, layout)
         self.multiline = multiline
         self.allow_tab = allow_tab
@@ -751,29 +757,29 @@ class Edit(Text):
         self.set_edit_pos(edit_pos)
         self.set_mask(mask)
         self._shift_view_to_cursor = False
-    
+
     def _repr_words(self):
         return self.__super._repr_words()[:-1] + [
-            repr(self._edit_text)] + [
+            python3_repr(self._edit_text)] + [
+            'caption=' + python3_repr(self._caption)] * bool(self._caption) + [
             'multiline'] * (self.multiline is True)
 
     def _repr_attrs(self):
         attrs = dict(self.__super._repr_attrs(),
-            edit_pos=self._edit_pos,
-            caption=self._caption)
+            edit_pos=self._edit_pos)
         return remove_defaults(attrs, Edit.__init__)
-    
+
     def get_text(self):
         """
         Returns (text, attributes).
-        
+
         text -- complete text of caption and edit_text, maybe masked away
         attributes -- run length encoded attributes for text
 
-        >>> Edit("What? ","oh, nothing.").get_text()
-        (u'What? oh, nothing.', [])
+        >>> Edit("What? ","oh, nothing.").get_text() # ... = u in Python 2
+        (...'What? oh, nothing.', [])
         >>> Edit(('bright',"user@host:~$ "),"ls").get_text()
-        (u'user@host:~$ ls', [('bright', 13)])
+        (...'user@host:~$ ls', [('bright', 13)])
         """
 
         if self._mask is None:
@@ -787,7 +793,6 @@ class Edit(Text):
 
         >>> Edit().set_text("test")
         Traceback (most recent call last):
-            ...
         EditError: set_text() not supported.  Use set_caption() or set_edit_text() instead.
         """
         # hack to let Text.__init__() work
@@ -842,7 +847,6 @@ class Edit(Text):
         
         >>> Edit().update_text()
         Traceback (most recent call last):
-            ...
         EditError: update_text() has been removed.  Use set_caption() or set_edit_text() instead.
         """
         raise EditError("update_text() has been removed.  Use "
@@ -853,24 +857,23 @@ class Edit(Text):
         Set the caption markup for this widget.
 
         caption -- see Text.__init__() for description of markup
-        
+
         >>> e = Edit("")
         >>> e.set_caption("cap1")
-        >>> e.caption
-        u'cap1'
+        >>> print e.caption
+        cap1
         >>> e.set_caption(('bold', "cap2"))
-        >>> e.caption
-        u'cap2'
+        >>> print e.caption
+        cap2
         >>> e.attrib
         [('bold', 4)]
         >>> e.caption = "cap3"  # not supported because caption stores text but set_caption() takes markup
         Traceback (most recent call last):
-            ...  
         AttributeError: can't set attribute
         """
         self._caption, self._attrib = decompose_tagmarkup(caption)
         self._invalidate()
-    
+
     caption = property(lambda self:self._caption)
 
     def set_edit_pos(self, pos):
@@ -909,20 +912,20 @@ class Edit(Text):
 
         self._mask = mask
         self._invalidate()
-    
+
     def set_edit_text(self, text):
         """
         Set the edit text for this widget.
-        
+
         >>> e = Edit()
         >>> e.set_edit_text(u"yes")
-        >>> e.edit_text
-        u'yes'
+        >>> print e.edit_text
+        yes
         >>> e
-        <Edit selectable flow widget u'yes' edit_pos=0>
+        <Edit selectable flow widget 'yes' edit_pos=0>
         >>> e.edit_text = u"no"  # Urwid 0.9.9 or later
-        >>> e.edit_text
-        u'no'
+        >>> print e.edit_text
+        no
         """
         try:
             text = unicode(text)
@@ -940,13 +943,13 @@ class Edit(Text):
         Return the edit text for this widget.
 
         >>> e = Edit(u"What? ", u"oh, nothing.")
-        >>> e.get_edit_text()
-        u'oh, nothing.'
-        >>> e.edit_text
-        u'oh, nothing.'
+        >>> print e.get_edit_text()
+        oh, nothing.
+        >>> print e.edit_text
+        oh, nothing.
         """
         return self._edit_text
-    
+
     edit_text = property(get_edit_text, set_edit_text)
 
     def insert_text(self, text):
@@ -958,11 +961,11 @@ class Edit(Text):
         >>> e = Edit(u"", u"42")
         >>> e.insert_text(u".5")
         >>> e
-        <Edit selectable flow widget u'42.5' edit_pos=4>
+        <Edit selectable flow widget '42.5' edit_pos=4>
         >>> e.set_edit_pos(2)
         >>> e.insert_text(u"a")
-        >>> e.edit_text
-        u'42a.5'
+        >>> print e.edit_text
+        42a.5
         """
         if str is bytes:
             # python 2
@@ -993,27 +996,27 @@ class Edit(Text):
             result_text = self.edit_text
             result_pos = self.edit_pos
 
-        
-        result_text = (result_text[:result_pos] + text + 
+
+        result_text = (result_text[:result_pos] + text +
             result_text[result_pos:])
         result_pos += len(text)
         return (result_text, result_pos)
-    
+
     def keypress(self, size, key):
         """
         Handle editing keystrokes, return others.
-        
+
         >>> e, size = Edit(), (20,)
         >>> e.keypress(size, 'x')
         >>> e.keypress(size, 'left')
         >>> e.keypress(size, '1')
-        >>> e.edit_text
-        u'1x'
+        >>> print e.edit_text
+        1x
         >>> e.keypress(size, 'backspace')
         >>> e.keypress(size, 'end')
         >>> e.keypress(size, '2')
-        >>> e.edit_text
-        u'x2'
+        >>> print e.edit_text
+        x2
         >>> e.keypress(size, 'shift f1')
         'shift f1'
         """
@@ -1022,7 +1025,7 @@ class Edit(Text):
         p = self.edit_pos
         if self.valid_char(key):
             self.insert_text( key )
-            
+
         elif key=="tab" and self.allow_tab:
             key = " "*(8-(self.edit_pos%8))
             self.insert_text( key )
@@ -1152,22 +1155,22 @@ class Edit(Text):
         self.edit_pos = start
         self.highlight = None
         return True
-        
-        
+
+
     def render(self, size, focus=False):
-        """ 
+        """
         Render edit widget and return canvas.  Include cursor when in
         focus.
 
         >>> c = Edit("? ","yes").render((10,), focus=True)
-        >>> c.text
-        ['? yes     ']
+        >>> c.text # ... = b in Python 3
+        [...'? yes     ']
         >>> c.cursor
         (5, 0)
         """
         (maxcol,) = size
         self._shift_view_to_cursor = bool(focus)
-        
+
         canv = Text.render(self,(maxcol,))
         if focus:
             canv = CompositeCanvas(canv)
@@ -1235,14 +1238,14 @@ class IntEdit(Edit):
         Return true for decimal digits.
         """
         return len(ch)==1 and ch in "0123456789"
-    
+
     def __init__(self,caption="",default=None):
         """
         caption -- caption markup
         default -- default edit value
 
         >>> IntEdit(u"", 42)
-        <IntEdit selectable flow widget u'42' edit_pos=2>
+        <IntEdit selectable flow widget '42' edit_pos=2>
         """
         if default is not None: val = str(default)
         else: val = ""
@@ -1251,15 +1254,15 @@ class IntEdit(Edit):
     def keypress(self, size, key):
         """
         Handle editing keystrokes.  Remove leading zeros.
-        
+
         >>> e, size = IntEdit(u"", 5002), (10,)
         >>> e.keypress(size, 'home')
         >>> e.keypress(size, 'delete')
-        >>> e.edit_text
-        u'002'
+        >>> print e.edit_text
+        002
         >>> e.keypress(size, 'end')
-        >>> e.edit_text
-        u'2'
+        >>> print e.edit_text
+        2
         """
         (maxcol,) = size
         unhandled = Edit.keypress(self,(maxcol,),key)
@@ -1275,7 +1278,7 @@ class IntEdit(Edit):
     def value(self):
         """
         Return the numeric value of self.edit_text.
-        
+
         >>> e, size = IntEdit(), (10,)
         >>> e.keypress(size, '5')
         >>> e.keypress(size, '1')
@@ -1317,13 +1320,13 @@ class WidgetWrap(Widget):
 
         >>> size = (10,)
         >>> ww = WidgetWrap(Edit("hello? ","hi"))
-        >>> ww.render(size).text
-        ['hello? hi ']
+        >>> ww.render(size).text # ... = b in Python 3
+        [...'hello? hi ']
         >>> ww.selectable()
         True
         >>> ww._w = Text("goodbye") # calls _set_w()
         >>> ww.render(size).text
-        ['goodbye   ']
+        [...'goodbye   ']
         >>> ww.selectable()
         False
         """

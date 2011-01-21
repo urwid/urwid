@@ -25,7 +25,7 @@ try:
     from test import test_support
 except ImportError:
     from test import support as test_support
-from doctest import DocTestSuite
+from doctest import DocTestSuite, ELLIPSIS, IGNORE_EXCEPTION_DETAIL
 
 import urwid
 from urwid.util import bytes, B
@@ -2278,7 +2278,7 @@ def test_main():
         WidgetSquishTest,
         TermTest,
         ]:
-        if test_support.run_unittest(t): 
+        if test_support.run_unittest(t):
             return
     for mod in [
         urwid.widget,
@@ -2291,8 +2291,9 @@ def test_main():
         'urwid.split_repr', # override function with same name
         urwid.util,
         ]:
-        if test_support.run_unittest(DocTestSuite(mod)):
-            return    
+        if test_support.run_unittest(DocTestSuite(mod,
+            optionflags=ELLIPSIS | IGNORE_EXCEPTION_DETAIL)):
+            return
 
 if __name__ == '__main__': test_main()
 

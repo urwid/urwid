@@ -45,7 +45,7 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
         Don't actually do this -- use a WidgetDecoration subclass
         instead, these are not real widgets:
         >>> WidgetDecoration(Text(u"hi"))
-        <WidgetDecoration flow widget <Text flow widget u'hi'>>
+        <WidgetDecoration flow widget <Text flow widget 'hi'>>
         """
         self._original_widget = original_widget
     def _repr_words(self):
@@ -102,25 +102,25 @@ class AttrMap(WidgetDecoration):
         attr_map -- attribute to apply to w, or dictionary of attribute mappings
         focus_map -- attribute to apply when in focus or dictionary of
             attribute mappings, if None use attr
-        
+
         This object will pass all function calls and variable references
         to the wrapped widget.
 
-        >>> AttrMap(Divider("!"), 'bright')
-        <AttrMap flow widget <Divider flow widget div_char='!'> attr_map={None: 'bright'}>
+        >>> AttrMap(Divider(u"!"), 'bright')
+        <AttrMap flow widget <Divider flow widget '!'> attr_map={None: 'bright'}>
         >>> AttrMap(Edit(), 'notfocus', 'focus')
-        <AttrMap selectable flow widget <Edit selectable flow widget u'' edit_pos=0> attr_map={None: 'notfocus'} focus_map={None: 'focus'}>
+        <AttrMap selectable flow widget <Edit selectable flow widget '' edit_pos=0> attr_map={None: 'notfocus'} focus_map={None: 'focus'}>
         >>> size = (5,)
-        >>> am = AttrMap(Text("hi"), 'greeting', 'fgreet')
-        >>> am.render(size, focus=False).content().next()
-        [('greeting', None, 'hi   ')]
+        >>> am = AttrMap(Text(u"hi"), 'greeting', 'fgreet')
+        >>> am.render(size, focus=False).content().next() # ... = b in Python 3
+        [('greeting', None, ...'hi   ')]
         >>> am.render(size, focus=True).content().next()
-        [('fgreet', None, 'hi   ')]
-        >>> am2 = AttrMap(Text(('word', u"hi")), {None:'bg', 'word':'greeting'})
+        [('fgreet', None, ...'hi   ')]
+        >>> am2 = AttrMap(Text(('word', u"hi")), {'word':'greeting', None:'bg'})
         >>> am2
-        <AttrMap flow widget <Text flow widget u'hi'> attr_map={None: 'bg', 'word': 'greeting'}>
+        <AttrMap flow widget <Text flow widget 'hi'> attr_map={'word': 'greeting', None: 'bg'}>
         >>> am2.render(size).content().next()
-        [('greeting', None, 'hi'), ('bg', None, '   ')]
+        [('greeting', None, ...'hi'), ('bg', None, ...'   ')]
         """
         self.__super.__init__(w)
 
@@ -228,25 +228,25 @@ class AttrWrap(AttrMap):
         w -- widget to wrap (stored as self.original_widget)
         attr -- attribute to apply to w
         focus_attr -- attribute to apply when in focus, if None use attr
-        
+
         This widget is a special case of the new AttrMap widget, and it
-        will pass all function calls and variable references to the wrapped 
+        will pass all function calls and variable references to the wrapped
         widget.  This class is maintained for backwards compatibility only,
         new code should use AttrMap instead.
 
-        >>> AttrWrap(Divider("!"), 'bright')
-        <AttrWrap flow widget <Divider flow widget div_char='!'> attr='bright'>
+        >>> AttrWrap(Divider(u"!"), 'bright')
+        <AttrWrap flow widget <Divider flow widget '!'> attr='bright'>
         >>> AttrWrap(Edit(), 'notfocus', 'focus')
-        <AttrWrap selectable flow widget <Edit selectable flow widget u'' edit_pos=0> attr='notfocus' focus_attr='focus'>
+        <AttrWrap selectable flow widget <Edit selectable flow widget '' edit_pos=0> attr='notfocus' focus_attr='focus'>
         >>> size = (5,)
-        >>> aw = AttrWrap(Text("hi"), 'greeting', 'fgreet')
+        >>> aw = AttrWrap(Text(u"hi"), 'greeting', 'fgreet')
         >>> aw.render(size, focus=False).content().next()
-        [('greeting', None, 'hi   ')]
+        [('greeting', None, ...'hi   ')]
         >>> aw.render(size, focus=True).content().next()
-        [('fgreet', None, 'hi   ')]
+        [('fgreet', None, ...'hi   ')]
         """
         self.__super.__init__(w, attr, focus_attr)
-    
+
     def _repr_attrs(self):
         # only include the focus_attr when it takes effect (not None)
         d = dict(self.__super._repr_attrs(), attr=self.attr)
@@ -328,7 +328,7 @@ class BoxAdapter(WidgetDecoration):
         box_widget -- box widget (stored as self.original_widget)
         height -- number of rows for box widget
 
-        >>> BoxAdapter(SolidFill("x"), 5) # 5-rows of x's
+        >>> BoxAdapter(SolidFill(u"x"), 5) # 5-rows of x's
         <BoxAdapter flow widget <SolidFill box widget 'x'> height=5>
         """
         if hasattr(box_widget, 'sizing') and BOX not in box_widget.sizing():
@@ -352,7 +352,7 @@ class BoxAdapter(WidgetDecoration):
         """
         Return the predetermined height (behave like a flow widget)
         
-        >>> BoxAdapter(SolidFill("x"), 5).rows((20,))
+        >>> BoxAdapter(SolidFill(u"x"), 5).rows((20,))
         5
         """
         return self.height
@@ -433,22 +433,22 @@ class Padding(WidgetDecoration):
         'left' then self.original_widget may be clipped on the right.
 
         >>> size = (7,)
-        >>> Padding(Text("Head"), ('relative', 20)).render(size).text
-        [' Head  ']
-        >>> Padding(Divider("-"), left=2, right=1).render(size).text
-        ['  ---- ']
-        >>> Padding(Divider("*"), 'center', 3).render(size).text
-        ['  ***  ']
+        >>> Padding(Text(u"Head"), ('relative', 20)).render(size).text # ... = b in Python 3
+        [...' Head  ']
+        >>> Padding(Divider(u"-"), left=2, right=1).render(size).text
+        [...'  ---- ']
+        >>> Padding(Divider(u"*"), 'center', 3).render(size).text
+        [...'  ***  ']
         >>> p=Padding(Text(u"1234"), 'left', 2, None, 1, 1)
         >>> p
-        <Padding flow widget <Text flow widget u'1234'> left=1 right=1 width=2>
+        <Padding flow widget <Text flow widget '1234'> left=1 right=1 width=2>
         >>> p.render(size).text   # align against left
-        [' 12    ', ' 34    ']
+        [...' 12    ', ...' 34    ']
         >>> p.align = 'right'
         >>> p.render(size).text   # align against right
-        ['    12 ', '    34 ']
-        >>> Padding(Text("hi\nthere"), 'right').render(size).text
-        ['  hi   ', '  there']
+        [...'    12 ', ...'    34 ']
+        >>> Padding(Text(u"hi\nthere"), 'right').render(size).text
+        [...'  hi   ', ...'  there']
 
         """
         self.__super.__init__(w)
