@@ -69,7 +69,7 @@ class MainLoop(object):
         self.handle_mouse = handle_mouse
         
         if not screen:
-            import raw_display
+            from urwid import raw_display
             screen = raw_display.Screen()
 
         if palette:

@@ -25,7 +25,7 @@ from urwid import escape
 try:
     from urwid import str_util
 except ImportError:
-    import old_str_util as str_util
+    from urwid import old_str_util as str_util
 
 try: # python 2.4 and 2.5 compat
     bytes = bytes
