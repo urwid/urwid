@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Urwid escape sequences common to curses_display and raw_display
-#    Copyright (C) 2004-2006  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -31,10 +31,7 @@ try:
 except ImportError:
     from urwid import old_str_util as str_util
 
-try: # python 2.4 and 2.5 compat
-    bytes
-except NameError:
-    bytes = str
+from urwid.compat import bytes, bytes3
 
 within_double_byte = str_util.within_double_byte
 
@@ -332,12 +329,8 @@ def process_keyqueue(codes, more_available):
             if k>256 or k&0xc0 != 0x80:
                 return ["<%d>"%code], codes[1:]
 
-        if str is bytes:
-            # for python 2
-            s = bytes().join([chr(c) for c in codes[:need_more+1]])
-        else:
-            # for python 3
-            s = bytes(codes[:need_more+1])
+        s = bytes3(codes[:need_more+1])
+
         assert isinstance(s, bytes)
         try:
             return [s.decode("utf-8")], codes[need_more+1:]

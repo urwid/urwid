@@ -20,7 +20,7 @@
 # Urwid web site: http://excess.org/urwid/
 
 
-from urwid.util import bytes
+from urwid.compat import PYTHON3
 
 
 def _call_modified(fn):
@@ -66,13 +66,13 @@ class MonitoredList(list):
 
     __add__ = _call_modified(list.__add__)
     __delitem__ = _call_modified(list.__delitem__)
-    if str is bytes:
+    if not PYTHON3:
         __delslice__ = _call_modified(list.__delslice__)
     __iadd__ = _call_modified(list.__iadd__)
     __imul__ = _call_modified(list.__imul__)
     __rmul__ = _call_modified(list.__rmul__)
     __setitem__ = _call_modified(list.__setitem__)
-    if str is bytes:
+    if not PYTHON3:
         __setslice__ = _call_modified(list.__setslice__)
     append = _call_modified(list.append)
     extend = _call_modified(list.extend)

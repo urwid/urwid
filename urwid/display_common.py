@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # Urwid common display code
-#    Copyright (C) 2004-2007  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -23,6 +23,11 @@ import termios
 
 from urwid.util import int_scale
 from urwid import signals
+from urwid.compat import B, bytes3
+
+# for replacing unprintable bytes with '?'
+UNPRINTABLE_TRANS_TABLE = B("?") * 32 + bytes3(range(32,256))
+
 
 # signals sent by BaseScreen
 UPDATE_PALETTE_ENTRY = "update palette entry"

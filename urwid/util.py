@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Urwid utility functions
-#    Copyright (C) 2004-2007  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -21,40 +21,12 @@
 # Urwid web site: http://excess.org/urwid/
 
 from urwid import escape
+from urwid.compat import *
 
 try:
     from urwid import str_util
 except ImportError:
     from urwid import old_str_util as str_util
-
-try: # python 2.4 and 2.5 compat
-    bytes = bytes
-except NameError:
-    bytes = str
-
-PYTHON3 = str is not bytes
-
-# for iterating over byte strings:
-# ord2 calls ord in python2 only
-# chr2 converts an ordinal value to a length-1 byte string
-if PYTHON3:
-    ord2 = lambda x: x
-    chr2 = lambda x: bytes([x])
-else:
-    ord2 = ord
-    chr2 = chr
-
-
-def B(t):
-    """
-    return a byte string in all supported python versions
-
-    B("hello") <=> b"hello" in python3
-    B("hello") <=> "hello" in python2
-    """
-    if PYTHON3:
-        return t.encode('iso8859-1')
-    return t
 
 # bring str_util functions into our namespace
 calc_text_pos = str_util.calc_text_pos

@@ -20,8 +20,8 @@
 # Urwid web site: http://excess.org/urwid/
 
 from urwid.util import MetaSuper, decompose_tagmarkup, calc_width, \
-    is_wide_char, move_prev_char, move_next_char, \
-    bytes, PYTHON3
+    is_wide_char, move_prev_char, move_next_char
+from urwid.compat import bytes, PYTHON3
 from urwid.text_layout import calc_pos, calc_coords, shift_line
 from urwid import signals
 from urwid import text_layout
@@ -967,8 +967,7 @@ class Edit(Text):
         >>> print e.edit_text
         42a.5
         """
-        if str is bytes:
-            # python 2
+        if not PYTHON3:
             text = unicode(text)
         assert isinstance(text, unicode)
         result_text, result_pos = self.insert_text_result(text)
@@ -983,8 +982,7 @@ class Edit(Text):
         """
 
         # if there's highlighted text, it'll get replaced by the new text
-        if str is bytes:
-            # python 2
+        if not PYTHON3:
             text = unicode(text)
         assert isinstance(text, unicode)
         if self.highlight:

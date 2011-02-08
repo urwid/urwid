@@ -26,7 +26,8 @@ import time
 import heapq
 import select
 
-from urwid.util import is_mouse_event, PYTHON3, bytes
+from urwid.util import is_mouse_event
+from urwid.compat import PYTHON3, bytes
 from urwid.command_map import command_map
 
 

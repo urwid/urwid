@@ -39,7 +39,7 @@ from urwid.canvas import Canvas
 from urwid.widget import BoxWidget
 from urwid.command_map import command_map
 from urwid.display_common import AttrSpec, RealTerminal, _BASIC_COLORS
-from urwid.util import ord2, chr2, B
+from urwid.compat import ord2, chr2, B
 
 Bdict = lambda x: dict([(B(k), B(v)) for k, v in x.items()])
 

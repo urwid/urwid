@@ -113,8 +113,8 @@ class ConvertDecSpecialTest(unittest.TestCase):
 class WithinDoubleByteTest(unittest.TestCase):
     def setUp(self):
         urwid.set_encoding("euc-jp")
-    def wtest(self, str, ls, pos, expected, desc):
-        result = urwid.within_double_byte(str, ls, pos)
+    def wtest(self, s, ls, pos, expected, desc):
+        result = urwid.within_double_byte(B(s), ls, pos)
         assert result==expected, "%s got:%r expected: %r" % (desc,
                                                              result, expected)
     def test1(self):

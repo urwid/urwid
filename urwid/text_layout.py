@@ -21,11 +21,7 @@
 
 from urwid.util import calc_width, calc_text_pos, calc_trim_text, is_wide_char, \
     move_prev_char, move_next_char
-
-try: # python 2.4 and 2.5 compat
-    bytes
-except NameError:
-    bytes = str
+from urwid.compat import bytes, PYTHON3, B
 
 class TextLayout:
     def supports_align_mode(self, align):
@@ -114,20 +110,20 @@ class StandardTextLayout(TextLayout):
         return out
 
 
-    def calculate_text_segments( self, text, width, wrap ):
+    def calculate_text_segments(self, text, width, wrap):
         """
         Calculate the segments of text to display given width screen
         columns to display them.
 
-        text - text to display
+        text - unicode text or byte string to display
         width - number of available screen columns
         wrap - wrapping mode used
 
         Returns a layout structure without aligmnent applied.
         """
         nl, nl_o, sp_o = "\n", "\n", " "
-        if not str is bytes and isinstance(text, bytes):
-            nl = nl.encode('ascii') # can only find bytes in python3 bytestrings
+        if PYTHON3 and isinstance(text, bytes):
+            nl = B(nl) # can only find bytes in python3 bytestrings
             nl_o = ord(nl_o) # + an item of a bytestring is the ordinal value
             sp_o = ord(sp_o)
         b = []
