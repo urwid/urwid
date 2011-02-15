@@ -21,7 +21,7 @@
 
 from urwid.util import MetaSuper, decompose_tagmarkup, calc_width, \
     is_wide_char, move_prev_char, move_next_char
-from urwid.compat import bytes, PYTHON3
+from urwid.compat import bytes
 from urwid.text_layout import calc_pos, calc_coords, shift_line
 from urwid import signals
 from urwid import text_layout
@@ -881,7 +881,7 @@ class Edit(Text):
         Set the cursor position with a self.edit_text offset.  
         Clips pos to [0, len(edit_text)].
 
-        >>> e = Edit("", "word")
+        >>> e = Edit(u"", u"word")
         >>> e.edit_pos
         4
         >>> e.set_edit_pos(2)
@@ -967,13 +967,24 @@ class Edit(Text):
         >>> print e.edit_text
         42a.5
         """
-        if not PYTHON3:
-            text = unicode(text)
-        assert isinstance(text, unicode)
+        text = self._normalize_to_caption(text)
         result_text, result_pos = self.insert_text_result(text)
         self.set_edit_text(result_text)
         self.set_edit_pos(result_pos)
         self.highlight = None
+
+    def _normalize_to_caption(self, text):
+        """
+        Return text converted to the same type as self.caption
+        (bytes or unicode)
+        """
+        tu = isinstance(text, unicode)
+        cu = isinstance(self._caption, unicode)
+        if tu == cu:
+            return text
+        if tu:
+            return text.encode('ascii') # follow python2's implicit conversion
+        return text.decode('ascii')
 
     def insert_text_result(self, text):
         """
@@ -982,9 +993,7 @@ class Edit(Text):
         """
 
         # if there's highlighted text, it'll get replaced by the new text
-        if not PYTHON3:
-            text = unicode(text)
-        assert isinstance(text, unicode)
+        text = self._normalize_to_caption(text)
         if self.highlight:
             start, stop = self.highlight
             btext, etext = self.edit_text[:start], self.edit_text[stop:]
