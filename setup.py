@@ -28,7 +28,10 @@ except ImportError:
 
 import os
 
-PYTHON3 = not str is bytes
+try:
+    PYTHON3 = not str is bytes
+except NameError:
+    PYTHON3 = False
 
 exec(open(os.path.join("urwid","version.py")).read())
 release = __version__
@@ -38,8 +41,7 @@ setup_d = {
     'version':release,
     'author':"Ian Ward",
     'author_email':"ian@excess.org",
-    'ext_modules':[Extension('urwid.str_util',
-        sources=['source/str_util%s.c' % ("_python3" * PYTHON3)])],
+    'ext_modules':[Extension('urwid.str_util', sources=['source/str_util.c'])],
     'url':"http://excess.org/urwid/",
     'download_url':"http://excess.org/urwid/urwid-%s.tar.gz"%release,
     'license':"LGPL",
