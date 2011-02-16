@@ -20,6 +20,7 @@
     Urwid web site: http://excess.org/urwid/
 */
 
+#define PY_SSIZE_T_CLEAN
 
 #include <Python.h>
 
@@ -439,11 +440,26 @@ static int Py_WithinDoubleByte(const unsigned char *str, Py_ssize_t line_start,
 static PyObject * within_double_byte(PyObject *self, PyObject *args)
 {
     const unsigned char *str;
-    Py_ssize_t line_start, pos;
+    Py_ssize_t str_len, line_start, pos;
     Py_ssize_t ret;
 
-    if (!PyArg_ParseTuple(args, "s" FMT_N FMT_N, &str, &line_start, &pos))
+    if (!PyArg_ParseTuple(args, "s#" FMT_N FMT_N, &str, &str_len, &line_start, &pos))
         return NULL;
+    if (line_start < 0 || line_start >= str_len) {
+        PyErr_SetString(PyExc_IndexError,
+            "is_wide_char: Argument \"line_start\" is outside of string.");
+        return NULL;
+    }
+    if (pos < 0 || pos >= str_len) {
+        PyErr_SetString(PyExc_IndexError,
+            "is_wide_char: Argument \"pos\" is outside of string.");
+        return NULL;
+    }
+    if (pos < line_start) {
+        PyErr_SetString(PyExc_IndexError,
+            "is_wide_char: Argument \"pos\" is before \"line_start\".");
+        return NULL;
+    }
 
     ret = Py_WithinDoubleByte(str, line_start, pos);
     return Py_BuildValue(FMT_N, ret);
