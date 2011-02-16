@@ -485,8 +485,11 @@ static int Py_IsWideChar(PyObject *text, Py_ssize_t offs)
         return (Py_GetWidth((long int)ustr[offs]) == 2);
     }
 
-    if ( text->ob_type != Py_BuildValue("s","")->ob_type ) {
-
+#ifndef PYTHON3
+    if (!PyString_Check(text)) {
+#else
+    if (!PyBytes_Check(text)) {
+#endif
         PyErr_SetString(PyExc_TypeError,
             "is_wide_char: Argument \"text\" is not a string.");
         return -1;
