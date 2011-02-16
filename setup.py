@@ -96,6 +96,7 @@ Example Program Screenshots:
         "Programming Language :: Python :: 3.2",
         ],
     'packages':['urwid'],
+    'test_suite': 'urwid.tests.test_all',
      }
 
 if have_setuptools:

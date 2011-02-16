@@ -2229,8 +2229,11 @@ class WidgetSquishTest(unittest.TestCase):
     
 
 
-def test_main():
-    for t in [
+def test_all():
+    """
+    Return a TestSuite with all tests available
+    """
+    unittests = [
         DecodeOneTest,
         CalcWidthTest,
         ConvertDecSpecialTest,
@@ -2277,10 +2280,8 @@ def test_main():
         CanvasPadTrimTest,
         WidgetSquishTest,
         TermTest,
-        ]:
-        if test_support.run_unittest(t):
-            return
-    for mod in [
+        ]
+    module_doctests = [
         urwid.widget,
         urwid.wimp,
         urwid.decoration,
@@ -2290,11 +2291,16 @@ def test_main():
         urwid.raw_display,
         'urwid.split_repr', # override function with same name
         urwid.util,
-        ]:
-        if test_support.run_unittest(DocTestSuite(mod,
-            optionflags=ELLIPSIS | IGNORE_EXCEPTION_DETAIL)):
-            return
+        ]
+    tests = unittest.TestSuite()
+    for t in unittests:
+        tests.addTest(unittest.TestLoader().loadTestsFromTestCase(t))
+    for m in module_doctests:
+        tests.addTest(DocTestSuite(
+            m, optionflags=ELLIPSIS | IGNORE_EXCEPTION_DETAIL))
+    return tests
 
-if __name__ == '__main__': test_main()
+if __name__ == '__main__':
+    test_support.run_unittest(test_all())
 
 

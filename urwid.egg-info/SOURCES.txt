@@ -1,8 +1,10 @@
+README
 setup.py
 source/str_util.c
 urwid/__init__.py
 urwid/canvas.py
 urwid/command_map.py
+urwid/compat.py
 urwid/container.py
 urwid/curses_display.py
 urwid/decoration.py
@@ -19,9 +21,13 @@ urwid/old_str_util.py
 urwid/raw_display.py
 urwid/signals.py
 urwid/split_repr.py
+urwid/tests.py
 urwid/text_layout.py
 urwid/treetools.py
 urwid/util.py
+urwid/version.py
+urwid/vterm.py
+urwid/vterm_test.py
 urwid/web_display.py
 urwid/widget.py
 urwid/wimp.py

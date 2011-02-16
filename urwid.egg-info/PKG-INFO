@@ -1,12 +1,12 @@
 Metadata-Version: 1.0
 Name: urwid
-Version: 0.9.9.1
+Version: 0.9.10-pre
 Summary: A console UI library featuring fluid interface resizing, UTF-8 support, multiple text layouts, simple attribute markup, powerful scrolling list boxes and flexible interface design.
 Home-page: http://excess.org/urwid/
 Author: Ian Ward
 Author-email: ian@excess.org
 License: LGPL
-Download-URL: http://excess.org/urwid/urwid-0.9.9.1.tar.gz
+Download-URL: http://excess.org/urwid/urwid-0.9.10-pre.tar.gz
 Description: Urwid is a console user interface library.  It includes many features
         useful for text console application developers including:
         
@@ -31,7 +31,7 @@ Description: Urwid is a console user interface library.  It includes many featur
         Example Program Screenshots:
           http://excess.org/urwid/examples.html
         
-Keywords: curses ui widget scroll listbox user interface text layout consolt ncurses
+Keywords: curses ui widget scroll listbox user interface text layout console ncurses
 Platform: unix-like
 Classifier: Development Status :: 4 - Beta
 Classifier: Environment :: Console
@@ -43,3 +43,10 @@ Classifier: Operating System :: Unix
 Classifier: Operating System :: MacOS :: MacOS X
 Classifier: Topic :: Software Development :: Libraries :: Python Modules
 Classifier: Topic :: Software Development :: Widget Sets
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.4
+Classifier: Programming Language :: Python :: 2.5
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.2
