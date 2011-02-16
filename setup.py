@@ -28,9 +28,10 @@ except ImportError:
 
 import os
 
-import urwid
-release = urwid.__version__
-python3 = not str is bytes
+PYTHON3 = not str is bytes
+
+exec(open(os.path.join("urwid","version.py")).read())
+release = __version__
 
 setup_d = {
     'name':"urwid",
@@ -38,11 +39,11 @@ setup_d = {
     'author':"Ian Ward",
     'author_email':"ian@excess.org",
     'ext_modules':[Extension('urwid.str_util',
-        sources=['source/str_util%s.c' % ("_python3" * python3)])],
+        sources=['source/str_util%s.c' % ("_python3" * PYTHON3)])],
     'url':"http://excess.org/urwid/",
     'download_url':"http://excess.org/urwid/urwid-%s.tar.gz"%release,
     'license':"LGPL",
-    'keywords':"curses ui widget scroll listbox user interface text layout consolt ncurses",
+    'keywords':"curses ui widget scroll listbox user interface text layout console ncurses",
     'platforms':"unix-like",
     'description':(
 "A console UI library featuring fluid interface resizing, UTF-8 support,"
@@ -84,6 +85,13 @@ Example Program Screenshots:
         "Operating System :: MacOS :: MacOS X",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Software Development :: Widget Sets",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.4",
+        "Programming Language :: Python :: 2.5",
+        "Programming Language :: Python :: 2.6",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.2",
         ],
     'packages':['urwid'],
      }
@@ -91,7 +99,9 @@ Example Program Screenshots:
 if have_setuptools:
     setup_d['zip_safe'] = False
 
+if PYTHON3:
+    setup_d['use_2to3'] = True
 
 if __name__ == "__main__":
-    setup( ** setup_d )
+    setup(**setup_d)
 
