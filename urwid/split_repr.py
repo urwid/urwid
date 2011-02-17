@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid split_repr helper functions
-#    Copyright (C) 2004-2008  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -19,7 +19,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from inspect import getargspec 
+from inspect import getargspec
+from urwid.compat import PYTHON3, bytes
 
 def split_repr(self):
     """
@@ -44,7 +45,8 @@ def split_repr(self):
     >>> Bar()
     <Bar words here too attrs='appear too' barttr=42>
     """
-    alist = self._repr_attrs().items()
+    alist = [(str(k), normalize_repr(v))
+        for k, v in self._repr_attrs().items()]
     alist.sort()
     words = self._repr_words()
     if not words and not alist:
@@ -54,8 +56,8 @@ def split_repr(self):
     if words and alist: words.append("")
     return "<%s %s>" % (self.__class__.__name__,
         " ".join(words) +
-        " ".join(["%s=%s" % (k,normalize_repr(v)) for k,v in alist]))
-    
+        " ".join(["%s=%s" % itm for itm in alist]))
+
 def normalize_repr(v):
     """
     Return dictionary repr sorted by keys, leave others unchanged
@@ -66,14 +68,32 @@ def normalize_repr(v):
     "'foo'"
     """
     if isinstance(v, dict):
-        items = v.items()
+        items = [(repr(k), repr(v)) for k, v in v.items()]
         items.sort()
         return "{" + ", ".join([
-            repr(k) + ": " + repr(v) for k, v in items]) + "}"
+            "%s: %s" % itm for itm in items]) + "}"
 
     return repr(v)
 
-    
+def python3_repr(v):
+    """
+    Return strings and byte strings as they appear in Python 3
+
+    >>> python3_repr(u"text")
+    "'text'"
+    >>> python3_repr(bytes())
+    "b''"
+    """
+    r = repr(v)
+    if not PYTHON3:
+        if isinstance(v, bytes):
+            return 'b' + r
+        if r.startswith('u'):
+            return r[1:]
+    return r
+
+
+
 def remove_defaults(d, fn):
     """
     Remove keys in d that are set to the default values from

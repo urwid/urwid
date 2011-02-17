@@ -2,6 +2,7 @@
 #
 # Urwid terminal emulation widget unit tests
 #    Copyright (C) 2010  aszlig
+#    Copyright (C) 2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -28,23 +29,25 @@ from itertools import dropwhile
 from urwid import vterm
 from urwid.main_loop import SelectEventLoop
 from urwid import signals
+from urwid.compat import B, PYTHON3
 
 class DummyCommand(object):
-    QUITSTRING = '|||quit|||'
+    QUITSTRING = B('|||quit|||')
 
     def __init__(self):
         self.reader, self.writer = os.pipe()
 
     def __call__(self):
         # reset
-        sys.stdout.write('\x1bc')
+        stdout = getattr(sys.stdout, 'buffer', sys.stdout)
+        stdout.write(B('\x1bc'))
 
         while True:
             data = os.read(self.reader, 1024)
             if self.QUITSTRING == data:
                 break
-            sys.stdout.write(data)
-            sys.stdout.flush()
+            stdout.write(data)
+            stdout.flush()
 
     def write(self, data):
         os.write(self.writer, data)
@@ -86,7 +89,8 @@ class TermTest(unittest.TestCase):
             self.term.render(self.termsize, focus=False)
 
     def write(self, data):
-        self.command.write(data.replace('\e', '\x1b'))
+        data = B(data)
+        self.command.write(data.replace(B('\e'), B('\x1b')))
 
     def flush(self):
         self.write(chr(0x7f))
@@ -95,7 +99,7 @@ class TermTest(unittest.TestCase):
         self.term.wait_and_feed()
         rendered = self.term.render(self.termsize, focus=False)
         if raw:
-            is_empty = lambda c: c == (None, None, ' ')
+            is_empty = lambda c: c == (None, None, B(' '))
             content = list(rendered.content())
             lines = [list(dropwhile(is_empty, reversed(line)))
                      for line in content]
@@ -103,9 +107,11 @@ class TermTest(unittest.TestCase):
         else:
             content = rendered.text
             lines = [line.rstrip() for line in content]
-            return '\n'.join(lines).rstrip()
+            return B('\n').join(lines).rstrip()
 
     def expect(self, what, desc=None, raw=False):
+        if not isinstance(what, list):
+            what = B(what)
         got = self.read(raw=raw)
         if desc is None:
             desc = ''
@@ -257,11 +263,11 @@ class TermTest(unittest.TestCase):
         self.assertNotEqual(self.term.term.cursor, None)
 
     def test_get_utf8_len(self):
-        length = self.term.term.get_utf8_len(chr(int("11110000", 2)))
+        length = self.term.term.get_utf8_len(int("11110000", 2))
         self.assertEqual(length, 3)
-        length = self.term.term.get_utf8_len(chr(int("11000000", 2)))
+        length = self.term.term.get_utf8_len(int("11000000", 2))
         self.assertEqual(length, 1)
-        length = self.term.term.get_utf8_len(chr(int("11111101", 2)))
+        length = self.term.term.get_utf8_len(int("11111101", 2))
         self.assertEqual(length, 5)
 
     def test_encoding_unicode(self):
@@ -269,7 +275,7 @@ class TermTest(unittest.TestCase):
         self.write('\e%G\xe2\x80\x94')
         self.expect('\xe2\x80\x94')
 
-    def test_encoding_unicode(self):
+    def test_encoding_unicode_ascii(self):
         vterm.util._target_encoding = 'ascii'
         self.write('\e%G\xe2\x80\x94')
         self.expect('?')
@@ -283,24 +289,24 @@ class TermTest(unittest.TestCase):
         vterm.util._target_encoding = 'ascii'
         self.write('\e)0\e(0\x0fg\x0eg\e)Bn\e)0g\e)B\e(B\x0fn')
         self.expect([[
-            (None, '0', 'g'), (None, '0', 'g'),
-            (None, None, 'n'), (None, '0', 'g'),
-            (None, None, 'n')
+            (None, '0', B('g')), (None, '0', B('g')),
+            (None, None, B('n')), (None, '0', B('g')),
+            (None, None, B('n'))
         ]], raw=True)
 
     def test_ibmpc_mapping(self):
         vterm.util._target_encoding = 'ascii'
 
         self.write('\e[11m\x18\e[10m\x18')
-        self.expect([[(None, 'U', '\x18')]], raw=True)
+        self.expect([[(None, 'U', B('\x18'))]], raw=True)
 
         self.write('\ec\e)U\x0e\x18\x0f\e[3h\x18\e[3l\x18')
-        self.expect([[(None, None, '\x18')]], raw=True)
+        self.expect([[(None, None, B('\x18'))]], raw=True)
 
         self.write('\ec\e[11m\xdb\x18\e[10m\xdb')
         self.expect([[
-            (None, 'U', '\xdb'), (None, 'U', '\x18'),
-            (None, None, '\xdb')
+            (None, 'U', B('\xdb')), (None, 'U', B('\x18')),
+            (None, None, B('\xdb'))
         ]], raw=True)
 
     def test_set_title(self):
@@ -312,10 +318,10 @@ class TermTest(unittest.TestCase):
         self.connect_signal('title')
         self.write('\e]666parsed right?\e\\te\e]0;test title\007st1')
         self.expect('test1')
-        self.expect_signal('test title')
+        self.expect_signal(B('test title'))
         self.write('\e]3;stupid title\e\\\e[0G\e[2Ktest2')
         self.expect('test2')
-        self.expect_signal('stupid title')
+        self.expect_signal(B('stupid title'))
         self.disconnect_signal('title')
 
     def test_set_leds(self):

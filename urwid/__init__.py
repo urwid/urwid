@@ -44,10 +44,7 @@ __all__ = [
     'TerminalWidget', 'TermCanvas',
     ]
 
-VERSION = (0, 9, 9, 1)
-__version__ = ''.join(['-.'[type(x) == int]+str(x) for x in VERSION])[1:]
-
-
+from urwid.version import VERSION, __version__
 from urwid.widget import *
 from urwid.decoration import *
 from urwid.container import *

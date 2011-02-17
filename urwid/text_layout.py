@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid Text Layout classes
-#    Copyright (C) 2004-2007  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -21,6 +21,7 @@
 
 from urwid.util import calc_width, calc_text_pos, calc_trim_text, is_wide_char, \
     move_prev_char, move_next_char
+from urwid.compat import bytes, PYTHON3, B
 
 class TextLayout:
     def supports_align_mode(self, align):
@@ -105,28 +106,33 @@ class StandardTextLayout(TextLayout):
                 out.append([(width-sc, None)] + l)
                 continue
             assert align == 'center'
-            out.append([((width-sc+1)/2, None)] + l)
+            out.append([((width-sc+1) // 2, None)] + l)
         return out
-        
 
-    def calculate_text_segments( self, text, width, wrap ):
+
+    def calculate_text_segments(self, text, width, wrap):
         """
-        Calculate the segments of text to display given width screen 
-        columns to display them.  
-        
-        text - text to display
+        Calculate the segments of text to display given width screen
+        columns to display them.
+
+        text - unicode text or byte string to display
         width - number of available screen columns
         wrap - wrapping mode used
-        
+
         Returns a layout structure without aligmnent applied.
         """
+        nl, nl_o, sp_o = "\n", "\n", " "
+        if PYTHON3 and isinstance(text, bytes):
+            nl = B(nl) # can only find bytes in python3 bytestrings
+            nl_o = ord(nl_o) # + an item of a bytestring is the ordinal value
+            sp_o = ord(sp_o)
         b = []
         p = 0
         if wrap == 'clip':
             # no wrapping to calculate, so it's easy.
             while p<=len(text):
-                n_cr = text.find("\n", p)
-                if n_cr == -1: 
+                n_cr = text.find(nl, p)
+                if n_cr == -1:
                     n_cr = len(text)
                 sc = calc_width(text, p, n_cr)
                 l = [(0,n_cr)]
@@ -136,11 +142,11 @@ class StandardTextLayout(TextLayout):
                 p = n_cr+1
             return b
 
-        
+
         while p<=len(text):
             # look for next eligible line break
-            n_cr = text.find("\n", p)
-            if n_cr == -1: 
+            n_cr = text.find(nl, p)
+            if n_cr == -1:
                 n_cr = len(text)
             sc = calc_width(text, p, n_cr)
             if sc == 0:
@@ -153,7 +159,7 @@ class StandardTextLayout(TextLayout):
                 b.append([(sc,p,n_cr),
                     # removed character hint
                     (0,n_cr)])
-                
+
                 p = n_cr+1
                 continue
             pos, sc = calc_text_pos( text, p, n_cr, width )
@@ -163,7 +169,7 @@ class StandardTextLayout(TextLayout):
                 p = pos
                 continue
             assert wrap == 'space'
-            if text[pos] == " ":
+            if text[pos] == sp_o:
                 # perfect space wrap
                 b.append([(sc,p,pos),
                     # removed character hint
@@ -175,16 +181,16 @@ class StandardTextLayout(TextLayout):
                 b.append([(sc,p,pos)])
                 p = pos
                 continue
-            prev = pos    
+            prev = pos
             while prev > p:
                 prev = move_prev_char(text, p, prev)
-                if text[prev] == " ":
+                if text[prev] == sp_o:
                     sc = calc_width(text,p,prev)
                     l = [(0,prev)]
                     if p!=prev:
                         l = [(sc,p,prev)] + l
                     b.append(l)
-                    p = prev+1 
+                    p = prev+1
                     break
                 if is_wide_char(text,prev):
                     # wrap after wide char
@@ -207,7 +213,7 @@ class StandardTextLayout(TextLayout):
                         [(p_sc, p_off, p_end),
                                (h_sc, h_off)] = b[-1]
                     if (p_sc < width and h_sc==0 and
-                        text[h_off] == " "):
+                        text[h_off] == sp_o):
                         # combine with previous line
                         del b[-1]
                         p = p_off
@@ -217,13 +223,13 @@ class StandardTextLayout(TextLayout):
                         # check for trailing " " or "\n"
                         p = pos
                         if p < len(text) and (
-                            text[p] in (" ","\n")):
+                            text[p] in (sp_o, nl_o)):
                             # removed character hint
                             b[-1].append((0,p))
                             p += 1
                         continue
-                        
-                        
+
+
                 # force any char wrap
                 b.append([(sc,p,pos)])
                 p = pos
@@ -252,7 +258,7 @@ class LayoutSegment:
             assert type(self.offs) == int, repr(self.offs)
             assert self.sc > 0, repr(seg)
             t = seg[2]
-            if type(t) == str:
+            if type(t) == bytes:
                 self.text = t
                 self.end = None
             else:
@@ -283,8 +289,8 @@ class LayoutSegment:
             # use text stored in segment (self.text)
             spos, epos, pad_left, pad_right = calc_trim_text(
                 self.text, 0, len(self.text), start, end )
-            return [ (end-start, self.offs, " "*pad_left + 
-                self.text[spos:epos] + " "*pad_right) ]
+            return [ (end-start, self.offs, bytes().ljust(pad_left) +
+                self.text[spos:epos] + bytes().ljust(pad_right)) ]
         elif self.end:
             # use text passed as parameter (text)
             spos, epos, pad_left, pad_right = calc_trim_text(

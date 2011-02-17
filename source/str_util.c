@@ -20,6 +20,7 @@
     Urwid web site: http://excess.org/urwid/
 */
 
+#define PY_SSIZE_T_CLEAN
 
 #include <Python.h>
 
@@ -27,6 +28,16 @@
 #define ENC_WIDE 2
 #define ENC_NARROW 3
 
+#if PY_MAJOR_VERSION >= 3
+#define PYTHON3
+#endif
+
+#if PY_MAJOR_VERSION == 2 && PY_MINOR_VERSION < 5
+#define Py_ssize_t int
+#define FMT_N "i"
+#else
+#define FMT_N "n"
+#endif
 
 static int widths_len = 2*38;
 static const long int widths[] = {
@@ -176,8 +187,8 @@ text -- string text\n\
 pos -- position in text";
 
 
-static void Py_DecodeOne(const unsigned char *text, int text_len, int pos,
-                         int *ret)
+static void Py_DecodeOne(const unsigned char *text, Py_ssize_t text_len,
+                         Py_ssize_t pos, Py_ssize_t *ret)
 {
     int dummy;
     
@@ -308,18 +319,22 @@ static void Py_DecodeOne(const unsigned char *text, int text_len, int pos,
 static PyObject * decode_one(PyObject *self, PyObject *args)
 {
     PyObject *py_text;
-    
-    int pos, text_len;
+
+    Py_ssize_t pos, text_len;
     char *text;
-    int ret[2];
-    
-    if (!PyArg_ParseTuple(args, "Oi", &py_text, &pos))
+    Py_ssize_t ret[2];
+
+    if (!PyArg_ParseTuple(args, "O" FMT_N, &py_text, &pos))
         return NULL;
 
+#ifndef PYTHON3
     PyString_AsStringAndSize(py_text, &text, &text_len);
+#else
+    PyBytes_AsStringAndSize(py_text, &text, &text_len);
+#endif
 
     Py_DecodeOne((unsigned char *)text, text_len, pos, ret);
-    return Py_BuildValue("(i, i)", ret[0], ret[1]);
+    return Py_BuildValue("(" FMT_N ", " FMT_N ")", ret[0], ret[1]);
 }
 
                                      
@@ -333,11 +348,11 @@ text -- text string \n\
 pos -- position in text";
 
 
-static void Py_DecodeOneRight(const unsigned char *text, int text_len, int pos,
-                             int *ret)
+static void Py_DecodeOneRight(const unsigned char *text, Py_ssize_t text_len,
+                             Py_ssize_t pos, Py_ssize_t *ret)
 {
-    int subret[2];
-    
+    Py_ssize_t subret[2];
+
     while (pos >= 0)
     {
         if ((text[pos]&0xc0) != 0x80)
@@ -361,20 +376,24 @@ static void Py_DecodeOneRight(const unsigned char *text, int text_len, int pos,
 
 static PyObject * decode_one_right(PyObject *self, PyObject *args)
 {
-    
+
     PyObject *py_text;
 
-    int pos, text_len;
+    Py_ssize_t pos, text_len;
     char *text;
-    int ret[2] = {'?',0};
-    
-    if (!PyArg_ParseTuple(args, "Oi", &py_text, &pos))
+    Py_ssize_t ret[2] = {'?',0};
+
+    if (!PyArg_ParseTuple(args, "O" FMT_N, &py_text, &pos))
         return NULL;
 
+#ifndef PYTHON3
     PyString_AsStringAndSize(py_text, &text, &text_len);
+#else
+    PyBytes_AsStringAndSize(py_text, &text, &text_len);
+#endif
 
     Py_DecodeOneRight((const unsigned char *)text, text_len, pos, ret);
-    return Py_BuildValue("(i, i)", ret[0], ret[1]);
+    return Py_BuildValue("(" FMT_N ", " FMT_N ")", ret[0], ret[1]);
 }
 
 
@@ -391,10 +410,10 @@ Return values:\n\
 2 -- pos is on the 2nd half of a dbe char";
 
 
-static int Py_WithinDoubleByte(const unsigned char *str, int line_start,
-                               int pos)
+static int Py_WithinDoubleByte(const unsigned char *str, Py_ssize_t line_start,
+                               Py_ssize_t pos)
 {
-    int i;
+    Py_ssize_t i;
 
     if ((str[pos] >= 0x40) && (str[pos] < 0x7f))
     {
@@ -421,14 +440,29 @@ static int Py_WithinDoubleByte(const unsigned char *str, int line_start,
 static PyObject * within_double_byte(PyObject *self, PyObject *args)
 {
     const unsigned char *str;
-    int line_start, pos;
-    int ret;
-    
-    if (!PyArg_ParseTuple(args, "sii", &str, &line_start, &pos))
+    Py_ssize_t str_len, line_start, pos;
+    Py_ssize_t ret;
+
+    if (!PyArg_ParseTuple(args, "s#" FMT_N FMT_N, &str, &str_len, &line_start, &pos))
         return NULL;
+    if (line_start < 0 || line_start >= str_len) {
+        PyErr_SetString(PyExc_IndexError,
+            "is_wide_char: Argument \"line_start\" is outside of string.");
+        return NULL;
+    }
+    if (pos < 0 || pos >= str_len) {
+        PyErr_SetString(PyExc_IndexError,
+            "is_wide_char: Argument \"pos\" is outside of string.");
+        return NULL;
+    }
+    if (pos < line_start) {
+        PyErr_SetString(PyExc_IndexError,
+            "is_wide_char: Argument \"pos\" is before \"line_start\".");
+        return NULL;
+    }
 
     ret = Py_WithinDoubleByte(str, line_start, pos);
-    return Py_BuildValue("i", ret);
+    return Py_BuildValue(FMT_N, ret);
 }
 
 
@@ -439,27 +473,35 @@ Test if the character at offs within text is wide.\n\n\
 text -- string or unicode text\n\
 offs -- offset";
 
-static int Py_IsWideChar(PyObject *text, int offs)
+static int Py_IsWideChar(PyObject *text, Py_ssize_t offs)
 {
     const unsigned char *str;
     Py_UNICODE *ustr;
-    int ret[2], str_len;
-        
+    Py_ssize_t ret[2], str_len;
+
     if (PyUnicode_Check(text))  //text_py is unicode string
     {
         ustr = PyUnicode_AS_UNICODE(text);
         return (Py_GetWidth((long int)ustr[offs]) == 2);
     }
 
-    if ( text->ob_type != Py_BuildValue("s","")->ob_type ) {
-
+#ifndef PYTHON3
+    if (!PyString_Check(text)) {
+#else
+    if (!PyBytes_Check(text)) {
+#endif
         PyErr_SetString(PyExc_TypeError,
             "is_wide_char: Argument \"text\" is not a string.");
         return -1;
     }
-    
+
+#ifndef PYTHON3
     str = (const unsigned char *)PyString_AsString(text);
     str_len = (int) PyString_Size(text);
+#else
+    str = (const unsigned char *)PyBytes_AsString(text);
+    str_len = (int) PyBytes_Size(text);
+#endif
 
     if (byte_encoding == ENC_UTF8)
     {
@@ -477,10 +519,10 @@ static int Py_IsWideChar(PyObject *text, int offs)
 static PyObject * is_wide_char(PyObject *self, PyObject *args)
 {
     PyObject *text;
-    int offs;
+    Py_ssize_t offs;
     int ret;
-    
-    if (!PyArg_ParseTuple(args, "Oi", &text, &offs))
+
+    if (!PyArg_ParseTuple(args, "O" FMT_N, &text, &offs))
         return NULL;
 
     ret = Py_IsWideChar(text, offs);
@@ -501,17 +543,21 @@ start_offs -- start offset\n\
 end_offs -- end offset";
 
 
-static int Py_MovePrevChar(PyObject *text, int start_offs,
-                           int end_offs)
+static Py_ssize_t Py_MovePrevChar(PyObject *text, Py_ssize_t start_offs,
+                           Py_ssize_t end_offs)
 {
-    int position;
+    Py_ssize_t position;
     unsigned char *str;
-    
+
     if (PyUnicode_Check(text))  //text_py is unicode string
         return end_offs-1;
     else
+#ifndef PYTHON3
         str = (unsigned char *)PyString_AsString(text);
-    
+#else
+        str = (unsigned char *)PyBytes_AsString(text);
+#endif
+
     if (byte_encoding == ENC_UTF8) //encoding is utf8
     {
         position = end_offs - 1;
@@ -530,14 +576,14 @@ static int Py_MovePrevChar(PyObject *text, int start_offs,
 static PyObject * move_prev_char(PyObject *self, PyObject *args)
 {
     PyObject *text;
-    int start_offs, end_offs;
-    int ret;
+    Py_ssize_t start_offs, end_offs;
+    Py_ssize_t ret;
 
-    if (!PyArg_ParseTuple(args, "Oii", &text, &start_offs, &end_offs))
+    if (!PyArg_ParseTuple(args, "O" FMT_N FMT_N, &text, &start_offs, &end_offs))
         return NULL; 
 
     ret = Py_MovePrevChar(text, start_offs, end_offs);
-    return Py_BuildValue("i", ret);
+    return Py_BuildValue(FMT_N, ret);
 }
 
 
@@ -550,17 +596,21 @@ start_offs -- start offset\n\
 end_offs -- end offset";
 
 
-static int Py_MoveNextChar(PyObject *text, int start_offs,
-                           int end_offs)
+static Py_ssize_t Py_MoveNextChar(PyObject *text, Py_ssize_t start_offs,
+                           Py_ssize_t end_offs)
 {
-    int position;
+    Py_ssize_t position;
     unsigned char * str;
 
     if (PyUnicode_Check(text))  //text_py is unicode string
         return start_offs+1;
     else
+#ifndef PYTHON3
         str = (unsigned char *)PyString_AsString(text);
-    
+#else
+        str = (unsigned char *)PyBytes_AsString(text);
+#endif
+
     if (byte_encoding == ENC_UTF8) //encoding is utf8
     {
         position = start_offs + 1;
@@ -580,14 +630,14 @@ static int Py_MoveNextChar(PyObject *text, int start_offs,
 static PyObject * move_next_char(PyObject *self, PyObject *args)
 {
     PyObject *text;
-    int start_offs, end_offs;
-    int ret;
+    Py_ssize_t start_offs, end_offs;
+    Py_ssize_t ret;
 
-    if (!PyArg_ParseTuple(args, "Oii", &text, &start_offs, &end_offs))
-        return NULL; 
+    if (!PyArg_ParseTuple(args, "O" FMT_N FMT_N, &text, &start_offs, &end_offs))
+        return NULL;
 
     ret = Py_MoveNextChar(text, start_offs, end_offs);
-    return Py_BuildValue("i", ret);
+    return Py_BuildValue(FMT_N, ret);
 }
 
 
@@ -600,10 +650,12 @@ start_offs -- start offset\n\
 end_offs -- end offset";
 
 
-static int Py_CalcWidth(PyObject *text, int start_offs, int end_offs)
+static Py_ssize_t Py_CalcWidth(PyObject *text, Py_ssize_t start_offs,
+                        Py_ssize_t end_offs)
 {
     unsigned char * str;
-    int i, screencols, ret[2], str_len;
+    Py_ssize_t i, ret[2], str_len;
+    int screencols;
     Py_UNICODE *ustr;
 
     if (PyUnicode_Check(text))  //text_py is unicode string
@@ -617,14 +669,23 @@ static int Py_CalcWidth(PyObject *text, int start_offs, int end_offs)
         return screencols;
     }
 
+#ifndef PYTHON3
     if (!PyString_Check(text))
+#else
+    if (!PyBytes_Check(text))
+#endif
     {
         PyErr_SetString(PyExc_TypeError, "Neither unicode nor string.");
         return -1;
     }
 
+#ifndef PYTHON3
     str = (unsigned char *)PyString_AsString(text);
     str_len = (int) PyString_Size(text);
+#else
+    str = (unsigned char *)PyBytes_AsString(text);
+    str_len = PyBytes_Size(text);
+#endif
 
     if (byte_encoding == ENC_UTF8)
     {
@@ -675,11 +736,12 @@ end_offs -- end offset\n\
 pref_col -- preferred column";
 
 
-static int Py_CalcTextPos(PyObject *text, int start_offs, int end_offs,
-                          int pref_col, int *ret)
+static int Py_CalcTextPos(PyObject *text, Py_ssize_t start_offs,
+                          Py_ssize_t end_offs, int pref_col, Py_ssize_t *ret)
 {
     unsigned char * str;
-    int i, screencols, dummy[2], str_len, width;
+    Py_ssize_t i, dummy[2], str_len;
+    int screencols, width;
     Py_UNICODE *ustr;
 
     if (PyUnicode_Check(text))  //text_py is unicode string
@@ -706,14 +768,23 @@ static int Py_CalcTextPos(PyObject *text, int start_offs, int end_offs,
         return 0;
     }
 
+#ifndef PYTHON3
     if (!PyString_Check(text))
+#else
+    if (!PyBytes_Check(text))
+#endif
     {
         PyErr_SetString(PyExc_TypeError, "Neither unicode nor string.");
         return -1;
     }
 
+#ifndef PYTHON3
     str = (unsigned char *)PyString_AsString(text);
     str_len = (int) PyString_Size(text);
+#else
+    str = (unsigned char *)PyBytes_AsString(text);
+    str_len = PyBytes_Size(text);
+#endif
     
     if (byte_encoding == ENC_UTF8)
     {
@@ -764,18 +835,18 @@ static int Py_CalcTextPos(PyObject *text, int start_offs, int end_offs,
 static PyObject * calc_text_pos(PyObject *self, PyObject *args)
 {
     PyObject *text;
-    int start_offs, end_offs, pref_col;
-    int ret[2], err;
+    Py_ssize_t start_offs, end_offs, ret[2];
+    int pref_col, err;
 
-    if (!PyArg_ParseTuple(args, "Oiii", &text, &start_offs, &end_offs,
+    if (!PyArg_ParseTuple(args, "O" FMT_N FMT_N "i", &text, &start_offs, &end_offs,
                           &pref_col))
-        return NULL; 
+        return NULL;
 
     err = Py_CalcTextPos(text, start_offs, end_offs, pref_col, ret);
     if (err==-1) //an error occured
         return NULL;
-                      
-    return Py_BuildValue("(ii)", ret[0], ret[1]);
+
+    return Py_BuildValue("(" FMT_N FMT_N ")", ret[0], ret[1]);
 }
 
 
@@ -799,13 +870,11 @@ static PyMethodDef Str_UtilMethods[] = {
     {NULL, NULL, 0, NULL}        // Sentinel 
 };
 
-
+#ifndef PYTHON3
 PyMODINIT_FUNC initstr_util(void)
 {
     Py_InitModule("str_util", Str_UtilMethods);
 }
-
-
 
 int main(int argc, char *argv[])
 {
@@ -820,3 +889,17 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+#else
+static struct PyModuleDef Str_UtilModule = {
+    PyModuleDef_HEAD_INIT,
+    "str_util",
+    NULL,
+    -1,
+    Str_UtilMethods
+};
+
+PyMODINIT_FUNC PyInit_str_util(void)
+{
+    return PyModule_Create(&Str_UtilModule);
+}
+#endif

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid graphics example program
-#    Copyright (C) 2004-2009  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -148,9 +148,9 @@ class GraphView(urwid.WidgetWrap):
         self.graph.set_data(l,max_value)
         
         # also update progress
-        if (o/repeat)&1:
+        if (o//repeat)&1:
             # show 100% for first half, 0 for second half
-            if o%repeat > repeat/2:
+            if o%repeat > repeat//2:
                 prog = 0
             else:
                 prog = 1

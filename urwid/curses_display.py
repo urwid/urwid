@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid curses output wrapper.. the horror..
-#    Copyright (C) 2004-2007  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -29,7 +29,9 @@ import _curses
 
 from urwid import escape
 
-from urwid.display_common import BaseScreen, RealTerminal, AttrSpec
+from urwid.display_common import BaseScreen, RealTerminal, AttrSpec, \
+    UNPRINTABLE_TRANS_TABLE
+from urwid.compat import bytes, chr2, B, bytes3, PYTHON3
 
 KEY_RESIZE = 410 # curses.KEY_RESIZE (sometimes not defined)
 KEY_MOUSE = 409 # curses.KEY_MOUSE
@@ -53,10 +55,6 @@ _curses_colours = {
     'light cyan':     (curses.COLOR_CYAN,     1),
     'white':          (curses.COLOR_WHITE,    1),
 }
-
-
-# replace control characters with ?'s
-_trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
 
 
 class Screen(BaseScreen, RealTerminal):
@@ -499,7 +497,8 @@ class Screen(BaseScreen, RealTerminal):
             nr = 0
             for a, cs, seg in row:
                 if cs != 'U':
-                    seg = seg.translate( _trans_table )
+                    seg = seg.translate(UNPRINTABLE_TRANS_TABLE)
+                    assert isinstance(seg, bytes)
 
                 if first or lasta != a:
                     self._setattr(a)
@@ -511,7 +510,11 @@ class Screen(BaseScreen, RealTerminal):
                                 ord(seg[i]) )
                     else:
                         assert cs is None
-                        self.s.addstr( seg )
+                        if PYTHON3:
+                            assert isinstance(seg, bytes)
+                            self.s.addstr(seg.decode('utf-8'))
+                        else:
+                            self.s.addstr(seg)
                 except _curses.error:
                     # it's ok to get out of the
                     # screen on the lower right

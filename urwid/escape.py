@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Urwid escape sequences common to curses_display and raw_display
-#    Copyright (C) 2004-2006  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -30,6 +30,8 @@ try:
     from urwid import str_util
 except ImportError:
     from urwid import old_str_util as str_util
+
+from urwid.compat import bytes, bytes3
 
 within_double_byte = str_util.within_double_byte
 
@@ -60,7 +62,7 @@ class MoreInputRequired(Exception):
 
 def escape_modifier( digit ):
     mode = ord(digit) - ord("1")
-    return "shift "*(mode&1) + "meta "*((mode&2)/2) + "ctrl "*((mode&4)/4)
+    return "shift "*(mode&1) + "meta "*((mode&2)//2) + "ctrl "*((mode&4)//4)
     
 
 input_sequences = [
@@ -326,8 +328,10 @@ def process_keyqueue(codes, more_available):
             k = codes[i+1]
             if k>256 or k&0xc0 != 0x80:
                 return ["<%d>"%code], codes[1:]
-        
-        s = "".join([chr(c)for c in codes[:need_more+1]])
+
+        s = bytes3(codes[:need_more+1])
+
+        assert isinstance(s, bytes)
         try:
             return [s.decode("utf-8")], codes[need_more+1:]
         except UnicodeDecodeError:

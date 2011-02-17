@@ -1,9 +1,9 @@
 #!/usr/bin/python
 #
 # Urwid example lazy directory browser / tree view
-#    Original version:
-#      Copyright (C) 2004-2010  Ian Ward
-#    Modified by Rob Lanphier to use general TreeWidget/TreeWalker classes
+#    Copyright (C) 2004-2011  Ian Ward
+#    Copyright (C) 2010  Kirk McDonald
+#    Copyright (C) 2010  Rob Lanphier
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -31,6 +31,8 @@ Features:
 - outputs a quoted list of files and directories "selected" on exit
 """
 
+import itertools
+import re
 import os
 
 import urwid
@@ -189,8 +191,8 @@ class DirectoryNode(urwid.ParentNode):
             return [None]
 
         # sort dirs and files
-        dirs.sort(sensible_cmp)
-        files.sort(sensible_cmp)
+        dirs.sort(key=alphabetize)
+        files.sort(key=alphabetize)
         # store where the first file starts
         self.dir_count = len(dirs)
         # collect dirs and files together again
@@ -365,45 +367,16 @@ def escape_filename_sh_ansic(name):
     # slap them back together in an ansi-c quote  $'...'
     return "$'" + "".join(out) + "'"
 
-
-def sensible_cmp(name_a, name_b):
-    """Case insensitive compare with sensible numeric ordering.
-    
-    "blah7" < "BLAH08" < "blah9" < "blah10" """
-    
-    # ai, bi are indexes into name_a, name_b
-    ai = bi = 0
-    
-    def next_atom(name, i):
-        """Return the next 'atom' and the next index.
-        
-        An 'atom' is either a nonnegative integer or an uppercased 
-        character used for defining sort order."""
-        
-        a = name[i].upper()
-        i += 1
-        if a.isdigit():
-            while i < len(name) and name[i].isdigit():
-                a += name[i]
-                i += 1
-            a = long(a)
-        return a, i
-        
-    # compare one atom at a time
-    while ai < len(name_a) and bi < len(name_b):
-        a, ai = next_atom(name_a, ai)
-        b, bi = next_atom(name_b, bi)
-        if a < b: return -1
-        if a > b: return 1
-    
-    # if all out of atoms to compare, do a regular cmp
-    if ai == len(name_a) and bi == len(name_b): 
-        return cmp(name_a,name_b)
-    
-    # the shorter one comes first
-    if ai == len(name_a): return -1
-    return 1
-
+SPLIT_RE = re.compile(r'[a-zA-Z]+|\d+')
+def alphabetize(s):
+    L = []
+    for isdigit, group in itertools.groupby(SPLIT_RE.findall(s), key=lambda x: x.isdigit()):
+        if isdigit:
+            for n in group:
+                L.append(('', int(n)))
+        else:
+            L.append((''.join(group).lower(), 0))
+    return L
 
 def dir_sep():
     """Return the separator used in this os."""

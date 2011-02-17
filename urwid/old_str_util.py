@@ -1,7 +1,8 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 #
 # Urwid unicode character processing tables
-#    Copyright (C) 2004-2006  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -20,7 +21,11 @@
 # Urwid web site: http://excess.org/urwid/
 
 import re
-SAFE_ASCII_RE = re.compile("^[ -~]*$")
+
+from urwid.compat import bytes, B, ord2, chr2
+
+SAFE_ASCII_RE = re.compile(u"^[ -~]*$")
+SAFE_ASCII_BYTES_RE = re.compile(B("^[ -~]*$"))
 
 _byte_encoding = None
 
@@ -82,8 +87,11 @@ def get_width( o ):
     return 1
 
 def decode_one( text, pos ):
-    """Return (ordinal at pos, next position) for UTF-8 encoded text."""
-    b1 = ord(text[pos])
+    """
+    Return (ordinal at pos, next position) for UTF-8 encoded text.
+    """
+    assert isinstance(text, bytes), text
+    b1 = ord2(text[pos])
     if not b1 & 0x80: 
         return b1, pos+1
     error = ord("?"), pos+1
@@ -92,7 +100,7 @@ def decode_one( text, pos ):
     if lt < 2:
         return error
     if b1 & 0xe0 == 0xc0:
-        b2 = ord(text[pos+1])
+        b2 = ord2(text[pos+1])
         if b2 & 0xc0 != 0x80:
             return error
         o = ((b1&0x1f)<<6)|(b2&0x3f)
@@ -102,10 +110,10 @@ def decode_one( text, pos ):
     if lt < 3:
         return error
     if b1 & 0xf0 == 0xe0:
-        b2 = ord(text[pos+1])
+        b2 = ord2(text[pos+1])
         if b2 & 0xc0 != 0x80:
             return error
-        b3 = ord(text[pos+2])
+        b3 = ord2(text[pos+2])
         if b3 & 0xc0 != 0x80:
             return error
         o = ((b1&0x0f)<<12)|((b2&0x3f)<<6)|(b3&0x3f)
@@ -115,13 +123,13 @@ def decode_one( text, pos ):
     if lt < 4:
         return error
     if b1 & 0xf8 == 0xf0:
-        b2 = ord(text[pos+1])
+        b2 = ord2(text[pos+1])
         if b2 & 0xc0 != 0x80:
             return error
-        b3 = ord(text[pos+2])
+        b3 = ord2(text[pos+2])
         if b3 & 0xc0 != 0x80:
             return error
-        b4 = ord(text[pos+2])
+        b4 = ord2(text[pos+2])
         if b4 & 0xc0 != 0x80:
             return error
         o = ((b1&0x07)<<18)|((b2&0x3f)<<12)|((b3&0x3f)<<6)|(b4&0x3f)
@@ -130,14 +138,22 @@ def decode_one( text, pos ):
         return o, pos+4
     return error
 
-def decode_one_right( text, pos):
+def decode_one_uni(text, i):
+    """
+    decode_one implementation for unicode strings
+    """
+    return ord(text[i]), i+1
+
+def decode_one_right(text, pos):
     """
     Return (ordinal at pos, next position) for UTF-8 encoded text.
-    pos is assumed to be on the trailing byte of a utf-8 sequence."""
+    pos is assumed to be on the trailing byte of a utf-8 sequence.
+    """
+    assert isinstance(text, bytes), text
     error = ord("?"), pos-1
     p = pos
     while p >= 0:
-        if ord(text[p])&0xc0 != 0x80:
+        if ord2(text[p])&0xc0 != 0x80:
             o, next = decode_one( text, p )
             return o, p-1
         p -=1
@@ -152,73 +168,82 @@ def set_byte_encoding(enc):
 def get_byte_encoding():
     return _byte_encoding
 
-def calc_text_pos( text, start_offs, end_offs, pref_col ):
+def calc_text_pos(text, start_offs, end_offs, pref_col):
     """
     Calculate the closest position to the screen column pref_col in text
     where start_offs is the offset into text assumed to be screen column 0
     and end_offs is the end of the range to search.
-    
+
+    text may be unicode or a byte string in the target _byte_encoding
+
     Returns (position, actual_col).
     """
     assert start_offs <= end_offs, repr((start_offs, end_offs))
-    utfs = (type(text) == str and _byte_encoding == "utf8")
-    if type(text) == unicode or utfs:
+    utfs = isinstance(text, bytes) and _byte_encoding == "utf8"
+    unis = not isinstance(text, bytes)
+    if unis or utfs:
+        decode = [decode_one, decode_one_uni][unis]
         i = start_offs
         sc = 0
         n = 1 # number to advance by
         while i < end_offs:
-            if utfs:
-                o, n = decode_one(text, i)
-            else:
-                o = ord(text[i])
-                n = i + 1
+            o, n = decode(text, i)
             w = get_width(o)
             if w+sc > pref_col: 
                 return i, sc
             i = n
             sc += w
         return i, sc
-    assert type(text) == str, repr(text)
+    assert type(text) == bytes, repr(text)
     # "wide" and "narrow"
     i = start_offs+pref_col
     if i >= end_offs:
         return end_offs, end_offs-start_offs
     if _byte_encoding == "wide":
-        if within_double_byte( text, start_offs, i ) == 2:
+        if within_double_byte(text, start_offs, i) == 2:
             i -= 1
     return i, i-start_offs
 
-def calc_width( text, start_offs, end_offs ):
+def calc_width(text, start_offs, end_offs):
     """
     Return the screen column width of text between start_offs and end_offs.
+
+    text may be unicode or a byte string in the target _byte_encoding
+
+    Some characters are wide (take two columns) and others affect the
+    previous character (take zero columns).  Use the widths table above
+    to calculate the screen column width of text[start_offs:end_offs]
     """
+
     assert start_offs <= end_offs, repr((start_offs, end_offs))
-    utfs = (type(text) == str and _byte_encoding == "utf8")
-    if (type(text) == unicode or utfs) and not SAFE_ASCII_RE.match(text):
+
+    utfs = isinstance(text, bytes) and _byte_encoding == "utf8"
+    unis = not isinstance(text, bytes)
+    if (unis and not SAFE_ASCII_RE.match(text)
+            ) or (utfs and not SAFE_ASCII_BYTES_RE.match(text)):
+        decode = [decode_one, decode_one_uni][unis]
         i = start_offs
         sc = 0
         n = 1 # number to advance by
         while i < end_offs:
-            if utfs:
-                o, n = decode_one(text, i)
-            else:
-                o = ord(text[i])
-                n = i + 1
+            o, n = decode(text, i)
             w = get_width(o)
             i = n
             sc += w
         return sc
-    # "wide" and "narrow"
+    # "wide", "narrow" or all printable ASCII, just return the character count
     return end_offs - start_offs
-    
-def is_wide_char( text, offs ):
+
+def is_wide_char(text, offs):
     """
     Test if the character at offs within text is wide.
+
+    text may be unicode or a byte string in the target _byte_encoding
     """
-    if type(text) == unicode:
+    if isinstance(text, unicode):
         o = ord(text[offs])
         return get_width(o) == 2
-    assert type(text) == str
+    assert isinstance(text, bytes)
     if _byte_encoding == "utf8":
         o, n = decode_one(text, offs)
         return get_width(o) == 2
@@ -226,46 +251,46 @@ def is_wide_char( text, offs ):
         return within_double_byte(text, offs, offs) == 1
     return False
 
-def move_prev_char( text, start_offs, end_offs ):
+def move_prev_char(text, start_offs, end_offs):
     """
     Return the position of the character before end_offs.
     """
     assert start_offs < end_offs
-    if type(text) == unicode:
+    if isinstance(text, unicode):
         return end_offs-1
-    assert type(text) == str
+    assert isinstance(text, bytes)
     if _byte_encoding == "utf8":
         o = end_offs-1
-        while ord(text[o])&0xc0 == 0x80:
+        while ord2(text[o])&0xc0 == 0x80:
             o -= 1
         return o
-    if _byte_encoding == "wide" and within_double_byte( text,
+    if _byte_encoding == "wide" and within_double_byte(text,
         start_offs, end_offs-1) == 2:
         return end_offs-2
     return end_offs-1
 
-def move_next_char( text, start_offs, end_offs ):
+def move_next_char(text, start_offs, end_offs):
     """
     Return the position of the character after start_offs.
     """
     assert start_offs < end_offs
-    if type(text) == unicode:
+    if isinstance(text, unicode):
         return start_offs+1
-    assert type(text) == str
+    assert isinstance(text, bytes)
     if _byte_encoding == "utf8":
         o = start_offs+1
-        while o<end_offs and ord(text[o])&0xc0 == 0x80:
+        while o<end_offs and ord2(text[o])&0xc0 == 0x80:
             o += 1
         return o
-    if _byte_encoding == "wide" and within_double_byte(text, 
+    if _byte_encoding == "wide" and within_double_byte(text,
         start_offs, start_offs) == 1:
         return start_offs +2
     return start_offs+1
 
-def within_double_byte(str, line_start, pos):
+def within_double_byte(text, line_start, pos):
     """Return whether pos is within a double-byte encoded character.
-    
-    str -- string in question
+
+    text -- byte string in question
     line_start -- offset of beginning of line (< pos)
     pos -- offset in question
 
@@ -274,14 +299,15 @@ def within_double_byte(str, line_start, pos):
     1 -- pos is on the 1st half of a dbe char
     2 -- pos is on the 2nd half og a dbe char
     """
-    v = ord(str[pos])
+    assert isinstance(text, bytes)
+    v = ord2(text[pos])
 
     if v >= 0x40 and v < 0x7f:
         # might be second half of big5, uhc or gbk encoding
         if pos == line_start: return 0
-        
-        if ord(str[pos-1]) >= 0x81:
-            if within_double_byte(str, line_start, pos-1) == 1:
+
+        if ord2(text[pos-1]) >= 0x81:
+            if within_double_byte(text, line_start, pos-1) == 1:
                 return 2
         return 0
 
@@ -289,10 +315,10 @@ def within_double_byte(str, line_start, pos):
 
     i = pos -1
     while i >= line_start:
-        if ord(str[i]) < 0x80:
+        if ord2(text[i]) < 0x80:
             break
         i -= 1
-    
+
     if (pos - i) & 1:
         return 1
     return 2

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Urwid utility functions
-#    Copyright (C) 2004-2007  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -21,11 +21,12 @@
 # Urwid web site: http://excess.org/urwid/
 
 from urwid import escape
+from urwid.compat import *
 
 try:
-    import str_util
+    from urwid import str_util
 except ImportError:
-    import old_str_util as str_util
+    from urwid import old_str_util as str_util
 
 # bring str_util functions into our namespace
 calc_text_pos = str_util.calc_text_pos
@@ -36,22 +37,26 @@ move_prev_char = str_util.move_prev_char
 within_double_byte = str_util.within_double_byte
 
 
-# Try to determine if using a supported double-byte encoding
-import locale
-try:
+def detect_encoding():
+    # Try to determine if using a supported double-byte encoding
+    import locale
     try:
-        locale.setlocale( locale.LC_ALL, "" )
-    except locale.Error:
-        pass
-    detected_encoding = locale.getlocale()[1]
-    if not detected_encoding:
-        detected_encoding = ""
-except ValueError, e:
-    # with invalid LANG value python will throw ValueError
-    if e.args and e.args[0].startswith("unknown locale"):
-        detected_encoding = ""
-    else:
-        raise
+        try:
+            locale.setlocale(locale.LC_ALL, "")
+        except locale.Error:
+            pass
+        return locale.getlocale()[1] or ""
+    except ValueError, e:
+        # with invalid LANG value python will throw ValueError
+        if e.args and e.args[0].startswith("unknown locale"):
+            return ""
+        else:
+            raise
+
+if 'detected_encoding' not in locals():
+    detected_encoding = detect_encoding()
+else:
+    assert 0, "It worked!"
 
 _target_encoding = None
 _use_dec_special = True
@@ -118,9 +123,15 @@ def apply_target_encoding( s ):
         s = s.replace( escape.SI+escape.SO, u"" ) # remove redundant shifts
         s = s.encode( _target_encoding )
 
-    sis = s.split( escape.SO )
+    assert isinstance(s, bytes)
+    SO = escape.SO.encode('ascii')
+    SI = escape.SI.encode('ascii')
 
-    sis0 = sis[0].replace( escape.SI, "" )
+    sis = s.split(SO)
+
+    assert isinstance(sis[0], bytes)
+
+    sis0 = sis[0].replace(SI, bytes())
     sout = []
     cout = []
     if sis0:
@@ -131,24 +142,28 @@ def apply_target_encoding( s ):
         return sis0, cout
     
     for sn in sis[1:]:
-        sl = sn.split( escape.SI, 1 ) 
+        assert isinstance(sn, bytes)
+        assert isinstance(SI, bytes)
+        sl = sn.split(SI, 1)
         if len(sl) == 1:
             sin = sl[0]
+            assert isinstance(sin, bytes)
             sout.append(sin)
-            rle_append_modify(cout, (escape.DEC_TAG, len(sin)))
+            rle_append_modify(cout, (escape.DEC_TAG.encode('ascii'), len(sin)))
             continue
         sin, son = sl
-        son = son.replace( escape.SI, "" )
+        son = son.replace(SI, bytes())
         if sin:
             sout.append(sin)
             rle_append_modify(cout, (escape.DEC_TAG, len(sin)))
         if son:
             sout.append(son)
             rle_append_modify(cout, (None, len(son)))
-    
-    return "".join(sout), cout
-    
-    
+
+    outstr = bytes().join(sout)
+    return outstr, cout
+
+
 ######################################################################
 # Try to set the encoding using the one detected by the locale module
 set_encoding( detected_encoding )
@@ -213,10 +228,11 @@ def trim_text_attr_cs( text, attr, cs, start_col, end_col ):
         al = rle_get_at( attr, epos )
         rle_append_modify( attrtr, (al, 1) )
         rle_append_modify( cstr, (None, 1) )
-    
-    return " "*pad_left + text[spos:epos] + " "*pad_right, attrtr, cstr
-    
-        
+
+    return (bytes().rjust(pad_left) + text[spos:epos] +
+        bytes().rjust(pad_right), attrtr, cstr)
+
+
 def rle_get_at( rle, pos ):
     """
     Return the attribute at offset pos.
@@ -356,7 +372,7 @@ def decompose_tagmarkup( tm ):
     """Return (text string, attribute list) for tagmarkup passed."""
     
     tl, al = _tagmarkup_recurse( tm, None )
-    text = "".join(tl)
+    text = u"".join(tl)
     
     if al and al[-1][0] is None:
         del al[-1]
@@ -438,5 +454,5 @@ def int_scale(val, val_range, out_range):
     num = int(val * (out_range-1) * 2 + (val_range-1))
     dem = ((val_range-1) * 2)
     # if num % dem == 0 then we are exactly half-way and have rounded up.
-    return num / dem
+    return num // dem
 

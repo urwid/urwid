@@ -160,14 +160,14 @@ class GridFlow(FlowWidget):
         d = Divider()
         if len(self.cells) == 0: # how dull
             return d
-        
+
         if self.v_sep > 1:
             # increase size of divider
             d.top = self.v_sep-1
-        
+
         # cells per row
-        bpr = (maxcol+self.h_sep) / (self.cell_width+self.h_sep)
-        
+        bpr = (maxcol+self.h_sep) // (self.cell_width+self.h_sep)
+
         if bpr == 0: # too narrow, pile them on top of eachother
             l = [self.cells[0]]
             f = 0
@@ -1242,6 +1242,8 @@ class Columns(Widget): # either FlowWidget or BoxWidget
             w = self.widget_list[i]
             end = x + widths[i]
             if w.selectable():
+                # sometimes, col == 'left' - that doesn't seem like its handled here, does it?
+                # assert isinstance(x, int) and isinstance(col, int), (x, col)
                 if x > col and best is None:
                     # no other choice
                     best = i, x, end
@@ -1321,7 +1323,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         if col is None:
             col = self.pref_col
         if col is None and w.selectable():
-            col = widths[self.focus_col]/2
+            col = widths[self.focus_col] // 2
             col += self.focus_col * self.dividechars
             col += sum( widths[:self.focus_col] )
         return col

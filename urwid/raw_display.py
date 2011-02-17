@@ -34,18 +34,13 @@ import signal
 
 from urwid import util
 from urwid import escape
-from urwid.display_common import BaseScreen, RealTerminal, UPDATE_PALETTE_ENTRY, \
-    AttrSpec
+from urwid.display_common import BaseScreen, RealTerminal, \
+    UPDATE_PALETTE_ENTRY, AttrSpec, UNPRINTABLE_TRANS_TABLE
 from urwid import signals
+from urwid.compat import PYTHON3, bytes
 
-try:
-    # python >= 2.4
-    from subprocess import Popen, PIPE
-except ImportError:
-    Popen = None
+from subprocess import Popen, PIPE
 
-# replace control characters with ?'s
-_trans_table = "?"*32+"".join([chr(x) for x in range(32,256)])
 
 class Screen(BaseScreen, RealTerminal):
     def __init__(self):
@@ -631,9 +626,9 @@ class Screen(BaseScreen, RealTerminal):
             first = True
             lasta = lastcs = None
             for (a,cs, run) in row:
+                assert isinstance(run, bytes) # canvases should render with bytes
                 if cs != 'U':
-                    run = run.translate( _trans_table )
-
+                    run = run.translate(UNPRINTABLE_TRANS_TABLE)
                 if first or lasta != a:
                     o.append(attr_to_escape(a))
                     lasta = a
@@ -681,7 +676,9 @@ class Screen(BaseScreen, RealTerminal):
         try:
             k = 0
             for l in o:
-                self._term_output_file.write( l )
+                if isinstance(l, bytes) and PYTHON3:
+                    l = l.decode('utf-8')
+                self._term_output_file.write(l)
                 k += len(l)
                 if k > 1024:
                     self._term_output_file.flush()

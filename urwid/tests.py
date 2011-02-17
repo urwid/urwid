@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Urwid unit testing .. ok, ok, ok
-#    Copyright (C) 2004-2010  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -20,16 +20,22 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-import urwid
-
 import unittest
-from test import test_support
-from doctest import DocTestSuite
+try:
+    from test import test_support
+except ImportError:
+    from test import support as test_support
+from doctest import DocTestSuite, ELLIPSIS, IGNORE_EXCEPTION_DETAIL
+
+import urwid
+from urwid.util import bytes, B
 from urwid.vterm_test import TermTest
+
 
 
 class DecodeOneTest(unittest.TestCase):
     def gwt(self, ch, exp_ord, exp_pos):
+        ch = B(ch)
         o, pos = urwid.str_util.decode_one(ch,0)
         assert o==exp_ord, " got:%r expected:%r" % (o, exp_ord)
         assert pos==exp_pos, " got:%r expected:%r" % (pos, exp_pos)
@@ -63,6 +69,7 @@ class DecodeOneTest(unittest.TestCase):
 
 class CalcWidthTest(unittest.TestCase):
     def wtest(self, desc, s, exp):
+        s = B(s)
         result = urwid.calc_width( s, 0, len(s))
         assert result==exp, "%s got:%r expected:%r" % (desc, result, exp)
     def test1(self):
@@ -72,7 +79,7 @@ class CalcWidthTest(unittest.TestCase):
         self.wtest("invalid", '\xe6', 1)
         self.wtest("zero width", '\xcc\x80', 0)
         self.wtest("mixed", 'hello\xe6\x9b\xbf\xe6\x9b\xbf', 9)
-    
+
     def test2(self):
         urwid.set_encoding("euc-jp")
         self.wtest("narrow", "hello", 5)
@@ -82,6 +89,7 @@ class CalcWidthTest(unittest.TestCase):
 
 class ConvertDecSpecialTest(unittest.TestCase):
     def ctest(self, desc, s, exp, expcs):
+        exp = B(exp)
         urwid.set_encoding('ascii')
         c = urwid.Text(s).render((5,))
         result = c._text[0]
@@ -92,7 +100,7 @@ class ConvertDecSpecialTest(unittest.TestCase):
         
 
     def test1(self):
-        self.ctest("no conversion", "hello", "hello", [(None,5)])
+        self.ctest("no conversion", u"hello", "hello", [(None,5)])
         self.ctest("only special", u"£££££", "}}}}}", [("0",5)])
         self.ctest("mix left", u"££abc", "}}abc", [("0",2),(None,3)])
         self.ctest("mix right", u"abc££", "abc}}", [(None,3),("0",2)])
@@ -105,8 +113,8 @@ class ConvertDecSpecialTest(unittest.TestCase):
 class WithinDoubleByteTest(unittest.TestCase):
     def setUp(self):
         urwid.set_encoding("euc-jp")
-    def wtest(self, str, ls, pos, expected, desc):
-        result = urwid.within_double_byte(str, ls, pos)
+    def wtest(self, s, ls, pos, expected, desc):
+        result = urwid.within_double_byte(B(s), ls, pos)
         assert result==expected, "%s got:%r expected: %r" % (desc,
                                                              result, expected)
     def test1(self):
@@ -143,6 +151,7 @@ class WithinDoubleByteTest(unittest.TestCase):
 
 class CalcTextPosTest(unittest.TestCase):
     def ctptest(self, text, tests):
+        text = B(text)
         for s,e,p, expected in tests:
             got = urwid.calc_text_pos( text, s, e, p )
             assert got == expected, "%r got:%r expected:%r" % ((s,e,p),
@@ -200,20 +209,20 @@ class CalcTextPosTest(unittest.TestCase):
             (8,15,5, (14,5)),
             ]
         self.ctptest(text, tests)
-        
+
 class CalcBreaksTest(unittest.TestCase):
     def cbtest(self, width, exp):
         result = urwid.default_layout.calculate_text_segments( 
-            self.text, width, self.mode )
+            B(self.text), width, self.mode )
         assert len(result) == len(exp), repr((result, exp))
         for l,e in zip(result, exp):
             end = l[-1][-1]
             assert end == e, repr((result,exp))
-    
+
     def test(self):
         for width, exp in self.do:
             self.cbtest( width, exp )
-    
+
 class CalcBreaksCharTest(CalcBreaksTest):
     mode = 'any'
     text = "abfghsdjf askhtrvs\naltjhgsdf ljahtshgf"
@@ -283,6 +292,7 @@ class SubsegTest(unittest.TestCase):
         urwid.set_encoding("euc-jp")
 
     def st(self, seg, text, start, end, exp):
+        text = B(text)
         s = urwid.LayoutSegment(seg)
         result = s.subseg( text, start, end )
         assert result == exp, "Expected %r, got %r"%(exp,result)
@@ -294,18 +304,18 @@ class SubsegTest(unittest.TestCase):
         self.st( (10, 0), "", 0, 20,     [(10, 0)] )
     
     def test2_text(self):
-        self.st( (10, 0, "1234567890"), "", 0, 8,  [(8,0,"12345678")] )
-        self.st( (10, 0, "1234567890"), "", 2, 10, [(8,0,"34567890")] )
-        self.st( (10, 0, "12\xA1\xA156\xA1\xA190"), "", 2, 8, 
-            [(6, 0, "\xA1\xA156\xA1\xA1")] )
-        self.st( (10, 0, "12\xA1\xA156\xA1\xA190"), "", 3, 8, 
-            [(5, 0, " 56\xA1\xA1")] )
-        self.st( (10, 0, "12\xA1\xA156\xA1\xA190"), "", 2, 7, 
-            [(5, 0, "\xA1\xA156 ")] )
-        self.st( (10, 0, "12\xA1\xA156\xA1\xA190"), "", 3, 7, 
-            [(4, 0, " 56 ")] )
-        self.st( (10, 0, "12\xA1\xA156\xA1\xA190"), "", 0, 20,
-            [(10, 0, "12\xA1\xA156\xA1\xA190")] )
+        self.st( (10, 0, B("1234567890")), "", 0, 8,  [(8,0,B("12345678"))] )
+        self.st( (10, 0, B("1234567890")), "", 2, 10, [(8,0,B("34567890"))] )
+        self.st( (10, 0, B("12\xA1\xA156\xA1\xA190")), "", 2, 8, 
+            [(6, 0, B("\xA1\xA156\xA1\xA1"))] )
+        self.st( (10, 0, B("12\xA1\xA156\xA1\xA190")), "", 3, 8, 
+            [(5, 0, B(" 56\xA1\xA1"))] )
+        self.st( (10, 0, B("12\xA1\xA156\xA1\xA190")), "", 2, 7, 
+            [(5, 0, B("\xA1\xA156 "))] )
+        self.st( (10, 0, B("12\xA1\xA156\xA1\xA190")), "", 3, 7, 
+            [(4, 0, B(" 56 "))] )
+        self.st( (10, 0, B("12\xA1\xA156\xA1\xA190")), "", 0, 20,
+            [(10, 0, B("12\xA1\xA156\xA1\xA190"))] )
          
     def test3_range(self):
         t = "1234567890"
@@ -391,7 +401,7 @@ class CalcTranslateWordTest2(CalcTranslateTest):
 class CalcTranslateWordTest3(CalcTranslateTest):
     def setUp(self):
         urwid.set_encoding('utf-8')
-    text = '\xe6\x9b\xbf\xe6\xb4\xbc\n\xe6\xb8\x8e\xe6\xba\x8f\xe6\xbd\xba'
+    text = B('\xe6\x9b\xbf\xe6\xb4\xbc\n\xe6\xb8\x8e\xe6\xba\x8f\xe6\xbd\xba')
     width = 10
     mode = 'space'
     result_left = [
@@ -532,37 +542,37 @@ class CanvasCacheTest(unittest.TestCase):
 
 class CanvasTest(unittest.TestCase):
     def ct(self, text, attr, exp_content):
-        c = urwid.TextCanvas(text, attr)
+        c = urwid.TextCanvas([B(t) for t in text], attr)
         content = list(c.content())
         assert content == exp_content, "got: %r expected: %r" % (content,
                                                                  exp_content)
 
     def ct2(self, text, attr, left, top, cols, rows, def_attr, exp_content):
-        c = urwid.TextCanvas(text, attr)
+        c = urwid.TextCanvas([B(t) for t in text], attr)
         content = list(c.content(left, top, cols, rows, def_attr))
         assert content == exp_content, "got: %r expected: %r" % (content,
                                                                  exp_content)
 
     def test1(self):
-        self.ct(["Hello world"], None, [[(None, None, "Hello world")]])
+        self.ct(["Hello world"], None, [[(None, None, B("Hello world"))]])
         self.ct(["Hello world"], [[("a",5)]], 
-            [[("a", None, "Hello"), (None, None," world")]])
+            [[("a", None, B("Hello")), (None, None, B(" world"))]])
         self.ct(["Hi","There"], None, 
-            [[(None, None, "Hi   ")], [(None, None,"There")]])
+            [[(None, None, B("Hi   "))], [(None, None, B("There"))]])
 
     def test2(self):
         self.ct2(["Hello"], None, 0, 0, 5, 1, None,
-            [[(None, None, "Hello")]])
+            [[(None, None, B("Hello"))]])
         self.ct2(["Hello"], None, 1, 0, 4, 1, None,
-            [[(None, None, "ello")]])
+            [[(None, None, B("ello"))]])
         self.ct2(["Hello"], None, 0, 0, 4, 1, None,
-            [[(None, None, "Hell")]])
+            [[(None, None, B("Hell"))]])
         self.ct2(["Hi","There"], None, 1, 0, 3, 2, None,
-            [[(None, None, "i  ")], [(None, None,"her")]])
+            [[(None, None, B("i  "))], [(None, None, B("her"))]])
         self.ct2(["Hi","There"], None, 0, 0, 5, 1, None,
-            [[(None, None, "Hi   ")]])
+            [[(None, None, B("Hi   "))]])
         self.ct2(["Hi","There"], None, 0, 1, 5, 1, None,
-            [[(None, None, "There")]])
+            [[(None, None, B("There"))]])
 
 class ShardBodyTest(unittest.TestCase):
     def sbt(self, shards, shard_tail, expected):
@@ -784,27 +794,27 @@ class TextTest(unittest.TestCase):
         self.t = urwid.Text("I walk the\ncity in the night")
         
     def test1_wrap(self):
-        expected = ["I walk the","city in   ","the night "]
+        expected = [B(t) for t in "I walk the","city in   ","the night "]
         got = self.t.render((10,))._text
-        assert got == expected, "got: %r expected: %r" (got, expected)
+        assert got == expected, "got: %r expected: %r" % (got, expected)
     
     def test2_left(self):
         self.t.set_align_mode('left')
-        expected = ["I walk the        ","city in the night "]
+        expected = [B(t) for t in "I walk the        ","city in the night "]
         got = self.t.render((18,))._text
-        assert got == expected, "got: %r expected: %r" (got, expected)
+        assert got == expected, "got: %r expected: %r" % (got, expected)
     
     def test3_right(self):
         self.t.set_align_mode('right')
-        expected = ["        I walk the"," city in the night"]
+        expected = [B(t) for t in "        I walk the"," city in the night"]
         got = self.t.render((18,))._text
-        assert got == expected, "got: %r expected: %r" (got, expected)
+        assert got == expected, "got: %r expected: %r" % (got, expected)
     
     def test4_center(self):
         self.t.set_align_mode('center')
-        expected = ["    I walk the    "," city in the night"]
+        expected = [B(t) for t in "    I walk the    "," city in the night"]
         got = self.t.render((18,))._text
-        assert got == expected, "got: %r expected: %r" (got, expected)
+        assert got == expected, "got: %r expected: %r" % (got, expected)
 
 
 
@@ -859,6 +869,7 @@ class EditTest(unittest.TestCase):
 
 class EditRenderTest(unittest.TestCase):
     def rtest(self, w, expected_text, expected_cursor):
+        expected_text = [B(t) for t in expected_text]
         get_cursor = w.get_cursor_coords((4,))
         assert get_cursor == expected_cursor, "got: %r expected: %r" % (
             get_cursor, expected_cursor)
@@ -1115,25 +1126,25 @@ class ListBoxChangeFocusTest(unittest.TestCase):
         T,E = urwid.Text, urwid.Edit
         #...
             
-        
-        
+
+
 class ListBoxRenderTest(unittest.TestCase):
-        
+
     def ltest(self,desc,body,focus,offset_inset_rows,exp_text,exp_cur):
-        
+        exp_text = [B(t) for t in exp_text]
         lbox = urwid.ListBox(body)
         lbox.body.set_focus( focus )
         lbox.shift_focus((4,10), offset_inset_rows )
         canvas = lbox.render( (4,5), focus=1 )
 
-        text = ["".join([t for at, cs, t in ln]) for ln in canvas.content()]
+        text = [bytes().join([t for at, cs, t in ln]) for ln in canvas.content()]
 
         cursor = canvas.cursor
-        
+
         assert text == exp_text, "%s (text) got: %r expected: %r" %(desc,text,exp_text)
         assert cursor == exp_cur, "%s (cursor) got: %r expected: %r" %(desc,cursor,exp_cur)
-        
-    
+
+
     def test1Simple(self):
         T = urwid.Text
         
@@ -2040,54 +2051,56 @@ class SmoothBarGraphTest(unittest.TestCase):
             [(1, [(0, 5)]), (1, [((1,0,4), 3), (1, 2)]), (1, [(1,5)]) ] )
         self.sbgtest('twof', [[4],[3]], 6, 
             [(1, [(0, 5)]), (1, [(1,3), ((1,0,4), 2)]), (1, [(1,5)]) ] )
-    
-        
+
+
 class CanvasJoinTest(unittest.TestCase):
     def cjtest(self, desc, l, expected):
         l = [(c, None, False, n) for c, n in l]
         result = list(urwid.CanvasJoin(l).content())
-        
+
         assert result == expected, "%s expected %r, got %r"%(
             desc, expected, result)
-    
+
     def test(self):
         C = urwid.TextCanvas
-        hello = C(["hello"])
-        there = C(["there"], [[("a",5)]])
-        a = C(["a"])
-        hi = C(["hi"])
-        how = C(["how"], [[("a",1)]])
-        dy = C(["dy"])
-        how_you = C(["how","you"])
+        hello = C([B("hello")])
+        there = C([B("there")], [[("a",5)]])
+        a = C([B("a")])
+        hi = C([B("hi")])
+        how = C([B("how")], [[("a",1)]])
+        dy = C([B("dy")])
+        how_you = C([B("how"), B("you")])
 
         self.cjtest("one", [(hello, 5)], 
-            [[(None, None, "hello")]])
+            [[(None, None, B("hello"))]])
         self.cjtest("two", [(hello, 5), (there, 5)], 
-            [[(None, None, "hello"), ("a", None, "there")]])
+            [[(None, None, B("hello")), ("a", None, B("there"))]])
         self.cjtest("two space", [(hello, 7), (there, 5)], 
-            [[(None, None, "hello"),(None,None,"  "),
-            ("a", None, "there")]])
+            [[(None, None, B("hello")),(None,None,B("  ")),
+            ("a", None, B("there"))]])
         self.cjtest("three space", [(hi, 4), (how, 3), (dy, 2)],
-            [[(None, None, "hi"),(None,None,"  "),("a",None,"h"),
-            (None,None,"ow"),(None,None,"dy")]])
+            [[(None, None, B("hi")),(None,None,B("  ")),("a",None, B("h")),
+            (None,None,B("ow")),(None,None,B("dy"))]])
         self.cjtest("four space", [(a, 2), (hi, 3), (dy, 3), (a, 1)],
-            [[(None, None, "a"),(None,None," "),
-            (None, None, "hi"),(None,None," "),
-            (None, None, "dy"),(None,None," "),
-            (None, None, "a")]])
+            [[(None, None, B("a")),(None,None,B(" ")),
+            (None, None, B("hi")),(None,None,B(" ")),
+            (None, None, B("dy")),(None,None,B(" ")),
+            (None, None, B("a"))]])
         self.cjtest("pile 2", [(how_you, 4), (hi, 2)],
-            [[(None, None, 'how'), (None, None, ' '), 
-            (None, None, 'hi')],  
-            [(None, None, 'you'), (None, None, ' '),
-            (None, None, '  ')]])
+            [[(None, None, B('how')), (None, None, B(' ')), 
+            (None, None, B('hi'))],  
+            [(None, None, B('you')), (None, None, B(' ')),
+            (None, None, B('  '))]])
         self.cjtest("pile 2r", [(hi, 4), (how_you, 3)],
-            [[(None, None, 'hi'), (None, None, '  '), 
-            (None, None, 'how')],  
-            [(None, None, '    '),
-            (None, None, 'you')]])
+            [[(None, None, B('hi')), (None, None, B('  ')), 
+            (None, None, B('how'))],  
+            [(None, None, B('    ')),
+            (None, None, B('you'))]])
 
 class CanvasOverlayTest(unittest.TestCase):
     def cotest(self, desc, bgt, bga, fgt, fga, l, r, et):
+        bgt = B(bgt)
+        fgt = B(fgt)
         bg = urwid.CompositeCanvas( 
             urwid.TextCanvas([bgt],[bga]))
         fg = urwid.CompositeCanvas(
@@ -2096,78 +2109,79 @@ class CanvasOverlayTest(unittest.TestCase):
         result = list(bg.content())
         assert result == et, "%s expected %r, got %r"%(
             desc, et, result)
-    
+
     def test1(self):
         self.cotest("left", "qxqxqxqx", [], "HI", [], 0, 6,
-            [[(None, None, "HI"),(None,None,"qxqxqx")]])
+            [[(None, None, B("HI")),(None,None,B("qxqxqx"))]])
         self.cotest("right", "qxqxqxqx", [], "HI", [], 6, 0,
-            [[(None, None, "qxqxqx"),(None,None,"HI")]])
+            [[(None, None, B("qxqxqx")),(None,None,B("HI"))]])
         self.cotest("center", "qxqxqxqx", [], "HI", [], 3, 3,
-            [[(None, None, "qxq"),(None,None,"HI"),
-            (None,None,"xqx")]])
+            [[(None, None, B("qxq")),(None,None,B("HI")),
+            (None,None,B("xqx"))]])
         self.cotest("center2", "qxqxqxqx", [], "HI  ", [], 2, 2,
-            [[(None, None, "qx"),(None,None,"HI  "),
-            (None,None,"qx")]])
+            [[(None, None, B("qx")),(None,None,B("HI  ")),
+            (None,None,B("qx"))]])
         self.cotest("full", "rz", [], "HI", [], 0, 0, 
-            [[(None, None, "HI")]])
-    
+            [[(None, None, B("HI"))]])
+
     def test2(self):
         self.cotest("same","asdfghjkl",[('a',9)],"HI",[('a',2)],4,3,
-            [[('a',None,"asdf"),('a',None,"HI"),('a',None,"jkl")]])
+            [[('a',None,B("asdf")),('a',None,B("HI")),('a',None,B("jkl"))]])
         self.cotest("diff","asdfghjkl",[('a',9)],"HI",[('b',2)],4,3,
-            [[('a',None,"asdf"),('b',None,"HI"),('a',None,"jkl")]])
+            [[('a',None,B("asdf")),('b',None,B("HI")),('a',None,B("jkl"))]])
         self.cotest("None end","asdfghjkl",[('a',9)],"HI  ",[('a',2)],
             2,3,
-            [[('a',None,"as"),('a',None,"HI"),
-            (None,None,"  "),('a',None,"jkl")]])
+            [[('a',None,B("as")),('a',None,B("HI")),
+            (None,None,B("  ")),('a',None,B("jkl"))]])
         self.cotest("float end","asdfghjkl",[('a',3)],"HI",[('a',2)],
             4,3,
-            [[('a',None,"asd"),(None,None,"f"),
-            ('a',None,"HI"),(None,None,"jkl")]])
+            [[('a',None,B("asd")),(None,None,B("f")),
+            ('a',None,B("HI")),(None,None,B("jkl"))]])
         self.cotest("cover 2","asdfghjkl",[('a',5),('c',4)],"HI",
             [('b',2)],4,3,
-            [[('a',None,"asdf"),('b',None,"HI"),('c',None,"jkl")]])
+            [[('a',None,B("asdf")),('b',None,B("HI")),('c',None,B("jkl"))]])
         self.cotest("cover 2-2","asdfghjkl",
             [('a',4),('d',1),('e',1),('c',3)],
             "HI",[('b',2)], 4, 3,
-            [[('a',None,"asdf"),('b',None,"HI"),('c',None,"jkl")]])
+            [[('a',None,B("asdf")),('b',None,B("HI")),('c',None,B("jkl"))]])
 
     def test3(self):
         urwid.set_encoding("euc-jp")
         self.cotest("db0","\xA1\xA1\xA1\xA1\xA1\xA1",[],"HI",[],2,2,
-            [[(None,None,"\xA1\xA1"),(None,None,"HI"),
-            (None,None,"\xA1\xA1")]])
+            [[(None,None,B("\xA1\xA1")),(None,None,B("HI")),
+            (None,None,B("\xA1\xA1"))]])
         self.cotest("db1","\xA1\xA1\xA1\xA1\xA1\xA1",[],"OHI",[],1,2,
-            [[(None,None," "),(None,None,"OHI"),
-            (None,None,"\xA1\xA1")]])
+            [[(None,None,B(" ")),(None,None,B("OHI")),
+            (None,None,B("\xA1\xA1"))]])
         self.cotest("db2","\xA1\xA1\xA1\xA1\xA1\xA1",[],"OHI",[],2,1,
-            [[(None,None,"\xA1\xA1"),(None,None,"OHI"),
-            (None,None," ")]])
+            [[(None,None,B("\xA1\xA1")),(None,None,B("OHI")),
+            (None,None,B(" "))]])
         self.cotest("db3","\xA1\xA1\xA1\xA1\xA1\xA1",[],"OHIO",[],1,1,
-            [[(None,None," "),(None,None,"OHIO"),(None,None," ")]])
+            [[(None,None,B(" ")),(None,None,B("OHIO")),(None,None,B(" "))]])
 
 class CanvasPadTrimTest(unittest.TestCase):
     def cptest(self, desc, ct, ca, l, r, et):
+        ct = B(ct)
         c = urwid.CompositeCanvas( 
             urwid.TextCanvas([ct], [ca]))
         c.pad_trim_left_right(l, r)
         result = list(c.content())
         assert result == et, "%s expected %r, got %r"%(
             desc, et, result)
-    
+
     def test1(self):
         self.cptest("none", "asdf", [], 0, 0, 
-            [[(None,None,"asdf")]])
+            [[(None,None,B("asdf"))]])
         self.cptest("left pad", "asdf", [], 2, 0, 
-            [[(None,None,"  "),(None,None,"asdf")]])
+            [[(None,None,B("  ")),(None,None,B("asdf"))]])
         self.cptest("right pad", "asdf", [], 0, 2, 
-            [[(None,None,"asdf"),(None,None,"  ")]])
-    
+            [[(None,None,B("asdf")),(None,None,B("  "))]])
+
     def test2(self):
         self.cptest("left trim", "asdf", [], -2, 0, 
-            [[(None,None,"df")]])
+            [[(None,None,B("df"))]])
         self.cptest("right trim", "asdf", [], 0, -2, 
-            [[(None,None,"as")]])
+            [[(None,None,B("as"))]])
 
 
 class WidgetSquishTest(unittest.TestCase):
@@ -2215,8 +2229,11 @@ class WidgetSquishTest(unittest.TestCase):
     
 
 
-def test_main():
-    for t in [
+def test_all():
+    """
+    Return a TestSuite with all tests available
+    """
+    unittests = [
         DecodeOneTest,
         CalcWidthTest,
         ConvertDecSpecialTest,
@@ -2263,10 +2280,8 @@ def test_main():
         CanvasPadTrimTest,
         WidgetSquishTest,
         TermTest,
-        ]:
-        if test_support.run_unittest(t): 
-            return
-    for mod in [
+        ]
+    module_doctests = [
         urwid.widget,
         urwid.wimp,
         urwid.decoration,
@@ -2276,10 +2291,16 @@ def test_main():
         urwid.raw_display,
         'urwid.split_repr', # override function with same name
         urwid.util,
-        ]:
-        if test_support.run_unittest(DocTestSuite(mod)):
-            return    
+        ]
+    tests = unittest.TestSuite()
+    for t in unittests:
+        tests.addTest(unittest.TestLoader().loadTestsFromTestCase(t))
+    for m in module_doctests:
+        tests.addTest(DocTestSuite(
+            m, optionflags=ELLIPSIS | IGNORE_EXCEPTION_DETAIL))
+    return tests
 
-if __name__ == '__main__': test_main()
+if __name__ == '__main__':
+    test_support.run_unittest(test_all())
 
 

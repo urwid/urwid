@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid MonitoredList class
-#    Copyright (C) 2004-2009  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -19,6 +19,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+
+from urwid.compat import PYTHON3
 
 
 def _call_modified(fn):
@@ -64,12 +66,14 @@ class MonitoredList(list):
 
     __add__ = _call_modified(list.__add__)
     __delitem__ = _call_modified(list.__delitem__)
-    __delslice__ = _call_modified(list.__delslice__)
+    if not PYTHON3:
+        __delslice__ = _call_modified(list.__delslice__)
     __iadd__ = _call_modified(list.__iadd__)
     __imul__ = _call_modified(list.__imul__)
     __rmul__ = _call_modified(list.__rmul__)
     __setitem__ = _call_modified(list.__setitem__)
-    __setslice__ = _call_modified(list.__setslice__)
+    if not PYTHON3:
+        __setslice__ = _call_modified(list.__setslice__)
     append = _call_modified(list.append)
     extend = _call_modified(list.extend)
     insert = _call_modified(list.insert)

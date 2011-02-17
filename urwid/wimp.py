@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid Window-Icon-Menu-Pointer-style widget classes
-#    Copyright (C) 2004-2008  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -27,6 +27,7 @@ from urwid.command_map import command_map
 from urwid.util import is_mouse_press
 from urwid.text_layout import calc_coords
 from urwid.signals import disconnect_signal # doctests
+from urwid.split_repr import python3_repr
 
 
 class SelectableIcon(Text):
@@ -42,13 +43,13 @@ class SelectableIcon(Text):
         """
         self.__super.__init__(text)
         self._cursor_position = cursor_position
-    
+
     def render(self, size, focus=False):
         """
         Render the text content of this widget with a cursor when
         in focus.
 
-        >>> si = SelectableIcon("[!]")
+        >>> si = SelectableIcon(u"[!]")
         >>> si
         <SelectableIcon selectable flow widget '[!]'>
         >>> si.render((4,), focus=True).cursor
@@ -110,7 +111,7 @@ class CheckBox(WidgetWrap):
         has_mixed -- True if "mixed" is a state to cycle through
         on_state_change, user_data -- shorthand for connect_signal()
             function call for a single callback
-        
+
         Signals supported: 'change'
         Register signal handler with:
           connect_signal(check_box, 'change', callback [,user_data])
@@ -118,15 +119,15 @@ class CheckBox(WidgetWrap):
         Unregister signal handlers with:
           disconnect_signal(check_box, 'change', callback [,user_data])
 
-        >>> CheckBox("Confirm")
+        >>> CheckBox(u"Confirm")
         <CheckBox selectable widget 'Confirm' state=False>
-        >>> CheckBox("Yogourt", "mixed", True)
+        >>> CheckBox(u"Yogourt", "mixed", True)
         <CheckBox selectable widget 'Yogourt' state='mixed'>
-        >>> cb = CheckBox("Extra onions", True)
+        >>> cb = CheckBox(u"Extra onions", True)
         >>> cb
         <CheckBox selectable widget 'Extra onions' state=True>
-        >>> cb.render((20,), focus=True).text  # preview CheckBox
-        ['[X] Extra onions    ']
+        >>> cb.render((20,), focus=True).text # ... = b in Python 3
+        [...'[X] Extra onions    ']
         """
         self.__super.__init__(None) # self.w set by set_state below
         self._label = Text("")
@@ -138,15 +139,15 @@ class CheckBox(WidgetWrap):
             connect_signal(self, 'change', on_state_change, user_data)
         self.set_label(label)
         self.set_state(state)
-    
+
     def _repr_words(self):
         return self.__super._repr_words() + [
-            repr(self.label)]
-    
+            python3_repr(self.label)]
+
     def _repr_attrs(self):
         return dict(self.__super._repr_attrs(),
             state=self.state)
-    
+
     def set_label(self, label):
         """
         Change the check box label.
@@ -154,7 +155,7 @@ class CheckBox(WidgetWrap):
         label -- markup for label.  See Text widget for description
         of text markup.
 
-        >>> cb = CheckBox("foo")
+        >>> cb = CheckBox(u"foo")
         >>> cb
         <CheckBox selectable widget 'foo' state=False>
         >>> cb.set_label(('bright_attr', "bar"))
@@ -164,23 +165,23 @@ class CheckBox(WidgetWrap):
         self._label.set_text(label)
         # no need to call self._invalidate(). WidgetWrap takes care of
         # that when self.w changes
-    
+
     def get_label(self):
         """
         Return label text.
 
-        >>> cb = CheckBox("Seriously")
-        >>> cb.get_label()
-        'Seriously'
-        >>> cb.label  # Urwid 0.9.9 or later
-        'Seriously'
-        >>> cb.set_label([('bright_attr', "flashy"), " normal"])
-        >>> cb.label  #  only text is returned 
-        'flashy normal'
+        >>> cb = CheckBox(u"Seriously")
+        >>> print cb.get_label()
+        Seriously
+        >>> print cb.label  # Urwid 0.9.9 or later
+        Seriously
+        >>> cb.set_label([('bright_attr', u"flashy"), u" normal"])
+        >>> print cb.label  #  only text is returned
+        flashy normal
         """
         return self._label.text
     label = property(get_label)
-    
+
     def set_state(self, state, do_callback=True):
         """
         Set the CheckBox state.
@@ -319,7 +320,7 @@ class RadioButton(CheckBox):
 
         This function will append the new radio button to group.
         "first True" will set to True if group is empty.
-        
+
         Signals supported: 'change'
         Register signal handler with:
           connect_signal(radio_button, 'change', callback [,user_data])
@@ -336,12 +337,12 @@ class RadioButton(CheckBox):
         <RadioButton selectable widget 'Agree' state=True>
         >>> b2
         <RadioButton selectable widget 'Disagree' state=False>
-        >>> b2.render((15,), focus=True).text  # preview RadioButton
-        ['( ) Disagree   ']
+        >>> b2.render((15,), focus=True).text # ... = b in Python 3
+        [...'( ) Disagree   ']
         """
         if state=="first True":
             state = not group
-        
+
         self.group = group
         self.__super.__init__(label, state, False, on_state_change, 
             user_data)
@@ -360,16 +361,16 @@ class RadioButton(CheckBox):
         group will be set to False.
 
         >>> bgroup = [] # button group
-        >>> b1 = RadioButton(bgroup, "Agree")
-        >>> b2 = RadioButton(bgroup, "Disagree")
-        >>> b3 = RadioButton(bgroup, "Unsure")
+        >>> b1 = RadioButton(bgroup, u"Agree")
+        >>> b2 = RadioButton(bgroup, u"Disagree")
+        >>> b3 = RadioButton(bgroup, u"Unsure")
         >>> b1.state, b2.state, b3.state
         (True, False, False)
         >>> b2.set_state(True)
         >>> b1.state, b2.state, b3.state
         (False, True, False)
         >>> def relabel_button(radio_button, new_state):
-        ...     radio_button.set_label("Think Harder!")
+        ...     radio_button.set_label(u"Think Harder!")
         >>> connect_signal(b3, 'change', relabel_button)
         >>> b3
         <RadioButton selectable widget 'Unsure' state=False>
@@ -433,11 +434,11 @@ class Button(WidgetWrap):
         Unregister signal handlers with:
           disconnect_signal(button, 'click', callback [,user_data])
 
-        >>> Button("Ok")
+        >>> Button(u"Ok")
         <Button selectable widget 'Ok'>
         >>> b = Button("Cancel")
-        >>> b.render((15,), focus=True).text  # preview Button
-        ['< Cancel      >']
+        >>> b.render((15,), focus=True).text # ... = b in Python 3
+        [...'< Cancel      >']
         """
         self._label = SelectableIcon("", 0)    
         cols = Columns([
@@ -445,19 +446,19 @@ class Button(WidgetWrap):
             self._label,
             ('fixed', 1, self.button_right)],
             dividechars=1)
-        self.__super.__init__(cols) 
-        
+        self.__super.__init__(cols)
+
         # The old way of listening for a change was to pass the callback
         # in to the constructor.  Just convert it to the new way:
         if on_press:
             connect_signal(self, 'click', on_press, user_data)
 
         self.set_label(label)
-    
+
     def _repr_words(self):
         # include button.label in repr(button)
         return self.__super._repr_words() + [
-            repr(self.label)]
+            python3_repr(self.label)]
 
     def set_label(self, label):
         """
@@ -466,25 +467,25 @@ class Button(WidgetWrap):
         label -- markup for button label
 
         >>> b = Button("Ok")
-        >>> b.set_label("Yup yup")
+        >>> b.set_label(u"Yup yup")
         >>> b
         <Button selectable widget 'Yup yup'>
         """
         self._label.set_text(label)
-    
+
     def get_label(self):
         """
         Return label text.
 
-        >>> b = Button("Ok")
-        >>> b.get_label()
-        'Ok'
-        >>> b.label  # Urwid 0.9.9 or later
-        'Ok'
+        >>> b = Button(u"Ok")
+        >>> print b.get_label()
+        Ok
+        >>> print b.label  # Urwid 0.9.9 or later
+        Ok
         """
         return self._label.text
     label = property(get_label)
-    
+
     def keypress(self, size, key):
         """
         Send 'click' signal on 'activate' command.
@@ -492,15 +493,15 @@ class Button(WidgetWrap):
         >>> assert command_map[' '] == 'activate'
         >>> assert command_map['enter'] == 'activate'
         >>> size = (15,)
-        >>> b = Button("Cancel")
+        >>> b = Button(u"Cancel")
         >>> clicked_buttons = []
         >>> def handle_click(button):
         ...     clicked_buttons.append(button.label)
         >>> connect_signal(b, 'click', handle_click)
         >>> b.keypress(size, 'enter')
         >>> b.keypress(size, ' ')
-        >>> clicked_buttons
-        ['Cancel', 'Cancel']
+        >>> clicked_buttons # ... = u in Python 2
+        [...'Cancel', ...'Cancel']
         """
         if command_map[key] != 'activate':
             return key
@@ -512,7 +513,7 @@ class Button(WidgetWrap):
         Send 'click' signal on button 1 press.
 
         >>> size = (15,)
-        >>> b = Button("Ok")
+        >>> b = Button(u"Ok")
         >>> clicked_buttons = []
         >>> def handle_click(button):
         ...     clicked_buttons.append(button.label)
@@ -521,12 +522,12 @@ class Button(WidgetWrap):
         True
         >>> b.mouse_event(size, 'mouse press', 2, 4, 0, True) # ignored
         False
-        >>> clicked_buttons
-        ['Ok']
+        >>> clicked_buttons # ... = u in Python 2
+        [...'Ok']
         """
         if button != 1 or not is_mouse_press(event):
             return False
-            
+
         self._emit('click')
         return True
 

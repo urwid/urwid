@@ -132,6 +132,13 @@ class Font(object):
             check_width=False)
         self.canvas[c] = canv
         return canv
+    
+
+        
+#safe_palette = u"┘┐┌└┼─├┤┴┬│"
+#more_palette = u"═║╒╓╔╕╖╗╘╙╚╛╜╝╞╟╠╡╢╣╤╥╦╧╨╩╪╫╬○"
+#block_palette = u"▄#█#▀#▌#▐#▖#▗#▘#▙#▚#▛#▜#▝#▞#▟"
+
 
 class Thin3x3Font(Font):
     height = 3

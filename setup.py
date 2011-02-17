@@ -28,8 +28,13 @@ except ImportError:
 
 import os
 
-import urwid
-release = urwid.__version__
+try:
+    PYTHON3 = not str is bytes
+except NameError:
+    PYTHON3 = False
+
+exec(open(os.path.join("urwid","version.py")).read())
+release = __version__
 
 setup_d = {
     'name':"urwid",
@@ -40,7 +45,7 @@ setup_d = {
     'url':"http://excess.org/urwid/",
     'download_url':"http://excess.org/urwid/urwid-%s.tar.gz"%release,
     'license':"LGPL",
-    'keywords':"curses ui widget scroll listbox user interface text layout consolt ncurses",
+    'keywords':"curses ui widget scroll listbox user interface text layout console ncurses",
     'platforms':"unix-like",
     'description':(
 "A console UI library featuring fluid interface resizing, UTF-8 support,"
@@ -82,14 +87,24 @@ Example Program Screenshots:
         "Operating System :: MacOS :: MacOS X",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Software Development :: Widget Sets",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.4",
+        "Programming Language :: Python :: 2.5",
+        "Programming Language :: Python :: 2.6",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.2",
         ],
     'packages':['urwid'],
      }
 
 if have_setuptools:
     setup_d['zip_safe'] = False
+    setup_d['test_suite'] = 'urwid.tests.test_all'
 
+if PYTHON3:
+    setup_d['use_2to3'] = True
 
 if __name__ == "__main__":
-    setup( ** setup_d )
+    setup(**setup_d)
 
