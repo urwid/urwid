@@ -37,7 +37,7 @@ from urwid import escape
 from urwid.display_common import BaseScreen, RealTerminal, \
     UPDATE_PALETTE_ENTRY, AttrSpec, UNPRINTABLE_TRANS_TABLE
 from urwid import signals
-from urwid.compat import PYTHON3
+from urwid.compat import PYTHON3, bytes
 
 from subprocess import Popen, PIPE
 

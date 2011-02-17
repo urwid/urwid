@@ -31,7 +31,7 @@ from urwid import escape
 
 from urwid.display_common import BaseScreen, RealTerminal, AttrSpec, \
     UNPRINTABLE_TRANS_TABLE
-from urwid.compat import bytes, chr2, B, bytes3
+from urwid.compat import bytes, chr2, B, bytes3, PYTHON3
 
 KEY_RESIZE = 410 # curses.KEY_RESIZE (sometimes not defined)
 KEY_MOUSE = 409 # curses.KEY_MOUSE
