@@ -25,11 +25,14 @@
 import time
 import heapq
 import select
+import fcntl
+import os
 
 from urwid.util import is_mouse_event
 from urwid.compat import PYTHON3, bytes
 from urwid.command_map import command_map
 
+PIPE_BUFFER_READ_SIZE = 4096 # can expect this much on Linux, so try for that
 
 class ExitMainLoop(Exception):
     pass
@@ -125,14 +128,53 @@ class MainLoop(object):
 
     def remove_alarm(self, handle):
         """
-        Remove an alarm. 
-        
+        Remove an alarm.
+
         Return True if the handle was found, False otherwise.
         """
         return self.event_loop.remove_alarm(handle)
 
+    def watch_pipe(self, callback):
+        """
+        Create a pipe for use by a subprocess or thread to trigger
+        a callback in the process/thread running the MainLoop.
 
-    
+        callback -- function to call MainLoop.run thread/process
+
+        This function returns a file descriptor attached to the
+        write end of a pipe.  The read end of the pipe is added to
+        the list of files the event loop is watching. When
+        data is written to the pipe the callback function will be
+        called and passed a single value containing data read.
+
+        This method should be used any time you want to update
+        widgets from another thread or subprocess.
+
+        Data may be written to the returned file descriptor with
+        os.write(fd, data).  Ensure that data is less than 512
+        bytes (or 4K on Linux) so that the callback will be
+        triggered just once with the complete value of data
+        passed in.
+
+        If the callback returns False then the watch will be
+        removed and the read end of the pipe will be closed.
+        You are responsible for closing the write end of the pipe.
+        """
+        pipe_rd, pipe_wr = os.pipe()
+        fcntl.fcntl(pipe_rd, fcntl.F_SETFL, os.O_NONBLOCK)
+        watch_handle = None
+
+        def cb():
+            data = os.read(pipe_rd, PIPE_BUFFER_READ_SIZE)
+            rval = callback(data)
+            if rval is False:
+                self.event_loop.remove_watch_file(watch_handle)
+                os.close(pipe_rd)
+
+        watch_handle = self.event_loop.watch_file(pipe_rd, cb)
+        return pipe_wr
+
+
     def run(self):
         """
         Start the main loop handling input events and updating 
