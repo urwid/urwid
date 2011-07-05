@@ -94,6 +94,7 @@ class MainLoop(object):
         self.event_loop = event_loop
 
         self._input_timeout = None
+        self._watch_pipes = {}
 
 
     def set_alarm_in(self, sec, callback, user_data=None):
@@ -172,7 +173,46 @@ class MainLoop(object):
                 os.close(pipe_rd)
 
         watch_handle = self.event_loop.watch_file(pipe_rd, cb)
+        self._watch_pipes[pipe_wr] = (watch_handle, pipe_rd)
         return pipe_wr
+
+    def remove_watch_pipe(self, write_fd):
+        """
+        Close the read end of the pipe and remove the watch created
+        by watch_pipe().  You are responsible for closing the write
+        end of the pipe.
+
+        Returns True if the watch pipe exists, False otherwise
+        """
+        try:
+            watch_handle, pipe_rd = self._watch_pipes.remove(write_fd)
+        except KeyError:
+            return False
+
+        if not self.event_loop.remove_watch_file(watch_handle):
+            return False
+        os.close(pipe_rd)
+        return True
+
+    def watch_file(self, fd, callback):
+        """
+        Call callback() when fd has some data to read.  No parameters
+        are passed to callback.
+
+        Returns a handle that may be passed to remove_watch_file()
+
+        fd -- file descriptor to watch for input
+        callback -- function to call when input is available
+        """
+        return self.event_loop.watch_file(fd, callback)
+
+    def remove_watch_file(self, handle):
+        """
+        Remove a watch file.
+
+        Returns True if the watch file exists, False otherwise.
+        """
+        return self.event_loop.remove_watch_file(handle)
 
 
     def run(self):

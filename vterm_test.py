@@ -22,9 +22,7 @@
 import urwid
 
 def main():
-    event_loop = urwid.SelectEventLoop()
-
-    term = urwid.TerminalWidget(None, event_loop=event_loop)
+    term = urwid.TerminalWidget(None)
 
     mainframe = urwid.LineBox(
         urwid.Pile([
@@ -49,9 +47,10 @@ def main():
     loop = urwid.MainLoop(
         mainframe,
         handle_mouse=False,
-        unhandled_input=handle_key,
-        event_loop=event_loop
-    ).run()
+        unhandled_input=handle_key)
+
+    term.main_loop = loop
+    loop.run()
 
 if __name__ == '__main__':
     main()
