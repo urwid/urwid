@@ -41,7 +41,7 @@ __all__ = [
     'AttrSpec', 'AttrSpecError',
     'TreeWidget', 'ParentWidget', 'TreeNode', 'ParentNode', 'TreeWalker',
     'TreeListBox',
-    'TerminalWidget', 'TermCanvas',
+    'Terminal', 'TermCanvas',
     ]
 
 from urwid.version import VERSION, __version__

@@ -22,7 +22,7 @@
 import urwid
 
 def main():
-    term = urwid.TerminalWidget(None)
+    term = urwid.Terminal(None)
 
     mainframe = urwid.LineBox(
         urwid.Pile([

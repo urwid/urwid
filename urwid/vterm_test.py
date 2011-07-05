@@ -59,7 +59,7 @@ class TermTest(unittest.TestCase):
     def setUp(self):
         self.command = DummyCommand()
 
-        self.term = vterm.TerminalWidget(self.command)
+        self.term = vterm.Terminal(self.command)
         self.resize(80, 24)
 
     def tearDown(self):

@@ -1314,7 +1314,7 @@ class TermCanvas(Canvas):
             return [self.cols()]*self.rows()
         return self.content()
 
-class TerminalWidget(BoxWidget):
+class Terminal(BoxWidget):
     signals = ['closed', 'beep', 'leds', 'title']
 
     def __init__(self, command, env=None, main_loop=None, escape_sequence=None):
