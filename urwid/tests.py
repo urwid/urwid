@@ -765,6 +765,8 @@ class TagMarkupTest(unittest.TestCase):
         (["mix",('high',[" it ",('ital',"up a")])," little"],
             "mix it up a little",
             [(None,3),('high',4),('ital',4)]),
+        ([u"££", u"x££"], u"££x££", []),
+        ([B("\xc2\x80"), B("\xc2\x80")], B("\xc2\x80\xc2\x80"), []),
         ]
     def test(self):
         for input, text, attr in self.mytests:

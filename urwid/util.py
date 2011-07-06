@@ -366,19 +366,20 @@ def rle_factor( rle ):
     return rle1, rle2
 
 
-class TagMarkupException( Exception ): pass
+class TagMarkupException(Exception): pass
 
-def decompose_tagmarkup( tm ):
+def decompose_tagmarkup(tm):
     """Return (text string, attribute list) for tagmarkup passed."""
-    
-    tl, al = _tagmarkup_recurse( tm, None )
-    text = u"".join(tl)
-    
+
+    tl, al = _tagmarkup_recurse(tm, None)
+    # join as unicode or bytes based on type of first element
+    text = tl[0][:0].join(tl)
+
     if al and al[-1][0] is None:
         del al[-1]
-        
+
     return text, al
-    
+
 def _tagmarkup_recurse( tm, attr ):
     """Return (text list, attribute list) for tagmarkup passed.
     

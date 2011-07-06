@@ -617,7 +617,7 @@ class Text(FlowWidget):
         """
         (maxcol,) = size
         text, attr = self.get_text()
-        assert isinstance(text, unicode)
+        #assert isinstance(text, unicode)
         trans = self.get_line_translation( maxcol, (text,attr) )
         return apply_text_layout(text, attr, trans, maxcol)
 

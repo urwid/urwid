@@ -158,7 +158,7 @@ class CheckBox(WidgetWrap):
         >>> cb = CheckBox(u"foo")
         >>> cb
         <CheckBox selectable widget 'foo' state=False>
-        >>> cb.set_label(('bright_attr', "bar"))
+        >>> cb.set_label(('bright_attr', u"bar"))
         >>> cb
         <CheckBox selectable widget 'bar' state=False>
         """
@@ -329,8 +329,8 @@ class RadioButton(CheckBox):
           disconnect_signal(radio_button, 'change', callback [,user_data])
 
         >>> bgroup = [] # button group
-        >>> b1 = RadioButton(bgroup, "Agree")
-        >>> b2 = RadioButton(bgroup, "Disagree")
+        >>> b1 = RadioButton(bgroup, u"Agree")
+        >>> b2 = RadioButton(bgroup, u"Disagree")
         >>> len(bgroup)
         2
         >>> b1
