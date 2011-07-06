@@ -2214,6 +2214,9 @@ class WidgetSquishTest(unittest.TestCase):
             urwid.BigText("hello",urwid.Thin6x6Font()),
             urwid.SolidFill(),
             'center', None, 'middle', None))
+        self.wstest(urwid.Overlay(
+            urwid.Text("hello"), urwid.SolidFill(),
+            'center',  ('relative', 100), 'middle', None))
 
     def test_frame(self):
         self.wstest(urwid.Frame(urwid.SolidFill()))

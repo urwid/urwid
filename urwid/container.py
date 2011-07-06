@@ -404,7 +404,9 @@ class Overlay(BoxWidget):
             top, bottom =  calculate_filler( self.valign_type,
                 self.valign_amount, 'fixed', height, 
                 None, maxrow )
-        else:    
+            if height > maxrow: # flow widget rendered too large
+                bottom = maxrow - height
+        else:
             top, bottom = calculate_filler(self.valign_type, 
                 self.valign_amount, self.height_type, 
                 self.height_amount, self.min_height, maxrow)
@@ -436,7 +438,7 @@ class Overlay(BoxWidget):
             top_c = CompositeCanvas(top_c)
             top_c.pad_trim_top_bottom(min(0,top), min(0,bottom))
         
-        return CanvasOverlay(top_c, bottom_c, max(0,left), top)
+        return CanvasOverlay(top_c, bottom_c, left, top)
 
 
     def mouse_event(self, size, event, button, col, row, focus):
