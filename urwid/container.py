@@ -864,7 +864,12 @@ class Pile(Widget): # either FlowWidget or BoxWidget
             if canv:
                 combinelist.append((canv, i, item_focus))
 
-        return CanvasCombine(combinelist)
+        out = CanvasCombine(combinelist)
+        if len(size)==2 and size[1] < out.rows():
+            # flow/fixed widgets rendered too large
+            out = CompositeCanvas(out)
+            out.pad_trim_top_bottom(0, size[1] - out.rows())
+        return out
     
     def get_cursor_coords(self, size):
         """Return the cursor coordinates of the focus widget."""
