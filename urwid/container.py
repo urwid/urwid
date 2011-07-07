@@ -1023,7 +1023,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 class ColumnsError(Exception):
     pass
 
-        
+
 class Columns(Widget): # either FlowWidget or BoxWidget
     def __init__(self, widget_list, dividechars=0, focus_column=None,
         min_width=1, box_columns=None):
@@ -1072,9 +1072,9 @@ class Columns(Widget): # either FlowWidget or BoxWidget
                 raise ColumnsError, "widget list item invalid: %r" % (w,)
             if focus_column is None and w.selectable():
                 focus_column = i
-                
+
         self.widget_list.set_modified_callback(self._invalidate)
-        
+
         self.dividechars = dividechars
         if focus_column is None:
             focus_column = 0
@@ -1083,7 +1083,15 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         self.min_width = min_width
         self.box_columns = box_columns
         self._cache_maxcol = None
-    
+
+    @property
+    def contents(self):
+        for i, w in enumerate(self.widget_list):
+            try:
+                yield w, self.column_types[i]
+            except IndexError:
+                yield w, ('weight', 1)
+
     def _invalidate(self):
         self._cache_maxcol = None
         self.__super._invalidate()
@@ -1113,7 +1121,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         """Return the widget in focus."""
         return self.widget_list[self.focus_col]
 
-    def column_widths( self, size, focus=False ):
+    def column_widths(self, size, focus=False):
         """Return a list of column widths.
 
         size -- (maxcol,) if self.widget_list contains flow widgets or
@@ -1123,37 +1131,27 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         if maxcol == self._cache_maxcol and not self.has_flow_type:
             return self._cache_column_widths
 
-        col_types = self.column_types
-        # hack to support old practice of editing self.widget_list
-        # directly
-        lwl, lct = len(self.widget_list), len(self.column_types)
-        if lwl > lct:
-            col_types = col_types + [('weight',1)] * (lwl-lct)
-            
         widths=[]
-        
+
         weighted = []
         shared = maxcol + self.dividechars
-        
-        i = 0
-        for t, width in col_types:
+
+        for i, (w, (t, width)) in enumerate(self.contents):
             if t == 'fixed':
                 static_w = width
             elif t == 'flow':
-                static_w = self.widget_list[i].pack((maxcol,), focus)[0]
+                static_w = w.pack((maxcol,), focus)[0]
             else:
                 static_w = self.min_width
-                
+
             if shared < static_w + self.dividechars:
                 break
-        
-            widths.append( static_w )
+
+            widths.append(static_w)
             shared -= static_w + self.dividechars
             if t not in ('fixed', 'flow'):
-                weighted.append( (width,i) )
-        
-            i += 1
-        
+                weighted.append((width,i))
+
         if shared:
             # divide up the remaining space between weighted cols
             weighted.sort()
@@ -1165,18 +1163,18 @@ class Columns(Widget): # either FlowWidget or BoxWidget
                 widths[i] = width
                 grow -= width
                 wtotal -= weight
-        
+
         self._cache_maxcol = maxcol
         self._cache_column_widths = widths
         return widths
-    
+
     def render(self, size, focus=False):
         """Render columns and return canvas.
 
         size -- (maxcol,) if self.widget_list contains flow widgets or
             (maxcol, maxrow) if it contains box widgets.
         """
-        widths = self.column_widths( size, focus )
+        widths = self.column_widths(size, focus)
         if not widths:
             return SolidCanvas(" ", size[0], (size[1:]+(1,))[0])
         
