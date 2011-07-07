@@ -31,6 +31,7 @@ import os
 from urwid.util import is_mouse_event
 from urwid.compat import PYTHON3, bytes
 from urwid.command_map import command_map
+from urwid.wimp import PopUpTarget
 
 PIPE_BUFFER_READ_SIZE = 4096 # can expect this much on Linux, so try for that
 
@@ -40,12 +41,12 @@ class ExitMainLoop(Exception):
 class MainLoop(object):
     def __init__(self, widget, palette=[], screen=None, 
         handle_mouse=True, input_filter=None, unhandled_input=None,
-        event_loop=None):
+        event_loop=None, pop_ups=False):
         """
         Simple main loop implementation.
 
-        widget -- topmost widget used for painting the screen, 
-            stored as self.widget, may be modified
+        widget -- topmost widget used for painting the screen,
+            stored as self.widget and may be modified
         palette -- initial palette for screen
         screen -- screen object or None to use raw_display.Screen,
             stored as self.screen
@@ -56,22 +57,21 @@ class MainLoop(object):
         unhandled_input -- a function called when input is not
             handled by self.widget, called from self.unhandled_input
         event_loop -- if screen supports external an event loop it
-            may be given here, or leave as None to use 
+            may be given here, or leave as None to use
             SelectEventLoop, stored as self.event_loop
+        pop_ups -- True to wrap self.widget with a PopUpTarget
+            instance to allow any widget to open a pop-up anywhere on
+            the screen
 
-        This is a standard main loop implementation with a single
-        screen. 
-        
+        This is the standard main loop implementation with a single
+        screen.
+
         The widget passed must be a box widget.
-
-        raw_display.Screen is the only screen type that currently
-        supports external event loops.  Other screen types include
-        curses_display.Screen, web_display.Screen and
-        html_fragment.HtmlGenerator.
         """
-        self.widget = widget
+        self._widget = widget
         self.handle_mouse = handle_mouse
-        
+        self.pop_ups = pop_ups # triggers property setting side-effect
+
         if not screen:
             from urwid import raw_display
             screen = raw_display.Screen()
@@ -96,6 +96,21 @@ class MainLoop(object):
         self._input_timeout = None
         self._watch_pipes = {}
 
+    def _set_widget(self, widget):
+        self._widget = widget
+        if self.pop_ups:
+            self._topmost_widget.original_widget = self._widget
+        else:
+            self._topmost_widget = self._widget
+    widget = property(lambda self:self._widget, _set_widget)
+
+    def _set_pop_ups(self, pop_ups):
+        self._pop_ups = pop_ups
+        if pop_ups:
+            self._topmost_widget = PopUpTarget(self._widget)
+        else:
+            self._topmost_widget = self._widget
+    pop_ups = property(lambda self:self._pop_ups, _set_pop_ups)
 
     def set_alarm_in(self, sec, callback, user_data=None):
         """
@@ -410,11 +425,11 @@ class MainLoop(object):
         for k in keys:
             if is_mouse_event(k):
                 event, button, col, row = k
-                if self.widget.mouse_event(self.screen_size, 
+                if self._topmost_widget.mouse_event(self.screen_size,
                     event, button, col, row, focus=True ):
                     k = None
-            elif self.widget.selectable():
-                k = self.widget.keypress(self.screen_size, k)
+            elif self._topmost_widget.selectable():
+                k = self._topmost_widget.keypress(self.screen_size, k)
             if k:
                 if command_map[k] == 'redraw screen':
                     self.screen.clear()
@@ -469,13 +484,13 @@ class MainLoop(object):
     def draw_screen(self):
         """
         Renter the widgets and paint the screen.  This function is
-        called automatically from run() but may be called additional 
+        called automatically from run() but may be called additional
         times if repainting is required without also processing input.
         """
         if not self.screen_size:
             self.screen_size = self.screen.get_cols_rows()
 
-        canvas = self.widget.render(self.screen_size, focus=True)
+        canvas = self._topmost_widget.render(self.screen_size, focus=True)
         self.screen.draw_screen(self.screen_size, canvas)
 
 

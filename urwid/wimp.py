@@ -22,12 +22,13 @@
 from urwid.widget import Text, WidgetWrap
 from urwid.canvas import CompositeCanvas
 from urwid.signals import connect_signal
-from urwid.container import Columns
+from urwid.container import Columns, Overlay
 from urwid.command_map import command_map
 from urwid.util import is_mouse_press
 from urwid.text_layout import calc_coords
 from urwid.signals import disconnect_signal # doctests
 from urwid.split_repr import python3_repr
+from urwid.decoration import WidgetDecoration
 
 
 class SelectableIcon(Text):
@@ -530,6 +531,51 @@ class Button(WidgetWrap):
 
         self._emit('click')
         return True
+
+
+class PopUpTarget(WidgetDecoration):
+    def __init__(self, original_widget):
+        self.__super.__init__(original_widget)
+        self._pop_up = None
+        self._current_widget = self._original_widget
+
+    def render(self, size, focus=False):
+        canv = self._current_widget.render(size, focus=focus)
+        if 'pop_up' in canv.coords:
+            x, y, (w, h, widget, set_close) = canv.coords['pop_up']
+            if not self._pop_up:
+                self._open_pop_up(x, y, w, h, widget)
+                set_close(self.close_pop_up)
+            else:
+                self._update_pop_up(x, y, w, h)
+            canv = self._current_widget.render(size, focus=focus)
+
+        return canv
+
+    def _open_pop_up(self, x, y, w, h, widget):
+        assert not self._pop_up
+        self._pop_up = widget
+        self._update_pop_up(x, y, w, h)
+
+    def _update_pop_up(self, x, y, w, h):
+        self._current_widget = Overlay(self._pop_up, self._original_widget,
+            ('fixed left', x), w, ('fixed top', y), h)
+
+    def close_pop_up(self):
+        if self._pop_up:
+            self._pop_up = None
+            self._current_widget = self._original_widget
+            self._invalidate()
+
+    # use our current widget's methods
+    selectable = property(lambda self:self._current_widget.selectable)
+    get_cursor_coords = property(lambda self:self._current_widget.get_cursor_coords)
+    get_pref_col = property(lambda self:self._current_widget.get_pref_col)
+    keypress = property(lambda self:self._current_widget.keypress)
+    move_cursor_to_coords = property(lambda self:self._current_widget.move_cursor_to_coords)
+    mouse_event = property(lambda self:self._current_widget.mouse_event)
+    sizing = property(lambda self:self._current_widget.sizing)
+
 
 
 def _test():

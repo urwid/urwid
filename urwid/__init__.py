@@ -23,7 +23,7 @@ __all__ = [
     'BoxWidget','Frame','Filler','ListBox','SimpleListWalker',
     'ListWalker',
     'WidgetWrap','AttrWrap','Padding','Divider','LineBox','SolidFill',
-    'Columns','Pile','GridFlow','BoxAdapter','Overlay',
+    'Columns','Pile','GridFlow','BoxAdapter','Overlay','PopUpTarget',
     'FlowWidget','Text','Edit','IntEdit','Button','CheckBox','RadioButton',
     'BarGraph','ProgressBar','GraphVScale','BigText',
     'Canvas','CanvasCombine','CanvasJoin','CanvasCache','CompositeCanvas',

@@ -812,7 +812,6 @@ class Filler(WidgetDecoration):
         return self._original_widget.mouse_event((maxcol, maxrow-top-bottom), 
             event, button,col, row-top, focus)
 
-        
 def normalize_align(align, err):
     """
     Split align into (align_type, align_amount).  Raise exception err
