@@ -725,6 +725,20 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         self.set_focus(focus_item)
         self.pref_col = 0
 
+    @property
+    def contents(self):
+        for i, w in enumerate(self.widget_list):
+            try:
+                yield w, self.item_types[i]
+            except IndexError:
+                yield w, ('weight', 1)
+
+    def _get_item_types(self, i):
+        try:
+            return self.item_types[i]
+        except IndexError:
+            return 'weight', 1
+
     def selectable(self):
         """Return True if the focus item is selectable."""
         return self.focus_item.selectable()
@@ -757,7 +771,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         Return a size appropriate for passing to self.widget_list[i]
         """
         maxcol = size[0]
-        f, height = self.item_types[i]
+        f, height = self._get_item_types(i)
         if f=='fixed':
             return (maxcol, height)
         elif f=='weight' and len(size)==2:
@@ -766,7 +780,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
             return (maxcol, item_rows[i])
         else:
             return (maxcol,)
-                    
+
     def get_item_rows(self, size, focus):
         """
         Return a list of the number of rows used by each widget
@@ -776,24 +790,23 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         maxcol = size[0]
         if len(size)==2:
             remaining = size[1]
-        
+
         l = []
-        
+
         if remaining is None:
             # pile is a flow widget
-            for (f, height), w in zip(
-                self.item_types, self.widget_list):
+            for w, (f, height) in self.contents:
                 if f == 'fixed':
-                    l.append( height )
+                    l.append(height)
                 else:
-                    l.append( w.rows( (maxcol,), focus=focus
-                        and self.focus_item == w ))
+                    l.append(w.rows((maxcol,), focus=focus
+                        and self.focus_item == w))
             return l
-            
+
         # pile is a box widget
         # do an extra pass to calculate rows for each widget
         wtotal = 0
-        for (f, height), w in zip(self.item_types, self.widget_list):
+        for w, (f, height) in self.contents:
             if f == 'flow':
                 rows = w.rows((maxcol,), focus=focus and
                     self.focus_item == w )
@@ -812,18 +825,16 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         if remaining < 0: 
             remaining = 0
 
-        i = 0
-        for (f, height), li in zip(self.item_types, l):
+        for i, (w, (f, height)) in enumerate(self.contents):
+            li = l[i]
             if li is None:
                 rows = int(float(remaining)*height
                     /wtotal+0.5)
                 l[i] = rows
                 remaining -= rows
                 wtotal -= height
-            i += 1
         return l
-        
-    
+
     def render(self, size, focus=False):
         """
         Render all widgets in self.widget_list and return the results
@@ -831,10 +842,9 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         """
         maxcol = size[0]
         item_rows = None
-        
+
         combinelist = []
-        i = 0
-        for (f, height), w in zip(self.item_types, self.widget_list):
+        for i, (w, (f, height)) in enumerate(self.contents):
             item_focus = self.focus_item == w
             canv = None
             if f == 'fixed':
@@ -853,7 +863,6 @@ class Pile(Widget): # either FlowWidget or BoxWidget
                         focus=focus and    item_focus )
             if canv:
                 combinelist.append((canv, i, item_focus))
-            i+=1
 
         return CanvasCombine(combinelist)
     
@@ -865,7 +874,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
             return None
         
         i = self.widget_list.index(self.focus_item)
-        f, height = self.item_types[i]
+        f, height = self._get_item_types(i)
         item_rows = None
         maxcol = size[0]
         if f == 'fixed' or (f=='weight' and len(size)==2):
@@ -890,12 +899,10 @@ class Pile(Widget): # either FlowWidget or BoxWidget
             for r in item_rows[:i]:
                 y += r
         return x, y
-        
-    
+
     def rows(self, size, focus=False ):
         """Return the number of rows required for this widget."""
         return sum(self.get_item_rows(size, focus))
-
 
     def keypress(self, size, key ):
         """Pass the keypress to the widget in focus.
@@ -906,7 +913,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
             item_rows = self.get_item_rows( size, focus=True )
 
         i = self.widget_list.index(self.focus_item)
-        f, height = self.item_types[i]
+        f, height = self._get_item_types(i)
         if self.focus_item.selectable():
             tsize = self.get_item_size(size,i,True,item_rows)
             key = self.focus_item.keypress( tsize, key )
@@ -917,20 +924,20 @@ class Pile(Widget): # either FlowWidget or BoxWidget
             candidates = range(i-1, -1, -1) # count backwards to 0
         else: # command_map[key] == 'cursor down'
             candidates = range(i+1, len(self.widget_list))
-        
+
         if not item_rows:
             item_rows = self.get_item_rows( size, focus=True )
-    
+
         for j in candidates:
             if not self.widget_list[j].selectable():
                 continue
-            
+
             self._update_pref_col_from_focus(size)
             self.set_focus(j)
             if not hasattr(self.focus_item,'move_cursor_to_coords'):
                 return
 
-            f, height = self.item_types[j]
+            f, height = self._get_item_types(i)
             rows = item_rows[j]
             if command_map[key] == 'cursor up':
                 rowlist = range(rows-1, -1, -1)
@@ -941,8 +948,8 @@ class Pile(Widget): # either FlowWidget or BoxWidget
                 if self.focus_item.move_cursor_to_coords(
                         tsize,self.pref_col,row):
                     break
-            return                    
-                
+            return
+
         # nothing to select
         return key
 
