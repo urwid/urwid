@@ -393,7 +393,7 @@ class TextCanvas(Canvas):
                 text, a_row, cs_row = trim_text_attr_cs(
                     text, a_row, cs_row, trim_left, 
                     trim_left + cols)
-            attr_cs = util.rle_product(a_row, cs_row)
+            attr_cs = rle_product(a_row, cs_row)
             i = 0
             row = []
             for (a, cs), run in attr_cs:
