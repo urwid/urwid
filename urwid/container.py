@@ -82,7 +82,7 @@ class WidgetContainer(Widget):
         raise ValueError
 
     def count(self, value):
-        return sum(1 for v in self if v == value)
+        return sum([1 for v in self if v == value])
 
 
 
