@@ -40,30 +40,22 @@ setup_d = {
     'url':"http://excess.org/urwid/",
     'download_url':"http://excess.org/urwid/urwid-%s.tar.gz"%release,
     'license':"LGPL",
-    'keywords':"curses ui widget scroll listbox user interface text layout consolt ncurses",
+    'keywords':"curses ui widget scroll listbox user interface text layout console ncurses",
     'platforms':"unix-like",
-    'description':(
-"A console UI library featuring fluid interface resizing, UTF-8 support,"
-" multiple text layouts, simple attribute markup, powerful scrolling list"
-" boxes and flexible interface design."),
+    'description': "A full-featured console (xterm et al.) user interface library",
     'long_description':"""
 Urwid is a console user interface library.  It includes many features
 useful for text console application developers including:
 
-- Fluid interface resizing (xterm window resizing / fbset on Linux console)
+- Applcations resize quickly and smoothly
+- Automatic, programmable text alignment and wrapping
+- Simple markup for setting text attributes within blocks of text
+- Powerful list box with programmable content for scrolling all widget types
+- Your choice of event loops: Twisted, Glib or built-in select-based loop
+- Pre-built widgets include edit boxes, buttons, check boxes and radio buttons
+- Display modules include raw, curses, and web displays
 - Support for UTF-8, simple 8-bit and CJK encodings
 - 256 and 88 color mode support
-- Multiple text alignment and wrapping modes built-in
-- Ability to create user-defined text layout classes
-- Simple markup for setting text attributes
-- Powerful list box that handles scrolling between different widget types
-- List box contents may be managed with a user-defined class
-- Flexible edit box for editing many different types of text
-- Buttons, check boxes and radio buttons
-- Customizable layout for all widgets
-- Web application display mode using Apache and CGI
-- Easy interface for creating HTML screen shots
-
 
 Home Page:
   http://excess.org/urwid/
@@ -82,6 +74,12 @@ Example Program Screenshots:
         "Operating System :: MacOS :: MacOS X",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Software Development :: Widget Sets",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.3",
+        "Programming Language :: Python :: 2.4",
+        "Programming Language :: Python :: 2.5",
+        "Programming Language :: Python :: 2.6",
+        "Programming Language :: Python :: 2.7",
         ],
     'packages':['urwid'],
      }
@@ -89,14 +87,6 @@ Example Program Screenshots:
 if have_setuptools:
     setup_d['zip_safe'] = False
 
-
-try:
-    True
-except:
-    # python 2.1's distutils doesn't understand these:
-    del setup_d['classifiers']
-    del setup_d['download_url']
-
 if __name__ == "__main__":
-    setup( ** setup_d )
+    setup(**setup_d)
 

@@ -41,7 +41,7 @@ __all__ = [
     'AttrSpec', 'AttrSpecError',
     ]
 
-VERSION = (0, 9, 9, 1)
+VERSION = (0, 9, 9, 2)
 __version__ = ''.join(['-.'[type(x) == int]+str(x) for x in VERSION])[1:]
 
 
