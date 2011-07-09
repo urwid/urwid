@@ -2178,7 +2178,8 @@ class WidgetSquishTest(unittest.TestCase):
         self.wstest(urwid.BarGraph(['foo','bar']))
     
     def test_graphvscale(self):
-        self.wstest(urwid.GraphVScale([(0,"hello"),(5,"hello")], 1))
+        self.wstest(urwid.GraphVScale([(0,"hello")], 1))
+        self.wstest(urwid.GraphVScale([(5,"hello")], 1))
     
     def test_solidfill(self):
         self.wstest(urwid.SolidFill())

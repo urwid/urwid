@@ -736,6 +736,9 @@ class GraphVScale(BoxWidget):
                 c.pad_trim_top_bottom(run, 0)
             rows += c.rows()
             combinelist.append((c, None, False))
+        if not combinelist:
+            return SolidCanvas(" ", size[0], size[1])
+
         c = CanvasCombine(combinelist)
         if maxrow - rows:
             c.pad_trim_top_bottom(0, maxrow - rows)
