@@ -2167,6 +2167,8 @@ class WidgetSquishTest(unittest.TestCase):
         assert c.rows() == 0
         c = w.render((80,0), focus=True)
         assert c.rows() == 0
+        c = w.render((80,1), focus=False)
+        assert c.rows() == 1
     
     def test_listbox(self):
         self.wstest(urwid.ListBox([]))
@@ -2176,7 +2178,7 @@ class WidgetSquishTest(unittest.TestCase):
         self.wstest(urwid.BarGraph(['foo','bar']))
     
     def test_graphvscale(self):
-        self.wstest(urwid.GraphVScale([(0,"hello")], 1))
+        self.wstest(urwid.GraphVScale([(0,"hello"),(5,"hello")], 1))
     
     def test_solidfill(self):
         self.wstest(urwid.SolidFill())
@@ -2206,7 +2208,6 @@ class WidgetSquishTest(unittest.TestCase):
     
     def test_columns(self):
         self.wstest(urwid.Columns([urwid.SolidFill()]))
-    
 
 
 def test_main():
