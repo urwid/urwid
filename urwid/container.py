@@ -431,11 +431,10 @@ class Overlay(BoxWidget):
         bottom_c = self.bottom_w.render(size)
         top_c = self.top_w.render(
             self.top_w_size(size, left, right, top, bottom), focus)
+        top_c = CompositeCanvas(top_c)
         if left<0 or right<0:
-            top_c = CompositeCanvas(top_c)
             top_c.pad_trim_left_right(min(0,left), min(0,right))
         if top<0 or bottom<0:
-            top_c = CompositeCanvas(top_c)
             top_c.pad_trim_top_bottom(min(0,top), min(0,bottom))
         
         return CanvasOverlay(top_c, bottom_c, left, top)
