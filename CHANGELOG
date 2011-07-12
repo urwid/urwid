@@ -2,13 +2,15 @@
 
 Urwid 0.9.9.2
 
-    * Fix for an Overlay get_cursor_coords() bug
+    * Fix for an Overlay get_cursor_coords(), and Text top-widget bug
 
     * Fix for a Padding rows() bug when used with width=PACK
 
     * Fix for a bug with large flow wigets used in an Overlay
 
-    * Fix for another gpm_mev bug
+    * Fix for a gpm_mev bug
+
+    * Fix for Pile and GraphVScale when rendered with no contents
 
     * Fix for a Python 2.3 incompatibilty (0.9.9 is the last release
       to claim support Python 2.3)
