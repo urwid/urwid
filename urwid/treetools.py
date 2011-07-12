@@ -40,7 +40,7 @@ class TreeWidgetError(RuntimeError):
 
 
 class TreeWidget(urwid.WidgetWrap):
-    """A widget representing something in the file tree."""
+    """A widget representing something in a nested tree display."""
     indent_cols = 3
     unexpanded_icon = SelectableIcon('+', 0)
     expanded_icon = SelectableIcon('-', 0)
@@ -380,7 +380,7 @@ class ParentNode(TreeNode):
 
 
 class TreeWalker(urwid.ListWalker):
-    """ListWalker-compatible class for browsing directories.
+    """ListWalker-compatible class for displaying TreeWidgets
     
     positions are TreeNodes."""
     
@@ -414,6 +414,9 @@ class TreeWalker(urwid.ListWalker):
 
 
 class TreeListBox(urwid.ListBox):
+    """A ListBox with special handling for navigation and
+    collapsing of TreeWidgets"""
+
     def keypress(self, size, key):
         key = self.__super.keypress(size, key)
         return self.unhandled_input(size, key)
