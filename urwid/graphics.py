@@ -21,7 +21,8 @@
 # Urwid web site: http://excess.org/urwid/
 
 from urwid.util import decompose_tagmarkup, get_encoding_mode
-from urwid.canvas import CompositeCanvas, CanvasJoin, TextCanvas, CanvasCombine
+from urwid.canvas import CompositeCanvas, CanvasJoin, TextCanvas, \
+    CanvasCombine, SolidCanvas
 from urwid.widget import WidgetMeta, BoxWidget, FlowWidget, FixedWidget, \
     nocache_widget_render, nocache_widget_render_instance, fixed_size, \
     WidgetWrap, Divider, SolidFill, Text
