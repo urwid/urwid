@@ -2206,6 +2206,7 @@ class WidgetSquishTest(unittest.TestCase):
 
     def test_pile(self):
         self.wstest(urwid.Pile([urwid.SolidFill()]))
+        self.wstest(urwid.Pile([]))
     
     def test_columns(self):
         self.wstest(urwid.Columns([urwid.SolidFill()]))

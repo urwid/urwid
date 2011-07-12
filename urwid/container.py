@@ -706,12 +706,15 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         
         if focus_item is None:
             focus_item = 0
-        self.set_focus(focus_item)
+        if self.widget_list:
+            self.set_focus(focus_item)
+        else:
+            self.focus_item=None
         self.pref_col = 0
 
     def selectable(self):
         """Return True if the focus item is selectable."""
-        return self.focus_item.selectable()
+        return self.focus_item is not None and self.focus_item.selectable()
 
     def set_focus(self, item):
         """Set the item in focus.  
@@ -838,6 +841,8 @@ class Pile(Widget): # either FlowWidget or BoxWidget
             if canv:
                 combinelist.append((canv, i, item_focus))
             i+=1
+        if not combinelist:
+            return SolidCanvas(" ", size[0], (size[1:]+(0,))[0])
 
         return CanvasCombine(combinelist)
     
