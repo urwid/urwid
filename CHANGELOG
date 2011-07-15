@@ -1,18 +1,69 @@
 # -*- coding: utf-8 -*-
 
+Urwid 1.0.0
+
+    * New support for Python 3.2 from the same 2.x code base,
+      requires distribute instead of setuptools
+      (by Kirk McDonald, Wendell, Marien Zwart)
+
+    * New Terminal widget with xterm emulation and terminal
+      example program (by aszlig)
+
+    * Edit widget now supports a mask (for passwords), has a
+      insert_text_result() method for full-field validation and
+      normalizes input text to unicode or bytes based on the caption
+      type used
+
+    * New TreeWidget, ParentWidget, TreeNode, ParentNode, TreeWalker
+      and TreeListBox classes for lazy expanding/collapsing tree
+      views refactored out of browse example program (by Rob Lanphier)
+
+    * MainLoop now calls draw_screen() just before going idle, so extra
+      calls to draw_screen in user code may be removed
+
+    * New MainLoop.watch_pipe() method for subprocess or threaded
+      communication with the process/thread updating the UI, and new
+      subproc example demonstrating its use
+
+    * New PopUpTarget widget and MainLoop option for creating pop-ups
+      and drop-downs, and new popup example program
+
+    * LineBox widgets may now include title text
+
+    * ListBox now includes a get_cursor_coords() method, allowing
+      nested ListBox widgets
+
+    * Columns widget contents may now be marked to always be treated
+      as flow widgets
+
+    * New lcd_display module with support for CF635 USB LCD panel and
+      lcd example program with menus, slider controls and a custom
+      font
+
+    * Use reactor.stop in TwistedEventLoop and document that Twisted's
+      reactor is not designed to be stopped and restarted
+
+    * curses_display now supports AttrSpec and external event loops
+      (Twisted or GLib) like raw_display
+
+    * raw_display and curses_display now support the IBMPC character
+      set (currently only used by Terminal)
+
+
+
 Urwid 0.9.9.2
 
     * Fix for an Overlay get_cursor_coords(), and Text top-widget bug
 
     * Fix for a Padding rows() bug when used with width=PACK
 
-    * Fix for a bug with large flow wigets used in an Overlay
+    * Fix for a bug with large flow widgets used in an Overlay
 
     * Fix for a gpm_mev bug
 
     * Fix for Pile and GraphVScale when rendered with no contents
 
-    * Fix for a Python 2.3 incompatibilty (0.9.9 is the last release
+    * Fix for a Python 2.3 incompatibility (0.9.9 is the last release
       to claim support Python 2.3)
 
 
