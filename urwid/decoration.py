@@ -213,6 +213,7 @@ class AttrMap(WidgetDecoration):
     rows = property(lambda self:self._original_widget.rows)
     mouse_event = property(lambda self:self._original_widget.mouse_event)
     sizing = property(lambda self:self._original_widget.sizing)
+    pack = property(lambda self:self._original_widget.pack)
 
 
 
@@ -544,7 +545,7 @@ class Padding(WidgetDecoration):
         Override this method to define custom padding behaviour."""
         maxcol = size[0]
         if self._width_type == CLIP:
-            width, ignore = self._original_widget.pack(focus=focus)
+            width, ignore = self._original_widget.pack((), focus=focus)
             return calculate_left_right_padding(maxcol,
                 self._align_type, self._align_amount, 
                 CLIP, width, None, self.left, self.right)
