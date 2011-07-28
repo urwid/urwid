@@ -177,7 +177,7 @@ class LineBox(WidgetDecoration, WidgetWrap):
                  trcorner=None, blcorner=None, rline=None,
                  bline=None, brcorner=None):
         if not style:
-            style = 'single' if get_encodeing_mode() == 'utf8' else 'ascii'
+            style = 'single' if get_encoding_mode() == 'utf8' else 'ascii'
         if style != 'custom':
             style_chars = LineBox.STYLES[style]
         ctline, cbline, clline, crline, \
