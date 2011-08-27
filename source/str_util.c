@@ -108,7 +108,7 @@ static PyObject * get_byte_encoding(PyObject *self, PyObject *args)
         return Py_BuildValue("s", "wide");
     if (byte_encoding == ENC_NARROW)
         return Py_BuildValue("s", "narrow");
-    return Py_None; // should never happen
+    Py_RETURN_NONE; // should never happen
 }
 
 
@@ -138,7 +138,7 @@ static PyObject * set_byte_encoding(PyObject *self, PyObject *args)
         return NULL;
     }
     
-    return Py_None;
+    Py_RETURN_NONE;
 }
 
 
