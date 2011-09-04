@@ -235,7 +235,7 @@ class Widget(object):
         if size == ():
             if FIXED in self.sizing():
                 raise NotImplementedError('Fixed widgets must override'
-                    ' Widget.size()')
+                    ' Widget.pack()')
             raise WidgetError('Cannot pack () size, this is not a fixed'
                 ' widget: %s' % repr(self))
         elif len(size) == 1:
@@ -1362,6 +1362,7 @@ class WidgetWrap(Widget):
     rows = property(lambda self:self.__w.rows)
     mouse_event = property(lambda self:self.__w.mouse_event)
     sizing = property(lambda self:self.__w.sizing)
+    pack = property(lambda self:self.__w.pack)
 
 
 def _test():
