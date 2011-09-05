@@ -92,6 +92,7 @@ class BigText(FixedWidget):
 
 
 class LineBox(WidgetDecoration, WidgetWrap):
+    # Unused after adding predefined styles
     ACS_HLINE = u'─'
     ACS_VLINE = u'│'
 
@@ -100,17 +101,56 @@ class LineBox(WidgetDecoration, WidgetWrap):
     ACS_LLCORNER = u'└'
     ACS_LRCORNER = u'┘'
 
+    STYLES = {              # tblrttbb
+                            #     lrlr
+        'ascii'            : u'--||++++', # default for non-UTF-8
+        'ascii-double'     : u'==||++++', # default for non-UTF-8
+        'ascii-slash'      :ur'--||/\\/',
+        'ascii-wave'       : u'~~||~~~~',
+        'ascii-dots'       : u'........',
+        'ascii-asterisks'  : u'********',
+        'ascii-millionaire': u'$$$$$$$$',
+        'single'           : u'──││┌┐└┘', # default for UTF-8
+        'single-d-1'       : u'╌╌╎╎┌┐└┘',
+        'single-d-2'       : u'┄┄┆┆┌┐└┘',
+        'single-d-3'       : u'┈┈┊┊┌┐└┘',
+        'single-thick'     : u'━━┃┃┏┓┗┛',
+        'single-thick-d-1' : u'╍╍╏╏┏┓┗┛',
+        'single-thick-d-2' : u'┅┅┇┇┏┓┗┛',
+        'single-thick-d-3' : u'┉┉┋┋┏┓┗┛',
+        'single-r'         : u'──││╭╮╰╯',
+        'double'           : u'══║║╔╗╚╝',
+        'double-h'         : u'══││╒╕╘╛',
+        'double-v'         : u'──║║╓╖╙╜',
+        'double-tl'        : u'═─║│╔╕╙┘',
+        'double-tl-r'      : u'═─║│╔╕╙╯',
+        'double-tr'        : u'═─│║╒╗└╜',
+        'double-tr-r'      : u'═─│║╒╗╰╜',
+        'double-bl'        : u'─═║│╓┐╚╛',
+        'double-bl-r'      : u'─═║│╓╮╚╛',
+        'double-br'        : u'─═│║┌╖╘╝',
+        'double-br-r'      : u'─═│║╭╖╘╝',
+        'block-full'       : u'████████',
+        'block-full-r'     : u'████▟▙▜▛',
+        'block-half'       : u'▄▀▐▌▗▖▝▘',
+        'block-half-tb'    : u'▄▀██▄▄▀▀',
+        'block-half-o'     : u'▀▄▌▐▛▜▙▟',
+        'block-half-o-tb'  : u'▀▄██████',
+        'none'             : u'        ',
+        'custom'           : None,
+        }
+
     def __init__(self, original_widget, title="",
                  tlcorner=None, tline=None, lline=None,
                  trcorner=None, blcorner=None, rline=None,
-                 bline=None, brcorner=None):
+                 bline=None, brcorner=None, style=None, style_chars=None):
         """
         Draw a line around original_widget.
 
         Use 'title' to set an initial title text with will be centered
         on top of the box.
 
-        You can also override the widgets used for the lines/corners:
+        You can also apply attributes to the lines/corners:
             tline: top line
             bline: bottom line
             lline: left line
@@ -119,9 +159,32 @@ class LineBox(WidgetDecoration, WidgetWrap):
             trcorner: top right corner
             blcorner: bottom left corner
             brcorner: bottom right corner
+
+        Use 'style' to choose style from predefined styles. See LineBox.STYLES.
+
+        Use 'style_chars' to set characters for lines/corners and set 'style' to
+        'custom' to take effective. 'style_chars' should be a string with eight
+        characters for as same order as for attributes above.
         """
         self.title_widget = Text(self.format_title(title))
+        WidgetDecoration.__init__(self, original_widget)
+        self.set_style(style, style_chars,
+                 tlcorner, tline, lline, trcorner,
+                 blcorner, rline, bline, brcorner)
 
+    def set_style(self, style=None, style_chars=None,
+                 tlcorner=None, tline=None, lline=None,
+                 trcorner=None, blcorner=None, rline=None,
+                 bline=None, brcorner=None):
+        if not style:
+            style = 'single' if get_encoding_mode() == 'utf8' else 'ascii'
+        if style != 'custom':
+            style_chars = LineBox.STYLES[style]
+        ctline, cbline, clline, crline, \
+                ctlcorner, ctrcorner, cblcorner, cbrcorner = style_chars
+        self.style = style
+        self.style_chars = style_chars
+           
         def use_attr( a, t ):
             if a is not None:
                 t = AttrWrap(t, a)
@@ -130,31 +193,31 @@ class LineBox(WidgetDecoration, WidgetWrap):
                 return t
 
         self.tline_widget = Columns([
-            Divider(self.ACS_HLINE),
+            Divider(ctline),
             ('flow', self.title_widget),
-            Divider(self.ACS_HLINE),
+            Divider(ctline),
         ])
 
         tline = use_attr( tline, self.tline_widget)
-        bline = use_attr( bline, Divider(self.ACS_HLINE))
-        lline = use_attr( lline, SolidFill(self.ACS_VLINE))
-        rline = use_attr( rline, SolidFill(self.ACS_VLINE))
-        tlcorner = use_attr( tlcorner, Text(self.ACS_ULCORNER))
-        trcorner = use_attr( trcorner, Text(self.ACS_URCORNER))
-        blcorner = use_attr( blcorner, Text(self.ACS_LLCORNER))
-        brcorner = use_attr( brcorner, Text(self.ACS_LRCORNER))
+        bline = use_attr( bline, Divider(cbline))
+        lline = use_attr( lline, SolidFill(clline))
+        rline = use_attr( rline, SolidFill(crline))
+        tlcorner = use_attr( tlcorner, Text(ctlcorner))
+        trcorner = use_attr( trcorner, Text(ctrcorner))
+        blcorner = use_attr( blcorner, Text(cblcorner))
+        brcorner = use_attr( brcorner, Text(cbrcorner))
+ 
         top = Columns([ ('fixed', 1, tlcorner),
             tline, ('fixed', 1, trcorner) ])
         middle = Columns( [('fixed', 1, lline),
-            original_widget, ('fixed', 1, rline)], box_columns = [0,2],
+            self.original_widget, ('fixed', 1, rline)], box_columns = [0,2],
             focus_column = 1)
         bottom = Columns([ ('fixed', 1, blcorner),
             bline, ('fixed', 1, brcorner) ])
         pile = Pile([('flow',top),middle,('flow',bottom)],
             focus_item = 1)
 
-        WidgetDecoration.__init__(self, original_widget)
-        WidgetWrap.__init__(self, pile)
+        self._set_w(pile)
 
     def format_title(self, text):
         if len(text) > 0:
