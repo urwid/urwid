@@ -808,43 +808,42 @@ class ProgressBar( FlowWidget ):
         """
         self.normal = normal
         self.complete = complete
-        self.current = current
-        self.done = done
+        self._current = current
+        self._done = done
         self.satt = satt
-    
+
     def set_completion(self, current ):
         """
         current -- current progress
         """
-        self.current = current
+        self._current = current
         self._invalidate()
+    current = property(lambda self:self._current, set_completion)
 
-    def set_finished(self, done):
+    def _set_done(self, done):
         """
         done -- progress amount at 100%
         """
-        self.done = done
+        self._done = done
         self._invalidate()
-    
+    done = property(lambda self:self._done, _set_done)
+
     def rows(self, size, focus=False):
-        """
-        Return 1.
-        """
         return 1
 
     def get_text(self):
         """
-        Return the progress bar percentage as a Text widget.
+        Return the progress bar percentage text.
         """
         percent = min(100, max(0, int(self.current * 100 / self.done)))
-        return Text(str(percent) + " %", 'center', 'clip' )
+        return str(percent) + " %"
 
     def render(self, size, focus=False):
         """
         Render the progress bar.
         """
         (maxcol,) = size
-        txt = self.get_text()
+        txt = Text(self.get_text(), 'center', 'clip' )
         c = txt.render((maxcol,))
 
         cf = float( self.current ) * maxcol / self.done
