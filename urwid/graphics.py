@@ -25,7 +25,7 @@ from urwid.canvas import CompositeCanvas, CanvasJoin, TextCanvas, \
     CanvasCombine, SolidCanvas
 from urwid.widget import WidgetMeta, BoxWidget, FlowWidget, FixedWidget, \
     nocache_widget_render, nocache_widget_render_instance, fixed_size, \
-    WidgetWrap, Divider, SolidFill, Text
+    WidgetWrap, Divider, SolidFill, Text, CENTER, CLIP
 from urwid.container import Pile, Columns
 from urwid.display_common import AttrSpec
 from urwid.decoration import WidgetDecoration, AttrWrap
@@ -795,6 +795,9 @@ def scale_bar_values( bar, top, maxrow ):
 
 class ProgressBar( FlowWidget ):
     eighths = u' ▏▎▍▌▋▊▉'
+
+    text_align = CENTER
+
     def __init__(self, normal, complete, current=0, done=100, satt=None):
         """
         normal -- attribute for uncomplete part of progress bar
@@ -843,7 +846,7 @@ class ProgressBar( FlowWidget ):
         Render the progress bar.
         """
         (maxcol,) = size
-        txt = Text(self.get_text(), 'center', 'clip' )
+        txt = Text(self.get_text(), self.text_align, CLIP )
         c = txt.render((maxcol,))
 
         cf = float( self.current ) * maxcol / self.done
