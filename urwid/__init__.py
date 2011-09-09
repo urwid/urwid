@@ -39,7 +39,7 @@ __all__ = [
     'command_map',
     'MainLoop', 'SelectEventLoop', 'GLibEventLoop', 'TwistedEventLoop',
     'AttrSpec', 'AttrSpecError',
-    'TreeWidget', 'ParentWidget', 'TreeNode', 'ParentNode', 'TreeWalker',
+    'TreeWidget', 'TreeNode', 'ParentNode', 'TreeWalker',
     'TreeListBox',
     'Terminal', 'TermCanvas',
     ]
