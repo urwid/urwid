@@ -31,6 +31,7 @@ UNPRINTABLE_TRANS_TABLE = B("?") * 32 + bytes3(range(32,256))
 
 # signals sent by BaseScreen
 UPDATE_PALETTE_ENTRY = "update palette entry"
+INPUT_DESCRIPTORS_CHANGED = "input descriptors changed"
 
 
 # AttrSpec internal values
@@ -699,7 +700,7 @@ class BaseScreen(object):
     Base class for Screen classes (raw_display.Screen, .. etc)
     """
     __metaclass__ = signals.MetaSignals
-    signals = [UPDATE_PALETTE_ENTRY]
+    signals = [UPDATE_PALETTE_ENTRY, INPUT_DESCRIPTORS_CHANGED]
 
     def __init__(self):
         super(BaseScreen,self).__init__()

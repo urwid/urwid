@@ -32,6 +32,8 @@ from urwid.util import is_mouse_event
 from urwid.compat import PYTHON3, bytes
 from urwid.command_map import command_map
 from urwid.wimp import PopUpTarget
+from urwid import signals
+from urwid.display_common import INPUT_DESCRIPTORS_CHANGED
 
 PIPE_BUFFER_READ_SIZE = 4096 # can expect this much on Linux, so try for that
 
@@ -245,6 +247,7 @@ class MainLoop(object):
         >>> scr.get_input_descriptors_rval = [42]
         >>> scr.get_cols_rows_rval = (20, 10)
         >>> scr.started = True
+        >>> scr._urwid_signals = {}
         >>> evl = _refl("event_loop")
         >>> evl.enter_idle_rval = 1
         >>> evl.watch_file_rval = 2
@@ -281,11 +284,23 @@ class MainLoop(object):
 
         self.draw_screen()
 
-        # insert our input descriptors
-        fds = self.screen.get_input_descriptors()
-        fd_handles = [self.event_loop.watch_file(fd, self._update) 
-            for fd in fds]
+        fd_handles = []
+        def reset_input_descriptors(only_remove=False):
+            for handle in fd_handles:
+                self.event_loop.remove_watch_file(handle)
+            if only_remove:
+                return
+            fd_handles[:] = [
+                self.event_loop.watch_file(fd, self._update)
+                for fd in self.screen.get_input_descriptors()]
 
+        try:
+            signals.connect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED,
+                reset_input_descriptors)
+        except NameError:
+            pass
+        # watch our input descriptors
+        reset_input_descriptors()
         idle_handle = self.event_loop.enter_idle(self.entering_idle)
 
         # Go..
@@ -293,9 +308,9 @@ class MainLoop(object):
 
         # tidy up
         self.event_loop.remove_enter_idle(idle_handle)
-        for handle in fd_handles:
-            self.event_loop.remove_watch_file(handle)
-
+        reset_input_descriptors(True)
+        signals.disconnect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED,
+            reset_input_descriptors)
 
     def _update(self, timeout=False):
         """

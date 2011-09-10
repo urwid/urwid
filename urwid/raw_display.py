@@ -35,7 +35,8 @@ import signal
 from urwid import util
 from urwid import escape
 from urwid.display_common import BaseScreen, RealTerminal, \
-    UPDATE_PALETTE_ENTRY, AttrSpec, UNPRINTABLE_TRANS_TABLE
+    UPDATE_PALETTE_ENTRY, AttrSpec, UNPRINTABLE_TRANS_TABLE, \
+    INPUT_DESCRIPTORS_CHANGED
 from urwid import signals
 from urwid.compat import PYTHON3, bytes
 
@@ -405,7 +406,7 @@ class Screen(BaseScreen, RealTerminal):
         ready = None
         fd_list = [self._term_input_file.fileno()]
         if self.gpm_mev is not None:
-            fd_list += [ self.gpm_mev.stdout ]
+            fd_list.append(self.gpm_mev.stdout.fileno())
         while True:
             try:
                 if timeout is None:
@@ -439,6 +440,7 @@ class Screen(BaseScreen, RealTerminal):
         if len(l) != 6:
             # unexpected output, stop tracking
             self._stop_gpm_tracking()
+            signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
             return []
         ev, x, y, ign, b, m = s.split(",")
         ev = int( ev.split("x")[-1], 16)
