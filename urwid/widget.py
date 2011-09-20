@@ -19,6 +19,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from operator import attrgetter
+
 from urwid.util import MetaSuper, decompose_tagmarkup, calc_width, \
     is_wide_char, move_prev_char, move_next_char
 from urwid.compat import bytes
@@ -1298,12 +1300,41 @@ class IntEdit(Edit):
             return 0
 
 
+def delegate_to_widget_mixin(attribute_name):
+    """
+    Return a mixin class that delegates all standard widget methods
+    to an attribute given by attribute_name.
+
+    This mixin is designed to be used as a superclass of another widget.
+    """
+    # FIXME: this is so common, let's add proper support for it
+    # when layout and rendering are separated
+
+    get_delegate = attrgetter(attribute_name)
+    class DelegateToWidgetMixin(object):
+        def render(self, size, focus=False):
+            canv = get_delegate(self).render(size, focus=focus)
+            return CompositeCanvas(canv)
+
+        selectable = property(lambda self:get_delegate(self).selectable)
+        get_cursor_coords = property(
+            lambda self:get_delegate(self).get_cursor_coords)
+        get_pref_col = property(lambda self:get_delegate(self).get_pref_col)
+        keypress = property(lambda self:get_delegate(self).keypress)
+        move_cursor_to_coords = property(
+            lambda self:get_delegate(self).move_cursor_to_coords)
+        rows = property(lambda self:get_delegate(self).rows)
+        mouse_event = property(lambda self:get_delegate(self).mouse_event)
+        sizing = property(lambda self:get_delegate(self).sizing)
+        pack = property(lambda self:get_delegate(self).pack)
+    return DelegateToWidgetMixin
+
+
+
 class WidgetWrapError(Exception):
     pass
 
-class WidgetWrap(Widget):
-    no_cache = ["rows"]
-
+class WidgetWrap(delegate_to_widget_mixin('_wrapped_widget'), Widget):
     def __init__(self, w):
         """
         w -- widget to wrap, stored as self._w
@@ -1318,7 +1349,7 @@ class WidgetWrap(Widget):
         of the wrapped widgets by behaving like a ContainerWidget or
         WidgetDecoration, or it may hide them from outside access.
         """
-        self.__w = w
+        self._wrapped_widget = w
 
     def _set_w(self, w):
         """
@@ -1337,9 +1368,9 @@ class WidgetWrap(Widget):
         >>> ww.selectable()
         False
         """
-        self.__w = w
+        self._wrapped_widget = w
         self._invalidate()
-    _w = property(lambda self:self.__w, _set_w)
+    _w = property(lambda self:self._wrapped_widget, _set_w)
 
     def _raise_old_name_error(self, val=None):
         raise WidgetWrapError("The WidgetWrap.w member variable has "
@@ -1349,20 +1380,6 @@ class WidgetWrap(Widget):
             "instead of self.w.")
     w = property(_raise_old_name_error, _raise_old_name_error)
 
-    def render(self, size, focus=False):
-        """Render self._w."""
-        canv = self._w.render(size, focus=focus)
-        return CompositeCanvas(canv)
-
-    selectable = property(lambda self:self.__w.selectable)
-    get_cursor_coords = property(lambda self:self.__w.get_cursor_coords)
-    get_pref_col = property(lambda self:self.__w.get_pref_col)
-    keypress = property(lambda self:self.__w.keypress)
-    move_cursor_to_coords = property(lambda self:self.__w.move_cursor_to_coords)
-    rows = property(lambda self:self.__w.rows)
-    mouse_event = property(lambda self:self.__w.mouse_event)
-    sizing = property(lambda self:self.__w.sizing)
-    pack = property(lambda self:self.__w.pack)
 
 
 def _test():

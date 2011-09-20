@@ -22,7 +22,8 @@
 
 from urwid.util import int_scale
 from urwid.widget import Widget, WidgetError, \
-    BOX, FLOW, LEFT, CENTER, RIGHT, PACK, CLIP, GIVEN, RELATIVE, RELATIVE_100
+    BOX, FLOW, LEFT, CENTER, RIGHT, PACK, CLIP, GIVEN, RELATIVE, RELATIVE_100, \
+    delegate_to_widget_mixin
 from urwid.split_repr import remove_defaults
 from urwid.canvas import CompositeCanvas, SolidCanvas
 from urwid.widget import Divider, Edit, Text, SolidFill # doctests
@@ -89,13 +90,11 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
 class AttrMapError(WidgetError):
     pass
 
-class AttrMap(WidgetDecoration):
+class AttrMap(delegate_to_widget_mixin('_original_widget'), WidgetDecoration):
     """
     AttrMap is a decoration that maps one set of attributes to another for
     a FlowWidget or BoxWidget
     """
-    no_cache = ["rows"]
-
     def __init__(self, w, attr_map, focus_map=None):
         """
         w -- widget to wrap (stored as self.original_widget)
@@ -209,17 +208,6 @@ class AttrMap(WidgetDecoration):
         canv = CompositeCanvas(canv)
         canv.fill_attr_apply(attr_map)
         return canv
-    
-    # just use our original widget's methods
-    selectable = property(lambda self:self._original_widget.selectable)
-    get_cursor_coords = property(lambda self:self._original_widget.get_cursor_coords)
-    get_pref_col = property(lambda self:self._original_widget.get_pref_col)
-    keypress = property(lambda self:self._original_widget.keypress)
-    move_cursor_to_coords = property(lambda self:self._original_widget.move_cursor_to_coords)
-    rows = property(lambda self:self._original_widget.rows)
-    mouse_event = property(lambda self:self._original_widget.mouse_event)
-    sizing = property(lambda self:self._original_widget.sizing)
-    pack = property(lambda self:self._original_widget.pack)
 
 
 

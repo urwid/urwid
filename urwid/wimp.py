@@ -19,7 +19,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from urwid.widget import Text, WidgetWrap
+from urwid.widget import Text, WidgetWrap, delegate_to_widget_mixin
 from urwid.canvas import CompositeCanvas
 from urwid.signals import connect_signal
 from urwid.container import Columns, Overlay
@@ -533,7 +533,7 @@ class Button(WidgetWrap):
         return True
 
 
-class PopUpTarget(WidgetDecoration):
+class PopUpTarget(delegate_to_widget_mixin('_current_widget'), WidgetDecoration):
     def __init__(self, original_widget):
         self.__super.__init__(original_widget)
         self._pop_up = None
@@ -566,15 +566,6 @@ class PopUpTarget(WidgetDecoration):
             self._pop_up = None
             self._current_widget = self._original_widget
             self._invalidate()
-
-    # use our current widget's methods
-    selectable = property(lambda self:self._current_widget.selectable)
-    get_cursor_coords = property(lambda self:self._current_widget.get_cursor_coords)
-    get_pref_col = property(lambda self:self._current_widget.get_pref_col)
-    keypress = property(lambda self:self._current_widget.keypress)
-    move_cursor_to_coords = property(lambda self:self._current_widget.move_cursor_to_coords)
-    mouse_event = property(lambda self:self._current_widget.mouse_event)
-    sizing = property(lambda self:self._current_widget.sizing)
 
 
 
