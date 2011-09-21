@@ -540,32 +540,30 @@ class PopUpTarget(delegate_to_widget_mixin('_current_widget'), WidgetDecoration)
         self._current_widget = self._original_widget
 
     def render(self, size, focus=False):
-        canv = self._current_widget.render(size, focus=focus)
-        if 'pop_up' in canv.coords:
-            x, y, (w, h, widget, set_close) = canv.coords['pop_up']
-            if not self._pop_up:
-                self._open_pop_up(x, y, w, h, widget)
-                set_close(self.close_pop_up)
+        canv = self._original_widget.render(size, focus=focus)
+        pop_up = canv.get_pop_up()
+        if pop_up:
+            if focus:
+                self._cache_original_canvas = canv # hold a reference so that
+                # in-focus versions stay cached (we'll need them next time)
+            left, top, (
+                w, overlay_width, overlay_height) = pop_up
+            if self._pop_up != w:
+                self._pop_up = w
+                self._current_widget = Overlay(w, self._original_widget,
+                    ('fixed left', left), overlay_width,
+                    ('fixed top', top), overlay_height)
             else:
-                self._update_pop_up(x, y, w, h)
+                self._current_widget.set_overlay_parameters(
+                    ('fixed left', left), overlay_width,
+                    ('fixed top', top), overlay_height)
             canv = self._current_widget.render(size, focus=focus)
-
-        return canv
-
-    def _open_pop_up(self, x, y, w, h, widget):
-        assert not self._pop_up
-        self._pop_up = widget
-        self._update_pop_up(x, y, w, h)
-
-    def _update_pop_up(self, x, y, w, h):
-        self._current_widget = Overlay(self._pop_up, self._original_widget,
-            ('fixed left', x), w, ('fixed top', y), h)
-
-    def close_pop_up(self):
-        if self._pop_up:
+        else:
+            self._cache_original_canvas = None
             self._pop_up = None
             self._current_widget = self._original_widget
-            self._invalidate()
+
+        return canv
 
 
 
