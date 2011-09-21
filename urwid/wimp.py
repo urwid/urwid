@@ -19,7 +19,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from urwid.widget import Text, WidgetWrap, delegate_to_widget_mixin
+from urwid.widget import Text, WidgetWrap, delegate_to_widget_mixin, BOX
 from urwid.canvas import CompositeCanvas
 from urwid.signals import connect_signal
 from urwid.container import Columns, Overlay
@@ -534,18 +534,21 @@ class Button(WidgetWrap):
 
 
 class PopUpTarget(delegate_to_widget_mixin('_current_widget'), WidgetDecoration):
+    # FIXME: this whole class is a terrible hack and must be fixed
+    # when layout and rendering are separated
+    _sizing = set([BOX])
+    _selectable = True
+
     def __init__(self, original_widget):
         self.__super.__init__(original_widget)
         self._pop_up = None
         self._current_widget = self._original_widget
 
-    def render(self, size, focus=False):
+    def _update_overlay(self, size, focus):
         canv = self._original_widget.render(size, focus=focus)
+        self._cache_original_canvas = canv # imperfect performance hack
         pop_up = canv.get_pop_up()
         if pop_up:
-            if focus:
-                self._cache_original_canvas = canv # hold a reference so that
-                # in-focus versions stay cached (we'll need them next time)
             left, top, (
                 w, overlay_width, overlay_height) = pop_up
             if self._pop_up != w:
@@ -557,13 +560,34 @@ class PopUpTarget(delegate_to_widget_mixin('_current_widget'), WidgetDecoration)
                 self._current_widget.set_overlay_parameters(
                     ('fixed left', left), overlay_width,
                     ('fixed top', top), overlay_height)
-            canv = self._current_widget.render(size, focus=focus)
         else:
-            self._cache_original_canvas = None
             self._pop_up = None
             self._current_widget = self._original_widget
 
-        return canv
+    def render(self, size, focus=False):
+        self._update_overlay(size, focus)
+        return self._current_widget.render(size, focus=focus)
+    def get_cursor_coords(self, size):
+        self._update_overlay(size, True)
+        return self._current_widget.get_cursor_coords(size)
+    def get_pref_col(self, size):
+        self._update_overlay(size, True)
+        return self._current_widget.get_pref_col(size)
+    def keypress(self, size, key):
+        self._update_overlay(size, True)
+        return self._current_widget.keypress(size, key)
+    def move_cursor_to_coords(self, size, x, y):
+        self._update_overlay(size, True)
+        return self._current_widget.move_cursor_to_coords(size, x, y)
+    def mouse_event(self, size, event, button, x, y, focus):
+        self._update_overlay(size, focus)
+        return self._current_widget.mouse_event(size, event, button, x, y, focus)
+    def pack(self, size=None, focus=False):
+        self._update_overlay(size, focus)
+        return self._current_widget.pack(size)
+
+
+
 
 
 
