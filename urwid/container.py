@@ -318,7 +318,7 @@ class Overlay(BoxWidget):
             ('relative', percentage 0=top 100=bottom)
         height -- one of:
             None if top_w is a flow or fixed widget
-            number of rows high 
+            number of rows high
             ('fixed bottom', rows)  Only if valign is 'fixed top'
             ('fixed top', rows)  Only if valign is 'fixed bottom'
             ('relative', percentage of total height)
@@ -326,32 +326,43 @@ class Overlay(BoxWidget):
             when width is not fixed
         min_height -- one of:
             minimum number of rows for the widget when height not fixed
-        
+
         Overlay widgets behave similarly to Padding and Filler widgets
         when determining the size and position of top_w.  bottom_w is
         always rendered the full size available "below" top_w.
         """
         self.__super.__init__()
 
-        at,aa,wt,wa=decompose_align_width(align, width, OverlayError)
-        vt,va,ht,ha=decompose_valign_height(valign,height,OverlayError)
-        
         self.top_w = top_w
         self.bottom_w = bottom_w
-        
+
+        self.set_overlay_parameters(align, width, valign, height,
+            min_width, min_height)
+
+    def set_overlay_parameters(self, align, width, valign, height,
+            min_width=None, min_height=None):
+        """
+        Adjust the overlay size and position parameters.
+
+        See __init__() for a description of the parameters.
+        """
+        at,aa,wt,wa=decompose_align_width(align, width, OverlayError)
+        vt,va,ht,ha=decompose_valign_height(valign,height,OverlayError)
+
         self.align_type, self.align_amount = at, aa
         self.width_type, self.width_amount = wt, wa
         if self.width_type and self.width_type != 'fixed':
             self.min_width = min_width
         else:
             self.min_width = None
-        
+
         self.valign_type, self.valign_amount = vt, va
         self.height_type, self.height_amount = ht, ha
         if self.height_type not in ('fixed', None):
             self.min_height = min_height
         else:
             self.min_height = None
+        self._invalidate()
 
     def selectable(self):
         """Return selectable from top_w."""
