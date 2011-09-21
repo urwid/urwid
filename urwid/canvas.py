@@ -269,6 +269,31 @@ class Canvas(object):
         self.coords["cursor"] = c + (None,) # data part
     cursor = property(get_cursor, set_cursor)
 
+    def get_pop_up(self):
+        c = self.coords.get("pop up", None)
+        if not c:
+            return
+        return c
+    def set_pop_up(self, w, left, top, overlay_width, overlay_height):
+        """
+        This method adds pop-up information to the canvas.  This information
+        is intercepted by a PopUpTarget widget higher in the chain to
+        display a pop-up at the given (left, top) position relative to the
+        current canvas.
+
+        w -- widget to use for the pop-up
+        left, top -- integer x, y position  eg. (0, 1) would align the
+            pop-up with this widget's left side and put its top one row below
+            this widget's top
+        overlay_width, overlay_height -- width and height parameters for
+            the Overlay widget used to position the pop-up
+        """
+        if self.widget_info and self.cacheable:
+            raise self._finalized_error
+
+        self.coords["pop up"] = (left, top, (
+            w, overlay_width, overlay_height))
+
     def translate_coords(self, dx, dy):
         """
         Return coords shifted by (dx, dy).
