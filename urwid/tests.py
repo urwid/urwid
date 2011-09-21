@@ -30,7 +30,7 @@ from doctest import DocTestSuite, ELLIPSIS, IGNORE_EXCEPTION_DETAIL
 import urwid
 from urwid.util import bytes, B
 from urwid.vterm_test import TermTest
-from urwid.text_layout import calc_pos, calc_coords
+from urwid.text_layout import calc_pos, calc_coords, CanNotDisplayText
 from urwid.canvas import (shard_body, shard_body_tail, shards_trim_top,
     shards_trim_sides, shards_join, shards_trim_rows, shard_body_row)
 from urwid.graphics import calculate_bargraph_display
@@ -291,6 +291,17 @@ class CalcBreaksUTF8Test(CalcBreaksTest):
         (5, [6, 12, 15] ),
     ]
 
+class CalcBreaksCantDisplayTest(unittest.TestCase):
+    def test(self):
+        urwid.set_encoding("euc-jp")
+        self.assertRaises(CanNotDisplayText,
+            urwid.default_layout.calculate_text_segments,
+            B('\xA1\xA1'), 1, 'space' )
+        urwid.set_encoding("utf-8")
+        self.assertRaises(CanNotDisplayText,
+            urwid.default_layout.calculate_text_segments,
+            B('\xe9\xa2\x96'), 1, 'space' )
+
 class SubsegTest(unittest.TestCase):
     def setUp(self):
         urwid.set_encoding("euc-jp")
@@ -338,6 +349,8 @@ class SubsegTest(unittest.TestCase):
         
 
 class CalcTranslateTest(unittest.TestCase):
+    def setUp(self):
+        urwid.set_encoding("utf-8")
     def test1_left(self):
         result = urwid.default_layout.layout( self.text,
             self.width, 'left', self.mode)
@@ -465,6 +478,13 @@ class CalcTranslateClipTest(CalcTranslateTest):
         [(7, None), (0, 35)],
         [(14, 36, 50), (0, 50)]]
 
+class CalcTranslateCantDisplayTest(CalcTranslateTest):
+    text = B('Hello\xe9\xa2\x96')
+    mode = 'space'
+    width = 1
+    result_left = [[]]
+    result_right = [[]]
+    result_center = [[]]
     
 
 class CalcPosTest(unittest.TestCase):
@@ -2258,6 +2278,7 @@ def test_all():
         CalcBreaksWordTest2,
         CalcBreaksDBWordTest,
         CalcBreaksUTF8Test,
+        CalcBreaksCantDisplayTest,
         SubsegTest,
         CalcTranslateCharTest,
         CalcTranslateWordTest,
@@ -2266,6 +2287,7 @@ def test_all():
         CalcTranslateWordTest4,
         CalcTranslateWordTest5,
         CalcTranslateClipTest,
+        CalcTranslateCantDisplayTest,
         CalcPosTest,
         Pos2CoordsTest,
         CanvasCacheTest,

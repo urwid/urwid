@@ -55,6 +55,9 @@ class TextLayout:
             " text layout class. (see StandardTextLayout)")
         return [[]]
 
+class CanNotDisplayText(Exception):
+    pass
+
 class StandardTextLayout(TextLayout):
     def __init__(self):#, tab_stops=(), tab_stop_every=8):
         pass
@@ -75,8 +78,11 @@ class StandardTextLayout(TextLayout):
         return wrap in ('any', 'space', 'clip')
     def layout(self, text, width, align, wrap ):
         """Return a layout structure for text."""
-        segs = self.calculate_text_segments( text, width, wrap )
-        return self.align_layout( text, width, segs, wrap, align )
+        try:
+            segs = self.calculate_text_segments( text, width, wrap )
+            return self.align_layout( text, width, segs, wrap, align )
+        except CanNotDisplayText:
+            return [[]]
 
     def pack(self, maxcol, layout):
         """
@@ -163,7 +169,9 @@ class StandardTextLayout(TextLayout):
                 p = n_cr+1
                 continue
             pos, sc = calc_text_pos( text, p, n_cr, width )
-            # FIXME: handle pathological width=1 double-byte case
+            if pos == p: # pathological width=1 double-byte case
+                raise CanNotDisplayText(
+                    "Wide character will not fit in 1-column width")
             if wrap == 'any':
                 b.append([(sc,p,pos)])
                 p = pos

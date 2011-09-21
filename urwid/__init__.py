@@ -51,7 +51,8 @@ try:
     from urwid.main_loop import GLibEventLoop, TwistedEventLoop
 except ImportError:
     pass
-from urwid.text_layout import TextLayout, StandardTextLayout, default_layout
+from urwid.text_layout import (TextLayout, StandardTextLayout, default_layout,
+    LayoutSegment)
 from urwid.display_common import (UPDATE_PALETTE_ENTRY, DEFAULT, BLACK,
     DARK_RED, DARK_GREEN, BROWN, DARK_BLUE, DARK_MAGENTA, DARK_CYAN,
     LIGHT_GRAY, DARK_GRAY, LIGHT_RED, LIGHT_GREEN, YELLOW, LIGHT_BLUE,
