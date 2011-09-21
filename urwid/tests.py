@@ -30,6 +30,10 @@ from doctest import DocTestSuite, ELLIPSIS, IGNORE_EXCEPTION_DETAIL
 import urwid
 from urwid.util import bytes, B
 from urwid.vterm_test import TermTest
+from urwid.text_layout import calc_pos, calc_coords
+from urwid.canvas import (shard_body, shard_body_tail, shards_trim_top,
+    shards_trim_sides, shards_join, shards_trim_rows, shard_body_row)
+from urwid.graphics import calculate_bargraph_display
 
 
 
@@ -476,7 +480,7 @@ class CalcPosTest(unittest.TestCase):
     
     def tests(self):
         for x,y, expected in self.mytests:
-            got = urwid.calc_pos( self.text, self.trans, x, y )
+            got = calc_pos( self.text, self.trans, x, y )
             assert got == expected, "%r got:%r expected:%r" % ((x, y), got,
                                                                expected)
 
@@ -501,7 +505,7 @@ class Pos2CoordsTest(unittest.TestCase):
     def test(self):
         for t, answer in self.mytests:
             for pos,a in zip(self.pos_list,answer) :
-                r = urwid.calc_coords( self.text, t, pos)
+                r = calc_coords( self.text, t, pos)
                 assert r==a, "%r got: %r expected: %r"%(t,r,a)
 
 
@@ -576,15 +580,15 @@ class CanvasTest(unittest.TestCase):
 
 class ShardBodyTest(unittest.TestCase):
     def sbt(self, shards, shard_tail, expected):
-        result = urwid.shard_body(shards, shard_tail, False)
+        result = shard_body(shards, shard_tail, False)
         assert result == expected, "got: %r expected: %r" % (result, expected)
     
     def sbttail(self, num_rows, sbody, expected):
-        result = urwid.shard_body_tail(num_rows, sbody)
+        result = shard_body_tail(num_rows, sbody)
         assert result == expected, "got: %r expected: %r" % (result, expected)
     
     def sbtrow(self, sbody, expected):
-        result = list(urwid.shard_body_row(sbody))
+        result = list(shard_body_row(sbody))
         assert result == expected, "got: %r expected: %r" % (result, expected)
 
     
@@ -637,15 +641,15 @@ class ShardBodyTest(unittest.TestCase):
 
 class ShardsTrimTest(unittest.TestCase):
     def sttop(self, shards, top, expected):
-        result = urwid.shards_trim_top(shards, top)
+        result = shards_trim_top(shards, top)
         assert result == expected, "got: %r expected: %r" (result, expected)
 
     def strows(self, shards, rows, expected):
-        result = urwid.shards_trim_rows(shards, rows)
+        result = shards_trim_rows(shards, rows)
         assert result == expected, "got: %r expected: %r" (result, expected)
     
     def stsides(self, shards, left, cols, expected):
-        result = urwid.shards_trim_sides(shards, left, cols)
+        result = shards_trim_sides(shards, left, cols)
         assert result == expected, "got: %r expected: %r" (result, expected)
 
 
@@ -727,7 +731,7 @@ class ShardsTrimTest(unittest.TestCase):
 
 class ShardsJoinTest(unittest.TestCase):
     def sjt(self, shard_lists, expected):
-        result = urwid.shards_join(shard_lists)
+        result = shards_join(shard_lists)
         assert result == expected, "got: %r expected: %r" (result, expected)
 
     def test(self):
@@ -1991,7 +1995,7 @@ class ColumnsTest(unittest.TestCase):
         
 class BarGraphTest(unittest.TestCase):
     def bgtest(self, desc, data, top, widths, maxrow, exp ):
-        rval = urwid.calculate_bargraph_display(data,top,widths,maxrow)
+        rval = calculate_bargraph_display(data,top,widths,maxrow)
         assert rval == exp, "%s expected %r, got %r"%(desc,exp,rval)
     
     def test1(self):
