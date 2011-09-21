@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid listbox class
-#    Copyright (C) 2004-2010  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -26,7 +26,6 @@ from urwid.decoration import calculate_filler, decompose_valign_height
 from urwid import signals
 from urwid.signals import connect_signal
 from urwid.monitored_list import MonitoredList
-from urwid.command_map import command_map
 
 
 class ListWalkerError(Exception):
@@ -764,16 +763,16 @@ class ListBox(BoxWidget):
                 return
         
         # pass off the heavy lifting
-        if command_map[key] == 'cursor up':
+        if self._command_map[key] == 'cursor up':
             return self._keypress_up((maxcol, maxrow))
             
-        if command_map[key] == 'cursor down':
+        if self._command_map[key] == 'cursor down':
             return self._keypress_down((maxcol, maxrow))
 
-        if command_map[key] == 'cursor page up':
+        if self._command_map[key] == 'cursor page up':
             return self._keypress_page_up((maxcol, maxrow))
             
-        if command_map[key] == 'cursor page down':
+        if self._command_map[key] == 'cursor page down':
             return self._keypress_page_down((maxcol, maxrow))
 
         return key

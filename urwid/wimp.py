@@ -23,7 +23,6 @@ from urwid.widget import Text, WidgetWrap, delegate_to_widget_mixin, BOX
 from urwid.canvas import CompositeCanvas
 from urwid.signals import connect_signal
 from urwid.container import Columns, Overlay
-from urwid.command_map import command_map
 from urwid.util import is_mouse_press
 from urwid.text_layout import calc_coords
 from urwid.signals import disconnect_signal # doctests
@@ -239,8 +238,8 @@ class CheckBox(WidgetWrap):
         """
         Toggle state on 'activate' command.  
 
-        >>> assert command_map[' '] == 'activate'
-        >>> assert command_map['enter'] == 'activate'
+        >>> assert CheckBox._command_map[' '] == 'activate'
+        >>> assert CheckBox._command_map['enter'] == 'activate'
         >>> size = (10,)
         >>> cb = CheckBox('press me')
         >>> cb.state
@@ -252,7 +251,7 @@ class CheckBox(WidgetWrap):
         >>> cb.state
         False
         """
-        if command_map[key] != 'activate':
+        if self._command_map[key] != 'activate':
             return key
         
         self.toggle_state()
@@ -491,8 +490,8 @@ class Button(WidgetWrap):
         """
         Send 'click' signal on 'activate' command.
         
-        >>> assert command_map[' '] == 'activate'
-        >>> assert command_map['enter'] == 'activate'
+        >>> assert Button._command_map[' '] == 'activate'
+        >>> assert Button._command_map['enter'] == 'activate'
         >>> size = (15,)
         >>> b = Button(u"Cancel")
         >>> clicked_buttons = []
@@ -504,7 +503,7 @@ class Button(WidgetWrap):
         >>> clicked_buttons # ... = u in Python 2
         [...'Cancel', ...'Cancel']
         """
-        if command_map[key] != 'activate':
+        if self._command_map[key] != 'activate':
             return key
 
         self._emit('click')

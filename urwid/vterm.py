@@ -37,7 +37,6 @@ from urwid import util
 from urwid.escape import DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS
 from urwid.canvas import Canvas
 from urwid.widget import BoxWidget
-from urwid.command_map import command_map
 from urwid.display_common import AttrSpec, RealTerminal, _BASIC_COLORS
 from urwid.compat import ord2, chr2, B, bytes
 
@@ -1574,7 +1573,7 @@ class Terminal(BoxWidget):
                 self.keygrab = True
                 self.last_key = key
                 return
-            elif command_map[key] is None or key == 'enter':
+            elif self._command_map[key] is None or key == 'enter':
                 # printable character or escape sequence means:
                 # lock in terminal...
                 self.keygrab = True

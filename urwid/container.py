@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid container widget classes
-#    Copyright (C) 2004-2008  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -23,7 +23,6 @@ from urwid.util import is_mouse_press
 from urwid.widget import Widget, BoxWidget, FlowWidget, Divider
 from urwid.decoration import Padding, Filler, calculate_padding, calculate_filler, \
     decompose_align_width, decompose_valign_height
-from urwid.command_map import command_map
 from urwid.monitored_list import MonitoredList
 from urwid.canvas import CompositeCanvas, CanvasOverlay, CanvasCombine, \
     SolidCanvas, CanvasJoin
@@ -937,12 +936,12 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         if self.focus_item.selectable():
             tsize = self.get_item_size(size,i,True,item_rows)
             key = self.focus_item.keypress( tsize, key )
-            if command_map[key] not in ('cursor up', 'cursor down'):
+            if self._command_map[key] not in ('cursor up', 'cursor down'):
                 return key
 
-        if command_map[key] == 'cursor up':
+        if self._command_map[key] == 'cursor up':
             candidates = range(i-1, -1, -1) # count backwards to 0
-        else: # command_map[key] == 'cursor down'
+        else: # self._command_map[key] == 'cursor down'
             candidates = range(i+1, len(self.widget_list))
 
         if not item_rows:
@@ -959,9 +958,9 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 
             f, height = self._get_item_types(i)
             rows = item_rows[j]
-            if command_map[key] == 'cursor up':
+            if self._command_map[key] == 'cursor up':
                 rowlist = range(rows-1, -1, -1)
-            else: # command_map[key] == 'cursor down'
+            else: # self._command_map[key] == 'cursor down'
                 rowlist = range(rows)
             for row in rowlist:
                 tsize=self.get_item_size(size,j,True,item_rows)
@@ -1385,15 +1384,15 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         i = self.focus_col
         mc = widths[i]
         w = self.widget_list[i]
-        if command_map[key] not in ('cursor up', 'cursor down',
+        if self._command_map[key] not in ('cursor up', 'cursor down',
             'cursor page up', 'cursor page down'):
             self.pref_col = None
         key = w.keypress( (mc,)+size[1:], key )
         
-        if command_map[key] not in ('cursor left', 'cursor right'):
+        if self._command_map[key] not in ('cursor left', 'cursor right'):
             return key
 
-        if command_map[key] == 'cursor left':
+        if self._command_map[key] == 'cursor left':
             candidates = range(i-1, -1, -1) # count backwards to 0
         else: # key == 'right'
             candidates = range(i+1, len(widths))

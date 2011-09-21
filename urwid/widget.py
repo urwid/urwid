@@ -202,6 +202,7 @@ class Widget(object):
     __metaclass__ = WidgetMeta
     _selectable = False
     _sizing = set([])
+    _command_map = command_map # default to the single shared CommandMap
 
     def _invalidate(self):
         CanvasCache.invalidate(self)
@@ -1043,17 +1044,17 @@ class Edit(Text):
             key = "\n"
             self.insert_text( key )
 
-        elif command_map[key] == 'cursor left':
+        elif self._command_map[key] == 'cursor left':
             if p==0: return key
             p = move_prev_char(self.edit_text,0,p)
             self.set_edit_pos(p)
         
-        elif command_map[key] == 'cursor right':
+        elif self._command_map[key] == 'cursor right':
             if p >= len(self.edit_text): return key
             p = move_next_char(self.edit_text,p,len(self.edit_text))
             self.set_edit_pos(p)
         
-        elif command_map[key] in ('cursor up', 'cursor down'):
+        elif self._command_map[key] in ('cursor up', 'cursor down'):
             self.highlight = None
             
             x,y = self.get_cursor_coords((maxcol,))
@@ -1062,7 +1063,7 @@ class Edit(Text):
             #if pref_col is None: 
             #    pref_col = x
 
-            if command_map[key] == 'cursor up': y -= 1
+            if self._command_map[key] == 'cursor up': y -= 1
             else: y += 1
 
             if not self.move_cursor_to_coords((maxcol,),pref_col,y):
@@ -1086,13 +1087,13 @@ class Edit(Text):
                 self.set_edit_text( self.edit_text[:self.edit_pos] + 
                     self.edit_text[p:] )
         
-        elif command_map[key] in ('cursor max left', 'cursor max right'):
+        elif self._command_map[key] in ('cursor max left', 'cursor max right'):
             self.highlight = None
             self.pref_col_maxcol = None, None
             
             x,y = self.get_cursor_coords((maxcol,))
             
-            if command_map[key] == 'cursor max left':
+            if self._command_map[key] == 'cursor max left':
                 self.move_cursor_to_coords((maxcol,), LEFT, y)
             else:
                 self.move_cursor_to_coords((maxcol,), RIGHT, y)

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid CommandMap class
-#    Copyright (C) 2004-2007  Ian Ward
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -21,7 +21,7 @@
 
 
 
-class CommandMap:
+class CommandMap(object):
     _command_defaults = {
         'tab': 'next selectable',
         'ctrl n': 'next selectable',
@@ -46,18 +46,28 @@ class CommandMap:
 
     def restore_defaults(self):
         self._command = dict(self._command_defaults)
-    
+
     def __getitem__(self, key):
         return self._command.get(key, None)
-    
+
     def __setitem__(self, key, command):
         self._command[key] = command
 
     def __delitem__(self, key):
         del self._command[key]
-    
+
     def clear_command(self, command):
         dk = [k for k, v in self._command.items() if v == command]
         for k in dk:
             del self._command[k]
+
+    def copy(self):
+        """
+        Return a new copy of this CommandMap, likely so we can modify
+        it separate from a shared one.
+        """
+        c = CommandMap()
+        c._command = dict(self._command)
+        return c
+
 command_map = CommandMap() # shared command mappings
