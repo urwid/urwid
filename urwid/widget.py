@@ -59,7 +59,6 @@ PACK = 'pack'
 GIVEN = 'given'
 RELATIVE = 'relative'
 RELATIVE_100 = (RELATIVE, 100)
-CLIP = 'clip'
 
 
 class WidgetMeta(MetaSuper, signals.MetaSignals):
