@@ -7,17 +7,17 @@ Urwid 1.0.0
       Wendell, Marien Zwart) everything except TwistedEventLoop and
       GLibEventLoop is supported
 
-    * New Terminal widget with xterm emulation and terminal
-      example program (by aszlig)
+    * New experimental Terminal widget with xterm emulation and
+      terminal.py example program (by aszlig)
 
     * Edit widget now supports a mask (for passwords), has a
       insert_text_result() method for full-field validation and
-      normalizes input text to unicode or bytes based on the caption
+      normalizes input text to Unicode or bytes based on the caption
       type used
 
     * New TreeWidget, ParentWidget, TreeNode, ParentNode, TreeWalker
       and TreeListBox classes for lazy expanding/collapsing tree
-      views refactored out of browse example program (by Rob Lanphier)
+      views factored out of browse example program (by Rob Lanphier)
 
     * MainLoop now calls draw_screen() just before going idle, so extra
       calls to draw_screen() in user code may now be removed
@@ -41,7 +41,7 @@ Urwid 1.0.0
       as flow widgets for mixing flow and box widgets more easily
 
     * New lcd_display module with support for CF635 USB LCD panel and
-      lcd example program with menus, slider controls and a custom
+      lcd_cf635.py example program with menus, slider controls and a custom
       font
 
     * Shared command_map instance is now stored as Widget._command_map
