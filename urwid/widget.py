@@ -1311,7 +1311,9 @@ def delegate_to_widget_mixin(attribute_name):
     # when layout and rendering are separated
 
     get_delegate = attrgetter(attribute_name)
-    class DelegateToWidgetMixin(object):
+    class DelegateToWidgetMixin(Widget):
+        no_cache = ["rows"] # crufty metaclass work-around
+
         def render(self, size, focus=False):
             canv = get_delegate(self).render(size, focus=focus)
             return CompositeCanvas(canv)
