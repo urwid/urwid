@@ -1,9 +1,0 @@
-This is a (mostly) working implementation of urwid that can be converted
-to python3 with the 2to3 converter, and still work.
-
-Known working:
-tour.py
-
-Known bugs:
-wide scripts (most likely)
-
