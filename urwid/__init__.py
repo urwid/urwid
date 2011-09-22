@@ -37,8 +37,9 @@ from urwid.listbox import (ListWalkerError, ListWalker, PollingListWalker,
     SimpleListWalker, ListBoxError, ListBox)
 from urwid.graphics import (BigText, LineBox, BarGraphMeta, BarGraphError,
     BarGraph, GraphVScale, ProgressBar)
-from urwid.canvas import (CanvasCache, CanvasError, TextCanvas, BlankCanvas,
-    SolidCanvas, CompositeCanvas, CanvasCombine, CanvasOverlay, CanvasJoin)
+from urwid.canvas import (CanvasCache, CanvasError, Canvas, TextCanvas,
+    BlankCanvas, SolidCanvas, CompositeCanvas, CanvasCombine, CanvasOverlay,
+    CanvasJoin)
 from urwid.font import (get_all_fonts, Font, Thin3x3Font, Thin4x3Font,
     HalfBlock5x4Font, HalfBlock6x5Font, HalfBlockHeavy6x5Font, Thin6x6Font,
     HalfBlock7x7Font)
