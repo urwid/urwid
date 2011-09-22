@@ -411,7 +411,7 @@ def _tagmarkup_recurse( tm, attr ):
         attr, element = tm
         return _tagmarkup_recurse( element, attr )
     
-    if not isinstance(tm,basestring):
+    if not isinstance(tm,(basestring, bytes)):
         raise TagMarkupException, "Invalid markup element: %r" % tm
     
     # text
