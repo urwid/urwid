@@ -17,7 +17,8 @@ Urwid 1.0.0
 
     * New TreeWidget, ParentWidget, TreeNode, ParentNode, TreeWalker
       and TreeListBox classes for lazy expanding/collapsing tree
-      views factored out of browse example program (by Rob Lanphier)
+      views factored out of browse.py example program, with new
+      treesample.py example program (by Rob Lanphier)
 
     * MainLoop now calls draw_screen() just before going idle, so extra
       calls to draw_screen() in user code may now be removed
