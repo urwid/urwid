@@ -3,8 +3,9 @@
 Urwid 1.0.0
 
     * New support for Python 3.2 from the same 2.x code base,
-      requires distribute instead of setuptools
-      (by Kirk McDonald, Wendell, Marien Zwart)
+      requires distribute instead of setuptools (by Kirk McDonald,
+      Wendell, Marien Zwart) everything except TwistedEventLoop and
+      GLibEventLoop is supported
 
     * New Terminal widget with xterm emulation and terminal
       example program (by aszlig)
@@ -19,36 +20,61 @@ Urwid 1.0.0
       views refactored out of browse example program (by Rob Lanphier)
 
     * MainLoop now calls draw_screen() just before going idle, so extra
-      calls to draw_screen in user code may be removed
+      calls to draw_screen() in user code may now be removed
 
     * New MainLoop.watch_pipe() method for subprocess or threaded
       communication with the process/thread updating the UI, and new
-      subproc example demonstrating its use
+      subproc.py example demonstrating its use
 
-    * New PopUpTarget widget and MainLoop option for creating pop-ups
-      and drop-downs, and new popup example program
+    * New PopUpLauncher and PopUpTarget widgets and MainLoop option
+      for creating pop-ups and drop-downs, and new pop_up.py example
+      program
 
-    * LineBox widgets may now include title text
+    * New twisted_serve_ssh.py example (by Ali Afshar) that serves
+      multiple displays over ssh from the same application using
+      Twisted and the TwistedEventLoop
 
     * ListBox now includes a get_cursor_coords() method, allowing
       nested ListBox widgets
 
     * Columns widget contents may now be marked to always be treated
-      as flow widgets
+      as flow widgets for mixing flow and box widgets more easily
 
     * New lcd_display module with support for CF635 USB LCD panel and
       lcd example program with menus, slider controls and a custom
       font
 
-    * Use reactor.stop in TwistedEventLoop and document that Twisted's
-      reactor is not designed to be stopped and restarted
+    * Shared command_map instance is now stored as Widget._command_map
+      class attribute and may be overridden in subclasses or individual
+      widgets for more control over special keystrokes
+
+    * Overlay widget parameters may now be adjusted after creation with
+      set_overlay_parameters() method
+
+    * New WidgetPlaceholder widget useful for swapping widgets without
+      having to manipulate a container widget's contents
+
+    * LineBox widgets may now include title text
+
+    * ProgressBar text content and alignment may now be overridden
+
+    * Use reactor.stop() in TwistedEventLoop and document that Twisted's
+      reactor is not designed to be stopped then restarted
 
     * curses_display now supports AttrSpec and external event loops
-      (Twisted or GLib) like raw_display
+      (Twisted or GLib) just like raw_display
 
     * raw_display and curses_display now support the IBMPC character
-      set (currently only used by Terminal)
+      set (currently only used by Terminal widget)
 
+    * Fix for a gpm_mev bug preventing user input when on the console
+
+    * Fix for leaks of None objects in str_util extension
+
+    * Fix for WidgetWrap and AttrMap not working with fixed widgets
+
+    * Fix for a lock up when attempting to wrap text containing wide
+      characters into a single character column
 
 
 Urwid 0.9.9.2
