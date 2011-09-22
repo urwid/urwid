@@ -15,7 +15,7 @@ Urwid 1.0.0
       normalizes input text to Unicode or bytes based on the caption
       type used
 
-    * New TreeWidget, ParentWidget, TreeNode, ParentNode, TreeWalker
+    * New TreeWidget, TreeNode, ParentNode, TreeWalker
       and TreeListBox classes for lazy expanding/collapsing tree
       views factored out of browse.py example program, with new
       treesample.py example program (by Rob Lanphier)
