@@ -2013,6 +2013,30 @@ class ColumnsTest(unittest.TestCase):
         self.mctest("r e edge",[x,e,x],1,(20,),13,0,True,1,12)
 
 
+class LineBoxTest(unittest.TestCase):
+    def border(self, tl, t, tr, l, r, bl, b, br):
+        return ["%s%s%s" % (tl, t, tr),
+                "%s %s" % (l, r),
+                "%s%s%s" % (bl, b, br),]
+
+    def test_linebox_border(self):
+        urwid.set_encoding("utf-8")
+        t = urwid.Text("")
+
+        l = urwid.LineBox(t).render((3,)).text
+
+        # default
+        self.assertEqual(l,
+            self.border("┌", "─", "┐", "│", "│", "└", "─", "┘"))
+
+        nums = map(str, range(8))
+        b = dict(zip(["tlcorner", "tline", "trcorner", "lline", "rline",
+            "blcorner", "bline", "brcorner"], nums))
+        l = urwid.LineBox(t, **b).render((3,)).text
+
+        self.assertEqual(l, self.border(*nums))
+
+
 class BarGraphTest(unittest.TestCase):
     def bgtest(self, desc, data, top, widths, maxrow, exp ):
         rval = calculate_bargraph_display(data,top,widths,maxrow)
@@ -2308,6 +2332,7 @@ def test_all():
         FrameTest,
         PileTest,
         ColumnsTest,
+        LineBoxTest,
         BarGraphTest,
         SmoothBarGraphTest,
         CanvasJoinTest,
