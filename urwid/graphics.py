@@ -92,18 +92,11 @@ class BigText(FixedWidget):
 
 
 class LineBox(WidgetDecoration, WidgetWrap):
-    ACS_HLINE = u'─'
-    ACS_VLINE = u'│'
-
-    ACS_ULCORNER = u'┌'
-    ACS_URCORNER = u'┐'
-    ACS_LLCORNER = u'└'
-    ACS_LRCORNER = u'┘'
 
     def __init__(self, original_widget, title="",
-                 tlcorner=None, tline=None, lline=None,
-                 trcorner=None, blcorner=None, rline=None,
-                 bline=None, brcorner=None):
+                 tlcorner=u'┌', tline=u'─', lline=u'│',
+                 trcorner=u'┐', blcorner=u'└', rline=u'│',
+                 bline=u'─', brcorner=u'┘'):
         """
         Draw a line around original_widget.
 
@@ -119,39 +112,38 @@ class LineBox(WidgetDecoration, WidgetWrap):
             trcorner: top right corner
             blcorner: bottom left corner
             brcorner: bottom right corner
+
         """
+
+        tline, bline = Divider(tline), Divider(bline)
+        lline, rline = SolidFill(lline), SolidFill(rline)
+        tlcorner, trcorner = Text(tlcorner), Text(trcorner)
+        blcorner, brcorner = Text(blcorner), Text(brcorner)
+
         self.title_widget = Text(self.format_title(title))
-
-        def use_attr( a, t ):
-            if a is not None:
-                t = AttrWrap(t, a)
-                return t
-            else:
-                return t
-
         self.tline_widget = Columns([
-            Divider(self.ACS_HLINE),
+            tline,
             ('flow', self.title_widget),
-            Divider(self.ACS_HLINE),
+            bline,
         ])
 
-        tline = use_attr( tline, self.tline_widget)
-        bline = use_attr( bline, Divider(self.ACS_HLINE))
-        lline = use_attr( lline, SolidFill(self.ACS_VLINE))
-        rline = use_attr( rline, SolidFill(self.ACS_VLINE))
-        tlcorner = use_attr( tlcorner, Text(self.ACS_ULCORNER))
-        trcorner = use_attr( trcorner, Text(self.ACS_URCORNER))
-        blcorner = use_attr( blcorner, Text(self.ACS_LLCORNER))
-        brcorner = use_attr( brcorner, Text(self.ACS_LRCORNER))
-        top = Columns([ ('fixed', 1, tlcorner),
-            tline, ('fixed', 1, trcorner) ])
-        middle = Columns( [('fixed', 1, lline),
-            original_widget, ('fixed', 1, rline)], box_columns = [0,2],
-            focus_column = 1)
-        bottom = Columns([ ('fixed', 1, blcorner),
-            bline, ('fixed', 1, brcorner) ])
-        pile = Pile([('flow',top),middle,('flow',bottom)],
-            focus_item = 1)
+        top = Columns([
+            ('fixed', 1, tlcorner),
+            self.tline_widget,
+            ('fixed', 1, trcorner)
+        ])
+
+        middle = Columns([
+            ('fixed', 1, lline),
+            original_widget,
+            ('fixed', 1, rline),
+        ], box_columns = [0,2], focus_column=1)
+
+        bottom = Columns([
+            ('fixed', 1, blcorner), bline, ('fixed', 1, brcorner)
+        ])
+
+        pile = Pile([('flow', top), middle, ('flow', bottom)], focus_item=1)
 
         WidgetDecoration.__init__(self, original_widget)
         WidgetWrap.__init__(self, pile)

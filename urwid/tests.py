@@ -43,17 +43,17 @@ class DecodeOneTest(unittest.TestCase):
         o, pos = urwid.str_util.decode_one(ch,0)
         assert o==exp_ord, " got:%r expected:%r" % (o, exp_ord)
         assert pos==exp_pos, " got:%r expected:%r" % (pos, exp_pos)
-    
+
     def test1byte(self):
         self.gwt("ab", ord("a"), 1)
         self.gwt("\xc0a", ord("?"), 1) # error
-    
+
     def test2byte(self):
         self.gwt("\xc2", ord("?"), 1) # error
         self.gwt("\xc0\x80", ord("?"), 1) # error
         self.gwt("\xc2\x80", 0x80, 2)
         self.gwt("\xdf\xbf", 0x7ff, 2)
-    
+
     def test3byte(self):
         self.gwt("\xe0", ord("?"), 1) # error
         self.gwt("\xe0\xa0", ord("?"), 1) # error
@@ -101,18 +101,18 @@ class ConvertDecSpecialTest(unittest.TestCase):
         resultcs = c._cs[0]
         assert resultcs==expcs, "%s got:%r expected:%r" % (desc,
                                                            resultcs, expcs)
-        
+
 
     def test1(self):
         self.ctest("no conversion", u"hello", "hello", [(None,5)])
         self.ctest("only special", u"£££££", "}}}}}", [("0",5)])
         self.ctest("mix left", u"££abc", "}}abc", [("0",2),(None,3)])
         self.ctest("mix right", u"abc££", "abc}}", [(None,3),("0",2)])
-        self.ctest("mix inner", u"a££bc", "a}}bc", 
+        self.ctest("mix inner", u"a££bc", "a}}bc",
             [(None,1),("0",2),(None,2)] )
         self.ctest("mix well", u"£a£b£", "}a}b}",
             [("0",1),(None,1),("0",1),(None,1),("0",1)] )
-        
+
 
 class WithinDoubleByteTest(unittest.TestCase):
     def setUp(self):
@@ -130,7 +130,7 @@ class WithinDoubleByteTest(unittest.TestCase):
         self.wtest("mn\xA1@qr",0,3,2,'simple 2nd half lo')
         self.wtest("mn\xA1\xA1@r",0,4,0,'subsequent not 2nd half lo')
         self.wtest("m\xA1\xA1\xA1@r",0,4,2,'subsequent 2nd half lo')
-        
+
     def test2(self):
         self.wtest("\xA1\xA1qr",0,0,1,'begin 1st half')
         self.wtest("\xA1\xA1qr",0,1,2,'begin 2nd half')
@@ -172,7 +172,7 @@ class CalcTextPosTest(unittest.TestCase):
             (6,21,3, (9,3)),
             ]
         self.ctptest(text, tests)
-    
+
     def test2_wide(self):
         urwid.set_encoding("euc-jp")
         text = "hel\xA1\xA1 world out there"
@@ -184,7 +184,7 @@ class CalcTextPosTest(unittest.TestCase):
             (6,21,0, (6,0)),
             ]
         self.ctptest(text, tests)
-    
+
     def test3_utf8(self):
         urwid.set_encoding("utf-8")
         text = "hel\xc4\x83 world \xe2\x81\x81 there"
@@ -198,7 +198,7 @@ class CalcTextPosTest(unittest.TestCase):
             (6,21,8, (16,8)),
             ]
         self.ctptest(text, tests)
-    
+
     def test4_utf8(self):
         urwid.set_encoding("utf-8")
         text = "he\xcc\x80llo \xe6\x9b\xbf world"
@@ -216,7 +216,7 @@ class CalcTextPosTest(unittest.TestCase):
 
 class CalcBreaksTest(unittest.TestCase):
     def cbtest(self, width, exp):
-        result = urwid.default_layout.calculate_text_segments( 
+        result = urwid.default_layout.calculate_text_segments(
             B(self.text), width, self.mode )
         assert len(result) == len(exp), repr((result, exp))
         for l,e in zip(result, exp):
@@ -243,7 +243,7 @@ class CalcBreaksDBCharTest(CalcBreaksTest):
     mode = 'any'
     text = "abfgh\xA1\xA1j\xA1\xA1xskhtrvs\naltjhgsdf\xA1\xA1jahtshgf"
     # tests
-    do = [ 
+    do = [
         ( 10, [10, 18, 28, 38] ),
         ( 6, [5, 11, 17, 18, 25, 31, 37, 38] ),
         ( 100, [18, 38]),
@@ -253,7 +253,7 @@ class CalcBreaksWordTest(CalcBreaksTest):
     mode = 'space'
     text = "hello world\nout there. blah"
     # tests
-    do = [ 
+    do = [
         ( 10, [5, 11, 22, 27] ),
         ( 5, [5, 11, 17, 22, 27] ),
         ( 100, [11, 27] ),
@@ -311,27 +311,27 @@ class SubsegTest(unittest.TestCase):
         s = urwid.LayoutSegment(seg)
         result = s.subseg( text, start, end )
         assert result == exp, "Expected %r, got %r"%(exp,result)
-        
+
     def test1_padding(self):
         self.st( (10, None), "", 0, 8,    [(8, None)] )
         self.st( (10, None), "", 2, 10, [(8, None)] )
         self.st( (10, 0), "", 3, 7,     [(4, 0)] )
         self.st( (10, 0), "", 0, 20,     [(10, 0)] )
-    
+
     def test2_text(self):
         self.st( (10, 0, B("1234567890")), "", 0, 8,  [(8,0,B("12345678"))] )
         self.st( (10, 0, B("1234567890")), "", 2, 10, [(8,0,B("34567890"))] )
-        self.st( (10, 0, B("12\xA1\xA156\xA1\xA190")), "", 2, 8, 
+        self.st( (10, 0, B("12\xA1\xA156\xA1\xA190")), "", 2, 8,
             [(6, 0, B("\xA1\xA156\xA1\xA1"))] )
-        self.st( (10, 0, B("12\xA1\xA156\xA1\xA190")), "", 3, 8, 
+        self.st( (10, 0, B("12\xA1\xA156\xA1\xA190")), "", 3, 8,
             [(5, 0, B(" 56\xA1\xA1"))] )
-        self.st( (10, 0, B("12\xA1\xA156\xA1\xA190")), "", 2, 7, 
+        self.st( (10, 0, B("12\xA1\xA156\xA1\xA190")), "", 2, 7,
             [(5, 0, B("\xA1\xA156 "))] )
-        self.st( (10, 0, B("12\xA1\xA156\xA1\xA190")), "", 3, 7, 
+        self.st( (10, 0, B("12\xA1\xA156\xA1\xA190")), "", 3, 7,
             [(4, 0, B(" 56 "))] )
         self.st( (10, 0, B("12\xA1\xA156\xA1\xA190")), "", 0, 20,
             [(10, 0, B("12\xA1\xA156\xA1\xA190"))] )
-         
+
     def test3_range(self):
         t = "1234567890"
         self.st( (10, 0, 10), t, 0, 8,    [(8, 0, 8)] )
@@ -345,8 +345,8 @@ class SubsegTest(unittest.TestCase):
         self.st( (6, 2, 8), t, 1, 6,     [(1, 3), (4, 4, 8)] )
         self.st( (6, 2, 8), t, 0, 5,     [(4, 2, 6), (1, 6)] )
         self.st( (6, 2, 8), t, 1, 5,     [(1, 3), (2, 4, 6), (1, 6)] )
-        
-        
+
+
 
 class CalcTranslateTest(unittest.TestCase):
     def setUp(self):
@@ -369,16 +369,16 @@ class CalcTranslateCharTest(CalcTranslateTest):
     mode = 'any'
     width = 15
     result_left = [
-        [(15, 0, 15)], 
-        [(5, 15, 20), (0, 20)], 
+        [(15, 0, 15)],
+        [(5, 15, 20), (0, 20)],
         [(13, 21, 34), (0, 34)]]
     result_right = [
-        [(15, 0, 15)], 
-        [(10, None), (5, 15, 20), (0,20)], 
+        [(15, 0, 15)],
+        [(10, None), (5, 15, 20), (0,20)],
         [(2, None), (13, 21, 34), (0,34)]]
     result_center = [
-        [(15, 0, 15)], 
-        [(5, None), (5, 15, 20), (0,20)], 
+        [(15, 0, 15)],
+        [(5, None), (5, 15, 20), (0,20)],
         [(1, None), (13, 21, 34), (0,34)]]
 
 class CalcTranslateWordTest(CalcTranslateTest):
@@ -386,16 +386,16 @@ class CalcTranslateWordTest(CalcTranslateTest):
     mode = 'space'
     width = 14
     result_left = [
-        [(11, 0, 11), (0, 11)], 
-        [(8, 12, 20), (0, 20)], 
+        [(11, 0, 11), (0, 11)],
+        [(8, 12, 20), (0, 20)],
         [(13, 21, 34), (0, 34)]]
     result_right = [
-        [(3, None), (11, 0, 11), (0, 11)], 
-        [(6, None), (8, 12, 20), (0, 20)], 
+        [(3, None), (11, 0, 11), (0, 11)],
+        [(6, None), (8, 12, 20), (0, 20)],
         [(1, None), (13, 21, 34), (0, 34)]]
     result_center = [
-        [(2, None), (11, 0, 11), (0, 11)], 
-        [(3, None), (8, 12, 20), (0, 20)], 
+        [(2, None), (11, 0, 11), (0, 11)],
+        [(3, None), (8, 12, 20), (0, 20)],
         [(1, None), (13, 21, 34), (0, 34)]]
 
 class CalcTranslateWordTest2(CalcTranslateTest):
@@ -403,16 +403,16 @@ class CalcTranslateWordTest2(CalcTranslateTest):
     mode = 'space'
     width = 14
     result_left = [
-        [(11, 0, 11), (0, 11)], 
-        [(8, 12, 20), (0, 20)], 
+        [(11, 0, 11), (0, 11)],
+        [(8, 12, 20), (0, 20)],
         [(14, 21, 35), (0, 35)]]
     result_right = [
-        [(3, None), (11, 0, 11), (0, 11)], 
-        [(6, None), (8, 12, 20), (0, 20)], 
+        [(3, None), (11, 0, 11), (0, 11)],
+        [(6, None), (8, 12, 20), (0, 20)],
         [(14, 21, 35), (0, 35)]]
     result_center = [
-        [(2, None), (11, 0, 11), (0, 11)], 
-        [(3, None), (8, 12, 20), (0, 20)], 
+        [(2, None), (11, 0, 11), (0, 11)],
+        [(3, None), (8, 12, 20), (0, 20)],
         [(14, 21, 35), (0, 35)]]
 
 class CalcTranslateWordTest3(CalcTranslateTest):
@@ -422,33 +422,33 @@ class CalcTranslateWordTest3(CalcTranslateTest):
     width = 10
     mode = 'space'
     result_left = [
-        [(4, 0, 6), (0, 6)], 
+        [(4, 0, 6), (0, 6)],
         [(6, 7, 16), (0, 16)]]
     result_right = [
-        [(6, None), (4, 0, 6), (0, 6)], 
+        [(6, None), (4, 0, 6), (0, 6)],
         [(4, None), (6, 7, 16), (0, 16)]]
     result_center = [
-        [(3, None), (4, 0, 6), (0, 6)], 
+        [(3, None), (4, 0, 6), (0, 6)],
         [(2, None), (6, 7, 16), (0, 16)]]
-    
+
 class CalcTranslateWordTest4(CalcTranslateTest):
     text = ' Die Gedank'
     width = 3
     mode = 'space'
     result_left = [
-        [(0, 0)], 
-        [(3, 1, 4), (0, 4)], 
-        [(3, 5, 8)], 
+        [(0, 0)],
+        [(3, 1, 4), (0, 4)],
+        [(3, 5, 8)],
         [(3, 8, 11), (0, 11)]]
     result_right = [
-        [(3, None), (0, 0)], 
-        [(3, 1, 4), (0, 4)], 
-        [(3, 5, 8)], 
+        [(3, None), (0, 0)],
+        [(3, 1, 4), (0, 4)],
+        [(3, 5, 8)],
         [(3, 8, 11), (0, 11)]]
     result_center = [
-        [(2, None), (0, 0)], 
-        [(3, 1, 4), (0, 4)], 
-        [(3, 5, 8)], 
+        [(2, None), (0, 0)],
+        [(3, 1, 4), (0, 4)],
+        [(3, 5, 8)],
         [(3, 8, 11), (0, 11)]]
 
 class CalcTranslateWordTest5(CalcTranslateTest):
@@ -463,18 +463,18 @@ class CalcTranslateClipTest(CalcTranslateTest):
     mode = 'clip'
     width = 14
     result_left = [
-        [(20, 0, 20), (0, 20)], 
-        [(13, 21, 34), (0, 34)], 
+        [(20, 0, 20), (0, 20)],
+        [(13, 21, 34), (0, 34)],
         [(0, 35)],
         [(14, 36, 50), (0, 50)]]
     result_right = [
-        [(-6, None), (20, 0, 20), (0, 20)], 
-        [(1, None), (13, 21, 34), (0, 34)], 
+        [(-6, None), (20, 0, 20), (0, 20)],
+        [(1, None), (13, 21, 34), (0, 34)],
         [(14, None), (0, 35)],
         [(14, 36, 50), (0, 50)]]
     result_center = [
-        [(-3, None), (20, 0, 20), (0, 20)], 
-        [(1, None), (13, 21, 34), (0, 34)], 
+        [(-3, None), (20, 0, 20), (0, 20)],
+        [(1, None), (13, 21, 34), (0, 34)],
         [(7, None), (0, 35)],
         [(14, 36, 50), (0, 50)]]
 
@@ -485,19 +485,19 @@ class CalcTranslateCantDisplayTest(CalcTranslateTest):
     result_left = [[]]
     result_right = [[]]
     result_center = [[]]
-    
+
 
 class CalcPosTest(unittest.TestCase):
     def setUp(self):
         self.text = "A" * 27
         self.trans = [
-            [(2,None),(7,0,7),(0,7)], 
-            [(13,8,21),(0,21)], 
+            [(2,None),(7,0,7),(0,7)],
+            [(13,8,21),(0,21)],
             [(3,None),(5,22,27),(0,27)]]
         self.mytests = [(1,0, 0), (2,0, 0), (11,0, 7),
             (-3,1, 8), (-2,1, 8), (1,1, 9), (31,1, 21),
             (1,2, 22), (11,2, 27) ]
-    
+
     def tests(self):
         for x,y, expected in self.mytests:
             got = calc_pos( self.text, self.trans, x, y )
@@ -509,7 +509,7 @@ class Pos2CoordsTest(unittest.TestCase):
     pos_list = [5, 9, 20, 26]
     text = "1234567890" * 3
     mytests = [
-        ( [[(15,0,15)], [(15,15,30),(0,30)]], 
+        ( [[(15,0,15)], [(15,15,30),(0,30)]],
             [(5,0),(9,0),(5,1),(11,1)] ),
         ( [[(9,0,9)], [(12,9,21)], [(9,21,30),(0,30)]],
             [(5,0),(0,1),(11,1),(5,2)] ),
@@ -519,9 +519,9 @@ class Pos2CoordsTest(unittest.TestCase):
             [(0,0),(3,0),(0,1),(5,1)] ),
         ( [[(10, 0, 10),(0,10)]],
             [(5,0),(9,0),(10,0),(10,0)] ),
-        
+
         ]
-        
+
     def test(self):
         for t, answer in self.mytests:
             for pos,a in zip(self.pos_list,answer) :
@@ -579,9 +579,9 @@ class CanvasTest(unittest.TestCase):
 
     def test1(self):
         self.ct(["Hello world"], None, [[(None, None, B("Hello world"))]])
-        self.ct(["Hello world"], [[("a",5)]], 
+        self.ct(["Hello world"], [[("a",5)]],
             [[("a", None, B("Hello")), (None, None, B(" world"))]])
-        self.ct(["Hi","There"], None, 
+        self.ct(["Hi","There"], None,
             [[(None, None, B("Hi   "))], [(None, None, B("There"))]])
 
     def test2(self):
@@ -602,16 +602,16 @@ class ShardBodyTest(unittest.TestCase):
     def sbt(self, shards, shard_tail, expected):
         result = shard_body(shards, shard_tail, False)
         assert result == expected, "got: %r expected: %r" % (result, expected)
-    
+
     def sbttail(self, num_rows, sbody, expected):
         result = shard_body_tail(num_rows, sbody)
         assert result == expected, "got: %r expected: %r" % (result, expected)
-    
+
     def sbtrow(self, sbody, expected):
         result = list(shard_body_row(sbody))
         assert result == expected, "got: %r expected: %r" % (result, expected)
 
-    
+
     def test1(self):
         cviews = [(0,0,10,5,None,"foo"),(0,0,5,5,None,"bar")]
         self.sbt(cviews, [],
@@ -629,13 +629,13 @@ class ShardBodyTest(unittest.TestCase):
             [(0, None, (0,0,10,5,None,"foo")),
             (0, None, (0,0,5,5,None,"bar")),
             (3, None, (0,0,5,8,None,"baz"))])
-    
+
     def test2(self):
         sbody = [(0, None, (0,0,10,5,None,"foo")),
             (0, None, (0,0,5,5,None,"bar")),
             (3, None, (0,0,5,8,None,"baz"))]
         self.sbttail(5, sbody, [])
-        self.sbttail(3, sbody, 
+        self.sbttail(3, sbody,
             [(0, 3, None, (0,0,10,5,None,"foo")),
                     (0, 3, None, (0,0,5,5,None,"bar")),
             (0, 6, None, (0,0,5,8,None,"baz"))])
@@ -643,20 +643,20 @@ class ShardBodyTest(unittest.TestCase):
         sbody = [(0, None, (0,0,10,3,None,"foo")),
                         (0, None, (0,0,5,5,None,"bar")),
                         (3, None, (0,0,5,9,None,"baz"))]
-        self.sbttail(3, sbody, 
+        self.sbttail(3, sbody,
             [(10, 3, None, (0,0,5,5,None,"bar")),
             (0, 6, None, (0,0,5,9,None,"baz"))])
-    
+
     def test3(self):
         self.sbtrow([(0, None, (0,0,10,5,None,"foo")),
             (0, None, (0,0,5,5,None,"bar")),
-            (3, None, (0,0,5,8,None,"baz"))], 
+            (3, None, (0,0,5,8,None,"baz"))],
             [20])
         self.sbtrow([(0, iter("foo"), (0,0,10,5,None,"foo")),
             (0, iter("bar"), (0,0,5,5,None,"bar")),
-            (3, iter("zzz"), (0,0,5,8,None,"baz"))], 
+            (3, iter("zzz"), (0,0,5,8,None,"baz"))],
             ["f","b","z"])
-        
+
 
 
 class ShardsTrimTest(unittest.TestCase):
@@ -667,7 +667,7 @@ class ShardsTrimTest(unittest.TestCase):
     def strows(self, shards, rows, expected):
         result = shards_trim_rows(shards, rows)
         assert result == expected, "got: %r expected: %r" (result, expected)
-    
+
     def stsides(self, shards, left, cols, expected):
         result = shards_trim_sides(shards, left, cols)
         assert result == expected, "got: %r expected: %r" (result, expected)
@@ -675,9 +675,9 @@ class ShardsTrimTest(unittest.TestCase):
 
     def test1(self):
         shards = [(5, [(0,0,10,5,None,"foo"),(0,0,5,5,None,"bar")])]
-        self.sttop(shards, 2, 
+        self.sttop(shards, 2,
             [(3, [(0,2,10,3,None,"foo"),(0,2,5,3,None,"bar")])])
-        self.strows(shards, 2, 
+        self.strows(shards, 2,
             [(2, [(0,0,10,2,None,"foo"),(0,0,5,2,None,"bar")])])
 
         shards = [(5, [(0,0,10,5,None,"foo")]),(3,[(0,0,10,3,None,"bar")])]
@@ -762,19 +762,19 @@ class ShardsJoinTest(unittest.TestCase):
         shards3 = [(3, [(0,0,10,3,None,"111")]),
             (2,[(0,0,10,3,None,"222")]),
             (3,[(0,0,10,3,None,"333")])]
-        
+
         self.sjt([shards1], shards1)
-        self.sjt([shards1, shards2], 
+        self.sjt([shards1, shards2],
             [(3, [(0,0,10,5,None,"foo"), (0,0,5,8,None,"baz"),
                 (0,0,10,3,None,"aaa")]),
             (2, [(0,0,10,5,None,"bbb")]),
             (3, [(0,0,10,3,None,"bar")])])
-        self.sjt([shards1, shards3], 
+        self.sjt([shards1, shards3],
             [(3, [(0,0,10,5,None,"foo"), (0,0,5,8,None,"baz"),
                 (0,0,10,3,None,"111")]),
             (2, [(0,0,10,3,None,"222")]),
             (3, [(0,0,10,3,None,"bar"), (0,0,10,3,None,"333")])])
-        self.sjt([shards1, shards2, shards3], 
+        self.sjt([shards1, shards2, shards3],
             [(3, [(0,0,10,5,None,"foo"), (0,0,5,8,None,"baz"),
                 (0,0,10,3,None,"aaa"), (0,0,10,3,None,"111")]),
             (2, [(0,0,10,5,None,"bbb"), (0,0,10,3,None,"222")]),
@@ -804,7 +804,7 @@ class TagMarkupTest(unittest.TestCase):
             pass
         else:
             assert 0, "should have thrown exception!"
-        
+
     def test_bad_type(self):
         try:
             urwid.decompose_tagmarkup(5)
@@ -812,30 +812,30 @@ class TagMarkupTest(unittest.TestCase):
             pass
         else:
             assert 0, "should have thrown exception!"
-            
+
 
 
 class TextTest(unittest.TestCase):
     def setUp(self):
         self.t = urwid.Text("I walk the\ncity in the night")
-        
+
     def test1_wrap(self):
         expected = [B(t) for t in "I walk the","city in   ","the night "]
         got = self.t.render((10,))._text
         assert got == expected, "got: %r expected: %r" % (got, expected)
-    
+
     def test2_left(self):
         self.t.set_align_mode('left')
         expected = [B(t) for t in "I walk the        ","city in the night "]
         got = self.t.render((18,))._text
         assert got == expected, "got: %r expected: %r" % (got, expected)
-    
+
     def test3_right(self):
         self.t.set_align_mode('right')
         expected = [B(t) for t in "        I walk the"," city in the night"]
         got = self.t.render((18,))._text
         assert got == expected, "got: %r expected: %r" % (got, expected)
-    
+
     def test4_center(self):
         self.t.set_align_mode('center')
         expected = [B(t) for t in "    I walk the    "," city in the night"]
@@ -849,26 +849,26 @@ class EditTest(unittest.TestCase):
         self.t1 = urwid.Edit("","blah blah")
         self.t2 = urwid.Edit("stuff:", "blah blah")
         self.t3 = urwid.Edit("junk:\n","blah blah\n\nbloo",1)
-    
+
     def ktest(self, e, key, expected, pos, desc):
         got= e.keypress((12,),key)
         assert got == expected, "%s.  got: %r expected:%r" % (desc, got,
                                                               expected)
         assert e.edit_pos == pos, "%s. pos: %r expected pos: " % (
             desc, e.edit_pos, pos)
-    
+
     def test1_left(self):
         self.t1.set_edit_pos(0)
         self.ktest(self.t1,'left','left',0,"left at left edge")
-        
+
         self.ktest(self.t2,'left',None,8,"left within text")
 
         self.t3.set_edit_pos(10)
         self.ktest(self.t3,'left',None,9,"left after newline")
-    
+
     def test2_right(self):
         self.ktest(self.t1,'right','right',9,"right at right edge")
-        
+
         self.t2.set_edit_pos(8)
         self.ktest(self.t2,'right',None,9,"right at right edge-1")
         self.t3.set_edit_pos(0)
@@ -885,7 +885,7 @@ class EditTest(unittest.TestCase):
         assert self.t2.get_pref_col((12,)) == 7
         self.t3.set_edit_pos(10)
         self.ktest(self.t3,'up',None,0,"up at top+1")
-    
+
     def test4_down(self):
         self.ktest(self.t1,'down','down',9,"down single line")
         self.t3.set_edit_pos(5)
@@ -906,38 +906,38 @@ class EditRenderTest(unittest.TestCase):
         assert r.cursor == expected_cursor, "got: %r expected: %r" % (
             r.cursor, expected_cursor)
 
-    
+
     def test1_SpaceWrap(self):
         w = urwid.Edit("","blah blah")
         w.set_edit_pos(0)
         self.rtest(w,["blah","blah"],(0,0))
-        
+
         w.set_edit_pos(4)
         self.rtest(w,["lah ","blah"],(3,0))
 
         w.set_edit_pos(5)
         self.rtest(w,["blah","blah"],(0,1))
-        
+
         w.set_edit_pos(9)
         self.rtest(w,["blah","lah "],(3,1))
-    
+
     def test2_ClipWrap(self):
         w = urwid.Edit("","blah\nblargh",1)
         w.set_wrap_mode('clip')
         w.set_edit_pos(0)
         self.rtest(w,["blah","blar"],(0,0))
-        
+
         w.set_edit_pos(10)
         self.rtest(w,["blah","argh"],(3,1))
-        
+
         w.set_align_mode('right')
         w.set_edit_pos(6)
         self.rtest(w,["blah","larg"],(0,1))
-    
+
     def test3_AnyWrap(self):
         w = urwid.Edit("","blah blah")
         w.set_wrap_mode('any')
-        
+
         self.rtest(w,["blah"," bla","h   "],(1,2))
 
     def test4_CursorNudge(self):
@@ -945,24 +945,24 @@ class EditRenderTest(unittest.TestCase):
         w.keypress((4,),'end')
 
         self.rtest(w,[" hi "],(3,0))
-        
+
         w.keypress((4,),'left')
         self.rtest(w,["  hi"],(3,0))
-        
+
 
 
 class SelectableText(urwid.Text):
     def selectable(self):
         return 1
-        
+
     def keypress(self, size, key):
         return key
-        
+
 class ListBoxCalculateVisibleTest(unittest.TestCase):
-        
+
     def cvtest(self, desc, body, focus, offset_rows, inset_fraction,
         exp_offset_inset, exp_cur ):
-        
+
         lbox = urwid.ListBox(body)
         lbox.body.set_focus( focus )
         lbox.offset_rows = offset_rows
@@ -970,24 +970,24 @@ class ListBoxCalculateVisibleTest(unittest.TestCase):
 
         middle, top, bottom = lbox.calculate_visible((4,5),focus=1)
         offset_inset, focus_widget, focus_pos, _ign, cursor = middle
-            
+
         if cursor is not None:
             x, y = cursor
             y += offset_inset
             cursor = x, y
-                
+
         assert offset_inset == exp_offset_inset, "%s got: %r expected: %r" %(desc,offset_inset,exp_offset_inset)
         assert cursor == exp_cur, "%s (cursor) got: %r expected: %r" %(desc,cursor,exp_cur)
-    
+
     def test1_simple(self):
         T = urwid.Text
 
         l = [T(""),T(""),T("\n"),T("\n\n"),T("\n"),T(""),T("")]
 
-        self.cvtest( "simple top position", 
-            l, 3, 0, (0,1), 0, None )        
+        self.cvtest( "simple top position",
+            l, 3, 0, (0,1), 0, None )
 
-        self.cvtest( "simple middle position", 
+        self.cvtest( "simple middle position",
             l, 3, 1, (0,1), 1, None )
 
         self.cvtest( "simple bottom postion",
@@ -1004,26 +1004,26 @@ class ListBoxCalculateVisibleTest(unittest.TestCase):
 
         self.cvtest( "way off bottom edge",
             l, 3, 100, (0,1), 4, None )
-    
+
         self.cvtest( "gap at top",
             l, 0, 2, (0,1), 0, None )
-        
+
         self.cvtest( "gap at top and off bottom edge",
             l, 2, 5, (0,1), 2, None )
 
         self.cvtest( "gap at bottom",
             l, 6, 1, (0,1), 4, None )
-            
+
         self.cvtest( "gap at bottom and straddling top edge",
             l, 4, 0, (1,2), 1, None )
-            
+
         self.cvtest( "gap at bottom cannot completely fill",
             [T(""),T(""),T("")], 1, 0, (0,1), 1, None )
-            
+
         self.cvtest( "gap at top and bottom",
             [T(""),T(""),T("")], 1, 2, (0,1), 1, None )
 
-    
+
     def test2_cursor(self):
         T, E = urwid.Text, urwid.Edit
 
@@ -1031,7 +1031,7 @@ class ListBoxCalculateVisibleTest(unittest.TestCase):
         l2 = [T(""),T(""),T("\n"),E("","YY\n\n"),T("\n"),T(""),T("")]
 
         l2[3].set_edit_pos(2)
-        
+
         self.cvtest( "plain cursor in view",
             l1, 3, 1, (0,1), 1, (1,3) )
 
@@ -1046,37 +1046,37 @@ class ListBoxCalculateVisibleTest(unittest.TestCase):
 
         self.cvtest( "cursor way off bottom",
             l1, 3, 100, (0,1), 2, (1, 4) )
-            
+
 
 
 class ListBoxChangeFocusTest(unittest.TestCase):
-        
-    def cftest(self, desc, body, pos, offset_inset, 
-            coming_from, cursor, snap_rows, 
+
+    def cftest(self, desc, body, pos, offset_inset,
+            coming_from, cursor, snap_rows,
             exp_offset_rows, exp_inset_fraction, exp_cur ):
-        
+
         lbox = urwid.ListBox(body)
-        
+
         lbox.change_focus( (4,5), pos, offset_inset, coming_from,
             cursor, snap_rows )
 
         exp = exp_offset_rows, exp_inset_fraction
         act = lbox.offset_rows, lbox.inset_fraction
-        
+
         cursor = None
         focus_widget, focus_pos = lbox.body.get_focus()
         if focus_widget.selectable():
             if hasattr(focus_widget,'get_cursor_coords'):
                 cursor=focus_widget.get_cursor_coords((4,))
-            
+
         assert act == exp, "%s got: %s expected: %s" %(desc, act, exp)
         assert cursor == exp_cur, "%s (cursor) got: %r expected: %r" %(desc,cursor,exp_cur)
-    
-        
+
+
     def test1unselectable(self):
         T = urwid.Text
         l = [T("\n"),T("\n\n"),T("\n\n"),T("\n\n"),T("\n")]
-        
+
         self.cftest( "simple unselectable",
             l, 2, 0, None, None, None, 0, (0,1), None )
 
@@ -1085,10 +1085,10 @@ class ListBoxChangeFocusTest(unittest.TestCase):
 
         self.cftest( "unselectable off top",
             l, 2, -2, None, None, None, 0, (2,3), None )
-        
+
         self.cftest( "unselectable off bottom",
             l, 3, 2, None, None, None, 2, (0,1), None )
-        
+
     def test2selectable(self):
         T, S = urwid.Text, SelectableText
         l = [T("\n"),T("\n\n"),S("\n\n"),T("\n\n"),T("\n")]
@@ -1104,41 +1104,41 @@ class ListBoxChangeFocusTest(unittest.TestCase):
 
         self.cftest( "selectable at bottom",
             l, 2, 2, 'above', None, None, 2, (0,1), None )
-        
+
         self.cftest( "selectable off top snap",
             l, 2, -1, 'below', None, None, 0, (0,1), None )
-        
+
         self.cftest( "selectable off bottom snap",
             l, 2, 3, 'above', None, None, 2, (0,1), None )
-        
+
         self.cftest( "selectable off top no snap",
             l, 2, -1, 'above', None, None, 0, (1,3), None )
-        
+
         self.cftest( "selectable off bottom no snap",
             l, 2, 3, 'below', None, None, 3, (0,1), None )
-        
+
     def test3large_selectable(self):
         T, S = urwid.Text, SelectableText
         l = [T("\n"),S("\n\n\n\n\n\n"),T("\n")]
-        self.cftest( "large selectable no snap", 
+        self.cftest( "large selectable no snap",
             l, 1, -1, None, None, None, 0, (1,7), None )
-    
-        self.cftest( "large selectable snap up", 
+
+        self.cftest( "large selectable snap up",
             l, 1, -2, 'below', None, None, 0, (0,1), None )
-    
-        self.cftest( "large selectable snap up2", 
+
+        self.cftest( "large selectable snap up2",
             l, 1, -2, 'below', None, 2, 0, (0,1), None )
-    
-        self.cftest( "large selectable almost snap up", 
+
+        self.cftest( "large selectable almost snap up",
             l, 1, -2, 'below', None, 1, 0, (2,7), None )
-    
-        self.cftest( "large selectable snap down", 
+
+        self.cftest( "large selectable snap down",
             l, 1, 0, 'above', None, None, 0, (2,7), None )
 
-        self.cftest( "large selectable snap down2", 
+        self.cftest( "large selectable snap down2",
             l, 1, 0, 'above', None, 2, 0, (2,7), None )
-            
-        self.cftest( "large selectable almost snap down", 
+
+        self.cftest( "large selectable almost snap down",
             l, 1, 0, 'above', None, 1, 0, (0,1), None )
 
         m = [T("\n\n\n\n"), S("\n\n\n\n\n"), T("\n\n\n\n")]
@@ -1147,11 +1147,11 @@ class ListBoxChangeFocusTest(unittest.TestCase):
 
         self.cftest( "large selectable outside view up",
             m, 1, -5, 'below', None, None, 0, (1,6), None )
-    
+
     def test4cursor(self):
         T,E = urwid.Text, urwid.Edit
         #...
-            
+
 
 
 class ListBoxRenderTest(unittest.TestCase):
@@ -1173,7 +1173,7 @@ class ListBoxRenderTest(unittest.TestCase):
 
     def test1Simple(self):
         T = urwid.Text
-        
+
         self.ltest( "simple one text item render",
             [T("1\n2")], 0, 0,
             ["1   ","2   ","    ","    ","    "],None)
@@ -1188,44 +1188,44 @@ class ListBoxRenderTest(unittest.TestCase):
 
     def test2Trim(self):
         T = urwid.Text
-        
+
         self.ltest( "trim unfocused bottom",
             [T("1\n2"),T("3\n4"),T("5\n6")], 1, 2,
             ["1   ","2   ","3   ","4   ","5   "],None)
-        
+
         self.ltest( "trim unfocused top",
             [T("1\n2"),T("3\n4"),T("5\n6")], 1, 1,
             ["2   ","3   ","4   ","5   ","6   "],None)
-        
+
         self.ltest( "trim none full focus",
             [T("1\n2\n3\n4\n5")], 0, 0,
             ["1   ","2   ","3   ","4   ","5   "],None)
-        
+
         self.ltest( "trim focus bottom",
             [T("1\n2\n3\n4\n5\n6")], 0, 0,
             ["1   ","2   ","3   ","4   ","5   "],None)
-        
+
         self.ltest( "trim focus top",
             [T("1\n2\n3\n4\n5\n6")], 0, -1,
             ["2   ","3   ","4   ","5   ","6   "],None)
-        
+
         self.ltest( "trim focus top and bottom",
             [T("1\n2\n3\n4\n5\n6\n7")], 0, -1,
             ["2   ","3   ","4   ","5   ","6   "],None)
-        
+
     def test3Shift(self):
         T,E = urwid.Text, urwid.Edit
-        
+
         self.ltest( "shift up one fit",
             [T("1\n2"),T("3"),T("4"),T("5"),T("6")], 4, 5,
             ["2   ","3   ","4   ","5   ","6   "],None)
-            
+
         e = E("","ab\nc",1)
         e.set_edit_pos( 2 )
         self.ltest( "shift down one cursor over edge",
             [e,T("3"),T("4"),T("5\n6")], 0, -1,
             ["ab  ","c   ","3   ","4   ","5   "], (2,0))
-            
+
         self.ltest( "shift up one cursor over edge",
             [T("1\n2"),T("3"),T("4"),E("","d\ne")], 3, 4,
             ["2   ","3   ","4   ","d   ","e   "], (1,4))
@@ -1239,13 +1239,13 @@ class ListBoxRenderTest(unittest.TestCase):
         self.ltest( "shift none cursor bottom focus over edge",
             [T("1\n2"),T("3"),T("4"),e], 3, 4,
             ["1   ","2   ","3   ","4   ","abc "], (3,4))
-            
-        
+
+
 class ListBoxKeypressTest(unittest.TestCase):
-        
+
     def ktest(self, desc, key, body, focus, offset_inset,
         exp_focus, exp_offset_inset, exp_cur, lbox = None):
-        
+
         if lbox is None:
             lbox = urwid.ListBox(body)
             lbox.body.set_focus( focus )
@@ -1254,22 +1254,22 @@ class ListBoxKeypressTest(unittest.TestCase):
         ret_key = lbox.keypress((4,5),key)
         middle, top, bottom = lbox.calculate_visible((4,5),focus=1)
         offset_inset, focus_widget, focus_pos, _ign, cursor = middle
-            
+
         if cursor is not None:
             x, y = cursor
             y += offset_inset
             cursor = x, y
-                
+
         exp = exp_focus, exp_offset_inset
         act = focus_pos, offset_inset
         assert act == exp, "%s got: %r expected: %r" %(desc,act,exp)
         assert cursor == exp_cur, "%s (cursor) got: %r expected: %r" %(desc,cursor,exp_cur)
         return ret_key,lbox
-        
-        
+
+
     def test1_up(self):
         T,S,E = urwid.Text, SelectableText, urwid.Edit
-        
+
         self.ktest( "direct selectable both visible", 'up',
             [S(""),S("")], 1, 1,
             0, 0, None )
@@ -1335,15 +1335,15 @@ class ListBoxKeypressTest(unittest.TestCase):
         self.ktest( "within focus cursor made not visible (2)", 'up',
             [T("\n\n\n\n"),E("hi\n","ab")], 1, 3,
             0, -1, None )
-        
+
         self.ktest( "force focus unselectable" , 'up',
             [T("\n\n\n\n"),S("")], 1, 4,
             0, 0, None )
-        
+
         self.ktest( "pathological cursor widget", 'up',
             [T("\n"),E("\n\n\n\n\n","a")], 1, 4,
             0, -1, None )
-        
+
         self.ktest( "unselectable to unselectable", 'up',
             [T(""),T(""),T(""),T(""),T(""),T(""),T("")], 2, 0,
             1, 0, None )
@@ -1351,7 +1351,7 @@ class ListBoxKeypressTest(unittest.TestCase):
         self.ktest( "unselectable over edge to same", 'up',
             [T(""),T("12\n34"),T(""),T(""),T(""),T("")],1,-1,
             1, 0, None )
-        
+
         key,lbox = self.ktest( "edit short between pass cursor A", 'up',
             [E("","abcd"),E("","a"),E("","def")], 2, 2,
             1, 1, (1,1) )
@@ -1359,7 +1359,7 @@ class ListBoxKeypressTest(unittest.TestCase):
         self.ktest( "edit short between pass cursor B", 'up',
             None, None, None,
             0, 0, (3,0), lbox )
-    
+
         e = E("","\n\n\n\n\n")
         e.set_edit_pos(1)
         key,lbox = self.ktest( "edit cursor force scroll", 'up',
@@ -1367,9 +1367,9 @@ class ListBoxKeypressTest(unittest.TestCase):
             0, 0, (0,0) )
         assert lbox.inset_fraction[0] == 0
 
-    def test2_down(self):    
+    def test2_down(self):
         T,S,E = urwid.Text, SelectableText, urwid.Edit
-        
+
         self.ktest( "direct selectable both visible", 'down',
             [S(""),S("")], 0, 0,
             1, 1, None )
@@ -1439,11 +1439,11 @@ class ListBoxKeypressTest(unittest.TestCase):
         self.ktest( "within focus cursor made not visible (2)", 'down',
             [odd_e,T("\n\n\n\n"),], 0, 0,
             1, 1, None )
-        
+
         self.ktest( "force focus unselectable" , 'down',
             [S(""),T("\n\n\n\n")], 0, 0,
             1, 0, None )
-        
+
         odd_e.set_edit_text( "hi\n\n\n\n\n" )
         self.ktest( "pathological cursor widget", 'down',
             [odd_e,T("\n")], 0, 0,
@@ -1456,7 +1456,7 @@ class ListBoxKeypressTest(unittest.TestCase):
         self.ktest( "unselectable over edge to same", 'down',
             [T(""),T(""),T(""),T(""),T("12\n34"),T("")],4,4,
             4, 3, None )
-        
+
         key,lbox=self.ktest( "edit short between pass cursor A", 'down',
             [E("","abc"),E("","a"),E("","defg")], 0, 0,
             1, 1, (1,1) )
@@ -1464,17 +1464,17 @@ class ListBoxKeypressTest(unittest.TestCase):
         self.ktest( "edit short between pass cursor B", 'down',
             None, None, None,
             2, 2, (3,2), lbox )
-        
+
         e = E("","\n\n\n\n\n")
         e.set_edit_pos(4)
         key,lbox = self.ktest( "edit cursor force scroll", 'down',
             [e], 0, 0,
             0, -1, (0,4) )
         assert lbox.inset_fraction[0] == 1
-            
+
     def test3_page_up(self):
         T,S,E = urwid.Text, SelectableText, urwid.Edit
-        
+
         self.ktest( "unselectable aligned to aligned", 'page up',
             [T(""),T("\n"),T("\n\n"),T(""),T("\n"),T("\n\n")], 3, 0,
             1, 0, None )
@@ -1482,15 +1482,15 @@ class ListBoxKeypressTest(unittest.TestCase):
         self.ktest( "unselectable unaligned to aligned", 'page up',
             [T(""),T("\n"),T("\n"),T("\n"),T("\n"),T("\n\n")], 3,-1,
             1, 0, None )
-            
+
         self.ktest( "selectable to unselectable", 'page up',
             [T(""),T("\n"),T("\n"),T("\n"),S("\n"),T("\n\n")], 4, 1,
             1, -1, None )
-            
+
         self.ktest( "selectable to cut off selectable", 'page up',
             [S("\n\n"),T("\n"),T("\n"),S("\n"),T("\n\n")], 3, 1,
             0, -1, None )
-            
+
         self.ktest( "seletable to selectable", 'page up',
             [T("\n\n"),S("\n"),T("\n"),S("\n"),T("\n\n")], 3, 1,
             1, 1, None )
@@ -1512,7 +1512,7 @@ class ListBoxKeypressTest(unittest.TestCase):
         e = E("","\nab\n\n\n\n\ncd\n")
         e.set_edit_pos(10)
         self.ktest( "very long cursor widget snap", 'page up',
-            [T(""),e,T("\n")], 1, -5, 
+            [T(""),e,T("\n")], 1, -5,
             1, 0, (2, 1) )
 
         self.ktest( "slight scroll selectable", 'page up',
@@ -1562,7 +1562,7 @@ class ListBoxKeypressTest(unittest.TestCase):
         self.ktest( "at top fail", 'page up',
             [T("\n\n"),T("\n"),T("\n\n\n")], 0, 0,
             0, 0, None )
-        
+
         self.ktest( "all visible fail", 'page up',
             [T("a"),T("\n")], 0, 0,
             0, 0, None )
@@ -1578,14 +1578,14 @@ class ListBoxKeypressTest(unittest.TestCase):
         self.ktest( "bring in edge choose top", 'page up',
             [S("b"),T("-"),S("-"),T("c"),S("d"),T("-")],4,3,
             0, 0, None )
-        
+
         self.ktest( "bring in edge choose top selectable", 'page up',
             [T("b"),S("-"),S("-"),T("c"),S("d"),T("-")],4,3,
             1, 1, None )
-        
+
     def test4_page_down(self):
         T,S,E = urwid.Text, SelectableText, urwid.Edit
-        
+
         self.ktest( "unselectable aligned to aligned", 'page down',
             [T("\n\n"),T("\n"),T(""),T("\n\n"),T("\n"),T("")], 2, 4,
             4, 3, None )
@@ -1593,15 +1593,15 @@ class ListBoxKeypressTest(unittest.TestCase):
         self.ktest( "unselectable unaligned to aligned", 'page down',
             [T("\n\n"),T("\n"),T("\n"),T("\n"),T("\n"),T("")], 2, 4,
             4, 3, None )
-            
+
         self.ktest( "selectable to unselectable", 'page down',
             [T("\n\n"),S("\n"),T("\n"),T("\n"),T("\n"),T("")], 1, 2,
             4, 4, None )
-            
+
         self.ktest( "selectable to cut off selectable", 'page down',
             [T("\n\n"),S("\n"),T("\n"),T("\n"),S("\n\n")], 1, 2,
             4, 3, None )
-            
+
         self.ktest( "seletable to selectable", 'page down',
             [T("\n\n"),S("\n"),T("\n"),S("\n"),T("\n\n")], 1, 1,
             3, 2, None )
@@ -1627,7 +1627,7 @@ class ListBoxKeypressTest(unittest.TestCase):
         e = E("","\nab\n\n\n\n\ncd\n")
         e.set_edit_pos(2)
         self.ktest( "very long cursor widget snap", 'page down',
-            [T("\n"),e,T("")], 1, 2, 
+            [T("\n"),e,T("")], 1, 2,
             1, -3, (1, 3) )
 
         self.ktest( "slight scroll selectable", 'page down',
@@ -1662,21 +1662,21 @@ class ListBoxKeypressTest(unittest.TestCase):
         # disble cursor movement in odd_e object
         odd_e.move_cursor_to_coords = lambda s,c,xy: 0
         self.ktest( "cursor force fail short", 'page down',
-            [T(""),T(""),odd_e,T("\n"),T("\n")], 2, 2, 
+            [T(""),T(""),odd_e,T("\n"),T("\n")], 2, 2,
             4, 3, None )
 
         self.ktest( "cursor force fail long", 'page down',
             [T("\n"),S(""),T("\n"),T("\n"),T("\n"),E("hi\n","ab")],
             1, 2,    4, 4, None )
-            
+
         self.ktest( "prefer not cut off", 'page down',
             [T("\n"),S(""),T("\n\n"),S(""),T("\n"),S("\n")], 1, 2,
             3, 3, None )
-            
+
         self.ktest( "allow cut off", 'page down',
             [T("\n"),S(""),T("\n\n"),T(""),T("\n"),S("\n")], 1, 2,
             5, 4, None )
-        
+
         self.ktest( "at bottom fail", 'page down',
             [T("\n\n"),T("\n"),T("\n\n\n")], 2, 1,
             2, 1, None )
@@ -1692,15 +1692,15 @@ class ListBoxKeypressTest(unittest.TestCase):
         self.ktest( "all visible choose last selectable", 'page down',
             [S("a"),S("b"),S("c"),T("")], 0, 0,
             2, 2, None )
-        
+
         self.ktest( "bring in edge choose last", 'page down',
             [T("-"),S("d"),T("c"),S("-"),T("-"),S("b")],1,1,
             5,4, None )
-        
+
         self.ktest( "bring in edge choose last selectable", 'page down',
             [T("-"),S("d"),T("c"),S("-"),S("-"),T("b")],1,1,
             4,3, None )
-        
+
 
 class PaddingTest(unittest.TestCase):
     def ptest(self, desc, align, width, maxcol, left, right,min_width=None):
@@ -1708,21 +1708,21 @@ class PaddingTest(unittest.TestCase):
         l, r = p.padding_values((maxcol,),False)
         assert (l,r)==(left,right), "%s expected %s but got %s"%(
             desc, (left,right), (l,r))
-    
+
     def petest(self, desc, align, width):
         try:
             urwid.Padding(None, align, width)
         except urwid.PaddingError, e:
-            return    
+            return
         assert 0, "%s expected error!" % desc
-        
+
     def test_create(self):
         self.petest("invalid pad",6,5)
         self.petest("invalid pad type",('bad',2),5)
         self.petest("invalid width",'center','42')
         self.petest("invalid width type",'center',('gouranga',4))
-        
-    def test_values(self):    
+
+    def test_values(self):
         self.ptest("left align 5 7",'left',5,7,0,2)
         self.ptest("left align 7 7",'left',7,7,0,0)
         self.ptest("left align 9 7",'left',9,7,0,0)
@@ -1768,28 +1768,28 @@ class PaddingTest(unittest.TestCase):
         p.move_cursor_to_coords(size, cx, 0)
 
     def test_cursor(self):
-        self.mctest("cursor left edge",2,2,(10,2),2,0) 
-        self.mctest("cursor left edge-1",2,2,(10,2),1,0) 
+        self.mctest("cursor left edge",2,2,(10,2),2,0)
+        self.mctest("cursor left edge-1",2,2,(10,2),1,0)
         self.mctest("cursor right edge",2,2,(10,2),7,5)
-        self.mctest("cursor right edge+1",2,2,(10,2),8,5) 
+        self.mctest("cursor right edge+1",2,2,(10,2),8,5)
 
 
 
 class FillerTest(unittest.TestCase):
-    def ftest(self, desc, valign, height, maxrow, top, bottom, 
+    def ftest(self, desc, valign, height, maxrow, top, bottom,
             min_height=None):
         f = urwid.Filler(None, valign, height, min_height)
         t, b = f.filler_values((20,maxrow), False)
         assert (t,b)==(top,bottom), "%s expected %s but got %s"%(
             desc, (top,bottom), (t,b))
-    
+
     def fetest(self, desc, valign, height):
         try:
             urwid.Filler(None, valign, height)
         except urwid.FillerError, e:
-            return    
+            return
         assert 0, "%s expected error!" % desc
-        
+
     def test_create(self):
         self.fetest("invalid pad",6,5)
         self.fetest("invalid pad type",('bad',2),5)
@@ -1799,8 +1799,8 @@ class FillerTest(unittest.TestCase):
             ('fixed bottom',4))
         self.fetest("invalid combination 2",('relative',20),
             ('fixed top',4))
-        
-    def test_values(self):    
+
+    def test_values(self):
         self.ftest("top align 5 7",'top',5,7,0,2)
         self.ftest("top align 7 7",'top',7,7,0,0)
         self.ftest("top align 9 7",'top',9,7,0,0)
@@ -1836,7 +1836,7 @@ class FillerTest(unittest.TestCase):
 
 class FrameTest(unittest.TestCase):
 
-    def ftbtest(self, desc, focus_part, header_rows, footer_rows, size, 
+    def ftbtest(self, desc, focus_part, header_rows, footer_rows, size,
             focus, top, bottom):
         class FakeWidget:
             def __init__(self, rows, want_focus):
@@ -1847,52 +1847,52 @@ class FrameTest(unittest.TestCase):
                 return self.ret_rows
         header = footer = None
         if header_rows:
-            header = FakeWidget(header_rows, 
+            header = FakeWidget(header_rows,
                 focus and focus_part == 'header')
         if footer_rows:
             footer = FakeWidget(footer_rows,
                 focus and focus_part == 'footer')
-                
+
         f = urwid.Frame(None, header, footer, focus_part)
 
         rval = f.frame_top_bottom(size, focus)
         exp = (top, bottom), (header_rows, footer_rows)
         assert exp == rval, "%s expected %r but got %r"%(
             desc,exp,rval)
-        
+
     def test(self):
         self.ftbtest("simple", 'body', 0, 0, (9, 10), True, 0, 0)
         self.ftbtest("simple h", 'body', 3, 0, (9, 10), True, 3, 0)
         self.ftbtest("simple f", 'body', 0, 3, (9, 10), True, 0, 3)
         self.ftbtest("simple hf", 'body', 3, 3, (9, 10), True, 3, 3)
-        self.ftbtest("almost full hf", 'body', 4, 5, (9, 10), 
+        self.ftbtest("almost full hf", 'body', 4, 5, (9, 10),
             True, 4, 5)
-        self.ftbtest("full hf", 'body', 5, 5, (9, 10), 
+        self.ftbtest("full hf", 'body', 5, 5, (9, 10),
             True, 4, 5)
-        self.ftbtest("x full h+1f", 'body', 6, 5, (9, 10), 
+        self.ftbtest("x full h+1f", 'body', 6, 5, (9, 10),
             False, 4, 5)
-        self.ftbtest("full h+1f", 'body', 6, 5, (9, 10), 
+        self.ftbtest("full h+1f", 'body', 6, 5, (9, 10),
             True, 4, 5)
-        self.ftbtest("full hf+1", 'body', 5, 6, (9, 10), 
+        self.ftbtest("full hf+1", 'body', 5, 6, (9, 10),
             True, 3, 6)
-        self.ftbtest("F full h+1f", 'footer', 6, 5, (9, 10), 
+        self.ftbtest("F full h+1f", 'footer', 6, 5, (9, 10),
             True, 5, 5)
-        self.ftbtest("F full hf+1", 'footer', 5, 6, (9, 10), 
+        self.ftbtest("F full hf+1", 'footer', 5, 6, (9, 10),
             True, 4, 6)
-        self.ftbtest("F full hf+5", 'footer', 5, 11, (9, 10), 
+        self.ftbtest("F full hf+5", 'footer', 5, 11, (9, 10),
             True, 0, 10)
-        self.ftbtest("full hf+5", 'body', 5, 11, (9, 10), 
+        self.ftbtest("full hf+5", 'body', 5, 11, (9, 10),
             True, 0, 9)
-        self.ftbtest("H full hf+1", 'header', 5, 6, (9, 10), 
+        self.ftbtest("H full hf+1", 'header', 5, 6, (9, 10),
             True, 5, 5)
-        self.ftbtest("H full h+1f", 'header', 6, 5, (9, 10), 
+        self.ftbtest("H full h+1f", 'header', 6, 5, (9, 10),
             True, 6, 4)
-        self.ftbtest("H full h+5f", 'header', 11, 5, (9, 10), 
+        self.ftbtest("H full h+5f", 'header', 11, 5, (9, 10),
             True, 10, 0)
 
 
 class PileTest(unittest.TestCase):
-    def ktest(self, desc, l, focus_item, key, 
+    def ktest(self, desc, l, focus_item, key,
             rkey, rfocus, rpref_col):
         p = urwid.Pile( l, focus_item )
         rval = p.keypress( (20,), key )
@@ -1905,25 +1905,25 @@ class PileTest(unittest.TestCase):
         assert new_pref == rpref_col, (
             "%s pref_col expected %r but got %r" % (
             desc, rpref_col, new_pref))
-    
+
     def test_select_change(self):
         T,S,E = urwid.Text, SelectableText, urwid.Edit
 
         self.ktest("simple up", [S("")], 0, "up", "up", 0, 0)
         self.ktest("simple down", [S("")], 0, "down", "down", 0, 0)
         self.ktest("ignore up", [T(""),S("")], 1, "up", "up", 1, 0)
-        self.ktest("ignore down", [S(""),T("")], 0, "down", 
+        self.ktest("ignore down", [S(""),T("")], 0, "down",
             "down", 0, 0)
         self.ktest("step up", [S(""),S("")], 1, "up", None, 0, 0)
-        self.ktest("step down", [S(""),S("")], 0, "down", 
+        self.ktest("step down", [S(""),S("")], 0, "down",
             None, 1, 0)
-        self.ktest("skip step up", [S(""),T(""),S("")], 2, "up", 
+        self.ktest("skip step up", [S(""),T(""),S("")], 2, "up",
             None, 0, 0)
-        self.ktest("skip step down", [S(""),T(""),S("")], 0, "down", 
+        self.ktest("skip step down", [S(""),T(""),S("")], 0, "down",
             None, 2, 0)
-        self.ktest("pad skip step up", [T(""),S(""),T(""),S("")], 3, 
+        self.ktest("pad skip step up", [T(""),S(""),T(""),S("")], 3,
             "up", None, 1, 0)
-        self.ktest("pad skip step down", [S(""),T(""),S(""),T("")], 0, 
+        self.ktest("pad skip step down", [S(""),T(""),S(""),T("")], 0,
             "down", None, 2, 0)
         self.ktest("padi skip step up", [S(""),T(""),S(""),T(""),S("")],
             4, "up", None, 2, 0)
@@ -1931,20 +1931,20 @@ class PileTest(unittest.TestCase):
             S("")], 0, "down", None, 2, 0)
         e = E("","abcd", edit_pos=1)
         e.keypress((20,),"right") # set a pref_col
-        self.ktest("pref step up", [S(""),T(""),e], 2, "up", 
+        self.ktest("pref step up", [S(""),T(""),e], 2, "up",
             None, 0, 2)
-        self.ktest("pref step down", [e,T(""),S("")], 0, "down", 
+        self.ktest("pref step down", [e,T(""),S("")], 0, "down",
             None, 2, 2)
         z = E("","1234")
-        self.ktest("prefx step up", [z,T(""),e], 2, "up", 
+        self.ktest("prefx step up", [z,T(""),e], 2, "up",
             None, 0, 2)
         assert z.get_pref_col((20,)) == 2
         z = E("","1234")
-        self.ktest("prefx step down", [e,T(""),z], 0, "down", 
+        self.ktest("prefx step down", [e,T(""),z], 0, "down",
             None, 2, 2)
         assert z.get_pref_col((20,)) == 2
-        
-        
+
+
 class ColumnsTest(unittest.TestCase):
     def cwtest(self, desc, l, divide, size, exp):
         c = urwid.Columns( l, divide )
@@ -1963,14 +1963,14 @@ class ColumnsTest(unittest.TestCase):
         self.cwtest( "squish 4+1", [x,x,x,x], 1, (7,), [1,1,1,1] )
         self.cwtest( "squish 4+1", [x,x,x,x], 1, (6,), [1,2,1] )
         self.cwtest( "squish 4+1", [x,x,x,x], 1, (4,), [2,1] )
-        
+
         self.cwtest( "fixed 3", [('fixed',4,x),('fixed',6,x),
             ('fixed',2,x)], 1, (25,), [4,6,2] )
         self.cwtest( "fixed 3 cut", [('fixed',4,x),('fixed',6,x),
             ('fixed',2,x)], 1, (13,), [4,6] )
         self.cwtest( "fixed 3 cut2", [('fixed',4,x),('fixed',6,x),
             ('fixed',2,x)], 1, (10,), [4] )
-        
+
         self.cwtest( "mixed 4", [('weight',2,x),('fixed',5,x),
             x, ('weight',3,x)], 1, (14,), [2,5,1,3] )
         self.cwtest( "mixed 4 a", [('weight',2,x),('fixed',5,x),
@@ -1979,7 +1979,7 @@ class ColumnsTest(unittest.TestCase):
             x, ('weight',3,x)], 1, (10,), [2,5,1] )
         self.cwtest( "mixed 4 c", [('weight',2,x),('fixed',5,x),
             x, ('weight',3,x)], 1, (20,), [4,5,2,6] )
-    
+
     def mctest(self, desc, l, divide, size, col, row, exp, f_col, pref_col):
         c = urwid.Columns( l, divide )
         rval = c.move_cursor_to_coords( size, col, row )
@@ -1989,8 +1989,8 @@ class ColumnsTest(unittest.TestCase):
         pc = c.get_pref_col( size )
         assert pc == pref_col, "%s expected pref_col %s, got %s"%(
             desc, pref_col, pc)
-        
-    def test_move_cursor(self):    
+
+    def test_move_cursor(self):
         e, s, x = urwid.Edit("",""),SelectableText(""), urwid.Text("")
         self.mctest("nothing selectbl",[x,x,x],1,(20,),9,0,False,0,None)
         self.mctest("dead on",[x,s,x],1,(20,),9,0,True,1,9)
@@ -2000,24 +2000,48 @@ class ColumnsTest(unittest.TestCase):
         self.mctest("r off",[x,s,x],1,(20,),17,0,True,1,17)
         self.mctest("l off 2",[x,x,s],1,(20,),2,0,True,2,2)
         self.mctest("r off 2",[s,x,x],1,(20,),17,0,True,0,17)
-        
+
         self.mctest("l between",[s,s,x],1,(20,),6,0,True,0,6)
         self.mctest("r between",[x,s,s],1,(20,),13,0,True,1,13)
         self.mctest("l between 2l",[s,s,x],2,(22,),6,0,True,0,6)
         self.mctest("r between 2l",[x,s,s],2,(22,),14,0,True,1,14)
         self.mctest("l between 2r",[s,s,x],2,(22,),7,0,True,1,7)
         self.mctest("r between 2r",[x,s,s],2,(22,),15,0,True,2,15)
-        
+
         # unfortunate pref_col shifting
         self.mctest("l e edge",[x,e,x],1,(20,),6,0,True,1,7)
         self.mctest("r e edge",[x,e,x],1,(20,),13,0,True,1,12)
-        
-        
+
+
+class LineBoxTest(unittest.TestCase):
+    def border(self, tl, t, tr, l, r, bl, b, br):
+        return ["%s%s%s" % (tl, t, tr),
+                "%s %s" % (l, r),
+                "%s%s%s" % (bl, b, br),]
+
+    def test_linebox_border(self):
+        urwid.set_encoding("utf-8")
+        t = urwid.Text("")
+
+        l = urwid.LineBox(t).render((3,)).text
+
+        # default
+        self.assertEqual(l,
+            self.border("┌", "─", "┐", "│", "│", "└", "─", "┘"))
+
+        nums = map(str, range(8))
+        b = dict(zip(["tlcorner", "tline", "trcorner", "lline", "rline",
+            "blcorner", "bline", "brcorner"], nums))
+        l = urwid.LineBox(t, **b).render((3,)).text
+
+        self.assertEqual(l, self.border(*nums))
+
+
 class BarGraphTest(unittest.TestCase):
     def bgtest(self, desc, data, top, widths, maxrow, exp ):
         rval = calculate_bargraph_display(data,top,widths,maxrow)
         assert rval == exp, "%s expected %r, got %r"%(desc,exp,rval)
-    
+
     def test1(self):
         self.bgtest('simplest',[[0]],5,[1],1,
             [(1,[(0,1)])] )
@@ -2040,7 +2064,7 @@ class BarGraphTest(unittest.TestCase):
              (1,[(1,4)]) ] )
         self.bgtest('3col-4',[[4],[2],[4]],5,[1,2,1],5,
             [(1,[(0,4)]), (2,[(1,1),(0,2),(1,1)]), (2,[(1,4)]) ] )
-    
+
     def test2(self):
         self.bgtest('simple1a',[[2,0],[2,1]],2,[1,1],2,
             [(1,[(1,2)]),(1,[(1,1),(2,1)]) ] )
@@ -2056,7 +2080,7 @@ class BarGraphTest(unittest.TestCase):
         self.bgtest('mix1b',[[1,2,3],[2,2,2],[3,2,1]],3,[1,1,1],3,
             [(1,[(3,1),(0,1),(1,1)]),(1,[(3,2),(2,1)]),
              (1,[(3,3)]) ] )
-        
+
 class SmoothBarGraphTest(unittest.TestCase):
     def sbgtest(self, desc, data, top, exp ):
         urwid.set_encoding('utf-8')
@@ -2065,17 +2089,17 @@ class SmoothBarGraphTest(unittest.TestCase):
         g.set_data( data, top )
         rval = g.calculate_display((5,3))
         assert rval == exp, "%s expected %r, got %r"%(desc,exp,rval)
-    
+
     def test1(self):
-        self.sbgtest('simple', [[3]], 5, 
+        self.sbgtest('simple', [[3]], 5,
             [(1, [(0, 5)]), (1, [((1, 0, 6), 5)]), (1, [(1, 5)])] )
-        self.sbgtest('boring', [[4,2]], 6, 
+        self.sbgtest('boring', [[4,2]], 6,
             [(1, [(0, 5)]), (1, [(1, 5)]), (1, [(2,5)]) ] )
-        self.sbgtest('two', [[4],[2]], 6, 
+        self.sbgtest('two', [[4],[2]], 6,
             [(1, [(0, 5)]), (1, [(1, 3), (0, 2)]), (1, [(1, 5)]) ] )
-        self.sbgtest('twos', [[3],[4]], 6, 
+        self.sbgtest('twos', [[3],[4]], 6,
             [(1, [(0, 5)]), (1, [((1,0,4), 3), (1, 2)]), (1, [(1,5)]) ] )
-        self.sbgtest('twof', [[4],[3]], 6, 
+        self.sbgtest('twof', [[4],[3]], 6,
             [(1, [(0, 5)]), (1, [(1,3), ((1,0,4), 2)]), (1, [(1,5)]) ] )
 
 
@@ -2097,11 +2121,11 @@ class CanvasJoinTest(unittest.TestCase):
         dy = C([B("dy")])
         how_you = C([B("how"), B("you")])
 
-        self.cjtest("one", [(hello, 5)], 
+        self.cjtest("one", [(hello, 5)],
             [[(None, None, B("hello"))]])
-        self.cjtest("two", [(hello, 5), (there, 5)], 
+        self.cjtest("two", [(hello, 5), (there, 5)],
             [[(None, None, B("hello")), ("a", None, B("there"))]])
-        self.cjtest("two space", [(hello, 7), (there, 5)], 
+        self.cjtest("two space", [(hello, 7), (there, 5)],
             [[(None, None, B("hello")),(None,None,B("  ")),
             ("a", None, B("there"))]])
         self.cjtest("three space", [(hi, 4), (how, 3), (dy, 2)],
@@ -2113,13 +2137,13 @@ class CanvasJoinTest(unittest.TestCase):
             (None, None, B("dy")),(None,None,B(" ")),
             (None, None, B("a"))]])
         self.cjtest("pile 2", [(how_you, 4), (hi, 2)],
-            [[(None, None, B('how')), (None, None, B(' ')), 
-            (None, None, B('hi'))],  
+            [[(None, None, B('how')), (None, None, B(' ')),
+            (None, None, B('hi'))],
             [(None, None, B('you')), (None, None, B(' ')),
             (None, None, B('  '))]])
         self.cjtest("pile 2r", [(hi, 4), (how_you, 3)],
-            [[(None, None, B('hi')), (None, None, B('  ')), 
-            (None, None, B('how'))],  
+            [[(None, None, B('hi')), (None, None, B('  ')),
+            (None, None, B('how'))],
             [(None, None, B('    ')),
             (None, None, B('you'))]])
 
@@ -2127,7 +2151,7 @@ class CanvasOverlayTest(unittest.TestCase):
     def cotest(self, desc, bgt, bga, fgt, fga, l, r, et):
         bgt = B(bgt)
         fgt = B(fgt)
-        bg = urwid.CompositeCanvas( 
+        bg = urwid.CompositeCanvas(
             urwid.TextCanvas([bgt],[bga]))
         fg = urwid.CompositeCanvas(
             urwid.TextCanvas([fgt],[fga]))
@@ -2147,7 +2171,7 @@ class CanvasOverlayTest(unittest.TestCase):
         self.cotest("center2", "qxqxqxqx", [], "HI  ", [], 2, 2,
             [[(None, None, B("qx")),(None,None,B("HI  ")),
             (None,None,B("qx"))]])
-        self.cotest("full", "rz", [], "HI", [], 0, 0, 
+        self.cotest("full", "rz", [], "HI", [], 0, 0,
             [[(None, None, B("HI"))]])
 
     def test2(self):
@@ -2188,7 +2212,7 @@ class CanvasOverlayTest(unittest.TestCase):
 class CanvasPadTrimTest(unittest.TestCase):
     def cptest(self, desc, ct, ca, l, r, et):
         ct = B(ct)
-        c = urwid.CompositeCanvas( 
+        c = urwid.CompositeCanvas(
             urwid.TextCanvas([ct], [ca]))
         c.pad_trim_left_right(l, r)
         result = list(c.content())
@@ -2196,17 +2220,17 @@ class CanvasPadTrimTest(unittest.TestCase):
             desc, et, result)
 
     def test1(self):
-        self.cptest("none", "asdf", [], 0, 0, 
+        self.cptest("none", "asdf", [], 0, 0,
             [[(None,None,B("asdf"))]])
-        self.cptest("left pad", "asdf", [], 2, 0, 
+        self.cptest("left pad", "asdf", [], 2, 0,
             [[(None,None,B("  ")),(None,None,B("asdf"))]])
-        self.cptest("right pad", "asdf", [], 0, 2, 
+        self.cptest("right pad", "asdf", [], 0, 2,
             [[(None,None,B("asdf")),(None,None,B("  "))]])
 
     def test2(self):
-        self.cptest("left trim", "asdf", [], -2, 0, 
+        self.cptest("left trim", "asdf", [], -2, 0,
             [[(None,None,B("df"))]])
-        self.cptest("right trim", "asdf", [], 0, -2, 
+        self.cptest("right trim", "asdf", [], 0, -2,
             [[(None,None,B("as"))]])
 
 
@@ -2218,24 +2242,24 @@ class WidgetSquishTest(unittest.TestCase):
         assert c.rows() == 0
         c = w.render((80,1), focus=False)
         assert c.rows() == 1
-    
+
     def test_listbox(self):
         self.wstest(urwid.ListBox([]))
         self.wstest(urwid.ListBox([urwid.Text("hello")]))
-    
+
     def test_bargraph(self):
         self.wstest(urwid.BarGraph(['foo','bar']))
-    
+
     def test_graphvscale(self):
         self.wstest(urwid.GraphVScale([(0,"hello")], 1))
         self.wstest(urwid.GraphVScale([(5,"hello")], 1))
-    
+
     def test_solidfill(self):
         self.wstest(urwid.SolidFill())
 
     def test_filler(self):
         self.wstest(urwid.Filler(urwid.Text("hello")))
-    
+
     def test_overlay(self):
         self.wstest(urwid.Overlay(
             urwid.BigText("hello",urwid.Thin6x6Font()),
@@ -2247,7 +2271,7 @@ class WidgetSquishTest(unittest.TestCase):
 
     def test_frame(self):
         self.wstest(urwid.Frame(urwid.SolidFill()))
-        self.wstest(urwid.Frame(urwid.SolidFill(), 
+        self.wstest(urwid.Frame(urwid.SolidFill(),
             header=urwid.Text("hello")))
         self.wstest(urwid.Frame(urwid.SolidFill(),
             header=urwid.Text("hello"),
@@ -2257,7 +2281,7 @@ class WidgetSquishTest(unittest.TestCase):
         self.wstest(urwid.Pile([urwid.SolidFill()]))
         self.wstest(urwid.Pile([('flow', urwid.Text("hello"))]))
         self.wstest(urwid.Pile([]))
-    
+
     def test_columns(self):
         self.wstest(urwid.Columns([urwid.SolidFill()]))
 
@@ -2308,6 +2332,7 @@ def test_all():
         FrameTest,
         PileTest,
         ColumnsTest,
+        LineBoxTest,
         BarGraphTest,
         SmoothBarGraphTest,
         CanvasJoinTest,
@@ -2337,5 +2362,3 @@ def test_all():
 
 if __name__ == '__main__':
     test_support.run_unittest(test_all())
-
-
