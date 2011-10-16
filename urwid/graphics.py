@@ -124,7 +124,7 @@ class LineBox(WidgetDecoration, WidgetWrap):
         self.tline_widget = Columns([
             tline,
             ('flow', self.title_widget),
-            bline,
+            tline,
         ])
 
         top = Columns([
