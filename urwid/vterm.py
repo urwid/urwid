@@ -1438,7 +1438,7 @@ class Terminal(BoxWidget):
 
     def flush_responses(self):
         for string in self.response_buffer:
-            os.write(self.master, string)
+            os.write(self.master, string.encode('ascii'))
         self.response_buffer = []
 
     def set_termsize(self, width, height):

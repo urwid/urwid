@@ -1016,7 +1016,7 @@ def handle_short_request():
         return True
         
     keydata = sys.stdin.read(MAX_READ)
-    os.write(fd,keydata)
+    os.write(fd,keydata.encode('ascii'))
     os.close(fd)
     sys.stdout.write("Content-type: text/plain\r\n\r\n")
     
