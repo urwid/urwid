@@ -108,7 +108,7 @@ class Screen(BaseScreen, RealTerminal):
 
     def _sigwinch_handler(self, signum, frame):
         if not self._resized:
-            os.write(self._resize_pipe_wr, 'R')
+            os.write(self._resize_pipe_wr, 'R'.encode('ascii'))
         self._resized = True
         self.screen_buf = None
       
