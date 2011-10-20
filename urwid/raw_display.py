@@ -38,7 +38,7 @@ from urwid.display_common import BaseScreen, RealTerminal, \
     UPDATE_PALETTE_ENTRY, AttrSpec, UNPRINTABLE_TRANS_TABLE, \
     INPUT_DESCRIPTORS_CHANGED
 from urwid import signals
-from urwid.compat import PYTHON3, bytes
+from urwid.compat import PYTHON3, bytes, B
 
 from subprocess import Popen, PIPE
 
@@ -108,7 +108,7 @@ class Screen(BaseScreen, RealTerminal):
 
     def _sigwinch_handler(self, signum, frame):
         if not self._resized:
-            os.write(self._resize_pipe_wr, 'R'.encode('ascii'))
+            os.write(self._resize_pipe_wr, B('R'))
         self._resized = True
         self.screen_buf = None
       

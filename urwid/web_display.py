@@ -1004,9 +1004,7 @@ def handle_short_request():
         except socket.error:
             sys.stdout.write("Status: 404 Not Found\r\n\r\n")
             return True
-        
-        
-    
+
     # this is a keyboard input request
     try:
         fd = os.open((os.path.join(_prefs.pipe_dir,
@@ -1014,12 +1012,13 @@ def handle_short_request():
     except OSError:
         sys.stdout.write("Status: 404 Not Found\r\n\r\n")
         return True
-        
+
+    # FIXME: use the correct encoding based on the request
     keydata = sys.stdin.read(MAX_READ)
     os.write(fd,keydata.encode('ascii'))
     os.close(fd)
     sys.stdout.write("Content-type: text/plain\r\n\r\n")
-    
+
     return True
 
 
