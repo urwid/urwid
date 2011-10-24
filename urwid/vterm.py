@@ -26,6 +26,7 @@ import pty
 import time
 import copy
 import fcntl
+import errno
 import select
 import struct
 import signal
@@ -1525,7 +1526,7 @@ class Terminal(BoxWidget):
         except OSError, e:
             if e.errno == 5: # End Of File
                 data = ''
-            elif e.errno == 11: # empty buffer
+            elif e.errno == errno.EWOULDBLOCK: # empty buffer
                 return
             else:
                 raise
