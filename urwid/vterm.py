@@ -1352,8 +1352,6 @@ class Terminal(BoxWidget):
         else:
             self.command = command
 
-        self._old_tios = None
-
         self.keygrab = False
         self.last_key = None
 
