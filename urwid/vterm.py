@@ -26,6 +26,7 @@ import pty
 import time
 import copy
 import fcntl
+import errno
 import select
 import struct
 import signal
@@ -1516,15 +1517,23 @@ class Terminal(BoxWidget):
         self.feed()
 
     def feed(self):
+        data = ''
+
         try:
             data = os.read(self.master, 4096)
         except OSError, e:
             if e.errno == 5: # End Of File
-                self.terminate()
-                self._emit('closed')
-            elif e.errno != 11:
+                data = ''
+            elif e.errno == errno.EWOULDBLOCK: # empty buffer
+                return
+            else:
                 raise
+
+        if data == '': # EOF on BSD
+            self.terminate()
+            self._emit('closed')
             return
+
         self.term.addstr(data)
 
         self.flush_responses()
