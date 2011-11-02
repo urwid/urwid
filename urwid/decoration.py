@@ -798,7 +798,7 @@ class Filler(WidgetDecoration):
             return False
         
         top, bottom = self.filler_values(size, True)
-        if row < top or row >= maxcol-bottom:
+        if row < top or row >= maxrow-bottom:
             return False
 
         if self.height_type is None:
