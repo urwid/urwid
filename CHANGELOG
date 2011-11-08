@@ -1,5 +1,16 @@
 # -*- coding: utf-8 -*-
 
+Urwid 1.0.1
+
+    * Fix for Terminal widget in BSD/OSX
+
+    * Fix for a Filler mouse_event() position bug
+
+    * Fixes for a number of string encoding issues under Python 3
+
+    * Fix for a LineBox border __init__() parameters
+
+
 Urwid 1.0.0
 
     * New support for Python 3.2 from the same 2.x code base,
