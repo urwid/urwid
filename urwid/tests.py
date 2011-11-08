@@ -2015,9 +2015,9 @@ class ColumnsTest(unittest.TestCase):
 
 class LineBoxTest(unittest.TestCase):
     def border(self, tl, t, tr, l, r, bl, b, br):
-        return ["%s%s%s" % (tl, t, tr),
-                "%s %s" % (l, r),
-                "%s%s%s" % (bl, b, br),]
+        return [bytes().join([tl, t, tr]),
+                bytes().join([l, B(" "), r]),
+                bytes().join([bl, b, br]),]
 
     def test_linebox_border(self):
         urwid.set_encoding("utf-8")
@@ -2027,9 +2027,11 @@ class LineBoxTest(unittest.TestCase):
 
         # default
         self.assertEqual(l,
-            self.border("┌", "─", "┐", "│", "│", "└", "─", "┘"))
+            self.border(B("\xe2\x94\x8c"), B("\xe2\x94\x80"),
+                B("\xe2\x94\x90"), B("\xe2\x94\x82"), B("\xe2\x94\x82"),
+                B("\xe2\x94\x94"), B("\xe2\x94\x80"), B("\xe2\x94\x98")))
 
-        nums = map(str, range(8))
+        nums = [B(str(n)) for n in range(8)] 
         b = dict(zip(["tlcorner", "tline", "trcorner", "lline", "rline",
             "blcorner", "bline", "brcorner"], nums))
         l = urwid.LineBox(t, **b).render((3,)).text
