@@ -1,5 +1,16 @@
 # -*- coding: utf-8 -*-
 
+Urwid 0.9.9.3
+
+    * Fix for a Filler mouse_event() position bug
+
+    * Fix for leaks of None object in str_util extension
+
+    * Fixes for fixed widgets in WidgetWrap, AttrMap and Padding widgets
+
+    * Add missing get_cursor_coords() method to ListBox
+
+
 Urwid 0.9.9.2
 
     * Fix for an Overlay get_cursor_coords(), and Text top-widget bug
