@@ -435,7 +435,7 @@ class Screen(BaseScreen, RealTerminal):
     
     def _encode_gpm_event( self ):
         self.gpm_event_pending = False
-        s = self.gpm_mev.stdout.readline()
+        s = self.gpm_mev.stdout.readline().decode('ascii')
         l = s.split(",")
         if len(l) != 6:
             # unexpected output, stop tracking
