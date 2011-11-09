@@ -161,7 +161,7 @@ class KeyqueueTrie(object):
             return None
         
         b = keys[0] - 32
-        x, y = keys[1] - 33, keys[2] - 33  # start from 0
+        x, y = (keys[1] - 33)%256, (keys[2] - 33)%256  # supports 0-255
         
         prefix = ""
         if b & 4:    prefix = prefix + "shift "
