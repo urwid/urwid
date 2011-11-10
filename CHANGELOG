@@ -2,13 +2,16 @@
 
 Urwid 0.9.9.3
 
+    * ListBox now includes a get_cursor_coords() method, allowing
+      nested ListBox widgets
+
     * Fix for a Filler mouse_event() position bug
+
+    * Fix support for mouse positions up to x=255, y=255
 
     * Fix for leaks of None object in str_util extension
 
-    * Fixes for fixed widgets in WidgetWrap, AttrMap and Padding widgets
-
-    * Add missing get_cursor_coords() method to ListBox
+    * Fix for WidgetWrap and AttrMap not working with fixed widgets
 
 
 Urwid 0.9.9.2
