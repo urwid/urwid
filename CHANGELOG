@@ -6,6 +6,8 @@ Urwid 1.0.1
 
     * Fix for a Filler mouse_event() position bug
 
+    * Fix support for mouse positions up to x=255, y=255
+
     * Fixes for a number of string encoding issues under Python 3
 
     * Fix for a LineBox border __init__() parameters
