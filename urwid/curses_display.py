@@ -74,11 +74,6 @@ class Screen(BaseScreen, RealTerminal):
 
         self.register_palette_entry(None, 'default','default')
 
-    def get_input_descriptors(self):
-        # XXX: Find a better solution for getting the file
-        # descriptors, espeacially for GPM and the like.
-        return [sys.stdin.fileno()]
-
     def set_mouse_tracking(self):
         """
         Enable mouse tracking.  
@@ -240,12 +235,6 @@ class Screen(BaseScreen, RealTerminal):
         self.max_tenths = convert_to_tenths(max_wait)
         self.complete_tenths = convert_to_tenths(complete_wait)
         self.resize_tenths = convert_to_tenths(resize_wait)
-
-    def get_input_nonblocking(self):
-        self.s.timeout(0)
-        keys, raw = self.get_input(raw_keys=True)
-        self.s.timeout(-1)
-        return (self.max_tenths, keys, raw)
 
     def get_input(self, raw_keys=False):
         """Return pending input as a list.
