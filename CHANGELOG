@@ -12,6 +12,9 @@ Urwid 1.0.1
 
     * Fix for a LineBox border __init__() parameters
 
+    * Disable curses_display external event loop support, screen resizing
+      and gpm events are not properly supported
+
 
 Urwid 1.0.0
 
