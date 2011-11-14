@@ -256,7 +256,8 @@ def example_wanat():
         def render(self, size, focus=False):
             (maxcol,) = size
             num_pudding = maxcol / len("Pudding")
-            return urwid.TextCanvas(["Pudding"*num_pudding]) 
+            return urwid.TextCanvas(["Pudding"*num_pudding],
+                maxcol=maxcol)
 
     class BoxPudding(urwid.BoxWidget):
         def selectable(self):
@@ -265,7 +266,8 @@ def example_wanat():
             (maxcol, maxrow) = size
             num_pudding = maxcol / len("Pudding")
             return urwid.TextCanvas(
-                ["Pudding"*num_pudding] * maxrow)
+                ["Pudding"*num_pudding] * maxrow,
+                maxcol=maxcol)
 
 def example_wanat_new():
     class NewPudding(urwid.FlowWidget):
@@ -296,7 +298,8 @@ def example_wanat_multi():
                 (maxcol, maxrow) = size
             num_pudding = maxcol / len("Pudding")
             return urwid.TextCanvas(
-                ["Pudding"*num_pudding] * maxrow)
+                ["Pudding"*num_pudding] * maxrow,
+                maxcol=maxcol)
 
 examples["wsel"] = ["example_wsel"]
 def example_wsel():
@@ -313,7 +316,8 @@ def example_wsel():
             pudding = self.pudding
             if focus: 
                 pudding = pudding.upper()
-            return urwid.TextCanvas([pudding*num_pudding])
+            return urwid.TextCanvas([pudding*num_pudding],
+                maxcol=maxcol)
         def keypress(self, size, key):
             (maxcol,) = size
             if len(key)>1:
@@ -343,7 +347,7 @@ def example_wcur():
             if focus:
                 cursor = self.get_cursor_coords(size)
             return urwid.TextCanvas(
-                ["Pudding"*num_pudding], [], cursor)
+                ["Pudding"*num_pudding], [], cursor, maxcol)
         def get_cursor_coords(self, size):
             (maxcol,) = size
             col = min(self.cursor_col, maxcol-1)
@@ -358,13 +362,13 @@ def example_wcur():
                 return key
             self.cursor_x = max(0, min(maxcol-1, col))
         # CUT HERE
-        def get_pref_col( self, (maxcol,) ):
+        def get_pref_col(self, (maxcol,)):
             return self.cursor_x
-        def move_cursor_to_coords( self, (maxcol,), col, row ):
+        def move_cursor_to_coords(self, (maxcol,), col, row):
             assert row == 0
             self.cursor_x = col
             return True
-            
+
 def read_sections(tmpl):
     """Read section tags, section descriptions, and column breaks from
     the Templayer template argument.  Convert the section data into a
