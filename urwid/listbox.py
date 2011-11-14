@@ -40,13 +40,19 @@ class ListWalker(object):
 
     def _modified(self):
         signals.emit_signal(self, "modified")
-    
+
 
 class PollingListWalker(object):  # NOT ListWalker subclass
     def __init__(self, contents):
         """
         contents -- list to poll for changes
+
+        This class is deprecated.  Use SimpleListWalker instead.
         """
+        import warnings
+        warnings.warn("PollingListWalker is deprecated, "
+            "use SimpleListWalker instead.", DeprecationWarning)
+
         self.contents = contents
         if not type(contents) == list and not hasattr( 
             contents, '__getitem__' ):

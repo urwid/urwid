@@ -15,6 +15,8 @@ Urwid 1.0.1
     * Disable curses_display external event loop support, screen resizing
       and gpm events are not properly supported
 
+    * Mark PollingListWalker as deprecated
+
 
 Urwid 1.0.0
 
