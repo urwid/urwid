@@ -50,7 +50,7 @@ class Screen(BaseScreen, RealTerminal):
         """
         super(Screen, self).__init__()
         self._pal_escape = {}
-        signals.connect_signal(self, UPDATE_PALETTE_ENTRY, 
+        signals.connect_signal(self, UPDATE_PALETTE_ENTRY,
             self._on_update_palette_entry)
         self.colors = 16 # FIXME: detect this
         self.has_underline = True # FIXME: detect this
@@ -81,12 +81,12 @@ class Screen(BaseScreen, RealTerminal):
         self._pal_escape[name] = self._attrspec_to_escape(
             attrspecs[{16:0,1:1,88:2,256:3}[self.colors]])
 
-    def set_input_timeouts(self, max_wait=None, complete_wait=0.125, 
+    def set_input_timeouts(self, max_wait=None, complete_wait=0.125,
         resize_wait=0.125):
         """
         Set the get_input timeout values.  All values are in floating
         point numbers of seconds.
-        
+
         max_wait -- amount of time in seconds to wait for input when
             there is no input pending, wait forever if None
         complete_wait -- amount of time in seconds to wait when
@@ -111,17 +111,17 @@ class Screen(BaseScreen, RealTerminal):
             os.write(self._resize_pipe_wr, B('R'))
         self._resized = True
         self.screen_buf = None
-      
+
     def signal_init(self):
         """
-        Called in the startup of run wrapper to set the SIGWINCH 
+        Called in the startup of run wrapper to set the SIGWINCH
         signal handler to self._sigwinch_handler.
 
         Override this function to call from main thread in threaded
         applications.
         """
         signal.signal(signal.SIGWINCH, self._sigwinch_handler)
-    
+
     def signal_restore(self):
         """
         Called in the finally block of run wrapper to restore the
@@ -131,18 +131,18 @@ class Screen(BaseScreen, RealTerminal):
         applications.
         """
         signal.signal(signal.SIGWINCH, signal.SIG_DFL)
-      
+
     def set_mouse_tracking(self):
         """
-        Enable mouse tracking.  
-        
+        Enable mouse tracking.
+
         After calling this function get_input will include mouse
         click events along with keystrokes.
         """
         self._term_output_file.write(escape.MOUSE_TRACKING_ON)
 
         self._start_gpm_tracking()
-    
+
     def _start_gpm_tracking(self):
         if not os.path.isfile("/usr/bin/mev"):
             return
@@ -154,16 +154,16 @@ class Screen(BaseScreen, RealTerminal):
             close_fds=True)
         fcntl.fcntl(m.stdout.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
         self.gpm_mev = m
-    
+
     def _stop_gpm_tracking(self):
         os.kill(self.gpm_mev.pid, signal.SIGINT)
         os.waitpid(self.gpm_mev.pid, 0)
         self.gpm_mev = None
-    
+
     def start(self, alternate_buffer=True):
         """
         Initialize the screen and input mode.
-        
+
         alternate_buffer -- use alternate screen buffer
         """
         assert not self._started
@@ -172,19 +172,27 @@ class Screen(BaseScreen, RealTerminal):
             self._rows_used = None
         else:
             self._rows_used = 0
-        self._old_termios_settings = termios.tcgetattr(0)
+
+        if os.isatty(0):
+            self._old_termios_settings = termios.tcgetattr(0)
         self.signal_init()
-        tty.setcbreak(self._term_input_file.fileno())
+        try:
+            fd = self._term_input_file.fileno()
+            if os.isatty(fd):
+                tty.setcbreak(fd)
+        except TypeError:
+            # fd is not an integer, ruh-roh
+            pass
         self._alternate_buffer = alternate_buffer
         self._input_iter = self._run_input_iter()
         self._next_timeout = self.max_wait
-        
+
         if not self._signal_keys_set:
             self._old_signal_keys = self.tty_signal_keys()
 
         super(Screen, self).start()
 
-    
+
     def stop(self):
         """
         Restore the screen.
@@ -193,17 +201,19 @@ class Screen(BaseScreen, RealTerminal):
         if not self._started:
             return
         self.signal_restore()
-        termios.tcsetattr(0, termios.TCSADRAIN, 
-            self._old_termios_settings)
+
+        if os.isatty(0):
+            termios.tcsetattr(0, termios.TCSADRAIN,
+                    self._old_termios_settings)
         move_cursor = ""
         if self.gpm_mev:
             self._stop_gpm_tracking()
         if self._alternate_buffer:
             move_cursor = escape.RESTORE_NORMAL_BUFFER
         elif self.maxrow is not None:
-            move_cursor = escape.set_cursor_position( 
+            move_cursor = escape.set_cursor_position(
                 0, self.maxrow)
-        self._term_output_file.write(self._attrspec_to_escape(AttrSpec('','')) 
+        self._term_output_file.write(self._attrspec_to_escape(AttrSpec('',''))
             + escape.SI
             + escape.MOUSE_TRACKING_OFF
             + escape.SHOW_CURSOR
@@ -212,13 +222,13 @@ class Screen(BaseScreen, RealTerminal):
 
         if self._old_signal_keys:
             self.tty_signal_keys(*self._old_signal_keys)
-        
+
         super(Screen, self).stop()
-        
+
 
     def run_wrapper(self, fn, alternate_buffer=True):
         """
-        Call start to initialize screen, then call fn.  
+        Call start to initialize screen, then call fn.
         When fn exits call stop to restore the screen to normal.
 
         alternate_buffer -- use alternate screen buffer and restore
@@ -229,7 +239,7 @@ class Screen(BaseScreen, RealTerminal):
             return fn()
         finally:
             self.stop()
-            
+
     def get_input(self, raw_keys=False):
         """Return pending input as a list.
 
@@ -243,15 +253,15 @@ class Screen(BaseScreen, RealTerminal):
         If raw_keys is False (default) this function will return a list
         of keys pressed.  If raw_keys is True this function will return
         a ( keys pressed, raw keycodes ) tuple instead.
-        
+
         Examples of keys returned
         -------------------------
-        ASCII printable characters:  " ", "a", "0", "A", "-", "/" 
+        ASCII printable characters:  " ", "a", "0", "A", "-", "/"
         ASCII control characters:  "tab", "enter"
         Escape sequences:  "up", "page up", "home", "insert", "f1"
         Key combinations:  "shift f1", "meta a", "ctrl b"
         Window events:  "window resize"
-        
+
         When a narrow encoding is not enabled
         "Extended ASCII" characters:  "\\xa1", "\\xb2", "\\xfe"
 
@@ -260,10 +270,10 @@ class Screen(BaseScreen, RealTerminal):
 
         When utf8 encoding is enabled
         Unicode characters: u"\\u00a5", u'\\u253c"
-        
+
         Examples of mouse events returned
         ---------------------------------
-        Mouse button press: ('mouse press', 1, 15, 13), 
+        Mouse button press: ('mouse press', 1, 15, 13),
                             ('meta mouse press', 2, 17, 23)
         Mouse drag: ('mouse drag', 1, 16, 13),
                     ('mouse drag', 1, 17, 13),
@@ -272,10 +282,10 @@ class Screen(BaseScreen, RealTerminal):
                               ('ctrl mouse release', 0, 17, 23)
         """
         assert self._started
-        
+
         self._wait_for_input_ready(self._next_timeout)
         self._next_timeout, keys, raw = self._input_iter.next()
-        
+
         # Avoid pegging CPU at 100% when slowly resizing
         if keys==['window resize'] and self.prev_input_resize:
             while True:
@@ -284,21 +294,21 @@ class Screen(BaseScreen, RealTerminal):
                     self._input_iter.next()
                 raw += raw2
                 #if not keys:
-                #    keys, raw2 = self._get_input( 
+                #    keys, raw2 = self._get_input(
                 #        self.resize_wait)
                 #    raw += raw2
                 if keys!=['window resize']:
                     break
             if keys[-1:]!=['window resize']:
                 keys.append('window resize')
-                
+
         if keys==['window resize']:
             self.prev_input_resize = 2
         elif self.prev_input_resize == 2 and not keys:
             self.prev_input_resize = 1
         else:
             self.prev_input_resize = 0
-        
+
         if raw_keys:
             return keys, raw
         return keys
@@ -314,14 +324,14 @@ class Screen(BaseScreen, RealTerminal):
         if self.gpm_mev is not None:
             fd_list.append(self.gpm_mev.stdout.fileno())
         return fd_list
-        
+
     def get_input_nonblocking(self):
         """
-        Return a (next_input_timeout, keys_pressed, raw_keycodes) 
+        Return a (next_input_timeout, keys_pressed, raw_keycodes)
         tuple.
 
         Use this method if you are implementing your own event loop.
-        
+
         When there is input waiting on one of the descriptors returned
         by get_input_descriptors() this method should be called to
         read and process the input.
@@ -367,7 +377,7 @@ class Screen(BaseScreen, RealTerminal):
                     run, codes = escape.process_keyqueue(
                         codes, False)
                     processed.extend(run)
-            
+
             if self._resized:
                 processed.append('window resize')
                 self._resized = False
@@ -417,13 +427,13 @@ class Screen(BaseScreen, RealTerminal):
                         fd_list,[],fd_list, timeout)
                 break
             except select.error, e:
-                if e.args[0] != 4: 
+                if e.args[0] != 4:
                     raise
                 if self._resized:
                     ready = []
                     break
-        return ready    
-        
+        return ready
+
     def _getch(self, timeout):
         ready = self._wait_for_input_ready(timeout)
         if self.gpm_mev is not None:
@@ -432,7 +442,7 @@ class Screen(BaseScreen, RealTerminal):
         if self._term_input_file.fileno() in ready:
             return ord(os.read(self._term_input_file.fileno(), 1))
         return -1
-    
+
     def _encode_gpm_event( self ):
         self.gpm_event_pending = False
         s = self.gpm_mev.stdout.readline().decode('ascii')
@@ -453,7 +463,7 @@ class Screen(BaseScreen, RealTerminal):
 
         last = next = self.last_bstate
         l = []
-        
+
         mod = 0
         if m & 1:    mod |= 4 # shift
         if m & 10:    mod |= 8 # alt
@@ -490,14 +500,14 @@ class Screen(BaseScreen, RealTerminal):
             if b & 1 and last & 4:
                 append_button( 2 + escape.MOUSE_RELEASE_FLAG )
                 next &= ~ 4
-            
+
         self.last_bstate = next
         return l
-    
+
     def _getch_nodelay(self):
         return self._getch(0)
-    
-    
+
+
     def get_cols_rows(self):
         """Return the terminal dimensions (num columns, num rows)."""
         buf = fcntl.ioctl(0, termios.TIOCGWINSZ, ' '*4)
@@ -511,7 +521,7 @@ class Screen(BaseScreen, RealTerminal):
         """
         if self._setup_G1_done:
             return
-        
+
         while True:
             try:
                 self._term_output_file.write(escape.DESIGNATE_G1_SPECIAL)
@@ -521,7 +531,7 @@ class Screen(BaseScreen, RealTerminal):
                 pass
         self._setup_G1_done = True
 
-    
+
     def draw_screen(self, (maxcol, maxrow), r ):
         """Paint screen with rendered canvas."""
         assert self._started
@@ -533,13 +543,13 @@ class Screen(BaseScreen, RealTerminal):
             return
 
         self._setup_G1()
-        
-        if self._resized: 
+
+        if self._resized:
             # handle resize before trying to draw screen
             return
-        
+
         o = [escape.HIDE_CURSOR, self._attrspec_to_escape(AttrSpec('',''))]
-        
+
         def partial_display():
             # returns True if the screen is in partial display mode
             # ie. only some rows belong to the display
@@ -559,9 +569,9 @@ class Screen(BaseScreen, RealTerminal):
         def set_cursor_home():
             if not partial_display():
                 return escape.set_cursor_position(0, 0)
-            return (escape.CURSOR_HOME_COL + 
+            return (escape.CURSOR_HOME_COL +
                 escape.move_cursor_up(cy))
-        
+
         def set_cursor_row(y):
             if not partial_display():
                 return escape.set_cursor_position(0, y)
@@ -577,7 +587,7 @@ class Screen(BaseScreen, RealTerminal):
             return ('\b' + escape.CURSOR_HOME_COL +
                 escape.move_cursor_down(y - cy) +
                 escape.move_cursor_right(x))
-        
+
         def is_blank_row(row):
             if len(row) > 1:
                 return False
@@ -607,21 +617,21 @@ class Screen(BaseScreen, RealTerminal):
                 continue
 
             sb.append(row)
-            
+
             # leave blank lines off display when we are using
             # the default screen buffer (allows partial screen)
             if partial_display() and y > self._rows_used:
                 if is_blank_row(row):
                     continue
                 self._rows_used = y
-            
+
             if y or partial_display():
                 o.append(set_cursor_position(0, y))
             # after updating the line we will be just over the
             # edge, but terminals still treat this as being
             # on the same line
-            cy = y 
-            
+            cy = y
+
             if y == maxrow-1:
                 row, back, ins = self._last_row(row)
 
@@ -658,7 +668,7 @@ class Screen(BaseScreen, RealTerminal):
                     icss = escape.IBMPC_ON
                 else:
                     icss = escape.SO
-                o += [    "\x08"*back, 
+                o += [    "\x08"*back,
                     ias, icss,
                     escape.INSERT_ON, inserttext,
                     escape.INSERT_OFF ]
@@ -668,11 +678,11 @@ class Screen(BaseScreen, RealTerminal):
 
         if r.cursor is not None:
             x,y = r.cursor
-            o += [set_cursor_position(x, y), 
+            o += [set_cursor_position(x, y),
                 escape.SHOW_CURSOR  ]
             self._cy = y
-        
-        if self._resized: 
+
+        if self._resized:
             # handle resize before trying to draw screen
             return
         try:
@@ -693,37 +703,37 @@ class Screen(BaseScreen, RealTerminal):
 
         self.screen_buf = sb
         self._screen_buf_canvas = r
-                
-    
+
+
     def _last_row(self, row):
         """On the last row we need to slide the bottom right character
         into place. Calculate the new line, attr and an insert sequence
         to do that.
-        
+
         eg. last row:
         XXXXXXXXXXXXXXXXXXXXYZ
-        
+
         Y will be drawn after Z, shifting Z into position.
         """
-        
+
         new_row = row[:-1]
         z_attr, z_cs, last_text = row[-1]
         last_cols = util.calc_width(last_text, 0, len(last_text))
-        last_offs, z_col = util.calc_text_pos(last_text, 0, 
+        last_offs, z_col = util.calc_text_pos(last_text, 0,
             len(last_text), last_cols-1)
         if last_offs == 0:
             z_text = last_text
             del new_row[-1]
             # we need another segment
             y_attr, y_cs, nlast_text = row[-2]
-            nlast_cols = util.calc_width(nlast_text, 0, 
+            nlast_cols = util.calc_width(nlast_text, 0,
                 len(nlast_text))
             z_col += nlast_cols
             nlast_offs, y_col = util.calc_text_pos(nlast_text, 0,
                 len(nlast_text), nlast_cols-1)
             y_text = nlast_text[nlast_offs:]
             if nlast_offs:
-                new_row.append((y_attr, y_cs, 
+                new_row.append((y_attr, y_cs,
                     nlast_text[:nlast_offs]))
         else:
             z_text = last_text[last_offs:]
@@ -736,12 +746,12 @@ class Screen(BaseScreen, RealTerminal):
             if nlast_offs:
                 new_row.append((y_attr, y_cs,
                     last_text[:nlast_offs]))
-        
+
         new_row.append((z_attr, z_cs, z_text))
         return new_row, z_col-y_col, (y_attr, y_cs, y_text)
 
-            
-    
+
+
     def clear(self):
         """
         Force the screen to be completely repainted on the next
@@ -750,7 +760,7 @@ class Screen(BaseScreen, RealTerminal):
         self.screen_buf = None
         self.setup_G1 = True
 
-        
+
     def _attrspec_to_escape(self, a):
         """
         Convert AttrSpec instance a to an escape sequence for the terminal
@@ -795,7 +805,7 @@ class Screen(BaseScreen, RealTerminal):
         """
         colors -- number of colors terminal supports (1, 16, 88 or 256)
             or None to leave unchanged
-        bright_is_bold -- set to True if this terminal uses the bold 
+        bright_is_bold -- set to True if this terminal uses the bold
             setting to create bright colors (numbers 8-15), set to False
             if this Terminal can create bright colors without bold or
             None to leave unchanged
@@ -817,7 +827,7 @@ class Screen(BaseScreen, RealTerminal):
         self.colors = colors
         self.bright_is_bold = bright_is_bold
         self.has_underline = has_underline
-            
+
         self.clear()
         self._pal_escape = {}
         for p,v in self._palette.items():
@@ -828,7 +838,7 @@ class Screen(BaseScreen, RealTerminal):
     def reset_default_terminal_palette(self):
         """
         Attempt to set the terminal palette to default values as taken
-        from xterm.  Uses number of colors from current 
+        from xterm.  Uses number of colors from current
         set_terminal_properties() screen setting.
         """
         if self.colors == 1:
@@ -852,7 +862,7 @@ class Screen(BaseScreen, RealTerminal):
         Attempt to set part of the terminal pallette (this does not work
         on all terminals.)  The changes are sent as a single escape
         sequence so they should all take effect at the same time.
-        
+
         0 <= index < 256 (some terminals will only have 16 or 88 colors)
         0 <= red, green, blue < 256
         """
@@ -866,7 +876,7 @@ class Screen(BaseScreen, RealTerminal):
     # shortcut for creating an AttrSpec with this screen object's
     # number of colors
     AttrSpec = lambda self, fg, bg: AttrSpec(fg, bg, self.colors)
-    
+
 
 def _test():
     import doctest
