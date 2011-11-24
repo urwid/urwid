@@ -18,6 +18,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+import os
 import sys
 import termios
 
@@ -650,7 +651,7 @@ class RealTerminal(object):
         self._old_signal_keys = None
         
     def tty_signal_keys(self, intr=None, quit=None, start=None, 
-        stop=None, susp=None):
+        stop=None, susp=None, fileno=None):
         """
         Read and/or set the tty's signal charater settings.
         This function returns the current settings as a tuple.
@@ -664,8 +665,16 @@ class RealTerminal(object):
         then the original settings will be restored when stop()
         is called.
         """
-        fd = sys.stdin.fileno()
-        tattr = termios.tcgetattr(fd)
+        if fileno is None:
+            fileno = sys.stdin.fileno()
+        try:
+            if not os.isatty(fileno):
+                return
+        except TypeError:
+            # fileno, not an int? abort
+            return
+
+        tattr = termios.tcgetattr(fileno)
         sattr = tattr[6]
         skeys = (sattr[termios.VINTR], sattr[termios.VQUIT],
             sattr[termios.VSTART], sattr[termios.VSTOP],
@@ -686,7 +695,7 @@ class RealTerminal(object):
         if intr is not None or quit is not None or \
             start is not None or stop is not None or \
             susp is not None:
-            termios.tcsetattr(fd, termios.TCSADRAIN, tattr)
+            termios.tcsetattr(fileno, termios.TCSADRAIN, tattr)
             self._signal_keys_set = True
         
         return skeys

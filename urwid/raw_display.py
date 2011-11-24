@@ -180,7 +180,7 @@ class Screen(BaseScreen, RealTerminal):
         self._next_timeout = self.max_wait
         
         if not self._signal_keys_set:
-            self._old_signal_keys = self.tty_signal_keys()
+            self._old_signal_keys = self.tty_signal_keys(fileno=fd)
 
         super(Screen, self).start()
 
@@ -211,7 +211,7 @@ class Screen(BaseScreen, RealTerminal):
         self._input_iter = self._fake_input_iter()
 
         if self._old_signal_keys:
-            self.tty_signal_keys(*self._old_signal_keys)
+            self.tty_signal_keys(*self._old_signal_keys, fileno=fd)
         
         super(Screen, self).stop()
         
