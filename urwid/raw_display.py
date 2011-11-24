@@ -172,9 +172,16 @@ class Screen(BaseScreen, RealTerminal):
             self._rows_used = None
         else:
             self._rows_used = 0
-        self._old_termios_settings = termios.tcgetattr(0)
+
+        try:
+            fd = self._term_input_file.fileno()
+            if os.isatty(fd):
+                self._old_termios_settings = termios.tcgetattr(fd)
+                tty.setcbreak(fd)
+        except TypeError:
+            # fd is not an integer, ruh-roh
+            pass
         self.signal_init()
-        tty.setcbreak(self._term_input_file.fileno())
         self._alternate_buffer = alternate_buffer
         self._input_iter = self._run_input_iter()
         self._next_timeout = self.max_wait
@@ -193,8 +200,15 @@ class Screen(BaseScreen, RealTerminal):
         if not self._started:
             return
         self.signal_restore()
-        termios.tcsetattr(0, termios.TCSADRAIN, 
+
+        fd = self._term_input_file.fileno()
+        try:
+            if os.isatty(fd):
+                termios.tcsetattr(fd, termios.TCSADRAIN,
             self._old_termios_settings)
+        except TypeError:
+            # fd isn't an integer, bad form
+            pass
         move_cursor = ""
         if self.gpm_mev:
             self._stop_gpm_tracking()
