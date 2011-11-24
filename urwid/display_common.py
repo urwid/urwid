@@ -667,11 +667,7 @@ class RealTerminal(object):
         """
         if fileno is None:
             fileno = sys.stdin.fileno()
-        try:
-            if not os.isatty(fileno):
-                return
-        except TypeError:
-            # fileno, not an int? abort
+        if not os.isatty(fileno):
             return
 
         tattr = termios.tcgetattr(fileno)
