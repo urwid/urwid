@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
-# Urwid tour.  It slices, it dices.. 
-#    Copyright (C) 2004-2007  Ian Ward
+# Urwid tour.  It slices, it dices..
+#    Copyright (C) 2004-2011  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -69,14 +69,14 @@ def main():
         "movement and tries to maintain the current column when focus "
         "moves to another edit widget.  It wraps and aligns the same "
         "way as Text widgets." ]
-    text_edit_cap1 = ('editcp',"This is a caption.  Edit here: ")
+    text_edit_cap1 = ('editcp',u"This is a caption.  Edit here: ")
     text_edit_text1 = "editable stuff"
-    text_edit_cap2 = ('editcp',"This one supports newlines: ")
+    text_edit_cap2 = ('editcp',u"This one supports newlines: ")
     text_edit_text2 = ("line one starts them all\n"
         "== line 2 == with some more text to edit.. words.. whee..\n"
         "LINE III, the line to end lines one and two, unless you "
         "change something.")
-    text_edit_cap3 = ('editcp',"This one is clipped, try "
+    text_edit_cap3 = ('editcp',u"This one is clipped, try "
         "editing past the edge: ")
     text_edit_text3 = "add some text here -> -> -> ...."
     text_edit_alignments = "Different Alignments:"
@@ -85,7 +85,7 @@ def main():
     text_edit_right = "right aligned"
     text_intedit = ('editcp',[('important',"IntEdit"),
         " allows only numbers: "])
-    text_edit_padding = ('editcp',"Edit widget within a Padding widget ")
+    text_edit_padding = ('editcp', u"Edit widget within a Padding widget ")
     text_columns1 = [('important',"Columns"), 
         " are used to share horizontal screen space.  "
         "This one splits the space into two parts with "
@@ -104,11 +104,11 @@ def main():
     text_weight = "Weight %d"
     text_fixed_9 = "<Fixed 9>" # should be 9 columns wide
     text_fixed_14 = "<--Fixed 14-->" # should be 14 columns wide
-    text_edit_col_cap1 = ('editcp',"Edit widget within Columns")
+    text_edit_col_cap1 = ('editcp', u"Edit widget within Columns")
     text_edit_col_text1 = "here's\nsome\ninfo"
-    text_edit_col_cap2 = ('editcp',"and within Pile ")
+    text_edit_col_cap2 = ('editcp', u"and within Pile ")
     text_edit_col_text2 = "more"
-    text_edit_col_cap3 = ('editcp',"another ")
+    text_edit_col_cap3 = ('editcp', u"another ")
     text_edit_col_text3 = "still more"
     text_gridflow = ["A ",('important',"GridFlow")," widget "
         "may be used to display a list of flow widgets with equal "
