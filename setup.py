@@ -70,7 +70,7 @@ Example Program Screenshots:
   http://excess.org/urwid/examples.html
 """[1:],
     'classifiers':[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
         "Environment :: Console :: Curses",
         "Intended Audience :: Developers",
