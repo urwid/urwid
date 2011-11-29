@@ -219,10 +219,10 @@ class Screen(BaseScreen, RealTerminal):
         self._input_iter = self._fake_input_iter()
 
         if self._old_signal_keys:
-            self.tty_signal_keys(*self._old_signal_keys, fileno=fd)
-        
+            self.tty_signal_keys(*(self._old_signal_keys + (fd,)))
+
         super(Screen, self).stop()
-        
+
 
     def run_wrapper(self, fn, alternate_buffer=True):
         """
