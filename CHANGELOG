@@ -12,7 +12,16 @@ Urwid 1.0.1
 
     * Fix for a LineBox border __init__() parameters
 
-    * Disable curses_display external event loop support, screen resizing
+    * Fix input input of UTF-8 in tour.py example by converting captions
+      to unicode
+
+    * Fix tutorial examples' use of TextCanvas and switch to using
+      unicode literals
+
+    * Prevent raw_display from calling tcseattr() or tcgetattr() on
+      non-ttys
+
+    * Disable curses_display external event loop support: screen resizing
       and gpm events are not properly supported
 
     * Mark PollingListWalker as deprecated
