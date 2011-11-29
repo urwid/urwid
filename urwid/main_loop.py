@@ -438,6 +438,8 @@ class MainLoop(object):
         something_handled = False
 
         for k in keys:
+            if k == 'window resize':
+                continue
             if is_mouse_event(k):
                 event, button, col, row = k
                 if self._topmost_widget.mouse_event(self.screen_size,
