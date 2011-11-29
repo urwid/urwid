@@ -38,7 +38,7 @@ examples["min"] = ["example_min"]
 def example_min():
     import urwid
 
-    txt = urwid.Text("Hello World")
+    txt = urwid.Text(u"Hello World")
     fill = urwid.Filler(txt, 'top')
     loop = urwid.MainLoop(fill)
     loop.run()
@@ -48,7 +48,7 @@ examples["input"] = ["example_input"]
 def example_input():
     import urwid
 
-    txt = urwid.Text("Hello World")
+    txt = urwid.Text(u"Hello World")
     fill = urwid.Filler(txt, 'top')
 
     def show_or_exit(input):
@@ -69,7 +69,7 @@ def example_attr():
         ('streak', 'black', 'dark red', 'standout'),
         ('bg', 'black', 'dark blue'),]
 
-    txt = urwid.Text(('banner', " Hello World "), align='center')
+    txt = urwid.Text(('banner', u" Hello World "), align='center')
     map1 = urwid.AttrMap(txt, 'streak')
     fill = urwid.Filler(map1)
     map2 = urwid.AttrMap(fill, 'bg')
@@ -93,7 +93,7 @@ def example_highcolors():
         ('outside', '', '', '', 'g27', '#a06'),
         ('bg', '', '', '', 'g7', '#d06'),]
 
-    txt = urwid.Text(('banner', " Hello World "), align='center')
+    txt = urwid.Text(('banner', u" Hello World "), align='center')
     map1 = urwid.AttrMap(txt, 'streak')
     pile = urwid.Pile([
         urwid.AttrMap(urwid.Divider(), 'outside'),
@@ -117,15 +117,15 @@ examples["edit"] = ["example_edit"]
 def example_edit():
     import urwid
 
-    ask = urwid.Edit("What is your name?\n")
+    ask = urwid.Edit(u"What is your name?\n")
     fill = urwid.Filler( ask )
 
     def do_reply(input):
         if input != 'enter':
             return
         if fill.body == ask:
-            fill.body = urwid.Text( "Nice to meet you,\n"+
-                ask.edit_text+"." )
+            fill.body = urwid.Text(u"Nice to meet you,\n"+
+                ask.edit_text+".")
             return True
         else:
             raise urwid.ExitMainLoop()
@@ -140,16 +140,16 @@ def example_frlb():
 
     palette = [('I say', 'default,bold', 'default', 'bold'),]
 
-    ask = urwid.Edit(('I say', "What is your name?\n"))
-    reply = urwid.Text("")
+    ask = urwid.Edit(('I say', u"What is your name?\n"))
+    reply = urwid.Text(u"")
     content = urwid.SimpleListWalker([ask, reply])
     listbox = urwid.ListBox(content)
 
     def on_ask_change(edit, new_edit_text):
         assert edit is ask # we are passed our edit widget
-        reply.set_text(('I say', 
-            "Nice to meet you, " + new_edit_text))
-    
+        reply.set_text(('I say',
+            u"Nice to meet you, " + new_edit_text))
+
     urwid.connect_signal(ask, 'change', on_ask_change)
 
     def exit_on_cr(input):
@@ -158,7 +158,7 @@ def example_frlb():
 
     loop = urwid.MainLoop(listbox, palette, unhandled_input=exit_on_cr)
     loop.run()
-    
+
 
 examples["lbcont"]=["example_lbcont"]
 def example_lbcont():
@@ -167,10 +167,10 @@ def example_lbcont():
     palette = [('I say', 'default,bold', 'default', 'bold'),]
 
     def new_question():
-        return urwid.Edit(('I say',"What is your name?\n"))
-    
+        return urwid.Edit(('I say', u"What is your name?\n"))
+
     def new_answer(name):
-        return urwid.Text(('I say',"Nice to meet you, "+name+"\n"))
+        return urwid.Text(('I say', u"Nice to meet you, "+name+"\n"))
 
     content = urwid.SimpleListWalker([new_question()])
     listbox = urwid.ListBox(content)
@@ -202,20 +202,20 @@ def example_lbscr():
         ('reveal focus', 'black', 'dark cyan', 'standout'),]
     content = urwid.SimpleListWalker([
         urwid.AttrMap(w, None, 'reveal focus') for w in [
-        urwid.Text("This is a text string that is fairly long"),
-        urwid.Divider("-"),
-        urwid.Text("Short one"),
-        urwid.Text("Another"),
-        urwid.Divider("-"),
-        urwid.Text("What could be after this?"),
-        urwid.Text("The end."),]])
+        urwid.Text(u"This is a text string that is fairly long"),
+        urwid.Divider(u"-"),
+        urwid.Text(u"Short one"),
+        urwid.Text(u"Another"),
+        urwid.Divider(u"-"),
+        urwid.Text(u"What could be after this?"),
+        urwid.Text(u"The end."),]])
     listbox = urwid.ListBox(content)
-    show_key = urwid.Text("", wrap='clip')
+    show_key = urwid.Text(u"", wrap='clip')
     head = urwid.AttrMap(show_key, 'header')
     top = urwid.Frame(listbox, head)
 
     def show_all_input(input, raw):
-        show_key.set_text("Pressed: " + " ".join([
+        show_key.set_text(u"Pressed: " + u" ".join([
             unicode(i) for i in input]))
         return input
 
@@ -233,9 +233,9 @@ def example_wmod():
     class QuestionnaireItem(urwid.WidgetWrap):
         def __init__(self):
             self.options = []
-            unsure = urwid.RadioButton(self.options, "Unsure")
-            yes = urwid.RadioButton(self.options, "Yes")
-            no = urwid.RadioButton(self.options, "No")
+            unsure = urwid.RadioButton(self.options, u"Unsure")
+            yes = urwid.RadioButton(self.options, u"Yes")
+            no = urwid.RadioButton(self.options, u"No")
             display_widget = urwid.GridFlow([unsure, yes, no],
                 15, 3, 1, 'left')
             urwid.WidgetWrap.__init__(self, display_widget)
