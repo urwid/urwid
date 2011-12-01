@@ -12,9 +12,19 @@ Contents:
    :maxdepth: 2
 
    intro
+   mainloop
    displaymodules
    userinput
-
+   widgetlayout
+   standardwidgets
+   widgetmethods
+   textlayout
+   textencodings
+   displayattributes
+   textattributes
+   listboxcontents
+   canvascache
+   eventloops
 
 Indices and tables
 ==================

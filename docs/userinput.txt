@@ -1,18 +1,18 @@
-.. user-input
+.. _user-input:
 
 User Input
 ==========
 
 All input from the user is parsed by a display module, and returned from either
-the `get_input()` or `get_input_nonblocking()` methods as a list. Window resize
-events are also included in the user input.
+the :meth:`get_input` or :meth:`get_input_nonblocking` methods as a list.
+Window resize events are also included in the user input.
 
-The :ref:`MainLoop` class will take this input and pass each item to the widget
-methods `keypress()` or `mouse_event()`. You may filter input (possibly
-removing or altering it) before it is passed to the widgets, or can catch
-unhandled input by passing functions into the :ref:`MainLoop` constructor. If
-the window was resized :ref:`MainLoop` will query the new display size and
-update the screen.
+The :class:`MainLoop` class will take this input and pass each item to the
+widget methods :meth:`keypress` or :meth:`mouse_event`. You may filter input
+(possibly removing or altering it) before it is passed to the widgets, or can
+catch unhandled input by passing functions into the :class:`MainLoop`
+constructor. If the window was resized :class:`MainLoop` will query the new
+display size and update the screen.
 
 There may be more than one keystroke or mouse event processed at a time, and
 each is sent as a separate item in the list.
@@ -39,8 +39,8 @@ CTRL+SHIFT+F5 `'shift ctrl f5'`
 ALT+J         `'meta j'`
 ============= =================
 
-With Unicode :ref:`text encoding <TextEncodings>` you will also receive Unicode
-strings for any non-ASCII characters:
+With Unicode :ref:`text encoding <text-encodings>` you will also receive
+Unicode strings for any non-ASCII characters:
 
 =========== ==============
 Key pressed Input returned
@@ -50,7 +50,7 @@ Key pressed Input returned
 カ          `u'カ'`
 =========== ==============
 
-With non-Unicode :ref:`text encoding <TextEncodings>` characters will be sent
+With non-Unicode :ref:`text encoding <text-encodings>` characters will be sent
 as-is in the original encoding.
 
 =========== =========================================
@@ -62,20 +62,21 @@ Key pressed Input returned (each in its own encoding)
 =========== =========================================
 
 Urwid does not try to convert this text to Unicode to avoid losing any
-information.  If you want the input converted to Unicode in all cases you may
+information. If you want the input converted to Unicode in all cases you may
 create an input filter to do so.
 
 Mouse Input
 -----------
 
-Mouse input is sent as a `(event, button, x, y)` tuple.  `event` is a string describing the event.
-If the SHIFT, ALT or CTRL keys are held when a mouse event is sent then `event` may be 
-prefixed by `'shift '`, `'meta '` or `'ctrl '`.  `button` is a number from 1 to 5.
-`x` and `y` are character coordinates starting at (0,0) at the top-left
-of the screen. 
+Mouse input is sent as a `(event, button, x, y)` tuple. `event` is a string
+describing the event. If the SHIFT, ALT or CTRL keys are held when a mouse
+event is sent then `event` may be prefixed by `'shift '`, `'meta '` or `'ctrl
+'`. `button` is a number from 1 to 5. `x` and `y` are character coordinates
+starting at (0,0) at the top-left of the screen. 
 
-Support for the right-mouse button and use of modifier keys is poor in many terminals and some
-users don't have a middle mouse button, so these shouldn't be relied on.
+Support for the right-mouse button and use of modifier keys is poor in many
+terminals and some users don't have a middle mouse button, so these shouldn't
+be relied on.
 
 `'mouse press'` Events
 ----------------------
@@ -97,15 +98,15 @@ A mouse button was pressed.
 `'mouse release'` Events
 ------------------------
 
-Mouse release events will often not have information about which button
-was released.  In this case `button` will be set to 0.
+Mouse release events will often not have information about which button was
+released. In this case `button` will be set to 0.
 
 `'mouse drag'` Events
 ---------------------
 
-In the rare event that your user is using a terminal that can send these
-events you can use them to track their mouse dragging from one character cell
-to the next across the screen.  Be aware that you might see `x` and/or `y` 
-coordinates one position off the screen if the user drags their mouse to the edge.
+In the rare event that your user is using a terminal that can send these events
+you can use them to track their mouse dragging from one character cell to the
+next across the screen. Be aware that you might see `x` and/or `y` coordinates
+one position off the screen if the user drags their mouse to the edge.
 
-.. vim: set ft=rst:
+.. vim: set ft=rst enc=utf-8:
