@@ -3,3 +3,6 @@ syntax: glob
 *.pyc
 urwid.egg-info
 build
+.*.sw?
+tmp/
+docs/_build
