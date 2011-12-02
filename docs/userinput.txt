@@ -109,4 +109,4 @@ you can use them to track their mouse dragging from one character cell to the
 next across the screen. Be aware that you might see `x` and/or `y` coordinates
 one position off the screen if the user drags their mouse to the edge.
 
-.. vim: set ft=rst enc=utf-8:
+.. vim: set ft=rst fenc=utf-8:
