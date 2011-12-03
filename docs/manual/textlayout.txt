@@ -1,12 +1,12 @@
 .. _text-layout:
 
 Text Layout
------------
+===========
 
 Mapping a text string to screen coordinates within a widget is called text
-layout. The :class:`Text` widget's default layout class supports aligning text to the
-left, center or right, and can wrap text on space characters, at any location,
-or clip text that is off the edge.
+layout. The :class:`Text` widget's default layout class supports aligning text
+to the left, center or right, and can wrap text on space characters, at any
+location, or clip text that is off the edge.
 
 `Text widget reference <http://excess.org/urwid/reference.html#Text>`_
 
