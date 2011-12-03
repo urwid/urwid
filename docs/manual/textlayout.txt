@@ -1,7 +1,8 @@
 .. _text-layout:
 
-Text Layout
-===========
+***************
+  Text Layout  
+***************
 
 Mapping a text string to screen coordinates within a widget is called text
 layout. The :class:`Text` widget's default layout class supports aligning text
@@ -65,7 +66,7 @@ If this is good enough for your application feel free to skip the rest of this
 section.
 
 Text Layout Structures
-----------------------
+======================
 
 ::
 
@@ -82,9 +83,9 @@ The mapping from a text string to where that text will be displayed in the
 widget is expressed as a text layout structure.
 
 Text layout structures are used both for rendering :class:`Text` widgets and
-for mapping *(x, y)* positions within a widget back to the corresponding
-offsets in the text. The latter is used when moving the cursor in
-:class:`Edit` widgets up and down or by clicking with the mouse.
+for mapping ``(x, y)`` positions within a widget back to the corresponding
+offsets in the text. The latter is used when moving the cursor in :class:`Edit`
+widgets up and down or by clicking with the mouse.
 
 A text layout structure is a list of one or more line layouts. Each line layout
 corresponds to a row of text in the widget, starting from its top.
@@ -120,7 +121,7 @@ layouts.
 `StandardTextLayout reference <http://excess.org/urwid/reference.html#StandardTextLayout>`_
 
 Custom Text Layouts
--------------------
+===================
 
 The :class:`StandardTextLayout` is set as the class variable
 :attr:`Text.layout`. Individual :class:`Text` widgets may use a different

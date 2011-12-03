@@ -1,7 +1,8 @@
 .. _widget-layout:
 
-Widget Layout
-=============
+*****************
+  Widget Layout
+*****************
 
 Urwid uses widgets to divide up the available screen space. This makes it easy
 to create a fluid interface that moves and changes with the user's terminal and
@@ -44,7 +45,7 @@ example *(b)* 's focus widget is *(e)* and *(e)* 's focus widget is
    *(b)*
 
 Box, Flow and Fixed Widgets
----------------------------
+===========================
 
 The size of a widget is measured in screen columns and rows. Widgets that are
 given an exact number of screen columns and rows are called box widgets. The
@@ -60,13 +61,14 @@ Occasionally it is also useful to have a widget that knows how many screen
 columns and rows it requires, regardless of the space available. This is
 called a fixed widget.
 
-It is an Urwid convention to use the variables `maxcol` and `maxrow` to store a
-widget's size. Box widgets require both of `(maxcol, maxrow)` to be specified.
+It is an Urwid convention to use the variables :attr:`maxcol` and
+:attr:`maxrow` to store a widget's size. Box widgets require both of ``(maxcol,
+maxrow)`` to be specified.
 
-Flow widgets expect a single-element tuple `(maxcol,)` instead because they
-calculate their `maxrow` based on the `maxcol` value. 
+Flow widgets expect a single-element tuple ``(maxcol,)`` instead because they
+calculate their :attr:`maxrow` based on the :attr:`maxcol` value.
 
-Fixed widgets expect the value `None` to be passed in to functions that take a
-size because they know their `maxcol` and `maxrow` values.
+Fixed widgets expect the value ``None`` to be passed in to functions that take
+a size because they know their :attr:`maxcol` and :attr:`maxrow` values.
 
 .. vim: set ft=rst:

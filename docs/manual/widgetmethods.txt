@@ -1,7 +1,8 @@
 .. _widget-methods:
 
-Widget Methods
---------------
+******************
+  Widget Methods  
+******************
 
 Widgets in Urwid are easiest to create by extending other widgets. If you are
 making a new type of widget that can use other widgets to display its content,
@@ -78,7 +79,7 @@ the same as the usual ``super(MyClassName, self)``.
       display their contents in the space given.
 
       If *FIXED* is among the values returned then your other methods must be
-      able to accept an empty tuple `()` to their size parameters, and the
+      able to accept an empty tuple ``()`` to their size parameters, and the
       :meth:`pack` method must be defined. Fixed widgets have a fixed number of
       rows and columns, and so are the least flexible and must me handled
       carefully.
@@ -99,7 +100,7 @@ the same as the usual ``super(MyClassName, self)``.
       result of this method to be cached by :class:`CanvasCache`, and later
       calls will automatically look up the value in the cache first. The class
       variable :attr:`ignore_focus` may be defined and set to ``True`` if this
-      widget renders the same regardless of the value of the `focus` parameter.
+      widget renders the same regardless of the value of the *focus* parameter.
 
       Any time the content of your widget changes you must call
       :meth:`_invalidate` to remove any cached canvases, or your widget may not
@@ -107,8 +108,8 @@ the same as the usual ``super(MyClassName, self)``.
 
    .. method:: selectable()
 
-      Return `True` if this is a widget that is designed to take the focus,
-      `False` otherwise.
+      Return ``True`` if this is a widget that is designed to take the focus,
+      ``False`` otherwise.
 
       The :class:`Widget` base class defines this method as ``return
       self._selectable`` and :attr:`_selectable` is defined as ``False``, so
@@ -166,28 +167,29 @@ the same as the usual ``super(MyClassName, self)``.
 
    .. method:: keypress(size, key)
 
-      Handle the keypress event for *key* and return ``None``, otherwise return *key*.
+      Handle the keypress event for *key* and return ``None``, otherwise return
+      *key*.
       
-      Container widgets will typically call the :meth:`keypress` method on whichever of their children is
-      set as being in focus.
+      Container widgets will typically call the :meth:`keypress` method on
+      whichever of their children is set as being in focus.
       
-      A *command_map* dictionary-like object is used by the standard widgets to determine what action
-      should be performed for a given *key*. You may modify these values to your liking in your application.
-      See `command_map.py <#>`_ for the defaults.
+      A *command_map* dictionary-like object is used by the standard widgets to
+      determine what action should be performed for a given *key*. You may
+      modify these values to your liking in your application. See
+      `command_map.py <#>`_ for the defaults.
 
       .. TODO: insert a link to command_map.py
       
-      In your own widgets you may use whatever logic you like: filtering or translating keys, selectively
-      passing along events etc.
-
+      In your own widgets you may use whatever logic you like: filtering or
+      translating keys, selectively passing along events etc.
 
    .. method:: mouse_event(size, event, button, col, row, focus)
 
       Handle a mouse event and return ``True``, otherwise return ``False``.
       
-      Container widgets will typically call the :meth:`mouse_event` method on whichever of their children is
-      at the position ``(col, row)``. ``(col, row)`` is relative to the top-left corner of the widget.
-
+      Container widgets will typically call the :meth:`mouse_event` method on
+      whichever of their children is at the position ``(col, row)``. ``(col,
+      row)`` is relative to the top-left corner of the widget.
 
    .. method:: get_cursor_coords(size)
 
@@ -201,7 +203,6 @@ the same as the usual ``super(MyClassName, self)``.
       Container widgets will typically call the :meth:`get_cursor_coords`
       method on their focus widget.
 
-
    .. method:: get_pref_col(size)
 
       Return the preferred column for the cursor to be displayed in this
@@ -213,7 +214,6 @@ the same as the usual ``super(MyClassName, self)``.
       :meth:`move_cursor_to_coords` on the widget becoming the focus. This
       allows the focus to move up and down through widgets while keeping the
       cursor in approximately the same column on screen.
-
 
    .. method:: move_cursor_to_coords(size, col, row)
 

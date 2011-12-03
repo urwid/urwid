@@ -1,7 +1,10 @@
+.. vim: set ft=rst fileencoding=utf-8:
+
 .. _text-encodings:
 
-Text Encodings 
-===============
+******************
+  Text Encodings  
+******************
 
 Urwid has a single global setting for text encoding that is set on start-up
 based on the configured locale. You may change that setting with the
@@ -31,7 +34,7 @@ encoding that does not round-trip to Unicode properly, or if you're absolutely
 sure you know what you're doing.
 
 Unicode Support
----------------
+===============
 
 Urwid has a basic understanding of character widths so that the text layout
 code can properly wrap and display most text. There is currently no support for
@@ -53,7 +56,7 @@ If you use these characters with a non-UTF-8 encoding they will be sent using
 the alternate character set sequences supported by some terminals.
 
 Pass-through Support
---------------------
+====================
 
 Supported encodings for pass-through mode:
 
@@ -77,7 +80,7 @@ wide character.
 The additional plains in EUC are not currently supported.
 
 Future Work
------------
+===========
 
 Text encoding should be a per-screen (display module) setting, not a global
 setting. It should be possible to simultaneously support different encodings on
@@ -89,5 +92,3 @@ Device-specific encodings should also be possible for Unicode mode. The LCD
 display module in development drives a device with a non-standard mapping of
 Unicode code points to 8-bit values, but it should still be possible to use a
 Unicode text to display the characters it supports.
-
-.. vim: set ft=rst:

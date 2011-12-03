@@ -1,7 +1,8 @@
 .. _canvas-cache:
 
-Canvas Cache
-============
+****************
+  Canvas Cache  
+****************
 
 In an Urwid application each time the screen is redrawn typically only part of
 the screen actually needs to be updated. A canvas cache is used to store
@@ -18,9 +19,8 @@ Similar metaclass magic is used for flow widgets' :meth:`rows` method. If a
 canvas for that widget with the same parameters is cached then the rows of that
 canvas are returned instead of calling the widget's actual :meth:`rows` method.
 
-
 Composite Canvases
-------------------
+==================
 
 When container and decoration widgets are rendered, they collect the canvases
 returned by their children and arrange them into a composite canvas. Composite
@@ -40,7 +40,7 @@ updates the screen with the final result, instead of falling further and
 further behind.
 
 Cache Lifetime
---------------
+==============
 
 The canvases "stored" in the canvas cache are actually weak references to the
 canvases. The canvases must have a real reference somewhere for the cache to
@@ -48,9 +48,8 @@ function properly. Urwid's display modules store the currently displayed
 topmost canvas for this reason. All canvases that are visible on the screen
 will remain in the cache, and others will be garbage collected.
 
-
 Future Work
------------
+===========
 
 A updating method that invalidates regions of the display without redrawing
 parent widgets would be more efficient for the common case of a single change

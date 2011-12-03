@@ -1,10 +1,11 @@
 .. _basic-grafic-widgets:
 
-Standard widgets
-================
+********************
+  Standard widgets  
+********************
 
 Basic & Graphic Widgets
------------------------
+=======================
 
 .. image:: images/urwid_widgets_1.png
 
@@ -15,7 +16,7 @@ also be used as part of custom widgets you create.
 
 
 Decoration & Container Widgets
-------------------------------
+==============================
 
 .. image:: images/urwid_widgets_2.png
 

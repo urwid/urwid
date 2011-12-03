@@ -1,7 +1,8 @@
 .. _main-loop:
 
-`MainLoop`
-==========
+*************
+  Main loop  
+*************
 
 The :class:`MainLoop` class ties together a :ref:`display-modules`, a set of
 widgets and an :ref:`event-loops`. It handles passing input from the display
@@ -29,7 +30,7 @@ dependencies on :class:`MainLoop` in other parts of Urwid.
 `MainLoop reference <http://excess.org/urwid/reference.html#MainLoop>`_
 
 Widgets Displayed
------------------
+=================
 
 The topmost widget displayed by :class:`MainLoop` must be passed as the first
 parameter to the constructor. If you want to change the topmost widget while

@@ -1,7 +1,10 @@
+.. vim: set ft=rst fileencoding=utf-8:
+
 .. _user-input:
 
-User Input
-==========
+**************
+  User Input  
+**************
 
 All input from the user is parsed by a display module, and returned from either
 the :meth:`get_input` or :meth:`get_input_nonblocking` methods as a list.
@@ -18,7 +21,7 @@ There may be more than one keystroke or mouse event processed at a time, and
 each is sent as a separate item in the list.
 
 Keyboard Input
---------------
+==============
 
 Not all keystrokes are sent by a user's terminal to the program, and which keys
 are sent varies from terminal to terminal, but Urwid will report any keys that
@@ -27,16 +30,16 @@ are sent.
 ============= =================
 Key pressed   Input returned
 ============= =================
-H             `'h'`
-SHIFT+H       `'H'`
-SPACE         `' '`
-ENTER         `'enter'`
-UP            `'up'`
-PAGE DOWN     `'page down'`
-F5            `'f5'`
-SHIFT+F5      `'shift f5'`
-CTRL+SHIFT+F5 `'shift ctrl f5'`
-ALT+J         `'meta j'`
+H             ``'h'``
+SHIFT+H       ``'H'``
+SPACE         ``' '``
+ENTER         ``'enter'``
+UP            ``'up'``
+PAGE DOWN     ``'page down'``
+F5            ``'f5'``
+SHIFT+F5      ``'shift f5'``
+CTRL+SHIFT+F5 ``'shift ctrl f5'``
+ALT+J         ``'meta j'``
 ============= =================
 
 With Unicode :ref:`text encoding <text-encodings>` you will also receive
@@ -45,9 +48,9 @@ Unicode strings for any non-ASCII characters:
 =========== ==============
 Key pressed Input returned
 =========== ==============
-é           `u'é'`
-Ж           `u'Ж'`
-カ          `u'カ'`
+é           ``u'é'``
+Ж           ``u'Ж'``
+カ          ``u'カ'``
 =========== ==============
 
 With non-Unicode :ref:`text encoding <text-encodings>` characters will be sent
@@ -56,9 +59,9 @@ as-is in the original encoding.
 =========== =========================================
 Key pressed Input returned (each in its own encoding)
 =========== =========================================
-é           `'é'`
-Ж           `'Ж'`
-カ          `'カ'` (two bytes)
+é           ``'é'``
+Ж           ``'Ж'``
+カ          ``'カ'`` (two bytes)
 =========== =========================================
 
 Urwid does not try to convert this text to Unicode to avoid losing any
@@ -68,18 +71,18 @@ create an input filter to do so.
 Mouse Input
 -----------
 
-Mouse input is sent as a `(event, button, x, y)` tuple. `event` is a string
+Mouse input is sent as a ``(event, button, x, y)`` tuple. *event* is a string
 describing the event. If the SHIFT, ALT or CTRL keys are held when a mouse
-event is sent then `event` may be prefixed by `'shift '`, `'meta '` or `'ctrl
-'`. `button` is a number from 1 to 5. `x` and `y` are character coordinates
-starting at (0,0) at the top-left of the screen. 
+event is sent then *event* may be prefixed by ``'shift '``, ``'meta '`` or
+``'ctrl'``. *button* is a number from 1 to 5. *x* and *y* are character
+coordinates starting at ``(0,0)`` at the top-left of the screen. 
 
 Support for the right-mouse button and use of modifier keys is poor in many
 terminals and some users don't have a middle mouse button, so these shouldn't
 be relied on.
 
-`'mouse press'` Events
-----------------------
+``'mouse press'`` Events
+========================
 
 A mouse button was pressed.
 
@@ -95,18 +98,16 @@ A mouse button was pressed.
 
 .. [#first] typically no corresponding release event is sent
 
-`'mouse release'` Events
-------------------------
+``'mouse release'`` Events
+==========================
 
 Mouse release events will often not have information about which button was
-released. In this case `button` will be set to 0.
+released. In this case *button* will be set to 0.
 
-`'mouse drag'` Events
----------------------
+``'mouse drag'`` Events
+=======================
 
 In the rare event that your user is using a terminal that can send these events
 you can use them to track their mouse dragging from one character cell to the
-next across the screen. Be aware that you might see `x` and/or `y` coordinates
+next across the screen. Be aware that you might see *x* and/or *y* coordinates
 one position off the screen if the user drags their mouse to the edge.
-
-.. vim: set ft=rst fenc=utf-8:

@@ -1,7 +1,8 @@
 .. _listbox-contents:
 
-`ListBox` Contents
-==================
+************************
+  ``ListBox`` Contents  
+************************
 
 The :class:`ListBox` is a box widget that contains flow widgets. Its contents
 are displayed stacked vertically, and the :class:`ListBox` allows the user to
@@ -9,7 +10,7 @@ scroll through its content. One of the flow widgets displayed in the
 :class:`ListBox` is its focus widget.
 
 List Walkers
-------------
+============
 
 The :class:`ListBox` does not manage the widgets it displays directly, instead
 it passes that task to a class called a "list walker". List walkers keep track
@@ -33,9 +34,8 @@ walker classes.
 `List walker interface definition
 <http://excess.org/urwid/reference.html#List_Walker_interface_definition>`_
 
-
 Focus & Scrolling Behavior
---------------------------
+==========================
 
 The :class:`ListBox` passes all key presses it receives first to its focus
 widget. If its focus widget does not handle a keypress then the
@@ -45,11 +45,12 @@ widget to become its new focus widget.
 The :class:`ListBox` tries to do *the most sensible thing* when scrolling and
 changing focus. When the widgets displayed are all :class:`Text` widgets or
 other unselectable widgets then the :class:`ListBox` will behave like a web
-browser does when the user presses `UP`, `DOWN`, `PAGE UP` and `PAGE DOWN`: new
+browser does when the user presses *UP*, *DOWN*, *PAGE UP* and *PAGE DOWN*: new
 text is immediately scrolled in from the top or bottom. The :class:`ListBox`
 chooses one of the visible widgets as its focus widget when scrolling. When
 scrolling up the :class:`ListBox` chooses the topmost widget as the focus, and
-when scrolling down the ListBox chooses the bottommost widget as the focus.
+when scrolling down the :class:`ListBox` chooses the bottommost widget as the
+focus.
 
 The :class:`ListBox` remembers the visible location of its focus widget as
 either an "offset" or an "inset". An offset is the number of rows between the
@@ -68,7 +69,6 @@ into view so that the user can see the new focus widget in its entirety. This
 behavior can be used to bring more than a single widget into view by using a
 :class:`Pile` or other container widget to combine a selectable widget with
 other widgets that should be visible at the same time.
-
 
 `Tutorial chapters covering ListBox usage <http://excess.org/urwid/tutorial.html#frlb>`_
 
