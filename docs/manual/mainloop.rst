@@ -43,5 +43,3 @@ the widgets that are displayed with your application-specific input handling so
 that the application's behaviour changes when the widgets change. If all your
 custom input handling is done from :func:`unhandled_input`, it will be
 difficult to extend as your application gets more complicated. 
-
-.. vim: set ft=rst:

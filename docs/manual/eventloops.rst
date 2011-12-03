@@ -58,5 +58,3 @@ application on Twisted.
     loop = urwid.MainLoop(widget, event_loop=urwid.GLibEventLoop())
 
 `GLibEventLoop reference <http://excess.org/urwid/reference.html#GLibEventLoop>`_
-
-.. vim: set ft=rst:

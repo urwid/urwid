@@ -71,5 +71,3 @@ behavior can be used to bring more than a single widget into view by using a
 other widgets that should be visible at the same time.
 
 `Tutorial chapters covering ListBox usage <http://excess.org/urwid/tutorial.html#frlb>`_
-
-.. vim: set ft=rst:

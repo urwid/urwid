@@ -1,4 +1,4 @@
-.. vim: set ft=rst fileencoding=utf-8:
+.. vim: set fileencoding=utf-8:
 
 .. _user-input:
 

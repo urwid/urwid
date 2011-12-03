@@ -132,5 +132,3 @@ A custom text layout class should extend the :class:`TextLayout` base class and
 return text layout structures from its :meth:`layout` method (see above).
 
 `TextLayout reference <http://excess.org/urwid/reference.html#TextLayout>`_
-
-.. vim: set ft=rst:

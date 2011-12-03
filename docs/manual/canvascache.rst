@@ -56,5 +56,3 @@ parent widgets would be more efficient for the common case of a single change
 on the screen that does not affect the screen layout. Send an email to the
 mailing list if you're interested in helping with this or other display
 optimizations.
-
-.. vim: set ft=rst:

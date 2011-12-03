@@ -139,5 +139,3 @@ mode as part of your palette. eg:
 
 The :ref:`display-attributes` section of this manual describes all the options
 available.
-
-.. vim: set ft=rst:

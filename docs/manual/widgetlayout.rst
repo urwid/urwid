@@ -70,5 +70,3 @@ calculate their :attr:`maxrow` based on the :attr:`maxcol` value.
 
 Fixed widgets expect the value ``None`` to be passed in to functions that take
 a size because they know their :attr:`maxcol` and :attr:`maxrow` values.
-
-.. vim: set ft=rst:

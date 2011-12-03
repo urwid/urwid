@@ -220,5 +220,3 @@ the same as the usual ``super(MyClassName, self)``.
       Set the cursor position within a widget and return ``True``, if the
       position cannot be set somewhere within the row specified return
       ``False``.
-
-.. vim: set ft=rst:

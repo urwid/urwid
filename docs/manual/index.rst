@@ -64,8 +64,6 @@ loop if desired.
 .. _Glib: http://developer.gnome.org/glib/stable/glib-The-Main-Event-Loop.html
 .. _Twisted: http://twistedmatrix.com/documents/current/core/howto/reactor-basics.html
 
-.. vim: set ft=rst:
-
 Contents:
 
 .. toctree::

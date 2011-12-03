@@ -41,5 +41,3 @@ levels below the topmost widget.
 Different container widgets have different methods of accessing and updating
 their children, and the child in focus. These methods will be made more
 consistent in a future release.
-
-.. vim: set ft=rst:

@@ -135,5 +135,3 @@ palette_test.py example program when switching modes.
 `modify_terminal_palette reference <http://excess.org/urwid/reference.html#Screen-modify_terminal_palette>`_
 
 `reset_default_terminal_palette reference <http://excess.org/urwid/reference.html#Screen-reset_default_terminal_palette>`_
-
-.. vim: set ft=rst:

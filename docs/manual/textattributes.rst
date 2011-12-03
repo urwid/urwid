@@ -57,5 +57,3 @@ attribute ``'attr2'``.
 When markup is nested only the innermost attribute applies. Here ``"inside"``
 has attribute ``'attr2'`` and all the rest of the text has attribute
 ``'attr1'``.
-
-.. vim: set ft=rst:
