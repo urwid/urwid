@@ -5,7 +5,9 @@ Urwid documentation
 .. toctree::
    :maxdepth: 1
 
-   manual/index.txt
+   tutorial/index
+   manual/index
+   reference/index
 
 Indices and tables
 ==================
