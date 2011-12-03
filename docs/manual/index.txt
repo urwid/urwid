@@ -43,7 +43,7 @@ are supported by all terminals, so Urwid helps you write applications that
 support different color modes depending on what the user's terminal supports
 and what they choose to enable.
 
-The :func:`ListBox` is one of Urwid's most powerful widgets, and you may
+The :class:`ListBox` is one of Urwid's most powerful widgets, and you may
 control of the :ref:`listbox contents <listbox-contents>` by using a built-in
 list walker class or by writing one yourself. This is very useful for scrolling
 through lists of any significant length, or with nesting, folding and other
@@ -58,8 +58,11 @@ a way to keep the cache alive and populated with current data.
 
 Urwid's :ref:`main loop <main-loop>` simplifies handling of input and updating
 the screen.  It also lets you use one of a number of :ref:`the event loops
-<event-loops>`, allowing integration with Twisted's reactor or Glib's event
+<event-loops>`, allowing integration with Twisted_'s reactor or Glib_'s event
 loop if desired.
+
+.. _Glib: http://developer.gnome.org/glib/stable/glib-The-Main-Event-Loop.html
+.. _Twisted: http://twistedmatrix.com/documents/current/core/howto/reactor-basics.html
 
 .. vim: set ft=rst:
 
