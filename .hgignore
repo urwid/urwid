@@ -1,8 +1,8 @@
 syntax: glob
 
 *.pyc
+*.so
 urwid.egg-info
 build
 .*.sw?
 tmp/
-docs/_build
