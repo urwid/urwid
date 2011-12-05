@@ -38,7 +38,7 @@ screen and will run until interrupted with *CTRL+C* (*^C*).
   from the user. In this case our widgets can't handle the input so we need to
   interrupt the program to exit with *^C*.
 
-.. image:: minimal.png
+.. image:: minimal1.png
 
 Handling input
 --------------
@@ -137,7 +137,7 @@ and will work in any terminal that supports 256-color mode. It will exit when
   :meth:`set_terminal_properties` method. This method works only when using the
   default :class:`raw_display.Screen` class in our :class:`MainLoop`.
 
-.. image:: highcolors.png
+.. image:: highcolors1.png
 
 Conversation example
 ====================
