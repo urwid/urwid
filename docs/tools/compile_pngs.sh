@@ -1,20 +1,20 @@
 #!/bin/bash -e
 
 # $1: directory to compile
+# $2: compiler
+
 DISPLAYNUM=1
 
 XVFB=$(which Xvfb)
 if [ -n $XVFB ]; then
-	# Xvfb :$DISPLAYNUM &> /dev/null &
 	Xvfb :$DISPLAYNUM &
 	XVFBPID=$!
-	# DISPLAY=:1
-	sleep 0.5
+	DISPLAY=:$DISPLAYNUM # this still doesn't work
 	trap "kill $XVFBPID" EXIT
 fi
 
 for script in $1/*.py; do
 	if [ -f "${script}.xdotool" ]; then
-		bash screenshots.sh "$script" < "${script}.xdotool"
+		"$2" "$script" < "${script}.xdotool"
 	fi
 done

@@ -3,15 +3,14 @@
 # $1: python script to run
 # urxvt, xdotool and import are required to run this script
 
-# this should be pretty unique, but a true random classname is still possible
-# CLASSNAME=$(head -c 6 /dev/urandom | base64)
-CLASSNAME=urwid-screenshot
+CLASSNAME=$(head -c 6 /dev/urandom | base64 | tr -cd [:alnum:])
 PYTHON=python
 
 urxvt -bg gray90 -b 0 +sb -name "$CLASSNAME" -e "$PYTHON" "$1" &
 RXVTPID=$!
-sleep 0.2
-RXVTWINDOWID=$(xdotool search --classname "$CLASSNAME")
+until RXVTWINDOWID=$(xdotool search --classname "$CLASSNAME"); do
+	sleep 0.1
+done
 export RXVTWINDOWID
 image=${1%.py}
 
