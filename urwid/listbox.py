@@ -709,7 +709,8 @@ class ListBox(BoxWidget):
             if inum < 0 or iden < 0 or inum >= iden:
                 raise ListBoxError, "Invalid inset_fraction: %r"%(self.inset_fraction,)
             inset_rows = focus_rows * inum // iden
-            assert inset_rows < focus_rows, "urwid inset_fraction error (please report)"
+            if inset_rows and inset_rows >= focus_rows:
+                raise ListBoxError, "urwid inset_fraction error (please report)"
         return offset_rows, inset_rows
 
 
@@ -1216,6 +1217,9 @@ class ListBox(BoxWidget):
             if not widget.selectable(): 
                 continue
 
+            if not rows:
+                continue
+
             # try selecting this widget
             pref_row = min(maxrow-row_offset-1, rows-1)
             
@@ -1261,7 +1265,10 @@ class ListBox(BoxWidget):
         for i in good_choices + search_order:
             row_offset, widget, pos, rows = t[i]
             if pos == focus_pos: continue
-            
+
+            if not rows: # never focus a 0-height widget
+                continue
+
             # if completely within snap region, adjust row_offset
             if row_offset >= maxrow:
                 snap_rows -= snap_rows+maxrow-row_offset-1
