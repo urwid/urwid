@@ -7,11 +7,13 @@
 Widgets in Urwid are easiest to create by extending other widgets. If you are
 making a new type of widget that can use other widgets to display its content,
 like a new type of button or control, then you should start by extending
-:class:`WidgetWrap` and passing the display widget to its constructor.
+:class:`~urwid.widget.WidgetWrap` and passing the display widget to its
+constructor.
 
-This section describes the :class:`Widget` interface in detail and is useful if
-you're looking to modify the behavior of an existing widget, build a new widget
-class from scratch or just want a better understanding of the library.
+This section describes the :class:`~urwid.widget.Widget` interface in detail
+and is useful if you're looking to modify the behavior of an existing widget,
+build a new widget class from scratch or just want a better understanding of
+the library.
 
 One design choice that stands out is that widgets in Urwid typically have no
 size. Widgets don't store the size they will be displayed at, and instead are
@@ -34,16 +36,16 @@ It also has disadvantages:
 * duplicated size calculations across methods
 
 For determining a widget's size on screen it is possible to look up the size(s)
-it was rendered at in the :class:`CanvasCache`. There are plans to address some
-of the duplicated size handling code in the container widgets in a future Urwid
-release.
+it was rendered at in the :class:`~urwid.canvas.CanvasCache`. There are plans
+to address some of the duplicated size handling code in the container widgets
+in a future Urwid release.
 
 The same holds true for a widget's focus state, so that too is passed in to
 functions that need it.
 
-The :class:`Widget` base class has some metaclass magic that creates a
-:attr:`__super` attribute for calling your superclass: :attr:`self.__super` is
-the same as the usual ``super(MyClassName, self)``.
+The :class:`~urwid.widget.Widget` base class has some metaclass magic that
+creates a :attr:`__super` attribute for calling your superclass:
+:attr:`self.__super` is the same as the usual ``super(MyClassName, self)``.
 
 .. TODO: what to do with these references?
 
@@ -58,13 +60,14 @@ the same as the usual ``super(MyClassName, self)``.
       Return a set of the sizing modes this widget supports, one or more of
       *FLOW*, *BOX* or *FIXED*.
 
-      The :class:`Widget` base class defines this method as ``return
-      self._sizing``, so if your widget's sizing modes never change you can
-      define :attr:`_sizing` in your class definition, and not bother
-      overriding this method.
+      The :class:`~urwid.widget.Widget` base class defines this method as
+      ``return self._sizing``, so if your widget's sizing modes never change
+      you can define :attr:`~urwid.widget.Widget._sizing` in your class
+      definition, and not bother overriding this method.
 
-      If you inherit from :class:`FlowWidget`, :class:`BoxWidget` or
-      :class:`FixedWidget`, :attr:`_sizing` is already defined for you as
+      If you inherit from :class:`~urwid.widget.FlowWidget`,
+      :class:`~urwid.widget.BoxWidget` or :class:`~urwid.widget.FixedWidget`,
+      :attr:`~urwid.widget.Widget._sizing` is already defined for you as
       ``set([FLOW])``, ``set([BOX])`` or ``set([FIXED])``, respectively.
 
       If *FLOW* is among the values returned then your other methods must be
@@ -86,21 +89,24 @@ the same as the usual ``super(MyClassName, self)``.
 
    .. method:: render(size, focus=False)
 
-      Render the widget content and return it as a :class:`Canvas` subclass.
-      :class:`Text` widgets return a :class:`TextCanvas` (arbitrary text and
-      attributes), :class:`SolidFill` widgets return a :class:`SolidCanvas` (a
-      single character repeated across the whole surface) and container widgets
-      return a :class:`CompositeCanvas` (one or more other canvases arranged
-      arbitrarily).
+      Render the widget content and return it as a
+      :class:`~urwid.canvas.Canvas` subclass.  :class:`~urwid.widget.Text`
+      widgets return a :class:`~urwid.canvas.TextCanvas` (arbitrary text and
+      attributes), :class:`~urwid.canvas.SolidFill` widgets return a
+      :class:`~urwid.canvas.SolidCanvas` (a single character repeated across
+      the whole surface) and container widgets return a
+      :class:`~urwid.canvas.CompositeCanvas` (one or more other canvases
+      arranged arbitrarily).
 
       If *focus* is ``False``, the returned canvas may not have a cursor
       position set.
 
       There is some metaclass magic in the Widget base class that causes the
-      result of this method to be cached by :class:`CanvasCache`, and later
-      calls will automatically look up the value in the cache first. The class
-      variable :attr:`ignore_focus` may be defined and set to ``True`` if this
-      widget renders the same regardless of the value of the *focus* parameter.
+      result of this method to be cached by :class:`~urwid.canvas.CanvasCache`,
+      and later calls will automatically look up the value in the cache first.
+      The class variable :attr:`ignore_focus` may be defined and set to
+      ``True`` if this widget renders the same regardless of the value of the
+      *focus* parameter.
 
       Any time the content of your widget changes you must call
       :meth:`_invalidate` to remove any cached canvases, or your widget may not
@@ -111,11 +117,11 @@ the same as the usual ``super(MyClassName, self)``.
       Return ``True`` if this is a widget that is designed to take the focus,
       ``False`` otherwise.
 
-      The :class:`Widget` base class defines this method as ``return
-      self._selectable`` and :attr:`_selectable` is defined as ``False``, so
-      you may do nothing if your widget is not selectable, or if your widget is
-      always selectable just set your :attr:`_selectable` class variable to
-      ``True``.
+      The :class:`~urwid.widget.Widget` base class defines this method as
+      ``return self._selectable`` and :attr:`_selectable` is defined as
+      ``False``, so you may do nothing if your widget is not selectable, or if
+      your widget is always selectable just set your :attr:`_selectable` class
+      variable to ``True``.
       
       If this method returns ``True`` then the :meth:`keypress` method must be
       implemented.
@@ -136,12 +142,13 @@ the same as the usual ``super(MyClassName, self)``.
       operation. If your implementation may take a long time you should add
       your own caching here.
       
-      There is some metaclass magic in the :class:`Widget` base class that
-      causes the result of this function to be computed from any canvas cached
-      by :class:`CanvasCache`, so if your widget has been rendered you may not
-      receive calls to this function. The class variable :attr:`ignore_focus`
-      may be defined and set to ``True`` if this widget renders the same size
-      regardless of the value of the *focus* parameter.
+      There is some metaclass magic in the :class:`~urwid.widget.Widget` base
+      class that causes the result of this function to be computed from any
+      canvas cached by :class:`~urwid.canvas.CanvasCache`, so if your widget
+      has been rendered you may not receive calls to this function. The class
+      variable :attr:`ignore_focus` may be defined and set to ``True`` if this
+      widget renders the same size regardless of the value of the *focus*
+      parameter.
 
    .. method:: pack(size, focus=False)
 
@@ -150,15 +157,16 @@ the same as the usual ``super(MyClassName, self)``.
       implement this method and return their size when ``()`` is passed as the
       *size* parameter.
       
-      The :class:`Widget` base class definition of this method returns the
-      *size* passed, or the *maxcol* passed and the value of :meth:`rows` as
-      the *maxrow* when ``(maxcol,)`` is passed as the *size* parameter.
+      The :class:`~urwid.widget.Widget` base class definition of this method
+      returns the *size* passed, or the *maxcol* passed and the value of
+      :meth:`rows` as the *maxrow* when ``(maxcol,)`` is passed as the *size*
+      parameter.
       
       This is a new method that hasn't been fully implemented across the
       standard widget types. In particular it has not yet been implemented for
       container widgets.
       
-      :class:`Text` widgets `have implemented this method
+      :class:`~urwid.widget.Text` widgets `have implemented this method
       <http://excess.org/urwid/reference.html#Text-pack>`_. You can use
       :meth:`pack` to calculate the minumum columns and rows required to
       display a text widget without wrapping, or call it iteratively to
@@ -195,10 +203,10 @@ the same as the usual ``super(MyClassName, self)``.
 
       Return the cursor coordinates ``(col, row)`` of a cursor that will appear
       as part of the canvas rendered by this widget when in focus, or ``None``
-      if no cursor is displayed. The :class:`ListBox` widget uses this method
-      to make sure a cursor in the focus widget is not scrolled out of view.
-      It is a separate method to avoid having to render the whole widget while
-      calculating layout.
+      if no cursor is displayed. The :class:`~urwid.listbox.ListBox` widget
+      uses this method to make sure a cursor in the focus widget is not
+      scrolled out of view.  It is a separate method to avoid having to render
+      the whole widget while calculating layout.
       
       Container widgets will typically call the :meth:`get_cursor_coords`
       method on their focus widget.
@@ -209,11 +217,11 @@ the same as the usual ``super(MyClassName, self)``.
       widget. This value might not be the same as the column returned from
       :meth:`get_cursor_coords`.
       
-      The :class:`ListBox` and :class:`Pile` widgets call this method on a
-      widget losing focus and use the value returned to call
-      :meth:`move_cursor_to_coords` on the widget becoming the focus. This
-      allows the focus to move up and down through widgets while keeping the
-      cursor in approximately the same column on screen.
+      The :class:`~urwid.listbox.ListBox` and :class:`~urwid.container.Pile`
+      widgets call this method on a widget losing focus and use the value
+      returned to call :meth:`move_cursor_to_coords` on the widget becoming the
+      focus. This allows the focus to move up and down through widgets while
+      keeping the cursor in approximately the same column on screen.
 
    .. method:: move_cursor_to_coords(size, col, row)
 

@@ -4,10 +4,10 @@
   Text Attributes  
 *******************
 
-A :class:`Text` widget can take plain or unicode strings, but you can also
-specify which attributes to display each part of that text by using "text
-markup" format. Text markup made up of lists and tuples. Tuples contain an
-attribute and text markup to apply it to. Lists used to concatenate text
+A :class:`~urwid.widget.Text` widget can take plain or unicode strings, but you
+can also specify which attributes to display each part of that text by using
+"text markup" format. Text markup made up of lists and tuples. Tuples contain
+an attribute and text markup to apply it to. Lists used to concatenate text
 markup.
 
 The normal text formatting rules apply and the attributes will follow the text
@@ -30,9 +30,9 @@ The string will appear with foreground and backgrounds specified in the display
 module's palette for ``'attr1'``, but the space around (before/after) the text
 will appear with the default foreground and background.
 
-If you want the whole :class:`Text` widget, including the space around the
-text, to appear as a single attribute you should put your widget inside an
-:class:`AttrMap` widget.
+If you want the whole :class:`~urwid.widget.Text` widget, including the space
+around the text, to appear as a single attribute you should put your widget
+inside an :class:`~urwid.decoration.AttrMap` widget.
 
 `AttrMap reference <http://excess.org/urwid/reference.html#AttrMap>`_
 

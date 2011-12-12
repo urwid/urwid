@@ -43,11 +43,11 @@ are supported by all terminals, so Urwid helps you write applications that
 support different color modes depending on what the user's terminal supports
 and what they choose to enable.
 
-The :class:`ListBox` is one of Urwid's most powerful widgets, and you may
-control of the :ref:`listbox contents <listbox-contents>` by using a built-in
-list walker class or by writing one yourself. This is very useful for scrolling
-through lists of any significant length, or with nesting, folding and other
-similar features.
+The :class:`~urwid.listbox.ListBox` is one of Urwid's most powerful widgets,
+and you may control of the :ref:`listbox contents <listbox-contents>` by using
+a built-in list walker class or by writing one yourself. This is very useful
+for scrolling through lists of any significant length, or with nesting, folding
+and other similar features.
 
 When a widget renders a canvas to be drawn on screen, a weak reference to it is
 stored in the :ref:`canvas cache <canvas-cache>`. This cache is used any time a

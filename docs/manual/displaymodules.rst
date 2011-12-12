@@ -14,14 +14,14 @@ how you plan to use Urwid.
 .. image:: images/display_modules.png
 
 Typically you will select a display module by passing it to your
-:class:`MainLoop` constructor, eg:
+:class:`~urwid.main_loop.MainLoop` constructor, eg:
 
 ::
 
     loop = MainLoop(widget, ..., screen=urwid.curses_display.Screen())
 
-If you don't specify a display module MainLoop will use
-:class:`raw_display.Screen` by default
+If you don't specify a display module, the default main loop will use
+:class:`urwid.raw_display.Screen` by default
 
 ::
 
@@ -34,20 +34,22 @@ If you don't specify a display module MainLoop will use
 
 Urwid has two display modules for displaying to terminals or the console.
 
-The :mod:`raw_display` module is a pure-python display module with no external
-dependencies. It sends and interprets terminal escape sequences directly. This
-is the default display module used by :class:`MainLoop`.
+The :mod:`urwid.raw_display` module is a pure-python display module with no
+external dependencies. It sends and interprets terminal escape sequences
+directly. This is the default display module used by
+:class:`~urwid.main_loop.MainLoop`.
 
 .. TODO: add a link to some ncurses resources?
 
-The :mod:`curses_display` module uses the curses or ncurses library provided by
-the operating system. The library does some optimization of screen updates and
-uses termcap to adjust to the user's terminal.
+The :mod:`urwid.curses_display` module uses the curses or ncurses library
+provided by the operating system. The library does some optimization of screen
+updates and uses termcap to adjust to the user's terminal.
 
 The (n)curses library will disable colors if it detects a monochrome terminal,
 so a separate set of attributes should be given for monochrome mode when
-registering a palette with :mod:`curses_display`. High colors will not be used
-by the :mod:`curses_dislpay` module. See :ref:`setting-a-palette` below.
+registering a palette with :mod:`urwid.curses_display`. High colors will not be
+used by the :mod:`urwid.curses_dislpay` module. See :ref:`setting-a-palette`
+below.
 
 This table summarizes the differences between the two modules:
 
@@ -77,8 +79,8 @@ external event loop support    YES         no
 AJAX-based Web Display Module ``web_display``
 =============================================
 
-The :mod:`web_display` module lets you run your application as a CGI script
-under Apache instead of running it in a terminal.
+The :mod:`urwid.web_display` module lets you run your application as a CGI
+script under Apache instead of running it in a terminal.
 
 This module is a proof of concept. There are security and responsiveness issues
 that need to be resolved before this module is recommended for production use.
@@ -120,7 +122,7 @@ The `example screenshots`_ are generated with this display module.
 Setting a Palette
 =================
 
-The :class:`MainLoop` constructor takes a ``palette`` parameter that it passes
+The :class:`~urwid.main_loop.MainLoop` constructor takes a ``palette`` parameter that it passes
 to the :meth:`register_palette` method of your display module.
 
 A palette is a list of palette entry names, called "attributes" and foreground

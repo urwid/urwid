@@ -9,9 +9,9 @@ the screen actually needs to be updated. A canvas cache is used to store
 visible, unchanged canvases so that not all of the visible widgets need to be
 rendered for each update.
 
-The :class:`Widget` base class uses some metaclass magic to capture the canvas
-objects returned when :meth:`render` is called and return them the next time
-:meth:`render` is called again with the same parameters. The
+The :class:`~urwid.widget.Widget` base class uses some metaclass magic to
+capture the canvas objects returned when :meth:`render` is called and return
+them the next time :meth:`render` is called again with the same parameters. The
 :meth:`_invalidate` method is provided as a way to remove cached widgets so
 that changes to the widget are visible the next time the screen is redrawn.
 

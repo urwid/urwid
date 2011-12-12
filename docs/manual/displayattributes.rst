@@ -23,11 +23,11 @@ You are encouraged to provide support for as many of these as you like, while
 allowing your interface to degrade gracefully by using display modules' palette
 modes and providing command line arguments or other interfaces to switch modes.
 
-When setting up a palette with :class:`MainLoop` (or directly on your screen
-instance), you may specify attributes for 16-color, monochrome and high color
-modes. You can then switch between these modes with
+When setting up a palette with :class:`~urwid.main_loop.MainLoop` (or directly
+on your screen instance), you may specify attributes for 16-color, monochrome
+and high color modes. You can then switch between these modes with
 :meth:`screen.set_terminal_properties`, where :attr:`screen` is a
-:class:`MainLoop` attribute or your own screen instance.
+:class:`~urwid.main_loop.MainLoop` attribute or your own screen instance.
 
 `register_palette reference <http://excess.org/urwid/reference.html#Screen-register_palette>`_
 
