@@ -1702,6 +1702,26 @@ class ListBoxKeypressTest(unittest.TestCase):
             4,3, None )
 
 
+class ZeroHeightContentsTest(unittest.TestCase):
+    def test_listbox_pile(self):
+        lb = urwid.ListBox(urwid.SimpleListWalker(
+            [urwid.Pile([])]))
+        lb.render((40,10), focus=True)
+
+    def test_listbux_text_pile_page_down(self):
+        lb = urwid.ListBox(urwid.SimpleListWalker(
+            [urwid.Text(u'above'), urwid.Pile([])]))
+        lb.keypress((40,10), 'page down')
+        lb.keypress((40,10), 'page down') # second one caused failure!
+
+    def test_listbux_text_pile_page_up(self):
+        lb = urwid.ListBox(urwid.SimpleListWalker(
+            [urwid.Pile([]), urwid.Text(u'below')]))
+        lb.set_focus(1)
+        lb.keypress((40,10), 'page up')
+        lb.keypress((40,10), 'page up') # second one caused failure!
+
+
 class PaddingTest(unittest.TestCase):
     def ptest(self, desc, align, width, maxcol, left, right,min_width=None):
         p = urwid.Padding(None, align, width, min_width)
@@ -2329,6 +2349,7 @@ def test_all():
         ListBoxChangeFocusTest,
         ListBoxRenderTest,
         ListBoxKeypressTest,
+        ZeroHeightContentsTest,
         PaddingTest,
         FillerTest,
         FrameTest,

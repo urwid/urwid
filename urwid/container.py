@@ -887,7 +887,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
     
     def get_cursor_coords(self, size):
         """Return the cursor coordinates of the focus widget."""
-        if not self.focus_item.selectable():
+        if not self.focus_item or not self.focus_item.selectable():
             return None
         if not hasattr(self.focus_item,'get_cursor_coords'):
             return None
@@ -998,6 +998,8 @@ class Pile(Widget): # either FlowWidget or BoxWidget
             if wrow+r > row:
                 break
             wrow += r
+        else:
+            return False
 
         if not w.selectable():
             return False
