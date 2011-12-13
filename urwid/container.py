@@ -926,6 +926,8 @@ class Pile(Widget): # either FlowWidget or BoxWidget
     def keypress(self, size, key ):
         """Pass the keypress to the widget in focus.
         Unhandled 'up' and 'down' keys may cause a focus change."""
+        if not self.focus_item:
+            return key
 
         item_rows = None
         if len(size)==2:
