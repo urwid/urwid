@@ -246,6 +246,8 @@ class ListBox(BoxWidget):
                 inset_rows = cy
             elif effective_cy >= maxrow: # cursor below bottom?
                 offset_rows = maxrow - cy -1
+                if offset_rows < 0: # need to trim the top
+                    inset_rows, offset_rows = -offset_rows, 0
         
         #    set trim_top by focus trimmimg
         trim_top = inset_rows
@@ -376,13 +378,15 @@ class ListBox(BoxWidget):
         if trim_bottom:    
             final_canvas.trim_end(trim_bottom)
             rows -= trim_bottom
-        
-        assert rows <= maxrow, "Listbox contents too long!  Probably urwid's fault (please report): %r" % ((top,middle,bottom),)
-        
+
+        if rows > maxrow:
+            raise ListBoxError, "Listbox contents too long!  Probably urwid's fault (please report): %r" % ((top,middle,bottom),)
+
         if rows < maxrow:
             bottom_pos = focus_pos
             if fill_below: bottom_pos = fill_below[-1][1]
-            assert trim_bottom==0 and self.body.get_next(bottom_pos) == (None,None), "Listbox contents too short!  Probably urwid's fault (please report): %r" % ((top,middle,bottom),)
+            if trim_bottom != 0 or self.body.get_next(bottom_pos) != (None,None):
+                raise ListBoxError, "Listbox contents too short!  Probably urwid's fault (please report): %r" % ((top,middle,bottom),)
             final_canvas.pad_trim_top_bottom(0, maxrow - rows)
 
         return final_canvas
