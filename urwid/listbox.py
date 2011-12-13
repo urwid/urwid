@@ -262,14 +262,15 @@ class ListBox(BoxWidget):
                 offset_rows -= fill_lines
                 break
             top_pos = pos
-    
+
             p_rows = prev.rows( (maxcol,) )
-            fill_above.append( (prev, pos, p_rows) )
+            if p_rows: # filter out 0-height widgets
+                fill_above.append( (prev, pos, p_rows) )
             if p_rows > fill_lines: # crosses top edge?
                 trim_top = p_rows-fill_lines
                 break
             fill_lines -= p_rows
-        
+
         trim_bottom = focus_rows + offset_rows - inset_rows - maxrow
         if trim_bottom < 0: trim_bottom = 0
 
@@ -281,9 +282,10 @@ class ListBox(BoxWidget):
             next, pos = self.body.get_next( pos )
             if next is None: # run out of widgets below?
                 break
-                
+
             n_rows = next.rows( (maxcol,) )
-            fill_below.append( (next, pos, n_rows) )
+            if n_rows: # filter out 0-height widgets
+                fill_below.append( (next, pos, n_rows) )
             if n_rows > fill_lines: # crosses bottom edge?
                 trim_bottom = n_rows-fill_lines
                 fill_lines -= n_rows
@@ -802,7 +804,7 @@ class ListBox(BoxWidget):
         widget = None
         for widget, pos, rows in fill_above:
             row_offset -= rows
-            if widget.selectable():
+            if rows and widget.selectable():
                 # this one will do
                 self.change_focus((maxcol,maxrow), pos,
                     row_offset, 'below')
@@ -812,7 +814,7 @@ class ListBox(BoxWidget):
         row_offset += 1
         self._invalidate()
         
-        if row_offset > 0:
+        while row_offset > 0:
             # need to scroll in another candidate widget
             widget, pos = self.body.get_prev(pos)
             if widget is None:
@@ -820,7 +822,7 @@ class ListBox(BoxWidget):
                 return 'up' # keypress not handled
             rows = widget.rows((maxcol,), True)
             row_offset -= rows
-            if widget.selectable():
+            if rows and widget.selectable():
                 # this one will do
                 self.change_focus((maxcol,maxrow), pos,
                     row_offset, 'below')
@@ -880,7 +882,7 @@ class ListBox(BoxWidget):
         pos = focus_pos
         widget = None
         for widget, pos, rows in fill_below:
-            if widget.selectable():
+            if rows and widget.selectable():
                 # this one will do
                 self.change_focus((maxcol,maxrow), pos,
                     row_offset, 'above')
@@ -891,18 +893,18 @@ class ListBox(BoxWidget):
         row_offset -= 1
         self._invalidate()
         
-        if row_offset < maxrow:
+        while row_offset < maxrow:
             # need to scroll in another candidate widget
             widget, pos = self.body.get_next(pos)
             if widget is None:
                 # cannot scroll any further
                 return 'down' # keypress not handled
-            if widget.selectable():
+            rows = widget.rows((maxcol,))
+            if rows and widget.selectable():
                 # this one will do
                 self.change_focus((maxcol,maxrow), pos,
                     row_offset, 'above')
                 return
-            rows = widget.rows((maxcol,))
             row_offset += rows
         
         if not focus_widget.selectable() or focus_row_offset+focus_rows-1 <= 0:
