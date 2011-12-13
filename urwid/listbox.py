@@ -1034,6 +1034,9 @@ class ListBox(BoxWidget):
             if not widget.selectable(): 
                 continue
 
+            if not rows:
+                continue
+
             # try selecting this widget
             pref_row = max(0, -row_offset)
             
@@ -1089,7 +1092,10 @@ class ListBox(BoxWidget):
         for i in good_choices + search_order:
             row_offset, widget, pos, rows = t[i]
             if pos == focus_pos: continue
-            
+
+            if not rows: # never focus a 0-height widget
+                continue
+
             # if completely within snap region, adjust row_offset
             if rows + row_offset <= 0:
                 snap_rows -= (-row_offset) - (rows-1)
