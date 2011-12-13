@@ -1712,14 +1712,18 @@ class ZeroHeightContentsTest(unittest.TestCase):
         lb = urwid.ListBox(urwid.SimpleListWalker(
             [urwid.Text(u'above'), urwid.Pile([])]))
         lb.keypress((40,10), 'page down')
-        lb.keypress((40,10), 'page down') # second one caused failure!
+        self.assertEquals(lb.get_focus()[1], 0)
+        lb.keypress((40,10), 'page down') # second one caused ListBox failure
+        self.assertEquals(lb.get_focus()[1], 0)
 
     def test_listbux_text_pile_page_up(self):
         lb = urwid.ListBox(urwid.SimpleListWalker(
             [urwid.Pile([]), urwid.Text(u'below')]))
         lb.set_focus(1)
         lb.keypress((40,10), 'page up')
-        lb.keypress((40,10), 'page up') # second one caused failure!
+        self.assertEquals(lb.get_focus()[1], 1)
+        lb.keypress((40,10), 'page up') # second one caused pile failure
+        self.assertEquals(lb.get_focus()[1], 1)
 
 
 class PaddingTest(unittest.TestCase):
