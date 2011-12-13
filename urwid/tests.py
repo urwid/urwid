@@ -1171,7 +1171,7 @@ class ListBoxRenderTest(unittest.TestCase):
         assert cursor == exp_cur, "%s (cursor) got: %r expected: %r" %(desc,cursor,exp_cur)
 
 
-    def test1Simple(self):
+    def test1_simple(self):
         T = urwid.Text
 
         self.ltest( "simple one text item render",
@@ -1186,7 +1186,7 @@ class ListBoxRenderTest(unittest.TestCase):
             [T("1"),T("2"),T("3\n4"),T("5"),T("6")], 2, 1,
             ["2   ","3   ","4   ","5   ","6   "],None)
 
-    def test2Trim(self):
+    def test2_trim(self):
         T = urwid.Text
 
         self.ltest( "trim unfocused bottom",
@@ -1213,7 +1213,7 @@ class ListBoxRenderTest(unittest.TestCase):
             [T("1\n2\n3\n4\n5\n6\n7")], 0, -1,
             ["2   ","3   ","4   ","5   ","6   "],None)
 
-    def test3Shift(self):
+    def test3_shift(self):
         T,E = urwid.Text, urwid.Edit
 
         self.ltest( "shift up one fit",
@@ -1240,6 +1240,15 @@ class ListBoxRenderTest(unittest.TestCase):
             [T("1\n2"),T("3"),T("4"),e], 3, 4,
             ["1   ","2   ","3   ","4   ","abc "], (3,4))
 
+    def test4_really_large_contents(self):
+        T,E = urwid.Text, urwid.Edit
+        self.ltest("really large edit",
+            [T(u"hello"*100)], 0, 0,
+            ["hell","ohel","lohe","lloh","ello"], None)
+
+        self.ltest("really large edit",
+            [E(u"", u"hello"*100)], 0, 0,
+            ["hell","ohel","lohe","lloh","llo "], (3,4))
 
 class ListBoxKeypressTest(unittest.TestCase):
 
