@@ -689,7 +689,7 @@ class PileError(Exception):
 class Pile(Widget): # either FlowWidget or BoxWidget
     def __init__(self, widget_list, focus_item=None):
         """
-        widget_list -- list of widgets
+        widget_list -- iterable of widgets
         focus_item -- widget or integer index, if None the first
             selectable widget will be chosen.
 
@@ -707,26 +707,25 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         one 'weight' tuple in widget_list.
         """
         self.__super.__init__()
-        self.widget_list = MonitoredList(widget_list)
+        self.widget_list = MonitoredList()
         self.item_types = []
-        for i in range(len(widget_list)):
-            w = widget_list[i]
+
+        for i, w in enumerate(widget_list):
             if type(w) != tuple:
                 self.item_types.append(('weight',1))
             elif w[0] == 'flow':
-                f, widget = w
-                self.widget_list[i] = widget
+                f, w = w
                 self.item_types.append((f,None))
-                w = widget
             elif w[0] in ('fixed', 'weight'):
-                f, height, widget = w
-                self.widget_list[i] = widget
+                f, height, w = w
                 self.item_types.append((f,height))
-                w = widget
             else:
                 raise PileError, "widget list item invalid %r" % (w,)
             if focus_item is None and w.selectable():
                 focus_item = i
+
+            self.widget_list.append(w)
+
         self.widget_list.set_modified_callback(self._invalidate)
 
         if focus_item is None:
@@ -1051,7 +1050,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
     def __init__(self, widget_list, dividechars=0, focus_column=None,
         min_width=1, box_columns=None):
         """
-        widget_list -- list of flow widgets or list of box widgets
+        widget_list -- iterable of flow widgets or iterable of box widgets
         dividechars -- blank characters between columns
         focus_column -- index into widget_list of column in focus,
             if None the first selectable widget will be chosen.
@@ -1073,28 +1072,26 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         widgets.
         """
         self.__super.__init__()
-        self.widget_list = MonitoredList(widget_list)
+        self.widget_list = MonitoredList()
         self.column_types = []
         self.has_flow_type = False
-        for i in range(len(widget_list)):
-            w = widget_list[i]
+
+        for i, w in enumerate(widget_list):
             if type(w) != tuple:
                 self.column_types.append(('weight',1))
             elif w[0] == 'flow':
-                f, widget = w
-                self.widget_list[i] = widget
+                f, w = w
                 self.column_types.append((f,None))
                 self.has_flow_type = True
-                w = widget
             elif w[0] in ('fixed', 'weight'):
-                f,width,widget = w
-                self.widget_list[i] = widget
+                f, width, w = w
                 self.column_types.append((f,width))
-                w = widget
             else:
                 raise ColumnsError, "widget list item invalid: %r" % (w,)
             if focus_column is None and w.selectable():
                 focus_column = i
+
+            self.widget_list.append(w)
 
         self.widget_list.set_modified_callback(self._invalidate)
 
@@ -1205,19 +1202,16 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         if len(size)==1 and self.box_columns:
             box_maxrow = 1
             # two-pass mode to determine maxrow for box columns
-            for i in range(len(widths)):
+            for i, mc in enumerate(widths):
                 if i in self.box_columns:
                     continue
-                mc = widths[i]
                 w = self.widget_list[i]
                 rows = w.rows( (mc,),
                     focus = focus and self.focus_col == i )
                 box_maxrow = max(box_maxrow, rows)
 
         l = []
-        for i in range(len(widths)):
-            mc = widths[i]
-
+        for i, mc in enumerate(widths):
             # if the widget has a width of 0, hide it
             if mc <= 0:
                 continue
@@ -1268,9 +1262,9 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 
         best = None
         x = 0
-        for i in range(len(widths)):
+        for i, width in enumerate(widths):
             w = self.widget_list[i]
-            end = x + widths[i]
+            end = x + width
             if w.selectable():
                 # sometimes, col == 'left' - that doesn't seem like its handled here, does it?
                 # assert isinstance(x, int) and isinstance(col, int), (x, col)
@@ -1314,11 +1308,11 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         widths = self.column_widths(size)
 
         x = 0
-        for i in range(len(widths)):
+        for i, width in enumerate(widths):
             if col < x:
                 return False
             w = self.widget_list[i]
-            end = x + widths[i]
+            end = x + width
 
             if col >= end:
                 x = end + self.dividechars
@@ -1364,10 +1358,9 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         widths = self.column_widths(size, focus)
 
         rows = 1
-        for i in range(len(widths)):
+        for i, mc in enumerate(widths):
             if self.box_columns and i in self.box_columns:
                 continue
-            mc = widths[i]
             w = self.widget_list[i]
             rows = max( rows, w.rows( (mc,),
                 focus = focus and self.focus_col == i ) )

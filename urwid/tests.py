@@ -1995,6 +1995,9 @@ class PileTest(unittest.TestCase):
             None, 2, 2)
         assert z.get_pref_col((20,)) == 2
 
+    def test_init_with_a_generator(self):
+        urwid.Pile(urwid.Text(c) for c in "ABC")
+
 
 class ColumnsTest(unittest.TestCase):
     def cwtest(self, desc, l, divide, size, exp):
@@ -2062,6 +2065,9 @@ class ColumnsTest(unittest.TestCase):
         # unfortunate pref_col shifting
         self.mctest("l e edge",[x,e,x],1,(20,),6,0,True,1,7)
         self.mctest("r e edge",[x,e,x],1,(20,),13,0,True,1,12)
+
+    def test_init_with_a_generator(self):
+        urwid.Columns(urwid.Text(c) for c in "ABC")
 
 
 class LineBoxTest(unittest.TestCase):
