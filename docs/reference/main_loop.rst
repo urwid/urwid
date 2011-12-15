@@ -8,26 +8,36 @@
 
    When this exception is not handled, the main loop exits.
 
-.. class:: MainLoop(widget, palette=[], screen=None, handle_mouse=True, input_filter=None, unhandled_input=None, event_loop=None, pop_ups=False)
+.. class:: MainLoop(widget[, palette=[], screen=None, handle_mouse=True, \
+                    input_filter=None, unhandled_input=None, event_loop=None, \
+                    pop_ups=False])
 
    This is the standard main loop implementation with a single screen.
 
    *widget* is the topmost widget used for painting the screen, stored as
    self.widget and may be modified. Must be a box widget.
+
    *palette* -- initial palette for screen.
+
    *screen* -- screen object or None to use raw_display.Screen, stored as
    self.screen
-   *handle_mouse* -- True to process mouse events, passed to self.screen
-   *input_filter* -- a function to filter input before sending
-   it to self.widget, called from self.input_filter
-   unhandled_input -- a function called when input is not
-   handled by self.widget, called from self.unhandled_input
-   *event_loop* -- if screen supports external an event loop it
-   may be given here, or leave as None to use
-   *SelectEventLoop*, stored as self.event_loop
-   *pop_ups* -- True to wrap self.widget with a PopUpTarget
-   instance to allow any widget to open a pop-up anywhere on
-   the screen
+
+   *handle_mouse* -- ``True`` to process mouse events, passed to
+   ``self.screen``
+
+   *input_filter* -- a function to filter input before sending it to
+   ``self.widget``, called from ``self.input_filter``
+
+   *unhandled_input* -- a function called when input is not handled by
+   ``self.widget``, called from ``self.unhandled_input``
+
+   *event_loop* -- if screen supports external an event loop it may be given
+   here, or leave as None to use
+
+   *SelectEventLoop*, stored as ``self.event_loop``
+
+   *pop_ups* -- ``True`` to wrap ``self.widget`` with a ``PopUpTarget``
+   instance to allow any widget to open a pop-up anywhere on the screen
 
    .. attribute:: widget
 
@@ -64,7 +74,7 @@
         Create a pipe for use by a subprocess or thread to trigger a callback
         in the process/thread running the *MainLoop*.
 
-        *callback* -- function to call MainLoop.run thread/process
+        *callback* -- function to call :meth:`MainLoop.run` thread/process
 
         This function returns a file descriptor attached to the write end of a
         pipe. The read end of the pipe is added to the list of files the event
@@ -79,7 +89,7 @@
         that the callback will be triggered just once with the complete value
         of data passed in.
 
-        If the callback returns False then the watch will be removed and the
+        If the callback returns ``False`` then the watch will be removed and the
         read end of the pipe will be closed. You are responsible for closing
         the write end of the pipe.
 
@@ -174,7 +184,6 @@
 
    Event loop based on :func:`select.select`
 
-
 .. class:: GLibEventLoop()
 
       Event loop based on :class:`gobject.MainLoop`
@@ -212,8 +221,9 @@
       so the best we can do for now is to set a timer event in a very
       short time to approximate an enter-idle callback.
 
-      XXX: This will perform worse than the other event loops until we
-      can find a fix or workaround
+      .. WARNING::
+         This will perform worse than the other event loops until we can find a
+         fix or workaround
 
    .. method:: handle_exit(f, enable_idle=True)
 
