@@ -6,3 +6,4 @@ urwid.egg-info
 build
 .*.sw?
 tmp/
+tags
