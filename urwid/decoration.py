@@ -408,7 +408,7 @@ class PaddingError(Exception):
     pass
 
 class Padding(WidgetDecoration):
-    def __init__(self, w, align=LEFT, width=PACK, min_width=None, 
+    def __init__(self, w, align=LEFT, width=RELATIVE_100, min_width=None,
         left=0, right=0):
         r"""
         w -- a box, flow or fixed widget to pad on the left and/or right
