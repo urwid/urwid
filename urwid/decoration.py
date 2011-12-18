@@ -434,7 +434,7 @@ class Padding(WidgetDecoration):
         'left' then self.original_widget may be clipped on the right.
 
         >>> size = (7,)
-        >>> Padding(Text(u"Head"), ('relative', 20)).render(size).text # ... = b in Python 3
+        >>> Padding(Text(u"Head"), ('relative', 20), 'pack').render(size).text # ... = b in Python 3
         [...' Head  ']
         >>> Padding(Divider(u"-"), left=2, right=1).render(size).text
         [...'  ---- ']
@@ -448,7 +448,7 @@ class Padding(WidgetDecoration):
         >>> p.align = 'right'
         >>> p.render(size).text   # align against right
         [...'    12 ', ...'    34 ']
-        >>> Padding(Text(u"hi\nthere"), 'right').render(size).text
+        >>> Padding(Text(u"hi\nthere"), 'right', 'pack').render(size).text
         [...'  hi   ', ...'  there']
 
         """
