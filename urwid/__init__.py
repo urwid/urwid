@@ -29,7 +29,7 @@ from urwid.widget import (FLOW, BOX, FIXED, LEFT, RIGHT, CENTER, TOP, MIDDLE,
 from urwid.decoration import (WidgetDecoration, WidgetPlaceholder,
     AttrMapError, AttrMap, AttrWrap, BoxAdapterError, BoxAdapter, PaddingError,
     Padding, FillerError, Filler)
-from urwid.container import (WidgetContainer, GridFlow, OverlayError, Overlay,
+from urwid.container import (GridFlow, OverlayError, Overlay,
     Frame, PileError, Pile, ColumnsError, Columns)
 from urwid.wimp import (SelectableIcon, CheckBoxError, CheckBox, RadioButton,
     Button, PopUpLauncher, PopUpTarget)
