@@ -2365,6 +2365,13 @@ class CommonContainerTest(unittest.TestCase):
         p.focus_position = 0
         self.assertRaises(IndexError, lambda: setattr(p, 'focus_position', -1))
         self.assertRaises(IndexError, lambda: setattr(p, 'focus_position', 2))
+        # old methods:
+        p.set_focus(0)
+        self.assertRaises(IndexError, lambda: p.set_focus(-1))
+        self.assertRaises(IndexError, lambda: p.set_focus(2))
+        p.set_focus(t2)
+        self.assertEquals(p.focus_position, 1)
+        self.assertRaises(ValueError, lambda: p.set_focus('nonexistant'))
 
     def test_columns(self):
         c = urwid.Columns([])
@@ -2385,14 +2392,21 @@ class CommonContainerTest(unittest.TestCase):
         c.focus_position = 0
         self.assertRaises(IndexError, lambda: setattr(c, 'focus_position', -1))
         self.assertRaises(IndexError, lambda: setattr(c, 'focus_position', 2))
+        # old methods:
+        c.set_focus(0)
+        self.assertRaises(IndexError, lambda: c.set_focus(-1))
+        self.assertRaises(IndexError, lambda: c.set_focus(2))
+        c.set_focus(t2)
+        self.assertEquals(c.focus_position, 1)
+        self.assertRaises(ValueError, lambda: c.set_focus('nonexistant'))
 
     def test_list_box(self):
         lb = urwid.ListBox(urwid.SimpleListWalker([]))
         self.assertEquals(lb.focus, None)
         self.assertEquals(lb.focus_position, None)
-        #self.assertRaises(IndexError, lambda: setattr(lb, 'focus_position',
-        #    None))
-        #self.assertRaises(IndexError, lambda: setattr(lb, 'focus_position', 0))
+        self.assertRaises(IndexError, lambda: setattr(lb, 'focus_position',
+            None))
+        self.assertRaises(IndexError, lambda: setattr(lb, 'focus_position', 0))
 
         t1 = urwid.Text(u'one')
         t2 = urwid.Text(u'two')
@@ -2403,8 +2417,8 @@ class CommonContainerTest(unittest.TestCase):
         self.assertEquals(lb.focus, t2)
         self.assertEquals(lb.focus_position, 1)
         lb.focus_position = 0
-        #self.assertRaises(IndexError, lambda: setattr(lb, 'focus_position', -1))
-        #self.assertRaises(IndexError, lambda: setattr(lb, 'focus_position', 2))
+        self.assertRaises(IndexError, lambda: setattr(lb, 'focus_position', -1))
+        self.assertRaises(IndexError, lambda: setattr(lb, 'focus_position', 2))
 
     def test_grid_flow(self):
         gf = urwid.GridFlow([], 5, 1, 0, 'left')
@@ -2425,6 +2439,13 @@ class CommonContainerTest(unittest.TestCase):
         gf.focus_position = 0
         self.assertRaises(IndexError, lambda: setattr(gf, 'focus_position', -1))
         self.assertRaises(IndexError, lambda: setattr(gf, 'focus_position', 2))
+        # old methods:
+        gf.set_focus(0)
+        self.assertRaises(IndexError, lambda: gf.set_focus(-1))
+        self.assertRaises(IndexError, lambda: gf.set_focus(2))
+        gf.set_focus(t2)
+        self.assertEquals(gf.focus_position, 1)
+        self.assertRaises(ValueError, lambda: gf.set_focus('nonexistant'))
 
     def test_overlay(self):
         s1 = urwid.SolidFill(u'1')
@@ -2443,10 +2464,10 @@ class CommonContainerTest(unittest.TestCase):
         f = urwid.Frame(s1)
         self.assertEquals(f.focus, s1)
         self.assertEquals(f.focus_position, 'body')
-        #self.assertRaises(IndexError, lambda: setattr(f, 'focus_position',
-        #    None))
-        #self.assertRaises(IndexError, lambda: setattr(f, 'focus_position',
-        #    'header'))
+        self.assertRaises(IndexError, lambda: setattr(f, 'focus_position',
+            None))
+        self.assertRaises(IndexError, lambda: setattr(f, 'focus_position',
+            'header'))
 
         t1 = urwid.Text(u'one')
         t2 = urwid.Text(u'two')
@@ -2457,8 +2478,8 @@ class CommonContainerTest(unittest.TestCase):
         self.assertEquals(f.focus, t2)
         self.assertEquals(f.focus_position, 'footer')
         f.focus_position = 'body'
-        #self.assertRaises(IndexError, lambda: setattr(f, 'focus_position', -1))
-        #self.assertRaises(IndexError, lambda: setattr(f, 'focus_position', 2))
+        self.assertRaises(IndexError, lambda: setattr(f, 'focus_position', -1))
+        self.assertRaises(IndexError, lambda: setattr(f, 'focus_position', 2))
 
 
 

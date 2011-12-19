@@ -71,6 +71,7 @@ class PollingListWalker(object):  # NOT ListWalker subclass
 
     def set_focus(self, position):
         """Set focus position."""
+        # this class is deprecated, otherwise I might have fixed this:
         assert type(position) == int
         self.focus = position
 
@@ -124,7 +125,7 @@ class SimpleListWalker(MonitoredList, ListWalker):
     def set_modified_callback(self, callback):
         """
         This function inherited from MonitoredList is not
-        implemented in SimleListWalker.
+        implemented in SimpleListWalker.
 
         Use connect_signal(list_walker, "modified", ...) instead.
         """
@@ -138,7 +139,8 @@ class SimpleListWalker(MonitoredList, ListWalker):
 
     def set_focus(self, position):
         """Set focus position."""
-        assert type(position) == int
+        if position < 0 or position >= len(self):
+            raise IndexError, "No widget at position %s" % (position,)
         self.focus = position
         self._modified()
 

@@ -64,12 +64,10 @@ class GridFlow(FlowWidget):
 
         item -- widget or integer index
         """
-        if type(cell) == int:
-            assert cell>=0 and cell<len(self.cells)
-            self.focus_cell = self.cells[cell]
-        else:
-            assert cell in self.cells
-            self.focus_cell = cell
+        if isinstance(cell, int):
+            return self._set_focus_position(cell)
+        self.cells.index(cell) # raises ValueError if missing
+        self.focus_cell = cell
         self._cache_maxcol = None
         self._invalidate()
 
@@ -505,7 +503,11 @@ class Frame(BoxWidget):
 
         part -- 'header', 'footer' or 'body'
         """
-        assert part in ('header', 'footer', 'body')
+        if part not in ('header', 'footer', 'body'):
+            raise IndexError, 'Invalid position for Frame: %s' % (part,)
+        if (part == 'header' and self._header is None) or (
+                part == 'footer' and self._footer is None):
+            raise IndexError, 'This Frame has no %s' % (part,)
         self.focus_part = part
         self._invalidate()
 
@@ -775,12 +777,10 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 
         item -- widget or integer index
         """
-        if type(item) == int:
-            assert item>=0 and item<len(self.widget_list)
-            self.focus_item = self.widget_list[item]
-        else:
-            assert item in self.widget_list
-            self.focus_item = item
+        if isinstance(item, int):
+            return self._set_focus_position(item)
+        self.widget_list.index(item) # raises ValueError if missing
+        self.focus_item = item
         self._invalidate()
 
     def get_focus(self):
@@ -1160,25 +1160,32 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         self._cache_maxcol = None
         self.__super._invalidate()
 
-    def set_focus_column( self, num ):
-        """Set the column in focus by its index in self.widget_list."""
-        self.focus_col = num
-        self._invalidate()
+    def set_focus_column(self, num):
+        """
+        Set the column in focus by its index in self.widget_list, for
+        backwards compatibility.  You may also use the new standard
+        container property .focus_position to set the focus.
+        """
+        self._set_focus_position(num)
 
     def get_focus_column( self ):
-        """Return the focus column index."""
+        """
+        Return the focus column index, for backwards compatibility. You
+        may also use the new standard container property .focus_position
+        to get the focus column index.
+        """
         return self.focus_col
 
     def set_focus(self, item):
-        """Set the item in focus.
+        """
+        Set the item in focus, for backwards compatibility.  You may also
+        use the new standard container property .focus_position to set
+        the position by integer index instead.
 
         item -- widget or integer index"""
-        if type(item) == int:
-            assert item>=0 and item<len(self.widget_list)
-            position = item
-        else:
-            position = self.widget_list.index(item)
-        self.focus_col = position
+        if isinstance(item, int):
+            return self._set_focus_position(item)
+        self.focus_col = self.widget_list.index(item)
         self._invalidate()
 
     def get_focus(self):
