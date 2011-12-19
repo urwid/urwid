@@ -436,13 +436,36 @@ class ListBox(BoxWidget):
         focus_widget, focus_pos = self.body.get_focus()
 
         self.set_focus_pending = coming_from, focus_widget, focus_pos
-        self.body.set_focus( position )
+        self.body.set_focus(position)
 
     def get_focus(self):
         """
-        Return a (focus widget, focus position) tuple.
+        Return a (focus widget, focus position) tuple, for backwards
+        compatibility.  You may also use the new standard container
+        properties .focus and .focus_position to read these values.
         """
         return self.body.get_focus()
+
+    def _get_focus(self):
+        """
+        Return the widget in focus according to our list walker.
+        """
+        return self.body.get_focus()[0]
+    focus = property(_get_focus,
+        doc="the child widget in focus or None when ListBox is empty")
+
+    def _get_focus_position(self):
+        """
+        Return the list walker position of the widget in focus.  The type
+        of value returned depends on the list walker in use and None may
+        be a valid position so don't assume None means the ListBox is empty.
+        """
+        return self.body.get_focus()[1]
+    focus_position = property(_get_focus_position, set_focus, doc="""
+        the position of child widget in focus.  The valid values for this
+        position depend on the list walker in use and None may be a valid
+        position so don't assume None means a ListBox is empty.
+        """)
 
     def _set_focus_valign_complete(self, size, focus):
         """

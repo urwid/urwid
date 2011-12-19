@@ -57,9 +57,13 @@ class GridFlow(FlowWidget):
         self._cache_maxcol = None
 
     def set_focus(self, cell):
-        """Set the cell in focus.
+        """
+        Set the cell in focus, for backwards compatibility.  You may also
+        use the new standard container property .focus_position to set
+        the position by integer index instead.
 
-        cell -- widget or integer index into self.cells"""
+        item -- widget or integer index
+        """
         if type(cell) == int:
             assert cell>=0 and cell<len(self.cells)
             self.focus_cell = self.cells[cell]
@@ -69,10 +73,36 @@ class GridFlow(FlowWidget):
         self._cache_maxcol = None
         self._invalidate()
 
-
-    def get_focus (self):
-        """Return the widget in focus."""
+    def get_focus(self):
+        """
+        Return the widget in focus, for backwards compatibility.  You may
+        also use the new standard container property .focus to get the
+        child widget in focus.
+        """
         return self.focus_cell
+    focus = property(get_focus,
+        doc="the child widget in focus or None when GridFlow is empty")
+
+    def _get_focus_position(self):
+        """
+        Return the index of the widget in focus or None if this GridFlow is
+        empty.
+        """
+        if self.focus_cell is None:
+            return None
+        return self.cells.index(self.focus_cell)
+    def _set_focus_position(self, position):
+        """
+        Set the widget in focus.
+
+        position -- index of child widget to be made focus
+        """
+        if position < 0 or position >= len(self.cells):
+            raise IndexError, "No child widget at position %s" % (position,)
+        self.focus_cell = self.cells[position]
+        self._invalidate()
+    focus_position = property(_get_focus_position, _set_focus_position,
+        doc="index of child widget in focus or None when GridFlow is empty")
 
     def get_display_widget(self, size):
         """
@@ -311,6 +341,31 @@ class Overlay(BoxWidget):
         return self.top_w.keypress(self.top_w_size(size,
                        *self.calculate_padding_filler(size, True)), key)
 
+    def _get_focus(self):
+        """
+        Currently self.top_w is always the focus of an Overlay
+        """
+        return self.top_w
+    focus = property(_get_focus,
+        doc="the top widget in this overlay is always in focus")
+
+    def _get_focus_position(self):
+        """
+        Return the top widget position (currently always 0).
+        """
+        return 0
+    def _set_focus_position(self, position):
+        """
+        Set the widget in focus.  Currently only position 0 is accepted.
+
+        position -- index of child widget to be made focus
+        """
+        if position != 0:
+            raise IndexError, ("Overlay widget focus position currently "
+                "must always be set to 0, not %s" % (position,))
+    focus_position = property(_get_focus_position, _set_focus_position,
+        doc="index of child widget in focus, currently always 0")
+
     def get_cursor_coords(self, size):
         """Return cursor coords from top_w, if any."""
         if not hasattr(self.body, 'get_cursor_coords'):
@@ -443,7 +498,10 @@ class Frame(BoxWidget):
     footer = property(get_footer, set_footer)
 
     def set_focus(self, part):
-        """Set the part of the frame that is in focus.
+        """
+        Set the part of the frame that is in focus, for backwards
+        compatibility.  You may also use the new standard container property
+        .focus_position to set this value.
 
         part -- 'header', 'footer' or 'body'
         """
@@ -451,12 +509,28 @@ class Frame(BoxWidget):
         self.focus_part = part
         self._invalidate()
 
-    def get_focus (self):
-        """Return the part of the frame that is in focus.
+    def get_focus(self):
+        """
+        Return the part of the frame that is in focus, for backwards
+        compatibility.  You may also use the new standard container property
+        .focus_position to get this value.
 
-        Will be one of 'header', 'footer' or 'body'.
+        Returns one of 'header', 'footer' or 'body'.
         """
         return self.focus_part
+
+    def _get_focus(self):
+        return {
+            'header': self._header,
+            'footer': self._footer,
+            'body': self._body
+            }[self.focus_part]
+    focus = property(_get_focus,
+        doc="the child widget in focus: the body, header or footer widget")
+
+    focus_position = property(get_focus, set_focus, doc="""
+        the part of the frame that is in focus: 'body', 'header' or 'footer'
+        """)
 
     def frame_top_bottom(self, size, focus):
         """Calculate the number of rows for the header and footer.
@@ -694,9 +768,13 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         return self.focus_item is not None and self.focus_item.selectable()
 
     def set_focus(self, item):
-        """Set the item in focus.
+        """
+        Set the item in focus, for backwards compatibility.  You may also
+        use the new standard container property .focus_position to set
+        the position by integer index instead.
 
-        item -- widget or integer index"""
+        item -- widget or integer index
+        """
         if type(item) == int:
             assert item>=0 and item<len(self.widget_list)
             self.focus_item = self.widget_list[item]
@@ -706,8 +784,35 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         self._invalidate()
 
     def get_focus(self):
-        """Return the widget in focus."""
+        """
+        Return the widget in focus, for backwards compatibility.  You may
+        also use the new standard container property .focus to get the
+        child widget in focus.
+        """
         return self.focus_item
+    focus = property(get_focus,
+        doc="the child widget in focus or None when Pile is empty")
+
+    def _get_focus_position(self):
+        """
+        Return the index of the widget in focus or None if this Pile is
+        empty.
+        """
+        if self.focus_item is None:
+            return None
+        return self.widget_list.index(self.focus_item)
+    def _set_focus_position(self, position):
+        """
+        Set the widget in focus.
+
+        position -- index of child widget to be made focus
+        """
+        if position < 0 or position >= len(self.widget_list):
+            raise IndexError, "No child widget at position %s" % (position,)
+        self.focus_item = self.widget_list[position]
+        self._invalidate()
+    focus_position = property(_get_focus_position, _set_focus_position,
+        doc="index of child widget in focus or None when Pile is empty")
 
     def get_pref_col(self, size):
         """Return the preferred column for the cursor, or None."""
@@ -1077,8 +1182,37 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         self._invalidate()
 
     def get_focus(self):
-        """Return the widget in focus."""
+        """
+        Return the widget in focus, for backwards compatibility.  You may
+        also use the new standard container property .focus to get the
+        child widget in focus.
+        """
+        if not self.widget_list:
+            return None
         return self.widget_list[self.focus_col]
+    focus = property(get_focus,
+        doc="the child widget in focus or None when Columns is empty")
+
+    def _get_focus_position(self):
+        """
+        Return the index of the widget in focus or None if this Columns is
+        empty.
+        """
+        if not self.widget_list:
+            return None
+        return self.focus_col
+    def _set_focus_position(self, position):
+        """
+        Set the widget in focus.
+
+        position -- index of child widget to be made focus
+        """
+        if position < 0 or position >= len(self.widget_list):
+            raise IndexError, "No child widget at position %s" % (position,)
+        self.focus_col = position
+        self._invalidate()
+    focus_position = property(_get_focus_position, _set_focus_position,
+        doc="index of child widget in focus or None when Columns is empty")
 
     def column_widths(self, size, focus=False):
         """Return a list of column widths.
