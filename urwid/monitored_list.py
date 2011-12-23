@@ -136,10 +136,12 @@ class MonitoredFocusList(MonitoredList):
     def _set_focus(self, index):
         """
         index -- index into this list, any index out of range will
-            raise an IndexError
+            raise an IndexError, except when the list is empty and
+            the index passed is ignored.
 
         This function may call self._focus_changed when the focus
-        is actually modified.  That method may be 
+        is actually modified.  That method may be overridden on the
+        instance with set_focus_changed_callback().
 
         >>> ml = MonitoredFocusList([9, 10, 11])
         >>> ml._set_focus(2); ml._get_focus()
@@ -362,6 +364,28 @@ class MonitoredFocusList(MonitoredList):
         """
         focus = self._handle_possible_focus_removed(slice(i, j), y)
         rval = super(MonitoredFocusList, self).__setslice__(i, j, y)
+        self._set_focus(focus)
+        return rval
+
+    def __imul__(self, n):
+        """
+        >>> def modified(indices, new_items):
+        ...     print "range%r <- %r" % (indices, new_items)
+        >>> ml = MonitoredFocusList([0,1,2], focus=2)
+        >>> ml.set_focus_removed_callback(modified)
+        >>> ml *= 3; ml
+        MonitoredFocusList([0, 1, 2, 0, 1, 2, 0, 1, 2], focus=2)
+        >>> ml *= 0
+        range(0, 9, 1) <- []
+        >>> print ml.focus
+        None
+        """
+        if n > 0:
+            return super(MonitoredFocusList, self).__imul__(n)
+
+        # all contents are being removed
+        focus = self._handle_possible_focus_removed(slice(0, len(self)), [])
+        rval = super(MonitoredFocusList, self).__imul__(n)
         self._set_focus(focus)
         return rval
 
