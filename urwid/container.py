@@ -19,14 +19,19 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from itertools import chain, repeat
+
 from urwid.util import is_mouse_press
-from urwid.widget import Widget, BoxWidget, FlowWidget, Divider
+from urwid.widget import Widget, BoxWidget, FlowWidget, Divider, FLOW, FIXED
 from urwid.decoration import Padding, Filler, calculate_padding, calculate_filler, \
     decompose_align_width, decompose_valign_height
-from urwid.monitored_list import MonitoredList
+from urwid.monitored_list import MonitoredList, MonitoredFocusList
 from urwid.canvas import CompositeCanvas, CanvasOverlay, CanvasCombine, \
     SolidCanvas, CanvasJoin
 
+
+# extra constants for Pile/Columns
+WEIGHT = 'weight'
 
 
 class GridFlow(FlowWidget):
@@ -725,52 +730,89 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         one 'weight' tuple in widget_list.
         """
         self.__super.__init__()
-        self.widget_list = MonitoredList()
-        self.item_types = []
+        self._contents = MonitoredFocusList()
+        self._contents.set_modified_callback(self._invalidate)
+        self._contents.set_focus_changed_callback(lambda f: self._invalidate())
+        def contents_modified(slc, new_items):
+            for item in new_items:
+                try:
+                    w, (t, n) = item
+                    if t not in (FLOW, FIXED, WEIGHT):
+                        raise PileError(
+                            "Pile height_calc type invalid %r" % (t,))
+                except (TypeError, ValueError):
+                    raise PileError("Pile content invalid %r" % (item,))
+        self._contents.set_validate_contents_modified(contents_modified)
 
-        for i, w in enumerate(widget_list):
+        focus_position = None
+        for i, original in enumerate(widget_list):
+            w = original
             if type(w) != tuple:
-                self.item_types.append(('weight',1))
-            elif w[0] == 'flow':
+                self.contents.append((w, ('weight', 1)))
+            elif w[0] == FLOW:
                 f, w = w
-                self.item_types.append((f,None))
+                self.contents.append((w, (FLOW, None)))
             elif w[0] in ('fixed', 'weight'):
                 f, height, w = w
-                self.item_types.append((f,height))
+                self.contents.append((w, (f, height)))
             else:
-                raise PileError, "widget list item invalid %r" % (w,)
+                raise PileError(
+                    "initial widget list item invalid %r" % (original,))
             if focus_item is None and w.selectable():
                 focus_item = i
 
-            self.widget_list.append(w)
-
-        self.widget_list.set_modified_callback(self._invalidate)
-
-        if focus_item is None:
-            focus_item = 0
+        if focus_position is None:
+            focus_position = 0
         if self.widget_list:
-            self.set_focus(focus_item)
-        else:
-            self.focus_item=None
+            self.focus_position = focus_position
+
         self.pref_col = 0
 
-    @property
-    def contents(self):
-        for i, w in enumerate(self.widget_list):
-            try:
-                yield w, self.item_types[i]
-            except IndexError:
-                yield w, ('weight', 1)
+    def _get_widget_list(self):
+        ml = MonitoredList(w for w, t in self.contents)
+        def user_modified():
+            self._set_widget_list(ml)
+        ml.set_modified_callback(user_modified)
+        return ml
+    def _set_widget_list(self, widgets):
+        self.contents = [
+            (new, t) for (new, (w, t)) in zip(widgets,
+                chain(self.contents, repeat(('weight', 1))))]
+    widget_list = property(_get_widget_list, _set_widget_list, doc="""
+        A list of the widgets in this Pile, for backwards compatibility only.
+        You should use the new standard container property .contents to
+        modify Pile contents.
+        """)
 
-    def _get_item_types(self, i):
-        try:
-            return self.item_types[i]
-        except IndexError:
-            return 'weight', 1
+    def _get_contents(self):
+        return self._contents
+    def _set_contents(self, c):
+        self._contents[:] = c
+    contents = property(_get_contents, _set_contents, doc="""
+        The contents of this Pile as a list of (widget, height_calc) tuples.
+
+        height_calc may be one of:
+        ('flow', None) -- Always treat widget as a flow widget, i.e. let it
+            calculate the number of rows it will display.
+        ('fixed', n) -- Always treat widget as a box widget with a fixed
+            height of n rows.
+        ('weight', w) -- If the Pile itself is treated as a box widget then
+            the value w will be used as a relative weight for assigning rows
+            to this box widget.  If the Pile is being treated as a flow
+            widget then this is the same as ('flow', None) and the w value
+            is ignored.
+
+        If the Pile itself is treated as a box widget then at least one
+        widget must have a ('weight', w) height_calc value, or the Pile will
+        not be able to grow to fill the required number of rows.
+
+        This list may be modified and the Pile will update automatically.
+        """)
 
     def selectable(self):
         """Return True if the focus item is selectable."""
-        return self.focus_item is not None and self.focus_item.selectable()
+        w = self.focus
+        return w is not None and w.selectable()
 
     def set_focus(self, item):
         """
@@ -782,9 +824,11 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         """
         if isinstance(item, int):
             return self._set_focus_position(item)
-        self.widget_list.index(item) # raises ValueError if missing
-        self.focus_item = item
-        self._invalidate()
+        for i, (w, height_calc) in enumerate(self.contents):
+            if item == w:
+                self.focus_position = i
+                return
+        raise ValueError("Widget not found in Pile contents: %r" % (item,))
 
     def get_focus(self):
         """
@@ -792,31 +836,34 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         also use the new standard container property .focus to get the
         child widget in focus.
         """
-        return self.focus_item
+        if not self.contents:
+            return None
+        return self.contents[self.focus_position][0]
     focus = property(get_focus,
         doc="the child widget in focus or None when Pile is empty")
+
+    focus_item = property(get_focus, set_focus, doc="""
+        A property for reading and setting the widget in focus, for
+        backwards compatibility only.  You may also use the new standard
+        container propertied .focus and .focus_position to get the
+        child widget in focus or modify the focus position.
+        """)
 
     def _get_focus_position(self):
         """
         Return the index of the widget in focus or None if this Pile is
         empty.
         """
-        if self.focus_item is None:
-            return None
-        return self.widget_list.index(self.focus_item)
+        return self.contents.focus
     def _set_focus_position(self, position):
         """
         Set the widget in focus.
 
         position -- index of child widget to be made focus
         """
-        try:
-            if position < 0 or position >= len(self.widget_list):
-                raise IndexError
-        except (TypeError, IndexError):
-            raise IndexError, "No child widget at position %s" % (position,)
-        self.focus_item = self.widget_list[position]
-        self._invalidate()
+        if not self.contents:
+            raise IndexError("Can't set focus position on an empty Pile")
+        self.contents.focus = position
     focus_position = property(_get_focus_position, _set_focus_position,
         doc="index of child widget in focus or None when Pile is empty")
 
@@ -829,13 +876,13 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 
     def get_item_size(self, size, i, focus, item_rows=None):
         """
-        Return a size appropriate for passing to self.widget_list[i]
+        Return a size appropriate for passing to self.contents[i][0].render
         """
         maxcol = size[0]
-        f, height = self._get_item_types(i)
-        if f=='fixed':
+        w, (f, height) = self.contents[i]
+        if f == FIXED:
             return (maxcol, height)
-        elif f=='weight' and len(size)==2:
+        elif f == WEIGHT and len(size) == 2:
             if not item_rows:
                 item_rows = self.get_item_rows(size, focus)
             return (maxcol, item_rows[i])
@@ -845,11 +892,11 @@ class Pile(Widget): # either FlowWidget or BoxWidget
     def get_item_rows(self, size, focus):
         """
         Return a list of the number of rows used by each widget
-        in self.item_list.
+        in self.contents
         """
         remaining = None
         maxcol = size[0]
-        if len(size)==2:
+        if len(size) == 2:
             remaining = size[1]
 
         l = []
@@ -857,23 +904,22 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         if remaining is None:
             # pile is a flow widget
             for w, (f, height) in self.contents:
-                if f == 'fixed':
+                if f == FIXED:
                     l.append(height)
                 else:
-                    l.append(w.rows((maxcol,), focus=focus
-                        and self.focus_item == w))
+                    l.append(w.rows((maxcol,),
+                        focus=focus and self.focus_item == w))
             return l
 
         # pile is a box widget
         # do an extra pass to calculate rows for each widget
         wtotal = 0
         for w, (f, height) in self.contents:
-            if f == 'flow':
-                rows = w.rows((maxcol,), focus=focus and
-                    self.focus_item == w )
+            if f == FLOW:
+                rows = w.rows((maxcol,), focus=focus and self.focus_item == w)
                 l.append(rows)
                 remaining -= rows
-            elif f == 'fixed':
+            elif f == FIXED:
                 l.append(height)
                 remaining -= height
             else:
@@ -889,8 +935,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         for i, (w, (f, height)) in enumerate(self.contents):
             li = l[i]
             if li is None:
-                rows = int(float(remaining)*height
-                    /wtotal+0.5)
+                rows = int(float(remaining) * height / wtotal + 0.5)
                 l[i] = rows
                 remaining -= rows
                 wtotal -= height
@@ -898,7 +943,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 
     def render(self, size, focus=False):
         """
-        Render all widgets in self.widget_list and return the results
+        Render all widgets in self.contents and return the results
         stacked one on top of the next.
         """
         maxcol = size[0]
@@ -908,27 +953,23 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         for i, (w, (f, height)) in enumerate(self.contents):
             item_focus = self.focus_item == w
             canv = None
-            if f == 'fixed':
-                canv = w.render( (maxcol, height),
-                    focus=focus and item_focus)
-            elif f == 'flow' or len(size)==1:
-                canv = w.render( (maxcol,),
-                    focus=focus and    item_focus)
+            if f == FIXED:
+                canv = w.render((maxcol, height), focus=focus and item_focus)
+            elif f == FLOW or len(size)==1:
+                canv = w.render((maxcol,), focus=focus and item_focus)
             else:
                 if item_rows is None:
-                    item_rows = self.get_item_rows(size,
-                        focus)
+                    item_rows = self.get_item_rows(size, focus)
                 rows = item_rows[i]
                 if rows>0:
-                    canv = w.render( (maxcol, rows),
-                        focus=focus and    item_focus )
+                    canv = w.render((maxcol, rows), focus=focus and item_focus)
             if canv:
                 combinelist.append((canv, i, item_focus))
         if not combinelist:
             return SolidCanvas(" ", size[0], (size[1:]+(0,))[0])
 
         out = CanvasCombine(combinelist)
-        if len(size)==2 and size[1] < out.rows():
+        if len(size) == 2 and size[1] < out.rows():
             # flow/fixed widgets rendered too large
             out = CompositeCanvas(out)
             out.pad_trim_top_bottom(0, size[1] - out.rows())
@@ -936,25 +977,23 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 
     def get_cursor_coords(self, size):
         """Return the cursor coordinates of the focus widget."""
-        if not self.focus_item or not self.focus_item.selectable():
+        if not self.selectable():
             return None
-        if not hasattr(self.focus_item,'get_cursor_coords'):
+        if not hasattr(self.focus_item, 'get_cursor_coords'):
             return None
 
-        i = self.widget_list.index(self.focus_item)
-        f, height = self._get_item_types(i)
+        i = self.focus_position
+        w, (f, height) = self.contents[i]
         item_rows = None
         maxcol = size[0]
-        if f == 'fixed' or (f=='weight' and len(size)==2):
-            if f == 'fixed':
+        if f == FIXED or (f == WEIGHT and len(size) == 2):
+            if f == FIXED:
                 maxrow = height
             else:
                 if item_rows is None:
-                    item_rows = self.get_item_rows(size,
-                    focus=True)
+                    item_rows = self.get_item_rows(size, focus=True)
                 maxrow = item_rows[i]
-            coords = self.focus_item.get_cursor_coords(
-                (maxcol,maxrow))
+            coords = self.focus_item.get_cursor_coords((maxcol, maxrow))
         else:
             coords = self.focus_item.get_cursor_coords((maxcol,))
 
@@ -975,64 +1014,59 @@ class Pile(Widget): # either FlowWidget or BoxWidget
     def keypress(self, size, key ):
         """Pass the keypress to the widget in focus.
         Unhandled 'up' and 'down' keys may cause a focus change."""
-        if not self.focus_item:
+        if not self.contents:
             return key
 
         item_rows = None
-        if len(size)==2:
-            item_rows = self.get_item_rows( size, focus=True )
+        if len(size) == 2:
+            item_rows = self.get_item_rows(size, focus=True)
 
-        i = self.widget_list.index(self.focus_item)
-        f, height = self._get_item_types(i)
-        if self.focus_item.selectable():
-            tsize = self.get_item_size(size,i,True,item_rows)
-            key = self.focus_item.keypress( tsize, key )
+        i = self.focus_position
+        if self.selectable():
+            tsize = self.get_item_size(size, i, True, item_rows)
+            key = self.focus.keypress(tsize, key)
             if self._command_map[key] not in ('cursor up', 'cursor down'):
                 return key
 
         if self._command_map[key] == 'cursor up':
             candidates = range(i-1, -1, -1) # count backwards to 0
         else: # self._command_map[key] == 'cursor down'
-            candidates = range(i+1, len(self.widget_list))
+            candidates = range(i+1, len(self.contents))
 
         if not item_rows:
-            item_rows = self.get_item_rows( size, focus=True )
+            item_rows = self.get_item_rows(size, focus=True)
 
         for j in candidates:
-            if not self.widget_list[j].selectable():
+            if not self.contents[j][0].selectable():
                 continue
 
             self._update_pref_col_from_focus(size)
-            self.set_focus(j)
-            if not hasattr(self.focus_item,'move_cursor_to_coords'):
+            self.focus_position = j
+            if not hasattr(self.focus, 'move_cursor_to_coords'):
                 return
 
-            f, height = self._get_item_types(i)
             rows = item_rows[j]
             if self._command_map[key] == 'cursor up':
                 rowlist = range(rows-1, -1, -1)
             else: # self._command_map[key] == 'cursor down'
                 rowlist = range(rows)
             for row in rowlist:
-                tsize=self.get_item_size(size,j,True,item_rows)
+                tsize = self.get_item_size(size, j, True, item_rows)
                 if self.focus_item.move_cursor_to_coords(
-                        tsize,self.pref_col,row):
+                        tsize, self.pref_col, row):
                     break
             return
 
         # nothing to select
         return key
 
-
-    def _update_pref_col_from_focus(self, size ):
+    def _update_pref_col_from_focus(self, size):
         """Update self.pref_col from the focus widget."""
 
-        widget = self.focus_item
-
-        if not hasattr(widget,'get_pref_col'):
+        if not hasattr(self.focus, 'get_pref_col'):
             return
-        i = self.widget_list.index(widget)
-        tsize = self.get_item_size(size,i,True)
+        i = self.focus_position
+        tsize = self.get_item_size(size, i, True)
         pref_col = widget.get_pref_col(tsize)
         if pref_col is not None:
             self.pref_col = pref_col
@@ -1044,9 +1078,10 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         #FIXME guessing focus==True
         focus=True
         wrow = 0
-        item_rows = self.get_item_rows(size,focus)
-        for r,w in zip(item_rows, self.widget_list):
-            if wrow+r > row:
+        item_rows = self.get_item_rows(size, focus)
+        for i, (r, w) in enumerate(zip(item_rows,
+                (w for (w, height_calc) in self.contents))):
+            if wrow + r > row:
                 break
             wrow += r
         else:
@@ -1055,14 +1090,13 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         if not w.selectable():
             return False
 
-        if hasattr(w,'move_cursor_to_coords'):
-            i = self.widget_list.index(w)
+        if hasattr(w, 'move_cursor_to_coords'):
             tsize = self.get_item_size(size, i, focus, item_rows)
-            rval = w.move_cursor_to_coords(tsize,col,row-wrow)
+            rval = w.move_cursor_to_coords(tsize, col, row-wrow)
             if rval is False:
                 return False
 
-        self.set_focus(w)
+        self.focus_position = i
         return True
 
     def mouse_event(self, size, event, button, col, row, focus):
@@ -1071,21 +1105,21 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         May change focus on button 1 press.
         """
         wrow = 0
-        item_rows = self.get_item_rows(size,focus)
-        for r,w in zip(item_rows, self.widget_list):
-            if wrow+r > row:
+        item_rows = self.get_item_rows(size, focus)
+        for i, (r, w) in enumerate(zip(item_rows,
+                (w for (w, height_calc) in self.contents))):
+            if wrow + r > row:
                 break
             wrow += r
 
         focus = focus and self.focus_item == w
-        if is_mouse_press(event) and button==1:
+        if is_mouse_press(event) and button == 1:
             if w.selectable():
-                self.set_focus(w)
+                self.set_focus_position = i
 
-        if not hasattr(w,'mouse_event'):
+        if not hasattr(w, 'mouse_event'):
             return False
 
-        i = self.widget_list.index(w)
         tsize = self.get_item_size(size, i, focus, item_rows)
         return w.mouse_event(tsize, event, button, col, row-wrow,
             focus)
