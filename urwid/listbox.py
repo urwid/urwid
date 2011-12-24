@@ -139,7 +139,10 @@ class SimpleListWalker(MonitoredList, ListWalker):
 
     def set_focus(self, position):
         """Set focus position."""
-        if position < 0 or position >= len(self):
+        try:
+            if position < 0 or position >= len(self):
+                raise IndexError
+        except (TypeError, ValueError):
             raise IndexError, "No widget at position %s" % (position,)
         self.focus = position
         self._modified()

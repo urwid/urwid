@@ -95,7 +95,10 @@ class GridFlow(FlowWidget):
 
         position -- index of child widget to be made focus
         """
-        if position < 0 or position >= len(self.cells):
+        try:
+            if position < 0 or position >= len(self.cells):
+                raise IndexError
+        except (TypeError, IndexError):
             raise IndexError, "No child widget at position %s" % (position,)
         self.focus_cell = self.cells[position]
         self._invalidate()
@@ -807,7 +810,10 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 
         position -- index of child widget to be made focus
         """
-        if position < 0 or position >= len(self.widget_list):
+        try:
+            if position < 0 or position >= len(self.widget_list):
+                raise IndexError
+        except (TypeError, IndexError):
             raise IndexError, "No child widget at position %s" % (position,)
         self.focus_item = self.widget_list[position]
         self._invalidate()
@@ -1214,7 +1220,10 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 
         position -- index of child widget to be made focus
         """
-        if position < 0 or position >= len(self.widget_list):
+        try:
+            if position < 0 or position >= len(self.widget_list):
+                raise IndexError
+        except (TypeError, IndexError):
             raise IndexError, "No child widget at position %s" % (position,)
         self.focus_col = position
         self._invalidate()
