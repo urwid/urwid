@@ -733,16 +733,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         self._contents = MonitoredFocusList()
         self._contents.set_modified_callback(self._invalidate)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
-        def contents_modified(slc, new_items):
-            for item in new_items:
-                try:
-                    w, (t, n) = item
-                    if t not in (FLOW, FIXED, WEIGHT):
-                        raise PileError(
-                            "Pile height_calc type invalid %r" % (t,))
-                except (TypeError, ValueError):
-                    raise PileError("Pile content invalid %r" % (item,))
-        self._contents.set_validate_contents_modified(contents_modified)
+        self._contents.set_validate_contents_modified(self._contents_modified)
 
         focus_item = focus_item
         for i, original in enumerate(widget_list):
@@ -765,6 +756,16 @@ class Pile(Widget): # either FlowWidget or BoxWidget
             self.set_focus(focus_item)
 
         self.pref_col = 0
+
+    def _contents_modified(self, slc, new_items):
+        for item in new_items:
+            try:
+                w, (t, n) = item
+                if t not in (FLOW, FIXED, WEIGHT):
+                    raise PileError(
+                        "Pile height_calc type invalid %r" % (t,))
+            except (TypeError, ValueError):
+                raise PileError("Pile content invalid %r" % (item,))
 
     def _get_widget_list(self):
         ml = MonitoredList(w for w, t in self.contents)
