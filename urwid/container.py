@@ -777,7 +777,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         self.contents = [
             (new, t) for (new, (w, t)) in zip(widgets,
                 # need to grow contents list if widgets is longer
-                chain(self.contents, repeat(('weight', 1))))]
+                chain(self.contents, repeat((None, ('weight', 1)))))]
         if focus_position < len(widgets):
             self.focus_position = focus_position
     widget_list = property(_get_widget_list, _set_widget_list, doc="""
@@ -796,7 +796,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         focus_position = self.focus_position
         self.contents = [
             (w, new) for (new, (w, t)) in zip(item_types, self.contents)]
-        if focus_position < len(widgets):
+        if focus_position < len(item_types):
             self.focus_position = focus_position
     item_types = property(_get_item_types, _set_item_types, doc="""
         A list of the height_calc values for widgets in this Pile, for

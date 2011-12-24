@@ -2375,7 +2375,22 @@ class CommonContainerTest(unittest.TestCase):
         self.assertEquals(p.widget_list, [t1, t2])
         self.assertEquals(p.item_types, [('weight', 1), ('weight', 1)])
         p.widget_list = [t2, t1]
+        self.assertEquals(p.widget_list, [t2, t1])
+        self.assertEquals(p.contents, [(t2, ('weight', 1)), (t1, ('weight', 1))])
         self.assertEquals(p.focus_position, 1) # focus unchanged
+        p.item_types = [('flow', None), ('weight', 2)]
+        self.assertEquals(p.item_types, [('flow', None), ('weight', 2)])
+        self.assertEquals(p.contents, [(t2, ('flow', None)), (t1, ('weight', 2))])
+        self.assertEquals(p.focus_position, 1) # focus unchanged
+        p.widget_list = [t1]
+        self.assertEquals(len(p.contents), 1)
+        self.assertEquals(p.focus_position, 0)
+        p.widget_list.extend([t2, t1])
+        self.assertEquals(len(p.contents), 3)
+        self.assertEquals(p.item_types, [
+            ('flow', None), ('weight', 1), ('weight', 1)])
+        p.item_types[:] = [('weight', 2)]
+        self.assertEquals(len(p.contents), 1)
 
 
     def test_columns(self):
