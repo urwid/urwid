@@ -761,7 +761,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
             if focus_item is None and w.selectable():
                 focus_item = i
 
-        if self.widget_list and focus_item is not None:
+        if self.contents and focus_item is not None:
             self.set_focus(focus_item)
 
         self.pref_col = 0
@@ -773,13 +773,35 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         ml.set_modified_callback(user_modified)
         return ml
     def _set_widget_list(self, widgets):
+        focus_position = self.focus_position
         self.contents = [
             (new, t) for (new, (w, t)) in zip(widgets,
+                # need to grow contents list if widgets is longer
                 chain(self.contents, repeat(('weight', 1))))]
+        if focus_position < len(widgets):
+            self.focus_position = focus_position
     widget_list = property(_get_widget_list, _set_widget_list, doc="""
         A list of the widgets in this Pile, for backwards compatibility only.
         You should use the new standard container property .contents to
         modify Pile contents.
+        """)
+
+    def _get_item_types(self):
+        ml = MonitoredList(t for w, t in self.contents)
+        def user_modified():
+            self._set_item_types(ml)
+        ml.set_modified_callback(user_modified)
+        return ml
+    def _set_item_types(self, item_types):
+        focus_position = self.focus_position
+        self.contents = [
+            (w, new) for (new, (w, t)) in zip(item_types, self.contents)]
+        if focus_position < len(widgets):
+            self.focus_position = focus_position
+    item_types = property(_get_item_types, _set_item_types, doc="""
+        A list of the height_calc values for widgets in this Pile, for
+        backwards compatibility only.  You should use the new standard
+        container property .contents to modify Pile contents.
         """)
 
     def _get_contents(self):

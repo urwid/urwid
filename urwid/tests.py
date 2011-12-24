@@ -2372,6 +2372,11 @@ class CommonContainerTest(unittest.TestCase):
         p.set_focus(t2)
         self.assertEquals(p.focus_position, 1)
         self.assertRaises(ValueError, lambda: p.set_focus('nonexistant'))
+        self.assertEquals(p.widget_list, [t1, t2])
+        self.assertEquals(p.item_types, [('weight', 1), ('weight', 1)])
+        p.widget_list = [t2, t1]
+        self.assertEquals(p.focus_position, 1) # focus unchanged
+
 
     def test_columns(self):
         c = urwid.Columns([])
