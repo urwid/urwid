@@ -744,7 +744,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
                     raise PileError("Pile content invalid %r" % (item,))
         self._contents.set_validate_contents_modified(contents_modified)
 
-        focus_position = None
+        focus_item = focus_item
         for i, original in enumerate(widget_list):
             w = original
             if type(w) != tuple:
@@ -761,10 +761,8 @@ class Pile(Widget): # either FlowWidget or BoxWidget
             if focus_item is None and w.selectable():
                 focus_item = i
 
-        if focus_position is None:
-            focus_position = 0
-        if self.widget_list:
-            self.focus_position = focus_position
+        if self.widget_list and focus_item is not None:
+            self.set_focus(focus_item)
 
         self.pref_col = 0
 
@@ -1067,7 +1065,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
             return
         i = self.focus_position
         tsize = self.get_item_size(size, i, True)
-        pref_col = widget.get_pref_col(tsize)
+        pref_col = self.focus.get_pref_col(tsize)
         if pref_col is not None:
             self.pref_col = pref_col
 
