@@ -2347,15 +2347,28 @@ class WidgetSquishTest(unittest.TestCase):
 
 class CommonContainerTest(unittest.TestCase):
     def test_pile(self):
+        t1 = urwid.Text(u'one')
+        t2 = urwid.Text(u'two')
+        t3 = urwid.Text(u'three')
+        sf = urwid.SolidFill('x')
         p = urwid.Pile([])
         self.assertEquals(p.focus, None)
         self.assertEquals(p.focus_position, None)
         self.assertRaises(IndexError, lambda: setattr(p, 'focus_position',
             None))
         self.assertRaises(IndexError, lambda: setattr(p, 'focus_position', 0))
+        p.contents = [(t1, ('flow', None)), (t2, ('flow', None)),
+            (sf, ('fixed', 3)), (t3, ('flow', None))]
+        p.focus_position = 1
+        del p.contents[0]
+        self.assertEquals(p.focus_position, 0)
+        p.contents[0:0] = [(t3, ('flow', None)), (t2, ('flow', None))]
+        p.contents.insert(3, (t1, ('flow', None)))
+        self.assertEquals(p.focus_position, 2)
+        self.assertRaises(urwid.PileError, lambda: p.contents.append(t1))
+        self.assertRaises(urwid.PileError, lambda: p.contents.append((t1, None)))
+        self.assertRaises(urwid.PileError, lambda: p.contents.append((t1, 'fixed')))
 
-        t1 = urwid.Text(u'one')
-        t2 = urwid.Text(u'two')
         p = urwid.Pile([t1, t2])
         self.assertEquals(p.focus, t1)
         self.assertEquals(p.focus_position, 0)
