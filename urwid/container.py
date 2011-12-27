@@ -22,8 +22,7 @@
 from itertools import chain, repeat
 
 from urwid.util import is_mouse_press
-from urwid.widget import (Widget, BoxWidget, FlowWidget, Divider, FLOW, FIXED,
-    PACK)
+from urwid.widget import Widget, Divider, FLOW, FIXED, PACK, BOX
 from urwid.decoration import (Padding, Filler, calculate_padding,
     calculate_filler, decompose_align_width, decompose_valign_height)
 from urwid.monitored_list import MonitoredList, MonitoredFocusList
@@ -35,7 +34,8 @@ from urwid.canvas import (CompositeCanvas, CanvasOverlay, CanvasCombine,
 WEIGHT = 'weight'
 
 
-class GridFlow(FlowWidget):
+class GridFlow(Widget):
+    _sizing = frozenset([FLOW])
 
     def selectable(self):
         """Return True if the cell in focus is selectable."""
@@ -269,7 +269,10 @@ class GridFlow(FlowWidget):
 class OverlayError(Exception):
     pass
 
-class Overlay(BoxWidget):
+class Overlay(Widget):
+    _selectable = True
+    _sizing = frozenset([BOX])
+
     def __init__(self, top_w, bottom_w, align, width, valign, height,
             min_width=None, min_height=None ):
         """
@@ -468,7 +471,10 @@ class Overlay(BoxWidget):
             event, button, col-left, row-top, focus )
 
 
-class Frame(BoxWidget):
+class Frame(Widget):
+    _selectable = True
+    _sizing = frozenset([BOX])
+
     def __init__(self, body, header=None, footer=None, focus_part='body'):
         """
         body -- a box widget for the body of the frame
@@ -710,7 +716,9 @@ class Frame(BoxWidget):
 class PileError(Exception):
     pass
 
-class Pile(Widget): # either FlowWidget or BoxWidget
+class Pile(Widget):
+    _sizing = frozenset([FLOW, BOX])
+
     def __init__(self, widget_list, focus_item=None):
         """
         widget_list -- iterable of widgets
@@ -1170,7 +1178,9 @@ class ColumnsError(Exception):
     pass
 
 
-class Columns(Widget): # either FlowWidget or BoxWidget
+class Columns(Widget):
+    _sizing = frozenset([FLOW, BOX])
+
     def __init__(self, widget_list, dividechars=0, focus_column=None,
         min_width=1, box_columns=None):
         """

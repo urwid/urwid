@@ -19,7 +19,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from urwid.widget import Text, WidgetWrap, delegate_to_widget_mixin, BOX
+from urwid.widget import (Text, WidgetWrap, delegate_to_widget_mixin, BOX,
+    FLOW)
 from urwid.canvas import CompositeCanvas
 from urwid.signals import connect_signal
 from urwid.container import Columns, Overlay
@@ -92,7 +93,10 @@ class CheckBoxError(Exception):
     pass
 
 class CheckBox(WidgetWrap):
-    states = { 
+    def sizing(self):
+        return frozenset([FLOW])
+
+    states = {
         True: SelectableIcon("[X]"),
         False: SelectableIcon("[ ]"),
         'mixed': SelectableIcon("[#]") }
@@ -102,7 +106,7 @@ class CheckBox(WidgetWrap):
     # sent when the state of this widget is modified
     # (this variable is picked up by the MetaSignals metaclass)
     signals = ["change"]
-    
+
     def __init__(self, label, state=False, has_mixed=False,
              on_state_change=None, user_data=None):
         """
@@ -120,12 +124,12 @@ class CheckBox(WidgetWrap):
           disconnect_signal(check_box, 'change', callback [,user_data])
 
         >>> CheckBox(u"Confirm")
-        <CheckBox selectable widget 'Confirm' state=False>
+        <CheckBox selectable flow widget 'Confirm' state=False>
         >>> CheckBox(u"Yogourt", "mixed", True)
-        <CheckBox selectable widget 'Yogourt' state='mixed'>
+        <CheckBox selectable flow widget 'Yogourt' state='mixed'>
         >>> cb = CheckBox(u"Extra onions", True)
         >>> cb
-        <CheckBox selectable widget 'Extra onions' state=True>
+        <CheckBox selectable flow widget 'Extra onions' state=True>
         >>> cb.render((20,), focus=True).text # ... = b in Python 3
         [...'[X] Extra onions    ']
         """
@@ -157,10 +161,10 @@ class CheckBox(WidgetWrap):
 
         >>> cb = CheckBox(u"foo")
         >>> cb
-        <CheckBox selectable widget 'foo' state=False>
+        <CheckBox selectable flow widget 'foo' state=False>
         >>> cb.set_label(('bright_attr', u"bar"))
         >>> cb
-        <CheckBox selectable widget 'bar' state=False>
+        <CheckBox selectable flow widget 'bar' state=False>
         """
         self._label.set_text(label)
         # no need to call self._invalidate(). WidgetWrap takes care of
@@ -334,9 +338,9 @@ class RadioButton(CheckBox):
         >>> len(bgroup)
         2
         >>> b1
-        <RadioButton selectable widget 'Agree' state=True>
+        <RadioButton selectable flow widget 'Agree' state=True>
         >>> b2
-        <RadioButton selectable widget 'Disagree' state=False>
+        <RadioButton selectable flow widget 'Disagree' state=False>
         >>> b2.render((15,), focus=True).text # ... = b in Python 3
         [...'( ) Disagree   ']
         """
@@ -373,10 +377,10 @@ class RadioButton(CheckBox):
         ...     radio_button.set_label(u"Think Harder!")
         >>> connect_signal(b3, 'change', relabel_button)
         >>> b3
-        <RadioButton selectable widget 'Unsure' state=False>
+        <RadioButton selectable flow widget 'Unsure' state=False>
         >>> b3.set_state(True) # this will trigger the callback
         >>> b3
-        <RadioButton selectable widget 'Think Harder!' state=True>
+        <RadioButton selectable flow widget 'Think Harder!' state=True>
         """
         if self._state == state:
             return
@@ -413,20 +417,22 @@ class RadioButton(CheckBox):
         """
         self.set_state(True)
 
-            
 
 class Button(WidgetWrap):
+    def sizing(self):
+        return frozenset([FLOW])
+
     button_left = Text("<")
     button_right = Text(">")
 
     signals = ["click"]
-    
+
     def __init__(self, label, on_press=None, user_data=None):
         """
         label -- markup for button label
         on_press, user_data -- shorthand for connect_signal()
             function call for a single callback
-        
+
         Signals supported: 'click'
         Register signal handler with:
           connect_signal(button, 'click', callback [,user_data])
@@ -435,12 +441,12 @@ class Button(WidgetWrap):
           disconnect_signal(button, 'click', callback [,user_data])
 
         >>> Button(u"Ok")
-        <Button selectable widget 'Ok'>
+        <Button selectable flow widget 'Ok'>
         >>> b = Button("Cancel")
         >>> b.render((15,), focus=True).text # ... = b in Python 3
         [...'< Cancel      >']
         """
-        self._label = SelectableIcon("", 0)    
+        self._label = SelectableIcon("", 0)
         cols = Columns([
             ('fixed', 1, self.button_left),
             self._label,
@@ -469,7 +475,7 @@ class Button(WidgetWrap):
         >>> b = Button("Ok")
         >>> b.set_label(u"Yup yup")
         >>> b
-        <Button selectable widget 'Yup yup'>
+        <Button selectable flow widget 'Yup yup'>
         """
         self._label.set_text(label)
 

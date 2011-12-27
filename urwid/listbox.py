@@ -21,7 +21,7 @@
 
 from urwid.util import is_mouse_press
 from urwid.canvas import SolidCanvas, CanvasCombine
-from urwid.widget import BoxWidget, nocache_widget_render_instance
+from urwid.widget import Widget, nocache_widget_render_instance, BOX
 from urwid.decoration import calculate_filler, decompose_valign_height
 from urwid import signals
 from urwid.signals import connect_signal
@@ -167,7 +167,8 @@ class SimpleListWalker(MonitoredList, ListWalker):
 class ListBoxError(Exception):
     pass
 
-class ListBox(BoxWidget):
+class ListBox(Widget):
+    _sizing = frozenset([BOX])
 
     def __init__(self, body):
         """

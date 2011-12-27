@@ -104,8 +104,7 @@ class AttrMapError(WidgetError):
 
 class AttrMap(delegate_to_widget_mixin('_original_widget'), WidgetDecoration):
     """
-    AttrMap is a decoration that maps one set of attributes to another for
-    a FlowWidget or BoxWidget
+    AttrMap is a decoration that maps one set of attributes to another
     """
     def __init__(self, w, attr_map, focus_map=None):
         """

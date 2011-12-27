@@ -23,14 +23,16 @@
 from urwid.util import decompose_tagmarkup, get_encoding_mode
 from urwid.canvas import CompositeCanvas, CanvasJoin, TextCanvas, \
     CanvasCombine, SolidCanvas
-from urwid.widget import WidgetMeta, BoxWidget, FlowWidget, FixedWidget, \
+from urwid.widget import WidgetMeta, Widget, BOX, FIXED, FLOW, \
     nocache_widget_render, nocache_widget_render_instance, fixed_size, \
     WidgetWrap, Divider, SolidFill, Text, CENTER, CLIP
 from urwid.container import Pile, Columns
 from urwid.display_common import AttrSpec
 from urwid.decoration import WidgetDecoration, AttrWrap
 
-class BigText(FixedWidget):
+class BigText(Widget):
+    _sizing = frozenset([FIXED])
+
     def __init__(self, markup, font):
         """
         markup -- same as Text widget markup
@@ -187,8 +189,11 @@ def nocache_bargraph_get_data(self, get_data_fn):
 class BarGraphError(Exception):
     pass
 
-class BarGraph(BoxWidget):
+class BarGraph(Widget):
     __metaclass__ = BarGraphMeta
+
+    _sizing = frozenset([BOX])
+
     ignore_focus = True
 
     eighths = u' ▁▂▃▄▅▆▇'
@@ -707,11 +712,12 @@ def calculate_bargraph_display( bardata, top, bar_widths, maxrow ):
     if y_count:
         rowsets.append((y_count, last))
 
-    
     return rowsets
-            
 
-class GraphVScale(BoxWidget):
+
+class GraphVScale(Widget):
+    _sizing = frozenset([BOX])
+
     def __init__(self, labels, top):
         """
         GraphVScale( [(label1 position, label1 markup),...], top )
@@ -785,7 +791,9 @@ def scale_bar_values( bar, top, maxrow ):
     return [maxrow - int(float(v) * maxrow / top + 0.5) for v in bar]
 
 
-class ProgressBar( FlowWidget ):
+class ProgressBar(Widget):
+    _sizing = frozenset([FLOW])
+
     eighths = u' ▏▎▍▌▋▊▉'
 
     text_align = CENTER
@@ -867,7 +875,9 @@ class ProgressBar( FlowWidget ):
                 (self.normal,maxcol-ccol)]]
         return c
     
-class PythonLogo(FixedWidget):
+class PythonLogo(Widget):
+    _sizing = frozenset([FIXED])
+
     def __init__(self):
         """
         Create canvas containing an ASCII version of the Python
