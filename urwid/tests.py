@@ -2418,7 +2418,7 @@ class CommonContainerTest(unittest.TestCase):
             None))
         self.assertRaises(IndexError, lambda: setattr(c, 'focus_position', 0))
         c.contents = [
-            (t1, ('flow', None, False)),
+            (t1, ('pack', None, False)),
             (t2, ('weight', 1, False)),
             (sf, ('weight', 2, True)),
             (t3, ('fixed', 10, False))]
@@ -2428,7 +2428,7 @@ class CommonContainerTest(unittest.TestCase):
         c.contents[0:0] = [
             (t3, ('fixed', 10, False)),
             (t2, ('weight', 1, False))]
-        c.contents.insert(3, (t1, ('flow', None, False)))
+        c.contents.insert(3, (t1, ('pack', None, False)))
         self.assertEquals(c.focus_position, 2)
         self.assertRaises(urwid.ColumnsError, lambda: c.contents.append(t1))
         self.assertRaises(urwid.ColumnsError, lambda: c.contents.append((t1, None)))
@@ -2464,10 +2464,13 @@ class CommonContainerTest(unittest.TestCase):
             (t1, ('weight', 3, False)),
             (sf, ('weight', 1, True))])
         self.assertEquals(c.focus_position, 1) # focus unchanged
-        c.column_types = [('flow', None), ('weight', 2), ('fixed', 5)]
-        self.assertEquals(c.column_types, [('flow', None), ('weight', 2), ('fixed', 5)])
+        c.column_types = [
+            ('flow', None), # use the old name
+            ('weight', 2),
+            ('fixed', 5)]
+        self.assertEquals(c.column_types, [('pack', None), ('weight', 2), ('fixed', 5)])
         self.assertEquals(c.contents, [
-            (t2, ('flow', None, False)),
+            (t2, ('pack', None, False)),
             (t1, ('weight', 2, False)),
             (sf, ('fixed', 5, True))])
         self.assertEquals(c.focus_position, 1) # focus unchanged
@@ -2477,7 +2480,7 @@ class CommonContainerTest(unittest.TestCase):
         c.widget_list.extend([t2, t1])
         self.assertEquals(len(c.contents), 3)
         self.assertEquals(c.column_types, [
-            ('flow', None), ('weight', 1), ('weight', 1)])
+            ('pack', None), ('weight', 1), ('weight', 1)])
         c.column_types[:] = [('weight', 2)]
         self.assertEquals(len(c.contents), 1)
 

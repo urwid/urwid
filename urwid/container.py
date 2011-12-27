@@ -22,12 +22,13 @@
 from itertools import chain, repeat
 
 from urwid.util import is_mouse_press
-from urwid.widget import Widget, BoxWidget, FlowWidget, Divider, FLOW, FIXED
-from urwid.decoration import Padding, Filler, calculate_padding, calculate_filler, \
-    decompose_align_width, decompose_valign_height
+from urwid.widget import (Widget, BoxWidget, FlowWidget, Divider, FLOW, FIXED,
+    PACK)
+from urwid.decoration import (Padding, Filler, calculate_padding,
+    calculate_filler, decompose_align_width, decompose_valign_height)
 from urwid.monitored_list import MonitoredList, MonitoredFocusList
-from urwid.canvas import CompositeCanvas, CanvasOverlay, CanvasCombine, \
-    SolidCanvas, CanvasJoin
+from urwid.canvas import (CompositeCanvas, CanvasOverlay, CanvasCombine,
+    SolidCanvas, CanvasJoin)
 
 
 # extra constants for Pile/Columns
@@ -1184,7 +1185,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
             required by columns not listed in box_columns.
 
         widget_list may also contain tuples such as:
-        ('flow', widget) call pack() to calculate the width
+        ('pack', widget) call pack() to calculate the width
         ('fixed', width, widget) give this column a fixed width
         ('weight', weight, widget) give this column a relative weight
 
@@ -1211,8 +1212,9 @@ class Columns(Widget): # either FlowWidget or BoxWidget
             w = original
             if not isinstance(w, tuple):
                 self.contents.append((w, (WEIGHT, 1, i in box_columns)))
-            elif w[0] == FLOW:
-                f, w = w
+            elif w[0] in (FLOW, PACK): # 'pack' used to be called 'flow'
+                f = PACK
+                w = w[1]
                 self.contents.append((w, (f, None, i in box_columns)))
             elif w[0] in (FIXED, WEIGHT):
                 f, width, w = w
@@ -1238,7 +1240,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         for item in new_items:
             try:
                 w, (t, n, b) = item
-                if t not in (FLOW, FIXED, WEIGHT):
+                if t not in (PACK, FIXED, WEIGHT):
                     raise ValueError
             except (TypeError, ValueError):
                 raise ColumnsError("added content invalid %r" % (item,))
@@ -1271,9 +1273,12 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         return ml
     def _set_column_types(self, column_types):
         focus_position = self.focus_position
-        self.contents = [
-            (w, new + (b,))
-            for (new, (w, (t, n, b))) in zip(column_types, self.contents)]
+        contents = []
+        for (new, (w, (t, n, b))) in zip(column_types, self.contents):
+            if new[0] == FLOW:
+                new = (PACK, ) + new[1:]
+            contents.append((w, new + (b,)))
+        self.contents = contents
         if focus_position < len(column_types):
             self.focus_position = focus_position
     column_types = property(_get_column_types, _set_column_types, doc="""
@@ -1304,9 +1309,20 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         container property .contents to modify Pile contents instead.
         """)
 
-    def _get_has_flow_type(self):
-        return FLOW in self.column_types
-    has_flow_type = property(_get_has_flow_type, lambda ignore:None)
+    def _get_has_pack_type(self):
+        import warnings
+        warnings.warn(".has_flow_type is deprecated, "
+            "read values from .contents instead.", DeprecationWarning)
+        return PACK in self.column_types
+    def _set_has_pack_type(self, value):
+        import warnings
+        warnings.warn(".has_flow_type is deprecated, "
+            "read values from .contents instead.", DeprecationWarning)
+    has_flow_type = property(_get_has_pack_type, _set_has_pack_type, doc="""
+        Deprecated.  Read values from .contents instead.
+
+        True if one of .contents has width_calc == 'pack'
+        """)
 
     def _get_contents(self):
         return self._contents
@@ -1318,7 +1334,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 
         options is currently a tuple in the form (width_calc,
         width_amount, box_widget), where width_calc is one of:
-        'flow' -- Call the widget's pack() method to determine how wide
+        'pack' -- Call the widget's pack() method to determine how wide
             this column should be.  width_amount is ignored.
         'fixed' -- Make column exactly width_amount screen-columns wide.
         'weight' -- Allocate the remaining space to this column by using
@@ -1341,15 +1357,15 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         """
         Return a new options tuple for use in a Pile's .contents list.
 
-        width_calc -- 'flow', 'fixed' or 'weight'
-        width_amount -- None for 'flow', a number of rows for 'fixed'
+        width_calc -- 'pack', 'fixed' or 'weight'
+        width_amount -- None for 'pack', a number of rows for 'fixed'
             or a weight value for 'weight'
         box_widget -- True to treat as box widget when Columns is
             treated as a flow widget
         """
-        if width_calc == FLOW:
+        if width_calc == PACK:
             width_amount = None
-        if width_calc not in (FLOW, FIXED, WEIGHT):
+        if width_calc not in (PACK, FIXED, WEIGHT):
             raise ColumnsError('invalid width_calc: %r' % (width_calc,))
         return (width_calc, width_amount, box_widget)
 
@@ -1434,13 +1450,11 @@ class Columns(Widget): # either FlowWidget or BoxWidget
     def column_widths(self, size, focus=False):
         """
         Return a list of column widths.
-
-        size -- (maxcol,) if self.widget_list contains flow widgets or
-            (maxcol, maxrow) if it contains box widgets.
         """
         maxcol = size[0]
-        # FIXME: get rid of has_flow_type
-        if maxcol == self._cache_maxcol and not self.has_flow_type:
+        # FIXME: get rid of this check and recalculate only when
+        # a 'pack' widget has been modified.
+        if maxcol == self._cache_maxcol and not PACK in self.column_types:
             return self._cache_column_widths
 
         widths = []
@@ -1451,7 +1465,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         for i, (w, (t, width, b)) in enumerate(self.contents):
             if t == FIXED:
                 static_w = width
-            elif t == FLOW:
+            elif t == PACK:
                 # FIXME: should be able to pack with a different
                 # maxcol value
                 static_w = w.pack((maxcol,), focus)[0]
@@ -1463,7 +1477,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 
             widths.append(static_w)
             shared -= static_w + self.dividechars
-            if t not in (FIXED, FLOW):
+            if t not in (FIXED, PACK):
                 weighted.append((width, i))
 
         if shared:
