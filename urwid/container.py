@@ -726,7 +726,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
 
         widgets not in a tuple are the same as ('weight', 1, widget)
 
-        If the pile is treated as a box widget there must be at least
+        If the Pile is treated as a box widget there must be at least
         one 'weight' tuple in widget_list.
         """
         self.__super.__init__()
@@ -738,12 +738,12 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         focus_item = focus_item
         for i, original in enumerate(widget_list):
             w = original
-            if type(w) != tuple:
-                self.contents.append((w, ('weight', 1)))
+            if not isinstance(w, tuple):
+                self.contents.append((w, (WEIGHT, 1)))
             elif w[0] == FLOW:
                 f, w = w
                 self.contents.append((w, (FLOW, None)))
-            elif w[0] in ('fixed', 'weight'):
+            elif w[0] in (FIXED, WEIGHT):
                 f, height, w = w
                 self.contents.append((w, (f, height)))
             else:
@@ -778,7 +778,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         self.contents = [
             (new, t) for (new, (w, t)) in zip(widgets,
                 # need to grow contents list if widgets is longer
-                chain(self.contents, repeat((None, ('weight', 1)))))]
+                chain(self.contents, repeat((None, (WEIGHT, 1)))))]
         if focus_position < len(widgets):
             self.focus_position = focus_position
     widget_list = property(_get_widget_list, _set_widget_list, doc="""
@@ -866,7 +866,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
     focus_item = property(get_focus, set_focus, doc="""
         A property for reading and setting the widget in focus, for
         backwards compatibility only.  You may also use the new standard
-        container propertied .focus and .focus_position to get the
+        container properties .focus and .focus_position to get the
         child widget in focus or modify the focus position.
         """)
 
@@ -1166,56 +1166,154 @@ class Columns(Widget): # either FlowWidget or BoxWidget
             required by columns not listed in box_columns.
 
         widget_list may also contain tuples such as:
-        ('flow', widget) always treat widget as a flow widget
+        ('flow', widget) call pack() to calculate the width
         ('fixed', width, widget) give this column a fixed width
         ('weight', weight, widget) give this column a relative weight
 
         widgets not in a tuple are the same as ('weight', 1, widget)
 
-        box_columns is ignored when this widget is being used as a
-        box widget because in that case all columns are treated as box
-        widgets.
+        Is the Columns widget is treated as a box widget then all children
+        are treated as box widgets, and box_columns is ignored.
+
+        If the Columns widget is treated as a flow widget then the rows
+        are calcualated as the largest rows() returned from all columns
+        except the ones listed in box_columns.  The box widgets in
+        box_columns will be displayed with this calculated number of rows,
+        filling the full height.
         """
         self.__super.__init__()
-        self.widget_list = MonitoredList()
-        self.column_types = []
-        self.has_flow_type = False
+        self._contents = MonitoredFocusList()
+        self._contents.set_modified_callback(self._invalidate)
+        self._contents.set_focus_changed_callback(lambda f: self._invalidate())
+        self._contents.set_validate_contents_modified(self._contents_modified)
 
-        for i, w in enumerate(widget_list):
-            if type(w) != tuple:
-                self.column_types.append(('weight',1))
-            elif w[0] == 'flow':
+        box_columns = set(box_columns or ())
+
+        for i, original in enumerate(widget_list):
+            w = original
+            if not isinstance(w, tuple):
+                self.contents.append((w, (WEIGHT, 1, i in box_columns)))
+            elif w[0] == FLOW:
                 f, w = w
-                self.column_types.append((f,None))
-                self.has_flow_type = True
-            elif w[0] in ('fixed', 'weight'):
+                self.contents.append((w, (f, None, i in box_columns)))
+            elif w[0] in (FIXED, WEIGHT):
                 f, width, w = w
-                self.column_types.append((f,width))
+                self.contents.append((w, (f, width, i in box_columns)))
             else:
-                raise ColumnsError, "widget list item invalid: %r" % (w,)
+                raise ColumnsError(
+                    "initial widget list item invalid: %r" % (original,))
             if focus_column is None and w.selectable():
                 focus_column = i
 
-            self.widget_list.append(w)
-
-        self.widget_list.set_modified_callback(self._invalidate)
-
         self.dividechars = dividechars
+
+        if self.contents and focus_column is not None:
+            self.focus_position = focus_column
         if focus_column is None:
             focus_column = 0
-        self.focus_col = focus_column
+        self.dividechars = dividechars
         self.pref_col = None
         self.min_width = min_width
-        self.box_columns = box_columns
         self._cache_maxcol = None
 
-    @property
-    def contents(self):
-        for i, w in enumerate(self.widget_list):
+    def _contents_modified(self, slc, new_items):
+        for item in new_items:
             try:
-                yield w, self.column_types[i]
-            except IndexError:
-                yield w, ('weight', 1)
+                w, (t, n, b) = item
+                if t not in (FLOW, FIXED, WEIGHT):
+                    raise ColumnsError(
+                        "Columns width_calc type invalid %r" % (t,))
+            except (TypeError, ValueError):
+                raise ColumnsError("Columns content invalid %r" % (item,))
+
+    def _get_widget_list(self):
+        ml = MonitoredList(w for w, t in self.contents)
+        def user_modified():
+            self._set_widget_list(ml)
+        ml.set_modified_callback(user_modified)
+        return ml
+    def _set_widget_list(self, widgets):
+        focus_position = self.focus_position
+        self.contents = [
+            (new, t) for (new, (w, t)) in zip(widgets,
+                # need to grow contents list if widgets is longer
+                chain(self.contents, repeat((None, (WEIGHT, 1)))))]
+        if focus_position < len(widgets):
+            self.focus_position = focus_position
+    widget_list = property(_get_widget_list, _set_widget_list, doc="""
+        A list of the widgets in this Columns, for backwards compatibility only.
+        You should use the new standard container property .contents to
+        modify Column contents.
+        """)
+
+    def _get_column_types(self):
+        ml = MonitoredList(t[:2] for w, t in self.contents)
+        def user_modified():
+            self._set_column_types(ml)
+        ml.set_modified_callback(user_modified)
+        return ml
+    def _set_column_types(self, column_types):
+        focus_position = self.focus_position
+        self.contents = [
+            (w, new) for (new, (w, t)) in zip(column_types, self.contents)]
+        if focus_position < len(column_types):
+            self.focus_position = focus_position
+    column_types = property(_get_column_types, _set_column_types, doc="""
+        A list of the width_calc values for widgets in this Pile, for
+        backwards compatibility only.  You should use the new standard
+        container property .contents to modify Pile contents.
+        """)
+
+    def _get_box_columns(self):
+        ml = MonitoredList(
+            i for i, (w, (t, n, b)) in enumerate(self.contents) if b)
+        def user_modified():
+            self._set_box_columns(ml)
+        ml.set_modified_callback(user_modified)
+        return ml
+    def _set_box_columns(self, box_columns):
+        box_columns = set(box_columns)
+        focus_position = self.focus_position
+        self.contents = [
+            (w, (t, n, i in box_columns))
+            for (i, (w, (t, n, b))) in enumerate(self.contents)]
+        if focus_position < len(column_types):
+            self.focus_position = focus_position
+    box_columns = property(_get_box_columns, _set_box_columns, doc="""
+        A list of the indexes of the columns that are to be treated as
+        box widgets when the Columns is treated as a flow widget, for
+        backwards compatibility only.  You should use the new standard
+        container property .contents to modify Pile contents instead.
+        """)
+
+    def _get_has_flow_type(self):
+        return FLOW in self.column_types
+    has_flow_type = property(_get_has_flow_type, lambda ignore:None)
+
+    def _get_contents(self):
+        return self._contents
+    def _set_contents(self, c):
+        self._contents[:] = c
+    contents = property(_get_contents, _set_contents, doc="""
+        The contents of this Columns as a list of (widget, width_calc)
+        tuples.
+
+        width_calc is a tuple in the form (width_type, size, box_widget)
+        where width_type is one of:
+        'flow' -- Call the widget's pack() method to determine how wide
+            this column should be.  size is ignored.
+        'fixed' -- Make column exactly size screen-columns wide.
+        'weight' -- Allocate the remaining space to this column by using
+            size as a weight value.
+
+        box_widget is True if this widget is to be treated as a box
+        widget when the Columns widget itself is treated as a flow
+        widget.  There must be at least one column width box_widget set
+        to False when the Columns widget is treated as a flow widget.
+
+        This list may be modified like a normal list and the Columns
+        widget will update automatically.
+        """)
 
     def _invalidate(self):
         self._cache_maxcol = None
@@ -1229,13 +1327,13 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         """
         self._set_focus_position(num)
 
-    def get_focus_column( self ):
+    def get_focus_column(self):
         """
         Return the focus column index, for backwards compatibility. You
         may also use the new standard container property .focus_position
         to get the focus column index.
         """
-        return self.focus_col
+        return self.focus_position
 
     def set_focus(self, item):
         """
@@ -1246,8 +1344,11 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         item -- widget or integer index"""
         if isinstance(item, int):
             return self._set_focus_position(item)
-        self.focus_col = self.widget_list.index(item)
-        self._invalidate()
+        for i, (w, t) in enumerate(self.contents):
+            if item == w:
+                self.focus_position = i
+                return
+        raise ValueError("Widget not found in Columns contents: %r" % (item,))
 
     def get_focus(self):
         """
@@ -1255,9 +1356,9 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         also use the new standard container property .focus to get the
         child widget in focus.
         """
-        if not self.widget_list:
+        if not self.contents:
             return None
-        return self.widget_list[self.focus_col]
+        return self.contents[self.focus_position][0]
     focus = property(get_focus,
         doc="the child widget in focus or None when Columns is empty")
 
@@ -1268,7 +1369,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         """
         if not self.widget_list:
             return None
-        return self.focus_col
+        return self.contents.focus
     def _set_focus_position(self, position):
         """
         Set the widget in focus.
@@ -1276,34 +1377,45 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         position -- index of child widget to be made focus
         """
         try:
-            if position < 0 or position >= len(self.widget_list):
+            if position < 0 or position >= len(self.contents):
                 raise IndexError
         except (TypeError, IndexError):
             raise IndexError, "No child widget at position %s" % (position,)
-        self.focus_col = position
+        self.contents.focus = position
         self._invalidate()
     focus_position = property(_get_focus_position, _set_focus_position,
         doc="index of child widget in focus or None when Columns is empty")
 
+    focus_col = property(_get_focus_position, _set_focus_position, doc="""
+        A property for reading and setting the index of the column in
+        focus, for backwards compatibility only.  You may also use the
+        new standard container property .focus_position to get or
+        modify the focus position.
+        """)
+
     def column_widths(self, size, focus=False):
-        """Return a list of column widths.
+        """
+        Return a list of column widths.
 
         size -- (maxcol,) if self.widget_list contains flow widgets or
             (maxcol, maxrow) if it contains box widgets.
         """
         maxcol = size[0]
+        # FIXME: get rid of has_flow_type
         if maxcol == self._cache_maxcol and not self.has_flow_type:
             return self._cache_column_widths
 
-        widths=[]
+        widths = []
 
         weighted = []
         shared = maxcol + self.dividechars
 
-        for i, (w, (t, width)) in enumerate(self.contents):
-            if t == 'fixed':
+        for i, (w, (t, width, b)) in enumerate(self.contents):
+            if t == FIXED:
                 static_w = width
-            elif t == 'flow':
+            elif t == FLOW:
+                # FIXME: should be able to pack with a different
+                # maxcol value
                 static_w = w.pack((maxcol,), focus)[0]
             else:
                 static_w = self.min_width
@@ -1313,14 +1425,14 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 
             widths.append(static_w)
             shared -= static_w + self.dividechars
-            if t not in ('fixed', 'flow'):
-                weighted.append((width,i))
+            if t not in (FIXED, FLOW):
+                weighted.append((width, i))
 
         if shared:
             # divide up the remaining space between weighted cols
             weighted.sort()
-            wtotal = sum([weight for weight,i in weighted])
-            grow = shared + len(weighted)*self.min_width
+            wtotal = sum(weight for weight, i in weighted)
+            grow = shared + len(weighted) * self.min_width
             for weight, i in weighted:
                 width = int(float(grow) * weight / wtotal + 0.5)
                 width = max(self.min_width, width)
@@ -1333,7 +1445,8 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         return widths
 
     def render(self, size, focus=False):
-        """Render columns and return canvas.
+        """
+        Render columns and return canvas.
 
         size -- (maxcol,) if self.widget_list contains flow widgets or
             (maxcol, maxrow) if it contains box widgets.
@@ -1343,61 +1456,59 @@ class Columns(Widget): # either FlowWidget or BoxWidget
             return SolidCanvas(" ", size[0], (size[1:]+(1,))[0])
 
         box_maxrow = None
-        if len(size)==1 and self.box_columns:
+        if len(size) == 1:
             box_maxrow = 1
             # two-pass mode to determine maxrow for box columns
-            for i, mc in enumerate(widths):
-                if i in self.box_columns:
+            for i, (mc, (w, (t, n, b))) in enumerate(zip(widths, self.contents)):
+                if b:
                     continue
-                w = self.widget_list[i]
-                rows = w.rows( (mc,),
-                    focus = focus and self.focus_col == i )
+                rows = w.rows((mc,),
+                    focus = focus and self.focus_position == i)
                 box_maxrow = max(box_maxrow, rows)
 
         l = []
-        for i, mc in enumerate(widths):
+        for i, (mc, (w, (t, n, b))) in enumerate(zip(widths, self.contents)):
             # if the widget has a width of 0, hide it
             if mc <= 0:
                 continue
 
-            w = self.widget_list[i]
-            if box_maxrow and i in self.box_columns:
+            if box_maxrow and b:
                 sub_size = (mc, box_maxrow)
             else:
                 sub_size = (mc,) + size[1:]
 
             canv = w.render(sub_size,
-                focus = focus and self.focus_col == i)
+                focus = focus and self.focus_position == i)
 
-            if i < len(widths)-1:
+            if i < len(widths) - 1:
                 mc += self.dividechars
-            l.append((canv, i, self.focus_col == i, mc))
+            l.append((canv, i, self.focus_position == i, mc))
 
         canv = CanvasJoin(l)
         if canv.cols() < size[0]:
-            canv.pad_trim_left_right(0, size[0]-canv.cols())
+            canv.pad_trim_left_right(0, size[0] - canv.cols())
         return canv
 
     def get_cursor_coords(self, size):
         """Return the cursor coordinates from the focus widget."""
-        w = self.widget_list[self.focus_col]
+        w = self.contents[self.focus_position][0]
 
         if not w.selectable():
             return None
         if not hasattr(w, 'get_cursor_coords'):
             return None
 
-        widths = self.column_widths( size )
-        if len(widths) < self.focus_col+1:
+        widths = self.column_widths(size)
+        if len(widths) <= self.focus_position:
             return None
-        colw = widths[self.focus_col]
+        colw = widths[self.focus_position]
 
-        coords = w.get_cursor_coords( (colw,)+size[1:] )
+        coords = w.get_cursor_coords((colw,)+size[1:])
         if coords is None:
             return None
-        x,y = coords
+        x, y = coords
         x += self.focus_col * self.dividechars
-        x += sum( widths[:self.focus_col] )
+        x += sum(widths[:self.focus_position])
         return x, y
 
     def move_cursor_to_coords(self, size, col, row):
@@ -1406,20 +1517,19 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 
         best = None
         x = 0
-        for i, width in enumerate(widths):
-            w = self.widget_list[i]
+        for i, (width, (w, t)) in enumerate(zip(widths, self.contents)):
             end = x + width
             if w.selectable():
-                # sometimes, col == 'left' - that doesn't seem like its handled here, does it?
+                # FIXME: sometimes, col == 'left' - that doesn't seem like its handled here, does it?
                 # assert isinstance(x, int) and isinstance(col, int), (x, col)
                 if x > col and best is None:
                     # no other choice
-                    best = i, x, end
+                    best = i, x, end, w
                     break
                 if x > col and col-best[2] < x-col:
                     # choose one on left
                     break
-                best = i, x, end
+                best = i, x, end, w
                 if col < end:
                     # choose this one
                     break
@@ -1427,21 +1537,19 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 
         if best is None:
             return False
-        i, x, end = best
-        w = self.widget_list[i]
-        if hasattr(w,'move_cursor_to_coords'):
-            if type(col)==int:
-                move_x = min(max(0,col-x),end-x-1)
+        i, x, end, w = best
+        if hasattr(w, 'move_cursor_to_coords'):
+            if isinstance(col, int):
+                move_x = min(max(0, col - x), end - x - 1)
             else:
                 move_x = col
-            rval = w.move_cursor_to_coords((end-x,)+size[1:],
+            rval = w.move_cursor_to_coords((end - x,) + size[1:],
                 move_x, row)
             if rval is False:
                 return False
 
-        self.focus_col = i
+        self.focus_position = i
         self.pref_col = col
-        self._invalidate()
         return True
 
     def mouse_event(self, size, event, button, col, row, focus):
@@ -1452,7 +1560,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         widths = self.column_widths(size)
 
         x = 0
-        for i, width in enumerate(widths):
+        for i, (width, (w, t)) in enumerate(zip(widths, self.contents)):
             if col < x:
                 return False
             w = self.widget_list[i]
@@ -1465,70 +1573,73 @@ class Columns(Widget): # either FlowWidget or BoxWidget
             focus = focus and self.focus_col == i
             if is_mouse_press(event) and button == 1:
                 if w.selectable():
-                    self.set_focus(w)
+                    self.focus_position = i
 
-            if not hasattr(w,'mouse_event'):
+            if not hasattr(w, 'mouse_event'):
                 return False
 
-            return w.mouse_event((end-x,)+size[1:], event, button,
+            return w.mouse_event((end - x,) + size[1:], event, button,
                 col - x, row, focus)
         return False
 
     def get_pref_col(self, size):
         """Return the pref col from the column in focus."""
         maxcol = size[0]
-        widths = self.column_widths( (maxcol,) )
+        widths = self.column_widths(size)
 
-        w = self.widget_list[self.focus_col]
-        if len(widths) < self.focus_col+1:
+        w = self.contents[self.focus_position][0]
+        if len(widths) <= self.focus_position:
             return 0
         col = None
-        if hasattr(w,'get_pref_col'):
-            col = w.get_pref_col((widths[self.focus_col],)+size[1:])
-            if type(col)==int:
+        cwidth = widths[self.focus_position]
+        if hasattr(w, 'get_pref_col'):
+            col = w.get_pref_col((cwidth,) + size[1:])
+            if isinstance(col, int):
                 col += self.focus_col * self.dividechars
-                col += sum( widths[:self.focus_col] )
+                col += sum(widths[:self.focus_position])
         if col is None:
             col = self.pref_col
         if col is None and w.selectable():
-            col = widths[self.focus_col] // 2
-            col += self.focus_col * self.dividechars
-            col += sum( widths[:self.focus_col] )
+            col = cwidth // 2
+            col += self.focus_position * self.dividechars
+            col += sum(widths[:self.focus_position] )
         return col
 
-    def rows(self, size, focus=0 ):
-        """Return the number of rows required by the columns.
-        Only makes sense if self.widget_list contains flow widgets."""
+    def rows(self, size, focus=0):
+        """
+        Return the number of rows required by the columns.
+        Only makes sense if self.widget_list contains flow widgets.
+        """
         widths = self.column_widths(size, focus)
 
         rows = 1
-        for i, mc in enumerate(widths):
-            if self.box_columns and i in self.box_columns:
+        for i, (mc, (w, (t, n, b))) in enumerate(zip(widths, self.contents)):
+            if b:
                 continue
-            w = self.widget_list[i]
-            rows = max( rows, w.rows( (mc,),
-                focus = focus and self.focus_col == i ) )
+            rows = max(rows,
+                w.rows((mc,), focus=focus and self.focus_position == i))
         return rows
 
     def keypress(self, size, key):
-        """Pass keypress to the focus column.
+        """
+        Pass keypress to the focus column.
 
         size -- (maxcol,) if self.widget_list contains flow widgets or
             (maxcol, maxrow) if it contains box widgets.
         """
-        if self.focus_col is None: return key
+        if self.focus_position is None: return key
 
-        widths = self.column_widths( size )
-        if self.focus_col < 0 or self.focus_col >= len(widths):
+        widths = self.column_widths(size)
+        if self.focus_position >= len(widths):
             return key
 
-        i = self.focus_col
+        i = self.focus_position
         mc = widths[i]
-        w = self.widget_list[i]
+        w = self.contents[i][0]
         if self._command_map[key] not in ('cursor up', 'cursor down',
             'cursor page up', 'cursor page down'):
             self.pref_col = None
-        key = w.keypress( (mc,)+size[1:], key )
+        key = w.keypress((mc,) + size[1:], key)
 
         if self._command_map[key] not in ('cursor left', 'cursor right'):
             return key
@@ -1539,17 +1650,17 @@ class Columns(Widget): # either FlowWidget or BoxWidget
             candidates = range(i+1, len(widths))
 
         for j in candidates:
-            if not self.widget_list[j].selectable():
+            if not self.contents[j][0].selectable():
                 continue
 
-            self.set_focus_column( j )
+            self.focus_position = j
             return
         return key
 
 
     def selectable(self):
         """Return the selectable value of the focus column."""
-        return self.widget_list[self.focus_col].selectable()
+        return self.contents[self.focus_position][0].selectable()
 
 
 
