@@ -247,14 +247,23 @@ class Widget(object):
                 ' flow widget: %s' % repr(self))
         return size
 
-    # this property returns the widget without any decorations, default
-    # implementation returns self.
-    base_widget = property(lambda self:self)
-    
+    base_widget = property(lambda self:self, doc="""
+        Step through decoration widgets and return the one at the
+        base.  This default implementation is equivalent to self.
+        """)
 
-    # Use the split_repr module to create __repr__ from _repr_words
-    # and _repr_attrs
-    __repr__ = split_repr
+    focus = property(lambda self:None, doc="""
+        Container widgets' implementations will give their child
+        widget that is in focus.  This default implementation is
+        always None, indicating that this widget has no children.
+        """)
+
+    def __repr__(self):
+        """
+        A friendly __repr__ for widgets, designed to be extended
+        by subclasses with _repr_words and _repr_attr methods.
+        """
+        return split_repr(self)
 
     def _repr_words(self):
         words = []
