@@ -762,10 +762,9 @@ class Pile(Widget): # either FlowWidget or BoxWidget
             try:
                 w, (t, n) = item
                 if t not in (FLOW, FIXED, WEIGHT):
-                    raise PileError(
-                        "Pile height_calc type invalid %r" % (t,))
+                    raise ValueError
             except (TypeError, ValueError):
-                raise PileError("Pile content invalid %r" % (item,))
+                raise PileError("added content invalid: %r" % (item,))
 
     def _get_widget_list(self):
         ml = MonitoredList(w for w, t in self.contents)
@@ -810,9 +809,9 @@ class Pile(Widget): # either FlowWidget or BoxWidget
     def _set_contents(self, c):
         self._contents[:] = c
     contents = property(_get_contents, _set_contents, doc="""
-        The contents of this Pile as a list of (widget, height_calc) tuples.
+        The contents of this Pile as a list of (widget, options) tuples.
 
-        height_calc may be one of:
+        options currently may be one of:
         ('flow', None) -- Always treat widget as a flow widget, i.e. let it
             calculate the number of rows it will display.
         ('fixed', n) -- Always treat widget as a box widget with a fixed
@@ -827,8 +826,27 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         widget must have a ('weight', w) height_calc value, or the Pile will
         not be able to grow to fill the required number of rows.
 
-        This list may be modified and the Pile will update automatically.
+        This list may be modified like a normal list and the Pile widget
+        will updated automatically.
+
+        Create new options tuples with the Pile.options() class method for
+        forward compatibility, as more items may be added in the future.
         """)
+
+    @classmethod
+    def options(cls, height_calc=WEIGHT, height_amount=1):
+        """
+        Return a new options tuple for use in a Pile's .contents list.
+
+        height_calc -- 'flow', 'fixed' or 'weight'
+        height_amount -- None for 'flow', a number of rows for 'fixed'
+            or a weight value for 'weight'
+        """
+        if height_calc == FLOW:
+            return (FLOW, None)
+        if height_calc not in (FIXED, WEIGHT):
+            raise PileError('invalid height_calc: %r' % (height_calc,))
+        return (height_calc, height_amount)
 
     def selectable(self):
         """Return True if the focus item is selectable."""
@@ -845,7 +863,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         """
         if isinstance(item, int):
             return self._set_focus_position(item)
-        for i, (w, height_calc) in enumerate(self.contents):
+        for i, (w, options) in enumerate(self.contents):
             if item == w:
                 self.focus_position = i
                 return
@@ -1101,7 +1119,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         wrow = 0
         item_rows = self.get_item_rows(size, focus)
         for i, (r, w) in enumerate(zip(item_rows,
-                (w for (w, height_calc) in self.contents))):
+                (w for (w, options) in self.contents))):
             if wrow + r > row:
                 break
             wrow += r
@@ -1128,7 +1146,7 @@ class Pile(Widget): # either FlowWidget or BoxWidget
         wrow = 0
         item_rows = self.get_item_rows(size, focus)
         for i, (r, w) in enumerate(zip(item_rows,
-                (w for (w, height_calc) in self.contents))):
+                (w for (w, options) in self.contents))):
             if wrow + r > row:
                 break
             wrow += r
@@ -1221,10 +1239,9 @@ class Columns(Widget): # either FlowWidget or BoxWidget
             try:
                 w, (t, n, b) = item
                 if t not in (FLOW, FIXED, WEIGHT):
-                    raise ColumnsError(
-                        "Columns width_calc type invalid %r" % (t,))
+                    raise ValueError
             except (TypeError, ValueError):
-                raise ColumnsError("Columns content invalid %r" % (item,))
+                raise ColumnsError("added content invalid %r" % (item,))
 
     def _get_widget_list(self):
         ml = MonitoredList(w for w, t in self.contents)
@@ -1260,7 +1277,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         if focus_position < len(column_types):
             self.focus_position = focus_position
     column_types = property(_get_column_types, _set_column_types, doc="""
-        A list of the width_calc values for widgets in this Pile, for
+        A list of the partial options values for widgets in this Pile, for
         backwards compatibility only.  You should use the new standard
         container property .contents to modify Pile contents.
         """)
@@ -1296,25 +1313,45 @@ class Columns(Widget): # either FlowWidget or BoxWidget
     def _set_contents(self, c):
         self._contents[:] = c
     contents = property(_get_contents, _set_contents, doc="""
-        The contents of this Columns as a list of (widget, width_calc)
+        The contents of this Columns as a list of (widget, options)
         tuples.
 
-        width_calc is a tuple in the form (width_type, size, box_widget)
-        where width_type is one of:
+        options is currently a tuple in the form (width_calc,
+        width_amount, box_widget), where width_calc is one of:
         'flow' -- Call the widget's pack() method to determine how wide
-            this column should be.  size is ignored.
-        'fixed' -- Make column exactly size screen-columns wide.
+            this column should be.  width_amount is ignored.
+        'fixed' -- Make column exactly width_amount screen-columns wide.
         'weight' -- Allocate the remaining space to this column by using
-            size as a weight value.
+            width_amount as a weight value.
 
         box_widget is True if this widget is to be treated as a box
         widget when the Columns widget itself is treated as a flow
-        widget.  There must be at least one column width box_widget set
-        to False when the Columns widget is treated as a flow widget.
+        widget.
 
         This list may be modified like a normal list and the Columns
         widget will update automatically.
+
+        Create new options tuples with the Columns.options() class
+        method for forward compatibility, as more options may be added
+        in the future.
         """)
+
+    @classmethod
+    def options(cls, width_calc=WEIGHT, width_amount=1, box_widget=False):
+        """
+        Return a new options tuple for use in a Pile's .contents list.
+
+        width_calc -- 'flow', 'fixed' or 'weight'
+        width_amount -- None for 'flow', a number of rows for 'fixed'
+            or a weight value for 'weight'
+        box_widget -- True to treat as box widget when Columns is
+            treated as a flow widget
+        """
+        if width_calc == FLOW:
+            width_amount = None
+        if width_calc not in (FLOW, FIXED, WEIGHT):
+            raise ColumnsError('invalid width_calc: %r' % (width_calc,))
+        return (width_calc, width_amount, box_widget)
 
     def _invalidate(self):
         self._cache_maxcol = None
@@ -1345,7 +1382,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         item -- widget or integer index"""
         if isinstance(item, int):
             return self._set_focus_position(item)
-        for i, (w, t) in enumerate(self.contents):
+        for i, (w, options) in enumerate(self.contents):
             if item == w:
                 self.focus_position = i
                 return
@@ -1518,7 +1555,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
 
         best = None
         x = 0
-        for i, (width, (w, t)) in enumerate(zip(widths, self.contents)):
+        for i, (width, (w, options)) in enumerate(zip(widths, self.contents)):
             end = x + width
             if w.selectable():
                 # FIXME: sometimes, col == 'left' - that doesn't seem like its handled here, does it?
@@ -1561,7 +1598,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         widths = self.column_widths(size)
 
         x = 0
-        for i, (width, (w, t)) in enumerate(zip(widths, self.contents)):
+        for i, (width, (w, options)) in enumerate(zip(widths, self.contents)):
             if col < x:
                 return False
             w = self.widget_list[i]
