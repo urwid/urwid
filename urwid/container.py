@@ -1237,7 +1237,7 @@ class Columns(Widget): # either FlowWidget or BoxWidget
         self.contents = [
             (new, t) for (new, (w, t)) in zip(widgets,
                 # need to grow contents list if widgets is longer
-                chain(self.contents, repeat((None, (WEIGHT, 1)))))]
+                chain(self.contents, repeat((None, (WEIGHT, 1, False)))))]
         if focus_position < len(widgets):
             self.focus_position = focus_position
     widget_list = property(_get_widget_list, _set_widget_list, doc="""
@@ -1255,7 +1255,8 @@ class Columns(Widget): # either FlowWidget or BoxWidget
     def _set_column_types(self, column_types):
         focus_position = self.focus_position
         self.contents = [
-            (w, new) for (new, (w, t)) in zip(column_types, self.contents)]
+            (w, new + (b,))
+            for (new, (w, (t, n, b))) in zip(column_types, self.contents)]
         if focus_position < len(column_types):
             self.focus_position = focus_position
     column_types = property(_get_column_types, _set_column_types, doc="""

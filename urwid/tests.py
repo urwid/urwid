@@ -2407,15 +2407,33 @@ class CommonContainerTest(unittest.TestCase):
 
 
     def test_columns(self):
+        t1 = urwid.Text(u'one')
+        t2 = urwid.Text(u'two')
+        t3 = urwid.Text(u'three')
+        sf = urwid.SolidFill('x')
         c = urwid.Columns([])
         self.assertEquals(c.focus, None)
         self.assertEquals(c.focus_position, None)
         self.assertRaises(IndexError, lambda: setattr(c, 'focus_position',
             None))
         self.assertRaises(IndexError, lambda: setattr(c, 'focus_position', 0))
+        c.contents = [
+            (t1, ('flow', None, False)),
+            (t2, ('weight', 1, False)),
+            (sf, ('weight', 2, True)),
+            (t3, ('fixed', 10, False))]
+        c.focus_position = 1
+        del c.contents[0]
+        self.assertEquals(c.focus_position, 0)
+        c.contents[0:0] = [
+            (t3, ('fixed', 10, False)),
+            (t2, ('weight', 1, False))]
+        c.contents.insert(3, (t1, ('flow', None, False)))
+        self.assertEquals(c.focus_position, 2)
+        self.assertRaises(urwid.ColumnsError, lambda: c.contents.append(t1))
+        self.assertRaises(urwid.ColumnsError, lambda: c.contents.append((t1, None)))
+        self.assertRaises(urwid.ColumnsError, lambda: c.contents.append((t1, 'fixed')))
 
-        t1 = urwid.Text(u'one')
-        t2 = urwid.Text(u'two')
         c = urwid.Columns([t1, t2])
         self.assertEquals(c.focus, t1)
         self.assertEquals(c.focus_position, 0)
@@ -2426,12 +2444,42 @@ class CommonContainerTest(unittest.TestCase):
         self.assertRaises(IndexError, lambda: setattr(c, 'focus_position', -1))
         self.assertRaises(IndexError, lambda: setattr(c, 'focus_position', 2))
         # old methods:
+        c = urwid.Columns([t1, ('weight', 3, t2), sf], box_columns=[2])
         c.set_focus(0)
         self.assertRaises(IndexError, lambda: c.set_focus(-1))
-        self.assertRaises(IndexError, lambda: c.set_focus(2))
+        self.assertRaises(IndexError, lambda: c.set_focus(3))
         c.set_focus(t2)
         self.assertEquals(c.focus_position, 1)
         self.assertRaises(ValueError, lambda: c.set_focus('nonexistant'))
+        self.assertEquals(c.widget_list, [t1, t2, sf])
+        self.assertEquals(c.column_types, [
+            ('weight', 1), ('weight', 3), ('weight', 1)])
+        self.assertEquals(c.box_columns, [2])
+        c.widget_list = [t2, t1, sf]
+        self.assertEquals(c.widget_list, [t2, t1, sf])
+        self.assertEquals(c.box_columns, [2])
+
+        self.assertEquals(c.contents, [
+            (t2, ('weight', 1, False)),
+            (t1, ('weight', 3, False)),
+            (sf, ('weight', 1, True))])
+        self.assertEquals(c.focus_position, 1) # focus unchanged
+        c.column_types = [('flow', None), ('weight', 2), ('fixed', 5)]
+        self.assertEquals(c.column_types, [('flow', None), ('weight', 2), ('fixed', 5)])
+        self.assertEquals(c.contents, [
+            (t2, ('flow', None, False)),
+            (t1, ('weight', 2, False)),
+            (sf, ('fixed', 5, True))])
+        self.assertEquals(c.focus_position, 1) # focus unchanged
+        c.widget_list = [t1]
+        self.assertEquals(len(c.contents), 1)
+        self.assertEquals(c.focus_position, 0)
+        c.widget_list.extend([t2, t1])
+        self.assertEquals(len(c.contents), 3)
+        self.assertEquals(c.column_types, [
+            ('flow', None), ('weight', 1), ('weight', 1)])
+        c.column_types[:] = [('weight', 2)]
+        self.assertEquals(len(c.contents), 1)
 
     def test_list_box(self):
         lb = urwid.ListBox(urwid.SimpleListWalker([]))
