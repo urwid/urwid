@@ -227,21 +227,16 @@ class GridFlow(WidgetWrap):
             # increase size of divider
             divider.top = self.v_sep-1
 
-        widest_row = 0
-        c = Columns([], self.h_sep)
-        c.first_position = 0  # extra attribute to reference contents position
-        pad = Padding(c, self.align)
-        p = Pile([pad])
+        c = None
+        p = Pile([])
 
         for i, (w, (width_calc, width)) in enumerate(self.contents):
-            used_space = (sum(x[1][1] for x in c.contents) +
-                self.h_sep * len(c.contents))
-            if c.contents and maxcol - used_space < width:
-                #pad.width = used_space - self.h_sep
+            if c is None or maxcol - used_space < width:
                 # starting a new row
                 if self.v_sep:
                     p.contents.append((divider, Pile.options()))
                 c = Columns([], self.h_sep)
+                # extra attribute to reference contents position
                 c.first_position = i
                 pad = Padding(c, self.align)
                 p.contents.append((pad, Pile.options()))
@@ -250,8 +245,9 @@ class GridFlow(WidgetWrap):
             if i == self.focus_position:
                 c.focus_position = len(c.contents) - 1
                 p.focus_position = len(p.contents) - 1
-        #pad.width = used_space - self.h_sep
-
+            used_space = (sum(x[1][1] for x in c.contents) +
+                self.h_sep * len(c.contents))
+            pad.width = used_space - self.h_sep
 
         return p
 
