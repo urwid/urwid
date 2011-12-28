@@ -1315,6 +1315,7 @@ class TermCanvas(Canvas):
         return self.content()
 
 class Terminal(Widget):
+    _selectable = True
     _sizing = frozenset([BOX])
 
     signals = ['closed', 'beep', 'leds', 'title']

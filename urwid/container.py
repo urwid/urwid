@@ -1784,7 +1784,8 @@ class Columns(Widget):
 
     def selectable(self):
         """Return the selectable value of the focus column."""
-        return self.contents[self.focus_position][0].selectable()
+        w = self.focus
+        return w is not None and w.selectable()
 
 
 

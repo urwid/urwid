@@ -168,6 +168,7 @@ class ListBoxError(Exception):
     pass
 
 class ListBox(Widget):
+    _selectable = True
     _sizing = frozenset([BOX])
 
     def __init__(self, body):
