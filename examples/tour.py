@@ -223,7 +223,7 @@ def main():
             ('weight', 4, urwid.Text(text_weight % 4)),
             ('weight', 5, urwid.AttrWrap(urwid.Text(
                 text_weight % 5), 'reverse')),
-            ('weight', 6, urwid.Text(text_weight%2)),
+            ('weight', 6, urwid.Text(text_weight % 6)),
             ], 0, min_width=8),
         blank,
         urwid.Columns([
