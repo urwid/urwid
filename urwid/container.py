@@ -22,7 +22,7 @@
 from itertools import chain, repeat
 
 from urwid.util import is_mouse_press
-from urwid.widget import Widget, Divider, FLOW, FIXED, PACK, BOX
+from urwid.widget import Widget, Divider, FLOW, FIXED, PACK, BOX, WidgetWrap
 from urwid.decoration import (Padding, Filler, calculate_padding,
     calculate_filler, decompose_align_width, decompose_valign_height)
 from urwid.monitored_list import MonitoredList, MonitoredFocusList
@@ -34,12 +34,9 @@ from urwid.canvas import (CompositeCanvas, CanvasOverlay, CanvasCombine,
 WEIGHT = 'weight'
 
 
-class GridFlow(Widget):
-    _sizing = frozenset([FLOW])
-
-    def selectable(self):
-        """Return True if the cell in focus is selectable."""
-        return self.focus_cell and self.focus_cell.selectable()
+class GridFlow(WidgetWrap):
+    def sizing(self):
+        return frozenset([FLOW])
 
     def __init__(self, cells, cell_width, h_sep, v_sep, align):
         """
@@ -51,16 +48,95 @@ class GridFlow(Widget):
         align -- horizontal alignment of cells, see "align" parameter
                  of Padding widget for available options
         """
-        self.__super.__init__()
-        self.cells = cells
-        self.cell_width = cell_width
+        self._contents = MonitoredFocusList([
+            (w, (FIXED, cell_width)) for w in cells])
+        self._contents.set_modified_callback(self._invalidate)
+        self._contents.set_focus_changed_callback(lambda f: self._invalidate())
+        self._contents.set_validate_contents_modified(self._contents_modified)
+        self._cell_width = cell_width
         self.h_sep = h_sep
         self.v_sep = v_sep
         self.align = align
-        self.focus_cell = None
-        if cells:
-            self.focus_cell = cells[0]
         self._cache_maxcol = None
+        self.__super.__init__(None)
+
+    def _invalidate(self):
+        self._cache_maxcol = None
+        self.__super._invalidate()
+
+    def _contents_modified(self, slc, new_items):
+        for item in new_items:
+            try:
+                w, (t, n) = item
+                if t != (FIXED,):
+                    raise ValueError
+            except (TypeError, ValueError):
+                raise GridFlowError("added content invalid %r" % (item,))
+
+    def _get_cells(self):
+        ml = MonitoredList(w for w, t in self.contents)
+        def user_modified():
+            self._set_cells(ml)
+        ml.set_modified_callback(user_modified)
+        return ml
+    def _set_cells(self, widgets):
+        focus_position = self.focus_position
+        self.contents = [
+            (new, (FIXED, self._cell_width)) for new in widgets]
+        if focus_position < len(widgets):
+            self.focus_position = focus_position
+    cells = property(_get_cells, _set_cells, doc="""
+        A list of the widgets in this GridFlow, for backwards compatibility
+        only.  You should use the new standard container property .contents
+        to modify GridFlow contents.
+        """)
+
+    def _get_cell_width(self):
+        return _cell_width
+    def _set_cell_width(self, width):
+        focus_position = self.focus_position
+        self.contents = [
+            (w, (FIXED, width)) for (w, options) in self.contents]
+        self.focus_position = focus_position
+        self._cell_width = width
+    cell_width = property(_get_cell_width, _set_cell_width, doc="""
+        The width of each cell in the GridFlow.  Setting this value affects
+        all cells.
+        """)
+
+    def _get_contents(self):
+        return self._contents
+    def _set_contents(self, c):
+        self._contents[:] = c
+    contents = property(_get_contents, _set_contents, doc="""
+        The contents of this GridFlow as a list of (widget, options)
+        tuples.
+
+        options is currently a tuple in the form:
+        ('fixed', number) -- number is the number of screen columns to
+            allocate to this cell.
+
+        'fixed' is the only type accepted at this time.
+
+        This list may be modified like a normal list and the GridFlow
+        widget will update automatically.
+
+        Create new options tuples with the GridFlow.options() class
+        method for forward compatibility, as more options may be added
+        in the future.
+        """)
+
+    @classmethod
+    def options(cls, width_calc=FIXED, width_amount=None):
+        """
+        Return a new options tuple for use in a GridFlow's .contents list.
+
+        width_calc -- 'fixed' is the only value accepted
+        width_amount -- None to use the default cell_width for this GridFlow
+        """
+        if width_amount is None:
+            width_amount = self._cell_width
+        return (width_calc, width_amount)
 
     def set_focus(self, cell):
         """
@@ -68,14 +144,11 @@ class GridFlow(Widget):
         use the new standard container property .focus_position to set
         the position by integer index instead.
 
-        item -- widget or integer index
+        cell -- widget or integer index
         """
         if isinstance(cell, int):
             return self._set_focus_position(cell)
-        self.cells.index(cell) # raises ValueError if missing
-        self.focus_cell = cell
-        self._cache_maxcol = None
-        self._invalidate()
+        return self._set_focus_cell(cell)
 
     def get_focus(self):
         """
@@ -83,18 +156,33 @@ class GridFlow(Widget):
         also use the new standard container property .focus to get the
         child widget in focus.
         """
-        return self.focus_cell
+        if not self.contents:
+            return None
+        return self.contents[self.focus_position][0]
     focus = property(get_focus,
         doc="the child widget in focus or None when GridFlow is empty")
+
+    def _set_focus_cell(self, cell):
+        for i, (w, options) in enumerate(self.contents):
+            if cell == w:
+                self.focus_position = i
+                return
+        raise ValueError("Widget not found in GridFlow contents: %r" % (cell,))
+    focus_cell = property(get_focus, _set_focus_cell, doc="""
+        The widget in focus, for backwards compatibility.  You may also
+        use the new standard container property .focus to get the widget
+        in focus and .focus_position to get/set the cell in focus by
+        index.
+        """)
 
     def _get_focus_position(self):
         """
         Return the index of the widget in focus or None if this GridFlow is
         empty.
         """
-        if self.focus_cell is None:
+        if not self.contents:
             return None
-        return self.cells.index(self.focus_cell)
+        return self.contents.focus
     def _set_focus_position(self, position):
         """
         Set the widget in focus.
@@ -102,167 +190,136 @@ class GridFlow(Widget):
         position -- index of child widget to be made focus
         """
         try:
-            if position < 0 or position >= len(self.cells):
+            if position < 0 or position >= len(self.contents):
                 raise IndexError
         except (TypeError, IndexError):
             raise IndexError, "No child widget at position %s" % (position,)
-        self.focus_cell = self.cells[position]
-        self._invalidate()
+        self.contents.focus = position
     focus_position = property(_get_focus_position, _set_focus_position,
         doc="index of child widget in focus or None when GridFlow is empty")
 
     def get_display_widget(self, size):
         """
         Arrange the cells into columns (and possibly a pile) for
-        display, input or to calculate rows.
+        display, input or to calculate rows, and update the display
+        widget.
         """
         (maxcol,) = size
         # use cache if possible
         if self._cache_maxcol == maxcol:
-            return self._cache_display_widget
+            return self._w
 
         self._cache_maxcol = maxcol
-        self._cache_display_widget = self.generate_display_widget(
-            size)
+        self._w = self.generate_display_widget(size)
 
-        return self._cache_display_widget
+        return self._w
 
     def generate_display_widget(self, size):
         """
         Actually generate display widget (ignoring cache)
         """
         (maxcol,) = size
-        d = Divider()
-        if len(self.cells) == 0: # how dull
-            return d
+        divider = Divider()
+        if not self.contents:
+            return divider
 
         if self.v_sep > 1:
             # increase size of divider
-            d.top = self.v_sep-1
+            divider.top = self.v_sep-1
 
-        # cells per row
-        bpr = (maxcol+self.h_sep) // (self.cell_width+self.h_sep)
+        widest_row = 0
+        c = Columns([], self.h_sep)
+        c.first_position = 0  # extra attribute to reference contents position
+        pad = Padding(c, self.align)
+        p = Pile([pad])
 
-        if bpr == 0: # too narrow, pile them on top of eachother
-            l = [self.cells[0]]
-            f = 0
-            for b in self.cells[1:]:
-                if b is self.focus_cell:
-                    f = len(l)
+        for i, (w, (width_calc, width)) in enumerate(self.contents):
+            used_space = (sum(x[1][1] for x in c.contents) +
+                self.h_sep * len(c.contents))
+            if c.contents and maxcol - used_space < width:
+                pad.width = maxcol - used_space - 1
+                # starting a new row
                 if self.v_sep:
-                    l.append(d)
-                l.append(b)
-            return Pile(l, f)
+                    p.contents.append((divider, Pile.options()))
+                c = Columns([], self.h_sep)
+                c.first_position = i
+                pad = Padding(c, self.align)
+                p.contents.append((c, Pile.options()))
 
-        if bpr >= len(self.cells): # all fit on one row
-            k = len(self.cells)
-            f = self.cells.index(self.focus_cell)
-            cols = Columns(self.cells, self.h_sep, f)
-            rwidth = (self.cell_width+self.h_sep)*k - self.h_sep
-            row = Padding(cols, self.align, rwidth)
-            return row
+            c.contents.append((w, Columns.options('fixed', width)))
+            if i == self.focus_postion:
+                c.focus_position = len(c.contents) - 1
+                p.focus_position = len(p.contents) - 1
+        pad.width = maxcol - used_space - 1
 
+        return p
 
-        out = []
-        s = 0
-        f = 0
-        while s < len(self.cells):
-            if out and self.v_sep:
-                out.append(d)
-            k = min( len(self.cells), s+bpr )
-            cells = self.cells[s:k]
-            if self.focus_cell in cells:
-                f = len(out)
-                fcol = cells.index(self.focus_cell)
-                cols = Columns(cells, self.h_sep, fcol)
-            else:
-                cols = Columns(cells, self.h_sep)
-            rwidth = (self.cell_width+self.h_sep)*(k-s)-self.h_sep
-            row = Padding(cols, self.align, rwidth)
-            out.append(row)
-            s += bpr
-        return Pile(out, f)
+    def _set_focus_from_display_widget(self):
+        """
+        Set the focus to the item in focus in the display widget.
+        """
+        # display widget (self._w) is always built as:
+        #
+        # Pile([
+        #     Padding(Columns([
+        #         cell, ...])),
+        #     Divider(), # possibly
+        #     ...])
 
-    def _set_focus_from_display_widget(self, w):
-        """Set the focus to the item in focus in the display widget."""
-        if isinstance(w, Padding):
-            # unwrap padding
-            w = w._original_widget
-        w = w.get_focus()
-        if w in self.cells:
-            self.set_focus(w)
+        pile_focus = self._w.focus_position
+        if pile_focus is None:
             return
-        if isinstance(w, Padding):
-            # unwrap padding
-            w = w._original_widget
-        w = w.get_focus()
-        #assert w == self.cells[0], repr((w, self.cells))
-        self.set_focus(w)
+        c = self._w[pile_focus]
+        col_focus = c.focus_position
+        if col_focus is None:
+            return
+        self.focus_position = c.first_position + col_focus
+
 
     def keypress(self, size, key):
         """
         Pass keypress to display widget for handling.
-        Capture    focus changes."""
-
-        d = self.get_display_widget(size)
-        if not d.selectable():
-            return key
-        key = d.keypress(size, key)
+        Captures focus changes.
+        """
+        self.get_display_widget(size)
+        key = self.__super.keypress(size, key)
         if key is None:
-            self._set_focus_from_display_widget(d)
+            self._set_focus_from_display_widget()
         return key
 
     def rows(self, size, focus=False):
         """Return rows used by this widget."""
-        d = self.get_display_widget(size)
-        return d.rows(size, focus=focus)
+        self.get_display_widget(size)
+        return self.__super.rows(size, focus=focus)
 
     def render(self, size, focus=False ):
         """Use display widget to render."""
-        d = self.get_display_widget(size)
-        return d.render(size, focus)
+        self.get_display_widget(size)
+        return self.__super.render(size, focus)
 
     def get_cursor_coords(self, size):
         """Get cursor from display widget."""
-        d = self.get_display_widget(size)
-        if not d.selectable():
-            return None
-        return d.get_cursor_coords(size)
+        self.get_display_widget(size)
+        return self.__super.get_cursor_coords(size)
 
-    def move_cursor_to_coords(self, size, col, row ):
+    def move_cursor_to_coords(self, size, col, row):
         """Set the widget in focus based on the col + row."""
-        d = self.get_display_widget(size)
-        if not d.selectable():
-            # happy is the default
-            return True
-
-        r =  d.move_cursor_to_coords(size, col, row)
-        if not r:
-            return False
-
-        self._set_focus_from_display_widget(d)
-        self._invalidate()
-        return True
+        self.get_display_widget(size)
+        rval = self.__super.move_cursor_to_coords(size, col, row)
+        self._set_focus_from_display_widget()
+        return rval
 
     def mouse_event(self, size, event, button, col, row, focus):
         """Send mouse event to contained widget."""
-        d = self.get_display_widget(size)
-
-        r = d.mouse_event(size, event, button, col, row, focus)
-        if not r:
-            return False
-
+        self.get_display_widget(size)
+        rval = self.__super.mouse_event(size, event, button, col, row, focus)
         self._set_focus_from_display_widget(d)
-        self._invalidate()
         return True
-
 
     def get_pref_col(self, size):
         """Return pref col from display widget."""
-        d = self.get_display_widget(size)
-        if not d.selectable():
-            return None
-        return d.get_pref_col(size)
+        self.get_display_widget(size)
+        return self.__super.get_pref_col(size)
 
 
 
@@ -857,6 +914,12 @@ class Pile(Widget):
             raise PileError('invalid height_calc: %r' % (height_calc,))
         return (height_calc, height_amount)
 
+    def __getitem__(self, position):
+        """
+        Container short-cut for self.contents[position][0].base_widget
+        """
+        return self.contents[position][0].base_widget
+
     def selectable(self):
         """Return True if the focus item is selectable."""
         w = self.focus
@@ -1446,7 +1509,6 @@ class Columns(Widget):
         except (TypeError, IndexError):
             raise IndexError, "No child widget at position %s" % (position,)
         self.contents.focus = position
-        self._invalidate()
     focus_position = property(_get_focus_position, _set_focus_position,
         doc="index of child widget in focus or None when Columns is empty")
 
