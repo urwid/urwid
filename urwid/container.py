@@ -22,7 +22,8 @@
 from itertools import chain, repeat
 
 from urwid.util import is_mouse_press
-from urwid.widget import Widget, Divider, FLOW, FIXED, PACK, BOX, WidgetWrap
+from urwid.widget import (Widget, Divider, FLOW, FIXED, PACK, BOX, WidgetWrap,
+    GIVEN)
 from urwid.decoration import (Padding, Filler, calculate_padding,
     calculate_filler, decompose_align_width, decompose_valign_height)
 from urwid.monitored_list import MonitoredList, MonitoredFocusList
@@ -193,7 +194,7 @@ class GridFlow(WidgetWrap):
             if position < 0 or position >= len(self.contents):
                 raise IndexError
         except (TypeError, IndexError):
-            raise IndexError, "No child widget at position %s" % (position,)
+            raise IndexError, "No GridFlow child widget at position %s" % (position,)
         self.contents.focus = position
     focus_position = property(_get_focus_position, _set_focus_position,
         doc="index of child widget in focus or None when GridFlow is empty")
@@ -241,7 +242,7 @@ class GridFlow(WidgetWrap):
                 pad = Padding(c, self.align)
                 p.contents.append((pad, Pile.options()))
 
-            c.contents.append((w, Columns.options('fixed', width)))
+            c.contents.append((w, Columns.options(GIVEN, width)))
             if i == self.focus_position:
                 c.focus_position = len(c.contents) - 1
                 p.focus_position = len(p.contents) - 1
@@ -780,14 +781,19 @@ class Pile(Widget):
             selectable widget will be chosen.
 
         widget_list may also contain tuples such as:
-        ('flow', widget) always treat widget as a flow widget
-        ('fixed', height, widget) give this box widget a fixed height
+        (given_height, widget) always treat widget as a box widget and
+            give it given_height rows, where given_height is an int
+        ('flow', widget) always treat widget as a flow widget, allowing
+            it to calculate its own height by calling its rows() method
         ('weight', weight, widget) if the pile is treated as a box
             widget then treat widget as a box widget with a
             height based on its relative weight value, otherwise
-            treat widget as a flow widget
+            treat the same as ('flow', widget).
 
-        widgets not in a tuple are the same as ('weight', 1, widget)
+        Widgets not in a tuple are the same as ('weight', 1, widget)
+
+        For backwards compatibility ('fixed', given_height, widget) is
+        accepted as an alternate form of (given_height, widget).
 
         If the Pile is treated as a box widget there must be at least
         one 'weight' tuple in widget_list.
@@ -806,7 +812,13 @@ class Pile(Widget):
             elif w[0] == FLOW:
                 f, w = w
                 self.contents.append((w, (FLOW, None)))
-            elif w[0] in (FIXED, WEIGHT):
+            elif len(w) == 2:
+                height, w = w
+                self.contents.append((w, (GIVEN, height)))
+            elif w[0] == FIXED: # backwards compatibility
+                _ignore, height, w = w
+                self.contents.append((w, (GIVEN, height)))
+            elif w[0] == WEIGHT:
                 f, height, w = w
                 self.contents.append((w, (f, height)))
             else:
@@ -824,7 +836,7 @@ class Pile(Widget):
         for item in new_items:
             try:
                 w, (t, n) = item
-                if t not in (FLOW, FIXED, WEIGHT):
+                if t not in (FLOW, GIVEN, WEIGHT):
                     raise ValueError
             except (TypeError, ValueError):
                 raise PileError("added content invalid: %r" % (item,))
@@ -838,7 +850,7 @@ class Pile(Widget):
     def _set_widget_list(self, widgets):
         focus_position = self.focus_position
         self.contents = [
-            (new, t) for (new, (w, t)) in zip(widgets,
+            (new, options) for (new, (w, options)) in zip(widgets,
                 # need to grow contents list if widgets is longer
                 chain(self.contents, repeat((None, (WEIGHT, 1)))))]
         if focus_position < len(widgets):
@@ -850,7 +862,10 @@ class Pile(Widget):
         """)
 
     def _get_item_types(self):
-        ml = MonitoredList(t for w, t in self.contents)
+        ml = MonitoredList(
+            # return the old item type names
+            ({GIVEN: FIXED}.get(f, f), height)
+            for w, (f, height) in self.contents)
         def user_modified():
             self._set_item_types(ml)
         ml.set_modified_callback(user_modified)
@@ -858,7 +873,9 @@ class Pile(Widget):
     def _set_item_types(self, item_types):
         focus_position = self.focus_position
         self.contents = [
-            (w, new) for (new, (w, t)) in zip(item_types, self.contents)]
+            (w, ({FIXED: GIVEN}.get(new_t, new_t), new_height))
+            for ((new_t, new_height), (w, options))
+            in zip(item_types, self.contents)]
         if focus_position < len(item_types):
             self.focus_position = focus_position
     item_types = property(_get_item_types, _set_item_types, doc="""
@@ -877,7 +894,7 @@ class Pile(Widget):
         options currently may be one of:
         ('flow', None) -- Always treat widget as a flow widget, i.e. let it
             calculate the number of rows it will display.
-        ('fixed', n) -- Always treat widget as a box widget with a fixed
+        ('given', n) -- Always treat widget as a box widget with a given
             height of n rows.
         ('weight', w) -- If the Pile itself is treated as a box widget then
             the value w will be used as a relative weight for assigning rows
@@ -901,13 +918,13 @@ class Pile(Widget):
         """
         Return a new options tuple for use in a Pile's .contents list.
 
-        height_calc -- 'flow', 'fixed' or 'weight'
+        height_calc -- 'flow', 'given' or 'weight'
         height_amount -- None for 'flow', a number of rows for 'fixed'
             or a weight value for 'weight'
         """
         if height_calc == FLOW:
             return (FLOW, None)
-        if height_calc not in (FIXED, WEIGHT):
+        if height_calc not in (GIVEN, WEIGHT):
             raise PileError('invalid height_calc: %r' % (height_calc,))
         return (height_calc, height_amount)
 
@@ -969,8 +986,11 @@ class Pile(Widget):
 
         position -- index of child widget to be made focus
         """
-        if not self.contents:
-            raise IndexError("Can't set focus position on an empty Pile")
+        try:
+            if position < 0 or position >= len(self.contents):
+                raise IndexError
+        except (TypeError, IndexError):
+            raise IndexError, "No Pile child widget at position %s" % (position,)
         self.contents.focus = position
     focus_position = property(_get_focus_position, _set_focus_position,
         doc="index of child widget in focus or None when Pile is empty")
@@ -988,7 +1008,7 @@ class Pile(Widget):
         """
         maxcol = size[0]
         w, (f, height) = self.contents[i]
-        if f == FIXED:
+        if f == GIVEN:
             return (maxcol, height)
         elif f == WEIGHT and len(size) == 2:
             if not item_rows:
@@ -1012,7 +1032,7 @@ class Pile(Widget):
         if remaining is None:
             # pile is a flow widget
             for w, (f, height) in self.contents:
-                if f == FIXED:
+                if f == GIVEN:
                     l.append(height)
                 else:
                     l.append(w.rows((maxcol,),
@@ -1027,7 +1047,7 @@ class Pile(Widget):
                 rows = w.rows((maxcol,), focus=focus and self.focus_item == w)
                 l.append(rows)
                 remaining -= rows
-            elif f == FIXED:
+            elif f == GIVEN:
                 l.append(height)
                 remaining -= height
             else:
@@ -1061,7 +1081,7 @@ class Pile(Widget):
         for i, (w, (f, height)) in enumerate(self.contents):
             item_focus = self.focus_item == w
             canv = None
-            if f == FIXED:
+            if f == GIVEN:
                 canv = w.render((maxcol, height), focus=focus and item_focus)
             elif f == FLOW or len(size)==1:
                 canv = w.render((maxcol,), focus=focus and item_focus)
@@ -1094,8 +1114,8 @@ class Pile(Widget):
         w, (f, height) = self.contents[i]
         item_rows = None
         maxcol = size[0]
-        if f == FIXED or (f == WEIGHT and len(size) == 2):
-            if f == FIXED:
+        if f == GIVEN or (f == WEIGHT and len(size) == 2):
+            if f == GIVEN:
                 maxrow = height
             else:
                 if item_rows is None:
@@ -1249,19 +1269,26 @@ class Columns(Widget):
         focus_column -- index into widget_list of column in focus,
             if None the first selectable widget will be chosen.
         min_width -- minimum width for each column which is not
-            designated as flow widget in widget_list.
+            calling widget.pack() in widget_list.
         box_columns -- a list of column indexes containing box widgets
             whose maxrow is set to the maximum of the rows
             required by columns not listed in box_columns.
 
         widget_list may also contain tuples such as:
-        ('pack', widget) call pack() to calculate the width
-        ('fixed', width, widget) give this column a fixed width
-        ('weight', weight, widget) give this column a relative weight
+        (given_width, widget) make this column given_width screen columns
+            wide, where given_width is an int
+        ('pack', widget) call widget.pack() to calculate the width of
+            this column
+        ('weight', weight, widget) give this column a relative weight to
+            calculate its width from the screen columns remaining
 
-        widgets not in a tuple are the same as ('weight', 1, widget)
+        Widgets not in a tuple are the same as ('weight', 1, widget)
 
-        Is the Columns widget is treated as a box widget then all children
+        For backwards compatibility ('fixed', given_width, widget) and
+        ('flow', widget) are accepted as an alternate forms of
+        (given_width, widget) and ('pack', widget) respectively.
+
+        If the Columns widget is treated as a box widget then all children
         are treated as box widgets, and box_columns is ignored.
 
         If the Columns widget is treated as a flow widget then the rows
@@ -1284,9 +1311,16 @@ class Columns(Widget):
                 self.contents.append((w, (WEIGHT, 1, i in box_columns)))
             elif w[0] in (FLOW, PACK): # 'pack' used to be called 'flow'
                 f = PACK
-                w = w[1]
+                _ignored, w = w
                 self.contents.append((w, (f, None, i in box_columns)))
-            elif w[0] in (FIXED, WEIGHT):
+            elif len(w) == 2:
+                width, w = w
+                self.contents.append((w, (GIVEN, width, i in box_columns)))
+            elif w[0] == FIXED: # backwards compatibility
+                f = GIVEN
+                _ignored, width, w = w
+                self.contents.append((w, (GIVEN, width, i in box_columns)))
+            elif w[0] == WEIGHT:
                 f, width, w = w
                 self.contents.append((w, (f, width, i in box_columns)))
             else:
@@ -1310,7 +1344,7 @@ class Columns(Widget):
         for item in new_items:
             try:
                 w, (t, n, b) = item
-                if t not in (PACK, FIXED, WEIGHT):
+                if t not in (PACK, GIVEN, WEIGHT):
                     raise ValueError
             except (TypeError, ValueError):
                 raise ColumnsError("added content invalid %r" % (item,))
@@ -1324,7 +1358,7 @@ class Columns(Widget):
     def _set_widget_list(self, widgets):
         focus_position = self.focus_position
         self.contents = [
-            (new, t) for (new, (w, t)) in zip(widgets,
+            (new, options) for (new, (w, options)) in zip(widgets,
                 # need to grow contents list if widgets is longer
                 chain(self.contents, repeat((None, (WEIGHT, 1, False)))))]
         if focus_position < len(widgets):
@@ -1336,24 +1370,25 @@ class Columns(Widget):
         """)
 
     def _get_column_types(self):
-        ml = MonitoredList(t[:2] for w, t in self.contents)
+        ml = MonitoredList(
+            # return the old column type names
+            ({GIVEN: FIXED, PACK: FLOW}.get(t, t), n)
+            for w, (t, n, b) in self.contents)
         def user_modified():
             self._set_column_types(ml)
         ml.set_modified_callback(user_modified)
         return ml
     def _set_column_types(self, column_types):
         focus_position = self.focus_position
-        contents = []
-        for (new, (w, (t, n, b))) in zip(column_types, self.contents):
-            if new[0] == FLOW:
-                new = (PACK, ) + new[1:]
-            contents.append((w, new + (b,)))
-        self.contents = contents
+        self.contents = [
+            (w, ({FIXED: GIVEN, FLOW: PACK}.get(new_t, new_t), new_n, b))
+            for ((new_t, new_n), (w, (t, n, b)))
+            in zip(column_types, self.contents)]
         if focus_position < len(column_types):
             self.focus_position = focus_position
     column_types = property(_get_column_types, _set_column_types, doc="""
-        A list of the partial options values for widgets in this Pile, for
-        backwards compatibility only.  You should use the new standard
+        A list of the old partial options values for widgets in this Pile,
+        for backwards compatibility only.  You should use the new standard
         container property .contents to modify Pile contents.
         """)
 
@@ -1406,7 +1441,7 @@ class Columns(Widget):
         width_amount, box_widget), where width_calc is one of:
         'pack' -- Call the widget's pack() method to determine how wide
             this column should be.  width_amount is ignored.
-        'fixed' -- Make column exactly width_amount screen-columns wide.
+        'given' -- Make column exactly width_amount screen-columns wide.
         'weight' -- Allocate the remaining space to this column by using
             width_amount as a weight value.
 
@@ -1427,15 +1462,15 @@ class Columns(Widget):
         """
         Return a new options tuple for use in a Pile's .contents list.
 
-        width_calc -- 'pack', 'fixed' or 'weight'
-        width_amount -- None for 'pack', a number of rows for 'fixed'
-            or a weight value for 'weight'
+        width_calc -- 'pack', 'given' or 'weight'
+        width_amount -- None for 'pack', a number of screen columns
+            for 'given' or a weight value for 'weight'
         box_widget -- True to treat as box widget when Columns is
             treated as a flow widget
         """
         if width_calc == PACK:
             width_amount = None
-        if width_calc not in (PACK, FIXED, WEIGHT):
+        if width_calc not in (PACK, GIVEN, WEIGHT):
             raise ColumnsError('invalid width_calc: %r' % (width_calc,))
         return (width_calc, width_amount, box_widget)
 
@@ -1504,7 +1539,7 @@ class Columns(Widget):
             if position < 0 or position >= len(self.contents):
                 raise IndexError
         except (TypeError, IndexError):
-            raise IndexError, "No child widget at position %s" % (position,)
+            raise IndexError, "No Columns child widget at position %s" % (position,)
         self.contents.focus = position
     focus_position = property(_get_focus_position, _set_focus_position,
         doc="index of child widget in focus or None when Columns is empty")
@@ -1532,7 +1567,7 @@ class Columns(Widget):
         shared = maxcol + self.dividechars
 
         for i, (w, (t, width, b)) in enumerate(self.contents):
-            if t == FIXED:
+            if t == GIVEN:
                 static_w = width
             elif t == PACK:
                 # FIXME: should be able to pack with a different
@@ -1546,7 +1581,7 @@ class Columns(Widget):
 
             widths.append(static_w)
             shared -= static_w + self.dividechars
-            if t not in (FIXED, PACK):
+            if t not in (GIVEN, PACK):
                 weighted.append((width, i))
 
         if shared:
