@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid container widget classes
-#    Copyright (C) 2004-2011  Ian Ward
+#    Copyright (C) 2004-2012  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -182,7 +182,7 @@ class GridFlow(WidgetWrap):
         empty.
         """
         if not self.contents:
-            return None
+            raise IndexError, "No focus_position, GridFlow is empty"
         return self.contents.focus
     def _set_focus_position(self, position):
         """
@@ -196,8 +196,10 @@ class GridFlow(WidgetWrap):
         except (TypeError, IndexError):
             raise IndexError, "No GridFlow child widget at position %s" % (position,)
         self.contents.focus = position
-    focus_position = property(_get_focus_position, _set_focus_position,
-        doc="index of child widget in focus or None when GridFlow is empty")
+    focus_position = property(_get_focus_position, _set_focus_position, doc="""
+        index of child widget in focus.  Raises IndexError if read when
+        GridFlow is empty, or when set to an invalid index.
+        """)
 
     def get_display_widget(self, size):
         """
@@ -987,6 +989,8 @@ class Pile(Widget):
         Return the index of the widget in focus or None if this Pile is
         empty.
         """
+        if not self.contents:
+            raise IndexError, "No focus_position, Pile is empty"
         return self.contents.focus
     def _set_focus_position(self, position):
         """
@@ -1000,8 +1004,10 @@ class Pile(Widget):
         except (TypeError, IndexError):
             raise IndexError, "No Pile child widget at position %s" % (position,)
         self.contents.focus = position
-    focus_position = property(_get_focus_position, _set_focus_position,
-        doc="index of child widget in focus or None when Pile is empty")
+    focus_position = property(_get_focus_position, _set_focus_position, doc="""
+        index of child widget in focus.  Raises IndexError if read when
+        Pile is empty, or when set to an invalid index.
+        """)
 
     def get_pref_col(self, size):
         """Return the preferred column for the cursor, or None."""
@@ -1535,7 +1541,7 @@ class Columns(Widget):
         empty.
         """
         if not self.widget_list:
-            return None
+            raise IndexError, "No focus_position, Columns is empty"
         return self.contents.focus
     def _set_focus_position(self, position):
         """
@@ -1549,8 +1555,10 @@ class Columns(Widget):
         except (TypeError, IndexError):
             raise IndexError, "No Columns child widget at position %s" % (position,)
         self.contents.focus = position
-    focus_position = property(_get_focus_position, _set_focus_position,
-        doc="index of child widget in focus or None when Columns is empty")
+    focus_position = property(_get_focus_position, _set_focus_position, doc="""
+        index of child widget in focus.  Raises IndexError if read when
+        Columns is empty, or when set to an invalid index.
+        """)
 
     focus_col = property(_get_focus_position, _set_focus_position, doc="""
         A property for reading and setting the index of the column in

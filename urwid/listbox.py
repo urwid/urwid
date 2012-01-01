@@ -464,14 +464,17 @@ class ListBox(Widget):
     def _get_focus_position(self):
         """
         Return the list walker position of the widget in focus.  The type
-        of value returned depends on the list walker in use and None may
-        be a valid position so don't assume None means the ListBox is empty.
+        of value returned depends on the list walker.
         """
-        return self.body.get_focus()[1]
+        w, pos = self.body.get_focus()
+        if w is None:
+            raise IndexError, "No focus_position, ListBox is empty"
+        return pos
     focus_position = property(_get_focus_position, set_focus, doc="""
         the position of child widget in focus.  The valid values for this
-        position depend on the list walker in use and None may be a valid
-        position so don't assume None means a ListBox is empty.
+        position depend on the list walker in use.  IndexError will be
+        raised by reading this property when the ListBox is empty or
+        setting this property to an invalid position.
         """)
 
     def _set_focus_valign_complete(self, size, focus):

@@ -2353,7 +2353,7 @@ class CommonContainerTest(unittest.TestCase):
         sf = urwid.SolidFill('x')
         p = urwid.Pile([])
         self.assertEquals(p.focus, None)
-        self.assertEquals(p.focus_position, None)
+        self.assertRaises(IndexError, lambda: getattr(p, 'focus_position'))
         self.assertRaises(IndexError, lambda: setattr(p, 'focus_position',
             None))
         self.assertRaises(IndexError, lambda: setattr(p, 'focus_position', 0))
@@ -2413,7 +2413,7 @@ class CommonContainerTest(unittest.TestCase):
         sf = urwid.SolidFill('x')
         c = urwid.Columns([])
         self.assertEquals(c.focus, None)
-        self.assertEquals(c.focus_position, None)
+        self.assertRaises(IndexError, lambda: getattr(c, 'focus_position'))
         self.assertRaises(IndexError, lambda: setattr(c, 'focus_position',
             None))
         self.assertRaises(IndexError, lambda: setattr(c, 'focus_position', 0))
@@ -2490,7 +2490,7 @@ class CommonContainerTest(unittest.TestCase):
     def test_list_box(self):
         lb = urwid.ListBox(urwid.SimpleListWalker([]))
         self.assertEquals(lb.focus, None)
-        self.assertEquals(lb.focus_position, None)
+        self.assertRaises(IndexError, lambda: getattr(lb, 'focus_position'))
         self.assertRaises(IndexError, lambda: setattr(lb, 'focus_position',
             None))
         self.assertRaises(IndexError, lambda: setattr(lb, 'focus_position', 0))
@@ -2510,7 +2510,7 @@ class CommonContainerTest(unittest.TestCase):
     def test_grid_flow(self):
         gf = urwid.GridFlow([], 5, 1, 0, 'left')
         self.assertEquals(gf.focus, None)
-        self.assertEquals(gf.focus_position, None)
+        self.assertRaises(IndexError, lambda: getattr(gf, 'focus_position'))
         self.assertRaises(IndexError, lambda: setattr(gf, 'focus_position',
             None))
         self.assertRaises(IndexError, lambda: setattr(gf, 'focus_position', 0))
