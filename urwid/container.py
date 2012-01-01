@@ -237,9 +237,9 @@ class GridFlow(WidgetWrap):
                 if self.v_sep:
                     p.contents.append((divider, Pile.options()))
                 c = Columns([], self.h_sep)
-                # extra attribute to reference contents position
-                c.first_position = i
                 pad = Padding(c, self.align)
+                # extra attribute to reference contents position
+                pad.first_position = i
                 p.contents.append((pad, Pile.options()))
 
             c.contents.append((w, Columns.options(GIVEN, width)))
@@ -248,6 +248,11 @@ class GridFlow(WidgetWrap):
                 p.focus_position = len(p.contents) - 1
             used_space = (sum(x[1][1] for x in c.contents) +
                 self.h_sep * len(c.contents))
+            if width > maxcol:
+                # special case: display is too narrow for the given
+                # width so we remove the Columns for better behaviour
+                # FIXME: determine why this is necessary
+                pad.original_widget=w
             pad.width = used_space - self.h_sep
 
         return p
@@ -259,19 +264,22 @@ class GridFlow(WidgetWrap):
         # display widget (self._w) is always built as:
         #
         # Pile([
-        #     Padding(Columns([
+        #     Padding(
+        #         Columns([ # possibly
         #         cell, ...])),
         #     Divider(), # possibly
         #     ...])
 
         pile_focus = self._w.focus
-        if pile_focus is None:
+        if not pile_focus:
             return
         c = pile_focus.base_widget
-        col_focus_position = c.focus_position
-        if col_focus_position is None:
-            return
-        self.focus_position = c.first_position + col_focus_position
+        if c.focus:
+            col_focus_position = c.focus_position
+        else:
+            col_focus_position = 0
+        # pad.first_position was set by generate_display_widget() above
+        self.focus_position = pile_focus.first_position + col_focus_position
 
 
     def keypress(self, size, key):
