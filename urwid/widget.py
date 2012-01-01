@@ -269,6 +269,16 @@ class Widget(object):
         always None, indicating that this widget has no children.
         """)
 
+    def _not_a_container(self, val=None):
+        raise IndexError(
+            "No focus_position, %r is not a container widget" % self)
+    focus_position = property(_not_a_container, _not_a_container, doc="""
+        raises IndexError.  This default property makes accessing
+        .focus_position on non-container widgets fail in the same
+        way it would when accesing .focus_position on an empty
+        container.
+        """)
+
     def __repr__(self):
         """
         A friendly __repr__ for widgets, designed to be extended
