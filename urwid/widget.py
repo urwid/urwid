@@ -33,18 +33,20 @@ from urwid.command_map import command_map
 from urwid.split_repr import split_repr, remove_defaults, python3_repr
 
 
+# define some names for these constants to avoid misspellings in the source
+# and to document the constant strings we are using
+
 # Widget sizing methods
-# (use the same string objects to make some comparisons faster)
 FLOW = 'flow'
 BOX = 'box'
 FIXED = 'fixed'
 
-# Text alignment modes 
+# Text alignment modes
 LEFT = 'left'
 RIGHT = 'right'
 CENTER = 'center'
 
-# Filler alignment modes 
+# Filler alignment modes
 TOP = 'top'
 MIDDLE = 'middle'
 BOTTOM = 'bottom'
@@ -59,6 +61,9 @@ PACK = 'pack'
 GIVEN = 'given'
 RELATIVE = 'relative'
 RELATIVE_100 = (RELATIVE, 100)
+
+# extra constants for Pile/Columns
+WEIGHT = 'weight'
 
 
 class WidgetMeta(MetaSuper, signals.MetaSignals):

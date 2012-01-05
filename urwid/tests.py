@@ -2540,10 +2540,13 @@ class CommonContainerTest(unittest.TestCase):
         o = urwid.Overlay(s1, s2,
             'center', ('relative', 50), 'middle', ('relative', 50))
         self.assertEquals(o.focus, s1)
-        self.assertEquals(o.focus_position, 0)
+        self.assertEquals(o.focus_position, 1)
         self.assertRaises(IndexError, lambda: setattr(o, 'focus_position',
             None))
-        self.assertRaises(IndexError, lambda: setattr(o, 'focus_position', 1))
+        self.assertRaises(IndexError, lambda: setattr(o, 'focus_position', 2))
+
+        self.assertEquals(o.container[0], s2)
+        self.assertEquals(o.container[1], s1)
 
     def test_frame(self):
         s1 = urwid.SolidFill(u'1')

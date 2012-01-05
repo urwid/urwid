@@ -23,9 +23,10 @@ from itertools import chain, repeat
 
 from urwid.util import is_mouse_press
 from urwid.widget import (Widget, Divider, FLOW, FIXED, PACK, BOX, WidgetWrap,
-    GIVEN)
-from urwid.decoration import (Padding, Filler, calculate_padding,
-    calculate_filler, decompose_align_width, decompose_valign_height)
+    GIVEN, WEIGHT)
+from urwid.decoration import (Padding, Filler, calculate_left_right_padding,
+    calculate_top_bottom_filler, decompose_align_width,
+    decompose_valign_height)
 from urwid.monitored_list import MonitoredList, MonitoredFocusList
 from urwid.canvas import (CompositeCanvas, CanvasOverlay, CanvasCombine,
     SolidCanvas, CanvasJoin)
@@ -339,36 +340,32 @@ class Overlay(Widget):
     _sizing = frozenset([BOX])
 
     def __init__(self, top_w, bottom_w, align, width, valign, height,
-            min_width=None, min_height=None ):
+            min_width=None, min_height=None, left=0, right=0, top=0, bottom=0):
         """
         top_w -- a flow, box or fixed widget to overlay "on top"
         bottom_w -- a box widget to appear "below" previous widget
         align -- one of:
             'left', 'center', 'right'
-            ('fixed left', columns)
-            ('fixed right', columns)
             ('relative', percentage 0=left 100=right)
         width -- one of:
             None if top_w is a fixed widget
             number of columns wide
-            ('fixed right', columns)  Only if align is 'fixed left'
-            ('fixed left', columns)  Only if align is 'fixed right'
             ('relative', percentage of total width)
         valign -- one of:
             'top', 'middle', 'bottom'
-            ('fixed top', rows)
-            ('fixed bottom', rows)
             ('relative', percentage 0=top 100=bottom)
         height -- one of:
             None if top_w is a flow or fixed widget
             number of rows high
-            ('fixed bottom', rows)  Only if valign is 'fixed top'
-            ('fixed top', rows)  Only if valign is 'fixed bottom'
             ('relative', percentage of total height)
         min_width -- the minimum number of columns for top_w
             when width is not fixed
         min_height -- one of:
             minimum number of rows for the widget when height not fixed
+        left -- a fixed number of columns to add on the left
+        right -- a fixed number of columns to add on the right
+        top -- a fixed number of rows to add on the top
+        bottom -- a fixed number of rows to add on the bottom
 
         Overlay widgets behave similarly to Padding and Filler widgets
         when determining the size and position of top_w.  bottom_w is
@@ -380,25 +377,56 @@ class Overlay(Widget):
         self.bottom_w = bottom_w
 
         self.set_overlay_parameters(align, width, valign, height,
-            min_width, min_height)
+            min_width, min_height, left, right, top, bottom)
 
     def set_overlay_parameters(self, align, width, valign, height,
-            min_width=None, min_height=None):
+            min_width=None, min_height=None, left=0, right=0, top=0, bottom=0):
         """
         Adjust the overlay size and position parameters.
 
         See __init__() for a description of the parameters.
         """
-        at,aa,wt,wa=decompose_align_width(align, width, OverlayError)
-        vt,va,ht,ha=decompose_valign_height(valign,height,OverlayError)
 
-        self.align_type, self.align_amount = at, aa
-        self.width_type, self.width_amount = wt, wa
-        if self.width_type and self.width_type != 'fixed':
-            self.min_width = min_width
-        else:
-            self.min_width = None
+        # convert obsolete parameters 'fixed ...':
+        if isinstance(align, tuple):
+            if align[0] == 'fixed left':
+                left = align[1]
+                align = LEFT
+            elif align[0] == 'fixed right':
+                right = align[1]
+                align = RIGHT
+        if isinstance(width, tuple):
+            if width[0] == 'fixed left':
+                left = width[1]
+                width = RELATIVE_100
+            elif width[0] == 'fixed right':
+                right = width[1]
+                width = RELATIVE_100
+        if isinstance(valign, tuple):
+            if valign[0] == 'fixed top':
+                left = valign[1]
+                valign = TOP
+            elif valign[0] == 'fixed bottom':
+                right = valign[1]
+                valign = BOTTOM
+        if isinstance(height, tuple):
+            if height[0] == 'fixed bottom':
+                left = height[1]
+                height = RELATIVE_100
+            elif height[0] == 'fixed bottom':
+                right = height[1]
+                height = RELATIVE_100
 
+        self.left = left
+        self.right = right
+        self.align_type, self.align_amount = normalize_align(align,
+            OverlayError)
+        self.width_type, self.width_amount = normalize_width(width,
+            OverlayError)
+        self.min_width = min_width
+
+        self.top = top
+        self.bottom = bottom
         self.valign_type, self.valign_amount = vt, va
         self.height_type, self.height_amount = ht, ha
         if self.height_type not in ('fixed', None):
@@ -426,20 +454,50 @@ class Overlay(Widget):
 
     def _get_focus_position(self):
         """
-        Return the top widget position (currently always 0).
+        Return the top widget position (currently always 1).
         """
-        return 0
+        return 1
     def _set_focus_position(self, position):
         """
         Set the widget in focus.  Currently only position 0 is accepted.
 
         position -- index of child widget to be made focus
         """
-        if position != 0:
-            raise IndexError, ("Overlay widget focus position currently "
-                "must always be set to 0, not %s" % (position,))
+        if position != 1:
+            raise IndexError, ("Overlay widget focus_position currently "
+                "must always be set to 1, not %s" % (position,))
     focus_position = property(_get_focus_position, _set_focus_position,
-        doc="index of child widget in focus, currently always 0")
+        doc="index of child widget in focus, currently always 1")
+
+    def _container(self):
+        class OverlayContents(object):
+            def __getitem__(inner_self, name):
+                try:
+                    return {0, self.bottom_w, 1: self.top_w}[name]
+                except KeyError:
+                    raise KeyError("Overlay.contents has no position %r" % name)
+            def __setitem__(inner_self, name, value):
+                if name == 0:
+                    self.bottom_w = value
+                elif name == 1:
+                    self.top_w = value
+                else:
+                    raise KeyError("Overlay.contents has no position %r" % name)
+                self._invalidate()
+        return OverlayContents()
+    container = property(_container, doc="""
+        a list-like object similar to:
+            [(bottom_w, ()),
+             (top_w, ())]
+
+        This object may be used to read or update bottom_w, top_w and
+        top_w's options, but no widgets may be added to or removed.
+        """)
+    def __getitem__(self, position):
+        """
+        Container short-cut for self.contents[position][0].base_widget
+        """
+        return self.contents[position][0].base_widget
 
     def get_cursor_coords(self, size):
         """Return cursor coords from top_w, if any."""
