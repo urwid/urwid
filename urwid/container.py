@@ -49,7 +49,7 @@ class GridFlow(WidgetWrap):
                  of Padding widget for available options
         """
         self._contents = MonitoredFocusList([
-            (w, (FIXED, cell_width)) for w in cells])
+            (w, (GIVEN, cell_width)) for w in cells])
         self._contents.set_modified_callback(self._invalidate)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
         self._contents.set_validate_contents_modified(self._contents_modified)
@@ -68,7 +68,7 @@ class GridFlow(WidgetWrap):
         for item in new_items:
             try:
                 w, (t, n) = item
-                if t != (FIXED,):
+                if t != (GIVEN,):
                     raise ValueError
             except (TypeError, ValueError):
                 raise GridFlowError("added content invalid %r" % (item,))
@@ -82,7 +82,7 @@ class GridFlow(WidgetWrap):
     def _set_cells(self, widgets):
         focus_position = self.focus_position
         self.contents = [
-            (new, (FIXED, self._cell_width)) for new in widgets]
+            (new, (GIVEN, self._cell_width)) for new in widgets]
         if focus_position < len(widgets):
             self.focus_position = focus_position
     cells = property(_get_cells, _set_cells, doc="""
@@ -96,7 +96,7 @@ class GridFlow(WidgetWrap):
     def _set_cell_width(self, width):
         focus_position = self.focus_position
         self.contents = [
-            (w, (FIXED, width)) for (w, options) in self.contents]
+            (w, (GIVEN, width)) for (w, options) in self.contents]
         self.focus_position = focus_position
         self._cell_width = width
     cell_width = property(_get_cell_width, _set_cell_width, doc="""
@@ -127,16 +127,18 @@ class GridFlow(WidgetWrap):
         """)
 
     @classmethod
-    def options(cls, width_calc=FIXED, width_amount=None):
+    def options(cls, width_type=GIVEN, width_amount=None):
         """
         Return a new options tuple for use in a GridFlow's .contents list.
 
-        width_calc -- 'fixed' is the only value accepted
+        width_type -- 'given' is the only value accepted
         width_amount -- None to use the default cell_width for this GridFlow
         """
+        if width_type != GIVEN:
+            raise GridFlowError("invalid width_type: %r" % (width_type,))
         if width_amount is None:
             width_amount = self._cell_width
-        return (width_calc, width_amount)
+        return (width_type, width_amount)
 
     def set_focus(self, cell):
         """
@@ -232,8 +234,8 @@ class GridFlow(WidgetWrap):
         c = None
         p = Pile([])
 
-        for i, (w, (width_calc, width)) in enumerate(self.contents):
-            if c is None or maxcol - used_space < width:
+        for i, (w, (width_type, width_amount)) in enumerate(self.contents):
+            if c is None or maxcol - used_space < width_amount:
                 # starting a new row
                 if self.v_sep:
                     p.contents.append((divider, Pile.options()))
@@ -243,13 +245,13 @@ class GridFlow(WidgetWrap):
                 pad.first_position = i
                 p.contents.append((pad, Pile.options()))
 
-            c.contents.append((w, Columns.options(GIVEN, width)))
+            c.contents.append((w, Columns.options(GIVEN, width_amount)))
             if i == self.focus_position:
                 c.focus_position = len(c.contents) - 1
                 p.focus_position = len(p.contents) - 1
             used_space = (sum(x[1][1] for x in c.contents) +
                 self.h_sep * len(c.contents))
-            if width > maxcol:
+            if width_amount > maxcol:
                 # special case: display is too narrow for the given
                 # width so we remove the Columns for better behaviour
                 # FIXME: determine why this is necessary
