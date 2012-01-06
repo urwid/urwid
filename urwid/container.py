@@ -1574,7 +1574,7 @@ class Columns(Widget):
     has_flow_type = property(_get_has_pack_type, _set_has_pack_type, doc="""
         Deprecated.  Read values from .contents instead.
 
-        True if one of .contents has width_calc == 'pack'
+        True if one of .contents has width_type == 'pack'
         """)
 
     def _get_contents(self):
@@ -1585,8 +1585,8 @@ class Columns(Widget):
         The contents of this Columns as a list of (widget, options)
         tuples.
 
-        options is currently a tuple in the form (width_calc,
-        width_amount, box_widget), where width_calc is one of:
+        options is currently a tuple in the form (width_type,
+        width_amount, box_widget), where width_type is one of:
         'pack' -- Call the widget's pack() method to determine how wide
             this column should be.  width_amount is ignored.
         'given' -- Make column exactly width_amount screen-columns wide.
@@ -1606,21 +1606,21 @@ class Columns(Widget):
         """)
 
     @classmethod
-    def options(cls, width_calc=WEIGHT, width_amount=1, box_widget=False):
+    def options(cls, width_type=WEIGHT, width_amount=1, box_widget=False):
         """
         Return a new options tuple for use in a Pile's .contents list.
 
-        width_calc -- 'pack', 'given' or 'weight'
+        width_type -- 'pack', 'given' or 'weight'
         width_amount -- None for 'pack', a number of screen columns
             for 'given' or a weight value for 'weight'
         box_widget -- True to treat as box widget when Columns is
             treated as a flow widget
         """
-        if width_calc == PACK:
+        if width_type == PACK:
             width_amount = None
-        if width_calc not in (PACK, GIVEN, WEIGHT):
-            raise ColumnsError('invalid width_calc: %r' % (width_calc,))
-        return (width_calc, width_amount, box_widget)
+        if width_type not in (PACK, GIVEN, WEIGHT):
+            raise ColumnsError('invalid width_type: %r' % (width_type,))
+        return (width_type, width_amount, box_widget)
 
     def _invalidate(self):
         self._cache_maxcol = None
