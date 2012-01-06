@@ -864,7 +864,7 @@ def normalize_align(align, err):
     if align doesn't match a valid alignment.
     """
     if align in (LEFT, CENTER, RIGHT):
-        return (align, 0)
+        return (align, None)
     elif type(align) == tuple and len(align) == 2 and align[0] == RELATIVE:
         return align
     raise err("align value %r is not one of 'left', 'center', "
@@ -886,7 +886,7 @@ def normalize_width(width, err):
     if width doesn't match a valid alignment.
     """
     if width in (CLIP, PACK):
-        return (width, 0)
+        return (width, None)
     elif type(width) == int:
         return (GIVEN, width)
     elif type(width) == tuple and len(width) == 2 and width[0] == RELATIVE:
@@ -912,7 +912,7 @@ def normalize_valign(valign, err):
     if align doesn't match a valid alignment.
     """
     if valign in (TOP, MIDDLE, BOTTOM):
-        return (valign, 0)
+        return (valign, None)
     elif (isinstance(valign, tuple) and len(valign) == 2 and
             valign[0] == RELATIVE):
         return valign
@@ -935,7 +935,7 @@ def normalize_height(height, err):
     if height isn't valid.
     """
     if height in (FLOW, PACK):
-        return (height, 0)
+        return (height, None)
     elif (isinstance(height, tuple) and len(height) == 2 and
             height[0] == RELATIVE):
         return height

@@ -2548,8 +2548,8 @@ class CommonContainerTest(unittest.TestCase):
         self.assertEquals(o.contents[0], (s2,
             urwid.Overlay._DEFAULT_BOTTOM_OPTIONS))
         self.assertEquals(o.contents[1], (s1, (
-            'center', 0, 'relative', 50, None, 0, 0,
-            'middle', 0, 'relative', 50, None, 0, 0)))
+            'center', None, 'relative', 50, None, 0, 0,
+            'middle', None, 'relative', 50, None, 0, 0)))
 
     def test_frame(self):
         s1 = urwid.SolidFill(u'1')
