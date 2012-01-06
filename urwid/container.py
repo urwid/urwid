@@ -338,7 +338,8 @@ class Overlay(Widget):
     _sizing = frozenset([BOX])
 
     _DEFAULT_BOTTOM_OPTIONS = (
-        LEFT, None, RELATIVE, 100, 0, 0, TOP, None, RELATIVE, 100, 0, 0)
+        LEFT, None, RELATIVE, 100, None, 0, 0,
+        TOP, None, RELATIVE, 100, None, 0, 0)
 
     def __init__(self, top_w, bottom_w, align, width, valign, height,
             min_width=None, min_height=None, left=0, right=0, top=0, bottom=0):
@@ -490,9 +491,11 @@ class Overlay(Widget):
         if index == 1:
             return (self.top_w, (
                 self.align_type, self.align_amount,
-                self.width_type, self.width_amount, self.left,
+                self.width_type, self.width_amount,
+                self.min_width, self.left,
                 self.right, self.valign_type, self.valign_amount,
-                self.height_type, self.height_amount, self.top, self.bottom))
+                self.height_type, self.height_amount,
+                self.min_height, self.top, self.bottom))
         raise IndexError("Overlay.contents has no position %r"
             % (index,))
     def _contents__setitem__(self, index, value):
@@ -508,8 +511,9 @@ class Overlay(Widget):
         elif index == 1:
             try:
                 (align_type, align_amount, width_type, width_amount,
-                    left, right, valign_type, valign_amount,
-                    height_type, height_amount, top, bottom) = value_options
+                    min_width, left, right, valign_type, valign_amount,
+                    height_type, height_amount, min_height, top, bottom,
+                    ) = value_options
             except ValueError:
                 raise OverlayError("top_options is invalid: %r"
                     % (value_options,))
@@ -534,6 +538,8 @@ class Overlay(Widget):
             self.right = right
             self.top = top
             self.bottom = bottom
+            self.min_width = min_width
+            self.min_height = min_height
         else:
             raise IndexError("Overlay.contents has no position %r"
                 % (index,))
@@ -547,13 +553,14 @@ class Overlay(Widget):
         top_w's options, but no widgets may be added or removed.
 
         top_options takes the form:
-            (align_type, align_amount, width_type, width_amount, left, right,
-             valign_type, valign_amount, height_type, height_amount, top,
-             bottom)
+            (align_type, align_amount, width_type, width_amount,
+             min_width, left, right,
+             valign_type, valign_amount, height_type, height_amount,
+             min_height, top, bottom)
 
         bottom_options is always:
-            ('left', None, 'relative', 100, 0, 0,
-             'top', None, 'relative', 100, 0, 0)
+            ('left', None, 'relative', 100, None, 0, 0,
+             'top', None, 'relative', 100, None, 0, 0)
 
         which means that bottom_w always covers the full area of the Overlay.
         writing a different value for bottom_options currently raises an
