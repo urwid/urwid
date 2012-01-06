@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid listbox class
-#    Copyright (C) 2004-2011  Ian Ward
+#    Copyright (C) 2004-2012  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -21,8 +21,8 @@
 
 from urwid.util import is_mouse_press
 from urwid.canvas import SolidCanvas, CanvasCombine
-from urwid.widget import Widget, nocache_widget_render_instance, BOX
-from urwid.decoration import calculate_filler, decompose_valign_height
+from urwid.widget import Widget, nocache_widget_render_instance, BOX, GIVEN
+from urwid.decoration import calculate_top_bottom_filler, simplify_valign
 from urwid import signals
 from urwid.signals import connect_signal
 from urwid.monitored_list import MonitoredList
@@ -427,8 +427,8 @@ class ListBox(Widget):
             ('fixed bottom', rows)
             ('relative', percentage 0=top 100=bottom)
         """
-        vt,va,ht,ha=decompose_valign_height(valign,None,ListBoxError)
-        self.set_focus_valign_pending = vt,va
+        vt, va = simplify_valign(valign,ListBoxError)
+        self.set_focus_valign_pending = vt, va
 
 
     def set_focus(self, position, coming_from=None):
@@ -492,8 +492,8 @@ class ListBox(Widget):
             return
 
         rows = focus_widget.rows((maxcol,), focus)
-        rtop, rbot = calculate_filler( vt, va, 'fixed', rows,
-            None, maxrow )
+        rtop, rbot = calculate_top_bottom_filler(maxrow,
+            vt, va, GIVEN, rows, None, 0, 0)
 
         self.shift_focus((maxcol, maxrow), rtop)
 

@@ -23,17 +23,15 @@ from itertools import chain, repeat
 
 from urwid.util import is_mouse_press
 from urwid.widget import (Widget, Divider, FLOW, FIXED, PACK, BOX, WidgetWrap,
-    GIVEN, WEIGHT)
+    GIVEN, WEIGHT, LEFT, RELATIVE, TOP, CLIP)
 from urwid.decoration import (Padding, Filler, calculate_left_right_padding,
-    calculate_top_bottom_filler, decompose_align_width,
-    decompose_valign_height)
+    calculate_top_bottom_filler, normalize_align, normalize_width,
+    normalize_valign, normalize_height, simplify_align, simplify_width,
+    simplify_valign, simplify_height)
 from urwid.monitored_list import MonitoredList, MonitoredFocusList
 from urwid.canvas import (CompositeCanvas, CanvasOverlay, CanvasCombine,
     SolidCanvas, CanvasJoin)
 
-
-# extra constants for Pile/Columns
-WEIGHT = 'weight'
 
 
 class GridFlow(WidgetWrap):
@@ -339,6 +337,9 @@ class Overlay(Widget):
     _selectable = True
     _sizing = frozenset([BOX])
 
+    _DEFAULT_BOTTOM_OPTIONS = (
+        LEFT, None, RELATIVE, 100, 0, 0, TOP, None, RELATIVE, 100, 0, 0)
+
     def __init__(self, top_w, bottom_w, align, width, valign, height,
             min_width=None, min_height=None, left=0, right=0, top=0, bottom=0):
         """
@@ -348,14 +349,14 @@ class Overlay(Widget):
             'left', 'center', 'right'
             ('relative', percentage 0=left 100=right)
         width -- one of:
-            None if top_w is a fixed widget
+            'pack' if top_w is a fixed widget
             number of columns wide
             ('relative', percentage of total width)
         valign -- one of:
             'top', 'middle', 'bottom'
             ('relative', percentage 0=top 100=bottom)
         height -- one of:
-            None if top_w is a flow or fixed widget
+            'pack' if top_w is a flow or fixed widget
             number of rows high
             ('relative', percentage of total height)
         min_width -- the minimum number of columns for top_w
@@ -417,6 +418,11 @@ class Overlay(Widget):
                 right = height[1]
                 height = RELATIVE_100
 
+        if width is None: # more obsolete values accepted
+            width = PACK
+        if height is None:
+            height = PACK
+
         self.left = left
         self.right = right
         self.align_type, self.align_amount = normalize_align(align,
@@ -427,9 +433,11 @@ class Overlay(Widget):
 
         self.top = top
         self.bottom = bottom
-        self.valign_type, self.valign_amount = vt, va
-        self.height_type, self.height_amount = ht, ha
-        if self.height_type not in ('fixed', None):
+        self.valign_type, self.valign_amount = normalize_valign(valign,
+            OverlayError)
+        self.height_type, self.height_amount = normalize_height(height,
+            OverlayError)
+        if self.height_type not in (GIVEN, PACK):
             self.min_height = min_height
         else:
             self.min_height = None
@@ -442,7 +450,7 @@ class Overlay(Widget):
     def keypress(self, size, key):
         """Pass keypress to top_w."""
         return self.top_w.keypress(self.top_w_size(size,
-                       *self.calculate_padding_filler(size, True)), key)
+            *self.calculate_padding_filler(size, True)), key)
 
     def _get_focus(self):
         """
@@ -469,29 +477,87 @@ class Overlay(Widget):
     focus_position = property(_get_focus_position, _set_focus_position,
         doc="index of child widget in focus, currently always 1")
 
-    def _container(self):
+    def _contents(self):
         class OverlayContents(object):
-            def __getitem__(inner_self, name):
-                try:
-                    return {0, self.bottom_w, 1: self.top_w}[name]
-                except KeyError:
-                    raise KeyError("Overlay.contents has no position %r" % name)
-            def __setitem__(inner_self, name, value):
-                if name == 0:
-                    self.bottom_w = value
-                elif name == 1:
-                    self.top_w = value
-                else:
-                    raise KeyError("Overlay.contents has no position %r" % name)
-                self._invalidate()
+            def __len__(self):
+                return 2
+            __getitem__ = self._contents__getitem__
+            __setitem__ = self._contents__setitem__
         return OverlayContents()
-    container = property(_container, doc="""
+    def _contents__getitem__(self, index):
+        if index == 0:
+            return (self.bottom_w, self._DEFAULT_BOTTOM_OPTIONS)
+        if index == 1:
+            return (self.top_w, (
+                self.align_type, self.align_amount,
+                self.width_type, self.width_amount, self.left,
+                self.right, self.valign_type, self.valign_amount,
+                self.height_type, self.height_amount, self.top, self.bottom))
+        raise IndexError("Overlay.contents has no position %r"
+            % (index,))
+    def _contents__setitem__(self, index, value):
+        try:
+            value_w, value_options = value
+        except ValueError:
+            raise OverlayError("added content invalid: %r" % (value,))
+        if index == 0:
+            if value_options != self._DEFAULT_BOTTOM_OPTIONS:
+                raise OverlayError("bottom_options must be set to "
+                    "%r" % (self._DEFAULT_BOTTOM_OPTIONS,))
+            self.bottom_w = value_w
+        elif index == 1:
+            try:
+                (align_type, align_amount, width_type, width_amount,
+                    left, right, valign_type, valign_amount,
+                    height_type, height_amount, top, bottom) = value_options
+            except ValueError:
+                raise OverlayError("top_options is invalid: %r"
+                    % (value_options,))
+            # normalize first, this is where errors are raised
+            align_type, align_amount = normalize_align(
+                simplify_align(align_type, align_amount), OverlayError)
+            width_type, width_amount = normalize_width(
+                simplify_width(width_type, width_amount), OverlayError)
+            valign_type, valign_amoun = normalize_valign(
+                simplify_valign(valign_type, valign_amount), OverlayError)
+            height_type, height_amount = normalize_height(
+                simplify_height(height_type, height_amount), OverlayError)
+            self.align_type = align_type
+            self.align_amount = align_amount
+            self.width_type = width_type
+            self.width_amount = width_amount
+            self.valign_type = valign_type
+            self.valign_amount = valign_amount
+            self.height_type = height_type
+            self.height_amount = height_amount
+            self.left = left
+            self.right = right
+            self.top = top
+            self.bottom = bottom
+        else:
+            raise IndexError("Overlay.contents has no position %r"
+                % (index,))
+        self._invalidate()
+    contents = property(_contents, doc="""
         a list-like object similar to:
-            [(bottom_w, ()),
-             (top_w, ())]
+            [(bottom_w, bottom_options)),
+             (top_w, top_options)]
 
         This object may be used to read or update bottom_w, top_w and
-        top_w's options, but no widgets may be added to or removed.
+        top_w's options, but no widgets may be added or removed.
+
+        top_options takes the form:
+            (align_type, align_amount, width_type, width_amount, left, right,
+             valign_type, valign_amount, height_type, height_amount, top,
+             bottom)
+
+        bottom_options is always:
+            ('left', None, 'relative', 100, 0, 0,
+             'top', None, 'relative', 100, 0, 0)
+
+        which means that bottom_w always covers the full area of the Overlay.
+        writing a different value for bottom_options currently raises an
+        OverlayError.
         """)
     def __getitem__(self, position):
         """
@@ -516,46 +582,48 @@ class Overlay(Widget):
         """Return (padding left, right, filler top, bottom)."""
         (maxcol, maxrow) = size
         height = None
-        if self.width_type is None:
-            # top_w is a fixed widget
+        if self.width_type == PACK:
             width, height = self.top_w.pack((),focus=focus)
-            assert height, "fixed widget must have a height"
-            left, right = calculate_padding(self.align_type,
-                self.align_amount, 'fixed', width,
-                None, maxcol, clip=True )
+            if not height:
+                raise OverlayError("fixed widget must have a height")
+            left, right = calculate_left_right_padding(maxcol,
+                self.align_type, self.align_amount, CLIP, width,
+                None, self.left, self.right)
         else:
-            left, right = calculate_padding(self.align_type,
-                self.align_amount, self.width_type,
-                self.width_amount, self.min_width, maxcol)
+            left, right = calculate_left_right_padding(maxcol,
+                self.align_type, self.align_amount,
+                self.width_type, self.width_amount,
+                self.min_width, self.left, self.right)
 
         if height:
             # top_w is a fixed widget
-            top, bottom = calculate_filler(self.valign_type,
-                self.valign_amount, 'fixed', height,
-                None, maxrow)
+            top, bottom = calculate_top_bottom_filler(maxrow,
+                self.valign_type, self.valign_amount,
+                GIVEN, height, None, self.top, self.bottom)
             if maxrow-top-bottom < height:
                 bottom = maxrow-top-height
-        elif self.height_type is None:
+        elif self.height_type == PACK:
             # top_w is a flow widget
             height = self.top_w.rows((maxcol,),focus=focus)
-            top, bottom =  calculate_filler( self.valign_type,
-                self.valign_amount, 'fixed', height,
-                None, maxrow )
+            top, bottom =  calculate_top_bottom_filler(maxrow,
+                self.valign_type, self.valign_amount,
+                GIVEN, height, None, self.left, self.right)
             if height > maxrow: # flow widget rendered too large
                 bottom = maxrow - height
         else:
-            top, bottom = calculate_filler(self.valign_type,
-                self.valign_amount, self.height_type,
-                self.height_amount, self.min_height, maxrow)
+            top, bottom = calculate_top_bottom_filler(maxrow,
+                self.valign_type, self.valign_amount,
+                self.height_type, self.height_amount,
+                self.min_height, self.left, self.right)
         return left, right, top, bottom
 
     def top_w_size(self, size, left, right, top, bottom):
         """Return the size to pass to top_w."""
-        if self.width_type is None:
+        if self.width_type == PACK:
             # top_w is a fixed widget
             return ()
         maxcol, maxrow = size
-        if self.width_type is not None and self.height_type is None:
+        if self.width_type != PACK and self.height_type == PACK:
             # top_w is a flow widget
             return (maxcol-left-right,)
         return (maxcol-left-right, maxrow-top-bottom)

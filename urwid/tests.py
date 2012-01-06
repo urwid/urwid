@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Urwid unit testing .. ok, ok, ok
-#    Copyright (C) 2004-2011  Ian Ward
+#    Copyright (C) 2004-2012  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -2545,8 +2545,11 @@ class CommonContainerTest(unittest.TestCase):
             None))
         self.assertRaises(IndexError, lambda: setattr(o, 'focus_position', 2))
 
-        self.assertEquals(o.container[0], s2)
-        self.assertEquals(o.container[1], s1)
+        self.assertEquals(o.contents[0], (s2,
+            urwid.Overlay._DEFAULT_BOTTOM_OPTIONS))
+        self.assertEquals(o.contents[1], (s1, (
+            'center', 0, 'relative', 50, 0, 0,
+            'middle', 0, 'relative', 50, 0, 0)))
 
     def test_frame(self):
         s1 = urwid.SolidFill(u'1')

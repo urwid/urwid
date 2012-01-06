@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid widget decoration classes
-#    Copyright (C) 2004-2011  Ian Ward
+#    Copyright (C) 2004-2012  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -920,12 +920,21 @@ def normalize_valign(valign, err):
         "'bottom', ('relative', percentage 0=left 100=right)"
         % (valign,))
 
+def simplify_valign(valign_type, valign_amount):
+    """
+    Recombine (valign_type, valign_amount) into an valign value.
+    Inverse of normalize_valign.
+    """
+    if valign_type == RELATIVE:
+        return (valign_type, valign_amount)
+    return valign_type
+
 def normalize_height(height, err):
     """
     Split height into (height_type, height_amount).  Raise exception err
     if height isn't valid.
     """
-    if height == FLOW:
+    if height in (FLOW, PACK):
         return (height, 0)
     elif (isinstance(height, tuple) and len(height) == 2 and
             height[0] == RELATIVE):
@@ -935,6 +944,17 @@ def normalize_height(height, err):
     raise err("height value %r is not one of fixed number of columns, "
         "'pack', ('relative', percentage of total height)"
         % (height,))
+
+def simplify_height(height_type, height_amount):
+    """
+    Recombine (height_type, height_amount) into an height value.
+    Inverse of normalize_height.
+    """
+    if height_type in (FLOW, PACK):
+        return height_type
+    elif height_type == GIVEN:
+        return height_amount
+    return (height_type, height_amount)
 
 
 def calculate_top_bottom_filler(maxrow, valign_type, valign_amount, height_type,
@@ -1000,53 +1020,6 @@ def calculate_top_bottom_filler(maxrow, valign_type, valign_amount, height_type,
     top = max(top, 0)
     bottom = max(bottom, 0)
 
-    return top, bottom
-
-
-def calculate_filler( valign_type, valign_amount, height_type, height_amount,
-              min_height, maxrow ):
-    # FIXME: remove this when Overlay is no longer calling it
-    if height_type == 'fixed':
-        height = height_amount
-    elif height_type == 'relative':
-        height = int(height_amount*maxrow // 100)
-        if min_height is not None:
-                height = max(height, min_height)
-    else:
-        assert height_type in ('fixed bottom','fixed top')
-        height = maxrow-height_amount-valign_amount
-        if min_height is not None:
-                height = max(height, min_height)
-
-    if height >= maxrow:
-        # use the full space (no padding)
-        return 0, 0
-
-    if valign_type == 'fixed top':
-        top = valign_amount
-        if top+height <= maxrow:
-            return top, maxrow-top-height
-        # need to shrink top
-        return maxrow-height, 0
-    elif valign_type == 'fixed bottom':
-        bottom = valign_amount
-        if bottom+height <= maxrow:
-            return maxrow-bottom-height, bottom
-        # need to shrink bottom
-        return 0, maxrow-height
-    elif valign_type == 'relative':
-        top = int( (maxrow-height)*valign_amount // 100)
-    elif valign_type == 'bottom':
-        top = maxrow-height
-    elif valign_type == 'middle':
-        top = int( (maxrow-height)/2 )
-    else: #self.valign_type == 'top'
-        top = 0
-
-    if top+height > maxrow: top = maxrow-height
-    if top < 0: top = 0
-
-    bottom = maxrow-height-top
     return top, bottom
 
 
@@ -1120,54 +1093,6 @@ def calculate_left_right_padding(maxcol, align_type, align_amount,
 
     return left, right
 
-
-def calculate_padding( align_type, align_amount, width_type, width_amount,
-        min_width, maxcol, clip=False ):
-    # FIXME: remove this when Overlay is no longer calling it
-    if width_type == 'fixed':
-        width = width_amount
-    elif width_type == 'relative':
-        width = int(width_amount*maxcol/100+.5)
-        if min_width is not None:
-                width = max(width, min_width)
-    else:
-        assert width_type in ('fixed right', 'fixed left')
-        width = maxcol-width_amount-align_amount
-        if min_width is not None:
-                width = max(width, min_width)
-
-    if width == maxcol or (width > maxcol and not clip):
-        # use the full space (no padding)
-        return 0, 0
-
-    if align_type == 'fixed left':
-        left = align_amount
-        if left+width <= maxcol:
-            return left, maxcol-left-width
-        # need to shrink left
-        return maxcol-width, 0
-    elif align_type == 'fixed right':
-        right = align_amount
-        if right+width <= maxcol:
-            return maxcol-right-width, right
-        # need to shrink right
-        return 0, maxcol-width
-    elif align_type == 'relative':
-        left = int( (maxcol-width)*align_amount/100+.5 )
-    elif align_type == 'right':
-        left = maxcol-width
-    elif align_type == 'center':
-        left = int( (maxcol-width)/2 )
-    else:
-        assert align_type == 'left'
-        left = 0
-
-    if width < maxcol:
-        if left+width > maxcol: left = maxcol-width
-        if left < 0: left = 0
-
-    right = maxcol-width-left
-    return left, right
 
 
 def _test():
