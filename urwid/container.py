@@ -924,19 +924,20 @@ class Pile(Widget):
             selectable widget will be chosen.
 
         widget_list may also contain tuples such as:
-        (given_height, widget) always treat widget as a box widget and
+        (given_height, widget) -- always treat widget as a box widget and
             give it given_height rows, where given_height is an int
-        ('flow', widget) always treat widget as a flow widget, allowing
-            it to calculate its own height by calling its rows() method
+        ('pack', widget) -- allow widget to calculate its own height by
+            calling its rows() method, ie. treat it as a flow widget.
         ('weight', weight, widget) if the pile is treated as a box
             widget then treat widget as a box widget with a
             height based on its relative weight value, otherwise
-            treat the same as ('flow', widget).
+            treat the same as ('pack', widget).
 
         Widgets not in a tuple are the same as ('weight', 1, widget)
 
         For backwards compatibility ('fixed', given_height, widget) is
-        accepted as an alternate form of (given_height, widget).
+        accepted as an alternate form of (given_height, widget), and
+        ('flow', widget) is accepted for ('pack', widget).
 
         If the Pile is treated as a box widget there must be at least
         one 'weight' tuple in widget_list.
@@ -952,9 +953,9 @@ class Pile(Widget):
             w = original
             if not isinstance(w, tuple):
                 self.contents.append((w, (WEIGHT, 1)))
-            elif w[0] == FLOW:
+            elif w[0] in (FLOW, PACK):
                 f, w = w
-                self.contents.append((w, (FLOW, None)))
+                self.contents.append((w, (PACK, None)))
             elif len(w) == 2:
                 height, w = w
                 self.contents.append((w, (GIVEN, height)))
@@ -979,7 +980,7 @@ class Pile(Widget):
         for item in new_items:
             try:
                 w, (t, n) = item
-                if t not in (FLOW, GIVEN, WEIGHT):
+                if t not in (PACK, GIVEN, WEIGHT):
                     raise ValueError
             except (TypeError, ValueError):
                 raise PileError("added content invalid: %r" % (item,))
@@ -1007,7 +1008,7 @@ class Pile(Widget):
     def _get_item_types(self):
         ml = MonitoredList(
             # return the old item type names
-            ({GIVEN: FIXED}.get(f, f), height)
+            ({GIVEN: FIXED, PACK: FLOW}.get(f, f), height)
             for w, (f, height) in self.contents)
         def user_modified():
             self._set_item_types(ml)
@@ -1016,13 +1017,13 @@ class Pile(Widget):
     def _set_item_types(self, item_types):
         focus_position = self.focus_position
         self.contents = [
-            (w, ({FIXED: GIVEN}.get(new_t, new_t), new_height))
+            (w, ({FIXED: GIVEN, FLOW: PACK}.get(new_t, new_t), new_height))
             for ((new_t, new_height), (w, options))
             in zip(item_types, self.contents)]
         if focus_position < len(item_types):
             self.focus_position = focus_position
     item_types = property(_get_item_types, _set_item_types, doc="""
-        A list of the height_calc values for widgets in this Pile, for
+        A list of the options values for widgets in this Pile, for
         backwards compatibility only.  You should use the new standard
         container property .contents to modify Pile contents.
         """)
@@ -1035,18 +1036,18 @@ class Pile(Widget):
         The contents of this Pile as a list of (widget, options) tuples.
 
         options currently may be one of:
-        ('flow', None) -- Always treat widget as a flow widget, i.e. let it
-            calculate the number of rows it will display.
+        ('pack', None) -- allow widget to calculate its own height by
+            calling its rows() method, i.e. treat it as a flow widget.
         ('given', n) -- Always treat widget as a box widget with a given
             height of n rows.
         ('weight', w) -- If the Pile itself is treated as a box widget then
             the value w will be used as a relative weight for assigning rows
             to this box widget.  If the Pile is being treated as a flow
-            widget then this is the same as ('flow', None) and the w value
+            widget then this is the same as ('pack', None) and the w value
             is ignored.
 
         If the Pile itself is treated as a box widget then at least one
-        widget must have a ('weight', w) height_calc value, or the Pile will
+        widget must have a ('weight', w) options value, or the Pile will
         not be able to grow to fill the required number of rows.
 
         This list may be modified like a normal list and the Pile widget
@@ -1057,19 +1058,19 @@ class Pile(Widget):
         """)
 
     @classmethod
-    def options(cls, height_calc=WEIGHT, height_amount=1):
+    def options(cls, height_type=WEIGHT, height_amount=1):
         """
         Return a new options tuple for use in a Pile's .contents list.
 
-        height_calc -- 'flow', 'given' or 'weight'
-        height_amount -- None for 'flow', a number of rows for 'fixed'
+        height_type -- 'pack', 'given' or 'weight'
+        height_amount -- None for 'pack', a number of rows for 'fixed'
             or a weight value for 'weight'
         """
-        if height_calc == FLOW:
-            return (FLOW, None)
-        if height_calc not in (GIVEN, WEIGHT):
-            raise PileError('invalid height_calc: %r' % (height_calc,))
-        return (height_calc, height_amount)
+        if height_type == PACK:
+            return (PACK, None)
+        if height_type not in (GIVEN, WEIGHT):
+            raise PileError('invalid height_type: %r' % (height_type,))
+        return (height_type, height_amount)
 
     def __getitem__(self, position):
         """
@@ -1190,7 +1191,7 @@ class Pile(Widget):
         # do an extra pass to calculate rows for each widget
         wtotal = 0
         for w, (f, height) in self.contents:
-            if f == FLOW:
+            if f == PACK:
                 rows = w.rows((maxcol,), focus=focus and self.focus_item == w)
                 l.append(rows)
                 remaining -= rows
@@ -1230,7 +1231,7 @@ class Pile(Widget):
             canv = None
             if f == GIVEN:
                 canv = w.render((maxcol, height), focus=focus and item_focus)
-            elif f == FLOW or len(size)==1:
+            elif f == PACK or len(size)==1:
                 canv = w.render((maxcol,), focus=focus and item_focus)
             else:
                 if item_rows is None:

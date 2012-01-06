@@ -2357,13 +2357,13 @@ class CommonContainerTest(unittest.TestCase):
         self.assertRaises(IndexError, lambda: setattr(p, 'focus_position',
             None))
         self.assertRaises(IndexError, lambda: setattr(p, 'focus_position', 0))
-        p.contents = [(t1, ('flow', None)), (t2, ('flow', None)),
-            (sf, ('given', 3)), (t3, ('flow', None))]
+        p.contents = [(t1, ('pack', None)), (t2, ('pack', None)),
+            (sf, ('given', 3)), (t3, ('pack', None))]
         p.focus_position = 1
         del p.contents[0]
         self.assertEquals(p.focus_position, 0)
-        p.contents[0:0] = [(t3, ('flow', None)), (t2, ('flow', None))]
-        p.contents.insert(3, (t1, ('flow', None)))
+        p.contents[0:0] = [(t3, ('pack', None)), (t2, ('pack', None))]
+        p.contents.insert(3, (t1, ('pack', None)))
         self.assertEquals(p.focus_position, 2)
         self.assertRaises(urwid.PileError, lambda: p.contents.append(t1))
         self.assertRaises(urwid.PileError, lambda: p.contents.append((t1, None)))
@@ -2393,7 +2393,7 @@ class CommonContainerTest(unittest.TestCase):
         self.assertEquals(p.focus_position, 1) # focus unchanged
         p.item_types = [('flow', None), ('weight', 2)]
         self.assertEquals(p.item_types, [('flow', None), ('weight', 2)])
-        self.assertEquals(p.contents, [(t2, ('flow', None)), (t1, ('weight', 2))])
+        self.assertEquals(p.contents, [(t2, ('pack', None)), (t1, ('weight', 2))])
         self.assertEquals(p.focus_position, 1) # focus unchanged
         p.widget_list = [t1]
         self.assertEquals(len(p.contents), 1)
