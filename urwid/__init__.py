@@ -34,7 +34,7 @@ from urwid.container import (GridFlow, OverlayError, Overlay,
 from urwid.wimp import (SelectableIcon, CheckBoxError, CheckBox, RadioButton,
     Button, PopUpLauncher, PopUpTarget)
 from urwid.listbox import (ListWalkerError, ListWalker, PollingListWalker,
-    SimpleListWalker, ListBoxError, ListBox)
+    SimpleListWalker, SimpleFocusListWalker, ListBoxError, ListBox)
 from urwid.graphics import (BigText, LineBox, BarGraphMeta, BarGraphError,
     BarGraph, GraphVScale, ProgressBar, scale_bar_values)
 from urwid.canvas import (CanvasCache, CanvasError, Canvas, TextCanvas,

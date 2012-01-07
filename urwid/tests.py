@@ -2488,7 +2488,7 @@ class CommonContainerTest(unittest.TestCase):
         self.assertEquals(len(c.contents), 1)
 
     def test_list_box(self):
-        lb = urwid.ListBox(urwid.SimpleListWalker([]))
+        lb = urwid.ListBox(urwid.SimpleFocusListWalker([]))
         self.assertEquals(lb.focus, None)
         self.assertRaises(IndexError, lambda: getattr(lb, 'focus_position'))
         self.assertRaises(IndexError, lambda: setattr(lb, 'focus_position',

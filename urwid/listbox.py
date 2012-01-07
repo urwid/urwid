@@ -25,7 +25,7 @@ from urwid.widget import Widget, nocache_widget_render_instance, BOX, GIVEN
 from urwid.decoration import calculate_top_bottom_filler, simplify_valign
 from urwid import signals
 from urwid.signals import connect_signal
-from urwid.monitored_list import MonitoredList
+from urwid.monitored_list import MonitoredList, MonitoredFocusList
 
 
 class ListWalkerError(Exception):
@@ -35,8 +35,6 @@ class ListWalker(object):
     __metaclass__ = signals.MetaSignals
 
     signals = ["modified"]
-
-    def __hash__(self): return id(self)
 
     def _modified(self):
         signals.emit_signal(self, "modified")
@@ -160,6 +158,67 @@ class SimpleListWalker(MonitoredList, ListWalker):
         pos = start_from - 1
         if pos < 0: return None, None
         return self[pos],pos
+
+
+class SimpleFocusListWalker(MonitoredFocusList, ListWalker):
+    def __init__(self, contents):
+        """
+        contents -- list to copy into this object
+
+        Changes made to this object (when it is treated as a list) are
+        detected automatically and will cause ListBox objects using
+        this list walker to be updated.
+
+        Also, items added or removed before the widget in focus with
+        normal list methods will cause the focus to be updated
+        intelligently.
+        """
+        if not getattr(contents, '__getitem__', None):
+            raise ListWalkerError("SimpleFocusListWalker expecting list like "
+                "object, got: %r"%(contents,))
+        MonitoredFocusList.__init__(self, contents)
+
+    def _modified(self):
+        if self.focus >= len(self):
+            self.focus = max(0, len(self)-1)
+        ListWalker._modified(self)
+
+    def set_modified_callback(self, callback):
+        """
+        This function inherited from MonitoredList is not
+        implemented in SimpleFocusListWalker.
+
+        Use connect_signal(list_walker, "modified", ...) instead.
+        """
+        raise NotImplementedError('Use connect_signal('
+            'list_walker, "modified", ...) instead.')
+
+    def get_focus(self):
+        """Return (focus widget, focus position)."""
+        focus = self.focus
+        if focus is None: return None, None
+        return self[focus], focus
+
+    def set_focus(self, position):
+        """Set focus position."""
+        self.focus = position
+
+    def get_next(self, start_from):
+        """
+        Return (widget after start_from, position after start_from).
+        """
+        pos = start_from + 1
+        if len(self) <= pos: return None, None
+        return self[pos],pos
+
+    def get_prev(self, start_from):
+        """
+        Return (widget before start_from, position before start_from).
+        """
+        pos = start_from - 1
+        if pos < 0: return None, None
+        return self[pos],pos
+
 
 
 class ListBoxError(Exception):
@@ -437,8 +496,12 @@ class ListBox(Widget):
         coming_from -- set to 'above' or 'below' if you know that
                        old position is above or below the new position.
         """
-        assert coming_from in ('above', 'below', None)
+        if coming_from not in ('above', 'below', None):
+            raise ListBoxError("coming_from value invalid: %r" %
+                (coming_from,))
         focus_widget, focus_pos = self.body.get_focus()
+        if focus_widget is None:
+            raise IndexError("Can't set focus, ListBox is empty")
 
         self.set_focus_pending = coming_from, focus_widget, focus_pos
         self.body.set_focus(position)

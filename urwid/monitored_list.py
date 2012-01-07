@@ -226,8 +226,9 @@ class MonitoredFocusList(MonitoredList):
     def _adjust_focus_on_contents_modified(self, slc, new_items=()):
         """
         Default behaviour is to move the focus to the item following
-        any removed items, or the last item in the list if that doesn't
-        exist.
+        any removed items, unless that item was simply replaced.
+
+        Failing that choose the last item in the list.
 
         returns focus position for after change is applied
         """
@@ -295,6 +296,8 @@ class MonitoredFocusList(MonitoredList):
         range(0, 1, 1) <- [9]
         >>> ml[2] = 6
         range(2, 3, 1) <- [6]
+        >>> ml.focus
+        2
         >>> ml[-1] = 8
         range(3, 4, 1) <- [8]
         >>> ml
