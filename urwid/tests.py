@@ -2564,16 +2564,27 @@ class CommonContainerTest(unittest.TestCase):
 
         t1 = urwid.Text(u'one')
         t2 = urwid.Text(u'two')
+        t3 = urwid.Text(u'three')
         f = urwid.Frame(s1, t1, t2, 'header')
         self.assertEquals(f.focus, t1)
         self.assertEquals(f.focus_position, 'header')
         f.focus_position = 'footer'
         self.assertEquals(f.focus, t2)
         self.assertEquals(f.focus_position, 'footer')
-        f.focus_position = 'body'
         self.assertRaises(IndexError, lambda: setattr(f, 'focus_position', -1))
         self.assertRaises(IndexError, lambda: setattr(f, 'focus_position', 2))
-
+        del f.contents['footer']
+        self.assertEquals(f.footer, None)
+        self.assertEquals(f.focus_position, 'body')
+        f.contents.update(footer=(t3, None), header=(t2, None))
+        self.assertEquals(f.header, t2)
+        self.assertEquals(f.footer, t3)
+        def set1():
+            f.contents['body'] = t1
+        self.assertRaises(urwid.FrameError, set1)
+        def set2():
+            f.contents['body'] = (t1, 'given')
+        self.assertRaises(urwid.FrameError, set2)
 
 
 def test_all():

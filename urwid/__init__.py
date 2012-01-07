@@ -2,7 +2,7 @@
 #
 # Urwid __init__.py - all the stuff you're likely to care about
 #
-#    Copyright (C) 2004-2011  Ian Ward
+#    Copyright (C) 2004-2012  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -30,7 +30,7 @@ from urwid.decoration import (WidgetDecoration, WidgetPlaceholder,
     AttrMapError, AttrMap, AttrWrap, BoxAdapterError, BoxAdapter, PaddingError,
     Padding, FillerError, Filler)
 from urwid.container import (GridFlow, OverlayError, Overlay,
-    Frame, PileError, Pile, ColumnsError, Columns)
+    FrameError, Frame, PileError, Pile, ColumnsError, Columns)
 from urwid.wimp import (SelectableIcon, CheckBoxError, CheckBox, RadioButton,
     Button, PopUpLauncher, PopUpTarget)
 from urwid.listbox import (ListWalkerError, ListWalker, PollingListWalker,

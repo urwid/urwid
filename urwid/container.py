@@ -482,7 +482,7 @@ class Overlay(Widget):
 
     def _contents(self):
         class OverlayContents(object):
-            def __len__(self):
+            def __len__(inner_self):
                 return 2
             __getitem__ = self._contents__getitem__
             __setitem__ = self._contents__setitem__
@@ -503,7 +503,7 @@ class Overlay(Widget):
     def _contents__setitem__(self, index, value):
         try:
             value_w, value_options = value
-        except ValueError:
+        except (ValueError, TypeError):
             raise OverlayError("added content invalid: %r" % (value,))
         if index == 0:
             if value_options != self._DEFAULT_BOTTOM_OPTIONS:
@@ -516,7 +516,7 @@ class Overlay(Widget):
                     min_width, left, right, valign_type, valign_amount,
                     height_type, height_amount, min_height, top, bottom,
                     ) = value_options
-            except ValueError:
+            except (ValueError, TypeError):
                 raise OverlayError("top_options is invalid: %r"
                     % (value_options,))
             # normalize first, this is where errors are raised
@@ -671,12 +671,23 @@ class Overlay(Widget):
             event, button, col-left, row-top, focus )
 
 
+class FrameError(Exception):
+    pass
+
 class Frame(Widget):
     _selectable = True
     _sizing = frozenset([BOX])
 
     def __init__(self, body, header=None, footer=None, focus_part='body'):
         """
+        Frame widget is a box widget with optional header and footer
+        flow widgets placed above and below the box widget.
+
+        The main difference between a Frame and a Pile widget defined
+        as: Pile([('pack', header), body, ('pack', footer)]) is that
+        the Frame will not automatically change focus up and down in
+        response to keystrokes.
+
         body -- a box widget for the body of the frame
         header -- a flow widget for above the body (or None)
         footer -- a flow widget for below the body (or None)
@@ -693,6 +704,8 @@ class Frame(Widget):
         return self._header
     def set_header(self, header):
         self._header = header
+        if header is None and self.focus_part == 'header':
+            self.focus_part = 'body'
         self._invalidate()
     header = property(get_header, set_header)
 
@@ -707,6 +720,8 @@ class Frame(Widget):
         return self._footer
     def set_footer(self, footer):
         self._footer = footer
+        if footer is None and self.focus_part == 'footer':
+            self.focus_part = 'body'
         self._invalidate()
     footer = property(get_footer, set_footer)
 
@@ -748,6 +763,101 @@ class Frame(Widget):
     focus_position = property(get_focus, set_focus, doc="""
         the part of the frame that is in focus: 'body', 'header' or 'footer'
         """)
+
+    def _contents(self):
+        class FrameContents(object):
+            def __len__(inner_self):
+                return len(inner_self.keys())
+            def items(inner_self):
+                return [(k, inner_self[k]) for k in inner_self.keys()]
+            def values(inner_self):
+                return [inner_self[k] for k in inner_self.keys()]
+            def update(inner_self, E=None, **F):
+                if E:
+                    keys = getattr(E, 'keys', None)
+                    if keys:
+                        for k in E:
+                            inner_self[k] = E[k]
+                    else:
+                        for k, v in E:
+                            inner_self[k] = v
+                for k in F:
+                    inner_self[k] = F[k]
+            keys = self._contents_keys
+            __getitem__ = self._contents__getitem__
+            __setitem__ = self._contents__setitem__
+            __delitem__ = self._contents__delitem__
+        return FrameContents()
+    def _contents_keys(self):
+        keys = ['body']
+        if self._header:
+            keys.append('header')
+        if self._footer:
+            keys.append('footer')
+        return keys
+    def _contents__getitem__(self, key):
+        if key == 'body':
+            return (self._body, None)
+        if key == 'header' and self._header:
+            return (self._header, None)
+        if key == 'footer' and self._footer:
+            return (self._footer, None)
+        raise KeyError("Frame.contents has no key: %r" % (key,))
+    def _contents__setitem__(self, key, value):
+        if key not in ('body', 'header', 'footer'):
+            raise KeyError("Frame.contents has no key: %r" % (key,))
+        try:
+            value_w, value_options = value
+            if value_options is not None:
+                raise ValueError
+        except (ValueError, TypeError):
+            raise FrameError("added content invalid: %r" % (value,))
+        if key == 'body':
+            self.body = value_w
+        elif key == 'footer':
+            self.footer = value_w
+        else:
+            self.header = value_w
+    def _contents__delitem__(self, key):
+        if key not in ('header', 'footer'):
+            raise KeyError("Frame.contents can't remove key: %r" % (key,))
+        if (key == 'header' and self._header is None
+                ) or (key == 'footer' and self._footer is None):
+            raise KeyError("Frame.contents has no key: %r" % (key,))
+        if key == 'header':
+            self.header = None
+        else:
+            self.footer = None
+    contents = property(_contents, doc="""
+        a dict-like object similar to:
+            {'body': (body_widget, None),
+             'header': (header_widget, None),  # if frame has a header
+             'footer': (footer_widget, None),} # if frame has a footer
+
+        This object may be used to read or update the contents of the Frame.
+
+        The values are similar to the the list-like .contents objects used
+        in other containers with (widget, options) tuples, but are
+        constrained to keys for each of the three usual parts of a Frame.
+        When other keys are used a KeyError will be raised.
+
+        Currently all options are None, but using Frame.options() class method
+        to create the options value is recommended for forwards compatibility.
+        """)
+    def __getitem__(self, position):
+        """
+        Container short-cut for self.contents[position][0].base_widget
+        """
+        return self.contents[position][0].base_widget
+
+    @classmethod
+    def options(cls):
+        """
+        There are currently no options for Frame contents.
+
+        Return None as a placeholder for future options.
+        """
+        return None
 
     def frame_top_bottom(self, size, focus):
         """Calculate the number of rows for the header and footer.
