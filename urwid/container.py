@@ -33,6 +33,8 @@ from urwid.canvas import (CompositeCanvas, CanvasOverlay, CanvasCombine,
     SolidCanvas, CanvasJoin)
 
 
+class GridFlowError(Exception):
+    pass
 
 class GridFlow(WidgetWrap):
     def sizing(self):
@@ -68,7 +70,7 @@ class GridFlow(WidgetWrap):
         for item in new_items:
             try:
                 w, (t, n) = item
-                if t != (GIVEN,):
+                if t != GIVEN:
                     raise ValueError
             except (TypeError, ValueError):
                 raise GridFlowError("added content invalid %r" % (item,))
@@ -121,13 +123,12 @@ class GridFlow(WidgetWrap):
         This list may be modified like a normal list and the GridFlow
         widget will update automatically.
 
-        Create new options tuples with the GridFlow.options() class
-        method for forward compatibility, as more options may be added
-        in the future.
+        Create new options tuples with the options() method for
+        forward compatibility, as more options may be added in the
+        future.
         """)
 
-    @classmethod
-    def options(cls, width_type=GIVEN, width_amount=None):
+    def options(self, width_type=GIVEN, width_amount=None):
         """
         Return a new options tuple for use in a GridFlow's .contents list.
 
@@ -139,6 +140,12 @@ class GridFlow(WidgetWrap):
         if width_amount is None:
             width_amount = self._cell_width
         return (width_type, width_amount)
+
+    def __getitem__(self, position):
+        """
+        Container short-cut for self.contents[position][0].base_widget
+        """
+        return self.contents[position][0].base_widget
 
     def set_focus(self, cell):
         """
@@ -841,8 +848,9 @@ class Frame(Widget):
         constrained to keys for each of the three usual parts of a Frame.
         When other keys are used a KeyError will be raised.
 
-        Currently all options are None, but using Frame.options() class method
-        to create the options value is recommended for forwards compatibility.
+        Currently all options are None, but using the options() method
+        to create the options value is recommended for forwards
+        compatibility.
         """)
     def __getitem__(self, position):
         """
@@ -850,8 +858,7 @@ class Frame(Widget):
         """
         return self.contents[position][0].base_widget
 
-    @classmethod
-    def options(cls):
+    def options(self):
         """
         There are currently no options for Frame contents.
 
@@ -1165,12 +1172,11 @@ class Pile(Widget):
         This list may be modified like a normal list and the Pile widget
         will updated automatically.
 
-        Create new options tuples with the Pile.options() class method for
-        forward compatibility, as more items may be added in the future.
+        Create new options tuples with the options() method for forward
+        compatibility, as more items may be added in the future.
         """)
 
-    @classmethod
-    def options(cls, height_type=WEIGHT, height_amount=1):
+    def options(self, height_type=WEIGHT, height_amount=1):
         """
         Return a new options tuple for use in a Pile's .contents list.
 
@@ -1712,13 +1718,11 @@ class Columns(Widget):
         This list may be modified like a normal list and the Columns
         widget will update automatically.
 
-        Create new options tuples with the Columns.options() class
-        method for forward compatibility, as more options may be added
-        in the future.
+        Create new options tuples with the options() method for forward
+        compatibility, as more options may be added in the future.
         """)
 
-    @classmethod
-    def options(cls, width_type=WEIGHT, width_amount=1, box_widget=False):
+    def options(self, width_type=WEIGHT, width_amount=1, box_widget=False):
         """
         Return a new options tuple for use in a Pile's .contents list.
 
@@ -1733,6 +1737,12 @@ class Columns(Widget):
         if width_type not in (PACK, GIVEN, WEIGHT):
             raise ColumnsError('invalid width_type: %r' % (width_type,))
         return (width_type, width_amount, box_widget)
+
+    def __getitem__(self, position):
+        """
+        Container short-cut for self.contents[position][0].base_widget
+        """
+        return self.contents[position][0].base_widget
 
     def _invalidate(self):
         self._cache_maxcol = None

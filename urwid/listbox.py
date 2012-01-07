@@ -598,6 +598,14 @@ class ListBox(Widget):
         """
         return self.contents[position][0].base_widget
 
+    def options(self):
+        """
+        There are currently no options for ListBox contents.
+
+        Return None as a placeholder for future options.
+        """
+        return None
+
     def _set_focus_valign_complete(self, size, focus):
         """
         Finish setting the offset and inset now that we have have a

@@ -2510,27 +2510,38 @@ class CommonContainerTest(unittest.TestCase):
     def test_grid_flow(self):
         gf = urwid.GridFlow([], 5, 1, 0, 'left')
         self.assertEquals(gf.focus, None)
+        self.assertEquals(gf.contents, [])
         self.assertRaises(IndexError, lambda: getattr(gf, 'focus_position'))
         self.assertRaises(IndexError, lambda: setattr(gf, 'focus_position',
             None))
         self.assertRaises(IndexError, lambda: setattr(gf, 'focus_position', 0))
+        self.assertEquals(gf.options(), ('given', 5))
+        self.assertEquals(gf.options(width_amount=9), ('given', 9))
+        self.assertRaises(urwid.GridFlowError, lambda: gf.options(
+            'pack', None))
 
         t1 = urwid.Text(u'one')
         t2 = urwid.Text(u'two')
         gf = urwid.GridFlow([t1, t2], 5, 1, 0, 'left')
         self.assertEquals(gf.focus, t1)
         self.assertEquals(gf.focus_position, 0)
+        self.assertEquals(gf.contents, [(t1, ('given', 5)), (t2, ('given', 5))])
         gf.focus_position = 1
         self.assertEquals(gf.focus, t2)
         self.assertEquals(gf.focus_position, 1)
+        gf.contents.insert(0, (t2, ('given', 5)))
+        self.assertEquals(gf.focus_position, 2)
+        self.assertRaises(urwid.GridFlowError, lambda: gf.contents.append(()))
+        self.assertRaises(urwid.GridFlowError, lambda: gf.contents.insert(1,
+            (t1, ('pack', None))))
         gf.focus_position = 0
         self.assertRaises(IndexError, lambda: setattr(gf, 'focus_position', -1))
-        self.assertRaises(IndexError, lambda: setattr(gf, 'focus_position', 2))
+        self.assertRaises(IndexError, lambda: setattr(gf, 'focus_position', 3))
         # old methods:
         gf.set_focus(0)
         self.assertRaises(IndexError, lambda: gf.set_focus(-1))
-        self.assertRaises(IndexError, lambda: gf.set_focus(2))
-        gf.set_focus(t2)
+        self.assertRaises(IndexError, lambda: gf.set_focus(3))
+        gf.set_focus(t1)
         self.assertEquals(gf.focus_position, 1)
         self.assertRaises(ValueError, lambda: gf.set_focus('nonexistant'))
 
