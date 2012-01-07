@@ -1717,7 +1717,7 @@ class ZeroHeightContentsTest(unittest.TestCase):
             [urwid.Pile([])]))
         lb.render((40,10), focus=True)
 
-    def test_listbux_text_pile_page_down(self):
+    def test_listbox_text_pile_page_down(self):
         lb = urwid.ListBox(urwid.SimpleListWalker(
             [urwid.Text(u'above'), urwid.Pile([])]))
         lb.keypress((40,10), 'page down')
@@ -1725,7 +1725,7 @@ class ZeroHeightContentsTest(unittest.TestCase):
         lb.keypress((40,10), 'page down') # second one caused ListBox failure
         self.assertEquals(lb.get_focus()[1], 0)
 
-    def test_listbux_text_pile_page_up(self):
+    def test_listbox_text_pile_page_up(self):
         lb = urwid.ListBox(urwid.SimpleListWalker(
             [urwid.Pile([]), urwid.Text(u'below')]))
         lb.set_focus(1)
@@ -1734,7 +1734,7 @@ class ZeroHeightContentsTest(unittest.TestCase):
         lb.keypress((40,10), 'page up') # second one caused pile failure
         self.assertEquals(lb.get_focus()[1], 1)
 
-    def test_listbux_text_pile_down(self):
+    def test_listbox_text_pile_down(self):
         sp = urwid.Pile([])
         sp.selectable = lambda: True # abuse our Pile
         lb = urwid.ListBox(urwid.SimpleListWalker([urwid.Text(u'above'), sp]))
@@ -1743,7 +1743,7 @@ class ZeroHeightContentsTest(unittest.TestCase):
         lb.keypress((40,10), 'down')
         self.assertEquals(lb.get_focus()[1], 0)
 
-    def test_listbux_text_pile_up(self):
+    def test_listbox_text_pile_up(self):
         sp = urwid.Pile([])
         sp.selectable = lambda: True # abuse our Pile
         lb = urwid.ListBox(urwid.SimpleListWalker([sp, urwid.Text(u'below')]))

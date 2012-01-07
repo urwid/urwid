@@ -39,6 +39,45 @@ class ListWalker(object):
     def _modified(self):
         signals.emit_signal(self, "modified")
 
+    def get_focus(self):
+        """
+        This default implementation relies on a focus attribute and a
+        __getitem__() method defined in a subclass.
+
+        Override and don't call this method if these are not defined.
+        """
+        try:
+            focus = self.focus
+            return self[focus], focus
+        except (IndexError, KeyError, TypeError):
+            return None, None
+
+    def get_next(self, position):
+        """
+        This default implementation relies on a next_position() method and a
+        __getitem__() method defined in a subclass.
+
+        Override and don't call this method if these are not defined.
+        """
+        try:
+            position = self.next_position(position)
+            return self[position], position
+        except (IndexError, KeyError):
+            return None, None
+
+    def get_prev(self, position):
+        """
+        This default implementation relies on a prev_position() method and a
+        __getitem__() method defined in a subclass.
+
+        Override and don't call this method if these are not defined.
+        """
+        try:
+            position = self.prev_position(position)
+            return self[position], position
+        except (IndexError, KeyError):
+            return None, None
+
 
 class PollingListWalker(object):  # NOT ListWalker subclass
     def __init__(self, contents):
@@ -49,12 +88,12 @@ class PollingListWalker(object):  # NOT ListWalker subclass
         """
         import warnings
         warnings.warn("PollingListWalker is deprecated, "
-            "use SimpleListWalker instead.", DeprecationWarning)
+            "use SimpleFocusListWalker instead.", DeprecationWarning)
 
         self.contents = contents
-        if not type(contents) == list and not hasattr(
-            contents, '__getitem__' ):
-            raise ListWalkerError, "SimpleListWalker expecting list like object, got: %r"%(contents,)
+        if not getattr(contents, '__getitem__', None):
+            raise ListWalkerError("PollingListWalker expecting list like "
+                "object, got: %r" % (contents,))
         self.focus = 0
 
     def _clamp_focus(self):
@@ -128,36 +167,31 @@ class SimpleListWalker(MonitoredList, ListWalker):
         raise NotImplementedError('Use connect_signal('
             'list_walker, "modified", ...) instead.')
 
-    def get_focus(self):
-        """Return (focus widget, focus position)."""
-        if len(self) == 0: return None, None
-        return self[self.focus], self.focus
-
     def set_focus(self, position):
         """Set focus position."""
         try:
             if position < 0 or position >= len(self):
-                raise IndexError
+                raise ValueError
         except (TypeError, ValueError):
             raise IndexError, "No widget at position %s" % (position,)
         self.focus = position
         self._modified()
 
-    def get_next(self, start_from):
+    def next_position(self, position):
         """
-        Return (widget after start_from, position after start_from).
+        Return position after start_from.
         """
-        pos = start_from + 1
-        if len(self) <= pos: return None, None
-        return self[pos],pos
+        if len(self) - 1 <= position:
+            raise IndexError
+        return position + 1
 
-    def get_prev(self, start_from):
+    def prev_position(self, position):
         """
-        Return (widget before start_from, position before start_from).
+        Return position before start_from.
         """
-        pos = start_from - 1
-        if pos < 0: return None, None
-        return self[pos],pos
+        if position <= 0:
+            raise IndexError
+        return position - 1
 
 
 class SimpleFocusListWalker(MonitoredFocusList, ListWalker):
@@ -178,11 +212,6 @@ class SimpleFocusListWalker(MonitoredFocusList, ListWalker):
                 "object, got: %r"%(contents,))
         MonitoredFocusList.__init__(self, contents)
 
-    def _modified(self):
-        if self.focus >= len(self):
-            self.focus = max(0, len(self)-1)
-        ListWalker._modified(self)
-
     def set_modified_callback(self, callback):
         """
         This function inherited from MonitoredList is not
@@ -193,31 +222,25 @@ class SimpleFocusListWalker(MonitoredFocusList, ListWalker):
         raise NotImplementedError('Use connect_signal('
             'list_walker, "modified", ...) instead.')
 
-    def get_focus(self):
-        """Return (focus widget, focus position)."""
-        focus = self.focus
-        if focus is None: return None, None
-        return self[focus], focus
-
     def set_focus(self, position):
         """Set focus position."""
         self.focus = position
 
-    def get_next(self, start_from):
+    def next_position(self, position):
         """
-        Return (widget after start_from, position after start_from).
+        Return position after start_from.
         """
-        pos = start_from + 1
-        if len(self) <= pos: return None, None
-        return self[pos],pos
+        if len(self) - 1 <= position:
+            raise IndexError
+        return position + 1
 
-    def get_prev(self, start_from):
+    def prev_position(self, position):
         """
-        Return (widget before start_from, position before start_from).
+        Return position before start_from.
         """
-        pos = start_from - 1
-        if pos < 0: return None, None
-        return self[pos],pos
+        if position <= 0:
+            raise IndexError
+        return position - 1
 
 
 
@@ -233,7 +256,7 @@ class ListBox(Widget):
         body -- a ListWalker-like object that contains
             widgets to be displayed inside the list box
         """
-        if hasattr(body,'get_focus'):
+        if getattr(body, 'get_focus', None):
             self.body = body
         else:
             self.body = PollingListWalker(body)
@@ -537,6 +560,43 @@ class ListBox(Widget):
         raised by reading this property when the ListBox is empty or
         setting this property to an invalid position.
         """)
+
+    def _contents(self):
+        class ListBoxContents(object):
+            __getitem__ = self._contents__getitem__
+        return ListBoxContents()
+    def _contents__getitem__(self, key):
+        # try list walker protocol v2 first
+        getitem = getattr(self.body, '__getitem__', None)
+        if getitem:
+            try:
+                return (getitem(key), None)
+            except (IndexError, KeyError):
+                raise KeyError("ListBox.contents key not found: %r" % (key,))
+        # fall back to v1
+        w, old_focus = self.body.get_focus()
+        try:
+            try:
+                self.body.set_focus(key)
+                return self.body.get_focus()[0]
+            except (IndexError, KeyError):
+                raise KeyError("ListBox.contents key not found: %r" % (key,))
+        finally:
+            self.body.set_focus(old_focus)
+    contents = property(lambda self: self._contents, doc="""
+        An object that allows reading widgets from the ListBox's list
+        walker as a (widget, options) tuple.  None is currently the only
+        value for options.
+
+        This object may not be used to set or iterate over contents.  You
+        must use the list walker stored as .body to perform manipulation
+        and iteration, if supported.
+        """)
+    def __getitem__(self, position):
+        """
+        Container short-cut for self.contents[position][0].base_widget
+        """
+        return self.contents[position][0].base_widget
 
     def _set_focus_valign_complete(self, size, focus):
         """
@@ -962,7 +1022,6 @@ class ListBox(Widget):
         self.shift_focus((maxcol,maxrow), focus_row_offset+1)
 
 
-
     def _keypress_down(self, size):
         (maxcol, maxrow) = size
 
@@ -1043,7 +1102,6 @@ class ListBox(Widget):
 
         # if all else fails, keep the current focus.
         self.shift_focus((maxcol,maxrow), focus_row_offset-1)
-
 
 
     def _keypress_page_up(self, size):
@@ -1229,10 +1287,6 @@ class ListBox(Widget):
         rows = widget.rows((maxcol,), True)
         self.change_focus((maxcol,maxrow), pos, -(rows-1),
             'below', (self.pref_col, rows-1), 0 )
-
-
-
-
 
 
     def _keypress_page_down(self, size):
