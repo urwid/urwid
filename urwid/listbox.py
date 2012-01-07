@@ -101,12 +101,10 @@ class SimpleListWalker(MonitoredList, ListWalker):
         detected automatically and will cause ListBox objects using
         this list walker to be updated.
         """
-        if not type(contents) == list and not hasattr(contents, '__getitem__'):
+        if not getattr(contents, '__getitem__', None):
             raise ListWalkerError, "SimpleListWalker expecting list like object, got: %r"%(contents,)
         MonitoredList.__init__(self, contents)
         self.focus = 0
-
-    def __hash__(self): return id(self)
 
     def _get_contents(self):
         """
