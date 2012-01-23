@@ -20,6 +20,7 @@
 # Urwid web site: http://excess.org/urwid/
 
 
+import itertools
 
 
 class MetaSignals(type):
@@ -63,7 +64,7 @@ class Signals(object):
         """
         self._supported[sig_cls] = signals
 
-    def connect(self, obj, name, callback, user_arg=None):
+    def connect(self, obj, name, callback, user_arg=None, user_args=[]):
         """
         :param obj: the object sending a signal
         :type obj: object
@@ -71,22 +72,30 @@ class Signals(object):
         :type name: signal name
         :param callback: the function to call when that signal is sent
         :type callback: function
-        :param user_arg: optional additional argument to callback, if None
-                         no arguments will be added
+        :param user_arg: deprecated additional argument to callback (appended
+                         after the arguments passed when the signal is
+                         emitted). If None no arguments will be added.
+                         Don't use this argument, use user_args instead.
+        :param user_args: additional arguments to pass to the callback,
+                          (before any arguments passed when the signal
+                          is emitted).  Use this argument only as a
+                          keyword argument, since user_arg might be
+                          removed in the future.
+        :type user_args: iterable
 
-        When a matching signal is sent, callback will be called with
-        all the positional parameters sent with the signal.  If user_arg
-        is not None it will be sent added to the end of the positional
-        parameters sent to callback.
+        When a matching signal is sent, callback will be called. The
+        arguments it receives will be the user_args passed at connect
+        time (as individual arguments) followed by all the positional
+        parameters sent with the signal.
         """
         sig_cls = obj.__class__
         if not name in self._supported.get(sig_cls, []):
             raise NameError, "No such signal %r for object %r" % \
                 (name, obj)
         d = setdefaultattr(obj, self._signal_attr, {})
-        d.setdefault(name, []).append((callback, user_arg))
+        d.setdefault(name, []).append((callback, user_arg, user_args))
 
-    def disconnect(self, obj, name, callback, user_arg=None):
+    def disconnect(self, obj, name, callback, user_arg=None, user_args=[]):
         """
         This function will remove a callback from the list connected
         to a signal with connect_signal().
@@ -96,7 +105,7 @@ class Signals(object):
             return
         if (callback, user_arg) not in d[name]:
             return
-        d[name].remove((callback, user_arg))
+        d[name].remove((callback, user_arg, user_args))
 
     def emit(self, obj, name, *args):
         """
@@ -114,11 +123,20 @@ class Signals(object):
         """
         result = False
         d = getattr(obj, self._signal_attr, {})
-        for callback, user_arg in d.get(name, []):
-            args_copy = args
+        for callback, user_arg, user_args in d.get(name, []):
+            if user_args:
+                args_to_pass = itertools.chain(user_args, args)
+            else:
+                # Optimization: Don't create a new list when there are
+                # no user_args
+                args_to_pass = args
+
+            # The deprecated user_arg argument was added to the end
+            # instead of the beginning.
             if user_arg is not None:
-                args_copy = args + (user_arg,)
-            result |= bool(callback(*args_copy))
+                args_to_pass = itertools.chain(args_to_pass, (user_arg,))
+
+            result |= bool(callback(*args_to_pass))
         return result
 
 _signals = Signals()
