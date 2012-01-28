@@ -1824,6 +1824,12 @@ class PaddingTest(unittest.TestCase):
         self.mctest("cursor right edge",2,2,(10,2),7,5)
         self.mctest("cursor right edge+1",2,2,(10,2),8,5)
 
+    def test_reduced_padding_cursor(self):
+        p = urwid.Padding(urwid.Edit(u'',u''), left=4)
+        self.assertEquals(p.render((3,), True).cursor, (2, 0))
+        self.assertEquals(p.get_cursor_coords((3,)), (2, 0))
+
+
 
 
 class FillerTest(unittest.TestCase):
