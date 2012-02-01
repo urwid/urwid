@@ -596,6 +596,8 @@ class Padding(WidgetDecoration):
         left, right = self.padding_values(size, True)
         maxcol = size[0]
         maxvals = (maxcol-left-right,)+size[1:] 
+        if maxvals[0] == 0:
+            return None
         coords = self._original_widget.get_cursor_coords(maxvals)
         if coords is None: 
             return None

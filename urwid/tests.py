@@ -1825,9 +1825,22 @@ class PaddingTest(unittest.TestCase):
         self.mctest("cursor right edge+1",2,2,(10,2),8,5)
 
     def test_reduced_padding_cursor(self):
-        p = urwid.Padding(urwid.Edit(u'',u''), left=4)
-        self.assertEquals(p.render((3,), True).cursor, (2, 0))
-        self.assertEquals(p.get_cursor_coords((3,)), (2, 0))
+        # FIXME: This is at least consistent now, but I don't like it.
+        # pack() on an Edit should leave room for the cursor
+        # fixing this gets deep into things like Edit._shift_view_to_cursor
+        # though, so this might not get fixed for a while
+
+        p = urwid.Padding(urwid.Edit(u'',u''), width='pack', left=4)
+        self.assertEquals(p.render((10,), True).cursor, None)
+        self.assertEquals(p.get_cursor_coords((10,)), None)
+        self.assertEquals(p.render((4,), True).cursor, None)
+        self.assertEquals(p.get_cursor_coords((4,)), None)
+
+        p = urwid.Padding(urwid.Edit(u'',u''), width=('relative', 100), left=4)
+        self.assertEquals(p.render((10,), True).cursor, (4, 0))
+        self.assertEquals(p.get_cursor_coords((10,)), (4, 0))
+        self.assertEquals(p.render((4,), True).cursor, None)
+        self.assertEquals(p.get_cursor_coords((4,)), None)
 
 
 
