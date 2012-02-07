@@ -33,10 +33,27 @@ from urwid.canvas import (CompositeCanvas, CanvasOverlay, CanvasCombine,
     SolidCanvas, CanvasJoin)
 
 
+class WidgetContainerMixin(object):
+    """
+    Mixin class for widget containers implementing common container methods
+    """
+    def __getitem__(self, position):
+        """
+        Container short-cut for self.contents[position][0].base_widget
+        which means "give me the child widget at position without any
+        widget decorations".
+
+        This allows for concise traversal of nested container widgets
+        such as:
+
+            my_widget[position0][position1][position2] ...
+        """
+        return self.contents[position][0].base_widget
+
 class GridFlowError(Exception):
     pass
 
-class GridFlow(WidgetWrap):
+class GridFlow(WidgetWrap, WidgetContainerMixin):
     def sizing(self):
         return frozenset([FLOW])
 
@@ -140,12 +157,6 @@ class GridFlow(WidgetWrap):
         if width_amount is None:
             width_amount = self._cell_width
         return (width_type, width_amount)
-
-    def __getitem__(self, position):
-        """
-        Container short-cut for self.contents[position][0].base_widget
-        """
-        return self.contents[position][0].base_widget
 
     def set_focus(self, cell):
         """
@@ -342,7 +353,7 @@ class GridFlow(WidgetWrap):
 class OverlayError(Exception):
     pass
 
-class Overlay(Widget):
+class Overlay(Widget, WidgetContainerMixin):
     _selectable = True
     _sizing = frozenset([BOX])
 
@@ -575,11 +586,6 @@ class Overlay(Widget):
         writing a different value for bottom_options currently raises an
         OverlayError.
         """)
-    def __getitem__(self, position):
-        """
-        Container short-cut for self.contents[position][0].base_widget
-        """
-        return self.contents[position][0].base_widget
 
     def get_cursor_coords(self, size):
         """Return cursor coords from top_w, if any."""
@@ -681,7 +687,7 @@ class Overlay(Widget):
 class FrameError(Exception):
     pass
 
-class Frame(Widget):
+class Frame(Widget, WidgetContainerMixin):
     _selectable = True
     _sizing = frozenset([BOX])
 
@@ -852,11 +858,6 @@ class Frame(Widget):
         to create the options value is recommended for forwards
         compatibility.
         """)
-    def __getitem__(self, position):
-        """
-        Container short-cut for self.contents[position][0].base_widget
-        """
-        return self.contents[position][0].base_widget
 
     def options(self):
         """
@@ -1033,7 +1034,7 @@ class Frame(Widget):
 class PileError(Exception):
     pass
 
-class Pile(Widget):
+class Pile(Widget, WidgetContainerMixin):
     _sizing = frozenset([FLOW, BOX])
 
     def __init__(self, widget_list, focus_item=None):
@@ -1189,12 +1190,6 @@ class Pile(Widget):
         if height_type not in (GIVEN, WEIGHT):
             raise PileError('invalid height_type: %r' % (height_type,))
         return (height_type, height_amount)
-
-    def __getitem__(self, position):
-        """
-        Container short-cut for self.contents[position][0].base_widget
-        """
-        return self.contents[position][0].base_widget
 
     def selectable(self):
         """Return True if the focus item is selectable."""
@@ -1524,7 +1519,7 @@ class ColumnsError(Exception):
     pass
 
 
-class Columns(Widget):
+class Columns(Widget, WidgetContainerMixin):
     _sizing = frozenset([FLOW, BOX])
 
     def __init__(self, widget_list, dividechars=0, focus_column=None,
@@ -1737,12 +1732,6 @@ class Columns(Widget):
         if width_type not in (PACK, GIVEN, WEIGHT):
             raise ColumnsError('invalid width_type: %r' % (width_type,))
         return (width_type, width_amount, box_widget)
-
-    def __getitem__(self, position):
-        """
-        Container short-cut for self.contents[position][0].base_widget
-        """
-        return self.contents[position][0].base_widget
 
     def _invalidate(self):
         self._cache_maxcol = None

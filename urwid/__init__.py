@@ -30,7 +30,8 @@ from urwid.decoration import (WidgetDecoration, WidgetPlaceholder,
     AttrMapError, AttrMap, AttrWrap, BoxAdapterError, BoxAdapter, PaddingError,
     Padding, FillerError, Filler)
 from urwid.container import (GridFlowError, GridFlow, OverlayError, Overlay,
-    FrameError, Frame, PileError, Pile, ColumnsError, Columns)
+    FrameError, Frame, PileError, Pile, ColumnsError, Columns,
+    WidgetContainerMixin)
 from urwid.wimp import (SelectableIcon, CheckBoxError, CheckBox, RadioButton,
     Button, PopUpLauncher, PopUpTarget)
 from urwid.listbox import (ListWalkerError, ListWalker, PollingListWalker,

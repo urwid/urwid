@@ -26,6 +26,7 @@ from urwid.decoration import calculate_top_bottom_filler, simplify_valign
 from urwid import signals
 from urwid.signals import connect_signal
 from urwid.monitored_list import MonitoredList, MonitoredFocusList
+from urwid.container import WidgetContainerMixin
 
 
 class ListWalkerError(Exception):
@@ -247,7 +248,7 @@ class SimpleFocusListWalker(MonitoredFocusList, ListWalker):
 class ListBoxError(Exception):
     pass
 
-class ListBox(Widget):
+class ListBox(Widget, WidgetContainerMixin):
     _selectable = True
     _sizing = frozenset([BOX])
 
@@ -592,12 +593,7 @@ class ListBox(Widget):
         must use the list walker stored as .body to perform manipulation
         and iteration, if supported.
         """)
-    def __getitem__(self, position):
-        """
-        Container short-cut for self.contents[position][0].base_widget
-        """
-        return self.contents[position][0].base_widget
-
+    
     def options(self):
         """
         There are currently no options for ListBox contents.
