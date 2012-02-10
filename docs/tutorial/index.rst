@@ -459,6 +459,10 @@ focus column is not specified the first selectable widget will be chosen as the
 focus column. The :meth:`urwid.container.Columns.set_focus` method may be used
 to select the focus column.
 
+Also remember that you can only give a box widget to the MainLoop. So if you
+fill your Columns with flowing widgets, you need to wrap the Columns in a
+ListBox or Filler first.
+
 ``GridFlow`` Arrangment
 -----------------------
 
