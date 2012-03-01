@@ -1560,7 +1560,7 @@ class ListBox(Widget, WidgetContainerMixin):
     def __iter__(self):
         """
         Return an iterator over the positions in this ListBox.
-        
+
         If self.body does not implement positions() then iterate
         from the focus widget down to the bottom, then from above
         the focus up to the top.  This is the best we can do with

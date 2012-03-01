@@ -50,10 +50,31 @@ class WidgetContainerMixin(object):
         """
         return self.contents[position][0].base_widget
 
+
+class WidgetContainerListContentsMixin(object):
+    """
+    Mixin class for widget containers whose positions are indexes into
+    a list available as self.contents.
+    """
+    def __iter__(self):
+        """
+        Return an iterable of positions for this container from first
+        to last.
+        """
+        return xrange(len(self.contents))
+
+    def __reversed__(self):
+        """
+        Return an iterable of positions for this container from last
+        to first.
+        """
+        return xrange(len(self.contents) - 1, -1, -1)
+
+
 class GridFlowError(Exception):
     pass
 
-class GridFlow(WidgetWrap, WidgetContainerMixin):
+class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def sizing(self):
         return frozenset([FLOW])
 
@@ -353,7 +374,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin):
 class OverlayError(Exception):
     pass
 
-class Overlay(Widget, WidgetContainerMixin):
+class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     _selectable = True
     _sizing = frozenset([BOX])
 
@@ -915,7 +936,6 @@ class Frame(Widget, WidgetContainerMixin):
         return (hrows, frows),(hrows, frows)
 
 
-
     def render(self, size, focus=False):
         """Render frame and return it."""
         (maxcol, maxrow) = size
@@ -1029,12 +1049,31 @@ class Frame(Widget, WidgetContainerMixin):
         return self.body.mouse_event( (maxcol, maxrow-htrim-ftrim),
             event, button, col, row-htrim, focus )
 
+    def __iter__(self):
+        """
+        Return an iterator over the positions in this Frame top to bottom.
+        """
+        if self._header:
+            yield 'header'
+        yield 'body'
+        if self._footer:
+            yield 'footer'
+
+    def __reversed__(self):
+        """
+        Return an iterator over the positions in this Frame bottom to top.
+        """
+        if self._footer:
+            yield 'footer'
+        yield 'body'
+        if self._header:
+            yield 'header'
 
 
 class PileError(Exception):
     pass
 
-class Pile(Widget, WidgetContainerMixin):
+class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     _sizing = frozenset([FLOW, BOX])
 
     def __init__(self, widget_list, focus_item=None):
@@ -1519,7 +1558,7 @@ class ColumnsError(Exception):
     pass
 
 
-class Columns(Widget, WidgetContainerMixin):
+class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     _sizing = frozenset([FLOW, BOX])
 
     def __init__(self, widget_list, dividechars=0, focus_column=None,
