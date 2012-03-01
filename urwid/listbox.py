@@ -194,6 +194,14 @@ class SimpleListWalker(MonitoredList, ListWalker):
             raise IndexError
         return position - 1
 
+    def positions(self, reversed=False):
+        """
+        Optional method for returning an iterable of positions.
+        """
+        if reversed:
+            return xrange(len(self) - 1, -1, -1)
+        return xrange(len(self))
+
 
 class SimpleFocusListWalker(MonitoredFocusList, ListWalker):
     def __init__(self, contents):
@@ -243,6 +251,13 @@ class SimpleFocusListWalker(MonitoredFocusList, ListWalker):
             raise IndexError
         return position - 1
 
+    def positions(self, reversed=False):
+        """
+        Optional method for returning an iterable of positions.
+        """
+        if reversed:
+            return xrange(len(self) - 1, -1, -1)
+        return xrange(len(self))
 
 
 class ListBoxError(Exception):
@@ -1541,5 +1556,64 @@ class ListBox(Widget, WidgetContainerMixin):
                 l.append( 'top' )
 
         return l
+
+    def __iter__(self):
+        """
+        Return an iterator over the positions in this ListBox.
+        
+        If self.body does not implement positions() then iterate
+        from the focus widget down to the bottom, then from above
+        the focus up to the top.  This is the best we can do with
+        a minimal list walker implementation.
+        """
+        positions_fn = getattr(self.body, 'positions', None)
+        if positions_fn:
+            for pos in positions_fn():
+                yield pos
+            return
+
+        focus_widget, focus_pos = self.body.get_focus()
+        if focus_widget is None:
+            return
+        pos = focus_pos
+        while True:
+            yield pos
+            w, pos = self.body.get_next(pos)
+            if not w: break
+        pos = focus_pos
+        while True:
+            w, pos = self.body.get_prev(pos)
+            if not w: break
+            yield pos
+
+    def __reversed__(self):
+        """
+        Return a reversed iterator over the positions in this ListBox.
+
+        If self.body does not implement positions() then iterate
+        from above the focus widget up to the top, then from the focus
+        widget down to the bottom.  Note that this is not actually the
+        reverse of what __iter__() produces, but this is the best we can
+        do with a minimal list walker implementation.
+        """
+        positions_fn = getattr(self.body, 'positions', None)
+        if positions_fn:
+            for pos in positions_fn(reversed=True):
+                yield pos
+            return
+
+        focus_widget, focus_pos = self.body.get_focus()
+        if focus_widget is None:
+            return
+        pos = focus_pos
+        while True:
+            w, pos = self.body.get_prev(pos)
+            if not w: break
+            yield pos
+        pos = focus_pos
+        while True:
+            yield pos
+            w, pos = self.body.get_next(pos)
+            if not w: break
 
 
