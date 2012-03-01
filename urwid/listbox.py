@@ -194,11 +194,11 @@ class SimpleListWalker(MonitoredList, ListWalker):
             raise IndexError
         return position - 1
 
-    def positions(self, reversed=False):
+    def positions(self, reverse=False):
         """
         Optional method for returning an iterable of positions.
         """
-        if reversed:
+        if reverse:
             return xrange(len(self) - 1, -1, -1)
         return xrange(len(self))
 
@@ -251,11 +251,11 @@ class SimpleFocusListWalker(MonitoredFocusList, ListWalker):
             raise IndexError
         return position - 1
 
-    def positions(self, reversed=False):
+    def positions(self, reverse=False):
         """
         Optional method for returning an iterable of positions.
         """
-        if reversed:
+        if reverse:
             return xrange(len(self) - 1, -1, -1)
         return xrange(len(self))
 
@@ -1598,7 +1598,7 @@ class ListBox(Widget, WidgetContainerMixin):
         """
         positions_fn = getattr(self.body, 'positions', None)
         if positions_fn:
-            for pos in positions_fn(reversed=True):
+            for pos in positions_fn(reverse=True):
                 yield pos
             return
 
