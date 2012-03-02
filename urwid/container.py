@@ -50,6 +50,41 @@ class WidgetContainerMixin(object):
         """
         return self.contents[position][0].base_widget
 
+    def get_focus_path(self):
+        """
+        Return the .focus_position values starting from this container
+        and proceeding along each child widget until reaching a leaf
+        (non-container) widget.
+        """
+        out = []
+        w = self
+        while True:
+            try:
+                p = w.focus_position
+            except KeyError:
+                return out
+            out.append[p]
+            w = w.focus.base_widget
+
+    def set_focus_path(self, positions):
+        """
+        Set the .focus_position property starting from this container
+        widget and proceeding along newly focused child widgets.  Any
+        failed assignment due do incompatible position types or invalid
+        positions will raise a KeyError.
+
+        This method may be used to restore a particular widget to the
+        focus by passing in the value returned from an earlier call to
+        get_focus_path().
+
+        positions -- sequence of positions
+        """
+        w = self
+        for p in positions:
+            if p != w.focus_position:
+                w.focus_position = p # modifies w.focus
+            w = w.focus.base_widget
+
 
 class WidgetContainerListContentsMixin(object):
     """
