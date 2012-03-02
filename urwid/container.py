@@ -61,7 +61,7 @@ class WidgetContainerMixin(object):
         while True:
             try:
                 p = w.focus_position
-            except KeyError:
+            except IndexError:
                 return out
             out.append[p]
             w = w.focus.base_widget
@@ -71,7 +71,7 @@ class WidgetContainerMixin(object):
         Set the .focus_position property starting from this container
         widget and proceeding along newly focused child widgets.  Any
         failed assignment due do incompatible position types or invalid
-        positions will raise a KeyError.
+        positions will raise a IndexError.
 
         This method may be used to restore a particular widget to the
         focus by passing in the value returned from an earlier call to
