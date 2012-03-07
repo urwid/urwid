@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid listbox class
-#    Copyright (C) 2004-2011  Ian Ward
+#    Copyright (C) 2004-2012  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -21,11 +21,12 @@
 
 from urwid.util import is_mouse_press
 from urwid.canvas import SolidCanvas, CanvasCombine
-from urwid.widget import BoxWidget, nocache_widget_render_instance
-from urwid.decoration import calculate_filler, decompose_valign_height
+from urwid.widget import Widget, nocache_widget_render_instance, BOX, GIVEN
+from urwid.decoration import calculate_top_bottom_filler, simplify_valign
 from urwid import signals
 from urwid.signals import connect_signal
-from urwid.monitored_list import MonitoredList
+from urwid.monitored_list import MonitoredList, MonitoredFocusList
+from urwid.container import WidgetContainerMixin
 
 
 class ListWalkerError(Exception):
@@ -36,10 +37,47 @@ class ListWalker(object):
 
     signals = ["modified"]
 
-    def __hash__(self): return id(self)
-
     def _modified(self):
         signals.emit_signal(self, "modified")
+
+    def get_focus(self):
+        """
+        This default implementation relies on a focus attribute and a
+        __getitem__() method defined in a subclass.
+
+        Override and don't call this method if these are not defined.
+        """
+        try:
+            focus = self.focus
+            return self[focus], focus
+        except (IndexError, KeyError, TypeError):
+            return None, None
+
+    def get_next(self, position):
+        """
+        This default implementation relies on a next_position() method and a
+        __getitem__() method defined in a subclass.
+
+        Override and don't call this method if these are not defined.
+        """
+        try:
+            position = self.next_position(position)
+            return self[position], position
+        except (IndexError, KeyError):
+            return None, None
+
+    def get_prev(self, position):
+        """
+        This default implementation relies on a prev_position() method and a
+        __getitem__() method defined in a subclass.
+
+        Override and don't call this method if these are not defined.
+        """
+        try:
+            position = self.prev_position(position)
+            return self[position], position
+        except (IndexError, KeyError):
+            return None, None
 
 
 class PollingListWalker(object):  # NOT ListWalker subclass
@@ -51,12 +89,12 @@ class PollingListWalker(object):  # NOT ListWalker subclass
         """
         import warnings
         warnings.warn("PollingListWalker is deprecated, "
-            "use SimpleListWalker instead.", DeprecationWarning)
+            "use SimpleFocusListWalker instead.", DeprecationWarning)
 
         self.contents = contents
-        if not type(contents) == list and not hasattr(
-            contents, '__getitem__' ):
-            raise ListWalkerError, "SimpleListWalker expecting list like object, got: %r"%(contents,)
+        if not getattr(contents, '__getitem__', None):
+            raise ListWalkerError("PollingListWalker expecting list like "
+                "object, got: %r" % (contents,))
         self.focus = 0
 
     def _clamp_focus(self):
@@ -101,12 +139,10 @@ class SimpleListWalker(MonitoredList, ListWalker):
         detected automatically and will cause ListBox objects using
         this list walker to be updated.
         """
-        if not type(contents) == list and not hasattr(contents, '__getitem__'):
+        if not getattr(contents, '__getitem__', None):
             raise ListWalkerError, "SimpleListWalker expecting list like object, got: %r"%(contents,)
         MonitoredList.__init__(self, contents)
         self.focus = 0
-
-    def __hash__(self): return id(self)
 
     def _get_contents(self):
         """
@@ -132,49 +168,111 @@ class SimpleListWalker(MonitoredList, ListWalker):
         raise NotImplementedError('Use connect_signal('
             'list_walker, "modified", ...) instead.')
 
-    def get_focus(self):
-        """Return (focus widget, focus position)."""
-        if len(self) == 0: return None, None
-        return self[self.focus], self.focus
-
     def set_focus(self, position):
         """Set focus position."""
         try:
             if position < 0 or position >= len(self):
-                raise IndexError
+                raise ValueError
         except (TypeError, ValueError):
             raise IndexError, "No widget at position %s" % (position,)
         self.focus = position
         self._modified()
 
-    def get_next(self, start_from):
+    def next_position(self, position):
         """
-        Return (widget after start_from, position after start_from).
+        Return position after start_from.
         """
-        pos = start_from + 1
-        if len(self) <= pos: return None, None
-        return self[pos],pos
+        if len(self) - 1 <= position:
+            raise IndexError
+        return position + 1
 
-    def get_prev(self, start_from):
+    def prev_position(self, position):
         """
-        Return (widget before start_from, position before start_from).
+        Return position before start_from.
         """
-        pos = start_from - 1
-        if pos < 0: return None, None
-        return self[pos],pos
+        if position <= 0:
+            raise IndexError
+        return position - 1
+
+    def positions(self, reverse=False):
+        """
+        Optional method for returning an iterable of positions.
+        """
+        if reverse:
+            return xrange(len(self) - 1, -1, -1)
+        return xrange(len(self))
+
+
+class SimpleFocusListWalker(MonitoredFocusList, ListWalker):
+    def __init__(self, contents):
+        """
+        contents -- list to copy into this object
+
+        Changes made to this object (when it is treated as a list) are
+        detected automatically and will cause ListBox objects using
+        this list walker to be updated.
+
+        Also, items added or removed before the widget in focus with
+        normal list methods will cause the focus to be updated
+        intelligently.
+        """
+        if not getattr(contents, '__getitem__', None):
+            raise ListWalkerError("SimpleFocusListWalker expecting list like "
+                "object, got: %r"%(contents,))
+        MonitoredFocusList.__init__(self, contents)
+
+    def set_modified_callback(self, callback):
+        """
+        This function inherited from MonitoredList is not
+        implemented in SimpleFocusListWalker.
+
+        Use connect_signal(list_walker, "modified", ...) instead.
+        """
+        raise NotImplementedError('Use connect_signal('
+            'list_walker, "modified", ...) instead.')
+
+    def set_focus(self, position):
+        """Set focus position."""
+        self.focus = position
+
+    def next_position(self, position):
+        """
+        Return position after start_from.
+        """
+        if len(self) - 1 <= position:
+            raise IndexError
+        return position + 1
+
+    def prev_position(self, position):
+        """
+        Return position before start_from.
+        """
+        if position <= 0:
+            raise IndexError
+        return position - 1
+
+    def positions(self, reverse=False):
+        """
+        Optional method for returning an iterable of positions.
+        """
+        if reverse:
+            return xrange(len(self) - 1, -1, -1)
+        return xrange(len(self))
 
 
 class ListBoxError(Exception):
     pass
 
-class ListBox(BoxWidget):
+class ListBox(Widget, WidgetContainerMixin):
+    _selectable = True
+    _sizing = frozenset([BOX])
 
     def __init__(self, body):
         """
         body -- a ListWalker-like object that contains
             widgets to be displayed inside the list box
         """
-        if hasattr(body,'get_focus'):
+        if getattr(body, 'get_focus', None):
             self.body = body
         else:
             self.body = PollingListWalker(body)
@@ -425,8 +523,8 @@ class ListBox(BoxWidget):
             ('fixed bottom', rows)
             ('relative', percentage 0=top 100=bottom)
         """
-        vt,va,ht,ha=decompose_valign_height(valign,None,ListBoxError)
-        self.set_focus_valign_pending = vt,va
+        vt, va = simplify_valign(valign,ListBoxError)
+        self.set_focus_valign_pending = vt, va
 
 
     def set_focus(self, position, coming_from=None):
@@ -437,8 +535,12 @@ class ListBox(BoxWidget):
         coming_from -- set to 'above' or 'below' if you know that
                        old position is above or below the new position.
         """
-        assert coming_from in ('above', 'below', None)
+        if coming_from not in ('above', 'below', None):
+            raise ListBoxError("coming_from value invalid: %r" %
+                (coming_from,))
         focus_widget, focus_pos = self.body.get_focus()
+        if focus_widget is None:
+            raise IndexError("Can't set focus, ListBox is empty")
 
         self.set_focus_pending = coming_from, focus_widget, focus_pos
         self.body.set_focus(position)
@@ -462,15 +564,58 @@ class ListBox(BoxWidget):
     def _get_focus_position(self):
         """
         Return the list walker position of the widget in focus.  The type
-        of value returned depends on the list walker in use and None may
-        be a valid position so don't assume None means the ListBox is empty.
+        of value returned depends on the list walker.
         """
-        return self.body.get_focus()[1]
+        w, pos = self.body.get_focus()
+        if w is None:
+            raise IndexError, "No focus_position, ListBox is empty"
+        return pos
     focus_position = property(_get_focus_position, set_focus, doc="""
         the position of child widget in focus.  The valid values for this
-        position depend on the list walker in use and None may be a valid
-        position so don't assume None means a ListBox is empty.
+        position depend on the list walker in use.  IndexError will be
+        raised by reading this property when the ListBox is empty or
+        setting this property to an invalid position.
         """)
+
+    def _contents(self):
+        class ListBoxContents(object):
+            __getitem__ = self._contents__getitem__
+        return ListBoxContents()
+    def _contents__getitem__(self, key):
+        # try list walker protocol v2 first
+        getitem = getattr(self.body, '__getitem__', None)
+        if getitem:
+            try:
+                return (getitem(key), None)
+            except (IndexError, KeyError):
+                raise KeyError("ListBox.contents key not found: %r" % (key,))
+        # fall back to v1
+        w, old_focus = self.body.get_focus()
+        try:
+            try:
+                self.body.set_focus(key)
+                return self.body.get_focus()[0]
+            except (IndexError, KeyError):
+                raise KeyError("ListBox.contents key not found: %r" % (key,))
+        finally:
+            self.body.set_focus(old_focus)
+    contents = property(lambda self: self._contents, doc="""
+        An object that allows reading widgets from the ListBox's list
+        walker as a (widget, options) tuple.  None is currently the only
+        value for options.
+
+        This object may not be used to set or iterate over contents.  You
+        must use the list walker stored as .body to perform manipulation
+        and iteration, if supported.
+        """)
+    
+    def options(self):
+        """
+        There are currently no options for ListBox contents.
+
+        Return None as a placeholder for future options.
+        """
+        return None
 
     def _set_focus_valign_complete(self, size, focus):
         """
@@ -487,8 +632,8 @@ class ListBox(BoxWidget):
             return
 
         rows = focus_widget.rows((maxcol,), focus)
-        rtop, rbot = calculate_filler( vt, va, 'fixed', rows,
-            None, maxrow )
+        rtop, rbot = calculate_top_bottom_filler(maxrow,
+            vt, va, GIVEN, rows, None, 0, 0)
 
         self.shift_focus((maxcol, maxrow), rtop)
 
@@ -896,7 +1041,6 @@ class ListBox(BoxWidget):
         self.shift_focus((maxcol,maxrow), focus_row_offset+1)
 
 
-
     def _keypress_down(self, size):
         (maxcol, maxrow) = size
 
@@ -977,7 +1121,6 @@ class ListBox(BoxWidget):
 
         # if all else fails, keep the current focus.
         self.shift_focus((maxcol,maxrow), focus_row_offset-1)
-
 
 
     def _keypress_page_up(self, size):
@@ -1163,10 +1306,6 @@ class ListBox(BoxWidget):
         rows = widget.rows((maxcol,), True)
         self.change_focus((maxcol,maxrow), pos, -(rows-1),
             'below', (self.pref_col, rows-1), 0 )
-
-
-
-
 
 
     def _keypress_page_down(self, size):
@@ -1417,5 +1556,64 @@ class ListBox(BoxWidget):
                 l.append( 'top' )
 
         return l
+
+    def __iter__(self):
+        """
+        Return an iterator over the positions in this ListBox.
+
+        If self.body does not implement positions() then iterate
+        from the focus widget down to the bottom, then from above
+        the focus up to the top.  This is the best we can do with
+        a minimal list walker implementation.
+        """
+        positions_fn = getattr(self.body, 'positions', None)
+        if positions_fn:
+            for pos in positions_fn():
+                yield pos
+            return
+
+        focus_widget, focus_pos = self.body.get_focus()
+        if focus_widget is None:
+            return
+        pos = focus_pos
+        while True:
+            yield pos
+            w, pos = self.body.get_next(pos)
+            if not w: break
+        pos = focus_pos
+        while True:
+            w, pos = self.body.get_prev(pos)
+            if not w: break
+            yield pos
+
+    def __reversed__(self):
+        """
+        Return a reversed iterator over the positions in this ListBox.
+
+        If self.body does not implement positions() then iterate
+        from above the focus widget up to the top, then from the focus
+        widget down to the bottom.  Note that this is not actually the
+        reverse of what __iter__() produces, but this is the best we can
+        do with a minimal list walker implementation.
+        """
+        positions_fn = getattr(self.body, 'positions', None)
+        if positions_fn:
+            for pos in positions_fn(reverse=True):
+                yield pos
+            return
+
+        focus_widget, focus_pos = self.body.get_focus()
+        if focus_widget is None:
+            return
+        pos = focus_pos
+        while True:
+            w, pos = self.body.get_prev(pos)
+            if not w: break
+            yield pos
+        pos = focus_pos
+        while True:
+            yield pos
+            w, pos = self.body.get_next(pos)
+            if not w: break
 
 
