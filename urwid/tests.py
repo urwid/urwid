@@ -2597,6 +2597,32 @@ class CommonContainerTest(unittest.TestCase):
             f.contents['body'] = (t1, 'given')
         self.assertRaises(urwid.FrameError, set2)
 
+    def test_focus_path(self):
+        # big tree of containers
+        t = urwid.Text(u'x')
+        e = urwid.Edit(u'?')
+        c = urwid.Columns([t, e, t, t])
+        p = urwid.Pile([t, t, c, t])
+        a = urwid.AttrMap(p, 'gets ignored')
+        s = urwid.SolidFill(u'/')
+        o = urwid.Overlay(e, s, 'center', 'pack', 'middle', 'pack')
+        lb = urwid.ListBox(urwid.SimpleFocusListWalker([t, a, o, t]))
+        lb.focus_position = 1
+        g = urwid.GridFlow([t, t, t, t, e, t], 10, 0, 0, 'left')
+        g.focus_position = 4
+        f = urwid.Frame(lb, header=t, footer=g)
+
+        self.assertEquals(f.get_focus_path(), ['body', 1, 2, 1])
+        f.set_focus_path(['footer']) # same as f.focus_position = 'footer'
+        self.assertEquals(f.get_focus_path(), ['footer', 4])
+        f.set_focus_path(['body', 1, 2, 2])
+        self.assertEquals(f.get_focus_path(), ['body', 1, 2, 2])
+        self.assertRaises(IndexError, lambda: f.set_focus_path([0, 1, 2]))
+        self.assertRaises(IndexError, lambda: f.set_focus_path(['body', 2, 2]))
+        f.set_focus_path(['body', 2]) # focus the overlay
+        self.assertEquals(f.get_focus_path(), ['body', 2, 1])
+
+
 
 def test_all():
     """
