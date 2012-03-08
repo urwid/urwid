@@ -202,7 +202,7 @@ class MainLoop(object):
         Returns True if the watch pipe exists, False otherwise
         """
         try:
-            watch_handle, pipe_rd = self._watch_pipes.remove(write_fd)
+            watch_handle, pipe_rd = self._watch_pipes.pop(write_fd)
         except KeyError:
             return False
 
