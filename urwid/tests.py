@@ -1903,6 +1903,8 @@ class FillerTest(unittest.TestCase):
         self.ftest("middle relative 70 grow 8",'middle',('relative',70),
             10,1,1,8)
 
+    def test_repr(self):
+        repr(urwid.Filler(urwid.Text(u'hai')))
 
 class FrameTest(unittest.TestCase):
 

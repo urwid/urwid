@@ -726,11 +726,11 @@ class Filler(WidgetDecoration):
 
     def _repr_attrs(self):
         attrs = dict(self.__super._repr_attrs(),
-            valign=self.valign,
-            height=self.height,
+            valign=simplify_valign(self.valign_type, self.valign_amount),
+            height=simplify_height(self.height_type, self.height_amount),
             top=self.top,
             bottom=self.bottom,
-            min_width=self.min_width)
+            min_height=self.min_height)
         return remove_defaults(attrs, Filler.__init__)
 
     # backwards compatibility, widget used to be stored as body
