@@ -2190,6 +2190,12 @@ class OverlayTest(unittest.TestCase):
             ('fixed top', 3), ('fixed bottom', 3),)
 
 
+class GridFlowTest(unittest.TestCase):
+    def test_cell_width(self):
+        gf = urwid.GridFlow([], 5, 0, 0, 'left')
+        self.assertEquals(gf.cell_width, 5)
+
+
 class CanvasJoinTest(unittest.TestCase):
     def cjtest(self, desc, l, expected):
         l = [(c, None, False, n) for c, n in l]
@@ -2701,6 +2707,8 @@ def test_all():
         ColumnsTest,
         LineBoxTest,
         BarGraphTest,
+        OverlayTest,
+        GridFlowTest,
         SmoothBarGraphTest,
         CanvasJoinTest,
         CanvasOverlayTest,
@@ -2708,7 +2716,6 @@ def test_all():
         WidgetSquishTest,
         TermTest,
         CommonContainerTest,
-        OverlayTest,
         ]
     module_doctests = [
         urwid.widget,

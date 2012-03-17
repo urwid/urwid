@@ -167,7 +167,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         """)
 
     def _get_cell_width(self):
-        return _cell_width
+        return self._cell_width
     def _set_cell_width(self, width):
         focus_position = self.focus_position
         self.contents = [
