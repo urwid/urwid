@@ -23,7 +23,7 @@ from itertools import chain, repeat
 
 from urwid.util import is_mouse_press
 from urwid.widget import (Widget, Divider, FLOW, FIXED, PACK, BOX, WidgetWrap,
-    GIVEN, WEIGHT, LEFT, RELATIVE, TOP, CLIP, RELATIVE_100)
+    GIVEN, WEIGHT, LEFT, RIGHT, RELATIVE, TOP, BOTTOM, CLIP, RELATIVE_100)
 from urwid.decoration import (Padding, Filler, calculate_left_right_padding,
     calculate_top_bottom_filler, normalize_align, normalize_width,
     normalize_valign, normalize_height, simplify_align, simplify_width,
@@ -482,17 +482,17 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 width = RELATIVE_100
         if isinstance(valign, tuple):
             if valign[0] == 'fixed top':
-                left = valign[1]
+                top = valign[1]
                 valign = TOP
             elif valign[0] == 'fixed bottom':
-                right = valign[1]
+                bottom = valign[1]
                 valign = BOTTOM
         if isinstance(height, tuple):
             if height[0] == 'fixed bottom':
-                left = height[1]
+                bottom = height[1]
                 height = RELATIVE_100
-            elif height[0] == 'fixed bottom':
-                right = height[1]
+            elif height[0] == 'fixed top':
+                top = height[1]
                 height = RELATIVE_100
 
         if width is None: # more obsolete values accepted

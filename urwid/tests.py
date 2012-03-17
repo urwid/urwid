@@ -2185,9 +2185,18 @@ class SmoothBarGraphTest(unittest.TestCase):
 
 class OverlayTest(unittest.TestCase):
     def test_old_params(self):
-        urwid.Overlay(urwid.SolidFill(u'X'), urwid.SolidFill(u'O'),
-            ('fixed left', 5), ('fixed right', 5),
-            ('fixed top', 3), ('fixed bottom', 3),)
+        o1 = urwid.Overlay(urwid.SolidFill(u'X'), urwid.SolidFill(u'O'),
+            ('fixed left', 5), ('fixed right', 4),
+            ('fixed top', 3), ('fixed bottom', 2),)
+        self.assertEquals(o1.contents[1][1], (
+            'left', None, 'relative', 100, None, 5, 4,
+            'top', None, 'relative', 100, None, 3, 2))
+        o2 = urwid.Overlay(urwid.SolidFill(u'X'), urwid.SolidFill(u'O'),
+            ('fixed right', 5), ('fixed left', 4),
+            ('fixed bottom', 3), ('fixed top', 2),)
+        self.assertEquals(o2.contents[1][1], (
+            'right', None, 'relative', 100, None, 4, 5,
+            'bottom', None, 'relative', 100, None, 2, 3))
 
 
 class GridFlowTest(unittest.TestCase):
