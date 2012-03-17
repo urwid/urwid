@@ -2183,6 +2183,13 @@ class SmoothBarGraphTest(unittest.TestCase):
             [(1, [(0, 5)]), (1, [(1,3), ((1,0,4), 2)]), (1, [(1,5)]) ] )
 
 
+class OverlayTest(unittest.TestCase):
+    def test_old_params(self):
+        urwid.Overlay(urwid.SolidFill(u'X'), urwid.SolidFill(u'O'),
+            ('fixed left', 5), ('fixed right', 5),
+            ('fixed top', 3), ('fixed bottom', 3),)
+
+
 class CanvasJoinTest(unittest.TestCase):
     def cjtest(self, desc, l, expected):
         l = [(c, None, False, n) for c, n in l]
@@ -2701,6 +2708,7 @@ def test_all():
         WidgetSquishTest,
         TermTest,
         CommonContainerTest,
+        OverlayTest,
         ]
     module_doctests = [
         urwid.widget,

@@ -23,7 +23,7 @@ from itertools import chain, repeat
 
 from urwid.util import is_mouse_press
 from urwid.widget import (Widget, Divider, FLOW, FIXED, PACK, BOX, WidgetWrap,
-    GIVEN, WEIGHT, LEFT, RELATIVE, TOP, CLIP)
+    GIVEN, WEIGHT, LEFT, RELATIVE, TOP, CLIP, RELATIVE_100)
 from urwid.decoration import (Padding, Filler, calculate_left_right_padding,
     calculate_top_bottom_filler, normalize_align, normalize_width,
     normalize_valign, normalize_height, simplify_align, simplify_width,
