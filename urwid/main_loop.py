@@ -29,7 +29,7 @@ import fcntl
 import os
 
 from urwid.util import is_mouse_event
-from urwid.compat import PYTHON3, bytes
+from urwid.compat import PYTHON3
 from urwid.command_map import command_map
 from urwid.wimp import PopUpTarget
 from urwid import signals

@@ -307,6 +307,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
 
         c = None
         p = Pile([])
+        used_space = 0
 
         for i, (w, (width_type, width_amount)) in enumerate(self.contents):
             if c is None or maxcol - used_space < width_amount:
@@ -395,9 +396,9 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
     def mouse_event(self, size, event, button, col, row, focus):
         """Send mouse event to contained widget."""
         self.get_display_widget(size)
-        rval = self.__super.mouse_event(size, event, button, col, row, focus)
+        self.__super.mouse_event(size, event, button, col, row, focus)
         self._set_focus_from_display_widget()
-        return True
+        return True # at a minimum we adjusted our focus
 
     def get_pref_col(self, size):
         """Return pref col from display widget."""
@@ -2072,7 +2073,6 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
     def get_pref_col(self, size):
         """Return the pref col from the column in focus."""
-        maxcol = size[0]
         widths = self.column_widths(size)
 
         w = self.contents[self.focus_position][0]

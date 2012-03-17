@@ -706,20 +706,20 @@ class Screen:
             return fn()
         finally:
             self.stop()
-            
+
 
     def _close_connection(self):
         if self.update_method == "polling child":
             self.server_socket.settimeout(0)
-            socket, addr = self.server_socket.accept()
-            socket.sendall("Z")
-            socket.close()
-        
+            sock, addr = self.server_socket.accept()
+            sock.sendall("Z")
+            sock.close()
+
         if self.update_method == "multipart":
             sys.stdout.write("\r\nZ"
                 "\r\n--ZZ--\r\n")
             sys.stdout.flush()
-                
+
     def _cleanup_pipe(self, *args):
         if not self.pipe_name: return
         # XXX which exceptions does this actually raise? EnvironmentError?

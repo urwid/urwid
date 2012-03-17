@@ -28,7 +28,7 @@ from urwid.widget import WidgetMeta, Widget, BOX, FIXED, FLOW, \
     WidgetWrap, Divider, SolidFill, Text, CENTER, CLIP
 from urwid.container import Pile, Columns
 from urwid.display_common import AttrSpec
-from urwid.decoration import WidgetDecoration, AttrWrap
+from urwid.decoration import WidgetDecoration
 
 class BigText(Widget):
     _sizing = frozenset([FIXED])

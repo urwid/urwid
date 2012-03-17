@@ -23,7 +23,6 @@ from operator import attrgetter
 
 from urwid.util import MetaSuper, decompose_tagmarkup, calc_width, \
     is_wide_char, move_prev_char, move_next_char
-from urwid.compat import bytes
 from urwid.text_layout import calc_pos, calc_coords, shift_line
 from urwid import signals
 from urwid import text_layout

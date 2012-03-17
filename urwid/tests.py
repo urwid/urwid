@@ -28,7 +28,7 @@ except ImportError:
 from doctest import DocTestSuite, ELLIPSIS, IGNORE_EXCEPTION_DETAIL
 
 import urwid
-from urwid.util import bytes, B
+from urwid.compat import bytes, B
 from urwid.vterm_test import TermTest
 from urwid.text_layout import calc_pos, calc_coords, CanNotDisplayText
 from urwid.canvas import (shard_body, shard_body_tail, shards_trim_top,
@@ -797,22 +797,14 @@ class TagMarkupTest(unittest.TestCase):
             restext,resattr = urwid.decompose_tagmarkup( input )
             assert restext == text, "got: %r expected: %r" % (restext, text)
             assert resattr == attr, "got: %r expected: %r" % (resattr, attr)
+
     def test_bad_tuple(self):
-        try:
-            urwid.decompose_tagmarkup((1,2,3))
-        except urwid.TagMarkupException, e:
-            pass
-        else:
-            assert 0, "should have thrown exception!"
+        self.assertRaises(urwid.TagMarkupException, lambda:
+            urwid.decompose_tagmarkup((1,2,3)))
 
     def test_bad_type(self):
-        try:
-            urwid.decompose_tagmarkup(5)
-        except urwid.TagMarkupException, e:
-            pass
-        else:
-            assert 0, "should have thrown exception!"
-
+        self.assertRaises(urwid.TagMarkupException, lambda:
+            urwid.decompose_tagmarkup(5))
 
 
 class TextTest(unittest.TestCase):
@@ -1761,11 +1753,8 @@ class PaddingTest(unittest.TestCase):
             desc, (left,right), (l,r))
 
     def petest(self, desc, align, width):
-        try:
-            urwid.Padding(None, align, width)
-        except urwid.PaddingError, e:
-            return
-        assert 0, "%s expected error!" % desc
+        self.assertRaises(urwid.PaddingError, lambda:
+            urwid.Padding(None, align, width))
 
     def test_create(self):
         self.petest("invalid pad",6,5)
@@ -1854,11 +1843,8 @@ class FillerTest(unittest.TestCase):
             desc, (top,bottom), (t,b))
 
     def fetest(self, desc, valign, height):
-        try:
-            urwid.Filler(None, valign, height)
-        except urwid.FillerError, e:
-            return
-        assert 0, "%s expected error!" % desc
+        self.assertRaises(urwid.FillerError, lambda:
+            urwid.Filler(None, valign, height))
 
     def test_create(self):
         self.fetest("invalid pad",6,5)

@@ -22,7 +22,7 @@
 
 import re
 
-from urwid.compat import bytes, B, ord2, chr2
+from urwid.compat import bytes, B, ord2
 
 SAFE_ASCII_RE = re.compile(u"^[ -~]*$")
 SAFE_ASCII_BYTES_RE = re.compile(B("^[ -~]*$"))
