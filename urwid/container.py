@@ -1736,12 +1736,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         return ml
     def _set_box_columns(self, box_columns):
         box_columns = set(box_columns)
-        focus_position = self.focus_position
         self.contents = [
             (w, (t, n, i in box_columns))
             for (i, (w, (t, n, b))) in enumerate(self.contents)]
-        if focus_position < len(column_types):
-            self.focus_position = focus_position
     box_columns = property(_get_box_columns, _set_box_columns, doc="""
         A list of the indexes of the columns that are to be treated as
         box widgets when the Columns is treated as a flow widget, for

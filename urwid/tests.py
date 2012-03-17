@@ -2090,6 +2090,13 @@ class ColumnsTest(unittest.TestCase):
     def test_init_with_a_generator(self):
         urwid.Columns(urwid.Text(c) for c in "ABC")
 
+    def test_old_attributes(self):
+        c = urwid.Columns([urwid.Text(u'a'), urwid.SolidFill(u'x')],
+            box_columns=[1])
+        self.assertEquals(c.box_columns, [1])
+        c.box_columns=[]
+        self.assertEquals(c.box_columns, [])
+
 
 class LineBoxTest(unittest.TestCase):
     def border(self, tl, t, tr, l, r, bl, b, br):
