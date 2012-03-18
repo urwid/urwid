@@ -929,10 +929,7 @@ class Edit(Text):
         >>> print e.edit_text
         no
         """
-        try:
-            text = unicode(text)
-        except Exception:
-            raise EditError("Can't convert edit text to a string!")
+        text = self._normalize_to_caption(text)
         self.highlight = None
         self._emit("change", text)
         self._edit_text = text
@@ -1005,9 +1002,11 @@ class Edit(Text):
             result_text = self.edit_text
             result_pos = self.edit_pos
 
-
-        result_text = (result_text[:result_pos] + text +
-            result_text[result_pos:])
+        try:
+            result_text = (result_text[:result_pos] + text +
+                result_text[result_pos:])
+        except:
+            assert 0, repr((self.edit_text, result_text, text))
         result_pos += len(text)
         return (result_text, result_pos)
 
@@ -1033,15 +1032,21 @@ class Edit(Text):
 
         p = self.edit_pos
         if self.valid_char(key):
-            self.insert_text( key )
+            if (isinstance(key, unicode) and not
+                    isinstance(self._caption, unicode)):
+                # screen is sending us unicode input, must be using utf-8
+                # encoding because that's all we support, so convert it
+                # to bytes to match our caption's type
+                key = key.encode('utf-8')
+            self.insert_text(key)
 
         elif key=="tab" and self.allow_tab:
             key = " "*(8-(self.edit_pos%8))
-            self.insert_text( key )
+            self.insert_text(key)
 
         elif key=="enter" and self.multiline:
             key = "\n"
-            self.insert_text( key )
+            self.insert_text(key)
 
         elif self._command_map[key] == 'cursor left':
             if p==0: return key
