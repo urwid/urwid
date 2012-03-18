@@ -841,6 +841,7 @@ class EditTest(unittest.TestCase):
         self.t1 = urwid.Edit("","blah blah")
         self.t2 = urwid.Edit("stuff:", "blah blah")
         self.t3 = urwid.Edit("junk:\n","blah blah\n\nbloo",1)
+        self.t4 = urwid.Edit(u"better:")
 
     def ktest(self, e, key, expected, pos, desc):
         got= e.keypress((12,),key)
@@ -884,6 +885,15 @@ class EditTest(unittest.TestCase):
         self.ktest(self.t3,'down',None,10,"down line 1 to 2")
         self.ktest(self.t3,'down',None,15,"down line 2 to 3")
         self.ktest(self.t3,'down','down',15,"down at bottom")
+
+    def test_utf8_input(self):
+        urwid.set_encoding("utf-8")
+        self.t1.set_edit_text('')
+        self.t1.keypress((12,), u'û')
+        self.assertEquals(self.t1.edit_text, u'û'.encode('utf-8'))
+        self.t4.keypress((12,), u'û')
+        self.assertEquals(self.t4.edit_text, u'û')
+
 
 class EditRenderTest(unittest.TestCase):
     def rtest(self, w, expected_text, expected_cursor):
