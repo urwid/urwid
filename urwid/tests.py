@@ -2207,6 +2207,9 @@ class GridFlowTest(unittest.TestCase):
         gf = urwid.GridFlow([], 5, 0, 0, 'left')
         self.assertEquals(gf.cell_width, 5)
 
+    def test_basics(self):
+        repr(urwid.GridFlow([], 5, 0, 0, 'left')) # should not fail
+
 
 class CanvasJoinTest(unittest.TestCase):
     def cjtest(self, desc, l, expected):

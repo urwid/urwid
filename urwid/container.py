@@ -134,6 +134,8 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         self.align = align
         self._cache_maxcol = None
         self.__super.__init__(None)
+        # set self._w to something other than None
+        self.get_display_widget(((h_sep+cell_width)*len(cells),))
 
     def _invalidate(self):
         self._cache_maxcol = None
@@ -318,9 +320,9 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
                 pad = Padding(c, self.align)
                 # extra attribute to reference contents position
                 pad.first_position = i
-                p.contents.append((pad, Pile.options()))
+                p.contents.append((pad, p.options()))
 
-            c.contents.append((w, Columns.options(GIVEN, width_amount)))
+            c.contents.append((w, c.options(GIVEN, width_amount)))
             if i == self.focus_position:
                 c.focus_position = len(c.contents) - 1
                 p.focus_position = len(p.contents) - 1
