@@ -23,7 +23,6 @@ from operator import attrgetter
 
 from urwid.util import MetaSuper, decompose_tagmarkup, calc_width, \
     is_wide_char, move_prev_char, move_next_char
-from urwid.compat import bytes
 from urwid.text_layout import calc_pos, calc_coords, shift_line
 from urwid import signals
 from urwid import text_layout
@@ -33,18 +32,20 @@ from urwid.command_map import command_map
 from urwid.split_repr import split_repr, remove_defaults, python3_repr
 
 
+# define some names for these constants to avoid misspellings in the source
+# and to document the constant strings we are using
+
 # Widget sizing methods
-# (use the same string objects to make some comparisons faster)
 FLOW = 'flow'
 BOX = 'box'
 FIXED = 'fixed'
 
-# Text alignment modes 
+# Text alignment modes
 LEFT = 'left'
 RIGHT = 'right'
 CENTER = 'center'
 
-# Filler alignment modes 
+# Filler alignment modes
 TOP = 'top'
 MIDDLE = 'middle'
 BOTTOM = 'bottom'
@@ -59,6 +60,9 @@ PACK = 'pack'
 GIVEN = 'given'
 RELATIVE = 'relative'
 RELATIVE_100 = (RELATIVE, 100)
+
+# extra constants for Pile/Columns
+WEIGHT = 'weight'
 
 
 class WidgetMeta(MetaSuper, signals.MetaSignals):
@@ -200,7 +204,7 @@ class Widget(object):
     """
     __metaclass__ = WidgetMeta
     _selectable = False
-    _sizing = set([])
+    _sizing = frozenset([FLOW, BOX, FIXED])
     _command_map = command_map # default to the single shared CommandMap
 
     def _invalidate(self):
@@ -212,29 +216,40 @@ class Widget(object):
         argument.
         """
         signals.emit_signal(self, name, self, *args)
-    
+
     def selectable(self):
         """
         Return True if this widget should take focus.  Default
         implementation returns the value of self._selectable.
         """
         return self._selectable
-    
+
     def sizing(self):
         """
         Return a set including one or more of 'box', 'flow' and
         'fixed'.  Default implementation returns the value of
-        self._sizing.
+        self._sizing, which for the Widget base class includes all
+        three.
+
+        The sizing modes returned indicate the modes that may be
+        supported by this widget, but is not sufficient to know
+        that using that sizing mode will work.  Subclasses should
+        make an effort to remove sizing modes they know will not
+        work given the state of the widget, but many do not yet
+        do this.
+
+        If a sizing mode is missing from the set then the widget
+        should fail when used in that mode.
         """
         return self._sizing
 
     def pack(self, size, focus=False):
         """
-        Return a 'packed' (maxcol, maxrow) for this widget.  Default 
+        Return a 'packed' (maxcol, maxrow) for this widget.  Default
         implementation (no packing defined) returns size, and
         calculates maxrow if not given.
         """
-        if size == ():
+        if not size:
             if FIXED in self.sizing():
                 raise NotImplementedError('Fixed widgets must override'
                     ' Widget.pack()')
@@ -247,20 +262,39 @@ class Widget(object):
                 ' flow widget: %s' % repr(self))
         return size
 
-    # this property returns the widget without any decorations, default
-    # implementation returns self.
-    base_widget = property(lambda self:self)
-    
+    base_widget = property(lambda self:self, doc="""
+        Step through decoration widgets and return the one at the
+        base.  This default implementation is equivalent to self.
+        """)
 
-    # Use the split_repr module to create __repr__ from _repr_words
-    # and _repr_attrs
-    __repr__ = split_repr
+    focus = property(lambda self:None, doc="""
+        Container widgets' implementations will give their child
+        widget that is in focus.  This default implementation is
+        always None, indicating that this widget has no children.
+        """)
+
+    def _not_a_container(self, val=None):
+        raise IndexError(
+            "No focus_position, %r is not a container widget" % self)
+    focus_position = property(_not_a_container, _not_a_container, doc="""
+        raises IndexError.  This default property makes accessing
+        .focus_position on non-container widgets fail in the same
+        way it would when accesing .focus_position on an empty
+        container.
+        """)
+
+    def __repr__(self):
+        """
+        A friendly __repr__ for widgets, designed to be extended
+        by subclasses with _repr_words and _repr_attr methods.
+        """
+        return split_repr(self)
 
     def _repr_words(self):
         words = []
         if self.selectable():
             words = ["selectable"] + words
-        if self.sizing():
+        if self.sizing() and self.sizing() != frozenset([FLOW, BOX, FIXED]):
             sizing_modes = list(self.sizing())
             sizing_modes.sort()
             words.append("/".join(sizing_modes))
@@ -268,15 +302,21 @@ class Widget(object):
 
     def _repr_attrs(self):
         return {}
-    
+
 
 class FlowWidget(Widget):
     """
-    base class of widgets that determine their rows from the number of
+    Deprecated.  Inherit from Widget and add:
+
+        _sizing = frozenset(['flow'])
+
+    at the top of your class definition instead.
+
+    Base class of widgets that determine their rows from the number of
     columns available.
     """
-    _sizing = set([FLOW])
-    
+    _sizing = frozenset([FLOW])
+
     def rows(self, size, focus=False):
         """
         All flow widgets must implement this function.
@@ -292,23 +332,30 @@ class FlowWidget(Widget):
 
 class BoxWidget(Widget):
     """
-    base class of width and height constrained widgets such as
+    Deprecated.  Inherit from Widget and add:
+
+        _sizing = frozenset(['box'])
+        _selectable = True
+
+    at the top of your class definition instead.
+
+    Base class of width and height constrained widgets such as
     the top level widget attached to the display object
     """
     _selectable = True
-    _sizing = set([BOX])
-    
+    _sizing = frozenset([BOX])
+
     def render(self, size, focus=False):
         """
         All widgets must implement this function.
         """
         raise NotImplementedError()
-    
+
 
 def fixed_size(size):
     """
     raise ValueError if size != ().
-    
+
     Used by FixedWidgets to test size parameter.
     """
     if size != ():
@@ -317,17 +364,23 @@ def fixed_size(size):
 
 class FixedWidget(Widget):
     """
-    base class of widgets that know their width and height and
+    Deprecated.  Inherit from Widget and add:
+
+        _sizing = frozenset(['fixed'])
+
+    at the top of your class definition instead.
+
+    Base class of widgets that know their width and height and
     cannot be resized
     """
-    _sizing = set([FIXED])
-    
+    _sizing = frozenset([FIXED])
+
     def render(self, size, focus=False):
         """
         All widgets must implement this function.
         """
         raise NotImplementedError()
-    
+
     def pack(self, size=None, focus=False):
         """
         All fixed widgets must implement this function.
@@ -335,10 +388,12 @@ class FixedWidget(Widget):
         raise NotImplementedError()
 
 
-class Divider(FlowWidget):
+class Divider(Widget):
     """
     Horizontal divider widget
     """
+    _sizing = frozenset([FLOW])
+
     ignore_focus = True
 
     def __init__(self,div_char=u" ",top=0,bottom=0):
@@ -437,10 +492,12 @@ class SolidFill(BoxWidget):
 class TextError(Exception):
     pass
 
-class Text(FlowWidget):
+class Text(Widget):
     """
     a horizontally resizeable text widget
     """
+    _sizing = frozenset([FLOW])
+
     ignore_focus = True
     _repr_content_length_max = 140
 
@@ -929,10 +986,7 @@ class Edit(Text):
         >>> print e.edit_text
         no
         """
-        try:
-            text = unicode(text)
-        except Exception:
-            raise EditError("Can't convert edit text to a string!")
+        text = self._normalize_to_caption(text)
         self.highlight = None
         self._emit("change", text)
         self._edit_text = text
@@ -1005,9 +1059,11 @@ class Edit(Text):
             result_text = self.edit_text
             result_pos = self.edit_pos
 
-
-        result_text = (result_text[:result_pos] + text +
-            result_text[result_pos:])
+        try:
+            result_text = (result_text[:result_pos] + text +
+                result_text[result_pos:])
+        except:
+            assert 0, repr((self.edit_text, result_text, text))
         result_pos += len(text)
         return (result_text, result_pos)
 
@@ -1033,15 +1089,21 @@ class Edit(Text):
 
         p = self.edit_pos
         if self.valid_char(key):
-            self.insert_text( key )
+            if (isinstance(key, unicode) and not
+                    isinstance(self._caption, unicode)):
+                # screen is sending us unicode input, must be using utf-8
+                # encoding because that's all we support, so convert it
+                # to bytes to match our caption's type
+                key = key.encode('utf-8')
+            self.insert_text(key)
 
         elif key=="tab" and self.allow_tab:
             key = " "*(8-(self.edit_pos%8))
-            self.insert_text( key )
+            self.insert_text(key)
 
         elif key=="enter" and self.multiline:
             key = "\n"
-            self.insert_text( key )
+            self.insert_text(key)
 
         elif self._command_map[key] == 'cursor left':
             if p==0: return key

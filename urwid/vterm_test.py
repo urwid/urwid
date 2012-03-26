@@ -27,9 +27,8 @@ import unittest
 from itertools import dropwhile
 
 from urwid import vterm
-from urwid.main_loop import SelectEventLoop
 from urwid import signals
-from urwid.compat import B, PYTHON3
+from urwid.compat import B
 
 class DummyCommand(object):
     QUITSTRING = B('|||quit|||')

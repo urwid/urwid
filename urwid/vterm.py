@@ -37,7 +37,7 @@ import traceback
 from urwid import util
 from urwid.escape import DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS
 from urwid.canvas import Canvas
-from urwid.widget import BoxWidget
+from urwid.widget import Widget, BOX
 from urwid.display_common import AttrSpec, RealTerminal, _BASIC_COLORS
 from urwid.compat import ord2, chr2, B, bytes
 
@@ -1314,7 +1314,10 @@ class TermCanvas(Canvas):
             return [self.cols()]*self.rows()
         return self.content()
 
-class Terminal(BoxWidget):
+class Terminal(Widget):
+    _selectable = True
+    _sizing = frozenset([BOX])
+
     signals = ['closed', 'beep', 'leds', 'title']
 
     def __init__(self, command, env=None, main_loop=None, escape_sequence=None):
@@ -1390,15 +1393,10 @@ class Terminal(BoxWidget):
             else:
                 os.execvpe(self.command[0], self.command, env)
 
-        fcntl.fcntl(self.master, fcntl.F_SETFL, os.O_NONBLOCK)
-        self.master = os.fdopen(self.master, 'w+', 0)
+        if self.main_loop is None:
+            fcntl.fcntl(self.master, fcntl.F_SETFL, os.O_NONBLOCK)
 
         atexit.register(self.terminate)
-
-    def signal(self, signo):
-        if self.pid <= 0:
-            return
-        return os.kill(self.pid, signo)
 
     def terminate(self):
         if self.terminated:
@@ -1413,7 +1411,7 @@ class Terminal(BoxWidget):
             for sig in (signal.SIGHUP, signal.SIGCONT, signal.SIGINT,
                         signal.SIGTERM, signal.SIGKILL):
                 try:
-                    self.signal(sig)
+                    os.kill(self.pid, sig)
                     pid, status = os.waitpid(self.pid, os.WNOHANG)
                 except OSError:
                     break
@@ -1425,7 +1423,8 @@ class Terminal(BoxWidget):
                 os.waitpid(self.pid, 0)
             except OSError:
                 pass
-            self.master.close()
+
+            os.close(self.master)
 
     def beep(self):
         self._emit('beep')
@@ -1441,7 +1440,7 @@ class Terminal(BoxWidget):
 
     def flush_responses(self):
         for string in self.response_buffer:
-            self.master.write(string.encode('ascii'))
+            os.write(self.master, string.encode('ascii'))
         self.response_buffer = []
 
     def set_termsize(self, width, height):
@@ -1524,8 +1523,8 @@ class Terminal(BoxWidget):
         data = ''
 
         try:
-            data = self.master.read(4096)
-        except (IOError,OSError), e:
+            data = os.read(self.master, 4096)
+        except OSError, e:
             if e.errno == 5: # End Of File
                 data = ''
             elif e.errno == errno.EWOULDBLOCK: # empty buffer
@@ -1616,4 +1615,4 @@ class Terminal(BoxWidget):
         if sys.version_info[0] >= 3:
             key = bytes(key, 'ascii')
 
-        self.master.write(key)
+        os.write(self.master, key)

@@ -138,8 +138,7 @@ def main():
     blank = urwid.Divider()
     listbox_content = [
         blank,
-        urwid.Padding(urwid.Text(text_intro), ('fixed left',2),
-            ('fixed right',2), 20),
+        urwid.Padding(urwid.Text(text_intro), left=2, right=2, min_width=20),
         blank,
         urwid.Text(text_right, align='right'),
         blank,
@@ -156,12 +155,10 @@ def main():
         urwid.Padding(urwid.Text(text_padding), ('relative', 20), 40),
         blank,
         urwid.AttrWrap(urwid.Divider("=", 1), 'bright'),
-        urwid.Padding(urwid.Text(text_divider), ('fixed left',2),
-            ('fixed right',2), 20),
+        urwid.Padding(urwid.Text(text_divider), left=2, right=2, min_width=20),
         urwid.AttrWrap(urwid.Divider("-", 0, 1), 'bright'),
         blank,
-        urwid.Padding(urwid.Text(text_edit), ('fixed left',2),
-            ('fixed right',2), 20),
+        urwid.Padding(urwid.Text(text_edit), left=2, right=2, min_width=20),
         blank,
         urwid.AttrWrap(urwid.Edit(text_edit_cap1, text_edit_text1),
             'editbx', 'editfc'),
@@ -184,7 +181,7 @@ def main():
             'editbx', 'editfc' ),
         blank,
         urwid.Padding(urwid.AttrWrap(urwid.Edit(text_edit_padding, ""),
-            'editbx','editfc' ), ('fixed left',10), 50 ),
+            'editbx','editfc' ), left=10, width=50),
         blank,
         blank,
         urwid.AttrWrap(urwid.Columns([
@@ -194,8 +191,8 @@ def main():
             ]), 'bright'),
         blank,
         urwid.Columns([
-            urwid.Padding(urwid.Text(text_columns1),
-                ('fixed left',2), ('fixed right',0), 20),
+            urwid.Padding(urwid.Text(text_columns1), left=2, right=0,
+                min_width=20),
             urwid.Pile([
                 urwid.Divider("~"),
                 urwid.Text(text_columns2),
@@ -212,8 +209,8 @@ def main():
                 ], 1),
             ], 2),
         blank,
-        urwid.Padding(urwid.Text(text_column_widths),
-            ('fixed left',2), ('fixed right',2), 20),
+        urwid.Padding(urwid.Text(text_column_widths), left=2, right=2,
+            min_width=20),
         blank,
         urwid.Columns( [
             urwid.AttrWrap(urwid.Text(text_weight % 1),'reverse'),
@@ -223,7 +220,7 @@ def main():
             ('weight', 4, urwid.Text(text_weight % 4)),
             ('weight', 5, urwid.AttrWrap(urwid.Text(
                 text_weight % 5), 'reverse')),
-            ('weight', 6, urwid.Text(text_weight%2)),
+            ('weight', 6, urwid.Text(text_weight % 6)),
             ], 0, min_width=8),
         blank,
         urwid.Columns([
@@ -261,31 +258,31 @@ def main():
             ]), 'bright'),
         blank,
         blank,
-        urwid.Padding(urwid.Text(text_gridflow), ('fixed left',2),
-            ('fixed right',2), 20),
+        urwid.Padding(urwid.Text(text_gridflow), left=2, right=2,
+            min_width=20),
         blank,
         urwid.Padding(urwid.GridFlow(
             [urwid.AttrWrap(urwid.Button(txt, button_press),
                 'buttn','buttnf') for txt in text_button_list],
             13, 3, 1, 'left'),
-            ('fixed left',4), ('fixed right',3)),
+            left=4, right=3, min_width=13),
         blank,
         urwid.Padding(urwid.GridFlow(
             [urwid.AttrWrap(urwid.CheckBox(txt),'buttn','buttnf')
                 for txt in text_cb_list],
             10, 3, 1, 'left') ,
-            ('fixed left',4), ('fixed right',3)),
+            left=4, right=3, min_width=10),
         blank,
         urwid.Padding(urwid.GridFlow(
             [urwid.AttrWrap(urwid.RadioButton(radio_button_group,
                 txt), 'buttn','buttnf')
                 for txt in text_rb_list],
             13, 3, 1, 'left') ,
-            ('fixed left',4), ('fixed right',3)),
+            left=4, right=3, min_width=13),
         blank,
         blank,
-        urwid.Padding(urwid.Text(text_listbox),
-            ('fixed left',2),('fixed right',2),20),
+        urwid.Padding(urwid.Text(text_listbox), left=2, right=2,
+            min_width=20),
         blank,
         blank,
         ]

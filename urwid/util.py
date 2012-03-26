@@ -21,12 +21,9 @@
 # Urwid web site: http://excess.org/urwid/
 
 from urwid import escape
-from urwid.compat import *
+from urwid.compat import bytes
 
-try:
-    from urwid import str_util
-except ImportError:
-    from urwid import old_str_util as str_util
+str_util = escape.str_util
 
 # bring str_util functions into our namespace
 calc_text_pos = str_util.calc_text_pos

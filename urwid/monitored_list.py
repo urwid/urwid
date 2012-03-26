@@ -19,7 +19,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-
 from urwid.compat import PYTHON3
 
 
@@ -37,11 +36,11 @@ class MonitoredList(list):
     """
     def _modified(self):
         pass
-    
+
     def set_modified_callback(self, callback):
         """
-        Assign a callback function in with no parameters.
-        Callback's return value is ignored.
+        Assign a callback function with no parameters that is called any
+        time the list is modified.  Callback's return value is ignored.
 
         >>> import sys
         >>> ml = MonitoredList([1,2,3])
@@ -85,8 +84,8 @@ class MonitoredList(list):
 
 class MonitoredFocusList(MonitoredList):
     """
-    This class can trigger a callback any time its contents are changed
-    and any time the item "in focus" is modified or removed
+    This class can trigger a callback any time its contents are modified,
+    before and/or after modification, and any time the focus index is changed.
     """
     def __init__(self, *argl, **argd):
         """
@@ -109,125 +108,159 @@ class MonitoredFocusList(MonitoredList):
         >>> ml
         MonitoredFocusList([], focus=None)
         """
-        focus = 0
-        if 'focus' in argd:
-            focus = argd['focus']
-            del argd['focus']
+        focus = argd.pop('focus', 0)
 
         super(MonitoredFocusList, self).__init__(*argl, **argd)
 
-        self.set_focus(focus)
+        self._focus = focus
         self._focus_modified = lambda ml, indices, new_items: None
 
     def __repr__(self):
         return "%s(%r, focus=%r)" % (
-            self.__class__.__name__, list(self), self.get_focus())
+            self.__class__.__name__, list(self), self.focus)
 
-    def get_focus(self):
+    def _get_focus(self):
         """
         Return the index of the item "in focus" or None if
-        the list is empty.  May also be accessed as .focus
+        the list is empty.
 
-        >>> MonitoredFocusList([1,2,3], focus=2).get_focus()
+        >>> MonitoredFocusList([1,2,3], focus=2)._get_focus()
         2
-        >>> MonitoredFocusList().get_focus()
-        >>> MonitoredFocusList([1,2,3], focus=1).focus
-        1
+        >>> MonitoredFocusList()._get_focus()
         """
         if not self:
             return None
-        if self._focus >= len(self):
-            # should't happen.. but just in case
-            return len(self)-1
         return self._focus
 
-    def set_focus(self, index):
+    def _set_focus(self, index):
         """
-        index -- index into self.widget_list, negative indexes count from
-            the end, any index out of range will raise an IndexError
-        
-        Negative indexes work the same way they do in slicing.
+        index -- index into this list, any index out of range will
+            raise an IndexError, except when the list is empty and
+            the index passed is ignored.
 
-        May also be set using .focus
-        
+        This function may call self._focus_changed when the focus
+        is actually modified.  That method may be overridden on the
+        instance with set_focus_changed_callback().
+
         >>> ml = MonitoredFocusList([9, 10, 11])
-        >>> ml.set_focus(2); ml.get_focus()
+        >>> ml._set_focus(2); ml._get_focus()
         2
-        >>> ml.set_focus(-2); ml.get_focus()
-        1
-        >>> ml.focus = 0; ml.get_focus()
+        >>> ml._set_focus(0); ml._get_focus()
         0
+        >>> ml._set_focus(-2)
+        Traceback (most recent call last):
+        ...
+        IndexError: focus index is out of range: -2
         """
         if not self:
             self._focus = 0
             return
-        if index < 0:
-            index += len(self)
         if index < 0 or index >= len(self):
-            raise IndexError('list index out of range')
-        self._focus = int(index)
+            raise IndexError, 'focus index is out of range: %s' % (index,)
+        if index != int(index):
+            raise IndexError, 'invalid focus index: %s' % (index,)
+        index = int(index)
+        if index != self._focus:
+            self._focus_changed(index)
+        self._focus = index
 
-    focus = property(get_focus, set_focus)
+    focus = property(_get_focus, _set_focus, doc="""
+        Get/set the focus index.  This value is read as None when the list
+        is empty, and may only be set to a value between 0 and len(self)-1
+        or an IndexError will be raised.
+        """)
 
-    def set_focus_modified_callback(self, callback):
+    def _focus_changed(self, new_focus):
+        pass
+
+    def set_focus_changed_callback(self, callback):
         """
-        Assign a function to handle updating the focus when the item
-        in focus is about to be changed.  The callback is in the form:
+        Assign a callback to be called when the focus index changes
+        for any reason.  The callback is in the form:
 
-        callback(monitored_list, slc, new_items)
-        indices -- a (start, stop, step) tuple whose range covers the 
+        callback(new_focus)
+        new_focus -- new focus index
+
+        >>> import sys
+        >>> ml = MonitoredFocusList([1,2,3], focus=1)
+        >>> ml.set_focus_changed_callback(lambda f: sys.stdout.write("focus: %d\\n" % (f,)))
+        >>> ml
+        MonitoredFocusList([1, 2, 3], focus=1)
+        >>> ml.append(10)
+        >>> ml.insert(1, 11)
+        focus: 2
+        >>> ml
+        MonitoredFocusList([1, 11, 2, 3, 10], focus=2)
+        >>> del ml[:2]
+        focus: 0
+        >>> ml[:0] = [12, 13, 14]
+        focus: 3
+        >>> ml.focus = 5
+        focus: 5
+        >>> ml
+        MonitoredFocusList([12, 13, 14, 2, 3, 10], focus=5)
+        """
+        self._focus_changed = callback
+
+    def _validate_contents_modified(self, indices, new_items):
+        return None
+
+    def set_validate_contents_modified(self, callback):
+        """
+        Assign a callback function to handle validating changes to the list.
+        This may raise an exception if the change should not be performed.
+        It may also return an integer position to be the new focus after the
+        list is modified, or None to use the default behaviour.
+
+        The callback is in the form:
+
+        callback(indices, new_items)
+        indices -- a (start, stop, step) tuple whose range covers the
             items being modified
-        new_items -- a list of items replacing those at range(*indices)
-        
-        The only valid action for the callback is to call set_focus().
-        Modifying the list in the callback has undefined behaviour.
+        new_items -- an iterable of items replacing those at range(*indices),
+            empty if items are being removed, if step==1 this list may
+            contain any number of items
         """
-        self._focus_modified = callback
+        self._validate_contents_modified = callback
 
-    def _handle_possible_focus_modified(self, slc, new_items=[]):
+    def _adjust_focus_on_contents_modified(self, slc, new_items=()):
         """
         Default behaviour is to move the focus to the item following
-        any removed items, or the last item in the list if that doesn't
-        exist.
+        any removed items, unless that item was simply replaced.
+
+        Failing that choose the last item in the list.
+
+        returns focus position for after change is applied
         """
         num_new_items = len(new_items)
         start, stop, step = indices = slc.indices(len(self))
-        if step == 1:
-            if start <= self._focus < stop:
-                # call user handler, which might modify focus
-                self._focus_modified(self, indices, new_items)
+        num_removed = len(range(*indices))
 
-            if start + num_new_items <= self._focus < stop:
-                self._focus = stop
+        focus = self._validate_contents_modified(indices, new_items)
+        if focus is not None:
+            return focus
+
+        focus = self._focus
+        if step == 1:
+            if start + num_new_items <= focus < stop:
+                focus = stop
             # adjust for added/removed items
-            if stop <= self._focus:
-                self._focus += num_new_items - (stop - start)
+            if stop <= focus:
+                focus += num_new_items - (stop - start)
 
         else:
-            removed = range(start, stop, step)
-            if self._focus in removed:
-                # call user handler, which might modify focus
-                self._focus_modified(self, indices, new_items)
-
             if not num_new_items:
                 # extended slice being removed
-                if self._focus in removed:
-                    self._focus += 1
+                if focus in range(start, stop, step):
+                    focus += 1
 
                 # adjust for removed items
-                self._focus -= len(range(start, self._focus, step))
+                focus -= len(range(start, min(focus, stop), step))
 
-    def _clamp_focus(self):
-        """
-        adjust the focus if it is out of range
-        """
-        if self._focus >= len(self):
-            self._focus = len(self)-1
-        if self._focus < 0:
-            self._focus = 0
+        return min(focus, len(self) + num_new_items - num_removed -1)
 
-    # override all the list methods that might affect our focus
-    
+    # override all the list methods that modify the list
+
     def __delitem__(self, y):
         """
         >>> ml = MonitoredFocusList([0,1,2,3], focus=2)
@@ -246,78 +279,145 @@ class MonitoredFocusList(MonitoredList):
         MonitoredFocusList([6, 6], focus=1)
         """
         if isinstance(y, slice):
-            self._handle_possible_focus_modified(y)
+            focus = self._adjust_focus_on_contents_modified(y)
         else:
-            self._handle_possible_focus_modified(slice(y, y+1))
+            focus = self._adjust_focus_on_contents_modified(slice(y, y+1))
         rval = super(MonitoredFocusList, self).__delitem__(y)
-        self._clamp_focus()
+        self._set_focus(focus)
         return rval
 
     def __setitem__(self, i, y):
         """
-        >>> def modified(monitored_list, indices, new_items):
+        >>> def modified(indices, new_items):
         ...     print "range%r <- %r" % (indices, new_items)
         >>> ml = MonitoredFocusList([0,1,2,3], focus=2)
-        >>> ml.set_focus_modified_callback(modified)
+        >>> ml.set_validate_contents_modified(modified)
         >>> ml[0] = 9
+        range(0, 1, 1) <- [9]
         >>> ml[2] = 6
         range(2, 3, 1) <- [6]
-        >>> ml[-1] = 8; ml
+        >>> ml.focus
+        2
+        >>> ml[-1] = 8
+        range(3, 4, 1) <- [8]
+        >>> ml
         MonitoredFocusList([9, 1, 6, 8], focus=2)
         >>> ml[1::2] = [12, 13]
+        range(1, 4, 2) <- [12, 13]
         >>> ml[::2] = [10, 11]
         range(0, 4, 2) <- [10, 11]
         """
         if isinstance(i, slice):
-            self._handle_possible_focus_modified(i, y)
+            focus = self._adjust_focus_on_contents_modified(i, y)
         else:
-            self._handle_possible_focus_modified(slice(i, i+1 or None), [y])
-        return super(MonitoredFocusList, self).__setitem__(i, y)
+            focus = self._adjust_focus_on_contents_modified(slice(i, i+1 or None), [y])
+        rval = super(MonitoredFocusList, self).__setitem__(i, y)
+        self._set_focus(focus)
+        return rval
 
-    def __delslice__(self, i, j):
+    if not PYTHON3:
+        def __delslice__(self, i, j):
+            """
+            >>> def modified(indices, new_items):
+            ...     print "range%r <- %r" % (indices, list(new_items))
+            >>> ml = MonitoredFocusList([0,1,2,3,4], focus=2)
+            >>> ml.set_validate_contents_modified(modified)
+            >>> del ml[3:5]
+            range(3, 5, 1) <- []
+            >>> ml
+            MonitoredFocusList([0, 1, 2], focus=2)
+            >>> del ml[:1]
+            range(0, 1, 1) <- []
+            >>> ml
+            MonitoredFocusList([1, 2], focus=1)
+            >>> del ml[1:]; ml
+            range(1, 2, 1) <- []
+            MonitoredFocusList([1], focus=0)
+            >>> del ml[:]; ml
+            range(0, 1, 1) <- []
+            MonitoredFocusList([], focus=None)
+            """
+            focus = self._adjust_focus_on_contents_modified(slice(i, j))
+            rval = super(MonitoredFocusList, self).__delslice__(i, j)
+            self._set_focus(focus)
+            return rval
+
+        def __setslice__(self, i, j, y):
+            """
+            >>> ml = MonitoredFocusList([0,1,2,3,4], focus=2)
+            >>> ml[3:5] = [-1]; ml
+            MonitoredFocusList([0, 1, 2, -1], focus=2)
+            >>> ml[0:1] = []; ml
+            MonitoredFocusList([1, 2, -1], focus=1)
+            >>> ml[1:] = [3, 4]; ml
+            MonitoredFocusList([1, 3, 4], focus=1)
+            >>> ml[1:] = [2]; ml
+            MonitoredFocusList([1, 2], focus=1)
+            >>> ml[0:1] = [9,9,9]; ml
+            MonitoredFocusList([9, 9, 9, 2], focus=3)
+            >>> ml[:] = []; ml
+            MonitoredFocusList([], focus=None)
+            """
+            focus = self._adjust_focus_on_contents_modified(slice(i, j), y)
+            rval = super(MonitoredFocusList, self).__setslice__(i, j, y)
+            self._set_focus(focus)
+            return rval
+
+    def __imul__(self, n):
         """
-        >>> def modified(monitored_list, indices, new_items):
+        >>> def modified(indices, new_items):
+        ...     print "range%r <- %r" % (indices, list(new_items))
+        >>> ml = MonitoredFocusList([0,1,2], focus=2)
+        >>> ml.set_validate_contents_modified(modified)
+        >>> ml *= 3
+        range(3, 3, 1) <- [0, 1, 2, 0, 1, 2]
+        >>> ml
+        MonitoredFocusList([0, 1, 2, 0, 1, 2, 0, 1, 2], focus=2)
+        >>> ml *= 0
+        range(0, 9, 1) <- []
+        >>> print ml.focus
+        None
+        """
+        if n > 0:
+            focus = self._adjust_focus_on_contents_modified(
+                slice(len(self), len(self)), list(self)*(n-1))
+        else: # all contents are being removed
+            focus = self._adjust_focus_on_contents_modified(slice(0, len(self)))
+        rval = super(MonitoredFocusList, self).__imul__(n)
+        self._set_focus(focus)
+        return rval
+
+    def append(self, item):
+        """
+        >>> def modified(indices, new_items):
         ...     print "range%r <- %r" % (indices, new_items)
-        >>> ml = MonitoredFocusList([0,1,2,3,4], focus=2)
-        >>> ml.set_focus_modified_callback(modified)
-        >>> del ml[3:5]; ml
-        MonitoredFocusList([0, 1, 2], focus=2)
-        >>> del ml[:1]; ml
-        MonitoredFocusList([1, 2], focus=1)
-        >>> del ml[1:]; ml
-        range(1, 2, 1) <- []
-        MonitoredFocusList([1], focus=0)
-        >>> del ml[:]; ml
-        range(0, 1, 1) <- []
-        MonitoredFocusList([], focus=None)
+        >>> ml = MonitoredFocusList([0,1,2], focus=2)
+        >>> ml.set_validate_contents_modified(modified)
+        >>> ml.append(6)
+        range(3, 3, 1) <- [6]
         """
-        self._handle_possible_focus_modified(slice(i, j))
-        rval = super(MonitoredFocusList, self).__delslice__(i, j)
-        self._clamp_focus()
+        focus = self._adjust_focus_on_contents_modified(
+            slice(len(self), len(self)), [item])
+        rval = super(MonitoredFocusList, self).append(item)
+        self._set_focus(focus)
         return rval
 
-    def __setslice__(self, i, j, y):
+    def extend(self, items):
         """
-        >>> ml = MonitoredFocusList([0,1,2,3,4], focus=2)
-        >>> ml[3:5] = [-1]; ml
-        MonitoredFocusList([0, 1, 2, -1], focus=2)
-        >>> ml[0:1] = []; ml
-        MonitoredFocusList([1, 2, -1], focus=1)
-        >>> ml[1:] = [3, 4]; ml
-        MonitoredFocusList([1, 3, 4], focus=1)
-        >>> ml[1:] = [2]; ml
-        MonitoredFocusList([1, 2], focus=1)
-        >>> ml[0:1] = [9,9,9]; ml
-        MonitoredFocusList([9, 9, 9, 2], focus=3)
-        >>> ml[:] = []; ml
-        MonitoredFocusList([], focus=None)
+        >>> def modified(indices, new_items):
+        ...     print "range%r <- %r" % (indices, list(new_items))
+        >>> ml = MonitoredFocusList([0,1,2], focus=2)
+        >>> ml.set_validate_contents_modified(modified)
+        >>> ml.extend((6,7,8))
+        range(3, 3, 1) <- [6, 7, 8]
         """
-        self._handle_possible_focus_modified(slice(i, j), y)
-        rval = super(MonitoredFocusList, self).__setslice__(i, j, y)
-        self._clamp_focus()
+        focus = self._adjust_focus_on_contents_modified(
+            slice(len(self), len(self)), items)
+        rval = super(MonitoredFocusList, self).extend(items)
+        self._set_focus(focus)
         return rval
-    
-    def insert(self, index, object):
+
+    def insert(self, index, item):
         """
         >>> ml = MonitoredFocusList([0,1,2,3], focus=2)
         >>> ml.insert(-1, -1); ml
@@ -327,8 +427,11 @@ class MonitoredFocusList(MonitoredList):
         >>> ml.insert(3, -3); ml
         MonitoredFocusList([-2, 0, 1, -3, 2, -1, 3], focus=4)
         """
-        self._handle_possible_focus_modified(slice(index, index), [object])
-        return super(MonitoredFocusList, self).insert(index, object)
+        focus = self._adjust_focus_on_contents_modified(slice(index, index),
+            [item])
+        rval = super(MonitoredFocusList, self).insert(index, item)
+        self._set_focus(focus)
+        return rval
 
     def pop(self, index=-1):
         """
@@ -346,8 +449,11 @@ class MonitoredFocusList(MonitoredList):
         2
         MonitoredFocusList([0, 1], focus=1)
         """
-        self._handle_possible_focus_modified(slice(index, index+1 or None))
-        return super(MonitoredFocusList, self).pop(index)
+        focus = self._adjust_focus_on_contents_modified(slice(index,
+            index+1 or None))
+        rval = super(MonitoredFocusList, self).pop(index)
+        self._set_focus(focus)
+        return rval
 
     def remove(self, value):
         """
@@ -360,8 +466,11 @@ class MonitoredFocusList(MonitoredList):
         MonitoredFocusList([0, 1, 2, -1], focus=2)
         """
         index = self.index(value)
-        self._handle_possible_focus_modified(slice(index, index+1 or None))
-        return super(MonitoredFocusList, self).remove(value)
+        focus = self._adjust_focus_on_contents_modified(slice(index,
+            index+1 or None))
+        rval = super(MonitoredFocusList, self).remove(value)
+        self._set_focus(focus)
+        return rval
 
     def reverse(self):
         """
@@ -369,8 +478,9 @@ class MonitoredFocusList(MonitoredList):
         >>> ml.reverse(); ml
         MonitoredFocusList([4, 3, 2, 1, 0], focus=3)
         """
-        self._focus = max(0, len(self) - self._focus - 1)
-        return super(MonitoredFocusList, self).reverse()
+        rval = super(MonitoredFocusList, self).reverse()
+        self._set_focus(max(0, len(self) - self._focus - 1))
+        return rval
 
     def sort(self):
         """
@@ -382,7 +492,7 @@ class MonitoredFocusList(MonitoredList):
             return
         value = self[self._focus]
         rval = super(MonitoredFocusList, self).sort()
-        self._focus = self.index(value)
+        self._set_focus(self.index(value))
         return rval
 
 

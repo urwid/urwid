@@ -29,7 +29,7 @@ import fcntl
 import os
 
 from urwid.util import is_mouse_event
-from urwid.compat import PYTHON3, bytes
+from urwid.compat import PYTHON3
 from urwid.command_map import command_map
 from urwid.wimp import PopUpTarget
 from urwid import signals
@@ -202,7 +202,7 @@ class MainLoop(object):
         Returns True if the watch pipe exists, False otherwise
         """
         try:
-            watch_handle, pipe_rd = self._watch_pipes.remove(write_fd)
+            watch_handle, pipe_rd = self._watch_pipes.pop(write_fd)
         except KeyError:
             return False
 

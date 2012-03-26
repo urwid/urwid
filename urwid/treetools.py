@@ -32,8 +32,6 @@ Features:
 import urwid
 from urwid.wimp import SelectableIcon
 
-import os
-
 
 class TreeWidgetError(RuntimeError):
     pass

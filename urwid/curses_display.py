@@ -23,7 +23,6 @@
 Curses-based UI implementation
 """
 
-import sys
 import curses
 import _curses
 
@@ -31,7 +30,7 @@ from urwid import escape
 
 from urwid.display_common import BaseScreen, RealTerminal, AttrSpec, \
     UNPRINTABLE_TRANS_TABLE
-from urwid.compat import bytes, chr2, B, bytes3, PYTHON3
+from urwid.compat import bytes, PYTHON3
 
 KEY_RESIZE = 410 # curses.KEY_RESIZE (sometimes not defined)
 KEY_MOUSE = 409 # curses.KEY_MOUSE
@@ -76,18 +75,18 @@ class Screen(BaseScreen, RealTerminal):
 
     def set_mouse_tracking(self):
         """
-        Enable mouse tracking.  
-        
+        Enable mouse tracking.
+
         After calling this function get_input will include mouse
         click events along with keystrokes.
         """
-        rval = curses.mousemask( 0 
+        curses.mousemask(0
             | curses.BUTTON1_PRESSED | curses.BUTTON1_RELEASED
             | curses.BUTTON2_PRESSED | curses.BUTTON2_RELEASED
             | curses.BUTTON3_PRESSED | curses.BUTTON3_RELEASED
             | curses.BUTTON4_PRESSED | curses.BUTTON4_RELEASED
             | curses.BUTTON_SHIFT | curses.BUTTON_ALT
-            | curses.BUTTON_CTRL )
+            | curses.BUTTON_CTRL)
 
     def start(self):
         """
