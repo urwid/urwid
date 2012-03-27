@@ -45,6 +45,13 @@ def setdefaultattr(obj, name, value):
     setattr(obj, name, value)
     return value
 
+class Key(object):
+    """
+    Minimal class, whose only purpose is to produce objects with a
+    unique hash
+    """
+    __slots__ = []
+
 class Signals(object):
     _signal_attr = '_urwid_signals' # attribute to attach to signal senders
 
@@ -134,6 +141,12 @@ class Signals(object):
         weak_debug value passed is not a weak reference anymore, the
         signals code transparently dereferences the weakref parameter
         before passing it to print_debug.
+
+        Returns a key associated by this signal handler, which can be
+        used to disconnect the signal later on using
+        urwid.disconnect_signal_by_key. Alternatively, the signal
+        handler can also be disconnected by calling
+        urwid.disconnect_signal, which doesn't need this key.
         """
 
         sig_cls = obj.__class__
@@ -141,10 +154,15 @@ class Signals(object):
             raise NameError, "No such signal %r for object %r" % \
                 (name, obj)
 
+        # Just generate an arbitrary (but unique) key
+        key = Key()
         user_args = self._prepare_user_args(weak_args, user_args)
 
-        d = setdefaultattr(obj, self._signal_attr, {})
-        d.setdefault(name, []).append((callback, user_arg, user_args))
+        signals = setdefaultattr(obj, self._signal_attr, {})
+        handlers = signals.setdefault(name, {})
+        handlers[key] = (callback, user_arg, user_args)
+
+        return key
 
     def _prepare_user_args(self, weak_args, user_args):
         # Turn weak_args into weakrefs and prepend them to user_args
@@ -153,21 +171,61 @@ class Signals(object):
 
     def disconnect(self, obj, name, callback, user_arg=None, weak_args=[], user_args=[]):
         """
+        :param obj: the object to disconnect the signal from
+        :type obj: object
+        :param name: the signal to disconnect, typically a string
+        :type name: signal name
+        :param callback: the callback function passed to connect_signal
+        :type callback: function
+        :param user_arg: the user_arg parameter passed to connect_signal
+        :param weak_args: the weak_args parameter passed to connect_signal
+        :param user_args: the weak_args parameter passed to connect_signal
+
         This function will remove a callback from the list connected
-        to a signal with connect_signal().
+        to a signal with connect_signal(). The arguments passed should
+        be exactly the same as those passed to connect_signal().
+
+        If the callback is not connected or already disconnected, this
+        function will simply do nothing.
         """
-        d = setdefaultattr(obj, self._signal_attr, {})
-        if name not in d:
+        signals = setdefaultattr(obj, self._signal_attr, {})
+        if name not in signals:
             return
+
+        handlers = signals[name]
 
         # Do the same processing as in connect, so we can compare the
         # resulting tuple.
         user_args = self._prepare_user_args(weak_args, user_args)
 
-        if (callback, user_arg, user_args) not in d[name]:
-            return
+        # Remove the given handler
+        for key, value in handlers.items():
+            if value == (callback, user_arg, user_args):
+                return self.disconnect_by_key(obj, name, key)
 
-        d[name].remove((callback, user_arg, user_args))
+    def disconnect_by_key(self, obj, name, key):
+        """
+        :param obj: the object to disconnect the signal from
+        :type obj: object
+        :param name: the signal to disconnect, typically a string
+        :type name: signal name
+        :param key: the key for this signal handler, as returned by
+                    connect_signal().
+        :type key: Key
+
+        This function will remove a callback from the list connected
+        to a signal with connect_signal(). The key passed should be the
+        value returned by connect_signal().
+
+        If the callback is not connected or already disconnected, this
+        function will simply do nothing.
+        """
+        signals = setdefaultattr(obj, self._signal_attr, {})
+        try:
+            del signals[name][key]
+        except KeyError:
+            # Don't error out if the handler is already disconnected.
+            pass
 
     def emit(self, obj, name, *args):
         """
@@ -185,7 +243,7 @@ class Signals(object):
         """
         result = False
         d = getattr(obj, self._signal_attr, {})
-        for callback, user_arg, user_args in d.get(name, []):
+        for callback, user_arg, user_args in d.get(name, {}).values():
             result |= self._call_callback(callback, user_arg, user_args, args)
         return result
 
@@ -222,4 +280,5 @@ emit_signal = _signals.emit
 register_signal = _signals.register
 connect_signal = _signals.connect
 disconnect_signal = _signals.disconnect
+disconnect_signal_by_key = _signals.disconnect_by_key
 
