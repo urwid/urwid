@@ -156,17 +156,37 @@ class Signals(object):
 
         # Just generate an arbitrary (but unique) key
         key = Key()
-        user_args = self._prepare_user_args(weak_args, user_args)
 
         signals = setdefaultattr(obj, self._signal_attr, {})
         handlers = signals.setdefault(name, {})
+
+        # Remove the signal handler when any of the weakref'd arguments
+        # are garbage collected. Note that this means that the handlers
+        # dictionary can be modified _at any time_, so it should never
+        # be iterated directly (e.g. iterate only over .keys() and
+        # .items(), never over .iterkeys(), .iteritems() or the object
+        # itself).
+        # We let the callback keep a weakref to the object as well, to
+        # prevent a circular reference between the handler and the
+        # object (via the weakrefs, which keep strong references to
+        # their callbacks) from existing.
+        obj_weak = weakref.ref(obj)
+        def weakref_callback(weakref):
+            o = obj_weak()
+            if o:
+                try:
+                    del getattr(o, self._signal_attr, {})[name][key]
+                except KeyError:
+                    pass
+
+        user_args = self._prepare_user_args(weak_args, user_args, weakref_callback)
         handlers[key] = (callback, user_arg, user_args)
 
         return key
 
-    def _prepare_user_args(self, weak_args, user_args):
+    def _prepare_user_args(self, weak_args, user_args, callback = None):
         # Turn weak_args into weakrefs and prepend them to user_args
-        return [weakref.ref(a) for a in weak_args] + user_args
+        return [weakref.ref(a, callback) for a in weak_args] + user_args
 
 
     def disconnect(self, obj, name, callback, user_arg=None, weak_args=[], user_args=[]):
@@ -254,11 +274,12 @@ class Signals(object):
                 if isinstance(arg, weakref.ReferenceType):
                     arg = arg()
                     if arg is None:
-                        # If the weakref is None, the referenced
-                        # object was cleaned up. We just skip the
-                        # entire callback in this case.
-                        # TODO: remove the callback from the list
-                        # when this happens
+                        # If the weakref is None, the referenced object
+                        # was cleaned up. We just skip the entire
+                        # callback in this case. The weakref cleanup
+                        # handler will have removed the callback when
+                        # this happens, so no need to actually remove
+                        # the callback here.
                         return False
                 args_to_pass.append(arg)
 
