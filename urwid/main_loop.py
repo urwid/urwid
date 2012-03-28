@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid main loop code
-#    Copyright (C) 2004-2011  Ian Ward
+#    Copyright (C) 2004-2012  Ian Ward
 #    Copyright (C) 2008 Walter Mundt
 #    Copyright (C) 2009 Andrew Psaltis
 #
@@ -38,38 +38,43 @@ from urwid.display_common import INPUT_DESCRIPTORS_CHANGED
 PIPE_BUFFER_READ_SIZE = 4096 # can expect this much on Linux, so try for that
 
 class ExitMainLoop(Exception):
+    """
+    When this exception is raised within a main loop the main loop
+    will exit cleanly.
+    """
     pass
 
 class MainLoop(object):
+    """
+    This is the standard main loop implementation with a single screen.
+
+    *widget* -- the topmost widget used for painting the screen, stored as
+    self.widget and may be modified. Must be a box widget.
+
+    *palette* -- initial palette for screen.
+
+    *screen* -- screen object or ``None`` to use a new raw_display.Screen
+    instance. stored as self.screen
+
+    *handle_mouse* -- ``True`` to process mouse events, passed to
+    ``self.screen``
+
+    *input_filter* -- a function to filter input before sending it to
+    ``self.widget``, called from ``self.input_filter``
+
+    *unhandled_input* -- a function called when input is not handled by
+    ``self.widget``, called from ``self.unhandled_input``
+
+    *event_loop* -- if screen supports external an event loop it may be
+    given here, or leave as None to use a new
+    *SelectEventLoop* instance; stored as ``self.event_loop``
+
+    *pop_ups* -- ``True`` to wrap ``self.widget`` with a ``PopUpTarget``
+    instance to allow any widget to open a pop-up anywhere on the screen
+    """
     def __init__(self, widget, palette=[], screen=None, 
-        handle_mouse=True, input_filter=None, unhandled_input=None,
-        event_loop=None, pop_ups=False):
-        """
-        Simple main loop implementation.
-
-        widget -- topmost widget used for painting the screen,
-            stored as self.widget and may be modified
-        palette -- initial palette for screen
-        screen -- screen object or None to use raw_display.Screen,
-            stored as self.screen
-        handle_mouse -- True to process mouse events, passed to
-            self.screen
-        input_filter -- a function to filter input before sending
-            it to self.widget, called from self.input_filter
-        unhandled_input -- a function called when input is not
-            handled by self.widget, called from self.unhandled_input
-        event_loop -- if screen supports external an event loop it
-            may be given here, or leave as None to use
-            SelectEventLoop, stored as self.event_loop
-        pop_ups -- True to wrap self.widget with a PopUpTarget
-            instance to allow any widget to open a pop-up anywhere on
-            the screen
-
-        This is the standard main loop implementation with a single
-        screen.
-
-        The widget passed must be a box widget.
-        """
+            handle_mouse=True, input_filter=None, unhandled_input=None,
+            event_loop=None, pop_ups=False):
         self._widget = widget
         self.handle_mouse = handle_mouse
         self.pop_ups = pop_ups # triggers property setting side-effect
@@ -116,13 +121,11 @@ class MainLoop(object):
 
     def set_alarm_in(self, sec, callback, user_data=None):
         """
-        Schedule an alarm in sec seconds that will call
-        callback(main_loop, user_data) from the within the run()
-        function.
+        Schedule an alarm in *sec* seconds that will call *callback* from the
+        within the :meth:`run` method.
 
-        sec -- floating point seconds until alarm
-        callback -- callback(main_loop, user_data) callback function
-        user_data -- object to pass to callback
+        *sec* floating point seconds until alarm. *callback* a callable which
+        accept two arguments, the main loop and the object *user_data*.
         """
         def cb():
             callback(self, user_data)
@@ -130,15 +133,12 @@ class MainLoop(object):
 
     def set_alarm_at(self, tm, callback, user_data=None):
         """
-        Schedule at tm time that will call 
-        callback(main_loop, user_data) from the within the run()
-        function.
+        Schedule at *tm* time that will call *callback* from the within the
+        :meth`run` function. Returns a handle that may be passed to
+        :meth:`remove_alarm`.
 
-        Returns a handle that may be passed to remove_alarm()
-
-        tm -- floating point local time of alarm
-        callback -- callback(main_loop, user_data) callback function
-        user_data -- object to pass to callback
+        *tm* is a floating point local time of alarm. *callback* is a callable
+        which accept two parameters, the main loop and the *user_data* object.
         """
         def cb():
             callback(self, user_data)
@@ -146,37 +146,34 @@ class MainLoop(object):
 
     def remove_alarm(self, handle):
         """
-        Remove an alarm.
-
-        Return True if the handle was found, False otherwise.
+        Remove an alarm. Return ``True`` if the handle was found, ``False``
+        otherwise.
         """
         return self.event_loop.remove_alarm(handle)
 
     def watch_pipe(self, callback):
         """
-        Create a pipe for use by a subprocess or thread to trigger
-        a callback in the process/thread running the MainLoop.
+        Create a pipe for use by a subprocess or thread to trigger a callback
+        in the process/thread running the *MainLoop*.
 
-        callback -- function to call MainLoop.run thread/process
+        *callback* -- function to call :meth:`MainLoop.run` thread/process
 
-        This function returns a file descriptor attached to the
-        write end of a pipe.  The read end of the pipe is added to
-        the list of files the event loop is watching. When
-        data is written to the pipe the callback function will be
-        called and passed a single value containing data read.
+        This function returns a file descriptor attached to the write end of a
+        pipe. The read end of the pipe is added to the list of files the event
+        loop is watching. When data is written to the pipe the callback
+        function will be called and passed a single value containing data read.
 
-        This method should be used any time you want to update
-        widgets from another thread or subprocess.
+        This method should be used any time you want to update widgets from
+        another thread or subprocess.
 
-        Data may be written to the returned file descriptor with
-        os.write(fd, data).  Ensure that data is less than 512
-        bytes (or 4K on Linux) so that the callback will be
-        triggered just once with the complete value of data
-        passed in.
+        Data may be written to the returned file descriptor with os.write(fd,
+        data). Ensure that data is less than 512 bytes (or 4K on Linux) so
+        that the callback will be triggered just once with the complete value
+        of data passed in.
 
-        If the callback returns False then the watch will be
-        removed and the read end of the pipe will be closed.
-        You are responsible for closing the write end of the pipe.
+        If the callback returns ``False`` then the watch will be removed and the
+        read end of the pipe will be closed. You are responsible for closing
+        the write end of the pipe.
         """
         pipe_rd, pipe_wr = os.pipe()
         fcntl.fcntl(pipe_rd, fcntl.F_SETFL, os.O_NONBLOCK)
@@ -195,11 +192,11 @@ class MainLoop(object):
 
     def remove_watch_pipe(self, write_fd):
         """
-        Close the read end of the pipe and remove the watch created
-        by watch_pipe().  You are responsible for closing the write
-        end of the pipe.
+        Close the read end of the pipe and remove the watch created by
+        :meth:`watch_pipe`. You are responsible for closing the write end of
+        the pipe.
 
-        Returns True if the watch pipe exists, False otherwise
+        Returns ``True`` if the watch pipe exists, ``False`` otherwise
         """
         try:
             watch_handle, pipe_rd = self._watch_pipes.pop(write_fd)
@@ -213,33 +210,28 @@ class MainLoop(object):
 
     def watch_file(self, fd, callback):
         """
-        Call callback() when fd has some data to read.  No parameters
-        are passed to callback.
+        Call *callback* when *fd* has some data to read. No parameters are
+        passed to callback.
 
-        Returns a handle that may be passed to remove_watch_file()
-
-        fd -- file descriptor to watch for input
-        callback -- function to call when input is available
+        Returns a handle that may be passed to :meth:`remove_watch_file`.
         """
         return self.event_loop.watch_file(fd, callback)
 
     def remove_watch_file(self, handle):
         """
-        Remove a watch file.
-
-        Returns True if the watch file exists, False otherwise.
+        Remove a watch file. Returns ``True`` if the watch file
+        exists,``False`` otherwise.
         """
         return self.event_loop.remove_watch_file(handle)
 
 
     def run(self):
         """
-        Start the main loop handling input events and updating 
-        the screen.  The loop will continue until an ExitMainLoop 
-        exception is raised.  
-        
-        This function will call screen.run_wrapper() if screen.start() 
-        has not already been called.
+        Start the main loop handling input events and updating the screen. The
+        loop will continue until an :exc:`ExitMainLoop` exception is raised.
+
+        This function will call :meth:`screen.run_wrapper` if
+        :meth:`screen.start` has not already been called.
 
         >>> w = _refl("widget")   # _refl prints out function calls
         >>> w.render_rval = "fake canvas"  # *_rval is used for return values
@@ -274,7 +266,7 @@ class MainLoop(object):
                 self.screen.run_wrapper(self._run)
         except ExitMainLoop:
             pass
-    
+
     def _run(self):
         if self.handle_mouse:
             self.screen.set_mouse_tracking()
@@ -410,15 +402,14 @@ class MainLoop(object):
 
     def process_input(self, keys):
         """
-        This function will pass keyboard input and mouse events
-        to self.widget.  This function is called automatically
-        from the run() method when there is input, but may also be
-        called to simulate input from the user.
+        This function will pass keyboard input and mouse events to *self.widget*.
+        This function is called automatically from the :meth:`run` method when
+        there is input, but may also be called to simulate input from the user.
 
-        keys -- list of input returned from self.screen.get_input()
+        *keys* is a list of input returned from :meth:`Screen.get_input`.
 
-        Returns True if any key was handled by a widget or the
-        unhandled_input() method.         
+        Returns ``True`` if any key was handled by a widget or the
+        :meth:`unhandled_input` method.
 
         >>> w = _refl("widget")
         >>> w.selectable_rval = True
@@ -461,14 +452,11 @@ class MainLoop(object):
 
     def input_filter(self, keys, raw):
         """
-        This function is passed each all the input events and raw
-        keystroke values.  These values are passed to the
-        input_filter function passed to the constructor.  That
-        function must return a list of keys to be passed to the
-        widgets to handle.  If no input_filter was defined this
-        implementation will return all the input events.
-
-        input -- keyboard or mouse input
+        This function is passed each all the input events and raw keystroke
+        values. These values are passed to the :func:`input_filter` function
+        passed to the constructor. That function must return a list of keys to
+        be passed to the widgets to handle. If no :func:`input_filter` was
+        defined this implementation will return all the input events.
         """
         if self._input_filter:
             return self._input_filter(keys, raw)
@@ -476,14 +464,14 @@ class MainLoop(object):
 
     def unhandled_input(self, input):
         """
-        This function is called with any input that was not handled
-        by the widgets, and calls the unhandled_input function passed
-        to the constructor.  If no unhandled_input was defined then
-        the input will be ignored.
+        This function is called with any input that was not handled by the
+        widgets, and calls the :func:`unhandled_input` function passed to the
+        constructor. If no :func:`unhandled_input` was defined then the input
+        will be ignored.
 
-        input -- keyboard or mouse input
+        *input* is the keyboard or mouse input.
 
-        The unhandled_input method should return True if it handled
+        The :func:`unhandled_input` method should return ``True`` if it handled
         the input.
         """
         if self._unhandled_input:
@@ -491,18 +479,18 @@ class MainLoop(object):
 
     def entering_idle(self):
         """
-        This function is called whenever the event loop is about
-        to enter the idle state.  self.draw_screen() is called here
-        to update the screen if anything has changed.
+        This function is called whenever the event loop is about to enter the
+        idle state. :meth:`draw_screen` is called here to update the
+        screen when anything has changed.
         """
         if self.screen.started:
             self.draw_screen()
 
     def draw_screen(self):
         """
-        Renter the widgets and paint the screen.  This function is
-        called automatically from run() but may be called additional
-        times if repainting is required without also processing input.
+        Renter the widgets and paint the screen. This function is called
+        automatically from :meth:`run` but may be called additional times if
+        repainting is required without also processing input.
         """
         if not self.screen_size:
             self.screen_size = self.screen.get_cols_rows()
@@ -515,10 +503,12 @@ class MainLoop(object):
 
 
 class SelectEventLoop(object):
+    """
+    Event loop based on :func:`select.select`
+    """
+
     def __init__(self):
         """
-        Event loop based on select.select()
-
         >>> import os
         >>> rd, wr = os.pipe()
         >>> evl = SelectEventLoop()
@@ -548,7 +538,7 @@ class SelectEventLoop(object):
 
         seconds -- floating point time to wait before calling callback
         callback -- function to call from event loop
-        """ 
+        """
         tm = time.time() + seconds
         heapq.heappush(self._alarms, (tm, callback))
         return (tm, callback)
@@ -725,10 +715,12 @@ class SelectEventLoop(object):
 
 if not PYTHON3:
     class GLibEventLoop(object):
+        """
+        Event loop based on gobject.MainLoop
+        """
+
         def __init__(self):
             """
-            Event loop based on gobject.MainLoop
-
             >>> import os
             >>> rd, wr = os.pipe()
             >>> evl = GLibEventLoop()
@@ -924,11 +916,12 @@ if not PYTHON3:
 
         def handle_exit(self,f):
             """
-            Decorator that cleanly exits the GLibEventLoop if ExitMainLoop is
-            thrown inside of the wrapped function.  Store the exception info if 
-            some other exception occurs, it will be reraised after the loop quits.
-            f -- function to be wrapped
+            Decorator that cleanly exits the :class:`GLibEventLoop` if
+            :exc:`ExitMainLoop` is thrown inside of the wrapped function. Store the
+            exception info if some other exception occurs, it will be reraised after
+            the loop quits.
 
+            *f* -- function to be wrapped
             """
             def wrapper(*args,**kargs):
                 try:
@@ -964,23 +957,24 @@ if not PYTHON3:
 
 
     class TwistedEventLoop(object):
+        """
+        Event loop based on Twisted_
+
+        *reactor* -- reactor object to use, if ``None`` defaults to
+        ``twisted.internet.reactor``.  *manage_reactor* -- ``True`` if you want
+        this event loop to run and stop the reactor.
+
+        .. WARNING::
+           Twisted's reactor doesn't like to be stopped and run again.  If you
+           need to stop and run your :class:`MainLoop`, consider setting
+           ``manage_reactor=False`` and take care of running/stopping the reactor
+           at the beginning/ending of your program yourself.
+
+        .. _Twisted: http://twistedmatrix.com/trac/
+        """
         _idle_emulation_delay = 1.0/256 # a short time (in seconds)
 
         def __init__(self, reactor=None, manage_reactor=True):
-            """
-            Event loop based on Twisted
-
-            reactor -- reactor object to use, if None defaults to
-                    twisted.internet.reactor
-            manage_reactor -- True if you want this event loop to run
-                    and stop the reactor
-
-            *** WARNING ***
-            Twisted's reactor doesn't like to be stopped and run again.
-            If you need to stop and run your MainLoop, consider setting
-            manage_reactor=False and take care of running/stopping
-            the reactor at the beginning/ending of your program yourself.
-            """
             if reactor is None:
                 import twisted.internet.reactor
                 reactor = twisted.internet.reactor
@@ -1080,8 +1074,9 @@ if not PYTHON3:
             so the best we can do for now is to set a timer event in a very
             short time to approximate an enter-idle callback.
 
-            XXX: This will perform worse than the other event loops until we
-            can find a fix or workaround
+            .. WARNING::
+               This will perform worse than the other event loops until we can find a
+               fix or workaround
             """
             if self._twisted_idle_enabled:
                 return
@@ -1149,11 +1144,12 @@ if not PYTHON3:
 
         def handle_exit(self, f, enable_idle=True):
             """
-            Decorator that cleanly exits the TwistedEventLoop if ExitMainLoop is
-            thrown inside of the wrapped function.  Store the exception info if
-            some other exception occurs, it will be reraised after the loop quits.
-            f -- function to be wrapped
+            Decorator that cleanly exits the :class:`TwistedEventLoop` if
+            :class:`ExitMainLoop` is thrown inside of the wrapped function. Store the
+            exception info if some other exception occurs, it will be reraised after
+            the loop quits.
 
+            *f* -- function to be wrapped
             """
             def wrapper(*args,**kargs):
                 rval = None
