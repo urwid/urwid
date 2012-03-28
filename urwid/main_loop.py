@@ -232,7 +232,17 @@ class MainLoop(object):
 
         This function will call :meth:`screen.run_wrapper` if
         :meth:`screen.start` has not already been called.
+        """
+        try:
+            if self.screen.started:
+                self._run()
+            else:
+                self.screen.run_wrapper(self._run)
+        except ExitMainLoop:
+            pass
 
+    def _test_run(self):
+        """
         >>> w = _refl("widget")   # _refl prints out function calls
         >>> w.render_rval = "fake canvas"  # *_rval is used for return values
         >>> scr = _refl("screen")
@@ -259,13 +269,6 @@ class MainLoop(object):
         >>> ml.run()    # doctest:+ELLIPSIS
         screen.run_wrapper(<bound method ...>)
         """
-        try:
-            if self.screen.started:
-                self._run()
-            else:
-                self.screen.run_wrapper(self._run)
-        except ExitMainLoop:
-            pass
 
     def _run(self):
         if self.handle_mouse:
@@ -410,18 +413,6 @@ class MainLoop(object):
 
         Returns ``True`` if any key was handled by a widget or the
         :meth:`unhandled_input` method.
-
-        >>> w = _refl("widget")
-        >>> w.selectable_rval = True
-        >>> scr = _refl("screen")
-        >>> scr.get_cols_rows_rval = (10, 5)
-        >>> ml = MainLoop(w, [], scr)
-        >>> ml.process_input(['enter', ('mouse drag', 1, 14, 20)])
-        screen.get_cols_rows()
-        widget.selectable()
-        widget.keypress((10, 5), 'enter')
-        widget.mouse_event((10, 5), 'mouse drag', 1, 14, 20, focus=True)
-        True
         """
         if not self.screen_size:
             self.screen_size = self.screen.get_cols_rows()
@@ -449,6 +440,20 @@ class MainLoop(object):
 
         return something_handled
 
+    def _test_process_input(self):
+        """
+        >>> w = _refl("widget")
+        >>> w.selectable_rval = True
+        >>> scr = _refl("screen")
+        >>> scr.get_cols_rows_rval = (10, 5)
+        >>> ml = MainLoop(w, [], scr)
+        >>> ml.process_input(['enter', ('mouse drag', 1, 14, 20)])
+        screen.get_cols_rows()
+        widget.selectable()
+        widget.keypress((10, 5), 'enter')
+        widget.mouse_event((10, 5), 'mouse drag', 1, 14, 20, focus=True)
+        True
+        """
 
     def input_filter(self, keys, raw):
         """
@@ -596,8 +601,8 @@ class SelectEventLoop(object):
 
     def enter_idle(self, callback):
         """
-        Add a callback for entering idle.  
-        
+        Add a callback for entering idle.
+
         Returns a handle that may be passed to remove_idle()
         """
         self._idle_handle += 1
@@ -627,7 +632,21 @@ class SelectEventLoop(object):
         """
         Start the event loop.  Exit the loop when any callback raises
         an exception.  If ExitMainLoop is raised, exit cleanly.
+        """
+        try:
+            self._did_something = True
+            while True:
+                try:
+                    self._loop()
+                except select.error, e:
+                    if e.args[0] != 4:
+                        # not just something we need to retry
+                        raise
+        except ExitMainLoop:
+            pass
 
+    def _test_run(self):
+        """
         >>> import os
         >>> rd, wr = os.pipe()
         >>> os.write(wr, "data".encode('ascii')) # something to read from rd
@@ -667,18 +686,6 @@ class SelectEventLoop(object):
            ...
         ZeroDivisionError: integer division or modulo by zero
         """
-        try:
-            self._did_something = True
-            while True:
-                try:
-                    self._loop()
-                except select.error, e:
-                    if e.args[0] != 4:
-                        # not just something we need to retry
-                        raise
-        except ExitMainLoop:
-            pass
-        
 
     def _loop(self):
         """
@@ -863,7 +870,20 @@ if not PYTHON3:
             """
             Start the event loop.  Exit the loop when any callback raises
             an exception.  If ExitMainLoop is raised, exit cleanly.
-            
+            """
+            try:
+                self._loop.run()
+            finally:
+                if self._loop.is_running():
+                    self._loop.quit()
+            if self._exc_info:
+                # An exception caused us to exit, raise it now
+                exc_info = self._exc_info
+                self._exc_info = None
+                raise exc_info[0], exc_info[1], exc_info[2]
+
+        def _test_run(self):
+            """
             >>> import os
             >>> rd, wr = os.pipe()
             >>> os.write(wr, "data") # something to read from rd
@@ -903,16 +923,6 @@ if not PYTHON3:
                ...
             ZeroDivisionError: integer division or modulo by zero
             """
-            try:
-                self._loop.run()
-            finally:
-                if self._loop.is_running():
-                    self._loop.quit()
-            if self._exc_info:
-                # An exception caused us to exit, raise it now
-                exc_info = self._exc_info
-                self._exc_info = None
-                raise exc_info[0], exc_info[1], exc_info[2]
 
         def handle_exit(self,f):
             """
@@ -1105,7 +1115,18 @@ if not PYTHON3:
             """
             Start the event loop.  Exit the loop when any callback raises
             an exception.  If ExitMainLoop is raised, exit cleanly.
+            """
+            if not self.manage_reactor:
+                return
+            self.reactor.run()
+            if self._exc_info:
+                # An exception caused us to exit, raise it now
+                exc_info = self._exc_info
+                self._exc_info = None
+                raise exc_info[0], exc_info[1], exc_info[2]
 
+        def _test_run(self):
+            """
             >>> import os
             >>> rd, wr = os.pipe()
             >>> os.write(wr, "data") # something to read from rd
@@ -1133,14 +1154,6 @@ if not PYTHON3:
             waiting
             oh I'm messed up
             """
-            if not self.manage_reactor:
-                return
-            self.reactor.run()
-            if self._exc_info:
-                # An exception caused us to exit, raise it now
-                exc_info = self._exc_info
-                self._exc_info = None
-                raise exc_info[0], exc_info[1], exc_info[2]
 
         def handle_exit(self, f, enable_idle=True):
             """
@@ -1185,6 +1198,7 @@ def _refl(name, rval=None, exit=False):
     screen.want_something()
     >>> x
     42
+
     """
     class Reflect(object):
         def __init__(self, name, rval=None):
@@ -1196,7 +1210,7 @@ def _refl(name, rval=None, exit=False):
                 args = args + ", "
             args = args + ", ".join([k+"="+repr(v) for k,v in argd.items()])
             print self._name+"("+args+")"
-            if exit: 
+            if exit:
                 raise ExitMainLoop()
             return self._rval
         def __getattr__(self, attr):
