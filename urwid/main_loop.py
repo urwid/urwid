@@ -47,45 +47,46 @@ class ExitMainLoop(Exception):
 class MainLoop(object):
     """
     This is the standard main loop implementation with a single screen.
-
-    *widget* -- the topmost widget used for painting the screen, stored as
-    :attr:`.widget` and may be modified. Must be a box widget.
-
-    *palette* -- initial palette for screen.
-
-    *screen* -- screen object or ``None`` to use a new
-    :class:`urwid.raw_display.Screen` instance. stored as :attr:`.screen`
-
-    *handle_mouse* -- ``True`` to process mouse events, passed to
-    :attr:`.screen`
-
-    *input_filter* -- a function to filter input before sending it to
-    :attr:`.widget`, called from :meth:`.input_filter`
-
-    *unhandled_input* -- a function called when input is not handled by
-    :attr:`.widget`, called from :meth:`.unhandled_input`
-
-    *event_loop* -- if screen supports external an event loop it may be
-    given here, or leave as None to use a new
-    *SelectEventLoop* instance; stored as :attr:`.event_loop`
-
-    *pop_ups* -- ``True`` to wrap :attr:`.widget` with a :class:`PopUpTarget`
-    instance to allow any widget to open a pop-up anywhere on the screen
-
-
-    .. attribute:: screen
-
-       The screen object this main loop uses for screen updates and reading
-       input
-
-    .. attribute:: event_loop
-
-       The event loop object this main loop uses for waiting on timers
-       and IO
     """
     def __init__(self, widget, palette=[], screen=None, 
             handle_mouse=True, input_filter=None, unhandled_input=None,
             event_loop=None, pop_ups=False):
+        """
+        *widget* -- the topmost widget used for painting the screen, stored as
+        :attr:`.widget` and may be modified. Must be a box widget.
+
+        *palette* -- initial palette for screen.
+
+        *screen* -- screen object or ``None`` to use a new
+        :class:`urwid.raw_display.Screen` instance. stored as :attr:`.screen`
+
+        *handle_mouse* -- ``True`` to process mouse events, passed to
+        :attr:`.screen`
+
+        *input_filter* -- a function to filter input before sending it to
+        :attr:`.widget`, called from :meth:`.input_filter`
+
+        *unhandled_input* -- a function called when input is not handled by
+        :attr:`.widget`, called from :meth:`.unhandled_input`
+
+        *event_loop* -- if screen supports external an event loop it may be
+        given here, or leave as None to use a new
+        *SelectEventLoop* instance; stored as :attr:`.event_loop`
+
+        *pop_ups* -- ``True`` to wrap :attr:`.widget` with a :class:`PopUpTarget`
+        instance to allow any widget to open a pop-up anywhere on the screen
+
+
+        .. attribute:: screen
+
+           The screen object this main loop uses for screen updates and reading
+           input
+
+        .. attribute:: event_loop
+
+           The event loop object this main loop uses for waiting on timers
+           and IO
+        """
         self._widget = widget
         self.handle_mouse = handle_mouse
         self.pop_ups = pop_ups # triggers property setting side-effect
@@ -525,6 +526,12 @@ class SelectEventLoop(object):
     """
 
     def __init__(self):
+        self._alarms = []
+        self._watch_files = {}
+        self._idle_handle = 0
+        self._idle_callbacks = {}
+
+    def _test_event_loop(self):
         """
         >>> import os
         >>> rd, wr = os.pipe()
@@ -541,10 +548,6 @@ class SelectEventLoop(object):
         writing
         hi
         """
-        self._alarms = []
-        self._watch_files = {}
-        self._idle_handle = 0
-        self._idle_callbacks = {}
 
     def alarm(self, seconds, callback):
         """
@@ -565,13 +568,6 @@ class SelectEventLoop(object):
         Remove an alarm.
 
         Returns True if the alarm exists, False otherwise
-
-        >>> evl = SelectEventLoop()
-        >>> handle = evl.alarm(50, lambda: None)
-        >>> evl.remove_alarm(handle)
-        True
-        >>> evl.remove_alarm(handle)
-        False
         """
         try:
             self._alarms.remove(handle)
@@ -579,6 +575,16 @@ class SelectEventLoop(object):
             return True
         except ValueError:
             return False
+
+    def _test_remove_alarm(self):
+        """
+        >>> evl = SelectEventLoop()
+        >>> handle = evl.alarm(50, lambda: None)
+        >>> evl.remove_alarm(handle)
+        True
+        >>> evl.remove_alarm(handle)
+        False
+        """
 
     def watch_file(self, fd, callback):
         """
@@ -598,7 +604,14 @@ class SelectEventLoop(object):
         Remove an input file.
 
         Returns True if the input file exists, False otherwise
+        """
+        if handle in self._watch_files:
+            del self._watch_files[handle]
+            return True
+        return False
 
+    def _test_remove_watch_file(self):
+        """
         >>> evl = SelectEventLoop()
         >>> handle = evl.watch_file(5, lambda: None)
         >>> evl.remove_watch_file(handle)
@@ -606,10 +619,6 @@ class SelectEventLoop(object):
         >>> evl.remove_watch_file(handle)
         False
         """
-        if handle in self._watch_files:
-            del self._watch_files[handle]
-            return True
-        return False
 
     def enter_idle(self, callback):
         """
@@ -739,6 +748,18 @@ if not PYTHON3:
         """
 
         def __init__(self):
+            import gobject
+            self.gobject = gobject
+            self._alarms = []
+            self._watch_files = {}
+            self._idle_handle = 0
+            self._glib_idle_enabled = False # have we called glib.idle_add?
+            self._idle_callbacks = {}
+            self._loop = self.gobject.MainLoop()
+            self._exc_info = None
+            self._enable_glib_idle()
+
+        def _test_event_loop(self):
             """
             >>> import os
             >>> rd, wr = os.pipe()
@@ -755,16 +776,6 @@ if not PYTHON3:
             writing
             hi
             """
-            import gobject
-            self.gobject = gobject
-            self._alarms = []
-            self._watch_files = {}
-            self._idle_handle = 0
-            self._glib_idle_enabled = False # have we called glib.idle_add?
-            self._idle_callbacks = {}
-            self._loop = self.gobject.MainLoop()
-            self._exc_info = None
-            self._enable_glib_idle()
 
         def alarm(self, seconds, callback):
             """
@@ -790,13 +801,6 @@ if not PYTHON3:
             Remove an alarm.
 
             Returns True if the alarm exists, False otherwise
-
-            >>> evl = GLibEventLoop()
-            >>> handle = evl.alarm(50, lambda: None)
-            >>> evl.remove_alarm(handle)
-            True
-            >>> evl.remove_alarm(handle)
-            False
             """
             try:
                 self._alarms.remove(handle[0])
@@ -804,6 +808,16 @@ if not PYTHON3:
                 return True
             except ValueError:
                 return False
+
+        def _test_remove_alarm(self):
+            """
+            >>> evl = GLibEventLoop()
+            >>> handle = evl.alarm(50, lambda: None)
+            >>> evl.remove_alarm(handle)
+            True
+            >>> evl.remove_alarm(handle)
+            False
+            """
 
         def watch_file(self, fd, callback):
             """
@@ -829,7 +843,15 @@ if not PYTHON3:
             Remove an input file.
 
             Returns True if the input file exists, False otherwise
+            """
+            if handle in self._watch_files:
+                self.gobject.source_remove(self._watch_files[handle])
+                del self._watch_files[handle]
+                return True
+            return False
 
+        def _test_remove_watch_file(self):
+            """
             >>> evl = GLibEventLoop()
             >>> handle = evl.watch_file(1, lambda: None)
             >>> evl.remove_watch_file(handle)
@@ -837,11 +859,6 @@ if not PYTHON3:
             >>> evl.remove_watch_file(handle)
             False
             """
-            if handle in self._watch_files:
-                self.gobject.source_remove(self._watch_files[handle])
-                del self._watch_files[handle]
-                return True
-            return False
 
         def enter_idle(self, callback):
             """
@@ -981,22 +998,23 @@ if not PYTHON3:
     class TwistedEventLoop(object):
         """
         Event loop based on Twisted_
-
-        *reactor* -- reactor object to use, if ``None`` defaults to
-        ``twisted.internet.reactor``.  *manage_reactor* -- ``True`` if you want
-        this event loop to run and stop the reactor.
-
-        .. WARNING::
-           Twisted's reactor doesn't like to be stopped and run again.  If you
-           need to stop and run your :class:`MainLoop`, consider setting
-           ``manage_reactor=False`` and take care of running/stopping the reactor
-           at the beginning/ending of your program yourself.
-
-        .. _Twisted: http://twistedmatrix.com/trac/
         """
         _idle_emulation_delay = 1.0/256 # a short time (in seconds)
 
         def __init__(self, reactor=None, manage_reactor=True):
+            """
+            *reactor* -- reactor object to use, if ``None`` defaults to
+            ``twisted.internet.reactor``.  *manage_reactor* -- ``True`` if you want
+            this event loop to run and stop the reactor.
+
+            .. WARNING::
+               Twisted's reactor doesn't like to be stopped and run again.  If you
+               need to stop and run your :class:`MainLoop`, consider setting
+               ``manage_reactor=False`` and take care of running/stopping the reactor
+               at the beginning/ending of your program yourself.
+
+            .. _Twisted: http://twistedmatrix.com/trac/
+            """
             if reactor is None:
                 import twisted.internet.reactor
                 reactor = twisted.internet.reactor
@@ -1028,13 +1046,6 @@ if not PYTHON3:
             Remove an alarm.
 
             Returns True if the alarm exists, False otherwise
-
-            >>> evl = TwistedEventLoop()
-            >>> handle = evl.alarm(50, lambda: None)
-            >>> evl.remove_alarm(handle)
-            True
-            >>> evl.remove_alarm(handle)
-            False
             """
             from twisted.internet.error import AlreadyCancelled, AlreadyCalled
             try:
@@ -1044,6 +1055,16 @@ if not PYTHON3:
                 return False
             except AlreadyCalled:
                 return False
+
+        def _test_remove_alarm(self):
+            """
+            >>> evl = TwistedEventLoop()
+            >>> handle = evl.alarm(50, lambda: None)
+            >>> evl.remove_alarm(handle)
+            True
+            >>> evl.remove_alarm(handle)
+            False
+            """
 
         def watch_file(self, fd, callback):
             """
@@ -1066,7 +1087,15 @@ if not PYTHON3:
             Remove an input file.
 
             Returns True if the input file exists, False otherwise
+            """
+            if handle in self._watch_files:
+                self.reactor.removeReader(self._watch_files[handle])
+                del self._watch_files[handle]
+                return True
+            return False
 
+        def _test_remove_watch_file(self):
+            """
             >>> evl = TwistedEventLoop()
             >>> handle = evl.watch_file(1, lambda: None)
             >>> evl.remove_watch_file(handle)
@@ -1074,11 +1103,6 @@ if not PYTHON3:
             >>> evl.remove_watch_file(handle)
             False
             """
-            if handle in self._watch_files:
-                self.reactor.removeReader(self._watch_files[handle])
-                del self._watch_files[handle]
-                return True
-            return False
 
         def enter_idle(self, callback):
             """

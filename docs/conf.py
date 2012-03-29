@@ -284,7 +284,7 @@ epub_copyright = u'2011, Ian Ward'
 # Allow duplicate toc entries.
 #epub_tocdup = True
 
-#autoclass_content = "both"
+autoclass_content = "both"
 
 autodoc_member_order = "bysource"
 

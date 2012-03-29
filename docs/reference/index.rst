@@ -1,8 +1,6 @@
 ###############
-Urwid reference
+Urwid Reference
 ###############
-
-Under costructions
 
 .. toctree::
 
