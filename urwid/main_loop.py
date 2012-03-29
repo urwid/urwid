@@ -49,28 +49,39 @@ class MainLoop(object):
     This is the standard main loop implementation with a single screen.
 
     *widget* -- the topmost widget used for painting the screen, stored as
-    self.widget and may be modified. Must be a box widget.
+    :attr:`.widget` and may be modified. Must be a box widget.
 
     *palette* -- initial palette for screen.
 
-    *screen* -- screen object or ``None`` to use a new raw_display.Screen
-    instance. stored as self.screen
+    *screen* -- screen object or ``None`` to use a new
+    :class:`urwid.raw_display.Screen` instance. stored as :attr:`.screen`
 
     *handle_mouse* -- ``True`` to process mouse events, passed to
-    ``self.screen``
+    :attr:`.screen`
 
     *input_filter* -- a function to filter input before sending it to
-    ``self.widget``, called from ``self.input_filter``
+    :attr:`.widget`, called from :meth:`.input_filter`
 
     *unhandled_input* -- a function called when input is not handled by
-    ``self.widget``, called from ``self.unhandled_input``
+    :attr:`.widget`, called from :meth:`.unhandled_input`
 
     *event_loop* -- if screen supports external an event loop it may be
     given here, or leave as None to use a new
-    *SelectEventLoop* instance; stored as ``self.event_loop``
+    *SelectEventLoop* instance; stored as :attr:`.event_loop`
 
-    *pop_ups* -- ``True`` to wrap ``self.widget`` with a ``PopUpTarget``
+    *pop_ups* -- ``True`` to wrap :attr:`.widget` with a :class:`PopUpTarget`
     instance to allow any widget to open a pop-up anywhere on the screen
+
+
+    .. attribute:: screen
+
+       The screen object this main loop uses for screen updates and reading
+       input
+
+    .. attribute:: event_loop
+
+       The event loop object this main loop uses for waiting on timers
+       and IO
     """
     def __init__(self, widget, palette=[], screen=None, 
             handle_mouse=True, input_filter=None, unhandled_input=None,
@@ -109,7 +120,8 @@ class MainLoop(object):
             self._topmost_widget.original_widget = self._widget
         else:
             self._topmost_widget = self._widget
-    widget = property(lambda self:self._widget, _set_widget)
+    widget = property(lambda self:self._widget, _set_widget, doc=
+       "Property for the topmost widget used. This must be a box widget.")
 
     def _set_pop_ups(self, pop_ups):
         self._pop_ups = pop_ups
