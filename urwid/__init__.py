@@ -22,7 +22,8 @@
 
 from urwid.version import VERSION, __version__
 from urwid.widget import (FLOW, BOX, FIXED, LEFT, RIGHT, CENTER, TOP, MIDDLE,
-    BOTTOM, SPACE, ANY, CLIP, PACK, GIVEN, RELATIVE, RELATIVE_100, WidgetMeta,
+    BOTTOM, SPACE, ANY, CLIP, PACK, GIVEN, RELATIVE, RELATIVE_100, WEIGHT,
+    WidgetMeta,
     WidgetError, Widget, FlowWidget, BoxWidget, fixed_size, FixedWidget,
     Divider, SolidFill, TextError, Text, EditError, Edit, IntEdit,
     delegate_to_widget_mixin, WidgetWrapError, WidgetWrap)
