@@ -76,18 +76,18 @@ Used to distribute or set widths and heights of child widgets of
 .. data:: urwid.PACK
    :annotation: = 'pack'
 
-   ask the child widget to calculate the number of columns or rows it needs
+   Ask the child widget to calculate the number of columns or rows it needs
 
 .. data:: urwid.GIVEN
    :annotation: = 'given'
 
-   a set number of columns or rows, e.g. ('given', 10) will have exactly
+   A set number of columns or rows, e.g. ('given', 10) will have exactly
    10 columns or rows given to the child widget
 
 .. data:: urwid.RELATIVE
    :annotation: = 'relative'
 
-   a percentage of the total space, e.g. ('relative', 50) will give half
+   A percentage of the total space, e.g. ('relative', 50) will give half
    of the total columns or rows to the child widget
 
 .. data:: urwid.RELATIVE_100
@@ -96,7 +96,7 @@ Used to distribute or set widths and heights of child widgets of
 .. data:: urwid.WEIGHT
    :annotation: = 'weight'
 
-   a weight value for distributing columns or rows, e.g. ('weight', 3)
+   A weight value for distributing columns or rows, e.g. ('weight', 3)
    will give 3 times as many columns or rows as another widget in the same
    container with ('weight', 1).
 
@@ -120,4 +120,107 @@ Text Wrapping Modes
 
    clip before any wide or narrow character that would exceed the available
    screen columns ad don't display the remaining text on the line
+
+
+Foreground and Background Colors
+--------------------------------
+
+Standard background and foreground colors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. data:: urwid.BLACK
+   :annotation: = 'black'
+
+.. data:: urwid.DARK_RED
+   :annotation: = 'dark red'
+
+.. data:: urwid.DARK_GREEN
+   :annotation: = 'dark green'
+
+.. data:: urwid.BROWN
+   :annotation: = 'brown'
+
+.. data:: urwid.DARK_BLUE
+   :annotation: = 'dark blue'
+
+.. data:: urwid.DARK_MAGENTA
+   :annotation: = 'dark magenta'
+
+.. data:: urwid.DARK_CYAN
+   :annotation: = 'dark cyan'
+
+.. data:: urwid.LIGHT_GRAY
+   :annotation: = 'light gray'
+
+Standard foreground colors (not safe to use as background)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. data:: urwid.DARK_GRAY
+   :annotation: = 'dark gray'
+
+.. data:: urwid.LIGHT_RED
+   :annotation: = 'light red'
+
+.. data:: urwid.LIGHT_GREEN
+   :annotation: = 'light green'
+
+.. data:: urwid.YELLOW
+   :annotation: = 'yellow'
+
+.. data:: urwid.LIGHT_BLUE
+   :annotation: = 'light blue'
+
+.. data:: urwid.LIGHT_MAGENTA
+   :annotation: = 'light magenta'
+
+.. data:: urwid.LIGHT_CYAN
+   :annotation: = 'light cyan'
+
+.. data:: urwid.WHITE
+   :annotation: = 'white'
+
+User's terminal configuration default foreground or background
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. note::
+
+   There is no way to tell if the user's terminal has a light
+   or dark color as their default foreground or background, so
+   it is highly recommended to use this setting for both foreground
+   and background when you do use it.
+
+.. data:: urwid.DEFAULT
+   :annotation: = 'default'
+
+
+256 and 88 Color Foregrounds and Backgrounds
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Constants are not defined for these colors.
+
+.. seealso::
+
+   :ref:`high-colors`
+ 
+
+
+Signal Names
+------------
+
+.. data:: urwid.UPDATE_PALETTE_ENTRY
+   :annotation: = 'update palette entry'
+
+   sent by :class:`BaseScreen` (and subclasses like 
+   :class:`raw_display.Screen`) when a palette entry is changed.
+   :class:`MainLoop` handles this signal by redrawing the whole
+   screen.
+
+.. data:: urwid.INPUT_DESCRIPTORS_CHANGED
+   :annotation: = 'input descriptors changed'
+
+   sent by :class:`BaseScreen` (and subclasses like 
+   :class:`raw_display.Screen`) when the list of input file descriptors
+   has changed.  :class:`urwid.MainLoop` handles this signal by updating
+   the file descriptors being watched by its event loop.
+
 

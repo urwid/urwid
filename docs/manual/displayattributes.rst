@@ -86,6 +86,8 @@ Terminal support for bright background colors is spotty, and they generally
 should be avoided. If you are in a high-color mode you might have better luck
 using the high-color versions 'h8', 'h9', 'h10', ..., 'h15'.
 
+.. _high-colors:
+
 256-Color Foreground/Background
 ===============================
 
