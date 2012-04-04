@@ -315,7 +315,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             if c is None or maxcol - used_space < width_amount:
                 # starting a new row
                 if self.v_sep:
-                    p.contents.append((divider, Pile.options()))
+                    p.contents.append((divider, p.options()))
                 c = Columns([], self.h_sep)
                 pad = Padding(c, self.align)
                 # extra attribute to reference contents position
