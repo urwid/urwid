@@ -21,10 +21,6 @@
 # Urwid web site: http://excess.org/urwid/
 
 import unittest
-try:
-    from test import test_support
-except ImportError:
-    from test import support as test_support
 from doctest import DocTestSuite, ELLIPSIS, IGNORE_EXCEPTION_DETAIL
 
 import urwid
@@ -2112,7 +2108,7 @@ class LineBoxTest(unittest.TestCase):
                 B("\xe2\x94\x90"), B("\xe2\x94\x82"), B("\xe2\x94\x82"),
                 B("\xe2\x94\x94"), B("\xe2\x94\x80"), B("\xe2\x94\x98")))
 
-        nums = [B(str(n)) for n in range(8)] 
+        nums = [B(str(n)) for n in range(8)]
         b = dict(zip(["tlcorner", "tline", "trcorner", "lline", "rline",
             "blcorner", "bline", "brcorner"], nums))
         l = urwid.LineBox(t, **b).render((3,)).text
@@ -2752,4 +2748,4 @@ def test_all():
     return tests
 
 if __name__ == '__main__':
-    test_support.run_unittest(test_all())
+    unittest.TextTestRunner(verbosity=2).run(test_all())
