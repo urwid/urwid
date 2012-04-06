@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid basic widget classes
-#    Copyright (C) 2004-2011  Ian Ward
+#    Copyright (C) 2004-2012  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -36,6 +36,7 @@ from urwid.split_repr import split_repr, remove_defaults, python3_repr
 # and to document the constant strings we are using
 
 # Widget sizing methods
+
 FLOW = 'flow'
 BOX = 'box'
 FIXED = 'fixed'
@@ -45,7 +46,7 @@ LEFT = 'left'
 RIGHT = 'right'
 CENTER = 'center'
 
-# Filler alignment modes
+# Filler alignment
 TOP = 'top'
 MIDDLE = 'middle'
 BOTTOM = 'bottom'
@@ -55,13 +56,11 @@ SPACE = 'space'
 ANY = 'any'
 CLIP = 'clip'
 
-# Extras for Padding
+# Width and Height settings
 PACK = 'pack'
 GIVEN = 'given'
 RELATIVE = 'relative'
 RELATIVE_100 = (RELATIVE, 100)
-
-# extra constants for Pile/Columns
 WEIGHT = 'weight'
 
 
@@ -69,8 +68,8 @@ class WidgetMeta(MetaSuper, signals.MetaSignals):
     """
     Automatic caching of render and rows methods.
 
-    Class variable no_cache is a list of names of methods to not cache.
-    Class variable ignore_focus if defined and True indicates that this
+    Class variable ``no_cache`` is a list of names of methods to not cache.
+    Class variable ``ignore_focus`` if defined and ``True`` indicates that this
     widget is not affected by the focus parameter, so it may be ignored
     when caching.
     """
@@ -200,14 +199,39 @@ def cache_widget_rows(cls):
 
 class Widget(object):
     """
-    base class of widgets
+    Widget base class
+    
+    .. attribute:: __metaclass__
+       :annotation: = urwid.WidgetMeta
+
+       See :class:`urwid.WidgetMeta` definition
+
+    .. attribute:: _selectable
+       :annotation: = False
+
+       The default :meth:`.selectable` method returns this
+       value.
+
+    .. attribute:: _sizing
+       :annotation: = frozenset(['flow', 'box', 'fixed'])
+
+       The default :meth:`.sizing` method returns this value.
+    
+    .. attribute:: _command_map
+       :annotation: = urwid.command_map
+
+       This is a shared :class:`urwid.CommandMap` instance
     """
     __metaclass__ = WidgetMeta
     _selectable = False
     _sizing = frozenset([FLOW, BOX, FIXED])
-    _command_map = command_map # default to the single shared CommandMap
+    _command_map = command_map
 
     def _invalidate(self):
+        """
+        Mark cached canvases rendered by this widget as dirty so that
+        they will not be used again.
+        """
         CanvasCache.invalidate(self)
 
     def _emit(self, name, *args):
@@ -219,17 +243,16 @@ class Widget(object):
 
     def selectable(self):
         """
-        Return True if this widget should take focus.  Default
-        implementation returns the value of self._selectable.
+        Return ``True`` if this widget should take focus.  Default
+        implementation returns the value of :attr:`._selectable`.
         """
         return self._selectable
 
     def sizing(self):
         """
-        Return a set including one or more of 'box', 'flow' and
-        'fixed'.  Default implementation returns the value of
-        self._sizing, which for the Widget base class includes all
-        three.
+        Return a set including one or more of ``'box'``, ``'flow'`` and
+        ``'fixed'``.  Default implementation returns the value of
+        :attr:`._sizing`, which for this class includes all three.
 
         The sizing modes returned indicate the modes that may be
         supported by this widget, but is not sufficient to know
@@ -245,9 +268,9 @@ class Widget(object):
 
     def pack(self, size, focus=False):
         """
-        Return a 'packed' (maxcol, maxrow) for this widget.  Default
+        Return a "packed" ``(maxcol, maxrow)`` for this widget.  Default
         implementation (no packing defined) returns size, and
-        calculates maxrow if not given.
+        calculates maxrow if not given by calling :meth:`.rows`.
         """
         if not size:
             if FIXED in self.sizing():
