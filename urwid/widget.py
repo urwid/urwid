@@ -200,7 +200,7 @@ def cache_widget_rows(cls):
 class Widget(object):
     """
     Widget base class
-    
+
     .. attribute:: __metaclass__
        :annotation: = urwid.WidgetMeta
 
@@ -216,11 +216,159 @@ class Widget(object):
        :annotation: = frozenset(['flow', 'box', 'fixed'])
 
        The default :meth:`.sizing` method returns this value.
-    
+
     .. attribute:: _command_map
        :annotation: = urwid.command_map
 
        This is a shared :class:`urwid.CommandMap` instance
+
+    .. method:: render(size, focus=False)
+
+       .. note::
+
+          This method is not implemented in :class:`.Widget` but
+          must be implemented by any concrete subclass
+
+       Render the widget content and return it as a
+       :class:`urwid.Canvas` subclass.  :class:`urwid.Text`
+       widgets return a :class:`urwid.TextCanvas` (arbitrary text and
+       attributes), :class:`urwid.SolidFill` widgets return a
+       :class:`urwid.SolidCanvas` (a single character repeated across
+       the whole surface) and container widgets return a
+       :class:`urwid.CompositeCanvas` (one or more other canvases
+       arranged arbitrarily).
+
+       If *focus* is ``False``, the returned canvas may not have a cursor
+       position set.
+
+       There is some metaclass magic defined in the :class:`urwid.Widget`
+       metaclass :class:`urwid.WidgetMeta` that causes the
+       result of this method to be cached by :class:`urwid.CanvasCache`.
+       Later calls will automatically look up the value in the cache first.
+
+       As a small optimization the class variable :attr:`ignore_focus`
+       may be defined and set to ``True`` if this widget renders the same
+       canvas regardless of the value of the *focus* parameter.
+
+       Any time the content of a widget changes it should call
+       :meth:`_invalidate` to remove any cached canvases, or the widget
+       may render the cached canvas instead of creating a new one.
+
+
+    .. method:: rows(size, focus=False)
+
+       .. note::
+
+          This method is not implemented in :class:`.Widget` but
+          must be implemented by any flow widget.  See :meth:`.sizing`.
+
+       Return the number of rows required for this widget given a number of
+       columns in size, passed as a 1-item tuple ``(maxcol,)``.
+
+       This is the method flow widgets use to communicate their size to other
+       widgets without having to render a canvas. This should be a quick
+       calculation as this function may be called a number of times in normal
+       operation. If your implementation may take a long time you should add
+       your own caching here.
+
+       There is some metaclass magic defined in the :class:`urwid.Widget`
+       metaclass :class:`urwid.WidgetMeta` that causes the
+       result of this function to be retrieved from any
+       canvas cached by :class:`urwid.CanvasCache`, so if your widget
+       has been rendered you may not receive calls to this function. The class
+       variable :attr:`ignore_focus` may be defined and set to ``True`` if this
+       widget renders the same size regardless of the value of the *focus*
+       parameter.
+
+
+    .. method:: keypress(size, key)
+
+       .. note::
+
+          This method is not implemented in :class:`.Widget` but
+          must be implemented by any selectable widget.  See :meth:`.selectable`.
+
+       Handle the keypress event for *key* and return ``None``, otherwise return
+       *key*.
+
+       Container widgets will typically call the :meth:`keypress` method on
+       whichever of their children is set as being in focus.
+
+       A :attr:`_command_map` is used by the standard widgets to
+       determine what action should be performed for a given *key*. You may
+       modify these values to your liking globally, at some level in the
+       widget hierarchy or on individual widgets. See `urwid.CommandMap`
+       for the defaults.
+
+       In your own widgets you may use whatever logic you like: filtering or
+       translating keys, selectively passing along events etc.
+
+
+    .. method:: mouse_event(size, event, button, col, row, focus)
+
+       .. note::
+
+          This method is not implemented in :class:`.Widget` but
+          may be implemented by a subclass.  Not implementing this
+          method is equivalent to having a method that always returns
+          ``False``.
+
+       Handle a mouse event and return ``True``, otherwise return ``False``.
+
+       Container widgets will typically call the :meth:`mouse_event` method on
+       whichever of their children is at the position ``(col, row)``. ``(col,
+       row)`` is relative to the top-left corner of the widget.
+
+
+    .. method:: get_cursor_coords(size)
+
+       .. note::
+
+          This method is not implemented in :class:`.Widget` but
+          must be implemented by any widget that may return cursor
+          coordinates as part of the canvas that :meth:`render` returns.
+
+       Return the cursor coordinates ``(col, row)`` of a cursor that will appear
+       as part of the canvas rendered by this widget when in focus, or ``None``
+       if no cursor is displayed. The :class:`~urwid.listbox.ListBox` widget
+       uses this method to make sure a cursor in the focus widget is not
+       scrolled out of view.  It is a separate method to avoid having to render
+       the whole widget while calculating layout.
+
+       Container widgets will typically call the :meth:`get_cursor_coords`
+       method on their focus widget.
+
+
+    .. method:: get_pref_col(size)
+
+       .. note::
+
+          This method is not implemented in :class:`.Widget` but
+          may be implemented by a subclass.
+
+       Return the preferred column for the cursor to be displayed in this
+       widget. This value might not be the same as the column returned from
+       :meth:`get_cursor_coords`.
+
+       The :class:`~urwid.listbox.ListBox` and :class:`~urwid.container.Pile`
+       widgets call this method on a widget losing focus and use the value
+       returned to call :meth:`move_cursor_to_coords` on the widget becoming the
+       focus. This allows the focus to move up and down through widgets while
+       keeping the cursor in approximately the same column on screen.
+
+
+    .. method:: move_cursor_to_coords(size, col, row)
+
+       .. note::
+
+          This method is not implemented in :class:`.Widget` but
+          may be implemented by a subclass.  Not implementing this
+          method is equivalent to having a method that always returns
+          ``False``.
+
+       Set the cursor position within a widget and return ``True``, if the
+       position cannot be set somewhere within the row specified return
+       ``False``.
     """
     __metaclass__ = WidgetMeta
     _selectable = False
@@ -243,14 +391,27 @@ class Widget(object):
 
     def selectable(self):
         """
-        Return ``True`` if this widget should take focus.  Default
-        implementation returns the value of :attr:`._selectable`.
+        Return ``True`` if this is a widget that is designed to take the focus,
+        i.e. it contains something the user might want to interact with.
+
+        This default implementation returns ``self._selectable`` and
+        :attr:`_selectable` is set to ``False``.  Subclasses may leave these
+        is if the are not selectable, or if they are always selectable they may
+        set the :attr:`_selectable` class variable to ``True``.
+
+        If this method returns ``True`` then the :meth:`keypress` method must be
+        implemented.
+
+        Returning ``False`` does not guarantee that this widget will never be in
+        focus, only that this widget will usually be skipped over when changing
+        focus. It is still possible for non selectable widgets to have the focus
+        (typically when there are no other selectable widgets visible).
         """
         return self._selectable
 
     def sizing(self):
         """
-        Return a set including one or more of ``'box'``, ``'flow'`` and
+        Return a frozenset including one or more of ``'box'``, ``'flow'`` and
         ``'fixed'``.  Default implementation returns the value of
         :attr:`._sizing`, which for this class includes all three.
 
@@ -263,14 +424,43 @@ class Widget(object):
 
         If a sizing mode is missing from the set then the widget
         should fail when used in that mode.
+
+        If ``'flow'`` is among the values returned then the other
+        methods in this widget must be able to accept a
+        single-element tuple ``(maxcol,)`` to their ``size``
+        parameter, and the :meth:`rows` method must be defined.
+
+        If ``'box'`` is among the values returned then the other
+        methods must be able to accept a two-element tuple
+        ``(maxcol, maxrow)`` to their size paramter.
+
+        If ``'fixed'`` is among the values returned then the other
+        methods must be able to accept an empty tuple ``()`` to
+        their size parameter, and the :meth:`pack` method must
+        be defined.
         """
         return self._sizing
 
     def pack(self, size, focus=False):
         """
-        Return a "packed" ``(maxcol, maxrow)`` for this widget.  Default
-        implementation (no packing defined) returns size, and
-        calculates maxrow if not given by calling :meth:`.rows`.
+        Return a "packed" size ``(maxcol, maxrow)`` for this widget, a minimum
+        size where all content could still be displayed. Fixed widgets must
+        implement this method and return their size when ``()`` is passed as the
+        *size* parameter.
+
+        This default implementation returns the *size* passed, or the *maxcol*
+        passed and the value of :meth:`rows` as the *maxrow* when ``(maxcol,)``
+        is passed as the *size* parameter.
+
+        This is a new method that hasn't been fully implemented across the
+        standard widget types. In particular it has not yet been implemented for
+        container widgets.
+
+        :class:`.Text` widgets :meth:`have implemented this method
+        <.Text.pack>`. You can use :meth:`pack` to calculate the minumum
+        columns and rows required to display a text widget without wrapping,
+        or call it iteratively to calculate the minimum number of columns
+        required to display the text wrapped into a target number of rows.
         """
         if not size:
             if FIXED in self.sizing():
