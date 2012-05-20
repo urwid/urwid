@@ -9,5 +9,3 @@ Widget and Related Classes
     
 .. autoclass:: urwid.WidgetMeta
    :members:
-
-.. autoexception:: urwid.WidgetError
