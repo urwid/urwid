@@ -5,10 +5,10 @@ Widget and Related Classes
 --------------------------
 
 .. autoclass:: urwid.Widget
-   :private-members:
    :members:
     
 .. autoclass:: urwid.WidgetMeta
+   :members:
 
 .. autoexception:: urwid.WidgetError
 
