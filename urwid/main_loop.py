@@ -48,44 +48,47 @@ class MainLoop(object):
     """
     This is the standard main loop implementation with a single screen.
     """
+
+    screen = property
+    """The screen object this main loop uses for screen updates and reading
+    input"""
+
+    event_loop = property
+    """The event loop object this main loop uses for waiting on timers and IO"""
+
     def __init__(self, widget, palette=[], screen=None, 
             handle_mouse=True, input_filter=None, unhandled_input=None,
             event_loop=None, pop_ups=False):
         """
-        *widget* -- the topmost widget used for painting the screen, stored as
-        :attr:`.widget` and may be modified. Must be a box widget.
+        :param widget: the topmost widget used for painting the screen, stored as
+                       :attr:`.widget` and may be modified. Must be a box widget.
+        :type widget: :class:`Widget`
 
-        *palette* -- initial palette for screen.
+        :param palette: initial palette for screen.
+        :type palette: list
 
-        *screen* -- screen object or ``None`` to use a new
-        :class:`urwid.raw_display.Screen` instance. stored as :attr:`.screen`
+        :param screen: screen to use; stored as :attr:`screen`
+        :type screen: :class:`urwid.raw_display.Screen` or `None`
 
-        *handle_mouse* -- ``True`` to process mouse events, passed to
-        :attr:`.screen`
+        :param handle_mouse: `True` to process mouse events, passed to :attr:`.screen`
+        :type handle_mouse: boolean
 
-        *input_filter* -- a function to filter input before sending it to
-        :attr:`.widget`, called from :meth:`.input_filter`
+        :param input_filter: a function to filter input before sending it to
+                       :attr:`.widget`, called from :meth:`.input_filter`
+        :type input_filter: callable
 
-        *unhandled_input* -- a function called when input is not handled by
-        :attr:`.widget`, called from :meth:`.unhandled_input`
+        :param unhandled_input: a function called when input is not handled by
+                                :attr:`.widget`, called from :meth:`.unhandled_input`
+        :type unhandled_input: callable
 
-        *event_loop* -- if screen supports external an event loop it may be
-        given here, or leave as None to use a new
-        *SelectEventLoop* instance; stored as :attr:`.event_loop`
+        :param event_loop: if :attr:`.screen` supports external an event loop it may be
+                           given here, or leave as None to use a new
+                           :class:`SelectEventLoop` instance; stored as :attr:`.event_loop`
+        :type event_loop: :class:`EventLoop`
 
-        *pop_ups* -- ``True`` to wrap :attr:`.widget` with a :class:`PopUpTarget`
-        instance to allow any widget to open a pop-up anywhere on the screen
-
-
-        .. attribute:: screen
-
-           The screen object this main loop uses for screen updates and reading
-           input
-
-        .. attribute:: event_loop
-
-           The event loop object this main loop uses for waiting on timers
-           and IO
+        :param pop_ups: `True` to wrap :attr:`.widget` with a :class:`PopUpTarget`
+                        instance to allow any widget to open a pop-up anywhere on the screen
+        :type pop_ups: boolean
         """
         self._widget = widget
         self.handle_mouse = handle_mouse
@@ -1003,9 +1006,11 @@ if not PYTHON3:
 
         def __init__(self, reactor=None, manage_reactor=True):
             """
-            *reactor* -- reactor object to use, if ``None`` defaults to
-            ``twisted.internet.reactor``.  *manage_reactor* -- ``True`` if you want
-            this event loop to run and stop the reactor.
+            :param reactor: reactor to use
+            :type reactor: :class:`twisted.internet.reactor`.
+            :param: manage_reactor: `True` if you want this event loop to run
+                                    and stop the reactor.
+            :type manage_reactor: boolean
 
             .. WARNING::
                Twisted's reactor doesn't like to be stopped and run again.  If you

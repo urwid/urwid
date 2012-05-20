@@ -9,3 +9,4 @@ Urwid Reference
    basic
    constants
    listbox
+   exceptions

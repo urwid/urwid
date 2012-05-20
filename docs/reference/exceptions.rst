@@ -1,0 +1,4 @@
+Exceptions
+==========
+
+.. autoexception:: urwid.ExitMainLoop
