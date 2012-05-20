@@ -11,15 +11,3 @@ Widget and Related Classes
    :members:
 
 .. autoexception:: urwid.WidgetError
-
-
-Deprecated Base Classes
------------------------
-
-.. autoclass:: urwid.FlowWidget
-
-.. autoclass:: urwid.BoxWidget
-
-.. autoclass:: urwid.FixedWidget
-
-
