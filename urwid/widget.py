@@ -421,11 +421,14 @@ class Divider(Widget):
 
     def __init__(self,div_char=u" ",top=0,bottom=0):
         """
-        Create a horizontal divider widget.
+        :param div_char: character to repeat across line
+        :type div_char: string
 
-        div_char -- character to repeat across line
-        top -- number of blank lines above
-        bottom -- number of blank lines below
+        :param top: number of blank lines above
+        :type top: int
+
+        :param bottom:number of blank lines below
+        :type bottom: int
 
         >>> Divider()
         <Divider flow widget>
@@ -481,15 +484,17 @@ class Divider(Widget):
 
 
 class SolidFill(BoxWidget):
+    """
+    A box widget that fills an area with a single character
+    """
     _selectable = False
     ignore_focus = True
 
     def __init__(self, fill_char=" "):
         """
-        Create a box widget that will fill an area with a single 
-        character.
-
-        fill_char -- character to fill area with
+        :param fill_char: character to fill area with
+        :type fill_char: string
+        """
 
         >>> SolidFill(u'8')
         <SolidFill box widget '8'>
