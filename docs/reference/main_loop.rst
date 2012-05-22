@@ -1,19 +1,13 @@
-Main Loop and Event Loop Classes
-================================
+Main Loops and Event Loops
+==========================
 
-Main Loop
----------
+.. module:: urwid
 
-.. autoexception:: urwid.ExitMainLoop
+.. autoclass:: MainLoop
 
-.. autoclass:: urwid.MainLoop
+.. autoclass:: SelectEventLoop
 
-Event Loops
------------
+.. autoclass:: GLibEventLoop
 
-.. autoclass:: urwid.SelectEventLoop
-
-.. autoclass:: urwid.GLibEventLoop
-
-.. autoclass:: urwid.TwistedEventLoop
+.. autoclass:: TwistedEventLoop
 
