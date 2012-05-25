@@ -494,7 +494,6 @@ class SolidFill(BoxWidget):
         """
         :param fill_char: character to fill area with
         :type fill_char: string
-        """
 
         >>> SolidFill(u'8')
         <SolidFill box widget '8'>
