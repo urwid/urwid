@@ -110,18 +110,23 @@ class GridFlowError(Exception):
     pass
 
 class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixin):
+    """
+    The GridFlow widget is a flow widget that renders all the widgets it
+    contains the same width and it arranges them from left to right and top to
+    bottom. 
+    """
     def sizing(self):
         return frozenset([FLOW])
 
     def __init__(self, cells, cell_width, h_sep, v_sep, align):
         """
-        cells -- list of flow widgets to display
-        cell_width -- column width for each cell
-        h_sep -- blank columns between each cell horizontally
-        v_sep -- blank rows between cells vertically (if more than
-                 one row is required to display all the cells)
-        align -- horizontal alignment of cells, see "align" parameter
-                 of Padding widget for available options
+        :param cells: list of flow widgets to display
+        :param cell_width: column width for each cell
+        :param h_sep: blank columns between each cell horizontally
+        :param v_sep: blank rows between cells vertically
+            (if more than one row is required to display all the cells)
+        :param align: horizontal alignment of cells, one of\:
+            'left', 'center', 'right', ('relative', percentage 0=left 100=right)
         """
         self._contents = MonitoredFocusList([
             (w, (GIVEN, cell_width)) for w in cells])
@@ -163,9 +168,11 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         if focus_position < len(widgets):
             self.focus_position = focus_position
     cells = property(_get_cells, _set_cells, doc="""
-        A list of the widgets in this GridFlow, for backwards compatibility
-        only.  You should use the new standard container property .contents
-        to modify GridFlow contents.
+        A list of the widgets in this GridFlow
+
+        .. note:: only for backwards compatibility. You should use the new
+            use the new standard container property :attr:`contents` to modify
+            GridFlow contents.
         """)
 
     def _get_cell_width(self):
@@ -177,7 +184,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         self.focus_position = focus_position
         self._cell_width = width
     cell_width = property(_get_cell_width, _set_cell_width, doc="""
-        The width of each cell in the GridFlow.  Setting this value affects
+        The width of each cell in the GridFlow. Setting this value affects
         all cells.
         """)
 
@@ -189,18 +196,14 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         The contents of this GridFlow as a list of (widget, options)
         tuples.
 
-        options is currently a tuple in the form:
-        ('fixed', number) -- number is the number of screen columns to
-            allocate to this cell.
-
+        options is currently a tuple in the form `('fixed', number)`.
+        number is the number of screen columns to allocate to this cell.
         'fixed' is the only type accepted at this time.
 
         This list may be modified like a normal list and the GridFlow
         widget will update automatically.
 
-        Create new options tuples with the options() method for
-        forward compatibility, as more options may be added in the
-        future.
+        .. seealso:: Create new options tuples with the :meth:`options` method.
         """)
 
     def options(self, width_type=GIVEN, width_amount=None):
@@ -218,11 +221,13 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
 
     def set_focus(self, cell):
         """
-        Set the cell in focus, for backwards compatibility.  You may also
-        use the new standard container property .focus_position to set
-        the position by integer index instead.
+        Set the cell in focus, for backwards compatibility.
 
-        cell -- widget or integer index
+        .. note:: only for backwards compatibility. You may also use the new
+            standard container property :attr:`focus_position` to get the focus.
+
+        :param cell: contained element to focus
+        :type cell: Widget or int
         """
         if isinstance(cell, int):
             return self._set_focus_position(cell)
@@ -230,9 +235,10 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
 
     def get_focus(self):
         """
-        Return the widget in focus, for backwards compatibility.  You may
-        also use the new standard container property .focus to get the
-        child widget in focus.
+        Return the widget in focus, for backwards compatibility.
+
+        .. note:: only for backwards compatibility. You may also use the new
+            standard container property :attr:`focus` to get the focus.
         """
         if not self.contents:
             return None
@@ -247,10 +253,12 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
                 return
         raise ValueError("Widget not found in GridFlow contents: %r" % (cell,))
     focus_cell = property(get_focus, _set_focus_cell, doc="""
-        The widget in focus, for backwards compatibility.  You may also
-        use the new standard container property .focus to get the widget
-        in focus and .focus_position to get/set the cell in focus by
-        index.
+        The widget in focus, for backwards compatibility.
+
+        .. note:: only for backwards compatibility. You should use the new
+            use the new standard container property :attr:`focus` to get the
+            widget in focus and :attr:`focus_position` to get/set the cell in
+            focus by index.
         """)
 
     def _get_focus_position(self):
@@ -274,7 +282,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             raise IndexError, "No GridFlow child widget at position %s" % (position,)
         self.contents.focus = position
     focus_position = property(_get_focus_position, _set_focus_position, doc="""
-        index of child widget in focus.  Raises IndexError if read when
+        index of child widget in focus. Raises :exc:`IndexError` if read when
         GridFlow is empty, or when set to an invalid index.
         """)
 
@@ -374,12 +382,10 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         return key
 
     def rows(self, size, focus=False):
-        """Return rows used by this widget."""
         self.get_display_widget(size)
         return self.__super.rows(size, focus=focus)
 
     def render(self, size, focus=False ):
-        """Use display widget to render."""
         self.get_display_widget(size)
         return self.__super.render(size, focus)
 
@@ -396,7 +402,6 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         return rval
 
     def mouse_event(self, size, event, button, col, row, focus):
-        """Send mouse event to contained widget."""
         self.get_display_widget(size)
         self.__super.mouse_event(size, event, button, col, row, focus)
         self._set_focus_from_display_widget()

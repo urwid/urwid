@@ -12,3 +12,5 @@ Exceptions
 .. autoexception:: ColumnsError
 
 .. autoexception:: PileError
+
+.. autoexception:: GridFlowError
