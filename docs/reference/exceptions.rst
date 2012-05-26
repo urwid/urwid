@@ -8,3 +8,5 @@ Exceptions
 .. autoexception:: WidgetError
 
 .. autoexception:: ListBoxError
+
+.. autoexception:: ColumnsError
