@@ -200,32 +200,22 @@ def cache_widget_rows(cls):
 class Widget(object):
     """
     Widget base class
-    
-    .. attribute:: __metaclass__
-       :annotation: = urwid.WidgetMeta
-
-       See :class:`urwid.WidgetMeta` definition
-
-    .. attribute:: _selectable
-       :annotation: = False
-
-       The default :meth:`.selectable` method returns this
-       value.
-
-    .. attribute:: _sizing
-       :annotation: = frozenset(['flow', 'box', 'fixed'])
-
-       The default :meth:`.sizing` method returns this value.
-    
-    .. attribute:: _command_map
-       :annotation: = urwid.command_map
-
-       This is a shared :class:`urwid.CommandMap` instance
     """
     __metaclass__ = WidgetMeta
+    """attributed :class:`WidgetMeta`"""
+
     _selectable = False
+    """whether or not this is a selectable widget"""
+
     _sizing = frozenset([FLOW, BOX, FIXED])
+    """sizing-type of this widget: one of 'flow', 'box' or 'fixed'"""
+
     _command_map = command_map
+    """attributed :class:`urwid.CommandMap`
+
+       This is a shared :class:`urwid.CommandMap` instance,
+       which means... TODO
+    """
 
     def _invalidate(self):
         """
@@ -268,9 +258,11 @@ class Widget(object):
 
     def pack(self, size, focus=False):
         """
-        Return a "packed" ``(maxcol, maxrow)`` for this widget.  Default
-        implementation (no packing defined) returns size, and
-        calculates maxrow if not given by calling :meth:`.rows`.
+        Return a "packed" ``(maxcol, maxrow)`` for this widget. Default
+        implementation (no packing defined) returns size, and calculates maxrow
+        if not given by calling :meth:`rows`.
+
+        TODO: totally unclear what this does
         """
         if not size:
             if FIXED in self.sizing():
