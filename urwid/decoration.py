@@ -330,8 +330,10 @@ class BoxAdapter(WidgetDecoration):
         """
         Create a flow widget that contains a box widget
 
-        box_widget -- box widget (stored as self.original_widget)
-        height -- number of rows for box widget
+        :param box_widget: box widget to wrap
+        :type box_widget: Widget
+        :param height: number of rows for box widget
+        :type height: int
 
         >>> BoxAdapter(SolidFill(u"x"), 5) # 5-rows of x's
         <BoxAdapter flow widget <SolidFill box widget 'x'> height=5>

@@ -14,3 +14,5 @@ Exceptions
 .. autoexception:: PileError
 
 .. autoexception:: GridFlowError
+
+.. autoexception:: BoxAdapterError
