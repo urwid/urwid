@@ -1,6 +1,10 @@
 Exceptions
 ==========
 
-.. autoexception:: urwid.ExitMainLoop
+.. module:: urwid
 
-.. autoexception:: urwid.WidgetError
+.. autoexception:: ExitMainLoop
+
+.. autoexception:: WidgetError
+
+.. autoexception:: ListBoxError
