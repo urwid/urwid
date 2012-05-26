@@ -1132,32 +1132,36 @@ class PileError(Exception):
     pass
 
 class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
+    """
+    a pile of horizontally stacked widgets
+    """
     _sizing = frozenset([FLOW, BOX])
 
     def __init__(self, widget_list, focus_item=None):
         """
-        widget_list -- iterable of widgets
-        focus_item -- widget or integer index, if None the first
-            selectable widget will be chosen.
+        :param widget_list: child widgets
+        :type widget_list: iterable
+        :param focus_item: child widget that gets the focus initially.
+            Chooses the first selectable widget if unset.
+        :type focus_item: Widget or int
 
-        widget_list may also contain tuples such as:
-        (given_height, widget) -- always treat widget as a box widget and
-            give it given_height rows, where given_height is an int
-        ('pack', widget) -- allow widget to calculate its own height by
-            calling its rows() method, ie. treat it as a flow widget.
-        ('weight', weight, widget) if the pile is treated as a box
-            widget then treat widget as a box widget with a
-            height based on its relative weight value, otherwise
-            treat the same as ('pack', widget).
+        `widget_list` may also contain tuples such as:
 
-        Widgets not in a tuple are the same as ('weight', 1, widget)
+        `(given_height, widget)`
+            always treat widget as a box widget and give it given_height rows,
+            where given_height is an int
+        `('pack', widget)`
+            allow widget to calculate its own height by calling its :meth:`rows`
+            method, ie. treat it as a flow widget.
+        `('weight', weight, widget)`
+            if the pile is treated as a box widget then treat widget as a box
+            widget with a height based on its relative weight value, otherwise
+            treat the same as `('pack', widget)`.
 
-        For backwards compatibility ('fixed', given_height, widget) is
-        accepted as an alternate form of (given_height, widget), and
-        ('flow', widget) is accepted for ('pack', widget).
+        Widgets not in a tuple are the same as `('weight', 1, widget)`
 
-        If the Pile is treated as a box widget there must be at least
-        one 'weight' tuple in widget_list.
+        .. note:: If the Pile is treated as a box widget there must be at least
+            one 'weight' tuple in :attr:`widget_list`.
         """
         self.__super.__init__()
         self._contents = MonitoredFocusList()
@@ -1217,9 +1221,10 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if focus_position < len(widgets):
             self.focus_position = focus_position
     widget_list = property(_get_widget_list, _set_widget_list, doc="""
-        A list of the widgets in this Pile, for backwards compatibility only.
-        You should use the new standard container property .contents to
-        modify Pile contents.
+        A list of the widgets in this Pile
+
+        .. note:: only for backwards compatibility. You should use the new
+            standard container property :attr:`contents`.
         """)
 
     def _get_item_types(self):
@@ -1240,9 +1245,10 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if focus_position < len(item_types):
             self.focus_position = focus_position
     item_types = property(_get_item_types, _set_item_types, doc="""
-        A list of the options values for widgets in this Pile, for
-        backwards compatibility only.  You should use the new standard
-        container property .contents to modify Pile contents.
+        A list of the options values for widgets in this Pile.
+
+        .. note:: only for backwards compatibility. You should use the new
+            standard container property :attr:`contents`.
         """)
 
     def _get_contents(self):
@@ -1252,36 +1258,41 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     contents = property(_get_contents, _set_contents, doc="""
         The contents of this Pile as a list of (widget, options) tuples.
 
-        options currently may be one of:
-        ('pack', None) -- allow widget to calculate its own height by
-            calling its rows() method, i.e. treat it as a flow widget.
-        ('given', n) -- Always treat widget as a box widget with a given
-            height of n rows.
-        ('weight', w) -- If the Pile itself is treated as a box widget then
+        options currently may be one of
+
+        ('pack', None)
+            allow widget to calculate its own height by calling its
+            :meth:`rows <Widget.rows>` method, i.e. treat it as a flow widget.
+        ('given', n)
+            Always treat widget as a box widget with a given height of n rows.
+        ('weight', w)
+            If the Pile itself is treated as a box widget then
             the value w will be used as a relative weight for assigning rows
-            to this box widget.  If the Pile is being treated as a flow
-            widget then this is the same as ('pack', None) and the w value
+            to this box widget. If the Pile is being treated as a flow
+            widget then this is the same as `('pack', None)` and the w value
             is ignored.
 
         If the Pile itself is treated as a box widget then at least one
-        widget must have a ('weight', w) options value, or the Pile will
+        widget must have a `('weight', w)` options value, or the Pile will
         not be able to grow to fill the required number of rows.
 
         This list may be modified like a normal list and the Pile widget
         will updated automatically.
 
-        Create new options tuples with the options() method for forward
-        compatibility, as more items may be added in the future.
+        .. seealso:: Create new options tuples with the :meth:`options` method
         """)
 
     def options(self, height_type=WEIGHT, height_amount=1):
         """
-        Return a new options tuple for use in a Pile's .contents list.
+        Return a new options tuple for use in a Pile's :attr:`contents` list.
 
-        height_type -- 'pack', 'given' or 'weight'
-        height_amount -- None for 'pack', a number of rows for 'fixed'
-            or a weight value for 'weight'
+        :param height_type: 'pack', 'given' or 'weight'
+        :param height_amount: None for 'pack', a number of rows for 'fixed' or a
+            weight value for 'weight'
+        :type height_amount: int
         """
+        # TODO: whats a weight value?
+
         if height_type == PACK:
             return (PACK, None)
         if height_type not in (GIVEN, WEIGHT):
@@ -1295,11 +1306,14 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
     def set_focus(self, item):
         """
-        Set the item in focus, for backwards compatibility.  You may also
-        use the new standard container property .focus_position to set
-        the position by integer index instead.
+        Set the item in focus, for backwards compatibility.
 
-        item -- widget or integer index
+        .. note:: only for backwards compatibility. You should use the new
+            standard container property :attr:`focus_position`.
+            to set the position by integer index instead.
+
+        :param item: element to focus
+        :type item: Widget or int
         """
         if isinstance(item, int):
             return self._set_focus_position(item)
@@ -1322,10 +1336,12 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         doc="the child widget in focus or None when Pile is empty")
 
     focus_item = property(get_focus, set_focus, doc="""
-        A property for reading and setting the widget in focus, for
-        backwards compatibility only.  You may also use the new standard
-        container properties .focus and .focus_position to get the
-        child widget in focus or modify the focus position.
+        A property for reading and setting the widget in focus.
+
+        .. note:: only for backwards compatibility. You should use the new
+            standard container properties :attr:`focus` and
+            :attr:`focus_position` to get the child widget in focus or modify the
+            focus position.
         """)
 
     def _get_focus_position(self):
@@ -1349,7 +1365,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             raise IndexError, "No Pile child widget at position %s" % (position,)
         self.contents.focus = position
     focus_position = property(_get_focus_position, _set_focus_position, doc="""
-        index of child widget in focus.  Raises IndexError if read when
+        index of child widget in focus. Raises :exc:`IndexError` if read when
         Pile is empty, or when set to an invalid index.
         """)
 
@@ -1428,10 +1444,6 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         return l
 
     def render(self, size, focus=False):
-        """
-        Render all widgets in self.contents and return the results
-        stacked one on top of the next.
-        """
         maxcol = size[0]
         item_rows = None
 
@@ -1494,7 +1506,6 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         return x, y
 
     def rows(self, size, focus=False ):
-        """Return the number of rows required for this widget."""
         return sum(self.get_item_rows(size, focus))
 
     def keypress(self, size, key ):

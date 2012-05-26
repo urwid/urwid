@@ -10,3 +10,5 @@ Exceptions
 .. autoexception:: ListBoxError
 
 .. autoexception:: ColumnsError
+
+.. autoexception:: PileError
