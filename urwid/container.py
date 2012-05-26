@@ -747,23 +747,29 @@ class FrameError(Exception):
     pass
 
 class Frame(Widget, WidgetContainerMixin):
+    """
+    Frame widget is a box widget with optional header and footer
+    flow widgets placed above and below the box widget.
+
+    .. note:: The main difference between a Frame and a :class:`Pile` widget
+        defined as: `Pile([('pack', header), body, ('pack', footer)])` is that
+        the Frame will not automatically change focus up and down in response to
+        keystrokes.
+    """
+
     _selectable = True
     _sizing = frozenset([BOX])
 
     def __init__(self, body, header=None, footer=None, focus_part='body'):
         """
-        Frame widget is a box widget with optional header and footer
-        flow widgets placed above and below the box widget.
-
-        The main difference between a Frame and a Pile widget defined
-        as: Pile([('pack', header), body, ('pack', footer)]) is that
-        the Frame will not automatically change focus up and down in
-        response to keystrokes.
-
-        body -- a box widget for the body of the frame
-        header -- a flow widget for above the body (or None)
-        footer -- a flow widget for below the body (or None)
-        focus_part -- 'header', 'footer' or 'body'
+        :param body: a box widget for the body of the frame
+        :type body: Widget
+        :param header: a flow widget for above the body (or None)
+        :type header: Widget
+        :param footer: a flow widget for below the body (or None)
+        :type footer: Widget
+        :param focus_part:  'header', 'footer' or 'body'
+        :type focus_part: str
         """
         self.__super.__init__()
 
@@ -799,11 +805,13 @@ class Frame(Widget, WidgetContainerMixin):
 
     def set_focus(self, part):
         """
-        Set the part of the frame that is in focus, for backwards
-        compatibility.  You may also use the new standard container property
-        .focus_position to set this value.
+        Determine which part of the frame is in focus.
 
-        part -- 'header', 'footer' or 'body'
+        .. note:: included for backwards compatibility. You should rather use
+            the container property :attr:`.focus_position` to set this value.
+
+        :param part: 'header', 'footer' or 'body'
+        :type part: str
         """
         if part not in ('header', 'footer', 'body'):
             raise IndexError, 'Invalid position for Frame: %s' % (part,)
@@ -815,11 +823,13 @@ class Frame(Widget, WidgetContainerMixin):
 
     def get_focus(self):
         """
-        Return the part of the frame that is in focus, for backwards
-        compatibility.  You may also use the new standard container property
-        .focus_position to get this value.
+        Return an indicator which part of the frame is in focus
 
-        Returns one of 'header', 'footer' or 'body'.
+        .. note:: included for backwards compatibility. You should rather use
+            the container property :attr:`.focus_position` to get this value.
+
+        :returns: one of 'header', 'footer' or 'body'.
+        :rtype: str
         """
         return self.focus_part
 
@@ -829,11 +839,13 @@ class Frame(Widget, WidgetContainerMixin):
             'footer': self._footer,
             'body': self._body
             }[self.focus_part]
-    focus = property(_get_focus,
-        doc="the child widget in focus: the body, header or footer widget")
+    focus = property(_get_focus, doc="""
+        child :class:`Widget` in focus: the body, header or footer widget.
+        This is a read-only property.""")
 
     focus_position = property(get_focus, set_focus, doc="""
-        the part of the frame that is in focus: 'body', 'header' or 'footer'
+        writeable property containing an indicator which part of the frame
+        that is in focus: `'body', 'header'` or `'footer'`.
         """)
 
     def _contents(self):
@@ -901,19 +913,22 @@ class Frame(Widget, WidgetContainerMixin):
         else:
             self.footer = None
     contents = property(_contents, doc="""
-        a dict-like object similar to:
-            {'body': (body_widget, None),
-             'header': (header_widget, None),  # if frame has a header
-             'footer': (footer_widget, None),} # if frame has a footer
+        a dict-like object similar to::
+
+            {
+                'body': (body_widget, None),
+                'header': (header_widget, None),  # if frame has a header
+                'footer': (footer_widget, None) # if frame has a footer
+            }
 
         This object may be used to read or update the contents of the Frame.
 
         The values are similar to the the list-like .contents objects used
-        in other containers with (widget, options) tuples, but are
+        in other containers with (:class:`Widget`, options) tuples, but are
         constrained to keys for each of the three usual parts of a Frame.
-        When other keys are used a KeyError will be raised.
+        When other keys are used a :exc:`KeyError` will be raised.
 
-        Currently all options are None, but using the options() method
+        Currently all options are `None`, but using the :meth:`options` method
         to create the options value is recommended for forwards
         compatibility.
         """)
@@ -927,10 +942,16 @@ class Frame(Widget, WidgetContainerMixin):
         return None
 
     def frame_top_bottom(self, size, focus):
-        """Calculate the number of rows for the header and footer.
+        """
+        Calculate the number of rows for the header and footer.
 
-        Returns (head rows, foot rows),(orig head, orig foot).
-        orig head/foot are from rows() calls.
+        :param size: TODO
+        :type size: TODO
+        :param focus: TODO
+        :type focus: TODO
+        :returns: `(head rows, foot rows),(orig head, orig foot)`
+                  orig head/foot are from rows() calls.
+        :rtype: (int, int), (int, int)
         """
         (maxcol, maxrow) = size
         frows = hrows = 0
