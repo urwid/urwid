@@ -16,3 +16,5 @@ Exceptions
 .. autoexception:: GridFlowError
 
 .. autoexception:: BoxAdapterError
+
+.. autoexception:: OverlayError

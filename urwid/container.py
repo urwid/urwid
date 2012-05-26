@@ -418,6 +418,9 @@ class OverlayError(Exception):
     pass
 
 class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
+    """
+    Overlay contains two box widgets and renders one on top of the other
+    """
     _selectable = True
     _sizing = frozenset([BOX])
 
@@ -428,34 +431,43 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def __init__(self, top_w, bottom_w, align, width, valign, height,
             min_width=None, min_height=None, left=0, right=0, top=0, bottom=0):
         """
-        top_w -- a flow, box or fixed widget to overlay "on top"
-        bottom_w -- a box widget to appear "below" previous widget
-        align -- one of:
-            'left', 'center', 'right'
+        :param top_w: a flow, box or fixed widget to overlay "on top"
+        :type top_w: Widget
+        :param bottom_w: a box widget to appear "below" previous widget
+        :type bottom_w: Widget
+        :param align: alignment, one of 'left', 'center', 'right' or
             ('relative', percentage 0=left 100=right)
-        width -- one of:
-            'pack' if top_w is a fixed widget
-            number of columns wide
-            ('relative', percentage of total width)
-        valign -- one of:
-            'top', 'middle', 'bottom'
-            ('relative', percentage 0=top 100=bottom)
-        height -- one of:
-            'pack' if top_w is a flow or fixed widget
-            number of rows high
-            ('relative', percentage of total height)
-        min_width -- the minimum number of columns for top_w
-            when width is not fixed
-        min_height -- one of:
-            minimum number of rows for the widget when height not fixed
-        left -- a fixed number of columns to add on the left
-        right -- a fixed number of columns to add on the right
-        top -- a fixed number of rows to add on the top
-        bottom -- a fixed number of rows to add on the bottom
+        :type align: str
+        :param width: width type, one of:
 
-        Overlay widgets behave similarly to Padding and Filler widgets
-        when determining the size and position of top_w.  bottom_w is
-        always rendered the full size available "below" top_w.
+            * 'pack' if top_w is a fixed widget,
+            * number of columns wide
+            * `('relative', percentage of total width)`
+        :param valign: alignment mode, one of 'top', 'middle', 'bottom' or
+            `('relative', percentage 0=top 100=bottom)`
+        :param height: one of:
+
+            * 'pack' if top_w is a flow or fixed widget
+            * number of rows high
+            * ('relative', percentage of total height)
+        :param min_width: the minimum number of columns for top_w when width
+            is not fixed
+        :type min_width: int
+        :param min_height: minimum number of rows for the widget when height
+            is not fixed
+        :type min_height: int
+        :param left: a fixed number of columns to add on the left
+        :type left: int
+        :param right: a fixed number of columns to add on the right
+        :type right: int
+        :param top: a fixed number of rows to add on the top
+        :type top: int
+        :param bottom: a fixed number of rows to add on the bottom
+        :type bottom: int
+
+        Overlay widgets behave similarly to :class:`Padding` and :class:`Filler`
+        widgets when determining the size and position of `top_w`. `bottom_w` is
+        always rendered the full size available "below" `top_w`.
         """
         self.__super.__init__()
 
@@ -470,7 +482,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         Adjust the overlay size and position parameters.
 
-        See __init__() for a description of the parameters.
+        See :class:`__init__() <Overlay>` for a description of the parameters.
         """
 
         # convert obsolete parameters 'fixed ...':
@@ -629,27 +641,27 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 % (index,))
         self._invalidate()
     contents = property(_contents, doc="""
-        a list-like object similar to:
+        a list-like object similar to::
+
             [(bottom_w, bottom_options)),
              (top_w, top_options)]
 
-        This object may be used to read or update bottom_w, top_w and
-        top_w's options, but no widgets may be added or removed.
+        This object may be used to read or update top and bottom widgets and
+        top widgets's options, but no widgets may be added or removed.
 
-        top_options takes the form:
-            (align_type, align_amount, width_type, width_amount,
-             min_width, left, right,
-             valign_type, valign_amount, height_type, height_amount,
-             min_height, top, bottom)
+        `top_options` takes the form
+        `(align_type, align_amount, width_type, width_amount, min_width, left,
+        right, valign_type, valign_amount, height_type, height_amount,
+        min_height, top, bottom)`
 
-        bottom_options is always:
-            ('left', None, 'relative', 100, None, 0, 0,
-             'top', None, 'relative', 100, None, 0, 0)
-
-        which means that bottom_w always covers the full area of the Overlay.
-        writing a different value for bottom_options currently raises an
-        OverlayError.
+        bottom_options is always
+        `('left', None, 'relative', 100, None, 0, 0,
+        'top', None, 'relative', 100, None, 0, 0)`
+        which means that bottom widget always covers the full area of the Overlay.
+        writing a different value for `bottom_options` raises an
+        :exc:`OverlayError`.
         """)
+    #TODO: options method missing to construct top_w's options?
 
     def get_cursor_coords(self, size):
         """Return cursor coords from top_w, if any."""
