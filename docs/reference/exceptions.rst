@@ -1,6 +1,20 @@
 Exceptions
 ==========
 
-.. autoexception:: urwid.ExitMainLoop
+.. module:: urwid
 
-.. autoexception:: urwid.WidgetError
+.. autoexception:: ExitMainLoop
+
+.. autoexception:: WidgetError
+
+.. autoexception:: ListBoxError
+
+.. autoexception:: ColumnsError
+
+.. autoexception:: PileError
+
+.. autoexception:: GridFlowError
+
+.. autoexception:: BoxAdapterError
+
+.. autoexception:: OverlayError

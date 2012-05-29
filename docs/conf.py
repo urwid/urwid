@@ -41,7 +41,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Urwid'
-copyright = u'2011, Ian Ward'
+copyright = u'2012, Ian Ward'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -248,7 +248,7 @@ texinfo_documents = [
 epub_title = u'Urwid'
 epub_author = u'Ian Ward'
 epub_publisher = u'Ian Ward'
-epub_copyright = u'2011, Ian Ward'
+epub_copyright = u'2012, Ian Ward'
 
 # The language of the text. It defaults to the language option
 # or en if the language is not set.
@@ -286,6 +286,6 @@ epub_copyright = u'2011, Ian Ward'
 
 autoclass_content = "both"
 
-autodoc_member_order = "bysource"
+autodoc_member_order = "groupwise"
 
-autodoc_default_flags = ["members", "show-inheritance"]
+autodoc_default_flags = ["members"]

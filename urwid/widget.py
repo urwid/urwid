@@ -371,9 +371,20 @@ class Widget(object):
        ``False``.
     """
     __metaclass__ = WidgetMeta
+    """attributed :class:`WidgetMeta`"""
+
     _selectable = False
+    """whether or not this is a selectable widget"""
+
     _sizing = frozenset([FLOW, BOX, FIXED])
+    """sizing-type of this widget: one of 'flow', 'box' or 'fixed'"""
+
     _command_map = command_map
+    """attributed :class:`urwid.CommandMap`
+
+       This is a shared :class:`urwid.CommandMap` instance,
+       which means... TODO
+    """
 
     def _invalidate(self):
         """
@@ -684,7 +695,6 @@ class SolidFill(BoxWidget):
         """
         :param fill_char: character to fill area with
         :type fill_char: string
-        """
 
         >>> SolidFill(u'8')
         <SolidFill box widget '8'>
