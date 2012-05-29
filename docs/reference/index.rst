@@ -9,5 +9,4 @@ Urwid Reference
    decorations
    containers
    constants
-   listbox
    exceptions
