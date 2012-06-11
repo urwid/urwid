@@ -85,6 +85,23 @@ class WidgetContainerMixin(object):
                 w.focus_position = p # modifies w.focus
             w = w.focus.base_widget
 
+    def get_focus_widgets(self):
+        """
+        Return the .focus values starting from this container
+        and proceeding along each child widget until reaching a leaf
+        (non-container) widget.
+
+        Note that the list does not contain the topmost container widget
+        (i.e, on which this method is called), but does include the
+        lowest leaf widget.
+        """
+        out = []
+        w = self
+        while True:
+            w = w.base_widget.focus
+            if w is None:
+                return out
+            out.append(w)
 
 class WidgetContainerListContentsMixin(object):
     """
