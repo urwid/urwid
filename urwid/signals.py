@@ -71,7 +71,7 @@ class Signals(object):
         """
         self._supported[sig_cls] = signals
 
-    def connect(self, obj, name, callback, user_arg=None, weak_args=[], user_args=[]):
+    def connect(self, obj, name, callback, user_arg=None, weak_args=None, user_args=None):
         """
         :param obj: the object sending a signal
         :type obj: object
@@ -186,10 +186,10 @@ class Signals(object):
 
     def _prepare_user_args(self, weak_args, user_args, callback = None):
         # Turn weak_args into weakrefs and prepend them to user_args
-        return [weakref.ref(a, callback) for a in weak_args] + user_args
+        return [weakref.ref(a, callback) for a in (weak_args or [])] + (user_args or [])
 
 
-    def disconnect(self, obj, name, callback, user_arg=None, weak_args=[], user_args=[]):
+    def disconnect(self, obj, name, callback, user_arg=None, weak_args=None, user_args=None):
         """
         :param obj: the object to disconnect the signal from
         :type obj: object
