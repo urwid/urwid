@@ -500,7 +500,7 @@ class MainLoop(object):
 
     def draw_screen(self):
         """
-        Renter the widgets and paint the screen.  This function is
+        Render the widgets and paint the screen.  This function is
         called automatically from run() but may be called additional
         times if repainting is required without also processing input.
         """
