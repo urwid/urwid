@@ -1,5 +1,25 @@
 # -*- coding: utf-8 -*-
 
+Urwid 1.0.2
+
+    * Fix for bug when entering Unicode text into Edit widget with
+      bytes caption
+
+    * Fix a regression when not running in UTF-8 mode
+
+    * Fix for a MainLoop.remove_watch_pipe() bug
+
+    * Fix for a bug when packing empty Edit widgets
+
+    * Fix for a ListBox "contents too long" error with very large
+      Edit widgets
+
+    * Prevent ListBoxes from selecting 0-height selectable widgets
+      when moving up or down
+
+    * Fix a number of bugs caused by 0-height widgets in a ListBox
+
+
 Urwid 1.0.1
 
     * Fix for Terminal widget in BSD/OSX
