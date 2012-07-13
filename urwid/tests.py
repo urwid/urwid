@@ -842,9 +842,9 @@ class TextTest(unittest.TestCase):
 
 class EditTest(unittest.TestCase):
     def setUp(self):
-        self.t1 = urwid.Edit("","blah blah")
-        self.t2 = urwid.Edit("stuff:", "blah blah")
-        self.t3 = urwid.Edit("junk:\n","blah blah\n\nbloo",1)
+        self.t1 = urwid.Edit(B(""),"blah blah")
+        self.t2 = urwid.Edit(B("stuff:"), "blah blah")
+        self.t3 = urwid.Edit(B("junk:\n"),"blah blah\n\nbloo",1)
         self.t4 = urwid.Edit(u"better:")
 
     def ktest(self, e, key, expected, pos, desc):
