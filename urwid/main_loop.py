@@ -30,7 +30,7 @@ import os
 
 from urwid.util import is_mouse_event
 from urwid.compat import PYTHON3
-from urwid.command_map import command_map
+from urwid.command_map import command_map, REDRAW_SCREEN
 from urwid.wimp import PopUpTarget
 from urwid import signals
 from urwid.display_common import INPUT_DESCRIPTORS_CHANGED
@@ -446,7 +446,7 @@ class MainLoop(object):
             elif self._topmost_widget.selectable():
                 k = self._topmost_widget.keypress(self.screen_size, k)
             if k:
-                if command_map[k] == 'redraw screen':
+                if command_map[k] == REDRAW_SCREEN:
                     self.screen.clear()
                     something_handled = True
                 else:

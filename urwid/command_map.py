@@ -19,7 +19,11 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-
+REDRAW_SCREEN = 'redraw screen'
+CURSOR_UP = 'cursor up'
+CURSOR_DOWN = 'cursor down'
+CURSOR_LEFT = 'cursor left'
+CURSOR_RIGHT = 'cursor right'
 
 class CommandMap(object):
     _command_defaults = {
@@ -27,12 +31,12 @@ class CommandMap(object):
         'ctrl n': 'next selectable',
         'shift tab': 'prev selectable',
         'ctrl p': 'prev selectable',
-        'ctrl l': 'redraw screen',
+        'ctrl l': REDRAW_SCREEN,
         'esc': 'menu',
-        'up': 'cursor up',
-        'down': 'cursor down',
-        'left': 'cursor left',
-        'right': 'cursor right',
+        'up': CURSOR_UP,
+        'down': CURSOR_DOWN,
+        'left': CURSOR_LEFT,
+        'right': CURSOR_RIGHT,
         'page up': 'cursor page up',
         'page down': 'cursor page down',
         'home': 'cursor max left',

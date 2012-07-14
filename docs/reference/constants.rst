@@ -224,3 +224,50 @@ Signal Names
    the file descriptors being watched by its event loop.
 
 
+Command Names
+-------------
+
+Command names are used as values in :class:`CommandMap` instances.
+Widgets look up the command associated with keypresses in their
+:meth:`Widget.keypress` methods.
+
+You may define any new command names as you wish and look for them in
+your own widget code.  These are the standard ones expected by code
+included in Urwid.
+
+.. data:: urwid.REDRAW_SCREEN
+   :annotation: = 'redraw screen'
+
+   Default associated keypress: 'ctrl l'
+
+   :meth:`MainLoop.process_input` looks for this command to force
+   a screen refresh. This is useful in case the screen becomes
+   corrupted.
+
+.. data:: urwid.CURSOR_UP
+   :annotation: = 'cursor up'
+
+   Default associated keypress: 'up'
+
+   Move the cursor or selection up one row.
+
+.. data:: urwid.CURSOR_DOWN
+   :annotation: = 'cursor down'
+
+   Default associated keypress: 'down'
+
+   Move the cursor or selection down one row.
+
+.. data:: urwid.CURSOR_LEFT
+   :annotation: = 'cursor left'
+
+   Default associated keypress: 'left'
+
+   Move the cursor or selection left one column.
+
+.. data:: urwid.CURSOR_RIGHT
+   :annotation: = 'cursor right'
+
+   Default associated keypress: 'right'
+
+   Move the cursor or selection right one column.
