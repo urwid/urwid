@@ -6,6 +6,7 @@ Urwid Reference
 
    main_loop
    widget
+   basic
    decorations
    containers
    constants

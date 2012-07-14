@@ -1,7 +1,7 @@
 Containers
 ===========
 
-.. module:: urwid
+.. currentmodule:: urwid
 
 .. autoclass:: Frame
 

@@ -1,6 +1,8 @@
 Widget Base Class
 =================
 
-.. autoclass:: urwid.Widget
-    
-.. autoclass:: urwid.WidgetMeta
+.. currentmodule:: urwid
+
+.. autoclass:: Widget
+
+.. autoclass:: WidgetMeta

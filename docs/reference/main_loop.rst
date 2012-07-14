@@ -1,7 +1,7 @@
 Main Loops and Event Loops
 ==========================
 
-.. module:: urwid
+.. currentmodule:: urwid
 
 .. autoclass:: MainLoop
 

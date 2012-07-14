@@ -1,7 +1,7 @@
 Decorations
 ===========
 
-.. module:: urwid
+.. currentmodule:: urwid
 
 .. autoclass:: AttrMap
 

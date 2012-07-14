@@ -1,7 +1,7 @@
 Exceptions
 ==========
 
-.. module:: urwid
+.. currentmodule:: urwid
 
 .. autoexception:: ExitMainLoop
 
@@ -18,3 +18,7 @@ Exceptions
 .. autoexception:: BoxAdapterError
 
 .. autoexception:: OverlayError
+
+.. autoexception:: TextError
+
+.. autoexception:: EditError
