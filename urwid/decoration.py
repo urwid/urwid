@@ -167,8 +167,8 @@ class AttrMap(delegate_to_widget_mixin('_original_widget'), WidgetDecoration):
         Note this function does not accept a single attribute the way the
         constructor does.  You must specify {None: attribute} instead.
 
-        >>> w = AttrMap(Text("hi"), None)
-        >>> w.set_attr({'a':'b'})
+        >>> w = AttrMap(Text(u"hi"), None)
+        >>> w.set_attr_map({'a':'b'})
         >>> w
         <AttrMap flow widget <Text flow widget 'hi'> attr_map={'a': 'b'}>
         """
@@ -196,7 +196,7 @@ class AttrMap(delegate_to_widget_mixin('_original_widget'), WidgetDecoration):
         Note this function does not accept a single attribute the way the
         constructor does.  You must specify {None: attribute} instead.
 
-        >>> w = AttrMap(Text("hi"), {})
+        >>> w = AttrMap(Text(u"hi"), {})
         >>> w.set_focus_map({'a':'b'})
         >>> w
         <AttrMap flow widget <Text flow widget 'hi'> attr_map={} focus_map={'a': 'b'}>
