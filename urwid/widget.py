@@ -21,14 +21,15 @@
 
 from operator import attrgetter
 
-from urwid.util import MetaSuper, decompose_tagmarkup, calc_width, \
-    is_wide_char, move_prev_char, move_next_char
+from urwid.util import (MetaSuper, decompose_tagmarkup, calc_width,
+    is_wide_char, move_prev_char, move_next_char)
 from urwid.text_layout import calc_pos, calc_coords, shift_line
 from urwid import signals
 from urwid import text_layout
-from urwid.canvas import CanvasCache, CompositeCanvas, SolidCanvas, \
-    apply_text_layout
-from urwid.command_map import command_map
+from urwid.canvas import (CanvasCache, CompositeCanvas, SolidCanvas,
+    apply_text_layout)
+from urwid.command_map import (command_map, CURSOR_LEFT, CURSOR_RIGHT,
+    CURSOR_UP, CURSOR_DOWN, CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT)
 from urwid.split_repr import split_repr, remove_defaults, python3_repr
 
 
@@ -1333,31 +1334,31 @@ class Edit(Text):
             key = "\n"
             self.insert_text(key)
 
-        elif self._command_map[key] == 'cursor left':
+        elif self._command_map[key] == CURSOR_LEFT:
             if p==0: return key
             p = move_prev_char(self.edit_text,0,p)
             self.set_edit_pos(p)
-        
-        elif self._command_map[key] == 'cursor right':
+
+        elif self._command_map[key] == CURSOR_RIGHT:
             if p >= len(self.edit_text): return key
             p = move_next_char(self.edit_text,p,len(self.edit_text))
             self.set_edit_pos(p)
-        
-        elif self._command_map[key] in ('cursor up', 'cursor down'):
+
+        elif self._command_map[key] in (CURSOR_UP, CURSOR_DOWN):
             self.highlight = None
-            
+
             x,y = self.get_cursor_coords((maxcol,))
             pref_col = self.get_pref_col((maxcol,))
             assert pref_col is not None
             #if pref_col is None: 
             #    pref_col = x
 
-            if self._command_map[key] == 'cursor up': y -= 1
+            if self._command_map[key] == CURSOR_UP: y -= 1
             else: y += 1
 
             if not self.move_cursor_to_coords((maxcol,),pref_col,y):
                 return key
-        
+
         elif key=="backspace":
             self.pref_col_maxcol = None, None
             if not self._delete_highlighted():
@@ -1373,22 +1374,21 @@ class Edit(Text):
                 if p >= len(self.edit_text):
                     return key
                 p = move_next_char(self.edit_text,p,len(self.edit_text))
-                self.set_edit_text( self.edit_text[:self.edit_pos] + 
+                self.set_edit_text( self.edit_text[:self.edit_pos] +
                     self.edit_text[p:] )
-        
-        elif self._command_map[key] in ('cursor max left', 'cursor max right'):
+
+        elif self._command_map[key] in (CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT):
             self.highlight = None
             self.pref_col_maxcol = None, None
-            
+
             x,y = self.get_cursor_coords((maxcol,))
-            
-            if self._command_map[key] == 'cursor max left':
+
+            if self._command_map[key] == CURSOR_MAX_LEFT:
                 self.move_cursor_to_coords((maxcol,), LEFT, y)
             else:
                 self.move_cursor_to_coords((maxcol,), RIGHT, y)
             return
-            
-            
+
         else:
             # key wasn't handled
             return key

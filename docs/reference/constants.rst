@@ -244,6 +244,14 @@ included in Urwid.
    a screen refresh. This is useful in case the screen becomes
    corrupted.
 
+.. data:: urwid.ACTIVATE
+   :annotation: = 'activate'
+
+   Default associated keypresses: ' ' (space), 'enter'
+
+   Activate a widget such as a :class:`Button`, :class:`CheckBox`
+   or :class:`RadioButton`.
+
 .. data:: urwid.CURSOR_UP
    :annotation: = 'cursor up'
 
@@ -271,3 +279,32 @@ included in Urwid.
    Default associated keypress: 'right'
 
    Move the cursor or selection right one column.
+
+.. data:: urwid.CURSOR_PAGE_UP
+   :annotation: = 'cursor page up'
+
+   Default associated keypress: 'page up'
+
+   Move the cursor or selection up one page.
+
+.. data:: urwid.CURSOR_PAGE_DOWN
+   :annotation: = 'cursor page down'
+
+   Default associated keypress: 'page down'
+
+   Move the cursor or selection down one page.
+
+.. data:: urwid.CURSOR_MAX_LEFT
+   :annotation: = 'cursor max left'
+
+   Default associated keypress: 'home'
+
+   Move the cursor or selection to the leftmost column.
+
+.. data:: urwid.CURSOR_MAX_RIGHT
+   :annotation: = 'cursor max right'
+
+   Default associated keypress: 'end'
+
+   Move the cursor or selection to the rightmost column.
+

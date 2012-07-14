@@ -24,6 +24,11 @@ CURSOR_UP = 'cursor up'
 CURSOR_DOWN = 'cursor down'
 CURSOR_LEFT = 'cursor left'
 CURSOR_RIGHT = 'cursor right'
+CURSOR_PAGE_UP = 'cursor page up'
+CURSOR_PAGE_DOWN = 'cursor page down'
+CURSOR_MAX_LEFT = 'cursor max left'
+CURSOR_MAX_RIGHT = 'cursor max right'
+ACTIVATE = 'activate'
 
 class CommandMap(object):
     _command_defaults = {
@@ -37,12 +42,12 @@ class CommandMap(object):
         'down': CURSOR_DOWN,
         'left': CURSOR_LEFT,
         'right': CURSOR_RIGHT,
-        'page up': 'cursor page up',
-        'page down': 'cursor page down',
-        'home': 'cursor max left',
-        'end': 'cursor max right', 
-        ' ': 'activate',
-        'enter': 'activate',
+        'page up': CURSOR_PAGE_UP,
+        'page down': CURSOR_PAGE_DOWN,
+        'home': CURSOR_MAX_LEFT,
+        'end': CURSOR_MAX_RIGHT,
+        ' ': ACTIVATE,
+        'enter': ACTIVATE,
     }
 
     def __init__(self):

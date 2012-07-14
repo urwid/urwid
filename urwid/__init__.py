@@ -48,7 +48,10 @@ from urwid.font import (get_all_fonts, Font, Thin3x3Font, Thin4x3Font,
 from urwid.signals import (MetaSignals, Signals, emit_signal, register_signal,
     connect_signal, disconnect_signal)
 from urwid.monitored_list import MonitoredList, MonitoredFocusList
-from urwid.command_map import CommandMap, command_map
+from urwid.command_map import (CommandMap, command_map,
+    REDRAW_SCREEN, CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT,
+    CURSOR_PAGE_UP, CURSOR_PAGE_DOWN, CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT,
+    ACTIVATE)
 from urwid.main_loop import ExitMainLoop, MainLoop, SelectEventLoop
 try:
     from urwid.main_loop import GLibEventLoop, TwistedEventLoop

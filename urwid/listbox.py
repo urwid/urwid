@@ -27,7 +27,8 @@ from urwid import signals
 from urwid.signals import connect_signal
 from urwid.monitored_list import MonitoredList, MonitoredFocusList
 from urwid.container import WidgetContainerMixin
-
+from urwid.command_map import (CURSOR_UP, CURSOR_DOWN,
+    CURSOR_PAGE_UP, CURSOR_PAGE_DOWN)
 
 class ListWalkerError(Exception):
     pass
@@ -978,25 +979,29 @@ class ListBox(Widget, WidgetContainerMixin):
         if focus_widget is None: # empty listbox, can't do anything
             return key
 
-        if key not in ['page up','page down']:
+        if self._command_map[key] not in [CURSOR_PAGE_UP, CURSOR_PAGE_DOWN]:
             if focus_widget.selectable():
                 key = focus_widget.keypress((maxcol,),key)
             if key is None:
                 self.make_cursor_visible((maxcol,maxrow))
                 return
 
+        def actual_key(unhandled):
+            if unhandled:
+                return key
+
         # pass off the heavy lifting
-        if self._command_map[key] == 'cursor up':
-            return self._keypress_up((maxcol, maxrow))
+        if self._command_map[key] == CURSOR_UP:
+            return actual_key(self._keypress_up((maxcol, maxrow)))
 
-        if self._command_map[key] == 'cursor down':
-            return self._keypress_down((maxcol, maxrow))
+        if self._command_map[key] == CURSOR_DOWN:
+            return actual_key(self._keypress_down((maxcol, maxrow)))
 
-        if self._command_map[key] == 'cursor page up':
-            return self._keypress_page_up((maxcol, maxrow))
+        if self._command_map[key] == CURSOR_PAGE_UP:
+            return actual_key(self._keypress_page_up((maxcol, maxrow)))
 
-        if self._command_map[key] == 'cursor page down':
-            return self._keypress_page_down((maxcol, maxrow))
+        if self._command_map[key] == CURSOR_PAGE_DOWN:
+            return actual_key(self._keypress_page_down((maxcol, maxrow)))
 
         return key
 
@@ -1006,7 +1011,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
         middle, top, bottom = self.calculate_visible(
             (maxcol,maxrow), True)
-        if middle is None: return 'up'
+        if middle is None: return True
 
         focus_row_offset,focus_widget,focus_pos,_ignore,cursor = middle
         trim_top, fill_above = top
@@ -1033,7 +1038,7 @@ class ListBox(Widget, WidgetContainerMixin):
             widget, pos = self.body.get_prev(pos)
             if widget is None:
                 # cannot scroll any further
-                return 'up' # keypress not handled
+                return True # keypress not handled
             rows = widget.rows((maxcol,), True)
             row_offset -= rows
             if rows and widget.selectable():
@@ -1083,7 +1088,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
         middle, top, bottom = self.calculate_visible(
             (maxcol,maxrow), True)
-        if middle is None: return 'down'
+        if middle is None: return True
 
         focus_row_offset,focus_widget,focus_pos,focus_rows,cursor=middle
         trim_bottom, fill_below = bottom
@@ -1111,7 +1116,7 @@ class ListBox(Widget, WidgetContainerMixin):
             widget, pos = self.body.get_next(pos)
             if widget is None:
                 # cannot scroll any further
-                return 'down' # keypress not handled
+                return True # keypress not handled
             rows = widget.rows((maxcol,))
             if rows and widget.selectable():
                 # this one will do
@@ -1165,7 +1170,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
         middle, top, bottom = self.calculate_visible(
             (maxcol,maxrow), True)
-        if middle is None: return 'page up'
+        if middle is None: return True
 
         row_offset, focus_widget, focus_pos, focus_rows, cursor = middle
         trim_top, fill_above = top
@@ -1350,7 +1355,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
         middle, top, bottom = self.calculate_visible(
             (maxcol,maxrow), True)
-        if middle is None: return 'page down'
+        if middle is None: return True
 
         row_offset, focus_widget, focus_pos, focus_rows, cursor = middle
         trim_bottom, fill_below = bottom

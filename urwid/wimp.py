@@ -29,7 +29,7 @@ from urwid.text_layout import calc_coords
 from urwid.signals import disconnect_signal # doctests
 from urwid.split_repr import python3_repr
 from urwid.decoration import WidgetDecoration
-
+from urwid.command_map import ACTIVATE
 
 class SelectableIcon(Text):
     _selectable = True
@@ -232,15 +232,15 @@ class CheckBox(WidgetWrap):
             ('fixed', self.reserve_columns, self.states[state] ),
             self._label ] )
         self._w.focus_col = 0
-        
+
     def get_state(self):
         """Return the state of the checkbox."""
         return self._state
     state = property(get_state, set_state)
-        
+
     def keypress(self, size, key):
         """
-        Toggle state on 'activate' command.  
+        Toggle state on 'activate' command.
 
         >>> assert CheckBox._command_map[' '] == 'activate'
         >>> assert CheckBox._command_map['enter'] == 'activate'
@@ -255,15 +255,15 @@ class CheckBox(WidgetWrap):
         >>> cb.state
         False
         """
-        if self._command_map[key] != 'activate':
+        if self._command_map[key] != ACTIVATE:
             return key
-        
+
         self.toggle_state()
-        
+
     def toggle_state(self):
         """
         Cycle to the next valid state.
-        
+
         >>> cb = CheckBox("3-state", has_mixed=True)
         >>> cb.state
         False
@@ -495,7 +495,7 @@ class Button(WidgetWrap):
     def keypress(self, size, key):
         """
         Send 'click' signal on 'activate' command.
-        
+
         >>> assert Button._command_map[' '] == 'activate'
         >>> assert Button._command_map['enter'] == 'activate'
         >>> size = (15,)
@@ -509,7 +509,7 @@ class Button(WidgetWrap):
         >>> clicked_buttons # ... = u in Python 2
         [...'Cancel', ...'Cancel']
         """
-        if self._command_map[key] != 'activate':
+        if self._command_map[key] != ACTIVATE:
             return key
 
         self._emit('click')
