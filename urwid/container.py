@@ -323,7 +323,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             if c is None or maxcol - used_space < width_amount:
                 # starting a new row
                 if self.v_sep:
-                    p.contents.append((divider, Pile.options()))
+                    p.contents.append((divider, p.options()))
                 c = Columns([], self.h_sep)
                 pad = Padding(c, self.align)
                 # extra attribute to reference contents position
@@ -705,14 +705,14 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             height = self.top_w.rows((maxcol,),focus=focus)
             top, bottom =  calculate_top_bottom_filler(maxrow,
                 self.valign_type, self.valign_amount,
-                GIVEN, height, None, self.left, self.right)
+                GIVEN, height, None, self.top, self.bottom)
             if height > maxrow: # flow widget rendered too large
                 bottom = maxrow - height
         else:
             top, bottom = calculate_top_bottom_filler(maxrow,
                 self.valign_type, self.valign_amount,
                 self.height_type, self.height_amount,
-                self.min_height, self.left, self.right)
+                self.min_height, self.top, self.bottom)
         return left, right, top, bottom
 
     def top_w_size(self, size, left, right, top, bottom):
