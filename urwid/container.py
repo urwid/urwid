@@ -1355,7 +1355,9 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     focus_item = property(get_focus, set_focus, doc="""
         A property for reading and setting the widget in focus.
 
-        .. note:: only for backwards compatibility. You should use the new
+        .. note::
+
+            only for backwards compatibility. You should use the new
             standard container properties :attr:`focus` and
             :attr:`focus_position` to get the child widget in focus or modify the
             focus position.

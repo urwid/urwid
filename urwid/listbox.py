@@ -632,11 +632,14 @@ class ListBox(Widget, WidgetContainerMixin):
         walker as a `(widget, options)` tuple. `None` is currently the only
         value for options.
 
-        .. warning:: This object may not be used to set or iterate over contents.
-            You must use the :obj:`list walker <ListWalker>` stored as
-            :attr:`body` to perform manipulation and iteration, if supported.
+        .. warning::
+
+            This object may not be used to set or iterate over contents.
+
+            You must use the list walker stored as
+            :attr:`.body` to perform manipulation and iteration, if supported.
         """)
-    
+
     def options(self):
         """
         There are currently no options for ListBox contents.
