@@ -67,6 +67,8 @@ WEIGHT = 'weight'
 
 class WidgetMeta(MetaSuper, signals.MetaSignals):
     """
+    Bases: :class:`MetaSuper`, :class:`MetaSignals`
+
     Automatic caching of render and rows methods.
 
     Class variable *no_cache* is a list of names of methods to not cache
@@ -254,11 +256,11 @@ class Widget(object):
                      is in focus
        :type focus: bool
 
-       Render the widget content and return it as a
-       :class:`Canvas` subclass.
+       :returns: A :class:`Canvas` subclass instance containing the
+                 rendered content of this widget
 
        :class:`Text` widgets return a :class:`TextCanvas` (arbitrary text and
-       attributes), :class:`SolidFill` widgets return a
+       display attributes), :class:`SolidFill` widgets return a
        :class:`SolidCanvas` (a single character repeated across
        the whole surface) and container widgets return a
        :class:`CompositeCanvas` (one or more other canvases
@@ -290,8 +292,8 @@ class Widget(object):
 
        See :meth:`Widget.render` for parameter details.
 
-       Return the number of rows required for this widget given a number of
-       columns in size, passed as a 1-item tuple (*maxcol*,).
+       :returns: the number of rows required for this widget given a number
+                 of columns in *size*
 
        This is the method flow widgets use to communicate their size to other
        widgets without having to render a canvas. This should be a quick
@@ -320,13 +322,14 @@ class Widget(object):
        :param key: a single keystroke value
        :type key: bytes or unicode
 
-       Handle the keypress event for *key* and return ``None``, otherwise return
-       *key*.
+       :returns: ``None`` if *key* was handled by this widget or
+                 *key* (the same value passed) if *key* was not handled
+                 by this widget
 
        Container widgets will typically call the :meth:`keypress` method on
-       whichever of their children is set as being in focus.
+       whichever of their children is set as the focus.
 
-       A :attr:`_command_map` is used by the standard widgets to
+       The standard widgets use :attr:`_command_map` to
        determine what action should be performed for a given *key*. You may
        modify these values to your liking globally, at some level in the
        widget hierarchy or on individual widgets. See `urwid.CommandMap`
@@ -362,7 +365,8 @@ class Widget(object):
                      is in focus
        :type focus: bool
 
-       Handle a mouse event and return ``True``, otherwise return ``False``.
+       :returns: ``True`` if the event was handled by this widget, ``False``
+                 otherwise
 
        Container widgets will typically call the :meth:`mouse_event` method on
        whichever of their children is at the position (*col*, *row*).
@@ -378,9 +382,13 @@ class Widget(object):
        :param size: See :meth:`Widget.render` for details.
        :type size: widget size
 
+       :returns: (*col*, *row*) if this widget has a cursor, ``None`` otherwise
+
        Return the cursor coordinates (*col*, *row*) of a cursor that will appear
        as part of the canvas rendered by this widget when in focus, or ``None``
-       if no cursor is displayed. The :class:`ListBox` widget
+       if no cursor is displayed.
+
+       The :class:`ListBox` widget
        uses this method to make sure a cursor in the focus widget is not
        scrolled out of view.  It is a separate method to avoid having to render
        the whole widget while calculating layout.
@@ -398,6 +406,9 @@ class Widget(object):
 
        :param size: See :meth:`Widget.render` for details.
        :type size: widget size
+
+       :returns: a column number or ``'left'`` for the leftmost available
+                 column or ``'right'`` for the rightmost available column
 
        Return the preferred column for the cursor to be displayed in this
        widget. This value might not be the same as the column returned from
@@ -426,9 +437,8 @@ class Widget(object):
        :param row: new row for the cursor, 0 it the top row of this widget
        :type row: int
 
-       Set the cursor position within a widget and return ``True``, if the
-       position cannot be set somewhere within the row specified return
-       ``False``.
+       :returns: ``True`` if the position was set successfully anywhere on
+                 *row*, ``False`` otherwise
     """
     __metaclass__ = WidgetMeta
     """attributed :class:`WidgetMeta`"""
