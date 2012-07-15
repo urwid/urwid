@@ -286,6 +286,6 @@ epub_copyright = u'2012, Ian Ward'
 
 autoclass_content = "both"
 
-autodoc_member_order = "groupwise"
+autodoc_member_order = "alphabetical"
 
 autodoc_default_flags = ["members"]
