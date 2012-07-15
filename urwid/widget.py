@@ -69,14 +69,17 @@ class WidgetMeta(MetaSuper, signals.MetaSignals):
     """
     Automatic caching of render and rows methods.
 
-    Class variable ``no_cache`` is a list of names of methods to not cache.
-    Class variable ``ignore_focus`` if defined and ``True`` indicates that this
-    widget is not affected by the focus parameter, so it may be ignored
-    when caching.
+    Class variable *no_cache* is a list of names of methods to not cache
+    automatically.  Valid method names for *no_cache* are ``'render'`` and
+    ``'rows'``.
+
+    Class variable *ignore_focus* if defined and set to ``True`` indicates
+    that the canvas this widget renders is not affected by the focus
+    parameter, so it may be ignored when caching.
     """
     def __init__(cls, name, bases, d):
         no_cache = d.get("no_cache", [])
-        
+
         super(WidgetMeta, cls).__init__(name, bases, d)
 
         if "render" in d:
@@ -221,7 +224,8 @@ class Widget(object):
     .. attribute:: _command_map
        :annotation: = urwid.command_map
 
-       This is a shared :class:`urwid.CommandMap` instance
+       A shared :class:`urwid.CommandMap` instance. May be redefined
+       in subclasses or widget instances.
 
     .. method:: render(size, focus=False)
 
@@ -230,21 +234,42 @@ class Widget(object):
           This method is not implemented in :class:`.Widget` but
           must be implemented by any concrete subclass
 
+       :param size: one of the following:
+
+                    (*maxcol*, *maxrow*)
+                      for box sizing -- the parent chooses the exact
+                      size of this widget
+
+                    (*maxcol*,)
+                      for flow sizing -- the parent chooses only the
+                      number of columns for this widget
+
+                    ``None``
+                      for fixed sizing -- this widget is a fixed size
+                      which can't be adjusted by the parent
+
+                    *maxcol* and *maxrow* are integers > 0.
+       :type size: widget size
+       :param focus: set to True if this widget or one of its children
+                     is in focus
+       :type focus: bool
+
        Render the widget content and return it as a
-       :class:`urwid.Canvas` subclass.  :class:`urwid.Text`
-       widgets return a :class:`urwid.TextCanvas` (arbitrary text and
-       attributes), :class:`urwid.SolidFill` widgets return a
-       :class:`urwid.SolidCanvas` (a single character repeated across
+       :class:`Canvas` subclass.
+
+       :class:`Text` widgets return a :class:`TextCanvas` (arbitrary text and
+       attributes), :class:`SolidFill` widgets return a
+       :class:`SolidCanvas` (a single character repeated across
        the whole surface) and container widgets return a
-       :class:`urwid.CompositeCanvas` (one or more other canvases
+       :class:`CompositeCanvas` (one or more other canvases
        arranged arbitrarily).
 
        If *focus* is ``False``, the returned canvas may not have a cursor
        position set.
 
-       There is some metaclass magic defined in the :class:`urwid.Widget`
-       metaclass :class:`urwid.WidgetMeta` that causes the
-       result of this method to be cached by :class:`urwid.CanvasCache`.
+       There is some metaclass magic defined in the :class:`Widget`
+       metaclass :class:`WidgetMeta` that causes the
+       result of this method to be cached by :class:`CanvasCache`.
        Later calls will automatically look up the value in the cache first.
 
        As a small optimization the class variable :attr:`ignore_focus`
@@ -263,8 +288,10 @@ class Widget(object):
           This method is not implemented in :class:`.Widget` but
           must be implemented by any flow widget.  See :meth:`.sizing`.
 
+       See :meth:`Widget.render` for parameter details.
+
        Return the number of rows required for this widget given a number of
-       columns in size, passed as a 1-item tuple ``(maxcol,)``.
+       columns in size, passed as a 1-item tuple (*maxcol*,).
 
        This is the method flow widgets use to communicate their size to other
        widgets without having to render a canvas. This should be a quick
@@ -272,10 +299,10 @@ class Widget(object):
        operation. If your implementation may take a long time you should add
        your own caching here.
 
-       There is some metaclass magic defined in the :class:`urwid.Widget`
-       metaclass :class:`urwid.WidgetMeta` that causes the
+       There is some metaclass magic defined in the :class:`Widget`
+       metaclass :class:`WidgetMeta` that causes the
        result of this function to be retrieved from any
-       canvas cached by :class:`urwid.CanvasCache`, so if your widget
+       canvas cached by :class:`CanvasCache`, so if your widget
        has been rendered you may not receive calls to this function. The class
        variable :attr:`ignore_focus` may be defined and set to ``True`` if this
        widget renders the same size regardless of the value of the *focus*
@@ -288,6 +315,10 @@ class Widget(object):
 
           This method is not implemented in :class:`.Widget` but
           must be implemented by any selectable widget.  See :meth:`.selectable`.
+       :param size: See :meth:`Widget.render` for details.
+       :type size: widget size
+       :param key: a single keystroke value
+       :type key: bytes or unicode
 
        Handle the keypress event for *key* and return ``None``, otherwise return
        *key*.
@@ -314,12 +345,27 @@ class Widget(object):
           method is equivalent to having a method that always returns
           ``False``.
 
+       :param size: See :meth:`Widget.render` for details.
+       :type size: widget size
+       :param event: values such as ``'mouse press'``, ``'ctrl mouse press'``,
+                     ``'mouse relase'``, ``'meta mouse release'``,
+                     ``'mouse drag'``
+       :type size: mouse event
+       :param button: 1 through 5 for press events, often 0 for release events
+                      (which button was released is often not known)
+       :type button: int
+       :param col: column of the event, 0 is the left edge of this widget
+       :type col: int
+       :param row: row of the event, 0 it the top row of this widget
+       :type row: int
+       :param focus: set to True if this widget or one of its children
+                     is in focus
+       :type focus: bool
+
        Handle a mouse event and return ``True``, otherwise return ``False``.
 
        Container widgets will typically call the :meth:`mouse_event` method on
-       whichever of their children is at the position ``(col, row)``. ``(col,
-       row)`` is relative to the top-left corner of the widget.
-
+       whichever of their children is at the position (*col*, *row*).
 
     .. method:: get_cursor_coords(size)
 
@@ -329,14 +375,17 @@ class Widget(object):
           must be implemented by any widget that may return cursor
           coordinates as part of the canvas that :meth:`render` returns.
 
-       Return the cursor coordinates ``(col, row)`` of a cursor that will appear
+       :param size: See :meth:`Widget.render` for details.
+       :type size: widget size
+
+       Return the cursor coordinates (*col*, *row*) of a cursor that will appear
        as part of the canvas rendered by this widget when in focus, or ``None``
-       if no cursor is displayed. The :class:`~urwid.listbox.ListBox` widget
+       if no cursor is displayed. The :class:`ListBox` widget
        uses this method to make sure a cursor in the focus widget is not
        scrolled out of view.  It is a separate method to avoid having to render
        the whole widget while calculating layout.
 
-       Container widgets will typically call the :meth:`get_cursor_coords`
+       Container widgets will typically call the :meth:`.get_cursor_coords`
        method on their focus widget.
 
 
@@ -347,15 +396,18 @@ class Widget(object):
           This method is not implemented in :class:`.Widget` but
           may be implemented by a subclass.
 
+       :param size: See :meth:`Widget.render` for details.
+       :type size: widget size
+
        Return the preferred column for the cursor to be displayed in this
        widget. This value might not be the same as the column returned from
        :meth:`get_cursor_coords`.
 
-       The :class:`~urwid.listbox.ListBox` and :class:`~urwid.container.Pile`
+       The :class:`ListBox` and :class:`Pile`
        widgets call this method on a widget losing focus and use the value
-       returned to call :meth:`move_cursor_to_coords` on the widget becoming the
-       focus. This allows the focus to move up and down through widgets while
-       keeping the cursor in approximately the same column on screen.
+       returned to call :meth:`.move_cursor_to_coords` on the widget becoming
+       the focus. This allows the focus to move up and down through widgets
+       while keeping the cursor in approximately the same column on screen.
 
 
     .. method:: move_cursor_to_coords(size, col, row)
@@ -366,6 +418,13 @@ class Widget(object):
           may be implemented by a subclass.  Not implementing this
           method is equivalent to having a method that always returns
           ``False``.
+
+       :param size: See :meth:`Widget.render` for details.
+       :type size: widget size
+       :param col: new column for the cursor, 0 is the left edge of this widget
+       :type col: int
+       :param row: new row for the cursor, 0 it the top row of this widget
+       :type row: int
 
        Set the cursor position within a widget and return ``True``, if the
        position cannot be set somewhere within the row specified return
@@ -734,16 +793,20 @@ class Text(Widget):
         """
         :param markup: content of text widget, one of:
 
-            * bytes or unicode -- text to be displayed
-            * ``(attr, text markup)`` -- text markup with display
-              attribute ``attr`` applied to it
-            * ``[text markup, text markup, ... ]`` -- all text
-              markup in the list joined together
+            bytes or unicode
+              text to be displayed
+
+            (*display attribute*, *text markup*)
+              *text markup* with *display attribute* applied to all parts
+              of *text markup* with no display attribute already applied
+
+            [*text markup*, *text markup*, ... ]
+              all *text markup* in the list joined together
 
         :type markup: text markup
-        :param align: typically 'left', 'center' or 'right'
+        :param align: typically ``'left'``, ``'center'`` or ``'right'``
         :type align: text alignment mode
-        :param wrap: typically 'space', 'any' or 'clip'
+        :param wrap: typically ``'space'``, ``'any'`` or ``'clip'``
         :type wrap: text wrapping mode
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
         :type layout: text layout instance
@@ -790,7 +853,7 @@ class Text(Widget):
         """
         Set content of text widget.
 
-        :param markup: see :meth:`Text.__init__` for description.
+        :param markup: see :class:`Text` for description.
         :type markup: text markup
 
         >>> t = Text(u"foo")
@@ -814,7 +877,7 @@ class Text(Widget):
               complete bytes/unicode content of text widget
 
             *display attributes*
-              run length encoded attributes for *text*, eg.
+              run length encoded display attributes for *text*, eg.
               ``[('attr1', 10), ('attr2', 5)]``
 
         >>> Text(u"Hello").get_text() # ... = u in Python 2
@@ -826,16 +889,22 @@ class Text(Widget):
         """
         return self._text, self._attrib
 
-    text = property(lambda self:self.get_text()[0])
-    attrib = property(lambda self:self.get_text()[1])
+    text = property(lambda self:self.get_text()[0], doc="""
+        read-only property returning the complete bytes/unicode content
+        of this widget
+        """)
+    attrib = property(lambda self:self.get_text()[1], doc="""
+        read-only property returning the run-length encoded display
+        attributes of this widget
+        """)
 
     def set_align_mode(self, mode):
         """
         Set text alignment mode. Supported modes depend on text layout
         object in use but defaults to a :class:`StandardTextLayout` instance
 
-        :param align: typically 'left', 'center' or 'right'
-        :type align: text alignment mode
+        :param mode: typically ``'left'``, ``'center'`` or ``'right'``
+        :type mode: text alignment mode
 
         >>> t = Text(u"word")
         >>> t.set_align_mode('right')
@@ -861,8 +930,8 @@ class Text(Widget):
         Set text wrapping mode. Supported modes depend on text layout
         object in use but defaults to a :class:`StandardTextLayout` instance
 
-        :param wrap: typically 'space', 'any' or 'clip'
-        :type wrap: text wrapping mode
+        :param mode: typically ``'space'``, ``'any'`` or ``'clip'``
+        :type mode: text wrapping mode
 
         >>> t = Text(u"some words")
         >>> t.render((6,)).text # ... = b in Python 3
@@ -914,6 +983,8 @@ class Text(Widget):
         """
         Render contents with wrapping and alignment.  Return canvas.
 
+        See :meth:`Widget.render` for parameter details.
+
         >>> Text(u"important things").render((18,)).text # ... = b in Python 3
         [...'important things  ']
         >>> Text(u"important things").render((11,)).text
@@ -928,6 +999,8 @@ class Text(Widget):
     def rows(self, size, focus=False):
         """
         Return the number of rows the rendered text requires.
+
+        See :meth:`Widget.rows` for parameter details.
 
         >>> Text(u"important things").rows((18,))
         1
@@ -973,7 +1046,7 @@ class Text(Widget):
         this Text widget to be displayed without wrapping or
         clipping, as a single element tuple.
 
-        :param size: ``None`` for unlimited screen columns or ``(maxcol,)`` to
+        :param size: ``None`` for unlimited screen columns or (*maxcol*,) to
                      specify a maximum column size
         :type size: widget size
 
