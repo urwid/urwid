@@ -808,14 +808,14 @@ class Text(Widget):
 
     def get_text(self):
         """
-        Returns ``(text, display attributes)``.
+        :returns: (*text*, *display attributes*)
 
-        text
-          complete bytes/unicode content of text widget
+            *text*
+              complete bytes/unicode content of text widget
 
-        display attributes
-          run length encoded attributes for text, eg.
-          ``[('attr1', 10), ('attr2', 5)]``
+            *display attributes*
+              run length encoded attributes for *text*, eg.
+              ``[('attr1', 10), ('attr2', 5)]``
 
         >>> Text(u"Hello").get_text() # ... = u in Python 2
         (...'Hello', [])
@@ -945,8 +945,8 @@ class Text(Widget):
 
         :param maxcol: columns available for display
         :type maxcol: int
-        :param ta: ``None`` or the ``(text, display attributes)`` tuple
-                   returned from :meth:``.get_text``
+        :param ta: ``None`` or the (*text*, *display attributes*) tuple
+                   returned from :meth:`.get_text`
         :type ta: text and display attributes
         """
         if not self._cache_maxcol or self._cache_maxcol != maxcol:
