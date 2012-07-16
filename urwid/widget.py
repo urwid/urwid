@@ -226,7 +226,7 @@ class Widget(object):
     .. attribute:: _command_map
        :annotation: = urwid.command_map
 
-       A shared :class:`urwid.CommandMap` instance. May be redefined
+       A shared :class:`CommandMap` instance. May be redefined
        in subclasses or widget instances.
 
     .. method:: render(size, focus=False)
@@ -236,7 +236,8 @@ class Widget(object):
           This method is not implemented in :class:`.Widget` but
           must be implemented by any concrete subclass
 
-       :param size: one of the following:
+       :param size: One of the following,
+                    *maxcol* and *maxrow* are integers > 0:
 
                     (*maxcol*, *maxrow*)
                       for box sizing -- the parent chooses the exact
@@ -246,14 +247,12 @@ class Widget(object):
                       for flow sizing -- the parent chooses only the
                       number of columns for this widget
 
-                    ``None``
+                    ()
                       for fixed sizing -- this widget is a fixed size
                       which can't be adjusted by the parent
-
-                    *maxcol* and *maxrow* are integers > 0.
        :type size: widget size
-       :param focus: set to True if this widget or one of its children
-                     is in focus
+       :param focus: Set to ``True`` if this widget or one of its children
+                     is in focus.
        :type focus: bool
 
        :returns: A :class:`Canvas` subclass instance containing the
@@ -292,7 +291,7 @@ class Widget(object):
 
        See :meth:`Widget.render` for parameter details.
 
-       :returns: the number of rows required for this widget given a number
+       :returns: The number of rows required for this widget given a number
                  of columns in *size*
 
        This is the method flow widgets use to communicate their size to other
@@ -316,7 +315,9 @@ class Widget(object):
        .. note::
 
           This method is not implemented in :class:`.Widget` but
-          must be implemented by any selectable widget.  See :meth:`.selectable`.
+          must be implemented by any selectable widget.
+          See :meth:`.selectable`.
+
        :param size: See :meth:`Widget.render` for details.
        :type size: widget size
        :param key: a single keystroke value
@@ -350,18 +351,18 @@ class Widget(object):
 
        :param size: See :meth:`Widget.render` for details.
        :type size: widget size
-       :param event: values such as ``'mouse press'``, ``'ctrl mouse press'``,
+       :param event: Values such as ``'mouse press'``, ``'ctrl mouse press'``,
                      ``'mouse relase'``, ``'meta mouse release'``,
                      ``'mouse drag'``
        :type size: mouse event
        :param button: 1 through 5 for press events, often 0 for release events
                       (which button was released is often not known)
        :type button: int
-       :param col: column of the event, 0 is the left edge of this widget
+       :param col: Column of the event, 0 is the left edge of this widget
        :type col: int
-       :param row: row of the event, 0 it the top row of this widget
+       :param row: Row of the event, 0 it the top row of this widget
        :type row: int
-       :param focus: set to True if this widget or one of its children
+       :param focus: Set to ``True`` if this widget or one of its children
                      is in focus
        :type focus: bool
 
@@ -441,20 +442,10 @@ class Widget(object):
                  *row*, ``False`` otherwise
     """
     __metaclass__ = WidgetMeta
-    """attributed :class:`WidgetMeta`"""
 
     _selectable = False
-    """whether or not this is a selectable widget"""
-
     _sizing = frozenset([FLOW, BOX, FIXED])
-    """sizing-type of this widget: one of 'flow', 'box' or 'fixed'"""
-
     _command_map = command_map
-    """attributed :class:`urwid.CommandMap`
-
-       This is a shared :class:`urwid.CommandMap` instance,
-       which means... TODO
-    """
 
     def _invalidate(self):
         """
@@ -472,16 +463,17 @@ class Widget(object):
 
     def selectable(self):
         """
-        Return ``True`` if this is a widget that is designed to take the focus,
-        i.e. it contains something the user might want to interact with.
+        :returns: ``True`` if this is a widget that is designed to take the
+                  focus, i.e. it contains something the user might want to
+                  interact with, ``False`` otherwise,
 
-        This default implementation returns ``self._selectable`` and
-        :attr:`_selectable` is set to ``False``.  Subclasses may leave these
-        is if the are not selectable, or if they are always selectable they may
+        This default implementation returns :attr:`._selectable`.
+        Subclasses may leave these is if the are not selectable,
+        or if they are always selectable they may
         set the :attr:`_selectable` class variable to ``True``.
 
-        If this method returns ``True`` then the :meth:`keypress` method must be
-        implemented.
+        If this method returns ``True`` then the :meth:`.keypress` method
+        must be implemented.
 
         Returning ``False`` does not guarantee that this widget will never be in
         focus, only that this widget will usually be skipped over when changing
@@ -492,9 +484,9 @@ class Widget(object):
 
     def sizing(self):
         """
-        Return a frozenset including one or more of ``'box'``, ``'flow'`` and
-        ``'fixed'``.  Default implementation returns the value of
-        :attr:`._sizing`, which for this class includes all three.
+        :returns: A frozenset including one or more of ``'box'``, ``'flow'`` and
+                  ``'fixed'``.  Default implementation returns the value of
+                  :attr:`._sizing`, which for this class includes all three.
 
         The sizing modes returned indicate the modes that may be
         supported by this widget, but is not sufficient to know
@@ -508,15 +500,15 @@ class Widget(object):
 
         If ``'flow'`` is among the values returned then the other
         methods in this widget must be able to accept a
-        single-element tuple ``(maxcol,)`` to their ``size``
+        single-element tuple (*maxcol*,)`` to their ``size``
         parameter, and the :meth:`rows` method must be defined.
 
         If ``'box'`` is among the values returned then the other
         methods must be able to accept a two-element tuple
-        ``(maxcol, maxrow)`` to their size paramter.
+        (*maxcol*, *maxrow*) to their size paramter.
 
         If ``'fixed'`` is among the values returned then the other
-        methods must be able to accept an empty tuple ``()`` to
+        methods must be able to accept an empty tuple () to
         their size parameter, and the :meth:`pack` method must
         be defined.
         """
@@ -524,21 +516,27 @@ class Widget(object):
 
     def pack(self, size, focus=False):
         """
-        Return a "packed" size ``(maxcol, maxrow)`` for this widget, a minimum
+        See :meth:`Widget.render` for parameter details.
+
+        :returns: A "packed" size (*maxcol*, *maxrow*) for this widget
+
+        Calculate and return a minimum
         size where all content could still be displayed. Fixed widgets must
         implement this method and return their size when ``()`` is passed as the
         *size* parameter.
 
         This default implementation returns the *size* passed, or the *maxcol*
-        passed and the value of :meth:`rows` as the *maxrow* when ``(maxcol,)``
+        passed and the value of :meth:`rows` as the *maxrow* when (*maxcol*,)
         is passed as the *size* parameter.
 
-        This is a new method that hasn't been fully implemented across the
-        standard widget types. In particular it has not yet been implemented for
-        container widgets.
+        .. note::
 
-        :class:`.Text` widgets :meth:`have implemented this method
-        <.Text.pack>`. You can use :meth:`pack` to calculate the minumum
+           This is a new method that hasn't been fully implemented across the
+           standard widget types. In particular it has not yet been
+           mplemented for container widgets.
+
+        :class:`Text` widgets have implemented this method.
+        You can use :meth:`Text.pack` to calculate the minumum
         columns and rows required to display a text widget without wrapping,
         or call it iteratively to calculate the minimum number of columns
         required to display the text wrapped into a target number of rows.
@@ -557,24 +555,25 @@ class Widget(object):
         return size
 
     base_widget = property(lambda self:self, doc="""
-        Step through decoration widgets and return the one at the
-        base.  This default implementation is equivalent to self.
+        Read-only property that steps through decoration widgets
+        and returns the one at the base.  This default implementation
+        returns self.
         """)
 
     focus = property(lambda self:None, doc="""
-        Container widgets' implementations will give their child
-        widget that is in focus.  This default implementation is
-        always None, indicating that this widget has no children.
+        Read-only property returning the child widget in focus for
+        container widgets.  This default implementation
+        always returns ``None``, indicating that this widget has no children.
         """)
 
     def _not_a_container(self, val=None):
         raise IndexError(
             "No focus_position, %r is not a container widget" % self)
     focus_position = property(_not_a_container, _not_a_container, doc="""
-        raises IndexError.  This default property makes accessing
-        .focus_position on non-container widgets fail in the same
-        way it would when accesing .focus_position on an empty
-        container.
+        Property for reading and setting the focus position for
+        container widgets. This default implementation raises
+        :exc:`IndexError`, making normal widgets fail the same way
+        accessing :attr:`.focus_position` on an empty container widget would.
         """)
 
     def __repr__(self):
@@ -693,7 +692,7 @@ class Divider(Widget):
     def __init__(self,div_char=u" ",top=0,bottom=0):
         """
         :param div_char: character to repeat across line
-        :type div_char: string
+        :type div_char: bytes or unicode
 
         :param top: number of blank lines above
         :type top: int
@@ -764,7 +763,7 @@ class SolidFill(BoxWidget):
     def __init__(self, fill_char=" "):
         """
         :param fill_char: character to fill area with
-        :type fill_char: string
+        :type fill_char: bytes or unicode
 
         >>> SolidFill(u'8')
         <SolidFill box widget '8'>
@@ -900,11 +899,11 @@ class Text(Widget):
         return self._text, self._attrib
 
     text = property(lambda self:self.get_text()[0], doc="""
-        read-only property returning the complete bytes/unicode content
+        Read-only property returning the complete bytes/unicode content
         of this widget
         """)
     attrib = property(lambda self:self.get_text()[1], doc="""
-        read-only property returning the run-length encoded display
+        Read-only property returning the run-length encoded display
         attributes of this widget
         """)
 
@@ -1196,7 +1195,7 @@ class Edit(Text):
             return self._caption + self._edit_text, self._attrib
         else:
             return self._caption + (self._mask * len(self._edit_text)), self._attrib
-    
+
     def set_text(self, markup):
         """
         Not supported by Edit widget.
@@ -1219,7 +1218,7 @@ class Edit(Text):
     def get_pref_col(self, size):
         """
         Return the preferred column for the cursor, or the
-        current cursor x value.  May also return 'left' or 'right'
+        current cursor x value.  May also return ``'left'`` or ``'right'``
         to indicate the leftmost or rightmost column available.
 
         This method is used internally and by other widgets when
@@ -1229,7 +1228,7 @@ class Edit(Text):
         >>> size = (10,)
         >>> Edit().get_pref_col(size)
         0
-        >>> e = Edit("","word")
+        >>> e = Edit(u"", u"word")
         >>> e.get_pref_col(size)
         4
         >>> e.keypress(size, 'left')
@@ -1238,7 +1237,7 @@ class Edit(Text):
         >>> e.keypress(size, 'end')
         >>> e.get_pref_col(size)
         'right'
-        >>> e = Edit("","2\\nwords")
+        >>> e = Edit(u"", u"2\\nwords")
         >>> e.keypress(size, 'left')
         >>> e.keypress(size, 'up')
         >>> e.get_pref_col(size)
@@ -1371,7 +1370,9 @@ class Edit(Text):
         """
         return self._edit_text
 
-    edit_text = property(get_edit_text, set_edit_text)
+    edit_text = property(get_edit_text, set_edit_text, doc="""
+        Read-only property returning the edit text for this widget.
+        """)
 
     def insert_text(self, text):
         """
@@ -1647,7 +1648,7 @@ class Edit(Text):
 
     def get_cursor_coords(self, size):
         """
-        Return the (x,y) coordinates of cursor within widget.
+        Return the (*x*, *y*) coordinates of cursor within widget.
 
         >>> Edit("? ","yes").get_cursor_coords((10,))
         (5, 0)
@@ -1660,17 +1661,13 @@ class Edit(Text):
 
     def position_coords(self,maxcol,pos):
         """
-        Return (x,y) coordinates for an offset into self.edit_text.
+        Return (*x*, *y*) coordinates for an offset into self.edit_text.
         """
 
         p = pos + len(self.caption)
         trans = self.get_line_translation(maxcol)
         x,y = calc_coords(self.get_text()[0], trans,p)
         return x,y
-
-
-
-
 
 
 class IntEdit(Edit):

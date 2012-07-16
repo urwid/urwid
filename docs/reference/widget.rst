@@ -10,9 +10,10 @@ Widget
 ~~~~~~
 
 .. autoclass:: Widget
+   :private-members: _invalidate, _emit
 
-Basic Widgets
--------------
+Basic Widget Classes
+--------------------
 
 Text
 ~~~~
@@ -24,8 +25,8 @@ Edit
 
 .. autoclass:: Edit
 
-Decoration Widgets
-------------------
+Decoration Widget Classes
+-------------------------
 
 AttrMap
 ~~~~~~~
@@ -57,8 +58,8 @@ SolidFill
 
 .. autoclass:: SolidFill
 
-Container Widgets
------------------
+Container Widget Classes
+------------------------
 
 Frame
 ~~~~~
@@ -94,3 +95,12 @@ Overlay
 ~~~~~~~
 
 .. autoclass:: Overlay
+
+Deprecated Widget Classes
+-------------------------
+
+.. autoclass:: FlowWidget
+
+.. autoclass:: BoxWidget
+
+.. autoclass:: FixedWidget
