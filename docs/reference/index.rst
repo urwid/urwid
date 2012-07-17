@@ -9,3 +9,4 @@ Urwid Reference
    constants
    exceptions
    meta
+   deprecated

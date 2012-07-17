@@ -3,14 +3,30 @@ Widget Classes
 
 .. currentmodule:: urwid
 
-Widget Base Class
------------------
+Widget Base Classes
+-------------------
 
 Widget
 ~~~~~~
 
 .. autoclass:: Widget
    :private-members: _invalidate, _emit
+
+WidgetWrap
+~~~~~~~~~~
+
+.. autoclass:: WidgetWrap
+
+WidgetDecoration
+~~~~~~~~~~~~~~~~
+
+.. autoclass:: WidgetDecoration
+
+WidgetContainerMixin
+~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: WidgetContainerMixin
+
 
 Basic Widget Classes
 --------------------
@@ -24,6 +40,32 @@ Edit
 ~~~~
 
 .. autoclass:: Edit
+
+IntEdit
+~~~~~~~
+
+.. autoclass:: IntEdit
+
+Button
+~~~~~~
+
+.. autoclass:: Button
+
+CheckBox
+~~~~~~~~
+
+.. autoclass:: CheckBox
+
+RadioButton
+~~~~~~~~~~~
+
+.. autoclass:: RadioButton
+
+TreeWidget
+~~~~~~~~~~
+
+.. autoclass:: TreeWidget
+
 
 Decoration Widget Classes
 -------------------------
@@ -57,6 +99,22 @@ SolidFill
 ~~~~~~~~~
 
 .. autoclass:: SolidFill
+
+PopUpLauncher
+~~~~~~~~~~~~~
+
+.. autoclass:: PopUpLauncher
+
+PopUpTarget
+~~~~~~~~~~~
+
+.. autoclass:: PopUpTarget
+
+WidgetPlaceholder
+~~~~~~~~~~~~~~~~~
+
+.. autoclass:: WidgetPlaceholder
+
 
 Container Widget Classes
 ------------------------
@@ -96,11 +154,33 @@ Overlay
 
 .. autoclass:: Overlay
 
-Deprecated Widget Classes
--------------------------
+Graphic Widget Classes
+----------------------
 
-.. autoclass:: FlowWidget
+BarGraph
+~~~~~~~~
 
-.. autoclass:: BoxWidget
+.. autoclass:: BarGraph
 
-.. autoclass:: FixedWidget
+GraphVScale
+~~~~~~~~~~~
+
+.. autoclass:: GraphVScale
+
+ProgressBar
+~~~~~~~~~~~
+
+.. autoclass:: ProgressBar
+
+BigText
+~~~~~~~
+
+.. autoclass:: BigText
+
+.. autofunction:: get_all_fonts
+
+Terminal
+~~~~~~~~
+
+.. autoclass:: Terminal
+
