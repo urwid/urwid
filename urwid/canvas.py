@@ -281,12 +281,16 @@ class Canvas(object):
         display a pop-up at the given (left, top) position relative to the
         current canvas.
 
-        w -- widget to use for the pop-up
-        left, top -- integer x, y position  eg. (0, 1) would align the
-            pop-up with this widget's left side and put its top one row below
-            this widget's top
-        overlay_width, overlay_height -- width and height parameters for
-            the Overlay widget used to position the pop-up
+        :param w: widget to use for the pop-up
+        :type w: widget
+        :param left: x position for left edge of pop-up >= 0
+        :type left: int
+        :param top: y position for top edge of pop-up >= 0
+        :type top: int
+        :param overlay_width: width of overlay in screen columns > 0
+        :type overlay_width: int
+        :param overlay_height: height of overlay in screen rows > 0
+        :type overlay_height: int
         """
         if self.widget_info and self.cacheable:
             raise self._finalized_error
@@ -1082,7 +1086,7 @@ def shards_join(shard_lists):
 
 def cview_trim_rows(cv, rows):
     return cv[:3] + (rows,) + cv[4:]
-    
+
 def cview_trim_top(cv, trim):
     return (cv[0], trim + cv[1], cv[2], cv[3] - trim) + cv[4:]
 
@@ -1093,15 +1097,19 @@ def cview_trim_cols(cv, cols):
     return cv[:2] + (cols,) + cv[3:]
 
 
-        
+
 
 def CanvasCombine(l):
     """Stack canvases in l vertically and return resulting canvas.
 
-    l -- list of (canvas, position, focus) tuples.  position is a value
-         that widget.set_focus will accept, or None if not allowed.
-         focus is True if this canvas is the one that would be in focus
-         if the whole widget is in focus.
+    :param l: list of (canvas, position, focus) tuples:
+
+              position
+                a value that widget.set_focus will accept or None if not
+                allowed
+              focus
+                True if this canvas is the one that would be in focus
+                if the whole widget is in focus
     """
     clist = [(CompositeCanvas(c),p,f) for c,p,f in l]
 
@@ -1112,7 +1120,7 @@ def CanvasCombine(l):
     focus_index = 0
     n = 0
     for canv, pos, focus in clist:
-        if focus: 
+        if focus:
             focus_index = n
         children.append((0, row, canv, pos))
         shards.extend(canv.shards)
@@ -1121,7 +1129,7 @@ def CanvasCombine(l):
             combined_canvas.shortcuts[shortcut] = pos
         row += canv.rows()
         n += 1
-    
+
     if focus_index:
         children = [children[focus_index]] + children[:focus_index] + \
             children[focus_index+1:]
@@ -1137,7 +1145,7 @@ def CanvasOverlay(top_c, bottom_c, left, top):
     """
     overlayed_canvas = CompositeCanvas(bottom_c)
     overlayed_canvas.overlay(top_c, left, top)
-    overlayed_canvas.children = [(left, top, top_c, None), 
+    overlayed_canvas.children = [(left, top, top_c, None),
         (0, 0, bottom_c, None)]
     overlayed_canvas.shortcuts = {} # disable background shortcuts
     for shortcut in top_c.shortcuts.keys():
@@ -1148,18 +1156,24 @@ def CanvasOverlay(top_c, bottom_c, left, top):
 def CanvasJoin(l):
     """
     Join canvases in l horizontally. Return result.
-    l -- list of (canvas, position, focus, cols) tuples.  position is a 
-         value that widget.set_focus will accept,  or None if not allowed.
-         focus is True if this canvas is the one that would be in focus if
-         the whole widget is in focus.  cols is the number of screen
-         columns that this widget will require, if larger than the actual
-         canvas.cols() value then this widget will be padded on the right.
+
+    :param l: list of (canvas, position, focus, cols) tuples:
+
+              position
+                value that widget.set_focus will accept or None if not allowed
+              focus
+                True if this canvas is the one that would be in focus if
+                the whole widget is in focus
+              cols
+                is the number of screen columns that this widget will require,
+                if larger than the actual canvas.cols() value then this widget
+                will be padded on the right.
     """
-    
+
     l2 = []
     focus_item = 0
     maxrow = 0
-    n = 0 
+    n = 0
     for canv, pos, focus, cols in l:
         rows = canv.rows()
         pad_right = cols - canv.cols()
@@ -1169,7 +1183,7 @@ def CanvasJoin(l):
             maxrow = rows
         l2.append((canv, pos, pad_right, rows))
         n += 1
-    
+
     shard_lists = []
     children = []
     joined_canvas = CompositeCanvas()

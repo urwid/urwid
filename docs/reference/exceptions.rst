@@ -22,3 +22,5 @@ Exceptions
 .. autoexception:: TextError
 
 .. autoexception:: EditError
+
+.. autoexception:: CanvasError
