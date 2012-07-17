@@ -129,6 +129,11 @@ ListBox
 
 .. autoclass:: ListBox
 
+TreeListBox
+~~~~~~~~~~~
+
+.. autoclass:: TreeListBox
+
 Columns
 ~~~~~~~
 

@@ -6,6 +6,7 @@ Urwid Reference
 
    main_loop
    widget
+   list_walkers
    constants
    exceptions
    meta
