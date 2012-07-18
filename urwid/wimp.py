@@ -110,17 +110,22 @@ class CheckBox(WidgetWrap):
     def __init__(self, label, state=False, has_mixed=False,
              on_state_change=None, user_data=None):
         """
-        label -- markup for check box label
-        state -- False, True or "mixed"
-        has_mixed -- True if "mixed" is a state to cycle through
-        on_state_change, user_data -- shorthand for connect_signal()
-            function call for a single callback
+        :param label: markup for check box label
+        :param state: False, True or "mixed"
+        :param has_mixed: True if "mixed" is a state to cycle through
+        :param on_state_change: shorthand for connect_signal()
+                                function call for a single callback
+        :param user_data: user_data for on_state_change
 
         Signals supported: 'change'
+
         Register signal handler with:
+
           connect_signal(check_box, 'change', callback [,user_data])
+
         where callback is callback(check_box, new_state [,user_data])
         Unregister signal handlers with:
+
           disconnect_signal(check_box, 'change', callback [,user_data])
 
         >>> CheckBox(u"Confirm")
@@ -290,7 +295,7 @@ class CheckBox(WidgetWrap):
     def mouse_event(self, size, event, button, x, y, focus):
         """
         Toggle state on button 1 press.
-        
+
         >>> size = (20,)
         >>> cb = CheckBox("clickme")
         >>> cb.state
@@ -304,10 +309,10 @@ class CheckBox(WidgetWrap):
             return False
         self.toggle_state()
         return True
-    
-        
+
+
 class RadioButton(CheckBox):
-    states = { 
+    states = {
         True: SelectableIcon("(X)"),
         False: SelectableIcon("( )"),
         'mixed': SelectableIcon("(#)") }
@@ -316,20 +321,25 @@ class RadioButton(CheckBox):
     def __init__(self, group, label, state="first True",
              on_state_change=None, user_data=None):
         """
-        group -- list for radio buttons in same group
-        label -- markup for radio button label
-        state -- False, True, "mixed" or "first True"
-        on_state_change, user_data -- shorthand for connect_signal()
-            function call for a single 'change' callback
+        :param group: list for radio buttons in same group
+        :param label: markup for radio button label
+        :param state: False, True, "mixed" or "first True"
+        :param on_state_change: shorthand for connect_signal()
+                                function call for a single 'change' callback
+        :param user_data: user_data for on_state_change
 
         This function will append the new radio button to group.
         "first True" will set to True if group is empty.
 
         Signals supported: 'change'
+
         Register signal handler with:
+
           connect_signal(radio_button, 'change', callback [,user_data])
+
         where callback is callback(radio_button, new_state [,user_data])
         Unregister signal handlers with:
+
           disconnect_signal(radio_button, 'change', callback [,user_data])
 
         >>> bgroup = [] # button group
@@ -429,15 +439,20 @@ class Button(WidgetWrap):
 
     def __init__(self, label, on_press=None, user_data=None):
         """
-        label -- markup for button label
-        on_press, user_data -- shorthand for connect_signal()
-            function call for a single callback
+        :param label: markup for button label
+        :param on_press: shorthand for connect_signal()
+                         function call for a single callback
+        :param user_data: user_data for on_press
 
         Signals supported: 'click'
+
         Register signal handler with:
+
           connect_signal(button, 'click', callback [,user_data])
+
         where callback is callback(button [,user_data])
         Unregister signal handlers with:
+
           disconnect_signal(button, 'click', callback [,user_data])
 
         >>> Button(u"Ok")
