@@ -1,13 +1,11 @@
 import urwid
 
-
-class CursorPudding(urwid.FlowWidget):
+class CursorPudding(urwid.Widget):
+    _sizing = frozenset(['flow'])
+    _selectable = True
 
     def __init__(self):
         self.cursor_col = 0
-
-    def selectable(self):
-        return True
 
     def rows(self, size, focus=False):
         return 1
@@ -34,3 +32,4 @@ class CursorPudding(urwid.FlowWidget):
         else:
             return key
         self.cursor_x = max(0, min(maxcol - 1, col))
+        self._invalidate()

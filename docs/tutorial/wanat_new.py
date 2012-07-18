@@ -1,10 +1,7 @@
 import urwid
 
-
-class NewPudding(urwid.FlowWidget):
-
-    def selectable(self):
-        return False
+class NewPudding(urwid.Widget):
+    _sizing = frozenset(['flow'])
 
     def rows(self, size, focus=False):
         w = self.display_widget(size, focus)

@@ -1,8 +1,6 @@
 import urwid
 
-
 class QuestionnaireItem(urwid.WidgetWrap):
-
     def __init__(self):
         self.options = []
         unsure = urwid.RadioButton(self.options, u"Unsure")

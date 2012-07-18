@@ -1,10 +1,7 @@
 import urwid
 
-
-class Pudding(urwid.FlowWidget):
-
-    def selectable(self):
-        return False
+class Pudding(urwid.Widget):
+    _sizing = frozenset(['flow'])
 
     def rows(self, size, focus=False):
         return 1
@@ -15,10 +12,8 @@ class Pudding(urwid.FlowWidget):
         return urwid.TextCanvas(["Pudding"*num_pudding], maxcol=maxcol)
 
 
-class BoxPudding(urwid.BoxWidget):
-
-    def selectable(self):
-        return False
+class BoxPudding(urwid.Widget):
+    _sizing = frozenset(['box'])
 
     def render(self, size, focus=False):
         (maxcol, maxrow) = size

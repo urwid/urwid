@@ -1,10 +1,7 @@
 import urwid
 
-
 class MultiPudding(urwid.Widget):
-
-    def selectable(self):
-        return False
+    _sizing = frozenset(['flow', 'box'])
 
     def rows(self, size, focus=False):
         return 1

@@ -1,13 +1,11 @@
 import urwid
 
-
-class SelectablePudding(urwid.FlowWidget):
+class SelectablePudding(urwid.Widget):
+    _sizing = frozenset(['flow'])
+    _selectable = True
 
     def __init__(self):
         self.pudding = "pudding"
-
-    def selectable(self):
-        return True
 
     def rows(self, size, focus=False):
         return 1
@@ -31,5 +29,6 @@ class SelectablePudding(urwid.FlowWidget):
             self.pudding = self.pudding[:n] + self.pudding[n+1:]
             if not self.pudding:
                 self.pudding = "pudding"
+            self._invalidate()
         else:
             return key
