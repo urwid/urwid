@@ -6,7 +6,7 @@
 CLASSNAME=$(head -c 6 /dev/urandom | base64 | tr -cd [:alnum:])
 PYTHON=python
 
-urxvt -bg gray90 -b 0 +sb -name "$CLASSNAME" -e "$PYTHON" "$1" &
+urxvt -bg gray90 -b 0 +sb -fn '-misc-fixed-*-*-*-*-*-200-*-*-*-*-*-*' -name "$CLASSNAME" -e "$PYTHON" "$1" &
 RXVTPID=$!
 until RXVTWINDOWID=$(xdotool search --classname "$CLASSNAME"); do
 	sleep 0.1
