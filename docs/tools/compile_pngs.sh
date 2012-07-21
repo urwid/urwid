@@ -7,7 +7,7 @@ SCREENSHOTS=`dirname $0`/screenshots.sh
 
 XVFB=$(which Xvfb)
 if [ -n $XVFB ]; then
-	Xvfb :$DISPLAYNUM &
+	Xvfb :$DISPLAYNUM -screen 0 1024x768x24 &
 	XVFBPID=$!
 	DISPLAY=:$DISPLAYNUM # this still doesn't work
 	trap "kill $XVFBPID" EXIT
