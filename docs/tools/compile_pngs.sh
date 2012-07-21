@@ -1,9 +1,9 @@
 #!/bin/bash -e
 
-# $1: directory to compile
-# $2: compiler
+# args: scripts to capture
 
 DISPLAYNUM=1
+SCREENSHOTS=`dirname $0`/screenshots.sh
 
 XVFB=$(which Xvfb)
 if [ -n $XVFB ]; then
@@ -13,8 +13,8 @@ if [ -n $XVFB ]; then
 	trap "kill $XVFBPID" EXIT
 fi
 
-for script in $1/*.py; do
+for script in $@; do
 	if [ -f "${script}.xdotool" ]; then
-		"$2" "$script" < "${script}.xdotool"
+		"$SCREENSHOTS" "$script" < "${script}.xdotool"
 	fi
 done

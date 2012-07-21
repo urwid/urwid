@@ -15,10 +15,10 @@ palette = [('header', 'white', 'black'),
 content = urwid.SimpleListWalker([
     urwid.AttrMap(w, None, 'reveal focus') for w in [
         urwid.Text(u"This is a text string that is fairly long"),
-        urwid.Divider(u"-"),
+        urwid.Divider(u"-"),] + [
         urwid.Text(u"Short one"),
         urwid.Text(u"Another"),
-        urwid.Divider(u"-"),
+        urwid.Divider(u"-"), ] * 10 + [
         urwid.Text(u"What could be after this?"),
         urwid.Text(u"The end."),]])
 listbox = urwid.ListBox(content)
