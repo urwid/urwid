@@ -12,10 +12,10 @@
 
 .. currentmodule:: urwid
 
-Hello world example
+Hello World Example
 ===================
 
-Minimal urwid application
+Minimal Urwid Application
 -------------------------
 
 This program displays the string ``Hello World`` in the top left corner of the
@@ -43,8 +43,9 @@ screen and will run until interrupted with *CTRL+C* (*^C*).
 
 .. image:: minimal1.png
 
-Handling input
---------------
+
+Handling Input Globally
+-----------------------
 
 This program initially displays the string ``Hello World``, then it displays
 each key pressed, exiting when the user presses *Q*.
@@ -70,8 +71,9 @@ each key pressed, exiting when the user presses *Q*.
 .. image:: input4.png
 .. image:: input5.png
 
-AttrMap Widgets and Text Attributes
------------------------------------
+
+AttrMap Widgets and Display Attributes
+--------------------------------------
 
 This program displays the string ``Hello World`` in the center of the screen.
 It uses different attributes for the text, the space on either side of the text
@@ -80,11 +82,12 @@ and the space above and below the text. It waits for a keypress before exiting.
 .. literalinclude:: attr.py
    :linenos:
 
-* Attributes are defined as part of a palette. Valid foreground, background and
-  setting values are documented in the :class:`AttrSpec`
-  class. A palette is a list of tuples containing:
+* Display attributes are defined as part of a palette. Valid foreground,
+  background and
+  setting values are documented in :ref:`display-attributes`
+  A palette is a list of tuples containing:
 
-    1. Name of the attribute, typically a string
+    1. Name of the display attribute, typically a string
     2. Foreground color and settings for 16-color (normal) mode
     3. Background color for normal mode
     4. Settings for monochrome mode (optional)
@@ -96,15 +99,15 @@ and the space above and below the text. It waits for a keypress before exiting.
   available to our program
 
 * A :class:`Text` widget is created containing the string " Hello
-  World " with attribute *banner*. The attributes of text in a Text widget is
+  World " with display attribute *banner*. The attributes of text in a Text widget is
   set by using a ``(attribute, text)`` tuple instead of a simple text string.
-  Text attributes will flow with the text, and multiple attributes may be
+  Display attributes will flow with the text, and multiple display attributes may be
   specified by combining tuples into a list.
 
 * An :class:`AttrMap` widget is created to wrap the text
-  widget with attribute "streak". :class:`AttrMap` widgets
-  allow you to map any attribute to any other attribute, but by default they
-  will set the attribute of everything that does not already have an attribute.
+  widget with display attribute "streak". :class:`AttrMap` widgets
+  allow you to map any display attribute to any other display attribute, but by default they
+  will set the display attribute of everything that does not already have a display attribute.
   In this case the text has an attribute, so only the areas around the text
   used for alignment will be have the new attribute.
 
@@ -120,11 +123,12 @@ is how these widgets react to being resized:
 .. image:: attr3.png
 .. image:: attr4.png
 
-High color modes
+
+High Color Modes
 ----------------
 
 This program displays the string ``Hello World`` in the center of the screen.
-It uses a number of 256-color-mode background attributes to decorate the text,
+It uses a number of 256-color-mode colors to decorate the text,
 and will work in any terminal that supports 256-color mode. It will exit when
 *Q* is pressed.
 
@@ -152,10 +156,12 @@ and will work in any terminal that supports 256-color mode. It will exit when
 
 .. image:: highcolors1.png
 
-Conversation example
+
+Conversation Example
 ====================
 
-Edit widget
+
+Edit Widget
 -----------
 
 This program asks for your name then responds ``Nice to meet you, (your
@@ -185,8 +191,9 @@ wrapping and alignment modes.
 .. image:: edit2.png
 .. image:: edit3.png
 
-Event and ListBox widget
-------------------------
+
+Events and ListBox Widget
+-------------------------
 
 This program asks for your name and responds "Nice to meet you, (your name)"
 *while* you type your name. *ENTER* exits.
@@ -218,6 +225,7 @@ This program asks for your name and responds "Nice to meet you, (your name)"
 .. image:: frlb2.png
 .. image:: frlb3.png
 .. image:: frlb4.png
+
 
 Modifying ListBox Content
 -------------------------
@@ -341,8 +349,8 @@ to manage the list.
 When the :class:`ListBox` is `rendering a canvas`_ or `handling
 input`_ it will:
 
-.. _rendering a canvas: http://excess.org/urwid/reference.html#ListBox-render
-.. _handling input: http://excess.org/urwid/reference.html#ListBox-keypress
+.. _rendering a canvas: :meth:`ListBox.render`
+.. _handling input: :meth:`ListBox.keypress`
 
 1. Call the :meth:`get_focus` method of its list walker object. This method
    will return the focus widget and a position object.
@@ -394,7 +402,8 @@ directories to be hidden from view when they are "collapsed".
 .. _edit.py: #
 .. _browse.py: #
 
-Setting the focus
+
+Setting the Focus
 -----------------
 
 The easiest way to change the current :class:`ListBox` focus is
@@ -430,10 +439,12 @@ If you know exactly where you want to display the new focus widget within the
 the *top*, *bottom*, *middle*, a relative position or the exact number of rows
 from the top or bottom of the :class:`ListBox`.
 
-Combining widgets
+
+Combining Widgets
 =================
 
-Piling widgets
+
+Piling Widgets
 --------------
 
 :class:`Pile` widgets are used to combine multiple widgets by
@@ -447,7 +458,8 @@ Pile containing one Text widget and one Edit widget the Pile will choose the
 Edit widget as its default focus widget. To change the pile's focus widget you
 can call :meth:`Pile.set_focus`.
 
-Dividing into columns
+
+Dividing into Columns
 ---------------------
 
 :class:`Columns` widgets may be used to arrange either flow
@@ -462,6 +474,7 @@ focus column is not specified the first selectable widget will be chosen as the
 focus column. The :meth:`Columns.set_focus` method may be used
 to select the focus column.
 
+
 ``GridFlow`` Arrangment
 -----------------------
 
@@ -475,6 +488,7 @@ The GridFlow widget uses Pile, Columns, Padding and Divider widgets to build a
 display widget that will handle the keyboard input and rendering. When the
 GridFlow widget is resized it regenerates the display widget to accommodate the
 new space.
+
 
 ``Overlay`` widgets
 -------------------
@@ -491,10 +505,12 @@ keyboard input will be passed to the top widget.
 If you want to use a flow flow widget for the top widget, first wrap the flow
 widget with a :class:`Filler` widget.
 
-Creating custom widgets
+
+Creating Custom Widgets
 =======================
 
-Modifying existing widgets
+
+Modifying Existing Widgets
 --------------------------
 
 The easiest way to create a custom widget is to modify an existing widget.
@@ -521,17 +537,17 @@ query the state of the buttons.
 Wrapped widgets may also override the standard widget methods. These methods
 are described in following sections.
 
-Anatomy of a widget
+Anatomy of a Widget
 -------------------
 
 Any object that follows the `Widget interface definition`_ may be used as a
 widget. Box widgets must implement selectable_ and render_ methods, and flow
 widgets must implement selectable, render and rows_ methods.
 
-.. _Widget interface definition: http://excess.org/urwid/reference.html#Widget_interface_definition
-.. _selectable: http://excess.org/urwid/reference.html#Widget_interface_definition-selectable
-.. _render: http://excess.org/urwid/reference.html#Widget_interface_definition-render
-.. _rows: http://excess.org/urwid/reference.html#Widget_interface_definition-rows
+.. _Widget interface definition: :class:`Widget`
+.. _selectable: :meth:`Widget.selectable`
+.. _render: :meth:`Widget.render`
+.. _rows: :meth:`Widget.rows`
 
 .. literalinclude:: wanat.py
    :linenos:
@@ -572,7 +588,8 @@ MultiPudding will work in place of either Pudding or BoxPudding above. The
 number of elements in the size tuple determines whether the containing widget
 is expecting a flow widget or a box widget.
 
-Creating a selectable widget
+
+Creating a Selectable Widget
 ----------------------------
 
 Selectable widgets such as Edit and Button widgets allow the user to interact
@@ -580,7 +597,7 @@ with the application. A widget is selectable if its selectable method returns
 True. Selectable widgets must implement the keypress_ method to handle keyboard
 input.
 
-.. _keypress: http://excess.org/urwid/reference.html#Widget_interface_definition-keypress
+.. _keypress: :meth:`Widget.keypress`
 
 .. literalinclude:: wsel.py
 
@@ -597,7 +614,7 @@ keys are returned so that if this widget is in a
 as the user expects and change the focus or scroll the
 :class:`ListBox`.
 
-Widget displaying the cursor
+Widget Displaying the Cursor
 ----------------------------
 
 Widgets that display the cursor must implement the get_cursor_coords_ method.
@@ -606,7 +623,7 @@ make layout decisions without rendering the entire widget. The
 :class:`ListBox` widget in particular uses get_cursor_coords to
 make sure that the cursor is visible within its focus widget.
 
-.. _get_cursor_coords: http://excess.org/urwid/reference.html#Widget_interface_definition-get_cursor_coords
+.. _get_cursor_coords: :meth:`Widget.get_cursor_coords`
 
 .. literalinclude:: wcur1.py
    :linenos:
@@ -620,7 +637,7 @@ A widget displaying a cursor may choose to implement get_pref_col. This method
 returns the preferred column for the cursor, and is called when the focus is
 moving up or down off this widget.
 
-.. _get_pref_col: http://excess.org/urwid/reference.html#Widget_interface_definition-get_pref_col
+.. _get_pref_col: :meth:`Widget.get_pref_col`
 
 Another optional method is move_cursor_to_coords_. This method allows other
 widgets to try to position the cursor within this widget. The
@@ -631,7 +648,7 @@ placed at any position within the row specified (not only at the exact column
 specified) then this method must move the cursor to that position and return
 ``True``.
 
-.. _move_cursor_to_coords: http://excess.org/urwid/reference.html#Widget_interface_definition-move_cursor_to_coords
+.. _move_cursor_to_coords: :meth:`Widget.move_cursor_to_coords`
 
 .. literalinclude:: wcur2.py
    :linenos:

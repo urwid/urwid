@@ -1,7 +1,7 @@
 import urwid
 
-def exit_on_q(input):
-    if input in ('q', 'Q'):
+def exit_on_q(key):
+    if key in ('q', 'Q'):
         raise urwid.ExitMainLoop()
 
 palette = [

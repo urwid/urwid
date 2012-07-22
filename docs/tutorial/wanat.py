@@ -7,9 +7,9 @@ class Pudding(urwid.Widget):
         return 1
 
     def render(self, size, focus=False):
-        (maxcol, ) = size
+        (maxcol,) = size
         num_pudding = maxcol / len("Pudding")
-        return urwid.TextCanvas(["Pudding"*num_pudding], maxcol=maxcol)
+        return urwid.TextCanvas(["Pudding" * num_pudding], maxcol=maxcol)
 
 
 class BoxPudding(urwid.Widget):
@@ -18,5 +18,5 @@ class BoxPudding(urwid.Widget):
     def render(self, size, focus=False):
         (maxcol, maxrow) = size
         num_pudding = maxcol / len("Pudding")
-        return urwid.TextCanvas(["Pudding"*num_pudding] * maxrow,
+        return urwid.TextCanvas(["Pudding" * num_pudding] * maxrow,
                                 maxcol=maxcol)

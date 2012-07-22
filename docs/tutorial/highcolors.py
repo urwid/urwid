@@ -1,7 +1,7 @@
 import urwid
 
-def exit_on_q(input):
-    if input in ('q', 'Q'):
+def exit_on_q(key):
+    if key in ('q', 'Q'):
         raise urwid.ExitMainLoop()
 
 palette = [
@@ -12,16 +12,16 @@ palette = [
     ('bg', '', '', '', 'g7', '#d06'),]
 
 txt = urwid.Text(('banner', u" Hello World "), align='center')
-map1 = urwid.AttrMap(txt, 'streak')
+div = urwid.Divider()
 pile = urwid.Pile([
-    urwid.AttrMap(urwid.Divider(), 'outside'),
-    urwid.AttrMap(urwid.Divider(), 'inside'),
-    map1,
-    urwid.AttrMap(urwid.Divider(), 'inside'),
-    urwid.AttrMap(urwid.Divider(), 'outside')])
+    urwid.AttrMap(div, 'outside'),
+    urwid.AttrMap(div, 'inside'),
+    urwid.AttrMap(txt, 'streak'),
+    urwid.AttrMap(div, 'inside'),
+    urwid.AttrMap(div, 'outside')])
 fill = urwid.Filler(pile)
-map2 = urwid.AttrMap(fill, 'bg')
+top = urwid.AttrMap(fill, 'bg')
 
-loop = urwid.MainLoop(map2, palette, unhandled_input=exit_on_q)
+loop = urwid.MainLoop(top, palette, unhandled_input=exit_on_q)
 loop.screen.set_terminal_properties(colors=256)
 loop.run()
