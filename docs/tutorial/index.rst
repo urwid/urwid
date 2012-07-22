@@ -326,6 +326,7 @@ its entirety. This behavior can be used to bring more than a single widget into
 view by using composite widgets to combine a selectable widget with other
 widgets that should be displayed at the same time.
 
+
 Dynamic ListBox with ListWalker
 -------------------------------
 
