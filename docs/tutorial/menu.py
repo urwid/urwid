@@ -3,31 +3,32 @@ import urwid
 inventory = set()
 loop = urwid.MainLoop(None)
 
+class MenuButton(urwid.Button):
+    def __init__(self, text, callback):
+        super(MenuButton, self).__init__("", callback)
+        self._w = urwid.SelectableIcon(text, 1)
+
 class SubMenu(urwid.WidgetWrap):
     def __init__(self, title, menu):
         super(SubMenu, self).__init__(
-            urwid.SelectableIcon(u" > go to " + title, 1))
+            MenuButton(u" > go to " + title, self.pressed))
         self.menu = menu
 
-    def keypress(self, size, key):
-        if key not in (' ', 'enter'):
-            return key
+    def pressed(self, button):
         loop.widget = self.menu
 
 class Thing(urwid.WidgetWrap):
     def __init__(self, name):
         super(Thing, self).__init__(
-            urwid.SelectableIcon(u" * take " + name, 1))
+            MenuButton(u" * take " + name, self.pressed))
         self.name = name
 
-    def keypress(self, size, key):
-        if key not in (' ', 'enter'):
-            return key
+    def pressed(self, button):
         self._w = urwid.Text(u" - " + self.name + " (taken)")
         inventory.add(self.name)
         if inventory >= set([u'sugar', u'lemon', u'jug']):
             raise urwid.ExitMainLoop()
-        return 'up' # move selection off this item
+        loop.process_input(["up"]) # move focus off this widget
 
 class Menu(urwid.ListBox):
     def __init__(self, title, children):
