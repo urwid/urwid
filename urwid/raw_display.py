@@ -615,22 +615,27 @@ class Screen(BaseScreen, RealTerminal):
                 continue
 
             sb.append(row)
-            
+
             # leave blank lines off display when we are using
             # the default screen buffer (allows partial screen)
             if partial_display() and y > self._rows_used:
                 if is_blank_row(row):
                     continue
                 self._rows_used = y
-            
+
             if y or partial_display():
                 o.append(set_cursor_position(0, y))
             # after updating the line we will be just over the
             # edge, but terminals still treat this as being
             # on the same line
-            cy = y 
-            
-            if y == maxrow-1:
+            cy = y
+
+            whitespace_at_end = False
+            if row and row[-1][2][-1] == ' ':
+                whitespace_at_end = True
+                a, cs, run = row[-1]
+                row = row[:-1] + [(a, cs, run.rstrip(' '))]
+            elif y == maxrow-1:
                 row, back, ins = self._last_row(row)
 
             first = True
@@ -673,6 +678,8 @@ class Screen(BaseScreen, RealTerminal):
 
                 if cs == "U":
                     o.append(escape.IBMPC_OFF)
+            if whitespace_at_end:
+                o.append(escape.ERASE_IN_LINE_RIGHT)
 
         if r.cursor is not None:
             x,y = r.cursor
