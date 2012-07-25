@@ -676,23 +676,18 @@ class Screen(BaseScreen, RealTerminal):
 
         if r.cursor is not None:
             x,y = r.cursor
-            o += [set_cursor_position(x, y), 
+            o += [set_cursor_position(x, y),
                 escape.SHOW_CURSOR  ]
             self._cy = y
-        
-        if self._resized: 
+
+        if self._resized:
             # handle resize before trying to draw screen
             return
         try:
-            k = 0
             for l in o:
                 if isinstance(l, bytes) and PYTHON3:
                     l = l.decode('utf-8')
                 self._term_output_file.write(l)
-                k += len(l)
-                if k > 1024:
-                    self._term_output_file.flush()
-                    k = 0
             self._term_output_file.flush()
         except IOError, e:
             # ignore interrupted syscall
@@ -701,19 +696,19 @@ class Screen(BaseScreen, RealTerminal):
 
         self.screen_buf = sb
         self._screen_buf_canvas = r
-                
-    
+
+
     def _last_row(self, row):
         """On the last row we need to slide the bottom right character
         into place. Calculate the new line, attr and an insert sequence
         to do that.
-        
+
         eg. last row:
         XXXXXXXXXXXXXXXXXXXXYZ
-        
+
         Y will be drawn after Z, shifting Z into position.
         """
-        
+
         new_row = row[:-1]
         z_attr, z_cs, last_text = row[-1]
         last_cols = util.calc_width(last_text, 0, len(last_text))
