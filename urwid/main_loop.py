@@ -408,6 +408,27 @@ class MainLoop(object):
             if 'window resize' in keys:
                 self.screen_size = None
 
+    def _test_run_screen_event_loop(self):
+        """
+        >>> w = _refl("widget")
+        >>> scr = _refl("screen")
+        >>> scr.get_cols_rows_rval = (10, 5)
+        >>> scr.get_input_rval = [], []
+        >>> ml = MainLoop(w, screen=scr)
+        >>> def stop_now(loop, data):
+        ...     raise ExitMainLoop()
+        >>> handle = ml.set_alarm_in(0, stop_now)
+        >>> try:
+        ...     ml._run_screen_event_loop()
+        ... except ExitMainLoop:
+        ...     pass
+        screen.get_cols_rows()
+        widget.render((10, 5), focus=True)
+        screen.draw_screen((10, 5), None)
+        screen.set_input_timeouts(0)
+        screen.get_input(True)
+        """
+
     def process_input(self, keys):
         """
         This function will pass keyboard input and mouse events
