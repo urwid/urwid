@@ -397,10 +397,10 @@ class MainLoop(object):
                 sec = next_alarm[0] - time.time()
                 if sec > 0:
                     break
-                tm, callback, user_data = next_alarm
-                callback(self, user_data)
+                tm, callback = next_alarm
+                callback()
                 
-                if self._alarms:
+                if self.event_loop._alarms:
                     next_alarm = heapq.heappop(self.event_loop._alarms)
                 else:
                     next_alarm = None
