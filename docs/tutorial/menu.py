@@ -1,12 +1,12 @@
 import urwid
 
 inventory = set()
-loop = urwid.MainLoop(None)
 
 class MenuButton(urwid.Button):
     def __init__(self, text, callback):
         super(MenuButton, self).__init__("", callback)
-        self._w = urwid.SelectableIcon(text, 1)
+        self._w = urwid.AttrMap(urwid.SelectableIcon(text, 1),
+            None, focus_map='reversed')
 
 class SubMenu(urwid.WidgetWrap):
     def __init__(self, title, menu):
@@ -72,6 +72,8 @@ menu_top = menu(u'porch',
             ),
         ),
     )
-loop.widget = menu_top.menu
+
+loop = urwid.MainLoop(menu_top.menu,
+    palette=[('reversed', 'standout', '')])
 loop.run()
 print u"Congratulations, you can make lemonade!"
