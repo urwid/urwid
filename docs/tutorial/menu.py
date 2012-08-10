@@ -3,27 +3,28 @@ import urwid
 inventory = set()
 
 class MenuButton(urwid.Button):
-    def __init__(self, text, callback):
-        super(MenuButton, self).__init__("", callback)
-        self._w = urwid.AttrMap(urwid.SelectableIcon(text, 1),
+    def __init__(self, caption, callback):
+        super(MenuButton, self).__init__("")
+        urwid.connect_signal(self, 'click', callback)
+        self._w = urwid.AttrMap(urwid.SelectableIcon(caption, 1),
             None, focus_map='reversed')
 
 class SubMenu(urwid.WidgetWrap):
     def __init__(self, title, menu):
         super(SubMenu, self).__init__(
-            MenuButton(u" > go to " + title, self.pressed))
+            MenuButton(u" > go to " + title, self.clicked))
         self.menu = menu
 
-    def pressed(self, button):
+    def clicked(self):
         loop.widget = self.menu
 
 class Thing(urwid.WidgetWrap):
     def __init__(self, name):
         super(Thing, self).__init__(
-            MenuButton(u" * take " + name, self.pressed))
+            MenuButton(u" * take " + name, self.clicked))
         self.name = name
 
-    def pressed(self, button):
+    def clicked(self):
         self._w = urwid.Text(u" - " + self.name + " (taken)")
         inventory.add(self.name)
         if inventory >= set([u'sugar', u'lemon', u'jug']):
