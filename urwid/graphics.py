@@ -122,7 +122,7 @@ class LineBox(WidgetDecoration, WidgetWrap):
         tlcorner, trcorner = Text(tlcorner), Text(trcorner)
         blcorner, brcorner = Text(blcorner), Text(brcorner)
 
-        self.title_widget = Text(self.format_title(title))
+        self.title_widget = Text(title)
         self.tline_widget = Columns([
             tline,
             ('flow', self.title_widget),
@@ -150,14 +150,8 @@ class LineBox(WidgetDecoration, WidgetWrap):
         WidgetDecoration.__init__(self, original_widget)
         WidgetWrap.__init__(self, pile)
 
-    def format_title(self, text):
-        if len(text) > 0:
-            return " %s " % text
-        else:
-            return ""
-
     def set_title(self, text):
-        self.title_widget.set_text(self.format_title(text))
+        self.title_widget.set_text(text)
         self.tline_widget._invalidate()
 
 class BarGraphMeta(WidgetMeta):
