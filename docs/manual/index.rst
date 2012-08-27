@@ -5,7 +5,7 @@
 ################
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    overview
    mainloop
@@ -15,7 +15,6 @@
    textlayout
    textencodings
    displayattributes
-   textattributes
    listboxcontents
    canvascache
    eventloops

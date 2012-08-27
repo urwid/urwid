@@ -3,8 +3,10 @@
 .. _text-encodings:
 
 ******************
-  Text Encodings  
+  Text Encodings
 ******************
+
+.. currentmodule:: urwid
 
 Urwid has a single global setting for text encoding that is set on start-up
 based on the configured locale. You may change that setting with the
@@ -23,11 +25,11 @@ in your widgets.
     txt_a = urwid.Text(u"El Niño")
     txt_b = urwid.Text("El Niño")
 
-``txt_a`` will be automatically encoded when it is displayed (Unicode mode).  
+``txt_a`` will be automatically encoded when it is displayed (Unicode mode).
 
 ``txt_b`` is **assumed** to be in the encoding the user is expecting and passed
 through as-is (Pass-through mode). If the encodings are different then the
-user will see garbage on their screen.
+user will see mojibake on their screen.
 
 The only time it makes sense to use pass-through mode is if you're handling an
 encoding that does not round-trip to Unicode properly, or if you're absolutely
