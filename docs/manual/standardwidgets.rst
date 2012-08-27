@@ -1,7 +1,7 @@
 .. _basic-grafic-widgets:
 
 ********************
-  Standard widgets  
+  Standard widgets
 ********************
 
 Basic & Graphic Widgets
@@ -9,7 +9,7 @@ Basic & Graphic Widgets
 
 .. image:: images/urwid_widgets_1.png
 
-`Urwid Reference <http://excess.org/urwid/reference.html>`_
+:ref:`Widget class reference <widget-classes>`
 
 Basic and graphic widgets are the content with which users interact. They may
 also be used as part of custom widgets you create.
@@ -20,9 +20,7 @@ Decoration & Container Widgets
 
 .. image:: images/urwid_widgets_2.png
 
-`Urwid Reference <http://excess.org/urwid/reference.html>`_
-
-.. TODO: add links here?
+:ref:`Widget class reference <widget-classes>`
 
 Decoration widgets alter the appearance or position of a single other widget.
 The widget they wrap is available as the ``decoration_widget.original_widget``.

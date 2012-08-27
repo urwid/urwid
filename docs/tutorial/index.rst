@@ -1,8 +1,8 @@
 .. _urwid-tutorial:
 
-****************************
-  Urwid |version| Tutorial
-****************************
+******************
+  Urwid Tutorial
+******************
 
 .. contents::
    :local:

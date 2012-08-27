@@ -1,5 +1,5 @@
 ===================
-Urwid documentation
+Urwid Documentation
 ===================
 
 .. toctree::
@@ -8,9 +8,6 @@ Urwid documentation
    tutorial/index
    manual/index
    reference/index
-
-Indices and tables
-==================
 
 * :ref:`genindex`
 * :ref:`search`

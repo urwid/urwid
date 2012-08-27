@@ -3,6 +3,8 @@ Display Modules
 
 .. currentmodule:: urwid
 
+.. autoclass:: BaseScreen
+
 raw_display
 -----------
 

@@ -1,8 +1,10 @@
 .. _display-modules:
 
-*************************
-  Urwid Display Modules  
-*************************
+*******************
+  Display Modules
+*******************
+
+.. currentmodule:: urwid
 
 Introduction
 ============
@@ -34,21 +36,19 @@ If you don't specify a display module, the default main loop will use
 
 Urwid has two display modules for displaying to terminals or the console.
 
-The :mod:`urwid.raw_display` module is a pure-python display module with no
+The :mod:`raw_display` module is a pure-python display module with no
 external dependencies. It sends and interprets terminal escape sequences
 directly. This is the default display module used by
 :class:`~urwid.main_loop.MainLoop`.
 
-.. TODO: add a link to some ncurses resources?
-
-The :mod:`urwid.curses_display` module uses the curses or ncurses library
+The :mod:`curses_display` module uses the curses or ncurses library
 provided by the operating system. The library does some optimization of screen
 updates and uses termcap to adjust to the user's terminal.
 
 The (n)curses library will disable colors if it detects a monochrome terminal,
 so a separate set of attributes should be given for monochrome mode when
-registering a palette with :mod:`urwid.curses_display`. High colors will not be
-used by the :mod:`urwid.curses_dislpay` module. See :ref:`setting-a-palette`
+registering a palette with :mod:`curses_display`. High colors will not be
+used by the :mod:`curses_dislpay` module. See :ref:`setting-a-palette`
 below.
 
 This table summarizes the differences between the two modules:
@@ -70,11 +70,6 @@ external event loop support    YES         no
 .. [2] if python is linked against the wide version of ncurses
 .. [3] when using xterm or gnome-terminal
 
-.. TODO: what to do with these references?
-
-.. :ref:`raw_display.Screen <raw_display.Screen>`
-
-..  :ref:`curses_display.Screen <curses_display.Screen>`
 
 AJAX-based Web Display Module ``web_display``
 =============================================
@@ -90,11 +85,6 @@ The tour.py_ and calc.py_ example programs demonstrate use of this module.
 .. _tour.py: http://excess.org/urwid/browser/tour.py
 .. _calc.py: http://excess.org/urwid/browser/calc.py
 
-.. TODO:
-
-`live demo of web_display module <http://live.excess.org/>`_
-
-`web_display.Screen reference <http://excess.org/urwid/reference.html#web_display.Screen>`_
 
 Screenshot Display Module ``html_fragment``
 ===========================================
@@ -114,18 +104,16 @@ The `example screenshots`_ are generated with this display module.
 
 .. _`example screenshots`: http://excess.org/urwid/examples.html
 
-`html_fragment.Screen reference <http://excess.org/urwid/reference.html#html_fragment.Screen>`_
-
 
 .. _setting-a-palette:
 
 Setting a Palette
 =================
 
-The :class:`~urwid.main_loop.MainLoop` constructor takes a ``palette`` parameter that it passes
-to the :meth:`register_palette` method of your display module.
+The :class:`MainLoop` constructor takes a *palette* parameter that it passes
+to the :meth:`register_palette() <BaseScreen.register_palette>` method of your display module.
 
-A palette is a list of palette entry names, called "attributes" and foreground
+A palette is a list of :ref:`display attribute <display-attributes>` names and foreground
 and background settings. Display modules may be run in monochrome, normal or
 high color modes and you can set different foregrounds and backgrounds for each
 mode as part of your palette. eg:

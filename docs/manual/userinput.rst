@@ -3,19 +3,23 @@
 .. _user-input:
 
 **************
-  User Input  
+  User Input
 **************
 
+.. currentmodule:: urwid
+
 All input from the user is parsed by a display module, and returned from either
-the :meth:`get_input` or :meth:`get_input_nonblocking` methods as a list.
+the :meth:`get_input() <raw_display.Screen.get_input>` or
+:meth:`get_input_nonblocking() <raw_display.Screen.get_input_nonblocking>` methods as a list.
 Window resize events are also included in the user input.
 
-The :class:`~urwid.main_loop.MainLoop` class will take this input and pass each
-item to the widget methods :meth:`keypress` or :meth:`mouse_event`. You may
+The :class:`MainLoop` class will take this input and pass each
+item to the widget methods :meth:`keypress() <Widget.keypress>` or
+:meth:`mouse_event() <Widget.mouse_event>`. You may
 filter input (possibly removing or altering it) before it is passed to the
 widgets, or can catch unhandled input by passing functions into the
-:class:`~urwid.main_loop.MainLoop` constructor. If the window was resized
-:class:`~urwid.main_loop.MainLoop` will query the new display size and update
+:class:`MainLoop` constructor. If the window was resized
+:class:`MainLoop` will query the new display size and update
 the screen.
 
 There may be more than one keystroke or mouse event processed at a time, and

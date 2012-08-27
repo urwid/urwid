@@ -68,5 +68,5 @@ maxrow)`` to be specified.
 Flow widgets expect a single-element tuple ``(maxcol,)`` instead because they
 calculate their :attr:`maxrow` based on the :attr:`maxcol` value.
 
-Fixed widgets expect the value ``None`` to be passed in to functions that take
+Fixed widgets expect the value ``()`` to be passed in to functions that take
 a size because they know their :attr:`maxcol` and :attr:`maxrow` values.
