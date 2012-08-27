@@ -11,9 +11,7 @@
    mainloop
    displaymodules
    userinput
-   widgetlayout
-   standardwidgets
-   widgetmethods
+   widgets
    textlayout
    textencodings
    displayattributes
