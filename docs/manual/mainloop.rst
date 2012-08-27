@@ -1,7 +1,7 @@
 .. _main-loop:
 
 *************
-  Main loop  
+  Main Loop
 *************
 
 The :class:`~urwid.main_loop.MainLoop` class ties together a :ref:`display

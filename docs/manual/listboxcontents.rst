@@ -1,8 +1,8 @@
 .. _listbox-contents:
 
-************************
-  ``ListBox`` Contents  
-************************
+********************
+  ListBox Contents
+********************
 
 The :class:`~urwid.listbox.ListBox` is a box widget that contains flow widgets.
 Its contents are displayed stacked vertically, and the
