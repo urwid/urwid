@@ -2,9 +2,9 @@
 
 .. _text-encodings:
 
-******************
-  Text Encodings
-******************
+***********************
+  Encodings Supported
+***********************
 
 .. currentmodule:: urwid
 

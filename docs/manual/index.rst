@@ -10,13 +10,12 @@
    overview
    mainloop
    displaymodules
-   userinput
    widgets
+   userinput
    textlayout
-   textencodings
+   encodings
    displayattributes
    listboxcontents
    canvascache
-   eventloops
 
 

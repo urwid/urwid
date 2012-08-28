@@ -36,3 +36,16 @@ html_fragment
 .. autofunction:: screenshot_init
 
 .. autofunction:: screenshot_collect
+
+lcd_display
+-----------
+
+.. module:: urwid.lcd_display
+
+.. autoclass:: LCDScreen
+
+.. autoclass:: CFLCDScreen
+
+.. autoclass:: CF635Screen
+
+.. autoclass:: KeyRepeatSimulator

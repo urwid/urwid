@@ -74,7 +74,7 @@ information. If you want the input converted to Unicode in all cases you may
 create an input filter to do so.
 
 Mouse Input
------------
+===========
 
 Mouse input is sent as a ``(event, button, x, y)`` tuple. *event* is a string
 describing the event. If the SHIFT, ALT or CTRL keys are held when a mouse
@@ -87,7 +87,7 @@ terminals and some users don't have a middle mouse button, so these shouldn't
 be relied on.
 
 ``'mouse press'`` Events
-========================
+------------------------
 
 A mouse button was pressed.
 
@@ -104,13 +104,13 @@ A mouse button was pressed.
 .. [#first] typically no corresponding release event is sent
 
 ``'mouse release'`` Events
-==========================
+--------------------------
 
 Mouse release events will often not have information about which button was
 released. In this case *button* will be set to 0.
 
 ``'mouse drag'`` Events
-=======================
+-----------------------
 
 In the rare event that your user is using a terminal that can send these events
 you can use them to track their mouse dragging from one character cell to the

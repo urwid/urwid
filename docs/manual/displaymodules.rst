@@ -6,9 +6,6 @@
 
 .. currentmodule:: urwid
 
-Introduction
-============
-
 Urwid's display modules provide a layer of abstraction for drawing to the
 screen and reading user input. The display module you choose will depend on
 how you plan to use Urwid.
@@ -71,8 +68,11 @@ external event loop support    YES         no
 .. [3] when using xterm or gnome-terminal
 
 
-AJAX-based Web Display Module ``web_display``
-=============================================
+Other Display Modules
+=====================
+
+CGI Web Display Module ``web_display``
+--------------------------------------
 
 The :mod:`urwid.web_display` module lets you run your application as a CGI
 script under Apache instead of running it in a terminal.
@@ -82,16 +82,17 @@ that need to be resolved before this module is recommended for production use.
 
 The tour.py_ and calc.py_ example programs demonstrate use of this module.
 
-.. _tour.py: http://excess.org/urwid/browser/tour.py
-.. _calc.py: http://excess.org/urwid/browser/calc.py
+.. _tour.py: http://excess.org/urwid/browser/examples/tour.py
+.. _calc.py: http://excess.org/urwid/browser/examples/calc.py
 
 
 Screenshot Display Module ``html_fragment``
-===========================================
+-------------------------------------------
 
 Screenshots of Urwid interfaces can be rendered in plain HTML. The
 :mod:`html_fragment` display module lets you do this by simulating user input
-and capturing the screen as fragments of HTML each time :func:`draw_screen` is
+and capturing the screen as fragments of HTML each time
+:meth:`html_fragemnt.Screen.draw_screen` is
 called.
 
 These fragments may be included in HTML documents. They will be rendered
@@ -103,6 +104,22 @@ browser's text size.
 The `example screenshots`_ are generated with this display module.
 
 .. _`example screenshots`: http://excess.org/urwid/examples.html
+
+
+LCD Display Module ``lcd_display``
+----------------------------------
+
+Almost any device that displays characters in a grid can be used as a
+screen.  The :mod:`lcd_display` module has some base classes for simple
+LCD character display devices and a complete implementation of a
+:class:`lcd_display.CF635Screen` for Crystal Fontz 635 USB displays with
+6 buttons.
+
+The lcd_cf635.py_ example program demonstrates use of this module.
+
+.. _lcd_cf635.py: http://excess.org/urwid/browser/examples/lcd_cf635.py
+
+.. seealso:: `Urwid on a Crystalfontz 635 LCD <http://excess.org/article/2010/03/urwid-crystalfontz-635-lcd/>`_
 
 
 .. _setting-a-palette:
