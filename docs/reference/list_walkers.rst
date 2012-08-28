@@ -8,8 +8,10 @@ ListWalker
 
 .. autoclass:: ListWalker
 
-SimpleListWalker
-----------------
+List-like List Walkers
+----------------------
+
+.. autoclass:: SimpleFocusListWalker
 
 .. autoclass:: SimpleListWalker
 
