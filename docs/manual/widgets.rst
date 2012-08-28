@@ -153,16 +153,100 @@ in a future Urwid release.
 The same holds true for a widget's focus state, so that too is passed in to
 functions that need it.
 
+.. _listbox-contents:
+
+ListBox Contents
+================
+
+:class:`ListBox` is a box widget that contains flow widgets.
+Its contents are displayed stacked vertically, and the
+:class:`ListBox` allows the user to scroll through its content.
+One of the flow widgets displayed in the :class:`ListBox` is its
+focus widget.
+
+List Walkers
+------------
+
+class:`ListBox` does not manage the widgets it displays
+directly, instead it passes that task to a class called a "list walker". List
+walkers keep track of the widget in focus and provide an opaque position object
+that the :class:`ListBox` may use to iterate through widgets
+above and below the focus widget.
+
+A :class:`SimpleListWalker`
+is a list walker that behaves like a normal Python list. It may be used any
+time you will be displaying a moderate number of widgets.
+
+If you need to display a large number of widgets you should implement your own
+list walker that manages creating widgets as they are requested and destroying
+them later to avoid excessive memory use.
+
+List walkers may also be used to display tree or other structures within a
+:class:`ListBox`. A number of the `example programs
+<http://excess.org/urwid/examples.html>`_ demonstrate the use of custom list
+walker classes.
+
+.. seealso:: :class:`ListWalker base class reference <ListWalker>`
+
+Focus & Scrolling Behavior
+--------------------------
+
+The :class:`ListBox` passes all key presses it receives first to
+its focus widget. If its focus widget does not handle a keypress then the
+:class:`ListBox` may handle the keypress by scrolling and/or
+selecting another widget to become its new focus widget.
+
+The :class:`ListBox` tries to do *the most sensible thing* when
+scrolling and changing focus. When the widgets displayed are all
+:class:`Text` widgets or other unselectable widgets then the
+:class:`ListBox` will behave like a web browser does when the
+user presses *UP*, *DOWN*, *PAGE UP* and *PAGE DOWN*: new text is immediately
+scrolled in from the top or bottom. The :class:`ListBox` chooses
+one of the visible widgets as its focus widget when scrolling. When scrolling
+up the :class:`ListBox` chooses the topmost widget as the focus,
+and when scrolling down the :class:`ListBox` chooses the
+bottommost widget as the focus.
+
+The :class:`ListBox` remembers the visible location of its focus
+widget as either an "offset" or an "inset". An offset is the number of rows
+between the top of the :class:`ListBox` and the beginning of the
+focus widget. An offset of zero corresponds to a widget with its top aligned
+with the top of the :class:`ListBox`. An inset is the fraction
+of rows of the focus widget that are "above" the top of the
+:class:`ListBox` and not visible. The
+:class:`ListBox` uses this method of remembering the focus
+widget location so that when the :class:`ListBox` is resized the
+the text will remain roughly in the same position of the visible area.
+
+When there are selectable widgets visible in the
+:class:`ListBox` the focus will move between the selectable
+widgets, skipping the unselectable widgets.  The
+:class:`ListBox` will try to scroll all the rows of a selectable
+widget into view so that the user can see the new focus widget in its entirety.
+This behavior can be used to bring more than a single widget into view by using
+a :class:`Pile` or other container widget to combine a
+selectable widget with other widgets that should be visible at the same time.
+
+.. seealso:: :ref:`Tutorial chapters covering ListBox usage <zen-listbox>`
 
 
-The :class:`Widget` base class has some metaclass magic that
+Widget Metaclass
+================
+
+The :class:`Widget` base class has a metaclass defined that
 creates a ``__super`` attribute for calling your superclass:
 ``self.__super`` is the same as the usual ``super(MyClassName, self)``.
 This shortcut is of little use with Python 3's new ``super()`` syntax, but
 will likely be retained for backwards compatibility in future versions.
 
+This metaclass also uses :class:`MetaSignal`
+to allow signals to be defined as a list of signal names
+in a ``signals`` class attribute.  This is equivalent to calling
+:func:`register_signal` with the class name and list of signals and all those
+defined in superclasses after the class definition.
+
 .. seealso::
 
-    :class:`Widget base class reference <Widget>`
+    :class:`Widget metaclass WidgetMeta <WidgetMeta>`
 
 

@@ -3,10 +3,22 @@ Signal Functions
 
 .. currentmodule:: urwid
 
-.. autofunction:: connect_signal
+The :func:`urwid.\*_signal` functions use a shared Signals object instance
+for tracking registered and connected signals.  There is no reason to
+instantiate your own Signals object.
 
-.. autofunction:: disconnect_signal
+.. function:: connect_signal(obj, name, callback, user_arg=None)
 
-.. autofunction:: register_signal
+.. automethod:: Signals.connect
 
-.. autofunction:: emit_signal
+.. function:: disconnect_signal(obj, name, callback, user_arg=None)
+
+.. automethod:: Signals.disconnect
+
+.. function:: register_signal(sig_cls, signals)
+
+.. automethod:: Signals.register
+
+.. function:: emit_signal(obj, name, \*args)
+
+.. automethod:: Signals.emit

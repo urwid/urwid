@@ -268,6 +268,9 @@ be updated when you press *ENTER*. *ENTER* on a blank line exits.
 .. image:: lbcont2.png
 .. image:: lbcont3.png
 
+
+.. _zen-listbox:
+
 Zen of ListBox
 ==============
 

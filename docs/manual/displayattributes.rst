@@ -290,8 +290,9 @@ gray scale entries ``'g0'`` (black from color cube) , ``'g3'``, ``'g7'``, ...
 ``'g100'`` (white from color cube).
 
 .. seealso::
-   The ``palette_test.py`` example program
+   The palette_test.py_ example program
 
+.. _palette_test.py: http://excess.org/urwid/browser/examples/palette_test.py
 
 .. _88-foreground-background:
 
@@ -311,7 +312,9 @@ gray scale entries ``'g0'`` (black from color cube), ``'g19'``, ``'g35'``, ...
 ``'g100'`` (white from color cube).
 
 .. seealso::
-   The ``palette_test.py`` example program
+   The palette_test.py_ example program
+
+.. _palette_test.py: http://excess.org/urwid/browser/examples/palette_test.py
 
 
 .. _rgb-palette-setting:

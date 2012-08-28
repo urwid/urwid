@@ -52,9 +52,6 @@ class Signals(object):
 
     def register(self, sig_cls, signals):
         """
-        Available as:
-        urwid.regsiter_signal(sig_cls, signals)
-
         :param sig_class: the class of an object that will be sending signals
         :type sig_class: class
         :param signals: a list of signals that may be sent, typically each
@@ -68,9 +65,6 @@ class Signals(object):
 
     def connect(self, obj, name, callback, user_arg=None):
         """
-        Available as:
-        urwid.connect_signal(obj, name, callback, user_arg=None)
-
         :param obj: the object sending a signal
         :type obj: object
         :param name: the signal to listen for, typically a string
@@ -94,9 +88,6 @@ class Signals(object):
 
     def disconnect(self, obj, name, callback, user_arg=None):
         """
-        Available as:
-        urwid.disconnect_signal(obj, name, callback, user_arg=None)
-
         This function will remove a callback from the list connected
         to a signal with connect_signal().
         """
@@ -109,9 +100,6 @@ class Signals(object):
 
     def emit(self, obj, name, *args):
         """
-        Available as:
-        urwid.emit_signal(obj, name, \*args)
-
         :param obj: the object sending a signal
         :type obj: object
         :param name: the signal to send, typically a string
