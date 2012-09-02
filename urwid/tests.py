@@ -1150,6 +1150,12 @@ class ListBoxChangeFocusTest(unittest.TestCase):
         T,E = urwid.Text, urwid.Edit
         #...
 
+    def test5set_focus_valign(self):
+        T,E = urwid.Text, urwid.Edit
+        lbox = urwid.ListBox(urwid.SimpleFocusListWalker([
+            T(''), T('')]))
+        lbox.set_focus_valign('middle')
+        # TODO: actually test the result
 
 
 class ListBoxRenderTest(unittest.TestCase):

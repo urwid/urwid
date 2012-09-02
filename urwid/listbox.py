@@ -22,7 +22,7 @@
 from urwid.util import is_mouse_press
 from urwid.canvas import SolidCanvas, CanvasCombine
 from urwid.widget import Widget, nocache_widget_render_instance, BOX, GIVEN
-from urwid.decoration import calculate_top_bottom_filler, simplify_valign
+from urwid.decoration import calculate_top_bottom_filler, normalize_valign
 from urwid import signals
 from urwid.signals import connect_signal
 from urwid.monitored_list import MonitoredList, MonitoredFocusList
@@ -523,7 +523,7 @@ class ListBox(Widget, WidgetContainerMixin):
             ('fixed bottom', rows)
             ('relative', percentage 0=top 100=bottom)
         """
-        vt, va = simplify_valign(valign,ListBoxError)
+        vt, va = normalize_valign(valign,ListBoxError)
         self.set_focus_valign_pending = vt, va
 
 
