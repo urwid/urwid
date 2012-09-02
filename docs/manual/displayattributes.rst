@@ -22,6 +22,8 @@ where ``screen`` is your screen instance or :attr:`MainLoop.screen`.
 .. seealso::
    :meth:`register_palette() reference <BaseScreen.register_palette>`,
 
+.. _using-display-attributes:
+
 Using Display Attributes
 ========================
 
@@ -122,6 +124,8 @@ This can be used to "highlight" one or more widgets to make your interface more
 user friendly.  To use this feature set the ``focus_map`` parameter when creating the
 :class:`AttrMap` widget.
 
+
+.. _foreground-background:
 
 Foreground and Background Settings
 ==================================

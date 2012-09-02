@@ -267,6 +267,8 @@ in a future Urwid release.
 The same holds true for a widget's focus state, so that too is passed in to
 functions that need it.
 
+.. seealso:: :ref:`creating-custom-widgets`
+
 .. _listbox-contents:
 
 ListBox Contents
@@ -302,8 +304,11 @@ walker classes.
 
 .. seealso:: :class:`ListWalker base class reference <ListWalker>`
 
-Custom List Walkers
--------------------
+
+.. _list-walker-interface:
+
+List Walker Interface
+---------------------
 
 List Walker API Version 1
 ~~~~~~~~~~~~~~~~~~~~~~~~~

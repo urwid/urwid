@@ -4,12 +4,6 @@
   Urwid Tutorial
 ******************
 
-.. contents::
-   :local:
-
-
-.. todo: add a directive
-
 .. currentmodule:: urwid
 
 Hello World Example
@@ -84,7 +78,7 @@ and the space above and below the text. It waits for a keypress before exiting.
 
 * Display attributes are defined as part of a palette. Valid foreground,
   background and
-  setting values are documented in :ref:`display-attributes`
+  setting values are documented in :ref:`foreground-background`
   A palette is a list of tuples containing:
 
     1. Name of the display attribute, typically a string
@@ -92,20 +86,20 @@ and the space above and below the text. It waits for a keypress before exiting.
     3. Background color for normal mode
     4. Settings for monochrome mode (optional)
     5. Foreground color and settings for 88 and 256-color modes (optional, see
-           next example)
+       next example)
     6. Background color for 88 and 256-color modes (optional)
 
 * The palette is passed to :class:`MainLoop` to make it
   available to our program
 
 * A :class:`Text` widget is created containing the string " Hello
-  World " with display attribute *banner*. The attributes of text in a Text widget is
+  World " with display attribute ``'banner'``. The attributes of text in a Text widget is
   set by using a ``(attribute, text)`` tuple instead of a simple text string.
   Display attributes will flow with the text, and multiple display attributes may be
   specified by combining tuples into a list.
 
 * An :class:`AttrMap` widget is created to wrap the text
-  widget with display attribute "streak". :class:`AttrMap` widgets
+  widget with display attribute ``'streak'``. :class:`AttrMap` widgets
   allow you to map any display attribute to any other display attribute, but by default they
   will set the display attribute of everything that does not already have a display attribute.
   In this case the text has an attribute, so only the areas around the text
@@ -123,6 +117,7 @@ is how these widgets react to being resized:
 .. image:: attr3.png
 .. image:: attr4.png
 
+.. seealso:: :ref:`using-display-attributes`
 
 High Color Modes
 ----------------
@@ -138,8 +133,7 @@ and will work in any terminal that supports 256-color mode. It will exit when
 * This palette only defines values for the high color foregroundand
   backgrounds, because only the high colors will be used. A real application
   should define values for all the modes in their palette. Valid foreground,
-  background and setting values are documented in the
-  :class:`AttrSpec` class.
+  background and setting values are documented in :ref:`foreground-background`.
 
 * :class:`Divider` widgets are used to create blank lines,
   colored with :class:`AttrMap`.
@@ -269,6 +263,43 @@ be updated when you press *ENTER*. *ENTER* on a blank line exits.
 .. image:: lbcont3.png
 
 
+Menu Example
+============
+
+Simple Menu with Buttons
+------------------------
+
+We can create a very simple menu using a list of :class:`Button` widgets.  This program
+lets you choose an option then repeats what you chose.
+
+.. literalinclude:: menu1.py
+   :linenos:
+
+Nested Menus
+------------
+
+A nested menu effect can be created by having some buttons open new menus.  This program
+lets you choose an option from a nested menu then repeats what you chose.
+
+.. literalinclude:: menu2.py
+   :linenos:
+
+Nested Menus with Custom Widgets
+--------------------------------
+
+We can create new widget classes for the menu elements we are creating.  This program
+is the mostly the same as the one above but with classes defined for each menu
+component we are creating. The :class:`Button` subclasses are customized to remove the
+default decorations
+
+.. literalinclude:: menu3.py
+
+Adventure Game in Menus
+-----------------------
+
+
+
+
 .. _zen-listbox:
 
 Zen of ListBox
@@ -380,9 +411,7 @@ position then you need to remember to increment the focus position in the
 
 A custom List Walker object may be passed to the
 :class:`ListBox` constructor instead of a plain list of widgets.
-List Walker objects must implement the `List Walker interface`_.
-
-.. _List Walker interface: http://excess.org/urwid/reference.html#List_Walker_interface_definition
+List Walker objects must implement the :ref:`list-walker-interface`.
 
 The fib.py_ example program demonstrates a custom list walker that doesn't
 store any widgets. It uses a tuple of two successive Fibonacci numbers as its
@@ -401,9 +430,9 @@ using a dictionary indexed by parent directory names. This allows the
 directories to be read only as required. The custom list walker also allows
 directories to be hidden from view when they are "collapsed".
 
-.. _fib.py: #
-.. _edit.py: #
-.. _browse.py: #
+.. _fib.py: http://excess.org/urwid/browser/examples/fib.py
+.. _edit.py: http://excess.org/urwid/browser/examples/edit.py
+.. _browse.py: http://excess.org/urwid/browser/examples/browse.py
 
 
 Setting the Focus
@@ -508,6 +537,9 @@ keyboard input will be passed to the top widget.
 If you want to use a flow flow widget for the top widget, first wrap the flow
 widget with a :class:`Filler` widget.
 
+
+
+.. _creating-custom-widgets:
 
 Creating Custom Widgets
 =======================
