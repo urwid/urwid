@@ -1,16 +1,20 @@
 import urwid
 
-def do_reply(key):
-    if key != 'enter':
-        return
-    if fill.body == ask:
-        fill.body = urwid.Text(u"Nice to meet you,\n" +
-            ask.edit_text + ".")
-        return True
-    else:
+def exit_on_q(key):
+    if key in ('q', 'Q'):
         raise urwid.ExitMainLoop()
 
-ask = urwid.Edit(u"What is your name?\n")
-fill = urwid.Filler(ask)
-loop = urwid.MainLoop(fill, unhandled_input=do_reply)
+class Question(urwid.Edit):
+    def __init__(self):
+        super(Question, self).__init__(u"What is your name?\n")
+
+    def keypress(self, size, key):
+        key = super(Question, self).keypress(size, key)
+        if key != 'enter':
+            return key
+        fill.body = urwid.Text(u"Nice to meet you,\n" + self.edit_text +
+            u".\n\nPress Q to exit.")
+
+fill = urwid.Filler(Question())
+loop = urwid.MainLoop(fill, unhandled_input=exit_on_q)
 loop.run()

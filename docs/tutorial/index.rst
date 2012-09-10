@@ -297,6 +297,7 @@ default decorations
 Adventure Game in Menus
 -----------------------
 
+.. literalinclude:: menu4.py
 
 
 

@@ -12,9 +12,8 @@ def on_ask_change(edit, new_edit_text):
 palette = [('I say', 'default,bold', 'default', 'bold'),]
 ask = urwid.Edit(('I say', u"What is your name?\n"))
 reply = urwid.Text(u"")
-content = urwid.SimpleListWalker([ask, reply])
-listbox = urwid.ListBox(content)
-
+listbox = urwid.ListBox(urwid.SimpleFocusListWalker([ask, reply]))
 urwid.connect_signal(ask, 'change', on_ask_change)
+
 loop = urwid.MainLoop(listbox, palette, unhandled_input=exit_on_cr)
 loop.run()
