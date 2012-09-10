@@ -204,7 +204,7 @@ class SimpleListWalker(MonitoredList, ListWalker):
         return xrange(len(self))
 
 
-class SimpleFocusListWalker(MonitoredFocusList, ListWalker):
+class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
     def __init__(self, contents):
         """
         contents -- list to copy into this object
