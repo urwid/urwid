@@ -5,8 +5,8 @@ def exit_on_q(key):
         raise urwid.ExitMainLoop()
 
 palette = [
-    ('banner', 'black', 'light gray', 'standout,underline'),
-    ('streak', 'black', 'dark red', 'standout'),
+    ('banner', 'black', 'light gray'),
+    ('streak', 'black', 'dark red'),
     ('bg', 'black', 'dark blue'),]
 
 txt = urwid.Text(('banner', u" Hello World "), align='center')

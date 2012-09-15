@@ -12,13 +12,11 @@ palette = [
     ('bg', '', '', '', 'g7', '#d06'),]
 
 txt = urwid.Text(('banner', u" Hello World "), align='center')
+streak = urwid.AttrMap(txt, 'streak')
 div = urwid.Divider()
-pile = urwid.Pile([
-    urwid.AttrMap(div, 'outside'),
-    urwid.AttrMap(div, 'inside'),
-    urwid.AttrMap(txt, 'streak'),
-    urwid.AttrMap(div, 'inside'),
-    urwid.AttrMap(div, 'outside')])
+inside = urwid.AttrMap(div, 'inside')
+outside = urwid.AttrMap(div, 'outside')
+pile = urwid.Pile([outside, inside, streak, inside, outside])
 fill = urwid.Filler(pile)
 top = urwid.AttrMap(fill, 'bg')
 

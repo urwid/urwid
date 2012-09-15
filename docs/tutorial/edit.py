@@ -10,10 +10,11 @@ class Question(urwid.Edit):
 
     def keypress(self, size, key):
         key = super(Question, self).keypress(size, key)
-        if key != 'enter':
-            return key
-        fill.body = urwid.Text(u"Nice to meet you,\n" + self.edit_text +
-            u".\n\nPress Q to exit.")
+        if key == 'enter':
+            fill.body = urwid.Text(u"Nice to meet you,\n"
+                + self.edit_text + u".\n\nPress Q to exit.")
+            return None
+        return key
 
 fill = urwid.Filler(Question())
 loop = urwid.MainLoop(fill, unhandled_input=exit_on_q)

@@ -18,13 +18,13 @@ screen and will run until interrupted with *CTRL+C* (*^C*).
 .. literalinclude:: minimal.py
    :linenos:
 
-* The :class:`Text` widget handles formatting blocks of text,
+* The *txt* :class:`Text` widget handles formatting blocks of text,
   wrapping to the next line when necessary. Widgets like this are called "flow
   widgets" because their sizing can have a number of columns given, in this
   case the full screen width, then they will flow to fill as many rows as
   necessary.
 
-* The :class:`Filler` is widget fills in blank lines above or
+* The *fill* :class:`Filler` widget fills in blank lines above or
   below flow widgets so that they can be displayed in a fixed number of rows.
   This Filler will align our Text to the top of the screen, filling all the
   rows below with blank lines. Widgets which are given both the number of
@@ -32,8 +32,8 @@ screen and will run until interrupted with *CTRL+C* (*^C*).
   widgets". The "topmost" widget displayed on the screen must be a box widget.
 
 * The :class:`MainLoop` class handles displaying our widgets as
-  well as input from the user. In this case our widgets can't handle the input
-  so we need to interrupt the program to exit with *^C*.
+  well as accepting input from the user. In this case our widgets can't handle
+  the input so we need to interrupt the program to exit with *^C*.
 
 .. image:: minimal1.png
 
@@ -50,8 +50,7 @@ each key pressed, exiting when the user presses *Q*.
 * The :class:`MainLoop` class has an optional function
   parameter *unhandled_input* This function will be called once for each
   keypress that is not handled by the widgets being displayed.
-
-* None of the widgets being displayed here handle input, so every key the user
+  Since of the widgets being displayed here handle input, every key the user
   presses will be passed to the *show_or_exit* function.
 
 * The :exc:`ExitMainLoop` exception is used to exit
@@ -89,14 +88,11 @@ and the space above and below the text. It waits for a keypress before exiting.
        next example)
     6. Background color for 88 and 256-color modes (optional)
 
-* The palette is passed to :class:`MainLoop` to make it
-  available to our program
-
-* A :class:`Text` widget is created containing the string " Hello
-  World " with display attribute ``'banner'``. The attributes of text in a Text widget is
+* A :class:`Text` widget is created containing the string ``" Hello World "``
+  with display attribute ``'banner'``. The attributes of text in a Text widget is
   set by using a ``(attribute, text)`` tuple instead of a simple text string.
   Display attributes will flow with the text, and multiple display attributes may be
-  specified by combining tuples into a list.
+  specified by combining tuples into a list. This format is called :ref:`text-markup`.
 
 * An :class:`AttrMap` widget is created to wrap the text
   widget with display attribute ``'streak'``. :class:`AttrMap` widgets
@@ -106,7 +102,7 @@ and the space above and below the text. It waits for a keypress before exiting.
   used for alignment will be have the new attribute.
 
 * A second :class:`AttrMap` widget is created to wrap the
-  filler widget with attribute "bg".
+  :class:`Filler` widget with attribute ``'bg'``.
 
 When this program is run you can now clearly see the separation of the text,
 the alignment around the text, and the filler above and below the text. This
@@ -142,11 +138,9 @@ and will work in any terminal that supports 256-color mode. It will exit when
   :class:`Divider` widgets above and below our text.
 
 * Behind the scenes our :class:`MainLoop` class has created a
-  :class:`Screen` object for drawing the screen. The program
+  :class:`raw_display.Screen` object for drawing the screen. The program
   is put into 256-color mode by using the screen object's
-  :meth:`raw_display.Screen.set_terminal_properties` method. This method
-  works only when using the default :class:`raw_display.Screen` class in
-  our :class:`MainLoop`.
+  :meth:`raw_display.Screen.set_terminal_properties` method.
 
 .. image:: highcolors1.png
 
@@ -155,8 +149,8 @@ Conversation Example
 ====================
 
 
-Edit Widget
------------
+Customizing an Edit Widget
+--------------------------
 
 This program asks for your name then responds ``Nice to meet you, (your
 name).``
@@ -164,22 +158,23 @@ name).``
 .. literalinclude:: edit.py
    :linenos:
 
-* An :class:`Edit` widget is created with the caption ``What is
-  your name?``. A newline at the end of the caption makes the user input start
-  on the next row.
-* Most keystrokes will be handled by the :class:`Edit` widget,
-  allowing the user to enter their name.
-* The :func:`unhandled_input` function will replace the
-  :class:`Edit` widget inside the
-  :class:`Filler` widget with a reply when the user presses
-  *ENTER*.
-* When the user presses *ENTER* again the :func:`unhandled_input` function will
-  cause the program to exit.
+The :class:`Edit` widget is based on the :class:`Text` widget but it accepts
+keyboard input for entering text, making corrections and
+moving the cursor around with the *HOME*, *END* and arrow keys.
 
-The :class:`Edit` widget has many capabilities. It lets you make
-corrections and move the cursor around with the *HOME*, *END* and arrow keys.
-It is based on the :class:`Text` widget so it supports the same
-wrapping and alignment modes.
+Here we are customizing the :class:`Edit` widget by subclassing it
+to handle one extra key: *ENTER*.
+
+* ``Question`` is an :class:`Edit` widget that starts with the caption
+  ``"What is your name?\n"``.  The newline at the end of the caption
+  makes the user input start on the next row.
+* ``Question.keypress()`` allows most keystrokes to be handled by
+  :meth:`Edit.keypress` so the user to enter their name.
+* When *ENTER* is pressed the Question widget is replaced with
+  a :class:`Text` response.
+* When the user presses *Q* after the response is displayed the
+  ``exit_on_q`` function will cause the program to exit.
+
 
 .. image:: edit1.png
 .. image:: edit2.png
