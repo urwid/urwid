@@ -89,6 +89,8 @@ also be used as part of custom widgets you create.
 
 .. image:: images/urwid_widgets_2.png
 
+.. _decoration-widgets:
+
 Decoration Widgets
 ==================
 
@@ -100,6 +102,8 @@ If you might be using more than one decoration widget you may use the
 "most" original_widget.
 :attr:`Widget.base_widget` points to ``self`` on all non-decoration widgets, so
 it is safe to use in any situation.
+
+.. _container-widgets:
 
 Container Widgets
 =================

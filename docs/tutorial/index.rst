@@ -115,8 +115,8 @@ is how these widgets react to being resized:
 
 .. seealso:: :ref:`using-display-attributes`
 
-High Color Modes
-----------------
+High Color Modes and Building Top-Down
+--------------------------------------
 
 This program displays the string ``Hello World`` in the center of the screen.
 It uses a number of 256-color-mode colors to decorate the text,
@@ -126,21 +126,36 @@ and will work in any terminal that supports 256-color mode. It will exit when
 .. literalinclude:: highcolors.py
    :linenos:
 
-* This palette only defines values for the high color foregroundand
-  backgrounds, because only the high colors will be used. A real application
-  should define values for all the modes in their palette. Valid foreground,
-  background and setting values are documented in :ref:`foreground-background`.
-
-* :class:`Divider` widgets are used to create blank lines,
-  colored with :class:`AttrMap`.
-
-* A :class:`Pile` widget arranges the
-  :class:`Divider` widgets above and below our text.
+This palette only defines values for the high color foregroundand
+backgrounds, because only the high colors will be used. A real application
+should define values for all the modes in their palette. Valid foreground,
+background and setting values are documented in :ref:`foreground-background`.
 
 * Behind the scenes our :class:`MainLoop` class has created a
   :class:`raw_display.Screen` object for drawing the screen. The program
   is put into 256-color mode by using the screen object's
   :meth:`raw_display.Screen.set_terminal_properties` method.
+
+This example builds the widgets to display in a top-down order. In some
+places we need to use a ``placeholder`` widget because we must provide
+a widget before the correct one has been created.
+
+* We change the topmost widget used by the :class:`MainLoop` by
+  assigning to its :attr:`MainLoop.widget` property.
+
+* :ref:`decoration-widgets` like :class:`AttrMap` have an
+  ``original_widget`` property that we can assign to to change the
+  widget they wrap.
+
+* :class:`Divider` widgets are used to create blank lines,
+  colored with :class:`AttrMap`.
+
+* :ref:`container-widgets` like :class:`Pile` have a
+  ``contents`` property that we can treat like a collection of
+  widgets and options.  :attr:`Pile.contents` supports normal list
+  operations including ``append()`` to add child widgets.
+  :meth:`Pile.options` is used to generate the default options
+  for the new child widgets.
 
 .. image:: highcolors1.png
 
@@ -149,8 +164,8 @@ Conversation Example
 ====================
 
 
-Customizing an Edit Widget
---------------------------
+Edit Widget and a Custom Decoration
+-----------------------------------
 
 This program asks for your name then responds ``Nice to meet you, (your
 name).``
@@ -162,8 +177,11 @@ The :class:`Edit` widget is based on the :class:`Text` widget but it accepts
 keyboard input for entering text, making corrections and
 moving the cursor around with the *HOME*, *END* and arrow keys.
 
-Here we are customizing the :class:`Edit` widget by subclassing it
-to handle one extra key: *ENTER*.
+Here we are customizing the :class:`Filler` decoration widget that is holding
+our :class:`Edit` widget by subclassing it and defining a new ``keypress()``
+method.  Customizing decoration or container widgets to handle input this way
+is a common pattern in Urwid applications.  This pattern is easier to maintain
+and extend than handling all special input in an ``unhandled_input`` function.
 
 * ``Question`` is an :class:`Edit` widget that starts with the caption
   ``"What is your name?\n"``.  The newline at the end of the caption
