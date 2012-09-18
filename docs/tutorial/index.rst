@@ -183,15 +183,18 @@ method.  Customizing decoration or container widgets to handle input this way
 is a common pattern in Urwid applications.  This pattern is easier to maintain
 and extend than handling all special input in an ``unhandled_input`` function.
 
-* ``Question`` is an :class:`Edit` widget that starts with the caption
-  ``"What is your name?\n"``.  The newline at the end of the caption
-  makes the user input start on the next row.
-* ``Question.keypress()`` allows most keystrokes to be handled by
-  :meth:`Edit.keypress` so the user to enter their name.
-* When *ENTER* is pressed the Question widget is replaced with
-  a :class:`Text` response.
-* When the user presses *Q* after the response is displayed the
-  ``exit_on_q`` function will cause the program to exit.
+* In ``QuestionBox.keypress()`` all keypresses except *ENTER* are passed along to
+  the default :meth:`Filler.keypress` which sends them to the
+  child :meth:`Edit.keypress` method.
+* Note that names containing *Q* can be entered into the :class:`Edit`
+  widget without causing the program to exit because :meth:`Edit.keypress`
+  indicates that it has handled the key by returning ``None``.
+  See :meth:`Widget.keypress` for more information.
+* When *ENTER* is pressed the child widget (``original_widget``) is changed
+  to :class:`Text` widget.
+* :class:`Text` widgets don't handle any keyboard input so all input
+  ends up in the ``unhandled_input`` function ``exit_on_q()``, allowing the
+  user to exit the program.
 
 
 .. image:: edit1.png
@@ -199,34 +202,26 @@ and extend than handling all special input in an ``unhandled_input`` function.
 .. image:: edit3.png
 
 
-Events and ListBox Widget
--------------------------
+Edit and Button Signals
+-----------------------
 
 This program asks for your name and responds "Nice to meet you, (your name)"
-*while* you type your name. *ENTER* exits.
+*while* you type your name.  Press *DOWN* then *SPACE* or *ENTER* to exit.
 
 .. literalinclude:: frlb.py
    :linenos:
 
 * An :class:`Edit` widget and :class:`Text` reply
   widget are created, like in the previous example.
-* A :class:`SimpleListWalker` is then created to manage the
-  contents and focus of our :class:`ListBox`. The
-  :class:`SimpleListWalker` behaves just like a list of widgets,
-  and can be modified like a regular list.
-* A :class:`ListBox` is created and passed the
-  :class:`SimpleListWalker`. The :class:`ListBox`
-  is a box widget and allows scrolling through its contents. This example is
-  simple enough that we could have used a :class:`Pile` widget
-  and :class:`Filler` widget instead, but we will see how the
-  :class:`ListBox` can be useful in later examples.
 * The :func:`connect_signal` function is used to attach our
-  :func:`on_ask_change` function to our :class:`Edit` widget's
-  *change* event. Now any time the content of the :class:`Edit`
+  ``on_ask_change()`` function to our :class:`Edit` widget's
+  *change* signal. Now any time the content of the :class:`Edit`
   widget changes :func:`on_ask_change` will be called and passed the new
   content.
-* Now :func:`on_ask_change` updates the reply text as the user enters their
-  name.
+* Finally we attach our ``on_exit_clicked()`` function to our
+  exit :class:`Button`'s *click* signal.
+* ``on_ask_change()`` updates the reply text as the user enters their
+  name and ``on_exit_click()`` exits.
 
 .. image:: frlb1.png
 .. image:: frlb2.png
@@ -234,8 +229,8 @@ This program asks for your name and responds "Nice to meet you, (your name)"
 .. image:: frlb4.png
 
 
-Modifying ListBox Content
--------------------------
+ListBox and SimpleFocusListWalker
+---------------------------------
 
 This program asks for your name and responds ``Nice to meet you, (your name).``
 It then asks again, and again. Old values may be changed and the responses will
@@ -243,37 +238,39 @@ be updated when you press *ENTER*. *ENTER* on a blank line exits.
 
 .. literalinclude:: lbcont.py
 
-* When the user presses *ENTER*:
+:class:`ListBox` widgets let you scroll through a number of flow widgets
+vertically.  It handles *UP*, *DOWN*, *PAGE UP* and *PAGE DOWN* keystrokes
+and changing the focus for you.  :ref:`listbox-contents` is managed by
+a "list walker", one of the list walkers that is easiest to use is
+:class:`SimpleFocusListWalker`.
 
-  * The widget in focus and its current position is retrieved by calling the
-    :meth:`ListBox.get_focus` function.
-  * If the widget in focus does not have an :attr:`edit_text` attribute, then
-    it is not one of the :class:`Edit` widgets we are interested
-    in. One of the :class:`Text` widgets might receive focus if
-    it covers the entire visible area of the :class:`ListBox`
-    widget and there is no :class:`Edit` widget to take focus.
-    While this is unlikely, it should be handled or the program will fail when
-    trying to access it.
-  * If there is no edit text we exit the program.
-  * The widget after the widget in focus (if any exists) is replaced with a
-    response.
-  * If there is no widget after that widget, a new :class:`Edit`
-    widget is created.
-  * The focus is then moved to the next :class:`Edit` widget by
-    calling :meth:`ListBox.set_focus`.
+:class:`SimpleFocusListWalker` is like a normal python list of widgets, but
+any time you insert or remove widgets the focus position is updated
+automatically.
 
-* All other keys are passed to the top widget to handle. The
-  :class:`ListBox` widget does most of the hard work:
+Here we are customizing our :class:`ListBox`'s keypress handling by overriding
+it in a subclass.
 
-  * *UP* and *DOWN* will change the focus and/or scroll the widgets in the list
-    box.
-  * *PAGE UP* and *PAGE DOWN* will try to move the focus one screen up or down.
-  * The cursor's column is maintained as best as possible when moving from one
-    :class:`Edit` widget to another.
+* ``question()`` is used to build widgets to communicate with the user.
+  Here we return a :class:`Pile` widget with a single :class:`Edit` widget
+  to start.
+* We retrieve the name entered with :attr:`ListBox.focus` to get the
+  :class:`Pile` in focus, the standard
+  :ref:`container widget <container-widgets>` method ``[0]`` to get the
+  first child of the pile and :attr:`Edit.edit_text`.
+* For the response we use the fact that we can treat
+  :attr:`Pile.contents` like a list of widgets and options to create or
+  replace any existing response by assigning to ``[1:]``.  We assign
+  the new response with the default :meth:`Pile.options`.
+* To add another question after the current one we treat our
+  :class:`SimpleFocusListWalker` like a normal list of widgets and call
+  ``insert()``, then update the focus position to the widget we just
+  created.
 
 .. image:: lbcont1.png
 .. image:: lbcont2.png
 .. image:: lbcont3.png
+.. image:: lbcont4.png
 
 
 Menu Example

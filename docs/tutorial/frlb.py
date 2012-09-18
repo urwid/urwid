@@ -1,19 +1,20 @@
 import urwid
 
-def exit_on_cr(key):
-    if key == 'enter':
-        raise urwid.ExitMainLoop()
-
-def on_ask_change(edit, new_edit_text):
-    assert edit is ask # we are passed our edit widget
-    reply.set_text(('I say',
-        u"Nice to meet you, " + new_edit_text))
-
 palette = [('I say', 'default,bold', 'default', 'bold'),]
 ask = urwid.Edit(('I say', u"What is your name?\n"))
 reply = urwid.Text(u"")
-listbox = urwid.ListBox(urwid.SimpleFocusListWalker([ask, reply]))
-urwid.connect_signal(ask, 'change', on_ask_change)
+button = urwid.Button(u'Exit')
+div = urwid.Divider()
+pile = urwid.Pile([ask, div, reply, div, button])
+top = urwid.Filler(pile, valign='top')
 
-loop = urwid.MainLoop(listbox, palette, unhandled_input=exit_on_cr)
-loop.run()
+def on_ask_change(edit, new_edit_text):
+    reply.set_text(('I say', u"Nice to meet you, %s" % new_edit_text))
+
+def on_exit_clicked(button):
+    raise urwid.ExitMainLoop()
+
+urwid.connect_signal(ask, 'change', on_ask_change)
+urwid.connect_signal(button, 'click', on_exit_clicked)
+
+urwid.MainLoop(top, palette).run()

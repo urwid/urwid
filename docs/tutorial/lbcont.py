@@ -1,33 +1,29 @@
 import urwid
 
-class Question(urwid.Edit):
-    def __init__(self):
-        super(Question, self).__init__(('I say', u"What is your name?\n"))
-
-    def keypress(self, size, key):
-        key = super(Question, self).keypress(size, key)
-        if key == 'enter' and not self.edit_text:
-            raise urwid.ExitMainLoop()
-        return key
+def question():
+    return urwid.Pile([urwid.Edit(('I say', u"What is your name?\n"))])
 
 def answer(name):
     return urwid.Text(('I say', u"Nice to meet you, " + name + "\n"))
 
 class ConversationListBox(urwid.ListBox):
     def __init__(self):
-        super(ConversationListBox, self).__init__(
-            urwid.SimpleFocusListWalker([Question()]))
+        body = urwid.SimpleFocusListWalker([question()])
+        super(ConversationListBox, self).__init__(body)
 
     def keypress(self, size, key):
         key = super(ConversationListBox, self).keypress(size, key)
-        if key != 'enter' or not hasattr(self.focus, 'edit_text'):
+        if key != 'enter':
             return key
-        # replace or add response below
+        name = self.focus[0].edit_text
+        if not name:
+            raise urwid.ExitMainLoop()
+        # replace or add response
+        self.focus.contents[1:] = [(answer(name), self.focus.options())]
         pos = self.focus_position
-        self.body[pos + 1:pos + 2] = [answer(self.focus.edit_text)]
-        if not self.body[pos + 2:pos + 3]: self.body.append(Question())
-        self.set_focus(pos + 2)
+        # add a new question
+        self.body.insert(pos + 1, question())
+        self.focus_position = pos + 1
 
-palette = [('I say', 'default,bold', 'default', 'bold'),]
-loop = urwid.MainLoop(ConversationListBox(), palette)
-loop.run()
+palette = [('I say', 'default,bold', 'default'),]
+urwid.MainLoop(ConversationListBox(), palette).run()
