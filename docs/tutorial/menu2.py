@@ -1,25 +1,24 @@
 import urwid
 
-def menu_button(caption, callback, data=None):
+def menu_button(caption, callback):
     button = urwid.Button(caption)
-    urwid.connect_signal(button, 'click', callback, data)
+    urwid.connect_signal(button, 'click', callback)
     return urwid.AttrMap(button, None, focus_map='reversed')
 
 def sub_menu(caption, choices):
     contents = menu(caption, choices)
-    return menu_button(u'MENU: %s' % caption, open_menu, contents)
+    def open_menu(button):
+        return top.open_menu(contents)
+    return menu_button(u'MENU: %s' % caption, open_menu)
 
 def menu(title, choices):
     body = [urwid.Text(title), urwid.Divider()]
     body.extend(choices)
-    return urwid.ListBox(urwid.SimpleListWalker(body))
-
-def open_menu(button, menu):
-    loop.widget = menu
+    return urwid.ListBox(urwid.SimpleFocusListWalker(body))
 
 def item_chosen(button):
     response = urwid.Text(u'You chose %s' % button.label)
-    loop.widget = urwid.Filler(response)
+    top.open_menu(urwid.Filler(response))
     # exit on the next input from user
     loop.unhandled_input = exit_program
 
@@ -41,6 +40,18 @@ menu_top = menu(u'Main Menu', [
     ]),
 ])
 
-loop = urwid.MainLoop(menu_top,
-    palette=[('reversed', 'standout', '')])
+class NestedMenus(urwid.WidgetPlaceholder):
+    def __init__(self, menu):
+        super(NestedMenus, self).__init__(urwid.SolidFill(u'/'))
+        self.menu_level = 0
+        self.open_menu(menu)
+
+    def open_menu(self, menu):
+        self.original_widget = urwid.Overlay(urwid.LineBox(menu),
+            self.original_widget, 'left', 24, 'top', 8,
+            left=self.menu_level * 2, top=self.menu_level * 2)
+        self.menu_level += 1
+
+top = NestedMenus(menu_top)
+loop = urwid.MainLoop(top, palette=[('reversed', 'standout', '')])
 loop.run()

@@ -237,6 +237,7 @@ It then asks again, and again. Old values may be changed and the responses will
 be updated when you press *ENTER*. *ENTER* on a blank line exits.
 
 .. literalinclude:: lbcont.py
+   :linenos:
 
 :class:`ListBox` widgets let you scroll through a number of flow widgets
 vertically.  It handles *UP*, *DOWN*, *PAGE UP* and *PAGE DOWN* keystrokes
@@ -279,11 +280,15 @@ Menu Example
 Simple Menu with Buttons
 ------------------------
 
-We can create a very simple menu using a list of :class:`Button` widgets.  This program
-lets you choose an option then repeats what you chose.
+We can create a very simple menu using a list of :class:`Button` widgets.
+This program lets you choose an option then repeats what you chose.
 
 .. literalinclude:: menu1.py
    :linenos:
+
+.. image:: menu11.png
+.. image:: menu12.png
+.. image:: menu13.png
 
 Nested Menus
 ------------
@@ -294,6 +299,11 @@ lets you choose an option from a nested menu then repeats what you chose.
 .. literalinclude:: menu2.py
    :linenos:
 
+.. image:: menu21.png
+.. image:: menu22.png
+.. image:: menu23.png
+.. image:: menu24.png
+
 Nested Menus with Custom Widgets
 --------------------------------
 
@@ -303,13 +313,23 @@ component we are creating. The :class:`Button` subclasses are customized to remo
 default decorations
 
 .. literalinclude:: menu3.py
+   :linenos:
 
-Adventure Game in Menus
------------------------
+.. image:: menu31.png
+.. image:: menu32.png
+.. image:: menu33.png
+.. image:: menu34.png
+
+"Adventure Game" in Menus
+-------------------------
 
 .. literalinclude:: menu4.py
+   :linenos:
 
-
+.. image:: menu41.png
+.. image:: menu42.png
+.. image:: menu43.png
+.. image:: menu44.png
 
 .. _zen-listbox:
 
