@@ -2224,7 +2224,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if self._command_map[key] == 'cursor left':
             candidates = range(i-1, -1, -1) # count backwards to 0
         else: # key == 'right'
-            candidates = range(i+1, len(widths))
+            candidates = range(i+1, len(self.contents))
 
         for j in candidates:
             if not self.contents[j][0].selectable():
