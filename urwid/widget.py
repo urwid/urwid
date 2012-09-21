@@ -1188,7 +1188,7 @@ class Edit(Text):
         >>> Edit(('bright',u"user@host:~$ "),"ls").get_text()
         (...'user@host:~$ ls', [('bright', 13)])
         >>> Edit(u"password:", u"seekrit", mask=u"*").get_text()
-        (...'password:******', [])
+        (...'password:*******', [])
         """
 
         if self._mask is None:
