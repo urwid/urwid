@@ -732,13 +732,16 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         left, right, top, bottom = self.calculate_padding_filler(size,
             focus)
         bottom_c = self.bottom_w.render(size)
+        if not bottom_c.cols() or not bottom_c.rows():
+            return CompositeCanvas(bottom_c)
+
         top_c = self.top_w.render(
             self.top_w_size(size, left, right, top, bottom), focus)
         top_c = CompositeCanvas(top_c)
-        if left<0 or right<0:
-            top_c.pad_trim_left_right(min(0,left), min(0,right))
-        if top<0 or bottom<0:
-            top_c.pad_trim_top_bottom(min(0,top), min(0,bottom))
+        if left < 0 or right < 0:
+            top_c.pad_trim_left_right(min(0, left), min(0, right))
+        if top < 0 or bottom < 0:
+            top_c.pad_trim_top_bottom(min(0, top), min(0, bottom))
 
         return CanvasOverlay(top_c, bottom_c, left, top)
 
@@ -1486,8 +1489,8 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             return SolidCanvas(" ", size[0], (size[1:]+(0,))[0])
 
         out = CanvasCombine(combinelist)
-        if len(size) == 2 and size[1] < out.rows():
-            # flow/fixed widgets rendered too large
+        if len(size) == 2 and size[1] != out.rows():
+            # flow/fixed widgets rendered too large/small
             out = CompositeCanvas(out)
             out.pad_trim_top_bottom(0, size[1] - out.rows())
         return out
@@ -2044,6 +2047,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             if i < len(widths) - 1:
                 mc += self.dividechars
             l.append((canv, i, self.focus_position == i, mc))
+
+        if not l:
+            return SolidCanvas(" ", size[0], (size[1:]+(0,))[0])
 
         canv = CanvasJoin(l)
         if canv.cols() < size[0]:

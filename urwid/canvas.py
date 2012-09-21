@@ -755,12 +755,12 @@ class CompositeCanvas(Canvas):
 
         left_shards = []
         right_shards = []
-        if left:
+        if left > 0:
             left_shards = [shards_trim_sides(side_shards, 0, left)]
-        if right:
-            right_shards = [shards_trim_sides(side_shards, 
-                left + width, right)]
-        
+        if right > 0:
+            right_shards = [shards_trim_sides(side_shards,
+                max(0, left + width), right)]
+
         if not self.rows():
             middle_shards = []
         elif left or right:
@@ -1022,7 +1022,7 @@ def shards_trim_sides(shards, left, cols):
     """
     Return shards with starting from column left and cols total width.
     """
-    assert left >= 0 and cols > 0
+    assert left >= 0 and cols > 0, (left, cols)
     shard_tail = []
     new_shards = []
     right = left + cols
