@@ -8,7 +8,7 @@ def menu_button(caption, callback):
 def sub_menu(caption, choices):
     contents = menu(caption, choices)
     def open_menu(button):
-        return top.open_menu(contents)
+        return top.open_box(contents)
     return menu_button(u'MENU: %s' % caption, open_menu)
 
 def menu(title, choices):
@@ -18,7 +18,7 @@ def menu(title, choices):
 
 def item_chosen(button):
     response = urwid.Text(u'You chose %s' % button.label)
-    top.open_menu(urwid.Filler(response))
+    top.open_box(urwid.Filler(response))
     # exit on the next input from user
     loop.unhandled_input = exit_program
 
@@ -40,18 +40,30 @@ menu_top = menu(u'Main Menu', [
     ]),
 ])
 
-class NestedMenus(urwid.WidgetPlaceholder):
-    def __init__(self, menu):
-        super(NestedMenus, self).__init__(urwid.SolidFill(u'/'))
-        self.menu_level = 0
-        self.open_menu(menu)
+class CascadingBoxes(urwid.WidgetPlaceholder):
+    def __init__(self, box):
+        super(CascadingBoxes, self).__init__(urwid.SolidFill(u'/'))
+        self.box_level = 0
+        self.open_box(box)
 
-    def open_menu(self, menu):
-        self.original_widget = urwid.Overlay(urwid.LineBox(menu),
-            self.original_widget, 'left', 24, 'top', 8,
-            left=self.menu_level * 2, top=self.menu_level * 2)
-        self.menu_level += 1
+    def open_box(self, box):
+        # NOTE: assumes we'll only ever have 4 boxes
+        self.original_widget = urwid.Overlay(urwid.LineBox(box),
+            self.original_widget,
+            align='center', width=('relative', 80),
+            valign='middle', height=('relative', 80),
+            min_width=24, min_height=8,
+            left=self.box_level * 3, right=(3 - self.box_level) * 3,
+            top=self.box_level * 2, bottom=(3 - self.box_level) * 2)
+        self.box_level += 1
 
-top = NestedMenus(menu_top)
+    def keypress(self, size, key):
+        if key == 'esc' and self.box_level > 1:
+            self.original_widget = self.original_widget[0]
+            self.box_level -= 1
+        else:
+            return super(CascadingBoxes, self).keypress(size, key)
+
+top = CascadingBoxes(menu_top)
 loop = urwid.MainLoop(top, palette=[('reversed', 'standout', '')])
 loop.run()

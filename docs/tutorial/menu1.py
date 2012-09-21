@@ -21,7 +21,9 @@ def exit_program(key):
 
 main = urwid.Padding(menu(u'Pythons', choices), left=2, right=2)
 top = urwid.Overlay(main, urwid.SolidFill(u'\u2592'),
-    'center', 20, 'middle', 9)
+    align='center', width=('relative', 60),
+    valign='middle', height=('relative', 60),
+    min_width=20, min_height=9)
 loop = urwid.MainLoop(top,
     palette=[('reversed', 'standout', '')])
 loop.run()
