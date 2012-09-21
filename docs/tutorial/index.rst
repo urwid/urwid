@@ -277,8 +277,8 @@ it in a subclass.
 Menu Example
 ============
 
-Simple Menu with Buttons
-------------------------
+Simple Menu with Buttons and Overlay
+------------------------------------
 
 We can create a very simple menu using a list of :class:`Button` widgets.
 This program lets you choose an option then repeats what you chose.
@@ -290,8 +290,8 @@ This program lets you choose an option then repeats what you chose.
 .. image:: menu12.png
 .. image:: menu13.png
 
-Nested Menus
-------------
+Cascading Menu with Overlay and WidgetPlaceholder
+-------------------------------------------------
 
 A nested menu effect can be created by having some buttons open new menus.  This program
 lets you choose an option from a nested menu then repeats what you chose.
@@ -304,8 +304,8 @@ lets you choose an option from a nested menu then repeats what you chose.
 .. image:: menu23.png
 .. image:: menu24.png
 
-Nested Menus with Custom Widgets
---------------------------------
+Horizontal Menu with Columns and WidgetWrap
+-------------------------------------------
 
 We can create new widget classes for the menu elements we are creating.  This program
 is the mostly the same as the one above but with classes defined for each menu
@@ -315,10 +315,13 @@ default decorations
 .. literalinclude:: menu3.py
    :linenos:
 
-.. image:: menu31.png
-.. image:: menu32.png
-.. image:: menu33.png
-.. image:: menu34.png
+.. figure:: menu31.png
+
+.. figure:: menu32.png
+
+.. figure:: menu33.png
+
+.. figure:: menu34.png
 
 "Adventure Game" in Menus
 -------------------------

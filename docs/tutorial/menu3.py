@@ -82,5 +82,5 @@ class HorizontalBoxes(urwid.Columns):
 
 top = HorizontalBoxes()
 top.open_box(menu_top)
-loop = urwid.MainLoop(top, palette)
+loop = urwid.MainLoop(urwid.Filler(top, 'middle', 10), palette)
 loop.run()
