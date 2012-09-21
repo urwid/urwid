@@ -1942,11 +1942,12 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         .. note:: only for backwards compatibility. You may also use the new
             standard container property :attr:`focus_position` to get the focus.
         """)
-    #TODO: depricate this throughout the Class?
 
     def column_widths(self, size, focus=False):
         """
         Return a list of column widths.
+
+        0 values in the list mean hide corresponding column completely
         """
         maxcol = size[0]
         # FIXME: get rid of this check and recalculate only when
@@ -1969,13 +1970,22 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             else:
                 static_w = self.min_width
 
-            if shared < static_w + self.dividechars:
+            if shared < static_w + self.dividechars and i > self.focus_position:
                 break
 
             widths.append(static_w)
             shared -= static_w + self.dividechars
             if t not in (GIVEN, PACK):
                 weighted.append((width, i))
+
+        # drop columns on the left until we fit
+        for i, w in enumerate(widths):
+            if shared >= 0:
+                break
+            shared += widths[i] + self.dividechars
+            widths[i] = 0
+            if weighted and weighted[0][1] == i:
+                del weighted[0]
 
         if shared:
             # divide up the remaining space between weighted cols
@@ -2073,8 +2083,6 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         :param row: index of row to focus
         :type row: int
         """
-        # TODO: how is this different from `self.focus_col = col`?
-
         widths = self.column_widths(size)
 
         best = None
