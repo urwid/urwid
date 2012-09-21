@@ -2374,6 +2374,8 @@ class WidgetSquishTest(unittest.TestCase):
         assert c.rows() == 0
         c = w.render((80,1), focus=False)
         assert c.rows() == 1
+        c = w.render((0, 25), focus=False)
+        c = w.render((1, 25), focus=False)
 
     def test_listbox(self):
         self.wstest(urwid.ListBox([]))
@@ -2416,6 +2418,7 @@ class WidgetSquishTest(unittest.TestCase):
 
     def test_columns(self):
         self.wstest(urwid.Columns([urwid.SolidFill()]))
+        self.wstest(urwid.Columns([(4, urwid.SolidFill())]))
 
 
 class CommonContainerTest(unittest.TestCase):
