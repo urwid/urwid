@@ -315,16 +315,13 @@ default decorations
 .. literalinclude:: menu3.py
    :linenos:
 
-.. figure:: menu31.png
+.. image:: menu31.png
+.. image:: menu32.png
+.. image:: menu33.png
+.. image:: menu34.png
 
-.. figure:: menu32.png
-
-.. figure:: menu33.png
-
-.. figure:: menu34.png
-
-"Adventure Game" in Menus
--------------------------
+"Adventure Game" with ListBox History
+-------------------------------------
 
 .. literalinclude:: menu4.py
    :linenos:

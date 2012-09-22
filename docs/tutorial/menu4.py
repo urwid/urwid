@@ -2,45 +2,34 @@ import urwid
 
 inventory = set()
 
-class MenuButton(urwid.Button):
+class ActionButton(urwid.Button):
     def __init__(self, caption, callback):
-        super(MenuButton, self).__init__("")
+        super(ActionButton, self).__init__("")
         urwid.connect_signal(self, 'click', callback)
         self._w = urwid.AttrMap(urwid.SelectableIcon(caption, 1),
             None, focus_map='reversed')
 
-class SubMenu(urwid.WidgetWrap):
-    def __init__(self, caption, choices):
-        super(SubMenu, self).__init__(
-            MenuButton(u" > go to " + caption, self.open_menu))
-        self.menu = Menu(caption, choices)
+class Place(urwid.WidgetWrap):
+    def __init__(self, name, choices):
+        super(Place, self).__init__(
+            ActionButton([u" > go to ", name], self.enter_place))
+        self.heading = urwid.Text([u"\nLocation: ", name, "\n"])
+        self.choices = choices
         # create links back to ourself
         for child in choices:
-            child_menu = getattr(child, 'menu', None)
-            if child_menu:
-                child_menu.set_parent(self)
+            getattr(child, 'choices', []).insert(0, self)
 
-    def open_menu(self, button):
-        loop.widget = self.menu
-
-class Menu(urwid.ListBox):
-    def __init__(self, title, choices):
-        super(Menu, self).__init__(urwid.SimpleListWalker([
-            urwid.Text(u"Location: " + title),
-            urwid.Divider()]))
-        self.body.extend(choices)
-        self.title = title
-
-    def set_parent(self, sub_menu):
-        self.body[2:2] = [sub_menu]
+    def enter_place(self, button):
+        top.move_to(self)
 
 class Thing(urwid.WidgetWrap):
     def __init__(self, name):
         super(Thing, self).__init__(
-            MenuButton(u" * take " + name, self.take_thing))
+            ActionButton([u" * take ", name], self.take_thing))
         self.name = name
 
     def take_thing(self, button):
+        loop.process_input(["up"]) # move focus off this widget
         self._w = urwid.Text(u" - %s (taken)" % self.name)
         inventory.add(self.name)
         if inventory >= set([u'sugar', u'lemon', u'jug']):
@@ -49,34 +38,43 @@ class Thing(urwid.WidgetWrap):
             # exit on the next input from user
             loop.unhandled_input = exit_program
             return
-        loop.process_input(["up"]) # move focus off this widget
 
 def exit_program(key):
     raise urwid.ExitMainLoop()
 
-menu_top_sub = SubMenu(u'porch', [
-    SubMenu(u'kitchen', [
-        SubMenu(u'refrigerator', []),
-        SubMenu(u'cupboard', [
+map_top = Place(u'porch', [
+    Place(u'kitchen', [
+        Place(u'refrigerator', []),
+        Place(u'cupboard', [
             Thing(u'jug'),
         ]),
     ]),
-    SubMenu(u'garden', [
-        SubMenu(u'tree', [
+    Place(u'garden', [
+        Place(u'tree', [
             Thing(u'lemon'),
             Thing(u'bird'),
         ]),
     ]),
-    SubMenu(u'street', [
-        SubMenu(u'store', [
+    Place(u'street', [
+        Place(u'store', [
             Thing(u'sugar'),
         ]),
-        SubMenu(u'lake', [
-            SubMenu(u'beach', []),
+        Place(u'lake', [
+            Place(u'beach', []),
         ]),
     ]),
 ])
 
-loop = urwid.MainLoop(menu_top_sub.menu,
-    palette=[('reversed', 'standout', '')])
+class AdventureLog(urwid.ListBox):
+    def __init__(self):
+        log = urwid.SimpleFocusListWalker([])
+        super(AdventureLog, self).__init__(log)
+
+    def move_to(self, place):
+        self.body.append(urwid.Pile([place.heading] + place.choices))
+        self.focus_position = len(self.body) - 1
+
+top = AdventureLog()
+top.move_to(map_top)
+loop = urwid.MainLoop(top, palette=[('reversed', 'standout', '')])
 loop.run()
