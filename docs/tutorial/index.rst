@@ -6,11 +6,9 @@
 
 .. currentmodule:: urwid
 
-Hello World Example
-===================
 
-Minimal Urwid Application
--------------------------
+Minimal Application
+-------------------
 
 This program displays the string ``Hello World`` in the top left corner of the
 screen and will run until interrupted with *CTRL+C* (*^C*).
@@ -38,8 +36,8 @@ screen and will run until interrupted with *CTRL+C* (*^C*).
 .. image:: minimal1.png
 
 
-Handling Input Globally
------------------------
+Global Input
+------------
 
 This program initially displays the string ``Hello World``, then it displays
 each key pressed, exiting when the user presses *Q*.
@@ -65,8 +63,8 @@ each key pressed, exiting when the user presses *Q*.
 .. image:: input5.png
 
 
-AttrMap Widgets and Display Attributes
---------------------------------------
+Display Attributes
+------------------
 
 This program displays the string ``Hello World`` in the center of the screen.
 It uses different attributes for the text, the space on either side of the text
@@ -115,8 +113,8 @@ is how these widgets react to being resized:
 
 .. seealso:: :ref:`using-display-attributes`
 
-High Color Modes and Building Top-Down
---------------------------------------
+High Color Modes
+----------------
 
 This program displays the string ``Hello World`` in the center of the screen.
 It uses a number of 256-color-mode colors to decorate the text,
@@ -160,12 +158,9 @@ a widget before the correct one has been created.
 .. image:: highcolors1.png
 
 
-Conversation Example
-====================
 
-
-Edit Widget and a Custom Decoration
------------------------------------
+Question and Answer
+-------------------
 
 This program asks for your name then responds ``Nice to meet you, (your
 name).``
@@ -202,8 +197,8 @@ and extend than handling all special input in an ``unhandled_input`` function.
 .. image:: edit3.png
 
 
-Edit and Button Signals
------------------------
+Signal Handlers
+---------------
 
 This program asks for your name and responds "Nice to meet you, (your name)"
 *while* you type your name.  Press *DOWN* then *SPACE* or *ENTER* to exit.
@@ -229,8 +224,8 @@ This program asks for your name and responds "Nice to meet you, (your name)"
 .. image:: frlb4.png
 
 
-ListBox and SimpleFocusListWalker
----------------------------------
+Multiple Questions
+------------------
 
 This program asks for your name and responds ``Nice to meet you, (your name).``
 It then asks again, and again. Old values may be changed and the responses will
@@ -274,11 +269,8 @@ it in a subclass.
 .. image:: lbcont4.png
 
 
-Menu Example
-============
-
-Simple Menu with Buttons and Overlay
-------------------------------------
+Simple Menu
+-----------
 
 We can create a very simple menu using a list of :class:`Button` widgets.
 This program lets you choose an option then repeats what you chose.
@@ -290,8 +282,8 @@ This program lets you choose an option then repeats what you chose.
 .. image:: menu12.png
 .. image:: menu13.png
 
-Cascading Menu with Overlay and WidgetPlaceholder
--------------------------------------------------
+Cascading Menu
+--------------
 
 A nested menu effect can be created by having some buttons open new menus.  This program
 lets you choose an option from a nested menu then repeats what you chose.
@@ -304,8 +296,8 @@ lets you choose an option from a nested menu then repeats what you chose.
 .. image:: menu23.png
 .. image:: menu24.png
 
-Horizontal Menu with Columns and WidgetWrap
--------------------------------------------
+Horizontal Menu
+---------------
 
 We can create new widget classes for the menu elements we are creating.  This program
 is the mostly the same as the one above but with classes defined for each menu
@@ -320,8 +312,8 @@ default decorations
 .. image:: menu33.png
 .. image:: menu34.png
 
-"Adventure Game" with ListBox History
--------------------------------------
+Adventure Game
+--------------
 
 .. literalinclude:: menu4.py
    :linenos:
