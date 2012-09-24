@@ -163,7 +163,7 @@ class Screen(BaseScreen, RealTerminal):
     def start(self, alternate_buffer=True):
         """
         Initialize the screen and input mode.
-        
+
         alternate_buffer -- use alternate screen buffer
         """
         assert not self._started
@@ -182,13 +182,15 @@ class Screen(BaseScreen, RealTerminal):
         self._alternate_buffer = alternate_buffer
         self._input_iter = self._run_input_iter()
         self._next_timeout = self.max_wait
-        
+
         if not self._signal_keys_set:
             self._old_signal_keys = self.tty_signal_keys(fileno=fd)
 
         super(Screen, self).start()
 
-    
+        signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
+
+
     def stop(self):
         """
         Restore the screen.
@@ -196,6 +198,9 @@ class Screen(BaseScreen, RealTerminal):
         self.clear()
         if not self._started:
             return
+
+        signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
+
         self.signal_restore()
 
         fd = self._term_input_file.fileno()
@@ -299,14 +304,14 @@ class Screen(BaseScreen, RealTerminal):
                     break
             if keys[-1:]!=['window resize']:
                 keys.append('window resize')
-                
+
         if keys==['window resize']:
             self.prev_input_resize = 2
         elif self.prev_input_resize == 2 and not keys:
             self.prev_input_resize = 1
         else:
             self.prev_input_resize = 0
-        
+
         if raw_keys:
             return keys, raw
         return keys
@@ -318,18 +323,21 @@ class Screen(BaseScreen, RealTerminal):
 
         Use this method if you are implementing yout own event loop.
         """
+        if not self._started:
+            return []
+
         fd_list = [self._term_input_file.fileno(), self._resize_pipe_rd]
         if self.gpm_mev is not None:
             fd_list.append(self.gpm_mev.stdout.fileno())
         return fd_list
-        
+
     def get_input_nonblocking(self):
         """
-        Return a (next_input_timeout, keys_pressed, raw_keycodes) 
+        Return a (next_input_timeout, keys_pressed, raw_keycodes)
         tuple.
 
         Use this method if you are implementing your own event loop.
-        
+
         When there is input waiting on one of the descriptors returned
         by get_input_descriptors() this method should be called to
         read and process the input.
