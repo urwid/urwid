@@ -289,10 +289,13 @@ class MainLoop(object):
             for handle in fd_handles:
                 self.event_loop.remove_watch_file(handle)
             if only_remove:
-                return
-            fd_handles[:] = [
-                self.event_loop.watch_file(fd, self._update)
-                for fd in self.screen.get_input_descriptors()]
+                del fd_handles[:]
+            else:
+                fd_handles[:] = [
+                    self.event_loop.watch_file(fd, self._update)
+                    for fd in self.screen.get_input_descriptors()]
+            if not fd_handles and self._input_timeout is not None:
+                self.event_loop.remove_alarm(self._input_timeout)
 
         try:
             signals.connect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED,
