@@ -587,8 +587,8 @@ a :class:`Pile` or other container widget to combine a
 selectable widget with other widgets that should be visible at the same time.
 
 
-Customizing Widgets
-===================
+Custom Widgets
+==============
 
 Widgets in Urwid are easiest to create by extending other widgets. If you are
 making a new type of widget that can use other widgets to display its content,
@@ -638,9 +638,8 @@ This can be done by either subclassing the original widget or by wrapping it.
 Subclassing is appropriate when you need to interact at a very low level with
 the original widget, such as if you are creating a custom edit widget with
 different behavior than the usual Edit widgets. If you are creating a custom
-widget that doesn't need tight coupling with the original widget, such as a
-widget that displays customer address information, then wrapping is more
-appropriate.
+widget that doesn't need tight coupling with the original widget then
+wrapping is more appropriate.
 
 The :class:`WidgetWrap` class simplifies wrapping existing
 widgets. You can create a custom widget simply by creating a subclass of
@@ -656,17 +655,17 @@ The above code creates a group of RadioButtons and provides a method to
 query the state of the buttons.
 
 
-Anatomy of a Widget
--------------------
+Widgets from Scratch
+--------------------
 
-Any object that follows the `Widget interface definition`_ may be used as a
-widget. Box widgets must implement selectable_ and render_ methods, and flow
-widgets must implement selectable, render and rows_ methods.
+Widgets must inherit from :class:`Widget`.
+Box widgets must implement :meth:`Widget.selectable` and :meth:`Widget.render`
+methods, and flow widgets must implement :meth:`Widget.selectable`,
+:meth:`Widget.render` and :meth:`Widget.rows` methods.
 
-.. _Widget interface definition: :class:`Widget`
-.. _selectable: :meth:`Widget.selectable`
-.. _render: :meth:`Widget.render`
-.. _rows: :meth:`Widget.rows`
+The default :meth:`Widget.sizing` method returns a set of sizing modes supported
+from ``self._sizing``, so we define ``_sizing`` attributes for our flow and
+box widgets below.
 
 .. literalinclude:: wanat.py
    :linenos:
@@ -680,19 +679,8 @@ Note that the rows and render methods' focus parameter must have a default
 value of False. Also note that for flow widgets the number of rows returned by
 the rows method must match the number of rows rendered by the render method.
 
-In most cases it is easier to let other widgets handle the rendering and row
-calculations for you:
-
-.. literalinclude:: wanat_new.py
-   :linenos:
-
-The NewPudding class behaves the same way as the Pudding class above, but in
-NewPudding you can change the way the widget appears by modifying only the
-display_widget method, whereas in the Pudding class you may have to modify both
-the render and rows methods.
-
 To improve the efficiency of your Urwid application you should be careful of
-how long your rows methods take to execute. The rows methods may be called many
+how long your ``rows()`` methods take to execute. The ``rows()`` methods may be called many
 times as part of input handling and rendering operations. If you are using a
 display widget that is time consuming to create you should consider caching it
 to reduce its impact on performance.
@@ -708,15 +696,13 @@ number of elements in the size tuple determines whether the containing widget
 is expecting a flow widget or a box widget.
 
 
-Creating a Selectable Widget
-----------------------------
+Selectable Widgets
+------------------
 
 Selectable widgets such as Edit and Button widgets allow the user to interact
 with the application. A widget is selectable if its selectable method returns
-True. Selectable widgets must implement the keypress_ method to handle keyboard
-input.
-
-.. _keypress: :meth:`Widget.keypress`
+True. Selectable widgets must implement the :meth:`Widgte.keypress` method to
+handle keyboard input.
 
 .. literalinclude:: wsel.py
 
@@ -733,16 +719,16 @@ keys are returned so that if this widget is in a
 as the user expects and change the focus or scroll the
 :class:`ListBox`.
 
+
 Widget Displaying the Cursor
 ----------------------------
 
-Widgets that display the cursor must implement the get_cursor_coords_ method.
+Widgets that display the cursor must implement the
+:meth:`Widget.get_cursor_coords` method.
 Similar to the rows method for flow widgets, this method lets other widgets
 make layout decisions without rendering the entire widget. The
 :class:`ListBox` widget in particular uses get_cursor_coords to
 make sure that the cursor is visible within its focus widget.
-
-.. _get_cursor_coords: :meth:`Widget.get_cursor_coords`
 
 .. literalinclude:: wcur1.py
    :linenos:
@@ -752,22 +738,19 @@ CursorPudding will let the user move the cursor through the widget by pressing
 is in focus. The get_cursor_coords method must always return the same cursor
 coordinates that render does.
 
-A widget displaying a cursor may choose to implement get_pref_col. This method
+A widget displaying a cursor may choose to implement :meth:`Widget.get_pref_col`.
+This method
 returns the preferred column for the cursor, and is called when the focus is
 moving up or down off this widget.
 
-.. _get_pref_col: :meth:`Widget.get_pref_col`
-
-Another optional method is move_cursor_to_coords_. This method allows other
+Another optional method is :meth:`Widget.move_cursor_to_coords`. This method allows other
 widgets to try to position the cursor within this widget. The
-:class:`ListBox` widget uses :meth:`move_cursor_to_coords` when
+:class:`ListBox` widget uses :meth:`Widget.move_cursor_to_coords` when
 changing focus and when the user pressed *PAGE UP* or *PAGE DOWN*. This method
 must return ``True`` on success and ``False`` on failure. If the cursor may be
 placed at any position within the row specified (not only at the exact column
 specified) then this method must move the cursor to that position and return
 ``True``.
-
-.. _move_cursor_to_coords: :meth:`Widget.move_cursor_to_coords`
 
 .. literalinclude:: wcur2.py
    :linenos:
