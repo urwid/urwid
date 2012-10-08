@@ -265,7 +265,7 @@ it in a subclass.
   the default options using :meth:`Pile.options`.
 * To add another question after the current one we treat our
   :class:`SimpleFocusListWalker` stored as :attr:`ListBox.body` like a normal
-  list of widgets and call ``insert()``, then update the focus position to the widget we just
+  list of widgets by calling *insert*, then update the focus position to the widget we just
   created.
 
 .. image:: lbcont1.png
@@ -283,6 +283,20 @@ This program lets you choose an option then repeats what you chose.
 .. literalinclude:: menu1.py
    :linenos:
 
+* *menu* builds a :class:`ListBox` with a *title* and a sequence of :class:`Button`
+  widgets.  Each button has its ``'click'`` signal attached to *item_chosen*,
+  with item name is passed as data.
+  The buttons are decorated with an :class:`AttrMap` that applies
+  a display attribute when a button is in focus.
+* *item_chosen* replaces the menu displayed with text indicating the users'
+  choice.  It then installs *exit_program* as the *unhandled_input* method of the
+  :class:`MainLoop`.
+* *exit_program* causes the program to exit on any keystroke.
+* The menu is created and decorated with an :class:`Overlay` using a
+  :class:`SolidFill` as the background.  The :class:`Overlay` is given a
+  miniumum width and height but is allowed to expand to 60% of the available
+  space if the user's terminal window is large enough.
+
 .. image:: menu11.png
 .. image:: menu12.png
 .. image:: menu13.png
@@ -291,10 +305,52 @@ Cascading Menu
 --------------
 
 A nested menu effect can be created by having some buttons open new menus.  This program
-lets you choose an option from a nested menu then repeats what you chose.
+lets you choose an option from a nested menu then repeats what you chose.  You may also
+return to previous menus by pressing *ESC*.
 
 .. literalinclude:: menu2.py
    :linenos:
+
+* *menu_button* returns an :class:`AttrMap`-decorated :class:`Button`
+  and attaches a *callback* to the the its ``'click'`` signal.  This function is
+  used for both sub-menus and final selection buttons.
+* *sub_menu* creates a menu button and a closure that will open the the
+  menu when that button is clicked.  Notice that
+  :ref:`text markup <text-markup>` is used to add ``'...'`` to the end of
+  the *caption* passed to *menu_button*.
+* *menu* builds a :class:`ListBox` with a *title* and a sequence of widgets.
+* *item_chosen* displays the users' choice similar to the previous example.
+* *menu_top* is the top level menu with all of its child menus and
+  options built using the functions above.
+
+This example introduces :class:`WidgetPlaceholder`. :class:`WidgetPlaceholder` is a
+:ref:`decoration widget <decoration-widgets>` that does nothing to the widget it
+decorates.  It is useful if you need a simple way to replace a widget that doesn't
+involve knowing its position in a :ref:`container <container-widgets>`, or in this
+case as a base class for a widget that will be replacing its own contents regularly.
+
+* *CascadingBoxes* is a new widget that extends :class:`WidgetPlaceholder`.
+  It provides an *open_box* method that displays a box widget *box* "on top of"
+  all the previous content with an :class:`Overlay` and a :class:`LineBox`.
+  The position of each successive box is shifted right and down from the
+  previous one.
+* *CascadingBoxes.keypress* intercepts *ESC* keys to cause the current box
+  to be removed and the previous one to be shown.  This allows the user to
+  return to a previous menu level.
+
+In this example there is a subtle effect that prevents pressing *ESC* to return
+to a menu once an item is chosen.  *item_chosen* displays a
+widget that is not selectable, and the default for
+:ref:`decoration widgets <decoration-widgets>` including :class:`WidgetPlaceholder`
+is to reflect the selectable state of the widget contained.  :class:`MainLoop`
+will not call :meth:`Widget.keypress`
+on non-selectable widgets, so *ESC* will not reach our *CascadingBoxes.keypress*
+method once an item is chosen.
+
+If you did want to allow backing out after a selection was made you could make
+*CascadingBoxes* selectable by defining a :meth:`Widget.selectable` method.
+You would also need to handle exiting the program in a cleaner way than
+by overwriting :meth:`MainLoop.unhandled_input` as *item_chosen* does above.
 
 .. image:: menu21.png
 .. image:: menu22.png

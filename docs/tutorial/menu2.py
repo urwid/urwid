@@ -9,7 +9,7 @@ def sub_menu(caption, choices):
     contents = menu(caption, choices)
     def open_menu(button):
         return top.open_box(contents)
-    return menu_button(u'MENU: %s' % caption, open_menu)
+    return menu_button([caption, u'...'], open_menu)
 
 def menu(title, choices):
     body = [urwid.Text(title), urwid.Divider()]
