@@ -1,7 +1,5 @@
 import urwid
 
-inventory = set()
-
 class ActionButton(urwid.Button):
     def __init__(self, caption, callback):
         super(ActionButton, self).__init__("")
@@ -20,7 +18,7 @@ class Place(urwid.WidgetWrap):
             getattr(child, 'choices', []).insert(0, self)
 
     def enter_place(self, button):
-        top.move_to(self)
+        game.update_place(self)
 
 class Thing(urwid.WidgetWrap):
     def __init__(self, name):
@@ -29,13 +27,8 @@ class Thing(urwid.WidgetWrap):
         self.name = name
 
     def take_thing(self, button):
-        loop.process_input(["up"]) # move focus off this widget
         self._w = urwid.Text(u" - %s (taken)" % self.name)
-        inventory.add(self.name)
-        if inventory >= set([u'sugar', u'lemon', u'jug']):
-            response = urwid.Text(u'You can make lemonade!\n')
-            done = ActionButton(u' - Joy', exit_program)
-            loop.widget = urwid.Filler(urwid.Pile([response, done]))
+        game.take_thing(self)
 
 def exit_program(button):
     raise urwid.ExitMainLoop()
@@ -63,16 +56,28 @@ map_top = Place(u'porch', [
     ]),
 ])
 
-class AdventureLog(urwid.ListBox):
+class AdventureGame(object):
     def __init__(self):
-        log = urwid.SimpleFocusListWalker([])
-        super(AdventureLog, self).__init__(log)
+        self.log = urwid.SimpleFocusListWalker([])
+        self.top = urwid.ListBox(self.log)
+        self.inventory = set()
+        self.update_place(map_top)
 
-    def move_to(self, place):
-        self.body.append(urwid.Pile([place.heading] + place.choices))
-        self.focus_position = len(self.body) - 1
+    def update_place(self, place):
+        if self.log: # disable interaction with previous place
+            self.log[-1] = urwid.WidgetDisable(self.log[-1])
+        self.log.append(urwid.Pile([place.heading] + place.choices))
+        self.top.focus_position = len(self.log) - 1
+        self.place = place
 
-top = AdventureLog()
-top.move_to(map_top)
-loop = urwid.MainLoop(top, palette=[('reversed', 'standout', '')])
-loop.run()
+    def take_thing(self, thing):
+        self.inventory.add(thing.name)
+        if self.inventory >= set([u'sugar', u'lemon', u'jug']):
+            response = urwid.Text(u'You can make lemonade!\n')
+            done = ActionButton(u' - Joy', exit_program)
+            self.log[:] = [response, done]
+        else:
+            self.update_place(self.place)
+
+game = AdventureGame()
+urwid.MainLoop(game.top, palette=[('reversed', 'standout', '')]).run()

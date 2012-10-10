@@ -357,18 +357,25 @@ and new widget classes are used instead of factory functions.
 
 * *MenuButton* is a customized :class:`Button` widget.  :class:`Button` uses
   :class:`WidgetWrap` to create its appearance and this class replaces the
-  display widget created by :class:`Button` by assigning to ``self._w`` in its
-  constructor.
+  display widget created by :class:`Button` by the wrapped widget in
+  *self._w*.
 * *SubMenu* is implemented with a *MenuButton* but uses :class:`WidgetWrap`
   to hide the implementation instead of inheriting from *MenuButton*.
-  Storing the menu that will be opened by this button as an attribute is a
-  good alternative to using factory functions and closures.
-* *Menu* is implemented with a :class:`ListBox` hidden with :class:`WidgetWrap`.
-  This will make the implementation opaque to outside users so things like
-  setting the focus or iterating over children will not work as it would
-  if a simple factory function was used.  This might make sense if you want
-  to add a whole new interface to your class or control how its children are
-  accessed.
+  The constructor builds a widget for the menu that this button will open
+  and stores it in *self.menu*.
+* *Choice* is like *SubMenu* but displays the item chosen instead of
+  another menu.
+
+The *palette* used in this example includes an entry with the special name
+``None``.  The foreground and background specified in this entry are used
+as a default when no other display attribute is specified.
+
+* *HorizontalBoxes* arranges the menus displayed similar to the previous
+  example.  There is no special handling required for going to previous
+  menus here because :class:`Columns` already handles switching focus
+  when *LEFT* or *RIGHT* is pressed.  :class:`AttrMap` with the *focus_map*
+  dict is used to change the appearance of a number of the display attributes
+  when a menu is in focus.
 
 .. image:: menu31.png
 .. image:: menu32.png
@@ -378,8 +385,20 @@ and new widget classes are used instead of factory functions.
 Adventure Game
 --------------
 
+We can use the same sort of code to build a simple adventure game.  Instead
+of menus we have "places" and instead of submenus and parent menus we just
+have "exits".  This example scrolls previous places off the top of the
+screen, allowing you to scroll back to view but not interact with previous
+places.
+
 .. literalinclude:: menu4.py
    :linenos:
+
+This example starts to show some separation between the application logic
+and the widgets that have been created.  The *AdventureGame* class is
+responsible for all the changes that happen through the game and manages
+the topmost widget, but isn't a widget itself.  This is a good pattern to
+follow as your application grows larger.
 
 .. image:: menu41.png
 .. image:: menu42.png

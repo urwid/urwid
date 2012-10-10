@@ -11,19 +11,15 @@ class SubMenu(urwid.WidgetWrap):
     def __init__(self, caption, choices):
         super(SubMenu, self).__init__(MenuButton(
             [caption, u"\N{HORIZONTAL ELLIPSIS}"], self.open_menu))
-        self.menu = Menu(caption, choices)
+        line = urwid.Divider(u'\N{LOWER ONE QUARTER BLOCK}')
+        listbox = urwid.ListBox(urwid.SimpleFocusListWalker([
+            urwid.AttrMap(urwid.Text([u"\n  ", caption]), 'heading'),
+            urwid.AttrMap(line, 'line'),
+            urwid.Divider()] + choices + [urwid.Divider()]))
+        self.menu = urwid.AttrMap(listbox, 'options')
 
     def open_menu(self, button):
         top.open_box(self.menu)
-
-class Menu(urwid.WidgetWrap):
-    def __init__(self, title, choices):
-        line = urwid.AttrMap(urwid.Divider(u'\N{LOWER ONE QUARTER BLOCK}'),
-            'line')
-        listbox = urwid.ListBox(urwid.SimpleFocusListWalker([
-            urwid.AttrMap(urwid.Text([u"\n  ", title]), 'heading'),
-            line, urwid.Divider()] + choices + [urwid.Divider()]))
-        super(Menu, self).__init__(urwid.AttrMap(listbox, 'options'))
 
 class Choice(urwid.WidgetWrap):
     def __init__(self, caption):
@@ -40,7 +36,7 @@ class Choice(urwid.WidgetWrap):
 def exit_program(key):
     raise urwid.ExitMainLoop()
 
-menu_top = Menu(u'Main Menu', [
+menu_top = SubMenu(u'Main Menu', [
     SubMenu(u'Applications', [
         SubMenu(u'Accessories', [
             Choice(u'Text Editor'),
@@ -81,5 +77,5 @@ class HorizontalBoxes(urwid.Columns):
         self.focus_position = len(self.contents) - 1
 
 top = HorizontalBoxes()
-top.open_box(menu_top)
+top.open_box(menu_top.menu)
 urwid.MainLoop(urwid.Filler(top, 'middle', 10), palette).run()
