@@ -248,35 +248,38 @@ class Screen(BaseScreen, RealTerminal):
         If raw_keys is False (default) this function will return a list
         of keys pressed.  If raw_keys is True this function will return
         a ( keys pressed, raw keycodes ) tuple instead.
-        
-        Examples of keys returned
-        -------------------------
-        ASCII printable characters:  " ", "a", "0", "A", "-", "/" 
-        ASCII control characters:  "tab", "enter"
-        Escape sequences:  "up", "page up", "home", "insert", "f1"
-        Key combinations:  "shift f1", "meta a", "ctrl b"
-        Window events:  "window resize"
-        
-        When a narrow encoding is not enabled
-        "Extended ASCII" characters:  "\\xa1", "\\xb2", "\\xfe"
 
-        When a wide encoding is enabled
-        Double-byte characters:  "\\xa1\\xea", "\\xb2\\xd4"
+        Examples of keys returned:
 
-        When utf8 encoding is enabled
-        Unicode characters: u"\\u00a5", u'\\u253c"
+        * ASCII printable characters:  " ", "a", "0", "A", "-", "/"
+        * ASCII control characters:  "tab", "enter"
+        * Escape sequences:  "up", "page up", "home", "insert", "f1"
+        * Key combinations:  "shift f1", "meta a", "ctrl b"
+        * Window events:  "window resize"
 
-        Examples of mouse events returned
-        ---------------------------------
-        Mouse button press: ('mouse press', 1, 15, 13), 
+        When a narrow encoding is not enabled:
+
+        * "Extended ASCII" characters:  "\\xa1", "\\xb2", "\\xfe"
+
+        When a wide encoding is enabled:
+
+        * Double-byte characters:  "\\xa1\\xea", "\\xb2\\xd4"
+
+        When utf8 encoding is enabled:
+
+        * Unicode characters: u"\\u00a5", u'\\u253c"
+
+        Examples of mouse events returned:
+
+        * Mouse button press: ('mouse press', 1, 15, 13),
                             ('meta mouse press', 2, 17, 23)
-        Mouse button release: ('mouse release', 0, 18, 13),
+        * Mouse button release: ('mouse release', 0, 18, 13),
                               ('ctrl mouse release', 0, 17, 23)
         """
         assert self._started
-        
+
         keys, raw = self._get_input( self.max_tenths )
-        
+
         # Avoid pegging CPU at 100% when slowly resizing, and work
         # around a bug with some braindead curses implementations that 
         # return "no key" between "window resize" commands 

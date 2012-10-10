@@ -110,18 +110,23 @@ class GridFlowError(Exception):
     pass
 
 class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixin):
+    """
+    The GridFlow widget is a flow widget that renders all the widgets it
+    contains the same width and it arranges them from left to right and top to
+    bottom. 
+    """
     def sizing(self):
         return frozenset([FLOW])
 
     def __init__(self, cells, cell_width, h_sep, v_sep, align):
         """
-        cells -- list of flow widgets to display
-        cell_width -- column width for each cell
-        h_sep -- blank columns between each cell horizontally
-        v_sep -- blank rows between cells vertically (if more than
-                 one row is required to display all the cells)
-        align -- horizontal alignment of cells, see "align" parameter
-                 of Padding widget for available options
+        :param cells: list of flow widgets to display
+        :param cell_width: column width for each cell
+        :param h_sep: blank columns between each cell horizontally
+        :param v_sep: blank rows between cells vertically
+            (if more than one row is required to display all the cells)
+        :param align: horizontal alignment of cells, one of\:
+            'left', 'center', 'right', ('relative', percentage 0=left 100=right)
         """
         self._contents = MonitoredFocusList([
             (w, (GIVEN, cell_width)) for w in cells])
@@ -163,9 +168,11 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         if focus_position < len(widgets):
             self.focus_position = focus_position
     cells = property(_get_cells, _set_cells, doc="""
-        A list of the widgets in this GridFlow, for backwards compatibility
-        only.  You should use the new standard container property .contents
-        to modify GridFlow contents.
+        A list of the widgets in this GridFlow
+
+        .. note:: only for backwards compatibility. You should use the new
+            use the new standard container property :attr:`contents` to modify
+            GridFlow contents.
         """)
 
     def _get_cell_width(self):
@@ -177,7 +184,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         self.focus_position = focus_position
         self._cell_width = width
     cell_width = property(_get_cell_width, _set_cell_width, doc="""
-        The width of each cell in the GridFlow.  Setting this value affects
+        The width of each cell in the GridFlow. Setting this value affects
         all cells.
         """)
 
@@ -189,18 +196,14 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         The contents of this GridFlow as a list of (widget, options)
         tuples.
 
-        options is currently a tuple in the form:
-        ('fixed', number) -- number is the number of screen columns to
-            allocate to this cell.
-
+        options is currently a tuple in the form `('fixed', number)`.
+        number is the number of screen columns to allocate to this cell.
         'fixed' is the only type accepted at this time.
 
         This list may be modified like a normal list and the GridFlow
         widget will update automatically.
 
-        Create new options tuples with the options() method for
-        forward compatibility, as more options may be added in the
-        future.
+        .. seealso:: Create new options tuples with the :meth:`options` method.
         """)
 
     def options(self, width_type=GIVEN, width_amount=None):
@@ -218,11 +221,13 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
 
     def set_focus(self, cell):
         """
-        Set the cell in focus, for backwards compatibility.  You may also
-        use the new standard container property .focus_position to set
-        the position by integer index instead.
+        Set the cell in focus, for backwards compatibility.
 
-        cell -- widget or integer index
+        .. note:: only for backwards compatibility. You may also use the new
+            standard container property :attr:`focus_position` to get the focus.
+
+        :param cell: contained element to focus
+        :type cell: Widget or int
         """
         if isinstance(cell, int):
             return self._set_focus_position(cell)
@@ -230,9 +235,10 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
 
     def get_focus(self):
         """
-        Return the widget in focus, for backwards compatibility.  You may
-        also use the new standard container property .focus to get the
-        child widget in focus.
+        Return the widget in focus, for backwards compatibility.
+
+        .. note:: only for backwards compatibility. You may also use the new
+            standard container property :attr:`focus` to get the focus.
         """
         if not self.contents:
             return None
@@ -247,10 +253,12 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
                 return
         raise ValueError("Widget not found in GridFlow contents: %r" % (cell,))
     focus_cell = property(get_focus, _set_focus_cell, doc="""
-        The widget in focus, for backwards compatibility.  You may also
-        use the new standard container property .focus to get the widget
-        in focus and .focus_position to get/set the cell in focus by
-        index.
+        The widget in focus, for backwards compatibility.
+
+        .. note:: only for backwards compatibility. You should use the new
+            use the new standard container property :attr:`focus` to get the
+            widget in focus and :attr:`focus_position` to get/set the cell in
+            focus by index.
         """)
 
     def _get_focus_position(self):
@@ -274,7 +282,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             raise IndexError, "No GridFlow child widget at position %s" % (position,)
         self.contents.focus = position
     focus_position = property(_get_focus_position, _set_focus_position, doc="""
-        index of child widget in focus.  Raises IndexError if read when
+        index of child widget in focus. Raises :exc:`IndexError` if read when
         GridFlow is empty, or when set to an invalid index.
         """)
 
@@ -374,12 +382,10 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         return key
 
     def rows(self, size, focus=False):
-        """Return rows used by this widget."""
         self.get_display_widget(size)
         return self.__super.rows(size, focus=focus)
 
     def render(self, size, focus=False ):
-        """Use display widget to render."""
         self.get_display_widget(size)
         return self.__super.render(size, focus)
 
@@ -396,7 +402,6 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         return rval
 
     def mouse_event(self, size, event, button, col, row, focus):
-        """Send mouse event to contained widget."""
         self.get_display_widget(size)
         self.__super.mouse_event(size, event, button, col, row, focus)
         self._set_focus_from_display_widget()
@@ -413,6 +418,9 @@ class OverlayError(Exception):
     pass
 
 class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
+    """
+    Overlay contains two box widgets and renders one on top of the other
+    """
     _selectable = True
     _sizing = frozenset([BOX])
 
@@ -423,34 +431,43 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def __init__(self, top_w, bottom_w, align, width, valign, height,
             min_width=None, min_height=None, left=0, right=0, top=0, bottom=0):
         """
-        top_w -- a flow, box or fixed widget to overlay "on top"
-        bottom_w -- a box widget to appear "below" previous widget
-        align -- one of:
-            'left', 'center', 'right'
+        :param top_w: a flow, box or fixed widget to overlay "on top"
+        :type top_w: Widget
+        :param bottom_w: a box widget to appear "below" previous widget
+        :type bottom_w: Widget
+        :param align: alignment, one of 'left', 'center', 'right' or
             ('relative', percentage 0=left 100=right)
-        width -- one of:
-            'pack' if top_w is a fixed widget
-            number of columns wide
-            ('relative', percentage of total width)
-        valign -- one of:
-            'top', 'middle', 'bottom'
-            ('relative', percentage 0=top 100=bottom)
-        height -- one of:
-            'pack' if top_w is a flow or fixed widget
-            number of rows high
-            ('relative', percentage of total height)
-        min_width -- the minimum number of columns for top_w
-            when width is not fixed
-        min_height -- one of:
-            minimum number of rows for the widget when height not fixed
-        left -- a fixed number of columns to add on the left
-        right -- a fixed number of columns to add on the right
-        top -- a fixed number of rows to add on the top
-        bottom -- a fixed number of rows to add on the bottom
+        :type align: str
+        :param width: width type, one of:
 
-        Overlay widgets behave similarly to Padding and Filler widgets
-        when determining the size and position of top_w.  bottom_w is
-        always rendered the full size available "below" top_w.
+            * 'pack' if top_w is a fixed widget,
+            * number of columns wide
+            * `('relative', percentage of total width)`
+        :param valign: alignment mode, one of 'top', 'middle', 'bottom' or
+            `('relative', percentage 0=top 100=bottom)`
+        :param height: one of:
+
+            * 'pack' if top_w is a flow or fixed widget
+            * number of rows high
+            * ('relative', percentage of total height)
+        :param min_width: the minimum number of columns for top_w when width
+            is not fixed
+        :type min_width: int
+        :param min_height: minimum number of rows for the widget when height
+            is not fixed
+        :type min_height: int
+        :param left: a fixed number of columns to add on the left
+        :type left: int
+        :param right: a fixed number of columns to add on the right
+        :type right: int
+        :param top: a fixed number of rows to add on the top
+        :type top: int
+        :param bottom: a fixed number of rows to add on the bottom
+        :type bottom: int
+
+        Overlay widgets behave similarly to :class:`Padding` and :class:`Filler`
+        widgets when determining the size and position of `top_w`. `bottom_w` is
+        always rendered the full size available "below" `top_w`.
         """
         self.__super.__init__()
 
@@ -465,7 +482,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         Adjust the overlay size and position parameters.
 
-        See __init__() for a description of the parameters.
+        See :class:`__init__() <Overlay>` for a description of the parameters.
         """
 
         # convert obsolete parameters 'fixed ...':
@@ -624,27 +641,27 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 % (index,))
         self._invalidate()
     contents = property(_contents, doc="""
-        a list-like object similar to:
+        a list-like object similar to::
+
             [(bottom_w, bottom_options)),
              (top_w, top_options)]
 
-        This object may be used to read or update bottom_w, top_w and
-        top_w's options, but no widgets may be added or removed.
+        This object may be used to read or update top and bottom widgets and
+        top widgets's options, but no widgets may be added or removed.
 
-        top_options takes the form:
-            (align_type, align_amount, width_type, width_amount,
-             min_width, left, right,
-             valign_type, valign_amount, height_type, height_amount,
-             min_height, top, bottom)
+        `top_options` takes the form
+        `(align_type, align_amount, width_type, width_amount, min_width, left,
+        right, valign_type, valign_amount, height_type, height_amount,
+        min_height, top, bottom)`
 
-        bottom_options is always:
-            ('left', None, 'relative', 100, None, 0, 0,
-             'top', None, 'relative', 100, None, 0, 0)
-
-        which means that bottom_w always covers the full area of the Overlay.
-        writing a different value for bottom_options currently raises an
-        OverlayError.
+        bottom_options is always
+        `('left', None, 'relative', 100, None, 0, 0,
+        'top', None, 'relative', 100, None, 0, 0)`
+        which means that bottom widget always covers the full area of the Overlay.
+        writing a different value for `bottom_options` raises an
+        :exc:`OverlayError`.
         """)
+    #TODO: options method missing to construct top_w's options?
 
     def get_cursor_coords(self, size):
         """Return cursor coords from top_w, if any."""
@@ -715,13 +732,16 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         left, right, top, bottom = self.calculate_padding_filler(size,
             focus)
         bottom_c = self.bottom_w.render(size)
+        if not bottom_c.cols() or not bottom_c.rows():
+            return CompositeCanvas(bottom_c)
+
         top_c = self.top_w.render(
             self.top_w_size(size, left, right, top, bottom), focus)
         top_c = CompositeCanvas(top_c)
-        if left<0 or right<0:
-            top_c.pad_trim_left_right(min(0,left), min(0,right))
-        if top<0 or bottom<0:
-            top_c.pad_trim_top_bottom(min(0,top), min(0,bottom))
+        if left < 0 or right < 0:
+            top_c.pad_trim_left_right(min(0, left), min(0, right))
+        if top < 0 or bottom < 0:
+            top_c.pad_trim_top_bottom(min(0, top), min(0, bottom))
 
         return CanvasOverlay(top_c, bottom_c, left, top)
 
@@ -747,23 +767,29 @@ class FrameError(Exception):
     pass
 
 class Frame(Widget, WidgetContainerMixin):
+    """
+    Frame widget is a box widget with optional header and footer
+    flow widgets placed above and below the box widget.
+
+    .. note:: The main difference between a Frame and a :class:`Pile` widget
+        defined as: `Pile([('pack', header), body, ('pack', footer)])` is that
+        the Frame will not automatically change focus up and down in response to
+        keystrokes.
+    """
+
     _selectable = True
     _sizing = frozenset([BOX])
 
     def __init__(self, body, header=None, footer=None, focus_part='body'):
         """
-        Frame widget is a box widget with optional header and footer
-        flow widgets placed above and below the box widget.
-
-        The main difference between a Frame and a Pile widget defined
-        as: Pile([('pack', header), body, ('pack', footer)]) is that
-        the Frame will not automatically change focus up and down in
-        response to keystrokes.
-
-        body -- a box widget for the body of the frame
-        header -- a flow widget for above the body (or None)
-        footer -- a flow widget for below the body (or None)
-        focus_part -- 'header', 'footer' or 'body'
+        :param body: a box widget for the body of the frame
+        :type body: Widget
+        :param header: a flow widget for above the body (or None)
+        :type header: Widget
+        :param footer: a flow widget for below the body (or None)
+        :type footer: Widget
+        :param focus_part:  'header', 'footer' or 'body'
+        :type focus_part: str
         """
         self.__super.__init__()
 
@@ -799,11 +825,13 @@ class Frame(Widget, WidgetContainerMixin):
 
     def set_focus(self, part):
         """
-        Set the part of the frame that is in focus, for backwards
-        compatibility.  You may also use the new standard container property
-        .focus_position to set this value.
+        Determine which part of the frame is in focus.
 
-        part -- 'header', 'footer' or 'body'
+        .. note:: included for backwards compatibility. You should rather use
+            the container property :attr:`.focus_position` to set this value.
+
+        :param part: 'header', 'footer' or 'body'
+        :type part: str
         """
         if part not in ('header', 'footer', 'body'):
             raise IndexError, 'Invalid position for Frame: %s' % (part,)
@@ -815,11 +843,13 @@ class Frame(Widget, WidgetContainerMixin):
 
     def get_focus(self):
         """
-        Return the part of the frame that is in focus, for backwards
-        compatibility.  You may also use the new standard container property
-        .focus_position to get this value.
+        Return an indicator which part of the frame is in focus
 
-        Returns one of 'header', 'footer' or 'body'.
+        .. note:: included for backwards compatibility. You should rather use
+            the container property :attr:`.focus_position` to get this value.
+
+        :returns: one of 'header', 'footer' or 'body'.
+        :rtype: str
         """
         return self.focus_part
 
@@ -829,11 +859,13 @@ class Frame(Widget, WidgetContainerMixin):
             'footer': self._footer,
             'body': self._body
             }[self.focus_part]
-    focus = property(_get_focus,
-        doc="the child widget in focus: the body, header or footer widget")
+    focus = property(_get_focus, doc="""
+        child :class:`Widget` in focus: the body, header or footer widget.
+        This is a read-only property.""")
 
     focus_position = property(get_focus, set_focus, doc="""
-        the part of the frame that is in focus: 'body', 'header' or 'footer'
+        writeable property containing an indicator which part of the frame
+        that is in focus: `'body', 'header'` or `'footer'`.
         """)
 
     def _contents(self):
@@ -901,19 +933,22 @@ class Frame(Widget, WidgetContainerMixin):
         else:
             self.footer = None
     contents = property(_contents, doc="""
-        a dict-like object similar to:
-            {'body': (body_widget, None),
-             'header': (header_widget, None),  # if frame has a header
-             'footer': (footer_widget, None),} # if frame has a footer
+        a dict-like object similar to::
+
+            {
+                'body': (body_widget, None),
+                'header': (header_widget, None),  # if frame has a header
+                'footer': (footer_widget, None) # if frame has a footer
+            }
 
         This object may be used to read or update the contents of the Frame.
 
         The values are similar to the the list-like .contents objects used
-        in other containers with (widget, options) tuples, but are
+        in other containers with (:class:`Widget`, options) tuples, but are
         constrained to keys for each of the three usual parts of a Frame.
-        When other keys are used a KeyError will be raised.
+        When other keys are used a :exc:`KeyError` will be raised.
 
-        Currently all options are None, but using the options() method
+        Currently all options are `None`, but using the :meth:`options` method
         to create the options value is recommended for forwards
         compatibility.
         """)
@@ -927,10 +962,16 @@ class Frame(Widget, WidgetContainerMixin):
         return None
 
     def frame_top_bottom(self, size, focus):
-        """Calculate the number of rows for the header and footer.
+        """
+        Calculate the number of rows for the header and footer.
 
-        Returns (head rows, foot rows),(orig head, orig foot).
-        orig head/foot are from rows() calls.
+        :param size: TODO
+        :type size: TODO
+        :param focus: TODO
+        :type focus: TODO
+        :returns: `(head rows, foot rows),(orig head, orig foot)`
+                  orig head/foot are from rows() calls.
+        :rtype: (int, int), (int, int)
         """
         (maxcol, maxrow) = size
         frows = hrows = 0
@@ -975,7 +1016,6 @@ class Frame(Widget, WidgetContainerMixin):
 
 
     def render(self, size, focus=False):
-        """Render frame and return it."""
         (maxcol, maxrow) = size
         (htrim, ftrim),(hrows, frows) = self.frame_top_bottom(
             (maxcol, maxrow), focus)
@@ -1112,32 +1152,36 @@ class PileError(Exception):
     pass
 
 class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
+    """
+    a pile of horizontally stacked widgets
+    """
     _sizing = frozenset([FLOW, BOX])
 
     def __init__(self, widget_list, focus_item=None):
         """
-        widget_list -- iterable of widgets
-        focus_item -- widget or integer index, if None the first
-            selectable widget will be chosen.
+        :param widget_list: child widgets
+        :type widget_list: iterable
+        :param focus_item: child widget that gets the focus initially.
+            Chooses the first selectable widget if unset.
+        :type focus_item: Widget or int
 
-        widget_list may also contain tuples such as:
-        (given_height, widget) -- always treat widget as a box widget and
-            give it given_height rows, where given_height is an int
-        ('pack', widget) -- allow widget to calculate its own height by
-            calling its rows() method, ie. treat it as a flow widget.
-        ('weight', weight, widget) if the pile is treated as a box
-            widget then treat widget as a box widget with a
-            height based on its relative weight value, otherwise
-            treat the same as ('pack', widget).
+        `widget_list` may also contain tuples such as:
 
-        Widgets not in a tuple are the same as ('weight', 1, widget)
+        `(given_height, widget)`
+            always treat widget as a box widget and give it given_height rows,
+            where given_height is an int
+        `('pack', widget)`
+            allow widget to calculate its own height by calling its :meth:`rows`
+            method, ie. treat it as a flow widget.
+        `('weight', weight, widget)`
+            if the pile is treated as a box widget then treat widget as a box
+            widget with a height based on its relative weight value, otherwise
+            treat the same as `('pack', widget)`.
 
-        For backwards compatibility ('fixed', given_height, widget) is
-        accepted as an alternate form of (given_height, widget), and
-        ('flow', widget) is accepted for ('pack', widget).
+        Widgets not in a tuple are the same as `('weight', 1, widget)`
 
-        If the Pile is treated as a box widget there must be at least
-        one 'weight' tuple in widget_list.
+        .. note:: If the Pile is treated as a box widget there must be at least
+            one 'weight' tuple in :attr:`widget_list`.
         """
         self.__super.__init__()
         self._contents = MonitoredFocusList()
@@ -1197,9 +1241,10 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if focus_position < len(widgets):
             self.focus_position = focus_position
     widget_list = property(_get_widget_list, _set_widget_list, doc="""
-        A list of the widgets in this Pile, for backwards compatibility only.
-        You should use the new standard container property .contents to
-        modify Pile contents.
+        A list of the widgets in this Pile
+
+        .. note:: only for backwards compatibility. You should use the new
+            standard container property :attr:`contents`.
         """)
 
     def _get_item_types(self):
@@ -1220,9 +1265,10 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if focus_position < len(item_types):
             self.focus_position = focus_position
     item_types = property(_get_item_types, _set_item_types, doc="""
-        A list of the options values for widgets in this Pile, for
-        backwards compatibility only.  You should use the new standard
-        container property .contents to modify Pile contents.
+        A list of the options values for widgets in this Pile.
+
+        .. note:: only for backwards compatibility. You should use the new
+            standard container property :attr:`contents`.
         """)
 
     def _get_contents(self):
@@ -1232,36 +1278,41 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     contents = property(_get_contents, _set_contents, doc="""
         The contents of this Pile as a list of (widget, options) tuples.
 
-        options currently may be one of:
-        ('pack', None) -- allow widget to calculate its own height by
-            calling its rows() method, i.e. treat it as a flow widget.
-        ('given', n) -- Always treat widget as a box widget with a given
-            height of n rows.
-        ('weight', w) -- If the Pile itself is treated as a box widget then
+        options currently may be one of
+
+        ('pack', None)
+            allow widget to calculate its own height by calling its
+            :meth:`rows <Widget.rows>` method, i.e. treat it as a flow widget.
+        ('given', n)
+            Always treat widget as a box widget with a given height of n rows.
+        ('weight', w)
+            If the Pile itself is treated as a box widget then
             the value w will be used as a relative weight for assigning rows
-            to this box widget.  If the Pile is being treated as a flow
-            widget then this is the same as ('pack', None) and the w value
+            to this box widget. If the Pile is being treated as a flow
+            widget then this is the same as `('pack', None)` and the w value
             is ignored.
 
         If the Pile itself is treated as a box widget then at least one
-        widget must have a ('weight', w) options value, or the Pile will
+        widget must have a `('weight', w)` options value, or the Pile will
         not be able to grow to fill the required number of rows.
 
         This list may be modified like a normal list and the Pile widget
         will updated automatically.
 
-        Create new options tuples with the options() method for forward
-        compatibility, as more items may be added in the future.
+        .. seealso:: Create new options tuples with the :meth:`options` method
         """)
 
     def options(self, height_type=WEIGHT, height_amount=1):
         """
-        Return a new options tuple for use in a Pile's .contents list.
+        Return a new options tuple for use in a Pile's :attr:`contents` list.
 
-        height_type -- 'pack', 'given' or 'weight'
-        height_amount -- None for 'pack', a number of rows for 'fixed'
-            or a weight value for 'weight'
+        :param height_type: 'pack', 'given' or 'weight'
+        :param height_amount: None for 'pack', a number of rows for 'fixed' or a
+            weight value for 'weight'
+        :type height_amount: int
         """
+        # TODO: whats a weight value?
+
         if height_type == PACK:
             return (PACK, None)
         if height_type not in (GIVEN, WEIGHT):
@@ -1275,11 +1326,14 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
     def set_focus(self, item):
         """
-        Set the item in focus, for backwards compatibility.  You may also
-        use the new standard container property .focus_position to set
-        the position by integer index instead.
+        Set the item in focus, for backwards compatibility.
 
-        item -- widget or integer index
+        .. note:: only for backwards compatibility. You should use the new
+            standard container property :attr:`focus_position`.
+            to set the position by integer index instead.
+
+        :param item: element to focus
+        :type item: Widget or int
         """
         if isinstance(item, int):
             return self._set_focus_position(item)
@@ -1302,10 +1356,14 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         doc="the child widget in focus or None when Pile is empty")
 
     focus_item = property(get_focus, set_focus, doc="""
-        A property for reading and setting the widget in focus, for
-        backwards compatibility only.  You may also use the new standard
-        container properties .focus and .focus_position to get the
-        child widget in focus or modify the focus position.
+        A property for reading and setting the widget in focus.
+
+        .. note::
+
+            only for backwards compatibility. You should use the new
+            standard container properties :attr:`focus` and
+            :attr:`focus_position` to get the child widget in focus or modify the
+            focus position.
         """)
 
     def _get_focus_position(self):
@@ -1329,7 +1387,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             raise IndexError, "No Pile child widget at position %s" % (position,)
         self.contents.focus = position
     focus_position = property(_get_focus_position, _set_focus_position, doc="""
-        index of child widget in focus.  Raises IndexError if read when
+        index of child widget in focus. Raises :exc:`IndexError` if read when
         Pile is empty, or when set to an invalid index.
         """)
 
@@ -1408,10 +1466,6 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         return l
 
     def render(self, size, focus=False):
-        """
-        Render all widgets in self.contents and return the results
-        stacked one on top of the next.
-        """
         maxcol = size[0]
         item_rows = None
 
@@ -1435,8 +1489,8 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             return SolidCanvas(" ", size[0], (size[1:]+(0,))[0])
 
         out = CanvasCombine(combinelist)
-        if len(size) == 2 and size[1] < out.rows():
-            # flow/fixed widgets rendered too large
+        if len(size) == 2 and size[1] != out.rows():
+            # flow/fixed widgets rendered too large/small
             out = CompositeCanvas(out)
             out.pad_trim_top_bottom(0, size[1] - out.rows())
         return out
@@ -1474,7 +1528,6 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         return x, y
 
     def rows(self, size, focus=False ):
-        """Return the number of rows required for this widget."""
         return sum(self.get_item_rows(size, focus))
 
     def keypress(self, size, key ):
@@ -1597,37 +1650,39 @@ class ColumnsError(Exception):
 
 
 class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
+    """
+    vertical stack of widgets
+    """
     _sizing = frozenset([FLOW, BOX])
 
     def __init__(self, widget_list, dividechars=0, focus_column=None,
         min_width=1, box_columns=None):
         """
-        widget_list -- iterable of flow widgets or iterable of box widgets
-        dividechars -- blank characters between columns
-        focus_column -- index into widget_list of column in focus,
+        :param widget_list: iterable of flow widgets or iterable of box widgets
+        :param dividechars: blank characters between columns
+        :param focus_column: index into widget_list of column in focus,
             if None the first selectable widget will be chosen.
-        min_width -- minimum width for each column which is not
+        :param min_width: minimum width for each column which is not
             calling widget.pack() in widget_list.
-        box_columns -- a list of column indexes containing box widgets
+        :param box_columns: a list of column indexes containing box widgets
             whose maxrow is set to the maximum of the rows
             required by columns not listed in box_columns.
 
-        widget_list may also contain tuples such as:
-        (given_width, widget) make this column given_width screen columns
-            wide, where given_width is an int
-        ('pack', widget) call widget.pack() to calculate the width of
-            this column
-        ('weight', weight, widget) give this column a relative weight to
-            calculate its width from the screen columns remaining
+        `widget_list` may also contain tuples such as:
 
-        Widgets not in a tuple are the same as ('weight', 1, widget)
+        `(given_width, widget)`
+            make this column given_width screen columns wide, where given_width
+            is an int
+        `('pack', widget)`
+            call :meth:`Widget.pack` to calculate the width of this column
+        `('weight', weight, widget)`
+            give this column a relative weight to calculate its width from the
+            screen columns remaining
 
-        For backwards compatibility ('fixed', given_width, widget) and
-        ('flow', widget) are accepted as an alternate forms of
-        (given_width, widget) and ('pack', widget) respectively.
+        Widgets not in a tuple are the same as `('weight', 1, widget)`
 
         If the Columns widget is treated as a box widget then all children
-        are treated as box widgets, and box_columns is ignored.
+        are treated as box widgets, and `box_columns` is ignored.
 
         If the Columns widget is treated as a flow widget then the rows
         are calcualated as the largest rows() returned from all columns
@@ -1702,9 +1757,10 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if focus_position < len(widgets):
             self.focus_position = focus_position
     widget_list = property(_get_widget_list, _set_widget_list, doc="""
-        A list of the widgets in this Columns, for backwards compatibility only.
-        You should use the new standard container property .contents to
-        modify Column contents.
+        A list of the widgets in this Columns
+
+        .. note:: only for backwards compatibility. You should use the new
+            standard container property :attr:`contents`.
         """)
 
     def _get_column_types(self):
@@ -1744,9 +1800,10 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             for (i, (w, (t, n, b))) in enumerate(self.contents)]
     box_columns = property(_get_box_columns, _set_box_columns, doc="""
         A list of the indexes of the columns that are to be treated as
-        box widgets when the Columns is treated as a flow widget, for
-        backwards compatibility only.  You should use the new standard
-        container property .contents to modify Pile contents instead.
+        box widgets when the Columns is treated as a flow widget.
+
+        .. note:: only for backwards compatibility. You should use the new
+            standard container property :attr:`contents`.
         """)
 
     def _get_has_pack_type(self):
@@ -1759,9 +1816,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         warnings.warn(".has_flow_type is deprecated, "
             "read values from .contents instead.", DeprecationWarning)
     has_flow_type = property(_get_has_pack_type, _set_has_pack_type, doc="""
-        Deprecated.  Read values from .contents instead.
-
-        True if one of .contents has width_type == 'pack'
+        .. deprecated:: 1.0 Read values from :attr:`contents` instead.
         """)
 
     def _get_contents(self):
@@ -1769,37 +1824,35 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def _set_contents(self, c):
         self._contents[:] = c
     contents = property(_get_contents, _set_contents, doc="""
-        The contents of this Columns as a list of (widget, options)
-        tuples.
-
-        options is currently a tuple in the form (width_type,
-        width_amount, box_widget), where width_type is one of:
-        'pack' -- Call the widget's pack() method to determine how wide
-            this column should be.  width_amount is ignored.
-        'given' -- Make column exactly width_amount screen-columns wide.
-        'weight' -- Allocate the remaining space to this column by using
-            width_amount as a weight value.
-
-        box_widget is True if this widget is to be treated as a box
-        widget when the Columns widget itself is treated as a flow
-        widget.
-
+        The contents of this Columns as a list of `(widget, options)` tuples.
         This list may be modified like a normal list and the Columns
         widget will update automatically.
 
-        Create new options tuples with the options() method for forward
-        compatibility, as more options may be added in the future.
+        .. seealso:: Create new options tuples with the :meth:`options` method
         """)
 
     def options(self, width_type=WEIGHT, width_amount=1, box_widget=False):
         """
         Return a new options tuple for use in a Pile's .contents list.
 
-        width_type -- 'pack', 'given' or 'weight'
-        width_amount -- None for 'pack', a number of screen columns
+        This sets an entries width type: one of the following:
+
+        'pack'
+            Call the widget's :meth`pack` method to determine how wide
+            this column should be. `width_amount` is ignored.
+        'given'
+            Make column exactly width_amount screen-columns wide.
+        'weight'
+            Allocate the remaining space to this column by using
+            `width_amount` as a weight value.
+
+        :param width_type: 'pack', 'given' or 'weight'
+        :param width_amount: `None` for 'pack', a number of screen columns
             for 'given' or a weight value for 'weight'
-        box_widget -- True to treat as box widget when Columns is
-            treated as a flow widget
+            TODO: type of "weight value"?
+        :param box_widget: set to `True` if this widget is to be treated as a box
+            widget when the Columns widget itself is treated as a flow widget.
+        :type box_widget: boolean
         """
         if width_type == PACK:
             width_amount = None
@@ -1813,27 +1866,33 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
     def set_focus_column(self, num):
         """
-        Set the column in focus by its index in self.widget_list, for
-        backwards compatibility.  You may also use the new standard
-        container property .focus_position to set the focus.
+        Set the column in focus by its index in :attr:`widget_list`.
+
+        :param num: index of focus-to-be entry
+        :type num: int
+
+        .. note:: only for backwards compatibility. You may also use the new
+            standard container property :attr:`focus_position` to set the focus.
         """
         self._set_focus_position(num)
 
     def get_focus_column(self):
         """
-        Return the focus column index, for backwards compatibility. You
-        may also use the new standard container property .focus_position
-        to get the focus column index.
+        Return the focus column index.
+
+        .. note:: only for backwards compatibility. You may also use the new
+            standard container property :attr:`focus_position` to get the focus.
         """
         return self.focus_position
 
     def set_focus(self, item):
         """
-        Set the item in focus, for backwards compatibility.  You may also
-        use the new standard container property .focus_position to set
-        the position by integer index instead.
+        Set the item in focus
 
-        item -- widget or integer index"""
+        .. note:: only for backwards compatibility. You may also use the new
+            standard container property :attr:`focus_position` to get the focus.
+
+        :param item: widget or integer index"""
         if isinstance(item, int):
             return self._set_focus_position(item)
         for i, (w, options) in enumerate(self.contents):
@@ -1881,14 +1940,17 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
     focus_col = property(_get_focus_position, _set_focus_position, doc="""
         A property for reading and setting the index of the column in
-        focus, for backwards compatibility only.  You may also use the
-        new standard container property .focus_position to get or
-        modify the focus position.
+        focus.
+
+        .. note:: only for backwards compatibility. You may also use the new
+            standard container property :attr:`focus_position` to get the focus.
         """)
 
     def column_widths(self, size, focus=False):
         """
         Return a list of column widths.
+
+        0 values in the list mean hide corresponding column completely
         """
         maxcol = size[0]
         # FIXME: get rid of this check and recalculate only when
@@ -1911,13 +1973,22 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             else:
                 static_w = self.min_width
 
-            if shared < static_w + self.dividechars:
+            if shared < static_w + self.dividechars and i > self.focus_position:
                 break
 
             widths.append(static_w)
             shared -= static_w + self.dividechars
             if t not in (GIVEN, PACK):
                 weighted.append((width, i))
+
+        # drop columns on the left until we fit
+        for i, w in enumerate(widths):
+            if shared >= 0:
+                break
+            shared += widths[i] + self.dividechars
+            widths[i] = 0
+            if weighted and weighted[0][1] == i:
+                del weighted[0]
 
         if shared:
             # divide up the remaining space between weighted cols
@@ -1939,8 +2010,10 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         Render columns and return canvas.
 
-        size -- (maxcol,) if self.widget_list contains flow widgets or
-            (maxcol, maxrow) if it contains box widgets.
+        :param size: `(maxcol,)` if :attr:`widget_list` contains flow widgets or
+            `(maxcol, maxrow)` if it contains box widgets.
+            TODO: mixed widget lists?
+        :type size: int, int
         """
         widths = self.column_widths(size, focus)
         if not widths:
@@ -1975,6 +2048,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 mc += self.dividechars
             l.append((canv, i, self.focus_position == i, mc))
 
+        if not l:
+            return SolidCanvas(" ", size[0], (size[1:]+(0,))[0])
+
         canv = CanvasJoin(l)
         if canv.cols() < size[0]:
             canv.pad_trim_left_right(0, size[0] - canv.cols())
@@ -2003,7 +2079,16 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         return x, y
 
     def move_cursor_to_coords(self, size, col, row):
-        """Choose a selectable column to focus based on the coords."""
+        """
+        Choose a selectable column to focus based on the coords.
+
+        :param size: TODO: why is this needed here?
+        :type size: int, int
+        :param col: index of column to focus
+        :type col: int
+        :param row: index of row to focus
+        :type row: int
+        """
         widths = self.column_widths(size)
 
         best = None
@@ -2098,8 +2183,15 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def rows(self, size, focus=0):
         """
         Return the number of rows required by the columns.
-        Only makes sense if self.widget_list contains flow widgets.
+        This only makes sense if :attr:`widget_list` contains flow widgets.
+
+        :param size: TODO
+        :type size: int, int
+        :param focus: TODO
+        :type focus: int
         """
+        # TODO: why is focus an int and no boolean?
+
         widths = self.column_widths(size, focus)
 
         rows = 1
@@ -2114,8 +2206,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         Pass keypress to the focus column.
 
-        size -- (maxcol,) if self.widget_list contains flow widgets or
-            (maxcol, maxrow) if it contains box widgets.
+        :param size: `(maxcol,)` if :attr:`widget_list` contains flow widgets or
+            `(maxcol, maxrow)` if it contains box widgets.
+        :type size: int, int
         """
         if self.focus_position is None: return key
 
@@ -2137,7 +2230,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if self._command_map[key] == 'cursor left':
             candidates = range(i-1, -1, -1) # count backwards to 0
         else: # key == 'right'
-            candidates = range(i+1, len(widths))
+            candidates = range(i+1, len(self.contents))
 
         for j in candidates:
             if not self.contents[j][0].selectable():

@@ -1,0 +1,9 @@
+windowsize --usehints $RXVTWINDOWID 15 7
+key --window $RXVTWINDOWID Down
+key --window $RXVTWINDOWID Down
+key --window $RXVTWINDOWID Down
+key --window $RXVTWINDOWID Up
+key --window $RXVTWINDOWID Down
+windowsize --usehints $RXVTWINDOWID 20 9
+windowsize --usehints $RXVTWINDOWID 25 7
+windowsize --usehints $RXVTWINDOWID 11 13

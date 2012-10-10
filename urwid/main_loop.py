@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid main loop code
-#    Copyright (C) 2004-2011  Ian Ward
+#    Copyright (C) 2004-2012  Ian Ward
 #    Copyright (C) 2008 Walter Mundt
 #    Copyright (C) 2009 Andrew Psaltis
 #
@@ -30,7 +30,7 @@ import os
 
 from urwid.util import is_mouse_event
 from urwid.compat import PYTHON3
-from urwid.command_map import command_map
+from urwid.command_map import command_map, REDRAW_SCREEN
 from urwid.wimp import PopUpTarget
 from urwid import signals
 from urwid.display_common import INPUT_DESCRIPTORS_CHANGED
@@ -38,38 +38,61 @@ from urwid.display_common import INPUT_DESCRIPTORS_CHANGED
 PIPE_BUFFER_READ_SIZE = 4096 # can expect this much on Linux, so try for that
 
 class ExitMainLoop(Exception):
+    """
+    When this exception is raised within a main loop the main loop
+    will exit cleanly.
+    """
     pass
 
 class MainLoop(object):
-    def __init__(self, widget, palette=[], screen=None, 
-        handle_mouse=True, input_filter=None, unhandled_input=None,
-        event_loop=None, pop_ups=False):
-        """
-        Simple main loop implementation.
+    """
+    This is the standard main loop implementation for a single interactive
+    session.
 
-        widget -- topmost widget used for painting the screen,
-            stored as self.widget and may be modified
-        palette -- initial palette for screen
-        screen -- screen object or None to use raw_display.Screen,
-            stored as self.screen
-        handle_mouse -- True to process mouse events, passed to
-            self.screen
-        input_filter -- a function to filter input before sending
-            it to self.widget, called from self.input_filter
-        unhandled_input -- a function called when input is not
-            handled by self.widget, called from self.unhandled_input
-        event_loop -- if screen supports external an event loop it
-            may be given here, or leave as None to use
-            SelectEventLoop, stored as self.event_loop
-        pop_ups -- True to wrap self.widget with a PopUpTarget
-            instance to allow any widget to open a pop-up anywhere on
-            the screen
+    :param widget: the topmost widget used for painting the screen, stored as
+                   :attr:`widget` and may be modified. Must be a box widget.
+    :type widget: widget instance
 
-        This is the standard main loop implementation with a single
-        screen.
+    :param palette: initial palette for screen
+    :type palette: iterable of palette entries
 
-        The widget passed must be a box widget.
-        """
+    :param screen: screen to use, default is a new :class:`raw_display.Screen`
+                   instance; stored as :attr:`screen`
+    :type screen: display module screen instance
+
+    :param handle_mouse: ``True`` to ask :attr:`.screen` to process mouse events
+    :type handle_mouse: bool
+
+    :param input_filter: a function to filter input before sending it to
+                   :attr:`.widget`, called from :meth:`.input_filter`
+    :type input_filter: callable
+
+    :param unhandled_input: a function called when input is not handled by
+                            :attr:`.widget`, called from :meth:`.unhandled_input`
+    :type unhandled_input: callable
+
+    :param event_loop: if :attr:`.screen` supports external an event loop it may be
+                       given here, default is a new :class:`SelectEventLoop` instance;
+                       stored as :attr:`.event_loop`
+    :type event_loop: event loop instance
+
+    :param pop_ups: `True` to wrap :attr:`.widget` with a :class:`PopUpTarget`
+                    instance to allow any widget to open a pop-up anywhere on the screen
+    :type pop_ups: boolean
+
+
+    .. attribute:: screen
+
+        The screen object this main loop uses for screen updates and reading input
+
+    .. attribute:: event_loop
+
+        The event loop object this main loop uses for waiting on alarms and IO
+    """
+
+    def __init__(self, widget, palette=(), screen=None,
+            handle_mouse=True, input_filter=None, unhandled_input=None,
+            event_loop=None, pop_ups=False):
         self._widget = widget
         self.handle_mouse = handle_mouse
         self.pop_ups = pop_ups # triggers property setting side-effect
@@ -104,7 +127,11 @@ class MainLoop(object):
             self._topmost_widget.original_widget = self._widget
         else:
             self._topmost_widget = self._widget
-    widget = property(lambda self:self._widget, _set_widget)
+    widget = property(lambda self:self._widget, _set_widget, doc=
+       """
+       Property for the topmost widget used to draw the screen.
+       This must be a box widget.
+       """)
 
     def _set_pop_ups(self, pop_ups):
         self._pop_ups = pop_ups
@@ -116,13 +143,14 @@ class MainLoop(object):
 
     def set_alarm_in(self, sec, callback, user_data=None):
         """
-        Schedule an alarm in sec seconds that will call
-        callback(main_loop, user_data) from the within the run()
-        function.
+        Schedule an alarm in *sec* seconds that will call *callback* from the
+        within the :meth:`run` method.
 
-        sec -- floating point seconds until alarm
-        callback -- callback(main_loop, user_data) callback function
-        user_data -- object to pass to callback
+        :param sec: seconds until alarm
+        :type sec: float
+        :param callback: function to call with two parameters: this main loop
+                         object and *user_data*
+        :type callback: callable
         """
         def cb():
             callback(self, user_data)
@@ -130,15 +158,15 @@ class MainLoop(object):
 
     def set_alarm_at(self, tm, callback, user_data=None):
         """
-        Schedule at tm time that will call 
-        callback(main_loop, user_data) from the within the run()
-        function.
+        Schedule an alarm at *tm* time that will call *callback* from the
+        within the :meth`run` function. Returns a handle that may be passed to
+        :meth:`remove_alarm`.
 
-        Returns a handle that may be passed to remove_alarm()
-
-        tm -- floating point local time of alarm
-        callback -- callback(main_loop, user_data) callback function
-        user_data -- object to pass to callback
+        :param tm: time to call callback e.g. ``time.time() + 5``
+        :type tm: float
+        :param callback: function to call with two parameters: this main loop
+                         object and *user_data*
+        :type callback: callable
         """
         def cb():
             callback(self, user_data)
@@ -146,37 +174,38 @@ class MainLoop(object):
 
     def remove_alarm(self, handle):
         """
-        Remove an alarm.
-
-        Return True if the handle was found, False otherwise.
+        Remove an alarm. Return ``True`` if *handle* was found, ``False``
+        otherwise.
         """
         return self.event_loop.remove_alarm(handle)
 
     def watch_pipe(self, callback):
         """
-        Create a pipe for use by a subprocess or thread to trigger
-        a callback in the process/thread running the MainLoop.
+        Create a pipe for use by a subprocess or thread to trigger a callback
+        in the process/thread running the main loop.
 
-        callback -- function to call MainLoop.run thread/process
+        :param callback: function taking one parameter to call from within
+                         the process/thread running the main loop
+        :type callback: callable
 
-        This function returns a file descriptor attached to the
-        write end of a pipe.  The read end of the pipe is added to
-        the list of files the event loop is watching. When
-        data is written to the pipe the callback function will be
-        called and passed a single value containing data read.
+        This method returns a file descriptor attached to the write end of a
+        pipe. The read end of the pipe is added to the list of files
+        :attr:`event_loop` is watching. When data is written to the pipe the
+        callback function will be called and passed a single value containing
+        data read from the pipe.
 
-        This method should be used any time you want to update
-        widgets from another thread or subprocess.
+        This method may be used any time you want to update widgets from
+        another thread or subprocess.
 
         Data may be written to the returned file descriptor with
-        os.write(fd, data).  Ensure that data is less than 512
-        bytes (or 4K on Linux) so that the callback will be
-        triggered just once with the complete value of data
-        passed in.
+        ``os.write(fd, data)``. Ensure that data is less than 512 bytes (or 4K
+        on Linux) so that the callback will be triggered just once with the
+        complete value of data passed in.
 
-        If the callback returns False then the watch will be
-        removed and the read end of the pipe will be closed.
-        You are responsible for closing the write end of the pipe.
+        If the callback returns ``False`` then the watch will be removed from
+        :attr:`event_loop` and the read end of the pipe will be closed. You
+        are responsible for closing the write end of the pipe with
+        ``os.close(fd)``.
         """
         pipe_rd, pipe_wr = os.pipe()
         fcntl.fcntl(pipe_rd, fcntl.F_SETFL, os.O_NONBLOCK)
@@ -195,11 +224,11 @@ class MainLoop(object):
 
     def remove_watch_pipe(self, write_fd):
         """
-        Close the read end of the pipe and remove the watch created
-        by watch_pipe().  You are responsible for closing the write
-        end of the pipe.
+        Close the read end of the pipe and remove the watch created by
+        :meth:`watch_pipe`. You are responsible for closing the write end of
+        the pipe.
 
-        Returns True if the watch pipe exists, False otherwise
+        Returns ``True`` if the watch pipe exists, ``False`` otherwise
         """
         try:
             watch_handle, pipe_rd = self._watch_pipes.pop(write_fd)
@@ -213,34 +242,39 @@ class MainLoop(object):
 
     def watch_file(self, fd, callback):
         """
-        Call callback() when fd has some data to read.  No parameters
-        are passed to callback.
+        Call *callback* when *fd* has some data to read. No parameters are
+        passed to callback.
 
-        Returns a handle that may be passed to remove_watch_file()
-
-        fd -- file descriptor to watch for input
-        callback -- function to call when input is available
+        Returns a handle that may be passed to :meth:`remove_watch_file`.
         """
         return self.event_loop.watch_file(fd, callback)
 
     def remove_watch_file(self, handle):
         """
-        Remove a watch file.
-
-        Returns True if the watch file exists, False otherwise.
+        Remove a watch file. Returns ``True`` if the watch file
+        exists, ``False`` otherwise.
         """
         return self.event_loop.remove_watch_file(handle)
 
 
     def run(self):
         """
-        Start the main loop handling input events and updating 
-        the screen.  The loop will continue until an ExitMainLoop 
-        exception is raised.  
-        
-        This function will call screen.run_wrapper() if screen.start() 
-        has not already been called.
+        Start the main loop handling input events and updating the screen. The
+        loop will continue until an :exc:`ExitMainLoop` exception is raised.
 
+        This method will use :attr:`screen`'s run_wrapper() method if
+        :attr:`screen`'s start() method has not already been called.
+        """
+        try:
+            if self.screen.started:
+                self._run()
+            else:
+                self.screen.run_wrapper(self._run)
+        except ExitMainLoop:
+            pass
+
+    def _test_run(self):
+        """
         >>> w = _refl("widget")   # _refl prints out function calls
         >>> w.render_rval = "fake canvas"  # *_rval is used for return values
         >>> scr = _refl("screen")
@@ -267,14 +301,7 @@ class MainLoop(object):
         >>> ml.run()    # doctest:+ELLIPSIS
         screen.run_wrapper(<bound method ...>)
         """
-        try:
-            if self.screen.started:
-                self._run()
-            else:
-                self.screen.run_wrapper(self._run)
-        except ExitMainLoop:
-            pass
-    
+
     def _run(self):
         if self.handle_mouse:
             self.screen.set_mouse_tracking()
@@ -367,7 +394,7 @@ class MainLoop(object):
         This method is used when the screen does not support using
         external event loops.
 
-        The alarms stored in the SelectEventLoop in self.event_loop 
+        The alarms stored in the SelectEventLoop in :attr:`event_loop`
         are modified by this method.
         """
         next_alarm = None
@@ -392,22 +419,22 @@ class MainLoop(object):
                         break
 
             keys = self.input_filter(keys, raw)
-            
+
             if keys:
                 self.process_input(keys)
-            
+
             while next_alarm:
                 sec = next_alarm[0] - time.time()
                 if sec > 0:
                     break
                 tm, callback = next_alarm
                 callback()
-                
+
                 if self.event_loop._alarms:
                     next_alarm = heapq.heappop(self.event_loop._alarms)
                 else:
                     next_alarm = None
-            
+
             if 'window resize' in keys:
                 self.screen_size = None
 
@@ -434,27 +461,15 @@ class MainLoop(object):
 
     def process_input(self, keys):
         """
-        This function will pass keyboard input and mouse events
-        to self.widget.  This function is called automatically
-        from the run() method when there is input, but may also be
-        called to simulate input from the user.
+        This method will pass keyboard input and mouse events to :attr:`widget`.
+        This method is called automatically from the :meth:`run` method when
+        there is input, but may also be called to simulate input from the user.
 
-        keys -- list of input returned from self.screen.get_input()
+        *keys* is a list of input returned from :attr:`screen`'s get_input()
+        or get_input_nonblocking() methods.
 
-        Returns True if any key was handled by a widget or the
-        unhandled_input() method.         
-
-        >>> w = _refl("widget")
-        >>> w.selectable_rval = True
-        >>> scr = _refl("screen")
-        >>> scr.get_cols_rows_rval = (10, 5)
-        >>> ml = MainLoop(w, [], scr)
-        >>> ml.process_input(['enter', ('mouse drag', 1, 14, 20)])
-        screen.get_cols_rows()
-        widget.selectable()
-        widget.keypress((10, 5), 'enter')
-        widget.mouse_event((10, 5), 'mouse drag', 1, 14, 20, focus=True)
-        True
+        Returns ``True`` if any key was handled by a widget or the
+        :meth:`unhandled_input` method.
         """
         if not self.screen_size:
             self.screen_size = self.screen.get_cols_rows()
@@ -472,7 +487,7 @@ class MainLoop(object):
             elif self._topmost_widget.selectable():
                 k = self._topmost_widget.keypress(self.screen_size, k)
             if k:
-                if command_map[k] == 'redraw screen':
+                if command_map[k] == REDRAW_SCREEN:
                     self.screen.clear()
                     something_handled = True
                 else:
@@ -482,17 +497,28 @@ class MainLoop(object):
 
         return something_handled
 
+    def _test_process_input(self):
+        """
+        >>> w = _refl("widget")
+        >>> w.selectable_rval = True
+        >>> scr = _refl("screen")
+        >>> scr.get_cols_rows_rval = (10, 5)
+        >>> ml = MainLoop(w, [], scr)
+        >>> ml.process_input(['enter', ('mouse drag', 1, 14, 20)])
+        screen.get_cols_rows()
+        widget.selectable()
+        widget.keypress((10, 5), 'enter')
+        widget.mouse_event((10, 5), 'mouse drag', 1, 14, 20, focus=True)
+        True
+        """
 
     def input_filter(self, keys, raw):
         """
-        This function is passed each all the input events and raw
-        keystroke values.  These values are passed to the
-        input_filter function passed to the constructor.  That
-        function must return a list of keys to be passed to the
-        widgets to handle.  If no input_filter was defined this
-        implementation will return all the input events.
-
-        input -- keyboard or mouse input
+        This function is passed each all the input events and raw keystroke
+        values. These values are passed to the *input_filter* function
+        passed to the constructor. That function must return a list of keys to
+        be passed to the widgets to handle. If no *input_filter* was
+        defined this implementation will return all the input events.
         """
         if self._input_filter:
             return self._input_filter(keys, raw)
@@ -500,14 +526,14 @@ class MainLoop(object):
 
     def unhandled_input(self, input):
         """
-        This function is called with any input that was not handled
-        by the widgets, and calls the unhandled_input function passed
-        to the constructor.  If no unhandled_input was defined then
-        the input will be ignored.
+        This function is called with any input that was not handled by the
+        widgets, and calls the *unhandled_input* function passed to the
+        constructor. If no *unhandled_input* was defined then the input
+        will be ignored.
 
-        input -- keyboard or mouse input
+        *input* is the keyboard or mouse input.
 
-        The unhandled_input method should return True if it handled
+        The *unhandled_input* function should return ``True`` if it handled
         the input.
         """
         if self._unhandled_input:
@@ -515,18 +541,21 @@ class MainLoop(object):
 
     def entering_idle(self):
         """
-        This function is called whenever the event loop is about
-        to enter the idle state.  self.draw_screen() is called here
-        to update the screen if anything has changed.
+        This method is called whenever the event loop is about to enter the
+        idle state. :meth:`draw_screen` is called here to update the
+        screen when anything has changed.
         """
         if self.screen.started:
             self.draw_screen()
 
     def draw_screen(self):
         """
-        Render the widgets and paint the screen.  This function is
-        called automatically from run() but may be called additional
-        times if repainting is required without also processing input.
+        Render the widgets and paint the screen. This method is called
+        automatically from :meth:`entering_idle`.
+
+        If you modify the widgets displayed outside of handling input or
+        responding to an alarm you will need to call this method yourself
+        to repaint the screen.
         """
         if not self.screen_size:
             self.screen_size = self.screen.get_cols_rows()
@@ -539,10 +568,18 @@ class MainLoop(object):
 
 
 class SelectEventLoop(object):
-    def __init__(self):
-        """
-        Event loop based on select.select()
+    """
+    Event loop based on :func:`select.select`
+    """
 
+    def __init__(self):
+        self._alarms = []
+        self._watch_files = {}
+        self._idle_handle = 0
+        self._idle_callbacks = {}
+
+    def _test_event_loop(self):
+        """
         >>> import os
         >>> rd, wr = os.pipe()
         >>> evl = SelectEventLoop()
@@ -558,10 +595,6 @@ class SelectEventLoop(object):
         writing
         hi
         """
-        self._alarms = []
-        self._watch_files = {}
-        self._idle_handle = 0
-        self._idle_callbacks = {}
 
     def alarm(self, seconds, callback):
         """
@@ -572,7 +605,7 @@ class SelectEventLoop(object):
 
         seconds -- floating point time to wait before calling callback
         callback -- function to call from event loop
-        """ 
+        """
         tm = time.time() + seconds
         heapq.heappush(self._alarms, (tm, callback))
         return (tm, callback)
@@ -582,13 +615,6 @@ class SelectEventLoop(object):
         Remove an alarm.
 
         Returns True if the alarm exists, False otherwise
-
-        >>> evl = SelectEventLoop()
-        >>> handle = evl.alarm(50, lambda: None)
-        >>> evl.remove_alarm(handle)
-        True
-        >>> evl.remove_alarm(handle)
-        False
         """
         try:
             self._alarms.remove(handle)
@@ -596,6 +622,16 @@ class SelectEventLoop(object):
             return True
         except ValueError:
             return False
+
+    def _test_remove_alarm(self):
+        """
+        >>> evl = SelectEventLoop()
+        >>> handle = evl.alarm(50, lambda: None)
+        >>> evl.remove_alarm(handle)
+        True
+        >>> evl.remove_alarm(handle)
+        False
+        """
 
     def watch_file(self, fd, callback):
         """
@@ -615,7 +651,14 @@ class SelectEventLoop(object):
         Remove an input file.
 
         Returns True if the input file exists, False otherwise
+        """
+        if handle in self._watch_files:
+            del self._watch_files[handle]
+            return True
+        return False
 
+    def _test_remove_watch_file(self):
+        """
         >>> evl = SelectEventLoop()
         >>> handle = evl.watch_file(5, lambda: None)
         >>> evl.remove_watch_file(handle)
@@ -623,15 +666,11 @@ class SelectEventLoop(object):
         >>> evl.remove_watch_file(handle)
         False
         """
-        if handle in self._watch_files:
-            del self._watch_files[handle]
-            return True
-        return False
 
     def enter_idle(self, callback):
         """
-        Add a callback for entering idle.  
-        
+        Add a callback for entering idle.
+
         Returns a handle that may be passed to remove_idle()
         """
         self._idle_handle += 1
@@ -661,7 +700,21 @@ class SelectEventLoop(object):
         """
         Start the event loop.  Exit the loop when any callback raises
         an exception.  If ExitMainLoop is raised, exit cleanly.
+        """
+        try:
+            self._did_something = True
+            while True:
+                try:
+                    self._loop()
+                except select.error, e:
+                    if e.args[0] != 4:
+                        # not just something we need to retry
+                        raise
+        except ExitMainLoop:
+            pass
 
+    def _test_run(self):
+        """
         >>> import os
         >>> rd, wr = os.pipe()
         >>> os.write(wr, "data".encode('ascii')) # something to read from rd
@@ -701,18 +754,6 @@ class SelectEventLoop(object):
            ...
         ZeroDivisionError: integer division or modulo by zero
         """
-        try:
-            self._did_something = True
-            while True:
-                try:
-                    self._loop()
-                except select.error, e:
-                    if e.args[0] != 4:
-                        # not just something we need to retry
-                        raise
-        except ExitMainLoop:
-            pass
-        
 
     def _loop(self):
         """
@@ -749,10 +790,24 @@ class SelectEventLoop(object):
 
 if not PYTHON3:
     class GLibEventLoop(object):
-        def __init__(self):
-            """
-            Event loop based on gobject.MainLoop
+        """
+        Event loop based on gobject.MainLoop
+        """
 
+        def __init__(self):
+            import gobject
+            self.gobject = gobject
+            self._alarms = []
+            self._watch_files = {}
+            self._idle_handle = 0
+            self._glib_idle_enabled = False # have we called glib.idle_add?
+            self._idle_callbacks = {}
+            self._loop = self.gobject.MainLoop()
+            self._exc_info = None
+            self._enable_glib_idle()
+
+        def _test_event_loop(self):
+            """
             >>> import os
             >>> rd, wr = os.pipe()
             >>> evl = GLibEventLoop()
@@ -768,16 +823,6 @@ if not PYTHON3:
             writing
             hi
             """
-            import gobject
-            self.gobject = gobject
-            self._alarms = []
-            self._watch_files = {}
-            self._idle_handle = 0
-            self._glib_idle_enabled = False # have we called glib.idle_add?
-            self._idle_callbacks = {}
-            self._loop = self.gobject.MainLoop()
-            self._exc_info = None
-            self._enable_glib_idle()
 
         def alarm(self, seconds, callback):
             """
@@ -803,13 +848,6 @@ if not PYTHON3:
             Remove an alarm.
 
             Returns True if the alarm exists, False otherwise
-
-            >>> evl = GLibEventLoop()
-            >>> handle = evl.alarm(50, lambda: None)
-            >>> evl.remove_alarm(handle)
-            True
-            >>> evl.remove_alarm(handle)
-            False
             """
             try:
                 self._alarms.remove(handle[0])
@@ -817,6 +855,16 @@ if not PYTHON3:
                 return True
             except ValueError:
                 return False
+
+        def _test_remove_alarm(self):
+            """
+            >>> evl = GLibEventLoop()
+            >>> handle = evl.alarm(50, lambda: None)
+            >>> evl.remove_alarm(handle)
+            True
+            >>> evl.remove_alarm(handle)
+            False
+            """
 
         def watch_file(self, fd, callback):
             """
@@ -842,7 +890,15 @@ if not PYTHON3:
             Remove an input file.
 
             Returns True if the input file exists, False otherwise
+            """
+            if handle in self._watch_files:
+                self.gobject.source_remove(self._watch_files[handle])
+                del self._watch_files[handle]
+                return True
+            return False
 
+        def _test_remove_watch_file(self):
+            """
             >>> evl = GLibEventLoop()
             >>> handle = evl.watch_file(1, lambda: None)
             >>> evl.remove_watch_file(handle)
@@ -850,11 +906,6 @@ if not PYTHON3:
             >>> evl.remove_watch_file(handle)
             False
             """
-            if handle in self._watch_files:
-                self.gobject.source_remove(self._watch_files[handle])
-                del self._watch_files[handle]
-                return True
-            return False
 
         def enter_idle(self, callback):
             """
@@ -895,7 +946,20 @@ if not PYTHON3:
             """
             Start the event loop.  Exit the loop when any callback raises
             an exception.  If ExitMainLoop is raised, exit cleanly.
-            
+            """
+            try:
+                self._loop.run()
+            finally:
+                if self._loop.is_running():
+                    self._loop.quit()
+            if self._exc_info:
+                # An exception caused us to exit, raise it now
+                exc_info = self._exc_info
+                self._exc_info = None
+                raise exc_info[0], exc_info[1], exc_info[2]
+
+        def _test_run(self):
+            """
             >>> import os
             >>> rd, wr = os.pipe()
             >>> os.write(wr, "data") # something to read from rd
@@ -935,24 +999,15 @@ if not PYTHON3:
                ...
             ZeroDivisionError: integer division or modulo by zero
             """
-            try:
-                self._loop.run()
-            finally:
-                if self._loop.is_running():
-                    self._loop.quit()
-            if self._exc_info:
-                # An exception caused us to exit, raise it now
-                exc_info = self._exc_info
-                self._exc_info = None
-                raise exc_info[0], exc_info[1], exc_info[2]
 
         def handle_exit(self,f):
             """
-            Decorator that cleanly exits the GLibEventLoop if ExitMainLoop is
-            thrown inside of the wrapped function.  Store the exception info if 
-            some other exception occurs, it will be reraised after the loop quits.
-            f -- function to be wrapped
+            Decorator that cleanly exits the :class:`GLibEventLoop` if
+            :exc:`ExitMainLoop` is thrown inside of the wrapped function. Store the
+            exception info if some other exception occurs, it will be reraised after
+            the loop quits.
 
+            *f* -- function to be wrapped
             """
             def wrapper(*args,**kargs):
                 try:
@@ -988,22 +1043,26 @@ if not PYTHON3:
 
 
     class TwistedEventLoop(object):
+        """
+        Event loop based on Twisted_
+        """
         _idle_emulation_delay = 1.0/256 # a short time (in seconds)
 
         def __init__(self, reactor=None, manage_reactor=True):
             """
-            Event loop based on Twisted
+            :param reactor: reactor to use
+            :type reactor: :class:`twisted.internet.reactor`.
+            :param: manage_reactor: `True` if you want this event loop to run
+                                    and stop the reactor.
+            :type manage_reactor: boolean
 
-            reactor -- reactor object to use, if None defaults to
-                    twisted.internet.reactor
-            manage_reactor -- True if you want this event loop to run
-                    and stop the reactor
+            .. WARNING::
+               Twisted's reactor doesn't like to be stopped and run again.  If you
+               need to stop and run your :class:`MainLoop`, consider setting
+               ``manage_reactor=False`` and take care of running/stopping the reactor
+               at the beginning/ending of your program yourself.
 
-            *** WARNING ***
-            Twisted's reactor doesn't like to be stopped and run again.
-            If you need to stop and run your MainLoop, consider setting
-            manage_reactor=False and take care of running/stopping
-            the reactor at the beginning/ending of your program yourself.
+            .. _Twisted: http://twistedmatrix.com/trac/
             """
             if reactor is None:
                 import twisted.internet.reactor
@@ -1036,13 +1095,6 @@ if not PYTHON3:
             Remove an alarm.
 
             Returns True if the alarm exists, False otherwise
-
-            >>> evl = TwistedEventLoop()
-            >>> handle = evl.alarm(50, lambda: None)
-            >>> evl.remove_alarm(handle)
-            True
-            >>> evl.remove_alarm(handle)
-            False
             """
             from twisted.internet.error import AlreadyCancelled, AlreadyCalled
             try:
@@ -1052,6 +1104,16 @@ if not PYTHON3:
                 return False
             except AlreadyCalled:
                 return False
+
+        def _test_remove_alarm(self):
+            """
+            >>> evl = TwistedEventLoop()
+            >>> handle = evl.alarm(50, lambda: None)
+            >>> evl.remove_alarm(handle)
+            True
+            >>> evl.remove_alarm(handle)
+            False
+            """
 
         def watch_file(self, fd, callback):
             """
@@ -1074,7 +1136,15 @@ if not PYTHON3:
             Remove an input file.
 
             Returns True if the input file exists, False otherwise
+            """
+            if handle in self._watch_files:
+                self.reactor.removeReader(self._watch_files[handle])
+                del self._watch_files[handle]
+                return True
+            return False
 
+        def _test_remove_watch_file(self):
+            """
             >>> evl = TwistedEventLoop()
             >>> handle = evl.watch_file(1, lambda: None)
             >>> evl.remove_watch_file(handle)
@@ -1082,11 +1152,6 @@ if not PYTHON3:
             >>> evl.remove_watch_file(handle)
             False
             """
-            if handle in self._watch_files:
-                self.reactor.removeReader(self._watch_files[handle])
-                del self._watch_files[handle]
-                return True
-            return False
 
         def enter_idle(self, callback):
             """
@@ -1104,8 +1169,9 @@ if not PYTHON3:
             so the best we can do for now is to set a timer event in a very
             short time to approximate an enter-idle callback.
 
-            XXX: This will perform worse than the other event loops until we
-            can find a fix or workaround
+            .. WARNING::
+               This will perform worse than the other event loops until we can find a
+               fix or workaround
             """
             if self._twisted_idle_enabled:
                 return
@@ -1134,7 +1200,18 @@ if not PYTHON3:
             """
             Start the event loop.  Exit the loop when any callback raises
             an exception.  If ExitMainLoop is raised, exit cleanly.
+            """
+            if not self.manage_reactor:
+                return
+            self.reactor.run()
+            if self._exc_info:
+                # An exception caused us to exit, raise it now
+                exc_info = self._exc_info
+                self._exc_info = None
+                raise exc_info[0], exc_info[1], exc_info[2]
 
+        def _test_run(self):
+            """
             >>> import os
             >>> rd, wr = os.pipe()
             >>> os.write(wr, "data") # something to read from rd
@@ -1162,22 +1239,15 @@ if not PYTHON3:
             waiting
             oh I'm messed up
             """
-            if not self.manage_reactor:
-                return
-            self.reactor.run()
-            if self._exc_info:
-                # An exception caused us to exit, raise it now
-                exc_info = self._exc_info
-                self._exc_info = None
-                raise exc_info[0], exc_info[1], exc_info[2]
 
         def handle_exit(self, f, enable_idle=True):
             """
-            Decorator that cleanly exits the TwistedEventLoop if ExitMainLoop is
-            thrown inside of the wrapped function.  Store the exception info if
-            some other exception occurs, it will be reraised after the loop quits.
-            f -- function to be wrapped
+            Decorator that cleanly exits the :class:`TwistedEventLoop` if
+            :class:`ExitMainLoop` is thrown inside of the wrapped function. Store the
+            exception info if some other exception occurs, it will be reraised after
+            the loop quits.
 
+            *f* -- function to be wrapped
             """
             def wrapper(*args,**kargs):
                 rval = None
@@ -1213,6 +1283,7 @@ def _refl(name, rval=None, exit=False):
     screen.want_something()
     >>> x
     42
+
     """
     class Reflect(object):
         def __init__(self, name, rval=None):
@@ -1224,7 +1295,7 @@ def _refl(name, rval=None, exit=False):
                 args = args + ", "
             args = args + ", ".join([k+"="+repr(v) for k,v in argd.items()])
             print self._name+"("+args+")"
-            if exit: 
+            if exit:
                 raise ExitMainLoop()
             return self._rval
         def __getattr__(self, attr):

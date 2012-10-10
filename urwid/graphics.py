@@ -204,40 +204,43 @@ class BarGraph(Widget):
         Create a bar graph with the passed display characteristics.
         see set_segment_attributes for a description of the parameters.
         """
-        
+
         self.set_segment_attributes( attlist, hatt, satt )
         self.set_data([], 1, None)
         self.set_bar_width(None)
-        
+
     def set_segment_attributes(self, attlist, hatt=None, satt=None ):
         """
-        attlist -- list containing attribute or (attribute, character)
-            tuple for background, first segment, and optionally
-            following segments. ie. len(attlist) == num segments+1
-            character defaults to ' ' if not specified.
-        hatt -- list containing attributes for horizontal lines. First 
-            lement is for lines on background, second is for lines
-                   on first segment, third is for lines on second segment
-            etc..
-        satt -- dictionary containing attributes for smoothed 
-            transitions of bars in UTF-8 display mode. The values
-            are in the form:
-                (fg,bg) : attr
-            fg and bg are integers where 0 is the graph background,
-            1 is the first segment, 2 is the second, ...  
-            fg > bg in all values.  attr is an attribute with a 
-            foreground corresponding to fg and a background 
-            corresponding to bg.
-            
+        :param attlist: list containing display attribute or
+                        (display attribute, character) tuple for background,
+                        first segment, and optionally following segments.
+                        ie. len(attlist) == num segments+1
+                        character defaults to ' ' if not specified.
+        :param hatt: list containing attributes for horizontal lines. First
+                     element is for lines on background, second is for lines
+                     on first segment, third is for lines on second segment
+                     etc.
+        :param satt: dictionary containing attributes for smoothed
+                     transitions of bars in UTF-8 display mode. The values
+                     are in the form:
+
+                       (fg,bg) : attr
+
+                     fg and bg are integers where 0 is the graph background,
+                     1 is the first segment, 2 is the second, ...
+                     fg > bg in all values.  attr is an attribute with a
+                     foreground corresponding to fg and a background
+                     corresponding to bg.
+
         If satt is not None and the bar graph is being displayed in
         a terminal using the UTF-8 encoding then the character cell
         that is shared between the segments specified will be smoothed
         with using the UTF-8 vertical eighth characters.
-        
+
         eg: set_segment_attributes( ['no', ('unsure',"?"), 'yes'] )
         will use the attribute 'no' for the background (the area from
-        the top of the graph to the top of the bar), question marks 
-        with the attribute 'unsure' will be used for the topmost 
+        the top of the graph to the top of the bar), question marks
+        with the attribute 'unsure' will be used for the topmost
         segment of the bar, and the attribute 'yes' will be used for
         the bottom segment of the bar.
         """
@@ -781,9 +784,9 @@ class GraphVScale(Widget):
         if maxrow - rows:
             c.pad_trim_top_bottom(0, maxrow - rows)
         return c
-            
-            
-    
+
+
+
 def scale_bar_values( bar, top, maxrow ):
     """
     Return a list of bar values aliased to integer values of maxrow.
@@ -800,14 +803,14 @@ class ProgressBar(Widget):
 
     def __init__(self, normal, complete, current=0, done=100, satt=None):
         """
-        normal -- attribute for uncomplete part of progress bar
-        complete -- attribute for complete part of progress bar
-        current -- current progress
-        done -- progress amount at 100%
-        satt -- attribute for smoothed part of bar where the foreground
-            of satt corresponds to the normal part and the
-            background corresponds to the complete part.  If satt
-            is None then no smoothing will be done.
+        :param normal: display attribute for uncomplete part of progress bar
+        :param complete: display attribute for complete part of progress bar
+        :param current: current progress
+        :param done: progress amount at 100%
+        :param satt: display attribute for smoothed part of bar where the
+                     foreground of satt corresponds to the normal part and the
+                     background corresponds to the complete part.  If satt
+                     is ``None`` then no smoothing will be done.
         """
         self.normal = normal
         self.complete = complete

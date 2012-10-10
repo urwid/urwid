@@ -33,27 +33,27 @@ class TextLayout:
     def layout(self, text, width, align, wrap ):
         """
         Return a layout structure for text.
-        
-        text -- string in current encoding or unicode string
-        width -- number of screen columns available
-        align -- align mode for text
-        wrap -- wrap mode for text
+
+        :param text: string in current encoding or unicode string
+        :param width: number of screen columns available
+        :param align: align mode for text
+        :param wrap: wrap mode for text
 
         Layout structure is a list of line layouts, one per output line.
         Line layouts are lists than may contain the following tuples:
-          ( column width of text segment, start offset, end offset )
-          ( number of space characters to insert, offset or None)
-          ( column width of insert text, offset, "insert text" )
+
+        * (column width of text segment, start offset, end offset)
+        * (number of space characters to insert, offset or None)
+        * (column width of insert text, offset, "insert text")
 
         The offset in the last two tuples is used to determine the
-        attribute used for the inserted spaces or text respectively.  
-        The attribute used will be the same as the attribute at that 
+        attribute used for the inserted spaces or text respectively.
+        The attribute used will be the same as the attribute at that
         text offset.  If the offset is None when inserting spaces
         then no attribute will be used.
         """
-        assert 0, ("This function must be overridden by a real"
+        raise NotImplementedError("This function must be overridden by a real"
             " text layout class. (see StandardTextLayout)")
-        return [[]]
 
 class CanNotDisplayText(Exception):
     pass

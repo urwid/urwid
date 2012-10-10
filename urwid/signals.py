@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid signal dispatching
-#    Copyright (C) 2004-2009  Ian Ward
+#    Copyright (C) 2004-2012  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -52,12 +52,11 @@ class Signals(object):
 
     def register(self, sig_cls, signals):
         """
-        Available as:
-        urwid.regsiter_signal(sig_cls, signals)
-
-        sig_class -- the class of an object that will be sending signals
-        signals -- a list of signals that may be sent, typically each
-            signal is represented by a string
+        :param sig_class: the class of an object that will be sending signals
+        :type sig_class: class
+        :param signals: a list of signals that may be sent, typically each
+                        signal is represented by a string
+        :type signals: signal names
 
         This function must be called for a class before connecting any
         signal callbacks or emiting any signals from that class' objects
@@ -66,15 +65,15 @@ class Signals(object):
 
     def connect(self, obj, name, callback, user_arg=None):
         """
-        Available as:
-        urwid.connect_signal(obj, name, callback, user_arg=None)
+        :param obj: the object sending a signal
+        :type obj: object
+        :param name: the signal to listen for, typically a string
+        :type name: signal name
+        :param callback: the function to call when that signal is sent
+        :type callback: function
+        :param user_arg: optional additional argument to callback, if None
+                         no arguments will be added
 
-        obj -- the object sending a signal
-        name -- the name of the signal, typically a string
-        callback -- the function to call when that signal is sent
-        user_arg -- optional additional argument to callback, if None
-            no arguments will be added
-        
         When a matching signal is sent, callback will be called with
         all the positional parameters sent with the signal.  If user_arg
         is not None it will be sent added to the end of the positional
@@ -86,12 +85,9 @@ class Signals(object):
                 (name, obj)
         d = setdefaultattr(obj, self._signal_attr, {})
         d.setdefault(name, []).append((callback, user_arg))
-        
+
     def disconnect(self, obj, name, callback, user_arg=None):
         """
-        Available as:
-        urwid.disconnect_signal(obj, name, callback, user_arg=None)
-
         This function will remove a callback from the list connected
         to a signal with connect_signal().
         """
@@ -101,16 +97,15 @@ class Signals(object):
         if (callback, user_arg) not in d[name]:
             return
         d[name].remove((callback, user_arg))
- 
+
     def emit(self, obj, name, *args):
         """
-        Available as:
-        urwid.emit_signal(obj, name, *args)
-
-        obj -- the object sending a signal
-        name -- the name of the signal, typically a string
-        *args -- zero or more positional arguments to pass to the signal
-            callback functions
+        :param obj: the object sending a signal
+        :type obj: object
+        :param name: the signal to send, typically a string
+        :type name: signal name
+        :param \*args: zero or more positional arguments to pass to the signal
+                      callback functions
 
         This function calls each of the callbacks connected to this signal
         with the args arguments as positional parameters.

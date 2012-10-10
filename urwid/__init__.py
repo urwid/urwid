@@ -22,13 +22,14 @@
 
 from urwid.version import VERSION, __version__
 from urwid.widget import (FLOW, BOX, FIXED, LEFT, RIGHT, CENTER, TOP, MIDDLE,
-    BOTTOM, SPACE, ANY, CLIP, PACK, GIVEN, RELATIVE, RELATIVE_100, WidgetMeta,
+    BOTTOM, SPACE, ANY, CLIP, PACK, GIVEN, RELATIVE, RELATIVE_100, WEIGHT,
+    WidgetMeta,
     WidgetError, Widget, FlowWidget, BoxWidget, fixed_size, FixedWidget,
     Divider, SolidFill, TextError, Text, EditError, Edit, IntEdit,
     delegate_to_widget_mixin, WidgetWrapError, WidgetWrap)
 from urwid.decoration import (WidgetDecoration, WidgetPlaceholder,
     AttrMapError, AttrMap, AttrWrap, BoxAdapterError, BoxAdapter, PaddingError,
-    Padding, FillerError, Filler)
+    Padding, FillerError, Filler, WidgetDisable)
 from urwid.container import (GridFlowError, GridFlow, OverlayError, Overlay,
     FrameError, Frame, PileError, Pile, ColumnsError, Columns,
     WidgetContainerMixin)
@@ -47,7 +48,10 @@ from urwid.font import (get_all_fonts, Font, Thin3x3Font, Thin4x3Font,
 from urwid.signals import (MetaSignals, Signals, emit_signal, register_signal,
     connect_signal, disconnect_signal)
 from urwid.monitored_list import MonitoredList, MonitoredFocusList
-from urwid.command_map import CommandMap, command_map
+from urwid.command_map import (CommandMap, command_map,
+    REDRAW_SCREEN, CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT,
+    CURSOR_PAGE_UP, CURSOR_PAGE_DOWN, CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT,
+    ACTIVATE)
 from urwid.main_loop import ExitMainLoop, MainLoop, SelectEventLoop
 try:
     from urwid.main_loop import GLibEventLoop, TwistedEventLoop

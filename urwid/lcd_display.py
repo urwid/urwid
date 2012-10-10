@@ -267,20 +267,20 @@ class CF635Screen(CFLCDScreen):
     no foreground/background colors or settings supported
 
     see CGROM for list of close unicode matches to characters available
-     * ① through ⑧ are programmable CGRAM (chars 0-7, repeated at 8-15)
-     * double arrows (⇑⇓) appear as double arrowheads (chars 18, 19)
-     * ⑴ resembles a bell
-     * ⑵ resembles a filled-in "Y"
-     * ⑶ is the letters "Pt" together
-     * partial blocks (▇▆▄▃▁) are actually shorter versions of (▉▋▌▍▏)
-       both groups are intended to draw horizontal bars with pixel
-       precision, use ▇*[▆▄▃▁]? for a thin bar or ▉*[▋▌▍▏]? for a thick bar
 
     6 button input
     up, down, left, right, enter (check mark), exit (cross)
     """
     DISPLAY_SIZE = (20, 4)
 
+    # ① through ⑧ are programmable CGRAM (chars 0-7, repeated at 8-15)
+    # double arrows (⇑⇓) appear as double arrowheads (chars 18, 19)
+    # ⑴ resembles a bell
+    # ⑵ resembles a filled-in "Y"
+    # ⑶ is the letters "Pt" together
+    # partial blocks (▇▆▄▃▁) are actually shorter versions of (▉▋▌▍▏)
+    #   both groups are intended to draw horizontal bars with pixel
+    #   precision, use ▇*[▆▄▃▁]? for a thin bar or ▉*[▋▌▍▏]? for a thick bar
     CGROM = (
         u"①②③④⑤⑥⑦⑧①②③④⑤⑥⑦⑧"
         u"►◄⇑⇓«»↖↗↙↘▲▼↲^ˇ█"
@@ -441,16 +441,17 @@ class CF635Screen(CFLCDScreen):
 
     def program_cgram(self, index, data):
         """
-        Program character data.  Characters available as chr(0) through 
+        Program character data.  Characters available as chr(0) through
         chr(7), and repeated as chr(8) through chr(15).
 
         index -- 0 to 7 index of character to program
-        data -- list of 8, 6-bit integer values top to bottom with MSB 
-            on the left side of the character.
+
+        data -- list of 8, 6-bit integer values top to bottom with MSB
+        on the left side of the character.
         """
         assert 0 <= index <= 7
         assert len(data) == 8
-        self.queue_command(self.CMD_CGRAM, chr(index) + 
+        self.queue_command(self.CMD_CGRAM, chr(index) +
             "".join([chr(x) for x in data]))
 
     def set_cursor_style(self, style):

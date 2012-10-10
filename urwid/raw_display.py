@@ -242,7 +242,7 @@ class Screen(BaseScreen, RealTerminal):
             return fn()
         finally:
             self.stop()
-            
+
     def get_input(self, raw_keys=False):
         """Return pending input as a list.
 
@@ -256,39 +256,42 @@ class Screen(BaseScreen, RealTerminal):
         If raw_keys is False (default) this function will return a list
         of keys pressed.  If raw_keys is True this function will return
         a ( keys pressed, raw keycodes ) tuple instead.
-        
-        Examples of keys returned
-        -------------------------
-        ASCII printable characters:  " ", "a", "0", "A", "-", "/" 
-        ASCII control characters:  "tab", "enter"
-        Escape sequences:  "up", "page up", "home", "insert", "f1"
-        Key combinations:  "shift f1", "meta a", "ctrl b"
-        Window events:  "window resize"
-        
-        When a narrow encoding is not enabled
-        "Extended ASCII" characters:  "\\xa1", "\\xb2", "\\xfe"
 
-        When a wide encoding is enabled
-        Double-byte characters:  "\\xa1\\xea", "\\xb2\\xd4"
+        Examples of keys returned:
 
-        When utf8 encoding is enabled
-        Unicode characters: u"\\u00a5", u'\\u253c"
-        
-        Examples of mouse events returned
-        ---------------------------------
-        Mouse button press: ('mouse press', 1, 15, 13), 
-                            ('meta mouse press', 2, 17, 23)
-        Mouse drag: ('mouse drag', 1, 16, 13),
-                    ('mouse drag', 1, 17, 13),
-                ('ctrl mouse drag', 1, 18, 13)
-        Mouse button release: ('mouse release', 0, 18, 13),
-                              ('ctrl mouse release', 0, 17, 23)
+        * ASCII printable characters:  " ", "a", "0", "A", "-", "/" 
+        * ASCII control characters:  "tab", "enter"
+        * Escape sequences:  "up", "page up", "home", "insert", "f1"
+        * Key combinations:  "shift f1", "meta a", "ctrl b"
+        * Window events:  "window resize"
+
+        When a narrow encoding is not enabled:
+
+        * "Extended ASCII" characters:  "\\xa1", "\\xb2", "\\xfe"
+
+        When a wide encoding is enabled:
+
+        * Double-byte characters:  "\\xa1\\xea", "\\xb2\\xd4"
+
+        When utf8 encoding is enabled:
+
+        * Unicode characters: u"\\u00a5", u'\\u253c"
+
+        Examples of mouse events returned:
+
+        * Mouse button press: ('mouse press', 1, 15, 13), 
+                              ('meta mouse press', 2, 17, 23)
+        * Mouse drag: ('mouse drag', 1, 16, 13),
+                      ('mouse drag', 1, 17, 13),
+                      ('ctrl mouse drag', 1, 18, 13)
+        * Mouse button release: ('mouse release', 0, 18, 13),
+                                ('ctrl mouse release', 0, 17, 23)
         """
         assert self._started
-        
+
         self._wait_for_input_ready(self._next_timeout)
         self._next_timeout, keys, raw = self._input_iter.next()
-        
+
         # Avoid pegging CPU at 100% when slowly resizing
         if keys==['window resize'] and self.prev_input_resize:
             while True:

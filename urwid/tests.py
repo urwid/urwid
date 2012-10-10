@@ -2019,8 +2019,8 @@ class PileTest(unittest.TestCase):
 
 
 class ColumnsTest(unittest.TestCase):
-    def cwtest(self, desc, l, divide, size, exp):
-        c = urwid.Columns( l, divide )
+    def cwtest(self, desc, l, divide, size, exp, focus_column=0):
+        c = urwid.Columns(l, divide, focus_column)
         rval = c.column_widths( size )
         assert rval == exp, "%s expected %s, got %s"%(desc,exp,rval)
 
@@ -2052,6 +2052,34 @@ class ColumnsTest(unittest.TestCase):
             x, ('weight',3,x)], 1, (10,), [2,5,1] )
         self.cwtest( "mixed 4 c", [('weight',2,x),('fixed',5,x),
             x, ('weight',3,x)], 1, (20,), [4,5,2,6] )
+
+    def test_widths_focus_end(self):
+        x = urwid.Text("") # sample "column"
+        self.cwtest("end simple 2", [x,x], 0, (20,), [10,10], 1)
+        self.cwtest("end simple 2+1", [x,x], 1, (20,), [10,9], 1)
+        self.cwtest("end simple 3+1", [x,x,x], 1, (20,), [6,6,6], 2)
+        self.cwtest("end simple 3+2", [x,x,x], 2, (20,), [5,6,5], 2)
+        self.cwtest("end simple 3+2", [x,x,x], 2, (21,), [6,6,5], 2)
+        self.cwtest("end simple 4+1", [x,x,x,x], 1, (25,), [6,5,6,5], 3)
+        self.cwtest("end squish 4+1", [x,x,x,x], 1, (7,), [1,1,1,1], 3)
+        self.cwtest("end squish 4+1", [x,x,x,x], 1, (6,), [0,1,2,1], 3)
+        self.cwtest("end squish 4+1", [x,x,x,x], 1, (4,), [0,0,2,1], 3)
+
+        self.cwtest("end fixed 3", [('fixed',4,x),('fixed',6,x),
+            ('fixed',2,x)], 1, (25,), [4,6,2], 2)
+        self.cwtest("end fixed 3 cut", [('fixed',4,x),('fixed',6,x),
+            ('fixed',2,x)], 1, (13,), [0,6,2], 2)
+        self.cwtest("end fixed 3 cut2", [('fixed',4,x),('fixed',6,x),
+            ('fixed',2,x)], 1, (8,), [0,0,2], 2)
+
+        self.cwtest("end mixed 4", [('weight',2,x),('fixed',5,x),
+            x, ('weight',3,x)], 1, (14,), [2,5,1,3], 3)
+        self.cwtest("end mixed 4 a", [('weight',2,x),('fixed',5,x),
+            x, ('weight',3,x)], 1, (12,), [1,5,1,2], 3)
+        self.cwtest("end mixed 4 b", [('weight',2,x),('fixed',5,x),
+            x, ('weight',3,x)], 1, (10,), [0,5,1,2], 3)
+        self.cwtest("end mixed 4 c", [('weight',2,x),('fixed',5,x),
+            x, ('weight',3,x)], 1, (20,), [4,5,2,6], 3)
 
     def mctest(self, desc, l, divide, size, col, row, exp, f_col, pref_col):
         c = urwid.Columns( l, divide )
@@ -2352,6 +2380,8 @@ class WidgetSquishTest(unittest.TestCase):
         assert c.rows() == 0
         c = w.render((80,1), focus=False)
         assert c.rows() == 1
+        c = w.render((0, 25), focus=False)
+        c = w.render((1, 25), focus=False)
 
     def test_listbox(self):
         self.wstest(urwid.ListBox([]))
@@ -2394,6 +2424,7 @@ class WidgetSquishTest(unittest.TestCase):
 
     def test_columns(self):
         self.wstest(urwid.Columns([urwid.SolidFill()]))
+        self.wstest(urwid.Columns([(4, urwid.SolidFill())]))
 
 
 class CommonContainerTest(unittest.TestCase):

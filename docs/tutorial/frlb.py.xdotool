@@ -1,0 +1,4 @@
+windowsize --usehints $RXVTWINDOWID 21 7
+type --window $RXVTWINDOWID 'Tim t'
+type --window $RXVTWINDOWID 'he Enchanter'
+key --window $RXVTWINDOWID Down

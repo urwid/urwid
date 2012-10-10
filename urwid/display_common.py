@@ -711,7 +711,7 @@ class BaseScreen(object):
         super(BaseScreen,self).__init__()
         self._palette = {}
         self._started = False
-    
+
     started = property(lambda self: self._started)
 
     def start(self):
@@ -724,26 +724,26 @@ class BaseScreen(object):
     def register_palette(self, palette):
         """Register a set of palette entries.
 
-        palette -- a list of (name, like_other_name) or 
-            (name, foreground, background, mono, foreground_high, 
-            background_high) tuples
+        palette -- a list of (name, like_other_name) or
+        (name, foreground, background, mono, foreground_high,
+        background_high) tuples
 
             The (name, like_other_name) format will copy the settings
             from the palette entry like_other_name, which must appear
             before this tuple in the list.
-            
-            The mono and foreground/background_high values are 
-            optional ie. the second tuple format may have 3, 4 or 6 
-            values.  See register_palette_entry() for a description 
+
+            The mono and foreground/background_high values are
+            optional ie. the second tuple format may have 3, 4 or 6
+            values.  See register_palette_entry() for a description
             of the tuple values.
         """
-        
+
         for item in palette:
             if len(item) in (3,4,6):
                 self.register_palette_entry(*item)
                 continue
             if len(item) != 2:
-                raise ScreenError("Invalid register_palette entry: %s" % 
+                raise ScreenError("Invalid register_palette entry: %s" %
                     repr(item))
             name, like_name = item
             if not self._palette.has_key(like_name):
@@ -755,14 +755,15 @@ class BaseScreen(object):
         """Register a single palette entry.
 
         name -- new entry/attribute name
-        foreground -- a string containing a comma-separated foreground 
-            color and settings
+
+        foreground -- a string containing a comma-separated foreground
+        color and settings
 
             Color values:
             'default' (use the terminal's default foreground),
             'black', 'dark red', 'dark green', 'brown', 'dark blue',
             'dark magenta', 'dark cyan', 'light gray', 'dark gray',
-            'light red', 'light green', 'yellow', 'light blue', 
+            'light red', 'light green', 'yellow', 'light blue',
             'light magenta', 'light cyan', 'white'
 
             Settings:
@@ -770,7 +771,7 @@ class BaseScreen(object):
 
             Some terminals use 'bold' for bright colors.  Most terminals
             ignore the 'blink' setting.  If the color is not given then
-            'default' will be assumed. 
+            'default' will be assumed.
 
         background -- a string containing the background color
 
@@ -778,16 +779,16 @@ class BaseScreen(object):
             'default' (use the terminal's default background),
             'black', 'dark red', 'dark green', 'brown', 'dark blue',
             'dark magenta', 'dark cyan', 'light gray'
-        
-        mono -- a comma-separated string containing monochrome terminal 
-            settings (see "Settings" above.)
+
+        mono -- a comma-separated string containing monochrome terminal
+        settings (see "Settings" above.)
 
             None = no terminal settings (same as 'default')
 
-        foreground_high -- a string containing a comma-separated 
-            foreground color and settings, standard foreground
-            colors (see "Color values" above) or high-colors may 
-            be used
+        foreground_high -- a string containing a comma-separated
+        foreground color and settings, standard foreground
+        colors (see "Color values" above) or high-colors may
+        be used
 
             High-color example values:
             '#009' (0% red, 0% green, 60% red, like HTML colors)
@@ -800,9 +801,9 @@ class BaseScreen(object):
             None = use foreground parameter value
 
         background_high -- a string containing the background color,
-            standard background colors (see "Background colors" above)
-            or high-colors (see "High-color example values" above)
-            may be used
+        standard background colors (see "Background colors" above)
+        or high-colors (see "High-color example values" above)
+        may be used
 
             None = use background parameter value
         """

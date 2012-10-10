@@ -1,0 +1,4 @@
+windowsize --usehints $RXVTWINDOWID 23 13
+key --window $RXVTWINDOWID A b e Return B o b
+key --window $RXVTWINDOWID Return C a r l Return
+key --window $RXVTWINDOWID D a v e Return
