@@ -201,6 +201,8 @@ and extend than handling all special input in an *unhandled_input* function.
 .. image:: edit3.png
 
 
+.. _tutorial-signal-handlers:
+
 Signal Handlers
 ---------------
 
@@ -291,6 +293,11 @@ This program lets you choose an option then repeats what you chose.
 * *item_chosen* replaces the menu displayed with text indicating the users'
   choice.  It then installs *exit_program* as the *unhandled_input* method of the
   :class:`MainLoop`.
+
+  .. note:: This is a fairly benign example of monkey patching, but in
+     a real program an approach like the exit button in
+     the :ref:`signal handlers example <tutorial-signal-handlers>` above would be better.
+
 * *exit_program* causes the program to exit on any keystroke.
 * The menu is created and decorated with an :class:`Overlay` using a
   :class:`SolidFill` as the background.  The :class:`Overlay` is given a
@@ -305,7 +312,7 @@ Cascading Menu
 --------------
 
 A nested menu effect can be created by having some buttons open new menus.  This program
-lets you choose an option from a nested menu then repeats what you chose.  You may also
+lets you choose an option from a nested menu that cascades across the screen.  You may
 return to previous menus by pressing *ESC*.
 
 .. literalinclude:: menu2.py
@@ -338,19 +345,21 @@ case as a base class for a widget that will be replacing its own contents regula
   to be removed and the previous one to be shown.  This allows the user to
   return to a previous menu level.
 
-In this example there is a subtle effect that prevents pressing *ESC* to return
-to a menu once an item is chosen.  *item_chosen* displays a
-widget that is not selectable, and the default for
-:ref:`decoration widgets <decoration-widgets>` including :class:`WidgetPlaceholder`
-is to reflect the selectable state of the widget contained.  :class:`MainLoop`
-will not call :meth:`Widget.keypress`
-on non-selectable widgets, so *ESC* will not reach our *CascadingBoxes.keypress*
-method once an item is chosen.
+.. note::
+   In this example there is a subtle effect that prevents pressing *ESC* to return
+   to a menu once an item is chosen.
 
-If you did want to allow backing out after a selection was made you could make
-*CascadingBoxes* selectable by defining a :meth:`Widget.selectable` method.
-You would also need to handle exiting the program in a cleaner way than
-by overwriting :meth:`MainLoop.unhandled_input` as *item_chosen* does above.
+   *item_chosen* displays a widget that is not selectable, and the default
+   for :ref:`decoration widgets <decoration-widgets>` including :class:`WidgetPlaceholder`
+   is to reflect the selectable state of the widget contained.  :class:`MainLoop`
+   will not call :meth:`Widget.keypress`
+   on non-selectable widgets, so *ESC* will not reach our *CascadingBoxes.keypress*
+   method once an item is chosen.
+
+   If you did want to allow backing out after a selection was made you could make
+   *CascadingBoxes* selectable by defining a :meth:`Widget.selectable` method.
+   You would also need to handle exiting the program in a cleaner way than
+   by overwriting :meth:`MainLoop.unhandled_input` as *item_chosen* does above.
 
 .. image:: menu21.png
 .. image:: menu22.png
@@ -360,13 +369,28 @@ by overwriting :meth:`MainLoop.unhandled_input` as *item_chosen* does above.
 Horizontal Menu
 ---------------
 
-We can create new widget classes for the menu elements we are creating.  This program
-is the mostly the same as the one above but with classes defined for each menu
-component we are creating. The :class:`Button` subclasses are customized to remove the
-default decorations
+This example is like the previous but new menus appear on the right and push
+old menus off the left side of the screen.
+The look of buttons and other menu elements are heavily customized
+and new widget classes are used instead of factory functions.
 
 .. literalinclude:: menu3.py
    :linenos:
+
+* *MenuButton* is a customized :class:`Button` widget.  :class:`Button` uses
+  :class:`WidgetWrap` to create its appearance and this class replaces the
+  display widget created by :class:`Button` by assigning to ``self._w`` in its
+  constructor.
+* *SubMenu* is implemented with a *MenuButton* but uses :class:`WidgetWrap`
+  to hide the implementation instead of inheriting from *MenuButton*.
+  Storing the menu that will be opened by this button as an attribute is a
+  good alternative to using factory functions and closures.
+* *Menu* is implemented with a :class:`ListBox` hidden with :class:`WidgetWrap`.
+  This will make the implementation opaque to outside users so things like
+  setting the focus or iterating over children will not work as it would
+  if a simple factory function was used.  This might make sense if you want
+  to add a whole new interface to your class or control how its children are
+  accessed.
 
 .. image:: menu31.png
 .. image:: menu32.png
