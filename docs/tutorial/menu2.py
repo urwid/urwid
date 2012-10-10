@@ -17,12 +17,11 @@ def menu(title, choices):
     return urwid.ListBox(urwid.SimpleFocusListWalker(body))
 
 def item_chosen(button):
-    response = urwid.Text(u'You chose %s' % button.label)
-    top.open_box(urwid.Filler(response))
-    # exit on the next input from user
-    loop.unhandled_input = exit_program
+    response = urwid.Text([u'You chose ', button.label, u'\n'])
+    done = menu_button(u'Ok', exit_program)
+    top.open_box(urwid.Filler(urwid.Pile([response, done])))
 
-def exit_program(key):
+def exit_program(button):
     raise urwid.ExitMainLoop()
 
 menu_top = menu(u'Main Menu', [
@@ -65,5 +64,4 @@ class CascadingBoxes(urwid.WidgetPlaceholder):
             return super(CascadingBoxes, self).keypress(size, key)
 
 top = CascadingBoxes(menu_top)
-loop = urwid.MainLoop(top, palette=[('reversed', 'standout', '')])
-loop.run()
+urwid.MainLoop(top, palette=[('reversed', 'standout', '')]).run()

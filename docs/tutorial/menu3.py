@@ -32,10 +32,10 @@ class Choice(urwid.WidgetWrap):
         self.caption = caption
 
     def item_chosen(self, button):
-        response = urwid.Text(u'You chose %s' % self.caption)
-        top.open_box(urwid.Filler(response))
-        # exit on the next input from user
-        loop.unhandled_input = exit_program
+        response = urwid.Text([u'  You chose ', self.caption, u'\n'])
+        done = MenuButton(u'Ok', exit_program)
+        response_box = urwid.Filler(urwid.Pile([response, done]))
+        top.open_box(urwid.AttrMap(response_box, 'options'))
 
 def exit_program(key):
     raise urwid.ExitMainLoop()
@@ -82,5 +82,4 @@ class HorizontalBoxes(urwid.Columns):
 
 top = HorizontalBoxes()
 top.open_box(menu_top)
-loop = urwid.MainLoop(urwid.Filler(top, 'middle', 10), palette)
-loop.run()
+urwid.MainLoop(urwid.Filler(top, 'middle', 10), palette).run()

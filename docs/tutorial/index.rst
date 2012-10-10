@@ -291,13 +291,7 @@ This program lets you choose an option then repeats what you chose.
   The buttons are decorated with an :class:`AttrMap` that applies
   a display attribute when a button is in focus.
 * *item_chosen* replaces the menu displayed with text indicating the users'
-  choice.  It then installs *exit_program* as the *unhandled_input* method of the
-  :class:`MainLoop`.
-
-  .. note:: This is a fairly benign example of monkey patching, but in
-     a real program an approach like the exit button in
-     the :ref:`signal handlers example <tutorial-signal-handlers>` above would be better.
-
+  choice.
 * *exit_program* causes the program to exit on any keystroke.
 * The menu is created and decorated with an :class:`Overlay` using a
   :class:`SolidFill` as the background.  The :class:`Overlay` is given a
@@ -344,22 +338,6 @@ case as a base class for a widget that will be replacing its own contents regula
 * *CascadingBoxes.keypress* intercepts *ESC* keys to cause the current box
   to be removed and the previous one to be shown.  This allows the user to
   return to a previous menu level.
-
-.. note::
-   In this example there is a subtle effect that prevents pressing *ESC* to return
-   to a menu once an item is chosen.
-
-   *item_chosen* displays a widget that is not selectable, and the default
-   for :ref:`decoration widgets <decoration-widgets>` including :class:`WidgetPlaceholder`
-   is to reflect the selectable state of the widget contained.  :class:`MainLoop`
-   will not call :meth:`Widget.keypress`
-   on non-selectable widgets, so *ESC* will not reach our *CascadingBoxes.keypress*
-   method once an item is chosen.
-
-   If you did want to allow backing out after a selection was made you could make
-   *CascadingBoxes* selectable by defining a :meth:`Widget.selectable` method.
-   You would also need to handle exiting the program in a cleaner way than
-   by overwriting :meth:`MainLoop.unhandled_input` as *item_chosen* does above.
 
 .. image:: menu21.png
 .. image:: menu22.png

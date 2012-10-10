@@ -33,13 +33,11 @@ class Thing(urwid.WidgetWrap):
         self._w = urwid.Text(u" - %s (taken)" % self.name)
         inventory.add(self.name)
         if inventory >= set([u'sugar', u'lemon', u'jug']):
-            response = urwid.Text(u'You can make lemonade!')
-            loop.widget = urwid.Filler(response)
-            # exit on the next input from user
-            loop.unhandled_input = exit_program
-            return
+            response = urwid.Text(u'You can make lemonade!\n')
+            done = ActionButton(u' - Joy', exit_program)
+            loop.widget = urwid.Filler(urwid.Pile([response, done]))
 
-def exit_program(key):
+def exit_program(button):
     raise urwid.ExitMainLoop()
 
 map_top = Place(u'porch', [
