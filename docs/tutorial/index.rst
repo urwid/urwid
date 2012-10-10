@@ -10,6 +10,8 @@
 Minimal Application
 -------------------
 
+.. image:: minimal1.png
+
 This program displays the string ``Hello World`` in the top left corner of the
 screen and will run until interrupted with *CTRL+C* (*^C*).
 
@@ -36,11 +38,15 @@ screen and will run until interrupted with *CTRL+C* (*^C*).
   In this case our widgets can't handle any user input so we need to interrupt
   the program to exit with *^C*.
 
-.. image:: minimal1.png
-
 
 Global Input
 ------------
+
+.. image:: input1.png
+.. image:: input2.png
+.. image:: input3.png
+.. image:: input4.png
+.. image:: input5.png
 
 This program initially displays the string ``Hello World``, then it displays
 each key pressed, exiting when the user presses *Q*.
@@ -59,19 +65,21 @@ each key pressed, exiting when the user presses *Q*.
   presses *Q*. All other input is displayed by replacing the current Text
   widget's content.
 
-.. image:: input1.png
-.. image:: input2.png
-.. image:: input3.png
-.. image:: input4.png
-.. image:: input5.png
-
 
 Display Attributes
 ------------------
 
+.. image:: attr1.png
+.. image:: attr2.png
+.. image:: attr3.png
+.. image:: attr4.png
+
 This program displays the string ``Hello World`` in the center of the screen.
 It uses different attributes for the text, the space on either side of the text
 and the space above and below the text. It waits for a keypress before exiting.
+
+The screenshots above show how these widgets react to being resized.
+
 
 .. literalinclude:: attr.py
    :linenos:
@@ -106,18 +114,15 @@ and the space above and below the text. It waits for a keypress before exiting.
   :class:`Filler` widget with attribute ``'bg'``.
 
 When this program is run you can now clearly see the separation of the text,
-the alignment around the text, and the filler above and below the text. This
-is how these widgets react to being resized:
-
-.. image:: attr1.png
-.. image:: attr2.png
-.. image:: attr3.png
-.. image:: attr4.png
+the alignment around the text, and the filler above and below the text.
 
 .. seealso:: :ref:`using-display-attributes`
 
+
 High Color Modes
 ----------------
+
+.. image:: highcolors1.png
 
 This program displays the string ``Hello World`` in the center of the screen.
 It uses a number of 256-color-mode colors to decorate the text,
@@ -159,12 +164,13 @@ a widget before the correct one has been created.
   :meth:`Pile.options` is used to generate the default options
   for the new child widgets.
 
-.. image:: highcolors1.png
-
-
 
 Question and Answer
 -------------------
+
+.. image:: edit1.png
+.. image:: edit2.png
+.. image:: edit3.png
 
 This program asks for your name then responds ``Nice to meet you, (your
 name).``
@@ -196,15 +202,13 @@ and extend than handling all special input in an *unhandled_input* function.
   user to exit the program.
 
 
-.. image:: edit1.png
-.. image:: edit2.png
-.. image:: edit3.png
-
-
-.. _tutorial-signal-handlers:
-
 Signal Handlers
 ---------------
+
+.. image:: frlb1.png
+.. image:: frlb2.png
+.. image:: frlb3.png
+.. image:: frlb4.png
 
 This program asks for your name and responds ``Nice to meet you, (your name)``
 *while* you type your name.  Press *DOWN* then *SPACE* or *ENTER* to exit.
@@ -224,14 +228,14 @@ This program asks for your name and responds ``Nice to meet you, (your name)``
 * *on_ask_change* updates the reply text as the user enters their
   name and *on_exit_click* exits.
 
-.. image:: frlb1.png
-.. image:: frlb2.png
-.. image:: frlb3.png
-.. image:: frlb4.png
-
 
 Multiple Questions
 ------------------
+
+.. image:: lbcont1.png
+.. image:: lbcont2.png
+.. image:: lbcont3.png
+.. image:: lbcont4.png
 
 This program asks for your name and responds ``Nice to meet you, (your name).``
 It then asks again, and again. Old values may be changed and the responses will
@@ -270,14 +274,13 @@ it in a subclass.
   list of widgets by calling *insert*, then update the focus position to the widget we just
   created.
 
-.. image:: lbcont1.png
-.. image:: lbcont2.png
-.. image:: lbcont3.png
-.. image:: lbcont4.png
-
 
 Simple Menu
 -----------
+
+.. image:: menu11.png
+.. image:: menu12.png
+.. image:: menu13.png
 
 We can create a very simple menu using a list of :class:`Button` widgets.
 This program lets you choose an option then repeats what you chose.
@@ -298,12 +301,14 @@ This program lets you choose an option then repeats what you chose.
   miniumum width and height but is allowed to expand to 60% of the available
   space if the user's terminal window is large enough.
 
-.. image:: menu11.png
-.. image:: menu12.png
-.. image:: menu13.png
 
 Cascading Menu
 --------------
+
+.. image:: menu21.png
+.. image:: menu22.png
+.. image:: menu23.png
+.. image:: menu24.png
 
 A nested menu effect can be created by having some buttons open new menus.  This program
 lets you choose an option from a nested menu that cascades across the screen.  You may
@@ -339,13 +344,14 @@ case as a base class for a widget that will be replacing its own contents regula
   to be removed and the previous one to be shown.  This allows the user to
   return to a previous menu level.
 
-.. image:: menu21.png
-.. image:: menu22.png
-.. image:: menu23.png
-.. image:: menu24.png
 
 Horizontal Menu
 ---------------
+
+.. image:: menu31.png
+.. image:: menu32.png
+.. image:: menu33.png
+.. image:: menu34.png
 
 This example is like the previous but new menus appear on the right and push
 old menus off the left side of the screen.
@@ -377,13 +383,14 @@ as a default when no other display attribute is specified.
   dict is used to change the appearance of a number of the display attributes
   when a menu is in focus.
 
-.. image:: menu31.png
-.. image:: menu32.png
-.. image:: menu33.png
-.. image:: menu34.png
 
 Adventure Game
 --------------
+
+.. image:: menu41.png
+.. image:: menu42.png
+.. image:: menu43.png
+.. image:: menu44.png
 
 We can use the same sort of code to build a simple adventure game.  Instead
 of menus we have "places" and instead of submenus and parent menus we just
@@ -399,11 +406,6 @@ and the widgets that have been created.  The *AdventureGame* class is
 responsible for all the changes that happen through the game and manages
 the topmost widget, but isn't a widget itself.  This is a good pattern to
 follow as your application grows larger.
-
-.. image:: menu41.png
-.. image:: menu42.png
-.. image:: menu43.png
-.. image:: menu44.png
 
 
 
