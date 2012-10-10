@@ -29,7 +29,7 @@ from urwid.widget import (FLOW, BOX, FIXED, LEFT, RIGHT, CENTER, TOP, MIDDLE,
     delegate_to_widget_mixin, WidgetWrapError, WidgetWrap)
 from urwid.decoration import (WidgetDecoration, WidgetPlaceholder,
     AttrMapError, AttrMap, AttrWrap, BoxAdapterError, BoxAdapter, PaddingError,
-    Padding, FillerError, Filler)
+    Padding, FillerError, Filler, WidgetDisable)
 from urwid.container import (GridFlowError, GridFlow, OverlayError, Overlay,
     FrameError, Frame, PileError, Pile, ColumnsError, Columns,
     WidgetContainerMixin)

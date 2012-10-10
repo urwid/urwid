@@ -882,6 +882,27 @@ class Filler(WidgetDecoration):
         return self._original_widget.mouse_event((maxcol, maxrow-top-bottom),
             event, button,col, row-top, focus)
 
+class WidgetDisable(WidgetDecoration):
+    """
+    A decoration widget that disables interaction with the widget it
+    wraps.  This widget always passes focus=False to the wrapped widget,
+    even if it somehow does become the focus.
+    """
+    no_cache = ["rows"]
+    ignore_focus = True
+
+    def selectable(self):
+        return False
+    def rows(self, size, focus=False):
+        return self._original_widget.rows(size, False)
+    def sizing(self):
+        return self._original_widget.sizing()
+    def pack(self, size, focus=False):
+        return self._original_widget.pack(size, False)
+    def render(self, size, focus=False):
+        canv = self._original_widget.render(size, False)
+        return CompositeCanvas(canv)
+
 def normalize_align(align, err):
     """
     Split align into (align_type, align_amount).  Raise exception err
