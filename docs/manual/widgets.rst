@@ -66,6 +66,23 @@ Occasionally it is also useful to have a widget that knows how many screen
 columns and rows it requires, regardless of the space available. This is
 called a fixed widget.
 
+.. list-table:: How a Widget's Size is Determined
+   :widths: 20 40 40
+   :header-rows: 1
+
+   * - sizing mode
+     - width
+     - height
+   * - ``'box'``
+     - container decides
+     - container decides
+   * - ``'flow'``
+     - container decides
+     - widget's :meth:`rows() <Widget.rows>` method
+   * - ``'fixed'``
+     - widget's :meth:`pack() <Widget.pack>` method
+     - widget's :meth:`pack() <Widget.pack>` method
+
 It is an Urwid convention to use the variables :attr:`maxcol` and
 :attr:`maxrow` to store a widget's size. Box widgets require both of ``(maxcol,
 maxrow)`` to be specified.
@@ -75,6 +92,7 @@ calculate their :attr:`maxrow` based on the :attr:`maxcol` value.
 
 Fixed widgets expect the value ``()`` to be passed in to functions that take
 a size because they know their :attr:`maxcol` and :attr:`maxrow` values.
+
 .. _basic-grafic-widgets:
 
 Included Widgets
