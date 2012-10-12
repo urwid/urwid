@@ -671,7 +671,7 @@ class FillerError(Exception):
     pass
 
 class Filler(WidgetDecoration):
-    def __init__(self, body, valign=MIDDLE, height=FLOW, min_height=None,
+    def __init__(self, body, valign=MIDDLE, height=PACK, min_height=None,
             top=0, bottom=0):
         """
         :param body: a flow widget or box widget to be filled around (stored
@@ -679,12 +679,12 @@ class Filler(WidgetDecoration):
         :type body: urwid.Widget
 
         :param valign: one of:
-            'top', 'middle', 'bottom', 
+            'top', 'middle', 'bottom',
             ('relative', percentage 0=top 100=bottom)
 
         :param height: one of:
-            'flow'  if body is a flow widget
-            number of rows high, 
+            'pack'  if body is a flow widget
+            number of rows high,
             ('relative', percentage of total height)
 
         :param min_height: one of:
@@ -728,8 +728,8 @@ class Filler(WidgetDecoration):
                 valign = BOTTOM
 
         # convert old flow mode parameter height=None to height='flow'
-        if height is None:
-            height = FLOW
+        if height is None or height == FLOW:
+            height = PACK
 
         self.top = top
         self.bottom = bottom
@@ -738,7 +738,7 @@ class Filler(WidgetDecoration):
         self.height_type, self.height_amount = normalize_height(height,
             FillerError)
 
-        if self.height_type not in (GIVEN, FLOW):
+        if self.height_type not in (GIVEN, PACK):
             self.min_height = min_height
         else:
             self.min_height = None
@@ -772,7 +772,7 @@ class Filler(WidgetDecoration):
         """
         (maxcol, maxrow) = size
 
-        if self.height_type is FLOW:
+        if self.height_type == PACK:
             height = self._original_widget.rows((maxcol,),focus=focus)
             return calculate_top_bottom_filler(maxrow,
                 self.valign_type, self.valign_amount,
@@ -790,7 +790,7 @@ class Filler(WidgetDecoration):
         (maxcol, maxrow) = size
         top, bottom = self.filler_values(size, focus)
 
-        if self.height_type is FLOW:
+        if self.height_type == PACK:
             canv = self._original_widget.render((maxcol,), focus)
         else:
             canv = self._original_widget.render((maxcol,maxrow-top-bottom),focus)
@@ -810,7 +810,7 @@ class Filler(WidgetDecoration):
     def keypress(self, size, key):
         """Pass keypress to self.original_widget."""
         (maxcol, maxrow) = size
-        if self.height_type is FLOW:
+        if self.height_type == PACK:
             return self._original_widget.keypress((maxcol,), key)
 
         top, bottom = self.filler_values((maxcol,maxrow), True)
@@ -823,7 +823,7 @@ class Filler(WidgetDecoration):
             return None
 
         top, bottom = self.filler_values(size, True)
-        if self.height_type is FLOW:
+        if self.height_type == PACK:
             coords = self._original_widget.get_cursor_coords((maxcol,))
         else:
             coords = self._original_widget.get_cursor_coords(
@@ -841,7 +841,7 @@ class Filler(WidgetDecoration):
         if not hasattr(self._original_widget, 'get_pref_col'):
             return None
 
-        if self.height_type is FLOW:
+        if self.height_type == PACK:
             x = self._original_widget.get_pref_col((maxcol,))
         else:
             top, bottom = self.filler_values(size, True)
@@ -860,7 +860,7 @@ class Filler(WidgetDecoration):
         if row < top or row >= maxcol-bottom:
             return False
 
-        if self.height_type is FLOW:
+        if self.height_type == PACK:
             return self._original_widget.move_cursor_to_coords((maxcol,),
                 col, row-top)
         return self._original_widget.move_cursor_to_coords(
@@ -876,7 +876,7 @@ class Filler(WidgetDecoration):
         if row < top or row >= maxrow-bottom:
             return False
 
-        if self.height_type is FLOW:
+        if self.height_type == PACK:
             return self._original_widget.mouse_event((maxcol,),
                 event, button, col, row-top, focus)
         return self._original_widget.mouse_event((maxcol, maxrow-top-bottom),
