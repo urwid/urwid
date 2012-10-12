@@ -671,7 +671,6 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         writing a different value for `bottom_options` raises an
         :exc:`OverlayError`.
         """)
-    #TODO: options method missing to construct top_w's options?
 
     def get_cursor_coords(self, size):
         """Return cursor coords from top_w, if any."""
@@ -975,10 +974,10 @@ class Frame(Widget, WidgetContainerMixin):
         """
         Calculate the number of rows for the header and footer.
 
-        :param size: TODO
-        :type size: TODO
-        :param focus: TODO
-        :type focus: TODO
+        :param size: See :meth:`Widget.render` for details
+        :type size: widget size
+        :param focus: ``True`` if this widget is in focus
+        :type focus: bool
         :returns: `(head rows, foot rows),(orig head, orig foot)`
                   orig head/foot are from rows() calls.
         :rtype: (int, int), (int, int)
@@ -1175,23 +1174,23 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             Chooses the first selectable widget if unset.
         :type focus_item: Widget or int
 
-        `widget_list` may also contain tuples such as:
+        *widget_list* may also contain tuples such as:
 
-        `(given_height, widget)`
-            always treat widget as a box widget and give it given_height rows,
+        (*given_height*, *widget*)
+            always treat *widget* as a box widget and give it *given_height* rows,
             where given_height is an int
-        `('pack', widget)`
-            allow widget to calculate its own height by calling its :meth:`rows`
+        (``'pack'``, *widget*)
+            allow *widget* to calculate its own height by calling its :meth:`rows`
             method, ie. treat it as a flow widget.
-        `('weight', weight, widget)`
+        (``'weight'``, *weight*, *widget*)
             if the pile is treated as a box widget then treat widget as a box
             widget with a height based on its relative weight value, otherwise
-            treat the same as `('pack', widget)`.
+            treat the same as (``'pack'``, *widget*).
 
-        Widgets not in a tuple are the same as `('weight', 1, widget)`
+        Widgets not in a tuple are the same as (``'weight'``, ``1``, *widget*)`
 
         .. note:: If the Pile is treated as a box widget there must be at least
-            one 'weight' tuple in :attr:`widget_list`.
+            one ``'weight'`` tuple in :attr:`widget_list`.
         """
         self.__super.__init__()
         self._contents = MonitoredFocusList()
@@ -1290,20 +1289,20 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         options currently may be one of
 
-        ('pack', None)
+        (``'pack'``, ``None``)
             allow widget to calculate its own height by calling its
             :meth:`rows <Widget.rows>` method, i.e. treat it as a flow widget.
-        ('given', n)
-            Always treat widget as a box widget with a given height of n rows.
-        ('weight', w)
+        (``'given'``, *n*)
+            Always treat widget as a box widget with a given height of *n* rows.
+        (``'weight'``, *w*)
             If the Pile itself is treated as a box widget then
-            the value w will be used as a relative weight for assigning rows
+            the value *w* will be used as a relative weight for assigning rows
             to this box widget. If the Pile is being treated as a flow
-            widget then this is the same as `('pack', None)` and the w value
-            is ignored.
+            widget then this is the same as (``'pack'``, ``None``) and the *w*
+            value is ignored.
 
         If the Pile itself is treated as a box widget then at least one
-        widget must have a `('weight', w)` options value, or the Pile will
+        widget must have a (``'weight'``, *w*) options value, or the Pile will
         not be able to grow to fill the required number of rows.
 
         This list may be modified like a normal list and the Pile widget
@@ -1316,12 +1315,10 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         Return a new options tuple for use in a Pile's :attr:`contents` list.
 
-        :param height_type: 'pack', 'given' or 'weight'
-        :param height_amount: None for 'pack', a number of rows for 'fixed' or a
-            weight value for 'weight'
-        :type height_amount: int
+        :param height_type: ``'pack'``, ``'given'`` or ``'weight'``
+        :param height_amount: ``None`` for ``'pack'``, a number of rows for
+            ``'fixed'`` or a weight value (number) for ``'weight'``
         """
-        # TODO: whats a weight value?
 
         if height_type == PACK:
             return (PACK, None)
@@ -1669,35 +1666,35 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         min_width=1, box_columns=None):
         """
         :param widget_list: iterable of flow widgets or iterable of box widgets
-        :param dividechars: blank characters between columns
+        :param dividechars: number of blank characters between columns
         :param focus_column: index into widget_list of column in focus,
-            if None the first selectable widget will be chosen.
+            if ``None`` the first selectable widget will be chosen.
         :param min_width: minimum width for each column which is not
-            calling widget.pack() in widget_list.
+            calling widget.pack() in *widget_list*.
         :param box_columns: a list of column indexes containing box widgets
-            whose maxrow is set to the maximum of the rows
-            required by columns not listed in box_columns.
+            whose height is set to the maximum of the rows
+            required by columns not listed in *box_columns*.
 
-        `widget_list` may also contain tuples such as:
+        *widget_list may also contain tuples such as:
 
-        `(given_width, widget)`
-            make this column given_width screen columns wide, where given_width
+        (*given_width*, *widget*)
+            make this column *given_width* screen columns wide, where *given_width*
             is an int
-        `('pack', widget)`
-            call :meth:`Widget.pack` to calculate the width of this column
-        `('weight', weight, widget)`
-            give this column a relative weight to calculate its width from the
+        (``'pack'``, *widget*)
+            call :meth:`pack() <Widget.pack>` to calculate the width of this column
+        (``'weight'``, *weight*, *widget*)`
+            give this column a relative *weight* (number) to calculate its width from the
             screen columns remaining
 
-        Widgets not in a tuple are the same as `('weight', 1, widget)`
+        Widgets not in a tuple are the same as (``'weight'``, ``1``, *widget*)
 
         If the Columns widget is treated as a box widget then all children
-        are treated as box widgets, and `box_columns` is ignored.
+        are treated as box widgets, and *box_columns* is ignored.
 
         If the Columns widget is treated as a flow widget then the rows
         are calcualated as the largest rows() returned from all columns
-        except the ones listed in box_columns.  The box widgets in
-        box_columns will be displayed with this calculated number of rows,
+        except the ones listed in *box_columns*.  The box widgets in
+        *box_columns* will be displayed with this calculated number of rows,
         filling the full height.
         """
         self.__super.__init__()
@@ -1857,11 +1854,11 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             *width_amount* as a weight value.
 
         :param width_type: ``'pack'``, ``'given'`` or ``'weight'``
-        :param width_amount: A number of screen columns
+        :param width_amount: ``None`` for ``'pack'``, a number of screen columns
             for ``'given'`` or a weight value (number) for ``'weight'``
         :param box_widget: set to `True` if this widget is to be treated as a box
             widget when the Columns widget itself is treated as a flow widget.
-        :type box_widget: boolean
+        :type box_widget: bool
         """
         if width_type == PACK:
             width_amount = None
@@ -2019,10 +2016,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         Render columns and return canvas.
 
-        :param size: `(maxcol,)` if :attr:`widget_list` contains flow widgets or
-            `(maxcol, maxrow)` if it contains box widgets.
-            TODO: mixed widget lists?
-        :type size: int, int
+        :param size: see :meth:`Widget.render` for details
+        :param focus: ``True`` if this widget is in focus
+        :type focus: bool
         """
         widths = self.column_widths(size, focus)
         if not widths:
@@ -2091,12 +2087,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         Choose a selectable column to focus based on the coords.
 
-        :param size: TODO: why is this needed here?
-        :type size: int, int
-        :param col: index of column to focus
-        :type col: int
-        :param row: index of row to focus
-        :type row: int
+        see :meth:`Widget.move_cursor_coords` for details
         """
         widths = self.column_widths(size)
 
@@ -2189,18 +2180,13 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             col += sum(widths[:self.focus_position] )
         return col
 
-    def rows(self, size, focus=0):
+    def rows(self, size, focus=False):
         """
         Return the number of rows required by the columns.
         This only makes sense if :attr:`widget_list` contains flow widgets.
 
-        :param size: TODO
-        :type size: int, int
-        :param focus: TODO
-        :type focus: int
+        see :meth:`Widget.rows` for details
         """
-        # TODO: why is focus an int and no boolean?
-
         widths = self.column_widths(size, focus)
 
         rows = 1

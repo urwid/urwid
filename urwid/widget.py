@@ -251,8 +251,8 @@ class Widget(object):
                       for fixed sizing -- this widget is a fixed size
                       which can't be adjusted by the parent
        :type size: widget size
-       :param focus: Set to ``True`` if this widget or one of its children
-                     is in focus.
+       :param focus: set to ``True`` if this widget or one of its children
+                     is in focus
        :type focus: bool
 
        :returns: A :class:`Canvas` subclass instance containing the
@@ -318,7 +318,7 @@ class Widget(object):
           must be implemented by any selectable widget.
           See :meth:`.selectable`.
 
-       :param size: See :meth:`Widget.render` for details.
+       :param size: See :meth:`Widget.render` for details
        :type size: widget size
        :param key: a single keystroke value
        :type key: bytes or unicode
