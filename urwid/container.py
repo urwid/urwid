@@ -477,6 +477,22 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self.set_overlay_parameters(align, width, valign, height,
             min_width, min_height, left, right, top, bottom)
 
+    def options(self, align_type, align_amount, width_type, width_amount,
+            valign_type, valign_amount, height_type, height_amount,
+            min_width=None, min_height=None, left=0, right=0, top=0, bottom=0):
+        """
+        Return a new options tuple for use in this Overlay's .contents mapping.
+
+        This is the common container API to create options for replacing the
+        top widget of this Overlay.  It is provided for completeness
+        but is not necessarily the easiest way to change the overlay parameters.
+        See also :meth:`.set_overlay_parameters`
+        """
+
+        return (align_type, align_amount, width_type, width_amount,
+            min_width, left, right, valign_type, valign_amount,
+            height_type, height_amount, min_height, top, bottom)
+
     def set_overlay_parameters(self, align, width, valign, height,
             min_width=None, min_height=None, left=0, right=0, top=0, bottom=0):
         """
@@ -520,25 +536,19 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if height is None:
             height = PACK
 
-        self.left = left
-        self.right = right
-        self.align_type, self.align_amount = normalize_align(align,
-            OverlayError)
-        self.width_type, self.width_amount = normalize_width(width,
-            OverlayError)
-        self.min_width = min_width
+        align_type, align_amount = normalize_align(align, OverlayError)
+        width_type, width_amount = normalize_width(width, OverlayError)
+        valign_type, valign_amount = normalize_valign(valign, OverlayError)
+        height_type, height_amount = normalize_height(height, OverlayError)
 
-        self.top = top
-        self.bottom = bottom
-        self.valign_type, self.valign_amount = normalize_valign(valign,
-            OverlayError)
-        self.height_type, self.height_amount = normalize_height(height,
-            OverlayError)
-        if self.height_type not in (GIVEN, PACK):
-            self.min_height = min_height
-        else:
-            self.min_height = None
-        self._invalidate()
+        if height_type in (GIVEN, PACK):
+            min_height = None
+
+        # use container API to set the parameters
+        self.contents[1] = (self.top_w, self.options(
+            align_type, align_amount, width_type, width_amount,
+            valign_type, valign_amount, height_type, height_amount,
+            min_width, min_height, left, right, top, bottom))
 
     def selectable(self):
         """Return selectable from top_w."""
@@ -1835,21 +1845,20 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         Return a new options tuple for use in a Pile's .contents list.
 
-        This sets an entries width type: one of the following:
+        This sets an entry's width type: one of the following:
 
-        'pack'
-            Call the widget's :meth`pack` method to determine how wide
-            this column should be. `width_amount` is ignored.
-        'given'
+        ``'pack'``
+            Call the widget's :meth:`Widget.pack` method to determine how wide
+            this column should be. *width_amount* is ignored.
+        ``'given'``
             Make column exactly width_amount screen-columns wide.
-        'weight'
+        ``'weight'``
             Allocate the remaining space to this column by using
-            `width_amount` as a weight value.
+            *width_amount* as a weight value.
 
-        :param width_type: 'pack', 'given' or 'weight'
-        :param width_amount: `None` for 'pack', a number of screen columns
-            for 'given' or a weight value for 'weight'
-            TODO: type of "weight value"?
+        :param width_type: ``'pack'``, ``'given'`` or ``'weight'``
+        :param width_amount: A number of screen columns
+            for ``'given'`` or a weight value (number) for ``'weight'``
         :param box_widget: set to `True` if this widget is to be treated as a box
             widget when the Columns widget itself is treated as a flow widget.
         :type box_widget: boolean
