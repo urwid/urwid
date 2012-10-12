@@ -311,29 +311,25 @@ class ListBox(Widget, WidgetContainerMixin):
 
     def calculate_visible(self, size, focus=False ):
         """
-        TODO: does what?
+        Returns the widgets that would be displayed in
+        the ListBox given the current *size* and *focus*.
 
-        :param size: TODO
-        :type size: TODO
-        :param focus: TODO
-        :type focus: boolean
+        see :meth:`Widget.render` for parameter details
 
-        middle
-            ( row offset(when +ve) or inset(when -ve),
-            focus widget, focus position, focus rows,
-            cursor coords or None )
-        top
-            ( # lines to trim off top,
-            list of (widget, position, rows) tuples above focus
-            in order from bottom to top )
-        bottom
-            ( # lines to trim off bottom,
-            list of (widget, position, rows) tuples below focus
-            in order from top to bottom )
+        *middle*
+            (*row offset*(when +ve) or *inset*(when -ve),
+            *focus widget*, *focus position*, *focus rows*,
+            *cursor coords* or ``None``)
+        *top*
+            (*# lines to trim off top*,
+            list of (*widget*, *position*, *rows*) tuples above focus
+            in order from bottom to top)
+        *bottom*
+            (*# lines to trim off bottom*,
+            list of (*widget*, *position*, *rows*) tuples below focus
+            in order from top to bottom)
 
-        :returns: `(middle,top,bottom)` or `(None,None,None)`
-        :rtype: (int, int, int)
-
+        :returns: (*middle*, *top*, *bottom*) or (``None``, ``None``, ``None``)
         """
         (maxcol, maxrow) = size
 
@@ -450,12 +446,9 @@ class ListBox(Widget, WidgetContainerMixin):
 
     def render(self, size, focus=False ):
         """
-        Render listbox and return canvas.
+        Render ListBox and return canvas.
 
-        :param size: TODO
-        :type size: TODO
-        :param focus: TODO
-        :type focus: boolean
+        see :meth:`Widget.render` for details
         """
         (maxcol, maxrow) = size
 
@@ -520,7 +513,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
     def get_cursor_coords(self, size):
         """
-        TODO
+        See :meth:`Widget.get_cursor_coords` for details
         """
         (maxcol, maxrow) = size
 
@@ -759,14 +752,17 @@ class ListBox(Widget, WidgetContainerMixin):
 
 
     def shift_focus(self, size, offset_inset):
-        """Move the location of the current focus relative to the top.
+        """
+        Move the location of the current focus relative to the top.
+        This is used internally by methods that know the widget's *size*.
 
-        :param size: TODO
-        :type size: TODO
+        See also :meth:`.set_focus_valign`.
+
+        :param size: see :meth:`Widget.render` for details
         :param offset_inset: either the number of rows between the
             top of the listbox and the start of the focus widget (+ve
             value) or the number of lines of the focus widget hidden off
-            the top edge of the listbox (-ve value) or 0 if the top edge
+            the top edge of the listbox (-ve value) or ``0`` if the top edge
             of the focus widget is aligned with the top edge of the
             listbox.
         :type offset_inset: int
@@ -809,10 +805,13 @@ class ListBox(Widget, WidgetContainerMixin):
     def change_focus(self, size, position,
             offset_inset = 0, coming_from = None,
             cursor_coords = None, snap_rows = None):
-        """Change the current focus widget.
+        """
+        Change the current focus widget.
+        This is used internally by methods that know the widget's *size*.
 
-        :param size: TODO
-        :type size: TODO
+        See also :meth:`.set_focus`.
+
+        :param size: see :meth:`Widget.render` for details
         :param position: a position compatible with :meth:`self.body.set_focus`
         :param offset_inset: either the number of rows between the
             top of the listbox and the start of the focus widget (+ve
@@ -1569,10 +1568,11 @@ class ListBox(Widget, WidgetContainerMixin):
 
 
     def ends_visible(self, size, focus=False):
-        """Return a list that may contain 'top' and/or 'bottom'.
+        """
+        Return a list that may contain ``'top'`` and/or ``'bottom'``.
 
-        TODO: semantics? is this the list of all *visible* elements
-            of the listbox?
+        i.e. this function will return one of: [], [``'top'``],
+        [``'bottom'``] or [``'top'``, ``'bottom'``].
 
         convenience function for checking whether the top and bottom
         of the list are visible
@@ -1592,16 +1592,16 @@ class ListBox(Widget, WidgetContainerMixin):
             for w, pos, rows in below:
                 row_offset += rows
             if row_offset < maxrow:
-                l.append( 'bottom' )
+                l.append('bottom')
             elif self.body.get_next(pos) == (None,None):
-                l.append( 'bottom' )
+                l.append('bottom')
 
         if trim_top == 0:
             row_offset, w, pos, rows, c = middle
             for w, pos, rows in above:
                 row_offset -= rows
             if self.body.get_prev(pos) == (None,None):
-                l.append( 'top' )
+                l.insert(0, 'top')
 
         return l
 
