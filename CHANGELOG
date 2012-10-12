@@ -1,5 +1,63 @@
 # -*- coding: utf-8 -*-
 
+Urwid 1.1.0
+
+    * New common container API: focus, focus_position, contents,
+      options(), get_focus_path(), set_focus_path(), __getitem__,
+      __iter__(), __reversed__() implemented across all included
+      container widgets
+
+      A full description doesn't fit here, see the Container Widgets
+      section in the manual for details
+
+    * New Sphinx-based documentation now included in source:
+      Tutorial rewritten, manual revised and new reference based
+      on updated docstrings (by Marco Giusti, Patrick Totzke)
+
+    * New list walker SimpleFocusListWalker like SimpleListWalker but
+      updates focus position as items are inserted or removed
+
+    * New decoration widget WidgetDisable to disable interaction
+      with the widgets it wraps
+
+    * Columns widget now tries to keep column in focus visible, hiding
+      columns on the left when necessary
+
+    * Padding widget now defaults to ('relative', 100) instead of
+      'pack' so that left and right parameters are more useful and more
+      child widgets are supported
+
+    * New list walker "API Version 2" that is simpler for many list
+      walker uses; "API Version 1" will still continue to be supported
+
+    * raw_display now erases to the end of the line with EL escape
+      sequence toimprove copy+paste behavior for some terminals
+
+    * Filler now has top and bottom parameters like Padding's left and
+      right parameters and accepts 'pack' instead of None as a height
+      value for widgets that calculate their own number of rows
+
+    * Pile and Columns now accepts 'pack' instead of 'flow' for widgets
+      that calulate their own number of rows or columns
+
+    * Pile and Columns now accept 'given' instead of 'fixed' for
+      cases where the number of rows or columns are specified by the
+      container options
+
+    * Pile and Columns widgets now accept any iterable to their
+      __init__() methods
+
+    * Widget now has a default focus_position property that raises
+      an IndexError when read to be consistent with new common container
+      API
+
+    * GridFlow now supports multiple cell widths within the same widget
+
+    * BoxWidget, FlowWidget and FixedWidget are deprecated, instead
+      use the sizing() function or _sizing attribute to specify the
+      supported sizing modes for your custom widgets
+
+
 Urwid 1.0.1
 
     * Fix for Terminal widget in BSD/OSX
