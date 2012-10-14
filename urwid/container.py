@@ -1162,7 +1162,7 @@ class PileError(Exception):
 
 class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     """
-    a pile of horizontally stacked widgets
+    A pile of widgets stacked vertically from top to bottom
     """
     _sizing = frozenset([FLOW, BOX])
 
@@ -1658,7 +1658,7 @@ class ColumnsError(Exception):
 
 class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     """
-    vertical stack of widgets
+    Widgets arranged horizontally in columns from left to right
     """
     _sizing = frozenset([FLOW, BOX])
 
