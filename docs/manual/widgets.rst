@@ -565,44 +565,6 @@ When this is defined it will be used by :meth:`ListBox.__iter__` and
 
 .. currentmodule:: urwid
 
-Focus & Scrolling Behavior
---------------------------
-
-The :class:`ListBox` passes all key presses it receives first to
-its focus widget. If its focus widget does not handle a keypress then the
-:class:`ListBox` may handle the keypress by scrolling and/or
-selecting another widget to become its new focus widget.
-
-The :class:`ListBox` tries to do *the most sensible thing* when
-scrolling and changing focus. When the widgets displayed are all
-:class:`Text` widgets or other unselectable widgets then the
-:class:`ListBox` will behave like a web browser does when the
-user presses *UP*, *DOWN*, *PAGE UP* and *PAGE DOWN*: new text is immediately
-scrolled in from the top or bottom. The :class:`ListBox` chooses
-one of the visible widgets as its focus widget when scrolling. When scrolling
-up the :class:`ListBox` chooses the topmost widget as the focus,
-and when scrolling down the :class:`ListBox` chooses the
-bottommost widget as the focus.
-
-The :class:`ListBox` remembers the visible location of its focus
-widget as either an "offset" or an "inset". An offset is the number of rows
-between the top of the :class:`ListBox` and the beginning of the
-focus widget. An offset of zero corresponds to a widget with its top aligned
-with the top of the :class:`ListBox`. An inset is the fraction
-of rows of the focus widget that are "above" the top of the
-:class:`ListBox` and not visible. The
-:class:`ListBox` uses this method of remembering the focus
-widget location so that when the :class:`ListBox` is resized the
-the text will remain roughly in the same position of the visible area.
-
-When there are selectable widgets visible in the
-:class:`ListBox` the focus will move between the selectable
-widgets, skipping the unselectable widgets.  The
-:class:`ListBox` will try to scroll all the rows of a selectable
-widget into view so that the user can see the new focus widget in its entirety.
-This behavior can be used to bring more than a single widget into view by using
-a :class:`Pile` or other container widget to combine a
-selectable widget with other widgets that should be visible at the same time.
 
 
 Custom Widgets
