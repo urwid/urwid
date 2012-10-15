@@ -99,7 +99,7 @@ The screenshots above show how these widgets react to being resized.
 
 * A :class:`Text` widget is created containing the string ``" Hello World "``
   with display attribute ``'banner'``. The attributes of text in a Text widget is
-  set by using a ``(attribute, text)`` tuple instead of a simple text string.
+  set by using a (*attribute*, *text*) tuple instead of a simple text string.
   Display attributes will flow with the text, and multiple display attributes may be
   specified by combining tuples into a list. This format is called :ref:`text-markup`.
 
@@ -140,7 +140,7 @@ background and setting values are documented in :ref:`foreground-background`.
 * Behind the scenes our :class:`MainLoop` class has created a
   :class:`raw_display.Screen` object for drawing the screen. The program
   is put into 256-color mode by using the screen object's
-  :meth:`raw_display.Screen.set_terminal_properties` method.
+  :meth:`set_terminal_properties() <raw_display.Screen.set_terminal_properties>` method.
 
 This example also demonstrates how you can build the widgets to display
 in a top-down order instead of the usual bottom-up order. In some
@@ -151,15 +151,14 @@ a widget before the correct one has been created.
   assigning to its :attr:`MainLoop.widget` property.
 
 * :ref:`decoration-widgets` like :class:`AttrMap` have an
-  ``original_widget`` property that we can assign to to change the
-  widget they wrap.
+  ``original_widget`` property that we can assign to to change the widget they wrap.
 
 * :class:`Divider` widgets are used to create blank lines,
   colored with :class:`AttrMap`.
 
 * :ref:`container-widgets` like :class:`Pile` have a
   ``contents`` property that we can treat like a list of
-  ``(widget, options)`` tuples.  :attr:`Pile.contents` supports normal list
+  (*widget*, *options*) tuples.  :attr:`Pile.contents` supports normal list
   operations including ``append()`` to add child widgets.
   :meth:`Pile.options` is used to generate the default options
   for the new child widgets.
@@ -188,7 +187,7 @@ method.  Customizing decoration or container widgets to handle input this way
 is a common pattern in Urwid applications.  This pattern is easier to maintain
 and extend than handling all special input in an *unhandled_input* function.
 
-* In ``QuestionBox.keypress()`` all keypresses except *ENTER* are passed along to
+* In *QuestionBox.keypress()* all keypresses except *ENTER* are passed along to
   the default :meth:`Filler.keypress` which sends them to the
   child :meth:`Edit.keypress` method.
 * Note that names containing *Q* can be entered into the :class:`Edit`
@@ -219,14 +218,14 @@ This program asks for your name and responds ``Nice to meet you, (your name)``
 * An :class:`Edit` widget and a :class:`Text` reply
   widget are created, like in the previous example.
 * The :func:`connect_signal` function is used to attach our
-  *on_ask_change* function to our :class:`Edit` widget's
+  *on_ask_change()* function to our :class:`Edit` widget's
   ``'change'`` signal. Now any time the content of the :class:`Edit`
-  widget changes *on_ask_change* will be called and passed the new
+  widget changes *on_ask_change()* will be called and passed the new
   content.
-* Finally we attach our *on_exit_clicked* function to our
+* Finally we attach our *on_exit_clicked()* function to our
   exit :class:`Button`'s ``'click'`` signal.
-* *on_ask_change* updates the reply text as the user enters their
-  name and *on_exit_click* exits.
+* *on_ask_change()* updates the reply text as the user enters their
+  name and *on_exit_click()* exits.
 
 
 Multiple Questions
@@ -257,7 +256,7 @@ automatically.
 Here we are customizing our :class:`ListBox`'s keypress handling by overriding
 it in a subclass.
 
-* The *question* function is used to build widgets to communicate with the user.
+* The *question()* function is used to build widgets to communicate with the user.
   Here we return a :class:`Pile` widget with a single :class:`Edit` widget
   to start.
 * We retrieve the name entered with :attr:`ListBox.focus` to get the
@@ -266,12 +265,12 @@ it in a subclass.
   first child of the pile and :attr:`Edit.edit_text` to get the user-entered
   text.
 * For the response we use the fact that we can treat
-  :attr:`Pile.contents` like a list of ``(widget, options)`` tuples to create or
-  replace any existing response by assigning a one-tuple list to ``[1:]``.  We create
+  :attr:`Pile.contents` like a list of (*widget*, *options*) tuples to create or
+  replace any existing response by assigning a one-tuple list to *contents[1:]*.  We create
   the default options using :meth:`Pile.options`.
 * To add another question after the current one we treat our
   :class:`SimpleFocusListWalker` stored as :attr:`ListBox.body` like a normal
-  list of widgets by calling *insert*, then update the focus position to the widget we just
+  list of widgets by calling *insert()*, then update the focus position to the widget we just
   created.
 
 
@@ -288,14 +287,14 @@ This program lets you choose an option then repeats what you chose.
 .. literalinclude:: menu1.py
    :linenos:
 
-* *menu* builds a :class:`ListBox` with a *title* and a sequence of :class:`Button`
+* *menu()* builds a :class:`ListBox` with a *title* and a sequence of :class:`Button`
   widgets.  Each button has its ``'click'`` signal attached to *item_chosen*,
   with item name is passed as data.
   The buttons are decorated with an :class:`AttrMap` that applies
   a display attribute when a button is in focus.
-* *item_chosen* replaces the menu displayed with text indicating the users'
+* *item_chosen()* replaces the menu displayed with text indicating the users'
   choice.
-* *exit_program* causes the program to exit on any keystroke.
+* *exit_program()* causes the program to exit on any keystroke.
 * The menu is created and decorated with an :class:`Overlay` using a
   :class:`SolidFill` as the background.  The :class:`Overlay` is given a
   miniumum width and height but is allowed to expand to 60% of the available
@@ -317,15 +316,15 @@ return to previous menus by pressing *ESC*.
 .. literalinclude:: menu2.py
    :linenos:
 
-* *menu_button* returns an :class:`AttrMap`-decorated :class:`Button`
+* *menu_button()* returns an :class:`AttrMap`-decorated :class:`Button`
   and attaches a *callback* to the the its ``'click'`` signal.  This function is
   used for both sub-menus and final selection buttons.
-* *sub_menu* creates a menu button and a closure that will open the the
+* *sub_menu()* creates a menu button and a closure that will open the the
   menu when that button is clicked.  Notice that
   :ref:`text markup <text-markup>` is used to add ``'...'`` to the end of
-  the *caption* passed to *menu_button*.
-* *menu* builds a :class:`ListBox` with a *title* and a sequence of widgets.
-* *item_chosen* displays the users' choice similar to the previous example.
+  the *caption* passed to *menu_button()*.
+* *menu()* builds a :class:`ListBox` with a *title* and a sequence of widgets.
+* *item_chosen()* displays the users' choice similar to the previous example.
 * *menu_top* is the top level menu with all of its child menus and
   options built using the functions above.
 
@@ -336,11 +335,11 @@ involve knowing its position in a :ref:`container <container-widgets>`, or in th
 case as a base class for a widget that will be replacing its own contents regularly.
 
 * *CascadingBoxes* is a new widget that extends :class:`WidgetPlaceholder`.
-  It provides an *open_box* method that displays a box widget *box* "on top of"
+  It provides an *open_box()* method that displays a box widget *box* "on top of"
   all the previous content with an :class:`Overlay` and a :class:`LineBox`.
   The position of each successive box is shifted right and down from the
   previous one.
-* *CascadingBoxes.keypress* intercepts *ESC* keys to cause the current box
+* *CascadingBoxes.keypress()* intercepts *ESC* keys to cause the current box
   to be removed and the previous one to be shown.  This allows the user to
   return to a previous menu level.
 

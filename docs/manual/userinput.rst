@@ -76,11 +76,11 @@ create an input filter to do so.
 Mouse Input
 ===========
 
-Mouse input is sent as a ``(event, button, x, y)`` tuple. *event* is a string
-describing the event. If the SHIFT, ALT or CTRL keys are held when a mouse
+Mouse input is sent as a (*event*, *button*, *x*, *y*) tuple. *event* is a string
+describing the event. If the *SHIFT*, *ALT* or *CTRL* keys are held when a mouse
 event is sent then *event* may be prefixed by ``'shift '``, ``'meta '`` or
 ``'ctrl'``. *button* is a number from 1 to 5. *x* and *y* are character
-coordinates starting at ``(0,0)`` at the top-left of the screen. 
+coordinates starting from ``(0, 0)`` at the top-left of the screen.
 
 Support for the right-mouse button and use of modifier keys is poor in many
 terminals and some users don't have a middle mouse button, so these shouldn't

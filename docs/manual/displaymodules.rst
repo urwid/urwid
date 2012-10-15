@@ -13,14 +13,14 @@ how you plan to use Urwid.
 .. image:: images/display_modules.png
 
 Typically you will select a display module by passing it to your
-:class:`~urwid.main_loop.MainLoop` constructor, eg:
+:class:`MainLoop` constructor, eg:
 
 ::
 
     loop = MainLoop(widget, ..., screen=urwid.curses_display.Screen())
 
 If you don't specify a display module, the default main loop will use
-:class:`urwid.raw_display.Screen` by default
+:class:`raw_display.Screen` by default
 
 ::
 
@@ -28,24 +28,24 @@ If you don't specify a display module, the default main loop will use
     loop = MainLoop(widget, ...)
     loop = MainLoop(widget, ..., screen=urwid.raw_display.Screen())
 
-``raw_display`` and ``curses_display``
-======================================
+Raw and Curses Display Modules
+==============================
 
 Urwid has two display modules for displaying to terminals or the console.
 
-The :mod:`raw_display` module is a pure-python display module with no
+The :class:`raw_display.Screen` module is a pure-python display module with no
 external dependencies. It sends and interprets terminal escape sequences
 directly. This is the default display module used by
-:class:`~urwid.main_loop.MainLoop`.
+:class:`MainLoop`.
 
-The :mod:`curses_display` module uses the curses or ncurses library
+The :class:`curses_display.Screen` module uses the curses or ncurses library
 provided by the operating system. The library does some optimization of screen
 updates and uses termcap to adjust to the user's terminal.
 
 The (n)curses library will disable colors if it detects a monochrome terminal,
 so a separate set of attributes should be given for monochrome mode when
-registering a palette with :mod:`curses_display`. High colors will not be
-used by the :mod:`curses_dislpay` module. See :ref:`setting-a-palette`
+registering a palette with :class:`curses_display.Screen` High colors will not be
+used by the :class:`curses_display.Screen` module. See :ref:`setting-a-palette`
 below.
 
 This table summarizes the differences between the two modules:
@@ -90,9 +90,9 @@ Screenshot Display Module ``html_fragment``
 -------------------------------------------
 
 Screenshots of Urwid interfaces can be rendered in plain HTML. The
-:mod:`html_fragment` display module lets you do this by simulating user input
+:class:`html_fragment.HtmlGenerator` display module lets you do this by simulating user input
 and capturing the screen as fragments of HTML each time
-:meth:`html_fragemnt.Screen.draw_screen` is
+:meth:`html_fragemnt.HtmlGenerator.draw_screen` is
 called.
 
 These fragments may be included in HTML documents. They will be rendered

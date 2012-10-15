@@ -1675,7 +1675,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             whose height is set to the maximum of the rows
             required by columns not listed in *box_columns*.
 
-        *widget_list may also contain tuples such as:
+        *widget_list* may also contain tuples such as:
 
         (*given_width*, *widget*)
             make this column *given_width* screen columns wide, where *given_width*

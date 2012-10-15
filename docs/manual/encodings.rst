@@ -29,7 +29,7 @@ in your widgets.
 
 ``txt_b`` is **assumed** to be in the encoding the user is expecting and passed
 through as-is (Pass-through mode). If the encodings are different then the
-user will see mojibake on their screen.
+user will see "mojibake" (garbage) on their screen.
 
 The only time it makes sense to use pass-through mode is if you're handling an
 encoding that does not round-trip to Unicode properly, or if you're absolutely

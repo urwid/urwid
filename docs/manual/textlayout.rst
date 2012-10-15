@@ -113,9 +113,9 @@ corresponds to a row of text in the widget, starting from its top.
 A line layout is a list zero or more of the following tuples, each expressing
 text to be displayed from left to right:
 
-A. ``(column width, starting text offset, ending text offset)``
-B. ``(column width of space characters to insert, text offset or None)``
-C. ``(column width, text offset, "new text to insert")``
+A. (*column width*, *starting text offset*, *ending text offset*)
+B. (*column width of space characters to insert*, *text offset* or ``None``)
+C. (*column width*, *text offset*, *new text to insert*)``
 
 Tuple A displays a segment of text from the :class:`Text` widget.
 Column width is explicitly specified because some characters within the text

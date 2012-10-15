@@ -85,7 +85,9 @@ created if none is passed to :class:`~urwid.main_loop.MainLoop`.
     # same as urwid.MainLoop(widget, event_loop=urwid.SelectEventLoop())
     loop = urwid.MainLoop(widget)
 
-:class:`SelectEventLoop reference <SelectEventLoop>`
+.. seealso::
+
+  :class:`SelectEventLoop reference <SelectEventLoop>`
 
 ``TwistedEventLoop``
 --------------------
@@ -100,7 +102,9 @@ application.
 
     loop = urwid.MainLoop(widget, event_loop=urwid.TwistedEventLoop())
 
-:class:`TwistedEventLoop reference <TwistedEventLoop>`
+.. seealso::
+
+  :class:`TwistedEventLoop reference <TwistedEventLoop>`
 
 ``GLibEventLoop``
 -----------------
@@ -113,4 +117,6 @@ application on Twisted.
 
     loop = urwid.MainLoop(widget, event_loop=urwid.GLibEventLoop())
 
-:class:`GLibEventLoop reference <GLibEventLoop>`
+.. seealso::
+
+  :class:`GLibEventLoop reference <GLibEventLoop>`
