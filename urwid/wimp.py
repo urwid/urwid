@@ -117,16 +117,16 @@ class CheckBox(WidgetWrap):
                                 function call for a single callback
         :param user_data: user_data for on_state_change
 
-        Signals supported: 'change'
+        Signals supported: ``'change'``
 
-        Register signal handler with:
+        Register signal handler with::
 
-          connect_signal(check_box, 'change', callback [,user_data])
+          urwid.connect_signal(check_box, 'change', callback, user_data)
 
         where callback is callback(check_box, new_state [,user_data])
-        Unregister signal handlers with:
+        Unregister signal handlers with::
 
-          disconnect_signal(check_box, 'change', callback [,user_data])
+          urwid.disconnect_signal(check_box, 'change', callback, user_data)
 
         >>> CheckBox(u"Confirm")
         <CheckBox selectable flow widget 'Confirm' state=False>
@@ -182,7 +182,7 @@ class CheckBox(WidgetWrap):
         >>> cb = CheckBox(u"Seriously")
         >>> print cb.get_label()
         Seriously
-        >>> print cb.label  # Urwid 0.9.9 or later
+        >>> print cb.label
         Seriously
         >>> cb.set_label([('bright_attr', u"flashy"), u" normal"])
         >>> print cb.label  #  only text is returned
@@ -197,11 +197,11 @@ class CheckBox(WidgetWrap):
 
         state -- True, False or "mixed"
         do_callback -- False to supress signal from this change
-        
+
         >>> changes = []
-        >>> def callback_a(cb, state, user_data): 
+        >>> def callback_a(cb, state, user_data):
         ...     changes.append("A %r %r" % (state, user_data))
-        >>> def callback_b(cb, state): 
+        >>> def callback_b(cb, state):
         ...     changes.append("B %r" % state)
         >>> cb = CheckBox('test', False, False)
         >>> connect_signal(cb, 'change', callback_a, "user_a")
@@ -210,7 +210,7 @@ class CheckBox(WidgetWrap):
         >>> cb.state
         True
         >>> disconnect_signal(cb, 'change', callback_a, "user_a")
-        >>> cb.state = False  # Urwid 0.9.9 or later
+        >>> cb.state = False
         >>> cb.state
         False
         >>> cb.set_state(True)
@@ -331,16 +331,16 @@ class RadioButton(CheckBox):
         This function will append the new radio button to group.
         "first True" will set to True if group is empty.
 
-        Signals supported: 'change'
+        Signals supported: ``'change'``
 
-        Register signal handler with:
+        Register signal handler with::
 
-          connect_signal(radio_button, 'change', callback [,user_data])
+          urwid.connect_signal(radio_button, 'change', callback, user_data)
 
         where callback is callback(radio_button, new_state [,user_data])
-        Unregister signal handlers with:
+        Unregister signal handlers with::
 
-          disconnect_signal(radio_button, 'change', callback [,user_data])
+          urwid.disconnect_signal(radio_button, 'change', callback, user_data)
 
         >>> bgroup = [] # button group
         >>> b1 = RadioButton(bgroup, u"Agree")
@@ -358,17 +358,18 @@ class RadioButton(CheckBox):
             state = not group
 
         self.group = group
-        self.__super.__init__(label, state, False, on_state_change, 
+        self.__super.__init__(label, state, False, on_state_change,
             user_data)
         group.append(self)
-    
 
-    
+
+
     def set_state(self, state, do_callback=True):
         """
         Set the RadioButton state.
 
         state -- True, False or "mixed"
+
         do_callback -- False to supress signal from this change
 
         If state is True all other radio buttons in the same button
@@ -407,12 +408,12 @@ class RadioButton(CheckBox):
             if cb is self: continue
             if cb._state:
                 cb.set_state(False)
-    
-    
+
+
     def toggle_state(self):
         """
         Set state to True.
-        
+
         >>> bgroup = [] # button group
         >>> b1 = RadioButton(bgroup, "Agree")
         >>> b2 = RadioButton(bgroup, "Disagree")
@@ -444,16 +445,16 @@ class Button(WidgetWrap):
                          function call for a single callback
         :param user_data: user_data for on_press
 
-        Signals supported: 'click'
+        Signals supported: ``'click'``
 
-        Register signal handler with:
+        Register signal handler with::
 
-          connect_signal(button, 'click', callback [,user_data])
+          urwid.connect_signal(button, 'click', callback, user_data)
 
         where callback is callback(button [,user_data])
-        Unregister signal handlers with:
+        Unregister signal handlers with::
 
-          disconnect_signal(button, 'click', callback [,user_data])
+          urwid.disconnect_signal(button, 'click', callback, user_data)
 
         >>> Button(u"Ok")
         <Button selectable flow widget 'Ok'>
@@ -501,7 +502,7 @@ class Button(WidgetWrap):
         >>> b = Button(u"Ok")
         >>> print b.get_label()
         Ok
-        >>> print b.label  # Urwid 0.9.9 or later
+        >>> print b.label
         Ok
         """
         return self._label.text

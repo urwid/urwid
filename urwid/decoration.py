@@ -42,6 +42,7 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
 
         Don't actually do this -- use a WidgetDecoration subclass
         instead, these are not real widgets:
+
         >>> WidgetDecoration(Text(u"hi"))
         <WidgetDecoration flow widget <Text flow widget 'hi'>>
         """
@@ -111,15 +112,16 @@ class AttrMap(delegate_to_widget_mixin('_original_widget'), WidgetDecoration):
     def __init__(self, w, attr_map, focus_map=None):
         """
         :param w: widget to wrap (stored as self.original_widget)
-        :type w: urwid.Widget
+        :type w: widget
 
-        :param attr_map: attribute to apply to w, or dictionary of attribute
-            mappings
-        :type attr_map: urwid.AttrSpec or dict
+        :param attr_map: attribute to apply to *w*, or dict of old display
+            attribute: new display attribute mappings
+        :type attr_map: display attribute or dict
 
-        :param focus_map: attribute to apply when in focus or dictionary of
-            attribute mappings, if None use attr
-        :type focus_map: urwid.AttrSpec or dict
+        :param focus_map: attribute to apply when in focus or dict of
+            old display attribute: new display attribute mappings;
+            if ``None`` use *attr*
+        :type focus_map: display attribute or dict
 
         >>> AttrMap(Divider(u"!"), 'bright')
         <AttrMap flow widget <Divider flow widget '!'> attr_map={None: 'bright'}>
@@ -419,19 +421,27 @@ class Padding(WidgetDecoration):
         """
         :param w: a box, flow or fixed widget to pad on the left and/or right
             this widget is stored as self.original_widget
-        :type w: urwid.Widget
+        :type w: Widget
 
-        :param align: one of: 'left', 'center', 'right'
-            ('relative', percentage 0=left 100=right)
+        :param align: one of: ``'left'``, ``'center'``, ``'right'``
+            (``'relative'``, *percentage* 0=left 100=right)
 
         :param width: one of:
-            fixed number of columns for self.original_widget
-            'pack'   try to pack self.original_widget to its ideal size
-            ('relative', percentage of total width)
-            'clip'   to enable clipping mode for a fixed widget
+
+            *given width*
+              integer number of columns for self.original_widget
+
+            ``'pack'``
+              try to pack self.original_widget to its ideal size
+
+            (``'relative'``, *percentage of total width*)
+              make width depend on the container's width
+
+            ``'clip'``
+              to enable clipping mode for a fixed widget
 
         :param min_width: the minimum number of columns for
-            self.original_widget or None
+            self.original_widget or ``None``
         :type min_width: int
 
         :param left: a fixed number of columns to pad on the left
@@ -440,12 +450,12 @@ class Padding(WidgetDecoration):
         :param right: a fixed number of columns to pad on thr right
         :type right: int
 
-        Clipping Mode: (width='clip')
+        Clipping Mode: (width= ``'clip'``)
         In clipping mode this padding widget will behave as a flow
         widget and self.original_widget will be treated as a fixed
         widget.  self.original_widget will will be clipped to fit
         the available number of columns.  For example if align is
-        'left' then self.original_widget may be clipped on the right.
+        ``'left'`` then self.original_widget may be clipped on the right.
 
         >>> size = (7,)
         >>> def pr(w):
@@ -676,28 +686,38 @@ class Filler(WidgetDecoration):
         """
         :param body: a flow widget or box widget to be filled around (stored
             as self.original_widget)
-        :type body: urwid.Widget
+        :type body: Widget
 
         :param valign: one of:
-            'top', 'middle', 'bottom',
-            ('relative', percentage 0=top 100=bottom)
+            ``'top'``, ``'middle'``, ``'bottom'``,
+            (``'relative'``, *percentage* 0=top 100=bottom)
 
         :param height: one of:
-            'pack'  if body is a flow widget
-            number of rows high,
-            ('relative', percentage of total height)
+
+            ``'pack'``
+              if body is a flow widget
+
+            *given height*
+              integer number of rows for self.original_widget
+
+            (``'relative'``, *percentage of total height*)
+              make height depend on container's height
 
         :param min_height: one of:
-            `None` if no minimum or if body is a flow widget
-            minimum number of rows for the widget when height not fixed
+
+            ``None``
+              if no minimum or if body is a flow widget
+
+            *minimum height*
+              integer number of rows for the widget when height not fixed
 
         :param top: a fixed number of rows to fill at the top
         :type top: int
         :param bottom: a fixed number of rows to fill at the bottom
         :type bottom: int
 
-        If body is a flow widget then height must be 'flow' and and
-        min_height will be ignored.
+        If body is a flow widget then height must be ``'flow'`` and
+        *min_height* will be ignored.
 
         Filler widgets will try to satisfy height argument first by
         reducing the valign amount when necessary.  If height still

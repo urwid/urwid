@@ -31,6 +31,28 @@ CURSOR_MAX_RIGHT = 'cursor max right'
 ACTIVATE = 'activate'
 
 class CommandMap(object):
+    """
+    dict-like object for looking up commands from keystrokes
+
+    Default values (key: command)::
+
+        'tab':       'next selectable',
+        'ctrl n':    'next selectable',
+        'shift tab': 'prev selectable',
+        'ctrl p':    'prev selectable',
+        'ctrl l':    'redraw screen',
+        'esc':       'menu',
+        'up':        'cursor up',
+        'down':      'cursor down',
+        'left':      'cursor left',
+        'right':     'cursor right',
+        'page up':   'cursor page up',
+        'page down': 'cursor page down',
+        'home':      'cursor max left',
+        'end':       'cursor max right',
+        ' ':         'activate',
+        'enter':     'activate',
+    """
     _command_defaults = {
         'tab': 'next selectable',
         'ctrl n': 'next selectable',

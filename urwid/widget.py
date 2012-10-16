@@ -320,7 +320,7 @@ class Widget(object):
 
        :param size: See :meth:`Widget.render` for details
        :type size: widget size
-       :param key: a single keystroke value
+       :param key: a single keystroke value; see :ref:`keyboard-input`
        :type key: bytes or unicode
 
        :returns: ``None`` if *key* was handled by this widget or
@@ -333,11 +333,12 @@ class Widget(object):
        The standard widgets use :attr:`_command_map` to
        determine what action should be performed for a given *key*. You may
        modify these values to your liking globally, at some level in the
-       widget hierarchy or on individual widgets. See `urwid.CommandMap`
+       widget hierarchy or on individual widgets. See :class:`CommandMap`
        for the defaults.
 
        In your own widgets you may use whatever logic you like: filtering or
        translating keys, selectively passing along events etc.
+
 
 
     .. method:: mouse_event(size, event, button, col, row, focus)
@@ -353,8 +354,8 @@ class Widget(object):
        :type size: widget size
        :param event: Values such as ``'mouse press'``, ``'ctrl mouse press'``,
                      ``'mouse relase'``, ``'meta mouse release'``,
-                     ``'mouse drag'``
-       :type size: mouse event
+                     ``'mouse drag'``; see :ref:`mouse-input`
+       :type event: mouse event
        :param button: 1 through 5 for press events, often 0 for release events
                       (which button was released is often not known)
        :type button: int
@@ -371,6 +372,7 @@ class Widget(object):
 
        Container widgets will typically call the :meth:`mouse_event` method on
        whichever of their children is at the position (*col*, *row*).
+
 
     .. method:: get_cursor_coords(size)
 
@@ -500,7 +502,7 @@ class Widget(object):
 
         If ``'flow'`` is among the values returned then the other
         methods in this widget must be able to accept a
-        single-element tuple (*maxcol*,)`` to their ``size``
+        single-element tuple (*maxcol*,) to their ``size``
         parameter, and the :meth:`rows` method must be defined.
 
         If ``'box'`` is among the values returned then the other
@@ -533,7 +535,7 @@ class Widget(object):
 
            This is a new method that hasn't been fully implemented across the
            standard widget types. In particular it has not yet been
-           mplemented for container widgets.
+           implemented for container widgets.
 
         :class:`Text` widgets have implemented this method.
         You can use :meth:`Text.pack` to calculate the minumum
@@ -812,7 +814,7 @@ class Text(Widget):
             [*text markup*, *text markup*, ... ]
               all *text markup* in the list joined together
 
-        :type markup: text markup
+        :type markup: :ref:`text-markup`
         :param align: typically ``'left'``, ``'center'`` or ``'right'``
         :type align: text alignment mode
         :param wrap: typically ``'space'``, ``'any'`` or ``'clip'``

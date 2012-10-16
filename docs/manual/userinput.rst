@@ -25,6 +25,8 @@ the screen.
 There may be more than one keystroke or mouse event processed at a time, and
 each is sent as a separate item in the list.
 
+.. _keyboard-input:
+
 Keyboard Input
 ==============
 
@@ -72,6 +74,9 @@ Key pressed Input returned (each in its own encoding)
 Urwid does not try to convert this text to Unicode to avoid losing any
 information. If you want the input converted to Unicode in all cases you may
 create an input filter to do so.
+
+
+.. _mouse-input:
 
 Mouse Input
 ===========

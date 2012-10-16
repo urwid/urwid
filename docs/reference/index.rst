@@ -13,6 +13,7 @@ Urwid Reference
    attrspec
    canvas
    text_layout
+   command_map
    constants
    exceptions
    meta
