@@ -117,6 +117,10 @@ WidgetPlaceholder
 
 .. autoclass:: WidgetPlaceholder
 
+WidgetDisable
+~~~~~~~~~~~~~
+
+.. autoclass:: WidgetDisable
 
 Container Widget Classes
 ------------------------
