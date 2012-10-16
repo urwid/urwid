@@ -348,8 +348,6 @@ class Screen(BaseScreen, RealTerminal):
         This method expects to be called in next_input_timeout seconds
         (a floating point number) if there is no input waiting.
         """
-        assert self._started
-
         return self._input_iter.next()
 
     def _run_input_iter(self):
