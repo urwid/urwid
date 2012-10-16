@@ -435,25 +435,32 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         :type top_w: Widget
         :param bottom_w: a box widget to appear "below" previous widget
         :type bottom_w: Widget
-        :param align: alignment, one of 'left', 'center', 'right' or
-            ('relative', percentage 0=left 100=right)
+        :param align: alignment, one of ``'left'``, ``'center'``, ``'right'`` or
+            (``'relative'``, *percentage* 0=left 100=right)
         :type align: str
         :param width: width type, one of:
 
-            * 'pack' if top_w is a fixed widget,
-            * number of columns wide
-            * `('relative', percentage of total width)`
-        :param valign: alignment mode, one of 'top', 'middle', 'bottom' or
-            `('relative', percentage 0=top 100=bottom)`
+            ``'pack'``
+              if *top_w* is a fixed widget
+            *given width*
+              integer number of columns wide
+            (``'relative'``, *percentage of total width*)
+              make *top_w* width related to container width
+
+        :param valign: alignment mode, one of ``'top'``, ``'middle'``, ``'bottom'`` or
+            (``'relative'``, *percentage* 0=top 100=bottom)
         :param height: one of:
 
-            * 'pack' if top_w is a flow or fixed widget
-            * number of rows high
-            * ('relative', percentage of total height)
-        :param min_width: the minimum number of columns for top_w when width
+            ``'pack'``
+              if *top_w* is a flow or fixed widget
+            *given height*
+              integer number of rows high
+            (``'relative'``, *percentage of total height*)
+              make *top_w* height related to container height
+        :param min_width: the minimum number of columns for *top_w* when width
             is not fixed
         :type min_width: int
-        :param min_height: minimum number of rows for the widget when height
+        :param min_height: minimum number of rows for *top_w* when height
             is not fixed
         :type min_height: int
         :param left: a fixed number of columns to add on the left
@@ -466,8 +473,8 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         :type bottom: int
 
         Overlay widgets behave similarly to :class:`Padding` and :class:`Filler`
-        widgets when determining the size and position of `top_w`. `bottom_w` is
-        always rendered the full size available "below" `top_w`.
+        widgets when determining the size and position of *top_w*. *bottom_w* is
+        always rendered the full size available "below" *top_w*.
         """
         self.__super.__init__()
 
@@ -1665,7 +1672,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def __init__(self, widget_list, dividechars=0, focus_column=None,
         min_width=1, box_columns=None):
         """
-        :param widget_list: iterable of flow widgets or iterable of box widgets
+        :param widget_list: iterable of flow or box widgets
         :param dividechars: number of blank characters between columns
         :param focus_column: index into widget_list of column in focus,
             if ``None`` the first selectable widget will be chosen.

@@ -86,7 +86,7 @@ class PollingListWalker(object):  # NOT ListWalker subclass
         """
         contents -- list to poll for changes
 
-        This class is deprecated.  Use SimpleListWalker instead.
+        This class is deprecated.  Use SimpleFocusListWalker instead.
         """
         import warnings
         warnings.warn("PollingListWalker is deprecated, "
@@ -273,9 +273,10 @@ class ListBox(Widget, WidgetContainerMixin):
 
     def __init__(self, body):
         """
-        :param body: a ListWalker-like object that contains
+        :param body: a ListWalker subclass such as
+            :class:`SimpleFocusListWalker` that contains
             widgets to be displayed inside the list box
-        :type body: ListWalker or list
+        :type body: ListWalker
         """
         if getattr(body, 'get_focus', None):
             self.body = body
@@ -316,6 +317,8 @@ class ListBox(Widget, WidgetContainerMixin):
 
         see :meth:`Widget.render` for parameter details
 
+        :returns: (*middle*, *top*, *bottom*) or (``None``, ``None``, ``None``)
+
         *middle*
             (*row offset*(when +ve) or *inset*(when -ve),
             *focus widget*, *focus position*, *focus rows*,
@@ -328,8 +331,6 @@ class ListBox(Widget, WidgetContainerMixin):
             (*# lines to trim off bottom*,
             list of (*widget*, *position*, *rows*) tuples below focus
             in order from top to bottom)
-
-        :returns: (*middle*, *top*, *bottom*) or (``None``, ``None``, ``None``)
         """
         (maxcol, maxrow) = size
 

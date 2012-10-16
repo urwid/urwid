@@ -30,22 +30,22 @@ from urwid.widget import Divider, Edit, Text, SolidFill # doctests
 
 
 class WidgetDecoration(Widget):  # "decorator" was already taken
+    """
+    original_widget -- the widget being decorated
+
+    This is a base class for decoration widgets, widgets
+    that contain one or more widgets and only ever have
+    a single focus.  This type of widget will affect the
+    display or behaviour of the original_widget but it is
+    not part of determining a chain of focus.
+
+    Don't actually do this -- use a WidgetDecoration subclass
+    instead, these are not real widgets:
+
+    >>> WidgetDecoration(Text(u"hi"))
+    <WidgetDecoration flow widget <Text flow widget 'hi'>>
+    """
     def __init__(self, original_widget):
-        """
-        original_widget -- the widget being decorated
-
-        This is a base class for decoration widgets, widgets
-        that contain one or more widgets and only ever have
-        a single focus.  This type of widget will affect the
-        display or behaviour of the original_widget but it is
-        not part of determining a chain of focus.
-
-        Don't actually do this -- use a WidgetDecoration subclass
-        instead, these are not real widgets:
-
-        >>> WidgetDecoration(Text(u"hi"))
-        <WidgetDecoration flow widget <Text flow widget 'hi'>>
-        """
         self._original_widget = original_widget
     def _repr_words(self):
         return self.__super._repr_words() + [repr(self._original_widget)]
@@ -94,7 +94,7 @@ class WidgetPlaceholder(delegate_to_widget_mixin('_original_widget'),
     This can be useful for making an interface with a number of distinct
     pages or for showing and hiding menu or status bars.
 
-    The widget displayed is stored as a .original_widget property and
+    The widget displayed is stored as the self.original_widget property and
     can be changed by assigning a new widget to it.
     """
     pass
