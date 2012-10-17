@@ -2028,8 +2028,6 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         :type focus: bool
         """
         widths = self.column_widths(size, focus)
-        if not widths:
-            return SolidCanvas(" ", size[0], (size[1:]+(1,))[0])
 
         box_maxrow = None
         if len(size) == 1:
@@ -2061,7 +2059,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             l.append((canv, i, self.focus_position == i, mc))
 
         if not l:
-            return SolidCanvas(" ", size[0], (size[1:]+(0,))[0])
+            return SolidCanvas(" ", size[0], (size[1:]+(1,))[0])
 
         canv = CanvasJoin(l)
         if canv.cols() < size[0]:
@@ -2086,8 +2084,8 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if coords is None:
             return None
         x, y = coords
-        x += self.focus_col * self.dividechars
-        x += sum(widths[:self.focus_position])
+        x += sum([self.dividechars + wc
+            for wc in widths[:self.focus_position] if wc > 0])
         return x, y
 
     def move_cursor_to_coords(self, size, col, row):
