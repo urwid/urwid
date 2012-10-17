@@ -67,7 +67,7 @@ class SelectableIcon(Text):
             c = CompositeCanvas(c)
             c.cursor = self.get_cursor_coords(size)
         return c
-    
+
     def get_cursor_coords(self, size):
         """
         Return the position of the cursor if visible.  This method
@@ -80,6 +80,8 @@ class SelectableIcon(Text):
         (maxcol,) = size
         trans = self.get_line_translation(maxcol)
         x, y = calc_coords(self.text, trans, self._cursor_position)
+        if maxcol <= x:
+            return None
         return x, y
 
     def keypress(self, size, key):
