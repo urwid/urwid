@@ -2383,6 +2383,19 @@ class WidgetSquishTest(unittest.TestCase):
         c = w.render((0, 25), focus=False)
         c = w.render((1, 25), focus=False)
 
+    def fwstest(self, w):
+        def t(cols, focus):
+            wrows = w.rows((cols,), focus)
+            c = w.render((cols,), focus)
+            assert c.rows() == wrows, (c.rows(), wrows)
+            if c.cursor:
+                gcc = w.get_cursor_coords((cols,))
+                assert c.cursor == gcc, (c.cursor, gcc)
+        t(0, False)
+        t(1, False)
+        t(0, True)
+        t(1, True)
+
     def test_listbox(self):
         self.wstest(urwid.ListBox([]))
         self.wstest(urwid.ListBox([urwid.Text("hello")]))
@@ -2425,6 +2438,10 @@ class WidgetSquishTest(unittest.TestCase):
     def test_columns(self):
         self.wstest(urwid.Columns([urwid.SolidFill()]))
         self.wstest(urwid.Columns([(4, urwid.SolidFill())]))
+
+    def test_buttons(self):
+        self.fwstest(urwid.Button(u"hello"))
+        self.fwstest(urwid.RadioButton([], u"hello"))
 
 
 class CommonContainerTest(unittest.TestCase):
