@@ -544,7 +544,7 @@ calling :meth:`ListWalker._modified`.
 
 .. method:: prev_position(position)
 
-   return the position above passed *position* or raise an :exc:`IndexError` or exc:`KeyError`
+   return the position above passed *position* or raise an :exc:`IndexError` or :exc:`KeyError`
 
 .. method:: set_focus(position)
 
@@ -554,6 +554,9 @@ calling :meth:`ListWalker._modified`.
 
    attribute or property containing the focus position, or define
    :meth:`MyV1ListWalker.get_focus` as above
+
+List Walker Iteration
+~~~~~~~~~~~~~~~~~~~~~
 
 There is an optional iteration helper method that may be defined in any list walker.
 When this is defined it will be used by :meth:`ListBox.__iter__` and
