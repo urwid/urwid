@@ -1,3 +1,5 @@
+.. _urwid-reference:
+
 ###############
 Urwid Reference
 ###############
