@@ -640,7 +640,7 @@ class Screen(BaseScreen, RealTerminal):
             cy = y
 
             whitespace_at_end = False
-            if row and row[-1][2][-1] == ' ':
+            if row and row[-1][2][-1:] == ' ':
                 whitespace_at_end = True
                 a, cs, run = row[-1]
                 row = row[:-1] + [(a, cs, run.rstrip(' '))]
