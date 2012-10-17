@@ -2388,7 +2388,7 @@ class WidgetSquishTest(unittest.TestCase):
             wrows = w.rows((cols,), focus)
             c = w.render((cols,), focus)
             assert c.rows() == wrows, (c.rows(), wrows)
-            if c.cursor:
+            if focus and hasattr(w, 'get_cursor_coords'):
                 gcc = w.get_cursor_coords((cols,))
                 assert c.cursor == gcc, (c.cursor, gcc)
         t(0, False)
