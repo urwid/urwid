@@ -28,7 +28,7 @@ import sys, os
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.todo', 'sphinx.ext.coverage']
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['tools']
+templates_path = ['tools/templates']
 
 # The suffix of source filenames.
 source_suffix = '.rst'
@@ -103,13 +103,15 @@ html_style = None # make readthedocs really use the default theme
 # documentation.
 html_theme_options = {
     'sidebarbgcolor':'#263193',
+    'sidebarbtncolor':'#263193',
     'footerbgcolor':'#2a1b5c',
     'relbarbgcolor':'#2a1b5c',
-    'sidebarlinkcolor':'#aabee8',#'#6d96e8',
+    'sidebarlinkcolor':'#aabee8',
     'linkcolor':'#263193',
     'visitedlinkcolor':'#263193',
     'headtextcolor':'#2a1b5c',
     'headlinkcolor':'#2a1b5c',
+    'collapsiblesidebar': True,
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -145,11 +147,15 @@ html_static_path = ['tools/static']
 #html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-#html_sidebars = {}
+html_sidebars = {
+    'index': 'indexsidebar.html',
+}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
-#html_additional_pages = {}
+html_additional_pages = {
+    'index': 'indexcontent.html',
+}
 
 # If false, no module index is generated.
 #html_domain_indices = True
