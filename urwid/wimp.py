@@ -35,12 +35,14 @@ class SelectableIcon(Text):
     _selectable = True
     def __init__(self, text, cursor_position=1):
         """
-        text -- markup for this widget
-        cursor_position -- position the cursor will appear in when this
-            widget is in focus
+        :param text: markup for this widget; see :class:`Text` for
+                     description of text markup
+        :param cursor_position: position the cursor will appear in the
+                                text when this widget is in focus
 
-        This is a text widget that is selectable with a cursor
-        displayed at a fixed location in the text when in focus
+        This is a text widget that is selectable.  A cursor
+        displayed at a fixed location in the text when in focus.
+        This widget has no special handling of keyboard or mouse input.
         """
         self.__super.__init__(text)
         self._cursor_position = cursor_position

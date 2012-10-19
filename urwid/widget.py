@@ -1125,7 +1125,7 @@ class Edit(Text):
             edit_pos=None, layout=None, mask=None):
         """
         :param caption: markup for caption preceeding edit_text, see
-                        :meth:`Text.__init__` for description of text markup.
+                        :class:`Text` for description of text markup.
         :type caption: text markup
         :param edit_text: initial text for editing, type (bytes or unicode)
                           must match the text in the caption

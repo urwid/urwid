@@ -68,6 +68,11 @@ TreeWidget
 
 .. autoclass:: TreeWidget
 
+SelectableIcon
+~~~~~~~~~~~~~~
+
+.. autoclass:: SelectableIcon
+
 
 Decoration Widget Classes
 -------------------------
