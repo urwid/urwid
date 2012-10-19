@@ -644,7 +644,7 @@ class Screen(BaseScreen, RealTerminal):
                 whitespace_at_end = True
                 a, cs, run = row[-1]
                 row = row[:-1] + [(a, cs, run.rstrip(' '))]
-            elif y == maxrow-1:
+            elif y == maxrow-1 and maxcol>1:
                 row, back, ins = self._last_row(row)
 
             first = True
