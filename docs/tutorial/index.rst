@@ -167,14 +167,14 @@ a widget before the correct one has been created.
 Question and Answer
 -------------------
 
-.. image:: edit1.png
-.. image:: edit2.png
-.. image:: edit3.png
+.. image:: qa1.png
+.. image:: qa2.png
+.. image:: qa3.png
 
 This program asks for your name then responds ``Nice to meet you, (your
 name).``
 
-.. literalinclude:: edit.py
+.. literalinclude:: qa.py
    :linenos:
 
 The :class:`Edit` widget is based on the :class:`Text` widget but it accepts
@@ -204,15 +204,15 @@ and extend than handling all special input in an *unhandled_input* function.
 Signal Handlers
 ---------------
 
-.. image:: frlb1.png
-.. image:: frlb2.png
-.. image:: frlb3.png
-.. image:: frlb4.png
+.. image:: sig1.png
+.. image:: sig2.png
+.. image:: sig3.png
+.. image:: sig4.png
 
 This program asks for your name and responds ``Nice to meet you, (your name)``
 *while* you type your name.  Press *DOWN* then *SPACE* or *ENTER* to exit.
 
-.. literalinclude:: frlb.py
+.. literalinclude:: sig.py
    :linenos:
 
 * An :class:`Edit` widget and a :class:`Text` reply
@@ -231,16 +231,16 @@ This program asks for your name and responds ``Nice to meet you, (your name)``
 Multiple Questions
 ------------------
 
-.. image:: lbcont1.png
-.. image:: lbcont2.png
-.. image:: lbcont3.png
-.. image:: lbcont4.png
+.. image:: multiple1.png
+.. image:: multiple2.png
+.. image:: multiple3.png
+.. image:: multiple4.png
 
 This program asks for your name and responds ``Nice to meet you, (your name).``
 It then asks again, and again. Old values may be changed and the responses will
 be updated when you press *ENTER*. *ENTER* on a blank line exits.
 
-.. literalinclude:: lbcont.py
+.. literalinclude:: multiple.py
    :linenos:
 
 :class:`ListBox` widgets let you scroll through a number of flow widgets
@@ -277,14 +277,14 @@ it in a subclass.
 Simple Menu
 -----------
 
-.. image:: menu11.png
-.. image:: menu12.png
-.. image:: menu13.png
+.. image:: smenu1.png
+.. image:: smenu2.png
+.. image:: smenu3.png
 
 We can create a very simple menu using a list of :class:`Button` widgets.
 This program lets you choose an option then repeats what you chose.
 
-.. literalinclude:: menu1.py
+.. literalinclude:: smenu.py
    :linenos:
 
 * *menu()* builds a :class:`ListBox` with a *title* and a sequence of :class:`Button`
@@ -304,16 +304,16 @@ This program lets you choose an option then repeats what you chose.
 Cascading Menu
 --------------
 
-.. image:: menu21.png
-.. image:: menu22.png
-.. image:: menu23.png
-.. image:: menu24.png
+.. image:: cmenu1.png
+.. image:: cmenu2.png
+.. image:: cmenu3.png
+.. image:: cmenu4.png
 
 A nested menu effect can be created by having some buttons open new menus.  This program
 lets you choose an option from a nested menu that cascades across the screen.  You may
 return to previous menus by pressing *ESC*.
 
-.. literalinclude:: menu2.py
+.. literalinclude:: cmenu.py
    :linenos:
 
 * *menu_button()* returns an :class:`AttrMap`-decorated :class:`Button`
@@ -347,17 +347,17 @@ case as a base class for a widget that will be replacing its own contents regula
 Horizontal Menu
 ---------------
 
-.. image:: menu31.png
-.. image:: menu32.png
-.. image:: menu33.png
-.. image:: menu34.png
+.. image:: hmenu1.png
+.. image:: hmenu2.png
+.. image:: hmenu3.png
+.. image:: hmenu4.png
 
 This example is like the previous but new menus appear on the right and push
 old menus off the left side of the screen.
 The look of buttons and other menu elements are heavily customized
 and new widget classes are used instead of factory functions.
 
-.. literalinclude:: menu3.py
+.. literalinclude:: hmenu.py
    :linenos:
 
 * *MenuButton* is a customized :class:`Button` widget.  :class:`Button` uses
@@ -386,10 +386,10 @@ as a default when no other display attribute is specified.
 Adventure Game
 --------------
 
-.. image:: menu41.png
-.. image:: menu42.png
-.. image:: menu43.png
-.. image:: menu44.png
+.. image:: adventure1.png
+.. image:: adventure2.png
+.. image:: adventure3.png
+.. image:: adventure4.png
 
 We can use the same sort of code to build a simple adventure game.  Instead
 of menus we have "places" and instead of submenus and parent menus we just
@@ -397,7 +397,7 @@ have "exits".  This example scrolls previous places off the top of the
 screen, allowing you to scroll back to view but not interact with previous
 places.
 
-.. literalinclude:: menu4.py
+.. literalinclude:: adventure.py
    :linenos:
 
 This example starts to show some separation between the application logic
