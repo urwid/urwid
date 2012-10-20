@@ -2068,7 +2068,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
     def get_cursor_coords(self, size):
         """Return the cursor coordinates from the focus widget."""
-        w = self.contents[self.focus_position][0]
+        w, (t, n, b) = self.contents[self.focus_position]
 
         if not w.selectable():
             return None
@@ -2080,7 +2080,10 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             return None
         colw = widths[self.focus_position]
 
-        coords = w.get_cursor_coords((colw,)+size[1:])
+        if len(size) == 1 and b:
+            coords = w.get_cursor_coords((colw, self.rows(size)))
+        else:
+            coords = w.get_cursor_coords((colw,)+size[1:])
         if coords is None:
             return None
         x, y = coords
@@ -2105,12 +2108,12 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 # assert isinstance(x, int) and isinstance(col, int), (x, col)
                 if x > col and best is None:
                     # no other choice
-                    best = i, x, end, w
+                    best = i, x, end, w, options
                     break
                 if x > col and col-best[2] < x-col:
                     # choose one on left
                     break
-                best = i, x, end, w
+                best = i, x, end, w, options
                 if col < end:
                     # choose this one
                     break
@@ -2118,14 +2121,18 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         if best is None:
             return False
-        i, x, end, w = best
+        i, x, end, w, (t, n, b) = best
         if hasattr(w, 'move_cursor_to_coords'):
             if isinstance(col, int):
                 move_x = min(max(0, col - x), end - x - 1)
             else:
                 move_x = col
-            rval = w.move_cursor_to_coords((end - x,) + size[1:],
-                move_x, row)
+            if len(size) == 1 and b:
+                rval = w.move_cursor_to_coords((end - x, self.rows(size)),
+                    move_x, row)
+            else:
+                rval = w.move_cursor_to_coords((end - x,) + size[1:],
+                    move_x, row)
             if rval is False:
                 return False
 
@@ -2141,7 +2148,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         widths = self.column_widths(size)
 
         x = 0
-        for i, (width, (w, options)) in enumerate(zip(widths, self.contents)):
+        for i, (width, (w, (t, n, b))) in enumerate(zip(widths, self.contents)):
             if col < x:
                 return False
             w = self.widget_list[i]
@@ -2159,6 +2166,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             if not hasattr(w, 'mouse_event'):
                 return False
 
+            if len(size) == 1 and b:
+                return w.mouse_event((end - x, self.rows(size)), event, button,
+                    col - x, row, focus)
             return w.mouse_event((end - x,) + size[1:], event, button,
                 col - x, row, focus)
         return False
@@ -2167,13 +2177,16 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """Return the pref col from the column in focus."""
         widths = self.column_widths(size)
 
-        w = self.contents[self.focus_position][0]
+        w, (t, n, b) = self.contents[self.focus_position]
         if len(widths) <= self.focus_position:
             return 0
         col = None
         cwidth = widths[self.focus_position]
         if hasattr(w, 'get_pref_col'):
-            col = w.get_pref_col((cwidth,) + size[1:])
+            if len(size) == 1 and b:
+                col = w.get_pref_col((cwidth, self.rows(size)))
+            else:
+                col = w.get_pref_col((cwidth,) + size[1:])
             if isinstance(col, int):
                 col += self.focus_col * self.dividechars
                 col += sum(widths[:self.focus_position])

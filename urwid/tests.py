@@ -2127,6 +2127,10 @@ class ColumnsTest(unittest.TestCase):
         c = urwid.Columns([urwid.Filler(urwid.Edit()),urwid.Text('')],
             box_columns=[0])
         c.keypress((10,), 'x')
+        c.get_cursor_coords((10,))
+        c.move_cursor_to_coords((10,), 0, 0)
+        c.mouse_event((10,), 'foo', 1, 0, 0, True)
+        c.get_pref_col((10,))
 
 
 class LineBoxTest(unittest.TestCase):
