@@ -699,7 +699,7 @@ class Divider(Widget):
         :param top: number of blank lines above
         :type top: int
 
-        :param bottom:number of blank lines below
+        :param bottom: number of blank lines below
         :type bottom: int
 
         >>> Divider()
