@@ -2123,6 +2123,11 @@ class ColumnsTest(unittest.TestCase):
         c.box_columns=[]
         self.assertEquals(c.box_columns, [])
 
+    def test_box_column(self):
+        c = urwid.Columns([urwid.Filler(urwid.Edit()),urwid.Text('')],
+            box_columns=[0])
+        c.keypress((10,), 'x')
+
 
 class LineBoxTest(unittest.TestCase):
     def border(self, tl, t, tr, l, r, bl, b, br):

@@ -2218,11 +2218,14 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         i = self.focus_position
         mc = widths[i]
-        w = self.contents[i][0]
+        w, (t, n, b) = self.contents[i]
         if self._command_map[key] not in ('cursor up', 'cursor down',
             'cursor page up', 'cursor page down'):
             self.pref_col = None
-        key = w.keypress((mc,) + size[1:], key)
+        if len(size) == 1 and b:
+            key = w.keypress((mc, self.rows(size, True)), key)
+        else:
+            key = w.keypress((mc,) + size[1:], key)
 
         if self._command_map[key] not in ('cursor left', 'cursor right'):
             return key
