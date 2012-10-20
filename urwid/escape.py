@@ -87,7 +87,13 @@ input_sequences = [
     ('Oo','/'),('Oj','*'),('Om','-'),('Ok','+'),
 
     ('[Z','shift tab'),
-] + [ 
+    ('[a','shift up'), ('[b','shift down'), ('[c','shift right'),
+    ('[d','shift left'), ('[7$', 'shift home'), ('[8$', 'shift end'),
+    ('[3$', 'shift delete'), ('[5$', 'shift page up'),
+    ('[6$', 'shift page down'), ('On', '.'),
+] + [
+    ('O' + chr(ord('p')+n), str(n)) for n in range(10)
+] + [
     # modified cursor keys + home, end, 5 -- [#X and [1;#X forms
     (prefix+digit+letter, escape_modifier(digit) + key)
     for prefix in "[","[1;"
