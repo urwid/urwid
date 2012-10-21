@@ -460,7 +460,7 @@ class Padding(WidgetDecoration):
         >>> size = (7,)
         >>> def pr(w):
         ...     for t in w.render(size).text:
-        ...         print "|%s|" % (t,)
+        ...         print "|%s|" % (t.decode('ascii'),)
         >>> pr(Padding(Text(u"Head"), ('relative', 20), 'pack'))
         | Head  |
         >>> pr(Padding(Divider(u"-"), left=2, right=1))
