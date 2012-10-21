@@ -20,18 +20,20 @@
 # Urwid web site: http://excess.org/urwid/
 
 try:
-    from setuptools import setup, Extension
+    PYTHON3 = not str is bytes
+except NameError:
+    PYTHON3 = False
+
+try:
+    from setuptools import setup, Extension # distribute required for Python 3
     have_setuptools = True
 except ImportError:
+    if PYTHON3:
+        raise
     from distutils.core import setup, Extension
     have_setuptools = False
 
 import os
-
-try:
-    PYTHON3 = not str is bytes
-except NameError:
-    PYTHON3 = False
 
 exec(open(os.path.join("urwid","version.py")).read())
 release = __version__
