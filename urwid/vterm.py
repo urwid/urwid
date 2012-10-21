@@ -39,13 +39,11 @@ from urwid.escape import DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS
 from urwid.canvas import Canvas
 from urwid.widget import Widget, BOX
 from urwid.display_common import AttrSpec, RealTerminal, _BASIC_COLORS
-from urwid.compat import ord2, chr2, B, bytes
-
-Bdict = lambda x: dict([(B(k), B(v)) for k, v in x.items()])
+from urwid.compat import ord2, chr2, B, bytes, PYTHON3
 
 ESC = chr(27)
 
-KEY_TRANSLATIONS = Bdict({
+KEY_TRANSLATIONS = {
     'enter':     chr(13),
     'backspace': chr(127),
     'tab':       chr(9),
@@ -73,9 +71,9 @@ KEY_TRANSLATIONS = Bdict({
     'f10':       ESC + '[21~',
     'f11':       ESC + '[23~',
     'f12':       ESC + '[24~',
-})
+}
 
-KEY_TRANSLATIONS_DECCKM = Bdict({
+KEY_TRANSLATIONS_DECCKM = {
     'up':        ESC + 'OA',
     'down':      ESC + 'OB',
     'right':     ESC + 'OC',
@@ -85,7 +83,7 @@ KEY_TRANSLATIONS_DECCKM = Bdict({
     'f3':        ESC + 'OR',
     'f4':        ESC + 'OS',
     'f5':        ESC + '[15~',
-})
+}
 
 CSI_COMMANDS = {
     # possible values:
@@ -1612,7 +1610,7 @@ class Terminal(Widget):
         if self.term_modes.lfnl and key == "\x0d":
             key += "\x0a"
 
-        if sys.version_info[0] >= 3:
-            key = bytes(key, 'ascii')
+        if PYTHON3:
+            key = key.encode('ascii')
 
         os.write(self.master, key)
