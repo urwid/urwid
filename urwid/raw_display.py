@@ -640,10 +640,10 @@ class Screen(BaseScreen, RealTerminal):
             cy = y
 
             whitespace_at_end = False
-            if row and row[-1][2][-1:] == ' ':
+            if row and row[-1][2][-1:] == B(' '):
                 whitespace_at_end = True
                 a, cs, run = row[-1]
-                row = row[:-1] + [(a, cs, run.rstrip(' '))]
+                row = row[:-1] + [(a, cs, run.rstrip(B(' ')))]
             elif y == maxrow-1 and maxcol>1:
                 row, back, ins = self._last_row(row)
 
