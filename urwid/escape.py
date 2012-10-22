@@ -87,16 +87,18 @@ input_sequences = [
     ('Oo','/'),('Oj','*'),('Om','-'),('Ok','+'),
 
     ('[Z','shift tab'),
-    ('[a','shift up'), ('[b','shift down'), ('[c','shift right'),
-    ('[d','shift left'), ('[7$', 'shift home'), ('[8$', 'shift end'),
-    ('[3$', 'shift delete'), ('[5$', 'shift page up'),
-    ('[6$', 'shift page down'), ('On', '.'),
+    ('On', '.'),
+] + [
+    (prefix + letter, modifier + key)
+    for prefix, modifier in zip('O[', ('meta ', 'shift '))
+    for letter, key in zip('abcd', ('up', 'down', 'right', 'left'))
+] + [
+    ("[" + digit + symbol, modifier + key)
+    for modifier, symbol in zip(('shift ', 'meta '), '$^')
+    for digit, key in zip('235678',
+        ('insert', 'delete', 'page up', 'page down', 'home', 'end'))
 ] + [
     ('O' + chr(ord('p')+n), str(n)) for n in range(10)
-] + [
-    # modified delete
-    ("[3;" + digit + "~", escape_modifier(digit) + "delete")
-    for digit in "12345678"
 ] + [
     # modified cursor keys + home, end, 5 -- [#X and [1;#X forms
     (prefix+digit+letter, escape_modifier(digit) + key)
@@ -114,8 +116,9 @@ input_sequences = [
     ("["+str(num)+";"+digit+"~", escape_modifier(digit) + key)
     for digit in "12345678"
     for num,key in zip(
-        (11,12,13,14,15,17,18,19,20,21,23,24,25,26,28,29,31,32,33,34),
-        ('f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11',
+        (3,5,6,11,12,13,14,15,17,18,19,20,21,23,24,25,26,28,29,31,32,33,34),
+        ('delete', 'page up', 'page down',
+        'f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11',
         'f12','f13','f14','f15','f16','f17','f18','f19','f20'))
 ] + [
     # mouse reporting (special handling done in KeyqueueTrie)
