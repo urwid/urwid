@@ -37,14 +37,14 @@ Urwid 1.1.0
       bottom of the list if they provide a positions() method
 
     * raw_display now erases to the end of the line with EL escape
-      sequence toimprove copy+paste behavior for some terminals
+      sequence to improve copy+paste behavior for some terminals
 
     * Filler now has top and bottom parameters like Padding's left and
       right parameters and accepts 'pack' instead of None as a height
       value for widgets that calculate their own number of rows
 
     * Pile and Columns now accepts 'pack' instead of 'flow' for widgets
-      that calulate their own number of rows or columns
+      that calculate their own number of rows or columns
 
     * Pile and Columns now accept 'given' instead of 'fixed' for
       cases where the number of rows or columns are specified by the
