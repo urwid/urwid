@@ -94,13 +94,17 @@ input_sequences = [
 ] + [
     ('O' + chr(ord('p')+n), str(n)) for n in range(10)
 ] + [
+    # modified delete
+    ("[3;" + digit + "~", escape_modifier(digit) + "delete")
+    for digit in "12345678"
+] + [
     # modified cursor keys + home, end, 5 -- [#X and [1;#X forms
     (prefix+digit+letter, escape_modifier(digit) + key)
     for prefix in "[","[1;"
     for digit in "12345678"
     for letter,key in zip("ABCDEFGH",
         ('up','down','right','left','5','end','5','home'))
-] + [ 
+] + [
     # modified F1-F4 keys -- O#X form
     ("O"+digit+letter, escape_modifier(digit) + key)
     for digit in "12345678"
