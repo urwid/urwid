@@ -681,7 +681,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
     def get_cursor_coords(self, size):
         """Return cursor coords from top_w, if any."""
-        if not hasattr(self.body, 'get_cursor_coords'):
+        if not hasattr(self.top_w, 'get_cursor_coords'):
             return None
         (maxcol, maxrow) = size
         left, right, top, bottom = self.calculate_padding_filler(size,

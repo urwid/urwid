@@ -2240,6 +2240,11 @@ class OverlayTest(unittest.TestCase):
             'right', None, 'relative', 100, None, 4, 5,
             'bottom', None, 'relative', 100, None, 2, 3))
 
+    def test_get_cursor_coords(self):
+        self.assertEquals(urwid.Overlay(urwid.Filler(urwid.Edit()),
+            urwid.SolidFill(u'B'),
+            'right', 1, 'bottom', 1).get_cursor_coords((2,2)), (1,1))
+
 
 class GridFlowTest(unittest.TestCase):
     def test_cell_width(self):
