@@ -2180,6 +2180,11 @@ class SmoothBarGraphTest(unittest.TestCase):
         self.sbgtest('twof', [[4],[3]], 6,
             [(1, [(0, 5)]), (1, [(1,3), ((1,0,4), 2)]), (1, [(1,5)]) ] )
 
+    def test_get_cursor_coords(self):
+        self.assertEquals(urwid.Overlay(urwid.Filler(urwid.Edit()),
+            urwid.SolidFill(u'B'),
+            'right', 1, 'bottom', 1).get_cursor_coords((2,2)), (1,1))
+
 
 class CanvasJoinTest(unittest.TestCase):
     def cjtest(self, desc, l, expected):
