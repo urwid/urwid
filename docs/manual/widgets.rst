@@ -684,7 +684,7 @@ Selectable Widgets
 
 Selectable widgets such as Edit and Button widgets allow the user to interact
 with the application. A widget is selectable if its selectable method returns
-True. Selectable widgets must implement the :meth:`Widgte.keypress` method to
+True. Selectable widgets must implement the :meth:`Widget.keypress` method to
 handle keyboard input.
 
 .. literalinclude:: wsel.py
