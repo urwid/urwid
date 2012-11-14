@@ -2017,6 +2017,12 @@ class PileTest(unittest.TestCase):
     def test_init_with_a_generator(self):
         urwid.Pile(urwid.Text(c) for c in "ABC")
 
+    def test_change_focus_with_mouse(self):
+        p = urwid.Pile([urwid.Edit(), urwid.Edit()])
+        self.assertEquals(p.focus_position, 0)
+        p.mouse_event((10,), 'button press', 1, 1, 1, True)
+        self.assertEquals(p.focus_position, 1)
+
 
 class ColumnsTest(unittest.TestCase):
     def cwtest(self, desc, l, divide, size, exp, focus_column=0):
