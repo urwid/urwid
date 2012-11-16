@@ -46,7 +46,6 @@ setup_d = {
     'ext_modules':[Extension('urwid.str_util', sources=['source/str_util.c'])],
     'packages':['urwid'],
     'url':"http://excess.org/urwid/",
-    'download_url':"http://excess.org/urwid/urwid-%s.tar.gz"%release,
     'license':"LGPL",
     'keywords':"curses ui widget scroll listbox user interface text layout console ncurses",
     'platforms':"unix-like",
