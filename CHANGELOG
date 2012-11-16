@@ -1,5 +1,13 @@
 # -*- coding: utf-8 -*-
 
+Urwid 1.0.3
+
+    * Fix for alarms when used with a screen event loop (e.g.
+      curses_display)
+
+    * Fix for Overlay.get_cursor_coords()
+
+
 Urwid 1.0.2
 
     * Fix for bug when entering Unicode text into Edit widget with
