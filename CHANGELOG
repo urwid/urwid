@@ -1,5 +1,12 @@
  -*- coding: utf-8 -*-
 
+Urwid 1.1.1
+
+    * Fix for Pile not changing focus on mouse events
+
+    * Fix for Overlay.get_cursor_coords()
+
+
 Urwid 1.1.0
 
     * New common container API: focus, focus_position, contents,
@@ -78,6 +85,14 @@ Urwid 1.1.0
       Columns methods when that column is selectable
 
     * Fix for Terminal widget input handling with Python 3
+
+
+Urwid 1.0.3
+
+    * Fix for alarms when used with a screen event loop (e.g.
+      curses_display)
+
+    * Fix for Overlay.get_cursor_coords()
 
 
 Urwid 1.0.2
