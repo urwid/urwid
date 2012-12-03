@@ -44,7 +44,7 @@ setup_d = {
     'author':"Ian Ward",
     'author_email':"ian@excess.org",
     'ext_modules':[Extension('urwid.str_util', sources=['source/str_util.c'])],
-    'packages':['urwid'],
+    'packages':['urwid', 'urwid.tests'],
     'url':"http://excess.org/urwid/",
     'download_url':"http://excess.org/urwid/urwid-%s.tar.gz"%release,
     'license':"LGPL",
