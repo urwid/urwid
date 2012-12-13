@@ -230,6 +230,18 @@ focus to a widget as returned by a previous call to ``container.get_focus_path()
 
 ::
 
+  container.get_focus_widgets()
+
+is a method that returns the ``.focus`` values starting from this container
+and proceeding along each child widget until reaching a leaf
+(non-container) widget.
+
+Note that the list does not contain the topmost container widget
+(i.e, on which this method is called), but does include the
+lowest leaf widget.
+
+::
+
   container.__iter__()
   # typically
   for x in container: ...
