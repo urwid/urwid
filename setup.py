@@ -105,5 +105,10 @@ if PYTHON3:
     setup_d['use_2to3'] = True
 
 if __name__ == "__main__":
-    setup(**setup_d)
-
+    try:
+        setup(**setup_d)
+    except (IOError, SystemExit) as e:
+        traceback.print_exc()
+        print("Couldn't build the extension module, trying without it...")
+        del setup_d["ext_modules"]
+        setup(**setup_d)
