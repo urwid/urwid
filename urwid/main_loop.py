@@ -788,14 +788,18 @@ class SelectEventLoop(object):
             self._did_something = True
 
 
-if not PYTHON3:
+try:
+    import gobject
+except ImportError:
+    gobject = None
+
+if not PYTHON3 and gobject is not None:
     class GLibEventLoop(object):
         """
         Event loop based on gobject.MainLoop
         """
 
         def __init__(self):
-            import gobject
             self.gobject = gobject
             self._alarms = []
             self._watch_files = {}

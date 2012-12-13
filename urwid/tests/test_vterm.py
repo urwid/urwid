@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid terminal emulation widget unit tests
 #    Copyright (C) 2010  aszlig
 #    Copyright (C) 2011  Ian Ward
@@ -30,6 +28,7 @@ from urwid import vterm
 from urwid import signals
 from urwid.compat import B
 
+
 class DummyCommand(object):
     QUITSTRING = B('|||quit|||')
 
@@ -53,6 +52,7 @@ class DummyCommand(object):
 
     def quit(self):
         self.write(self.QUITSTRING)
+
 
 class TermTest(unittest.TestCase):
     def setUp(self):
@@ -332,6 +332,3 @@ class TermTest(unittest.TestCase):
         self.expect('test2')
         self.expect_signal('caps_lock')
         self.disconnect_signal('leds')
-
-if __name__ == '__main__':
-    unittest.main()

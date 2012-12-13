@@ -14,3 +14,6 @@ coverage
 htmlcov
 
 _trial_temp
+
+.tox
+urwid/str_util*.so
