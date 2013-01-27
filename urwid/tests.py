@@ -2119,6 +2119,10 @@ class ColumnsTest(unittest.TestCase):
         self.mctest("l e edge",[x,e,x],1,(20,),6,0,True,1,7)
         self.mctest("r e edge",[x,e,x],1,(20,),13,0,True,1,12)
 
+        # 'left'/'right' special cases
+        self.mctest("right", [e, e, e], 0, (12,), 'right', 0, True, 2, 'right')
+        self.mctest("left", [e, e, e], 0, (12,), 'left', 0, True, 0, 'left')
+
     def test_init_with_a_generator(self):
         urwid.Columns(urwid.Text(c) for c in "ABC")
 
@@ -2229,6 +2233,7 @@ class SmoothBarGraphTest(unittest.TestCase):
             [(1, [(0, 5)]), (1, [((1,0,4), 3), (1, 2)]), (1, [(1,5)]) ] )
         self.sbgtest('twof', [[4],[3]], 6,
             [(1, [(0, 5)]), (1, [(1,3), ((1,0,4), 2)]), (1, [(1,5)]) ] )
+
 
 
 class OverlayTest(unittest.TestCase):
