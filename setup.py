@@ -108,6 +108,10 @@ if __name__ == "__main__":
     try:
         setup(**setup_d)
     except (IOError, SystemExit) as e:
+        import sys
+        if "test" in sys.argv:
+            raise
+        import traceback
         traceback.print_exc()
         print("Couldn't build the extension module, trying without it...")
         del setup_d["ext_modules"]
