@@ -99,7 +99,7 @@ Example Program Screenshots:
 
 if have_setuptools:
     setup_d['zip_safe'] = False
-    setup_d['test_suite'] = 'urwid.tests.test_all'
+    setup_d['test_suite'] = 'urwid.tests'
 
 if PYTHON3:
     setup_d['use_2to3'] = True
