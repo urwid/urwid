@@ -2121,7 +2121,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         for i, (width, (w, options)) in enumerate(zip(widths, self.contents)):
             end = x + width
             if w.selectable():
-                if (col == LEFT or x > col) and best is None:
+                if col != RIGHT and (col == LEFT or x > col) and best is None:
                     # no other choice
                     best = i, x, end, w, options
                     break
