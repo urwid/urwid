@@ -66,7 +66,7 @@ class HtmlGenerator(BaseScreen):
         self.bright_is_bold = bright_is_bold
         self.has_underline = has_underline
 
-    def set_mouse_tracking(self):
+    def set_mouse_tracking(self, enable=True):
         """Not yet implemented"""
         pass
 

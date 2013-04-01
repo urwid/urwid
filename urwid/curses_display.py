@@ -73,13 +73,15 @@ class Screen(BaseScreen, RealTerminal):
 
         self.register_palette_entry(None, 'default','default')
 
-    def set_mouse_tracking(self):
+    def set_mouse_tracking(self, enable=True):
         """
         Enable mouse tracking.
 
         After calling this function get_input will include mouse
         click events along with keystrokes.
         """
+        if not enable:
+            raise NotImplementedError()
         curses.mousemask(0
             | curses.BUTTON1_PRESSED | curses.BUTTON1_RELEASED
             | curses.BUTTON2_PRESSED | curses.BUTTON2_RELEASED

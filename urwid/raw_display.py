@@ -132,16 +132,19 @@ class Screen(BaseScreen, RealTerminal):
         """
         signal.signal(signal.SIGWINCH, signal.SIG_DFL)
       
-    def set_mouse_tracking(self):
+    def set_mouse_tracking(self, enable=True):
         """
-        Enable mouse tracking.  
+        Enable (or disable) mouse tracking.  
         
         After calling this function get_input will include mouse
         click events along with keystrokes.
         """
-        self._term_output_file.write(escape.MOUSE_TRACKING_ON)
-
-        self._start_gpm_tracking()
+        if enable:
+            self._term_output_file.write(escape.MOUSE_TRACKING_ON)
+            self._start_gpm_tracking()
+        else:
+            self._term_output_file.write(escape.MOUSE_TRACKING_OFF)
+            self._stop_gpm_tracking()
     
     def _start_gpm_tracking(self):
         if not os.path.isfile("/usr/bin/mev"):
@@ -156,6 +159,8 @@ class Screen(BaseScreen, RealTerminal):
         self.gpm_mev = m
     
     def _stop_gpm_tracking(self):
+        if not self.gpm_mev:
+            return
         os.kill(self.gpm_mev.pid, signal.SIGINT)
         os.waitpid(self.gpm_mev.pid, 0)
         self.gpm_mev = None
