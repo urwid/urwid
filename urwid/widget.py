@@ -171,7 +171,7 @@ def nocache_widget_render(cls):
 def nocache_widget_render_instance(self):
     """
     Return a function that wraps the cls.render() method
-    and finalizes the canvas that it returns, but does not 
+    and finalizes the canvas that it returns, but does not
     cache the canvas.
     """
     fn = self.render.original_fn
@@ -852,10 +852,10 @@ class Text(Widget):
 
     def _repr_attrs(self):
         attrs = dict(self.__super._repr_attrs(),
-            align=self._align_mode, 
+            align=self._align_mode,
             wrap=self._wrap_mode)
         return remove_defaults(attrs, Text.__init__)
-    
+
     def _invalidate(self):
         self._cache_maxcol = None
         self.__super._invalidate()
@@ -1411,8 +1411,8 @@ class Edit(Text):
         if tu == cu:
             return text
         if tu:
-            return text.encode('ascii') # follow python2's implicit conversion
-        return text.decode('ascii')
+            return text.encode('ascii', errors='replace') # follow python2's implicit conversion
+        return text.decode('ascii', errors='replace')
 
     def insert_text_result(self, text):
         """
@@ -1470,7 +1470,7 @@ class Edit(Text):
                 # screen is sending us unicode input, must be using utf-8
                 # encoding because that's all we support, so convert it
                 # to bytes to match our caption's type
-                key = key.encode('utf-8')
+                key = key.encode('utf-8', errors='replace')
             self.insert_text(key)
 
         elif key=="tab" and self.allow_tab:
@@ -1497,7 +1497,7 @@ class Edit(Text):
             x,y = self.get_cursor_coords((maxcol,))
             pref_col = self.get_pref_col((maxcol,))
             assert pref_col is not None
-            #if pref_col is None: 
+            #if pref_col is None:
             #    pref_col = x
 
             if self._command_map[key] == CURSOR_UP: y -= 1
@@ -1511,7 +1511,7 @@ class Edit(Text):
             if not self._delete_highlighted():
                 if p == 0: return key
                 p = move_prev_char(self.edit_text,0,p)
-                self.set_edit_text( self.edit_text[:p] + 
+                self.set_edit_text( self.edit_text[:p] +
                     self.edit_text[self.edit_pos:] )
                 self.set_edit_pos( p )
 
