@@ -588,7 +588,7 @@ class _test:
             t = ""
             a = []
             for k in keys:
-                if type(k) == unicode: k = k.encode("utf-8")
+                if type(k) == unicode: k = k.encode("utf-8", errors='replace')
                 t += "'"+k + "' "
                 a += [(None,1), ('yellow on dark blue',len(k)),
                     (None,2)]

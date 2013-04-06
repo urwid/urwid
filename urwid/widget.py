@@ -1411,7 +1411,7 @@ class Edit(Text):
         if tu == cu:
             return text
         if tu:
-            return text.encode('ascii') # follow python2's implicit conversion
+            return text.encode('ascii', errors='replace') # follow python2's implicit conversion
         return text.decode('ascii')
 
     def insert_text_result(self, text):
@@ -1470,7 +1470,7 @@ class Edit(Text):
                 # screen is sending us unicode input, must be using utf-8
                 # encoding because that's all we support, so convert it
                 # to bytes to match our caption's type
-                key = key.encode('utf-8')
+                key = key.encode('utf-8', errors='replace')
             self.insert_text(key)
 
         elif key=="tab" and self.allow_tab:

@@ -862,7 +862,7 @@ class ProgressBar(Widget):
             c._attr = [[(self.complete, maxcol)]]
         elif cs and c._text[0][ccol] == " ":
             t = c._text[0]
-            cenc = self.eighths[cs].encode("utf-8")
+            cenc = self.eighths[cs].encode("utf-8", errors='replace')
             c._text[0] = t[:ccol] + cenc + t[ccol + 1:]
             a = []
             if ccol > 0:
