@@ -1412,7 +1412,7 @@ class Edit(Text):
             return text
         if tu:
             return text.encode('ascii', errors='replace') # follow python2's implicit conversion
-        return text.decode('ascii')
+        return text.decode('ascii', errors='replace')
 
     def insert_text_result(self, text):
         """

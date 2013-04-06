@@ -198,7 +198,7 @@ class TermCharset(object):
 
     def apply_mapping(self, char):
         if self._sgr_mapping or self._g[self.active] == 'ibmpc':
-            dec_pos = DEC_SPECIAL_CHARS.find(char.decode('cp437'))
+            dec_pos = DEC_SPECIAL_CHARS.find(char.decode('cp437', errors='replace'))
             if dec_pos >= 0:
                 self.current = '0'
                 return str(ALT_DEC_SPECIAL_CHARS[dec_pos])

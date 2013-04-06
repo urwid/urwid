@@ -503,7 +503,7 @@ class Screen(BaseScreen, RealTerminal):
                         assert cs is None
                         if PYTHON3:
                             assert isinstance(seg, bytes)
-                            self.s.addstr(seg.decode('utf-8'))
+                            self.s.addstr(seg.decode('utf-8', errors='replace'))
                         else:
                             self.s.addstr(seg)
                 except _curses.error:
