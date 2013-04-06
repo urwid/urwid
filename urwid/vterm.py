@@ -1438,7 +1438,7 @@ class Terminal(Widget):
 
     def flush_responses(self):
         for string in self.response_buffer:
-            os.write(self.master, string.encode('ascii'))
+            os.write(self.master, string.encode('ascii', errors='replace'))
         self.response_buffer = []
 
     def set_termsize(self, width, height):
@@ -1611,6 +1611,6 @@ class Terminal(Widget):
             key += "\x0a"
 
         if PYTHON3:
-            key = key.encode('ascii')
+            key = key.encode('ascii', errors='replace')
 
         os.write(self.master, key)
