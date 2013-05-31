@@ -804,24 +804,33 @@ class TornadoEventLoop(object):  #{
     _ioloop_registry = WeakKeyDictionary()  # {<ioloop> : {<handle> : <idle_func>}}
     _max_idle_handle = 0
 
+    class PollProxy(object):  #{
+        """ A simple proxy for a Python's poll object that wraps the .poll() method
+            in order to detect idle periods and call Urwid callbacks
+        """
+        def __init__(self, poll_obj, idle_map):
+            self.__poll_obj = poll_obj
+            self.__idle_map = idle_map
+
+        def __getattr__(self, name):
+            return getattr(self.__poll_obj, name)
+
+        def poll(self, timeout):
+            if timeout >= 0.01:  # only trigger idle event if the delay is big enough
+                for callback in list(self.__idle_map.values()):
+                    callback()
+            return self.__poll_obj.poll(timeout)
+    #}
+
     @classmethod
-    def _patch_poll(cls, ioloop):  #{
-        """ Wraps original poll function in the IOLoop's poll object
+    def _patch_poll_impl(cls, ioloop):  #{
+        """ Wraps original poll object in the IOLoop's poll object
         """
         if ioloop in cls._ioloop_registry:
             return  # we already patched this instance
 
         cls._ioloop_registry[ioloop] = idle_map = WeakValueDictionary()
-        orig_poll = ioloop._impl.poll
-
-        @wraps(orig_poll)
-        def new_poll(timeout):
-            if timeout >= 0.01:  # only trigger idle event if the delay is big enough
-                for callback in idle_map.values():
-                    callback()
-            return orig_poll(timeout)
-
-        ioloop._impl.poll = new_poll  # replace poll() func
+        ioloop._impl = cls.PollProxy(ioloop._impl, idle_map)
     #}
 
     def __init__(self, ioloop=None):  #{
@@ -829,7 +838,7 @@ class TornadoEventLoop(object):  #{
             from tornado.ioloop import IOLoop
             ioloop = IOLoop.instance()
         self._ioloop = ioloop
-        self._patch_poll(ioloop)
+        self._patch_poll_impl(ioloop)
 
         self._watch_handles    = {}  # {<watch_handle> : <file_descriptor>}
         self._max_watch_handle = 0
