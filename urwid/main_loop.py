@@ -27,6 +27,8 @@ import heapq
 import select
 import fcntl
 import os
+from functools import wraps
+from weakref import WeakKeyDictionary, WeakValueDictionary
 
 from urwid.util import is_mouse_event
 from urwid.compat import PYTHON3
@@ -331,7 +333,8 @@ class MainLoop(object):
             pass
         # watch our input descriptors
         reset_input_descriptors()
-        idle_handle = self.event_loop.enter_idle(self.entering_idle)
+        idle_callback = self.entering_idle  # local reference to keep WeakRefs alive 
+        idle_handle = self.event_loop.enter_idle(idle_callback)
 
         # Go..
         self.event_loop.run()
@@ -375,12 +378,12 @@ class MainLoop(object):
         self._input_timeout = None
 
         max_wait, keys, raw = self.screen.get_input_nonblocking()
-        
+
         if max_wait is not None:
             # if get_input_nonblocking wants to be called back
             # make sure it happens with an alarm
-            self._input_timeout = self.event_loop.alarm(max_wait, 
-                lambda: self._update(timeout=True)) 
+            self._input_timeout = self.event_loop.alarm(max_wait,
+                lambda: self._update(timeout=True))
 
         keys = self.input_filter(keys, raw)
 
@@ -413,7 +416,7 @@ class MainLoop(object):
                 else:
                     self.screen.set_input_timeouts(None)
                 keys, raw = self.screen.get_input(True)
-                if not keys and next_alarm: 
+                if not keys and next_alarm:
                     sec = next_alarm[0] - time.time()
                     if sec <= 0:
                         break
@@ -786,6 +789,210 @@ class SelectEventLoop(object):
         for fd in ready:
             self._watch_files[fd]()
             self._did_something = True
+
+
+
+class TornadoEventLoop(object):  #{
+    """ This is an Urwid-specific event loop to plug into its MainLoop.
+        It acts as an adaptor for Tornado's IOLoop which does all
+        heavy lifting except idle-callbacks.
+
+        Notice, since Tornado has no concept of idle callbacks we
+        monkey patch ioloop._impl.poll() function to be able to detect
+        potential idle periods.
+    """
+    _ioloop_registry = WeakKeyDictionary()  # {<ioloop> : {<handle> : <idle_func>}}
+    _max_idle_handle = 0
+
+    class PollProxy(object):  #{
+        """ A simple proxy for a Python's poll object that wraps the .poll() method
+            in order to detect idle periods and call Urwid callbacks
+        """
+        def __init__(self, poll_obj, idle_map):
+            self.__poll_obj = poll_obj
+            self.__idle_map = idle_map
+
+        def __getattr__(self, name):
+            return getattr(self.__poll_obj, name)
+
+        def poll(self, timeout):
+            if timeout >= 0.01:  # only trigger idle event if the delay is big enough
+                for callback in list(self.__idle_map.values()):
+                    callback()
+            return self.__poll_obj.poll(timeout)
+    #}
+
+    @classmethod
+    def _patch_poll_impl(cls, ioloop):  #{
+        """ Wraps original poll object in the IOLoop's poll object
+        """
+        if ioloop in cls._ioloop_registry:
+            return  # we already patched this instance
+
+        cls._ioloop_registry[ioloop] = idle_map = WeakValueDictionary()
+        ioloop._impl = cls.PollProxy(ioloop._impl, idle_map)
+    #}
+
+    def __init__(self, ioloop=None):  #{
+        if not ioloop:
+            from tornado.ioloop import IOLoop
+            ioloop = IOLoop.instance()
+        self._ioloop = ioloop
+        self._patch_poll_impl(ioloop)
+
+        self._watch_handles    = {}  # {<watch_handle> : <file_descriptor>}
+        self._max_watch_handle = 0
+        self._exception        = None
+    #}
+    def alarm(self, secs, callback):  #{
+        ioloop  = self._ioloop
+        wrapped = self.handle_exit(callback)
+        return ioloop.add_timeout(ioloop.time() + secs, wrapped)
+    #}
+    def remove_alarm(self, handle):  #{
+        self._ioloop.remove_timeout(handle)
+        return True
+    #}
+    def watch_file(self, fd, callback):  #{
+        from tornado.ioloop import IOLoop
+        handler = lambda fd,events: self.handle_exit(callback)()
+        self._ioloop.add_handler(fd, handler, IOLoop.READ)
+        self._max_watch_handle += 1
+        handle = self._max_watch_handle
+        self._watch_handles[handle] = fd
+        return handle
+    #}
+    def remove_watch_file(self, handle):  #{
+        fd = self._watch_handles.pop(handle, None)
+        if fd is None:
+            return False
+        else:
+            self._ioloop.remove_handler(fd)
+            return True
+    #}
+    def enter_idle(self, callback):  #{
+        self._max_idle_handle += 1
+        handle   = self._max_idle_handle
+        idle_map = self._ioloop_registry[self._ioloop]
+        idle_map[handle] = callback
+        return handle
+    #}
+    def remove_enter_idle(self, handle):  #{
+        idle_map = self._ioloop_registry[self._ioloop]
+        cb = idle_map.pop(handle, None)
+        return cb is not None
+    #}
+    def handle_exit(self, func):  #{
+        @wraps(func)
+        def wrapper(*args, **kw):
+            try:
+                return func(*args, **kw)
+            except ExitMainLoop:
+                self._ioloop.stop()
+            except Exception as exc:
+                self._exception = exc
+                self._ioloop.stop()
+            return False
+        return wrapper
+    #}
+    def run(self):  #{
+        self._ioloop.start()
+        if self._exception:
+            exc, self._exception = self._exception, None
+            raise exc
+    #}
+
+    def _test_event_loop(self):  #{
+        """
+        >>> import os
+        >>> from tornado.ioloop import IOLoop
+        >>> rd, wr = os.pipe()
+        >>> evl = TornadoEventLoop(IOLoop())
+        >>> def step1():
+        ...     print("writing")
+        ...     os.write(wr, b"hi")
+        >>> def step2():
+        ...     print(os.read(rd, 2).decode())
+        ...     raise ExitMainLoop
+        >>> handle = evl.alarm(0, step1)
+        >>> handle = evl.watch_file(rd, step2)
+        >>> evl.run()
+        writing
+        hi
+        """
+    #}
+    def _test_remove_alarm(self):  #{
+        """
+        >>> from tornado.ioloop import IOLoop
+        >>> evl = TornadoEventLoop(IOLoop())
+        >>> handle = evl.alarm(50, lambda: None)
+        >>> evl.remove_alarm(handle)
+        True
+        >>> evl.remove_alarm(handle)  # always True
+        True
+        """
+    #}
+    def _test_remove_watch_file(self):  #{
+        """
+        >>> from tornado.ioloop import IOLoop
+        >>> evl = TornadoEventLoop(IOLoop())
+        >>> handle = evl.watch_file(1, lambda: None)
+        >>> evl.remove_watch_file(handle)
+        True
+        >>> evl.remove_watch_file(handle)
+        False
+        """
+    #}
+    def _test_run(self):  #{
+        """
+        >>> import os
+        >>> from tornado.ioloop import IOLoop
+        >>> rd, wr = os.pipe()
+        >>> os.write(wr, b"data") # something to read from rd
+        4
+
+        >>> evl = TornadoEventLoop(IOLoop())
+        >>> def say_hello():
+        ...     print("hello")
+        >>> def say_waiting():
+        ...     print("waiting")
+        >>> def exit_clean():
+        ...     print("clean exit")
+        ...     raise ExitMainLoop
+        >>> def exit_error():
+        ...     1//0
+        >>> handle = evl.alarm(0.1,  exit_clean)
+        >>> handle = evl.alarm(0.05, say_hello)
+        >>> evl.enter_idle(say_waiting)
+        1
+
+        >>> evl.run()
+        waiting
+        hello
+        waiting
+        clean exit
+
+        >>> handle = evl.watch_file(rd, exit_clean)
+        >>> evl.run()
+        waiting
+        clean exit
+
+        >>> evl.remove_watch_file(handle)
+        True
+
+        >>> handle = evl.alarm(0, exit_error)
+        >>> evl.run()
+        Traceback (most recent call last):
+           ...
+        ZeroDivisionError: integer division or modulo by zero
+        >>> handle = evl.watch_file(rd, exit_error)
+        >>> evl.run()
+        Traceback (most recent call last):
+           ...
+        ZeroDivisionError: integer division or modulo by zero
+        """
+    #}
+#}
 
 
 if not PYTHON3:
