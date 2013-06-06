@@ -180,6 +180,8 @@ class KeyqueueTrie(object):
         if b & 4:    prefix = prefix + "shift "
         if b & 8:    prefix = prefix + "meta "
         if b & 16:    prefix = prefix + "ctrl "
+        if (b & MOUSE_MULTIPLE_CLICK_MASK)>>9 == 1:    prefix = prefix + "double "
+        if (b & MOUSE_MULTIPLE_CLICK_MASK)>>9 == 2:    prefix = prefix + "triple "
 
         # 0->1, 1->2, 2->3, 64->4, 65->5
         button = ((b&64)/64*3) + (b & 3) + 1
@@ -191,6 +193,8 @@ class KeyqueueTrie(object):
             action = "release"
         elif b & MOUSE_DRAG_FLAG:
             action = "drag"
+        elif b & MOUSE_MULTIPLE_CLICK_MASK:
+            action = "click"
         else:
             action = "press"
 
@@ -250,6 +254,16 @@ class KeyqueueTrie(object):
 # This is added to button value to signal mouse release by curses_display
 # and raw_display when we know which button was released.  NON-STANDARD 
 MOUSE_RELEASE_FLAG = 2048  
+
+# This 2-bit mask is used to check if the mouse release from curses or gpm
+# is a double or triple release. 00 means single click, 01 double,
+# 10 triple. NON-STANDARD
+MOUSE_MULTIPLE_CLICK_MASK = 1536
+
+# This is added to button value at mouse release to differentiate between
+# single, double and triple press. Double release adds this times one,
+# triple release adds this times two.  NON-STANDARD
+MOUSE_MULTIPLE_CLICK_FLAG = 512
 
 # xterm adds this to the button value to signal a mouse drag event
 MOUSE_DRAG_FLAG = 32
