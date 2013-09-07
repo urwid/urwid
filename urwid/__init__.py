@@ -26,7 +26,7 @@ from urwid.widget import (FLOW, BOX, FIXED, LEFT, RIGHT, CENTER, TOP, MIDDLE,
     WidgetMeta,
     WidgetError, Widget, FlowWidget, BoxWidget, fixed_size, FixedWidget,
     Divider, SolidFill, TextError, Text, EditError, Edit, IntEdit,
-    delegate_to_widget_mixin, WidgetWrapError, WidgetWrap)
+    ReadlineMixin, delegate_to_widget_mixin, WidgetWrapError, WidgetWrap)
 from urwid.decoration import (WidgetDecoration, WidgetPlaceholder,
     AttrMapError, AttrMap, AttrWrap, BoxAdapterError, BoxAdapter, PaddingError,
     Padding, FillerError, Filler, WidgetDisable)

@@ -1733,6 +1733,176 @@ class IntEdit(Edit):
             return 0
 
 
+class ReadlineMixin(object):
+    """
+    Give emulated readline functionalities to a class.
+    It adds the following shortcuts:
+
+        * *CTRL-w* - delete last word
+        * *CTRL-k* - delete the line from the cursor
+        * *CTRL-u* - delete the line up to the cursor
+        * *CTRL-y* - paste the yank (paste) buffer
+
+    Can be applied to any Edit widget.
+    """
+    # Expected interface for the mixin'd class:
+    #     self.edit_text returns the text of the edit
+    #     self.set_edit_text(text) should set the edit text
+    #     self.edit_pos is the position of the cursor
+    #     self.set_edit_pos(pos) sets the position of the cursor
+    def __init__(self, *args, **kwargs):
+        self._yank_in_progress = False
+        self.yank_buffer = ''
+        super(ReadlineMixin, self).__init__(*args, **kwargs)
+    def _get_prev_char(self, edit_text, edit_pos):
+        return move_prev_char(edit_text, 0, edit_pos)
+    def keypress(self, size, key):
+        self.rl_keypress(key)
+        return super(ReadlineMixin, self).keypress(size, key)
+    def rl_yank(self):
+        """
+        Paste the yank buffer
+
+        >>> class RLEdit(ReadlineMixin, Edit): pass
+        >>> e = RLEdit(u"", u"Zero one two ")
+        >>> e.yank_buffer = u"zero_point_five "
+        >>> e.set_edit_pos(5)
+        >>> e.rl_yank(), e.edit_text
+        (None, ...'Zero zero_point_five one two ')
+        """
+        self.pref_col_maxcol = None, None
+        self._delete_highlighted()
+        p = self.edit_pos
+        self.set_edit_text("%s%s%s" %
+                (self.edit_text[:p], self.yank_buffer, self.edit_text[p:]))
+        self.set_edit_pos(p + len(self.yank_buffer))
+    def rl_kill_line(self):
+        """
+        Delete the line after the cursor
+
+        Return True if something was deleted, false otherwise
+
+        >>> class RLEdit(ReadlineMixin, Edit): pass
+        >>> e = RLEdit(u"", u"Zero one two ")
+        >>> e.set_edit_pos(5)
+        >>> e.rl_kill_line(), e.edit_text, e.yank_buffer
+        (True, ...'Zero ', ...'one two ')
+        """
+        p = self.edit_pos
+        l = len(self.edit_text)
+        if not self._yank_in_progress:
+            self.yank_buffer = ''
+        self._yank_in_progress = True
+        self.pref_col_maxcol = None, None
+        if self.highlight:
+            start, stop = self.highlight
+            # Replace the yank buffer completely
+            self.yank_buffer = self.edit_text[start:stop]
+            self._delete_highlighted()
+        else:
+            if p == l: return False
+            self.yank_buffer += self.edit_text[self.edit_pos:]
+            self.set_edit_text(self.edit_text[:self.edit_pos])
+        return True
+    def rl_unix_line_discard(self):
+        """
+        Delete the line up to the cursor.
+
+        Return True if something was deleted, false otherwise
+
+        >>> class RLEdit(ReadlineMixin, Edit): pass
+        >>> e = RLEdit(u"", u"Zero one two ")
+        >>> e.set_edit_pos(9)
+        >>> e.rl_unix_line_discard(), e.edit_text, e.yank_buffer
+        (True, ...'two ', ...'Zero one ')
+        """
+        p = self.edit_pos
+        if not self._yank_in_progress:
+            self.yank_buffer = ''
+        self._yank_in_progress = True
+        self.pref_col_maxcol = None, None
+        if self.highlight:
+            start, stop = self.highlight
+            # Replace the yank buffer completely
+            self.yank_buffer = self.edit_text[start:stop]
+            self._delete_highlighted()
+        else:
+            if p == 0: return False
+            self.yank_buffer = self.edit_text[:self.edit_pos] + self.yank_buffer
+            self.set_edit_text(self.edit_text[self.edit_pos:])
+            self.set_edit_pos(0)
+        return True
+    def rl_unix_word_rubout(self):
+        """
+        Delete the WORD before cursor. If at the beginning of a new line, just
+        delete the preceding newline.
+
+        Return True if something was deleted, false otherwise
+
+        >>> class RLEdit(ReadlineMixin, Edit): pass
+        >>> e = RLEdit(u"", u"Zero one two ")
+        >>> e.rl_unix_word_rubout(), e.edit_text, e.yank_buffer
+        (True, ...'Zero one two', ...' ')
+        >>> e.rl_unix_word_rubout(), e.edit_text, e.yank_buffer
+        (True, ...'Zero one', ...' two ')
+        >>> e = RLEdit(u"", u"Zero\\none\\ntwo\\n", multiline=True)
+        >>> e.rl_unix_word_rubout(), e.edit_text, e.yank_buffer
+        (True, ...'Zero\\none\\ntwo', ...'\\n')
+        >>> e.rl_unix_word_rubout(), e.edit_text, e.yank_buffer
+        (True, ...'Zero\\none\\n', ...'two\\n')
+        """
+        p = self.edit_pos
+        if not self._yank_in_progress:
+            self.yank_buffer = ''
+        self._yank_in_progress = True
+        self.pref_col_maxcol = None, None
+        if self.highlight:
+            start, stop = self.highlight
+            # Replace the yank buffer completely
+            self.yank_buffer = self.edit_text[start:stop]
+            self._delete_highlighted()
+        else:
+            if p == 0: return False
+            # Special case if at the beginning of a line
+            if self.edit_text[p-1] == '\n':
+                p = self._get_prev_char(self.edit_text, p)
+            else:
+                while p and self.edit_text[p-1] not in (' ', '\t', '\n'):
+                    p = self._get_prev_char(self.edit_text, p)
+                while p and self.edit_text[p-1] in (' ', '\t'):
+                    p = self._get_prev_char(self.edit_text, p)
+
+            self.yank_buffer = self.edit_text[p:self.edit_pos] + self.yank_buffer
+
+            self.set_edit_text(self.edit_text[:p] +
+                self.edit_text[self.edit_pos:])
+            self.set_edit_pos(p)
+        return True
+
+    def rl_keypress(self, input):
+        """
+        Call readline function corresponding to the given input.
+
+        Return None if the key has been used, the key otherwise.
+        """
+        if input.startswith('ctrl '):
+            k2 = input[5:]
+            if k2 is 'w':
+                self.rl_unix_word_rubout()
+                return
+            elif k2 is 'k':
+                self.rl_kill_line()
+                return
+            elif k2 is 'u':
+                self.rl_unix_line_discard()
+                return
+            elif k2 is 'y':
+                self.rl_yank()
+                return
+        self._yank_in_progress = False
+        return input
+
+
 def delegate_to_widget_mixin(attribute_name):
     """
     Return a mixin class that delegates all standard widget methods

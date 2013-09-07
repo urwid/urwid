@@ -200,3 +200,10 @@ Terminal
 
 .. autoclass:: Terminal
 
+Widget Mixin Classes
+----------------------
+
+ReadlineMixin
+~~~~~~~~~~~~~
+
+.. autoclass:: ReadlineMixin
