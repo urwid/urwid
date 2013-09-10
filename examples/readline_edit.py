@@ -45,7 +45,6 @@ class ReadlineEditWithPasteBuffer(urwid.Frame):
         CTRL-y - paste the yank (paste) buffer
 
         Additional shortcuts:
-        F1-F10 - Select word 1-10
         F12    - quit
 
         '''), multiline=True)
