@@ -1756,6 +1756,8 @@ class ReadlineMixin(object):
         super(ReadlineMixin, self).__init__(*args, **kwargs)
     def _get_prev_char(self, edit_text, edit_pos):
         return move_prev_char(edit_text, 0, edit_pos)
+    def _get_next_char(self, edit_text, edit_pos):
+        return move_next_char(edit_text, edit_pos, len(self.edit_text))
     def keypress(self, size, key):
         self.rl_keypress(key)
         return super(ReadlineMixin, self).keypress(size, key)
@@ -1787,12 +1789,13 @@ class ReadlineMixin(object):
         >>> e.set_edit_pos(5)
         >>> e.rl_kill_line(), e.edit_text, e.yank_buffer
         (True, ...'Zero ', ...'one two ')
+        >>> e = RLEdit(u"", u"Zero\\none\\ntwo\\n", multiline=True)
+        >>> e.set_edit_pos(6)
+        >>> e.rl_kill_line(), e.edit_text, e.yank_buffer
+        (True, ...'Zero\\no\\ntwo\\n', ...'ne')
         """
         p = self.edit_pos
         l = len(self.edit_text)
-        if not self._yank_in_progress:
-            self.yank_buffer = ''
-        self._yank_in_progress = True
         self.pref_col_maxcol = None, None
         if self.highlight:
             start, stop = self.highlight
@@ -1801,8 +1804,18 @@ class ReadlineMixin(object):
             self._delete_highlighted()
         else:
             if p == l: return False
-            self.yank_buffer += self.edit_text[self.edit_pos:]
-            self.set_edit_text(self.edit_text[:self.edit_pos])
+            if self.edit_text[p] == '\n': return False
+            while p < l and self.edit_text[p] != '\n':
+                p = self._get_next_char(self.edit_text, p)
+
+            if not self._yank_in_progress:
+                self.yank_buffer = ''
+            self.yank_buffer = self.yank_buffer + self.edit_text[self.edit_pos:p]
+
+            self.set_edit_text(self.edit_text[:self.edit_pos] +
+                self.edit_text[p:])
+            #self.set_edit_pos(p)
+        self._yank_in_progress = True
         return True
     def rl_unix_line_discard(self):
         """
@@ -1815,11 +1828,17 @@ class ReadlineMixin(object):
         >>> e.set_edit_pos(9)
         >>> e.rl_unix_line_discard(), e.edit_text, e.yank_buffer
         (True, ...'two ', ...'Zero one ')
+        >>> e = RLEdit(u"", u"Zero\\none\\ntwo\\n", multiline=True)
+        >>> e.set_edit_pos(6)
+        >>> e.rl_unix_line_discard(), e.edit_text, e.yank_buffer
+        (True, ...'Zero\\nne\\ntwo\\n', ...'o')
+        >>> e.set_edit_pos(0)
+        ... # Make sure that not cutting anything does not alter the yank buffer
+        >>> e._yank_in_progress = False
+        >>> e.rl_unix_line_discard(), e.edit_text, e.yank_buffer
+        (False, ...'Zero\\nne\\ntwo\\n', ...'o')
         """
         p = self.edit_pos
-        if not self._yank_in_progress:
-            self.yank_buffer = ''
-        self._yank_in_progress = True
         self.pref_col_maxcol = None, None
         if self.highlight:
             start, stop = self.highlight
@@ -1828,9 +1847,18 @@ class ReadlineMixin(object):
             self._delete_highlighted()
         else:
             if p == 0: return False
-            self.yank_buffer = self.edit_text[:self.edit_pos] + self.yank_buffer
-            self.set_edit_text(self.edit_text[self.edit_pos:])
-            self.set_edit_pos(0)
+            if self.edit_text[p-1] == '\n': return False
+            while p and self.edit_text[p-1] != '\n':
+                p = self._get_prev_char(self.edit_text, p)
+
+            if not self._yank_in_progress:
+                self.yank_buffer = ''
+            self.yank_buffer = self.edit_text[p:self.edit_pos] + self.yank_buffer
+
+            self.set_edit_text(self.edit_text[:p] +
+                self.edit_text[self.edit_pos:])
+            self.set_edit_pos(p)
+        self._yank_in_progress = True
         return True
     def rl_unix_word_rubout(self):
         """
@@ -1842,9 +1870,9 @@ class ReadlineMixin(object):
         >>> class RLEdit(ReadlineMixin, Edit): pass
         >>> e = RLEdit(u"", u"Zero one two ")
         >>> e.rl_unix_word_rubout(), e.edit_text, e.yank_buffer
-        (True, ...'Zero one two', ...' ')
+        (True, ...'Zero one ', ...'two ')
         >>> e.rl_unix_word_rubout(), e.edit_text, e.yank_buffer
-        (True, ...'Zero one', ...' two ')
+        (True, ...'Zero ', ...'one two ')
         >>> e = RLEdit(u"", u"Zero\\none\\ntwo\\n", multiline=True)
         >>> e.rl_unix_word_rubout(), e.edit_text, e.yank_buffer
         (True, ...'Zero\\none\\ntwo', ...'\\n')
@@ -1852,9 +1880,6 @@ class ReadlineMixin(object):
         (True, ...'Zero\\none\\n', ...'two\\n')
         """
         p = self.edit_pos
-        if not self._yank_in_progress:
-            self.yank_buffer = ''
-        self._yank_in_progress = True
         self.pref_col_maxcol = None, None
         if self.highlight:
             start, stop = self.highlight
@@ -1867,16 +1892,19 @@ class ReadlineMixin(object):
             if self.edit_text[p-1] == '\n':
                 p = self._get_prev_char(self.edit_text, p)
             else:
-                while p and self.edit_text[p-1] not in (' ', '\t', '\n'):
-                    p = self._get_prev_char(self.edit_text, p)
                 while p and self.edit_text[p-1] in (' ', '\t'):
                     p = self._get_prev_char(self.edit_text, p)
+                while p and self.edit_text[p-1] not in (' ', '\t', '\n'):
+                    p = self._get_prev_char(self.edit_text, p)
 
+            if not self._yank_in_progress:
+                self.yank_buffer = ''
             self.yank_buffer = self.edit_text[p:self.edit_pos] + self.yank_buffer
 
             self.set_edit_text(self.edit_text[:p] +
                 self.edit_text[self.edit_pos:])
             self.set_edit_pos(p)
+        self._yank_in_progress = True
         return True
 
     def rl_keypress(self, input):
