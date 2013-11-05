@@ -653,7 +653,7 @@ class RealTerminal(object):
     def tty_signal_keys(self, intr=None, quit=None, start=None, 
         stop=None, susp=None, fileno=None):
         """
-        Read and/or set the tty's signal charater settings.
+        Read and/or set the tty's signal character settings.
         This function returns the current settings as a tuple.
 
         Use the string 'undefined' to unmap keys from their signals.
