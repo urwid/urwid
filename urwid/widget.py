@@ -353,7 +353,7 @@ class Widget(object):
        :param size: See :meth:`Widget.render` for details.
        :type size: widget size
        :param event: Values such as ``'mouse press'``, ``'ctrl mouse press'``,
-                     ``'mouse relase'``, ``'meta mouse release'``,
+                     ``'mouse release'``, ``'meta mouse release'``,
                      ``'mouse drag'``; see :ref:`mouse-input`
        :type event: mouse event
        :param button: 1 through 5 for press events, often 0 for release events
