@@ -790,18 +790,18 @@ class SelectEventLoop(object):
 
 class GLibEventLoop(object):
     """
-    Event loop based on gobject.MainLoop
+    Event loop based on GLib.MainLoop
     """
 
     def __init__(self):
-        import gobject
-        self.gobject = gobject
+        from gi.repository import GLib
+        self.GLib = GLib
         self._alarms = []
         self._watch_files = {}
         self._idle_handle = 0
         self._glib_idle_enabled = False # have we called glib.idle_add?
         self._idle_callbacks = {}
-        self._loop = self.gobject.MainLoop()
+        self._loop = GLib.MainLoop()
         self._exc_info = None
         self._enable_glib_idle()
 
@@ -838,7 +838,7 @@ class GLibEventLoop(object):
             callback()
             self._enable_glib_idle()
             return False
-        fd = self.gobject.timeout_add(int(seconds*1000), ret_false)
+        fd = self.GLib.timeout_add(int(seconds*1000), ret_false)
         self._alarms.append(fd)
         return (fd, callback)
 
@@ -850,7 +850,7 @@ class GLibEventLoop(object):
         """
         try:
             self._alarms.remove(handle[0])
-            self.gobject.source_remove(handle[0])
+            self.GLib.source_remove(handle[0])
             return True
         except ValueError:
             return False
@@ -881,7 +881,7 @@ class GLibEventLoop(object):
             self._enable_glib_idle()
             return True
         self._watch_files[fd] = \
-             self.gobject.io_add_watch(fd,self.gobject.IO_IN,io_callback)
+             self.GLib.io_add_watch(fd,self.GLib.IO_IN,io_callback)
         return fd
 
     def remove_watch_file(self, handle):
@@ -891,7 +891,7 @@ class GLibEventLoop(object):
         Returns True if the input file exists, False otherwise
         """
         if handle in self._watch_files:
-            self.gobject.source_remove(self._watch_files[handle])
+            self.GLib.source_remove(self._watch_files[handle])
             del self._watch_files[handle]
             return True
         return False
@@ -919,7 +919,7 @@ class GLibEventLoop(object):
     def _enable_glib_idle(self):
         if self._glib_idle_enabled:
             return
-        self.gobject.idle_add(self._glib_idle_callback)
+        self.GLib.idle_add(self._glib_idle_callback)
         self._glib_idle_enabled = True
 
     def _glib_idle_callback(self):
