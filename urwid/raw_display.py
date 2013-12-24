@@ -69,6 +69,7 @@ class Screen(BaseScreen, RealTerminal):
         self._rows_used = None
         self._cy = 0
         self.bright_is_bold = os.environ.get('TERM',None) != "xterm"
+        self.back_color_erase = os.environ.get('TERM',None) != "screen"
         self._next_timeout = None
         self._term_output_file = sys.stdout
         self._term_input_file = sys.stdin
@@ -640,7 +641,7 @@ class Screen(BaseScreen, RealTerminal):
             cy = y
 
             whitespace_at_end = False
-            if row and row[-1][2][-1:] == B(' '):
+            if row and row[-1][2][-1:] == B(' ') and self.back_color_erase:
                 whitespace_at_end = True
                 a, cs, run = row[-1]
                 row = row[:-1] + [(a, cs, run.rstrip(B(' ')))]
