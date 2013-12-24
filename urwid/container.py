@@ -1460,9 +1460,11 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             elif f == GIVEN:
                 l.append(height)
                 remaining -= height
-            else:
+            elif height:
                 l.append(None)
                 wtotal += height
+            else:
+                l.append(0) # zero-weighted items treated as ('given', 0)
 
         if wtotal == 0:
             raise PileError, "No weighted widgets found for Pile treated as a box widget"
