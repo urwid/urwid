@@ -1646,6 +1646,8 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             if wrow + r > row:
                 break
             wrow += r
+        else:
+            return False
 
         focus = focus and self.focus_item == w
         if is_mouse_press(event) and button == 1:
