@@ -129,6 +129,11 @@ class PileTest(unittest.TestCase):
             ])
         p.render((5, 4))
 
+    def test_mouse_event_in_empty_pile(self):
+        p = urwid.Pile([])
+        p.mouse_event((5,), 'button press', 1, 1, 1, False)
+        p.mouse_event((5,), 'button press', 1, 1, 1, True)
+
 
 class ColumnsTest(unittest.TestCase):
     def cwtest(self, desc, l, divide, size, exp, focus_column=0):
