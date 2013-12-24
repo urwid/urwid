@@ -122,6 +122,13 @@ class PileTest(unittest.TestCase):
         p.mouse_event((10,), 'button press', 1, 1, 1, True)
         self.assertEquals(p.focus_position, 1)
 
+    def test_zero_weight(self):
+        p = urwid.Pile([
+            urwid.SolidFill('a'),
+            ('weight', 0, urwid.SolidFill('d')),
+            ])
+        p.render((5, 4))
+
 
 class ColumnsTest(unittest.TestCase):
     def cwtest(self, desc, l, divide, size, exp, focus_column=0):
