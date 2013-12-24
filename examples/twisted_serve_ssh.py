@@ -221,14 +221,17 @@ class TwistedScreen(urwid.BaseScreen):
             self.terminal.cursorPosition(*cursor)
 
     # XXX from base screen
-    def set_mouse_tracking(self):
+    def set_mouse_tracking(self, enable=True):
         """
-        Enable mouse tracking.
+        Enable (or disable) mouse tracking.
 
         After calling this function get_input will include mouse
         click events along with keystrokes.
         """
-        self.write(urwid.escape.MOUSE_TRACKING_ON)
+        if enable:
+            self.write(urwid.escape.MOUSE_TRACKING_ON)
+        else:
+            self.write(urwid.escape.MOUSE_TRACKING_OFF)
 
     # twisted handles polling, so we don't need the loop to do it, we just
     # push what we get to the loop from dataReceived.
