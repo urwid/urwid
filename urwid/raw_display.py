@@ -492,7 +492,18 @@ class Screen(BaseScreen, RealTerminal):
             b |= mod
             l.extend([ 27, ord('['), ord('M'), b+32, x+32, y+32 ])
 
-        if ev == 20: # press
+        def determine_button_release( flag ):
+            if b & 4 and last & 1:
+                append_button( 0 + flag )
+                next |= 1
+            if b & 2 and last & 2:
+                append_button( 1 + flag )
+                next |= 2
+            if b & 1 and last & 4:
+                append_button( 2 + flag )
+                next |= 4
+
+        if ev == 20 or ev == 36 or ev == 52: # press
             if b & 4 and last & 1 == 0:
                 append_button( 0 )
                 next |= 1
@@ -519,7 +530,21 @@ class Screen(BaseScreen, RealTerminal):
             if b & 1 and last & 4:
                 append_button( 2 + escape.MOUSE_RELEASE_FLAG )
                 next &= ~ 4
-            
+        if ev == 40: # double click (release)
+            if b & 4 and last & 1:
+                append_button( 0 + escape.MOUSE_MULTIPLE_CLICK_FLAG )
+            if b & 2 and last & 2:
+                append_button( 1 + escape.MOUSE_MULTIPLE_CLICK_FLAG )
+            if b & 1 and last & 4:
+                append_button( 2 + escape.MOUSE_MULTIPLE_CLICK_FLAG )
+        elif ev == 52:
+            if b & 4 and last & 1:
+                append_button( 0 + escape.MOUSE_MULTIPLE_CLICK_FLAG*2 )
+            if b & 2 and last & 2:
+                append_button( 1 + escape.MOUSE_MULTIPLE_CLICK_FLAG*2 )
+            if b & 1 and last & 4:
+                append_button( 2 + escape.MOUSE_MULTIPLE_CLICK_FLAG*2 )
+
         self.last_bstate = next
         return l
     

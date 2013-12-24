@@ -91,6 +91,10 @@ class Screen(BaseScreen, RealTerminal):
                 | curses.BUTTON2_PRESSED | curses.BUTTON2_RELEASED
                 | curses.BUTTON3_PRESSED | curses.BUTTON3_RELEASED
                 | curses.BUTTON4_PRESSED | curses.BUTTON4_RELEASED
+                | curses.BUTTON1_DOUBLE_CLICKED | curses.BUTTON1_TRIPLE_CLICKED
+                | curses.BUTTON2_DOUBLE_CLICKED | curses.BUTTON2_TRIPLE_CLICKED
+                | curses.BUTTON3_DOUBLE_CLICKED | curses.BUTTON3_TRIPLE_CLICKED
+                | curses.BUTTON4_DOUBLE_CLICKED | curses.BUTTON4_TRIPLE_CLICKED
                 | curses.BUTTON_SHIFT | curses.BUTTON_ALT
                 | curses.BUTTON_CTRL)
         else:
@@ -407,6 +411,24 @@ class Screen(BaseScreen, RealTerminal):
             append_button( 64 + escape.MOUSE_RELEASE_FLAG )
             next &= ~ 8
         
+        if bstate & curses.BUTTON1_DOUBLE_CLICKED:
+            append_button( 0 + escape.MOUSE_MULTIPLE_CLICK_FLAG )
+        if bstate & curses.BUTTON2_DOUBLE_CLICKED:
+            append_button( 1 + escape.MOUSE_MULTIPLE_CLICK_FLAG )
+        if bstate & curses.BUTTON3_DOUBLE_CLICKED:
+            append_button( 2 + escape.MOUSE_MULTIPLE_CLICK_FLAG )
+        if bstate & curses.BUTTON4_DOUBLE_CLICKED:
+            append_button( 64 + escape.MOUSE_MULTIPLE_CLICK_FLAG )
+
+        if bstate & curses.BUTTON1_TRIPLE_CLICKED:
+            append_button( 0 + escape.MOUSE_MULTIPLE_CLICK_FLAG*2 )
+        if bstate & curses.BUTTON2_TRIPLE_CLICKED:
+            append_button( 1 + escape.MOUSE_MULTIPLE_CLICK_FLAG*2 )
+        if bstate & curses.BUTTON3_TRIPLE_CLICKED:
+            append_button( 2 + escape.MOUSE_MULTIPLE_CLICK_FLAG*2 )
+        if bstate & curses.BUTTON4_TRIPLE_CLICKED:
+            append_button( 64 + escape.MOUSE_MULTIPLE_CLICK_FLAG*2 )
+
         self.last_bstate = next
         return l
             
