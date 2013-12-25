@@ -28,7 +28,7 @@ import select
 import fcntl
 import os
 from functools import wraps
-from weakref import WeakKeyDictionary, WeakValueDictionary
+from weakref import WeakKeyDictionary
 
 from urwid.util import is_mouse_event
 from urwid.compat import PYTHON3
@@ -333,8 +333,7 @@ class MainLoop(object):
             pass
         # watch our input descriptors
         reset_input_descriptors()
-        idle_callback = self.entering_idle  # local reference to keep WeakRefs alive 
-        idle_handle = self.event_loop.enter_idle(idle_callback)
+        idle_handle = self.event_loop.enter_idle(self.entering_idle)
 
         # Go..
         self.event_loop.run()
@@ -829,7 +828,7 @@ class TornadoEventLoop(object):  #{
         if ioloop in cls._ioloop_registry:
             return  # we already patched this instance
 
-        cls._ioloop_registry[ioloop] = idle_map = WeakValueDictionary()
+        cls._ioloop_registry[ioloop] = idle_map = {}
         ioloop._impl = cls.PollProxy(ioloop._impl, idle_map)
     #}
 
