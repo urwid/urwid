@@ -927,19 +927,31 @@ class TornadoEventLoop(object):
             ioloop = IOLoop.instance()
         self._ioloop = ioloop
         self._patch_poll_impl(ioloop)
-
+        self._pending_alarms = {}
         self._watch_handles    = {}  # {<watch_handle> : <file_descriptor>}
         self._max_watch_handle = 0
         self._exception        = None
 
     def alarm(self, secs, callback):
         ioloop  = self._ioloop
-        wrapped = self.handle_exit(callback)
-        return ioloop.add_timeout(ioloop.time() + secs, wrapped)
+        def wrapped():
+            try:
+                del self._pending_alarms[handle]
+            except KeyError:
+                pass
+            self.handle_exit(callback)()
+        handle = ioloop.add_timeout(ioloop.time() + secs, wrapped)
+        self._pending_alarms[handle] = 1
+        return handle
 
     def remove_alarm(self, handle):
         self._ioloop.remove_timeout(handle)
-        return True
+        try:
+            del self._pending_alarms[handle]
+        except KeyError:
+            return False
+        else:
+            return True
 
     def watch_file(self, fd, callback):
         from tornado.ioloop import IOLoop
