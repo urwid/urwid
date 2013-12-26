@@ -1514,7 +1514,13 @@ class Terminal(Widget):
         return True
 
     def wait_and_feed(self, timeout=1.0):
-        select.select([self.master], [], [], timeout)
+        while True:
+            try:
+                select.select([self.master], [], [], timeout)
+                break
+            except select.error, e:
+                if e.args[0] != 4:
+                    raise
         self.feed()
 
     def feed(self):
