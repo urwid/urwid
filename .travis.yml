@@ -5,5 +5,5 @@ python:
   - "3.2"
   - "3.3"
 install:
-  - "pip install --use-mirrors -r test-requirements.txt"
+  - "sudo apt-get install python-gi python-twisted python3-gi"
 script: python setup.py test
