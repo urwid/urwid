@@ -208,8 +208,8 @@ class CheckBox(WidgetWrap):
         >>> def callback_b(cb, state):
         ...     changes.append("B %r" % state)
         >>> cb = CheckBox('test', False, False)
-        >>> connect_signal(cb, 'change', callback_a, "user_a")
-        >>> connect_signal(cb, 'change', callback_b)
+        >>> key1 = connect_signal(cb, 'change', callback_a, "user_a")
+        >>> key2 = connect_signal(cb, 'change', callback_b)
         >>> cb.set_state(True) # both callbacks will be triggered
         >>> cb.state
         True
@@ -390,7 +390,7 @@ class RadioButton(CheckBox):
         (False, True, False)
         >>> def relabel_button(radio_button, new_state):
         ...     radio_button.set_label(u"Think Harder!")
-        >>> connect_signal(b3, 'change', relabel_button)
+        >>> key = connect_signal(b3, 'change', relabel_button)
         >>> b3
         <RadioButton selectable flow widget 'Unsure' state=False>
         >>> b3.set_state(True) # this will trigger the callback
@@ -523,7 +523,7 @@ class Button(WidgetWrap):
         >>> clicked_buttons = []
         >>> def handle_click(button):
         ...     clicked_buttons.append(button.label)
-        >>> connect_signal(b, 'click', handle_click)
+        >>> key = connect_signal(b, 'click', handle_click)
         >>> b.keypress(size, 'enter')
         >>> b.keypress(size, ' ')
         >>> clicked_buttons # ... = u in Python 2
@@ -543,7 +543,7 @@ class Button(WidgetWrap):
         >>> clicked_buttons = []
         >>> def handle_click(button):
         ...     clicked_buttons.append(button.label)
-        >>> connect_signal(b, 'click', handle_click)
+        >>> key = connect_signal(b, 'click', handle_click)
         >>> b.mouse_event(size, 'mouse press', 1, 4, 0, True)
         True
         >>> b.mouse_event(size, 'mouse press', 2, 4, 0, True) # ignored
