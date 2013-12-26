@@ -6,4 +6,5 @@ python:
   - "3.3"
 install:
   - "sudo apt-get install python-gi python-twisted python3-gi"
+  - "deactivate"
 script: python setup.py test
