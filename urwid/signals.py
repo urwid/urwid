@@ -158,7 +158,7 @@ class Signals(object):
         key = Key()
 
         signals = setdefaultattr(obj, self._signal_attr, {})
-        handlers = signals.setdefault(name, {})
+        handlers = signals.setdefault(name, [])
 
         # Remove the signal handler when any of the weakref'd arguments
         # are garbage collected. Note that this means that the handlers
@@ -180,7 +180,7 @@ class Signals(object):
                     pass
 
         user_args = self._prepare_user_args(weak_args, user_args, weakref_callback)
-        handlers[key] = (callback, user_arg, user_args)
+        handlers.append((key, callback, user_arg, user_args))
 
         return key
 
@@ -219,9 +219,9 @@ class Signals(object):
         user_args = self._prepare_user_args(weak_args, user_args)
 
         # Remove the given handler
-        for key, value in handlers.items():
-            if value == (callback, user_arg, user_args):
-                return self.disconnect_by_key(obj, name, key)
+        for h in handlers:
+            if h[1:] == (callback, user_arg, user_args):
+                return self.disconnect_by_key(obj, name, h[0])
 
     def disconnect_by_key(self, obj, name, key):
         """
@@ -241,11 +241,8 @@ class Signals(object):
         function will simply do nothing.
         """
         signals = setdefaultattr(obj, self._signal_attr, {})
-        try:
-            del signals[name][key]
-        except KeyError:
-            # Don't error out if the handler is already disconnected.
-            pass
+        handlers = signals.get(name, [])
+        handlers[:] = [h for h in handlers if h[0] is not key]
 
     def emit(self, obj, name, *args):
         """
@@ -262,8 +259,9 @@ class Signals(object):
         This function returns True if any of the callbacks returned True.
         """
         result = False
-        d = getattr(obj, self._signal_attr, {})
-        for callback, user_arg, user_args in d.get(name, {}).values():
+        signals = getattr(obj, self._signal_attr, {})
+        handlers = signals.get(name, [])
+        for key, callback, user_arg, user_args in handlers:
             result |= self._call_callback(callback, user_arg, user_args, args)
         return result
 
