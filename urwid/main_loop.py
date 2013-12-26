@@ -578,24 +578,6 @@ class SelectEventLoop(object):
         self._idle_handle = 0
         self._idle_callbacks = {}
 
-    def _test_event_loop(self):
-        """
-        >>> import os
-        >>> rd, wr = os.pipe()
-        >>> evl = SelectEventLoop()
-        >>> def step1():
-        ...     print "writing"
-        ...     os.write(wr, "hi".encode('ascii'))
-        >>> def step2():
-        ...     print os.read(rd, 2).decode('ascii')
-        ...     raise ExitMainLoop
-        >>> handle = evl.alarm(0, step1)
-        >>> handle = evl.watch_file(rd, step2)
-        >>> evl.run()
-        writing
-        hi
-        """
-
     def alarm(self, seconds, callback):
         """
         Call callback() given time from from now.  No parameters are
@@ -623,16 +605,6 @@ class SelectEventLoop(object):
         except ValueError:
             return False
 
-    def _test_remove_alarm(self):
-        """
-        >>> evl = SelectEventLoop()
-        >>> handle = evl.alarm(50, lambda: None)
-        >>> evl.remove_alarm(handle)
-        True
-        >>> evl.remove_alarm(handle)
-        False
-        """
-
     def watch_file(self, fd, callback):
         """
         Call callback() when fd has some data to read.  No parameters
@@ -656,16 +628,6 @@ class SelectEventLoop(object):
             del self._watch_files[handle]
             return True
         return False
-
-    def _test_remove_watch_file(self):
-        """
-        >>> evl = SelectEventLoop()
-        >>> handle = evl.watch_file(5, lambda: None)
-        >>> evl.remove_watch_file(handle)
-        True
-        >>> evl.remove_watch_file(handle)
-        False
-        """
 
     def enter_idle(self, callback):
         """
@@ -712,48 +674,6 @@ class SelectEventLoop(object):
                         raise
         except ExitMainLoop:
             pass
-
-    def _test_run(self):
-        """
-        >>> import os
-        >>> rd, wr = os.pipe()
-        >>> os.write(wr, "data".encode('ascii')) # something to read from rd
-        4
-        >>> evl = SelectEventLoop()
-        >>> def say_hello():
-        ...     print "hello"
-        >>> def say_waiting():
-        ...     print "waiting"
-        >>> def exit_clean():
-        ...     print "clean exit"
-        ...     raise ExitMainLoop
-        >>> def exit_error():
-        ...     1/0
-        >>> handle = evl.alarm(0.01, exit_clean)
-        >>> handle = evl.alarm(0.005, say_hello)
-        >>> evl.enter_idle(say_waiting)
-        1
-        >>> evl.run()
-        waiting
-        hello
-        waiting
-        clean exit
-        >>> handle = evl.watch_file(rd, exit_clean)
-        >>> evl.run()
-        clean exit
-        >>> evl.remove_watch_file(handle)
-        True
-        >>> handle = evl.alarm(0, exit_error)
-        >>> evl.run()
-        Traceback (most recent call last):
-           ...
-        ZeroDivisionError: integer division or modulo by zero
-        >>> handle = evl.watch_file(rd, exit_error)
-        >>> evl.run()
-        Traceback (most recent call last):
-           ...
-        ZeroDivisionError: integer division or modulo by zero
-        """
 
     def _loop(self):
         """
@@ -805,24 +725,6 @@ class GLibEventLoop(object):
         self._exc_info = None
         self._enable_glib_idle()
 
-    def _test_event_loop(self):
-        """
-        >>> import os
-        >>> rd, wr = os.pipe()
-        >>> evl = GLibEventLoop()
-        >>> def step1():
-        ...     print "writing"
-        ...     os.write(wr, "hi")
-        >>> def step2():
-        ...     print os.read(rd, 2)
-        ...     raise ExitMainLoop
-        >>> handle = evl.alarm(0, step1)
-        >>> handle = evl.watch_file(rd, step2)
-        >>> evl.run()
-        writing
-        hi
-        """
-
     def alarm(self, seconds, callback):
         """
         Call callback() given time from from now.  No parameters are
@@ -855,16 +757,6 @@ class GLibEventLoop(object):
         except ValueError:
             return False
 
-    def _test_remove_alarm(self):
-        """
-        >>> evl = GLibEventLoop()
-        >>> handle = evl.alarm(50, lambda: None)
-        >>> evl.remove_alarm(handle)
-        True
-        >>> evl.remove_alarm(handle)
-        False
-        """
-
     def watch_file(self, fd, callback):
         """
         Call callback() when fd has some data to read.  No parameters
@@ -895,16 +787,6 @@ class GLibEventLoop(object):
             del self._watch_files[handle]
             return True
         return False
-
-    def _test_remove_watch_file(self):
-        """
-        >>> evl = GLibEventLoop()
-        >>> handle = evl.watch_file(1, lambda: None)
-        >>> evl.remove_watch_file(handle)
-        True
-        >>> evl.remove_watch_file(handle)
-        False
-        """
 
     def enter_idle(self, callback):
         """
@@ -940,7 +822,6 @@ class GLibEventLoop(object):
             return False
         return True
 
-
     def run(self):
         """
         Start the event loop.  Exit the loop when any callback raises
@@ -956,48 +837,6 @@ class GLibEventLoop(object):
             exc_info = self._exc_info
             self._exc_info = None
             raise exc_info[0], exc_info[1], exc_info[2]
-
-    def _test_run(self):
-        """
-        >>> import os
-        >>> rd, wr = os.pipe()
-        >>> os.write(wr, "data") # something to read from rd
-        4
-        >>> evl = GLibEventLoop()
-        >>> def say_hello():
-        ...     print "hello"
-        >>> def say_waiting():
-        ...     print "waiting"
-        >>> def exit_clean():
-        ...     print "clean exit"
-        ...     raise ExitMainLoop
-        >>> def exit_error():
-        ...     1/0
-        >>> handle = evl.alarm(0.01, exit_clean)
-        >>> handle = evl.alarm(0.005, say_hello)
-        >>> evl.enter_idle(say_waiting)
-        1
-        >>> evl.run()
-        waiting
-        hello
-        waiting
-        clean exit
-        >>> handle = evl.watch_file(rd, exit_clean)
-        >>> evl.run()
-        clean exit
-        >>> evl.remove_watch_file(handle)
-        True
-        >>> handle = evl.alarm(0, exit_error)
-        >>> evl.run()
-        Traceback (most recent call last):
-           ...
-        ZeroDivisionError: integer division or modulo by zero
-        >>> handle = evl.watch_file(rd, exit_error)
-        >>> evl.run()
-        Traceback (most recent call last):
-           ...
-        ZeroDivisionError: integer division or modulo by zero
-        """
 
     def handle_exit(self,f):
         """
@@ -1105,16 +944,6 @@ if not PYTHON3:
             except AlreadyCalled:
                 return False
 
-        def _test_remove_alarm(self):
-            """
-            >>> evl = TwistedEventLoop()
-            >>> handle = evl.alarm(50, lambda: None)
-            >>> evl.remove_alarm(handle)
-            True
-            >>> evl.remove_alarm(handle)
-            False
-            """
-
         def watch_file(self, fd, callback):
             """
             Call callback() when fd has some data to read.  No parameters
@@ -1142,16 +971,6 @@ if not PYTHON3:
                 del self._watch_files[handle]
                 return True
             return False
-
-        def _test_remove_watch_file(self):
-            """
-            >>> evl = TwistedEventLoop()
-            >>> handle = evl.watch_file(1, lambda: None)
-            >>> evl.remove_watch_file(handle)
-            True
-            >>> evl.remove_watch_file(handle)
-            False
-            """
 
         def enter_idle(self, callback):
             """
@@ -1209,36 +1028,6 @@ if not PYTHON3:
                 exc_info = self._exc_info
                 self._exc_info = None
                 raise exc_info[0], exc_info[1], exc_info[2]
-
-        def _test_run(self):
-            """
-            >>> import os
-            >>> rd, wr = os.pipe()
-            >>> os.write(wr, "data") # something to read from rd
-            4
-            >>> evl = TwistedEventLoop()
-            >>> def say_hello_data():
-            ...     print "hello data"
-            ...     os.read(rd, 4)
-            >>> def say_waiting():
-            ...     print "waiting"
-            >>> def say_hello():
-            ...     print "hello"
-            >>> handle = evl.watch_file(rd, say_hello_data)
-            >>> def say_being_twisted():
-            ...     print "oh I'm messed up"
-            ...     raise ExitMainLoop
-            >>> handle = evl.alarm(0.0625, say_being_twisted)
-            >>> handle = evl.alarm(0.03125, say_hello)
-            >>> evl.enter_idle(say_waiting)
-            1
-            >>> evl.run()
-            hello data
-            waiting
-            hello
-            waiting
-            oh I'm messed up
-            """
 
         def handle_exit(self, f, enable_idle=True):
             """
