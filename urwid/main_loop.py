@@ -879,15 +879,37 @@ class TornadoEventLoop(object):
         def __init__(self, poll_obj, idle_map):
             self.__poll_obj = poll_obj
             self.__idle_map = idle_map
+            self._idle_done = False
+            self._prev_timeout = 0
 
         def __getattr__(self, name):
             return getattr(self.__poll_obj, name)
 
         def poll(self, timeout):
-            if timeout >= 0.01:  # only trigger idle event if the delay is big enough
-                for callback in list(self.__idle_map.values()):
+            if timeout > self._prev_timeout:
+                # if timeout increased we assume a timer event was handled
+                self._idle_done = False
+            self._prev_timeout = timeout
+            start = time.time()
+
+            # any IO pending wins
+            events = self.__poll_obj.poll(0)
+            if events:
+                self._idle_done = False
+                return events
+
+            # our chance to enter idle
+            if not self._idle_done:
+                for callback in self.__idle_map.values():
                     callback()
-            return self.__poll_obj.poll(timeout)
+                self._idle_done = True
+
+            # then complete the actual request (adjusting timeout)
+            timeout = max(0, min(timeout, timeout + start - time.time()))
+            events = self.__poll_obj.poll(timeout)
+            if events:
+                self._idle_done = False
+            return events
 
     @classmethod
     def _patch_poll_impl(cls, ioloop):
