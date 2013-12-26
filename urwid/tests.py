@@ -830,6 +830,11 @@ class TextTest(unittest.TestCase):
         got = self.t.render((18,))._text
         assert got == expected, "got: %r expected: %r" % (got, expected)
 
+    def test5_encode_error(self):
+        urwid.set_encoding("ascii")
+        expected = [B("?  ")]
+        got = urwid.Text(u'û').render((3,))._text
+        assert got == expected, "got: %r expected: %r" % (got, expected)
 
 
 class EditTest(unittest.TestCase):
