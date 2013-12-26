@@ -68,8 +68,9 @@ class Screen(BaseScreen, RealTerminal):
         self._setup_G1_done = False
         self._rows_used = None
         self._cy = 0
-        self.bright_is_bold = os.environ.get('TERM',None) != "xterm"
-        self.back_color_erase = os.environ.get('TERM',None) != "screen"
+        term = os.environ.get('TERM', '')
+        self.bright_is_bold = not term.startswith("xterm")
+        self.back_color_erase = not term.startswith("screen")
         self._next_timeout = None
         self._term_output_file = sys.stdout
         self._term_input_file = sys.stdin
