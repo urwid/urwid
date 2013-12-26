@@ -4,7 +4,9 @@ python:
   - "2.7"
   - "3.2"
   - "3.3"
+  - "pypy"
 install:
-  - "sudo apt-get install python-gi python-twisted python3-gi"
+  - "sudo apt-get install python-gi python3-gi"
   - "deactivate"
+  - "sudo pip install --use-mirrors setuptools twisted"
 script: python setup.py test
