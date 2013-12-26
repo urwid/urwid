@@ -69,14 +69,20 @@ class SelectEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         self.evl = urwid.SelectEventLoop()
 
 
-# no pygobject for pypy yet
-if platform.python_implementation() != "PyPy":
+try:
+    import gi.repository
+except ImportError:
+    pass
+else:
     class GLibEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         def setUp(self):
             self.evl = urwid.GLibEventLoop()
 
-# no twisted on python3 yet
-if not PYTHON3:
+try:
+    import twisted
+except ImportError:
+    pass
+else:
     class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         def setUp(self):
             self.evl = urwid.TwistedEventLoop()
