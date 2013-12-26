@@ -52,9 +52,10 @@ from urwid.command_map import (CommandMap, command_map,
     REDRAW_SCREEN, CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT,
     CURSOR_PAGE_UP, CURSOR_PAGE_DOWN, CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT,
     ACTIVATE)
-from urwid.main_loop import ExitMainLoop, MainLoop, SelectEventLoop
+from urwid.main_loop import (ExitMainLoop, MainLoop, SelectEventLoop,
+    GLibEventLoop, TornadoEventLoop)
 try:
-    from urwid.main_loop import GLibEventLoop, TwistedEventLoop
+    from urwid.main_loop import TwistedEventLoop
 except ImportError:
     pass
 from urwid.text_layout import (TextLayout, StandardTextLayout, default_layout,

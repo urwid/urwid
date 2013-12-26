@@ -27,6 +27,8 @@ import heapq
 import select
 import fcntl
 import os
+from functools import wraps
+from weakref import WeakKeyDictionary
 
 from urwid.util import is_mouse_event
 from urwid.compat import PYTHON3
@@ -856,6 +858,148 @@ class GLibEventLoop(object):
                     self._loop.quit()
             return False
         return wrapper
+
+
+class TornadoEventLoop(object):
+    """ This is an Urwid-specific event loop to plug into its MainLoop.
+        It acts as an adaptor for Tornado's IOLoop which does all
+        heavy lifting except idle-callbacks.
+
+        Notice, since Tornado has no concept of idle callbacks we
+        monkey patch ioloop._impl.poll() function to be able to detect
+        potential idle periods.
+    """
+    _ioloop_registry = WeakKeyDictionary()  # {<ioloop> : {<handle> : <idle_func>}}
+    _max_idle_handle = 0
+
+    class PollProxy(object):
+        """ A simple proxy for a Python's poll object that wraps the .poll() method
+            in order to detect idle periods and call Urwid callbacks
+        """
+        def __init__(self, poll_obj, idle_map):
+            self.__poll_obj = poll_obj
+            self.__idle_map = idle_map
+            self._idle_done = False
+            self._prev_timeout = 0
+
+        def __getattr__(self, name):
+            return getattr(self.__poll_obj, name)
+
+        def poll(self, timeout):
+            if timeout > self._prev_timeout:
+                # if timeout increased we assume a timer event was handled
+                self._idle_done = False
+            self._prev_timeout = timeout
+            start = time.time()
+
+            # any IO pending wins
+            events = self.__poll_obj.poll(0)
+            if events:
+                self._idle_done = False
+                return events
+
+            # our chance to enter idle
+            if not self._idle_done:
+                for callback in self.__idle_map.values():
+                    callback()
+                self._idle_done = True
+
+            # then complete the actual request (adjusting timeout)
+            timeout = max(0, min(timeout, timeout + start - time.time()))
+            events = self.__poll_obj.poll(timeout)
+            if events:
+                self._idle_done = False
+            return events
+
+    @classmethod
+    def _patch_poll_impl(cls, ioloop):
+        """ Wraps original poll object in the IOLoop's poll object
+        """
+        if ioloop in cls._ioloop_registry:
+            return  # we already patched this instance
+
+        cls._ioloop_registry[ioloop] = idle_map = {}
+        ioloop._impl = cls.PollProxy(ioloop._impl, idle_map)
+
+    def __init__(self, ioloop=None):
+        if not ioloop:
+            from tornado.ioloop import IOLoop
+            ioloop = IOLoop.instance()
+        self._ioloop = ioloop
+        self._patch_poll_impl(ioloop)
+        self._pending_alarms = {}
+        self._watch_handles    = {}  # {<watch_handle> : <file_descriptor>}
+        self._max_watch_handle = 0
+        self._exception        = None
+
+    def alarm(self, secs, callback):
+        ioloop  = self._ioloop
+        def wrapped():
+            try:
+                del self._pending_alarms[handle]
+            except KeyError:
+                pass
+            self.handle_exit(callback)()
+        handle = ioloop.add_timeout(ioloop.time() + secs, wrapped)
+        self._pending_alarms[handle] = 1
+        return handle
+
+    def remove_alarm(self, handle):
+        self._ioloop.remove_timeout(handle)
+        try:
+            del self._pending_alarms[handle]
+        except KeyError:
+            return False
+        else:
+            return True
+
+    def watch_file(self, fd, callback):
+        from tornado.ioloop import IOLoop
+        handler = lambda fd,events: self.handle_exit(callback)()
+        self._ioloop.add_handler(fd, handler, IOLoop.READ)
+        self._max_watch_handle += 1
+        handle = self._max_watch_handle
+        self._watch_handles[handle] = fd
+        return handle
+
+    def remove_watch_file(self, handle):
+        fd = self._watch_handles.pop(handle, None)
+        if fd is None:
+            return False
+        else:
+            self._ioloop.remove_handler(fd)
+            return True
+
+    def enter_idle(self, callback):
+        self._max_idle_handle += 1
+        handle   = self._max_idle_handle
+        idle_map = self._ioloop_registry[self._ioloop]
+        idle_map[handle] = callback
+        return handle
+
+    def remove_enter_idle(self, handle):
+        idle_map = self._ioloop_registry[self._ioloop]
+        cb = idle_map.pop(handle, None)
+        return cb is not None
+
+    def handle_exit(self, func):
+        @wraps(func)
+        def wrapper(*args, **kw):
+            try:
+                return func(*args, **kw)
+            except ExitMainLoop:
+                self._ioloop.stop()
+            except Exception as exc:
+                self._exception = exc
+                self._ioloop.stop()
+            return False
+        return wrapper
+
+    def run(self):
+        self._ioloop.start()
+        if self._exception:
+            exc, self._exception = self._exception, None
+            raise exc
 
 
 try:

@@ -78,6 +78,18 @@ else:
         def setUp(self):
             self.evl = urwid.GLibEventLoop()
 
+
+try:
+    import tornado
+except ImportError:
+    pass
+else:
+    class TornadoEventLoopTest(unittest.TestCase, EventLoopTestMixin):
+        def setUp(self):
+            from tornado.ioloop import IOLoop
+            self.evl = urwid.TornadoEventLoop(IOLoop())
+
+
 try:
     import twisted
 except ImportError:
