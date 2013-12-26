@@ -114,31 +114,38 @@ class Screen(BaseScreen, RealTerminal):
             os.write(self._resize_pipe_wr, B('R'))
         self._resized = True
         self.screen_buf = None
-      
+
+    def _sigcont_handler(self, signum, frame):
+        self.stop()
+        self.start()
+        self._sigwinch_handler(None, None)
+
     def signal_init(self):
         """
-        Called in the startup of run wrapper to set the SIGWINCH 
-        signal handler to self._sigwinch_handler.
+        Called in the startup of run wrapper to set the SIGWINCH
+        and SIGCONT signal handlers.
 
         Override this function to call from main thread in threaded
         applications.
         """
         signal.signal(signal.SIGWINCH, self._sigwinch_handler)
-    
+        signal.signal(signal.SIGCONT, self._sigcont_handler)
+
     def signal_restore(self):
         """
         Called in the finally block of run wrapper to restore the
-        SIGWINCH handler to the default handler.
+        SIGWINCH and SIGCONT signal handlers.
 
         Override this function to call from main thread in threaded
         applications.
         """
+        signal.signal(signal.SIGCONT, signal.SIG_DFL)
         signal.signal(signal.SIGWINCH, signal.SIG_DFL)
-      
+
     def set_mouse_tracking(self, enable=True):
         """
-        Enable (or disable) mouse tracking.  
-        
+        Enable (or disable) mouse tracking.
+
         After calling this function get_input will include mouse
         click events along with keystrokes.
         """
