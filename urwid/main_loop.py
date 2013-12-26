@@ -564,9 +564,6 @@ class MainLoop(object):
         self.screen.draw_screen(self.screen_size, canvas)
 
 
-
-
-
 class SelectEventLoop(object):
     """
     Event loop based on :func:`select.select`
@@ -861,200 +858,198 @@ class GLibEventLoop(object):
         return wrapper
 
 
-if not PYTHON3:
-    try:
-        from twisted.internet.abstract import FileDescriptor
-    except ImportError:
-        FileDescriptor = object
+try:
+    from twisted.internet.abstract import FileDescriptor
+except ImportError:
+    FileDescriptor = object
 
-    class TwistedInputDescriptor(FileDescriptor):
-        def __init__(self, reactor, fd, cb):
-            self._fileno = fd
-            self.cb = cb
-            FileDescriptor.__init__(self, reactor)
+class TwistedInputDescriptor(FileDescriptor):
+    def __init__(self, reactor, fd, cb):
+        self._fileno = fd
+        self.cb = cb
+        FileDescriptor.__init__(self, reactor)
 
-        def fileno(self):
-            return self._fileno
+    def fileno(self):
+        return self._fileno
 
-        def doRead(self):
-            return self.cb()
-
+    def doRead(self):
+        return self.cb()
 
 
-    class TwistedEventLoop(object):
+class TwistedEventLoop(object):
+    """
+    Event loop based on Twisted_
+    """
+    _idle_emulation_delay = 1.0/256 # a short time (in seconds)
+
+    def __init__(self, reactor=None, manage_reactor=True):
         """
-        Event loop based on Twisted_
+        :param reactor: reactor to use
+        :type reactor: :class:`twisted.internet.reactor`.
+        :param: manage_reactor: `True` if you want this event loop to run
+                                and stop the reactor.
+        :type manage_reactor: boolean
+
+        .. WARNING::
+           Twisted's reactor doesn't like to be stopped and run again.  If you
+           need to stop and run your :class:`MainLoop`, consider setting
+           ``manage_reactor=False`` and take care of running/stopping the reactor
+           at the beginning/ending of your program yourself.
+
+        .. _Twisted: http://twistedmatrix.com/trac/
         """
-        _idle_emulation_delay = 1.0/256 # a short time (in seconds)
+        if reactor is None:
+            import twisted.internet.reactor
+            reactor = twisted.internet.reactor
+        self.reactor = reactor
+        self._alarms = []
+        self._watch_files = {}
+        self._idle_handle = 0
+        self._twisted_idle_enabled = False
+        self._idle_callbacks = {}
+        self._exc_info = None
+        self.manage_reactor = manage_reactor
+        self._enable_twisted_idle()
 
-        def __init__(self, reactor=None, manage_reactor=True):
-            """
-            :param reactor: reactor to use
-            :type reactor: :class:`twisted.internet.reactor`.
-            :param: manage_reactor: `True` if you want this event loop to run
-                                    and stop the reactor.
-            :type manage_reactor: boolean
+    def alarm(self, seconds, callback):
+        """
+        Call callback() given time from from now.  No parameters are
+        passed to callback.
 
-            .. WARNING::
-               Twisted's reactor doesn't like to be stopped and run again.  If you
-               need to stop and run your :class:`MainLoop`, consider setting
-               ``manage_reactor=False`` and take care of running/stopping the reactor
-               at the beginning/ending of your program yourself.
+        Returns a handle that may be passed to remove_alarm()
 
-            .. _Twisted: http://twistedmatrix.com/trac/
-            """
-            if reactor is None:
-                import twisted.internet.reactor
-                reactor = twisted.internet.reactor
-            self.reactor = reactor
-            self._alarms = []
-            self._watch_files = {}
-            self._idle_handle = 0
-            self._twisted_idle_enabled = False
-            self._idle_callbacks = {}
-            self._exc_info = None
-            self.manage_reactor = manage_reactor
-            self._enable_twisted_idle()
+        seconds -- floating point time to wait before calling callback
+        callback -- function to call from event loop
+        """
+        handle = self.reactor.callLater(seconds, self.handle_exit(callback))
+        return handle
 
-        def alarm(self, seconds, callback):
-            """
-            Call callback() given time from from now.  No parameters are
-            passed to callback.
+    def remove_alarm(self, handle):
+        """
+        Remove an alarm.
 
-            Returns a handle that may be passed to remove_alarm()
-
-            seconds -- floating point time to wait before calling callback
-            callback -- function to call from event loop
-            """
-            handle = self.reactor.callLater(seconds, self.handle_exit(callback))
-            return handle
-
-        def remove_alarm(self, handle):
-            """
-            Remove an alarm.
-
-            Returns True if the alarm exists, False otherwise
-            """
-            from twisted.internet.error import AlreadyCancelled, AlreadyCalled
-            try:
-                handle.cancel()
-                return True
-            except AlreadyCancelled:
-                return False
-            except AlreadyCalled:
-                return False
-
-        def watch_file(self, fd, callback):
-            """
-            Call callback() when fd has some data to read.  No parameters
-            are passed to callback.
-
-            Returns a handle that may be passed to remove_watch_file()
-
-            fd -- file descriptor to watch for input
-            callback -- function to call when input is available
-            """
-            ind = TwistedInputDescriptor(self.reactor, fd,
-                self.handle_exit(callback))
-            self._watch_files[fd] = ind
-            self.reactor.addReader(ind)
-            return fd
-
-        def remove_watch_file(self, handle):
-            """
-            Remove an input file.
-
-            Returns True if the input file exists, False otherwise
-            """
-            if handle in self._watch_files:
-                self.reactor.removeReader(self._watch_files[handle])
-                del self._watch_files[handle]
-                return True
+        Returns True if the alarm exists, False otherwise
+        """
+        from twisted.internet.error import AlreadyCancelled, AlreadyCalled
+        try:
+            handle.cancel()
+            return True
+        except AlreadyCancelled:
+            return False
+        except AlreadyCalled:
             return False
 
-        def enter_idle(self, callback):
-            """
-            Add a callback for entering idle.
+    def watch_file(self, fd, callback):
+        """
+        Call callback() when fd has some data to read.  No parameters
+        are passed to callback.
 
-            Returns a handle that may be passed to remove_enter_idle()
-            """
-            self._idle_handle += 1
-            self._idle_callbacks[self._idle_handle] = callback
-            return self._idle_handle
+        Returns a handle that may be passed to remove_watch_file()
 
-        def _enable_twisted_idle(self):
-            """
-            Twisted's reactors don't have an idle or enter-idle callback
-            so the best we can do for now is to set a timer event in a very
-            short time to approximate an enter-idle callback.
+        fd -- file descriptor to watch for input
+        callback -- function to call when input is available
+        """
+        ind = TwistedInputDescriptor(self.reactor, fd,
+            self.handle_exit(callback))
+        self._watch_files[fd] = ind
+        self.reactor.addReader(ind)
+        return fd
 
-            .. WARNING::
-               This will perform worse than the other event loops until we can find a
-               fix or workaround
-            """
-            if self._twisted_idle_enabled:
-                return
-            self.reactor.callLater(self._idle_emulation_delay,
-                self.handle_exit(self._twisted_idle_callback, enable_idle=False))
-            self._twisted_idle_enabled = True
+    def remove_watch_file(self, handle):
+        """
+        Remove an input file.
 
-        def _twisted_idle_callback(self):
-            for callback in self._idle_callbacks.values():
-                callback()
-            self._twisted_idle_enabled = False
-
-        def remove_enter_idle(self, handle):
-            """
-            Remove an idle callback.
-
-            Returns True if the handle was removed.
-            """
-            try:
-                del self._idle_callbacks[handle]
-            except KeyError:
-                return False
+        Returns True if the input file exists, False otherwise
+        """
+        if handle in self._watch_files:
+            self.reactor.removeReader(self._watch_files[handle])
+            del self._watch_files[handle]
             return True
+        return False
 
-        def run(self):
-            """
-            Start the event loop.  Exit the loop when any callback raises
-            an exception.  If ExitMainLoop is raised, exit cleanly.
-            """
-            if not self.manage_reactor:
-                return
-            self.reactor.run()
-            if self._exc_info:
-                # An exception caused us to exit, raise it now
-                exc_info = self._exc_info
-                self._exc_info = None
-                raise exc_info[0], exc_info[1], exc_info[2]
+    def enter_idle(self, callback):
+        """
+        Add a callback for entering idle.
 
-        def handle_exit(self, f, enable_idle=True):
-            """
-            Decorator that cleanly exits the :class:`TwistedEventLoop` if
-            :class:`ExitMainLoop` is thrown inside of the wrapped function. Store the
-            exception info if some other exception occurs, it will be reraised after
-            the loop quits.
+        Returns a handle that may be passed to remove_enter_idle()
+        """
+        self._idle_handle += 1
+        self._idle_callbacks[self._idle_handle] = callback
+        return self._idle_handle
 
-            *f* -- function to be wrapped
-            """
-            def wrapper(*args,**kargs):
-                rval = None
-                try:
-                    rval = f(*args,**kargs)
-                except ExitMainLoop:
-                    if self.manage_reactor:
-                        self.reactor.stop()
-                except:
-                    import sys
-                    print sys.exc_info()
-                    self._exc_info = sys.exc_info()
-                    if self.manage_reactor:
-                        self.reactor.crash()
-                if enable_idle:
-                    self._enable_twisted_idle()
-                return rval
-            return wrapper
+    def _enable_twisted_idle(self):
+        """
+        Twisted's reactors don't have an idle or enter-idle callback
+        so the best we can do for now is to set a timer event in a very
+        short time to approximate an enter-idle callback.
+
+        .. WARNING::
+           This will perform worse than the other event loops until we can find a
+           fix or workaround
+        """
+        if self._twisted_idle_enabled:
+            return
+        self.reactor.callLater(self._idle_emulation_delay,
+            self.handle_exit(self._twisted_idle_callback, enable_idle=False))
+        self._twisted_idle_enabled = True
+
+    def _twisted_idle_callback(self):
+        for callback in self._idle_callbacks.values():
+            callback()
+        self._twisted_idle_enabled = False
+
+    def remove_enter_idle(self, handle):
+        """
+        Remove an idle callback.
+
+        Returns True if the handle was removed.
+        """
+        try:
+            del self._idle_callbacks[handle]
+        except KeyError:
+            return False
+        return True
+
+    def run(self):
+        """
+        Start the event loop.  Exit the loop when any callback raises
+        an exception.  If ExitMainLoop is raised, exit cleanly.
+        """
+        if not self.manage_reactor:
+            return
+        self.reactor.run()
+        if self._exc_info:
+            # An exception caused us to exit, raise it now
+            exc_info = self._exc_info
+            self._exc_info = None
+            raise exc_info[0], exc_info[1], exc_info[2]
+
+    def handle_exit(self, f, enable_idle=True):
+        """
+        Decorator that cleanly exits the :class:`TwistedEventLoop` if
+        :class:`ExitMainLoop` is thrown inside of the wrapped function. Store the
+        exception info if some other exception occurs, it will be reraised after
+        the loop quits.
+
+        *f* -- function to be wrapped
+        """
+        def wrapper(*args,**kargs):
+            rval = None
+            try:
+                rval = f(*args,**kargs)
+            except ExitMainLoop:
+                if self.manage_reactor:
+                    self.reactor.stop()
+            except:
+                import sys
+                print sys.exc_info()
+                self._exc_info = sys.exc_info()
+                if self.manage_reactor:
+                    self.reactor.crash()
+            if enable_idle:
+                self._enable_twisted_idle()
+            return rval
+        return wrapper
 
 
 
