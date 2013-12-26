@@ -86,9 +86,9 @@ class EditTest(unittest.TestCase):
         urwid.set_encoding("utf-8")
         self.t1.set_edit_text('')
         self.t1.keypress((12,), u'û')
-        self.assertEquals(self.t1.edit_text, u'û'.encode('utf-8'))
+        self.assertEqual(self.t1.edit_text, u'û'.encode('utf-8'))
         self.t4.keypress((12,), u'û')
-        self.assertEquals(self.t4.edit_text, u'û')
+        self.assertEqual(self.t4.edit_text, u'û')
 
 
 class EditRenderTest(unittest.TestCase):

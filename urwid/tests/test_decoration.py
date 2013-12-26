@@ -78,16 +78,16 @@ class PaddingTest(unittest.TestCase):
         # though, so this might not get fixed for a while
 
         p = urwid.Padding(urwid.Edit(u'',u''), width='pack', left=4)
-        self.assertEquals(p.render((10,), True).cursor, None)
-        self.assertEquals(p.get_cursor_coords((10,)), None)
-        self.assertEquals(p.render((4,), True).cursor, None)
-        self.assertEquals(p.get_cursor_coords((4,)), None)
+        self.assertEqual(p.render((10,), True).cursor, None)
+        self.assertEqual(p.get_cursor_coords((10,)), None)
+        self.assertEqual(p.render((4,), True).cursor, None)
+        self.assertEqual(p.get_cursor_coords((4,)), None)
 
         p = urwid.Padding(urwid.Edit(u'',u''), width=('relative', 100), left=4)
-        self.assertEquals(p.render((10,), True).cursor, (4, 0))
-        self.assertEquals(p.get_cursor_coords((10,)), (4, 0))
-        self.assertEquals(p.render((4,), True).cursor, None)
-        self.assertEquals(p.get_cursor_coords((4,)), None)
+        self.assertEqual(p.render((10,), True).cursor, (4, 0))
+        self.assertEqual(p.get_cursor_coords((10,)), (4, 0))
+        self.assertEqual(p.render((4,), True).cursor, None)
+        self.assertEqual(p.get_cursor_coords((4,)), None)
 
 
 class FillerTest(unittest.TestCase):
