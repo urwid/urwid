@@ -120,7 +120,7 @@ def apply_target_encoding( s ):
 
     if type(s) == unicode:
         s = s.replace(escape.SI+escape.SO, u"") # remove redundant shifts
-        s = codecs.encode(s, _target_encoding, errors='replace')
+        s = codecs.encode(s, _target_encoding, 'replace')
 
     assert isinstance(s, bytes)
     SO = escape.SO.encode('ascii')
