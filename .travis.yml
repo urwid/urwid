@@ -11,4 +11,6 @@ before_install:
   - "sudo apt-get install python-gi python3-gi"
 install:
   - "pip install --use-mirrors setuptools twisted tornado"
+  - "DEPS=`python bin/deps.py`"
+  - "echo $TRAVIS_PYTHON_VERSION $DEPS"
 script: python setup.py test
