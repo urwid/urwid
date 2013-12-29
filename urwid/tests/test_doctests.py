@@ -14,6 +14,7 @@ def load_tests(loader, tests, ignore):
         urwid.raw_display,
         'urwid.split_repr', # override function with same name
         urwid.util,
+        urwid.signals,
         ]
     for m in module_doctests:
         tests.addTests(doctest.DocTestSuite(m,

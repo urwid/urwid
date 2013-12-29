@@ -112,12 +112,12 @@ class Signals(object):
 
         As an example of using weak_args, consider the following snippet:
 
-        debug = urwid.Text('')
-        def print_debug(widget, newtext):
-            debug.set_text("Edit widget changed to %s" % newtext)
-
-        edit = urwid.Edit('')
-        urwid.connect_signal(edit, 'change', handler)
+        >>> import urwid
+        >>> debug = urwid.Text('')
+        >>> def handler(widget, newtext):
+        ...    debug.set_text("Edit widget changed to %s" % newtext)
+        >>> edit = urwid.Edit('')
+        >>> key = urwid.connect_signal(edit, 'change', handler)
 
         If you now build some interface using "edit" and "debug", the
         "debug" widget will show whatever you type in the "edit" widget.
@@ -129,12 +129,11 @@ class Signals(object):
         (it's not really a closure, since it doesn't reference any
         outside variables, so it's just a dynamic function):
 
-        debug = urwid.Text('')
-        def print_debug(weak_debug, widget, newtext):
-            weak_debug.set_text("Edit widget changed to %s" % newtext)
-
-        edit = urwid.Edit('')
-        urwid.connect_signal(edit, 'change', handler, weak_args=[debug])
+        >>> debug = urwid.Text('')
+        >>> def handler(weak_debug, widget, newtext):
+        ...    weak_debug.set_text("Edit widget changed to %s" % newtext)
+        >>> edit = urwid.Edit('')
+        >>> key = urwid.connect_signal(edit, 'change', handler, weak_args=[debug])
 
         Here the weak_debug parameter in print_debug is the value passed
         in the weak_args list to connect_signal. Note that the
