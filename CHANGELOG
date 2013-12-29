@@ -1,5 +1,20 @@
  -*- coding: utf-8 -*-
 
+Urwid 1.1.2
+
+    * Fix encoding exceptions when unicode used on non-UTF-8 terminal
+
+    * Fix for suspend and resume applications with ^Z
+
+    * Fix for tmux and screen missing colors on right bug
+
+    * Fix Pile zero-weighted items and mouse_event when empty
+
+    * Fix Terminal select() not retrying when interrupted by signal
+
+    * Fix for Padding.align and width change not invalidating
+
+
 Urwid 1.1.1
 
     * Fix for Pile not changing focus on mouse events
