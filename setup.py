@@ -45,7 +45,7 @@ setup_d = {
     'author_email':"ian@excess.org",
     'ext_modules':[Extension('urwid.str_util', sources=['source/str_util.c'])],
     'packages':['urwid'],
-    'url':"http://excess.org/urwid/",
+    'url':"http://urwid.org/",
     'license':"LGPL",
     'keywords':"curses ui widget scroll listbox user interface text layout console ncurses",
     'platforms':"unix-like",
@@ -63,16 +63,10 @@ useful for text console application developers including:
 - Display modules include raw, curses, and experimental LCD and web displays
 - Support for UTF-8, simple 8-bit and CJK encodings
 - 256 and 88 color mode support
-- Python 3.2 support
+- Compatible with Python 2.4, 2.5, 2.6, 2.7, 3.2 and 3.3
 
 Home Page:
-  http://excess.org/urwid/
-
-Documentation:
-  http://excess.org/urwid/docs/
-
-Example Program Screenshots:
-  http://excess.org/urwid/examples.html
+  http://urwid.org/
 """[1:],
     'classifiers':[
         "Development Status :: 5 - Production/Stable",
