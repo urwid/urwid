@@ -1,4 +1,6 @@
- -*- coding: utf-8 -*-
+
+Changelog
+---------
 
 Urwid 1.1.2
 

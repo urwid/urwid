@@ -7,3 +7,4 @@ Urwid |release| Documentation
    tutorial/index
    manual/index
    reference/index
+   changelog
