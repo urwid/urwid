@@ -360,7 +360,7 @@ def process_keyqueue(codes, more_available):
 
         assert isinstance(s, bytes)
         try:
-            return [s.decode("utf-8")], codes[need_more+1:]
+            return [s.decode("utf-8", errors='replace')], codes[need_more+1:]
         except UnicodeDecodeError:
             return ["<%d>"%code], codes[1:]
         

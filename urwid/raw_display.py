@@ -473,7 +473,7 @@ class Screen(BaseScreen, RealTerminal):
     
     def _encode_gpm_event( self ):
         self.gpm_event_pending = False
-        s = self.gpm_mev.stdout.readline().decode('ascii')
+        s = self.gpm_mev.stdout.readline().decode('ascii', errors='replace')
         l = s.split(",")
         if len(l) != 6:
             # unexpected output, stop tracking
@@ -748,7 +748,7 @@ class Screen(BaseScreen, RealTerminal):
         try:
             for l in o:
                 if isinstance(l, bytes) and PYTHON3:
-                    l = l.decode('utf-8')
+                    l = l.decode('utf-8', errors='replace')
                 self._term_output_file.write(l)
             self._term_output_file.flush()
         except IOError, e:

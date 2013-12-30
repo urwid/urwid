@@ -37,7 +37,7 @@ PYTHON3 = sys.version_info > (3, 0)
 if PYTHON3:
     ord2 = lambda x: x
     chr2 = lambda x: bytes([x])
-    B = lambda x: x.encode('iso8859-1')
+    B = lambda x: x.encode('iso8859-1', errors='replace')
     bytes3 = bytes
 else:
     ord2 = ord
