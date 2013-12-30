@@ -5,6 +5,11 @@ Changelog
 Urwid 1.1.2
 ===========
 
+2013-12-30
+
+ * Move to urwid.org and use sphinx docs for generating whole site,
+   move changelog to docs/changelog.rst
+
  * Fix encoding exceptions when unicode used on non-UTF-8 terminal
 
  * Fix for suspend and resume applications with ^Z
