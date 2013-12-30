@@ -1,0 +1,216 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Text Layout Classes &mdash; Urwid 1.1.2</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <link rel="top" title="Urwid 1.1.2" href="../index.html" />
+    <link rel="up" title="Urwid Reference" href="index.html" />
+    <link rel="next" title="Command Map" href="command_map.html" />
+    <link rel="prev" title="Canvas Classes and Functions" href="canvas.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="command_map.html" title="Command Map"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="canvas.html" title="Canvas Classes and Functions"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Urwid Reference</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="text-layout-classes">
+<h1>Text Layout Classes<a class="headerlink" href="#text-layout-classes" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="urwid.TextLayout">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">TextLayout</tt><a class="headerlink" href="#urwid.TextLayout" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="urwid.TextLayout.layout">
+<tt class="descname">layout</tt><big>(</big><em>text</em>, <em>width</em>, <em>align</em>, <em>wrap</em><big>)</big><a class="headerlink" href="#urwid.TextLayout.layout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a layout structure for text.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>text</strong> &#8211; string in current encoding or unicode string</li>
+<li><strong>width</strong> &#8211; number of screen columns available</li>
+<li><strong>align</strong> &#8211; align mode for text</li>
+<li><strong>wrap</strong> &#8211; wrap mode for text</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Layout structure is a list of line layouts, one per output line.
+Line layouts are lists than may contain the following tuples:</p>
+<ul class="simple">
+<li>(column width of text segment, start offset, end offset)</li>
+<li>(number of space characters to insert, offset or None)</li>
+<li>(column width of insert text, offset, &#8220;insert text&#8221;)</li>
+</ul>
+<p>The offset in the last two tuples is used to determine the
+attribute used for the inserted spaces or text respectively.
+The attribute used will be the same as the attribute at that
+text offset.  If the offset is None when inserting spaces
+then no attribute will be used.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.TextLayout.supports_align_mode">
+<tt class="descname">supports_align_mode</tt><big>(</big><em>align</em><big>)</big><a class="headerlink" href="#urwid.TextLayout.supports_align_mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return True if align is a supported align mode.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.TextLayout.supports_wrap_mode">
+<tt class="descname">supports_wrap_mode</tt><big>(</big><em>wrap</em><big>)</big><a class="headerlink" href="#urwid.TextLayout.supports_wrap_mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return True if wrap is a supported wrap mode.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="urwid.StandardTextLayout">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">StandardTextLayout</tt><a class="headerlink" href="#urwid.StandardTextLayout" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="urwid.StandardTextLayout.align_layout">
+<tt class="descname">align_layout</tt><big>(</big><em>text</em>, <em>width</em>, <em>segs</em>, <em>wrap</em>, <em>align</em><big>)</big><a class="headerlink" href="#urwid.StandardTextLayout.align_layout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert the layout segs to an aligned layout.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.StandardTextLayout.calculate_text_segments">
+<tt class="descname">calculate_text_segments</tt><big>(</big><em>text</em>, <em>width</em>, <em>wrap</em><big>)</big><a class="headerlink" href="#urwid.StandardTextLayout.calculate_text_segments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the segments of text to display given width screen
+columns to display them.</p>
+<p>text - unicode text or byte string to display
+width - number of available screen columns
+wrap - wrapping mode used</p>
+<p>Returns a layout structure without aligmnent applied.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.StandardTextLayout.layout">
+<tt class="descname">layout</tt><big>(</big><em>text</em>, <em>width</em>, <em>align</em>, <em>wrap</em><big>)</big><a class="headerlink" href="#urwid.StandardTextLayout.layout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a layout structure for text.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.StandardTextLayout.pack">
+<tt class="descname">pack</tt><big>(</big><em>maxcol</em>, <em>layout</em><big>)</big><a class="headerlink" href="#urwid.StandardTextLayout.pack" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a minimal maxcol value that would result in the same
+number of lines for layout.  layout must be a layout structure
+returned by self.layout().</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.StandardTextLayout.supports_align_mode">
+<tt class="descname">supports_align_mode</tt><big>(</big><em>align</em><big>)</big><a class="headerlink" href="#urwid.StandardTextLayout.supports_align_mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return True if align is &#8216;left&#8217;, &#8216;center&#8217; or &#8216;right&#8217;.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.StandardTextLayout.supports_wrap_mode">
+<tt class="descname">supports_wrap_mode</tt><big>(</big><em>wrap</em><big>)</big><a class="headerlink" href="#urwid.StandardTextLayout.supports_wrap_mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return True if wrap is &#8216;any&#8217;, &#8216;space&#8217; or &#8216;clip&#8217;.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="canvas.html"
+                        title="previous chapter">Canvas Classes and Functions</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="command_map.html"
+                        title="next chapter">Command Map</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/reference/text_layout.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="command_map.html" title="Command Map"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="canvas.html" title="Canvas Classes and Functions"
+             >previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+          <li><a href="index.html" >Urwid Reference</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Ian Ward et al.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

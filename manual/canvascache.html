@@ -1,0 +1,175 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Canvas Cache &mdash; Urwid 1.1.2</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <link rel="top" title="Urwid 1.1.2" href="../index.html" />
+    <link rel="up" title="Urwid Manual" href="index.html" />
+    <link rel="next" title="Urwid Reference" href="../reference/index.html" />
+    <link rel="prev" title="Display Attributes" href="displayattributes.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../reference/index.html" title="Urwid Reference"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="displayattributes.html" title="Display Attributes"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Urwid Manual</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="canvas-cache">
+<span id="id1"></span><h1>Canvas Cache<a class="headerlink" href="#canvas-cache" title="Permalink to this headline">¶</a></h1>
+<p>In an Urwid application each time the screen is redrawn typically only part of
+the screen actually needs to be updated. A canvas cache is used to store
+visible, unchanged canvases so that not all of the visible widgets need to be
+rendered for each update.</p>
+<p>The <a class="reference internal" href="../reference/widget.html#urwid.Widget" title="urwid.Widget"><tt class="xref py py-class docutils literal"><span class="pre">Widget</span></tt></a> base class uses some metaclass magic to
+capture the canvas objects returned <a class="reference internal" href="../reference/widget.html#urwid.Widget.render" title="urwid.Widget.render"><tt class="xref py py-meth docutils literal"><span class="pre">Widget.render()</span></tt></a> is called and return
+them the next time <a class="reference internal" href="../reference/widget.html#urwid.Widget.render" title="urwid.Widget.render"><tt class="xref py py-meth docutils literal"><span class="pre">Widget.render()</span></tt></a> is called again with the same parameters. The
+<a class="reference internal" href="../reference/widget.html#urwid.Widget._invalidate" title="urwid.Widget._invalidate"><tt class="xref py py-meth docutils literal"><span class="pre">Widget._invalidate()</span></tt></a> method is provided as a way to remove cached widgets so
+that changes to the widget are visible the next time the screen is redrawn.</p>
+<p>Similar metaclass magic is used for flow widgets&#8217; <a class="reference internal" href="../reference/widget.html#urwid.Widget.rows" title="urwid.Widget.rows"><tt class="xref py py-meth docutils literal"><span class="pre">Widget.rows()</span></tt></a> method. If a
+canvas for that widget with the same parameters is cached then the rows of that
+canvas are returned instead of calling the widget&#8217;s actual <a class="reference internal" href="../reference/widget.html#urwid.Widget.rows" title="urwid.Widget.rows"><tt class="xref py py-meth docutils literal"><span class="pre">Widget.rows()</span></tt></a> method.</p>
+<div class="section" id="composite-canvases">
+<h2>Composite Canvases<a class="headerlink" href="#composite-canvases" title="Permalink to this headline">¶</a></h2>
+<p>When container and decoration widgets are rendered, they collect the canvases
+returned by their children and arrange them into a composite canvas. Composite
+canvases may are nested to form a tree with the topmost widget&#8217;s <a class="reference internal" href="../reference/widget.html#urwid.Widget.render" title="urwid.Widget.render"><tt class="xref py py-meth docutils literal"><span class="pre">Widget.render()</span></tt></a>
+method returning the root of the tree. That canvas is sent to the display
+module to be rendered on the screen.</p>
+<p>Composite canvases reference the content and layout from their children,
+reducing the number of copies required to build them. When a canvas is removed
+from the cache by a call to <a class="reference internal" href="../reference/widget.html#urwid.Widget._invalidate" title="urwid.Widget._invalidate"><tt class="xref py py-meth docutils literal"><span class="pre">Widget._invalidate()</span></tt></a> all the direct parents of that
+canvas are removed from the cache as well, forcing those widgets to be re-drawn
+on the next screen update. This cascade-removal happens only once per update
+(the canvas is then no longer in the cache) so batched changes to visible
+widgets may be made efficiently. This is important when a user&#8217;s input gets
+ahead of the screen updating &#8211; Urwid handles all the pending input first then
+updates the screen with the final result, instead of falling further and
+further behind.</p>
+</div>
+<div class="section" id="cache-lifetime">
+<h2>Cache Lifetime<a class="headerlink" href="#cache-lifetime" title="Permalink to this headline">¶</a></h2>
+<p>The canvases &#8220;stored&#8221; in the canvas cache are actually weak references to the
+canvases. The canvases must have a real reference somewhere for the cache to
+function properly. Urwid&#8217;s display modules store the currently displayed
+topmost canvas for this reason. All canvases that are visible on the screen
+will remain in the cache, and others will be garbage collected.</p>
+</div>
+<div class="section" id="future-work">
+<h2>Future Work<a class="headerlink" href="#future-work" title="Permalink to this headline">¶</a></h2>
+<p>A updating method that invalidates regions of the display without redrawing
+parent widgets would be more efficient for the common case of a single change
+on the screen that does not affect the screen layout. Send an email to the
+mailing list if you&#8217;re interested in helping with this or other display
+optimizations.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
+            </a></p>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Canvas Cache</a><ul>
+<li><a class="reference internal" href="#composite-canvases">Composite Canvases</a></li>
+<li><a class="reference internal" href="#cache-lifetime">Cache Lifetime</a></li>
+<li><a class="reference internal" href="#future-work">Future Work</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="displayattributes.html"
+                        title="previous chapter">Display Attributes</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="../reference/index.html"
+                        title="next chapter">Urwid Reference</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/manual/canvascache.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../reference/index.html" title="Urwid Reference"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="displayattributes.html" title="Display Attributes"
+             >previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+          <li><a href="index.html" >Urwid Manual</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Ian Ward et al.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

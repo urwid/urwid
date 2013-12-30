@@ -1,0 +1,225 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Urwid Reference &mdash; Urwid 1.1.2</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <link rel="top" title="Urwid 1.1.2" href="../index.html" />
+    <link rel="next" title="MainLoop and Event Loops" href="main_loop.html" />
+    <link rel="prev" title="Canvas Cache" href="../manual/canvascache.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="main_loop.html" title="MainLoop and Event Loops"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../manual/canvascache.html" title="Canvas Cache"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="urwid-reference">
+<span id="id1"></span><h1>Urwid Reference<a class="headerlink" href="#urwid-reference" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="main_loop.html">MainLoop and Event Loops</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="main_loop.html#mainloop">MainLoop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="main_loop.html#selecteventloop">SelectEventLoop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="main_loop.html#glibeventloop">GLibEventLoop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="main_loop.html#twistedeventloop">TwistedEventLoop</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="widget.html">Widget Classes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="widget.html#widget-base-classes">Widget Base Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#widget">Widget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#widgetwrap">WidgetWrap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#widgetdecoration">WidgetDecoration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#widgetcontainermixin">WidgetContainerMixin</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="widget.html#basic-widget-classes">Basic Widget Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#text">Text</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#edit">Edit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#intedit">IntEdit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#button">Button</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#checkbox">CheckBox</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#radiobutton">RadioButton</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#treewidget">TreeWidget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#selectableicon">SelectableIcon</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="widget.html#decoration-widget-classes">Decoration Widget Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#attrmap">AttrMap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#padding">Padding</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#filler">Filler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#divider">Divider</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#linebox">LineBox</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#solidfill">SolidFill</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#popuplauncher">PopUpLauncher</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#popuptarget">PopUpTarget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#widgetplaceholder">WidgetPlaceholder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#widgetdisable">WidgetDisable</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="widget.html#container-widget-classes">Container Widget Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#frame">Frame</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#listbox">ListBox</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#treelistbox">TreeListBox</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#columns">Columns</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#pile">Pile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#gridflow">GridFlow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#boxadapter">BoxAdapter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#overlay">Overlay</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="widget.html#graphic-widget-classes">Graphic Widget Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#bargraph">BarGraph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#graphvscale">GraphVScale</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#progressbar">ProgressBar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#bigtext">BigText</a></li>
+<li class="toctree-l3"><a class="reference internal" href="widget.html#terminal">Terminal</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="display_modules.html">Display Modules</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="display_modules.html#module-urwid.raw_display">raw_display</a></li>
+<li class="toctree-l2"><a class="reference internal" href="display_modules.html#module-urwid.curses_display">curses_display</a></li>
+<li class="toctree-l2"><a class="reference internal" href="display_modules.html#module-urwid.web_display">web_display</a></li>
+<li class="toctree-l2"><a class="reference internal" href="display_modules.html#module-urwid.html_fragment">html_fragment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="display_modules.html#module-urwid.lcd_display">lcd_display</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="list_walkers.html">List Walker Classes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="list_walkers.html#listwalker">ListWalker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="list_walkers.html#list-like-list-walkers">List-like List Walkers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="list_walkers.html#treewalker-and-nodes">TreeWalker and Nodes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="signals.html">Signal Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="global_settings.html">Global Settings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="attrspec.html">Raw Display Attributes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="canvas.html">Canvas Classes and Functions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="canvas.html#canvas-classes">Canvas Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="canvas.html#compositecanvas-builders">CompositeCanvas Builders</a></li>
+<li class="toctree-l2"><a class="reference internal" href="canvas.html#canvascache">CanvasCache</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="text_layout.html">Text Layout Classes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="command_map.html">Command Map</a></li>
+<li class="toctree-l1"><a class="reference internal" href="constants.html">Constants</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="constants.html#widget-sizing-methods">Widget Sizing Methods</a></li>
+<li class="toctree-l2"><a class="reference internal" href="constants.html#horizontal-alignment">Horizontal Alignment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="constants.html#veritcal-alignment">Veritcal Alignment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="constants.html#width-and-height-settings">Width and Height Settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="constants.html#text-wrapping-modes">Text Wrapping Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="constants.html#foreground-and-background-colors">Foreground and Background Colors</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#standard-background-and-foreground-colors">Standard background and foreground colors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#standard-foreground-colors-not-safe-to-use-as-background">Standard foreground colors (not safe to use as background)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#user-s-terminal-configuration-default-foreground-or-background">User&#8217;s terminal configuration default foreground or background</a></li>
+<li class="toctree-l3"><a class="reference internal" href="constants.html#and-88-color-foregrounds-and-backgrounds">256 and 88 Color Foregrounds and Backgrounds</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="constants.html#signal-names">Signal Names</a></li>
+<li class="toctree-l2"><a class="reference internal" href="constants.html#command-names">Command Names</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="exceptions.html">Exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="meta.html">Metaclasses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deprecated.html">Deprecated Classes</a></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="../manual/canvascache.html"
+                        title="previous chapter">Canvas Cache</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="main_loop.html"
+                        title="next chapter">MainLoop and Event Loops</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/reference/index.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="main_loop.html" title="MainLoop and Event Loops"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../manual/canvascache.html" title="Canvas Cache"
+             >previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Ian Ward et al.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

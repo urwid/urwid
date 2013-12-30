@@ -1,0 +1,150 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Command Map &mdash; Urwid 1.1.2</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <link rel="top" title="Urwid 1.1.2" href="../index.html" />
+    <link rel="up" title="Urwid Reference" href="index.html" />
+    <link rel="next" title="Constants" href="constants.html" />
+    <link rel="prev" title="Text Layout Classes" href="text_layout.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="constants.html" title="Constants"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="text_layout.html" title="Text Layout Classes"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Urwid Reference</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="command-map">
+<h1>Command Map<a class="headerlink" href="#command-map" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="urwid.CommandMap">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">CommandMap</tt><a class="headerlink" href="#urwid.CommandMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>dict-like object for looking up commands from keystrokes</p>
+<p>Default values (key: command):</p>
+<div class="highlight-python"><pre>'tab':       'next selectable',
+'ctrl n':    'next selectable',
+'shift tab': 'prev selectable',
+'ctrl p':    'prev selectable',
+'ctrl l':    'redraw screen',
+'esc':       'menu',
+'up':        'cursor up',
+'down':      'cursor down',
+'left':      'cursor left',
+'right':     'cursor right',
+'page up':   'cursor page up',
+'page down': 'cursor page down',
+'home':      'cursor max left',
+'end':       'cursor max right',
+' ':         'activate',
+'enter':     'activate',</pre>
+</div>
+<dl class="method">
+<dt id="urwid.CommandMap.copy">
+<tt class="descname">copy</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.CommandMap.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new copy of this CommandMap, likely so we can modify
+it separate from a shared one.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="text_layout.html"
+                        title="previous chapter">Text Layout Classes</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="constants.html"
+                        title="next chapter">Constants</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/reference/command_map.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="constants.html" title="Constants"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="text_layout.html" title="Text Layout Classes"
+             >previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+          <li><a href="index.html" >Urwid Reference</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Ian Ward et al.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

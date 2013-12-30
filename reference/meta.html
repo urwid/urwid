@@ -1,0 +1,145 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Metaclasses &mdash; Urwid 1.1.2</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <link rel="top" title="Urwid 1.1.2" href="../index.html" />
+    <link rel="up" title="Urwid Reference" href="index.html" />
+    <link rel="next" title="Deprecated Classes" href="deprecated.html" />
+    <link rel="prev" title="Exceptions" href="exceptions.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="deprecated.html" title="Deprecated Classes"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="exceptions.html" title="Exceptions"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Urwid Reference</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="metaclasses">
+<h1>Metaclasses<a class="headerlink" href="#metaclasses" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="urwid.WidgetMeta">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">WidgetMeta</tt><big>(</big><em>name</em>, <em>bases</em>, <em>d</em><big>)</big><a class="headerlink" href="#urwid.WidgetMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#urwid.MetaSuper" title="urwid.MetaSuper"><tt class="xref py py-class docutils literal"><span class="pre">MetaSuper</span></tt></a>, <a class="reference internal" href="#urwid.MetaSignals" title="urwid.MetaSignals"><tt class="xref py py-class docutils literal"><span class="pre">MetaSignals</span></tt></a></p>
+<p>Automatic caching of render and rows methods.</p>
+<p>Class variable <em>no_cache</em> is a list of names of methods to not cache
+automatically.  Valid method names for <em>no_cache</em> are <tt class="docutils literal"><span class="pre">'render'</span></tt> and
+<tt class="docutils literal"><span class="pre">'rows'</span></tt>.</p>
+<p>Class variable <em>ignore_focus</em> if defined and set to <tt class="docutils literal"><span class="pre">True</span></tt> indicates
+that the canvas this widget renders is not affected by the focus
+parameter, so it may be ignored when caching.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="urwid.MetaSuper">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">MetaSuper</tt><big>(</big><em>name</em>, <em>bases</em>, <em>d</em><big>)</big><a class="headerlink" href="#urwid.MetaSuper" title="Permalink to this definition">¶</a></dt>
+<dd><p>adding .__super</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="urwid.MetaSignals">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">MetaSignals</tt><big>(</big><em>name</em>, <em>bases</em>, <em>d</em><big>)</big><a class="headerlink" href="#urwid.MetaSignals" title="Permalink to this definition">¶</a></dt>
+<dd><p>register the list of signals in the class varable signals,
+including signals in superclasses.</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="exceptions.html"
+                        title="previous chapter">Exceptions</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="deprecated.html"
+                        title="next chapter">Deprecated Classes</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/reference/meta.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="deprecated.html" title="Deprecated Classes"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="exceptions.html" title="Exceptions"
+             >previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+          <li><a href="index.html" >Urwid Reference</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Ian Ward et al.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

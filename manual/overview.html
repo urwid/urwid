@@ -1,0 +1,158 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Library Overview &mdash; Urwid 1.1.2</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <link rel="top" title="Urwid 1.1.2" href="../index.html" />
+    <link rel="up" title="Urwid Manual" href="index.html" />
+    <link rel="next" title="Main Loop" href="mainloop.html" />
+    <link rel="prev" title="Urwid Manual" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="mainloop.html" title="Main Loop"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Urwid Manual"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Urwid Manual</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="library-overview">
+<h1>Library Overview<a class="headerlink" href="#library-overview" title="Permalink to this headline">¶</a></h1>
+<p>Urwid is a console user interface library for <a class="reference external" href="http://www.python.org/">Python</a>. Urwid offers an
+alternative to using Python&#8217;s curses module directly and handles many of the
+difficult and tedious tasks for you.</p>
+<img alt="../_images/introduction.png" src="../_images/introduction.png" />
+<p>Each Urwid component is loosely coupled and designed to be extended by the
+user.</p>
+<p><a class="reference internal" href="displaymodules.html#display-modules"><em>Display modules</em></a> are responsible for accepting
+<a class="reference internal" href="userinput.html#user-input"><em>user input</em></a> and converting escape sequences to lists of
+keystrokes and mouse events. They also draw the screen contents and convert
+attributes used in the canvases rendered to the actual colors that appear on
+screen.</p>
+<p>The included widgets are simple building blocks and examples that try not to
+impose a particular style of interface.
+It may be helpful to think of Urwid as a console widget construction set rather
+than a finished UI library like GTK or Qt. The <a class="reference internal" href="../reference/widget.html#urwid.Widget" title="urwid.Widget"><tt class="xref py py-class docutils literal"><span class="pre">Widget</span> <span class="pre">base</span> <span class="pre">class</span></tt></a> describes the widget interface and <a class="reference internal" href="widgets.html#widget-layout"><em>widget layout</em></a> describes how widgets are nested and arranged on the screen.</p>
+<p>Text is the bulk of what will be displayed in any console user interface.
+Urwid supports a number of <a class="reference internal" href="encodings.html#text-encodings"><em>text encodings</em></a> and Urwid
+comes with a configurable <a class="reference internal" href="textlayout.html#text-layout"><em>text layout</em></a> that handles the
+most of the common alignment and wrapping modes. If you need more flexibility
+you can also write your own text layout classes.</p>
+<p>Urwid supports a range of common <a class="reference internal" href="displayattributes.html#display-attributes"><em>display attributes</em></a>, including 256-color foreground and background settings,
+bold, underline and standount settings for displaying text. Not all of these
+are supported by all terminals, so Urwid helps you write applications that
+support different color modes depending on what the user&#8217;s terminal supports
+and what they choose to enable.</p>
+<p><a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><tt class="xref py py-class docutils literal"><span class="pre">ListBox</span></tt></a> is one of Urwid&#8217;s most powerful widgets,
+and you may control of the <a class="reference internal" href="widgets.html#listbox-contents"><em>listbox contents</em></a> by using
+a built-in list walker class or by writing one yourself. This is very useful
+for scrolling through lists of any significant length, or with nesting, folding
+and other similar features.</p>
+<p>When a widget renders a canvas to be drawn on screen, a weak reference to it is
+stored in the <a class="reference internal" href="canvascache.html#canvas-cache"><em>canvas cache</em></a>. This cache is used any time a
+widget needs to be rendered again, reducing the amount of work required to
+update the screen. Since only weak references are used, Urwid&#8217;s display modules
+will hold on to a reference to the canvas that they are currently displaying as
+a way to keep the cache alive and populated with current data.</p>
+<p>Urwid&#8217;s <a class="reference internal" href="mainloop.html#main-loop"><em>main loop</em></a> simplifies handling of input and updating
+the screen.  It also lets you use one of a number of <a class="reference internal" href="mainloop.html#event-loops"><em>the event loops</em></a>, allowing integration with <a class="reference external" href="http://twistedmatrix.com/documents/current/core/howto/reactor-basics.html">Twisted</a>&#8216;s reactor or <a class="reference external" href="http://developer.gnome.org/glib/stable/glib-The-Main-Event-Loop.html">Glib</a>&#8216;s event
+loop if desired.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Urwid Manual</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="mainloop.html"
+                        title="next chapter">Main Loop</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/manual/overview.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="mainloop.html" title="Main Loop"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Urwid Manual"
+             >previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+          <li><a href="index.html" >Urwid Manual</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Ian Ward et al.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

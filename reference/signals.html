@@ -1,0 +1,215 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Signal Functions &mdash; Urwid 1.1.2</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <link rel="top" title="Urwid 1.1.2" href="../index.html" />
+    <link rel="up" title="Urwid Reference" href="index.html" />
+    <link rel="next" title="Global Settings" href="global_settings.html" />
+    <link rel="prev" title="List Walker Classes" href="list_walkers.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="global_settings.html" title="Global Settings"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="list_walkers.html" title="List Walker Classes"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Urwid Reference</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="signal-functions">
+<h1>Signal Functions<a class="headerlink" href="#signal-functions" title="Permalink to this headline">¶</a></h1>
+<p>The <tt class="xref py py-func docutils literal"><span class="pre">urwid.*_signal()</span></tt> functions use a shared Signals object instance
+for tracking registered and connected signals.  There is no reason to
+instantiate your own Signals object.</p>
+<dl class="function">
+<dt id="urwid.connect_signal">
+<tt class="descclassname">urwid.</tt><tt class="descname">connect_signal</tt><big>(</big><em>obj</em>, <em>name</em>, <em>callback</em>, <em>user_arg=None</em><big>)</big><a class="headerlink" href="#urwid.connect_signal" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="urwid.Signals.connect">
+<tt class="descclassname">Signals.</tt><tt class="descname">connect</tt><big>(</big><em>obj</em>, <em>name</em>, <em>callback</em>, <em>user_arg=None</em><big>)</big><a class="headerlink" href="#urwid.Signals.connect" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>obj</strong> (<em>object</em>) &#8211; the object sending a signal</li>
+<li><strong>name</strong> (<em>signal name</em>) &#8211; the signal to listen for, typically a string</li>
+<li><strong>callback</strong> (<em>function</em>) &#8211; the function to call when that signal is sent</li>
+<li><strong>user_arg</strong> &#8211; optional additional argument to callback, if None
+no arguments will be added</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>When a matching signal is sent, callback will be called with
+all the positional parameters sent with the signal.  If user_arg
+is not None it will be sent added to the end of the positional
+parameters sent to callback.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="urwid.disconnect_signal">
+<tt class="descclassname">urwid.</tt><tt class="descname">disconnect_signal</tt><big>(</big><em>obj</em>, <em>name</em>, <em>callback</em>, <em>user_arg=None</em><big>)</big><a class="headerlink" href="#urwid.disconnect_signal" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="urwid.Signals.disconnect">
+<tt class="descclassname">Signals.</tt><tt class="descname">disconnect</tt><big>(</big><em>obj</em>, <em>name</em>, <em>callback</em>, <em>user_arg=None</em><big>)</big><a class="headerlink" href="#urwid.Signals.disconnect" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function will remove a callback from the list connected
+to a signal with connect_signal().</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="urwid.register_signal">
+<tt class="descclassname">urwid.</tt><tt class="descname">register_signal</tt><big>(</big><em>sig_cls</em>, <em>signals</em><big>)</big><a class="headerlink" href="#urwid.register_signal" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="urwid.Signals.register">
+<tt class="descclassname">Signals.</tt><tt class="descname">register</tt><big>(</big><em>sig_cls</em>, <em>signals</em><big>)</big><a class="headerlink" href="#urwid.Signals.register" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>sig_class</strong> (<em>class</em>) &#8211; the class of an object that will be sending signals</li>
+<li><strong>signals</strong> (<em>signal names</em>) &#8211; a list of signals that may be sent, typically each
+signal is represented by a string</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>This function must be called for a class before connecting any
+signal callbacks or emiting any signals from that class&#8217; objects</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="urwid.emit_signal">
+<tt class="descclassname">urwid.</tt><tt class="descname">emit_signal</tt><big>(</big><em>obj</em>, <em>name</em>, <em>*args</em><big>)</big><a class="headerlink" href="#urwid.emit_signal" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="urwid.Signals.emit">
+<tt class="descclassname">Signals.</tt><tt class="descname">emit</tt><big>(</big><em>obj</em>, <em>name</em>, <em>*args</em><big>)</big><a class="headerlink" href="#urwid.Signals.emit" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>obj</strong> (<em>object</em>) &#8211; the object sending a signal</li>
+<li><strong>name</strong> (<em>signal name</em>) &#8211; the signal to send, typically a string</li>
+<li><strong>*args</strong> &#8211; zero or more positional arguments to pass to the signal
+callback functions</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>This function calls each of the callbacks connected to this signal
+with the args arguments as positional parameters.</p>
+<p>This function returns True if any of the callbacks returned True.</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="list_walkers.html"
+                        title="previous chapter">List Walker Classes</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="global_settings.html"
+                        title="next chapter">Global Settings</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/reference/signals.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="global_settings.html" title="Global Settings"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="list_walkers.html" title="List Walker Classes"
+             >previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+          <li><a href="index.html" >Urwid Reference</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Ian Ward et al.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

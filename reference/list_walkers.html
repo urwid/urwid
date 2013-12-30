@@ -1,0 +1,366 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>List Walker Classes &mdash; Urwid 1.1.2</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <link rel="top" title="Urwid 1.1.2" href="../index.html" />
+    <link rel="up" title="Urwid Reference" href="index.html" />
+    <link rel="next" title="Signal Functions" href="signals.html" />
+    <link rel="prev" title="Display Modules" href="display_modules.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="signals.html" title="Signal Functions"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="display_modules.html" title="Display Modules"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Urwid Reference</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="list-walker-classes">
+<h1>List Walker Classes<a class="headerlink" href="#list-walker-classes" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="listwalker">
+<h2>ListWalker<a class="headerlink" href="#listwalker" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="urwid.ListWalker">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">ListWalker</tt><a class="headerlink" href="#urwid.ListWalker" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="urwid.ListWalker.get_focus">
+<tt class="descname">get_focus</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.ListWalker.get_focus" title="Permalink to this definition">¶</a></dt>
+<dd><p>This default implementation relies on a focus attribute and a
+__getitem__() method defined in a subclass.</p>
+<p>Override and don&#8217;t call this method if these are not defined.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.ListWalker.get_next">
+<tt class="descname">get_next</tt><big>(</big><em>position</em><big>)</big><a class="headerlink" href="#urwid.ListWalker.get_next" title="Permalink to this definition">¶</a></dt>
+<dd><p>This default implementation relies on a next_position() method and a
+__getitem__() method defined in a subclass.</p>
+<p>Override and don&#8217;t call this method if these are not defined.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.ListWalker.get_prev">
+<tt class="descname">get_prev</tt><big>(</big><em>position</em><big>)</big><a class="headerlink" href="#urwid.ListWalker.get_prev" title="Permalink to this definition">¶</a></dt>
+<dd><p>This default implementation relies on a prev_position() method and a
+__getitem__() method defined in a subclass.</p>
+<p>Override and don&#8217;t call this method if these are not defined.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="list-like-list-walkers">
+<h2>List-like List Walkers<a class="headerlink" href="#list-like-list-walkers" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="urwid.SimpleFocusListWalker">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">SimpleFocusListWalker</tt><big>(</big><em>contents</em><big>)</big><a class="headerlink" href="#urwid.SimpleFocusListWalker" title="Permalink to this definition">¶</a></dt>
+<dd><p>contents &#8211; list to copy into this object</p>
+<p>Changes made to this object (when it is treated as a list) are
+detected automatically and will cause ListBox objects using
+this list walker to be updated.</p>
+<p>Also, items added or removed before the widget in focus with
+normal list methods will cause the focus to be updated
+intelligently.</p>
+<dl class="method">
+<dt id="urwid.SimpleFocusListWalker.next_position">
+<tt class="descname">next_position</tt><big>(</big><em>position</em><big>)</big><a class="headerlink" href="#urwid.SimpleFocusListWalker.next_position" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return position after start_from.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.SimpleFocusListWalker.positions">
+<tt class="descname">positions</tt><big>(</big><em>reverse=False</em><big>)</big><a class="headerlink" href="#urwid.SimpleFocusListWalker.positions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional method for returning an iterable of positions.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.SimpleFocusListWalker.prev_position">
+<tt class="descname">prev_position</tt><big>(</big><em>position</em><big>)</big><a class="headerlink" href="#urwid.SimpleFocusListWalker.prev_position" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return position before start_from.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.SimpleFocusListWalker.set_focus">
+<tt class="descname">set_focus</tt><big>(</big><em>position</em><big>)</big><a class="headerlink" href="#urwid.SimpleFocusListWalker.set_focus" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set focus position.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.SimpleFocusListWalker.set_modified_callback">
+<tt class="descname">set_modified_callback</tt><big>(</big><em>callback</em><big>)</big><a class="headerlink" href="#urwid.SimpleFocusListWalker.set_modified_callback" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function inherited from MonitoredList is not
+implemented in SimpleFocusListWalker.</p>
+<p>Use connect_signal(list_walker, &#8220;modified&#8221;, ...) instead.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="urwid.SimpleListWalker">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">SimpleListWalker</tt><big>(</big><em>contents</em><big>)</big><a class="headerlink" href="#urwid.SimpleListWalker" title="Permalink to this definition">¶</a></dt>
+<dd><p>contents &#8211; list to copy into this object</p>
+<p>Changes made to this object (when it is treated as a list) are
+detected automatically and will cause ListBox objects using
+this list walker to be updated.</p>
+<dl class="attribute">
+<dt id="urwid.SimpleListWalker.contents">
+<tt class="descname">contents</tt><a class="headerlink" href="#urwid.SimpleListWalker.contents" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return self.</p>
+<p>Provides compatibility with old SimpleListWalker class.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.SimpleListWalker.next_position">
+<tt class="descname">next_position</tt><big>(</big><em>position</em><big>)</big><a class="headerlink" href="#urwid.SimpleListWalker.next_position" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return position after start_from.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.SimpleListWalker.positions">
+<tt class="descname">positions</tt><big>(</big><em>reverse=False</em><big>)</big><a class="headerlink" href="#urwid.SimpleListWalker.positions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optional method for returning an iterable of positions.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.SimpleListWalker.prev_position">
+<tt class="descname">prev_position</tt><big>(</big><em>position</em><big>)</big><a class="headerlink" href="#urwid.SimpleListWalker.prev_position" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return position before start_from.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.SimpleListWalker.set_focus">
+<tt class="descname">set_focus</tt><big>(</big><em>position</em><big>)</big><a class="headerlink" href="#urwid.SimpleListWalker.set_focus" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set focus position.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.SimpleListWalker.set_modified_callback">
+<tt class="descname">set_modified_callback</tt><big>(</big><em>callback</em><big>)</big><a class="headerlink" href="#urwid.SimpleListWalker.set_modified_callback" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function inherited from MonitoredList is not
+implemented in SimpleListWalker.</p>
+<p>Use connect_signal(list_walker, &#8220;modified&#8221;, ...) instead.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="treewalker-and-nodes">
+<h2>TreeWalker and Nodes<a class="headerlink" href="#treewalker-and-nodes" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="urwid.TreeWalker">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">TreeWalker</tt><big>(</big><em>start_from</em><big>)</big><a class="headerlink" href="#urwid.TreeWalker" title="Permalink to this definition">¶</a></dt>
+<dd><p>ListWalker-compatible class for displaying TreeWidgets</p>
+<p>positions are TreeNodes.</p>
+<p>start_from: TreeNode with the initial focus.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="urwid.TreeNode">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">TreeNode</tt><big>(</big><em>value</em>, <em>parent=None</em>, <em>key=None</em>, <em>depth=None</em><big>)</big><a class="headerlink" href="#urwid.TreeNode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Store tree contents and cache TreeWidget objects.  
+A TreeNode consists of the following elements:
+*  key: accessor token for parent nodes
+*  value: subclass-specific data
+*  parent: a TreeNode which contains a pointer back to this object
+*  widget: The widget used to render the object</p>
+<dl class="method">
+<dt id="urwid.TreeNode.get_widget">
+<tt class="descname">get_widget</tt><big>(</big><em>reload=False</em><big>)</big><a class="headerlink" href="#urwid.TreeNode.get_widget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the widget for this node.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.TreeNode.load_parent">
+<tt class="descname">load_parent</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.TreeNode.load_parent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provide TreeNode with a parent for the current node.  This function
+is only required if the tree was instantiated from a child node
+(virtual function)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="urwid.ParentNode">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">ParentNode</tt><big>(</big><em>value</em>, <em>parent=None</em>, <em>key=None</em>, <em>depth=None</em><big>)</big><a class="headerlink" href="#urwid.ParentNode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maintain sort order for TreeNodes.</p>
+<dl class="method">
+<dt id="urwid.ParentNode.get_child_keys">
+<tt class="descname">get_child_keys</tt><big>(</big><em>reload=False</em><big>)</big><a class="headerlink" href="#urwid.ParentNode.get_child_keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a possibly ordered list of child keys</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.ParentNode.get_child_node">
+<tt class="descname">get_child_node</tt><big>(</big><em>key</em>, <em>reload=False</em><big>)</big><a class="headerlink" href="#urwid.ParentNode.get_child_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the child node for a given key.  Create if necessary.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.ParentNode.get_child_widget">
+<tt class="descname">get_child_widget</tt><big>(</big><em>key</em><big>)</big><a class="headerlink" href="#urwid.ParentNode.get_child_widget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the widget for a given key.  Create if necessary.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.ParentNode.get_first_child">
+<tt class="descname">get_first_child</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.ParentNode.get_first_child" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the first TreeNode in the directory.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.ParentNode.get_last_child">
+<tt class="descname">get_last_child</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.ParentNode.get_last_child" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the last TreeNode in the directory.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.ParentNode.has_children">
+<tt class="descname">has_children</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.ParentNode.has_children" title="Permalink to this definition">¶</a></dt>
+<dd><p>Does this node have any children?</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.ParentNode.load_child_keys">
+<tt class="descname">load_child_keys</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.ParentNode.load_child_keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provide ParentNode with an ordered list of child keys (virtual
+function)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.ParentNode.load_child_node">
+<tt class="descname">load_child_node</tt><big>(</big><em>key</em><big>)</big><a class="headerlink" href="#urwid.ParentNode.load_child_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the child node for a given key (virtual function)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.ParentNode.next_child">
+<tt class="descname">next_child</tt><big>(</big><em>key</em><big>)</big><a class="headerlink" href="#urwid.ParentNode.next_child" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the next child node in index order from the given key.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.ParentNode.prev_child">
+<tt class="descname">prev_child</tt><big>(</big><em>key</em><big>)</big><a class="headerlink" href="#urwid.ParentNode.prev_child" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the previous child node in index order from the given key.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.ParentNode.set_child_node">
+<tt class="descname">set_child_node</tt><big>(</big><em>key</em>, <em>node</em><big>)</big><a class="headerlink" href="#urwid.ParentNode.set_child_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the child node for a given key.  Useful for bottom-up, lazy 
+population of a tree..</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
+            </a></p>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">List Walker Classes</a><ul>
+<li><a class="reference internal" href="#listwalker">ListWalker</a></li>
+<li><a class="reference internal" href="#list-like-list-walkers">List-like List Walkers</a></li>
+<li><a class="reference internal" href="#treewalker-and-nodes">TreeWalker and Nodes</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="display_modules.html"
+                        title="previous chapter">Display Modules</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="signals.html"
+                        title="next chapter">Signal Functions</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/reference/list_walkers.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="signals.html" title="Signal Functions"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="display_modules.html" title="Display Modules"
+             >previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+          <li><a href="index.html" >Urwid Reference</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Ian Ward et al.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,834 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Display Modules &mdash; Urwid 1.1.2</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <link rel="top" title="Urwid 1.1.2" href="../index.html" />
+    <link rel="up" title="Urwid Reference" href="index.html" />
+    <link rel="next" title="List Walker Classes" href="list_walkers.html" />
+    <link rel="prev" title="Widget Classes" href="widget.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="list_walkers.html" title="List Walker Classes"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="widget.html" title="Widget Classes"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Urwid Reference</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="display-modules">
+<h1>Display Modules<a class="headerlink" href="#display-modules" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="urwid.BaseScreen">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">BaseScreen</tt><a class="headerlink" href="#urwid.BaseScreen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for Screen classes (raw_display.Screen, .. etc)</p>
+<dl class="method">
+<dt id="urwid.BaseScreen.register_palette">
+<tt class="descname">register_palette</tt><big>(</big><em>palette</em><big>)</big><a class="headerlink" href="#urwid.BaseScreen.register_palette" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register a set of palette entries.</p>
+<p>palette &#8211; a list of (name, like_other_name) or
+(name, foreground, background, mono, foreground_high,
+background_high) tuples</p>
+<blockquote>
+<div><p>The (name, like_other_name) format will copy the settings
+from the palette entry like_other_name, which must appear
+before this tuple in the list.</p>
+<p>The mono and foreground/background_high values are
+optional ie. the second tuple format may have 3, 4 or 6
+values.  See register_palette_entry() for a description
+of the tuple values.</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.BaseScreen.register_palette_entry">
+<tt class="descname">register_palette_entry</tt><big>(</big><em>name</em>, <em>foreground</em>, <em>background</em>, <em>mono=None</em>, <em>foreground_high=None</em>, <em>background_high=None</em><big>)</big><a class="headerlink" href="#urwid.BaseScreen.register_palette_entry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register a single palette entry.</p>
+<p>name &#8211; new entry/attribute name</p>
+<p>foreground &#8211; a string containing a comma-separated foreground
+color and settings</p>
+<blockquote>
+<div><p>Color values:
+&#8216;default&#8217; (use the terminal&#8217;s default foreground),
+&#8216;black&#8217;, &#8216;dark red&#8217;, &#8216;dark green&#8217;, &#8216;brown&#8217;, &#8216;dark blue&#8217;,
+&#8216;dark magenta&#8217;, &#8216;dark cyan&#8217;, &#8216;light gray&#8217;, &#8216;dark gray&#8217;,
+&#8216;light red&#8217;, &#8216;light green&#8217;, &#8216;yellow&#8217;, &#8216;light blue&#8217;,
+&#8216;light magenta&#8217;, &#8216;light cyan&#8217;, &#8216;white&#8217;</p>
+<p>Settings:
+&#8216;bold&#8217;, &#8216;underline&#8217;, &#8216;blink&#8217;, &#8216;standout&#8217;</p>
+<p>Some terminals use &#8216;bold&#8217; for bright colors.  Most terminals
+ignore the &#8216;blink&#8217; setting.  If the color is not given then
+&#8216;default&#8217; will be assumed.</p>
+</div></blockquote>
+<p>background &#8211; a string containing the background color</p>
+<blockquote>
+<div>Background color values:
+&#8216;default&#8217; (use the terminal&#8217;s default background),
+&#8216;black&#8217;, &#8216;dark red&#8217;, &#8216;dark green&#8217;, &#8216;brown&#8217;, &#8216;dark blue&#8217;,
+&#8216;dark magenta&#8217;, &#8216;dark cyan&#8217;, &#8216;light gray&#8217;</div></blockquote>
+<p>mono &#8211; a comma-separated string containing monochrome terminal
+settings (see &#8220;Settings&#8221; above.)</p>
+<blockquote>
+<div>None = no terminal settings (same as &#8216;default&#8217;)</div></blockquote>
+<p>foreground_high &#8211; a string containing a comma-separated
+foreground color and settings, standard foreground
+colors (see &#8220;Color values&#8221; above) or high-colors may
+be used</p>
+<blockquote>
+<div><p>High-color example values:
+&#8216;#009&#8217; (0% red, 0% green, 60% red, like HTML colors)
+&#8216;#fcc&#8217; (100% red, 80% green, 80% blue)
+&#8216;g40&#8217; (40% gray, decimal), &#8216;g#cc&#8217; (80% gray, hex),
+&#8216;#000&#8217;, &#8216;g0&#8217;, &#8216;g#00&#8217; (black),
+&#8216;#fff&#8217;, &#8216;g100&#8217;, &#8216;g#ff&#8217; (white)
+&#8216;h8&#8217; (color number 8), &#8216;h255&#8217; (color number 255)</p>
+<p>None = use foreground parameter value</p>
+</div></blockquote>
+<p>background_high &#8211; a string containing the background color,
+standard background colors (see &#8220;Background colors&#8221; above)
+or high-colors (see &#8220;High-color example values&#8221; above)
+may be used</p>
+<blockquote>
+<div>None = use background parameter value</div></blockquote>
+</dd></dl>
+
+</dd></dl>
+
+<div class="section" id="module-urwid.raw_display">
+<span id="raw-display"></span><h2>raw_display<a class="headerlink" href="#module-urwid.raw_display" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="urwid.raw_display.Screen">
+<em class="property">class </em><tt class="descclassname">urwid.raw_display.</tt><tt class="descname">Screen</tt><a class="headerlink" href="#urwid.raw_display.Screen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize a screen that directly prints escape codes to an output
+terminal.</p>
+<dl class="method">
+<dt id="urwid.raw_display.Screen.clear">
+<tt class="descname">clear</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.raw_display.Screen.clear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Force the screen to be completely repainted on the next
+call to draw_screen().</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.raw_display.Screen.draw_screen">
+<tt class="descname">draw_screen</tt><big>(</big><em>(maxcol</em>, <em>maxrow)</em>, <em>r</em><big>)</big><a class="headerlink" href="#urwid.raw_display.Screen.draw_screen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Paint screen with rendered canvas.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.raw_display.Screen.get_cols_rows">
+<tt class="descname">get_cols_rows</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.raw_display.Screen.get_cols_rows" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the terminal dimensions (num columns, num rows).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.raw_display.Screen.get_input">
+<tt class="descname">get_input</tt><big>(</big><em>raw_keys=False</em><big>)</big><a class="headerlink" href="#urwid.raw_display.Screen.get_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return pending input as a list.</p>
+<p>raw_keys &#8211; return raw keycodes as well as translated versions</p>
+<p>This function will immediately return all the input since the
+last time it was called.  If there is no input pending it will
+wait before returning an empty list.  The wait time may be
+configured with the set_input_timeouts function.</p>
+<p>If raw_keys is False (default) this function will return a list
+of keys pressed.  If raw_keys is True this function will return
+a ( keys pressed, raw keycodes ) tuple instead.</p>
+<p>Examples of keys returned:</p>
+<ul class="simple">
+<li>ASCII printable characters:  &#8221; &#8221;, &#8220;a&#8221;, &#8220;0&#8221;, &#8220;A&#8221;, &#8220;-&#8221;, &#8220;/&#8221;</li>
+<li>ASCII control characters:  &#8220;tab&#8221;, &#8220;enter&#8221;</li>
+<li>Escape sequences:  &#8220;up&#8221;, &#8220;page up&#8221;, &#8220;home&#8221;, &#8220;insert&#8221;, &#8220;f1&#8221;</li>
+<li>Key combinations:  &#8220;shift f1&#8221;, &#8220;meta a&#8221;, &#8220;ctrl b&#8221;</li>
+<li>Window events:  &#8220;window resize&#8221;</li>
+</ul>
+<p>When a narrow encoding is not enabled:</p>
+<ul class="simple">
+<li>&#8220;Extended ASCII&#8221; characters:  &#8220;xa1&#8221;, &#8220;xb2&#8221;, &#8220;xfe&#8221;</li>
+</ul>
+<p>When a wide encoding is enabled:</p>
+<ul class="simple">
+<li>Double-byte characters:  &#8220;xa1xea&#8221;, &#8220;xb2xd4&#8221;</li>
+</ul>
+<p>When utf8 encoding is enabled:</p>
+<ul class="simple">
+<li>Unicode characters: u&#8221;u00a5&#8221;, u&#8217;u253c&#8221;</li>
+</ul>
+<p>Examples of mouse events returned:</p>
+<ul>
+<li><dl class="first docutils">
+<dt>Mouse button press: (&#8216;mouse press&#8217;, 1, 15, 13), </dt>
+<dd><p class="first last">(&#8216;meta mouse press&#8217;, 2, 17, 23)</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>Mouse drag: (&#8216;mouse drag&#8217;, 1, 16, 13),</dt>
+<dd><p class="first last">(&#8216;mouse drag&#8217;, 1, 17, 13),
+(&#8216;ctrl mouse drag&#8217;, 1, 18, 13)</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>Mouse button release: (&#8216;mouse release&#8217;, 0, 18, 13),</dt>
+<dd><p class="first last">(&#8216;ctrl mouse release&#8217;, 0, 17, 23)</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.raw_display.Screen.get_input_descriptors">
+<tt class="descname">get_input_descriptors</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.raw_display.Screen.get_input_descriptors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of integer file descriptors that should be
+polled in external event loops to check for user input.</p>
+<p>Use this method if you are implementing yout own event loop.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.raw_display.Screen.get_input_nonblocking">
+<tt class="descname">get_input_nonblocking</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.raw_display.Screen.get_input_nonblocking" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a (next_input_timeout, keys_pressed, raw_keycodes)
+tuple.</p>
+<p>Use this method if you are implementing your own event loop.</p>
+<p>When there is input waiting on one of the descriptors returned
+by get_input_descriptors() this method should be called to
+read and process the input.</p>
+<p>This method expects to be called in next_input_timeout seconds
+(a floating point number) if there is no input waiting.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.raw_display.Screen.modify_terminal_palette">
+<tt class="descname">modify_terminal_palette</tt><big>(</big><em>entries</em><big>)</big><a class="headerlink" href="#urwid.raw_display.Screen.modify_terminal_palette" title="Permalink to this definition">¶</a></dt>
+<dd><p>entries - list of (index, red, green, blue) tuples.</p>
+<p>Attempt to set part of the terminal pallette (this does not work
+on all terminals.)  The changes are sent as a single escape
+sequence so they should all take effect at the same time.</p>
+<p>0 &lt;= index &lt; 256 (some terminals will only have 16 or 88 colors)
+0 &lt;= red, green, blue &lt; 256</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.raw_display.Screen.reset_default_terminal_palette">
+<tt class="descname">reset_default_terminal_palette</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.raw_display.Screen.reset_default_terminal_palette" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attempt to set the terminal palette to default values as taken
+from xterm.  Uses number of colors from current 
+set_terminal_properties() screen setting.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.raw_display.Screen.run_wrapper">
+<tt class="descname">run_wrapper</tt><big>(</big><em>fn</em>, <em>alternate_buffer=True</em><big>)</big><a class="headerlink" href="#urwid.raw_display.Screen.run_wrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call start to initialize screen, then call fn.  
+When fn exits call stop to restore the screen to normal.</p>
+<dl class="docutils">
+<dt>alternate_buffer &#8211; use alternate screen buffer and restore</dt>
+<dd>normal screen buffer on exit</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.raw_display.Screen.set_input_timeouts">
+<tt class="descname">set_input_timeouts</tt><big>(</big><em>max_wait=None</em>, <em>complete_wait=0.125</em>, <em>resize_wait=0.125</em><big>)</big><a class="headerlink" href="#urwid.raw_display.Screen.set_input_timeouts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the get_input timeout values.  All values are in floating
+point numbers of seconds.</p>
+<dl class="docutils">
+<dt>max_wait &#8211; amount of time in seconds to wait for input when</dt>
+<dd>there is no input pending, wait forever if None</dd>
+<dt>complete_wait &#8211; amount of time in seconds to wait when</dt>
+<dd>get_input detects an incomplete escape sequence at the
+end of the available input</dd>
+<dt>resize_wait &#8211; amount of time in seconds to wait for more input</dt>
+<dd>after receiving two screen resize requests in a row to
+stop Urwid from consuming 100% cpu during a gradual
+window resize operation</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.raw_display.Screen.set_mouse_tracking">
+<tt class="descname">set_mouse_tracking</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.raw_display.Screen.set_mouse_tracking" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enable mouse tracking.</p>
+<p>After calling this function get_input will include mouse
+click events along with keystrokes.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.raw_display.Screen.set_terminal_properties">
+<tt class="descname">set_terminal_properties</tt><big>(</big><em>colors=None</em>, <em>bright_is_bold=None</em>, <em>has_underline=None</em><big>)</big><a class="headerlink" href="#urwid.raw_display.Screen.set_terminal_properties" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>colors &#8211; number of colors terminal supports (1, 16, 88 or 256)</dt>
+<dd>or None to leave unchanged</dd>
+<dt>bright_is_bold &#8211; set to True if this terminal uses the bold </dt>
+<dd>setting to create bright colors (numbers 8-15), set to False
+if this Terminal can create bright colors without bold or
+None to leave unchanged</dd>
+<dt>has_underline &#8211; set to True if this terminal can use the</dt>
+<dd>underline setting, False if it cannot or None to leave
+unchanged</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.raw_display.Screen.signal_init">
+<tt class="descname">signal_init</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.raw_display.Screen.signal_init" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called in the startup of run wrapper to set the SIGWINCH
+and SIGCONT signal handlers.</p>
+<p>Override this function to call from main thread in threaded
+applications.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.raw_display.Screen.signal_restore">
+<tt class="descname">signal_restore</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.raw_display.Screen.signal_restore" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called in the finally block of run wrapper to restore the
+SIGWINCH and SIGCONT signal handlers.</p>
+<p>Override this function to call from main thread in threaded
+applications.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.raw_display.Screen.start">
+<tt class="descname">start</tt><big>(</big><em>alternate_buffer=True</em><big>)</big><a class="headerlink" href="#urwid.raw_display.Screen.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize the screen and input mode.</p>
+<p>alternate_buffer &#8211; use alternate screen buffer</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.raw_display.Screen.stop">
+<tt class="descname">stop</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.raw_display.Screen.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Restore the screen.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-urwid.curses_display">
+<span id="curses-display"></span><h2>curses_display<a class="headerlink" href="#module-urwid.curses_display" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="urwid.curses_display.Screen">
+<em class="property">class </em><tt class="descclassname">urwid.curses_display.</tt><tt class="descname">Screen</tt><a class="headerlink" href="#urwid.curses_display.Screen" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="urwid.curses_display.Screen.clear">
+<tt class="descname">clear</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.curses_display.Screen.clear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Force the screen to be completely repainted on the next
+call to draw_screen().</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.curses_display.Screen.draw_screen">
+<tt class="descname">draw_screen</tt><big>(</big><em>(cols</em>, <em>rows)</em>, <em>r</em><big>)</big><a class="headerlink" href="#urwid.curses_display.Screen.draw_screen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Paint screen with rendered canvas.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.curses_display.Screen.get_cols_rows">
+<tt class="descname">get_cols_rows</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.curses_display.Screen.get_cols_rows" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the terminal dimensions (num columns, num rows).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.curses_display.Screen.get_input">
+<tt class="descname">get_input</tt><big>(</big><em>raw_keys=False</em><big>)</big><a class="headerlink" href="#urwid.curses_display.Screen.get_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return pending input as a list.</p>
+<p>raw_keys &#8211; return raw keycodes as well as translated versions</p>
+<p>This function will immediately return all the input since the
+last time it was called.  If there is no input pending it will
+wait before returning an empty list.  The wait time may be
+configured with the set_input_timeouts function.</p>
+<p>If raw_keys is False (default) this function will return a list
+of keys pressed.  If raw_keys is True this function will return
+a ( keys pressed, raw keycodes ) tuple instead.</p>
+<p>Examples of keys returned:</p>
+<ul class="simple">
+<li>ASCII printable characters:  &#8221; &#8221;, &#8220;a&#8221;, &#8220;0&#8221;, &#8220;A&#8221;, &#8220;-&#8221;, &#8220;/&#8221;</li>
+<li>ASCII control characters:  &#8220;tab&#8221;, &#8220;enter&#8221;</li>
+<li>Escape sequences:  &#8220;up&#8221;, &#8220;page up&#8221;, &#8220;home&#8221;, &#8220;insert&#8221;, &#8220;f1&#8221;</li>
+<li>Key combinations:  &#8220;shift f1&#8221;, &#8220;meta a&#8221;, &#8220;ctrl b&#8221;</li>
+<li>Window events:  &#8220;window resize&#8221;</li>
+</ul>
+<p>When a narrow encoding is not enabled:</p>
+<ul class="simple">
+<li>&#8220;Extended ASCII&#8221; characters:  &#8220;xa1&#8221;, &#8220;xb2&#8221;, &#8220;xfe&#8221;</li>
+</ul>
+<p>When a wide encoding is enabled:</p>
+<ul class="simple">
+<li>Double-byte characters:  &#8220;xa1xea&#8221;, &#8220;xb2xd4&#8221;</li>
+</ul>
+<p>When utf8 encoding is enabled:</p>
+<ul class="simple">
+<li>Unicode characters: u&#8221;u00a5&#8221;, u&#8217;u253c&#8221;</li>
+</ul>
+<p>Examples of mouse events returned:</p>
+<ul>
+<li><dl class="first docutils">
+<dt>Mouse button press: (&#8216;mouse press&#8217;, 1, 15, 13),</dt>
+<dd><p class="first last">(&#8216;meta mouse press&#8217;, 2, 17, 23)</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>Mouse button release: (&#8216;mouse release&#8217;, 0, 18, 13),</dt>
+<dd><p class="first last">(&#8216;ctrl mouse release&#8217;, 0, 17, 23)</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.curses_display.Screen.run_wrapper">
+<tt class="descname">run_wrapper</tt><big>(</big><em>fn</em><big>)</big><a class="headerlink" href="#urwid.curses_display.Screen.run_wrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call fn in fullscreen mode.  Return to normal on exit.</p>
+<p>This function should be called to wrap your main program loop.
+Exception tracebacks will be displayed in normal mode.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.curses_display.Screen.set_input_timeouts">
+<tt class="descname">set_input_timeouts</tt><big>(</big><em>max_wait=None</em>, <em>complete_wait=0.1</em>, <em>resize_wait=0.1</em><big>)</big><a class="headerlink" href="#urwid.curses_display.Screen.set_input_timeouts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the get_input timeout values.  All values have a granularity
+of 0.1s, ie. any value between 0.15 and 0.05 will be treated as
+0.1 and any value less than 0.05 will be treated as 0.  The
+maximum timeout value for this module is 25.5 seconds.</p>
+<dl class="docutils">
+<dt>max_wait &#8211; amount of time in seconds to wait for input when</dt>
+<dd>there is no input pending, wait forever if None</dd>
+<dt>complete_wait &#8211; amount of time in seconds to wait when</dt>
+<dd>get_input detects an incomplete escape sequence at the
+end of the available input</dd>
+<dt>resize_wait &#8211; amount of time in seconds to wait for more input</dt>
+<dd>after receiving two screen resize requests in a row to
+stop urwid from consuming 100% cpu during a gradual
+window resize operation</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.curses_display.Screen.set_mouse_tracking">
+<tt class="descname">set_mouse_tracking</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.curses_display.Screen.set_mouse_tracking" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enable mouse tracking.</p>
+<p>After calling this function get_input will include mouse
+click events along with keystrokes.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.curses_display.Screen.start">
+<tt class="descname">start</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.curses_display.Screen.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize the screen and input mode.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.curses_display.Screen.stop">
+<tt class="descname">stop</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.curses_display.Screen.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Restore the screen.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-urwid.web_display">
+<span id="web-display"></span><h2>web_display<a class="headerlink" href="#module-urwid.web_display" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="urwid.web_display.Screen">
+<em class="property">class </em><tt class="descclassname">urwid.web_display.</tt><tt class="descname">Screen</tt><a class="headerlink" href="#urwid.web_display.Screen" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="urwid.web_display.Screen.clear">
+<tt class="descname">clear</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.web_display.Screen.clear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Force the screen to be completely repainted on the next
+call to draw_screen().</p>
+<p>(does nothing for web_display)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.web_display.Screen.draw_screen">
+<tt class="descname">draw_screen</tt><big>(</big><em>(cols</em>, <em>rows)</em>, <em>r</em><big>)</big><a class="headerlink" href="#urwid.web_display.Screen.draw_screen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Send a screen update to the client.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.web_display.Screen.get_cols_rows">
+<tt class="descname">get_cols_rows</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.web_display.Screen.get_cols_rows" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the screen size.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.web_display.Screen.get_input">
+<tt class="descname">get_input</tt><big>(</big><em>raw_keys=False</em><big>)</big><a class="headerlink" href="#urwid.web_display.Screen.get_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return pending input as a list.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.web_display.Screen.register_palette">
+<tt class="descname">register_palette</tt><big>(</big><em>l</em><big>)</big><a class="headerlink" href="#urwid.web_display.Screen.register_palette" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register a list of palette entries.</p>
+<dl class="docutils">
+<dt>l &#8211; list of (name, foreground, background) or</dt>
+<dd>(name, same_as_other_name) palette entries.</dd>
+</dl>
+<p>calls self.register_palette_entry for each item in l</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.web_display.Screen.register_palette_entry">
+<tt class="descname">register_palette_entry</tt><big>(</big><em>name</em>, <em>foreground</em>, <em>background</em>, <em>mono=None</em><big>)</big><a class="headerlink" href="#urwid.web_display.Screen.register_palette_entry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register a single palette entry.</p>
+<p>name &#8211; new entry/attribute name
+foreground &#8211; foreground colour
+background &#8211; background colour
+mono &#8211; monochrome terminal attribute</p>
+<p>See curses_display.register_palette_entry for more info.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.web_display.Screen.run_wrapper">
+<tt class="descname">run_wrapper</tt><big>(</big><em>fn</em><big>)</big><a class="headerlink" href="#urwid.web_display.Screen.run_wrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the application main loop, calling start() first
+and stop() on exit.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.web_display.Screen.set_mouse_tracking">
+<tt class="descname">set_mouse_tracking</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.web_display.Screen.set_mouse_tracking" title="Permalink to this definition">¶</a></dt>
+<dd><p>Not yet implemented</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.web_display.Screen.start">
+<tt class="descname">start</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.web_display.Screen.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function reads the initial screen size, generates a
+unique id and handles cleanup when fn exits.</p>
+<p>web_display.set_preferences(..) must be called before calling
+this function for the preferences to take effect</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.web_display.Screen.stop">
+<tt class="descname">stop</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.web_display.Screen.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Restore settings and clean up.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.web_display.Screen.tty_signal_keys">
+<tt class="descname">tty_signal_keys</tt><big>(</big><em>*args</em>, <em>**vargs</em><big>)</big><a class="headerlink" href="#urwid.web_display.Screen.tty_signal_keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Do nothing.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-urwid.html_fragment">
+<span id="html-fragment"></span><h2>html_fragment<a class="headerlink" href="#module-urwid.html_fragment" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="urwid.html_fragment.HtmlGenerator">
+<em class="property">class </em><tt class="descclassname">urwid.html_fragment.</tt><tt class="descname">HtmlGenerator</tt><a class="headerlink" href="#urwid.html_fragment.HtmlGenerator" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="urwid.html_fragment.HtmlGenerator.clear">
+<tt class="descname">clear</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.html_fragment.HtmlGenerator.clear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Force the screen to be completely repainted on the next
+call to draw_screen().</p>
+<p>(does nothing for html_fragment)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.html_fragment.HtmlGenerator.draw_screen">
+<tt class="descname">draw_screen</tt><big>(</big><em>(cols</em>, <em>rows)</em>, <em>r</em><big>)</big><a class="headerlink" href="#urwid.html_fragment.HtmlGenerator.draw_screen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create an html fragment from the render object. 
+Append it to HtmlGenerator.fragments list.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.html_fragment.HtmlGenerator.get_cols_rows">
+<tt class="descname">get_cols_rows</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.html_fragment.HtmlGenerator.get_cols_rows" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the next screen size in HtmlGenerator.sizes.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.html_fragment.HtmlGenerator.get_input">
+<tt class="descname">get_input</tt><big>(</big><em>raw_keys=False</em><big>)</big><a class="headerlink" href="#urwid.html_fragment.HtmlGenerator.get_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the next list of keypresses in HtmlGenerator.keys.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.html_fragment.HtmlGenerator.run_wrapper">
+<tt class="descname">run_wrapper</tt><big>(</big><em>fn</em><big>)</big><a class="headerlink" href="#urwid.html_fragment.HtmlGenerator.run_wrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call fn.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.html_fragment.HtmlGenerator.set_mouse_tracking">
+<tt class="descname">set_mouse_tracking</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.html_fragment.HtmlGenerator.set_mouse_tracking" title="Permalink to this definition">¶</a></dt>
+<dd><p>Not yet implemented</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="urwid.html_fragment.screenshot_init">
+<tt class="descclassname">urwid.html_fragment.</tt><tt class="descname">screenshot_init</tt><big>(</big><em>sizes</em>, <em>keys</em><big>)</big><a class="headerlink" href="#urwid.html_fragment.screenshot_init" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replace curses_display.Screen and raw_display.Screen class with 
+HtmlGenerator.</p>
+<p>Call this function before executing an application that uses 
+curses_display.Screen to have that code use HtmlGenerator instead.</p>
+<dl class="docutils">
+<dt>sizes &#8211; list of ( columns, rows ) tuples to be returned by each call</dt>
+<dd>to HtmlGenerator.get_cols_rows()</dd>
+<dt>keys &#8211; list of lists of keys to be returned by each call to</dt>
+<dd>HtmlGenerator.get_input()</dd>
+</dl>
+<p>Lists of keys may include &#8220;window resize&#8221; to force the application to
+call get_cols_rows and read a new screen size.</p>
+<dl class="docutils">
+<dt>For example, the following call will prepare an application to:</dt>
+<dd><ol class="first last arabic simple">
+<li>start in 80x25 with its first call to get_cols_rows()</li>
+<li>take a screenshot when it calls draw_screen(..)</li>
+<li>simulate 5 &#8220;down&#8221; keys from get_input()</li>
+<li>take a screenshot when it calls draw_screen(..)</li>
+<li>simulate keys &#8220;a&#8221;, &#8220;b&#8221;, &#8220;c&#8221; and a &#8220;window resize&#8221;</li>
+<li>resize to 20x10 on its second call to get_cols_rows()</li>
+<li>take a screenshot when it calls draw_screen(..)</li>
+<li>simulate a &#8220;Q&#8221; keypress to quit the application</li>
+</ol>
+</dd>
+<dt>screenshot_init( [ (80,25), (20,10) ],</dt>
+<dd>[ [&#8220;down&#8221;]*5, [&#8220;a&#8221;,&#8221;b&#8221;,&#8221;c&#8221;,&#8221;window resize&#8221;], [&#8220;Q&#8221;] ] )</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="urwid.html_fragment.screenshot_collect">
+<tt class="descclassname">urwid.html_fragment.</tt><tt class="descname">screenshot_collect</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.html_fragment.screenshot_collect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return screenshots as a list of HTML fragments.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-urwid.lcd_display">
+<span id="lcd-display"></span><h2>lcd_display<a class="headerlink" href="#module-urwid.lcd_display" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="urwid.lcd_display.LCDScreen">
+<em class="property">class </em><tt class="descclassname">urwid.lcd_display.</tt><tt class="descname">LCDScreen</tt><a class="headerlink" href="#urwid.lcd_display.LCDScreen" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="urwid.lcd_display.CFLCDScreen">
+<em class="property">class </em><tt class="descclassname">urwid.lcd_display.</tt><tt class="descname">CFLCDScreen</tt><big>(</big><em>device_path</em>, <em>baud</em><big>)</big><a class="headerlink" href="#urwid.lcd_display.CFLCDScreen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Common methods for Crystal Fontz LCD displays</p>
+<p>device_path &#8211; eg. &#8216;/dev/ttyUSB0&#8217;
+baud &#8211; baud rate</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="urwid.lcd_display.CF635Screen">
+<em class="property">class </em><tt class="descclassname">urwid.lcd_display.</tt><tt class="descname">CF635Screen</tt><big>(</big><em>device_path, baud=115200, repeat_delay=0.5, repeat_next=0.125, key_map=['up', 'down', 'left', 'right', 'enter', 'esc']</em><big>)</big><a class="headerlink" href="#urwid.lcd_display.CF635Screen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Crystal Fontz 635 display</p>
+<p>20x4 character display + cursor
+no foreground/background colors or settings supported</p>
+<p>see CGROM for list of close unicode matches to characters available</p>
+<p>6 button input
+up, down, left, right, enter (check mark), exit (cross)</p>
+<p>device_path &#8211; eg. &#8216;/dev/ttyUSB0&#8217;
+baud &#8211; baud rate
+repeat_delay &#8211; seconds to wait before starting to repeat keys
+repeat_next &#8211; time between each repeated key
+key_map &#8211; the keys to send for this device&#8217;s buttons</p>
+<dl class="method">
+<dt id="urwid.lcd_display.CF635Screen.get_input_descriptors">
+<tt class="descname">get_input_descriptors</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.lcd_display.CF635Screen.get_input_descriptors" title="Permalink to this definition">¶</a></dt>
+<dd><p>return the fd from our serial device so we get called
+on input and responses</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.lcd_display.CF635Screen.get_input_nonblocking">
+<tt class="descname">get_input_nonblocking</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.lcd_display.CF635Screen.get_input_nonblocking" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a (next_input_timeout, keys_pressed, raw_keycodes)
+tuple.</p>
+<p>The protocol for our device requires waiting for acks between
+each command, so this method responds to those as well as key
+press and release events.</p>
+<p>Key repeat events are simulated here as the device doesn&#8217;t send
+any for us.</p>
+<p>raw_keycodes are the bytes of messages we received, which might
+not seem to have any correspondence to keys_pressed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.lcd_display.CF635Screen.program_cgram">
+<tt class="descname">program_cgram</tt><big>(</big><em>index</em>, <em>data</em><big>)</big><a class="headerlink" href="#urwid.lcd_display.CF635Screen.program_cgram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Program character data.  Characters available as chr(0) through
+chr(7), and repeated as chr(8) through chr(15).</p>
+<p>index &#8211; 0 to 7 index of character to program</p>
+<p>data &#8211; list of 8, 6-bit integer values top to bottom with MSB
+on the left side of the character.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.lcd_display.CF635Screen.set_backlight">
+<tt class="descname">set_backlight</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#urwid.lcd_display.CF635Screen.set_backlight" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set backlight brightness</p>
+<p>value &#8211; 0 to 100</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.lcd_display.CF635Screen.set_cursor_style">
+<tt class="descname">set_cursor_style</tt><big>(</big><em>style</em><big>)</big><a class="headerlink" href="#urwid.lcd_display.CF635Screen.set_cursor_style" title="Permalink to this definition">¶</a></dt>
+<dd><p>style &#8211; CURSOR_BLINKING_BLOCK, CURSOR_UNDERSCORE,
+CURSOR_BLINKING_BLOCK_UNDERSCORE or
+CURSOR_INVERTING_BLINKING_BLOCK</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.lcd_display.CF635Screen.set_lcd_contrast">
+<tt class="descname">set_lcd_contrast</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#urwid.lcd_display.CF635Screen.set_lcd_contrast" title="Permalink to this definition">¶</a></dt>
+<dd><p>value &#8211; 0 to 255</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.lcd_display.CF635Screen.set_led_pin">
+<tt class="descname">set_led_pin</tt><big>(</big><em>led</em>, <em>rg</em>, <em>value</em><big>)</big><a class="headerlink" href="#urwid.lcd_display.CF635Screen.set_led_pin" title="Permalink to this definition">¶</a></dt>
+<dd><p>led &#8211; 0 to 3
+rg &#8211; 0 for red, 1 for green
+value &#8211; 0 to 100</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="urwid.lcd_display.KeyRepeatSimulator">
+<em class="property">class </em><tt class="descclassname">urwid.lcd_display.</tt><tt class="descname">KeyRepeatSimulator</tt><big>(</big><em>repeat_delay</em>, <em>repeat_next</em><big>)</big><a class="headerlink" href="#urwid.lcd_display.KeyRepeatSimulator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provide simulated repeat key events when given press and 
+release events.</p>
+<p>If two or more keys are pressed disable repeating until all
+keys are released.</p>
+<p>repeat_delay &#8211; seconds to wait before starting to repeat keys
+repeat_next &#8211; time between each repeated key</p>
+<dl class="method">
+<dt id="urwid.lcd_display.KeyRepeatSimulator.next_event">
+<tt class="descname">next_event</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.lcd_display.KeyRepeatSimulator.next_event" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return (remaining, key) where remaining is the number of seconds 
+(float) until the key repeat event should be sent, or None if no
+events are pending.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.lcd_display.KeyRepeatSimulator.sent_event">
+<tt class="descname">sent_event</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.lcd_display.KeyRepeatSimulator.sent_event" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cakk this method when you have sent a key repeat event so the
+timer will be reset for the next event</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
+            </a></p>
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Display Modules</a><ul>
+<li><a class="reference internal" href="#module-urwid.raw_display">raw_display</a></li>
+<li><a class="reference internal" href="#module-urwid.curses_display">curses_display</a></li>
+<li><a class="reference internal" href="#module-urwid.web_display">web_display</a></li>
+<li><a class="reference internal" href="#module-urwid.html_fragment">html_fragment</a></li>
+<li><a class="reference internal" href="#module-urwid.lcd_display">lcd_display</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="widget.html"
+                        title="previous chapter">Widget Classes</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="list_walkers.html"
+                        title="next chapter">List Walker Classes</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/reference/display_modules.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="list_walkers.html" title="List Walker Classes"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="widget.html" title="Widget Classes"
+             >previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+          <li><a href="index.html" >Urwid Reference</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Ian Ward et al.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

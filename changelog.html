@@ -1,0 +1,1093 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Changelog &mdash; Urwid 1.1.2</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1.1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/sidebar.js"></script>
+    <link rel="top" title="Urwid 1.1.2" href="index.html" />
+    <link rel="next" title="Urwid Tutorial" href="tutorial/index.html" />
+    <link rel="prev" title="Urwid 1.1.2 Documentation" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="tutorial/index.html" title="Urwid Tutorial"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Urwid 1.1.2 Documentation"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Urwid 1.1.2</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="changelog">
+<h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="urwid-1-1-2">
+<h2>Urwid 1.1.2<a class="headerlink" href="#urwid-1-1-2" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><ul class="simple">
+<li>Fix encoding exceptions when unicode used on non-UTF-8 terminal</li>
+<li>Fix for suspend and resume applications with ^Z</li>
+<li>Fix for tmux and screen missing colors on right bug</li>
+<li>Fix Pile zero-weighted items and mouse_event when empty</li>
+<li>Fix Terminal select() not retrying when interrupted by signal</li>
+<li>Fix for Padding.align and width change not invalidating</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-1-1-1">
+<h2>Urwid 1.1.1<a class="headerlink" href="#urwid-1-1-1" title="Permalink to this headline">¶</a></h2>
+<p>2012-11-15</p>
+<blockquote>
+<div><ul class="simple">
+<li>Fix for Pile not changing focus on mouse events</li>
+<li>Fix for Overlay.get_cursor_coords()</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-1-1-0">
+<h2>Urwid 1.1.0<a class="headerlink" href="#urwid-1-1-0" title="Permalink to this headline">¶</a></h2>
+<p>2012-10-23</p>
+<blockquote>
+<div><ul>
+<li><p class="first">New common container API: focus, focus_position, contents,
+options(), get_focus_path(), set_focus_path(), __getitem__,
+__iter__(), __reversed__() implemented across all included
+container widgets</p>
+<p>A full description doesn&#8217;t fit here, see the Container Widgets
+section in the manual for details</p>
+</li>
+<li><p class="first">New Sphinx-based documentation now included in source:
+Tutorial rewritten, manual revised and new reference based
+on updated docstrings (by Marco Giusti, Patrick Totzke)</p>
+</li>
+<li><p class="first">New list walker SimpleFocusListWalker like SimpleListWalker but
+updates focus position as items are inserted or removed</p>
+</li>
+<li><p class="first">New decoration widget WidgetDisable to disable interaction
+with the widgets it wraps</p>
+</li>
+<li><p class="first">SelectableIcon selectable text widget used by button widgets is
+now documented (available since 0.9.9)</p>
+</li>
+<li><p class="first">Columns widget now tries to keep column in focus visible, hiding
+columns on the left when necessary</p>
+</li>
+<li><p class="first">Padding widget now defaults to (&#8216;relative&#8217;, 100) instead of
+&#8216;pack&#8217; so that left and right parameters are more useful and more
+child widgets are supported</p>
+</li>
+<li><p class="first">New list walker &#8220;API Version 2&#8221; that is simpler for many list
+walker uses; &#8220;API Version 1&#8221; will still continue to be supported</p>
+</li>
+<li><p class="first">List walkers may now allow iteration from the absolute top or
+bottom of the list if they provide a positions() method</p>
+</li>
+<li><p class="first">raw_display now erases to the end of the line with EL escape
+sequence to improve copy+paste behavior for some terminals</p>
+</li>
+<li><p class="first">Filler now has top and bottom parameters like Padding&#8217;s left and
+right parameters and accepts &#8216;pack&#8217; instead of None as a height
+value for widgets that calculate their own number of rows</p>
+</li>
+<li><p class="first">Pile and Columns now accepts &#8216;pack&#8217; instead of &#8216;flow&#8217; for widgets
+that calculate their own number of rows or columns</p>
+</li>
+<li><p class="first">Pile and Columns now accept &#8216;given&#8217; instead of &#8216;fixed&#8217; for
+cases where the number of rows or columns are specified by the
+container options</p>
+</li>
+<li><p class="first">Pile and Columns widgets now accept any iterable to their
+__init__() methods</p>
+</li>
+<li><p class="first">Widget now has a default focus_position property that raises
+an IndexError when read to be consistent with new common container
+API</p>
+</li>
+<li><p class="first">GridFlow now supports multiple cell widths within the same widget</p>
+</li>
+<li><p class="first">BoxWidget, FlowWidget and FixedWidget are deprecated, instead
+use the sizing() function or _sizing attribute to specify the
+supported sizing modes for your custom widgets</p>
+</li>
+<li><p class="first">Some new shift+arrow and numpad input sequences from RXVT and
+xterm are now recognized</p>
+</li>
+<li><p class="first">Fix for alarms when used with a screen event loop (e.g.
+curses_display)</p>
+</li>
+<li><p class="first">Fix for raw_display when terminal width is 1 column</p>
+</li>
+<li><p class="first">Fixes for a Columns.get_cursor_coords() regression and a
+SelectableIcon.get_cursor_coords() bug</p>
+</li>
+<li><p class="first">Fixes for incorrect handling of box columns in a number of
+Columns methods when that column is selectable</p>
+</li>
+<li><p class="first">Fix for Terminal widget input handling with Python 3</p>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-1-0-3">
+<h2>Urwid 1.0.3<a class="headerlink" href="#urwid-1-0-3" title="Permalink to this headline">¶</a></h2>
+<p>2012-11-15</p>
+<blockquote>
+<div><ul class="simple">
+<li>Fix for alarms when used with a screen event loop (e.g.
+curses_display)</li>
+<li>Fix for Overlay.get_cursor_coords()</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-1-0-2">
+<h2>Urwid 1.0.2<a class="headerlink" href="#urwid-1-0-2" title="Permalink to this headline">¶</a></h2>
+<p>2012-07-13</p>
+<blockquote>
+<div><ul class="simple">
+<li>Fix for bug when entering Unicode text into Edit widget with
+bytes caption</li>
+<li>Fix a regression when not running in UTF-8 mode</li>
+<li>Fix for a MainLoop.remove_watch_pipe() bug</li>
+<li>Fix for a bug when packing empty Edit widgets</li>
+<li>Fix for a ListBox &#8220;contents too long&#8221; error with very large
+Edit widgets</li>
+<li>Prevent ListBoxes from selecting 0-height selectable widgets
+when moving up or down</li>
+<li>Fix a number of bugs caused by 0-height widgets in a ListBox</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-1-0-1">
+<h2>Urwid 1.0.1<a class="headerlink" href="#urwid-1-0-1" title="Permalink to this headline">¶</a></h2>
+<p>2011-11-28</p>
+<blockquote>
+<div><ul class="simple">
+<li>Fix for Terminal widget in BSD/OSX</li>
+<li>Fix for a Filler mouse_event() position bug</li>
+<li>Fix support for mouse positions up to x=255, y=255</li>
+<li>Fixes for a number of string encoding issues under Python 3</li>
+<li>Fix for a LineBox border __init__() parameters</li>
+<li>Fix input input of UTF-8 in tour.py example by converting captions
+to unicode</li>
+<li>Fix tutorial examples&#8217; use of TextCanvas and switch to using
+unicode literals</li>
+<li>Prevent raw_display from calling tcseattr() or tcgetattr() on
+non-ttys</li>
+<li>Disable curses_display external event loop support: screen resizing
+and gpm events are not properly supported</li>
+<li>Mark PollingListWalker as deprecated</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-1-0-0">
+<h2>Urwid 1.0.0<a class="headerlink" href="#urwid-1-0-0" title="Permalink to this headline">¶</a></h2>
+<p>2011-09-22</p>
+<blockquote>
+<div><ul class="simple">
+<li>New support for Python 3.2 from the same 2.x code base,
+requires distribute instead of setuptools (by Kirk McDonald,
+Wendell, Marien Zwart) everything except TwistedEventLoop and
+GLibEventLoop is supported</li>
+<li>New experimental Terminal widget with xterm emulation and
+terminal.py example program (by aszlig)</li>
+<li>Edit widget now supports a mask (for passwords), has a
+insert_text_result() method for full-field validation and
+normalizes input text to Unicode or bytes based on the caption
+type used</li>
+<li>New TreeWidget, TreeNode, ParentNode, TreeWalker
+and TreeListBox classes for lazy expanding/collapsing tree
+views factored out of browse.py example program, with new
+treesample.py example program (by Rob Lanphier)</li>
+<li>MainLoop now calls draw_screen() just before going idle, so extra
+calls to draw_screen() in user code may now be removed</li>
+<li>New MainLoop.watch_pipe() method for subprocess or threaded
+communication with the process/thread updating the UI, and new
+subproc.py example demonstrating its use</li>
+<li>New PopUpLauncher and PopUpTarget widgets and MainLoop option
+for creating pop-ups and drop-downs, and new pop_up.py example
+program</li>
+<li>New twisted_serve_ssh.py example (by Ali Afshar) that serves
+multiple displays over ssh from the same application using
+Twisted and the TwistedEventLoop</li>
+<li>ListBox now includes a get_cursor_coords() method, allowing
+nested ListBox widgets</li>
+<li>Columns widget contents may now be marked to always be treated
+as flow widgets for mixing flow and box widgets more easily</li>
+<li>New lcd_display module with support for CF635 USB LCD panel and
+lcd_cf635.py example program with menus, slider controls and a custom
+font</li>
+<li>Shared command_map instance is now stored as Widget._command_map
+class attribute and may be overridden in subclasses or individual
+widgets for more control over special keystrokes</li>
+<li>Overlay widget parameters may now be adjusted after creation with
+set_overlay_parameters() method</li>
+<li>New WidgetPlaceholder widget useful for swapping widgets without
+having to manipulate a container widget&#8217;s contents</li>
+<li>LineBox widgets may now include title text</li>
+<li>ProgressBar text content and alignment may now be overridden</li>
+<li>Use reactor.stop() in TwistedEventLoop and document that Twisted&#8217;s
+reactor is not designed to be stopped then restarted</li>
+<li>curses_display now supports AttrSpec and external event loops
+(Twisted or GLib) just like raw_display</li>
+<li>raw_display and curses_display now support the IBMPC character
+set (currently only used by Terminal widget)</li>
+<li>Fix for a gpm_mev bug preventing user input when on the console</li>
+<li>Fix for leaks of None objects in str_util extension</li>
+<li>Fix for WidgetWrap and AttrMap not working with fixed widgets</li>
+<li>Fix for a lock up when attempting to wrap text containing wide
+characters into a single character column</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-9-2">
+<h2>Urwid 0.9.9.2<a class="headerlink" href="#urwid-0-9-9-2" title="Permalink to this headline">¶</a></h2>
+<p>2011-07-13</p>
+<blockquote>
+<div><ul class="simple">
+<li>Fix for an Overlay get_cursor_coords(), and Text top-widget bug</li>
+<li>Fix for a Padding rows() bug when used with width=PACK</li>
+<li>Fix for a bug with large flow widgets used in an Overlay</li>
+<li>Fix for a gpm_mev bug</li>
+<li>Fix for Pile and GraphVScale when rendered with no contents</li>
+<li>Fix for a Python 2.3 incompatibility (0.9.9 is the last release
+to claim support Python 2.3)</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-9-1">
+<h2>Urwid 0.9.9.1<a class="headerlink" href="#urwid-0-9-9-1" title="Permalink to this headline">¶</a></h2>
+<p>2010-01-25</p>
+<blockquote>
+<div><ul class="simple">
+<li>Fix for ListBox snapping to selectable widgets taller than the
+ListBox itself</li>
+<li>raw_display switching to alternate buffer now works properly with
+Terminal.app</li>
+<li>Fix for BoxAdapter backwards incompatibility introduced in 0.9.9</li>
+<li>Fix for a doctest failure under powerpc</li>
+<li>Fix for systems with gpm_mev installed but not running gpm</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-9">
+<h2>Urwid 0.9.9<a class="headerlink" href="#urwid-0-9-9" title="Permalink to this headline">¶</a></h2>
+<p>2009-11-15</p>
+<blockquote>
+<div><ul class="simple">
+<li>New support for 256 and 88 color terminals with raw_display
+and html_fragment display modules</li>
+<li>New palette_test example program to demonstrate high color
+modes</li>
+<li>New AttrSpec class for specifying specific colors instead of
+using attributes defined in the screen&#8217;s palette</li>
+<li>New MainLoop class ties together widgets, user input, screen
+display and one of a number of new event loops, removing the
+need for tedious, error-prone boilerplate code</li>
+<li>New GLibEventLoop allows running Urwid applications with GLib
+(makes D-Bus integration easier)</li>
+<li>New TwistedEventLoop allows running Urwid with a Twisted reactor</li>
+<li>Added new docstrings and doctests to many widget classes</li>
+<li>New AttrMap widget supports mapping any attribute to any other
+attribute, replaces AttrWrap widget</li>
+<li>New WidgetDecoration base class for AttrMap, BoxAdapter, Padding,
+Filler and LineBox widgets creates a common method for accessing
+and updating their contained widgets</li>
+<li>New left and right values may be specified in Padding widgets</li>
+<li>New command_map for specifying which keys cause actions such as
+clicking Button widgets and scrolling ListBox widgets</li>
+<li>New tty_signal_keys() method of raw_display.Screen and
+curses_display.Screen allows changing or disabling the keys used
+to send signals to the application</li>
+<li>Added helpful __repr__ for many widget classes</li>
+<li>Updated all example programs to use MainLoop class</li>
+<li>Updated tutorial with MainLoop usage and improved examples</li>
+<li>Renamed WidgetWrap.w to _w, indicating its intended use as a way
+to implement a widget with other widgets, not necessarily as
+a container for other widgets</li>
+<li>Replaced all tabs with 4 spaces, code is now more aerodynamic
+(and PEP 8 compliant)</li>
+<li>Added saving of stdin and stdout in raw_display module allowing
+the originals to be redirected</li>
+<li>Updated BigText widget&#8217;s HalfBlock5x4Font</li>
+<li>Fixed graph example CPU usage when animation is stopped</li>
+<li>Fixed a memory leak related to objects listening for signals</li>
+<li>Fixed a Popen3 deprecation warning</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-8-4">
+<h2>Urwid 0.9.8.4<a class="headerlink" href="#urwid-0-9-8-4" title="Permalink to this headline">¶</a></h2>
+<p>2009-03-13</p>
+<blockquote>
+<div><ul class="simple">
+<li>Fixed incompatibilities with Python 2.6 (by Friedrich Weber)</li>
+<li>Fixed a SimpleListWalker with emptied list bug (found by Walter
+Mundt)</li>
+<li>Fixed a curses_display stop()/start() bug (found by Christian
+Scharkus)</li>
+<li>Fixed an is_wide_character() segfault on bad input data bug
+(by Andrew Psaltis)</li>
+<li>Fixed a CanvasCache with render() used in both a widget and its
+superclass bug (found by Andrew Psaltis)</li>
+<li>Fixed a ListBox.ends_visible() on empty list bug (found by Marc
+Hartstein)</li>
+<li>Fixed a tutorial example bug (found by Kurtis D. Rader)</li>
+<li>Fixed an Overlay.keypress() bug (found by Andreas Klöckner)</li>
+<li>Fixed setuptools configuration (by Andreas Klöckner)</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-8-3">
+<h2>Urwid 0.9.8.3<a class="headerlink" href="#urwid-0-9-8-3" title="Permalink to this headline">¶</a></h2>
+<p>2008-07-14</p>
+<blockquote>
+<div><ul class="simple">
+<li>Fixed a canvas cache memory leak affecting 0.9.8, 0.9.8.1 and
+0.9.8.2 (found by John Goodfellow)</li>
+<li>Fixed a canvas fill_attr() bug (found by Joern Koerner)</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-8-2">
+<h2>Urwid 0.9.8.2<a class="headerlink" href="#urwid-0-9-8-2" title="Permalink to this headline">¶</a></h2>
+<p>2008-05-19</p>
+<blockquote>
+<div><ul class="simple">
+<li>Fixed incompatibilities with Python 2.3</li>
+<li>Fixed Pile cursor pref_col bug, WidgetWrap rows caching bug, Button
+mouse_event with no callback bug, Filler body bug triggered by the
+tutorial and a LineBox lline parameter typo.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-8-1">
+<h2>Urwid 0.9.8.1<a class="headerlink" href="#urwid-0-9-8-1" title="Permalink to this headline">¶</a></h2>
+<p>2007-06-21</p>
+<blockquote>
+<div><ul class="simple">
+<li>Fixed a Filler render() bug, a raw_display start()/stop() bug and a
+number of problems triggered by very small terminal window sizes.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-8">
+<h2>Urwid 0.9.8<a class="headerlink" href="#urwid-0-9-8" title="Permalink to this headline">¶</a></h2>
+<p>2007-03-23</p>
+<blockquote>
+<div><ul>
+<li><p class="first">Rendering is now significantly faster.</p>
+</li>
+<li><p class="first">New Widget base class for all widgets. It includes automatic caching
+of rows() and render() methods. It also adds a new __super attribute
+for accessing methods in superclasses.</p>
+<p>Widgets must now call self._invalidate() to notify the cache when
+their content has changed.</p>
+<p>To disable caching in a widget set the class variable no_cache to a
+list that includes the string &#8220;render&#8221;.</p>
+</li>
+<li><p class="first">Canvas classes have been reorganized: Canvas has been renamed to
+TextCanvas and Canvas is now the base class for all canvases. New
+canvas classes include BlankCanvas, SolidCanvas and CompositeCanvas.</p>
+</li>
+<li><p class="first">External event loops may now be used with the raw_display module. The
+new methods get_input_descriptors() and get_input_nonblocking()
+should be used instead of get_input() to allow input processing
+without blocking.</p>
+</li>
+<li><p class="first">The Columns, Pile and ListBox widgets now choose their first
+selectable child widget as the focus widget by defaut.</p>
+</li>
+<li><p class="first">New ListWalker base class for list walker classes.</p>
+</li>
+<li><p class="first">New Signals class that will be used to improve the existing event
+callbacks. Currently it is used for ListWalker objects to notify
+their ListBox when their content has changed.</p>
+</li>
+<li><p class="first">SimpleListWalker now behaves as a list and supports all list
+operations. This class now detects when changes are made to the list
+and notifies the ListBox object. New code should use this class to
+wrap lists of widgets before passing them to the ListBox
+constructor.</p>
+</li>
+<li><p class="first">New PollingListWalker class is now the default list walker that is
+used when passing a simple list to the ListBox constructor. This
+class is intended for backwards compatibility only. When this class
+is used the ListBox object is unable to cache its render() method.</p>
+</li>
+<li><p class="first">The curses_display module can now draw in the lower-right corner of
+the screen.</p>
+</li>
+<li><p class="first">All display modules now have start() and stop() methods that may be
+used instead of calling run_wrapper().</p>
+</li>
+<li><p class="first">The raw_display module now uses an alternate buffer so that the
+original screen can be restored on exit. The old behaviour is
+available by seting the alternate_buffer parameter of start() or
+run_wrapper() to False.</p>
+</li>
+<li><p class="first">Many internal string processing functions have been rewritten in C to
+improve their performance.</p>
+</li>
+<li><p class="first">Compatible with Python &gt;= 2.2. Python 2.1 is no longer supported.</p>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-7-2">
+<h2>Urwid 0.9.7.2<a class="headerlink" href="#urwid-0-9-7-2" title="Permalink to this headline">¶</a></h2>
+<p>2007-01-03</p>
+<blockquote>
+<div><ul class="simple">
+<li>Improved performance in UTF-8 mode when ASCII text is used.</li>
+<li>Fixed a UTF-8 input bug.</li>
+<li>Added a clear() function to the the display modules to force the
+screen to be repainted on the next draw_screen() call.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-7-1">
+<h2>Urwid 0.9.7.1<a class="headerlink" href="#urwid-0-9-7-1" title="Permalink to this headline">¶</a></h2>
+<p>2006-10-03</p>
+<blockquote>
+<div><ul class="simple">
+<li>Fixed bugs in Padding and Overlay widgets introduced in 0.9.7.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-7">
+<h2>Urwid 0.9.7<a class="headerlink" href="#urwid-0-9-7" title="Permalink to this headline">¶</a></h2>
+<p>2006-10-01</p>
+<blockquote>
+<div><ul>
+<li><p class="first">Added initial support for fixed widgets - widgets that have a fixed
+size on screen. Fixed widgets expect a size parameter equal to ().
+Fixed widgets must implement the pack(..) function to return their
+size.</p>
+</li>
+<li><p class="first">New BigText class that draws text with fonts made of grids of
+character cells. BigText is a fixed widget and doesn&#8217;t do any
+alignment or wrapping. It is intended for banners and number readouts
+that need to stand out on the screen.</p>
+<p>Fonts: Thin3x3Font, Thin4x3Font, Thin6x6Font (full ascii)</p>
+<p>UTF-8 only fonts: HalfBlock5x4Font, HalfBlock6x5Font,
+HalfBlockHeavy6x5Font, HalfBlock7x7Font (full ascii)</p>
+<p>New function get_all_fonts() may be used to get a list of the
+available fonts.</p>
+</li>
+<li><p class="first">New example program bigtext.py demonstrates use of BigText.</p>
+</li>
+<li><p class="first">Padding class now has a clipping mode that pads or clips fixed
+widgets to make them behave as flow widgets.</p>
+</li>
+<li><p class="first">Overlay class can now accept a fixed widget as the widget to display
+&#8220;on top&#8221;.</p>
+</li>
+<li><p class="first">New Canvas functions: pad_trim() and pad_trim_left_right().</p>
+</li>
+<li><p class="first">Fixed a bug in Filler.get_cursor_coords() that causes a crash if the
+contained widget&#8217;s get_cursor_coords() function returns None.</p>
+</li>
+<li><p class="first">Fixed a bug in Text.pack() that caused an infinite loop when the text
+contained a newline. This function is not currently used by Urwid.</p>
+</li>
+<li><p class="first">Edit.__init__() now calls set_edit_text() to initialize its text.</p>
+</li>
+<li><p class="first">Overlay.calculate_padding_filler() and Padding.padding_values() now
+include focus parameters.</p>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-6">
+<h2>Urwid 0.9.6<a class="headerlink" href="#urwid-0-9-6" title="Permalink to this headline">¶</a></h2>
+<p>2006-08-22</p>
+<blockquote>
+<div><ul class="simple">
+<li>Fixed Unicode conversion and locale issues when using Urwid with
+Python &lt; 2.4. The graph.py example program should now work properly
+with older versions of Python.</li>
+<li>The docgen_tutorial.py script can now write out the tutorial example
+programs as individual files.</li>
+<li>Updated reference documentation table of contents to show which
+widgets are flow and/or box widgets.</li>
+<li>Columns.set_focus(..) will now accept an integer or a widget as its
+parameter.</li>
+<li>Added detection for rxvt&#8217;s HOME and END escape sequences.</li>
+<li>Added support for setuptools (improved distutils).</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-5">
+<h2>Urwid 0.9.5<a class="headerlink" href="#urwid-0-9-5" title="Permalink to this headline">¶</a></h2>
+<p>2006-06-14</p>
+<blockquote>
+<div><ul>
+<li><p class="first">Some Unicode characters are now converted to use the G1 alternate
+character set with DEC special and line drawing characters. These
+Unicode characters should now &#8220;just work&#8221; in almost all terminals and
+encodings.</p>
+<p>When Urwid is run with the UTF-8 encoding the characters are left as
+UTF-8 and not converted.</p>
+<p>The characters converted are:</p>
+<p>u00A3 (£), u00B0 (°), u00B1 (±), u00B7 (·), u03C0 (π),
+u2260 (≠), u2264 (≤), u2265 (≥), u23ba (⎺), u23bb (⎻),
+u23bc (⎼), u23bd (⎽), u2500 (─), u2502 (│), u250c (┌),
+u2510 (┐), u2514 (└), u2518 (┘), u251c (├), u2524 (┤),
+u252c (┬), u2534 (┴), u253c (┼), u2592 (▒), u25c6 (◆)</p>
+</li>
+<li><p class="first">New SolidFill class for filling an area with a single character.</p>
+</li>
+<li><p class="first">New LineBox class for wrapping widgets in a box made of line- drawing
+characters. May be used as a box widget or a flow widget.</p>
+</li>
+<li><p class="first">New example program graph.py demonstrates use of BarGraph, LineBox,
+ProgressBar and SolidFill.</p>
+</li>
+<li><p class="first">Pile class may now be used as a box widget and contain a mix of box
+and flow widgets.</p>
+</li>
+<li><p class="first">Columns class may now contain a mix of box and flow widgets. The box
+widgets will take their height from the maximum height of the flow
+widgets.</p>
+</li>
+<li><p class="first">Improved the smoothness of resizing with raw_display module. The
+module will now try to stop updating the screen when a resize event
+occurs during the update.</p>
+</li>
+<li><p class="first">The Edit and IntEdit classes now use their set_edit_text() and
+set_edit_pos() functions when handling keypresses, so those functions
+may be overridden to catch text modification.</p>
+</li>
+<li><p class="first">The set_state() functions in the CheckBox and RadioButton classes now
+have a do_callback parameter that determines if the callback function
+registered will be called.</p>
+</li>
+<li><p class="first">Fixed a newly introduced incompatibility with python &lt; 2.3.</p>
+</li>
+<li><p class="first">Fixed a missing symbol in curses_display when python is linked
+against libcurses.</p>
+</li>
+<li><p class="first">Fixed mouse handling bugs in the Frame and Overlay classes.</p>
+</li>
+<li><p class="first">Fixed a Padding bug when the left or right has no padding.</p>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-4">
+<h2>Urwid 0.9.4<a class="headerlink" href="#urwid-0-9-4" title="Permalink to this headline">¶</a></h2>
+<p>2006-05-30</p>
+<blockquote>
+<div><ul>
+<li><p class="first">Enabled mouse handling across the Urwid library.</p>
+<p>Added a new mouse_event() method to the Widget interface definition
+and to the following widgets: Edit, CheckBox, RadioButton, Button,
+GridFlow, Padding, Filler, Overlay, Frame, Pile, Columns, BoxAdapter
+and ListBox.</p>
+<p>Updated example programs browse.py, calc.py, dialog.py, edit.py and
+tour.py to support mouse input.</p>
+</li>
+<li><p class="first">Released the files used to generate the reference and tutorial
+documentation: docgen_reference.py, docgen_tutorial.py and
+tmpl_tutorial.html. The &#8220;docgen&#8221; scripts write the documentation to
+stdout. docgen_tutorial.py requires the Templayer HTML templating
+library to run: <a class="reference external" href="http://excess.org/templayer/">http://excess.org/templayer/</a></p>
+</li>
+<li><p class="first">Improved Widget and List Walker interface documentation.</p>
+</li>
+<li><p class="first">Fixed a bug in the handling of invalid UTF-8 data. All invalid
+characters are now replaced with &#8216;?&#8217; characters when displayed.</p>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-3">
+<h2>Urwid 0.9.3<a class="headerlink" href="#urwid-0-9-3" title="Permalink to this headline">¶</a></h2>
+<p>2006-05-14</p>
+<blockquote>
+<div><ul>
+<li><p class="first">Improved mouse reporting.</p>
+<p>The raw_display module now detects gpm mouse events by reading
+/usr/bin/mev output. The curses_display module already supports gpm
+directly.</p>
+<p>Mouse drag events are now reported by raw_display in terminals that
+provide button event tracking and on the console with gpm. Note that
+gpm may report coordinates off the screen if the user drags the mouse
+off the edge.</p>
+<p>Button release events now report which button was released if that
+information is available, currently only on the console with gpm.</p>
+</li>
+<li><p class="first">Added display of raw keycodes to the input_test.py example program.</p>
+</li>
+<li><p class="first">Fixed a text layout bug affecting clipped text with blank lines, and
+another related to wrapped text starting with a space character.</p>
+</li>
+<li><p class="first">Fixed a Frame.keypress() bug that caused it to call keypress on
+unselectable widgets.</p>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-2">
+<h2>Urwid 0.9.2<a class="headerlink" href="#urwid-0-9-2" title="Permalink to this headline">¶</a></h2>
+<p>2006-03-18</p>
+<blockquote>
+<div><ul>
+<li><p class="first">Preliminary mouse support was added to the raw_display and
+curses_display modules. A new Screen.set_mouse_tracking() method was
+added to enable mouse tracking. Mouse events are returned alongside
+keystrokes from the Screen.get_input() method.</p>
+<p>The widget interface does not yet include mouse handling. This will
+be addressed in the next release.</p>
+</li>
+<li><p class="first">A new convenience function is_mouse_event() was added to help in
+separating mouse events from keystrokes.</p>
+</li>
+<li><p class="first">Added a new example program input_test.py. This program displays the
+keyboard and mouse input it receives. It may be run as a CGI script
+or from the command line. On the command line it defaults to using
+the curses_display module, use input_test.py raw to use the
+raw_display module instead.</p>
+</li>
+<li><p class="first">Fixed an Edit.render() bug that caused it to render the cursor in a
+different location than that reported by Edit.get_cursor_coords() in
+some circumstances.</p>
+</li>
+<li><p class="first">Fixed a bug preventing use of UTF-8 characters with Divider widgets.</p>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-1">
+<h2>Urwid 0.9.1<a class="headerlink" href="#urwid-0-9-1" title="Permalink to this headline">¶</a></h2>
+<p>2006-03-06</p>
+<blockquote>
+<div><ul class="simple">
+<li>BarGraph and ProgressBar can now display data more accurately by
+using the UTF-8 vertical and horizontal eighth characters. This
+behavior will be enabled when the UTF-8 encoding is detected and
+&#8220;smoothed&#8221; attributes are passed to the BarGraph or ProgressBar
+constructors.</li>
+<li>New get_encoding_mode() function to determine how Urwid will treat
+raw string data.</li>
+<li>New raw_display.signal_init() and raw_display.signal_restore()
+methods that may be overridden by threaded applications that need to
+call signal.signal() from their main thread.</li>
+<li>Fixed a bug that prevented the use of UTF-8 strings in text markup.</li>
+<li>Removed some forgotten asserts that broke 8-bit and CJK input.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-0">
+<h2>Urwid 0.9.0<a class="headerlink" href="#urwid-0-9-0" title="Permalink to this headline">¶</a></h2>
+<p>2006-02-18</p>
+<blockquote>
+<div><ul>
+<li><p class="first">New support for UTF-8 encoding including input, display and editing
+of narrow and wide (CJK) characters.</p>
+<p>Preliminary combining (zero-width) character support is included, but
+full support will require terminal behavior detection.</p>
+<p>Right-to-Left input and display are not implemented.</p>
+</li>
+<li><p class="first">New raw_display module that handles console display without relying
+on external libraries. This module was written as a work around for
+the lack of UTF-8 support in the standard version of ncurses.</p>
+<p>Eliminates &#8220;dead corner&#8221; in the bottom right of the screen.</p>
+<p>Avoids use of bold text in xterm and gnome-terminal for improved
+text legibility.</p>
+</li>
+<li><p class="first">Fixed Overlay bug related to UTF-8 handling.</p>
+</li>
+<li><p class="first">Fixed Edit.move_cursor_to_coords(..) bug related to wide characters
+in UTF-8 encoding.</p>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-0-pre3">
+<h2>Urwid 0.9.0-pre3<a class="headerlink" href="#urwid-0-9-0-pre3" title="Permalink to this headline">¶</a></h2>
+<p>2006-02-13</p>
+<blockquote>
+<div><ul class="simple">
+<li>Fixed Canvas attribute padding bug related to -pre1 changes.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-0-pre2">
+<h2>Urwid 0.9.0-pre2<a class="headerlink" href="#urwid-0-9-0-pre2" title="Permalink to this headline">¶</a></h2>
+<p>2006-02-10</p>
+<blockquote>
+<div><ul class="simple">
+<li>Replaced the custom align and wrap modes in example program calc.py
+with a new layout class.</li>
+<li>Fixed Overlay class call to Canvas.overlay() broken by -pre1 changes.</li>
+<li>Fixed Padding bug related to Canvas -pre1 changes.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-9-0-pre1">
+<h2>Urwid 0.9.0-pre1<a class="headerlink" href="#urwid-0-9-0-pre1" title="Permalink to this headline">¶</a></h2>
+<p>2006-02-08</p>
+<blockquote>
+<div><ul>
+<li><p class="first">New support for UTF-8 encoding. Unicode strings may be used and will
+be converted to the current encoding when output. Regular strings in
+the current encoding may still be used.</p>
+<p>PLEASE NOTE: There are issues related to displaying UTF-8 characters
+with the curses_display module that have not yet been resolved.</p>
+</li>
+<li><p class="first">New set_encoding() function replaces util.set_double_byte_encoding().</p>
+</li>
+<li><p class="first">New supports_unicode() function to query if unicode strings with
+characters outside the ascii range may be used with the current
+encoding.</p>
+</li>
+<li><p class="first">New TextLayout and StandardTextLayout classes to perform text
+wrapping and alignment. Text widgets now have a layout parameter to
+allow use of custom TextLayout objects.</p>
+</li>
+<li><p class="first">New layout structure replaces line translation structure. Layout
+structure now allows arbitrary reordering/positioning of text
+segments, inclusion of UTF-8 characters and insertion of text not
+found in the original text string.</p>
+</li>
+<li><p class="first">Removed util.register_align_mode() and util.register_wrap_mode().
+Their functionality has been replaced by the new layout classes.</p>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-8-10">
+<h2>Urwid 0.8.10<a class="headerlink" href="#urwid-0-8-10" title="Permalink to this headline">¶</a></h2>
+<p>2005-11-27</p>
+<blockquote>
+<div><ul class="simple">
+<li>Expanded tutorial to cover advanced ListBox usage, custom widget
+classes and the Pile, BoxAdapter, Columns, GridFlow and Overlay
+classes.</li>
+<li>Added escape sequence for &#8220;shift tab&#8221; to curses_display.</li>
+<li>Added ListBox.set_focus_valign() to allow positioning of the focus
+widget within the ListBox.</li>
+<li>Added WidgetWrap class for extending existing widgets without
+inheriting their complete namespace.</li>
+<li>Fixed web_display/mozilla breakage from 0.8.9. Fixed crash on invalid
+locale setting. Fixed ListBox slide-back bug. Fixed improper space
+trimming in calculate_alignment(). Fixed browse.py example program
+rows bug. Fixed sum definition, use of long ints for python2.1. Fixed
+warnings with python2.1. Fixed Padding.get_pref_col() bug. Fixed
+Overlay splitting CJK characters bug.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-8-9">
+<h2>Urwid 0.8.9<a class="headerlink" href="#urwid-0-8-9" title="Permalink to this headline">¶</a></h2>
+<p>2005-10-21</p>
+<blockquote>
+<div><ul class="simple">
+<li>New Overlay class for drawing widgets that obscure parts of other
+widgets. May be used for drop down menus, combo boxes, overlapping
+&#8220;windows&#8221;, caption text etc.</li>
+<li>New BarGraph, GraphVScale and ProgressBar classes for graphical
+display of data in Urwid applications.</li>
+<li>New method for configuring keyboard input timeouts and delays:
+curses_display.Screen.set_input_timeouts().</li>
+<li>Fixed a ListBox.set_focus() bug.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-8-8">
+<h2>Urwid 0.8.8<a class="headerlink" href="#urwid-0-8-8" title="Permalink to this headline">¶</a></h2>
+<p>2005-06-13</p>
+<blockquote>
+<div><ul>
+<li><p class="first">New web_display module that emulates a console display within a web
+browser window. Application must be run as a CGI script under Apache.</p>
+<p>Supports font/window resizing, keepalive for long-lived connections,
+limiting maximum concurrent connections, polling and connected update
+methods. Tested with Mozilla Firefox and Internet Explorer.</p>
+</li>
+<li><p class="first">New BoxAdapter class for using box widgets in places that usually
+expect flow widgets.</p>
+</li>
+<li><p class="first">New curses_display input handling with better ESC key detection and
+broader escape code support.</p>
+</li>
+<li><p class="first">Shortened resize timeout on gradual resize to improve responsiveness.</p>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-8-7">
+<h2>Urwid 0.8.7<a class="headerlink" href="#urwid-0-8-7" title="Permalink to this headline">¶</a></h2>
+<p>2005-05-21</p>
+<blockquote>
+<div><ul class="simple">
+<li>New widget classes: Button, RadioButton, CheckBox.</li>
+<li>New layout widget classes: Padding, GridFlow.</li>
+<li>New dialog.py example program that behaves like dialog(1) command.</li>
+<li>Pile widgets now support selectable items, focus changing with up and
+down keys and setting the cursor position.</li>
+<li>Frame widgets now support selectable items in the header and footer.</li>
+<li>Columns widgets now support fixed width and relative width columns, a
+minimum width for all columns, selectable items within columns
+containing flow widgets (already supported for box widgets), focus
+changing with left and right keys and setting the cursor position.</li>
+<li>Filler widgets may now wrap box widgets and have more alignment options.</li>
+<li>Updated tour.py example program to show new widget types and
+features.</li>
+<li>Avoid hogging cpu on gradual window resize and fix for slow resize
+with cygwin&#8217;s broken curses implementation.</li>
+<li>Fixed minor CJK problem and curs_set() crash under MacOSX and Cygwin.</li>
+<li>Fixed crash when deleting cells in calc.py example program.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-8-6">
+<h2>Urwid 0.8.6<a class="headerlink" href="#urwid-0-8-6" title="Permalink to this headline">¶</a></h2>
+<p>2005-01-03</p>
+<blockquote>
+<div><ul>
+<li><p class="first">Improved support for CJK double-byte encodings: BIG5, UHC, GBK,
+GB2312, CN-GB, EUC-KR, EUC-CN, EUC-JP (JISX 0208 only) and EUC-TW
+(CNS 11643 plain 1 only)</p>
+</li>
+<li><p class="first">Added support for ncurses&#8217; use_default_colors() function to
+curses_display module (Python &gt;= 2.4).</p>
+<p>register_palette() and register_palette_entry() now accept &#8220;default&#8221;
+as foreground and/or background. If the terminal&#8217;s default attributes
+cannot be detected black on light gray will be used to accomodate
+terminals with always-black cursors.</p>
+<p>&#8220;default&#8221; is now the default for text with no attributes. This means
+that areas with no attributes will change from light grey on black
+(curses default) to black on light gray or the terminal&#8217;s default.</p>
+</li>
+<li><p class="first">Modified examples to not use black as background of Edit widgets.</p>
+</li>
+<li><p class="first">Fixed curses_display curs_set() call so that cursor is hidden when
+widget in focus has no cursor position.</p>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-8-5">
+<h2>Urwid 0.8.5<a class="headerlink" href="#urwid-0-8-5" title="Permalink to this headline">¶</a></h2>
+<p>2004-12-15</p>
+<blockquote>
+<div><ul class="simple">
+<li>New tutorial covering basic operation of: curses_display.Screen,
+Canvas, Text, FlowWidget, Filler, BoxWidget, AttrWrap, Edit, ListBox
+and Frame classes</li>
+<li>New widget class: Filler</li>
+<li>New ListBox functions: get_focus(), set_focus()</li>
+<li>Debian packages for Python 2.4.</li>
+<li>Fixed curses_display bug affecting text with no attributes.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-8-4">
+<h2>Urwid 0.8.4<a class="headerlink" href="#urwid-0-8-4" title="Permalink to this headline">¶</a></h2>
+<p>2004-11-20</p>
+<blockquote>
+<div><ul class="simple">
+<li>Improved support for Cyrillic and other simple 8-bit encodings.</li>
+<li>Added new functions to simplify taking screenshots:
+html_fragment.screenshot_init() and
+html_fragment.screenshot_collect()</li>
+<li>Improved urwid/curses_display.py input debugging</li>
+<li>Fixed cursor in screenshots of CJK text. Fixed &#8220;end&#8221; key in Edit
+boxes with CJK text.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-8-3">
+<h2>Urwid 0.8.3<a class="headerlink" href="#urwid-0-8-3" title="Permalink to this headline">¶</a></h2>
+<p>2004-11-15</p>
+<blockquote>
+<div><ul>
+<li><p class="first">Added support for CJK double-byte encodings.</p>
+<p>Word wrapping mode &#8220;space&#8221; will wrap on edges of double width
+characters. Wrapping and clipping will not split double width
+characters.</p>
+<p>curses_display.Screen.get_input() may now return double width
+characters. Text and Edit classes will work with a mix of regular and
+double width characters.</p>
+</li>
+<li><p class="first">Use new method Edit.set_edit_text() instead of Edit.update_text().</p>
+</li>
+<li><p class="first">Minor improvements to edit.py example program.</p>
+</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-8-2">
+<h2>Urwid 0.8.2<a class="headerlink" href="#urwid-0-8-2" title="Permalink to this headline">¶</a></h2>
+<p>2004-11-08</p>
+<blockquote>
+<div><ul class="simple">
+<li>Re-released under GNU Lesser General Public License.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-8-1">
+<h2>Urwid 0.8.1<a class="headerlink" href="#urwid-0-8-1" title="Permalink to this headline">¶</a></h2>
+<p>2004-10-29</p>
+<blockquote>
+<div><ul class="simple">
+<li>Added support for monochrome terminals. see
+curses_display.Screen.register_palette_entry() and example programs.
+set TERM=xterm-mono to test programs in monochrome mode.</li>
+<li>Added unit testing code test_urwid.py to the examples.</li>
+<li>Can now run urwid/curses_display.py to test your terminal&#8217;s input and
+colour rendering.</li>
+<li>Fixed an OSX browse.py compatibility issue. Added some OSX keycodes.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="urwid-0-8-0">
+<h2>Urwid 0.8.0<a class="headerlink" href="#urwid-0-8-0" title="Permalink to this headline">¶</a></h2>
+<p>2004-10-17</p>
+<blockquote>
+<div><ul class="simple">
+<li>Initial Release</li>
+</ul>
+</div></blockquote>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/urwid-logo.png" alt="Logo"/>
+            </a></p>
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Changelog</a><ul>
+<li><a class="reference internal" href="#urwid-1-1-2">Urwid 1.1.2</a></li>
+<li><a class="reference internal" href="#urwid-1-1-1">Urwid 1.1.1</a></li>
+<li><a class="reference internal" href="#urwid-1-1-0">Urwid 1.1.0</a></li>
+<li><a class="reference internal" href="#urwid-1-0-3">Urwid 1.0.3</a></li>
+<li><a class="reference internal" href="#urwid-1-0-2">Urwid 1.0.2</a></li>
+<li><a class="reference internal" href="#urwid-1-0-1">Urwid 1.0.1</a></li>
+<li><a class="reference internal" href="#urwid-1-0-0">Urwid 1.0.0</a></li>
+<li><a class="reference internal" href="#urwid-0-9-9-2">Urwid 0.9.9.2</a></li>
+<li><a class="reference internal" href="#urwid-0-9-9-1">Urwid 0.9.9.1</a></li>
+<li><a class="reference internal" href="#urwid-0-9-9">Urwid 0.9.9</a></li>
+<li><a class="reference internal" href="#urwid-0-9-8-4">Urwid 0.9.8.4</a></li>
+<li><a class="reference internal" href="#urwid-0-9-8-3">Urwid 0.9.8.3</a></li>
+<li><a class="reference internal" href="#urwid-0-9-8-2">Urwid 0.9.8.2</a></li>
+<li><a class="reference internal" href="#urwid-0-9-8-1">Urwid 0.9.8.1</a></li>
+<li><a class="reference internal" href="#urwid-0-9-8">Urwid 0.9.8</a></li>
+<li><a class="reference internal" href="#urwid-0-9-7-2">Urwid 0.9.7.2</a></li>
+<li><a class="reference internal" href="#urwid-0-9-7-1">Urwid 0.9.7.1</a></li>
+<li><a class="reference internal" href="#urwid-0-9-7">Urwid 0.9.7</a></li>
+<li><a class="reference internal" href="#urwid-0-9-6">Urwid 0.9.6</a></li>
+<li><a class="reference internal" href="#urwid-0-9-5">Urwid 0.9.5</a></li>
+<li><a class="reference internal" href="#urwid-0-9-4">Urwid 0.9.4</a></li>
+<li><a class="reference internal" href="#urwid-0-9-3">Urwid 0.9.3</a></li>
+<li><a class="reference internal" href="#urwid-0-9-2">Urwid 0.9.2</a></li>
+<li><a class="reference internal" href="#urwid-0-9-1">Urwid 0.9.1</a></li>
+<li><a class="reference internal" href="#urwid-0-9-0">Urwid 0.9.0</a></li>
+<li><a class="reference internal" href="#urwid-0-9-0-pre3">Urwid 0.9.0-pre3</a></li>
+<li><a class="reference internal" href="#urwid-0-9-0-pre2">Urwid 0.9.0-pre2</a></li>
+<li><a class="reference internal" href="#urwid-0-9-0-pre1">Urwid 0.9.0-pre1</a></li>
+<li><a class="reference internal" href="#urwid-0-8-10">Urwid 0.8.10</a></li>
+<li><a class="reference internal" href="#urwid-0-8-9">Urwid 0.8.9</a></li>
+<li><a class="reference internal" href="#urwid-0-8-8">Urwid 0.8.8</a></li>
+<li><a class="reference internal" href="#urwid-0-8-7">Urwid 0.8.7</a></li>
+<li><a class="reference internal" href="#urwid-0-8-6">Urwid 0.8.6</a></li>
+<li><a class="reference internal" href="#urwid-0-8-5">Urwid 0.8.5</a></li>
+<li><a class="reference internal" href="#urwid-0-8-4">Urwid 0.8.4</a></li>
+<li><a class="reference internal" href="#urwid-0-8-3">Urwid 0.8.3</a></li>
+<li><a class="reference internal" href="#urwid-0-8-2">Urwid 0.8.2</a></li>
+<li><a class="reference internal" href="#urwid-0-8-1">Urwid 0.8.1</a></li>
+<li><a class="reference internal" href="#urwid-0-8-0">Urwid 0.8.0</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Urwid 1.1.2 Documentation</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="tutorial/index.html"
+                        title="next chapter">Urwid Tutorial</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/changelog.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="tutorial/index.html" title="Urwid Tutorial"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Urwid 1.1.2 Documentation"
+             >previous</a> |</li>
+        <li><a href="index.html">Urwid 1.1.2</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Ian Ward et al.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

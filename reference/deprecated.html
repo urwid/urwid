@@ -1,0 +1,254 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Deprecated Classes &mdash; Urwid 1.1.2</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <link rel="top" title="Urwid 1.1.2" href="../index.html" />
+    <link rel="up" title="Urwid Reference" href="index.html" />
+    <link rel="prev" title="Metaclasses" href="meta.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="meta.html" title="Metaclasses"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Urwid Reference</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="deprecated-classes">
+<h1>Deprecated Classes<a class="headerlink" href="#deprecated-classes" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="urwid.FlowWidget">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">FlowWidget</tt><a class="headerlink" href="#urwid.FlowWidget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deprecated.  Inherit from Widget and add:</p>
+<blockquote>
+<div>_sizing = frozenset([&#8216;flow&#8217;])</div></blockquote>
+<p>at the top of your class definition instead.</p>
+<p>Base class of widgets that determine their rows from the number of
+columns available.</p>
+<dl class="method">
+<dt id="urwid.FlowWidget.render">
+<tt class="descname">render</tt><big>(</big><em>size</em>, <em>focus=False</em><big>)</big><a class="headerlink" href="#urwid.FlowWidget.render" title="Permalink to this definition">¶</a></dt>
+<dd><p>All widgets must implement this function.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.FlowWidget.rows">
+<tt class="descname">rows</tt><big>(</big><em>size</em>, <em>focus=False</em><big>)</big><a class="headerlink" href="#urwid.FlowWidget.rows" title="Permalink to this definition">¶</a></dt>
+<dd><p>All flow widgets must implement this function.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="urwid.BoxWidget">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">BoxWidget</tt><a class="headerlink" href="#urwid.BoxWidget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deprecated.  Inherit from Widget and add:</p>
+<blockquote>
+<div>_sizing = frozenset([&#8216;box&#8217;])
+_selectable = True</div></blockquote>
+<p>at the top of your class definition instead.</p>
+<p>Base class of width and height constrained widgets such as
+the top level widget attached to the display object</p>
+<dl class="method">
+<dt id="urwid.BoxWidget.render">
+<tt class="descname">render</tt><big>(</big><em>size</em>, <em>focus=False</em><big>)</big><a class="headerlink" href="#urwid.BoxWidget.render" title="Permalink to this definition">¶</a></dt>
+<dd><p>All widgets must implement this function.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="urwid.FixedWidget">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">FixedWidget</tt><a class="headerlink" href="#urwid.FixedWidget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deprecated.  Inherit from Widget and add:</p>
+<blockquote>
+<div>_sizing = frozenset([&#8216;fixed&#8217;])</div></blockquote>
+<p>at the top of your class definition instead.</p>
+<p>Base class of widgets that know their width and height and
+cannot be resized</p>
+<dl class="method">
+<dt id="urwid.FixedWidget.pack">
+<tt class="descname">pack</tt><big>(</big><em>size=None</em>, <em>focus=False</em><big>)</big><a class="headerlink" href="#urwid.FixedWidget.pack" title="Permalink to this definition">¶</a></dt>
+<dd><p>All fixed widgets must implement this function.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.FixedWidget.render">
+<tt class="descname">render</tt><big>(</big><em>size</em>, <em>focus=False</em><big>)</big><a class="headerlink" href="#urwid.FixedWidget.render" title="Permalink to this definition">¶</a></dt>
+<dd><p>All widgets must implement this function.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="urwid.AttrWrap">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">AttrWrap</tt><big>(</big><em>w</em>, <em>attr</em>, <em>focus_attr=None</em><big>)</big><a class="headerlink" href="#urwid.AttrWrap" title="Permalink to this definition">¶</a></dt>
+<dd><p>w &#8211; widget to wrap (stored as self.original_widget)
+attr &#8211; attribute to apply to w
+focus_attr &#8211; attribute to apply when in focus, if None use attr</p>
+<p>This widget is a special case of the new AttrMap widget, and it
+will pass all function calls and variable references to the wrapped
+widget.  This class is maintained for backwards compatibility only,
+new code should use AttrMap instead.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrWrap</span><span class="p">(</span><span class="n">Divider</span><span class="p">(</span><span class="s">u&quot;!&quot;</span><span class="p">),</span> <span class="s">&#39;bright&#39;</span><span class="p">)</span>
+<span class="go">&lt;AttrWrap flow widget &lt;Divider flow widget &#39;!&#39;&gt; attr=&#39;bright&#39;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrWrap</span><span class="p">(</span><span class="n">Edit</span><span class="p">(),</span> <span class="s">&#39;notfocus&#39;</span><span class="p">,</span> <span class="s">&#39;focus&#39;</span><span class="p">)</span>
+<span class="go">&lt;AttrWrap selectable flow widget &lt;Edit selectable flow widget &#39;&#39; edit_pos=0&gt; attr=&#39;notfocus&#39; focus_attr=&#39;focus&#39;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">5</span><span class="p">,)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">aw</span> <span class="o">=</span> <span class="n">AttrWrap</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="s">u&quot;hi&quot;</span><span class="p">),</span> <span class="s">&#39;greeting&#39;</span><span class="p">,</span> <span class="s">&#39;fgreet&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">aw</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span><span class="o">.</span><span class="n">content</span><span class="p">()</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+<span class="go">[(&#39;greeting&#39;, None, ...&#39;hi   &#39;)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">aw</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">content</span><span class="p">()</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+<span class="go">[(&#39;fgreet&#39;, None, ...&#39;hi   &#39;)]</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="urwid.AttrWrap.set_attr">
+<tt class="descname">set_attr</tt><big>(</big><em>attr</em><big>)</big><a class="headerlink" href="#urwid.AttrWrap.set_attr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the attribute to apply to the wrapped widget</p>
+<p>&gt;&gt; w = AttrWrap(Divider(&#8220;-&#8221;), None)
+&gt;&gt; w.set_attr(&#8216;new_attr&#8217;)
+&gt;&gt; w
+&lt;AttrWrap flow widget &lt;Divider flow widget &#8216;-&#8216;&gt; attr=&#8217;new_attr&#8217;&gt;</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.AttrWrap.set_focus_attr">
+<tt class="descname">set_focus_attr</tt><big>(</big><em>focus_attr</em><big>)</big><a class="headerlink" href="#urwid.AttrWrap.set_focus_attr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the attribute to apply to the wapped widget when it is in
+focus</p>
+<p>If None this widget will use the attr instead (no change when in
+focus).</p>
+<p>&gt;&gt; w = AttrWrap(Divider(&#8220;-&#8221;), &#8216;old&#8217;)
+&gt;&gt; w.set_focus_attr(&#8216;new_attr&#8217;)
+&gt;&gt; w
+&lt;AttrWrap flow widget &lt;Divider flow widget &#8216;-&#8216;&gt; attr=&#8217;old&#8217; focus_attr=&#8217;new_attr&#8217;&gt;
+&gt;&gt; w.set_focus_attr(None)
+&gt;&gt; w
+&lt;AttrWrap flow widget &lt;Divider flow widget &#8216;-&#8216;&gt; attr=&#8217;old&#8217;&gt;</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="urwid.PollingListWalker">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">PollingListWalker</tt><big>(</big><em>contents</em><big>)</big><a class="headerlink" href="#urwid.PollingListWalker" title="Permalink to this definition">¶</a></dt>
+<dd><p>contents &#8211; list to poll for changes</p>
+<p>This class is deprecated.  Use SimpleFocusListWalker instead.</p>
+<dl class="method">
+<dt id="urwid.PollingListWalker.get_focus">
+<tt class="descname">get_focus</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.PollingListWalker.get_focus" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return (focus widget, focus position).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.PollingListWalker.get_next">
+<tt class="descname">get_next</tt><big>(</big><em>start_from</em><big>)</big><a class="headerlink" href="#urwid.PollingListWalker.get_next" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return (widget after start_from, position after start_from).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.PollingListWalker.get_prev">
+<tt class="descname">get_prev</tt><big>(</big><em>start_from</em><big>)</big><a class="headerlink" href="#urwid.PollingListWalker.get_prev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return (widget before start_from, position before start_from).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.PollingListWalker.set_focus">
+<tt class="descname">set_focus</tt><big>(</big><em>position</em><big>)</big><a class="headerlink" href="#urwid.PollingListWalker.set_focus" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set focus position.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="meta.html"
+                        title="previous chapter">Metaclasses</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/reference/deprecated.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="meta.html" title="Metaclasses"
+             >previous</a> |</li>
+        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+          <li><a href="index.html" >Urwid Reference</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Ian Ward et al.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
