@@ -1,3 +1,5 @@
+.. image:: https://travis-ci.org/wardi/urwid.png?branch=master
+
 Urwid is a console user interface library for Python.
 It includes many features useful for text console application developers including:
 
