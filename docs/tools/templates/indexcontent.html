@@ -1,12 +1,15 @@
 {% extends "!defindex.html" %}
 {% block body %}
-<h1>Urwid</h1>
+<h1>Urwid{% if 'dev' in release %} development version{% endif %}</h1>
 <div style="float: left; width: 500px;">
 <p>Console user interface library for Python</p>
 
 <ul>
+{% if 'dev' in release %}<li>Stable release available at <a href="http://urwid.org/">http://urwid.org</a></li>
+{% else %}
 <li><a href="https://pypi.python.org/packages/source/u/urwid/urwid-{{ release }}.tar.gz"
 >Download: urwid-{{ release }}.tar.gz</a></li>
+{% endif %}
 <li><a href="changelog.html">Changelog</a>
 <!--<li><a href="examples.html">Example screenshots</a>-->
 </ul>
