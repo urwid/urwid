@@ -1,0 +1,13 @@
+language: python
+virtualenv:
+  system_site_packages: true
+python:
+  - "2.7"
+  - "3.2"
+  - "3.3"
+before_install:
+  - "sudo apt-get install python-gobject"
+install:
+  - "pip install --use-mirrors setuptools twisted"
+script:
+  - "python setup.py test"
