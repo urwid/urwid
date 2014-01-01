@@ -9,7 +9,7 @@ GRAY_FGS = ('black', 'dark blue', 'dark cyan', 'dark red', 'dark green',
     'brown', 'dark magenta', 'white', 'light red', 'yellow',
     'light magenta')
 BLUE_FGS = ('light gray', 'dark cyan', 'white',
-    'light blue', 'light cyan', 'light red', 'light green', 'yellow',
+    'light cyan', 'light red', 'light green', 'yellow',
     'light magenta')
 CYAN_FGS = ('black', 'light gray', 'dark blue', 'white', 'light cyan',
     'light green', 'yellow')
