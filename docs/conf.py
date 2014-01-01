@@ -41,7 +41,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Urwid'
-copyright = u'2013, Ian Ward et al'
+copyright = u'2014, Ian Ward et al'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -268,7 +268,7 @@ texinfo_documents = [
 epub_title = u'Urwid'
 epub_author = u'Ian Ward'
 epub_publisher = u'Ian Ward'
-epub_copyright = u'2012, Ian Ward'
+epub_copyright = u'2014, Ian Ward et al'
 
 # The language of the text. It defaults to the language option
 # or en if the language is not set.
