@@ -20,6 +20,7 @@ c=1
 while read -r line; do
 	# the echo trick is needed to expand RXVTWINDOWID variable
 	echo $line | xdotool -
+	echo "sending $line"
 	import -window "$RXVTWINDOWID" "${image}$c.png"
 	(( c++ ))
 done

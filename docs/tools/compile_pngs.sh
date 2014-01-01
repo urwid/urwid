@@ -2,7 +2,7 @@
 
 # args: scripts to capture
 
-DISPLAYNUM=1
+DISPLAYNUM=5
 SCREENSHOTS=`dirname $0`/screenshots.sh
 
 XVFB=$(which Xvfb)
@@ -14,6 +14,7 @@ if [ -n $XVFB ]; then
 fi
 
 for script in $@; do
+	echo "doing $script"
 	if [ -f "${script}.xdotool" ]; then
 		"$SCREENSHOTS" "$script" < "${script}.xdotool"
 	fi
