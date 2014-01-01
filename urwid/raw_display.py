@@ -50,6 +50,7 @@ class Screen(BaseScreen, RealTerminal):
         """
         super(Screen, self).__init__()
         self._pal_escape = {}
+        self._pal_attrspec = {}
         signals.connect_signal(self, UPDATE_PALETTE_ENTRY, 
             self._on_update_palette_entry)
         self.colors = 16 # FIXME: detect this
@@ -81,8 +82,9 @@ class Screen(BaseScreen, RealTerminal):
 
     def _on_update_palette_entry(self, name, *attrspecs):
         # copy the attribute to a dictionary containing the escape seqences
-        self._pal_escape[name] = self._attrspec_to_escape(
-            attrspecs[{16:0,1:1,88:2,256:3}[self.colors]])
+        a = attrspecs[{16:0,1:1,88:2,256:3}[self.colors]]
+        self._pal_attrspec[name] = a
+        self._pal_escape[name] = self._attrspec_to_escape(a)
 
     def set_input_timeouts(self, max_wait=None, complete_wait=0.125, 
         resize_wait=0.125):
@@ -686,12 +688,15 @@ class Screen(BaseScreen, RealTerminal):
             cy = y
 
             whitespace_at_end = False
-            if row and row[-1][2][-1:] == B(' ') and self.back_color_erase:
-                whitespace_at_end = True
+            if row:
                 a, cs, run = row[-1]
-                row = row[:-1] + [(a, cs, run.rstrip(B(' ')))]
-            elif y == maxrow-1 and maxcol>1:
-                row, back, ins = self._last_row(row)
+                a = self._pal_attrspec.get(a, a)
+                if (run[-1:] == B(' ') and not a.standout and
+                        self.back_color_erase):
+                    whitespace_at_end = True
+                    row = row[:-1] + [(a, cs, run.rstrip(B(' ')))]
+                elif y == maxrow-1 and maxcol > 1:
+                    row, back, ins = self._last_row(row)
 
             first = True
             lasta = lastcs = None
