@@ -1,1 +1,1 @@
-windowsize --usehints $RXVTWINDOWID 70 28
+windowsize --usehints $RXVTWINDOWID 70 27
