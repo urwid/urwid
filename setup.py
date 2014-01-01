@@ -50,7 +50,7 @@ setup_d = {
     'keywords':"curses ui widget scroll listbox user interface text layout console ncurses",
     'platforms':"unix-like",
     'description': "A full-featured console (xterm et al.) user interface library",
-    'long_description':open("README.rst").read().split('\n\n',1)[1],
+    'long_description':open("README.rst").read().split('.. content-start\n',1)[1],
     'classifiers':[
         "Development Status :: 5 - Production/Stable",
         "Environment :: Console",

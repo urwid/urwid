@@ -2,6 +2,10 @@
    :alt: build status
    :target: https://travis-ci.org/wardi/urwid/
 
+`Development version documentation <http://urwid.readthedocs.org/en/latest/>`_
+
+.. content-start
+
 Urwid is a console user interface library for Python.
 It includes many features useful for text console application developers including:
 
