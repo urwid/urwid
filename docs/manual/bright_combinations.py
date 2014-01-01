@@ -6,7 +6,7 @@ RED_FGS = ('black', 'light gray', 'white', 'light cyan', 'light red',
     'light green', 'yellow', 'light magenta')
 GREEN_FGS = ('black', 'light gray', 'dark blue', 'white', 'light cyan',
     'light red', 'light green', 'yellow')
-BROWN_FGS = ('black', 'light gray', 'dark blue', 'dark gray', 'white',
+BROWN_FGS = ('black', 'dark blue', 'dark gray', 'white',
     'light blue', 'light cyan', 'light red', 'light green', 'yellow')
 MAGENTA_FGS = ('black', 'light gray', 'dark blue', 'white', 'light cyan',
     'light red', 'light green', 'yellow', 'light magenta')
