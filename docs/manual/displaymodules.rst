@@ -146,27 +146,3 @@ mode as part of your palette. eg:
 
 The :ref:`display-attributes` section of this manual describes all the options
 available.
-
-Neutral Backgrounds
-===================
-
-.. image:: safe_combinations1.png
-
-Choose colors that are fairly neutral with medium contrast for most of
-your application. It is good to use one background as a default for text,
-another for edit boxes and a third for selected edit boxes.
-
-Foreground colors shown here in bold text will appear as bold text on
-many terminals. Bold fonts are often more difficult to read so those
-foreground colours should be used sparingly.
-
-Bright Backgrounds
-==================
-
-.. image:: bright_combinations1.png
-
-Use bright colors to draw attention to small areas with important
-information. They are good for buttons and selected widgets (other than
-edit boxes).
-
-
