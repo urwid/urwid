@@ -1,5 +1,5 @@
 
-PYTHON_SOURCE=$(shell echo tutorial/*.py.xdotool manual/*.py.xdotool)
+PYTHON_SOURCE=$(shell echo */*.py.xdotool)
 TARGETS=${PYTHON_SOURCE:.py.xdotool=1.png}
 TOOLS=tools/compile_pngs.sh tools/screenshots.sh
 
