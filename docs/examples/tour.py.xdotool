@@ -1,0 +1,4 @@
+windowsize --usehints $RXVTWINDOWID 27 25
+key --window $RXVTWINDOWID Return Page_Down Page_Down
+windowsize --usehints $RXVTWINDOWID 50 18
+key --window $RXVTWINDOWID Page_Down Page_Down Page_Down Page_Down Page_Down Page_Down Page_Down Page_Down Page_Down

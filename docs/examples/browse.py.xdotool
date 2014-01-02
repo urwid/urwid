@@ -1,0 +1,2 @@
+windowsize --usehints $RXVTWINDOWID 45 19
+key --window $RXVTWINDOWID Down plus Down space Down space Down Down Down

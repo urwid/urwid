@@ -1,0 +1,2 @@
+windowsize --usehints $RXVTWINDOWID 60 24
+key --window $RXVTWINDOWID Down Down Down Return
