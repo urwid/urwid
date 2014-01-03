@@ -660,6 +660,10 @@ class Screen(BaseScreen, RealTerminal):
             return self._attrspec_to_escape(
                 AttrSpec('default','default'))
 
+        def using_standout(a):
+            a = self._pal_attrspec.get(a, a)
+            return isinstance(a, AttrSpec) and a.standout
+
         ins = None
         o.append(set_cursor_home())
         cy = 0
@@ -690,9 +694,8 @@ class Screen(BaseScreen, RealTerminal):
             whitespace_at_end = False
             if row:
                 a, cs, run = row[-1]
-                a = self._pal_attrspec.get(a, a)
-                if (run[-1:] == B(' ') and not a.standout and
-                        self.back_color_erase):
+                if (run[-1:] == B(' ') and self.back_color_erase
+                        and not using_standout(a)):
                     whitespace_at_end = True
                     row = row[:-1] + [(a, cs, run.rstrip(B(' ')))]
                 elif y == maxrow-1 and maxcol > 1:
