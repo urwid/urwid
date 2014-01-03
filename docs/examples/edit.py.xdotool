@@ -1,0 +1,2 @@
+windowsize --usehints $RXVTWINDOWID 39 20
+key --window $RXVTWINDOWID Return Return a d d i n g space s o m e space t e x t space
