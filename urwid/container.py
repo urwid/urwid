@@ -1989,7 +1989,8 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         maxcol = size[0]
         # FIXME: get rid of this check and recalculate only when
         # a 'pack' widget has been modified.
-        if maxcol == self._cache_maxcol and not PACK in self.column_types:
+        if maxcol == self._cache_maxcol and not any(
+                t == PACK for w, (t, n, b) in self.contents):
             return self._cache_column_widths
 
         widths = []
