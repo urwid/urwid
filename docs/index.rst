@@ -4,8 +4,8 @@ Urwid |release| Documentation
 
 .. toctree::
 
+   examples/index
    tutorial/index
    manual/index
    reference/index
-   examples/index
    changelog
