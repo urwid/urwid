@@ -155,6 +155,10 @@ class Screen(BaseScreen, RealTerminal):
         if enable == self._mouse_tracking_enabled:
             return
 
+        self._mouse_tracking(enable)
+        self._mouse_tracking_enabled = enable
+
+    def _mouse_tracking(self, enable):
         if enable:
             self._term_output_file.write(escape.MOUSE_TRACKING_ON)
             self._start_gpm_tracking()
@@ -162,8 +166,6 @@ class Screen(BaseScreen, RealTerminal):
             self._term_output_file.write(escape.MOUSE_TRACKING_OFF)
             self._stop_gpm_tracking()
 
-        self._mouse_tracking_enabled = enable
-    
     def _start_gpm_tracking(self):
         if not os.path.isfile("/usr/bin/mev"):
             return
@@ -175,14 +177,14 @@ class Screen(BaseScreen, RealTerminal):
             close_fds=True)
         fcntl.fcntl(m.stdout.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
         self.gpm_mev = m
-    
+
     def _stop_gpm_tracking(self):
         if not self.gpm_mev:
             return
         os.kill(self.gpm_mev.pid, signal.SIGINT)
         os.waitpid(self.gpm_mev.pid, 0)
         self.gpm_mev = None
-    
+
     def start(self, alternate_buffer=True):
         """
         Initialize the screen and input mode.
@@ -212,7 +214,8 @@ class Screen(BaseScreen, RealTerminal):
         super(Screen, self).start()
 
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
-
+        # restore mouse tracking to previous state
+        self._mouse_tracking(self._mouse_tracking_enabled)
 
     def stop(self):
         """
@@ -231,17 +234,17 @@ class Screen(BaseScreen, RealTerminal):
             termios.tcsetattr(fd, termios.TCSADRAIN,
         self._old_termios_settings)
 
+        self._mouse_tracking(False)
+
         move_cursor = ""
-        if self.gpm_mev:
-            self._stop_gpm_tracking()
         if self._alternate_buffer:
             move_cursor = escape.RESTORE_NORMAL_BUFFER
         elif self.maxrow is not None:
-            move_cursor = escape.set_cursor_position( 
+            move_cursor = escape.set_cursor_position(
                 0, self.maxrow)
-        self._term_output_file.write(self._attrspec_to_escape(AttrSpec('','')) 
+        self._term_output_file.write(
+            self._attrspec_to_escape(AttrSpec('',''))
             + escape.SI
-            + escape.MOUSE_TRACKING_OFF
             + escape.SHOW_CURSOR
             + move_cursor + "\n" + escape.SHOW_CURSOR )
         self._input_iter = self._fake_input_iter()
@@ -254,7 +257,7 @@ class Screen(BaseScreen, RealTerminal):
 
     def run_wrapper(self, fn, alternate_buffer=True):
         """
-        Call start to initialize screen, then call fn.  
+        Call start to initialize screen, then call fn.
         When fn exits call stop to restore the screen to normal.
 
         alternate_buffer -- use alternate screen buffer and restore
