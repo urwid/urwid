@@ -360,6 +360,10 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
                 pad.original_widget=w
             pad.width = used_space - self.h_sep
 
+        if self.v_sep:
+            # remove first divider
+            del p.contents[:1]
+
         return p
 
     def _set_focus_from_display_widget(self):
