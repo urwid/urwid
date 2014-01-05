@@ -139,7 +139,9 @@ class MonitoredFocusList(MonitoredList):
             the index passed is ignored.
 
         This function may call self._focus_changed when the focus
-        is actually modified.  That method may be overridden on the
+        is modified, passing the new focus position to the
+        callback just before changing the old focus setting.
+        That method may be overridden on the
         instance with set_focus_changed_callback().
 
         >>> ml = MonitoredFocusList([9, 10, 11])
