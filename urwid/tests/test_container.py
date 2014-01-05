@@ -284,6 +284,10 @@ class GridFlowTest(unittest.TestCase):
     def test_basics(self):
         repr(urwid.GridFlow([], 5, 0, 0, 'left')) # should not fail
 
+    def test_v_sep(self):
+        gf = urwid.GridFlow([urwid.Text("test")], 10, 3, 1, "center")
+        self.assertEqual(gf.rows((40,), False), 1)
+
 
 class WidgetSquishTest(unittest.TestCase):
     def wstest(self, w):
