@@ -568,8 +568,14 @@ class Screen(BaseScreen, RealTerminal):
     
     def get_cols_rows(self):
         """Return the terminal dimensions (num columns, num rows)."""
-        buf = fcntl.ioctl(0, termios.TIOCGWINSZ, ' '*4)
-        y, x = struct.unpack('hh', buf)
+        y, x = 80, 24
+        try:
+            buf = fcntl.ioctl(self._term_output_file.fileno(),
+                              termios.TIOCGWINSZ, ' '*4)
+            y, x = struct.unpack('hh', buf)
+        except IOError:
+            # Term size could not be determined
+            pass
         self.maxrow = y
         return x, y
 
