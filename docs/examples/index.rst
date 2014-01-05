@@ -15,7 +15,7 @@ tour.py
 .. image:: tour1.png
 .. image:: tour2.png
 
-A simple example showing how many of the standard widgets may be arranged
+Show how many of the standard widgets may be arranged
 on the screen
 
 
@@ -24,7 +24,7 @@ graph.py
 
 .. image:: graph2.png
 
-A demonstration of the BarGraph widget and alarms used for animation
+Demonstrate BarGraph widget and alarms used for animation
 
 
 edit.py
@@ -45,12 +45,30 @@ A lazy directory browser with file selection, tree-view, custom widgets
 and list walker
 
 
+subproc.py
+----------
+
+.. image:: subproc1.png
+.. image:: subproc2.png
+
+Monitor and display results from a subprocess
+
+
 palette_test.py
 ---------------
 
 .. image:: palette_test2.png
 
-Shows available colors in various screen modes
+Show available colors in various screen modes
+
+
+pop_up.py
+---------
+
+.. image:: pop_up1.png
+.. image:: pop_up2.png
+
+Create a pop-up/drop-down/window anchored to another widget
 
 
 bigtext.py
@@ -59,4 +77,4 @@ bigtext.py
 .. image:: bigtext2.png
 .. image:: bigtext3.png
 
-A demonstration of the BigText widget
+demonstrate the BigText widget

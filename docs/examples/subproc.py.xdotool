@@ -1,0 +1,2 @@
+windowsize --usehints $RXVTWINDOWID 39 18
+key --window $RXVTWINDOWID a n y t h i n g question

@@ -2,8 +2,11 @@
 
 import subprocess
 import urwid
+import os
+import sys
 
 factor_me = 362923067964327863989661926737477737673859044111968554257667
+run_me = os.path.join(os.path.dirname(sys.argv[0]), 'subproc2.py')
 
 output_widget = urwid.Text("Factors of %d:\n" % factor_me)
 edit_widget = urwid.Edit("Type anything or press enter to exit:")
@@ -22,7 +25,7 @@ def received_output(data):
 
 write_fd = loop.watch_pipe(received_output)
 proc = subprocess.Popen(
-    ['python', '-u', 'subproc2.py', str(factor_me)],
+    ['python', '-u', run_me, str(factor_me)],
     stdout=write_fd,
     close_fds=True)
 
