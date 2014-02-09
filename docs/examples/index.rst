@@ -1,4 +1,4 @@
-.. _urwid-tutorial:
+.. _example-programs:
 
 ********************
   Example Programs
