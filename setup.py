@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Urwid setup.py exports the useful bits
-#    Copyright (C) 2004-2012  Ian Ward
+#    Copyright (C) 2004-2014  Ian Ward
 #
 #    This library is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU Lesser General Public
@@ -63,13 +63,13 @@ setup_d = {
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Software Development :: Widget Sets",
         "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.4",
-        "Programming Language :: Python :: 2.5",
         "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.2",
         "Programming Language :: Python :: 3.3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: Implementation :: PyPy",
         ],
      }
 
