@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>MainLoop and Event Loops &mdash; Urwid 1.1.2</title>
+    <title>MainLoop and Event Loops &mdash; Urwid 1.2.0</title>
     
     <link rel="stylesheet" href="../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -16,7 +16,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '1.1.2',
+        VERSION:     '1.2.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -26,7 +26,7 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/sidebar.js"></script>
-    <link rel="top" title="Urwid 1.1.2" href="../index.html" />
+    <link rel="top" title="Urwid 1.2.0" href="../index.html" />
     <link rel="up" title="Urwid Reference" href="index.html" />
     <link rel="next" title="Widget Classes" href="widget.html" />
     <link rel="prev" title="Urwid Reference" href="index.html" /> 
@@ -44,7 +44,7 @@
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+        <li><a href="../index.html">Urwid 1.2.0</a> &raquo;</li>
           <li><a href="index.html" accesskey="U">Urwid Reference</a> &raquo;</li> 
       </ul>
     </div>  
@@ -343,7 +343,7 @@ callback &#8211; function to call when input is available</p>
 <dl class="class">
 <dt id="urwid.GLibEventLoop">
 <em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">GLibEventLoop</tt><a class="headerlink" href="#urwid.GLibEventLoop" title="Permalink to this definition">¶</a></dt>
-<dd><p>Event loop based on gobject.MainLoop</p>
+<dd><p>Event loop based on GLib.MainLoop</p>
 <dl class="method">
 <dt id="urwid.GLibEventLoop.alarm">
 <tt class="descname">alarm</tt><big>(</big><em>seconds</em>, <em>callback</em><big>)</big><a class="headerlink" href="#urwid.GLibEventLoop.alarm" title="Permalink to this definition">¶</a></dt>
@@ -504,6 +504,27 @@ callback &#8211; function to call when input is available</p>
 </dd></dl>
 
 </div>
+<div class="section" id="tornadoeventloop">
+<h2>TornadoEventLoop<a class="headerlink" href="#tornadoeventloop" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="urwid.TornadoEventLoop">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">TornadoEventLoop</tt><big>(</big><em>ioloop=None</em><big>)</big><a class="headerlink" href="#urwid.TornadoEventLoop" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is an Urwid-specific event loop to plug into its MainLoop.
+It acts as an adaptor for Tornado&#8217;s IOLoop which does all
+heavy lifting except idle-callbacks.</p>
+<p>Notice, since Tornado has no concept of idle callbacks we
+monkey patch ioloop._impl.poll() function to be able to detect
+potential idle periods.</p>
+<dl class="class">
+<dt id="urwid.TornadoEventLoop.PollProxy">
+<em class="property">class </em><tt class="descname">PollProxy</tt><big>(</big><em>poll_obj</em>, <em>idle_map</em><big>)</big><a class="headerlink" href="#urwid.TornadoEventLoop.PollProxy" title="Permalink to this definition">¶</a></dt>
+<dd><p>A simple proxy for a Python&#8217;s poll object that wraps the .poll() method
+in order to detect idle periods and call Urwid callbacks</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 </div>
 
 
@@ -514,18 +535,19 @@ callback &#8211; function to call when input is available</p>
         <div class="sphinxsidebarwrapper">
             <p class="logo"><a href="../index.html">
               <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
-            </a></p>
-  <h3><a href="../index.html">Table Of Contents</a></h3>
-  <ul>
+            </a></p><h3>Table of contents</a></h3>
+    <ul><li><a href="index.html">Reference</a></li><ul>
 <li><a class="reference internal" href="#">MainLoop and Event Loops</a><ul>
 <li><a class="reference internal" href="#mainloop">MainLoop</a></li>
 <li><a class="reference internal" href="#selecteventloop">SelectEventLoop</a></li>
 <li><a class="reference internal" href="#glibeventloop">GLibEventLoop</a></li>
 <li><a class="reference internal" href="#twistedeventloop">TwistedEventLoop</a></li>
+<li><a class="reference internal" href="#tornadoeventloop">TornadoEventLoop</a></li>
 </ul>
 </li>
 </ul>
 
+    </ul>
   <h4>Previous topic</h4>
   <p class="topless"><a href="index.html"
                         title="previous chapter">Urwid Reference</a></p>
@@ -566,12 +588,12 @@ callback &#8211; function to call when input is available</p>
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              >previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+        <li><a href="../index.html">Urwid 1.2.0</a> &raquo;</li>
           <li><a href="index.html" >Urwid Reference</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2013, Ian Ward et al.
+        &copy; Copyright 2014, Ian Ward et al.
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>

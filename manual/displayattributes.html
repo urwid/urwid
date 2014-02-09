@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Display Attributes &mdash; Urwid 1.1.2</title>
+    <title>Display Attributes &mdash; Urwid 1.2.0</title>
     
     <link rel="stylesheet" href="../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -16,7 +16,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '1.1.2',
+        VERSION:     '1.2.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -26,7 +26,7 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/sidebar.js"></script>
-    <link rel="top" title="Urwid 1.1.2" href="../index.html" />
+    <link rel="top" title="Urwid 1.2.0" href="../index.html" />
     <link rel="up" title="Urwid Manual" href="index.html" />
     <link rel="next" title="Canvas Cache" href="canvascache.html" />
     <link rel="prev" title="Encodings Supported" href="encodings.html" /> 
@@ -44,7 +44,7 @@
         <li class="right" >
           <a href="encodings.html" title="Encodings Supported"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+        <li><a href="../index.html">Urwid 1.2.0</a> &raquo;</li>
           <li><a href="index.html" accesskey="U">Urwid Manual</a> &raquo;</li> 
       </ul>
     </div>  
@@ -338,6 +338,26 @@ terminal, so this feature shouldn&#8217;t be relied on.</p>
 reset the palette in the <tt class="docutils literal"><span class="pre">palette_test.py</span></tt> example program when switching modes.</p>
 </div>
 </div>
+<div class="section" id="recommended-combinations">
+<h2>Recommended Combinations<a class="headerlink" href="#recommended-combinations" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="neutral-backgrounds">
+<h3>Neutral Backgrounds<a class="headerlink" href="#neutral-backgrounds" title="Permalink to this headline">¶</a></h3>
+<img alt="../_images/safe_combinations1.png" src="../_images/safe_combinations1.png" />
+<p>Choose colors that are fairly neutral with medium contrast for most of
+your application. It is good to use one background as a default for text,
+another for edit boxes and a third for selected edit boxes.</p>
+<p>Foreground colors shown here in bold text will appear as bold text on
+many terminals. Bold fonts are often more difficult to read so those
+foreground colours should be used sparingly.</p>
+</div>
+<div class="section" id="bright-backgrounds">
+<h3>Bright Backgrounds<a class="headerlink" href="#bright-backgrounds" title="Permalink to this headline">¶</a></h3>
+<img alt="../_images/bright_combinations1.png" src="../_images/bright_combinations1.png" />
+<p>Use bright colors to draw attention to small areas with important
+information. They are good for buttons and selected widgets (other than
+edit boxes).</p>
+</div>
+</div>
 </div>
 
 
@@ -348,9 +368,8 @@ reset the palette in the <tt class="docutils literal"><span class="pre">palette_
         <div class="sphinxsidebarwrapper">
             <p class="logo"><a href="../index.html">
               <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
-            </a></p>
-  <h3><a href="../index.html">Table Of Contents</a></h3>
-  <ul>
+            </a></p><h3>Table of contents</a></h3>
+    <ul><li><a href="index.html">Manual</a></li><ul>
 <li><a class="reference internal" href="#">Display Attributes</a><ul>
 <li><a class="reference internal" href="#using-display-attributes">Using Display Attributes</a><ul>
 <li><a class="reference internal" href="#text-markup">Text Markup</a></li>
@@ -368,10 +387,16 @@ reset the palette in the <tt class="docutils literal"><span class="pre">palette_
 <li><a class="reference internal" href="#rgb-palette-setting">RGB Palette Setting</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#recommended-combinations">Recommended Combinations</a><ul>
+<li><a class="reference internal" href="#neutral-backgrounds">Neutral Backgrounds</a></li>
+<li><a class="reference internal" href="#bright-backgrounds">Bright Backgrounds</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
 
+    </ul>
   <h4>Previous topic</h4>
   <p class="topless"><a href="encodings.html"
                         title="previous chapter">Encodings Supported</a></p>
@@ -412,12 +437,12 @@ reset the palette in the <tt class="docutils literal"><span class="pre">palette_
         <li class="right" >
           <a href="encodings.html" title="Encodings Supported"
              >previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+        <li><a href="../index.html">Urwid 1.2.0</a> &raquo;</li>
           <li><a href="index.html" >Urwid Manual</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2013, Ian Ward et al.
+        &copy; Copyright 2014, Ian Ward et al.
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>

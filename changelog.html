@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Changelog &mdash; Urwid 1.1.2</title>
+    <title>Changelog &mdash; Urwid 1.2.0</title>
     
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -16,7 +16,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '1.1.2',
+        VERSION:     '1.2.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -26,9 +26,8 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="_static/sidebar.js"></script>
-    <link rel="top" title="Urwid 1.1.2" href="index.html" />
-    <link rel="next" title="Urwid Tutorial" href="tutorial/index.html" />
-    <link rel="prev" title="Urwid 1.1.2 Documentation" href="index.html" /> 
+    <link rel="top" title="Urwid 1.2.0" href="index.html" />
+    <link rel="prev" title="Deprecated Classes" href="reference/deprecated.html" /> 
   </head>
   <body>
     <div class="related">
@@ -38,12 +37,9 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="tutorial/index.html" title="Urwid Tutorial"
-             accesskey="N">next</a> |</li>
-        <li class="right" >
-          <a href="index.html" title="Urwid 1.1.2 Documentation"
+          <a href="reference/deprecated.html" title="Deprecated Classes"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">Urwid 1.1.2</a> &raquo;</li> 
+        <li><a href="index.html">Urwid 1.2.0</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -54,6 +50,39 @@
             
   <div class="section" id="changelog">
 <h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="urwid-1-2-0">
+<h2>Urwid 1.2.0<a class="headerlink" href="#urwid-1-2-0" title="Permalink to this headline">¶</a></h2>
+<p>2014-02-09</p>
+<blockquote>
+<div><ul class="simple">
+<li>Add support for PyPy, drop support for Python 2.4, 2.5</li>
+<li>Signals now support using weakly referenced arguments to help
+avoid leaking objects when a signal consumer is no longer
+referenced (by Matthijs Kooijman)</li>
+<li>Add TornadoEventLoop class (by Alexander Glyzov)</li>
+<li>Update GlibEventLoop to use python-gi for Python3 compatibility
+(by Israel Garcia)</li>
+<li>Automate testing with Python 2.6, 2.7, 3.2, 3.3 and PyPy using
+travis-ci</li>
+<li>New container method get_focus_widgets() (by Matthijs Kooijman)</li>
+<li>Add support for double and triple click mouse events
+(by Igor Kotrasiński)</li>
+<li>Allow disabling and re-enabling of mouse tracking
+(by Jim Garrison)</li>
+<li>Create section in docs for example program screenshots generated
+as images like the tutorial examples</li>
+<li>Add suggested basic color combination images to manual</li>
+<li>Fall back to 80x24 if screen size detection fails</li>
+<li>Fix screen.stop(), screen.start() disabling mouse events</li>
+<li>Fix to make GridFlow v_sep argument behave as documented</li>
+<li>Fix for registering high palette entries in the form &#8220;hX&#8221; where
+X &gt; 15 so that basic colors are applied in 88-color mode</li>
+<li>Fix for raw_display clear-right escape not working with
+standout attribute on some terminals</li>
+<li>Fix for Terminal widget select loop: retry when interrupted</li>
+</ul>
+</div></blockquote>
+</div>
 <div class="section" id="urwid-1-1-2">
 <h2>Urwid 1.1.2<a class="headerlink" href="#urwid-1-1-2" title="Permalink to this headline">¶</a></h2>
 <p>2013-12-30</p>
@@ -998,10 +1027,10 @@ colour rendering.</li>
         <div class="sphinxsidebarwrapper">
             <p class="logo"><a href="index.html">
               <img class="logo" src="_static/urwid-logo.png" alt="Logo"/>
-            </a></p>
-  <h3><a href="index.html">Table Of Contents</a></h3>
+            </a></p><h3>Table of contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Changelog</a><ul>
+<li><a class="reference internal" href="#urwid-1-2-0">Urwid 1.2.0</a></li>
 <li><a class="reference internal" href="#urwid-1-1-2">Urwid 1.1.2</a></li>
 <li><a class="reference internal" href="#urwid-1-1-1">Urwid 1.1.1</a></li>
 <li><a class="reference internal" href="#urwid-1-1-0">Urwid 1.1.0</a></li>
@@ -1045,12 +1074,10 @@ colour rendering.</li>
 </li>
 </ul>
 
+
   <h4>Previous topic</h4>
-  <p class="topless"><a href="index.html"
-                        title="previous chapter">Urwid 1.1.2 Documentation</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="tutorial/index.html"
-                        title="next chapter">Urwid Tutorial</a></p>
+  <p class="topless"><a href="reference/deprecated.html"
+                        title="previous chapter">Deprecated Classes</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/changelog.txt"
@@ -1080,16 +1107,13 @@ colour rendering.</li>
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="tutorial/index.html" title="Urwid Tutorial"
-             >next</a> |</li>
-        <li class="right" >
-          <a href="index.html" title="Urwid 1.1.2 Documentation"
+          <a href="reference/deprecated.html" title="Deprecated Classes"
              >previous</a> |</li>
-        <li><a href="index.html">Urwid 1.1.2</a> &raquo;</li> 
+        <li><a href="index.html">Urwid 1.2.0</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2013, Ian Ward et al.
+        &copy; Copyright 2014, Ian Ward et al.
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>

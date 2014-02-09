@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Main Loop &mdash; Urwid 1.1.2</title>
+    <title>Main Loop &mdash; Urwid 1.2.0</title>
     
     <link rel="stylesheet" href="../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -16,7 +16,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '1.1.2',
+        VERSION:     '1.2.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -26,7 +26,7 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/sidebar.js"></script>
-    <link rel="top" title="Urwid 1.1.2" href="../index.html" />
+    <link rel="top" title="Urwid 1.2.0" href="../index.html" />
     <link rel="up" title="Urwid Manual" href="index.html" />
     <link rel="next" title="Display Modules" href="displaymodules.html" />
     <link rel="prev" title="Library Overview" href="overview.html" /> 
@@ -44,7 +44,7 @@
         <li class="right" >
           <a href="overview.html" title="Library Overview"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+        <li><a href="../index.html">Urwid 1.2.0</a> &raquo;</li>
           <li><a href="index.html" accesskey="U">Urwid Manual</a> &raquo;</li> 
       </ul>
     </div>  
@@ -97,7 +97,8 @@ it will be difficult to extend as your application gets more complicated.</p>
 <span id="id2"></span><h2>Event Loops<a class="headerlink" href="#event-loops" title="Permalink to this headline">¶</a></h2>
 <p>Urwid&#8217;s event loop classes handle waiting for things for the
 <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><tt class="xref py py-class docutils literal"><span class="pre">MainLoop</span></tt></a>. The different event loops allow you to
-integrate with <a class="reference external" href="http://twistedmatrix.com/trac/">Twisted</a> or <a class="reference external" href="http://developer.gnome.org/glib/stable/">Glib</a> libraries, or use a simple <tt class="docutils literal"><span class="pre">select</span></tt>-based
+integrate with <a class="reference external" href="http://twistedmatrix.com/trac/">Twisted</a>, <a class="reference external" href="http://developer.gnome.org/glib/stable/">Glib</a>, <a class="reference external" href="http://www.tornadoweb.org/">Tornado</a> libraries,
+or use a simple <tt class="docutils literal"><span class="pre">select</span></tt>-based
 loop. Event loop classes abstract the particulars of waiting for input and
 calling functions as a result of timeouts.</p>
 <p>You will typically only have a single event loop in your application, even if
@@ -105,7 +106,8 @@ you have more than one <a class="reference internal" href="../reference/main_loo
 <p>You can add your own files to watch to your event loop, with the
 <a class="reference internal" href="../reference/main_loop.html#urwid.SelectEventLoop.watch_file" title="urwid.SelectEventLoop.watch_file"><tt class="xref py py-meth docutils literal"><span class="pre">watch_file()</span></tt></a> method.
 Using this interface gives you the special handling
-of <a class="reference internal" href="../reference/exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><tt class="xref py py-exc docutils literal"><span class="pre">ExitMainLoop</span></tt></a> and other exceptions when using <a class="reference external" href="http://developer.gnome.org/glib/stable/">Glib</a> or <a class="reference external" href="http://twistedmatrix.com/trac/">Twisted</a>.</p>
+of <a class="reference internal" href="../reference/exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><tt class="xref py py-exc docutils literal"><span class="pre">ExitMainLoop</span></tt></a> and other exceptions when using <a class="reference external" href="http://developer.gnome.org/glib/stable/">Glib</a>, <a class="reference external" href="http://twistedmatrix.com/trac/">Twisted</a> or
+<a class="reference external" href="http://www.tornadoweb.org/">Tornado</a> callbacks.</p>
 <div class="section" id="selecteventloop">
 <h3><tt class="docutils literal"><span class="pre">SelectEventLoop</span></tt><a class="headerlink" href="#selecteventloop" title="Permalink to this headline">¶</a></h3>
 <p>This event loop is based on <tt class="docutils literal"><span class="pre">select.select()</span></tt>. This is the default event loop
@@ -147,6 +149,18 @@ application on Twisted.</p>
 <p class="last"><a class="reference internal" href="../reference/main_loop.html#urwid.GLibEventLoop" title="urwid.GLibEventLoop"><tt class="xref py py-class docutils literal"><span class="pre">GLibEventLoop</span> <span class="pre">reference</span></tt></a></p>
 </div>
 </div>
+<div class="section" id="tornadoeventloop">
+<h3><tt class="docutils literal"><span class="pre">TornadoEventLoop</span></tt><a class="headerlink" href="#tornadoeventloop" title="Permalink to this headline">¶</a></h3>
+<p>This event loop integrates with Tornado.</p>
+<div class="highlight-python"><pre>from tornado.ioloop import IOLoop
+evl = urwid.TornadoEventLoop(IOLoop()
+loop = urwid.MainLoop(widget, event_loop=evl)</pre>
+</div>
+<div class="admonition-see-also admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last">:class`TornadoEventLoop reference &lt;TornadoEventLoop&gt;`</p>
+</div>
+</div>
 </div>
 </div>
 
@@ -158,21 +172,22 @@ application on Twisted.</p>
         <div class="sphinxsidebarwrapper">
             <p class="logo"><a href="../index.html">
               <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
-            </a></p>
-  <h3><a href="../index.html">Table Of Contents</a></h3>
-  <ul>
+            </a></p><h3>Table of contents</a></h3>
+    <ul><li><a href="index.html">Manual</a></li><ul>
 <li><a class="reference internal" href="#">Main Loop</a><ul>
 <li><a class="reference internal" href="#widgets-displayed">Widgets Displayed</a></li>
 <li><a class="reference internal" href="#event-loops">Event Loops</a><ul>
 <li><a class="reference internal" href="#selecteventloop"><tt class="docutils literal"><span class="pre">SelectEventLoop</span></tt></a></li>
 <li><a class="reference internal" href="#twistedeventloop"><tt class="docutils literal"><span class="pre">TwistedEventLoop</span></tt></a></li>
 <li><a class="reference internal" href="#glibeventloop"><tt class="docutils literal"><span class="pre">GLibEventLoop</span></tt></a></li>
+<li><a class="reference internal" href="#tornadoeventloop"><tt class="docutils literal"><span class="pre">TornadoEventLoop</span></tt></a></li>
 </ul>
 </li>
 </ul>
 </li>
 </ul>
 
+    </ul>
   <h4>Previous topic</h4>
   <p class="topless"><a href="overview.html"
                         title="previous chapter">Library Overview</a></p>
@@ -213,12 +228,12 @@ application on Twisted.</p>
         <li class="right" >
           <a href="overview.html" title="Library Overview"
              >previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+        <li><a href="../index.html">Urwid 1.2.0</a> &raquo;</li>
           <li><a href="index.html" >Urwid Manual</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2013, Ian Ward et al.
+        &copy; Copyright 2014, Ian Ward et al.
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>

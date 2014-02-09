@@ -2,6 +2,53 @@
 Changelog
 ---------
 
+Urwid 1.2.0
+===========
+
+2014-02-09
+
+ * Add support for PyPy, drop support for Python 2.4, 2.5
+
+ * Signals now support using weakly referenced arguments to help
+   avoid leaking objects when a signal consumer is no longer
+   referenced (by Matthijs Kooijman)
+
+ * Add TornadoEventLoop class (by Alexander Glyzov)
+
+ * Update GlibEventLoop to use python-gi for Python3 compatibility
+   (by Israel Garcia)
+
+ * Automate testing with Python 2.6, 2.7, 3.2, 3.3 and PyPy using
+   travis-ci
+
+ * New container method get_focus_widgets() (by Matthijs Kooijman)
+
+ * Add support for double and triple click mouse events
+   (by Igor Kotrasiński)
+
+ * Allow disabling and re-enabling of mouse tracking
+   (by Jim Garrison)
+
+ * Create section in docs for example program screenshots generated
+   as images like the tutorial examples
+
+ * Add suggested basic color combination images to manual
+
+ * Fall back to 80x24 if screen size detection fails
+
+ * Fix screen.stop(), screen.start() disabling mouse events
+
+ * Fix to make GridFlow v_sep argument behave as documented
+
+ * Fix for registering high palette entries in the form "hX" where
+   X > 15 so that basic colors are applied in 88-color mode
+
+ * Fix for raw_display clear-right escape not working with
+   standout attribute on some terminals
+
+ * Fix for Terminal widget select loop: retry when interrupted
+
+
 Urwid 1.1.2
 ===========
 

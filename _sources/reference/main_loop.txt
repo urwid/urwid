@@ -23,3 +23,8 @@ TwistedEventLoop
 
 .. autoclass:: TwistedEventLoop
 
+TornadoEventLoop
+----------------
+
+.. autoclass:: TornadoEventLoop
+

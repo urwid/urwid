@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Widgets &mdash; Urwid 1.1.2</title>
+    <title>Widgets &mdash; Urwid 1.2.0</title>
     
     <link rel="stylesheet" href="../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -16,7 +16,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '1.1.2',
+        VERSION:     '1.2.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -26,7 +26,7 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/sidebar.js"></script>
-    <link rel="top" title="Urwid 1.1.2" href="../index.html" />
+    <link rel="top" title="Urwid 1.2.0" href="../index.html" />
     <link rel="up" title="Urwid Manual" href="index.html" />
     <link rel="next" title="User Input" href="userinput.html" />
     <link rel="prev" title="Display Modules" href="displaymodules.html" /> 
@@ -44,7 +44,7 @@
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+        <li><a href="../index.html">Urwid 1.2.0</a> &raquo;</li>
           <li><a href="index.html" accesskey="U">Urwid Manual</a> &raquo;</li> 
       </ul>
     </div>  
@@ -249,6 +249,15 @@ on the focus setting of all its parent container widgets.</p>
 <p>is a method that assigns to the focus_position property of each container
 along the path given by the list of positions <em>p</em>.  It may be used to restore
 focus to a widget as returned by a previous call to <tt class="docutils literal"><span class="pre">container.get_focus_path()</span></tt>.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">container</span><span class="o">.</span><span class="n">get_focus_widgets</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>is a method that returns the <tt class="docutils literal"><span class="pre">.focus</span></tt> values starting from this container
+and proceeding along each child widget until reaching a leaf
+(non-container) widget.</p>
+<p>Note that the list does not contain the topmost container widget
+(i.e, on which this method is called), but does include the
+lowest leaf widget.</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">container</span><span class="o">.</span><span class="n">__iter__</span><span class="p">()</span>
 <span class="c"># typically</span>
 <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">container</span><span class="p">:</span> <span class="o">...</span>
@@ -936,9 +945,8 @@ defined in superclasses after the class definition.</p>
         <div class="sphinxsidebarwrapper">
             <p class="logo"><a href="../index.html">
               <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
-            </a></p>
-  <h3><a href="../index.html">Table Of Contents</a></h3>
-  <ul>
+            </a></p><h3>Table of contents</a></h3>
+    <ul><li><a href="index.html">Manual</a></li><ul>
 <li><a class="reference internal" href="#">Widgets</a><ul>
 <li><a class="reference internal" href="#widget-layout">Widget Layout</a></li>
 <li><a class="reference internal" href="#box-flow-and-fixed-widgets">Box, Flow and Fixed Widgets</a></li>
@@ -976,6 +984,7 @@ defined in superclasses after the class definition.</p>
 </li>
 </ul>
 
+    </ul>
   <h4>Previous topic</h4>
   <p class="topless"><a href="displaymodules.html"
                         title="previous chapter">Display Modules</a></p>
@@ -1016,12 +1025,12 @@ defined in superclasses after the class definition.</p>
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              >previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.1.2</a> &raquo;</li>
+        <li><a href="../index.html">Urwid 1.2.0</a> &raquo;</li>
           <li><a href="index.html" >Urwid Manual</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2013, Ian Ward et al.
+        &copy; Copyright 2014, Ian Ward et al.
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>

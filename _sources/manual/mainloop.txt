@@ -59,7 +59,8 @@ Event Loops
 
 Urwid's event loop classes handle waiting for things for the
 :class:`MainLoop`. The different event loops allow you to
-integrate with Twisted_ or Glib_ libraries, or use a simple ``select``-based
+integrate with Twisted_, Glib_, Tornado_ libraries,
+or use a simple ``select``-based
 loop. Event loop classes abstract the particulars of waiting for input and
 calling functions as a result of timeouts.
 
@@ -69,10 +70,12 @@ you have more than one :class:`MainLoop` running.
 You can add your own files to watch to your event loop, with the
 :meth:`watch_file() <SelectEventLoop.watch_file>` method.
 Using this interface gives you the special handling
-of :exc:`ExitMainLoop` and other exceptions when using Glib_ or Twisted_.
+of :exc:`ExitMainLoop` and other exceptions when using Glib_, Twisted_ or
+Tornado_ callbacks.
 
 .. _Twisted: http://twistedmatrix.com/trac/
 .. _Glib: http://developer.gnome.org/glib/stable/
+.. _Tornado: http://www.tornadoweb.org/
 
 ``SelectEventLoop``
 -------------------
@@ -120,3 +123,18 @@ application on Twisted.
 .. seealso::
 
   :class:`GLibEventLoop reference <GLibEventLoop>`
+
+``TornadoEventLoop``
+--------------------
+
+This event loop integrates with Tornado.
+
+::
+
+    from tornado.ioloop import IOLoop
+    evl = urwid.TornadoEventLoop(IOLoop()
+    loop = urwid.MainLoop(widget, event_loop=evl)
+
+.. seealso::
+
+  :class`TornadoEventLoop reference <TornadoEventLoop>`
