@@ -32,7 +32,7 @@ import urwid
 class FibonacciWalker(urwid.ListWalker):
     """ListWalker-compatible class for browsing fibonacci set.
     
-    positions returned are (value at position-1, value at poistion) tuples.
+    positions returned are (value at position-1, value at position) tuples.
     """
     def __init__(self):
         self.focus = (0L,1L)

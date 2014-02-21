@@ -297,7 +297,7 @@ def within_double_byte(text, line_start, pos):
     Return values:
     0 -- not within dbe char, or double_byte_encoding == False
     1 -- pos is on the 1st half of a dbe char
-    2 -- pos is on the 2nd half og a dbe char
+    2 -- pos is on the 2nd half of a dbe char
     """
     assert isinstance(text, bytes)
     v = ord2(text[pos])

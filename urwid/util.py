@@ -439,7 +439,7 @@ class MetaSuper(type):
 def int_scale(val, val_range, out_range):
     """
     Scale val in the range [0, val_range-1] to an integer in the range 
-    [0, out_range-1].  This implementaton uses the "round-half-up" rounding 
+    [0, out_range-1].  This implementation uses the "round-half-up" rounding 
     method.
 
     >>> "%x" % int_scale(0x7, 0x10, 0x10000)

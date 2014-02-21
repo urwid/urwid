@@ -125,7 +125,7 @@ class StandardTextLayout(TextLayout):
         width - number of available screen columns
         wrap - wrapping mode used
 
-        Returns a layout structure without aligmnent applied.
+        Returns a layout structure without alignment applied.
         """
         nl, nl_o, sp_o = "\n", "\n", " "
         if PYTHON3 and isinstance(text, bytes):
@@ -320,7 +320,7 @@ def line_width( segs ):
     Return the screen column width of one line of a text layout structure.
 
     This function ignores any existing shift applied to the line,
-    represended by an (amount, None) tuple at the start of the line.
+    represented by an (amount, None) tuple at the start of the line.
     """
     sc = 0
     seglist = segs
@@ -353,7 +353,7 @@ def shift_line( segs, amount ):
 def trim_line( segs, text, start, end ):
     """
     Return a trimmed line of a text layout structure.
-    text -- text to which this layout structre applies
+    text -- text to which this layout structure applies
     start -- starting screen column
     end -- ending screen column
     """

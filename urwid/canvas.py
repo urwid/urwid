@@ -972,7 +972,7 @@ def shards_trim_top(shards, top):
         shard_tail = shard_body_tail(num_rows, sbody)
         top -= num_rows
     else:
-        raise CanvasError("tried to trim shards out of existance")
+        raise CanvasError("tried to trim shards out of existence")
     
     sbody = shard_body(cviews, shard_tail, False)
     shard_tail = shard_body_tail(num_rows, sbody)

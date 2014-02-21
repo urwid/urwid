@@ -69,7 +69,7 @@ class TreeWidget(urwid.WidgetWrap):
     
     def update_expanded_icon(self):
         """Update display widget text for parent widgets"""
-        # icon is first element in colums indented widget
+        # icon is first element in columns indented widget
         self._w.base_widget.widget_list[0] = [
             self.unexpanded_icon, self.expanded_icon][self.expanded]
 

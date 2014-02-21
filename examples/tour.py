@@ -122,7 +122,7 @@ def main():
     text_cb_list = [u"Wax", u"Wash", u"Buff", u"Clear Coat", u"Dry",
         u"Racing Stripe"]
     text_rb_list = [u"Morning", u"Afternoon", u"Evening", u"Weekend"]
-    text_listbox = [u"All these widgets have been diplayed "
+    text_listbox = [u"All these widgets have been displayed "
         u"with the help of a ", ('important', u"ListBox"), u" widget.  "
         u"ListBox widgets handle scrolling and changing focus.  A ",
         ('important', u"Frame"), u" widget is used to keep the "
