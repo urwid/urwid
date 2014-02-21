@@ -802,7 +802,7 @@ class ProgressBar(Widget):
 
     def __init__(self, normal, complete, current=0, done=100, satt=None):
         """
-        :param normal: display attribute for uncomplete part of progress bar
+        :param normal: display attribute for incomplete part of progress bar
         :param complete: display attribute for complete part of progress bar
         :param current: current progress
         :param done: progress amount at 100%

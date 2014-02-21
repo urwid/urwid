@@ -980,7 +980,7 @@ class Frame(Widget, WidgetContainerMixin):
 
         This object may be used to read or update the contents of the Frame.
 
-        The values are similar to the the list-like .contents objects used
+        The values are similar to the list-like .contents objects used
         in other containers with (:class:`Widget`, options) tuples, but are
         constrained to keys for each of the three usual parts of a Frame.
         When other keys are used a :exc:`KeyError` will be raised.
@@ -1724,7 +1724,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         are treated as box widgets, and *box_columns* is ignored.
 
         If the Columns widget is treated as a flow widget then the rows
-        are calcualated as the largest rows() returned from all columns
+        are calculated as the largest rows() returned from all columns
         except the ones listed in *box_columns*.  The box widgets in
         *box_columns* will be displayed with this calculated number of rows,
         filling the full height.
@@ -1972,7 +1972,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             raise IndexError, "No Columns child widget at position %s" % (position,)
         self.contents.focus = position
     focus_position = property(_get_focus_position, _set_focus_position, doc="""
-        index of child widget in focus.  Raises IndexError if read when
+        index of child widget in focus. Raises :exc:`IndexError` if read when
         Columns is empty, or when set to an invalid index.
         """)
 

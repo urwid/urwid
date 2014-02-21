@@ -821,7 +821,7 @@ class ListBox(Widget, WidgetContainerMixin):
             of the focus widget is aligned with the top edge of the
             listbox (default if unspecified)
         :type offset_inset: int
-        :param coming_from: eiter 'above', 'below' or unspecified `None`
+        :param coming_from: either 'above', 'below' or unspecified `None`
         :type coming_from: str
         :param cursor_coords: (x, y) tuple indicating the desired
             column and row for the cursor, a (x,) tuple indicating only

@@ -379,7 +379,7 @@ class Screen(BaseScreen, RealTerminal):
     def _run_input_iter(self):
         def empty_resize_pipe():
             # clean out the pipe used to signal external event loops
-            # that a resize has occured
+            # that a resize has occurred
             try:
                 while True: os.read(self._resize_pipe_rd, 1)
             except OSError:
@@ -931,7 +931,7 @@ class Screen(BaseScreen, RealTerminal):
         """
         entries - list of (index, red, green, blue) tuples.
 
-        Attempt to set part of the terminal pallette (this does not work
+        Attempt to set part of the terminal palette (this does not work
         on all terminals.)  The changes are sent as a single escape
         sequence so they should all take effect at the same time.
         
