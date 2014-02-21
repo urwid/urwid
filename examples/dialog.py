@@ -206,7 +206,7 @@ class ListDialogDisplay(DialogDisplay):
 class CheckListDialogDisplay(ListDialogDisplay):
     def on_exit(self, exitcode):
         """
-        Mimick dialog(1)'s --checklist exit. 
+        Mimic dialog(1)'s --checklist exit. 
         Put each checked item in double quotes with a trailing space.
         """
         if exitcode != 0:

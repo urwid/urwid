@@ -168,7 +168,7 @@ class TwistedScreen(urwid.BaseScreen):
     1. Input
     2. Output
 
-    Input is achieved in normal urwid by passing a lsit of available readable
+    Input is achieved in normal urwid by passing a list of available readable
     file descriptors to the event loop for polling/selecting etc. In the
     Twisted situation, this is not necessary because Twisted polls the input
     descriptors itself. Urwid allows this by being driven using the main loop
@@ -265,7 +265,7 @@ class TwistedScreen(urwid.BaseScreen):
 
     # Private
     def _on_update_palette_entry(self, name, *attrspecs):
-        # copy the attribute to a dictionary containing the escape seqences
+        # copy the attribute to a dictionary containing the escape sequences
         self._pal_escape[name] = self._attrspec_to_escape(
            attrspecs[{16:0,1:1,88:2,256:3}[self.colors]])
 

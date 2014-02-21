@@ -104,7 +104,7 @@ class LCDProgressBar(urwid.FlowWidget):
         Update and return the value one step +ve or -ve, based on
         the size of the displayed bar.
 
-        directon -- 1 for +ve, 0 for -ve
+        direction -- 1 for +ve, 0 for -ve
         """
         steps = self.get_steps(size)
         filled = urwid.int_scale(self.value, self.range, steps)
@@ -249,7 +249,7 @@ def build_menus():
             urwid.Text("This is a demo of Urwid's CF635Display "
                 "module. If you need an interface for a limited "
                 "character display device this should serve as a "
-                "good example for implmenting your own display "
+                "good example for implementing your own display "
                 "module and menu-driven application."),
             ])
         ]

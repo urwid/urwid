@@ -734,7 +734,7 @@ class CalcDisplay:
         # keep only the non-children
         self.col_list[i:] = keep_right_cols        
 
-        # fix the letter assigmnents
+        # fix the letter assignments
         for j in range(i, len(self.col_list)):
             col = self.col_list[j]
             # fix the column heading
