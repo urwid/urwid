@@ -350,7 +350,7 @@ class Screen(BaseScreen, RealTerminal):
         Return a list of integer file descriptors that should be
         polled in external event loops to check for user input.
 
-        Use this method if you are implementing yout own event loop.
+        Use this method if you are implementing your own event loop.
         """
         if not self._started:
             return []
