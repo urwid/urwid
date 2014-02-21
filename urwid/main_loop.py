@@ -161,7 +161,7 @@ class MainLoop(object):
     def set_alarm_at(self, tm, callback, user_data=None):
         """
         Schedule an alarm at *tm* time that will call *callback* from the
-        within the :meth`run` function. Returns a handle that may be passed to
+        within the :meth:`run` function. Returns a handle that may be passed to
         :meth:`remove_alarm`.
 
         :param tm: time to call callback e.g. ``time.time() + 5``
