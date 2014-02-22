@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 #
 # Urwid container widget classes
 #    Copyright (C) 2004-2012  Ian Ward
