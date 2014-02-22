@@ -22,8 +22,10 @@
 from itertools import chain, repeat
 
 from urwid.util import is_mouse_press
-from urwid.widget import (Widget, Divider, FLOW, FIXED, PACK, BOX, WidgetWrap,
-    GIVEN, WEIGHT, LEFT, RIGHT, RELATIVE, TOP, BOTTOM, CLIP, RELATIVE_100)
+from urwid.widget import (Widget, Divider, SolidFill, FLOW, FIXED, PACK, BOX,
+    WidgetWrap, GIVEN, WEIGHT, LEFT, RIGHT, RELATIVE, TOP, BOTTOM, CLIP,
+    RELATIVE_100)
+from urwid.command_map import (CURSOR_LEFT, CURSOR_RIGHT)
 from urwid.decoration import (Padding, Filler, calculate_left_right_padding,
     calculate_top_bottom_filler, normalize_align, normalize_width,
     normalize_valign, normalize_height, simplify_align, simplify_width,
@@ -2287,8 +2289,175 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         return w is not None and w.selectable()
 
 
+class MultiColumns(Columns):
+    """Column derivative that supports many columns at once and moving left and
+    right between those columns (only showing a limited number of columns at
+    a time, while keeping the rest of the columns offscreen).
 
+    This function has a place() routine which will attempt to place() the given
+    widget into the columns. If this overflows a new column will be created
+    and the widget will be placed there instead.
+    """
+    def __init__(self, maker, count):
+        """
+        :param maker: callable to call when a new column is needed, expected
+            to return a tuple of (pile, widget) where the pile will contain
+            the widget to be displayed and the widget will be the raw widget
+            in that pile.
+        :param count: the number of columns to keep actively displayed
+        """
+        super(MultiColumns, self).__init__([])
+        assert int(count) > 0, 'Column count must be > 0'
+        self.columns = []
+        self.count = int(count)
+        self.maker = maker
+        # The starting index of the currently visible column.
+        self.index = 0
+        for _i in range(0, self.count):
+            (c, w) = self.maker()
+            self.contents.append((w, (WEIGHT, 1, False)))
+            self.columns.append((c, w))
+        # Right and left arrows are used to display when there is more content
+        # in left or right columns that is not currently being displayed. For
+        # example if there is more content to the right a right arrow will be
+        # visible, if there is more content to the left a left arrow will be
+        # visible.
+        self.right_arrow = SolidFill(u"⇢")
+        self.right_arrow_on = False
+        self.left_arrow = SolidFill(u"⇠")
+        self.left_arrow_on = False
 
+    def place(self, w, max_rows, max_cols):
+        """Places a widget into the internal container using the currently
+        provided max viewable rows and max viewable columns, if the widget will
+        not fit in the current column (aka it won't be displayed) then a new
+        column will be creataed for it and it will be placed there instead.
+        """
+
+        def is_over_size(c, item_rows=0):
+            if len(c.contents) == 0:
+                return False
+            remaining = max_rows - item_rows
+            for w, (_f, _height) in c.contents:
+                rows = w.rows((max_cols,), c.focus_item == w)
+                remaining -= rows
+            if remaining <= 0:
+                return True
+            return False
+
+        w_rows = w.rows((max_cols,), False)
+        column = None
+        for (c, _w2) in self.columns:
+            if is_over_size(c, w_rows):
+                continue
+            column = c
+            break
+        if column is None:
+            (c, w2) = self.maker()
+            self.columns.append((c, w2))
+            column = c
+        column.contents.append((w, (PACK, None)))
+
+        if len(self.columns) > len(self.contents) and not self.right_arrow_on:
+            self.right_arrow_on = True
+            self.contents.append((self.right_arrow, (GIVEN, 1, False)))
+
+    def _clear_contents(self):
+        while len(self.contents):
+            self.contents.pop()
+
+    def shift_contents_left(self):
+        """Shifts the displayed left by one column."""
+        if (self.index + self.count) == len(self.columns):
+            return False
+        self.index += 1
+        j = self.index
+        self._clear_contents()
+        for _i in range(0, self.count):
+            w = self.columns[j][1]
+            self.contents.append((w, (WEIGHT, 1, False)))
+            j += 1
+        if self.index > 0:
+            self.left_arrow_on = True
+        if j == len(self.columns):
+            self.right_arrow_on = False
+        if self.right_arrow_on:
+            self.contents.append((self.right_arrow, (GIVEN, 1, False)))
+        if self.left_arrow_on:
+            self.contents.insert(0, (self.left_arrow, (GIVEN, 1, False)))
+        return True
+
+    def shift_contents_right(self):
+        """Shifts the displayed right by one column."""
+        if self.index == 0:
+            return False
+        self.index -= 1
+        j = self.index
+        self._clear_contents()
+        for _i in range(0, self.count):
+            w = self.columns[j][1]
+            self.contents.append((w, (WEIGHT, 1, False)))
+            j += 1
+        if self.index > 0:
+            self.right_arrow_on = True
+        if self.index == 0:
+            self.left_arrow_on = False
+        if self.right_arrow_on:
+            self.contents.append((self.right_arrow, (GIVEN, 1, False)))
+        if self.left_arrow_on:
+            self.contents.insert(0, (self.left_arrow, (GIVEN, 1, False)))
+        return True
+
+    def keypress(self, size, key):
+        """Process left and right keypresses and adjusts focus."""
+        if key is None:
+            return
+        if self.focus_position is None:
+            return key
+        widths = self.column_widths(size)
+        if self.focus_position >= len(widths):
+            return key
+        i = self.focus_position
+        mc = widths[i]
+        w, (t, n, b) = self.contents[i]
+        if len(size) == 1 and b:
+            key = w.keypress((mc, self.rows(size, True)), key)
+        else:
+            key = w.keypress((mc,) + size[1:], key)
+        m_key = self._command_map[key]
+        if m_key not in (CURSOR_LEFT, CURSOR_RIGHT):
+            return key
+        k = i
+        content_len = len(self.contents)
+        if self.left_arrow_on:
+            k -= 1
+            content_len -= 1
+        if self.right_arrow_on:
+            content_len -= 1
+        if k == 0:
+            if m_key == CURSOR_LEFT:
+                if self.shift_contents_right():
+                    return None
+        if k + 1 == content_len:
+            if m_key == CURSOR_RIGHT:
+                if self.shift_contents_left():
+                    for m in reversed(list(range(0, len(self.contents)))):
+                        if not self.contents[m][0].selectable():
+                            continue
+                        self.focus_position = m
+                        break
+                    return None
+        candidates = []
+        if m_key == CURSOR_RIGHT:
+            candidates.extend(range(i + 1, len(self.contents)))
+        else:
+            candidates.extend(reversed(list(range(0, i))))
+        for j in candidates:
+            if not self.contents[j][0].selectable():
+                continue
+            self.focus_position = j
+            return None
+        return key
 
 
 def _test():
