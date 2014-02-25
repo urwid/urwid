@@ -1195,6 +1195,156 @@ class TwistedEventLoop(object):
             return rval
         return wrapper
 
+try:
+    from asyncio import get_event_loop, set_event_loop
+except ImportError:
+    get_event_loop = None
+
+
+class AsyncIOEventLoop(object):
+    """
+    Event loop based on AsyncIO_
+    """
+
+    def __init__(self):
+        self._alarms = {}
+        self._watch_files = {}
+        self._idle_handle = 0
+        self._idle_callbacks = {}
+        base_loop = get_event_loop()
+
+        class Loop(base_loop.__class__):
+            def call_exception_handler(self, context):
+                """
+                This function is not normally intended to be overwritten.
+                However, we want to force unhandled exceptions to kill the
+                loop. The default function is too failure tolerant.
+                """
+                self._exception_handler(self, context)
+
+        self._event_loop = Loop()
+        set_event_loop(self._event_loop)
+        self._event_loop.set_exception_handler(self.error_handler)
+
+    def wrap_callback(self, func):
+        def wrapped():
+            result = func()
+            self._schedule_idle_items()
+            return result
+        return wrapped
+
+    def wrap_alarm(self, func, alarm_dict):
+        """
+        Make sure the alarm is removed from the alarm list when it runs.
+        """
+        def wrapped():
+            alarm_dict.pop(wrapped)
+            result = func()
+            self._schedule_idle_items()
+            return result
+        return wrapped
+
+    def error_handler(self, _, context):
+        if 'exception' in context:
+            if isinstance(context['exception'], ExitMainLoop):
+                self.stop()
+            else:
+                raise context['exception']
+
+    def alarm(self, seconds, callback):
+        """
+        Call callback() given time from from now.  No parameters are
+        passed to callback.
+
+        Returns a handle that may be passed to remove_alarm()
+
+        seconds -- floating point time to wait before calling callback
+        callback -- function to call from event loop
+        """
+        func = self.wrap_alarm(callback, self._alarms)
+        handle = self._event_loop.call_later(seconds, func)
+        self._alarms[func] = handle
+        return func
+
+    def remove_alarm(self, func):
+        """
+        Remove an alarm. Returns True if successful, False if the alarm has
+        already run.
+        """
+        try:
+            handle = self._alarms.pop(func)
+            handle.cancel()
+            return True
+        except KeyError:
+            return False
+
+    def watch_file(self, fd, callback):
+        """
+        Call callback() when fd has some data to read.  No parameters
+        are passed to callback.
+
+        Returns a handle that may be passed to remove_watch_file()
+
+        fd -- file descriptor to watch for input
+        callback -- function to call when input is available
+        """
+        self._event_loop.add_reader(fd, self.wrap_callback(callback))
+        return fd
+
+    def remove_watch_file(self, fd):
+        """
+        Remove an input file.
+
+        Returns True if the input file exists, False otherwise
+        """
+        return self._event_loop.remove_reader(fd)
+
+    def enter_idle(self, callback):
+        """
+        Add a callback for entering idle.
+
+        Returns a handle that may be passed to remove_idle()
+        """
+        self._idle_handle += 1
+        self._idle_callbacks[self._idle_handle] = callback
+        return self._idle_handle
+
+    def remove_enter_idle(self, index):
+        """
+        Remove an idle callback.
+
+        Returns True if the handle was removed.
+        """
+        try:
+            del self._idle_callbacks[index]
+        except KeyError:
+            return False
+        return True
+
+    def _schedule_idle_items(self):
+        for item in self._idle_callbacks.values():
+            self._event_loop.call_soon(item)
+
+    def run(self):
+        """
+        Start the event loop.  Exit the loop when any callback raises
+        an exception.  If ExitMainLoop is raised, exit cleanly.
+        """
+        try:
+            self._schedule_idle_items()
+            self._event_loop.run_forever()
+        except ExitMainLoop:
+            self.stop()
+        except Exception as err:
+            self.stop()
+            raise err
+
+    def stop(self):
+        """
+        Stops the event loop.
+        """
+        self._event_loop.stop()
+        self._idle_callbacks = {}
 
 
 def _refl(name, rval=None, exit=False):
