@@ -28,7 +28,6 @@ import select
 import fcntl
 import os
 from functools import wraps
-import traceback
 from weakref import WeakKeyDictionary
 
 from urwid.util import is_mouse_event
