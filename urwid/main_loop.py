@@ -28,6 +28,7 @@ import select
 import fcntl
 import os
 from functools import wraps
+import traceback
 from weakref import WeakKeyDictionary
 
 from urwid.util import is_mouse_event
@@ -1220,7 +1221,10 @@ class AsyncIOEventLoop(object):
                 However, we want to force unhandled exceptions to kill the
                 loop. The default function is too failure tolerant.
                 """
-                self._exception_handler(self, context)
+                try:
+                    self._exception_handler(self, context)
+                except Exception as err:
+                    raise err
 
         self._event_loop = Loop()
         set_event_loop(self._event_loop)
@@ -1246,10 +1250,7 @@ class AsyncIOEventLoop(object):
 
     def error_handler(self, _, context):
         if 'exception' in context:
-            if isinstance(context['exception'], ExitMainLoop):
-                self.stop()
-            else:
-                raise context['exception']
+            raise context['exception']
 
     def alarm(self, seconds, callback):
         """
@@ -1328,23 +1329,16 @@ class AsyncIOEventLoop(object):
     def run(self):
         """
         Start the event loop.  Exit the loop when any callback raises
-        an exception.  If ExitMainLoop is raised, exit cleanly.
+        an exception.
         """
         try:
             self._schedule_idle_items()
             self._event_loop.run_forever()
         except ExitMainLoop:
-            self.stop()
+            self._idle_callbacks = {}
         except Exception as err:
-            self.stop()
+            self._idle_callbacks = {}
             raise err
-
-    def stop(self):
-        """
-        Stops the event loop.
-        """
-        self._event_loop.stop()
-        self._idle_callbacks = {}
 
 
 def _refl(name, rval=None, exit=False):
