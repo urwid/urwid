@@ -113,6 +113,9 @@ class _UrwidModule(object):
     # allow imports of sub-modules to continue to work properly
     __path__ = __path__
 
+    # 3.3 compat
+    __name__ = __name__
+
     def __getattr__(self, name):
         """
         Lazy import machinery. Use normal import statements to make
