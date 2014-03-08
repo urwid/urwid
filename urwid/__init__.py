@@ -105,6 +105,7 @@ class _UrwidModule(object):
         'vterm': (
             'TermModes', 'TermCharset', 'TermScroller', 'TermCanvas',
             'Terminal'),
+        'raw_display': (),
         }
 
     _reverse_names = dict((name, mod) for mod, names in _names.iteritems()
@@ -122,17 +123,13 @@ class _UrwidModule(object):
         it easier for things like pyinstaller to tell what modules
         get imported.
         """
-        if name == 'raw_display':
-            # special case:
-            # urwid.raw_display.Screen should work after import urwid
-            import urwid.raw_display
-            self.raw_display = urwid.raw_display
-            return urwid.raw_display
-
         found = self._reverse_names.get(name)
         if not found:
-            raise AttributeError("urwid has no attribute '%s'" % name)
-        elif found == 'widget':
+            if name in self._names:
+                found = name
+            else:
+                raise AttributeError("urwid has no attribute '%s'" % name)
+        if found == 'widget':
             import urwid.widget
         elif found == 'decoration':
             import urwid.decoration
@@ -166,6 +163,8 @@ class _UrwidModule(object):
             import urwid.treetols
         elif found == 'vterm':
             import urwid.vterm
+        elif found == 'raw_display':
+            import urwid.raw_display
         else:
             assert 0, 'missing import line for %s' % found
 
@@ -173,6 +172,7 @@ class _UrwidModule(object):
             module = getattr(urwid, found)
             for n in self._names[found]:
                 setattr(self, n, getattr(module, n))
+            setattr(self, found, module)
 
         return getattr(self, name)
 
