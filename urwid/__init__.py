@@ -20,59 +20,159 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from urwid.version import VERSION, __version__
-from urwid.widget import (FLOW, BOX, FIXED, LEFT, RIGHT, CENTER, TOP, MIDDLE,
-    BOTTOM, SPACE, ANY, CLIP, PACK, GIVEN, RELATIVE, RELATIVE_100, WEIGHT,
-    WidgetMeta,
-    WidgetError, Widget, FlowWidget, BoxWidget, fixed_size, FixedWidget,
-    Divider, SolidFill, TextError, Text, EditError, Edit, IntEdit,
-    delegate_to_widget_mixin, WidgetWrapError, WidgetWrap)
-from urwid.decoration import (WidgetDecoration, WidgetPlaceholder,
-    AttrMapError, AttrMap, AttrWrap, BoxAdapterError, BoxAdapter, PaddingError,
-    Padding, FillerError, Filler, WidgetDisable)
-from urwid.container import (GridFlowError, GridFlow, OverlayError, Overlay,
-    FrameError, Frame, PileError, Pile, ColumnsError, Columns,
-    WidgetContainerMixin)
-from urwid.wimp import (SelectableIcon, CheckBoxError, CheckBox, RadioButton,
-    Button, PopUpLauncher, PopUpTarget)
-from urwid.listbox import (ListWalkerError, ListWalker, PollingListWalker,
-    SimpleListWalker, SimpleFocusListWalker, ListBoxError, ListBox)
-from urwid.graphics import (BigText, LineBox, BarGraphMeta, BarGraphError,
-    BarGraph, GraphVScale, ProgressBar, scale_bar_values)
-from urwid.canvas import (CanvasCache, CanvasError, Canvas, TextCanvas,
-    BlankCanvas, SolidCanvas, CompositeCanvas, CanvasCombine, CanvasOverlay,
-    CanvasJoin)
-from urwid.font import (get_all_fonts, Font, Thin3x3Font, Thin4x3Font,
-    HalfBlock5x4Font, HalfBlock6x5Font, HalfBlockHeavy6x5Font, Thin6x6Font,
-    HalfBlock7x7Font)
-from urwid.signals import (MetaSignals, Signals, emit_signal, register_signal,
-    connect_signal, disconnect_signal)
-from urwid.monitored_list import MonitoredList, MonitoredFocusList
-from urwid.command_map import (CommandMap, command_map,
-    REDRAW_SCREEN, CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT,
-    CURSOR_PAGE_UP, CURSOR_PAGE_DOWN, CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT,
-    ACTIVATE)
-from urwid.main_loop import (ExitMainLoop, MainLoop, SelectEventLoop,
-    GLibEventLoop, TornadoEventLoop)
-try:
-    from urwid.main_loop import TwistedEventLoop
-except ImportError:
-    pass
-from urwid.text_layout import (TextLayout, StandardTextLayout, default_layout,
-    LayoutSegment)
-from urwid.display_common import (UPDATE_PALETTE_ENTRY, DEFAULT, BLACK,
-    DARK_RED, DARK_GREEN, BROWN, DARK_BLUE, DARK_MAGENTA, DARK_CYAN,
-    LIGHT_GRAY, DARK_GRAY, LIGHT_RED, LIGHT_GREEN, YELLOW, LIGHT_BLUE,
-    LIGHT_MAGENTA, LIGHT_CYAN, WHITE, AttrSpecError, AttrSpec, RealTerminal,
-    ScreenError, BaseScreen)
-from urwid.util import (calc_text_pos, calc_width, is_wide_char,
-    move_next_char, move_prev_char, within_double_byte, detected_encoding,
-    set_encoding, get_encoding_mode, apply_target_encoding, supports_unicode,
-    calc_trim_text, TagMarkupException, decompose_tagmarkup, MetaSuper,
-    int_scale, is_mouse_event)
-from urwid.treetools import (TreeWidgetError, TreeWidget, TreeNode,
-    ParentNode, TreeWalker, TreeListBox)
-from urwid.vterm import (TermModes, TermCharset, TermScroller, TermCanvas,
-    Terminal)
+import sys
 
-from urwid import raw_display
+class _UrwidModule(object):
+    """
+    Import specific names from deeper in the urwid module hierarchy
+    to the top level because urwid was once a small library with
+    everything in one module, and life is easier for users this way.
+
+    This class lazily imports so all users don't need to pay the
+    price of importing almost all urwid sub-modules on startup.
+    """
+    from urwid.version import VERSION, __version__
+
+    _names = {
+        'widget': (
+            'FLOW', 'BOX', 'FIXED', 'LEFT', 'RIGHT', 'CENTER', 'TOP', 'MIDDLE',
+            'BOTTOM', 'SPACE', 'ANY', 'CLIP', 'PACK', 'GIVEN', 'RELATIVE',
+            'RELATIVE_100', 'WEIGHT', 'WidgetMeta',
+            'WidgetError', 'Widget', 'FlowWidget', 'BoxWidget', 'fixed_size',
+            'FixedWidget', 'Divider', 'SolidFill', 'TextError', 'Text',
+            'EditError', 'Edit', 'IntEdit', 'delegate_to_widget_mixin',
+            'WidgetWrapError', 'WidgetWrap'),
+        'decoration': (
+            'WidgetDecoration', 'WidgetPlaceholder',
+            'AttrMapError', 'AttrMap', 'AttrWrap', 'BoxAdapterError',
+            'BoxAdapter', 'PaddingError',
+            'Padding', 'FillerError', 'Filler', 'WidgetDisable'),
+        'container': (
+            'GridFlowError', 'GridFlow', 'OverlayError', 'Overlay',
+            'FrameError', 'Frame', 'PileError', 'Pile', 'ColumnsError',
+            'Columns', 'WidgetContainerMixin'),
+        'wimp': (
+            'SelectableIcon', 'CheckBoxError', 'CheckBox', 'RadioButton',
+            'Button', 'PopUpLauncher', 'PopUpTarget'),
+        'listbox': (
+            'ListWalkerError', 'ListWalker', 'PollingListWalker',
+            'SimpleListWalker', 'SimpleFocusListWalker', 'ListBoxError',
+            'ListBox'),
+        'graphics': (
+            'BigText', 'LineBox', 'BarGraphMeta', 'BarGraphError',
+            'BarGraph', 'GraphVScale', 'ProgressBar', 'scale_bar_values'),
+        'canvas': (
+            'CanvasCache', 'CanvasError', 'Canvas', 'TextCanvas',
+            'BlankCanvas', 'SolidCanvas', 'CompositeCanvas', 'CanvasCombine',
+            'CanvasOverlay', 'CanvasJoin'),
+        'font': (
+            'get_all_fonts', 'Font', 'Thin3x3Font', 'Thin4x3Font',
+            'HalfBlock5x4Font', 'HalfBlock6x5Font', 'HalfBlockHeavy6x5Font',
+            'Thin6x6Font', 'HalfBlock7x7Font'),
+        'signals': (
+            'MetaSignals', 'Signals', 'emit_signal', 'register_signal',
+            'connect_signal', 'disconnect_signal'),
+        'monitored_list': (
+            'MonitoredList', 'MonitoredFocusList'),
+        'command_map': (
+            'CommandMap', 'command_map',
+            'REDRAW_SCREEN', 'CURSOR_UP', 'CURSOR_DOWN', 'CURSOR_LEFT',
+            'CURSOR_RIGHT', 'CURSOR_PAGE_UP', 'CURSOR_PAGE_DOWN',
+            'CURSOR_MAX_LEFT', 'CURSOR_MAX_RIGHT', 'ACTIVATE'),
+        'main_loop': (
+            'ExitMainLoop', 'MainLoop', 'SelectEventLoop',
+            'TwistedEventLoop', 'GLibEventLoop', 'TornadoEventLoop'),
+        'text_layout': (
+            'TextLayout', 'StandardTextLayout', 'default_layout',
+            'LayoutSegment'),
+        'display_common': (
+            'UPDATE_PALETTE_ENTRY', 'DEFAULT', 'BLACK',
+            'DARK_RED', 'DARK_GREEN', 'BROWN', 'DARK_BLUE', 'DARK_MAGENTA',
+            'DARK_CYAN', 'LIGHT_GRAY', 'DARK_GRAY', 'LIGHT_RED', 'LIGHT_GREEN',
+            'YELLOW', 'LIGHT_BLUE', 'LIGHT_MAGENTA', 'LIGHT_CYAN', 'WHITE',
+            'AttrSpecError', 'AttrSpec', 'RealTerminal',
+            'ScreenError', 'BaseScreen'),
+        'util': (
+            'calc_text_pos', 'calc_width', 'is_wide_char',
+            'move_next_char', 'move_prev_char', 'within_double_byte',
+            'detected_encoding', 'set_encoding', 'get_encoding_mode',
+            'apply_target_encoding', 'supports_unicode',
+            'calc_trim_text', 'TagMarkupException', 'decompose_tagmarkup',
+            'MetaSuper', 'int_scale', 'is_mouse_event'),
+        'treetools': (
+            'TreeWidgetError', 'TreeWidget', 'TreeNode',
+            'ParentNode', 'TreeWalker', 'TreeListBox'),
+        'vterm': (
+            'TermModes', 'TermCharset', 'TermScroller', 'TermCanvas',
+            'Terminal'),
+        }
+
+    _reverse_names = dict((name, mod) for mod, names in _names.iteritems()
+        for name in names)
+
+    # allow imports of sub-modules to continue to work properly
+    __path__ = __path__
+
+    def __getattr__(self, name):
+        """
+        Lazy import machinery. Use normal import statements to make
+        it easier for things like pyinstaller to tell what modules
+        get imported.
+        """
+        if name == 'raw_display':
+            # special case:
+            # urwid.raw_display.Screen should work after import urwid
+            import urwid.raw_display
+            self.raw_display = urwid.raw_display
+            return urwid.raw_display
+
+        found = self._reverse_names.get(name)
+        if not found:
+            raise AttributeError("urwid has no attribute '%s'" % name)
+        elif found == 'widget':
+            import urwid.widget
+        elif found == 'decoration':
+            import urwid.decoration
+        elif found == 'container':
+            import urwid.container
+        elif found == 'wimp':
+            import urwid.wimp
+        elif found == 'listbox':
+            import urwid.listbox
+        elif found == 'graphics':
+            import urwid.graphics
+        elif found == 'canvas':
+            import urwid.canvas
+        elif found == 'font':
+            import urwid.font
+        elif found == 'signals':
+            import urwid.signals
+        elif found == 'monitored_list':
+            import urwid.monitored_list
+        elif found == 'command_map':
+            import urwid.command_map
+        elif found == 'main_loop':
+            import urwid.main_loop
+        elif found == 'text_layout':
+            import urwid.text_layout
+        elif found == 'display_common':
+            import urwid.display_common
+        elif found == 'util':
+            import urwid.util
+        elif found == 'treetols':
+            import urwid.treetols
+        elif found == 'vterm':
+            import urwid.vterm
+        else:
+            assert 0, 'missing import line for %s' % found
+
+        if found:
+            module = getattr(urwid, found)
+            for n in self._names[found]:
+                setattr(self, n, getattr(module, n))
+
+        return getattr(self, name)
+
+
+# https://mail.python.org/pipermail/python-ideas/2012-May/014969.html
+sys.modules[__name__] = _UrwidModule()
