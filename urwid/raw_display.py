@@ -245,8 +245,8 @@ class Screen(BaseScreen, RealTerminal):
         self._term_output_file.write(
             self._attrspec_to_escape(AttrSpec('',''))
             + escape.SI
-            + escape.SHOW_CURSOR
-            + move_cursor + "\n" + escape.SHOW_CURSOR )
+            + move_cursor
+            + escape.SHOW_CURSOR)
         self._input_iter = self._fake_input_iter()
 
         if self._old_signal_keys:
