@@ -364,6 +364,19 @@ class Screen(BaseScreen, RealTerminal):
             fd_list.append(self.gpm_mev.stdout.fileno())
         return fd_list
 
+    _current_event_loop_handles = ()
+
+    def unhook_event_loop(self, event_loop):
+        for handle in self._current_event_loop_handles:
+            event_loop.remove_watch_file(handle)
+
+    def hook_event_loop(self, event_loop, callback):
+        fds = self.get_input_descriptors()
+        handles = []
+        for fd in fds:
+            event_loop.watch_file(fd, callback)
+        self._current_event_loop_handles = handles
+
     def get_input_nonblocking(self):
         """
         Return a (next_input_timeout, keys_pressed, raw_keycodes)

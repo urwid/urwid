@@ -319,16 +319,8 @@ class MainLoop(object):
 
         fd_handles = []
         def reset_input_descriptors(only_remove=False):
-            for handle in fd_handles:
-                self.event_loop.remove_watch_file(handle)
-            if only_remove:
-                del fd_handles[:]
-            else:
-                fd_handles[:] = [
-                    self.event_loop.watch_file(fd, self._update)
-                    for fd in self.screen.get_input_descriptors()]
-            if not fd_handles and self._input_timeout is not None:
-                self.event_loop.remove_alarm(self._input_timeout)
+            self.screen.unhook_event_loop(self.event_loop)
+            self.screen.hook_event_loop(self.event_loop, self._update)
 
         try:
             signals.connect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED,
@@ -344,9 +336,11 @@ class MainLoop(object):
 
         # tidy up
         self.event_loop.remove_enter_idle(idle_handle)
-        reset_input_descriptors(True)
         signals.disconnect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED,
             reset_input_descriptors)
+        self.screen.unhook_event_loop(self.event_loop)
+        if self._input_timeout is not None:
+            self.event_loop.remove_alarm(self._input_timeout)
 
     def _update(self, timeout=False):
         """
