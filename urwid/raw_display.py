@@ -209,7 +209,6 @@ class Screen(BaseScreen, RealTerminal):
 
         self.signal_init()
         self._alternate_buffer = alternate_buffer
-        self._input_iter = self._run_input_iter()
         self._next_timeout = self.max_wait
 
         if not self._signal_keys_set:
@@ -251,7 +250,6 @@ class Screen(BaseScreen, RealTerminal):
             + escape.SI
             + move_cursor
             + escape.SHOW_CURSOR)
-        self._input_iter = self._fake_input_iter()
 
         if self._old_signal_keys:
             self.tty_signal_keys(*(self._old_signal_keys + (fd,)))
@@ -367,81 +365,120 @@ class Screen(BaseScreen, RealTerminal):
     _current_event_loop_handles = ()
 
     def unhook_event_loop(self, event_loop):
+        """
+        Remove any hooks added by hook_event_loop.
+        """
         for handle in self._current_event_loop_handles:
             event_loop.remove_watch_file(handle)
 
+        if self._input_timeout:
+            event_loop.remove_alarm(self._input_timeout)
+            self._input_timeout = None
+
     def hook_event_loop(self, event_loop, callback):
+        """
+        Register the given callback with the event loop, to be called with new
+        input whenever it's available.  The callback should be passed a list of
+        processed keys and a list of unprocessed keycodes.
+
+        Subclasses may wish to use parse_input to wrap the callback.
+        """
+        if hasattr(self, 'get_input_nonblocking'):
+            wrapper = self._make_legacy_input_wrapper(event_loop, callback)
+        else:
+            wrapper = lambda: self.parse_input(event_loop, callback)
         fds = self.get_input_descriptors()
         handles = []
         for fd in fds:
-            event_loop.watch_file(fd, callback)
+            event_loop.watch_file(fd, wrapper)
         self._current_event_loop_handles = handles
 
-    def get_input_nonblocking(self):
+    _input_timeout = None
+    _partial_codes = None
+
+    def _make_legacy_input_wrapper(self, event_loop, callback):
         """
-        Return a (next_input_timeout, keys_pressed, raw_keycodes)
-        tuple.
-
-        Use this method if you are implementing your own event loop.
-
-        When there is input waiting on one of the descriptors returned
-        by get_input_descriptors() this method should be called to
-        read and process the input.
-
-        This method expects to be called in next_input_timeout seconds
-        (a floating point number) if there is no input waiting.
+        Support old Screen classes that still have a get_input_nonblocking and
+        expect it to work.
         """
-        return self._input_iter.next()
+        def wrapper():
+            if self._input_timeout:
+                event_loop.remove_alarm(self._input_timeout)
+                self._input_timeout = None
+            timeout, keys, raw = self.get_input_nonblocking()
+            if timeout is not None:
+                self._input_timeout = event_loop.alarm(timeout, wrapper)
 
-    def _run_input_iter(self):
-        def empty_resize_pipe():
-            # clean out the pipe used to signal external event loops
-            # that a resize has occurred
-            try:
-                while True: os.read(self._resize_pipe_rd, 1)
-            except OSError:
-                pass
+            callback(keys, raw)
 
-        while True:
-            processed = []
-            codes = self._get_gpm_codes() + \
-                self._get_keyboard_codes()
+        return wrapper
 
-            original_codes = codes
-            try:
-                while codes:
-                    run, codes = escape.process_keyqueue(
-                        codes, True)
-                    processed.extend(run)
-            except escape.MoreInputRequired:
-                k = len(original_codes) - len(codes)
-                yield (self.complete_wait, processed,
-                    original_codes[:k])
-                empty_resize_pipe()
-                original_codes = codes
-                processed = []
-
-                codes += self._get_keyboard_codes() + \
-                    self._get_gpm_codes()
-                while codes:
-                    run, codes = escape.process_keyqueue(
-                        codes, False)
-                    processed.extend(run)
-
-            if self._resized:
-                processed.append('window resize')
-                self._resized = False
-
-            yield (self.max_wait, processed, original_codes)
-            empty_resize_pipe()
-
-    def _fake_input_iter(self):
+    def get_available_raw_input(self):
         """
-        This generator is a placeholder for when the screen is stopped
-        to always return that no input is available.
+        Return any currently-available input.  Does not block.
+
+        This method is only used by parse_input; you can safely ignore it if
+        you implement your own parse_input.
         """
-        while True:
-            yield (self.max_wait, [], [])
+        codes = self._get_gpm_codes() + self._get_keyboard_codes()
+
+        if self._partial_codes:
+            codes = self._partial_codes + codes
+            self._partial_codes = None
+
+        # clean out the pipe used to signal external event loops
+        # that a resize has occurred
+        try:
+            while True: os.read(self._resize_pipe_rd, 1)
+        except OSError:
+            pass
+
+        return codes
+
+    def parse_input(self, event_loop, callback, wait_for_more=True):
+        """
+        Read any available input from get_available_raw_input, parses it into
+        keys, and calls the given callback.
+
+        The current implementation tries to avoid any assumptions about what
+        the screen or event loop look like; it only deals with parsing keycodes
+        and setting a timeout when an incomplete one is detected.
+        """
+        if self._input_timeout:
+            event_loop.remove_alarm(self._input_timeout)
+            self._input_timeout = None
+
+        codes = self.get_available_raw_input()
+        original_codes = codes
+        processed = []
+        try:
+            while codes:
+                run, codes = escape.process_keyqueue(
+                    codes, wait_for_more)
+                processed.extend(run)
+        except escape.MoreInputRequired:
+            # Set a timer to wait for the rest of the input; if it goes off
+            # without any new input having come in, use the partial input
+            k = len(original_codes) - len(codes)
+            processed_codes = original_codes[:k]
+            self._partial_codes = codes
+
+            def _parse_incomplete_input():
+                self._input_timeout = None
+                self.parse_input(
+                    event_loop, callback, wait_for_more=False)
+            self._input_timeout = event_loop.alarm(
+                self.complete_wait, self._parse_incomplete_input)
+
+        else:
+            processed_codes = original_codes
+            self._partial_codes = None
+
+        if self._resized:
+            processed.append('window resize')
+            self._resized = False
+
+        callback(processed, processed_codes)
 
     def _get_keyboard_codes(self):
         codes = []

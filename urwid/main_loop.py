@@ -124,7 +124,6 @@ class MainLoop(object):
             event_loop = SelectEventLoop()
         self.event_loop = event_loop
 
-        self._input_timeout = None
         self._watch_pipes = {}
 
     def _set_widget(self, widget):
@@ -297,12 +296,12 @@ class MainLoop(object):
         screen.get_cols_rows()
         widget.render((20, 10), focus=True)
         screen.draw_screen((20, 10), 'fake canvas')
-        screen.get_input_descriptors()
-        event_loop.watch_file(42, <bound method ...>)
+        screen.unhook_event_loop(...)
+        screen.hook_event_loop(...)
         event_loop.enter_idle(<bound method ...>)
         event_loop.run()
         event_loop.remove_enter_idle(1)
-        event_loop.remove_watch_file(2)
+        screen.unhook_event_loop(...)
         >>> scr.started = False
         >>> ml.run()    # doctest:+ELLIPSIS
         screen.run_wrapper(<bound method ...>)
@@ -339,49 +338,25 @@ class MainLoop(object):
         signals.disconnect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED,
             reset_input_descriptors)
         self.screen.unhook_event_loop(self.event_loop)
-        if self._input_timeout is not None:
-            self.event_loop.remove_alarm(self._input_timeout)
 
-    def _update(self, timeout=False):
+    def _update(self, keys, raw):
         """
         >>> w = _refl("widget")
         >>> w.selectable_rval = True
         >>> w.mouse_event_rval = True
         >>> scr = _refl("screen")
         >>> scr.get_cols_rows_rval = (15, 5)
-        >>> scr.get_input_nonblocking_rval = 1, ['y'], [121]
         >>> evl = _refl("event_loop")
         >>> ml = MainLoop(w, [], scr, event_loop=evl)
         >>> ml._input_timeout = "old timeout"
-        >>> ml._update()    # doctest:+ELLIPSIS
-        event_loop.remove_alarm('old timeout')
-        screen.get_input_nonblocking()
-        event_loop.alarm(1, <function ...>)
+        >>> ml._update(['y'], [121])    # doctest:+ELLIPSIS
         screen.get_cols_rows()
         widget.selectable()
         widget.keypress((15, 5), 'y')
-        >>> scr.get_input_nonblocking_rval = None, [("mouse press", 1, 5, 4)
-        ... ], []
-        >>> ml._update()
-        screen.get_input_nonblocking()
+        >>> ml._update([("mouse press", 1, 5, 4)], [])
         widget.mouse_event((15, 5), 'mouse press', 1, 5, 4, focus=True)
-        >>> scr.get_input_nonblocking_rval = None, [], []
-        >>> ml._update()
-        screen.get_input_nonblocking()
+        >>> ml._update([], [])
         """
-        if self._input_timeout is not None and not timeout:
-            # cancel the timeout, something else triggered the update
-            self.event_loop.remove_alarm(self._input_timeout)
-        self._input_timeout = None
-
-        max_wait, keys, raw = self.screen.get_input_nonblocking()
-
-        if max_wait is not None:
-            # if get_input_nonblocking wants to be called back
-            # make sure it happens with an alarm
-            self._input_timeout = self.event_loop.alarm(max_wait,
-                lambda: self._update(timeout=True))
-
         keys = self.input_filter(keys, raw)
 
         if keys:
