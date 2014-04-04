@@ -8,7 +8,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Widget Classes &mdash; Urwid 1.2.0</title>
+    <title>Widget Classes &mdash; Urwid 1.2.1</title>
     
     <link rel="stylesheet" href="../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -16,7 +16,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '1.2.0',
+        VERSION:     '1.2.1',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -26,7 +26,7 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/sidebar.js"></script>
-    <link rel="top" title="Urwid 1.2.0" href="../index.html" />
+    <link rel="top" title="Urwid 1.2.1" href="../index.html" />
     <link rel="up" title="Urwid Reference" href="index.html" />
     <link rel="next" title="Display Modules" href="display_modules.html" />
     <link rel="prev" title="MainLoop and Event Loops" href="main_loop.html" /> 
@@ -44,7 +44,7 @@
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.2.0</a> &raquo;</li>
+        <li><a href="../index.html">Urwid 1.2.1</a> &raquo;</li>
           <li><a href="index.html" accesskey="U">Urwid Reference</a> &raquo;</li> 
       </ul>
     </div>  
@@ -1901,7 +1901,7 @@ this widget is stored as self.original_widget</li>
 <li><strong>min_width</strong> (<em>int</em>) &#8211; the minimum number of columns for
 self.original_widget or <tt class="docutils literal"><span class="pre">None</span></tt></li>
 <li><strong>left</strong> (<em>int</em>) &#8211; a fixed number of columns to pad on the left</li>
-<li><strong>right</strong> (<em>int</em>) &#8211; a fixed number of columns to pad on thr right</li>
+<li><strong>right</strong> (<em>int</em>) &#8211; a fixed number of columns to pad on the right</li>
 </ul>
 </td>
 </tr>
@@ -1991,7 +1991,7 @@ the available number of columns.  For example if align is
 <dl class="attribute">
 <dt id="urwid.Padding.width">
 <tt class="descname">width</tt><a class="headerlink" href="#urwid.Padding.width" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the padding widthment setting.</p>
+<dd><p>Return the padding width.</p>
 </dd></dl>
 
 </dd></dl>
@@ -2305,7 +2305,7 @@ keystrokes.</p>
 </pre></div>
 </div>
 <p>This object may be used to read or update the contents of the Frame.</p>
-<p>The values are similar to the the list-like .contents objects used
+<p>The values are similar to the list-like .contents objects used
 in other containers with (<a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><tt class="xref py py-class docutils literal"><span class="pre">Widget</span></tt></a>, options) tuples, but are
 constrained to keys for each of the three usual parts of a Frame.
 When other keys are used a <tt class="xref py py-exc docutils literal"><span class="pre">KeyError</span></tt> will be raised.</p>
@@ -2481,7 +2481,7 @@ value) or the number of lines of the focus widget hidden off
 the top edge of the listbox (-ve value) or 0 if the top edge
 of the focus widget is aligned with the top edge of the
 listbox (default if unspecified)</li>
-<li><strong>coming_from</strong> (<em>str</em>) &#8211; eiter &#8216;above&#8217;, &#8216;below&#8217; or unspecified <cite>None</cite></li>
+<li><strong>coming_from</strong> (<em>str</em>) &#8211; either &#8216;above&#8217;, &#8216;below&#8217; or unspecified <cite>None</cite></li>
 <li><strong>cursor_coords</strong> (<em>(int, int)</em>) &#8211; (x, y) tuple indicating the desired
 column and row for the cursor, a (x,) tuple indicating only
 the column for the cursor, or unspecified</li>
@@ -2757,7 +2757,7 @@ screen columns remaining</dd>
 <p>If the Columns widget is treated as a box widget then all children
 are treated as box widgets, and <em>box_columns</em> is ignored.</p>
 <p>If the Columns widget is treated as a flow widget then the rows
-are calcualated as the largest rows() returned from all columns
+are calculated as the largest rows() returned from all columns
 except the ones listed in <em>box_columns</em>.  The box widgets in
 <em>box_columns</em> will be displayed with this calculated number of rows,
 filling the full height.</p>
@@ -2821,7 +2821,7 @@ standard container property <a class="reference internal" href="#urwid.Columns.f
 <dl class="attribute">
 <dt id="urwid.Columns.focus_position">
 <tt class="descname">focus_position</tt><a class="headerlink" href="#urwid.Columns.focus_position" title="Permalink to this definition">¶</a></dt>
-<dd><p>index of child widget in focus.  Raises IndexError if read when
+<dd><p>index of child widget in focus. Raises <tt class="xref py py-exc docutils literal"><span class="pre">IndexError</span></tt> if read when
 Columns is empty, or when set to an invalid index.</p>
 </dd></dl>
 
@@ -3748,7 +3748,7 @@ top &#8211; top y position</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>normal</strong> &#8211; display attribute for uncomplete part of progress bar</li>
+<li><strong>normal</strong> &#8211; display attribute for incomplete part of progress bar</li>
 <li><strong>complete</strong> &#8211; display attribute for complete part of progress bar</li>
 <li><strong>current</strong> &#8211; current progress</li>
 <li><strong>done</strong> &#8211; progress amount at 100%</li>
@@ -3945,7 +3945,7 @@ out of the terminal widget. If it&#8217;s not specified, &#8220;ctrl a&#8221; is
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              >previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.2.0</a> &raquo;</li>
+        <li><a href="../index.html">Urwid 1.2.1</a> &raquo;</li>
           <li><a href="index.html" >Urwid Reference</a> &raquo;</li> 
       </ul>
     </div>

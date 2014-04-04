@@ -2,6 +2,19 @@
 Changelog
 ---------
 
+
+Urwid 1.2.1
+===========
+
+2014-04-04
+
+ * Fix false failures of event loop tests
+
+ * Remove extra newline generated on exit of raw_display
+
+ * Documentation fixes (by Paul Ivanov)
+
+
 Urwid 1.2.0
 ===========
 

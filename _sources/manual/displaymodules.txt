@@ -92,7 +92,7 @@ Screenshot Display Module ``html_fragment``
 Screenshots of Urwid interfaces can be rendered in plain HTML. The
 :class:`html_fragment.HtmlGenerator` display module lets you do this by simulating user input
 and capturing the screen as fragments of HTML each time
-:meth:`html_fragemnt.HtmlGenerator.draw_screen` is
+:meth:`html_fragment.HtmlGenerator.draw_screen` is
 called.
 
 These fragments may be included in HTML documents. They will be rendered
