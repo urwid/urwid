@@ -566,7 +566,7 @@ class PopUpLauncher(delegate_to_widget_mixin('_original_widget'),
 
     def create_pop_up(self):
         """
-        Subclass must override this method and have is return a widget
+        Subclass must override this method and return a widget
         to be used for the pop-up.  This method is called once each time
         the pop-up is opened.
         """
