@@ -29,7 +29,7 @@ screen. When we render the topmost widget:
 7. *(a)* possibly modifies the canvas from *(b)* and returns it
 
 Widgets *(a)*, *(b)* and *(e)* are called container widgets because they
-contain other widgets. Container widgets choose the size and position their
+contain other widgets. Container widgets choose the size and position of their
 contained widgets.
 
 Container widgets must also keep track of which one of their contained widgets
@@ -315,7 +315,7 @@ or pop-up menus.
 The Overlay widget always treats the top widget as the one in focus. All
 keyboard input will be passed to the top widget.
 
-If you want to use a flow flow widget for the top widget, first wrap the flow
+If you want to use a flow widget for the top widget, first wrap the flow
 widget with a :class:`Filler` widget.
 
 
