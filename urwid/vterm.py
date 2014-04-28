@@ -22,17 +22,21 @@
 
 import os
 import sys
-import pty
 import time
 import copy
-import fcntl
 import errno
 import select
 import struct
 import signal
 import atexit
-import termios
 import traceback
+
+try:
+    import pty
+    import fcntl
+    import termios
+except ImportError:
+    pass # windows
 
 from urwid import util
 from urwid.escape import DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS

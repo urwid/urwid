@@ -23,14 +23,18 @@
 Direct terminal UI implementation
 """
 
-import fcntl
-import termios
 import os
 import select
 import struct
 import sys
-import tty
 import signal
+
+try:
+    import fcntl
+    import termios
+    import tty
+except ImportError:
+    pass # windows
 
 from urwid import util
 from urwid import escape

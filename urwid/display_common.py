@@ -20,7 +20,11 @@
 
 import os
 import sys
-import termios
+
+try:
+    import termios
+except ImportError:
+    pass # windows
 
 from urwid.util import int_scale
 from urwid import signals
