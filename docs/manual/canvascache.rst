@@ -12,7 +12,7 @@ visible, unchanged canvases so that not all of the visible widgets need to be
 rendered for each update.
 
 The :class:`Widget` base class uses some metaclass magic to
-capture the canvas objects returned :meth:`Widget.render` is called and return
+capture the canvas objects returned when :meth:`Widget.render` is called and return
 them the next time :meth:`Widget.render` is called again with the same parameters. The
 :meth:`Widget._invalidate` method is provided as a way to remove cached widgets so
 that changes to the widget are visible the next time the screen is redrawn.
@@ -26,7 +26,7 @@ Composite Canvases
 
 When container and decoration widgets are rendered, they collect the canvases
 returned by their children and arrange them into a composite canvas. Composite
-canvases may are nested to form a tree with the topmost widget's :meth:`Widget.render`
+canvases are nested to form a tree with the topmost widget's :meth:`Widget.render`
 method returning the root of the tree. That canvas is sent to the display
 module to be rendered on the screen.
 
