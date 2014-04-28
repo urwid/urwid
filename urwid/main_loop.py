@@ -25,10 +25,14 @@
 import time
 import heapq
 import select
-import fcntl
 import os
 from functools import wraps
 from weakref import WeakKeyDictionary
+
+try:
+    import fcntl
+except ImportError:
+    pass # windows
 
 from urwid.util import is_mouse_event
 from urwid.compat import PYTHON3
