@@ -77,8 +77,8 @@ keycodes = {
     33: "page up", 34: "page down", 35: "end", 36: "home",
     37: "left", 38: "up", 39: "right", 40: "down",
     45: "insert", 46: "delete",
-    112: "f1", 113: "f2", 114: "f3", 115: "f4", 
-    116: "f5", 117: "f6", 118: "f7", 119: "f8", 
+    112: "f1", 113: "f2", 114: "f3", 115: "f4",
+    116: "f5", 117: "f6", 118: "f7", 119: "f8",
     120: "f9", 121: "f10", 122: "f11", 123: "f12"
     };
 
@@ -179,16 +179,16 @@ function handle_recv() {
         urwid_id = conn.getResponseHeader("X-Urwid-ID");
         if( send_queue_in != send_queue_out ){
             // keys waiting
-            do_send(); 
+            do_send();
         }
         if(update_method=="polling"){
             set_status("Polling");
         }else if(update_method=="multipart"){
             set_status("Connected");
         }
-    
+
     }
-    
+
     if( conn.responseText == "" ){
         if(update_method=="polling"){
             poll_again();
@@ -200,14 +200,14 @@ function handle_recv() {
         update_method = null;
         return;
     }
-    
+
     var text = document.getElementById('text');
-    
+
     var last_screen = Array(text.childNodes.length);
     for( var i=0; i<text.childNodes.length; i++ ){
         last_screen[i] = text.childNodes[i];
     }
-    
+
     var frags = conn.responseText.split("\n");
     var ln = document.createElement('span');
     var k = 0;
@@ -244,7 +244,7 @@ function handle_recv() {
     for( var i=k; i < text.childNodes.length; i++ ){
         text.removeChild(last_screen[i]);
     }
-    
+
     if(update_method=="polling"){
         poll_again();
     }
@@ -263,17 +263,17 @@ function load_web_display(){
     }else{
         document_location = document.location;
     }
-    
+
     document.onkeypress = body_keypress;
     document.onkeydown = body_keydown;
     document.onresize = body_resize;
-    
+
     body_resize();
     send_queue_out = send_queue_in; // don't queue the first resize
 
     set_status("Connecting");
     setup_connection();
-    
+
     setTimeout("check_fontsize();",check_font_delay);
 }
 
@@ -288,7 +288,7 @@ function make_span(s, fg, bg){
     d.style.backgroundColor = colours[bg];
     d.style.color = colours[fg];
     d.appendChild(document.createTextNode(s));
-    
+
     return d;
 }
 
@@ -308,7 +308,7 @@ function body_keydown(e){
     if( e.shiftKey && e.charCode == 0 ){ mod = "shift " + mod; }
 
     key = keycodes[code];
-    
+
     if( key != undefined ){
         lastkeydown = key;
         send_key( mod + key );
@@ -332,7 +332,7 @@ function body_keypress(e){
     if( e.ctrlKey ){ mod = "ctrl " + mod; }
     if( e.altKey || e.metaKey ){ mod = "meta " + mod; }
     if( e.shiftKey && e.charCode == 0 ){ mod = "shift " + mod; }
-    
+
     if( e.charCode != null && e.charCode != 0 ){
         key = String.fromCharCode(e.charCode);
     }else if( e.charCode == null ){
@@ -345,7 +345,7 @@ function body_keypress(e){
             return false;
         }
     }
-    
+
     send_key( mod + key );
     stop_key_event(e);
     return false;
@@ -382,11 +382,11 @@ function do_send() {
     if( ! urwid_id ){ return; }
     if( ! update_method ){ return; } // connection closed
     if( send_queue_in == send_queue_out ){ return; }
-    if( sending ){ 
+    if( sending ){
         //var queue_delta = send_queue_in - send_queue_out;
         //if( queue_delta < 0 ){ queue_delta += send_queue_max; }
-        //set_status("Sending (queued "+queue_delta+")"); 
-        return; 
+        //set_status("Sending (queued "+queue_delta+")");
+        return;
     }
     try{
         sending = true;
@@ -442,9 +442,9 @@ function send_handle_recv() {
         alert("Error from server: "+send_conn.statusText);
         return;
     }
-    
+
     sending = false;
-    
+
     if( send_queue_out != send_queue_in ){
         send_more();
     }
@@ -479,12 +479,12 @@ function body_resize(){
     var avail_width = window_width-18;
     var avail_width_mod = avail_width % char_width;
     var x_size = (avail_width - avail_width_mod)/char_width;
-    
+
     char_height = t2.offsetTop - t.offsetTop;
     var avail_height = window_height-text.offsetTop-10;
     var avail_height_mod = avail_height % char_height;
     var y_size = (avail_height - avail_height_mod)/char_height;
-    
+
     text.style.width = x_size*char_width+"px";
     text.style.height = y_size*char_height+"px";
 
@@ -527,7 +527,7 @@ _code_colours = {
 _trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 256)])
 
 _css_style = """
-body {    margin: 8px 8px 8px 8px; border: 0; 
+body {    margin: 8px 8px 8px 8px; border: 0;
     color: black; background-color: silver;
     font-family: fixed; overflow: hidden; }
 
@@ -554,7 +554,7 @@ _html_page = [
 </head>
 <body id="body" onload="load_web_display()">
 <div style="position:absolute; visibility:hidden;">
-<br id="br"\> 
+<br id="br"\>
 <pre>The quick brown fox jumps over the lazy dog.<span id="testchar">X</span>
 <span id="testchar2">Y</span></pre>
 </div>
@@ -575,9 +575,9 @@ class Screen:
         self.palette = {}
         self.has_color = True
         self._started = False
-    
+
     started = property(lambda self: self._started)
-    
+
     def register_palette( self, l ):
         """Register a list of palette entries.
 
@@ -586,7 +586,7 @@ class Screen:
 
         calls self.register_palette_entry for each item in l
         """
-        
+
         for item in l:
             if len(item) in (3,4):
                 self.register_palette_entry( *item )
@@ -597,7 +597,7 @@ class Screen:
                 raise Exception("palette entry '%s' doesn't exist"%like_name)
             self.palette[name] = self.palette[like_name]
 
-    def register_palette_entry( self, name, foreground, background, 
+    def register_palette_entry( self, name, foreground, background,
         mono=None):
         """Register a single palette entry.
 
@@ -623,17 +623,17 @@ class Screen:
         pass
 
     def start(self):
-        """    
+        """
         This function reads the initial screen size, generates a
         unique id and handles cleanup when fn exits.
-        
+
         web_display.set_preferences(..) must be called before calling
         this function for the preferences to take effect
         """
         global _prefs
 
         assert not self._started
-        
+
         client_init = sys.stdin.read(50)
         assert client_init.startswith("window resize "),client_init
         ignore1,ignore2,x,y = client_init.split(" ",3)
@@ -642,26 +642,26 @@ class Screen:
         self._set_screen_size( x, y )
         self.last_screen = {}
         self.last_screen_width = 0
-    
+
         self.update_method = os.environ["HTTP_X_URWID_METHOD"]
         assert self.update_method in ("multipart","polling")
-    
+
         if self.update_method == "polling" and not _prefs.allow_polling:
             sys.stdout.write("Status: 403 Forbidden\r\n\r\n")
             sys.exit(0)
-        
+
         clients = glob.glob(os.path.join(_prefs.pipe_dir,"urwid*.in"))
         if len(clients) >= _prefs.max_clients:
             sys.stdout.write("Status: 503 Sever Busy\r\n\r\n")
             sys.exit(0)
-        
+
         urwid_id = "%09d%09d"%(random.randrange(10**9),
             random.randrange(10**9))
         self.pipe_name = os.path.join(_prefs.pipe_dir,"urwid"+urwid_id)
         os.mkfifo(self.pipe_name+".in",0600)
         signal.signal(signal.SIGTERM,self._cleanup_pipe)
-        
-        self.input_fd = os.open(self.pipe_name+".in", 
+
+        self.input_fd = os.open(self.pipe_name+".in",
             os.O_NONBLOCK | os.O_RDONLY)
         self.input_tail = ""
         self.content_head = ("Content-type: "
@@ -674,14 +674,14 @@ class Screen:
                 "Content-type: text/plain\r\n"
                 "X-Urwid-ID: "+urwid_id+"\r\n"
                 "\r\n\r\n")
-        
+
         signal.signal(signal.SIGALRM,self._handle_alarm)
         signal.alarm( ALARM_DELAY )
         self._started = True
 
     def stop(self):
         """
-        Restore settings and clean up.  
+        Restore settings and clean up.
         """
         assert self._started
         # XXX which exceptions does this actually raise? EnvironmentError?
@@ -692,7 +692,7 @@ class Screen:
         signal.signal(signal.SIGTERM,signal.SIG_DFL)
         self._cleanup_pipe()
         self._started = False
-        
+
     def set_input_timeouts(self, *args):
         pass
 
@@ -731,21 +731,21 @@ class Screen:
 
     def _set_screen_size(self, cols, rows ):
         """Set the screen size (within max size)."""
-        
+
         if cols > MAX_COLS:
             cols = MAX_COLS
         if rows > MAX_ROWS:
             rows = MAX_ROWS
         self.screen_size = cols, rows
-        
+
     def draw_screen(self, (cols, rows), r ):
         """Send a screen update to the client."""
-        
+
         if cols != self.last_screen_width:
             self.last_screen = {}
-    
+
         sendq = [self.content_head]
-        
+
         if self.update_method == "polling":
             send = sendq.append
         elif self.update_method == "polling child":
@@ -760,23 +760,23 @@ class Screen:
             send = sendq.append
             send("\r\n")
             self.content_head = ""
-        
+
         assert r.rows() == rows
-    
+
         if r.cursor is not None:
             cx, cy = r.cursor
         else:
             cx = cy = None
-        
+
         new_screen = {}
-        
+
         y = -1
         for row in r.content():
             y += 1
             row = list(row)
-            
+
             l = []
-            
+
             sig = tuple(row)
             if y == cy: sig = sig + (cx,)
             new_screen[sig] = new_screen.get(sig,[]) + [y]
@@ -788,7 +788,7 @@ class Screen:
                     old_line = old_line_numbers[0]
                 send( "<%d\n"%old_line )
                 continue
-            
+
             col = 0
             for (a, cs, run) in row:
                 run = run.translate(_trans_table)
@@ -797,7 +797,7 @@ class Screen:
                 else:
                     fg,bg,mono = self.palette[a]
                 if y == cy and col <= cx:
-                    run_width = util.calc_width(run, 0, 
+                    run_width = util.calc_width(run, 0,
                         len(run))
                     if col+run_width > cx:
                         l.append(code_span(run, fg, bg,
@@ -811,7 +811,7 @@ class Screen:
             send("".join(l)+"\n")
         self.last_screen = new_screen
         self.last_screen_width = cols
-        
+
         if self.update_method == "polling":
             sys.stdout.write("".join(sendq))
             sys.stdout.flush()
@@ -823,9 +823,9 @@ class Screen:
             send("\r\n--ZZ\r\n")
             sys.stdout.write("".join(sendq))
             sys.stdout.flush()
-        
+
         signal.alarm( ALARM_DELAY )
-    
+
 
     def clear(self):
         """
@@ -843,7 +843,7 @@ class Screen:
         Force parent process to exit.
         """
         daemonize( self.pipe_name +".err" )
-        self.input_fd = os.open(self.pipe_name+".in", 
+        self.input_fd = os.open(self.pipe_name+".in",
             os.O_NONBLOCK | os.O_RDONLY)
         self.update_method = "polling child"
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -851,7 +851,7 @@ class Screen:
         s.listen(1)
         s.settimeout(POLL_CONNECT)
         self.server_socket = s
-    
+
     def _handle_alarm(self, sig, frame):
         assert self.update_method in ("multipart","polling child")
         if self.update_method == "polling child":
@@ -866,8 +866,8 @@ class Screen:
             sys.stdout.write("\r\n\r\n--ZZ\r\n")
             sys.stdout.flush()
         signal.alarm( ALARM_DELAY )
-        
-            
+
+
     def get_cols_rows(self):
         """Return the screen size."""
         return self.screen_size
@@ -876,13 +876,13 @@ class Screen:
         """Return pending input as a list."""
         l = []
         resized = False
-        
+
         try:
             iready,oready,eready = select.select(
                 [self.input_fd],[],[],0.5)
         except select.error, e:
             # return on interruptions
-            if e.args[0] == 4: 
+            if e.args[0] == 4:
                 if raw_keys:
                     return [],[]
                 return []
@@ -892,16 +892,16 @@ class Screen:
             if raw_keys:
                 return [],[]
             return []
-        
+
         keydata = os.read(self.input_fd, MAX_READ)
         os.close(self.input_fd)
-        self.input_fd = os.open(self.pipe_name+".in", 
+        self.input_fd = os.open(self.pipe_name+".in",
             os.O_NONBLOCK | os.O_RDONLY)
         #sys.stderr.write( repr((keydata,self.input_tail))+"\n" )
         keys = keydata.split("\n")
         keys[0] = self.input_tail + keys[0]
         self.input_tail = keys[-1]
-        
+
         for k in keys[:-1]:
             if k.startswith("window resize "):
                 ign1,ign2,x,y = k.split(" ",3)
@@ -913,16 +913,16 @@ class Screen:
                 l.append(k)
         if resized:
             l.append("window resize")
-        
+
         if raw_keys:
             return l, []
         return l
-    
+
 
 def code_span( s, fg, bg, cursor = -1):
     code_fg = _code_colours[ fg ]
     code_bg = _code_colours[ bg ]
-    
+
     if cursor >= 0:
         c_off, _ign = util.calc_text_pos(s, 0, len(s), cursor)
         c2_off = util.move_next_char(s, c_off, len(s))
@@ -941,7 +941,7 @@ def html_escape(text):
     text = text.replace('>','&gt;')
     return text
 
-    
+
 def is_web_request():
     """
     Return True if this is a CGI web request.
@@ -959,20 +959,20 @@ def handle_short_request():
     function for the preferences to take effect
     """
     global _prefs
-    
+
     if not is_web_request():
         return False
-        
+
     if os.environ['REQUEST_METHOD'] == "GET":
         # Initial request, send the HTML and javascript.
         sys.stdout.write("Content-type: text/html\r\n\r\n" +
             html_escape(_prefs.app_name).join(_html_page))
         return True
-    
+
     if os.environ['REQUEST_METHOD'] != "POST":
         # Don't know what to do with head requests etc.
         return False
-    
+
     if not os.environ.has_key('HTTP_X_URWID_ID'):
         # If no urwid id, then the application should be started.
         return False
@@ -989,7 +989,7 @@ def handle_short_request():
             #assert 0, "invalid chars in id!"
             sys.stdout.write("Status: 403 Forbidden\r\n\r\n")
             return True
-    
+
     if os.environ.get('HTTP_X_URWID_METHOD',None) == "polling":
         # this is a screen update request
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -1030,16 +1030,16 @@ class _Preferences:
 
 _prefs = _Preferences()
 
-def set_preferences( app_name, pipe_dir="/tmp", allow_polling=True, 
+def set_preferences( app_name, pipe_dir="/tmp", allow_polling=True,
     max_clients=20 ):
     """
     Set web_display preferences.
-    
+
     app_name -- application name to appear in html interface
-    pipe_dir -- directory for input pipes, daemon update sockets 
+    pipe_dir -- directory for input pipes, daemon update sockets
                 and daemon error logs
-    allow_polling -- allow creation of daemon processes for 
-                     browsers without multipart support 
+    allow_polling -- allow creation of daemon processes for
+                     browsers without multipart support
     max_clients -- maximum concurrent client connections. This
                pool is shared by all urwid applications
                using the same pipe_dir

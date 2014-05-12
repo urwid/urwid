@@ -49,12 +49,12 @@ class HtmlGenerator(BaseScreen):
         self.colors = 16
         self.bright_is_bold = False # ignored
         self.has_underline = True # ignored
-        self.register_palette_entry(None, 
+        self.register_palette_entry(None,
             _default_foreground, _default_background)
 
     def set_terminal_properties(self, colors=None, bright_is_bold=None,
         has_underline=None):
-        
+
         if colors is None:
             colors = self.colors
         if bright_is_bold is None:
@@ -72,10 +72,10 @@ class HtmlGenerator(BaseScreen):
 
     def start(self):
         pass
-    
+
     def stop(self):
         pass
-    
+
     def set_input_timeouts(self, *args):
         pass
 
@@ -87,24 +87,24 @@ class HtmlGenerator(BaseScreen):
         return fn()
 
     def draw_screen(self, (cols, rows), r ):
-        """Create an html fragment from the render object. 
+        """Create an html fragment from the render object.
         Append it to HtmlGenerator.fragments list.
         """
         # collect output in l
         l = []
-        
+
         assert r.rows() == rows
-    
+
         if r.cursor is not None:
             cx, cy = r.cursor
         else:
             cx = cy = None
-        
+
         y = -1
         for row in r.content():
             y += 1
             col = 0
-            
+
             for a, cs, run in row:
                 run = run.translate(_trans_table)
                 if isinstance(a, AttrSpec):
@@ -126,10 +126,10 @@ class HtmlGenerator(BaseScreen):
                     l.append(html_span(run, aspec))
 
             l.append("\n")
-                        
+
         # add the fragment to the list
         self.fragments.append( "<pre>%s</pre>" % "".join(l) )
-            
+
     def clear(self):
         """
         Force the screen to be completely repainted on the next
@@ -138,7 +138,7 @@ class HtmlGenerator(BaseScreen):
         (does nothing for html_fragment)
         """
         pass
-            
+
     def get_cols_rows(self):
         """Return the next screen size in HtmlGenerator.sizes."""
         if not self.sizes:
@@ -173,9 +173,9 @@ def html_span(s, aspec, cursor = -1):
     def html_span(fg, bg, s):
         if not s: return ""
         return ('<span style="color:%s;'
-            'background:%s%s">%s</span>' % 
+            'background:%s%s">%s</span>' %
             (fg, bg, extra, html_escape(s)))
-    
+
     if cursor >= 0:
         c_off, _ign = util.calc_text_pos(s, 0, len(s), cursor)
         c2_off = util.move_next_char(s, c_off, len(s))
@@ -195,17 +195,17 @@ def html_escape(text):
 
 def screenshot_init( sizes, keys ):
     """
-    Replace curses_display.Screen and raw_display.Screen class with 
+    Replace curses_display.Screen and raw_display.Screen class with
     HtmlGenerator.
-    
-    Call this function before executing an application that uses 
+
+    Call this function before executing an application that uses
     curses_display.Screen to have that code use HtmlGenerator instead.
-    
+
     sizes -- list of ( columns, rows ) tuples to be returned by each call
              to HtmlGenerator.get_cols_rows()
     keys -- list of lists of keys to be returned by each call to
             HtmlGenerator.get_input()
-    
+
     Lists of keys may include "window resize" to force the application to
     call get_cols_rows and read a new screen size.
 
@@ -228,7 +228,7 @@ def screenshot_init( sizes, keys ):
             assert row>0 and col>0
     except (AssertionError, ValueError):
         raise Exception, "sizes must be in the form [ (col1,row1), (col2,row2), ...]"
-    
+
     try:
         for l in keys:
             assert type(l) == list
@@ -236,12 +236,12 @@ def screenshot_init( sizes, keys ):
                 assert type(k) == str
     except (AssertionError, ValueError):
         raise Exception, "keys must be in the form [ [keyA1, keyA2, ..], [keyB1, ..], ...]"
-    
+
     import curses_display
     curses_display.Screen = HtmlGenerator
     import raw_display
     raw_display.Screen = HtmlGenerator
-    
+
     HtmlGenerator.sizes = sizes
     HtmlGenerator.keys = keys
 
@@ -252,4 +252,4 @@ def screenshot_collect():
     HtmlGenerator.fragments = []
     return l
 
-    
+

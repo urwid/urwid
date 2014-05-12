@@ -28,32 +28,32 @@ Features:
 """
 
 import urwid
-        
+
 class FibonacciWalker(urwid.ListWalker):
     """ListWalker-compatible class for browsing fibonacci set.
-    
+
     positions returned are (value at position-1, value at position) tuples.
     """
     def __init__(self):
         self.focus = (0L,1L)
         self.numeric_layout = NumericLayout()
-    
+
     def _get_at_pos(self, pos):
         """Return a widget and the position passed."""
         return urwid.Text("%d"%pos[1], layout=self.numeric_layout), pos
-    
-    def get_focus(self): 
+
+    def get_focus(self):
         return self._get_at_pos(self.focus)
-    
+
     def set_focus(self, focus):
         self.focus = focus
         self._modified()
-    
+
     def get_next(self, start_from):
         a, b = start_from
         focus = b, a+b
         return self._get_at_pos(focus)
-    
+
     def get_prev(self, start_from):
         a, b = start_from
         focus = b-a, a
@@ -66,7 +66,7 @@ def main():
         ('key','light cyan', 'black', 'underline'),
         ('title', 'white', 'black',),
         ]
-        
+
     footer_text = [
         ('title', "Fibonacci Set Viewer"), "    ",
         ('key', "UP"), ", ", ('key', "DOWN"), ", ",
@@ -74,7 +74,7 @@ def main():
         " move view  ",
         ('key', "Q"), " exits",
         ]
-    
+
     def exit_on_q(input):
         if input in ('q', 'Q'):
             raise urwid.ExitMainLoop()
@@ -108,5 +108,5 @@ class NumericLayout(urwid.TextLayout):
             return [[(width, x, x+width)] for x in linestarts]
 
 
-if __name__=="__main__": 
+if __name__=="__main__":
     main()

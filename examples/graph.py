@@ -20,7 +20,7 @@
 # Urwid web site: http://excess.org/urwid/
 
 """
-Urwid example demonstrating use of the BarGraph widget and creating a 
+Urwid example demonstrating use of the BarGraph widget and creating a
 floating-window appearance.  Also shows use of alarms to create timed
 animation.
 """
@@ -33,12 +33,12 @@ import time
 UPDATE_INTERVAL = 0.2
 
 def sin100( x ):
-    """ 
+    """
     A sin function that returns values between 0 and 100 and repeats
     after x == 100.
     """
     return 50 + 50 * math.sin( x * math.pi / 50 )
-    
+
 class GraphModel:
     """
     A class responsible for storing the data that will be displayed
@@ -46,14 +46,14 @@ class GraphModel:
     """
 
     data_max_value = 100
-    
+
     def __init__(self):
         data = [ ('Saw', range(0,100,2)*2),
             ('Square', [0]*30 + [100]*30),
             ('Sine 1', [sin100(x) for x in range(100)] ),
-            ('Sine 2', [(sin100(x) + sin100(x*2))/2 
+            ('Sine 2', [(sin100(x) + sin100(x*2))/2
                 for x in range(100)] ),
-            ('Sine 3', [(sin100(x) + sin100(x*3))/2 
+            ('Sine 3', [(sin100(x) + sin100(x*3))/2
                 for x in range(100)] ),
             ]
         self.modes = []
@@ -61,13 +61,13 @@ class GraphModel:
         for m, d in data:
             self.modes.append(m)
             self.data[m] = d
-    
+
     def get_modes(self):
         return self.modes
-    
+
     def set_mode(self, m):
         self.current_mode = m
-    
+
     def get_data(self, offset, r):
         """
         Return the data in [offset:offset+r], the maximum value
@@ -108,11 +108,11 @@ class GraphView(urwid.WidgetWrap):
         ('pg complete',  'white',      'dark magenta'),
         ('pg smooth',     'dark magenta','black')
         ]
-        
+
     graph_samples_per_bar = 10
     graph_num_bars = 5
     graph_offset_per_second = 5
-    
+
     def __init__(self, controller):
         self.controller = controller
         self.started = True
@@ -146,7 +146,7 @@ class GraphView(urwid.WidgetWrap):
             else:
                 l.append([value,0])
         self.graph.set_data(l,max_value)
-        
+
         # also update progress
         if (o//repeat)&1:
             # show 100% for first half, 0 for second half
@@ -171,8 +171,8 @@ class GraphView(urwid.WidgetWrap):
             self.started = True
             self.start_time = time.time()
             self.controller.animate_graph()
-            
-    
+
+
     def on_reset_button(self, w):
         self.offset = 0
         self.start_time = time.time()
@@ -199,13 +199,13 @@ class GraphView(urwid.WidgetWrap):
         self.animate_progress = self.progress_bar( state )
         self.animate_progress_wrap._w = self.animate_progress
         self.update_graph( True )
-        
+
 
     def main_shadow(self, w):
         """Wrap a shadow and background around widget w."""
         bg = urwid.AttrWrap(urwid.SolidFill(u"\u2592"), 'screen edge')
         shadow = urwid.AttrWrap(urwid.SolidFill(u" "), 'main shadow')
-        
+
         bg = urwid.Overlay( shadow, bg,
             ('fixed left', 3), ('fixed right', 1),
             ('fixed top', 2), ('fixed bottom', 1))
@@ -213,7 +213,7 @@ class GraphView(urwid.WidgetWrap):
             ('fixed left', 2), ('fixed right', 3),
             ('fixed top', 1), ('fixed bottom', 2))
         return w
-        
+
     def bar_graph(self, smooth=False):
         satt = None
         if smooth:
@@ -233,7 +233,7 @@ class GraphView(urwid.WidgetWrap):
 
     def progress_bar(self, smooth=False):
         if smooth:
-            return urwid.ProgressBar('pg normal', 'pg complete', 
+            return urwid.ProgressBar('pg normal', 'pg complete',
                 0, 1, 'pg smooth')
         else:
             return urwid.ProgressBar('pg normal', 'pg complete',
@@ -255,11 +255,11 @@ class GraphView(urwid.WidgetWrap):
         self.on_animate_button( self.animate_button )
         self.offset = 0
         self.animate_progress = self.progress_bar()
-        animate_controls = urwid.GridFlow( [ 
+        animate_controls = urwid.GridFlow( [
             self.animate_button,
             self.button("Reset", self.on_reset_button),
             ], 9, 2, 0, 'center')
-        
+
         if urwid.get_encoding_mode() == "utf8":
             unicode_checkbox = urwid.CheckBox(
                 "Enable Unicode Graphics",
@@ -267,10 +267,10 @@ class GraphView(urwid.WidgetWrap):
         else:
             unicode_checkbox = urwid.Text(
                 "UTF-8 encoding not detected")
-            
+
         self.animate_progress_wrap = urwid.WidgetWrap(
             self.animate_progress)
-        
+
         l = [    urwid.Text("Mode",align="center"),
             ] + self.mode_buttons + [
             urwid.Divider(),
@@ -285,7 +285,7 @@ class GraphView(urwid.WidgetWrap):
         w = urwid.ListBox(urwid.SimpleListWalker(l))
         return w
 
-    def main_window(self): 
+    def main_window(self):
         self.graph = self.bar_graph()
         self.graph_wrap = urwid.WidgetWrap( self.graph )
         vline = urwid.AttrWrap( urwid.SolidFill(u'\u2502'), 'line')
@@ -299,7 +299,7 @@ class GraphView(urwid.WidgetWrap):
         w = urwid.AttrWrap(w,'line')
         w = self.main_shadow(w)
         return w
-        
+
 
 class GraphController:
     """
@@ -320,17 +320,17 @@ class GraphController:
     def get_modes(self):
         """Allow our view access to the list of modes."""
         return self.model.get_modes()
-    
+
     def set_mode(self, m):
         """Allow our view to set the mode."""
         rval = self.model.set_mode( m )
         self.view.update_graph(True)
         return rval
-    
+
     def get_data(self, offset, range):
         """Provide data to our view for the graph."""
         return self.model.get_data( offset, range )
-    
+
 
     def main(self):
         self.loop = urwid.MainLoop(self.view, self.view.palette)
@@ -347,10 +347,10 @@ class GraphController:
         if self.animate_alarm:
             self.loop.remove_alarm(self.animate_alarm)
         self.animate_alarm = None
-    
+
 
 def main():
     GraphController().main()
-    
+
 if '__main__'==__name__:
     main()

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Generic TreeWidget/TreeWalker class 
+# Generic TreeWidget/TreeWalker class
 #    Copyright (c) 2010  Rob Lanphier
 #    Copyright (C) 2004-2010  Ian Ward
 #
@@ -50,13 +50,13 @@ class TreeWidget(urwid.WidgetWrap):
         self.expanded = True
         widget = self.get_indented_widget()
         self.__super.__init__(widget)
-    
+
     def selectable(self):
         """
         Allow selection of non-leaf nodes so children may be (un)expanded
         """
         return not self.is_leaf
-    
+
     def get_indented_widget(self):
         widget = self.get_inner_widget()
         if not self.is_leaf:
@@ -64,9 +64,9 @@ class TreeWidget(urwid.WidgetWrap):
                 [self.unexpanded_icon, self.expanded_icon][self.expanded]),
                 widget], dividechars=1)
         indent_cols = self.get_indent_cols()
-        return urwid.Padding(widget, 
+        return urwid.Padding(widget,
             width=('relative', 100), left=indent_cols)
-    
+
     def update_expanded_icon(self):
         """Update display widget text for parent widgets"""
         # icon is first element in columns indented widget
@@ -83,12 +83,12 @@ class TreeWidget(urwid.WidgetWrap):
 
     def load_inner_widget(self):
         return urwid.Text(self.get_display_text())
-        
+
     def get_node(self):
         return self._node
 
     def get_display_text(self):
-        return (self.get_node().get_key() + ": " + 
+        return (self.get_node().get_key() + ": " +
                 str(self.get_node().get_value()))
 
     def next_inorder(self):
@@ -140,7 +140,7 @@ class TreeWidget(urwid.WidgetWrap):
         """Handle expand & collapse requests (non-leaf nodes)"""
         if self.is_leaf:
             return key
-        
+
         if key in ("+", "right"):
             self.expanded = True
             self.update_expanded_icon()
@@ -151,7 +151,7 @@ class TreeWidget(urwid.WidgetWrap):
             return self.__super.keypress(size, key)
         else:
             return key
-    
+
     def mouse_event(self, size, event, button, col, row, focus):
         if self.is_leaf or event != 'mouse press' or button!=1:
             return False
@@ -160,12 +160,12 @@ class TreeWidget(urwid.WidgetWrap):
             self.expanded = not self.expanded
             self.update_expanded_icon()
             return True
-        
+
         return False
 
     def first_child(self):
         """Return first child if expanded."""
-        if self.is_leaf or not self.expanded: 
+        if self.is_leaf or not self.expanded:
             return None
         else:
             if self._node.has_children():
@@ -193,7 +193,7 @@ class TreeWidget(urwid.WidgetWrap):
 
 class TreeNode(object):
     """
-    Store tree contents and cache TreeWidget objects.  
+    Store tree contents and cache TreeWidget objects.
     A TreeNode consists of the following elements:
     *  key: accessor token for parent nodes
     *  value: subclass-specific data
@@ -215,14 +215,14 @@ class TreeNode(object):
 
     def load_widget(self):
         return TreeWidget(self)
-        
+
     def get_depth(self):
         if self._depth is None and self._parent is None:
             self._depth = 0
         elif self._depth is None:
             self._depth = self._parent.get_depth() + 1
         return self._depth
-            
+
     def get_index(self):
         if self.get_depth() == 0:
             return None
@@ -244,19 +244,19 @@ class TreeNode(object):
         if self._parent == None and self.get_depth() > 0:
             self._parent = self.load_parent()
         return self._parent
-        
+
     def load_parent(self):
         """Provide TreeNode with a parent for the current node.  This function
         is only required if the tree was instantiated from a child node
         (virtual function)"""
         raise TreeWidgetError("virtual function.  Implement in subclass")
-        
+
     def get_value(self):
         return self._value
 
     def is_root(self):
         return self.get_depth() == 0
-        
+
     def next_sibling(self):
         if self.get_depth() > 0:
             return self.get_parent().next_child(self.get_key())
@@ -274,8 +274,8 @@ class TreeNode(object):
         while root.get_parent() is not None:
             root = root.get_parent()
         return root
-        
-        
+
+
 class ParentNode(TreeNode):
     """Maintain sort order for TreeNodes."""
     def __init__(self, value, parent=None, key=None, depth=None):
@@ -297,7 +297,7 @@ class ParentNode(TreeNode):
 
     def get_child_widget(self, key):
         """Return the widget for a given key.  Create if necessary."""
-        
+
         child = self.get_child_node(key)
         return child.get_widget()
 
@@ -312,10 +312,10 @@ class ParentNode(TreeNode):
         raise TreeWidgetError("virtual function.  Implement in subclass")
 
     def set_child_node(self, key, node):
-        """Set the child node for a given key.  Useful for bottom-up, lazy 
+        """Set the child node for a given key.  Useful for bottom-up, lazy
         population of a tree.."""
         self._children[key]=node
-    
+
     def change_child_key(self, oldkey, newkey):
         if newkey in self._children:
             raise TreeWidgetError("%s is already in use" % newkey)
@@ -328,7 +328,7 @@ class ParentNode(TreeNode):
         except ValueError:
             errorstring = ("Can't find key %s in ParentNode %s\n" +
                            "ParentNode items: %s")
-            raise TreeWidgetError(errorstring % (key, self.get_key(), 
+            raise TreeWidgetError(errorstring % (key, self.get_key(),
                                   str(self.get_child_keys())))
 
     def next_child(self, key):
@@ -339,7 +339,7 @@ class ParentNode(TreeNode):
         if index is None:
             return None
         index += 1
-        
+
         child_keys = self.get_child_keys()
         if index < len(child_keys):
             # get the next item at same level
@@ -355,7 +355,7 @@ class ParentNode(TreeNode):
 
         child_keys = self.get_child_keys()
         index -= 1
-        
+
         if index >= 0:
             # get the previous item at same level
             return self.get_child_node(child_keys[index])
@@ -366,12 +366,12 @@ class ParentNode(TreeNode):
         """Return the first TreeNode in the directory."""
         child_keys = self.get_child_keys()
         return self.get_child_node(child_keys[0])
-    
+
     def get_last_child(self):
         """Return the last TreeNode in the directory."""
         child_keys = self.get_child_keys()
         return self.get_child_node(child_keys[-1])
-        
+
     def has_children(self):
         """Does this node have any children?"""
         return len(self.get_child_keys())>0
@@ -379,9 +379,9 @@ class ParentNode(TreeNode):
 
 class TreeWalker(urwid.ListWalker):
     """ListWalker-compatible class for displaying TreeWidgets
-    
+
     positions are TreeNodes."""
-    
+
     def __init__(self, start_from):
         """start_from: TreeNode with the initial focus."""
         self.focus = start_from
@@ -389,7 +389,7 @@ class TreeWalker(urwid.ListWalker):
     def get_focus(self):
         widget = self.focus.get_widget()
         return widget, self.focus
-        
+
     def set_focus(self, focus):
         self.focus = focus
         self._modified()
@@ -431,13 +431,13 @@ class TreeListBox(urwid.ListBox):
             self.focus_end(size)
         else:
             return input
-                                        
+
     def collapse_focus_parent(self, size):
         """Collapse parent directory."""
 
         widget, pos = self.body.get_focus()
         self.move_focus_to_parent(size)
-        
+
         pwidget, ppos = self.body.get_focus()
         if pos != ppos:
             self.keypress(size, "-")
@@ -446,12 +446,12 @@ class TreeListBox(urwid.ListBox):
         """Move focus to parent of widget in focus."""
 
         widget, pos = self.body.get_focus()
-        
+
         parentpos = pos.get_parent()
-        
+
         if parentpos is None:
             return
-        
+
         middle, top, bottom = self.calculate_visible( size )
 
         row_offset, focus_widget, focus_pos, focus_rows, cursor = middle
@@ -464,7 +464,7 @@ class TreeListBox(urwid.ListBox):
                 return
 
         self.change_focus(size, pos.get_parent())
-        
+
     def focus_home(self, size):
         """Move focus to very top."""
 

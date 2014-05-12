@@ -78,7 +78,7 @@ class ExampleTreeBrowser:
         ('flag', 'dark gray', 'light gray'),
         ('error', 'dark red', 'light gray'),
         ]
-    
+
     footer_text = [
         ('title', "Example Data Browser"), "    ",
         ('key', "UP"), ",", ('key', "DOWN"), ",",
@@ -87,7 +87,7 @@ class ExampleTreeBrowser:
         ('key', "+"), ",",
         ('key', "-"), "  ",
         ('key', "LEFT"), "  ",
-        ('key', "HOME"), "  ", 
+        ('key', "HOME"), "  ",
         ('key', "END"), "  ",
         ('key', "Q"),
         ]
@@ -99,14 +99,14 @@ class ExampleTreeBrowser:
         self.header = urwid.Text( "" )
         self.footer = urwid.AttrWrap( urwid.Text( self.footer_text ),
             'foot')
-        self.view = urwid.Frame( 
-            urwid.AttrWrap( self.listbox, 'body' ), 
-            header=urwid.AttrWrap(self.header, 'head' ), 
+        self.view = urwid.Frame(
+            urwid.AttrWrap( self.listbox, 'body' ),
+            header=urwid.AttrWrap(self.header, 'head' ),
             footer=self.footer )
 
     def main(self):
         """Run the program."""
-        
+
         self.loop = urwid.MainLoop(self.view, self.palette,
             unhandled_input=self.unhandled_input)
         self.loop.run()
@@ -123,7 +123,7 @@ def get_example_tree():
         retval['children'].append({"name":"child " + str(i)})
         retval['children'][i]['children']=[]
         for j in range(10):
-            retval['children'][i]['children'].append({"name":"grandchild " + 
+            retval['children'][i]['children'].append({"name":"grandchild " +
                                                       str(i) + "." + str(j)})
     return retval
 
@@ -133,6 +133,6 @@ def main():
     ExampleTreeBrowser(sample).main()
 
 
-if __name__=="__main__": 
+if __name__=="__main__":
     main()
 

@@ -63,7 +63,7 @@ class MoreInputRequired(Exception):
 def escape_modifier( digit ):
     mode = ord(digit) - ord("1")
     return "shift "*(mode&1) + "meta "*((mode&2)//2) + "ctrl "*((mode&4)//4)
-    
+
 
 input_sequences = [
     ('[A','up'),('[B','down'),('[C','right'),('[D','left'),
@@ -74,7 +74,7 @@ input_sequences = [
     ('[7~','home'),('[8~','end'),
 
     ('[[A','f1'),('[[B','f2'),('[[C','f3'),('[[D','f4'),('[[E','f5'),
-    
+
     ('[11~','f1'),('[12~','f2'),('[13~','f3'),('[14~','f4'),
     ('[15~','f5'),('[17~','f6'),('[18~','f7'),('[19~','f8'),
     ('[20~','f9'),('[21~','f10'),('[23~','f11'),('[24~','f12'),
@@ -111,7 +111,7 @@ input_sequences = [
     ("O"+digit+letter, escape_modifier(digit) + key)
     for digit in "12345678"
     for letter,key in zip("PQRS",('f1','f2','f3','f4'))
-] + [ 
+] + [
     # modified F1-F13 keys -- [XX;#~ form
     ("["+str(num)+";"+digit+"~", escape_modifier(digit) + key)
     for digit in "12345678"
@@ -133,11 +133,11 @@ class KeyqueueTrie(object):
         for s, result in sequences:
             assert type(result) != dict
             self.add(self.data, s, result)
-    
+
     def add(self, root, s, result):
         assert type(root) == dict, "trie conflict detected"
         assert len(s) > 0, "trie conflict detected"
-        
+
         if root.has_key(ord(s[0])):
             return self.add(root[ord(s[0])], s[1:], result)
         if len(s)>1:
@@ -145,17 +145,17 @@ class KeyqueueTrie(object):
             root[ord(s[0])] = d
             return self.add(d, s[1:], result)
         root[ord(s)] = result
-    
+
     def get(self, keys, more_available):
         result = self.get_recurse(self.data, keys, more_available)
         if not result:
             result = self.read_cursor_position(keys, more_available)
         return result
-    
+
     def get_recurse(self, root, keys, more_available):
         if type(root) != dict:
             if root == "mouse":
-                return self.read_mouse_info(keys, 
+                return self.read_mouse_info(keys,
                     more_available)
             return (root, keys)
         if not keys:
@@ -166,16 +166,16 @@ class KeyqueueTrie(object):
         if not root.has_key(keys[0]):
             return None
         return self.get_recurse(root[keys[0]], keys[1:], more_available)
-    
+
     def read_mouse_info(self, keys, more_available):
         if len(keys) < 3:
             if more_available:
                 raise MoreInputRequired()
             return None
-        
+
         b = keys[0] - 32
         x, y = (keys[1] - 33)%256, (keys[2] - 33)%256  # supports 0-255
-        
+
         prefix = ""
         if b & 4:    prefix = prefix + "shift "
         if b & 8:    prefix = prefix + "meta "
@@ -186,7 +186,7 @@ class KeyqueueTrie(object):
         # 0->1, 1->2, 2->3, 64->4, 65->5
         button = ((b&64)/64*3) + (b & 3) + 1
 
-        if b & 3 == 3:    
+        if b & 3 == 3:
             action = "release"
             button = 0
         elif b & MOUSE_RELEASE_FLAG:
@@ -199,7 +199,7 @@ class KeyqueueTrie(object):
             action = "press"
 
         return ( (prefix + "mouse " + action, button, x, y), keys[3:] )
-    
+
     def read_cursor_position(self, keys, more_available):
         """
         Interpret cursor position information being sent by the
@@ -252,8 +252,8 @@ class KeyqueueTrie(object):
 
 
 # This is added to button value to signal mouse release by curses_display
-# and raw_display when we know which button was released.  NON-STANDARD 
-MOUSE_RELEASE_FLAG = 2048  
+# and raw_display when we know which button was released.  NON-STANDARD
+MOUSE_RELEASE_FLAG = 2048
 
 # This 2-bit mask is used to check if the mouse release from curses or gpm
 # is a double or triple release. 00 means single click, 01 double,
@@ -308,10 +308,10 @@ _keyconv = {
 def process_keyqueue(codes, more_available):
     """
     codes -- list of key codes
-    more_available -- if True then raise MoreInputRequired when in the 
-        middle of a character sequence (escape/utf8/wide) and caller 
+    more_available -- if True then raise MoreInputRequired when in the
+        middle of a character sequence (escape/utf8/wide) and caller
         will attempt to send more key codes on the next call.
-    
+
     returns (list of input, list of remaining key codes).
     """
     code = codes[0]
@@ -324,10 +324,10 @@ def process_keyqueue(codes, more_available):
         return ["ctrl %s" % chr(ord('a')+code-1)], codes[1:]
     if code >27 and code <32:
         return ["ctrl %s" % chr(ord('A')+code-1)], codes[1:]
-    
+
     em = str_util.get_byte_encoding()
-    
-    if (em == 'wide' and code < 256 and  
+
+    if (em == 'wide' and code < 256 and
         within_double_byte(chr(code),0,0)):
         if not codes[1:]:
             if more_available:
@@ -363,7 +363,7 @@ def process_keyqueue(codes, more_available):
             return [s.decode("utf-8")], codes[need_more+1:]
         except UnicodeDecodeError:
             return ["<%d>"%code], codes[1:]
-        
+
     if code >127 and code <256:
         key = chr(code)
         return [key], codes[1:]
@@ -371,19 +371,19 @@ def process_keyqueue(codes, more_available):
         return ["<%d>"%code], codes[1:]
 
     result = input_trie.get(codes[1:], more_available)
-    
+
     if result is not None:
         result, remaining_codes = result
         return [result], remaining_codes
-    
+
     if codes[1:]:
         # Meta keys -- ESC+Key form
-        run, remaining_codes = process_keyqueue(codes[1:], 
+        run, remaining_codes = process_keyqueue(codes[1:],
             more_available)
         if run[0] == "esc" or run[0].find("meta ") >= 0:
             return ['esc']+run, remaining_codes
         return ['meta '+run[0]]+run[1:], remaining_codes
-        
+
     return ['esc'], codes[1:]
 
 
