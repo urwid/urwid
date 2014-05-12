@@ -97,9 +97,9 @@ def python3_repr(v):
 def remove_defaults(d, fn):
     """
     Remove keys in d that are set to the default values from
-    fn.  This method is used to unclutter the _repr_attrs() 
+    fn.  This method is used to unclutter the _repr_attrs()
     return value.
-    
+
     d will be modified by this function.
 
     Returns d.

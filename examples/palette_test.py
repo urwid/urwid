@@ -34,10 +34,10 @@ CHART_256 = """
 brown__   dark_red_   dark_magenta_   dark_blue_   dark_cyan_   dark_green_
 yellow_   light_red   light_magenta   light_blue   light_cyan   light_green
 
-              #00f#06f#08f#0af#0df#0ff        black_______    dark_gray___   
+              #00f#06f#08f#0af#0df#0ff        black_______    dark_gray___
             #60f#00d#06d#08d#0ad#0dd#0fd        light_gray__    white_______
-          #80f#60d#00a#06a#08a#0aa#0da#0fa        
-        #a0f#80d#60a#008#068#088#0a8#0d8#0f8        
+          #80f#60d#00a#06a#08a#0aa#0da#0fa
+        #a0f#80d#60a#008#068#088#0a8#0d8#0f8
       #d0f#a0d#80d#608#006#066#086#0a6#0d6#0f6
     #f0f#d0d#a0a#808#606#000#060#080#0a0#0d0#0f0#0f6#0f8#0fa#0fd#0ff
       #f0d#d0a#a08#806#600#660#680#6a0#6d0#6f0#6f6#6f8#6fa#6fd#6ff#0df
@@ -50,29 +50,29 @@ yellow_   light_red   light_magenta   light_blue   light_cyan   light_green
     #86d#66a#68a#6aa#6da                #f80#f86#f88#f8a#f8d#f8f#d6f#a0f
   #a6d#86a#668#688#6a8#6d8                #f60#f66#f68#f6a#f6d#f6f#d0f
 #d6d#a6a#868#666#686#6a6#6d6#6d8#6da#6dd    #f00#f06#f08#f0a#f0d#f0f
-  #d6a#a68#866#886#8a6#8d6#8d8#8da#8dd#6ad       
-    #d68#a66#a86#aa6#ad6#ad8#ada#add#8ad#68d   
-      #d66#d86#da6#dd6#dd8#dda#ddd#aad#88d#66d        g78_g82_g85_g89_g93_g100  
+  #d6a#a68#866#886#8a6#8d6#8d8#8da#8dd#6ad
+    #d68#a66#a86#aa6#ad6#ad8#ada#add#8ad#68d
+      #d66#d86#da6#dd6#dd8#dda#ddd#aad#88d#66d        g78_g82_g85_g89_g93_g100
                     #da6#da8#daa#dad#a8d#86d        g52_g58_g62_g66_g70_g74_
       #88a#8aa        #d86#d88#d8a#d8d#a6d        g27_g31_g35_g38_g42_g46_g50_
     #a8a#888#8a8#8aa    #d66#d68#d6a#d6d        g0__g3__g7__g11_g15_g19_g23_
-      #a88#aa8#aaa#88a                        
+      #a88#aa8#aaa#88a
             #a88#a8a
-"""                    
+"""
 
 CHART_88 = """
 brown__   dark_red_   dark_magenta_   dark_blue_   dark_cyan_   dark_green_
 yellow_   light_red   light_magenta   light_blue   light_cyan   light_green
 
-      #00f#08f#0cf#0ff            black_______    dark_gray___             
-    #80f#00c#08c#0cc#0fc            light_gray__    white_______           
+      #00f#08f#0cf#0ff            black_______    dark_gray___
+    #80f#00c#08c#0cc#0fc            light_gray__    white_______
   #c0f#80c#008#088#0c8#0f8
-#f0f#c0c#808#000#080#0c0#0f0#0f8#0fc#0ff            #88c#8cc        
-  #f0c#c08#800#880#8c0#8f0#8f8#8fc#8ff#0cf        #c8c#888#8c8#8cc   
+#f0f#c0c#808#000#080#0c0#0f0#0f8#0fc#0ff            #88c#8cc
+  #f0c#c08#800#880#8c0#8f0#8f8#8fc#8ff#0cf        #c8c#888#8c8#8cc
     #f08#c00#c80#cc0#cf0#cf8#cfc#cff#8cf#08f        #c88#cc8#ccc#88c
-      #f00#f80#fc0#ff0#ff8#ffc#fff#ccf#88f#00f            #c88#c8c        
-                    #fc0#fc8#fcc#fcf#c8f#80f    
-                      #f80#f88#f8c#f8f#c0f        g62_g74_g82_g89_g100  
+      #f00#f80#fc0#ff0#ff8#ffc#fff#ccf#88f#00f            #c88#c8c
+                    #fc0#fc8#fcc#fcf#c8f#80f
+                      #f80#f88#f8c#f8f#c0f        g62_g74_g82_g89_g100
                         #f00#f08#f0c#f0f        g0__g19_g35_g46_g52
 """
 
@@ -80,7 +80,7 @@ CHART_16 = """
 brown__   dark_red_   dark_magenta_   dark_blue_   dark_cyan_   dark_green_
 yellow_   light_red   light_magenta   light_blue   light_cyan   light_green
 
-black_______    dark_gray___    light_gray__    white_______           
+black_______    dark_gray___    light_gray__    white_______
 """
 
 ATTR_RE = re.compile("(?P<whitespace>[ \n]*)(?P<entry>[^ \n]+)")
@@ -115,7 +115,7 @@ def parse_chart(chart, convert):
             attr, text = attrtext
             out.append((attr, text.ljust(elen)))
     return out
-            
+
 def foreground_chart(chart, background, colors):
     """
     Create text markup for a foreground colour chart
@@ -199,7 +199,7 @@ def main():
         if state:
             is_foreground_chart = chart_radio_buttons[0].state
             set_mode(colors, is_foreground_chart)
-            
+
     def mode_rb(text, colors, state=False):
         # mode radio buttons
         rb = urwid.RadioButton(mode_radio_buttons, text, state)
@@ -209,10 +209,10 @@ def main():
     def on_chart_change(rb, state):
         # handle foreground check box state change
         set_mode(screen.colors, state)
-        
+
     def click_exit(button):
         raise urwid.ExitMainLoop()
-    
+
     lb.extend([
         urwid.AttrMap(urwid.Text("Urwid Palette Test"), 'header'),
         urwid.AttrMap(urwid.Columns([
@@ -238,7 +238,7 @@ def main():
         ])
 
     set_mode(16, True) # displays the chart
-    
+
     def unhandled_input(key):
         if key in ('Q','q','esc'):
             raise urwid.ExitMainLoop()

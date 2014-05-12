@@ -30,7 +30,7 @@ SAFE_ASCII_BYTES_RE = re.compile(B("^[ -~]*$"))
 _byte_encoding = None
 
 # GENERATED DATA
-# generated from 
+# generated from
 # http://www.unicode.org/Public/4.0-Update/EastAsianWidth-4.0.0.txt
 
 widths = [
@@ -92,7 +92,7 @@ def decode_one( text, pos ):
     """
     assert isinstance(text, bytes), text
     b1 = ord2(text[pos])
-    if not b1 & 0x80: 
+    if not b1 & 0x80:
         return b1, pos+1
     error = ord("?"), pos+1
     lt = len(text)
@@ -189,7 +189,7 @@ def calc_text_pos(text, start_offs, end_offs, pref_col):
         while i < end_offs:
             o, n = decode(text, i)
             w = get_width(o)
-            if w+sc > pref_col: 
+            if w+sc > pref_col:
                 return i, sc
             i = n
             sc += w
@@ -350,7 +350,7 @@ def process_east_asian_width():
         if last is None:
             out.append((0, l))
             last = l
-        
+
         if last == l:
             out[-1] = (num, l)
         else:
@@ -361,7 +361,7 @@ def process_east_asian_width():
     for o in out[1:]:  # treat control characters same as ascii
         print "\t%r," % (o,)
     print "]"
-        
+
 if __name__ == "__main__":
     process_east_asian_width()
 

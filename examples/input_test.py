@@ -63,9 +63,9 @@ def key_test():
                 t += ["("] + out + [")"]
             else:
                 t += ["'",('key',k),"' "]
-        
+
         rawt = urwid.Text(", ".join(["%d"%r for r in raw]))
-        
+
         if t:
             lw.append(
                 urwid.Columns([
@@ -87,8 +87,8 @@ def key_test():
         loop.run()
     finally:
         screen.tty_signal_keys(*old)
-    
-                
+
+
 
 
 def main():
@@ -96,7 +96,7 @@ def main():
     if urwid.web_display.handle_short_request():
         return
     key_test()
-    
+
 
 if '__main__'==__name__ or urwid.web_display.is_web_request():
     main()

@@ -13,7 +13,7 @@ The crystalfontz 635 has these characters in ROM:
 ...... ...... ......
   0x11   0xd0   0xbb
 
-By adding the characters in CGRAM below we can use them as part of a 
+By adding the characters in CGRAM below we can use them as part of a
 horizontal slider control, selected check box and selected radio button
 respectively.
 """
@@ -22,14 +22,14 @@ import sys
 import urwid.lcd_display
 
 CGRAM = """
-...... ...... ...... ...... ..X... ...... ...... ...... 
-XXXXXX XXXXXX XXXXXX XXXXXX X.XX.. .XXXXX ..XXX. .....X 
-...... XX.... XXXX.. XXXXXX X.XXX. .X...X .X...X ....XX 
-...... XX.... XXXX.. XXXXXX X.XXXX .X...X .X...X .X.XX. 
-...... XX.... XXXX.. XXXXXX X.XXX. .X...X .X...X .XXX.. 
-XXXXXX XXXXXX XXXXXX XXXXXX X.XX.. .XXXXX ..XXX. ..X... 
-...... ...... ...... ...... ..X... ...... ...... ...... 
-...... ...... ...... ...... ...... ...... ...... ...... 
+...... ...... ...... ...... ..X... ...... ...... ......
+XXXXXX XXXXXX XXXXXX XXXXXX X.XX.. .XXXXX ..XXX. .....X
+...... XX.... XXXX.. XXXXXX X.XXX. .X...X .X...X ....XX
+...... XX.... XXXX.. XXXXXX X.XXXX .X...X .X...X .X.XX.
+...... XX.... XXXX.. XXXXXX X.XXX. .X...X .X...X .XXX..
+XXXXXX XXXXXX XXXXXX XXXXXX X.XX.. .XXXXX ..XXX. ..X...
+...... ...... ...... ...... ..X... ...... ...... ......
+...... ...... ...... ...... ...... ...... ...... ......
 """
 
 def program_cgram(screen):
@@ -94,11 +94,11 @@ class LCDProgressBar(urwid.FlowWidget):
         filled = urwid.int_scale(self.value, self.range, steps)
         full_segments = int(filled / (len(self.segments) - 1))
         last_char = filled % (len(self.segments) - 1) + 1
-        s = (self.segments[-1] * full_segments + 
+        s = (self.segments[-1] * full_segments +
             self.segments[last_char] +
             self.segments[0] * (maxcol -full_segments - 1))
         return urwid.Text(s).render(size)
-        
+
     def move_position(self, size, direction):
         """
         Update and return the value one step +ve or -ve, based on
@@ -166,7 +166,7 @@ class MenuOption(urwid.Button):
             ('fixed', 1, urwid.SelectableIcon('\xdf', cursor_position=0)),
             self._label])
 
-        urwid.connect_signal(self, 'click', 
+        urwid.connect_signal(self, 'click',
             lambda option: show_menu(submenu))
 
     def keypress(self, size, key):
@@ -214,10 +214,10 @@ def build_menus():
             apply an exponential transformation to values sent so
             that apparent brightness increases in a natural way.
             """
-            return lambda value: screen.set_led_pin(index, rg, 
-                [0, 1, 2, 3, 4, 5, 6, 8, 11, 14, 18, 
+            return lambda value: screen.set_led_pin(index, rg,
+                [0, 1, 2, 3, 4, 5, 6, 8, 11, 14, 18,
                 23, 29, 38, 48, 61, 79, 100][value])
-            
+
         return urwid.Columns([
             ('fixed', 2, urwid.Text('%dR' % index)),
             LCDHorizontalSlider(18, 0, exp_scale_led(0)),
@@ -228,15 +228,15 @@ def build_menus():
     menu_structure = [
         ('Display Settings', [
             display_setting('Brightness', 101, screen.set_backlight),
-            display_setting('Contrast', 76, 
+            display_setting('Contrast', 76,
                 lambda x: screen.set_lcd_contrast(x + 75)),
             ]),
         ('Cursor Settings', [
             cursor_option('Block', screen.CURSOR_BLINKING_BLOCK),
             cursor_option('Underscore', screen.CURSOR_UNDERSCORE),
-            cursor_option('Block + Underscore', 
+            cursor_option('Block + Underscore',
                 screen.CURSOR_BLINKING_BLOCK_UNDERSCORE),
-            cursor_option('Inverting Block', 
+            cursor_option('Inverting Block',
                 screen.CURSOR_INVERTING_BLINKING_BLOCK),
             ]),
         ('LEDs', [
@@ -279,7 +279,7 @@ screen = urwid.lcd_display.CF635Screen(sys.argv[1])
 # set up our font
 program_cgram(screen)
 loop = urwid.MainLoop(build_menus(), screen=screen)
-# FIXME: want screen to know it is in narrow mode, or better yet, 
+# FIXME: want screen to know it is in narrow mode, or better yet,
 # do the unicode conversion for us
 urwid.set_encoding('narrow')
 

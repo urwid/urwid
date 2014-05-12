@@ -381,12 +381,12 @@ class MainLoop(object):
         self._input_timeout = None
 
         max_wait, keys, raw = self.screen.get_input_nonblocking()
-        
+
         if max_wait is not None:
             # if get_input_nonblocking wants to be called back
             # make sure it happens with an alarm
-            self._input_timeout = self.event_loop.alarm(max_wait, 
-                lambda: self._update(timeout=True)) 
+            self._input_timeout = self.event_loop.alarm(max_wait,
+                lambda: self._update(timeout=True))
 
         keys = self.input_filter(keys, raw)
 
@@ -419,7 +419,7 @@ class MainLoop(object):
                 else:
                     self.screen.set_input_timeouts(None)
                 keys, raw = self.screen.get_input(True)
-                if not keys and next_alarm: 
+                if not keys and next_alarm:
                     sec = next_alarm[0] - time.time()
                     if sec <= 0:
                         break
@@ -687,7 +687,7 @@ class SelectEventLoop(object):
             if self._alarms:
                 tm = self._alarms[0][0]
                 timeout = max(0, tm - time.time())
-            if self._did_something and (not self._alarms or 
+            if self._did_something and (not self._alarms or
                     (self._alarms and timeout > 0)):
                 timeout = 0
                 tm = 'idle'

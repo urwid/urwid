@@ -93,7 +93,7 @@ class FileTreeWidget(FlagFileWidget):
 
     def get_display_text(self):
         return self.get_node().get_key()
-    
+
 
 
 class EmptyWidget(urwid.TreeWidget):
@@ -164,7 +164,7 @@ class DirectoryNode(urwid.ParentNode):
         else:
             depth = path.count(dir_sep())
             key = os.path.basename(path)
-        urwid.ParentNode.__init__(self, path, key=key, parent=parent, 
+        urwid.ParentNode.__init__(self, path, key=key, parent=parent,
                                   depth=depth)
 
     def load_parent(self):
@@ -186,7 +186,7 @@ class DirectoryNode(urwid.ParentNode):
                     files.append(a)
         except OSError, e:
             depth = self.get_depth() + 1
-            self._children[None] = ErrorNode(self, parent=self, key=None, 
+            self._children[None] = ErrorNode(self, parent=self, key=None,
                                              depth=depth)
             return [None]
 
@@ -199,7 +199,7 @@ class DirectoryNode(urwid.ParentNode):
         keys = dirs + files
         if len(keys) == 0:
             depth=self.get_depth() + 1
-            self._children[None] = EmptyNode(self, parent=self, key=None, 
+            self._children[None] = EmptyNode(self, parent=self, key=None,
                                              depth=depth)
             keys = [None]
         return keys
@@ -226,7 +226,7 @@ class DirectoryBrowser:
         ('body', 'black', 'light gray'),
         ('flagged', 'black', 'dark green', ('bold','underline')),
         ('focus', 'light gray', 'dark blue', 'standout'),
-        ('flagged focus', 'yellow', 'dark cyan', 
+        ('flagged focus', 'yellow', 'dark cyan',
                 ('bold','standout','underline')),
         ('head', 'yellow', 'black', 'standout'),
         ('foot', 'light gray', 'black'),
@@ -236,7 +236,7 @@ class DirectoryBrowser:
         ('flag', 'dark gray', 'light gray'),
         ('error', 'dark red', 'light gray'),
         ]
-    
+
     footer_text = [
         ('title', "Directory Browser"), "    ",
         ('key', "UP"), ",", ('key', "DOWN"), ",",
@@ -246,12 +246,12 @@ class DirectoryBrowser:
         ('key', "+"), ",",
         ('key', "-"), "  ",
         ('key', "LEFT"), "  ",
-        ('key', "HOME"), "  ", 
+        ('key', "HOME"), "  ",
         ('key', "END"), "  ",
         ('key', "Q"),
         ]
-    
-    
+
+
     def __init__(self):
         cwd = os.getcwd()
         store_initial_cwd(cwd)
@@ -261,17 +261,17 @@ class DirectoryBrowser:
         self.footer = urwid.AttrWrap(urwid.Text(self.footer_text),
             'foot')
         self.view = urwid.Frame(
-            urwid.AttrWrap(self.listbox, 'body'), 
-            header=urwid.AttrWrap(self.header, 'head'), 
+            urwid.AttrWrap(self.listbox, 'body'),
+            header=urwid.AttrWrap(self.header, 'head'),
             footer=self.footer)
 
     def main(self):
         """Run the program."""
-        
+
         self.loop = urwid.MainLoop(self.view, self.palette,
             unhandled_input=self.unhandled_input)
         self.loop.run()
-    
+
         # on exit, write the flagged filenames to the console
         names = [escape_filename_sh(x) for x in get_flagged_names()]
         print " ".join(names)
@@ -299,13 +299,13 @@ def add_widget(path, widget):
 
 def get_flagged_names():
     """Return a list of all filenames marked as flagged."""
-    
+
     l = []
     for w in _widget_cache.values():
         if w.flagged:
             l.append(w.get_node().get_value())
     return l
-            
+
 
 
 ######
@@ -314,7 +314,7 @@ _initial_cwd = []
 
 def store_initial_cwd(name):
     """Store the initial current working directory path components."""
-    
+
     global _initial_cwd
     _initial_cwd = name.split(dir_sep())
 
@@ -323,14 +323,14 @@ def starts_expanded(name):
 
     if name is '/':
         return True
-    
+
     l = name.split(dir_sep())
     if len(l) > len(_initial_cwd):
         return False
-    
+
     if l != _initial_cwd[:len(l)]:
         return False
-    
+
     return True
 
 
@@ -338,11 +338,11 @@ def escape_filename_sh(name):
     """Return a hopefully safe shell-escaped version of a filename."""
 
     # check whether we have unprintable characters
-    for ch in name: 
-        if ord(ch) < 32: 
+    for ch in name:
+        if ord(ch) < 32:
             # found one so use the ansi-c escaping
             return escape_filename_sh_ansic(name)
-            
+
     # all printable characters, so return a double-quoted version
     name.replace('\\','\\\\')
     name.replace('"','\\"')
@@ -353,7 +353,7 @@ def escape_filename_sh(name):
 
 def escape_filename_sh_ansic(name):
     """Return an ansi-c shell-escaped version of a filename."""
-    
+
     out =[]
     # gather the escaped characters into a list
     for ch in name:
@@ -363,7 +363,7 @@ def escape_filename_sh_ansic(name):
             out.append('\\\\')
         else:
             out.append(ch)
-            
+
     # slap them back together in an ansi-c quote  $'...'
     return "$'" + "".join(out) + "'"
 
@@ -383,6 +383,6 @@ def dir_sep():
     return getattr(os.path,'sep','/')
 
 
-if __name__=="__main__": 
+if __name__=="__main__":
     main()
-        
+

@@ -97,7 +97,7 @@ class StandardTextLayout(TextLayout):
             if lw >= maxcol:
                 return maxcol
             maxwidth = max(maxwidth, lw)
-        return maxwidth            
+        return maxwidth
 
     def align_layout( self, text, width, segs, wrap, align ):
         """Convert the layout segs to an aligned layout."""
@@ -210,7 +210,7 @@ class StandardTextLayout(TextLayout):
             else:
                 # unwrap previous line space if possible to
                 # fit more text (we're breaking a word anyway)
-                if b and (len(b[-1]) == 2 or ( len(b[-1])==1 
+                if b and (len(b[-1]) == 2 or ( len(b[-1])==1
                         and len(b[-1][0])==2 )):
                     # look for removed space above
                     if len(b[-1]) == 1:
@@ -225,7 +225,7 @@ class StandardTextLayout(TextLayout):
                         # combine with previous line
                         del b[-1]
                         p = p_off
-                        pos, sc = calc_text_pos( 
+                        pos, sc = calc_text_pos(
                             text, p, n_cr, width )
                         b.append([(sc,p,pos)])
                         # check for trailing " " or "\n"
@@ -250,18 +250,18 @@ class StandardTextLayout(TextLayout):
 default_layout = StandardTextLayout()
 ######################################
 
-    
+
 class LayoutSegment:
     def __init__(self, seg):
         """Create object from line layout segment structure"""
-        
+
         assert type(seg) == tuple, repr(seg)
         assert len(seg) in (2,3), repr(seg)
-        
+
         self.sc, self.offs = seg[:2]
-        
+
         assert type(self.sc) == int, repr(self.sc)
-        
+
         if len(seg)==3:
             assert type(self.offs) == int, repr(self.offs)
             assert self.sc > 0, repr(seg)
@@ -279,10 +279,10 @@ class LayoutSegment:
                 assert self.sc >= 0, repr(seg)
                 assert type(self.offs)==int
             self.text = self.end = None
-            
+
     def subseg(self, text, start, end):
         """
-        Return a "sub-segment" list containing segment structures 
+        Return a "sub-segment" list containing segment structures
         that make up a portion of this segment.
 
         A list is returned to handle cases where wide characters
@@ -337,18 +337,18 @@ def shift_line( segs, amount ):
     amount -- screen columns to shift right (+ve) or left (-ve)
     """
     assert type(amount)==int, repr(amount)
-    
+
     if segs and len(segs[0])==2 and segs[0][1]==None:
         # existing shift
         amount += segs[0][0]
         if amount:
             return [(amount,None)]+segs[1:]
         return segs[1:]
-            
+
     if amount:
         return [(amount,None)]+segs
     return segs
-    
+
 
 def trim_line( segs, text, start, end ):
     """
@@ -416,16 +416,16 @@ def calc_line_pos( text, line_layout, pref_col ):
         s = LayoutSegment(seg)
         if s.offs is not None:
             if s.end is not None:
-                if (current_sc <= pref_col and 
+                if (current_sc <= pref_col and
                     pref_col < current_sc + s.sc):
                     # exact match within this segment
-                    return calc_text_pos( text, 
+                    return calc_text_pos( text,
                         s.offs, s.end,
                         pref_col - current_sc )[0]
                 elif current_sc <= pref_col:
                     closest_sc = current_sc + s.sc - 1
                     closest_pos = s
-                    
+
             if closest_sc is None or ( abs(pref_col-current_sc)
                     < abs(pref_col-closest_sc) ):
                 # this screen column is closer
@@ -435,7 +435,7 @@ def calc_line_pos( text, line_layout, pref_col ):
                 # we're moving past
                 break
         current_sc += s.sc
-    
+
     if closest_pos is None or type(closest_pos) == int:
         return closest_pos
 
@@ -451,19 +451,19 @@ def calc_pos( text, layout, pref_col, row ):
 
     if row < 0 or row >= len(layout):
         raise Exception("calculate_pos: out of layout row range")
-    
+
     pos = calc_line_pos( text, layout[row], pref_col )
     if pos is not None:
         return pos
-    
+
     rows_above = range(row-1,-1,-1)
     rows_below = range(row+1,len(layout))
     while rows_above and rows_below:
-        if rows_above: 
+        if rows_above:
             r = rows_above.pop(0)
             pos = calc_line_pos(text, layout[r], pref_col)
             if pos is not None: return pos
-        if rows_below: 
+        if rows_below:
             r = rows_below.pop(0)
             pos = calc_line_pos(text, layout[r], pref_col)
             if pos is not None: return pos
@@ -473,7 +473,7 @@ def calc_pos( text, layout, pref_col, row ):
 def calc_coords( text, layout, pos, clamp=1 ):
     """
     Calculate the coordinates closest to position pos in text with layout.
-    
+
     text -- raw string or unicode string
     layout -- layout structure applied to text
     pos -- integer position into text
@@ -500,7 +500,7 @@ def calc_coords( text, layout, pos, clamp=1 ):
                 closest = distance, (x,y)
             x += s.sc
         y += 1
-    
+
     if closest:
         return closest[1]
     return 0,0

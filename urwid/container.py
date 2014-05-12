@@ -130,7 +130,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
     """
     The GridFlow widget is a flow widget that renders all the widgets it
     contains the same width and it arranges them from left to right and top to
-    bottom. 
+    bottom.
     """
     def sizing(self):
         return frozenset([FLOW])
