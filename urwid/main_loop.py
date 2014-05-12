@@ -50,6 +50,9 @@ class ExitMainLoop(Exception):
     """
     pass
 
+class CantUseExternalLoop(Exception):
+    pass
+
 class MainLoop(object):
     """
     This is the standard main loop implementation for a single interactive
@@ -269,6 +272,10 @@ class MainLoop(object):
 
         This method will use :attr:`screen`'s run_wrapper() method if
         :attr:`screen`'s start() method has not already been called.
+
+        If you would prefer to manage the event loop yourself, don't use this
+        method.  Instead, call :meth:`start` before starting the event loop,
+        and :meth:`stop` once it's finished.
         """
         try:
             if self.screen.started:
@@ -307,37 +314,58 @@ class MainLoop(object):
         screen.run_wrapper(<bound method ...>)
         """
 
-    def _run(self):
+    def start(self):
+        """
+        Sets up the main loop, hooking into the event loop where necessary.
+
+        If you want to control starting and stopping the event loop yourself,
+        you should call this method before starting, and call `stop` once the
+        loop has finished.
+
+        Note that some event loop implementations don't handle exceptions
+        specially if you manage the event loop yourself.  In particular, the
+        Twisted and asyncio loops won't stop automatically when
+        :exc:`ExitMainLoop` is raised.
+        """
         if self.handle_mouse:
             self.screen.set_mouse_tracking()
 
         if not hasattr(self.screen, 'hook_event_loop'):
-            return self._run_screen_event_loop()
-
-        self.draw_screen()
-
-        fd_handles = []
-        def reset_input_descriptors(only_remove=False):
-            self.screen.unhook_event_loop(self.event_loop)
-            self.screen.hook_event_loop(self.event_loop, self._update)
+            raise CantUseExternalLoop(
+                "Screen {0!r} doesn't support external event loops")
 
         try:
             signals.connect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED,
-                reset_input_descriptors)
+                self._reset_input_descriptors)
         except NameError:
             pass
         # watch our input descriptors
-        reset_input_descriptors()
-        idle_handle = self.event_loop.enter_idle(self.entering_idle)
+        self._reset_input_descriptors()
+        self.idle_handle = self.event_loop.enter_idle(self.entering_idle)
 
-        # Go..
-        self.event_loop.run()
-
-        # tidy up
-        self.event_loop.remove_enter_idle(idle_handle)
+    def stop(self):
+        """
+        Cleans up any hooks added to the event loop.  Only call this if you're
+        managing the event loop yourself, after the loop stops.
+        """
+        self.event_loop.remove_enter_idle(self.idle_handle)
+        del self.idle_handle
         signals.disconnect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED,
-            reset_input_descriptors)
+            self._reset_input_descriptors)
         self.screen.unhook_event_loop(self.event_loop)
+
+    def _reset_input_descriptors(self):
+        self.screen.unhook_event_loop(self.event_loop)
+        self.screen.hook_event_loop(self.event_loop, self._update)
+
+    def _run(self):
+        try:
+            self.start()
+        except CantUseExternalLoop:
+            return self._run_screen_event_loop()
+
+        self.event_loop.run()
+        self.stop()
 
     def _update(self, keys, raw):
         """
@@ -1012,6 +1040,10 @@ class TwistedEventLoop(object):
            need to stop and run your :class:`MainLoop`, consider setting
            ``manage_reactor=False`` and take care of running/stopping the reactor
            at the beginning/ending of your program yourself.
+
+           You can also forego using :class:`MainLoop`'s run() entirely, and
+           instead call start() and stop() before and after starting the
+           reactor.
 
         .. _Twisted: http://twistedmatrix.com/trac/
         """
