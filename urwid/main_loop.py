@@ -116,7 +116,7 @@ class MainLoop(object):
         self._unhandled_input = unhandled_input
         self._input_filter = input_filter
 
-        if not hasattr(screen, 'get_input_descriptors'
+        if not hasattr(screen, 'hook_event_loop'
                 ) and event_loop is not None:
             raise NotImplementedError("screen object passed "
                 "%r does not support external event loops" % (screen,))
@@ -311,7 +311,7 @@ class MainLoop(object):
         if self.handle_mouse:
             self.screen.set_mouse_tracking()
 
-        if not hasattr(self.screen, 'get_input_descriptors'):
+        if not hasattr(self.screen, 'hook_event_loop'):
             return self._run_screen_event_loop()
 
         self.draw_screen()
