@@ -640,7 +640,7 @@ class SelectEventLoop(object):
             while True:
                 try:
                     self._loop()
-                except select.error, e:
+                except select.error as e:
                     if e.args[0] != 4:
                         # not just something we need to retry
                         raise

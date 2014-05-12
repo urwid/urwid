@@ -880,7 +880,7 @@ class Screen:
         try:
             iready,oready,eready = select.select(
                 [self.input_fd],[],[],0.5)
-        except select.error, e:
+        except select.error as e:
             # return on interruptions
             if e.args[0] == 4:
                 if raw_keys:

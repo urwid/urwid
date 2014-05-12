@@ -494,7 +494,7 @@ class Screen(BaseScreen, RealTerminal):
         try:
             while self.gpm_mev is not None and self.gpm_event_pending:
                 codes.extend(self._encode_gpm_event())
-        except IOError, e:
+        except IOError as e:
             if e.args[0] != 11:
                 raise
         return codes
@@ -513,7 +513,7 @@ class Screen(BaseScreen, RealTerminal):
                     ready,w,err = select.select(
                         fd_list,[],fd_list, timeout)
                 break
-            except select.error, e:
+            except select.error as e:
                 if e.args[0] != 4:
                     raise
                 if self._resized:
@@ -822,7 +822,7 @@ class Screen(BaseScreen, RealTerminal):
                     l = l.decode('utf-8')
                 self._term_output_file.write(l)
             self._term_output_file.flush()
-        except IOError, e:
+        except IOError as e:
             # ignore interrupted syscall
             if e.args[0] != 4:
                 raise

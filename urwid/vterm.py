@@ -1522,7 +1522,7 @@ class Terminal(Widget):
             try:
                 select.select([self.master], [], [], timeout)
                 break
-            except select.error, e:
+            except select.error as e:
                 if e.args[0] != 4:
                     raise
         self.feed()
@@ -1532,7 +1532,7 @@ class Terminal(Widget):
 
         try:
             data = os.read(self.master, 4096)
-        except OSError, e:
+        except OSError as e:
             if e.errno == 5: # End Of File
                 data = ''
             elif e.errno == errno.EWOULDBLOCK: # empty buffer

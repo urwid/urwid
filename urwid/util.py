@@ -45,7 +45,7 @@ def detect_encoding():
         except locale.Error:
             pass
         return locale.getlocale()[1] or ""
-    except ValueError, e:
+    except ValueError as e:
         # with invalid LANG value python will throw ValueError
         if e.args and e.args[0].startswith("unknown locale"):
             return ""
