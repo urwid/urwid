@@ -111,7 +111,7 @@ class Font(object):
         return "".join(l)
 
     def char_width(self, c):
-        if self.char.has_key(c):
+        if c in self.char:
             return self.char[c][0]
         return 0
 

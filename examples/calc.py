@@ -311,7 +311,7 @@ class CellColumn( urwid.WidgetWrap ):
         if sub != 0:
             # f is not an edit widget
             return key
-        if OPERATORS.has_key(key):
+        if key in OPERATORS:
             # move trailing text to new cell below
             edit = self.walker.get_cell(i).edit
             cursor_pos = edit.edit_pos

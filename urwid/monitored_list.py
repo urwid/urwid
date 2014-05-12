@@ -158,9 +158,9 @@ class MonitoredFocusList(MonitoredList):
             self._focus = 0
             return
         if index < 0 or index >= len(self):
-            raise IndexError, 'focus index is out of range: %s' % (index,)
+            raise IndexError('focus index is out of range: %s' % (index,))
         if index != int(index):
-            raise IndexError, 'invalid focus index: %s' % (index,)
+            raise IndexError('invalid focus index: %s' % (index,))
         index = int(index)
         if index != self._focus:
             self._focus_changed(index)

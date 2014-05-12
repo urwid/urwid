@@ -321,7 +321,7 @@ status may be either on or off.
 
 
 def main():
-    if len(sys.argv) < 2 or not MODES.has_key(sys.argv[1]):
+    if len(sys.argv) < 2 or sys.argv[1] not in MODES:
         show_usage()
         return
 

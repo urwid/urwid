@@ -750,7 +750,7 @@ class BaseScreen(object):
                 raise ScreenError("Invalid register_palette entry: %s" %
                     repr(item))
             name, like_name = item
-            if not self._palette.has_key(like_name):
+            if like_name not in self._palette:
                 raise ScreenError("palette entry '%s' doesn't exist"%like_name)
             self._palette[name] = self._palette[like_name]
 

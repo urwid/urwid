@@ -102,7 +102,7 @@ input_sequences = [
 ] + [
     # modified cursor keys + home, end, 5 -- [#X and [1;#X forms
     (prefix+digit+letter, escape_modifier(digit) + key)
-    for prefix in "[","[1;"
+    for prefix in ("[", "[1;")
     for digit in "12345678"
     for letter,key in zip("ABCDEFGH",
         ('up','down','right','left','5','end','5','home'))
@@ -138,7 +138,7 @@ class KeyqueueTrie(object):
         assert type(root) == dict, "trie conflict detected"
         assert len(s) > 0, "trie conflict detected"
 
-        if root.has_key(ord(s[0])):
+        if ord(s[0]) in root:
             return self.add(root[ord(s[0])], s[1:], result)
         if len(s)>1:
             d = {}
@@ -163,7 +163,7 @@ class KeyqueueTrie(object):
             if more_available:
                 raise MoreInputRequired()
             return None
-        if not root.has_key(keys[0]):
+        if keys[0] not in root:
             return None
         return self.get_recurse(root[keys[0]], keys[1:], more_available)
 
@@ -318,7 +318,7 @@ def process_keyqueue(codes, more_available):
     if code >= 32 and code <= 126:
         key = chr(code)
         return [key], codes[1:]
-    if _keyconv.has_key(code):
+    if code in _keyconv:
         return [_keyconv[code]], codes[1:]
     if code >0 and code <27:
         return ["ctrl %s" % chr(ord('a')+code-1)], codes[1:]
