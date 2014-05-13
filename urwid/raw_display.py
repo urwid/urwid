@@ -386,7 +386,8 @@ class Screen(BaseScreen, RealTerminal):
         if hasattr(self, 'get_input_nonblocking'):
             wrapper = self._make_legacy_input_wrapper(event_loop, callback)
         else:
-            wrapper = lambda: self.parse_input(event_loop, callback)
+            wrapper = lambda: self.parse_input(
+                event_loop, callback, self.get_available_raw_input())
         fds = self.get_input_descriptors()
         handles = []
         for fd in fds:
@@ -417,8 +418,8 @@ class Screen(BaseScreen, RealTerminal):
         """
         Return any currently-available input.  Does not block.
 
-        This method is only used by parse_input; you can safely ignore it if
-        you implement your own parse_input.
+        This method is only used by the default `hook_event_loop`
+        implementation; you can safely ignore it if you implement your own.
         """
         codes = self._get_gpm_codes() + self._get_keyboard_codes()
 
@@ -435,7 +436,7 @@ class Screen(BaseScreen, RealTerminal):
 
         return codes
 
-    def parse_input(self, event_loop, callback, wait_for_more=True):
+    def parse_input(self, event_loop, callback, codes, wait_for_more=True):
         """
         Read any available input from get_available_raw_input, parses it into
         keys, and calls the given callback.
@@ -443,12 +444,15 @@ class Screen(BaseScreen, RealTerminal):
         The current implementation tries to avoid any assumptions about what
         the screen or event loop look like; it only deals with parsing keycodes
         and setting a timeout when an incomplete one is detected.
+
+        `codes` should be a sequence of keycodes, i.e. bytes.  A bytearray is
+        appropriate, but beware of using bytes, which only iterates as integers
+        on Python 3.
         """
         if self._input_timeout:
             event_loop.remove_alarm(self._input_timeout)
             self._input_timeout = None
 
-        codes = self.get_available_raw_input()
         original_codes = codes
         processed = []
         try:
@@ -465,10 +469,11 @@ class Screen(BaseScreen, RealTerminal):
 
             def _parse_incomplete_input():
                 self._input_timeout = None
+                self._partial_codes = None
                 self.parse_input(
-                    event_loop, callback, wait_for_more=False)
+                    event_loop, callback, codes, wait_for_more=False)
             self._input_timeout = event_loop.alarm(
-                self.complete_wait, self._parse_incomplete_input)
+                self.complete_wait, _parse_incomplete_input)
 
         else:
             processed_codes = original_codes
