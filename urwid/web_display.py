@@ -679,6 +679,8 @@ class Screen:
         signal.alarm( ALARM_DELAY )
         self._started = True
 
+        return util.StoppingContext(self)
+
     def stop(self):
         """
         Restore settings and clean up.

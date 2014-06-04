@@ -130,7 +130,7 @@ class Screen(BaseScreen, RealTerminal):
         if not self._signal_keys_set:
             self._old_signal_keys = self.tty_signal_keys()
 
-        super(Screen, self).start()
+        return super(Screen, self).start()
 
 
     def stop(self):
@@ -151,19 +151,6 @@ class Screen(BaseScreen, RealTerminal):
 
         super(Screen, self).stop()
 
-
-    def run_wrapper(self,fn):
-        """Call fn in fullscreen mode.  Return to normal on exit.
-
-        This function should be called to wrap your main program loop.
-        Exception tracebacks will be displayed in normal mode.
-        """
-
-        try:
-            self.start()
-            return fn()
-        finally:
-            self.stop()
 
     def _setup_colour_pairs(self):
         """

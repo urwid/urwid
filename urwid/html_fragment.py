@@ -82,10 +82,6 @@ class HtmlGenerator(BaseScreen):
     def reset_default_terminal_palette(self, *args):
         pass
 
-    def run_wrapper(self,fn):
-        """Call fn."""
-        return fn()
-
     def draw_screen(self, (cols, rows), r ):
         """Create an html fragment from the render object.
         Append it to HtmlGenerator.fragments list.

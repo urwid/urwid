@@ -26,7 +26,7 @@ try:
 except ImportError:
     pass # windows
 
-from urwid.util import int_scale
+from urwid.util import StoppingContext, int_scale
 from urwid import signals
 from urwid.compat import B, bytes3
 
@@ -719,10 +719,28 @@ class BaseScreen(object):
     started = property(lambda self: self._started)
 
     def start(self):
+        """Set up the screen.
+
+        May be used as a context manager, in which case `stop` will
+        automatically be called at the end of the block:
+
+            with screen.start():
+                ...
+        """
         self._started = True
+        return StoppingContext(self)
 
     def stop(self):
         self._started = False
+
+    def run_wrapper(self, fn, *args, **kwargs):
+        """Start the screen, call a function, then stop the screen.  Extra
+        arguments are passed to `start`.
+
+        Deprecated in favor of calling `start` as a context manager.
+        """
+        with self.start(*args, **kwargs):
+            return fn()
 
 
     def register_palette(self, palette):

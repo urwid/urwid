@@ -257,20 +257,6 @@ class Screen(BaseScreen, RealTerminal):
         super(Screen, self).stop()
 
 
-    def run_wrapper(self, fn, alternate_buffer=True):
-        """
-        Call start to initialize screen, then call fn.
-        When fn exits call stop to restore the screen to normal.
-
-        alternate_buffer -- use alternate screen buffer and restore
-            normal screen buffer on exit
-        """
-        try:
-            self.start(alternate_buffer)
-            return fn()
-        finally:
-            self.stop()
-
     def get_input(self, raw_keys=False):
         """Return pending input as a list.
 

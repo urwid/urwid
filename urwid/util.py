@@ -458,3 +458,17 @@ def int_scale(val, val_range, out_range):
     # if num % dem == 0 then we are exactly half-way and have rounded up.
     return num // dem
 
+
+class StoppingContext(object):
+    """Context manager that calls ``stop`` on a given object on exit.  Used to
+    make the ``start`` method on `MainLoop` and `BaseScreen` optionally act as
+    context managers.
+    """
+    def __init__(self, wrapped):
+        self._wrapped = wrapped
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        self._wrapped.stop()

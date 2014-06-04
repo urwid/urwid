@@ -34,7 +34,7 @@ try:
 except ImportError:
     pass # windows
 
-from urwid.util import is_mouse_event
+from urwid.util import StoppingContext, is_mouse_event
 from urwid.compat import PYTHON3
 from urwid.command_map import command_map, REDRAW_SCREEN
 from urwid.wimp import PopUpTarget
@@ -342,6 +342,8 @@ class MainLoop(object):
         # watch our input descriptors
         self._reset_input_descriptors()
         self.idle_handle = self.event_loop.enter_idle(self.entering_idle)
+
+        return StoppingContext(self)
 
     def stop(self):
         """

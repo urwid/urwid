@@ -45,9 +45,6 @@ class LCDScreen(BaseScreen):
     def reset_default_terminal_palette(self, *args):
         pass
 
-    def run_wrapper(self,fn):
-        return fn()
-
     def draw_screen(self, (cols, rows), r ):
         pass
 
