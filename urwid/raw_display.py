@@ -189,13 +189,12 @@ class Screen(BaseScreen, RealTerminal):
         os.waitpid(self.gpm_mev.pid, 0)
         self.gpm_mev = None
 
-    def start(self, alternate_buffer=True):
+    def _start(self, alternate_buffer=True):
         """
         Initialize the screen and input mode.
 
         alternate_buffer -- use alternate screen buffer
         """
-        assert not self._started
         if alternate_buffer:
             self._term_output_file.write(escape.SWITCH_TO_ALTERNATE_BUFFER)
             self._rows_used = None
@@ -214,19 +213,17 @@ class Screen(BaseScreen, RealTerminal):
         if not self._signal_keys_set:
             self._old_signal_keys = self.tty_signal_keys(fileno=fd)
 
-        super(Screen, self).start()
-
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
         # restore mouse tracking to previous state
         self._mouse_tracking(self._mouse_tracking_enabled)
 
-    def stop(self):
+        return super(Screen, self)._start()
+
+    def _stop(self):
         """
         Restore the screen.
         """
         self.clear()
-        if not self._started:
-            return
 
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
 
@@ -254,7 +251,8 @@ class Screen(BaseScreen, RealTerminal):
         if self._old_signal_keys:
             self.tty_signal_keys(*(self._old_signal_keys + (fd,)))
 
-        super(Screen, self).stop()
+        super(Screen, self)._stop()
+
 
 
     def get_input(self, raw_keys=False):

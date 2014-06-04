@@ -718,20 +718,34 @@ class BaseScreen(object):
 
     started = property(lambda self: self._started)
 
-    def start(self):
-        """Set up the screen.
+    def start(self, *args, **kwargs):
+        """Set up the screen.  If the screen has already been started, does
+        nothing.
 
-        May be used as a context manager, in which case `stop` will
+        May be used as a context manager, in which case :meth:`stop` will
         automatically be called at the end of the block:
 
             with screen.start():
                 ...
+
+        You shouldn't override this method in a subclass; instead, override
+        :meth:`_start`.
         """
+        if not self._started:
+            self._start(*args, **kwargs)
         self._started = True
         return StoppingContext(self)
 
+    def _start(self):
+        pass
+
     def stop(self):
+        if self._started:
+            self._stop()
         self._started = False
+
+    def _stop(self):
+        pass
 
     def run_wrapper(self, fn, *args, **kwargs):
         """Start the screen, call a function, then stop the screen.  Extra

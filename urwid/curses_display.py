@@ -102,12 +102,10 @@ class Screen(BaseScreen, RealTerminal):
 
         self._mouse_tracking_enabled = enable
 
-    def start(self):
+    def _start(self):
         """
         Initialize the screen and input mode.
         """
-        assert self._started == False
-
         self.s = curses.initscr()
         self.has_color = curses.has_colors()
         if self.has_color:
@@ -130,15 +128,12 @@ class Screen(BaseScreen, RealTerminal):
         if not self._signal_keys_set:
             self._old_signal_keys = self.tty_signal_keys()
 
-        return super(Screen, self).start()
+        super(Screen, self)._start()
 
-
-    def stop(self):
+    def _stop(self):
         """
         Restore the screen.
         """
-        if self._started == False:
-            return
         curses.echo()
         self._curs_set(1)
         try:
@@ -149,7 +144,7 @@ class Screen(BaseScreen, RealTerminal):
         if self._old_signal_keys:
             self.tty_signal_keys(*self._old_signal_keys)
 
-        super(Screen, self).stop()
+        super(Screen, self)._stop()
 
 
     def _setup_colour_pairs(self):

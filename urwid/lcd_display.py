@@ -33,12 +33,6 @@ class LCDScreen(BaseScreen):
     def set_mouse_tracking(self, enable=True):
         pass
 
-    def start(self):
-        pass
-
-    def stop(self):
-        pass
-
     def set_input_timeouts(self, *args):
         pass
 

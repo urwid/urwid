@@ -270,18 +270,13 @@ class MainLoop(object):
         Start the main loop handling input events and updating the screen. The
         loop will continue until an :exc:`ExitMainLoop` exception is raised.
 
-        This method will use :attr:`screen`'s run_wrapper() method if
-        :attr:`screen`'s start() method has not already been called.
-
         If you would prefer to manage the event loop yourself, don't use this
         method.  Instead, call :meth:`start` before starting the event loop,
         and :meth:`stop` once it's finished.
         """
         try:
-            if self.screen.started:
+            with self.screen.start():
                 self._run()
-            else:
-                self.screen.run_wrapper(self._run)
         except ExitMainLoop:
             pass
 
@@ -317,15 +312,20 @@ class MainLoop(object):
     def start(self):
         """
         Sets up the main loop, hooking into the event loop where necessary.
+        Starts the :attr:`screen` if it hasn't already been started.
 
         If you want to control starting and stopping the event loop yourself,
         you should call this method before starting, and call `stop` once the
-        loop has finished.
+        loop has finished.  You may also use this method as a context manager,
+        which will stop the loop automatically at the end of the block:
+
+            with main_loop.start():
+                ...
 
         Note that some event loop implementations don't handle exceptions
         specially if you manage the event loop yourself.  In particular, the
         Twisted and asyncio loops won't stop automatically when
-        :exc:`ExitMainLoop` is raised.
+        :exc:`ExitMainLoop` (or anything else) is raised.
         """
         if self.handle_mouse:
             self.screen.set_mouse_tracking()

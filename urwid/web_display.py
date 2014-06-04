@@ -632,7 +632,8 @@ class Screen:
         """
         global _prefs
 
-        assert not self._started
+        if self._started:
+            return util.StoppingContext(self)
 
         client_init = sys.stdin.read(50)
         assert client_init.startswith("window resize "),client_init
@@ -685,7 +686,9 @@ class Screen:
         """
         Restore settings and clean up.
         """
-        assert self._started
+        if not self._started:
+            return
+
         # XXX which exceptions does this actually raise? EnvironmentError?
         try:
             self._close_connection()

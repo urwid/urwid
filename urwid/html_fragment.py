@@ -70,12 +70,6 @@ class HtmlGenerator(BaseScreen):
         """Not yet implemented"""
         pass
 
-    def start(self):
-        pass
-
-    def stop(self):
-        pass
-
     def set_input_timeouts(self, *args):
         pass
 
