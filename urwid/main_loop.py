@@ -275,8 +275,7 @@ class MainLoop(object):
         and :meth:`stop` once it's finished.
         """
         try:
-            with self.screen.start():
-                self._run()
+            self._run()
         except ExitMainLoop:
             pass
 
@@ -327,6 +326,8 @@ class MainLoop(object):
         Twisted and asyncio loops won't stop automatically when
         :exc:`ExitMainLoop` (or anything else) is raised.
         """
+        self.screen.start()
+
         if self.handle_mouse:
             self.screen.set_mouse_tracking()
 
@@ -355,6 +356,8 @@ class MainLoop(object):
         signals.disconnect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED,
             self._reset_input_descriptors)
         self.screen.unhook_event_loop(self.event_loop)
+
+        self.screen.stop()
 
     def _reset_input_descriptors(self):
         self.screen.unhook_event_loop(self.event_loop)
