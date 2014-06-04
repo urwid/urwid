@@ -293,19 +293,19 @@ class MainLoop(object):
         >>> evl.watch_file_rval = 2
         >>> ml = MainLoop(w, [], scr, event_loop=evl)
         >>> ml.run()    # doctest:+ELLIPSIS
+        screen.start()
         screen.set_mouse_tracking()
-        screen.get_cols_rows()
-        widget.render((20, 10), focus=True)
-        screen.draw_screen((20, 10), 'fake canvas')
         screen.unhook_event_loop(...)
         screen.hook_event_loop(...)
-        event_loop.enter_idle(<bound method ...>)
+        event_loop.enter_idle(<bound method MainLoop.entering_idle...>)
         event_loop.run()
         event_loop.remove_enter_idle(1)
         screen.unhook_event_loop(...)
-        >>> scr.started = False
-        >>> ml.run()    # doctest:+ELLIPSIS
-        screen.run_wrapper(<bound method ...>)
+        screen.stop()
+        >>> ml.draw_screen()    # doctest:+ELLIPSIS
+        screen.get_cols_rows()
+        widget.render((20, 10), focus=True)
+        screen.draw_screen((20, 10), 'fake canvas')
         """
 
     def start(self):
