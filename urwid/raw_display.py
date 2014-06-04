@@ -48,7 +48,7 @@ from subprocess import Popen, PIPE
 
 
 class Screen(BaseScreen, RealTerminal):
-    def __init__(self):
+    def __init__(self, input=sys.stdin, output=sys.stdout):
         """Initialize a screen that directly prints escape codes to an output
         terminal.
         """
@@ -78,8 +78,11 @@ class Screen(BaseScreen, RealTerminal):
         self.bright_is_bold = not term.startswith("xterm")
         self.back_color_erase = not term.startswith("screen")
         self._next_timeout = None
-        self._term_output_file = sys.stdout
-        self._term_input_file = sys.stdin
+
+        # Our connections to the world
+        self._term_output_file = output
+        self._term_input_file = input
+
         # pipe for signalling external event loops about resize events
         self._resize_pipe_rd, self._resize_pipe_wr = os.pipe()
         fcntl.fcntl(self._resize_pipe_rd, fcntl.F_SETFL, os.O_NONBLOCK)
@@ -164,10 +167,10 @@ class Screen(BaseScreen, RealTerminal):
 
     def _mouse_tracking(self, enable):
         if enable:
-            self._term_output_file.write(escape.MOUSE_TRACKING_ON)
+            self.write(escape.MOUSE_TRACKING_ON)
             self._start_gpm_tracking()
         else:
-            self._term_output_file.write(escape.MOUSE_TRACKING_OFF)
+            self.write(escape.MOUSE_TRACKING_OFF)
             self._stop_gpm_tracking()
 
     def _start_gpm_tracking(self):
@@ -196,7 +199,7 @@ class Screen(BaseScreen, RealTerminal):
         alternate_buffer -- use alternate screen buffer
         """
         if alternate_buffer:
-            self._term_output_file.write(escape.SWITCH_TO_ALTERNATE_BUFFER)
+            self.write(escape.SWITCH_TO_ALTERNATE_BUFFER)
             self._rows_used = None
         else:
             self._rows_used = 0
@@ -242,7 +245,7 @@ class Screen(BaseScreen, RealTerminal):
         elif self.maxrow is not None:
             move_cursor = escape.set_cursor_position(
                 0, self.maxrow)
-        self._term_output_file.write(
+        self.write(
             self._attrspec_to_escape(AttrSpec('',''))
             + escape.SI
             + move_cursor
@@ -254,6 +257,21 @@ class Screen(BaseScreen, RealTerminal):
         super(Screen, self)._stop()
 
 
+    def write(self, data):
+        """Write some data to the terminal.
+
+        You may wish to override this if you're using something other than
+        regular files for input and output.
+        """
+        self._term_output_file.write(data)
+
+    def flush(self):
+        """Flush the output buffer.
+
+        You may wish to override this if you're using something other than
+        regular files for input and output.
+        """
+        self._term_output_file.flush()
 
     def get_input(self, raw_keys=False):
         """Return pending input as a list.
@@ -631,8 +649,8 @@ class Screen(BaseScreen, RealTerminal):
 
         while True:
             try:
-                self._term_output_file.write(escape.DESIGNATE_G1_SPECIAL)
-                self._term_output_file.flush()
+                self.write(escape.DESIGNATE_G1_SPECIAL)
+                self.flush()
                 break
             except IOError:
                 pass
@@ -809,8 +827,8 @@ class Screen(BaseScreen, RealTerminal):
             for l in o:
                 if isinstance(l, bytes) and PYTHON3:
                     l = l.decode('utf-8')
-                self._term_output_file.write(l)
-            self._term_output_file.flush()
+                self.write(l)
+            self.flush()
         except IOError as e:
             # ignore interrupted syscall
             if e.args[0] != 4:
@@ -984,8 +1002,8 @@ class Screen(BaseScreen, RealTerminal):
 
         modify = ["%d;rgb:%02x/%02x/%02x" % (index, red, green, blue)
             for index, red, green, blue in entries]
-        self._term_output_file.write("\x1b]4;"+";".join(modify)+"\x1b\\")
-        self._term_output_file.flush()
+        self.write("\x1b]4;"+";".join(modify)+"\x1b\\")
+        self.flush()
 
 
     # shortcut for creating an AttrSpec with this screen object's
