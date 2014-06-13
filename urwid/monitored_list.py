@@ -482,7 +482,7 @@ class MonitoredFocusList(MonitoredList):
         self._set_focus(max(0, len(self) - self._focus - 1))
         return rval
 
-    def sort(self):
+    def sort(self, **kwargs):
         """
         >>> ml = MonitoredFocusList([-2,0,1,-3,2,-1,3], focus=4)
         >>> ml.sort(); ml
@@ -491,7 +491,7 @@ class MonitoredFocusList(MonitoredList):
         if not self:
             return
         value = self[self._focus]
-        rval = super(MonitoredFocusList, self).sort()
+        rval = super(MonitoredFocusList, self).sort(**kwargs)
         self._set_focus(self.index(value))
         return rval
 
