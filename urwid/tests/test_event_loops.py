@@ -90,6 +90,14 @@ else:
             from tornado.ioloop import IOLoop
             self.evl = urwid.TornadoEventLoop(IOLoop())
 
+try:
+    import asyncio
+except ImportError:
+    pass
+else:
+    class AsyncIOEventLoopTest(unittest.TestCase, EventLoopTestMixin):
+        def setUp(self):
+            self.evl = urwid.AsyncIOEventLoop()
 
 try:
     import twisted

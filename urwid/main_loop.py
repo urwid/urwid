@@ -20,7 +20,7 @@
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 # Urwid web site: http://excess.org/urwid/
-
+import logging
 
 import time
 import heapq
@@ -1199,6 +1199,232 @@ class TwistedEventLoop(object):
             return rval
         return wrapper
 
+try:
+    from asyncio import get_event_loop, set_event_loop
+except ImportError:
+    get_event_loop = None
+
+
+class AsyncIOEventLoop(object):
+    """
+    Event loop based on AsyncIO_
+    """
+
+    def __init__(self):
+        self._alarms = {}
+        self._watch_files = {}
+        self._idle_handle = 0
+        self._idle_callbacks = {}
+        if get_event_loop is None:
+            raise RuntimeError("AsyncIO not available on this system.")
+        base_loop = get_event_loop()
+
+        class Loop(base_loop.__class__):
+            urwid_loop = self
+
+            def __init__(self, *args, **kwargs):
+                super(Loop, self).__init__(*args, **kwargs)
+
+            def call_exception_handler(self, context):
+                """
+                This function is not normally intended to be overwritten.
+                However, we want to force unhandled exceptions to kill the
+                loop. The default function is too failure tolerant.
+                """
+                try:
+                    self._exception_handler(self, context)
+                except Exception as err:
+                    raise err
+
+            def _run_once(self):
+                """Run one full iteration of the event loop.
+
+                This calls all currently ready callbacks, polls for I/O,
+                schedules the resulting callbacks, and finally schedules
+                'call_later' callbacks.
+
+                This is a special version of this function for urwid that also
+                handles idle callbacks.
+                """
+                # Name the logger after the package.
+                logger = logging.getLogger("asyncio")
+                # Remove delayed calls that were cancelled from head of queue.
+                while self._scheduled and self._scheduled[0]._cancelled:
+                    heapq.heappop(self._scheduled)
+
+                timeout = None
+                if self._ready:
+                    timeout = 0
+                elif self._scheduled:
+                    # Compute the desired timeout.
+                    when = self._scheduled[0]._when
+                    deadline = max(0, when - self.time())
+                    if timeout is None:
+                        timeout = deadline
+                    else:
+                        timeout = min(timeout, deadline)
+
+                # TODO: Instrumentation only in debug mode?
+                if logger.isEnabledFor(logging.INFO):
+                    t0 = self.time()
+                    event_list = self._selector.select(timeout)
+                    t1 = self.time()
+                    if t1-t0 >= 1:
+                        level = logging.INFO
+                    else:
+                        level = logging.DEBUG
+                    if timeout is not None:
+                        logger.log(level, 'poll %.3f took %.3f seconds',
+                                   timeout, t1-t0)
+                    else:
+                        logger.log(level, 'poll took %.3f seconds', t1-t0)
+                else:
+                    event_list = self._selector.select(timeout)
+                self._process_events(event_list)
+
+                # Handle 'later' callbacks that are ready.
+                end_time = self.time() + self._clock_resolution
+                while self._scheduled:
+                    handle = self._scheduled[0]
+                    if handle._when >= end_time:
+                        break
+                    handle = heapq.heappop(self._scheduled)
+                    self._ready.append(handle)
+
+                # This is the only place where callbacks are actually *called*.
+                # All other places just add them to ready.
+                # Note: We run all currently scheduled callbacks, but not any
+                # callbacks scheduled by callbacks run this time around --
+                # they will be run the next time (after another I/O poll).
+                # Use an idiom that is threadsafe without using locks.
+                ntodo = len(self._ready)
+                for i in range(ntodo):
+                    handle = self._ready.popleft()
+                    if not handle._cancelled:
+                        handle._run()
+                handle = None  # Needed to break cycles when an exception occurs.
+                if ntodo:
+                    for func in self.urwid_loop._idle_callbacks.values():
+                        func()
+
+            def __del__(self):
+                """
+                Because urwid prefers the loop be stoppable and startable as
+                needed, and because we allow exceptions to be what stops the
+                loop, we need to run close on deletion to let go of any
+                remaining file handles.
+                """
+                self.close()
+
+        self._event_loop = Loop()
+        set_event_loop(self._event_loop)
+        try:
+            self._event_loop.set_exception_handler(self.error_handler)
+        except AttributeError:
+            raise RuntimeError("Old version of AsyncIO detected. Please "
+                               "install the development version or wait "
+                               "until the official release.")
+
+    def wrap_alarm(self, func, alarm_dict):
+        """
+        Make sure the alarm is removed from the alarm list when it runs.
+        """
+        def wrapped():
+            alarm_dict.pop(wrapped)
+            result = func()
+            return result
+        return wrapped
+
+    def error_handler(self, _, context):
+        if 'exception' in context:
+            raise context['exception']
+
+    def alarm(self, seconds, callback):
+        """
+        Call callback() given time from from now.  No parameters are
+        passed to callback.
+
+        Returns a handle that may be passed to remove_alarm()
+
+        seconds -- floating point time to wait before calling callback
+        callback -- function to call from event loop
+        """
+        func = self.wrap_alarm(callback, self._alarms)
+        handle = self._event_loop.call_later(seconds, func)
+        self._alarms[func] = handle
+        return func
+
+    def remove_alarm(self, func):
+        """
+        Remove an alarm. Returns True if successful, False if the alarm has
+        already run.
+        """
+        try:
+            handle = self._alarms.pop(func)
+            handle.cancel()
+            return True
+        except KeyError:
+            return False
+
+    def watch_file(self, fd, callback):
+        """
+        Call callback() when fd has some data to read.  No parameters
+        are passed to callback.
+
+        Returns a handle that may be passed to remove_watch_file()
+
+        fd -- file descriptor to watch for input
+        callback -- function to call when input is available
+        """
+        self._event_loop.add_reader(fd, callback)
+        return fd
+
+    def remove_watch_file(self, fd):
+        """
+        Remove an input file.
+
+        Returns True if the input file exists, False otherwise
+        """
+        return self._event_loop.remove_reader(fd)
+
+    def enter_idle(self, callback):
+        """
+        Add a callback for entering idle.
+
+        Returns a handle that may be passed to remove_idle()
+        """
+        self._idle_handle += 1
+        self._idle_callbacks[self._idle_handle] = callback
+        return self._idle_handle
+
+    def remove_enter_idle(self, index):
+        """
+        Remove an idle callback.
+
+        Returns True if the handle was removed.
+        """
+        try:
+            del self._idle_callbacks[index]
+        except KeyError:
+            return False
+        return True
+
+    def run(self):
+        """
+        Start the event loop.  Exit the loop when any callback raises
+        an exception.
+        """
+        try:
+            # The first run of the idle items should happen before anything
+            # else
+            for func in self._idle_callbacks.values():
+                func()
+            self._event_loop.run_forever()
+        except ExitMainLoop:
+            self._idle_callbacks = {}
+        except Exception as err:
+            self._idle_callbacks = {}
+            raise err
 
 
 def _refl(name, rval=None, exit=False):
