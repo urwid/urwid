@@ -833,6 +833,8 @@ class BaseScreen(object):
         def large_h(desc):
             if not desc.startswith('h'):
                 return False
+            if ',' in desc:
+            	desc = desc.split(',',1)[0]
             num = int(desc[1:], 10)
             return num > 15
         if large_h(foreground_high) or large_h(background_high):
