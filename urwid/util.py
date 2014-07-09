@@ -283,7 +283,7 @@ def rle_len( rle ):
 
 def rle_append_beginning_modify(rle, a_r):
     """
-    Append (a, r) to BEGINNING of rle.
+    Append (a, r) (unpacked from *a_r*) to BEGINNING of rle.
     Merge with first run when possible
 
     MODIFIES rle parameter contents. Returns None.
@@ -301,7 +301,7 @@ def rle_append_beginning_modify(rle, a_r):
 
 def rle_append_modify(rle, a_r):
     """
-    Append (a,r) to the rle list rle.
+    Append (a, r) (unpacked from *a_r*) to the rle list rle.
     Merge with last run when possible.
 
     MODIFIES rle parameter contents. Returns None.
