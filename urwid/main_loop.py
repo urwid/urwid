@@ -367,7 +367,10 @@ class MainLoop(object):
         try:
             self.start()
         except CantUseExternalLoop:
-            return self._run_screen_event_loop()
+            try:
+                return self._run_screen_event_loop()
+            finally:
+                self.screen.stop()
 
         self.event_loop.run()
         self.stop()
