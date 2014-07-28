@@ -320,14 +320,13 @@ class Screen(BaseScreen, RealTerminal):
         assert self._started
 
         self._wait_for_input_ready(self._next_timeout)
-        self._next_timeout, keys, raw = self._input_iter.next()
+        keys, raw = self.parse_input(None, None, self.get_available_raw_input())
 
         # Avoid pegging CPU at 100% when slowly resizing
         if keys==['window resize'] and self.prev_input_resize:
             while True:
                 self._wait_for_input_ready(self.resize_wait)
-                self._next_timeout, keys, raw2 = \
-                    self._input_iter.next()
+                keys, raw2 = self.parse_input(None, None, self.get_available_raw_input())
                 raw += raw2
                 #if not keys:
                 #    keys, raw2 = self._get_input(
@@ -451,7 +450,9 @@ class Screen(BaseScreen, RealTerminal):
         appropriate, but beware of using bytes, which only iterates as integers
         on Python 3.
         """
-        if self._input_timeout:
+        # Note: event_loop may be None for 100% synchronous support, only used
+        # by get_input.  Not documented because you shouldn't be doing it.
+        if self._input_timeout and event_loop:
             event_loop.remove_alarm(self._input_timeout)
             self._input_timeout = None
 
@@ -474,8 +475,9 @@ class Screen(BaseScreen, RealTerminal):
                 self._partial_codes = None
                 self.parse_input(
                     event_loop, callback, codes, wait_for_more=False)
-            self._input_timeout = event_loop.alarm(
-                self.complete_wait, _parse_incomplete_input)
+            if event_loop:
+                self._input_timeout = event_loop.alarm(
+                    self.complete_wait, _parse_incomplete_input)
 
         else:
             processed_codes = original_codes
@@ -485,7 +487,11 @@ class Screen(BaseScreen, RealTerminal):
             processed.append('window resize')
             self._resized = False
 
-        callback(processed, processed_codes)
+        if callback:
+            callback(processed, processed_codes)
+        else:
+            # For get_input
+            return processed, processed_codes
 
     def _get_keyboard_codes(self):
         codes = []
