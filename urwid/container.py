@@ -284,7 +284,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         empty.
         """
         if not self.contents:
-            raise IndexError, "No focus_position, GridFlow is empty"
+            raise IndexError("No focus_position, GridFlow is empty")
         return self.contents.focus
     def _set_focus_position(self, position):
         """
@@ -296,7 +296,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             if position < 0 or position >= len(self.contents):
                 raise IndexError
         except (TypeError, IndexError):
-            raise IndexError, "No GridFlow child widget at position %s" % (position,)
+            raise IndexError("No GridFlow child widget at position %s" % (position,))
         self.contents.focus = position
     focus_position = property(_get_focus_position, _set_focus_position, doc="""
         index of child widget in focus. Raises :exc:`IndexError` if read when
@@ -607,7 +607,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         position -- index of child widget to be made focus
         """
         if position != 1:
-            raise IndexError, ("Overlay widget focus_position currently "
+            raise IndexError("Overlay widget focus_position currently "
                 "must always be set to 1, not %s" % (position,))
     focus_position = property(_get_focus_position, _set_focus_position,
         doc="index of child widget in focus, currently always 1")
@@ -871,10 +871,10 @@ class Frame(Widget, WidgetContainerMixin):
         :type part: str
         """
         if part not in ('header', 'footer', 'body'):
-            raise IndexError, 'Invalid position for Frame: %s' % (part,)
+            raise IndexError('Invalid position for Frame: %s' % (part,))
         if (part == 'header' and self._header is None) or (
                 part == 'footer' and self._footer is None):
-            raise IndexError, 'This Frame has no %s' % (part,)
+            raise IndexError('This Frame has no %s' % (part,))
         self.focus_part = part
         self._invalidate()
 
@@ -1407,7 +1407,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         empty.
         """
         if not self.contents:
-            raise IndexError, "No focus_position, Pile is empty"
+            raise IndexError("No focus_position, Pile is empty")
         return self.contents.focus
     def _set_focus_position(self, position):
         """
@@ -1419,7 +1419,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             if position < 0 or position >= len(self.contents):
                 raise IndexError
         except (TypeError, IndexError):
-            raise IndexError, "No Pile child widget at position %s" % (position,)
+            raise IndexError("No Pile child widget at position %s" % (position,))
         self.contents.focus = position
     focus_position = property(_get_focus_position, _set_focus_position, doc="""
         index of child widget in focus. Raises :exc:`IndexError` if read when
@@ -1488,7 +1488,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 l.append(0) # zero-weighted items treated as ('given', 0)
 
         if wtotal == 0:
-            raise PileError, "No weighted widgets found for Pile treated as a box widget"
+            raise PileError("No weighted widgets found for Pile treated as a box widget")
 
         if remaining < 0:
             remaining = 0
@@ -1957,7 +1957,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         empty.
         """
         if not self.widget_list:
-            raise IndexError, "No focus_position, Columns is empty"
+            raise IndexError("No focus_position, Columns is empty")
         return self.contents.focus
     def _set_focus_position(self, position):
         """
@@ -1969,7 +1969,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             if position < 0 or position >= len(self.contents):
                 raise IndexError
         except (TypeError, IndexError):
-            raise IndexError, "No Columns child widget at position %s" % (position,)
+            raise IndexError("No Columns child widget at position %s" % (position,))
         self.contents.focus = position
     focus_position = property(_get_focus_position, _set_focus_position, doc="""
         index of child widget in focus. Raises :exc:`IndexError` if read when

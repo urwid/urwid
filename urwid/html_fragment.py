@@ -70,21 +70,11 @@ class HtmlGenerator(BaseScreen):
         """Not yet implemented"""
         pass
 
-    def start(self):
-        pass
-
-    def stop(self):
-        pass
-
     def set_input_timeouts(self, *args):
         pass
 
     def reset_default_terminal_palette(self, *args):
         pass
-
-    def run_wrapper(self,fn):
-        """Call fn."""
-        return fn()
 
     def draw_screen(self, (cols, rows), r ):
         """Create an html fragment from the render object.

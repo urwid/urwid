@@ -34,6 +34,8 @@ class EventLoopTestMixin(object):
         self.assertTrue(evl.remove_watch_file(handle))
         self.assertFalse(evl.remove_watch_file(handle))
 
+    _expected_idle_handle = 1
+
     def test_run(self):
         evl = self.evl
         out = []
@@ -50,7 +52,9 @@ class EventLoopTestMixin(object):
             1/0
         handle = evl.alarm(0.01, exit_clean)
         handle = evl.alarm(0.005, say_hello)
-        self.assertEqual(evl.enter_idle(say_waiting), 1)
+        idle_handle = evl.enter_idle(say_waiting)
+        if self._expected_idle_handle is not None:
+            self.assertEqual(idle_handle, 1)
         evl.run()
         self.assertTrue("hello" in out, out)
         self.assertTrue("clean exit"in out, out)
@@ -129,3 +133,15 @@ else:
             self.assertTrue("ta" in out, out)
             self.assertTrue("hello" in out, out)
             self.assertTrue("clean exit" in out, out)
+
+
+try:
+    import asyncio
+except ImportError:
+    pass
+else:
+    class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
+        def setUp(self):
+            self.evl = urwid.AsyncioEventLoop()
+
+        _expected_idle_handle = None

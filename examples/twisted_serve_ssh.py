@@ -34,6 +34,7 @@ Licence:   LGPL <http://opensource.org/licenses/lgpl-2.1.php>
 import os
 
 import urwid
+from urwid.raw_display import Screen
 
 from zope.interface import Interface, Attribute, implements
 from twisted.application.service import Application
@@ -159,7 +160,7 @@ class UrwidMind(Adapter):
 
 
 
-class TwistedScreen(urwid.BaseScreen):
+class TwistedScreen(Screen):
     """A Urwid screen which knows about the Twisted terminal protocol that is
     driving it.
 
@@ -180,7 +181,7 @@ class TwistedScreen(urwid.BaseScreen):
         # We will need these later
         self.terminalProtocol = terminalProtocol
         self.terminal = terminalProtocol.terminal
-        urwid.BaseScreen.__init__(self)
+        Screen.__init__(self)
         self.colors = 16
         self._pal_escape = {}
         self.bright_is_bold = True
@@ -235,12 +236,21 @@ class TwistedScreen(urwid.BaseScreen):
 
     # twisted handles polling, so we don't need the loop to do it, we just
     # push what we get to the loop from dataReceived.
-    def get_input_descriptors(self):
-        return []
+    def hook_event_loop(self, event_loop, callback):
+        self._urwid_callback = callback
+        self._evl = event_loop
+
+    def unhook_event_loop(self, event_loop):
+        pass
 
     # Do nothing here either. Not entirely sure when it gets called.
     def get_input(self, raw_keys=False):
         return
+
+    def get_available_raw_input(self):
+        data = self._data
+        self._data = []
+        return data
 
     # Twisted driven
     def push(self, data):
@@ -254,9 +264,8 @@ class TwistedScreen(urwid.BaseScreen):
         3. Pass the calculated keys as a list to the Urwid main loop.
         4. Redraw the screen
         """
-        keys = self.loop.input_filter(data, [])
-        keys, remainder = urwid.escape.process_keyqueue(map(ord, keys), True)
-        self.loop.process_input(keys)
+        self._data = list(map(ord, data))
+        self.parse_input(self._evl, self._urwid_callback)
         self.loop.draw_screen()
 
     # Convenience

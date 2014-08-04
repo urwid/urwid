@@ -34,7 +34,7 @@ try:
 except ImportError:
     pass # windows
 
-from urwid.util import is_mouse_event
+from urwid.util import StoppingContext, is_mouse_event
 from urwid.compat import PYTHON3
 from urwid.command_map import command_map, REDRAW_SCREEN
 from urwid.wimp import PopUpTarget
@@ -48,6 +48,9 @@ class ExitMainLoop(Exception):
     When this exception is raised within a main loop the main loop
     will exit cleanly.
     """
+    pass
+
+class CantUseExternalLoop(Exception):
     pass
 
 class MainLoop(object):
@@ -116,7 +119,7 @@ class MainLoop(object):
         self._unhandled_input = unhandled_input
         self._input_filter = input_filter
 
-        if not hasattr(screen, 'get_input_descriptors'
+        if not hasattr(screen, 'hook_event_loop'
                 ) and event_loop is not None:
             raise NotImplementedError("screen object passed "
                 "%r does not support external event loops" % (screen,))
@@ -124,7 +127,6 @@ class MainLoop(object):
             event_loop = SelectEventLoop()
         self.event_loop = event_loop
 
-        self._input_timeout = None
         self._watch_pipes = {}
 
     def _set_widget(self, widget):
@@ -268,14 +270,12 @@ class MainLoop(object):
         Start the main loop handling input events and updating the screen. The
         loop will continue until an :exc:`ExitMainLoop` exception is raised.
 
-        This method will use :attr:`screen`'s run_wrapper() method if
-        :attr:`screen`'s start() method has not already been called.
+        If you would prefer to manage the event loop yourself, don't use this
+        method.  Instead, call :meth:`start` before starting the event loop,
+        and :meth:`stop` once it's finished.
         """
         try:
-            if self.screen.started:
-                self._run()
-            else:
-                self.screen.run_wrapper(self._run)
+            self._run()
         except ExitMainLoop:
             pass
 
@@ -293,101 +293,106 @@ class MainLoop(object):
         >>> evl.watch_file_rval = 2
         >>> ml = MainLoop(w, [], scr, event_loop=evl)
         >>> ml.run()    # doctest:+ELLIPSIS
+        screen.start()
         screen.set_mouse_tracking()
+        screen.unhook_event_loop(...)
+        screen.hook_event_loop(...)
+        event_loop.enter_idle(<bound method MainLoop.entering_idle...>)
+        event_loop.run()
+        event_loop.remove_enter_idle(1)
+        screen.unhook_event_loop(...)
+        screen.stop()
+        >>> ml.draw_screen()    # doctest:+ELLIPSIS
         screen.get_cols_rows()
         widget.render((20, 10), focus=True)
         screen.draw_screen((20, 10), 'fake canvas')
-        screen.get_input_descriptors()
-        event_loop.watch_file(42, <bound method ...>)
-        event_loop.enter_idle(<bound method ...>)
-        event_loop.run()
-        event_loop.remove_enter_idle(1)
-        event_loop.remove_watch_file(2)
-        >>> scr.started = False
-        >>> ml.run()    # doctest:+ELLIPSIS
-        screen.run_wrapper(<bound method ...>)
         """
 
-    def _run(self):
+    def start(self):
+        """
+        Sets up the main loop, hooking into the event loop where necessary.
+        Starts the :attr:`screen` if it hasn't already been started.
+
+        If you want to control starting and stopping the event loop yourself,
+        you should call this method before starting, and call `stop` once the
+        loop has finished.  You may also use this method as a context manager,
+        which will stop the loop automatically at the end of the block:
+
+            with main_loop.start():
+                ...
+
+        Note that some event loop implementations don't handle exceptions
+        specially if you manage the event loop yourself.  In particular, the
+        Twisted and asyncio loops won't stop automatically when
+        :exc:`ExitMainLoop` (or anything else) is raised.
+        """
+        self.screen.start()
+
         if self.handle_mouse:
             self.screen.set_mouse_tracking()
 
-        if not hasattr(self.screen, 'get_input_descriptors'):
-            return self._run_screen_event_loop()
-
-        self.draw_screen()
-
-        fd_handles = []
-        def reset_input_descriptors(only_remove=False):
-            for handle in fd_handles:
-                self.event_loop.remove_watch_file(handle)
-            if only_remove:
-                del fd_handles[:]
-            else:
-                fd_handles[:] = [
-                    self.event_loop.watch_file(fd, self._update)
-                    for fd in self.screen.get_input_descriptors()]
-            if not fd_handles and self._input_timeout is not None:
-                self.event_loop.remove_alarm(self._input_timeout)
+        if not hasattr(self.screen, 'hook_event_loop'):
+            raise CantUseExternalLoop(
+                "Screen {0!r} doesn't support external event loops")
 
         try:
             signals.connect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED,
-                reset_input_descriptors)
+                self._reset_input_descriptors)
         except NameError:
             pass
         # watch our input descriptors
-        reset_input_descriptors()
-        idle_handle = self.event_loop.enter_idle(self.entering_idle)
+        self._reset_input_descriptors()
+        self.idle_handle = self.event_loop.enter_idle(self.entering_idle)
 
-        # Go..
-        self.event_loop.run()
+        return StoppingContext(self)
 
-        # tidy up
-        self.event_loop.remove_enter_idle(idle_handle)
-        reset_input_descriptors(True)
+    def stop(self):
+        """
+        Cleans up any hooks added to the event loop.  Only call this if you're
+        managing the event loop yourself, after the loop stops.
+        """
+        self.event_loop.remove_enter_idle(self.idle_handle)
+        del self.idle_handle
         signals.disconnect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED,
-            reset_input_descriptors)
+            self._reset_input_descriptors)
+        self.screen.unhook_event_loop(self.event_loop)
 
-    def _update(self, timeout=False):
+        self.screen.stop()
+
+    def _reset_input_descriptors(self):
+        self.screen.unhook_event_loop(self.event_loop)
+        self.screen.hook_event_loop(self.event_loop, self._update)
+
+    def _run(self):
+        try:
+            self.start()
+        except CantUseExternalLoop:
+            try:
+                return self._run_screen_event_loop()
+            finally:
+                self.screen.stop()
+
+        self.event_loop.run()
+        self.stop()
+
+    def _update(self, keys, raw):
         """
         >>> w = _refl("widget")
         >>> w.selectable_rval = True
         >>> w.mouse_event_rval = True
         >>> scr = _refl("screen")
         >>> scr.get_cols_rows_rval = (15, 5)
-        >>> scr.get_input_nonblocking_rval = 1, ['y'], [121]
         >>> evl = _refl("event_loop")
         >>> ml = MainLoop(w, [], scr, event_loop=evl)
         >>> ml._input_timeout = "old timeout"
-        >>> ml._update()    # doctest:+ELLIPSIS
-        event_loop.remove_alarm('old timeout')
-        screen.get_input_nonblocking()
-        event_loop.alarm(1, <function ...>)
+        >>> ml._update(['y'], [121])    # doctest:+ELLIPSIS
         screen.get_cols_rows()
         widget.selectable()
         widget.keypress((15, 5), 'y')
-        >>> scr.get_input_nonblocking_rval = None, [("mouse press", 1, 5, 4)
-        ... ], []
-        >>> ml._update()
-        screen.get_input_nonblocking()
+        >>> ml._update([("mouse press", 1, 5, 4)], [])
         widget.mouse_event((15, 5), 'mouse press', 1, 5, 4, focus=True)
-        >>> scr.get_input_nonblocking_rval = None, [], []
-        >>> ml._update()
-        screen.get_input_nonblocking()
+        >>> ml._update([], [])
         """
-        if self._input_timeout is not None and not timeout:
-            # cancel the timeout, something else triggered the update
-            self.event_loop.remove_alarm(self._input_timeout)
-        self._input_timeout = None
-
-        max_wait, keys, raw = self.screen.get_input_nonblocking()
-
-        if max_wait is not None:
-            # if get_input_nonblocking wants to be called back
-            # make sure it happens with an alarm
-            self._input_timeout = self.event_loop.alarm(max_wait,
-                lambda: self._update(timeout=True))
-
         keys = self.input_filter(keys, raw)
 
         if keys:
@@ -583,7 +588,7 @@ class SelectEventLoop(object):
 
     def alarm(self, seconds, callback):
         """
-        Call callback() given time from from now.  No parameters are
+        Call callback() a given time from now.  No parameters are
         passed to callback.
 
         Returns a handle that may be passed to remove_alarm()
@@ -671,7 +676,7 @@ class SelectEventLoop(object):
             while True:
                 try:
                     self._loop()
-                except select.error, e:
+                except select.error as e:
                     if e.args[0] != 4:
                         # not just something we need to retry
                         raise
@@ -730,7 +735,7 @@ class GLibEventLoop(object):
 
     def alarm(self, seconds, callback):
         """
-        Call callback() given time from from now.  No parameters are
+        Call callback() a given time from now.  No parameters are
         passed to callback.
 
         Returns a handle that may be passed to remove_alarm()
@@ -1044,6 +1049,10 @@ class TwistedEventLoop(object):
            ``manage_reactor=False`` and take care of running/stopping the reactor
            at the beginning/ending of your program yourself.
 
+           You can also forego using :class:`MainLoop`'s run() entirely, and
+           instead call start() and stop() before and after starting the
+           reactor.
+
         .. _Twisted: http://twistedmatrix.com/trac/
         """
         if reactor is None:
@@ -1061,7 +1070,7 @@ class TwistedEventLoop(object):
 
     def alarm(self, seconds, callback):
         """
-        Call callback() given time from from now.  No parameters are
+        Call callback() a given time from now.  No parameters are
         passed to callback.
 
         Returns a handle that may be passed to remove_alarm()
@@ -1199,6 +1208,121 @@ class TwistedEventLoop(object):
             return rval
         return wrapper
 
+
+class AsyncioEventLoop(object):
+    """
+    Event loop based on the standard library ``asyncio`` module.
+
+    ``asyncio`` is new in Python 3.4, but also exists as a backport on PyPI for
+    Python 3.3.  The ``trollius`` package is available for older Pythons with
+    slightly different syntax, but also works with this loop.
+    """
+    _we_started_event_loop = False
+
+    _idle_emulation_delay = 1.0/256  # a short time (in seconds)
+
+    def __init__(self, **kwargs):
+        if 'loop' in kwargs:
+            self._loop = kwargs.pop('loop')
+        else:
+            import asyncio
+            self._loop = asyncio.get_event_loop()
+
+    def alarm(self, seconds, callback):
+        """
+        Call callback() a given time from now.  No parameters are
+        passed to callback.
+
+        Returns a handle that may be passed to remove_alarm()
+
+        seconds -- time in seconds to wait before calling callback
+        callback -- function to call from event loop
+        """
+        return self._loop.call_later(seconds, callback)
+
+    def remove_alarm(self, handle):
+        """
+        Remove an alarm.
+
+        Returns True if the alarm exists, False otherwise
+        """
+        existed = not handle._cancelled
+        handle.cancel()
+        return existed
+
+    def watch_file(self, fd, callback):
+        """
+        Call callback() when fd has some data to read.  No parameters
+        are passed to callback.
+
+        Returns a handle that may be passed to remove_watch_file()
+
+        fd -- file descriptor to watch for input
+        callback -- function to call when input is available
+        """
+        self._loop.add_reader(fd, callback)
+        return fd
+
+    def remove_watch_file(self, handle):
+        """
+        Remove an input file.
+
+        Returns True if the input file exists, False otherwise
+        """
+        return self._loop.remove_reader(handle)
+
+    def enter_idle(self, callback):
+        """
+        Add a callback for entering idle.
+
+        Returns a handle that may be passed to remove_idle()
+        """
+        # XXX there's no such thing as "idle" in most event loops; this fakes
+        # it the same way as Twisted, by scheduling the callback to be called
+        # repeatedly
+        mutable_handle = [None]
+        def faux_idle_callback():
+            callback()
+            mutable_handle[0] = self._loop.call_later(
+                self._idle_emulation_delay, faux_idle_callback)
+
+        mutable_handle[0] = self._loop.call_later(
+            self._idle_emulation_delay, faux_idle_callback)
+
+        return mutable_handle
+
+    def remove_enter_idle(self, handle):
+        """
+        Remove an idle callback.
+
+        Returns True if the handle was removed.
+        """
+        # `handle` is just a list containing the current actual handle
+        return self.remove_alarm(handle[0])
+
+    _exc_info = None
+
+    def _exception_handler(self, loop, context):
+        exc = context.get('exception')
+        if exc:
+            loop.stop()
+            if not isinstance(exc, ExitMainLoop):
+                # Store the exc_info so we can re-raise after the loop stops
+                import sys
+                self._exc_info = sys.exc_info()
+        else:
+            loop.default_exception_handler(context)
+
+    def run(self):
+        """
+        Start the event loop.  Exit the loop when any callback raises
+        an exception.  If ExitMainLoop is raised, exit cleanly.
+        """
+        self._loop.set_exception_handler(self._exception_handler)
+        self._loop.run_forever()
+        if self._exc_info:
+            raise self._exc_info[0], self._exc_info[1], self._exc_info[2]
+            self._exc_info = None
 
 
 def _refl(name, rval=None, exit=False):

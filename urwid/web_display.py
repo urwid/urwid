@@ -593,7 +593,7 @@ class Screen:
                 continue
             assert len(item) == 2, "Invalid register_palette usage"
             name, like_name = item
-            if not self.palette.has_key(like_name):
+            if like_name not in self.palette:
                 raise Exception("palette entry '%s' doesn't exist"%like_name)
             self.palette[name] = self.palette[like_name]
 
@@ -632,7 +632,8 @@ class Screen:
         """
         global _prefs
 
-        assert not self._started
+        if self._started:
+            return util.StoppingContext(self)
 
         client_init = sys.stdin.read(50)
         assert client_init.startswith("window resize "),client_init
@@ -679,11 +680,15 @@ class Screen:
         signal.alarm( ALARM_DELAY )
         self._started = True
 
+        return util.StoppingContext(self)
+
     def stop(self):
         """
         Restore settings and clean up.
         """
-        assert self._started
+        if not self._started:
+            return
+
         # XXX which exceptions does this actually raise? EnvironmentError?
         try:
             self._close_connection()
@@ -880,7 +885,7 @@ class Screen:
         try:
             iready,oready,eready = select.select(
                 [self.input_fd],[],[],0.5)
-        except select.error, e:
+        except select.error as e:
             # return on interruptions
             if e.args[0] == 4:
                 if raw_keys:
@@ -946,7 +951,7 @@ def is_web_request():
     """
     Return True if this is a CGI web request.
     """
-    return os.environ.has_key('REQUEST_METHOD')
+    return 'REQUEST_METHOD' in os.environ
 
 def handle_short_request():
     """
@@ -973,7 +978,7 @@ def handle_short_request():
         # Don't know what to do with head requests etc.
         return False
 
-    if not os.environ.has_key('HTTP_X_URWID_ID'):
+    if 'HTTP_X_URWID_ID' not in os.environ:
         # If no urwid id, then the application should be started.
         return False
 

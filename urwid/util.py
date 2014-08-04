@@ -45,7 +45,7 @@ def detect_encoding():
         except locale.Error:
             pass
         return locale.getlocale()[1] or ""
-    except ValueError, e:
+    except ValueError as e:
         # with invalid LANG value python will throw ValueError
         if e.args and e.args[0].startswith("unknown locale"):
             return ""
@@ -281,13 +281,14 @@ def rle_len( rle ):
         run += r
     return run
 
-def rle_append_beginning_modify( rle, (a, r) ):
+def rle_append_beginning_modify(rle, a_r):
     """
-    Append (a, r) to BEGINNING of rle.
+    Append (a, r) (unpacked from *a_r*) to BEGINNING of rle.
     Merge with first run when possible
 
     MODIFIES rle parameter contents. Returns None.
     """
+    a, r = a_r
     if not rle:
         rle[:] = [(a, r)]
     else:
@@ -298,13 +299,14 @@ def rle_append_beginning_modify( rle, (a, r) ):
             rle[0:0] = [(al, r)]
 
 
-def rle_append_modify( rle, (a, r) ):
+def rle_append_modify(rle, a_r):
     """
-    Append (a,r) to the rle list rle.
+    Append (a, r) (unpacked from *a_r*) to the rle list rle.
     Merge with last run when possible.
 
     MODIFIES rle parameter contents. Returns None.
     """
+    a, r = a_r
     if not rle or rle[-1][0] != a:
         rle.append( (a,r) )
         return
@@ -405,13 +407,13 @@ def _tagmarkup_recurse( tm, attr ):
     if type(tm) == tuple:
         # tuples mark a new attribute boundary
         if len(tm) != 2:
-            raise TagMarkupException, "Tuples must be in the form (attribute, tagmarkup): %r" % (tm,)
+            raise TagMarkupException("Tuples must be in the form (attribute, tagmarkup): %r" % (tm,))
 
         attr, element = tm
         return _tagmarkup_recurse( element, attr )
 
     if not isinstance(tm,(basestring, bytes)):
-        raise TagMarkupException, "Invalid markup element: %r" % tm
+        raise TagMarkupException("Invalid markup element: %r" % tm)
 
     # text
     return [tm], [(attr, len(tm))]
@@ -431,7 +433,7 @@ class MetaSuper(type):
     def __init__(cls, name, bases, d):
         super(MetaSuper, cls).__init__(name, bases, d)
         if hasattr(cls, "_%s__super" % name):
-            raise AttributeError, "Class has same name as one of its super classes"
+            raise AttributeError("Class has same name as one of its super classes")
         setattr(cls, "_%s__super" % name, super(cls))
 
 
@@ -456,3 +458,17 @@ def int_scale(val, val_range, out_range):
     # if num % dem == 0 then we are exactly half-way and have rounded up.
     return num // dem
 
+
+class StoppingContext(object):
+    """Context manager that calls ``stop`` on a given object on exit.  Used to
+    make the ``start`` method on `MainLoop` and `BaseScreen` optionally act as
+    context managers.
+    """
+    def __init__(self, wrapped):
+        self._wrapped = wrapped
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        self._wrapped.stop()

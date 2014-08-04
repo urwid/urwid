@@ -19,6 +19,7 @@
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 # Urwid web site: http://excess.org/urwid/
+from __future__ import print_function
 
 import re
 
@@ -357,10 +358,10 @@ def process_east_asian_width():
             out.append( (num, l) )
             last = l
 
-    print "widths = ["
+    print("widths = [")
     for o in out[1:]:  # treat control characters same as ascii
-        print "\t%r," % (o,)
-    print "]"
+        print("\t%r," % (o,))
+    print("]")
 
 if __name__ == "__main__":
     process_east_asian_width()
