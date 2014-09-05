@@ -132,7 +132,7 @@ This event loop integrates with Tornado.
 ::
 
     from tornado.ioloop import IOLoop
-    evl = urwid.TornadoEventLoop(IOLoop()
+    evl = urwid.TornadoEventLoop(IOLoop())
     loop = urwid.MainLoop(widget, event_loop=evl)
 
 .. seealso::
