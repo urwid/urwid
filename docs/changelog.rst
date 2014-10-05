@@ -2,6 +2,18 @@
 Changelog
 ---------
 
+Urwid 1.2.2
+===========
+
+2014-10-05
+
+ * Fix for a serious raw_display performance regression
+   (by Anton Khirnov)
+
+ * Fix for high color palette detection (by extempo)
+
+ * Small changes to enable windows support (by Jeanpierre Devin)
+
 
 Urwid 1.2.1
 ===========
