@@ -1,5 +1,5 @@
 
-VERSION = (1, 2, 2, 'dev')
+VERSION = (1, 3, 0, 'dev')
 __version__ = ''.join(['-.'[type(x) == int]+str(x) for x in VERSION])[1:]
 
 
