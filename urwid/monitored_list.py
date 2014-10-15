@@ -292,7 +292,8 @@ class MonitoredFocusList(MonitoredList):
         if isinstance(y, slice):
             focus = self._adjust_focus_on_contents_modified(y)
         else:
-            focus = self._adjust_focus_on_contents_modified(slice(y, y+1))
+            focus = self._adjust_focus_on_contents_modified(slice(y,
+                y+1 or None))
         rval = super(MonitoredFocusList, self).__delitem__(y)
         self._set_focus(focus)
         return rval
