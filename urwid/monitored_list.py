@@ -319,51 +319,10 @@ class MonitoredFocusList(MonitoredList):
 
     if not PYTHON3:
         def __delslice__(self, i, j):
-            """
-            >>> def modified(indices, new_items):
-            ...     print "range%r <- %r" % (indices, list(new_items))
-            >>> ml = MonitoredFocusList([0,1,2,3,4], focus=2)
-            >>> ml.set_validate_contents_modified(modified)
-            >>> del ml[3:5]
-            range(3, 5, 1) <- []
-            >>> ml
-            MonitoredFocusList([0, 1, 2], focus=2)
-            >>> del ml[:1]
-            range(0, 1, 1) <- []
-            >>> ml
-            MonitoredFocusList([1, 2], focus=1)
-            >>> del ml[1:]; ml
-            range(1, 2, 1) <- []
-            MonitoredFocusList([1], focus=0)
-            >>> del ml[:]; ml
-            range(0, 1, 1) <- []
-            MonitoredFocusList([], focus=None)
-            """
-            focus = self._adjust_focus_on_contents_modified(slice(i, j))
-            rval = super(MonitoredFocusList, self).__delslice__(i, j)
-            self._set_focus(focus)
-            return rval
+            return self.__delitem__(slice(i,j))
 
         def __setslice__(self, i, j, y):
-            """
-            >>> ml = MonitoredFocusList([0,1,2,3,4], focus=2)
-            >>> ml[3:5] = [-1]; ml
-            MonitoredFocusList([0, 1, 2, -1], focus=2)
-            >>> ml[0:1] = []; ml
-            MonitoredFocusList([1, 2, -1], focus=1)
-            >>> ml[1:] = [3, 4]; ml
-            MonitoredFocusList([1, 3, 4], focus=1)
-            >>> ml[1:] = [2]; ml
-            MonitoredFocusList([1, 2], focus=1)
-            >>> ml[0:1] = [9,9,9]; ml
-            MonitoredFocusList([9, 9, 9, 2], focus=3)
-            >>> ml[:] = []; ml
-            MonitoredFocusList([], focus=None)
-            """
-            focus = self._adjust_focus_on_contents_modified(slice(i, j), y)
-            rval = super(MonitoredFocusList, self).__setslice__(i, j, y)
-            self._set_focus(focus)
-            return rval
+            return self.__setitem__(slice(i, j), y)
 
     def __imul__(self, n):
         """
