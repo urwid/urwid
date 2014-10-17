@@ -7,6 +7,8 @@ rm -r build/sphinx || true
 python setup.py build_sphinx
 
 git checkout gh-pages
+git fetch origin gh-pages
+git merge --ff-only origin/gh-pages
 git rm `git ls-files`
 git checkout HEAD CNAME
 git checkout HEAD .nojekyll
