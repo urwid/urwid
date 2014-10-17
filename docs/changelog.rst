@@ -2,6 +2,28 @@
 Changelog
 ---------
 
+Urwid 1.3.0
+===========
+
+2014-10-17
+
+ * New AsyncioEventLoop for Python 3.4, Python 3.x with asyncio
+   package or Python 2 with trollius package (by Alex Munroe,
+   Jonas Wielicki, with earlier work by Kelketek Rritaa)
+
+ * Screen classes now call back to MainLoop using event loop alarms
+   instead of passing timeout values to MainLoop (by Alex Munroe)
+
+ * Add support for bright backgrounds on linux console
+   (by Russell Warren)
+
+ * Allow custom sorting of MonitoredList (by Tony Cebzanov)
+
+ * Fix support for negative indexes with MonitoredFocusList
+   (by Heiko Noordhof)
+
+ * Documentation fixes (by Ismail, Matthew Mosesohn)
+
 Urwid 1.2.2
 ===========
 
