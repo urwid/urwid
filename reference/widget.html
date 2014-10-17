@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -2794,7 +2792,7 @@ container property .contents to modify Pile contents.</p>
 <dd><p>The contents of this Columns as a list of <cite>(widget, options)</cite> tuples.
 This list may be modified like a normal list and the Columns
 widget will update automatically.</p>
-<div class="admonition-see-also admonition seealso">
+<div class="admonition seealso">
 <p class="first admonition-title">See also</p>
 <p class="last">Create new options tuples with the <a class="reference internal" href="#urwid.Columns.options" title="urwid.Columns.options"><tt class="xref py py-meth docutils literal"><span class="pre">options()</span></tt></a> method</p>
 </div>
@@ -2859,8 +2857,9 @@ standard container property <a class="reference internal" href="#urwid.Columns.f
 <dl class="attribute">
 <dt id="urwid.Columns.has_flow_type">
 <tt class="descname">has_flow_type</tt><a class="headerlink" href="#urwid.Columns.has_flow_type" title="Permalink to this definition">¶</a></dt>
-<dd><p class="deprecated">
-<span class="versionmodified">Deprecated since version 1.0: </span>Read values from <a class="reference internal" href="#urwid.Columns.contents" title="urwid.Columns.contents"><tt class="xref py py-attr docutils literal"><span class="pre">contents</span></tt></a> instead.</p>
+<dd><div class="deprecated">
+<p><span class="versionmodified">Deprecated since version 1.0: </span>Read values from <a class="reference internal" href="#urwid.Columns.contents" title="urwid.Columns.contents"><tt class="xref py py-attr docutils literal"><span class="pre">contents</span></tt></a> instead.</p>
+</div>
 </dd></dl>
 
 <dl class="method">
@@ -3069,7 +3068,7 @@ widget must have a (<tt class="docutils literal"><span class="pre">'weight'</spa
 not be able to grow to fill the required number of rows.</p>
 <p>This list may be modified like a normal list and the Pile widget
 will updated automatically.</p>
-<div class="admonition-see-also admonition seealso">
+<div class="admonition seealso">
 <p class="first admonition-title">See also</p>
 <p class="last">Create new options tuples with the <a class="reference internal" href="#urwid.Pile.options" title="urwid.Pile.options"><tt class="xref py py-meth docutils literal"><span class="pre">options()</span></tt></a> method</p>
 </div>
@@ -3278,7 +3277,7 @@ number is the number of screen columns to allocate to this cell.
 &#8216;fixed&#8217; is the only type accepted at this time.</p>
 <p>This list may be modified like a normal list and the GridFlow
 widget will update automatically.</p>
-<div class="admonition-see-also admonition seealso">
+<div class="admonition seealso">
 <p class="first admonition-title">See also</p>
 <p class="last">Create new options tuples with the <a class="reference internal" href="#urwid.GridFlow.options" title="urwid.GridFlow.options"><tt class="xref py py-meth docutils literal"><span class="pre">options()</span></tt></a> method.</p>
 </div>
@@ -3489,8 +3488,9 @@ always rendered the full size available &#8220;below&#8221; <em>top_w</em>.</p>
 <dt id="urwid.Overlay.contents">
 <tt class="descname">contents</tt><a class="headerlink" href="#urwid.Overlay.contents" title="Permalink to this definition">¶</a></dt>
 <dd><p>a list-like object similar to:</p>
-<div class="highlight-python"><pre>[(bottom_w, bottom_options)),
- (top_w, top_options)]</pre>
+<div class="highlight-python"><div class="highlight"><pre>[(bottom_w, bottom_options)),
+ (top_w, top_options)]
+</pre></div>
 </div>
 <p>This object may be used to read or update top and bottom widgets and
 top widgets&#8217;s options, but no widgets may be added or removed.</p>
@@ -3729,7 +3729,7 @@ can correspond to the BarGraph&#8217;s horizontal lines</p>
 
 <dl class="method">
 <dt id="urwid.GraphVScale.set_scale">
-<tt class="descname">set_scale</tt><big>(</big><span class="optional">[</span><em>(label1 position</em>, <em>label1 markup)</em>, <em>...</em><span class="optional">]</span>, <em>top</em><big>)</big><a class="headerlink" href="#urwid.GraphVScale.set_scale" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">set_scale</tt><big>(</big><span class="optional">[</span><em>(label1 position</em>, <em>label1 markup)</em>, <em>...</em>, <span class="optional">]</span><em>top</em><big>)</big><a class="headerlink" href="#urwid.GraphVScale.set_scale" title="Permalink to this definition">¶</a></dt>
 <dd><p>label position &#8211; 0 &lt; position &lt; top for the y position
 label markup &#8211; text markup for this label
 top &#8211; top y position</p>
@@ -3951,7 +3951,7 @@ out of the terminal widget. If it&#8217;s not specified, &#8220;ctrl a&#8221; is
     </div>
     <div class="footer">
         &copy; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
   </body>
 </html>

@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -60,32 +58,33 @@
 layout. The <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><tt class="xref py py-class docutils literal"><span class="pre">Text</span></tt></a> widget&#8217;s default layout class supports
 aligning text to the left, center or right, and can wrap text on space
 characters, at any location, or clip text that is off the edge.</p>
-<div class="highlight-python"><pre>Text("Showing some different alignment modes", align=...)
+<div class="highlight-python"><div class="highlight"><pre>Text(&quot;Showing some different alignment modes&quot;, align=...)
 
-align='left' (default)
+align=&#39;left&#39; (default)
 +----------------+   +------------------------+
 |Showing some    |   |Showing some different  |
 |different       |   |alignment modes         |
 |alignment modes |   +------------------------+
 +----------------+
 
-align='center'
+align=&#39;center&#39;
 +----------------+   +------------------------+
 |  Showing some  |   | Showing some different |
 |   different    |   |    alignment modes     |
 |alignment modes |   +------------------------+
 +----------------+
 
-align='right'
+align=&#39;right&#39;
 +----------------+   +------------------------+
 |    Showing some|   |  Showing some different|
 |       different|   |         alignment modes|
 | alignment modes|   +------------------------+
-+----------------+</pre>
++----------------+
+</pre></div>
 </div>
-<div class="highlight-python"><pre>Text("Showing some different wrapping modes\nnewline", wrap=...)
+<div class="highlight-python"><div class="highlight"><pre>Text(&quot;Showing some different wrapping modes\nnewline&quot;, wrap=...)
 
-wrap='space' (default)
+wrap=&#39;space&#39; (default)
 +----------------+   +------------------------+
 |Showing some    |   |Showing some different  |
 |different       |   |wrapping modes          |
@@ -93,7 +92,7 @@ wrap='space' (default)
 |newline         |   +------------------------+
 +----------------+
 
-wrap='any'
+wrap=&#39;any&#39;
 +----------------+   +------------------------+
 |Showing some dif|   |Showing some different w|
 |ferent wrapping |   |rapping modes           |
@@ -101,15 +100,16 @@ wrap='any'
 |newline         |   +------------------------+
 +----------------+
 
-wrap='clip'
+wrap=&#39;clip&#39;
 +----------------+   +------------------------+
 |Showing some dif|   |Showing some different w|
 |newline         |   |newline                 |
-+----------------+   +------------------------+</pre>
++----------------+   +------------------------+
+</pre></div>
 </div>
 <p>If this is good enough for your application feel free to skip the rest of this
 section.</p>
-<div class="admonition-see-also admonition seealso">
+<div class="admonition seealso">
 <p class="first admonition-title">See also</p>
 <p class="last"><a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><tt class="xref py py-class docutils literal"><span class="pre">Text</span> <span class="pre">widget</span> <span class="pre">reference</span></tt></a></p>
 </div>
@@ -122,21 +122,22 @@ setting the <tt class="xref py py-attr docutils literal"><span class="pre">Text.
 <p>A custom text layout class should extend the
 <a class="reference internal" href="../reference/text_layout.html#urwid.TextLayout" title="urwid.TextLayout"><tt class="xref py py-class docutils literal"><span class="pre">TextLayout</span></tt></a> base class and return text layout
 structures from its <tt class="docutils literal"><span class="pre">layout()</span></tt> method.</p>
-<div class="admonition-see-also admonition seealso">
+<div class="admonition seealso">
 <p class="first admonition-title">See also</p>
 <p class="last"><a class="reference internal" href="../reference/text_layout.html#urwid.TextLayout" title="urwid.TextLayout"><tt class="xref py py-class docutils literal"><span class="pre">TextLayout</span> <span class="pre">reference</span></tt></a></p>
 </div>
 </div>
 <div class="section" id="text-layout-structures">
 <h2>Text Layout Structures<a class="headerlink" href="#text-layout-structures" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><pre>"This is how a string of text might be displayed"
+<div class="highlight-python"><div class="highlight"><pre>&quot;This is how a string of text might be displayed&quot;
 0----5---10---15---20---25---30---35---40---45--
 
 0----5---10---15---+   right_aligned_text_layout = [
 |     This is how a|     [(5, 0), (13, 0, 13)],
 |    string of text|     [(4, 13), (14, 14, 28)],
 |might be displayed|     [(18, 29, 47)]
-+------------------+   ]</pre>
++------------------+   ]
+</pre></div>
 </div>
 <p>The mapping from a text string to where that text will be displayed in the
 widget is expressed as a text layout structure.</p>
@@ -162,7 +163,7 @@ correspond to an offset within the text, that may be specified.</p>
 split words or any other effect not covered by A or B. The
 <a class="reference internal" href="../reference/text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><tt class="xref py py-class docutils literal"><span class="pre">StandardTextLayout</span></tt></a> does not currently use this
 tuple in its line layouts.</p>
-<div class="admonition-see-also admonition seealso">
+<div class="admonition seealso">
 <p class="first admonition-title">See also</p>
 <p class="last"><a class="reference internal" href="../reference/text_layout.html#urwid.TextLayout" title="urwid.TextLayout"><tt class="xref py py-class docutils literal"><span class="pre">TextLayout</span> <span class="pre">reference</span></tt></a>,
 <a class="reference internal" href="../reference/text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><tt class="xref py py-class docutils literal"><span class="pre">StandardTextLayout</span> <span class="pre">reference</span></tt></a></p>
@@ -234,7 +235,7 @@ tuple in its line layouts.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
     </div>
   </body>
 </html>
