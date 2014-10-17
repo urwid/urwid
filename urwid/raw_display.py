@@ -75,7 +75,8 @@ class Screen(BaseScreen, RealTerminal):
         self._rows_used = None
         self._cy = 0
         term = os.environ.get('TERM', '')
-        self.bright_is_bold = not term.startswith("xterm")
+        self.fg_bright_is_bold = not term.startswith("xterm")
+        self.bg_bright_is_blink = (term == "linux")
         self.back_color_erase = not term.startswith("screen")
         self._next_timeout = None
 
@@ -916,7 +917,7 @@ class Screen(BaseScreen, RealTerminal):
             fg = "38;5;%d" % a.foreground_number
         elif a.foreground_basic:
             if a.foreground_number > 7:
-                if self.bright_is_bold:
+                if self.fg_bright_is_bold:
                     fg = "1;%d" % (a.foreground_number - 8 + 30)
                 else:
                     fg = "%d" % (a.foreground_number - 8 + 90)
@@ -930,8 +931,11 @@ class Screen(BaseScreen, RealTerminal):
             bg = "48;5;%d" % a.background_number
         elif a.background_basic:
             if a.background_number > 7:
-                # this doesn't work on most terminals
-                bg = "%d" % (a.background_number - 8 + 100)
+                if self.bg_bright_is_blink:
+                    bg = "5;%d" % (a.background_number - 8 + 40)
+                else:
+                    # this doesn't work on most terminals
+                    bg = "%d" % (a.background_number + 100)
             else:
                 bg = "%d" % (a.background_number + 40)
         else:
@@ -955,16 +959,16 @@ class Screen(BaseScreen, RealTerminal):
         if colors is None:
             colors = self.colors
         if bright_is_bold is None:
-            bright_is_bold = self.bright_is_bold
+            bright_is_bold = self.fg_bright_is_bold
         if has_underline is None:
             has_underline = self.has_underline
 
-        if colors == self.colors and bright_is_bold == self.bright_is_bold \
+        if colors == self.colors and bright_is_bold == self.fg_bright_is_bold \
             and has_underline == self.has_underline:
             return
 
         self.colors = colors
-        self.bright_is_bold = bright_is_bold
+        self.fg_bright_is_bold = bright_is_bold
         self.has_underline = has_underline
 
         self.clear()
