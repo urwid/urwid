@@ -342,14 +342,18 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
                 if self.v_sep:
                     p.contents.append((divider, p.options()))
                 c = Columns([], self.h_sep)
+                column_focused = False
                 pad = Padding(c, self.align)
                 # extra attribute to reference contents position
                 pad.first_position = i
                 p.contents.append((pad, p.options()))
 
             c.contents.append((w, c.options(GIVEN, width_amount)))
-            if i == self.focus_position:
+            if ((i == self.focus_position) or
+                (not column_focused and w.selectable())):
                 c.focus_position = len(c.contents) - 1
+                column_focused = True
+            if i == self.focus_position:
                 p.focus_position = len(p.contents) - 1
             used_space = (sum(x[1][1] for x in c.contents) +
                 self.h_sep * len(c.contents))
