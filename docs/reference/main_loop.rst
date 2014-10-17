@@ -28,3 +28,7 @@ TornadoEventLoop
 
 .. autoclass:: TornadoEventLoop
 
+AsyncioEventLoop
+----------------
+
+.. autoclass:: AsyncioEventLoop
