@@ -59,7 +59,7 @@ Event Loops
 
 Urwid's event loop classes handle waiting for things for the
 :class:`MainLoop`. The different event loops allow you to
-integrate with Twisted_, Glib_, Tornado_ libraries,
+integrate with Twisted_, Glib_, Tornado_, Asyncio_ libraries,
 or use a simple ``select``-based
 loop. Event loop classes abstract the particulars of waiting for input and
 calling functions as a result of timeouts.
@@ -76,6 +76,7 @@ Tornado_ callbacks.
 .. _Twisted: http://twistedmatrix.com/trac/
 .. _Glib: http://developer.gnome.org/glib/stable/
 .. _Tornado: http://www.tornadoweb.org/
+.. _Asyncio: https://docs.python.org/3/library/asyncio.html
 
 ``SelectEventLoop``
 -------------------
@@ -137,4 +138,22 @@ This event loop integrates with Tornado.
 
 .. seealso::
 
-  :class`TornadoEventLoop reference <TornadoEventLoop>`
+  :class:`TornadoEventLoop reference <TornadoEventLoop>`
+
+``AsyncioEventLoop``
+--------------------
+
+This event loop integrates with the asyncio module in Python 3.4,
+the asyncio package available for Python 3.2+ or the trollius
+package available for Python 2.
+
+::
+
+    import asyncio
+    evl = urwid.AsyncioEventLoop(loop=asyncio.get_event_loop())
+    loop = urwid.MainLoop(widget, event_loop=evl)
+
+.. seealso::
+
+  :class:`AsyncioEventLoop reference <AsyncioEventLoop>`
+
