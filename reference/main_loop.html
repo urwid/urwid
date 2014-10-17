@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>MainLoop and Event Loops &mdash; Urwid 1.2.2</title>
+    <title>MainLoop and Event Loops &mdash; Urwid 1.3.0</title>
     
     <link rel="stylesheet" href="../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '1.2.2',
+        VERSION:     '1.3.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/sidebar.js"></script>
-    <link rel="top" title="Urwid 1.2.2" href="../index.html" />
+    <link rel="top" title="Urwid 1.3.0" href="../index.html" />
     <link rel="up" title="Urwid Reference" href="index.html" />
     <link rel="next" title="Widget Classes" href="widget.html" />
     <link rel="prev" title="Urwid Reference" href="index.html" /> 
@@ -42,7 +42,7 @@
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.2.2</a> &raquo;</li>
+        <li><a href="../index.html">Urwid 1.3.0</a> &raquo;</li>
           <li><a href="index.html" accesskey="U">Urwid Reference</a> &raquo;</li> 
       </ul>
     </div>  
@@ -166,8 +166,9 @@ the pipe.</p>
 <tt class="descname">run</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.MainLoop.run" title="Permalink to this definition">¶</a></dt>
 <dd><p>Start the main loop handling input events and updating the screen. The
 loop will continue until an <a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><tt class="xref py py-exc docutils literal"><span class="pre">ExitMainLoop</span></tt></a> exception is raised.</p>
-<p>This method will use <a class="reference internal" href="#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><tt class="xref py py-attr docutils literal"><span class="pre">screen</span></tt></a>&#8216;s run_wrapper() method if
-<a class="reference internal" href="#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><tt class="xref py py-attr docutils literal"><span class="pre">screen</span></tt></a>&#8216;s start() method has not already been called.</p>
+<p>If you would prefer to manage the event loop yourself, don&#8217;t use this
+method.  Instead, call <a class="reference internal" href="#urwid.MainLoop.start" title="urwid.MainLoop.start"><tt class="xref py py-meth docutils literal"><span class="pre">start()</span></tt></a> before starting the event loop,
+and <a class="reference internal" href="#urwid.MainLoop.stop" title="urwid.MainLoop.stop"><tt class="xref py py-meth docutils literal"><span class="pre">stop()</span></tt></a> once it&#8217;s finished.</p>
 </dd></dl>
 
 <dl class="method">
@@ -209,6 +210,34 @@ object and <em>user_data</em></li>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.MainLoop.start">
+<tt class="descname">start</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.MainLoop.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets up the main loop, hooking into the event loop where necessary.
+Starts the <a class="reference internal" href="#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><tt class="xref py py-attr docutils literal"><span class="pre">screen</span></tt></a> if it hasn&#8217;t already been started.</p>
+<p>If you want to control starting and stopping the event loop yourself,
+you should call this method before starting, and call <cite>stop</cite> once the
+loop has finished.  You may also use this method as a context manager,
+which will stop the loop automatically at the end of the block:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>with main_loop.start():</dt>
+<dd>...</dd>
+</dl>
+</div></blockquote>
+<p>Note that some event loop implementations don&#8217;t handle exceptions
+specially if you manage the event loop yourself.  In particular, the
+Twisted and asyncio loops won&#8217;t stop automatically when
+<a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><tt class="xref py py-exc docutils literal"><span class="pre">ExitMainLoop</span></tt></a> (or anything else) is raised.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.MainLoop.stop">
+<tt class="descname">stop</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.MainLoop.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cleans up any hooks added to the event loop.  Only call this if you&#8217;re
+managing the event loop yourself, after the loop stops.</p>
 </dd></dl>
 
 <dl class="method">
@@ -281,7 +310,7 @@ This must be a box widget.</p>
 <dl class="method">
 <dt id="urwid.SelectEventLoop.alarm">
 <tt class="descname">alarm</tt><big>(</big><em>seconds</em>, <em>callback</em><big>)</big><a class="headerlink" href="#urwid.SelectEventLoop.alarm" title="Permalink to this definition">¶</a></dt>
-<dd><p>Call callback() given time from from now.  No parameters are
+<dd><p>Call callback() a given time from now.  No parameters are
 passed to callback.</p>
 <p>Returns a handle that may be passed to remove_alarm()</p>
 <p>seconds &#8211; floating point time to wait before calling callback
@@ -345,7 +374,7 @@ callback &#8211; function to call when input is available</p>
 <dl class="method">
 <dt id="urwid.GLibEventLoop.alarm">
 <tt class="descname">alarm</tt><big>(</big><em>seconds</em>, <em>callback</em><big>)</big><a class="headerlink" href="#urwid.GLibEventLoop.alarm" title="Permalink to this definition">¶</a></dt>
-<dd><p>Call callback() given time from from now.  No parameters are
+<dd><p>Call callback() a given time from now.  No parameters are
 passed to callback.</p>
 <p>Returns a handle that may be passed to remove_alarm()</p>
 <p>seconds &#8211; floating point time to wait before calling callback
@@ -429,15 +458,18 @@ and stop the reactor.</td>
 </table>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
-<p class="last">Twisted&#8217;s reactor doesn&#8217;t like to be stopped and run again.  If you
+<p>Twisted&#8217;s reactor doesn&#8217;t like to be stopped and run again.  If you
 need to stop and run your <a class="reference internal" href="#urwid.MainLoop" title="urwid.MainLoop"><tt class="xref py py-class docutils literal"><span class="pre">MainLoop</span></tt></a>, consider setting
 <tt class="docutils literal"><span class="pre">manage_reactor=False</span></tt> and take care of running/stopping the reactor
 at the beginning/ending of your program yourself.</p>
+<p class="last">You can also forego using <a class="reference internal" href="#urwid.MainLoop" title="urwid.MainLoop"><tt class="xref py py-class docutils literal"><span class="pre">MainLoop</span></tt></a>&#8216;s run() entirely, and
+instead call start() and stop() before and after starting the
+reactor.</p>
 </div>
 <dl class="method">
 <dt id="urwid.TwistedEventLoop.alarm">
 <tt class="descname">alarm</tt><big>(</big><em>seconds</em>, <em>callback</em><big>)</big><a class="headerlink" href="#urwid.TwistedEventLoop.alarm" title="Permalink to this definition">¶</a></dt>
-<dd><p>Call callback() given time from from now.  No parameters are
+<dd><p>Call callback() a given time from now.  No parameters are
 passed to callback.</p>
 <p>Returns a handle that may be passed to remove_alarm()</p>
 <p>seconds &#8211; floating point time to wait before calling callback
@@ -523,6 +555,73 @@ in order to detect idle periods and call Urwid callbacks</p>
 </dd></dl>
 
 </div>
+<div class="section" id="asyncioeventloop">
+<h2>AsyncioEventLoop<a class="headerlink" href="#asyncioeventloop" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="urwid.AsyncioEventLoop">
+<em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">AsyncioEventLoop</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#urwid.AsyncioEventLoop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Event loop based on the standard library <tt class="docutils literal"><span class="pre">asyncio</span></tt> module.</p>
+<p><tt class="docutils literal"><span class="pre">asyncio</span></tt> is new in Python 3.4, but also exists as a backport on PyPI for
+Python 3.3.  The <tt class="docutils literal"><span class="pre">trollius</span></tt> package is available for older Pythons with
+slightly different syntax, but also works with this loop.</p>
+<dl class="method">
+<dt id="urwid.AsyncioEventLoop.alarm">
+<tt class="descname">alarm</tt><big>(</big><em>seconds</em>, <em>callback</em><big>)</big><a class="headerlink" href="#urwid.AsyncioEventLoop.alarm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call callback() a given time from now.  No parameters are
+passed to callback.</p>
+<p>Returns a handle that may be passed to remove_alarm()</p>
+<p>seconds &#8211; time in seconds to wait before calling callback
+callback &#8211; function to call from event loop</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.AsyncioEventLoop.enter_idle">
+<tt class="descname">enter_idle</tt><big>(</big><em>callback</em><big>)</big><a class="headerlink" href="#urwid.AsyncioEventLoop.enter_idle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a callback for entering idle.</p>
+<p>Returns a handle that may be passed to remove_idle()</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.AsyncioEventLoop.remove_alarm">
+<tt class="descname">remove_alarm</tt><big>(</big><em>handle</em><big>)</big><a class="headerlink" href="#urwid.AsyncioEventLoop.remove_alarm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove an alarm.</p>
+<p>Returns True if the alarm exists, False otherwise</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.AsyncioEventLoop.remove_enter_idle">
+<tt class="descname">remove_enter_idle</tt><big>(</big><em>handle</em><big>)</big><a class="headerlink" href="#urwid.AsyncioEventLoop.remove_enter_idle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove an idle callback.</p>
+<p>Returns True if the handle was removed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.AsyncioEventLoop.remove_watch_file">
+<tt class="descname">remove_watch_file</tt><big>(</big><em>handle</em><big>)</big><a class="headerlink" href="#urwid.AsyncioEventLoop.remove_watch_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove an input file.</p>
+<p>Returns True if the input file exists, False otherwise</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.AsyncioEventLoop.run">
+<tt class="descname">run</tt><big>(</big><big>)</big><a class="headerlink" href="#urwid.AsyncioEventLoop.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start the event loop.  Exit the loop when any callback raises
+an exception.  If ExitMainLoop is raised, exit cleanly.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.AsyncioEventLoop.watch_file">
+<tt class="descname">watch_file</tt><big>(</big><em>fd</em>, <em>callback</em><big>)</big><a class="headerlink" href="#urwid.AsyncioEventLoop.watch_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call callback() when fd has some data to read.  No parameters
+are passed to callback.</p>
+<p>Returns a handle that may be passed to remove_watch_file()</p>
+<p>fd &#8211; file descriptor to watch for input
+callback &#8211; function to call when input is available</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 </div>
 
 
@@ -541,6 +640,7 @@ in order to detect idle periods and call Urwid callbacks</p>
 <li><a class="reference internal" href="#glibeventloop">GLibEventLoop</a></li>
 <li><a class="reference internal" href="#twistedeventloop">TwistedEventLoop</a></li>
 <li><a class="reference internal" href="#tornadoeventloop">TornadoEventLoop</a></li>
+<li><a class="reference internal" href="#asyncioeventloop">AsyncioEventLoop</a></li>
 </ul>
 </li>
 </ul>
@@ -586,7 +686,7 @@ in order to detect idle periods and call Urwid callbacks</p>
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              >previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.2.2</a> &raquo;</li>
+        <li><a href="../index.html">Urwid 1.3.0</a> &raquo;</li>
           <li><a href="index.html" >Urwid Reference</a> &raquo;</li> 
       </ul>
     </div>

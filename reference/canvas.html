@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Canvas Classes and Functions &mdash; Urwid 1.2.2</title>
+    <title>Canvas Classes and Functions &mdash; Urwid 1.3.0</title>
     
     <link rel="stylesheet" href="../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '1.2.2',
+        VERSION:     '1.3.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/sidebar.js"></script>
-    <link rel="top" title="Urwid 1.2.2" href="../index.html" />
+    <link rel="top" title="Urwid 1.3.0" href="../index.html" />
     <link rel="up" title="Urwid Reference" href="index.html" />
     <link rel="next" title="Text Layout Classes" href="text_layout.html" />
     <link rel="prev" title="Raw Display Attributes" href="attrspec.html" /> 
@@ -42,7 +42,7 @@
         <li class="right" >
           <a href="attrspec.html" title="Raw Display Attributes"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.2.2</a> &raquo;</li>
+        <li><a href="../index.html">Urwid 1.3.0</a> &raquo;</li>
           <li><a href="index.html" accesskey="U">Urwid Reference</a> &raquo;</li> 
       </ul>
     </div>  
@@ -135,7 +135,7 @@ check_width &#8211; check and fix width of all lines in text</p>
 <tt class="descname">content</tt><big>(</big><em>trim_left=0</em>, <em>trim_top=0</em>, <em>cols=None</em>, <em>rows=None</em>, <em>attr_map=None</em><big>)</big><a class="headerlink" href="#urwid.TextCanvas.content" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the canvas content as a list of rows where each row
 is a list of (attr, cs, text) tuples.</p>
-<p>trim_left, trim_top, cols, rows may be set by 
+<p>trim_left, trim_top, cols, rows may be set by
 CompositeCanvas when rendering a partially obscured
 canvas.</p>
 </dd></dl>
@@ -144,8 +144,8 @@ canvas.</p>
 <dt id="urwid.TextCanvas.content_delta">
 <tt class="descname">content_delta</tt><big>(</big><em>other</em><big>)</big><a class="headerlink" href="#urwid.TextCanvas.content_delta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the differences between other and this canvas.</p>
-<p>If other is the same object as self this will return no 
-differences, otherwise this is the same as calling 
+<p>If other is the same object as self this will return no
+differences, otherwise this is the same as calling
 content().</p>
 </dd></dl>
 
@@ -333,12 +333,12 @@ will be padded on the right.</dd>
 <dt id="urwid.CanvasCache">
 <em class="property">class </em><tt class="descclassname">urwid.</tt><tt class="descname">CanvasCache</tt><a class="headerlink" href="#urwid.CanvasCache" title="Permalink to this definition">¶</a></dt>
 <dd><p>Cache for rendered canvases.  Automatically populated and
-accessed by Widget render() MetaClass magic, cleared by 
+accessed by Widget render() MetaClass magic, cleared by
 Widget._invalidate().</p>
 <p>Stores weakrefs to the canvas objects, so an external class
 must maintain a reference for this cache to be effective.
-At present the Screen classes store the last topmost canvas 
-after redrawing the screen, keeping the canvases from being 
+At present the Screen classes store the last topmost canvas
+after redrawing the screen, keeping the canvases from being
 garbage collected.</p>
 <p>_widgets[widget] = {(wcls, size, focus): weakref.ref(canvas), ...}
 _refs[weakref.ref(canvas)] = (widget, wcls, size, focus)
@@ -436,7 +436,7 @@ canvas &#8211; rendered canvas with widget_info (widget, size, focus)</p>
         <li class="right" >
           <a href="attrspec.html" title="Raw Display Attributes"
              >previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.2.2</a> &raquo;</li>
+        <li><a href="../index.html">Urwid 1.3.0</a> &raquo;</li>
           <li><a href="index.html" >Urwid Reference</a> &raquo;</li> 
       </ul>
     </div>

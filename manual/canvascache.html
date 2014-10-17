@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Canvas Cache &mdash; Urwid 1.2.2</title>
+    <title>Canvas Cache &mdash; Urwid 1.3.0</title>
     
     <link rel="stylesheet" href="../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '1.2.2',
+        VERSION:     '1.3.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/sidebar.js"></script>
-    <link rel="top" title="Urwid 1.2.2" href="../index.html" />
+    <link rel="top" title="Urwid 1.3.0" href="../index.html" />
     <link rel="up" title="Urwid Manual" href="index.html" />
     <link rel="next" title="Urwid Reference" href="../reference/index.html" />
     <link rel="prev" title="Display Attributes" href="displayattributes.html" /> 
@@ -42,7 +42,7 @@
         <li class="right" >
           <a href="displayattributes.html" title="Display Attributes"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.2.2</a> &raquo;</li>
+        <li><a href="../index.html">Urwid 1.3.0</a> &raquo;</li>
           <li><a href="index.html" accesskey="U">Urwid Manual</a> &raquo;</li> 
       </ul>
     </div>  
@@ -59,7 +59,7 @@ the screen actually needs to be updated. A canvas cache is used to store
 visible, unchanged canvases so that not all of the visible widgets need to be
 rendered for each update.</p>
 <p>The <a class="reference internal" href="../reference/widget.html#urwid.Widget" title="urwid.Widget"><tt class="xref py py-class docutils literal"><span class="pre">Widget</span></tt></a> base class uses some metaclass magic to
-capture the canvas objects returned <a class="reference internal" href="../reference/widget.html#urwid.Widget.render" title="urwid.Widget.render"><tt class="xref py py-meth docutils literal"><span class="pre">Widget.render()</span></tt></a> is called and return
+capture the canvas objects returned when <a class="reference internal" href="../reference/widget.html#urwid.Widget.render" title="urwid.Widget.render"><tt class="xref py py-meth docutils literal"><span class="pre">Widget.render()</span></tt></a> is called and return
 them the next time <a class="reference internal" href="../reference/widget.html#urwid.Widget.render" title="urwid.Widget.render"><tt class="xref py py-meth docutils literal"><span class="pre">Widget.render()</span></tt></a> is called again with the same parameters. The
 <a class="reference internal" href="../reference/widget.html#urwid.Widget._invalidate" title="urwid.Widget._invalidate"><tt class="xref py py-meth docutils literal"><span class="pre">Widget._invalidate()</span></tt></a> method is provided as a way to remove cached widgets so
 that changes to the widget are visible the next time the screen is redrawn.</p>
@@ -70,7 +70,7 @@ canvas are returned instead of calling the widget&#8217;s actual <a class="refer
 <h2>Composite Canvases<a class="headerlink" href="#composite-canvases" title="Permalink to this headline">¶</a></h2>
 <p>When container and decoration widgets are rendered, they collect the canvases
 returned by their children and arrange them into a composite canvas. Composite
-canvases may are nested to form a tree with the topmost widget&#8217;s <a class="reference internal" href="../reference/widget.html#urwid.Widget.render" title="urwid.Widget.render"><tt class="xref py py-meth docutils literal"><span class="pre">Widget.render()</span></tt></a>
+canvases are nested to form a tree with the topmost widget&#8217;s <a class="reference internal" href="../reference/widget.html#urwid.Widget.render" title="urwid.Widget.render"><tt class="xref py py-meth docutils literal"><span class="pre">Widget.render()</span></tt></a>
 method returning the root of the tree. That canvas is sent to the display
 module to be rendered on the screen.</p>
 <p>Composite canvases reference the content and layout from their children,
@@ -161,7 +161,7 @@ optimizations.</p>
         <li class="right" >
           <a href="displayattributes.html" title="Display Attributes"
              >previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.2.2</a> &raquo;</li>
+        <li><a href="../index.html">Urwid 1.3.0</a> &raquo;</li>
           <li><a href="index.html" >Urwid Manual</a> &raquo;</li> 
       </ul>
     </div>
