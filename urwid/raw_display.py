@@ -935,7 +935,7 @@ class Screen(BaseScreen, RealTerminal):
                     bg = "5;%d" % (a.background_number - 8 + 40)
                 else:
                     # this doesn't work on most terminals
-                    bg = "%d" % (a.background_number + 100)
+                    bg = "%d" % (a.background_number - 8 + 100)
             else:
                 bg = "%d" % (a.background_number + 40)
         else:
