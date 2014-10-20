@@ -1033,7 +1033,7 @@ class TwistedEventLoop(object):
     """
     Event loop based on Twisted_
     """
-    _idle_emulation_delay = 1.0/256 # a short time (in seconds)
+    _idle_emulation_delay = 1.0/60  # a short time (in seconds)
 
     def __init__(self, reactor=None, manage_reactor=True):
         """
@@ -1219,7 +1219,7 @@ class AsyncioEventLoop(object):
     """
     _we_started_event_loop = False
 
-    _idle_emulation_delay = 1.0/256  # a short time (in seconds)
+    _idle_emulation_delay = 1.0/60  # a short time (in seconds)
 
     def __init__(self, **kwargs):
         if 'loop' in kwargs:
