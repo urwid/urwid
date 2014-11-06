@@ -81,56 +81,6 @@ class ListWalker(object):
             return None, None
 
 
-class PollingListWalker(object):  # NOT ListWalker subclass
-    def __init__(self, contents):
-        """
-        contents -- list to poll for changes
-
-        This class is deprecated.  Use SimpleFocusListWalker instead.
-        """
-        import warnings
-        warnings.warn("PollingListWalker is deprecated, "
-            "use SimpleFocusListWalker instead.", DeprecationWarning)
-
-        self.contents = contents
-        if not getattr(contents, '__getitem__', None):
-            raise ListWalkerError("PollingListWalker expecting list like "
-                "object, got: %r" % (contents,))
-        self.focus = 0
-
-    def _clamp_focus(self):
-        if self.focus >= len(self.contents):
-            self.focus = len(self.contents)-1
-
-    def get_focus(self):
-        """Return (focus widget, focus position)."""
-        if len(self.contents) == 0: return None, None
-        self._clamp_focus()
-        return self.contents[self.focus], self.focus
-
-    def set_focus(self, position):
-        """Set focus position."""
-        # this class is deprecated, otherwise I might have fixed this:
-        assert type(position) == int
-        self.focus = position
-
-    def get_next(self, start_from):
-        """
-        Return (widget after start_from, position after start_from).
-        """
-        pos = start_from + 1
-        if len(self.contents) <= pos: return None, None
-        return self.contents[pos],pos
-
-    def get_prev(self, start_from):
-        """
-        Return (widget before start_from, position before start_from).
-        """
-        pos = start_from - 1
-        if pos < 0: return None, None
-        return self.contents[pos],pos
-
-
 class SimpleListWalker(MonitoredList, ListWalker):
     def __init__(self, contents):
         """
@@ -278,11 +228,10 @@ class ListBox(Widget, WidgetContainerMixin):
             widgets to be displayed inside the list box
         :type body: ListWalker
         """
-        if getattr(body, 'get_focus', None):
-            self.body = body
-        else:
-            self.body = PollingListWalker(body)
+        if not isinstance(body, ListWalker):
+            raise ListBoxError, "ListBox needs a ListWalker object, e.g. SimpleListWalker (plain lists are not supported anymore)"
 
+        self.body = body
         try:
             connect_signal(self.body, "modified", self._invalidate)
         except NameError:
