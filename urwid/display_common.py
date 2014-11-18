@@ -647,9 +647,7 @@ class AttrSpec(object):
             return vals + _COLOR_VALUES_256[self.background_number]
 
     def __eq__(self, other):
-        return isinstance(other, AttrSpec) \
-            and self.foreground == other.foreground \
-            and self.background == other.background
+        return isinstance(other, AttrSpec) and self._value == other._value
 
     def __ne__(self, other):
         return not self == other
