@@ -646,6 +646,12 @@ class AttrSpec(object):
         else:
             return vals + _COLOR_VALUES_256[self.background_number]
 
+    def __eq__(self, other):
+        return self.foreground == other.foreground and \
+               self.background == other.background
+
+    def __ne__(self, other):
+        return not self == other
 
 
 class RealTerminal(object):
