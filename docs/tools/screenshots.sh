@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 
 # $1: python script to run
 # urxvt, xdotool and import are required to run this script
@@ -19,8 +19,9 @@ image=${1%.py}
 c=1
 while read -r line; do
 	# the echo trick is needed to expand RXVTWINDOWID variable
-	echo $line | xdotool -
 	echo "sending $line"
+	echo $line | xdotool -
+	sleep 1.0
 	import -window "$RXVTWINDOWID" "${image}$c.png"
 	(( c++ ))
 done
