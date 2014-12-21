@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Generic TreeWidget/TreeWalker class
 #    Copyright (c) 2010  Rob Lanphier

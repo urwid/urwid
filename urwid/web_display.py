@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Urwid web (CGI/Asynchronous Javascript) display module
 #    Copyright (C) 2004-2007  Ian Ward

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Urwid terminal emulation widget
 #    Copyright (C) 2010  aszlig

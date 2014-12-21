@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Urwid html fragment output wrapper for "screen shots"
 #    Copyright (C) 2004-2007  Ian Ward

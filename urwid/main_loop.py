@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Urwid main loop code
 #    Copyright (C) 2004-2012  Ian Ward

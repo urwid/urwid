@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Urwid Text Layout classes
 #    Copyright (C) 2004-2011  Ian Ward

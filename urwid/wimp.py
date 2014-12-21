@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Urwid Window-Icon-Menu-Pointer-style widget classes
 #    Copyright (C) 2004-2011  Ian Ward

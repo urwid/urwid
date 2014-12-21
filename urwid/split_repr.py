@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Urwid split_repr helper functions
 #    Copyright (C) 2004-2011  Ian Ward

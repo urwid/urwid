@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Urwid raw display module
 #    Copyright (C) 2004-2009  Ian Ward
