@@ -9,7 +9,7 @@
 Urwid is a console user interface library for Python.
 It includes many features useful for text console application developers including:
 
-- Applcations resize quickly and smoothly
+- Applications resize quickly and smoothly
 - Automatic, programmable text alignment and wrapping
 - Simple markup for setting text attributes within blocks of text
 - Powerful list box with programmable content for scrolling all widget types
