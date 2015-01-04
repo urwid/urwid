@@ -40,7 +40,7 @@
 #endif
 
 static int widths_len = 2*38;
-static const long int widths[] = {
+static const int widths[] = {
     126, 1,
     159, 0,
     687, 1,
@@ -709,7 +709,7 @@ static PyObject * calc_width(PyObject *self, PyObject *args)
 {
     PyObject *text;
     int start_offs, end_offs;
-    int ret;
+    long ret;
 
     if (!PyArg_ParseTuple(args, "Oii", &text, &start_offs, &end_offs))
         return NULL; 
@@ -717,8 +717,8 @@ static PyObject * calc_width(PyObject *self, PyObject *args)
     ret = Py_CalcWidth(text, start_offs, end_offs);
     if (ret==-1) //an error occured
         return NULL;
-            
-    return Py_BuildValue("i", ret);
+
+    return Py_BuildValue("l", ret);
 }
 
 
