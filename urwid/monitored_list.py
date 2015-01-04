@@ -80,6 +80,8 @@ class MonitoredList(list):
     remove = _call_modified(list.remove)
     reverse = _call_modified(list.reverse)
     sort = _call_modified(list.sort)
+    if hasattr(list, 'clear'):
+        clear = _call_modified(list.clear)
 
 
 class MonitoredFocusList(MonitoredList):
@@ -473,6 +475,13 @@ class MonitoredFocusList(MonitoredList):
         rval = super(MonitoredFocusList, self).sort(**kwargs)
         self._set_focus(self.index(value))
         return rval
+
+    if hasattr(list, 'clear'):
+        def clear(self):
+            focus = self._adjust_focus_on_contents_modified(slice(0, 0))
+            rval = super(MonitoredFocusList, self).clear()
+            self._set_focus(focus)
+            return rval
 
 
 
