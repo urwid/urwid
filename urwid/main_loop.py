@@ -365,15 +365,14 @@ class MainLoop(object):
 
     def _run(self):
         try:
-            self.start()
-        except CantUseExternalLoop:
             try:
+                self.start()
+            except CantUseExternalLoop:
                 return self._run_screen_event_loop()
-            finally:
-                self.screen.stop()
-
-        self.event_loop.run()
-        self.stop()
+            else:
+                return self.event_loop.run()
+        finally:
+            self.screen.stop()
 
     def _update(self, keys, raw):
         """
