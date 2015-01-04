@@ -372,7 +372,11 @@ class MainLoop(object):
             finally:
                 self.screen.stop()
 
-        self.event_loop.run()
+        try:
+            self.event_loop.run()
+        except Exception as e:
+            self.screen.stop() # clean up screen control
+            raise e
         self.stop()
 
     def _update(self, keys, raw):
