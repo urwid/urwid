@@ -201,8 +201,8 @@ class SimpleListWalker(MonitoredList, ListWalker):
         """
         import six
         if reverse:
-            return six.xrange(len(self) - 1, -1, -1)
-        return six.xrange(len(self))
+            return six.moves.xrange(len(self) - 1, -1, -1)
+        return six.moves.xrange(len(self))
 
 
 class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
@@ -259,8 +259,8 @@ class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
         """
         import six
         if reverse:
-            return six.xrange(len(self) - 1, -1, -1)
-        return six.xrange(len(self))
+            return six.moves.xrange(len(self) - 1, -1, -1)
+        return six.moves.xrange(len(self))
 
 
 class ListBoxError(Exception):

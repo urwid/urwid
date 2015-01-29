@@ -114,7 +114,7 @@ class WidgetContainerListContentsMixin(object):
         to last.
         """
         import six
-        return six.xrange(len(self.contents))
+        return six.moves.xrange(len(self.contents))
 
     def __reversed__(self):
         """
@@ -122,7 +122,7 @@ class WidgetContainerListContentsMixin(object):
         to first.
         """
         import six
-        return six.xrange(len(self.contents) - 1, -1, -1)
+        return six.moves.xrange(len(self.contents) - 1, -1, -1)
 
 
 class GridFlowError(Exception):

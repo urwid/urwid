@@ -158,8 +158,8 @@ class Screen(BaseScreen, RealTerminal):
         if not self.has_color:
             return
 
-        for fg in six.xrange(8):
-            for bg in six.xrange(8):
+        for fg in six.moves.xrange(8):
+            for bg in six.moves.xrange(8):
                 # leave out white on black
                 if fg == curses.COLOR_WHITE and \
                    bg == curses.COLOR_BLACK:
