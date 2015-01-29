@@ -154,11 +154,12 @@ class Screen(BaseScreen, RealTerminal):
         So to get a color, we just need to use that term and get the right color
         pair number.
         """
+        import six
         if not self.has_color:
             return
 
-        for fg in xrange(8):
-            for bg in xrange(8):
+        for fg in six.xrange(8):
+            for bg in six.xrange(8):
                 # leave out white on black
                 if fg == curses.COLOR_WHITE and \
                    bg == curses.COLOR_BLACK:

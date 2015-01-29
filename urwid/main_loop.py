@@ -846,9 +846,10 @@ class GLibEventLoop(object):
                 self._loop.quit()
         if self._exc_info:
             # An exception caused us to exit, raise it now
+            import six
             exc_info = self._exc_info
             self._exc_info = None
-            raise exc_info[0], exc_info[1], exc_info[2]
+            six.reraise(*exc_info)
 
     def handle_exit(self,f):
         """
@@ -1181,9 +1182,10 @@ class TwistedEventLoop(object):
         self.reactor.run()
         if self._exc_info:
             # An exception caused us to exit, raise it now
+            import six
             exc_info = self._exc_info
             self._exc_info = None
-            raise exc_info[0], exc_info[1], exc_info[2]
+            six.reraise(*exc_info)
 
     def handle_exit(self, f, enable_idle=True):
         """
@@ -1203,7 +1205,7 @@ class TwistedEventLoop(object):
                     self.reactor.stop()
             except:
                 import sys
-                print sys.exc_info()
+                print (sys.exc_info())
                 self._exc_info = sys.exc_info()
                 if self.manage_reactor:
                     self.reactor.crash()
@@ -1325,7 +1327,8 @@ class AsyncioEventLoop(object):
         self._loop.set_exception_handler(self._exception_handler)
         self._loop.run_forever()
         if self._exc_info:
-            raise self._exc_info[0], self._exc_info[1], self._exc_info[2]
+            import six
+            six.reraise(*self._exc_info)
             self._exc_info = None
 
 
@@ -1354,7 +1357,7 @@ def _refl(name, rval=None, exit=False):
             if args and argd:
                 args = args + ", "
             args = args + ", ".join([k+"="+repr(v) for k,v in argd.items()])
-            print self._name+"("+args+")"
+            print (self._name+"("+args+")")
             if exit:
                 raise ExitMainLoop()
             return self._rval

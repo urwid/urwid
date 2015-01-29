@@ -346,8 +346,9 @@ class TermCanvas(Canvas):
             self.tabstops = [1 << 0] * tablen
 
     def set_tabstop(self, x=None, remove=False, clear=False):
+        import six
         if clear:
-            for tab in xrange(len(self.tabstops)):
+            for tab in six.xrange(len(self.tabstops)):
                 self.tabstops[tab] = 0
             return
 
@@ -385,22 +386,23 @@ class TermCanvas(Canvas):
         """
         Resize the terminal to the given width and height.
         """
+        import six
         x, y = self.term_cursor
 
         if width > self.width:
             # grow
-            for y in xrange(self.height):
+            for y in six.xrange(self.height):
                 self.term[y] += [self.empty_char()] * (width - self.width)
         elif width < self.width:
             # shrink
-            for y in xrange(self.height):
+            for y in six.xrange(self.height):
                 self.term[y] = self.term[y][:width]
 
         self.width = width
 
         if height > self.height:
             # grow
-            for y in xrange(self.height, height):
+            for y in six.xrange(self.height, height):
                 try:
                     last_line = self.scrollback_buffer.pop()
                 except IndexError:
@@ -421,7 +423,7 @@ class TermCanvas(Canvas):
                 self.term.insert(0, last_line)
         elif height < self.height:
             # shrink
-            for y in xrange(height, self.height):
+            for y in six.xrange(height, self.height):
                 self.scrollback_buffer.append(self.term.pop(0))
 
         self.height = height
@@ -461,6 +463,7 @@ class TermCanvas(Canvas):
         """
         Parse ECMA-48 CSI (Control Sequence Introducer) sequences.
         """
+        import six
         qmark = self.escbuf.startswith(B('?'))
 
         escbuf = []
@@ -481,7 +484,7 @@ class TermCanvas(Canvas):
             number_of_args, default_value, cmd = csi_cmd
             while len(escbuf) < number_of_args:
                 escbuf.append(default_value)
-            for i in xrange(len(escbuf)):
+            for i in six.xrange(len(escbuf)):
                 if escbuf[i] is None or escbuf[i] == 0:
                     escbuf[i] = default_value
 
@@ -878,7 +881,8 @@ class TermCanvas(Canvas):
         """
         DEC screen alignment test: Fill screen with E's.
         """
-        for row in xrange(self.height):
+        import six
+        for row in six.xrange(self.height):
             self.term[row] = self.empty_line('E')
 
     def blank_line(self, row):
@@ -980,12 +984,13 @@ class TermCanvas(Canvas):
         .XXX
         XX..
         """
+        import six
         sx, sy = self.constrain_coords(*start)
         ex, ey = self.constrain_coords(*end)
 
         # within a single row
         if sy == ey:
-            for x in xrange(sx, ex + 1):
+            for x in six.xrange(sx, ex + 1):
                 self.term[sy][x] = self.empty_char()
             return
 
@@ -993,10 +998,10 @@ class TermCanvas(Canvas):
         y = sy
         while y <= ey:
             if y == sy:
-                for x in xrange(sx, self.width):
+                for x in six.xrange(sx, self.width):
                     self.term[y][x] = self.empty_char()
             elif y == ey:
-                for x in xrange(ex + 1):
+                for x in six.xrange(ex + 1):
                     self.term[y][x] = self.empty_char()
             else:
                 self.blank_line(y)
@@ -1131,8 +1136,9 @@ class TermCanvas(Canvas):
         """
         Reverse video/scanmode (DECSCNM) by swapping fg and bg colors.
         """
-        for y in xrange(self.height):
-            for x in xrange(self.width):
+        import six
+        for y in six.xrange(self.height):
+            for x in six.xrange(self.width):
                 char = self.term[y][x]
                 attrs = self.reverse_attrspec(char[0], undo=undo)
                 self.term[y][x] = (attrs,) + char[1:]
@@ -1288,7 +1294,8 @@ class TermCanvas(Canvas):
         Clears the whole terminal screen and resets the cursor position
         to (0, 0) or to the coordinates given by 'cursor'.
         """
-        self.term = [self.empty_line() for x in xrange(self.height)]
+        import six
+        self.term = [self.empty_line() for x in six.xrange(self.height)]
 
         if cursor is None:
             self.set_term_cursor(0, 0)

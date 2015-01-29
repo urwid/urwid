@@ -29,6 +29,7 @@ from urwid.widget import WidgetMeta, Widget, BOX, FIXED, FLOW, \
 from urwid.container import Pile, Columns
 from urwid.display_common import AttrSpec
 from urwid.decoration import WidgetDecoration
+import six
 
 
 class BigText(Widget):
@@ -192,8 +193,7 @@ def nocache_bargraph_get_data(self, get_data_fn):
 class BarGraphError(Exception):
     pass
 
-class BarGraph(Widget):
-    __metaclass__ = BarGraphMeta
+class BarGraph(six.with_metaclass(BarGraphMeta, Widget)):
 
     _sizing = frozenset([BOX])
 
@@ -480,9 +480,10 @@ class BarGraph(Widget):
         o = []
         r = 0  # row remainder
 
-        def seg_combine((bt1, w1), (bt2, w2)):
-            if (bt1, w1) == (bt2, w2):
-                return (bt1, w1), None, None
+        def seg_combine(s1, s2):
+            (bt1, w1), (bt2, w2) = s1, s2
+            if s1 == s2:
+                return s1, None, None
             wmin = min(w1, w2)
             l1 = l2 = None
             if w1 > w2:

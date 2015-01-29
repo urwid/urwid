@@ -825,10 +825,11 @@ def shard_body_row(sbody):
 
     ** MODIFIES sbody by calling next() on its iterators **
     """
+    import six
     row = []
     for done_rows, content_iter, cview in sbody:
         if content_iter:
-            row.extend(content_iter.next())
+            row.extend(six.next(content_iter))
         else:
             # need to skip this unchanged canvas
             if row and type(row[-1]) == int:
@@ -862,15 +863,16 @@ def shards_delta(shards, other_shards):
     Yield shards1 with cviews that are the same as shards2
     having canv = None.
     """
+    import six
     other_shards_iter = iter(other_shards)
     other_num_rows = other_cviews = None
     done = other_done = 0
     for num_rows, cviews in shards:
         if other_num_rows is None:
-            other_num_rows, other_cviews = other_shards_iter.next()
+            other_num_rows, other_cviews = six.next(other_shards_iter)
         while other_done < done:
             other_done += other_num_rows
-            other_num_rows, other_cviews = other_shards_iter.next()
+            other_num_rows, other_cviews = six.next(other_shards_iter)
         if other_done > done:
             yield (num_rows, cviews)
             done += num_rows
@@ -884,15 +886,16 @@ def shards_delta(shards, other_shards):
 def shard_cviews_delta(cviews, other_cviews):
     """
     """
+    import six
     other_cviews_iter = iter(other_cviews)
     other_cv = None
     cols = other_cols = 0
     for cv in cviews:
         if other_cv is None:
-            other_cv = other_cviews_iter.next()
+            other_cv = six.next(other_cviews_iter)
         while other_cols < cols:
             other_cols += other_cv[2]
-            other_cv = other_cviews_iter.next()
+            other_cv = six.next(other_cviews_iter)
         if other_cols > cols:
             yield cv
             cols += cv[2]
@@ -920,13 +923,14 @@ def shard_body(cviews, shard_tail, create_iter=True, iter_default=None):
     iter_default is the value used for content_iter when no iterator
     is created.
     """
+    import six
     col = 0
     body = [] # build the next shard tail
     cviews_iter = iter(cviews)
     for col_gap, done_rows, content_iter, tail_cview in shard_tail:
         while col_gap:
             try:
-                cview = cviews_iter.next()
+                cview = six.next(cviews_iter)
             except StopIteration:
                 raise CanvasError("cviews do not fill gaps in"
                     " shard_tail!")
@@ -1056,8 +1060,9 @@ def shards_join(shard_lists):
     Return the result of joining shard lists horizontally.
     All shards lists must have the same number of rows.
     """
+    import six
     shards_iters = [iter(sl) for sl in shard_lists]
-    shards_current = [i.next() for i in shards_iters]
+    shards_current = [six.next(i) for i in shards_iters]
 
     new_shards = []
     while True:
@@ -1078,7 +1083,7 @@ def shards_join(shard_lists):
             for i in range(len(shards_current)):
                 if shards_current[i][0] > 0:
                     continue
-                shards_current[i] = shards_iters[i].next()
+                shards_current[i] = six.next(shards_iters[i])
         except StopIteration:
             break
     return new_shards
