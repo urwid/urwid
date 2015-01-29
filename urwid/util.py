@@ -108,7 +108,8 @@ def apply_target_encoding( s ):
     """
     Return (encoded byte string, character set rle).
     """
-    if _use_dec_special and type(s) == unicode:
+    import six
+    if _use_dec_special and type(s) == six.text_type:
         # first convert drawing characters
         try:
             s = s.translate( escape.DEC_SPECIAL_CHARMAP )
@@ -118,7 +119,7 @@ def apply_target_encoding( s ):
                     escape.ALT_DEC_SPECIAL_CHARS):
                 s = s.replace( c, escape.SO+alt+escape.SI )
 
-    if type(s) == unicode:
+    if type(s) == six.text_type:
         s = s.replace(escape.SI+escape.SO, u"") # remove redundant shifts
         s = codecs.encode(s, _target_encoding, 'replace')
 
@@ -412,7 +413,8 @@ def _tagmarkup_recurse( tm, attr ):
         attr, element = tm
         return _tagmarkup_recurse( element, attr )
 
-    if not isinstance(tm,(basestring, bytes)):
+    import six
+    if not isinstance(tm, six.string_types+(bytes,)):
         raise TagMarkupException("Invalid markup element: %r" % tm)
 
     # text

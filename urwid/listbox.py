@@ -29,12 +29,12 @@ from urwid.monitored_list import MonitoredList, MonitoredFocusList
 from urwid.container import WidgetContainerMixin
 from urwid.command_map import (CURSOR_UP, CURSOR_DOWN,
     CURSOR_PAGE_UP, CURSOR_PAGE_DOWN)
+import six
 
 class ListWalkerError(Exception):
     pass
 
-class ListWalker(object):
-    __metaclass__ = signals.MetaSignals
+class ListWalker(six.with_metaclass(signals.MetaSignals, object)):
 
     signals = ["modified"]
 
@@ -199,9 +199,10 @@ class SimpleListWalker(MonitoredList, ListWalker):
         """
         Optional method for returning an iterable of positions.
         """
+        import six
         if reverse:
-            return xrange(len(self) - 1, -1, -1)
-        return xrange(len(self))
+            return six.moves.xrange(len(self) - 1, -1, -1)
+        return six.moves.xrange(len(self))
 
 
 class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
@@ -256,9 +257,10 @@ class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
         """
         Optional method for returning an iterable of positions.
         """
+        import six
         if reverse:
-            return xrange(len(self) - 1, -1, -1)
-        return xrange(len(self))
+            return six.moves.xrange(len(self) - 1, -1, -1)
+        return six.moves.xrange(len(self))
 
 
 class ListBoxError(Exception):
@@ -1246,8 +1248,8 @@ class ListBox(Widget, WidgetContainerMixin):
 
         # choose the topmost selectable and (newly) visible widget
         # search within snap_rows then visible region
-        search_order = ( range( snap_region_start, len(t))
-                + range( snap_region_start-1, -1, -1 ) )
+        search_order = ( list(range( snap_region_start, len(t)))
+                + list(range( snap_region_start-1, -1, -1 )) )
         #assert 0, repr((t, search_order))
         bad_choices = []
         cut_off_selectable_chosen = 0
@@ -1431,8 +1433,8 @@ class ListBox(Widget, WidgetContainerMixin):
 
         # choose the bottommost selectable and (newly) visible widget
         # search within snap_rows then visible region
-        search_order = ( range( snap_region_start, len(t))
-                + range( snap_region_start-1, -1, -1 ) )
+        search_order = ( list(range( snap_region_start, len(t)))
+                + list(range( snap_region_start-1, -1, -1 )) )
         #assert 0, repr((t, search_order))
         bad_choices = []
         cut_off_selectable_chosen = 0

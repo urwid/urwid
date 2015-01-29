@@ -1202,7 +1202,7 @@ class TwistedEventLoop(object):
                     self.reactor.stop()
             except:
                 import sys
-                print sys.exc_info()
+                print (sys.exc_info())
                 self._exc_info = sys.exc_info()
                 if self.manage_reactor:
                     self.reactor.crash()
@@ -1353,7 +1353,7 @@ def _refl(name, rval=None, exit=False):
             if args and argd:
                 args = args + ", "
             args = args + ", ".join([k+"="+repr(v) for k,v in argd.items()])
-            print self._name+"("+args+")"
+            print (self._name+"("+args+")")
             if exit:
                 raise ExitMainLoop()
             return self._rval
