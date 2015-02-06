@@ -32,6 +32,7 @@ from urwid.command_map import (command_map, CURSOR_LEFT, CURSOR_RIGHT,
     CURSOR_UP, CURSOR_DOWN, CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT)
 from urwid.split_repr import split_repr, remove_defaults, python3_repr
 
+import glob
 
 # define some names for these constants to avoid misspellings in the source
 # and to document the constant strings we are using
@@ -1732,6 +1733,52 @@ class IntEdit(Edit):
         else:
             return 0
 
+class PathEdit(Edit):
+    
+    __pathsList    = []
+    __currentPath  = None
+    
+    def __findAllPaths(self, path):
+        self.__pathsList = glob.glob(path[:path.rfind('/')+1] + '*')
+    
+    def __findPath(self, loopDirection = 'forward'):
+        self.__findAllPaths(self.get_edit_text())
+        countPathsFound = len(self.__pathsList)
+        
+        if countPathsFound < 1:
+            return None
+        
+        if self.__currentPath is None:
+            self.__currentPath = self.__pathsList[0]
+        else:
+            if self.__currentPath in self.__pathsList:
+                currentIndex = self.__pathsList.index(self.__currentPath)
+                self.__currentPath = self.__pathsList[(currentIndex + (-1 if loopDirection == 'backward' else 1)) % countPathsFound]
+            else:
+                self.__currentPath = self.__pathsList[0]
+        
+        return self.__currentPath
+    
+    def __nextPath(self):
+        return self.__findPath()
+    
+    def __previousPath(self):
+        return self.__findPath(loopDirection = 'backward')
+    
+    def __updateEditText(self, aPath):
+        if aPath is not None:
+            self.set_edit_text(aPath)
+            self.set_edit_pos(len(aPath))
+    
+    def keypress(self, size, key):
+        if key == 'tab':
+            self.__updateEditText(self.__nextPath())
+        
+        elif key == 'shift tab':
+            self.__updateEditText(self.__previousPath())
+        
+        else:
+            super().keypress(size, key)
 
 def delegate_to_widget_mixin(attribute_name):
     """
