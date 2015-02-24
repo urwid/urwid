@@ -317,9 +317,9 @@ return to previous menus by pressing *ESC*.
    :linenos:
 
 * *menu_button()* returns an :class:`AttrMap`-decorated :class:`Button`
-  and attaches a *callback* to the the its ``'click'`` signal.  This function is
+  and attaches a *callback* to its ``'click'`` signal.  This function is
   used for both sub-menus and final selection buttons.
-* *sub_menu()* creates a menu button and a closure that will open the the
+* *sub_menu()* creates a menu button and a closure that will open the
   menu when that button is clicked.  Notice that
   :ref:`text markup <text-markup>` is used to add ``'...'`` to the end of
   the *caption* passed to *menu_button()*.
