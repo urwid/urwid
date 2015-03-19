@@ -55,8 +55,8 @@ class LCDCheckBox(urwid.CheckBox):
     including custom CGRAM character
     """
     states = {
-        True: urwid.SelectableIcon('\xd0', cursor_position=0),
-        False: urwid.SelectableIcon('\x05', cursor_position=0),
+        True: urwid.SelectableIcon('\xd0'),
+        False: urwid.SelectableIcon('\x05'),
     }
     reserve_columns = 1
 
@@ -66,8 +66,8 @@ class LCDRadioButton(urwid.RadioButton):
     including custom CGRAM character
     """
     states = {
-        True: urwid.SelectableIcon('\xbb', cursor_position=0),
-        False: urwid.SelectableIcon('\x06', cursor_position=0),
+        True: urwid.SelectableIcon('\xbb'),
+        False: urwid.SelectableIcon('\x06'),
     }
     reserve_columns = 1
 
@@ -132,9 +132,9 @@ class LCDHorizontalSlider(urwid.WidgetWrap):
     def __init__(self, range, value, callback):
         self.bar = LCDProgressBar(range, value)
         cols = urwid.Columns([
-            ('fixed', 1, urwid.SelectableIcon('\x11', cursor_position=0)),
+            ('fixed', 1, urwid.SelectableIcon('\x11')),
             self.bar,
-            ('fixed', 1, urwid.SelectableIcon('\x04', cursor_position=0)),
+            ('fixed', 1, urwid.SelectableIcon('\x04')),
             ])
         self.__super.__init__(cols)
         self.callback = callback
@@ -163,7 +163,7 @@ class MenuOption(urwid.Button):
         self.set_label(label)
 
         self._w = urwid.Columns([
-            ('fixed', 1, urwid.SelectableIcon('\xdf', cursor_position=0)),
+            ('fixed', 1, urwid.SelectableIcon('\xdf')),
             self._label])
 
         urwid.connect_signal(self, 'click',
