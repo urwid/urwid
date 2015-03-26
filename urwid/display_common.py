@@ -574,7 +574,7 @@ class AttrSpec(object):
                 flags |= _FG_HIGH_COLOR
             # _parse_color_*() return None for unrecognised colors
             if scolor is None:
-                raise AttrSpecError(("Unrecognised color specification %s" +
+                raise AttrSpecError(("Unrecognised color specification %s " +
                     "in foreground (%s)") % (repr(part), repr(foreground)))
             if color is not None:
                 raise AttrSpecError(("More than one color given for " +
