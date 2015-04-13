@@ -88,6 +88,8 @@ input_sequences = [
 
     ('[Z','shift tab'),
     ('On', '.'),
+
+    ('[200~', 'begin paste'), ('[201~', 'end paste'),
 ] + [
     (prefix + letter, modifier + key)
     for prefix, modifier in zip('O[', ('meta ', 'shift '))
