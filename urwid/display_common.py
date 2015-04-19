@@ -90,8 +90,9 @@ _STANDOUT = 0x02000000
 _UNDERLINE = 0x04000000
 _BOLD = 0x08000000
 _BLINK = 0x10000000
+_ITALICS = 0x20000000
 _FG_MASK = (_FG_COLOR_MASK | _FG_BASIC_COLOR | _FG_HIGH_COLOR |
-    _STANDOUT | _UNDERLINE | _BLINK | _BOLD)
+    _STANDOUT | _UNDERLINE | _BLINK | _BOLD | _ITALICS)
 _BG_MASK = _BG_COLOR_MASK | _BG_BASIC_COLOR | _BG_HIGH_COLOR
 
 DEFAULT = 'default'
@@ -133,6 +134,7 @@ _BASIC_COLORS = [
 
 _ATTRIBUTES = {
     'bold': _BOLD,
+    'italics': _ITALICS,
     'underline': _UNDERLINE,
     'blink': _BLINK,
     'standout': _STANDOUT,
@@ -450,7 +452,7 @@ class AttrSpec(object):
               'h8' (color number 8), 'h255' (color number 255)
 
               Setting:
-              'bold', 'underline', 'blink', 'standout'
+              'bold', 'italics', 'underline', 'blink', 'standout'
 
               Some terminals use 'bold' for bright colors.  Most terminals
               ignore the 'blink' setting.  If the color is not given then
@@ -500,6 +502,7 @@ class AttrSpec(object):
     background_high = property(lambda s: s._value & _BG_HIGH_COLOR != 0)
     background_number = property(lambda s: (s._value & _BG_COLOR_MASK)
         >> _BG_SHIFT)
+    italics = property(lambda s: s._value & _ITALICS != 0)
     bold = property(lambda s: s._value & _BOLD != 0)
     underline = property(lambda s: s._value & _UNDERLINE != 0)
     blink = property(lambda s: s._value & _BLINK != 0)
@@ -543,8 +546,9 @@ class AttrSpec(object):
 
     def _foreground(self):
         return (self._foreground_color() +
-            ',bold' * self.bold + ',standout' * self.standout +
-            ',blink' * self.blink + ',underline' * self.underline)
+            ',bold' * self.bold + ',italics' * self.italics +
+            ',standout' * self.standout + ',blink' * self.blink +
+            ',underline' * self.underline)
 
     def _set_foreground(self, foreground):
         color = None
