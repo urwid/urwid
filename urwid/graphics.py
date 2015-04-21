@@ -304,6 +304,7 @@ class BarGraph(Widget):
         if hlines is not None:
             hlines = hlines[:]  # shallow copy
             hlines.sort()
+            hlines.reverse()
         self.data = bardata, top, hlines
         self._invalidate()
 
