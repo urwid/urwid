@@ -250,7 +250,8 @@ class Screen(BaseScreen, RealTerminal):
             self._attrspec_to_escape(AttrSpec('',''))
             + escape.SI
             + move_cursor
-            + escape.SHOW_CURSOR)
+            + escape.SHOW_CURSOR
+            + "\r")
 
         if self._old_signal_keys:
             self.tty_signal_keys(*(self._old_signal_keys + (fd,)))
