@@ -1,7 +1,11 @@
 # this is part of the subproc.py example
 from __future__ import print_function
-from builtins import range
 import sys
+
+try:
+    from builtins import range
+except ImportError:
+    range = xrange
 
 num = int(sys.argv[1])
 
