@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Urwid example lazy text editor suitable for tabbed and format=flowed text
 #    Copyright (C) 2004-2009  Ian Ward
