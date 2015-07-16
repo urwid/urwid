@@ -32,6 +32,8 @@ from urwid.command_map import (command_map, CURSOR_LEFT, CURSOR_RIGHT,
     CURSOR_UP, CURSOR_DOWN, CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT)
 from urwid.split_repr import split_repr, remove_defaults, python3_repr
 
+import sys
+
 
 # define some names for these constants to avoid misspellings in the source
 # and to document the constant strings we are using
@@ -1412,7 +1414,7 @@ class Edit(Text):
             return text
         if tu:
             return text.encode('ascii') # follow python2's implicit conversion
-        return text.decode('ascii')
+        return text.decode(sys.stdin.encoding)
 
     def insert_text_result(self, text):
         """
