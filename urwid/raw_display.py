@@ -747,7 +747,7 @@ class Screen(BaseScreen, RealTerminal):
         cy = 0
         for row in r.content():
             y += 1
-            if osb and osb[y] == row:
+            if osb and y < len(osb) and osb[y] == row:
                 # this row of the screen buffer matches what is
                 # currently displayed, so we can skip this line
                 sb.append( osb[y] )
