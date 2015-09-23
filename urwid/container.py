@@ -103,6 +103,18 @@ class WidgetContainerMixin(object):
                 return out
             out.append(w)
 
+    def focus_first_selectable(self):
+        """
+        Set the focus of the container to the selectable child widget
+        that comes first in its hierarchy.
+        """
+        for j in range(0, len(self.contents)):
+            if not self.contents[j][0].selectable():
+                continue
+
+            self.focus_position = j
+            return
+
 class WidgetContainerListContentsMixin(object):
     """
     Mixin class for widget containers whose positions are indexes into
@@ -1585,12 +1597,12 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if self.selectable():
             tsize = self.get_item_size(size, i, True, item_rows)
             key = self.focus.keypress(tsize, key)
-            if self._command_map[key] not in ('cursor up', 'cursor down'):
+            if self._command_map[key] not in ('cursor up', 'cursor down', 'next selectable'):
                 return key
 
         if self._command_map[key] == 'cursor up':
             candidates = range(i-1, -1, -1) # count backwards to 0
-        else: # self._command_map[key] == 'cursor down'
+        else: # self._command_map[key] in ('cursor down', 'next selectable')
             candidates = range(i+1, len(self.contents))
 
         if not item_rows:
@@ -1616,6 +1628,14 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                         tsize, self.pref_col, row):
                     break
             return
+
+        if self._command_map[key] == 'next selectable':
+            # we wanted the next selectable but we were already at the end
+            # set focus back to first selectable
+            # (but still return key to parent in case we should traverse
+            #  to sibling)
+            # NB: the following loop was taken from the above code
+            self.focus_first_selectable()
 
         # nothing to select
         return key
@@ -2261,19 +2281,19 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         mc = widths[i]
         w, (t, n, b) = self.contents[i]
         if self._command_map[key] not in ('cursor up', 'cursor down',
-            'cursor page up', 'cursor page down'):
+            'cursor page up', 'cursor page down', 'next selectable'):
             self.pref_col = None
         if len(size) == 1 and b:
             key = w.keypress((mc, self.rows(size, True)), key)
         else:
             key = w.keypress((mc,) + size[1:], key)
 
-        if self._command_map[key] not in ('cursor left', 'cursor right'):
+        if self._command_map[key] not in ('cursor left', 'cursor right', 'next selectable'):
             return key
 
         if self._command_map[key] == 'cursor left':
             candidates = range(i-1, -1, -1) # count backwards to 0
-        else: # key == 'right'
+        else: # self._command_map[key] in ('cursor right', 'next selectable')
             candidates = range(i+1, len(self.contents))
 
         for j in candidates:
@@ -2282,6 +2302,14 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
             self.focus_position = j
             return
+
+        if self._command_map[key] == 'next selectable':
+            # we wanted the next selectable but we were already at the end
+            # set focus back to first selectable
+            # (but still return key to parent in case we should traverse
+            #  to sibling)
+            self.focus_first_selectable()
+
         return key
 
 
