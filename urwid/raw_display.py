@@ -74,10 +74,10 @@ class Screen(BaseScreen, RealTerminal):
         self._setup_G1_done = False
         self._rows_used = None
         self._cy = 0
-        term = os.environ.get('TERM', '')
-        self.fg_bright_is_bold = not term.startswith("xterm")
-        self.bg_bright_is_blink = (term == "linux")
-        self.back_color_erase = not term.startswith("screen")
+        self.term = os.environ.get('TERM', '')
+        self.fg_bright_is_bold = not self.term.startswith("xterm")
+        self.bg_bright_is_blink = (self.term == "linux")
+        self.back_color_erase = not self.term.startswith("screen")
         self._next_timeout = None
 
         # Our connections to the world
