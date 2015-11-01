@@ -2,6 +2,26 @@
 Changelog
 ---------
 
+Urwid 1.3.1
+===========
+
+2015-11-01
+
+ * Fix for screen not getting reset on exception regression
+   (by Rian Hunter)
+
+ * AttrSpec objects are now comparable (by Random User)
+
+ * MonitoredList now has a clear method if list has a clear method
+   (by neumond)
+
+ * Fix for BarGraph hlines sort order (by Heiko Noordhof)
+
+ * Fix for final output not appearing on exit with some terminals
+   now that extra newline was removed (by Jared Winborne)
+
+ * Fix for a resizing bug in raw_display (by Esteban null)
+
 Urwid 1.3.0
 ===========
 
