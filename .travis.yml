@@ -8,12 +8,13 @@ python:
 before_install:
   - "sudo apt-get install python-gi python3-gi"
 install:
-  - "pip install --use-mirrors setuptools twisted tornado"
+  - "pip install --use-mirrors setuptools tornado"
+  - "[ $TRAVIS_PYTHON_VERSION == '3.2_with_system_site_packages' ] || pip install --use-mirrors twisted"
 script:
   - "DEPS=\"$TRAVIS_PYTHON_VERSION `python bin/deps.py`\"; echo $DEPS"
   - "[ \"$DEPS\" == '2.6 tornado twisted' -o
        \"$DEPS\" == '2.7_with_system_site_packages pygobject tornado twisted' -o
-       \"$DEPS\" == '3.2_with_system_site_packages pygobject tornado twisted' -o
+       \"$DEPS\" == '3.2_with_system_site_packages pygobject tornado' -o
        \"$DEPS\" == '3.3 tornado twisted' -o
        \"$DEPS\" == 'pypy tornado twisted' ]"
   - "python setup.py test"
