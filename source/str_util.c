@@ -561,7 +561,7 @@ static Py_ssize_t Py_MovePrevChar(PyObject *text, Py_ssize_t start_offs,
     if (byte_encoding == ENC_UTF8) //encoding is utf8
     {
         position = end_offs - 1;
-        while ((str[position]&0xc0) == 0x80)
+        while ((position > start_offs) && (str[position]&0xc0) == 0x80)
             position -=1;
         return position;
     }
