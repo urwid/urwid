@@ -59,7 +59,6 @@ class Screen(BaseScreen, RealTerminal):
             self._on_update_palette_entry)
         self.colors = 16 # FIXME: detect this
         self.has_underline = True # FIXME: detect this
-        self.register_palette_entry( None, 'default','default')
         self._keyqueue = []
         self.prev_input_resize = 0
         self.set_input_timeouts()
@@ -74,10 +73,11 @@ class Screen(BaseScreen, RealTerminal):
         self._setup_G1_done = False
         self._rows_used = None
         self._cy = 0
-        term = os.environ.get('TERM', '')
-        self.fg_bright_is_bold = not term.startswith("xterm")
-        self.bg_bright_is_blink = (term == "linux")
-        self.back_color_erase = not term.startswith("screen")
+        self.term = os.environ.get('TERM', '')
+        self.fg_bright_is_bold = not self.term.startswith("xterm")
+        self.bg_bright_is_blink = (self.term == "linux")
+        self.back_color_erase = not self.term.startswith("screen")
+        self.register_palette_entry( None, 'default','default')
         self._next_timeout = None
 
         # Our connections to the world
@@ -914,6 +914,11 @@ class Screen(BaseScreen, RealTerminal):
         >>> a2e(s.AttrSpec('#fea,underline', '#d0d'))
         '\\x1b[0;38;5;229;4;48;5;164m'
         """
+        if self.term == 'fbterm':
+            fg = escape.ESC + '[1;%d}' % (a.foreground_number,)
+            bg = escape.ESC + '[2;%d}' % (a.background_number,)
+            return fg + bg
+
         if a.foreground_high:
             fg = "38;5;%d" % a.foreground_number
         elif a.foreground_basic:
@@ -1011,9 +1016,14 @@ class Screen(BaseScreen, RealTerminal):
         0 <= red, green, blue < 256
         """
 
-        modify = ["%d;rgb:%02x/%02x/%02x" % (index, red, green, blue)
-            for index, red, green, blue in entries]
-        self.write("\x1b]4;"+";".join(modify)+"\x1b\\")
+        if self.term == 'fbterm':
+            modify = ["%d;%d;%d;%d" % (index, red, green, blue)
+                for index, red, green, blue in entries]
+            self.write("\x1b[3;"+";".join(modify)+"}")
+        else:
+            modify = ["%d;rgb:%02x/%02x/%02x" % (index, red, green, blue)
+                for index, red, green, blue in entries]
+            self.write("\x1b]4;"+";".join(modify)+"\x1b\\")
         self.flush()
 
 
