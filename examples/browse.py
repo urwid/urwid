@@ -31,9 +31,10 @@ Features:
 - outputs a quoted list of files and directories "selected" on exit
 """
 
+from __future__ import print_function
+import os
 import itertools
 import re
-import os
 
 import urwid
 
@@ -274,7 +275,7 @@ class DirectoryBrowser:
 
         # on exit, write the flagged filenames to the console
         names = [escape_filename_sh(x) for x in get_flagged_names()]
-        print " ".join(names)
+        print(" ".join(names))
 
     def unhandled_input(self, k):
         # update display of focus directory

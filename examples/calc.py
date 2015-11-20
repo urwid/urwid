@@ -31,9 +31,14 @@ Features:
 - outputs commands that may be used to recreate expression on exit
 """
 
+from __future__ import print_function
+import six
 import urwid
 import urwid.raw_display
 import urwid.web_display
+
+if six.PY3:
+    long = int
 
 # use appropriate Screen class
 if urwid.web_display.is_web_request():
@@ -60,7 +65,7 @@ OPERATORS = {
 COLUMN_KEYS = list( "?ABCDEF" )
 
 # these lists are used to determine when to display errors
-EDIT_KEYS = OPERATORS.keys() + COLUMN_KEYS + ['backspace','delete']
+EDIT_KEYS = list(OPERATORS.keys()) + COLUMN_KEYS + ['backspace','delete']
 MOVEMENT_KEYS = ['up','down','left','right','page up','page down']
 
 # Event text
@@ -579,9 +584,9 @@ class CalcDisplay:
 
         # on exit write the formula and the result to the console
         expression, result = self.get_expression_result()
-        print "Paste this expression into a new Column Calculator session to continue editing:"
-        print expression
-        print "Result:", result
+        print("Paste this expression into a new Column Calculator session to continue editing:")
+        print(expression)
+        print("Result:", result)
 
     def input_filter(self, input, raw_input):
         if 'q' in input or 'Q' in input:

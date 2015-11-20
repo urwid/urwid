@@ -659,7 +659,7 @@ class Screen:
         urwid_id = "%09d%09d"%(random.randrange(10**9),
             random.randrange(10**9))
         self.pipe_name = os.path.join(_prefs.pipe_dir,"urwid"+urwid_id)
-        os.mkfifo(self.pipe_name+".in",0600)
+        os.mkfifo(self.pipe_name+".in", 0o600)
         signal.signal(signal.SIGTERM,self._cleanup_pipe)
 
         self.input_fd = os.open(self.pipe_name+".in",

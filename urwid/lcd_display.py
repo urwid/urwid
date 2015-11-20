@@ -20,10 +20,10 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-
-from display_common import BaseScreen
-
 import time
+
+from .display_common import BaseScreen
+
 
 class LCDScreen(BaseScreen):
     def set_terminal_properties(self, colors=None, bright_is_bold=None,

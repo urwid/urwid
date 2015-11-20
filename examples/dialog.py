@@ -286,7 +286,8 @@ def do_yesno(text, height, width):
     d.add_buttons([    ("Yes", 0), ("No", 1) ])
     return d
 
-MODES={    '--checklist':    (do_checklist,
+MODES={
+    '--checklist':    (do_checklist,
         "text height width list-height [ tag item status ] ..."),
     '--inputbox':    (do_inputbox,
         "text height width"),
