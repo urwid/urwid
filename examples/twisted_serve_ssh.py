@@ -198,7 +198,7 @@ class TwistedScreen(Screen):
         """
         return self.terminalProtocol.width, self.terminalProtocol.height
 
-    def draw_screen(self, (maxcol, maxrow), r ):
+    def draw_screen(self, size, r ):
         """Render a canvas to the terminal.
 
         The canvas contains all the information required to render the Urwid
@@ -206,6 +206,7 @@ class TwistedScreen(Screen):
         tuples. This very simple implementation iterates each row and simply
         writes it out.
         """
+        (maxcol, maxrow) = size
         #self.terminal.eraseDisplay()
         lasta = None
         for i, row in enumerate(r.content()):
@@ -409,9 +410,10 @@ class UrwidTerminalSession(TerminalSession):
             IConchUser(self.original),
             self.height, self.width)
 
-    def windowChanged(self, (h, w, x, y)):
+    def windowChanged(self, window_size):
         """Called when the window size has changed.
         """
+        (h, w, x, y) = window_size
         self.chained_protocol.terminalProtocol.terminalSize(h, w)
 
 

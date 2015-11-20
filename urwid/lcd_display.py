@@ -39,7 +39,8 @@ class LCDScreen(BaseScreen):
     def reset_default_terminal_palette(self, *args):
         pass
 
-    def draw_screen(self, (cols, rows), r ):
+    def draw_screen(self, size, r ):
+        (cols, rows) = size
         pass
 
     def clear(self):
