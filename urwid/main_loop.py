@@ -26,6 +26,7 @@ import time
 import heapq
 import select
 import os
+import six
 from functools import wraps
 from weakref import WeakKeyDictionary
 
@@ -846,9 +847,8 @@ class GLibEventLoop(object):
                 self._loop.quit()
         if self._exc_info:
             # An exception caused us to exit, raise it now
-            exc_info = self._exc_info
+            six.reraise(*self._exc_info)
             self._exc_info = None
-            raise exc_info[0], exc_info[1], exc_info[2]
 
     def handle_exit(self,f):
         """
@@ -1181,9 +1181,8 @@ class TwistedEventLoop(object):
         self.reactor.run()
         if self._exc_info:
             # An exception caused us to exit, raise it now
-            exc_info = self._exc_info
+            six.reraise(*self._exc_info)
             self._exc_info = None
-            raise exc_info[0], exc_info[1], exc_info[2]
 
     def handle_exit(self, f, enable_idle=True):
         """
@@ -1325,7 +1324,7 @@ class AsyncioEventLoop(object):
         self._loop.set_exception_handler(self._exception_handler)
         self._loop.run_forever()
         if self._exc_info:
-            raise self._exc_info[0], self._exc_info[1], self._exc_info[2]
+            six.reraise(*self._exc_info)
             self._exc_info = None
 
 
