@@ -19,6 +19,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+import six
 import weakref
 
 from urwid.util import rle_len, rle_append_modify, rle_join_modify, rle_product, \
@@ -825,7 +826,6 @@ def shard_body_row(sbody):
 
     ** MODIFIES sbody by calling next() on its iterators **
     """
-    import six
     row = []
     for done_rows, content_iter, cview in sbody:
         if content_iter:
@@ -863,7 +863,6 @@ def shards_delta(shards, other_shards):
     Yield shards1 with cviews that are the same as shards2
     having canv = None.
     """
-    import six
     other_shards_iter = iter(other_shards)
     other_num_rows = other_cviews = None
     done = other_done = 0
@@ -886,7 +885,6 @@ def shards_delta(shards, other_shards):
 def shard_cviews_delta(cviews, other_cviews):
     """
     """
-    import six
     other_cviews_iter = iter(other_cviews)
     other_cv = None
     cols = other_cols = 0
@@ -923,7 +921,6 @@ def shard_body(cviews, shard_tail, create_iter=True, iter_default=None):
     iter_default is the value used for content_iter when no iterator
     is created.
     """
-    import six
     col = 0
     body = [] # build the next shard tail
     cviews_iter = iter(cviews)
@@ -1060,7 +1057,6 @@ def shards_join(shard_lists):
     Return the result of joining shard lists horizontally.
     All shards lists must have the same number of rows.
     """
-    import six
     shards_iters = [iter(sl) for sl in shard_lists]
     shards_current = [six.next(i) for i in shards_iters]
 

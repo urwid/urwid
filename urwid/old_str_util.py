@@ -20,7 +20,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 from __future__ import print_function
-
+import six
 import re
 
 from urwid.compat import bytes, B, ord2
@@ -241,7 +241,6 @@ def is_wide_char(text, offs):
 
     text may be unicode or a byte string in the target _byte_encoding
     """
-    import six
     if isinstance(text, six.text_type):
         o = ord(text[offs])
         return get_width(o) == 2
@@ -257,7 +256,6 @@ def move_prev_char(text, start_offs, end_offs):
     """
     Return the position of the character before end_offs.
     """
-    import six
     assert start_offs < end_offs
     if isinstance(text, six.text_type):
         return end_offs-1
@@ -276,7 +274,6 @@ def move_next_char(text, start_offs, end_offs):
     """
     Return the position of the character after start_offs.
     """
-    import six
     assert start_offs < end_offs
     if isinstance(text, six.text_type):
         return start_offs+1

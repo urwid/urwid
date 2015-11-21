@@ -20,8 +20,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-import os
 import sys
+import os
 import time
 import copy
 import errno
@@ -30,6 +30,7 @@ import struct
 import signal
 import atexit
 import traceback
+import six
 
 try:
     import pty
@@ -346,7 +347,6 @@ class TermCanvas(Canvas):
             self.tabstops = [1 << 0] * tablen
 
     def set_tabstop(self, x=None, remove=False, clear=False):
-        import six
         if clear:
             for tab in six.moves.xrange(len(self.tabstops)):
                 self.tabstops[tab] = 0
@@ -386,7 +386,6 @@ class TermCanvas(Canvas):
         """
         Resize the terminal to the given width and height.
         """
-        import six
         x, y = self.term_cursor
 
         if width > self.width:
@@ -463,7 +462,6 @@ class TermCanvas(Canvas):
         """
         Parse ECMA-48 CSI (Control Sequence Introducer) sequences.
         """
-        import six
         qmark = self.escbuf.startswith(B('?'))
 
         escbuf = []
@@ -881,7 +879,6 @@ class TermCanvas(Canvas):
         """
         DEC screen alignment test: Fill screen with E's.
         """
-        import six
         for row in six.moves.xrange(self.height):
             self.term[row] = self.empty_line('E')
 
@@ -984,7 +981,6 @@ class TermCanvas(Canvas):
         .XXX
         XX..
         """
-        import six
         sx, sy = self.constrain_coords(*start)
         ex, ey = self.constrain_coords(*end)
 
@@ -1136,7 +1132,6 @@ class TermCanvas(Canvas):
         """
         Reverse video/scanmode (DECSCNM) by swapping fg and bg colors.
         """
-        import six
         for y in six.moves.xrange(self.height):
             for x in six.moves.xrange(self.width):
                 char = self.term[y][x]
@@ -1294,7 +1289,6 @@ class TermCanvas(Canvas):
         Clears the whole terminal screen and resets the cursor position
         to (0, 0) or to the coordinates given by 'cursor'.
         """
-        import six
         self.term = [self.empty_line() for x in six.moves.xrange(self.height)]
 
         if cursor is None:

@@ -20,6 +20,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+import six
 from urwid import escape
 from urwid.compat import bytes
 
@@ -108,7 +109,6 @@ def apply_target_encoding( s ):
     """
     Return (encoded byte string, character set rle).
     """
-    import six
     if _use_dec_special and type(s) == six.text_type:
         # first convert drawing characters
         try:
@@ -413,7 +413,6 @@ def _tagmarkup_recurse( tm, attr ):
         attr, element = tm
         return _tagmarkup_recurse( element, attr )
 
-    import six
     if not isinstance(tm, six.string_types+(bytes,)):
         raise TagMarkupException("Invalid markup element: %r" % tm)
 

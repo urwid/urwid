@@ -19,6 +19,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+import six
 from urwid.util import is_mouse_press
 from urwid.canvas import SolidCanvas, CanvasCombine
 from urwid.widget import Widget, nocache_widget_render_instance, BOX, GIVEN
@@ -29,7 +30,6 @@ from urwid.monitored_list import MonitoredList, MonitoredFocusList
 from urwid.container import WidgetContainerMixin
 from urwid.command_map import (CURSOR_UP, CURSOR_DOWN,
     CURSOR_PAGE_UP, CURSOR_PAGE_DOWN)
-import six
 
 class ListWalkerError(Exception):
     pass
@@ -199,7 +199,6 @@ class SimpleListWalker(MonitoredList, ListWalker):
         """
         Optional method for returning an iterable of positions.
         """
-        import six
         if reverse:
             return six.moves.xrange(len(self) - 1, -1, -1)
         return six.moves.xrange(len(self))
@@ -257,7 +256,6 @@ class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
         """
         Optional method for returning an iterable of positions.
         """
-        import six
         if reverse:
             return six.moves.xrange(len(self) - 1, -1, -1)
         return six.moves.xrange(len(self))

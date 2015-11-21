@@ -20,6 +20,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+import six
 from urwid.util import decompose_tagmarkup, get_encoding_mode
 from urwid.canvas import CompositeCanvas, CanvasJoin, TextCanvas, \
     CanvasCombine, SolidCanvas
@@ -29,7 +30,6 @@ from urwid.widget import WidgetMeta, Widget, BOX, FIXED, FLOW, \
 from urwid.container import Pile, Columns
 from urwid.display_common import AttrSpec
 from urwid.decoration import WidgetDecoration
-import six
 
 
 class BigText(Widget):
