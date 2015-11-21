@@ -184,7 +184,7 @@ class DirectoryNode(urwid.ParentNode):
                     dirs.append(a)
                 else:
                     files.append(a)
-        except OSError, e:
+        except OSError as e:
             depth = self.get_depth() + 1
             self._children[None] = ErrorNode(self, parent=self, key=None,
                                              depth=depth)
