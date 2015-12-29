@@ -6,6 +6,7 @@ python:
   - "3.3"
   - "pypy"
 before_install:
+  - "sudo apt-get update"
   - "sudo apt-get install python-gi python3-gi"
 install:
   - "pip install --use-mirrors setuptools tornado"
