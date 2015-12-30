@@ -1,6 +1,6 @@
-.. image:: https://travis-ci.org/wardi/urwid.png?branch=master
+.. image:: https://travis-ci.org/urwid/urwid.png?branch=master
    :alt: build status
-   :target: https://travis-ci.org/wardi/urwid/
+   :target: https://travis-ci.org/urwid/urwid/
 
 `Development version documentation <http://urwid.readthedocs.org/en/latest/>`_
 
