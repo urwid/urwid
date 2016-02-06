@@ -96,6 +96,8 @@ class HtmlGenerator(BaseScreen):
             col = 0
 
             for a, cs, run in row:
+                if not str is bytes:
+                    run = run.decode()
                 run = run.translate(_trans_table)
                 if isinstance(a, AttrSpec):
                     aspec = a
