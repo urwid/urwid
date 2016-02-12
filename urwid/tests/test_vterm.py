@@ -143,6 +143,10 @@ class TermTest(unittest.TestCase):
         self.write('1\n2\n3\n4\e[2;1f\e[2M')
         self.expect('1\n4')
 
+    def test_nul(self):
+        self.write('a\0b')
+        self.expect('ab')
+
     def test_movement(self):
         self.write('\e[10;20H11\e[10;0f\e[20C\e[K')
         self.expect('\n' * 9 + ' ' * 19 + '1')

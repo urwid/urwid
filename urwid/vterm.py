@@ -671,7 +671,7 @@ class TermCanvas(Canvas):
             self.widget.beep()
         elif not dc and char in B("\x18\x1a"): # CAN/SUB
             self.leave_escape()
-        elif not dc and char == B("\x7f"): # DEL
+        elif not dc and char in B("\x00\x7f"): # NUL/DEL
             pass # this is ignored
         elif self.within_escape:
             self.parse_escape(char)
