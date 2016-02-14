@@ -731,14 +731,14 @@ class Filler(WidgetDecoration):
         if isinstance(height, tuple):
             if height[0] == 'fixed top':
                 if not isinstance(valign, tuple) or valign[0] != 'fixed bottom':
-                    raise FillerError("fixed bottom height may only be used "
-                        "with fixed top valign")
+                    raise FillerError("fixed top height may only be used "
+                        "with fixed bottom valign")
                 top = height[1]
                 height = RELATIVE_100
             elif height[0] == 'fixed bottom':
                 if not isinstance(valign, tuple) or valign[0] != 'fixed top':
-                    raise FillerError("fixed top height may only be used "
-                        "with fixed bottom valign")
+                    raise FillerError("fixed bottom height may only be used "
+                        "with fixed top valign")
                 bottom = height[1]
                 height = RELATIVE_100
         if isinstance(valign, tuple):
