@@ -1289,7 +1289,9 @@ class Edit(Text):
         self._caption, self._attrib = decompose_tagmarkup(caption)
         self._invalidate()
 
-    caption = property(lambda self:self._caption)
+    caption = property(lambda self:self._caption, doc="""
+        Read-only property returning the caption for this widget.
+        """)
 
     def set_edit_pos(self, pos):
         """
@@ -1321,7 +1323,9 @@ class Edit(Text):
         self._edit_pos = pos
         self._invalidate()
 
-    edit_pos = property(lambda self:self._edit_pos, set_edit_pos)
+    edit_pos = property(lambda self:self._edit_pos, set_edit_pos, doc="""
+        Property controlling the edit position for this widget.
+        """)
 
     def set_mask(self, mask):
         """
@@ -1373,7 +1377,7 @@ class Edit(Text):
         return self._edit_text
 
     edit_text = property(get_edit_text, set_edit_text, doc="""
-        Read-only property returning the edit text for this widget.
+        Property controlling the edit text for this widget.
         """)
 
     def insert_text(self, text):
