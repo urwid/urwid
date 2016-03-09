@@ -38,6 +38,12 @@ class TextTest(unittest.TestCase):
         got = urwid.Text(u'û').render((3,))._text
         assert got == expected, "got: %r expected: %r" % (got, expected)
 
+    def test6_no_split_on_byte_boundary(self):
+        urwid.set_encoding("utf8")
+        expected = [B(t) for t in ["Mise à", "jour t", "erminé", "e     "]]
+        got = urwid.Text(u'Mise à jour terminée').render((6,))._text
+        assert got == expected, "got: %r expected: %r" % (got, expected)
+
 
 class EditTest(unittest.TestCase):
     def setUp(self):
