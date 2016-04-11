@@ -21,7 +21,7 @@
 # Urwid web site: http://excess.org/urwid/
 
 
-from display_common import BaseScreen
+from .display_common import BaseScreen
 
 import time
 

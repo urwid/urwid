@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 import unittest
 
-from urwid.compat import B
-import urwid
+from ..compat import B
+from ..widget import Text, Edit
+from .. import set_encoding
 
 
 class TextTest(unittest.TestCase):
     def setUp(self):
-        self.t = urwid.Text("I walk the\ncity in the night")
+        self.t = Text("I walk the\ncity in the night")
 
     def test1_wrap(self):
         expected = [B(t) for t in "I walk the","city in   ","the night "]
@@ -33,24 +34,24 @@ class TextTest(unittest.TestCase):
         assert got == expected, "got: %r expected: %r" % (got, expected)
 
     def test5_encode_error(self):
-        urwid.set_encoding("ascii")
+        set_encoding("ascii")
         expected = [B("?  ")]
-        got = urwid.Text(u'û').render((3,))._text
+        got = Text(u'û').render((3,))._text
         assert got == expected, "got: %r expected: %r" % (got, expected)
 
 
 class EditTest(unittest.TestCase):
     def setUp(self):
-        self.t1 = urwid.Edit(B(""),"blah blah")
-        self.t2 = urwid.Edit(B("stuff:"), "blah blah")
-        self.t3 = urwid.Edit(B("junk:\n"),"blah blah\n\nbloo",1)
-        self.t4 = urwid.Edit(u"better:")
+        self.t1 = Edit(B(""), "blah blah")
+        self.t2 = Edit(B("stuff:"), "blah blah")
+        self.t3 = Edit(B("junk:\n"), "blah blah\n\nbloo", 1)
+        self.t4 = Edit(u"better:")
 
     def ktest(self, e, key, expected, pos, desc):
         got= e.keypress((12,),key)
         assert got == expected, "%s.  got: %r expected:%r" % (desc, got,
                                                               expected)
-        assert e.edit_pos == pos, "%s. pos: %r expected pos: " % (
+        assert e.edit_pos == pos, "%s. pos: %r expected pos: %r" % (
             desc, e.edit_pos, pos)
 
     def test1_left(self):
@@ -89,7 +90,7 @@ class EditTest(unittest.TestCase):
         self.ktest(self.t3,'down','down',15,"down at bottom")
 
     def test_utf8_input(self):
-        urwid.set_encoding("utf-8")
+        set_encoding("utf-8")
         self.t1.set_edit_text('')
         self.t1.keypress((12,), u'û')
         self.assertEqual(self.t1.edit_text, u'û'.encode('utf-8'))
@@ -111,7 +112,7 @@ class EditRenderTest(unittest.TestCase):
             r.cursor, expected_cursor)
 
     def test1_SpaceWrap(self):
-        w = urwid.Edit("","blah blah")
+        w = Edit("", "blah blah")
         w.set_edit_pos(0)
         self.rtest(w,["blah","blah"],(0,0))
 
@@ -125,7 +126,7 @@ class EditRenderTest(unittest.TestCase):
         self.rtest(w,["blah","lah "],(3,1))
 
     def test2_ClipWrap(self):
-        w = urwid.Edit("","blah\nblargh",1)
+        w = Edit("", "blah\nblargh", 1)
         w.set_wrap_mode('clip')
         w.set_edit_pos(0)
         self.rtest(w,["blah","blar"],(0,0))
@@ -138,13 +139,13 @@ class EditRenderTest(unittest.TestCase):
         self.rtest(w,["blah","larg"],(0,1))
 
     def test3_AnyWrap(self):
-        w = urwid.Edit("","blah blah")
+        w = Edit("", "blah blah")
         w.set_wrap_mode('any')
 
         self.rtest(w,["blah"," bla","h   "],(1,2))
 
     def test4_CursorNudge(self):
-        w = urwid.Edit("","hi",align='right')
+        w = Edit("", "hi", align='right')
         w.keypress((4,),'end')
 
         self.rtest(w,[" hi "],(3,0))

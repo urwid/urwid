@@ -20,8 +20,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from urwid import escape
-from urwid.compat import bytes
+from . import escape
+from .compat import bytes
 
 import codecs
 

@@ -1,20 +1,22 @@
 import unittest
 import doctest
 
-import urwid
+from .. import (widget, wimp, decoration, display_common, main_loop,
+                monitored_list, raw_display, split_repr, util, signals)
+
 
 def load_tests(loader, tests, ignore):
     module_doctests = [
-        urwid.widget,
-        urwid.wimp,
-        urwid.decoration,
-        urwid.display_common,
-        urwid.main_loop,
-        urwid.monitored_list,
-        urwid.raw_display,
-        'urwid.split_repr', # override function with same name
-        urwid.util,
-        urwid.signals,
+        widget,
+        wimp,
+        decoration,
+        display_common,
+        main_loop,
+        monitored_list,
+        raw_display,
+        split_repr,
+        util,
+        signals,
         ]
     for m in module_doctests:
         tests.addTests(doctest.DocTestSuite(m,

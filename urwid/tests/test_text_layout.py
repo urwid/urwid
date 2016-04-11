@@ -1,8 +1,8 @@
 import unittest
 
-from urwid import text_layout
-from urwid.compat import B
-import urwid
+from .. import text_layout
+from .. import util
+from ..compat import B
 
 
 class CalcBreaksTest(object):
@@ -32,7 +32,7 @@ class CalcBreaksCharTest(CalcBreaksTest, unittest.TestCase):
 
 class CalcBreaksDBCharTest(CalcBreaksTest, unittest.TestCase):
     def setUp(self):
-        urwid.set_encoding("euc-jp")
+        util.set_encoding("euc-jp")
 
     mode = 'any'
     text = "abfgh\xA1\xA1j\xA1\xA1xskhtrvs\naltjhgsdf\xA1\xA1jahtshgf"
@@ -67,7 +67,7 @@ class CalcBreaksWordTest2(CalcBreaksTest, unittest.TestCase):
 
 class CalcBreaksDBWordTest(CalcBreaksTest, unittest.TestCase):
     def setUp(self):
-        urwid.set_encoding("euc-jp")
+        util.set_encoding("euc-jp")
 
     mode = 'space'
     text = "hel\xA1\xA1 world\nout-\xA1\xA1tre blah"
@@ -81,7 +81,7 @@ class CalcBreaksDBWordTest(CalcBreaksTest, unittest.TestCase):
 
 class CalcBreaksUTF8Test(CalcBreaksTest, unittest.TestCase):
     def setUp(self):
-        urwid.set_encoding("utf-8")
+        util.set_encoding("utf-8")
 
     mode = 'space'
     text = '\xe6\x9b\xbf\xe6\xb4\xbc\xe6\xb8\x8e\xe6\xba\x8f\xe6\xbd\xba'
@@ -94,11 +94,11 @@ class CalcBreaksUTF8Test(CalcBreaksTest, unittest.TestCase):
 
 class CalcBreaksCantDisplayTest(unittest.TestCase):
     def test(self):
-        urwid.set_encoding("euc-jp")
+        util.set_encoding("euc-jp")
         self.assertRaises(text_layout.CanNotDisplayText,
             text_layout.default_layout.calculate_text_segments,
             B('\xA1\xA1'), 1, 'space' )
-        urwid.set_encoding("utf-8")
+        util.set_encoding("utf-8")
         self.assertRaises(text_layout.CanNotDisplayText,
             text_layout.default_layout.calculate_text_segments,
             B('\xe9\xa2\x96'), 1, 'space' )
@@ -106,11 +106,11 @@ class CalcBreaksCantDisplayTest(unittest.TestCase):
 
 class SubsegTest(unittest.TestCase):
     def setUp(self):
-        urwid.set_encoding("euc-jp")
+        util.set_encoding("euc-jp")
 
     def st(self, seg, text, start, end, exp):
         text = B(text)
-        s = urwid.LayoutSegment(seg)
+        s = text_layout.LayoutSegment(seg)
         result = s.subseg( text, start, end )
         assert result == exp, "Expected %r, got %r"%(exp,result)
 
@@ -151,20 +151,20 @@ class SubsegTest(unittest.TestCase):
 
 class CalcTranslateTest(object):
     def setUp(self):
-        urwid.set_encoding("utf-8")
+        util.set_encoding("utf-8")
 
     def test1_left(self):
-        result = urwid.default_layout.layout( self.text,
+        result = text_layout.default_layout.layout(self.text,
             self.width, 'left', self.mode)
         assert result == self.result_left, result
 
     def test2_right(self):
-        result = urwid.default_layout.layout( self.text,
+        result = text_layout.default_layout.layout(self.text,
             self.width, 'right', self.mode)
         assert result == self.result_right, result
 
     def test3_center(self):
-        result = urwid.default_layout.layout( self.text,
+        result = text_layout.default_layout.layout(self.text,
             self.width, 'center', self.mode)
         assert result == self.result_center, result
 
@@ -225,7 +225,7 @@ class CalcTranslateWordTest2(CalcTranslateTest, unittest.TestCase):
 
 class CalcTranslateWordTest3(CalcTranslateTest, unittest.TestCase):
     def setUp(self):
-        urwid.set_encoding('utf-8')
+        util.set_encoding('utf-8')
 
     text = B('\xe6\x9b\xbf\xe6\xb4\xbc\n\xe6\xb8\x8e\xe6\xba\x8f\xe6\xbd\xba')
     width = 10

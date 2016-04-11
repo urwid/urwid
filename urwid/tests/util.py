@@ -1,6 +1,6 @@
-import urwid
+from ..widget import Text
 
-class SelectableText(urwid.Text):
+class SelectableText(Text):
     def selectable(self):
         return 1
 

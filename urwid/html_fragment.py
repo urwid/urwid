@@ -23,9 +23,9 @@
 HTML PRE-based UI implementation
 """
 
-from urwid import util
-from urwid.main_loop import ExitMainLoop
-from urwid.display_common import AttrSpec, BaseScreen
+from . import util
+from .main_loop import ExitMainLoop
+from .display_common import AttrSpec, BaseScreen
 
 
 # replace control characters with ?'s
@@ -229,9 +229,9 @@ def screenshot_init( sizes, keys ):
     except (AssertionError, ValueError):
         raise Exception, "keys must be in the form [ [keyA1, keyA2, ..], [keyB1, ..], ...]"
 
-    import curses_display
+    from . import curses_display
     curses_display.Screen = HtmlGenerator
-    import raw_display
+    from . import raw_display
     raw_display.Screen = HtmlGenerator
 
     HtmlGenerator.sizes = sizes

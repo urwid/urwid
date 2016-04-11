@@ -1,8 +1,7 @@
 import unittest
 
-from urwid import graphics
-from urwid.compat import B
-import urwid
+from .. import graphics, widget, util
+from ..compat import B
 
 
 class LineBoxTest(unittest.TestCase):
@@ -12,10 +11,10 @@ class LineBoxTest(unittest.TestCase):
                 bytes().join([bl, b, br]),]
 
     def test_linebox_border(self):
-        urwid.set_encoding("utf-8")
-        t = urwid.Text("")
+        util.set_encoding("utf-8")
+        t = widget.Text("")
 
-        l = urwid.LineBox(t).render((3,)).text
+        l = graphics.LineBox(t).render((3,)).text
 
         # default
         self.assertEqual(l,
@@ -26,7 +25,7 @@ class LineBoxTest(unittest.TestCase):
         nums = [B(str(n)) for n in range(8)]
         b = dict(zip(["tlcorner", "tline", "trcorner", "lline", "rline",
             "blcorner", "bline", "brcorner"], nums))
-        l = urwid.LineBox(t, **b).render((3,)).text
+        l = graphics.LineBox(t, **b).render((3,)).text
 
         self.assertEqual(l, self.border(*nums))
 
@@ -77,8 +76,8 @@ class BarGraphTest(unittest.TestCase):
 
 class SmoothBarGraphTest(unittest.TestCase):
     def sbgtest(self, desc, data, top, exp ):
-        urwid.set_encoding('utf-8')
-        g = urwid.BarGraph( ['black','red','blue'],
+        util.set_encoding('utf-8')
+        g = graphics.BarGraph(['black', 'red', 'blue'],
                 None, {(1,0):'red/black', (2,1):'blue/red'})
         g.set_data( data, top )
         rval = g.calculate_display((5,3))

@@ -19,7 +19,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from urwid.compat import PYTHON3
+from .compat import PYTHON3
 
 
 def _call_modified(fn):

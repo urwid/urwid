@@ -1,7 +1,7 @@
 import unittest
 
-from urwid.tests.util import SelectableText
-import urwid
+from .. import container, widget, wimp, font, listbox, decoration, graphics
+from .util import SelectableText
 
 
 class FrameTest(unittest.TestCase):
@@ -22,7 +22,7 @@ class FrameTest(unittest.TestCase):
             footer = FakeWidget(footer_rows,
                 focus and focus_part == 'footer')
 
-        f = urwid.Frame(None, header, footer, focus_part)
+        f = container.Frame(None, header, footer, focus_part)
 
         rval = f.frame_top_bottom(size, focus)
         exp = (top, bottom), (header_rows, footer_rows)
@@ -63,7 +63,7 @@ class FrameTest(unittest.TestCase):
 class PileTest(unittest.TestCase):
     def ktest(self, desc, l, focus_item, key,
             rkey, rfocus, rpref_col):
-        p = urwid.Pile( l, focus_item )
+        p = container.Pile(l, focus_item)
         rval = p.keypress( (20,), key )
         assert rkey == rval, "%s key expected %r but got %r" %(
             desc, rkey, rval)
@@ -76,7 +76,7 @@ class PileTest(unittest.TestCase):
             desc, rpref_col, new_pref))
 
     def test_select_change(self):
-        T,S,E = urwid.Text, SelectableText, urwid.Edit
+        T, S, E = widget.Text, SelectableText, widget.Edit
 
         self.ktest("simple up", [S("")], 0, "up", "up", 0, 0)
         self.ktest("simple down", [S("")], 0, "down", "down", 0, 0)
@@ -114,35 +114,35 @@ class PileTest(unittest.TestCase):
         assert z.get_pref_col((20,)) == 2
 
     def test_init_with_a_generator(self):
-        urwid.Pile(urwid.Text(c) for c in "ABC")
+        container.Pile(widget.Text(c) for c in "ABC")
 
     def test_change_focus_with_mouse(self):
-        p = urwid.Pile([urwid.Edit(), urwid.Edit()])
+        p = container.Pile([widget.Edit(), widget.Edit()])
         self.assertEqual(p.focus_position, 0)
         p.mouse_event((10,), 'button press', 1, 1, 1, True)
         self.assertEqual(p.focus_position, 1)
 
     def test_zero_weight(self):
-        p = urwid.Pile([
-            urwid.SolidFill('a'),
-            ('weight', 0, urwid.SolidFill('d')),
+        p = container.Pile([
+            widget.SolidFill('a'),
+            ('weight', 0, widget.SolidFill('d')),
             ])
         p.render((5, 4))
 
     def test_mouse_event_in_empty_pile(self):
-        p = urwid.Pile([])
+        p = container.Pile([])
         p.mouse_event((5,), 'button press', 1, 1, 1, False)
         p.mouse_event((5,), 'button press', 1, 1, 1, True)
 
 
 class ColumnsTest(unittest.TestCase):
     def cwtest(self, desc, l, divide, size, exp, focus_column=0):
-        c = urwid.Columns(l, divide, focus_column)
+        c = container.Columns(l, divide, focus_column)
         rval = c.column_widths( size )
         assert rval == exp, "%s expected %s, got %s"%(desc,exp,rval)
 
     def test_widths(self):
-        x = urwid.Text("") # sample "column"
+        x = widget.Text("") # sample "column"
         self.cwtest( "simple 1", [x], 0, (20,), [20] )
         self.cwtest( "simple 2", [x,x], 0, (20,), [10,10] )
         self.cwtest( "simple 2+1", [x,x], 1, (20,), [10,9] )
@@ -171,7 +171,7 @@ class ColumnsTest(unittest.TestCase):
             x, ('weight',3,x)], 1, (20,), [4,5,2,6] )
 
     def test_widths_focus_end(self):
-        x = urwid.Text("") # sample "column"
+        x = widget.Text("") # sample "column"
         self.cwtest("end simple 2", [x,x], 0, (20,), [10,10], 1)
         self.cwtest("end simple 2+1", [x,x], 1, (20,), [10,9], 1)
         self.cwtest("end simple 3+1", [x,x,x], 1, (20,), [6,6,6], 2)
@@ -199,7 +199,7 @@ class ColumnsTest(unittest.TestCase):
             x, ('weight',3,x)], 1, (20,), [4,5,2,6], 3)
 
     def mctest(self, desc, l, divide, size, col, row, exp, f_col, pref_col):
-        c = urwid.Columns( l, divide )
+        c = container.Columns(l, divide)
         rval = c.move_cursor_to_coords( size, col, row )
         assert rval == exp, "%s expected %r, got %r"%(desc,exp,rval)
         assert c.focus_col == f_col, "%s expected focus_col %s got %s"%(
@@ -209,7 +209,7 @@ class ColumnsTest(unittest.TestCase):
             desc, pref_col, pc)
 
     def test_move_cursor(self):
-        e, s, x = urwid.Edit("",""),SelectableText(""), urwid.Text("")
+        e, s, x = widget.Edit("", ""), SelectableText(""), widget.Text("")
         self.mctest("nothing selectbl",[x,x,x],1,(20,),9,0,False,0,None)
         self.mctest("dead on",[x,s,x],1,(20,),9,0,True,1,9)
         self.mctest("l edge",[x,s,x],1,(20,),6,0,True,1,6)
@@ -235,17 +235,17 @@ class ColumnsTest(unittest.TestCase):
         self.mctest("left", [e, e, e], 0, (12,), 'left', 0, True, 0, 'left')
 
     def test_init_with_a_generator(self):
-        urwid.Columns(urwid.Text(c) for c in "ABC")
+        container.Columns(widget.Text(c) for c in "ABC")
 
     def test_old_attributes(self):
-        c = urwid.Columns([urwid.Text(u'a'), urwid.SolidFill(u'x')],
+        c = container.Columns([widget.Text(u'a'), widget.SolidFill(u'x')],
             box_columns=[1])
         self.assertEqual(c.box_columns, [1])
         c.box_columns=[]
         self.assertEqual(c.box_columns, [])
 
     def test_box_column(self):
-        c = urwid.Columns([urwid.Filler(urwid.Edit()),urwid.Text('')],
+        c = container.Columns([decoration.Filler(widget.Edit()), widget.Text('')],
             box_columns=[0])
         c.keypress((10,), 'x')
         c.get_cursor_coords((10,))
@@ -257,13 +257,13 @@ class ColumnsTest(unittest.TestCase):
 
 class OverlayTest(unittest.TestCase):
     def test_old_params(self):
-        o1 = urwid.Overlay(urwid.SolidFill(u'X'), urwid.SolidFill(u'O'),
+        o1 = container.Overlay(widget.SolidFill(u'X'), widget.SolidFill(u'O'),
             ('fixed left', 5), ('fixed right', 4),
             ('fixed top', 3), ('fixed bottom', 2),)
         self.assertEqual(o1.contents[1][1], (
             'left', None, 'relative', 100, None, 5, 4,
             'top', None, 'relative', 100, None, 3, 2))
-        o2 = urwid.Overlay(urwid.SolidFill(u'X'), urwid.SolidFill(u'O'),
+        o2 = container.Overlay(widget.SolidFill(u'X'), widget.SolidFill(u'O'),
             ('fixed right', 5), ('fixed left', 4),
             ('fixed bottom', 3), ('fixed top', 2),)
         self.assertEqual(o2.contents[1][1], (
@@ -271,21 +271,21 @@ class OverlayTest(unittest.TestCase):
             'bottom', None, 'relative', 100, None, 2, 3))
 
     def test_get_cursor_coords(self):
-        self.assertEqual(urwid.Overlay(urwid.Filler(urwid.Edit()),
-            urwid.SolidFill(u'B'),
+        self.assertEqual(container.Overlay(decoration.Filler(widget.Edit()),
+            widget.SolidFill(u'B'),
             'right', 1, 'bottom', 1).get_cursor_coords((2,2)), (1,1))
 
 
 class GridFlowTest(unittest.TestCase):
     def test_cell_width(self):
-        gf = urwid.GridFlow([], 5, 0, 0, 'left')
+        gf = container.GridFlow([], 5, 0, 0, 'left')
         self.assertEqual(gf.cell_width, 5)
 
     def test_basics(self):
-        repr(urwid.GridFlow([], 5, 0, 0, 'left')) # should not fail
+        repr(container.GridFlow([], 5, 0, 0, 'left')) # should not fail
 
     def test_v_sep(self):
-        gf = urwid.GridFlow([urwid.Text("test")], 10, 3, 1, "center")
+        gf = container.GridFlow([widget.Text("test")], 10, 3, 1, "center")
         self.assertEqual(gf.rows((40,), False), 1)
 
 
@@ -314,60 +314,60 @@ class WidgetSquishTest(unittest.TestCase):
         t(1, True)
 
     def test_listbox(self):
-        self.wstest(urwid.ListBox([]))
-        self.wstest(urwid.ListBox([urwid.Text("hello")]))
+        self.wstest(listbox.ListBox([]))
+        self.wstest(listbox.ListBox([widget.Text("hello")]))
 
     def test_bargraph(self):
-        self.wstest(urwid.BarGraph(['foo','bar']))
+        self.wstest(graphics.BarGraph(['foo', 'bar']))
 
     def test_graphvscale(self):
-        self.wstest(urwid.GraphVScale([(0,"hello")], 1))
-        self.wstest(urwid.GraphVScale([(5,"hello")], 1))
+        self.wstest(graphics.GraphVScale([(0, "hello")], 1))
+        self.wstest(graphics.GraphVScale([(5, "hello")], 1))
 
     def test_solidfill(self):
-        self.wstest(urwid.SolidFill())
+        self.wstest(widget.SolidFill())
 
     def test_filler(self):
-        self.wstest(urwid.Filler(urwid.Text("hello")))
+        self.wstest(decoration.Filler(widget.Text("hello")))
 
     def test_overlay(self):
-        self.wstest(urwid.Overlay(
-            urwid.BigText("hello",urwid.Thin6x6Font()),
-            urwid.SolidFill(),
+        self.wstest(container.Overlay(
+            graphics.BigText("hello", font.Thin6x6Font()),
+            widget.SolidFill(),
             'center', None, 'middle', None))
-        self.wstest(urwid.Overlay(
-            urwid.Text("hello"), urwid.SolidFill(),
+        self.wstest(container.Overlay(
+            widget.Text("hello"), widget.SolidFill(),
             'center',  ('relative', 100), 'middle', None))
 
     def test_frame(self):
-        self.wstest(urwid.Frame(urwid.SolidFill()))
-        self.wstest(urwid.Frame(urwid.SolidFill(),
-            header=urwid.Text("hello")))
-        self.wstest(urwid.Frame(urwid.SolidFill(),
-            header=urwid.Text("hello"),
-            footer=urwid.Text("hello")))
+        self.wstest(container.Frame(widget.SolidFill()))
+        self.wstest(container.Frame(widget.SolidFill(),
+            header=widget.Text("hello")))
+        self.wstest(container.Frame(widget.SolidFill(),
+            header=widget.Text("hello"),
+            footer=widget.Text("hello")))
 
     def test_pile(self):
-        self.wstest(urwid.Pile([urwid.SolidFill()]))
-        self.wstest(urwid.Pile([('flow', urwid.Text("hello"))]))
-        self.wstest(urwid.Pile([]))
+        self.wstest(container.Pile([widget.SolidFill()]))
+        self.wstest(container.Pile([('flow', widget.Text("hello"))]))
+        self.wstest(container.Pile([]))
 
     def test_columns(self):
-        self.wstest(urwid.Columns([urwid.SolidFill()]))
-        self.wstest(urwid.Columns([(4, urwid.SolidFill())]))
+        self.wstest(container.Columns([widget.SolidFill()]))
+        self.wstest(container.Columns([(4, widget.SolidFill())]))
 
     def test_buttons(self):
-        self.fwstest(urwid.Button(u"hello"))
-        self.fwstest(urwid.RadioButton([], u"hello"))
+        self.fwstest(wimp.Button(u"hello"))
+        self.fwstest(wimp.RadioButton([], u"hello"))
 
 
 class CommonContainerTest(unittest.TestCase):
     def test_pile(self):
-        t1 = urwid.Text(u'one')
-        t2 = urwid.Text(u'two')
-        t3 = urwid.Text(u'three')
-        sf = urwid.SolidFill('x')
-        p = urwid.Pile([])
+        t1 = widget.Text(u'one')
+        t2 = widget.Text(u'two')
+        t3 = widget.Text(u'three')
+        sf = widget.SolidFill('x')
+        p = container.Pile([])
         self.assertEqual(p.focus, None)
         self.assertRaises(IndexError, lambda: getattr(p, 'focus_position'))
         self.assertRaises(IndexError, lambda: setattr(p, 'focus_position',
@@ -381,11 +381,11 @@ class CommonContainerTest(unittest.TestCase):
         p.contents[0:0] = [(t3, ('pack', None)), (t2, ('pack', None))]
         p.contents.insert(3, (t1, ('pack', None)))
         self.assertEqual(p.focus_position, 2)
-        self.assertRaises(urwid.PileError, lambda: p.contents.append(t1))
-        self.assertRaises(urwid.PileError, lambda: p.contents.append((t1, None)))
-        self.assertRaises(urwid.PileError, lambda: p.contents.append((t1, 'given')))
+        self.assertRaises(container.PileError, lambda: p.contents.append(t1))
+        self.assertRaises(container.PileError, lambda: p.contents.append((t1, None)))
+        self.assertRaises(container.PileError, lambda: p.contents.append((t1, 'given')))
 
-        p = urwid.Pile([t1, t2])
+        p = container.Pile([t1, t2])
         self.assertEqual(p.focus, t1)
         self.assertEqual(p.focus_position, 0)
         p.focus_position = 1
@@ -422,11 +422,11 @@ class CommonContainerTest(unittest.TestCase):
         self.assertEqual(len(p.contents), 1)
 
     def test_columns(self):
-        t1 = urwid.Text(u'one')
-        t2 = urwid.Text(u'two')
-        t3 = urwid.Text(u'three')
-        sf = urwid.SolidFill('x')
-        c = urwid.Columns([])
+        t1 = widget.Text(u'one')
+        t2 = widget.Text(u'two')
+        t3 = widget.Text(u'three')
+        sf = widget.SolidFill('x')
+        c = container.Columns([])
         self.assertEqual(c.focus, None)
         self.assertRaises(IndexError, lambda: getattr(c, 'focus_position'))
         self.assertRaises(IndexError, lambda: setattr(c, 'focus_position',
@@ -445,11 +445,11 @@ class CommonContainerTest(unittest.TestCase):
             (t2, ('weight', 1, False))]
         c.contents.insert(3, (t1, ('pack', None, False)))
         self.assertEqual(c.focus_position, 2)
-        self.assertRaises(urwid.ColumnsError, lambda: c.contents.append(t1))
-        self.assertRaises(urwid.ColumnsError, lambda: c.contents.append((t1, None)))
-        self.assertRaises(urwid.ColumnsError, lambda: c.contents.append((t1, 'given')))
+        self.assertRaises(container.ColumnsError, lambda: c.contents.append(t1))
+        self.assertRaises(container.ColumnsError, lambda: c.contents.append((t1, None)))
+        self.assertRaises(container.ColumnsError, lambda: c.contents.append((t1, 'given')))
 
-        c = urwid.Columns([t1, t2])
+        c = container.Columns([t1, t2])
         self.assertEqual(c.focus, t1)
         self.assertEqual(c.focus_position, 0)
         c.focus_position = 1
@@ -459,7 +459,7 @@ class CommonContainerTest(unittest.TestCase):
         self.assertRaises(IndexError, lambda: setattr(c, 'focus_position', -1))
         self.assertRaises(IndexError, lambda: setattr(c, 'focus_position', 2))
         # old methods:
-        c = urwid.Columns([t1, ('weight', 3, t2), sf], box_columns=[2])
+        c = container.Columns([t1, ('weight', 3, t2), sf], box_columns=[2])
         c.set_focus(0)
         self.assertRaises(IndexError, lambda: c.set_focus(-1))
         self.assertRaises(IndexError, lambda: c.set_focus(3))
@@ -503,16 +503,16 @@ class CommonContainerTest(unittest.TestCase):
         self.assertEqual(len(c.contents), 1)
 
     def test_list_box(self):
-        lb = urwid.ListBox(urwid.SimpleFocusListWalker([]))
+        lb = listbox.ListBox(listbox.SimpleFocusListWalker([]))
         self.assertEqual(lb.focus, None)
         self.assertRaises(IndexError, lambda: getattr(lb, 'focus_position'))
         self.assertRaises(IndexError, lambda: setattr(lb, 'focus_position',
             None))
         self.assertRaises(IndexError, lambda: setattr(lb, 'focus_position', 0))
 
-        t1 = urwid.Text(u'one')
-        t2 = urwid.Text(u'two')
-        lb = urwid.ListBox(urwid.SimpleListWalker([t1, t2]))
+        t1 = widget.Text(u'one')
+        t2 = widget.Text(u'two')
+        lb = listbox.ListBox(listbox.SimpleListWalker([t1, t2]))
         self.assertEqual(lb.focus, t1)
         self.assertEqual(lb.focus_position, 0)
         lb.focus_position = 1
@@ -523,7 +523,7 @@ class CommonContainerTest(unittest.TestCase):
         self.assertRaises(IndexError, lambda: setattr(lb, 'focus_position', 2))
 
     def test_grid_flow(self):
-        gf = urwid.GridFlow([], 5, 1, 0, 'left')
+        gf = container.GridFlow([], 5, 1, 0, 'left')
         self.assertEqual(gf.focus, None)
         self.assertEqual(gf.contents, [])
         self.assertRaises(IndexError, lambda: getattr(gf, 'focus_position'))
@@ -532,12 +532,12 @@ class CommonContainerTest(unittest.TestCase):
         self.assertRaises(IndexError, lambda: setattr(gf, 'focus_position', 0))
         self.assertEqual(gf.options(), ('given', 5))
         self.assertEqual(gf.options(width_amount=9), ('given', 9))
-        self.assertRaises(urwid.GridFlowError, lambda: gf.options(
+        self.assertRaises(container.GridFlowError, lambda: gf.options(
             'pack', None))
 
-        t1 = urwid.Text(u'one')
-        t2 = urwid.Text(u'two')
-        gf = urwid.GridFlow([t1, t2], 5, 1, 0, 'left')
+        t1 = widget.Text(u'one')
+        t2 = widget.Text(u'two')
+        gf = container.GridFlow([t1, t2], 5, 1, 0, 'left')
         self.assertEqual(gf.focus, t1)
         self.assertEqual(gf.focus_position, 0)
         self.assertEqual(gf.contents, [(t1, ('given', 5)), (t2, ('given', 5))])
@@ -546,8 +546,8 @@ class CommonContainerTest(unittest.TestCase):
         self.assertEqual(gf.focus_position, 1)
         gf.contents.insert(0, (t2, ('given', 5)))
         self.assertEqual(gf.focus_position, 2)
-        self.assertRaises(urwid.GridFlowError, lambda: gf.contents.append(()))
-        self.assertRaises(urwid.GridFlowError, lambda: gf.contents.insert(1,
+        self.assertRaises(container.GridFlowError, lambda: gf.contents.append(()))
+        self.assertRaises(container.GridFlowError, lambda: gf.contents.insert(1,
             (t1, ('pack', None))))
         gf.focus_position = 0
         self.assertRaises(IndexError, lambda: setattr(gf, 'focus_position', -1))
@@ -561,9 +561,9 @@ class CommonContainerTest(unittest.TestCase):
         self.assertRaises(ValueError, lambda: gf.set_focus('nonexistant'))
 
     def test_overlay(self):
-        s1 = urwid.SolidFill(u'1')
-        s2 = urwid.SolidFill(u'2')
-        o = urwid.Overlay(s1, s2,
+        s1 = widget.SolidFill(u'1')
+        s2 = widget.SolidFill(u'2')
+        o = container.Overlay(s1, s2,
             'center', ('relative', 50), 'middle', ('relative', 50))
         self.assertEqual(o.focus, s1)
         self.assertEqual(o.focus_position, 1)
@@ -572,15 +572,15 @@ class CommonContainerTest(unittest.TestCase):
         self.assertRaises(IndexError, lambda: setattr(o, 'focus_position', 2))
 
         self.assertEqual(o.contents[0], (s2,
-            urwid.Overlay._DEFAULT_BOTTOM_OPTIONS))
+            container.Overlay._DEFAULT_BOTTOM_OPTIONS))
         self.assertEqual(o.contents[1], (s1, (
             'center', None, 'relative', 50, None, 0, 0,
             'middle', None, 'relative', 50, None, 0, 0)))
 
     def test_frame(self):
-        s1 = urwid.SolidFill(u'1')
+        s1 = widget.SolidFill(u'1')
 
-        f = urwid.Frame(s1)
+        f = container.Frame(s1)
         self.assertEqual(f.focus, s1)
         self.assertEqual(f.focus_position, 'body')
         self.assertRaises(IndexError, lambda: setattr(f, 'focus_position',
@@ -588,10 +588,10 @@ class CommonContainerTest(unittest.TestCase):
         self.assertRaises(IndexError, lambda: setattr(f, 'focus_position',
             'header'))
 
-        t1 = urwid.Text(u'one')
-        t2 = urwid.Text(u'two')
-        t3 = urwid.Text(u'three')
-        f = urwid.Frame(s1, t1, t2, 'header')
+        t1 = widget.Text(u'one')
+        t2 = widget.Text(u'two')
+        t3 = widget.Text(u'three')
+        f = container.Frame(s1, t1, t2, 'header')
         self.assertEqual(f.focus, t1)
         self.assertEqual(f.focus_position, 'header')
         f.focus_position = 'footer'
@@ -607,25 +607,25 @@ class CommonContainerTest(unittest.TestCase):
         self.assertEqual(f.footer, t3)
         def set1():
             f.contents['body'] = t1
-        self.assertRaises(urwid.FrameError, set1)
+        self.assertRaises(container.FrameError, set1)
         def set2():
             f.contents['body'] = (t1, 'given')
-        self.assertRaises(urwid.FrameError, set2)
+        self.assertRaises(container.FrameError, set2)
 
     def test_focus_path(self):
         # big tree of containers
-        t = urwid.Text(u'x')
-        e = urwid.Edit(u'?')
-        c = urwid.Columns([t, e, t, t])
-        p = urwid.Pile([t, t, c, t])
-        a = urwid.AttrMap(p, 'gets ignored')
-        s = urwid.SolidFill(u'/')
-        o = urwid.Overlay(e, s, 'center', 'pack', 'middle', 'pack')
-        lb = urwid.ListBox(urwid.SimpleFocusListWalker([t, a, o, t]))
+        t = widget.Text(u'x')
+        e = widget.Edit(u'?')
+        c = container.Columns([t, e, t, t])
+        p = container.Pile([t, t, c, t])
+        a = decoration.AttrMap(p, 'gets ignored')
+        s = widget.SolidFill(u'/')
+        o = container.Overlay(e, s, 'center', 'pack', 'middle', 'pack')
+        lb = listbox.ListBox(listbox.SimpleFocusListWalker([t, a, o, t]))
         lb.focus_position = 1
-        g = urwid.GridFlow([t, t, t, t, e, t], 10, 0, 0, 'left')
+        g = container.GridFlow([t, t, t, t, e, t], 10, 0, 0, 'left')
         g.focus_position = 4
-        f = urwid.Frame(lb, header=t, footer=g)
+        f = container.Frame(lb, header=t, footer=g)
 
         self.assertEqual(f.get_focus_path(), ['body', 1, 2, 1])
         f.set_focus_path(['footer']) # same as f.focus_position = 'footer'

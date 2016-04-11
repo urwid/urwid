@@ -38,12 +38,12 @@ try:
 except ImportError:
     pass # windows
 
-from urwid import util
-from urwid.escape import DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS
-from urwid.canvas import Canvas
-from urwid.widget import Widget, BOX
-from urwid.display_common import AttrSpec, RealTerminal, _BASIC_COLORS
-from urwid.compat import ord2, chr2, B, bytes, PYTHON3
+from . import util
+from .escape import DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS
+from .canvas import Canvas
+from .widget import Widget, BOX
+from .display_common import AttrSpec, RealTerminal, _BASIC_COLORS
+from .compat import ord2, chr2, B, bytes, PYTHON3
 
 ESC = chr(27)
 

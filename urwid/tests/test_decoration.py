@@ -1,18 +1,18 @@
 import unittest
 
-import urwid
+from .. import decoration, widget
 
 
 class PaddingTest(unittest.TestCase):
     def ptest(self, desc, align, width, maxcol, left, right,min_width=None):
-        p = urwid.Padding(None, align, width, min_width)
+        p = decoration.Padding(None, align, width, min_width)
         l, r = p.padding_values((maxcol,),False)
         assert (l,r)==(left,right), "%s expected %s but got %s"%(
             desc, (left,right), (l,r))
 
     def petest(self, desc, align, width):
-        self.assertRaises(urwid.PaddingError, lambda:
-            urwid.Padding(None, align, width))
+        self.assertRaises(decoration.PaddingError, lambda:
+            decoration.Padding(None, align, width))
 
     def test_create(self):
         self.petest("invalid pad",6,5)
@@ -61,7 +61,7 @@ class PaddingTest(unittest.TestCase):
             def move_cursor_to_coords(self,size,cx,cy):
                 assert cx==self.innercx, desc
         i = Inner(desc,innercx)
-        p = urwid.Padding(i, ('fixed left',left),
+        p = decoration.Padding(i, ('fixed left', left),
             ('fixed right',right))
         p.move_cursor_to_coords(size, cx, 0)
 
@@ -77,13 +77,13 @@ class PaddingTest(unittest.TestCase):
         # fixing this gets deep into things like Edit._shift_view_to_cursor
         # though, so this might not get fixed for a while
 
-        p = urwid.Padding(urwid.Edit(u'',u''), width='pack', left=4)
+        p = decoration.Padding(widget.Edit(u'', u''), width='pack', left=4)
         self.assertEqual(p.render((10,), True).cursor, None)
         self.assertEqual(p.get_cursor_coords((10,)), None)
         self.assertEqual(p.render((4,), True).cursor, None)
         self.assertEqual(p.get_cursor_coords((4,)), None)
 
-        p = urwid.Padding(urwid.Edit(u'',u''), width=('relative', 100), left=4)
+        p = decoration.Padding(widget.Edit(u'', u''), width=('relative', 100), left=4)
         self.assertEqual(p.render((10,), True).cursor, (4, 0))
         self.assertEqual(p.get_cursor_coords((10,)), (4, 0))
         self.assertEqual(p.render((4,), True).cursor, None)
@@ -93,14 +93,14 @@ class PaddingTest(unittest.TestCase):
 class FillerTest(unittest.TestCase):
     def ftest(self, desc, valign, height, maxrow, top, bottom,
             min_height=None):
-        f = urwid.Filler(None, valign, height, min_height)
+        f = decoration.Filler(None, valign, height, min_height)
         t, b = f.filler_values((20,maxrow), False)
         assert (t,b)==(top,bottom), "%s expected %s but got %s"%(
             desc, (top,bottom), (t,b))
 
     def fetest(self, desc, valign, height):
-        self.assertRaises(urwid.FillerError, lambda:
-            urwid.Filler(None, valign, height))
+        self.assertRaises(decoration.FillerError, lambda:
+            decoration.Filler(None, valign, height))
 
     def test_create(self):
         self.fetest("invalid pad",6,5)
@@ -146,4 +146,4 @@ class FillerTest(unittest.TestCase):
             10,1,1,8)
 
     def test_repr(self):
-        repr(urwid.Filler(urwid.Text(u'hai')))
+        repr(decoration.Filler(widget.Text(u'hai')))
