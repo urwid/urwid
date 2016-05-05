@@ -6,14 +6,21 @@ even Python 2 if you install `trollius`!
 """
 from __future__ import print_function
 
-import asyncio
+try:
+    import asyncio
+except ImportError:
+    import trollius as asyncio
+
 from datetime import datetime
 import sys
 import weakref
 
 import urwid
 from urwid.raw_display import Screen
+from urwid.display_common import BaseScreen
 
+import logging
+logging.basicConfig()
 
 loop = asyncio.get_event_loop()
 
@@ -75,17 +82,21 @@ def demo1():
 class AsyncScreen(Screen):
     """An urwid screen that speaks to an asyncio stream, rather than polling
     file descriptors.
+
+    This is fairly limited; it can't, for example, determine the size of the
+    remote screen.  Fixing that depends on the nature of the stream.
     """
-    def __init__(self, reader, writer):
+    def __init__(self, reader, writer, encoding="utf-8"):
         self.reader = reader
         self.writer = writer
+        self.encoding = encoding
 
         Screen.__init__(self, None, None)
 
     _pending_task = None
 
     def write(self, data):
-        self.writer.write(data)
+        self.writer.write(data.encode(self.encoding))
 
     def flush(self):
         pass
