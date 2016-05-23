@@ -48,13 +48,13 @@ class GraphModel:
     data_max_value = 100
 
     def __init__(self):
-        data = [ ('Saw', range(0,100,2)*2),
+        data = [ ('Saw', list(range(0,100,2))*2),
             ('Square', [0]*30 + [100]*30),
-            ('Sine 1', [sin100(x) for x in range(100)] ),
+            ('Sine 1', [sin100(x) for x in list(range(100))] ),
             ('Sine 2', [(sin100(x) + sin100(x*2))/2
-                for x in range(100)] ),
+                for x in list(range(100))] ),
             ('Sine 3', [(sin100(x) + sin100(x*3))/2
-                for x in range(100)] ),
+                for x in list(range(100))] ),
             ]
         self.modes = []
         self.data = {}
