@@ -50,7 +50,7 @@ class EditTest(unittest.TestCase):
         got= e.keypress((12,),key)
         assert got == expected, "%s.  got: %r expected:%r" % (desc, got,
                                                               expected)
-        assert e.edit_pos == pos, "%s. pos: %r expected pos: " % (
+        assert e.edit_pos == pos, "%s. pos: %r expected pos: %r" % (
             desc, e.edit_pos, pos)
 
     def test1_left(self):
