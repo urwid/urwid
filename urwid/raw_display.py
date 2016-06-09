@@ -931,8 +931,9 @@ class Screen(BaseScreen, RealTerminal):
                 fg = "%d" % (a.foreground_number + 30)
         else:
             fg = "39"
-        st = ("1;" * a.bold + "4;" * a.underline +
-              "5;" * a.blink + "7;" * a.standout)
+        st = ("1;" * a.bold + "3;" * a.italics +
+              "4;" * a.underline + "5;" * a.blink +
+              "7;" * a.standout)
         if a.background_high:
             bg = "48;5;%d" % a.background_number
         elif a.background_basic:
