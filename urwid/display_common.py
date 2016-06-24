@@ -20,6 +20,7 @@
 
 import os
 import sys
+import six
 
 try:
     import termios
@@ -715,11 +716,10 @@ class RealTerminal(object):
 class ScreenError(Exception):
     pass
 
-class BaseScreen(object):
+class BaseScreen(six.with_metaclass(signals.MetaSignals, object)):
     """
     Base class for Screen classes (raw_display.Screen, .. etc)
     """
-    __metaclass__ = signals.MetaSignals
     signals = [UPDATE_PALETTE_ENTRY, INPUT_DESCRIPTORS_CHANGED]
 
     def __init__(self):
