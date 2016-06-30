@@ -20,6 +20,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+import six
 from urwid.util import decompose_tagmarkup, get_encoding_mode
 from urwid.canvas import CompositeCanvas, CanvasJoin, TextCanvas, \
     CanvasCombine, SolidCanvas
@@ -192,8 +193,7 @@ def nocache_bargraph_get_data(self, get_data_fn):
 class BarGraphError(Exception):
     pass
 
-class BarGraph(Widget):
-    __metaclass__ = BarGraphMeta
+class BarGraph(six.with_metaclass(BarGraphMeta, Widget)):
 
     _sizing = frozenset([BOX])
 
@@ -481,9 +481,11 @@ class BarGraph(Widget):
         o = []
         r = 0  # row remainder
 
-        def seg_combine((bt1, w1), (bt2, w2)):
-            if (bt1, w1) == (bt2, w2):
-                return (bt1, w1), None, None
+        def seg_combine(row1, row2):
+            if row1 == row2:
+                return row1, None, None
+            (bt1, w1) = row1
+            (bt2, w2) = row2
             wmin = min(w1, w2)
             l1 = l2 = None
             if w1 > w2:

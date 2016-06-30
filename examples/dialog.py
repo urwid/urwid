@@ -100,7 +100,7 @@ class DialogDisplay:
         self.loop = urwid.MainLoop(self.view, self.palette)
         try:
             self.loop.run()
-        except DialogExit, e:
+        except DialogExit as e:
             return self.on_exit( e.args[0] )
 
     def on_exit(self, exitcode):
@@ -230,12 +230,12 @@ class MenuItem(urwid.Text):
     def keypress(self,size,key):
         if key == "enter":
             self.state = True
-            raise DialogExit, 0
+            raise DialogExit(0)
         return key
     def mouse_event(self,size,event,button,col,row,focus):
         if event=='mouse release':
             self.state = True
-            raise DialogExit, 0
+            raise DialogExit(0)
         return False
     def get_state(self):
         return self.state
@@ -286,7 +286,8 @@ def do_yesno(text, height, width):
     d.add_buttons([    ("Yes", 0), ("No", 1) ])
     return d
 
-MODES={    '--checklist':    (do_checklist,
+MODES={
+    '--checklist':    (do_checklist,
         "text height width list-height [ tag item status ] ..."),
     '--inputbox':    (do_inputbox,
         "text height width"),

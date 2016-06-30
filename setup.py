@@ -45,6 +45,7 @@ setup_d = {
     'author_email':"ian@excess.org",
     'ext_modules':[Extension('urwid.str_util', sources=['source/str_util.c'])],
     'packages':['urwid', 'urwid.tests'],
+    'install_requires':['six>=1.4'],
     'url':"http://urwid.org/",
     'license':"LGPL",
     'keywords':"curses ui widget scroll listbox user interface text layout console ncurses",

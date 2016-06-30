@@ -19,6 +19,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+import six
 from operator import attrgetter
 
 from urwid.util import (MetaSuper, decompose_tagmarkup, calc_width,
@@ -32,6 +33,8 @@ from urwid.command_map import (command_map, CURSOR_LEFT, CURSOR_RIGHT,
     CURSOR_UP, CURSOR_DOWN, CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT)
 from urwid.split_repr import split_repr, remove_defaults, python3_repr
 
+if six.PY3:
+    long = int
 
 # define some names for these constants to avoid misspellings in the source
 # and to document the constant strings we are using
@@ -203,7 +206,7 @@ def cache_widget_rows(cls):
     return cached_rows
 
 
-class Widget(object):
+class Widget(six.with_metaclass(WidgetMeta, object)):
     """
     Widget base class
 
@@ -443,7 +446,6 @@ class Widget(object):
        :returns: ``True`` if the position was set successfully anywhere on
                  *row*, ``False`` otherwise
     """
-    __metaclass__ = WidgetMeta
 
     _selectable = False
     _sizing = frozenset([FLOW, BOX, FIXED])
@@ -709,17 +711,17 @@ class Divider(Widget):
         >>> Divider(u'x', 1, 2)
         <Divider flow widget 'x' bottom=2 top=1>
         """
-        self.__super.__init__()
+        super(Divider, self).__init__()
         self.div_char = div_char
         self.top = top
         self.bottom = bottom
 
     def _repr_words(self):
-        return self.__super._repr_words() + [
+        return super(Divider, self)._repr_words() + [
             python3_repr(self.div_char)] * (self.div_char != u" ")
 
     def _repr_attrs(self):
-        attrs = dict(self.__super._repr_attrs())
+        attrs = dict(super(Divider, self)._repr_attrs())
         if self.top: attrs['top'] = self.top
         if self.bottom: attrs['bottom'] = self.bottom
         return attrs
@@ -770,11 +772,11 @@ class SolidFill(BoxWidget):
         >>> SolidFill(u'8')
         <SolidFill box widget '8'>
         """
-        self.__super.__init__()
+        super(SolidFill, self).__init__()
         self.fill_char = fill_char
 
     def _repr_words(self):
-        return self.__super._repr_words() + [python3_repr(self.fill_char)]
+        return super(SolidFill, self)._repr_words() + [python3_repr(self.fill_char)]
 
     def render(self, size, focus=False ):
         """
@@ -832,7 +834,7 @@ class Text(Widget):
         >>> t.attrib
         [('bold', 5)]
         """
-        self.__super.__init__()
+        super(Text, self).__init__()
         self._cache_maxcol = None
         self.set_text(markup)
         self.set_layout(align, wrap, layout)
@@ -842,7 +844,7 @@ class Text(Widget):
         Show the text in the repr in python3 format (b prefix for byte
         strings) and truncate if it's too long
         """
-        first = self.__super._repr_words()
+        first = super(Text, self)._repr_words()
         text = self.get_text()[0]
         rest = python3_repr(text)
         if len(rest) > self._repr_content_length_max:
@@ -851,14 +853,14 @@ class Text(Widget):
         return first + [rest]
 
     def _repr_attrs(self):
-        attrs = dict(self.__super._repr_attrs(),
+        attrs = dict(super(Text, self)._repr_attrs(),
             align=self._align_mode,
             wrap=self._wrap_mode)
         return remove_defaults(attrs, Text.__init__)
 
     def _invalidate(self):
         self._cache_maxcol = None
-        self.__super._invalidate()
+        super(Text, self)._invalidate()
 
     def set_text(self,markup):
         """
@@ -1003,7 +1005,7 @@ class Text(Widget):
         """
         (maxcol,) = size
         text, attr = self.get_text()
-        #assert isinstance(text, unicode)
+        #assert isinstance(text, six.text_type)
         trans = self.get_line_translation( maxcol, (text,attr) )
         return apply_text_layout(text, attr, trans, maxcol)
 
@@ -1155,7 +1157,7 @@ class Edit(Text):
         <Edit selectable flow widget '3.14' align='right' edit_pos=4>
         """
 
-        self.__super.__init__("", align, wrap, layout)
+        super(Edit, self).__init__("", align, wrap, layout)
         self.multiline = multiline
         self.allow_tab = allow_tab
         self._edit_pos = 0
@@ -1168,13 +1170,13 @@ class Edit(Text):
         self._shift_view_to_cursor = False
 
     def _repr_words(self):
-        return self.__super._repr_words()[:-1] + [
+        return super(Edit, self)._repr_words()[:-1] + [
             python3_repr(self._edit_text)] + [
             'caption=' + python3_repr(self._caption)] * bool(self._caption) + [
             'multiline'] * (self.multiline is True)
 
     def _repr_attrs(self):
-        attrs = dict(self.__super._repr_attrs(),
+        attrs = dict(super(Edit, self)._repr_attrs(),
             edit_pos=self._edit_pos)
         return remove_defaults(attrs, Edit.__init__)
 
@@ -1406,8 +1408,8 @@ class Edit(Text):
         Return text converted to the same type as self.caption
         (bytes or unicode)
         """
-        tu = isinstance(text, unicode)
-        cu = isinstance(self._caption, unicode)
+        tu = isinstance(text, six.text_type)
+        cu = isinstance(self._caption, six.text_type)
         if tu == cu:
             return text
         if tu:
@@ -1465,8 +1467,8 @@ class Edit(Text):
 
         p = self.edit_pos
         if self.valid_char(key):
-            if (isinstance(key, unicode) and not
-                    isinstance(self._caption, unicode)):
+            if (isinstance(key, six.text_type) and not
+                    isinstance(self._caption, six.text_type)):
                 # screen is sending us unicode input, must be using utf-8
                 # encoding because that's all we support, so convert it
                 # to bytes to match our caption's type
@@ -1658,7 +1660,7 @@ class Edit(Text):
         (maxcol,) = size
 
         self._shift_view_to_cursor = True
-        return self.position_coords(maxcol,self.edit_pos)
+        return self.position_coords(maxcol, self.edit_pos)
 
 
     def position_coords(self,maxcol,pos):
@@ -1691,7 +1693,7 @@ class IntEdit(Edit):
         """
         if default is not None: val = str(default)
         else: val = ""
-        self.__super.__init__(caption,val)
+        super(IntEdit, self).__init__(caption,val)
 
     def keypress(self, size, key):
         """

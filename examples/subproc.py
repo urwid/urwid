@@ -21,6 +21,7 @@ def exit_on_enter(key):
 loop = urwid.MainLoop(frame_widget, unhandled_input=exit_on_enter)
 
 def received_output(data):
+    data = data.decode('utf-8')
     output_widget.set_text(output_widget.text + data)
 
 write_fd = loop.watch_pipe(received_output)

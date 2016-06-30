@@ -23,6 +23,7 @@
 Curses-based UI implementation
 """
 
+import six
 import curses
 import _curses
 
@@ -58,7 +59,7 @@ _curses_colours = {
 
 class Screen(BaseScreen, RealTerminal):
     def __init__(self):
-        super(Screen,self).__init__()
+        super(Screen, self).__init__()
         self.curses_pairs = [
             (None,None), # Can't be sure what pair 0 will default to
         ]
@@ -157,8 +158,8 @@ class Screen(BaseScreen, RealTerminal):
         if not self.has_color:
             return
 
-        for fg in xrange(8):
-            for bg in xrange(8):
+        for fg in six.moves.xrange(8):
+            for bg in six.moves.xrange(8):
                 # leave out white on black
                 if fg == curses.COLOR_WHITE and \
                    bg == curses.COLOR_BLACK:
@@ -481,10 +482,11 @@ class Screen(BaseScreen, RealTerminal):
 
         self.s.attrset(attr)
 
-    def draw_screen(self, (cols, rows), r ):
+    def draw_screen(self, size, r ):
         """Paint screen with rendered canvas."""
         assert self._started
 
+        (cols, rows) = size
         assert r.rows() == rows, "canvas size and passed size don't match"
 
         y = -1

@@ -20,10 +20,10 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-
-from display_common import BaseScreen
-
 import time
+
+from .display_common import BaseScreen
+
 
 class LCDScreen(BaseScreen):
     def set_terminal_properties(self, colors=None, bright_is_bold=None,
@@ -39,7 +39,8 @@ class LCDScreen(BaseScreen):
     def reset_default_terminal_palette(self, *args):
         pass
 
-    def draw_screen(self, (cols, rows), r ):
+    def draw_screen(self, size, r ):
+        (cols, rows) = size
         pass
 
     def clear(self):
