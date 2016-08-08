@@ -744,7 +744,7 @@ class SelectEventLoop(object):
             self._did_something = True
 
 
-class GLibEventLoop(object):
+class GLibEventLoop(ExceptionStorageMixin):
     """
     Event loop based on GLib.MainLoop
     """
@@ -758,7 +758,6 @@ class GLibEventLoop(object):
         self._glib_idle_enabled = False # have we called glib.idle_add?
         self._idle_callbacks = {}
         self._loop = GLib.MainLoop()
-        self._exc_info = None
         self._enable_glib_idle()
 
     def alarm(self, seconds, callback):
@@ -868,11 +867,8 @@ class GLibEventLoop(object):
         finally:
             if self._loop.is_running():
                 self._loop.quit()
-        if self._exc_info:
-            # An exception caused us to exit, raise it now
-            exc_info = self._exc_info
-            self._exc_info = None
-            raise exc_info[0], exc_info[1], exc_info[2]
+        # If an exception was stored previously, raise it now
+        self._maybe_raise_stored_exc()
 
     def handle_exit(self,f):
         """
@@ -889,8 +885,7 @@ class GLibEventLoop(object):
             except ExitMainLoop:
                 self._loop.quit()
             except:
-                import sys
-                self._exc_info = sys.exc_info()
+                self._store_exc()
                 if self._loop.is_running():
                     self._loop.quit()
             return False
