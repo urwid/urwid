@@ -28,6 +28,7 @@ import select
 import os
 from functools import wraps
 from weakref import WeakKeyDictionary
+import sys
 
 try:
     import fcntl
@@ -42,6 +43,33 @@ from urwid import signals
 from urwid.display_common import INPUT_DESCRIPTORS_CHANGED
 
 PIPE_BUFFER_READ_SIZE = 4096 # can expect this much on Linux, so try for that
+
+class ExceptionStorageMixin(object):
+    """Store and raise exceptions in py2 and py3 properly"""
+
+    def _store_exc(self):
+        exc_info = sys.exc_info()
+        if PYTHON3:
+            # Store the exception instance
+            self._exc_info = exc_info[1]
+        else:
+            # Store the exception type, value and traceback
+            self._exc_info = exc_info
+
+    def _maybe_raise_stored_exc(self):
+        try:
+            exc = self._exc_info
+        except AttributeError:
+            pass
+        else:
+            delattr(self, '_exc_info')
+            if PYTHON3:
+                # Simply re-raise previously stored exception
+                raise exc
+            else:
+                # Create new exception from stored type, value and traceback
+                raise exc[0], exc[1], exc[2]
+
 
 class ExitMainLoop(Exception):
     """
