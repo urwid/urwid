@@ -1225,7 +1225,7 @@ class TwistedEventLoop(ExceptionStorageMixin):
         return wrapper
 
 
-class AsyncioEventLoop(object):
+class AsyncioEventLoop(ExceptionStorageMixin):
     """
     Event loop based on the standard library ``asyncio`` module.
 
@@ -1316,16 +1316,12 @@ class AsyncioEventLoop(object):
         # `handle` is just a list containing the current actual handle
         return self.remove_alarm(handle[0])
 
-    _exc_info = None
-
     def _exception_handler(self, loop, context):
         exc = context.get('exception')
         if exc:
             loop.stop()
             if not isinstance(exc, ExitMainLoop):
-                # Store the exc_info so we can re-raise after the loop stops
-                import sys
-                self._exc_info = sys.exc_info()
+                self._store_exc()
         else:
             loop.default_exception_handler(context)
 
@@ -1336,9 +1332,7 @@ class AsyncioEventLoop(object):
         """
         self._loop.set_exception_handler(self._exception_handler)
         self._loop.run_forever()
-        if self._exc_info:
-            raise self._exc_info[0], self._exc_info[1], self._exc_info[2]
-            self._exc_info = None
+        self._maybe_raise_stored_exc()
 
 
 def _refl(name, rval=None, exit=False):
