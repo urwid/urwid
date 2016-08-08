@@ -50,6 +50,8 @@ class EventLoopTestMixin(object):
             raise urwid.ExitMainLoop
         def exit_error():
             1/0
+        def exit_unicode_error():
+            bytearray([0x8f]).decode('utf-8')
         handle = evl.alarm(0.01, exit_clean)
         handle = evl.alarm(0.005, say_hello)
         idle_handle = evl.enter_idle(say_waiting)
@@ -67,6 +69,11 @@ class EventLoopTestMixin(object):
         self.assertRaises(ZeroDivisionError, evl.run)
         handle = evl.watch_file(rd, exit_error)
         self.assertRaises(ZeroDivisionError, evl.run)
+        self.assertTrue(evl.remove_watch_file(handle))
+        handle = evl.alarm(0, exit_unicode_error)
+        self.assertRaises(UnicodeDecodeError, evl.run)
+        handle = evl.watch_file(rd, exit_unicode_error)
+        self.assertRaises(UnicodeDecodeError, evl.run)
 
 
 class SelectEventLoopTest(unittest.TestCase, EventLoopTestMixin):
