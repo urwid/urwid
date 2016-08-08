@@ -1052,7 +1052,7 @@ class TwistedInputDescriptor(FileDescriptor):
         return self.cb()
 
 
-class TwistedEventLoop(object):
+class TwistedEventLoop(ExceptionStorageMixin):
     """
     Event loop based on Twisted_
     """
@@ -1087,7 +1087,6 @@ class TwistedEventLoop(object):
         self._idle_handle = 0
         self._twisted_idle_enabled = False
         self._idle_callbacks = {}
-        self._exc_info = None
         self.manage_reactor = manage_reactor
         self._enable_twisted_idle()
 
@@ -1198,11 +1197,7 @@ class TwistedEventLoop(object):
         if not self.manage_reactor:
             return
         self.reactor.run()
-        if self._exc_info:
-            # An exception caused us to exit, raise it now
-            exc_info = self._exc_info
-            self._exc_info = None
-            raise exc_info[0], exc_info[1], exc_info[2]
+        self._maybe_raise_stored_exc()
 
     def handle_exit(self, f, enable_idle=True):
         """
@@ -1221,9 +1216,7 @@ class TwistedEventLoop(object):
                 if self.manage_reactor:
                     self.reactor.stop()
             except:
-                import sys
-                print sys.exc_info()
-                self._exc_info = sys.exc_info()
+                self._store_exc()
                 if self.manage_reactor:
                     self.reactor.crash()
             if enable_idle:
