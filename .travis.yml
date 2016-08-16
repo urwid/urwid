@@ -5,6 +5,7 @@ python:
   - "3.2_with_system_site_packages"
   - "3.3"
   - "3.4"
+  - "3.5"
   - "pypy"
 before_install:
   - "sudo apt-get update"
@@ -20,5 +21,6 @@ script:
        \"$DEPS\" == '3.2_with_system_site_packages pygobject tornado' -o
        \"$DEPS\" == '3.3 tornado twisted' -o
        \"$DEPS\" == '3.4 tornado twisted' -o
+       \"$DEPS\" == '3.5 tornado twisted' -o
        \"$DEPS\" == 'pypy tornado twisted' ]"
   - "python setup.py test"
