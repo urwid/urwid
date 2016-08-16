@@ -113,14 +113,14 @@ class WidgetContainerListContentsMixin(object):
         Return an iterable of positions for this container from first
         to last.
         """
-        return xrange(len(self.contents))
+        return iter(xrange(len(self.contents)))
 
     def __reversed__(self):
         """
         Return an iterable of positions for this container from last
         to first.
         """
-        return xrange(len(self.contents) - 1, -1, -1)
+        return iter(xrange(len(self.contents) - 1, -1, -1))
 
 
 class GridFlowError(Exception):
