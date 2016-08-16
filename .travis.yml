@@ -4,19 +4,23 @@ python:
   - "2.7_with_system_site_packages"
   - "3.2_with_system_site_packages"
   - "3.3"
+  - "3.4"
+  - "3.5"
   - "pypy"
 before_install:
   - "sudo apt-get update"
   - "sudo apt-get install python-gi python3-gi"
 install:
-  - "pip install --use-mirrors setuptools tornado"
+  - "pip install setuptools"
   - if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]]; then pip install "twisted<=15.4"; fi
-  - "[ $TRAVIS_PYTHON_VERSION == '3.2_with_system_site_packages' ] || pip install --use-mirrors twisted"
+  - "[ $TRAVIS_PYTHON_VERSION == '3.2_with_system_site_packages' ] && pip install 'tornado<=4.3.0' || pip install twisted tornado"
 script:
   - "DEPS=\"$TRAVIS_PYTHON_VERSION `python bin/deps.py`\"; echo $DEPS"
   - "[ \"$DEPS\" == '2.6 tornado twisted' -o
        \"$DEPS\" == '2.7_with_system_site_packages pygobject tornado twisted' -o
        \"$DEPS\" == '3.2_with_system_site_packages pygobject tornado' -o
        \"$DEPS\" == '3.3 tornado twisted' -o
+       \"$DEPS\" == '3.4 tornado twisted' -o
+       \"$DEPS\" == '3.5 tornado twisted' -o
        \"$DEPS\" == 'pypy tornado twisted' ]"
   - "python setup.py test"
