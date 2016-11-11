@@ -235,6 +235,7 @@ class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
     def set_focus(self, position):
         """Set focus position."""
         self.focus = position
+        self._modified()
 
     def next_position(self, position):
         """
