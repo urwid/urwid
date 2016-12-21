@@ -278,11 +278,7 @@ class ListBox(Widget, WidgetContainerMixin):
             widgets to be displayed inside the list box
         :type body: ListWalker
         """
-        if getattr(body, 'get_focus', None):
-            self.body = body
-        else:
-            self.body = PollingListWalker(body)
-
+        self.body = body
         try:
             connect_signal(self.body, "modified", self._invalidate)
         except NameError:
@@ -308,6 +304,22 @@ class ListBox(Widget, WidgetContainerMixin):
 
         # variable for delayed valign change used by set_focus_valign
         self.set_focus_valign_pending = None
+
+
+    def _get_body(self):
+        return self._body
+
+    def _set_body(self, body):
+        if getattr(body, 'get_focus', None):
+            self._body = body
+        else:
+            self._body = PollingListWalker(body)
+        self._invalidate()
+
+    body = property(_get_body, _set_body, doc="""
+    a ListWalker subclass such as :class:`SimpleFocusListWalker` that contains
+    widgets to be displayed inside the list box
+    """)
 
 
     def calculate_visible(self, size, focus=False ):
