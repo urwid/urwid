@@ -1747,7 +1747,7 @@ class FloatEdit(Edit):
         caption -- caption markup
         default -- default edit value
         >>> FloatEdit(u"",  1.065434)
-        <FloatEdit selectable flow widget b'1.06534' edit_pos=7>
+        <FloatEdit selectable flow widget '1.065434' edit_pos=8>
         """
         if default is not None: val = str(default)
         else: val = ""
