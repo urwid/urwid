@@ -1354,10 +1354,10 @@ class Edit(Text):
         """
         text = self._normalize_to_caption(text)
         self.highlight = None
-        self._emit("change", text)
         self._edit_text = text
         if self.edit_pos > len(text):
             self.edit_pos = len(text)
+        self._emit("change", text)
         self._invalidate()
 
     def get_edit_text(self):
