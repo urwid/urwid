@@ -109,7 +109,7 @@ class CheckBox(WidgetWrap):
     # allow users of this class to listen for change events
     # sent when the state of this widget is modified
     # (this variable is picked up by the MetaSignals metaclass)
-    signals = ["change"]
+    signals = ["change", 'postchange']
 
     def __init__(self, label, state=False, has_mixed=False,
              on_state_change=None, user_data=None):
@@ -121,7 +121,7 @@ class CheckBox(WidgetWrap):
                                 function call for a single callback
         :param user_data: user_data for on_state_change
 
-        Signals supported: ``'change'``
+        Signals supported: ``'change'``, ``"postchange"``
 
         Register signal handler with::
 
@@ -233,7 +233,8 @@ class CheckBox(WidgetWrap):
 
         # self._state is None is a special case when the CheckBox
         # has just been created
-        if do_callback and self._state is not None:
+        old_state = self._state
+        if do_callback and old_state is not None:
             self._emit('change', state)
         self._state = state
         # rebuild the display widget with the new state
@@ -241,6 +242,8 @@ class CheckBox(WidgetWrap):
             ('fixed', self.reserve_columns, self.states[state] ),
             self._label ] )
         self._w.focus_col = 0
+        if do_callback and old_state is not None:
+            self._emit('postchange', old_state)
 
     def get_state(self):
         """Return the state of the checkbox."""
@@ -335,7 +338,7 @@ class RadioButton(CheckBox):
         This function will append the new radio button to group.
         "first True" will set to True if group is empty.
 
-        Signals supported: ``'change'``
+        Signals supported: ``'change'``, ``"postchange"``
 
         Register signal handler with::
 
