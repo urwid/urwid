@@ -6,6 +6,7 @@ python:
   - "3.3"
   - "3.4"
   - "3.5"
+  - "3.6"
   - "pypy"
 before_install:
   - "sudo apt-get update"
@@ -22,5 +23,6 @@ script:
        \"$DEPS\" == '3.3 tornado twisted' -o
        \"$DEPS\" == '3.4 tornado twisted' -o
        \"$DEPS\" == '3.5 tornado twisted' -o
+       \"$DEPS\" == '3.6 tornado twisted' -o
        \"$DEPS\" == 'pypy tornado twisted' ]"
   - "python setup.py test"
