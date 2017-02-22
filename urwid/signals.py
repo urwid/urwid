@@ -26,7 +26,7 @@ import weakref
 
 class MetaSignals(type):
     """
-    register the list of signals in the class varable signals,
+    register the list of signals in the class variable signals,
     including signals in superclasses.
     """
     def __init__(cls, name, bases, d):
@@ -67,7 +67,7 @@ class Signals(object):
         :type signals: signal names
 
         This function must be called for a class before connecting any
-        signal callbacks or emiting any signals from that class' objects
+        signal callbacks or emitting any signals from that class' objects
         """
         self._supported[sig_cls] = signals
 

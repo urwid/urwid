@@ -36,7 +36,7 @@ class ListBoxCalculateVisibleTest(unittest.TestCase):
         self.cvtest( "simple middle position",
             l, 3, 1, (0,1), 1, None )
 
-        self.cvtest( "simple bottom postion",
+        self.cvtest( "simple bottom position",
             l, 3, 2, (0,1), 2, None )
 
         self.cvtest( "straddle top edge",

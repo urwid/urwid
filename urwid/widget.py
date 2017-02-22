@@ -507,7 +507,7 @@ class Widget(object):
 
         If ``'box'`` is among the values returned then the other
         methods must be able to accept a two-element tuple
-        (*maxcol*, *maxrow*) to their size paramter.
+        (*maxcol*, *maxrow*) to their size parameter.
 
         If ``'fixed'`` is among the values returned then the other
         methods must be able to accept an empty tuple () to
@@ -538,7 +538,7 @@ class Widget(object):
            implemented for container widgets.
 
         :class:`Text` widgets have implemented this method.
-        You can use :meth:`Text.pack` to calculate the minumum
+        You can use :meth:`Text.pack` to calculate the minimum
         columns and rows required to display a text widget without wrapping,
         or call it iteratively to calculate the minimum number of columns
         required to display the text wrapped into a target number of rows.
@@ -1124,7 +1124,7 @@ class Edit(Text):
             align=LEFT, wrap=SPACE, allow_tab=False,
             edit_pos=None, layout=None, mask=None):
         """
-        :param caption: markup for caption preceeding edit_text, see
+        :param caption: markup for caption preceding edit_text, see
                         :class:`Text` for description of text markup.
         :type caption: text markup
         :param edit_text: initial text for editing, type (bytes or unicode)
@@ -1270,7 +1270,7 @@ class Edit(Text):
         """
         Set the caption markup for this widget.
 
-        :param caption: markup for caption preceeding edit_text, see
+        :param caption: markup for caption preceding edit_text, see
                         :meth:`Text.__init__` for description of text markup.
 
         >>> e = Edit("")
