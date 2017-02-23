@@ -13,6 +13,7 @@ before_install:
 install:
   - "pip install setuptools"
   - if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]]; then pip install "twisted<=15.4"; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == '2.7_with_system_site_packages' ]]; then pip install "twisted==16.6.0"; fi
   - "[ $TRAVIS_PYTHON_VERSION == '3.2_with_system_site_packages' ] && pip install 'tornado<=4.3.0' || pip install twisted tornado"
 script:
   - "DEPS=\"$TRAVIS_PYTHON_VERSION `python bin/deps.py`\"; echo $DEPS"
