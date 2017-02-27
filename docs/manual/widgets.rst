@@ -150,7 +150,7 @@ return ``None``.
   container.focus_position
 
 is a read/write property that provides access to the position of the
-container's widget in focus.  This will often be a integer value but may be
+container's widget in focus.  This will often be an integer value but may be
 any object.
 :class:`Columns`, :class:`Pile`, :class:`GridFlow`, :class:`Overlay` and
 :class:`ListBox` with a :class:`SimpleListWalker` or :class:`SimpleFocusListWalker`
@@ -237,7 +237,7 @@ and proceeding along each child widget until reaching a leaf
 (non-container) widget.
 
 Note that the list does not contain the topmost container widget
-(i.e, on which this method is called), but does include the
+(i.e., on which this method is called), but does include the
 lowest leaf widget.
 
 ::
