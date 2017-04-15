@@ -1637,6 +1637,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         #FIXME guessing focus==True
         focus=True
+        w = None
         wrow = 0
         item_rows = self.get_item_rows(size, focus)
         for i, (r, w) in enumerate(zip(item_rows,
@@ -1647,7 +1648,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         else:
             return False
 
-        if not w.selectable():
+        if w is None or not w.selectable():
             return False
 
         if hasattr(w, 'move_cursor_to_coords'):
@@ -1664,6 +1665,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         Pass the event to the contained widget.
         May change focus on button 1 press.
         """
+        w = None
         wrow = 0
         item_rows = self.get_item_rows(size, focus)
         for i, (r, w) in enumerate(zip(item_rows,
@@ -1672,6 +1674,9 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 break
             wrow += r
         else:
+            return False
+
+        if w is None:
             return False
 
         focus = focus and self.focus_item == w
