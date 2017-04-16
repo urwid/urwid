@@ -984,6 +984,7 @@ class ListBox(Widget, WidgetContainerMixin):
          'down'      down one line (or widget)
          'page up'   move cursor up one listbox length
          'page down' move cursor down one listbox length
+         'bottom'    move cursor to bottom of listbox
         """
         (maxcol, maxrow) = size
 
@@ -1018,8 +1019,15 @@ class ListBox(Widget, WidgetContainerMixin):
         if self._command_map[key] == CURSOR_PAGE_DOWN:
             return actual_key(self._keypress_page_down((maxcol, maxrow)))
 
+        if self._command_map[key] == 'cursor bottom':
+            return self._keypress_bottom((maxcol, maxrow))
+
         return key
 
+    def _keypress_bottom(self, size):
+        (maxcol, maxrow) = size
+        self.change_focus(size, maxrow, maxrow-1, 'above')
+        return
 
     def _keypress_up(self, size):
         (maxcol, maxrow) = size
