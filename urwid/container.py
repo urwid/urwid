@@ -1500,7 +1500,9 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         for i, (w, (f, height)) in enumerate(self.contents):
             li = l[i]
             if li is None:
-                rows = int(float(remaining) * height / wtotal + 0.5)
+                rows = 0
+                if wtotal != 0:
+                    rows = int(float(remaining) * height / wtotal + 0.5)
                 l[i] = rows
                 remaining -= rows
                 wtotal -= height
