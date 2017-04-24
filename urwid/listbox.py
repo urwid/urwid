@@ -313,7 +313,7 @@ class ListBox(Widget, WidgetContainerMixin):
         if getattr(body, 'get_focus', None):
             self._body = body
         else:
-            self._body = PollingListWalker(body)
+            self._body = SimpleListWalker(body)
         self._invalidate()
 
     body = property(_get_body, _set_body, doc="""
