@@ -1699,12 +1699,14 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     _sizing = frozenset([FLOW, BOX])
 
     def __init__(self, widget_list, dividechars=0, focus_column=None,
-        min_width=1, box_columns=None):
+        linefocus=False, min_width=1, box_columns=None):
         """
         :param widget_list: iterable of flow or box widgets
         :param dividechars: number of blank characters between columns
         :param focus_column: index into widget_list of column in focus,
             if ``None`` the first selectable widget will be chosen.
+        :param linefocus: if this evaluates to True, render all widgets as
+            focused if one widget has focus
         :param min_width: minimum width for each column which is not
             calling widget.pack() in *widget_list*.
         :param box_columns: a list of column indexes containing box widgets
@@ -1766,6 +1768,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 focus_column = i
 
         self.dividechars = dividechars
+        self.linefocus = linefocus
 
         if self.contents and focus_column is not None:
             self.focus_position = focus_column
@@ -2081,12 +2084,12 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             else:
                 sub_size = (mc,) + size[1:]
 
-            canv = w.render(sub_size,
-                focus = focus and self.focus_position == i)
+            render_focused = self.focus_position == i or self.linefocus
+            canv = w.render(sub_size, focus = focus and render_focused)
 
             if i < len(widths) - 1:
                 mc += self.dividechars
-            l.append((canv, i, self.focus_position == i, mc))
+            l.append((canv, i, render_focused, mc))
 
         if not l:
             return SolidCanvas(" ", size[0], (size[1:]+(1,))[0])
