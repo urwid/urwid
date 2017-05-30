@@ -91,8 +91,9 @@ _UNDERLINE = 0x04000000
 _BOLD = 0x08000000
 _BLINK = 0x10000000
 _ITALICS = 0x20000000
+_STRIKETHROUGH = 0x40000000
 _FG_MASK = (_FG_COLOR_MASK | _FG_BASIC_COLOR | _FG_HIGH_COLOR |
-    _STANDOUT | _UNDERLINE | _BLINK | _BOLD | _ITALICS)
+    _STANDOUT | _UNDERLINE | _BLINK | _BOLD | _ITALICS | _STRIKETHROUGH)
 _BG_MASK = _BG_COLOR_MASK | _BG_BASIC_COLOR | _BG_HIGH_COLOR
 
 DEFAULT = 'default'
@@ -138,6 +139,7 @@ _ATTRIBUTES = {
     'underline': _UNDERLINE,
     'blink': _BLINK,
     'standout': _STANDOUT,
+    'strikethrough': _STRIKETHROUGH,
 }
 
 def _value_lookup_table(values, size):
@@ -452,7 +454,8 @@ class AttrSpec(object):
               'h8' (color number 8), 'h255' (color number 255)
 
               Setting:
-              'bold', 'italics', 'underline', 'blink', 'standout'
+              'bold', 'italics', 'underline', 'blink', 'standout',
+              'strikethrough'
 
               Some terminals use 'bold' for bright colors.  Most terminals
               ignore the 'blink' setting.  If the color is not given then
@@ -507,6 +510,7 @@ class AttrSpec(object):
     underline = property(lambda s: s._value & _UNDERLINE != 0)
     blink = property(lambda s: s._value & _BLINK != 0)
     standout = property(lambda s: s._value & _STANDOUT != 0)
+    strikethrough = property(lambda s: s._value & _STRIKETHROUGH != 0)
 
     def _colors(self):
         """
@@ -548,7 +552,7 @@ class AttrSpec(object):
         return (self._foreground_color() +
             ',bold' * self.bold + ',italics' * self.italics +
             ',standout' * self.standout + ',blink' * self.blink +
-            ',underline' * self.underline)
+            ',underline' * self.underline + ',strikethrough' * self.strikethrough)
 
     def _set_foreground(self, foreground):
         color = None
@@ -814,7 +818,7 @@ class BaseScreen(object):
             'light magenta', 'light cyan', 'white'
 
             Settings:
-            'bold', 'underline', 'blink', 'standout'
+            'bold', 'underline', 'blink', 'standout', 'strikethrough'
 
             Some terminals use 'bold' for bright colors.  Most terminals
             ignore the 'blink' setting.  If the color is not given then
