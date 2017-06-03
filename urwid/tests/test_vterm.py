@@ -18,6 +18,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+import errno
 import os
 import sys
 import unittest
@@ -27,7 +28,6 @@ from itertools import dropwhile
 from urwid import vterm
 from urwid import signals
 from urwid.compat import B
-
 
 class DummyCommand(object):
     QUITSTRING = B('|||quit|||')
@@ -41,11 +41,19 @@ class DummyCommand(object):
         stdout.write(B('\x1bc'))
 
         while True:
-            data = os.read(self.reader, 1024)
+            data = self.read(1024)
             if self.QUITSTRING == data:
                 break
             stdout.write(data)
             stdout.flush()
+
+    def read(self, size):
+        while True:
+            try:
+                return os.read(self.reader, size)
+            except OSError as e:
+                if e.errno != errno.EINTR:
+                    raise
 
     def write(self, data):
         os.write(self.writer, data)
