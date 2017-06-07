@@ -30,9 +30,14 @@ class EventLoopTestMixin(object):
 
     def test_remove_watch_file(self):
         evl = self.evl
-        handle = evl.watch_file(5, lambda: None)
-        self.assertTrue(evl.remove_watch_file(handle))
-        self.assertFalse(evl.remove_watch_file(handle))
+        fd_r, fd_w = os.pipe()
+        try:
+            handle = evl.watch_file(fd_r, lambda: None)
+            self.assertTrue(evl.remove_watch_file(handle))
+            self.assertFalse(evl.remove_watch_file(handle))
+        finally:
+            os.close(fd_r)
+            os.close(fd_w)
 
     _expected_idle_handle = 1
 
