@@ -149,4 +149,34 @@ else:
         def setUp(self):
             self.evl = urwid.AsyncioEventLoop()
 
-        _expected_idle_handle = None
+        def test_run(self):
+            evl = self.evl
+            out = []
+            rd, wr = os.pipe()
+            self.assertEqual(os.write(wr, "data".encode('ascii')), 4)
+            def say_hello():
+                out.append("hello")
+            def say_waiting():
+                out.append("waiting")
+            def exit_clean():
+                out.append("clean exit")
+                raise urwid.ExitMainLoop
+            def exit_error():
+                1/0
+            handle = evl.alarm(0.01, exit_clean)
+            handle = evl.alarm(0.005, say_hello)
+            idle_handle = evl.enter_idle(say_waiting)
+            if self._expected_idle_handle is not None:
+                self.assertEqual(len(idle_handle), 1)
+            evl.run()
+            self.assertTrue("hello" in out, out)
+            self.assertTrue("clean exit"in out, out)
+            handle = evl.watch_file(rd, exit_clean)
+            del out[:]
+            evl.run()
+            self.assertEqual(out, ["clean exit"])
+            self.assertTrue(evl.remove_watch_file(handle))
+            handle = evl.alarm(0, exit_error)
+            self.assertRaises(ZeroDivisionError, evl.run)
+            handle = evl.watch_file(rd, exit_error)
+            self.assertRaises(ZeroDivisionError, evl.run)

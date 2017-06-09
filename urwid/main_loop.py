@@ -1326,7 +1326,6 @@ class AsyncioEventLoop(object):
         self._loop.run_forever()
         if self._exc_info:
             raise self._exc_info[0], self._exc_info[1], self._exc_info[2]
-            self._exc_info = None
 
 
 def _refl(name, rval=None, exit=False):
