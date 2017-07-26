@@ -1718,7 +1718,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             is an int
         (``'pack'``, *widget*)
             call :meth:`pack() <Widget.pack>` to calculate the width of this column
-        (``'weight'``, *weight*, *widget*)`
+        (``'weight'``, *weight*, *widget*)
             give this column a relative *weight* (number) to calculate its width from the
             screen columns remaining
 
