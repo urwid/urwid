@@ -27,6 +27,7 @@ import heapq
 import select
 import os
 from functools import wraps
+from itertools import count
 from weakref import WeakKeyDictionary
 
 try:
@@ -442,7 +443,7 @@ class MainLoop(object):
                 sec = next_alarm[0] - time.time()
                 if sec > 0:
                     break
-                tm, callback = next_alarm
+                tm, tie_break, callback = next_alarm
                 callback()
 
                 if self.event_loop._alarms:
@@ -589,6 +590,7 @@ class SelectEventLoop(object):
         self._watch_files = {}
         self._idle_handle = 0
         self._idle_callbacks = {}
+        self._tie_break = count()
 
     def alarm(self, seconds, callback):
         """
@@ -601,8 +603,9 @@ class SelectEventLoop(object):
         callback -- function to call from event loop
         """
         tm = time.time() + seconds
-        heapq.heappush(self._alarms, (tm, callback))
-        return (tm, callback)
+        handle = (tm, next(self._tie_break), callback)
+        heapq.heappush(self._alarms, handle)
+        return handle
 
     def remove_alarm(self, handle):
         """
@@ -711,7 +714,7 @@ class SelectEventLoop(object):
                 self._did_something = False
             elif tm is not None:
                 # must have been a timeout
-                tm, alarm_callback = self._alarms.pop(0)
+                tm, tie_break, alarm_callback = heapq.heappop(self._alarms)
                 alarm_callback()
                 self._did_something = True
 
