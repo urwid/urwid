@@ -313,8 +313,8 @@ class ParentNode(TreeNode):
 
     def set_child_node(self, key, node):
         """Set the child node for a given key.  Useful for bottom-up, lazy
-        population of a tree.."""
-        self._children[key]=node
+        population of a tree."""
+        self._children[key] = node
 
     def change_child_key(self, oldkey, newkey):
         if newkey in self._children:
