@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Urwid example similar to dialog(1) program
 #    Copyright (C) 2004-2009  Ian Ward

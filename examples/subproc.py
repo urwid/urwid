@@ -1,9 +1,13 @@
-#!/usr/bin/python
-
+#!/usr/bin/env python
 import subprocess
 import urwid
 import os
 import sys
+
+if sys.version_info > (3,):
+    def decode(b): return b.decode('utf-8')
+else:
+    def decode(s): return s
 
 factor_me = 362923067964327863989661926737477737673859044111968554257667
 run_me = os.path.join(os.path.dirname(sys.argv[0]), 'subproc2.py')
@@ -21,7 +25,7 @@ def exit_on_enter(key):
 loop = urwid.MainLoop(frame_widget, unhandled_input=exit_on_enter)
 
 def received_output(data):
-    output_widget.set_text(output_widget.text + data)
+    output_widget.set_text(output_widget.text + decode(data))
 
 write_fd = loop.watch_pipe(received_output)
 proc = subprocess.Popen(
