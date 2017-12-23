@@ -31,6 +31,8 @@ Features:
 - outputs commands that may be used to recreate expression on exit
 """
 
+from __future__ import print_function
+
 import urwid
 import urwid.raw_display
 import urwid.web_display
@@ -60,7 +62,7 @@ OPERATORS = {
 COLUMN_KEYS = list( "?ABCDEF" )
 
 # these lists are used to determine when to display errors
-EDIT_KEYS = OPERATORS.keys() + COLUMN_KEYS + ['backspace','delete']
+EDIT_KEYS = list(OPERATORS.keys()) + COLUMN_KEYS + ['backspace','delete']
 MOVEMENT_KEYS = ['up','down','left','right','page up','page down']
 
 # Event text
@@ -144,7 +146,7 @@ class Cell:
         if self.child is not None:
             return self.child.get_result()
         else:
-            return long("0"+self.edit.edit_text)
+            return int("0"+self.edit.edit_text)
 
     def get_result(self):
         """Return the numeric result of this cell's operation."""
@@ -153,7 +155,7 @@ class Cell:
             return self.get_value()
         if self.result.text == "":
             return None
-        return long(self.result.text)
+        return int(self.result.text)
 
     def set_result(self, result):
         """Set the numeric result for this cell."""
@@ -212,7 +214,7 @@ class ParentEdit(urwid.Edit):
         if key == "backspace":
             raise ColumnDeleteEvent(self.letter, from_parent=True)
         elif key in list("0123456789"):
-            raise CalcEvent, E_invalid_in_parent_cell
+            raise CalcEvent(E_invalid_in_parent_cell)
         else:
             return key
 
@@ -344,7 +346,7 @@ class CellColumn( urwid.WidgetWrap ):
                 # cell above is parent
                 if edit.edit_text:
                     # ..and current not empty, no good
-                    raise CalcEvent, E_cant_combine
+                    raise CalcEvent(E_cant_combine)
                 above_pos = 0
             else:
                 # above is normal number cell
@@ -366,13 +368,13 @@ class CellColumn( urwid.WidgetWrap ):
             below = self.walker.get_cell(i+1)
             if cell.child is not None:
                 # this cell is a parent
-                raise CalcEvent, E_cant_combine
+                raise CalcEvent(E_cant_combine)
             if below is None:
                 # nothing below
                 return key
             if below.child is not None:
                 # cell below is a parent
-                raise CalcEvent, E_cant_combine
+                raise CalcEvent(E_cant_combine)
 
             edit = self.walker.get_cell(i).edit
             edit.set_edit_text( edit.edit_text +
@@ -453,9 +455,9 @@ class CellColumn( urwid.WidgetWrap ):
 
         cell = self.walker.get_cell(i)
         if cell.child is not None:
-            raise CalcEvent, E_new_col_cell_not_empty
+            raise CalcEvent(E_new_col_cell_not_empty)
         if cell.edit.edit_text:
-            raise CalcEvent, E_new_col_cell_not_empty
+            raise CalcEvent(E_new_col_cell_not_empty)
 
         child = CellColumn( letter )
         cell.become_parent( child, letter )
@@ -579,9 +581,9 @@ class CalcDisplay:
 
         # on exit write the formula and the result to the console
         expression, result = self.get_expression_result()
-        print "Paste this expression into a new Column Calculator session to continue editing:"
-        print expression
-        print "Result:", result
+        print( "Paste this expression into a new Column Calculator session to continue editing:")
+        print( expression)
+        print( "Result:", result)
 
     def input_filter(self, input, raw_input):
         if 'q' in input or 'Q' in input:
@@ -593,7 +595,7 @@ class CalcDisplay:
                 self.wrap_keypress(k)
                 self.event = None
                 self.view.footer = None
-            except CalcEvent, e:
+            except CalcEvent as e:
                 # display any message
                 self.event = e
                 self.view.footer = e.widget()
@@ -607,7 +609,7 @@ class CalcDisplay:
         try:
             key = self.keypress(key)
 
-        except ColumnDeleteEvent, e:
+        except ColumnDeleteEvent as e:
             if e.letter == COLUMN_KEYS[1]:
                 # cannot delete the first column, ignore key
                 return
@@ -619,7 +621,7 @@ class CalcDisplay:
                     raise e
             self.delete_column(e.letter)
 
-        except UpdateParentEvent, e:
+        except UpdateParentEvent as e:
             self.update_parent_columns()
             return
 
@@ -628,10 +630,10 @@ class CalcDisplay:
 
         if self.columns.get_focus_column() == 0:
             if key not in ('up','down','page up','page down'):
-                raise CalcEvent, E_invalid_in_help_col
+                raise CalcEvent(E_invalid_in_help_col)
 
         if key not in EDIT_KEYS and key not in MOVEMENT_KEYS:
-            raise CalcEvent, E_invalid_key % key.upper()
+            raise CalcEvent(E_invalid_key % key.upper())
 
     def keypress(self, key):
         """Handle a keystroke."""
@@ -642,13 +644,13 @@ class CalcDisplay:
             # column switch
             i = COLUMN_KEYS.index(key.upper())
             if i >= len( self.col_list ):
-                raise CalcEvent, E_no_such_column % key.upper()
+                raise CalcEvent(E_no_such_column % key.upper())
             self.columns.set_focus_column( i )
             return
         elif key == "(":
             # open a new column
             if len( self.col_list ) >= len(COLUMN_KEYS):
-                raise CalcEvent, E_no_more_columns
+                raise CalcEvent(E_no_more_columns)
             i = self.columns.get_focus_column()
             if i == 0:
                 # makes no sense in help column
@@ -672,7 +674,7 @@ class CalcDisplay:
             parent, pcol = self.get_parent( col )
             if parent is None:
                 # column has no parent
-                raise CalcEvent, E_no_parent_column
+                raise CalcEvent(E_no_parent_column)
 
             new_i = self.col_list.index( pcol )
             self.columns.set_focus_column( new_i )
