@@ -853,7 +853,12 @@ class ProgressBar(Widget):
         c = txt.render((maxcol,))
 
         cf = float(self.current) * maxcol / self.done
-        ccol = int(cf)
+        ccol_dirty = int(cf)
+        ccol = len(c._text[0][:ccol_dirty].decode(
+            'utf-8', 'ignore'
+        ).encode(
+            'utf-8'
+        ))
         cs = 0
         if self.satt is not None:
             cs = int((cf - ccol) * 8)
