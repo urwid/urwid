@@ -811,6 +811,28 @@ class ProgressBar(Widget):
                      foreground of satt corresponds to the normal part and the
                      background corresponds to the complete part.  If satt
                      is ``None`` then no smoothing will be done.
+
+        >>> pb = ProgressBar('a', 'b')
+        >>> pb
+        <ProgressBar flow widget>
+        >>> print(pb.get_text())
+        0 %
+        >>> pb.set_completion(34.42)
+        >>> print(pb.get_text())
+        34 %
+        >>> class CustomProgressBar(ProgressBar):
+        ...     def get_text(self):
+        ...         return u'Foobar'
+        >>> cpb = CustomProgressBar('a', 'b')
+        >>> print(cpb.get_text())
+        Foobar
+        >>> for x in range(101):
+        ...     cpb.set_completion(x)
+        ...     s = cpb.render((10, ))
+        >>> cpb2 = CustomProgressBar('a', 'b', satt='c')
+        >>> for x in range(101):
+        ...     cpb2.set_completion(x)
+        ...     s = cpb2.render((10, ))
         """
         self.normal = normal
         self.complete = complete
@@ -915,3 +937,10 @@ class PythonLogo(Widget):
         """
         fixed_size(size)
         return self._canvas
+
+def _test():
+    import doctest
+    doctest.testmod()
+
+if __name__=='__main__':
+    _test()
