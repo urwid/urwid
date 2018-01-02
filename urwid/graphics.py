@@ -840,6 +840,7 @@ class ProgressBar(Widget):
     def get_text(self):
         """
         Return the progress bar percentage text.
+        You can override this method to display custom text.
         """
         percent = min(100, max(0, int(self.current * 100 / self.done)))
         return str(percent) + " %"
@@ -853,7 +854,12 @@ class ProgressBar(Widget):
         c = txt.render((maxcol,))
 
         cf = float(self.current) * maxcol / self.done
-        ccol = int(cf)
+        ccol_dirty = int(cf)
+        ccol = len(c._text[0][:ccol_dirty].decode(
+            'utf-8', 'ignore'
+        ).encode(
+            'utf-8'
+        ))
         cs = 0
         if self.satt is not None:
             cs = int((cf - ccol) * 8)
