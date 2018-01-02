@@ -432,7 +432,6 @@ class MetaSuper(type):
     """adding .__super"""
     def __init__(cls, name, bases, d):
         super(MetaSuper, cls).__init__(name, bases, d)
-        print('ASD')
         if hasattr(cls, "_%s__super" % name):
             raise AttributeError("Class has same name as one of its super classes")
         setattr(cls, "_%s__super" % name, super(cls))
