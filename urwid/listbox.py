@@ -976,15 +976,14 @@ class ListBox(Widget, WidgetContainerMixin):
 
     def keypress(self, size, key):
         """Move selection through the list elements scrolling when
-        necessary. 'up' and 'down' are first passed to widget in focus
-        in case that widget can handle them. 'page up' and 'page down'
-        are always handled by the ListBox.
+        necessary. Keystrokes are first passed to widget in focus
+        in case that widget can handle them.
 
         Keystrokes handled by this widget are:
          'up'        up one line (or widget)
          'down'      down one line (or widget)
-         'page up'   move cursor up one listbox length
-         'page down' move cursor down one listbox length
+         'page up'   move cursor up one listbox length (or widget)
+         'page down' move cursor down one listbox length (or widget)
         """
         (maxcol, maxrow) = size
 
