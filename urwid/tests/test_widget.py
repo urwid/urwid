@@ -10,25 +10,25 @@ class TextTest(unittest.TestCase):
         self.t = urwid.Text("I walk the\ncity in the night")
 
     def test1_wrap(self):
-        expected = [B(t) for t in "I walk the","city in   ","the night "]
+        expected = [B(t) for t in ("I walk the","city in   ","the night ")]
         got = self.t.render((10,))._text
         assert got == expected, "got: %r expected: %r" % (got, expected)
 
     def test2_left(self):
         self.t.set_align_mode('left')
-        expected = [B(t) for t in "I walk the        ","city in the night "]
+        expected = [B(t) for t in ("I walk the        ","city in the night ")]
         got = self.t.render((18,))._text
         assert got == expected, "got: %r expected: %r" % (got, expected)
 
     def test3_right(self):
         self.t.set_align_mode('right')
-        expected = [B(t) for t in "        I walk the"," city in the night"]
+        expected = [B(t) for t in ("        I walk the"," city in the night")]
         got = self.t.render((18,))._text
         assert got == expected, "got: %r expected: %r" % (got, expected)
 
     def test4_center(self):
         self.t.set_align_mode('center')
-        expected = [B(t) for t in "    I walk the    "," city in the night"]
+        expected = [B(t) for t in ("    I walk the    "," city in the night")]
         got = self.t.render((18,))._text
         assert got == expected, "got: %r expected: %r" % (got, expected)
 

@@ -191,7 +191,7 @@ class TermTest(unittest.TestCase):
         self.edgewall()
         self.expect('1-' + ' ' * 76 + '-2' + '\n' * 22
                          + '3-' + ' ' * 76 + '-4')
-        for y in xrange(23, 1, -1):
+        for y in range(23, 1, -1):
             self.resize(80, y, soft=True)
             self.write('\e[%df\e[J3-\e[%d;%df-4' % (y, y, 79))
             desc = "try to rescale to 80x%d." % y

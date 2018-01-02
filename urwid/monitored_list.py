@@ -19,6 +19,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import print_function
+
 from urwid.compat import PYTHON3, xrange
 
 
@@ -303,7 +305,7 @@ class MonitoredFocusList(MonitoredList):
     def __setitem__(self, i, y):
         """
         >>> def modified(indices, new_items):
-        ...     print "range%r <- %r" % (indices, new_items)
+        ...     print("range%r <- %r" % (indices, new_items))
         >>> ml = MonitoredFocusList([0,1,2,3], focus=2)
         >>> ml.set_validate_contents_modified(modified)
         >>> ml[0] = 9
@@ -347,7 +349,7 @@ class MonitoredFocusList(MonitoredList):
     def __imul__(self, n):
         """
         >>> def modified(indices, new_items):
-        ...     print "range%r <- %r" % (indices, list(new_items))
+        ...     print("range%r <- %r" % (indices, list(new_items)))
         >>> ml = MonitoredFocusList([0,1,2], focus=2)
         >>> ml.set_validate_contents_modified(modified)
         >>> ml *= 3
@@ -356,7 +358,7 @@ class MonitoredFocusList(MonitoredList):
         MonitoredFocusList([0, 1, 2, 0, 1, 2, 0, 1, 2], focus=2)
         >>> ml *= 0
         range(0, 9, 1) <- []
-        >>> print ml.focus
+        >>> print(ml.focus)
         None
         """
         if n > 0:
@@ -371,7 +373,7 @@ class MonitoredFocusList(MonitoredList):
     def append(self, item):
         """
         >>> def modified(indices, new_items):
-        ...     print "range%r <- %r" % (indices, new_items)
+        ...     print("range%r <- %r" % (indices, new_items))
         >>> ml = MonitoredFocusList([0,1,2], focus=2)
         >>> ml.set_validate_contents_modified(modified)
         >>> ml.append(6)
@@ -386,7 +388,7 @@ class MonitoredFocusList(MonitoredList):
     def extend(self, items):
         """
         >>> def modified(indices, new_items):
-        ...     print "range%r <- %r" % (indices, list(new_items))
+        ...     print("range%r <- %r" % (indices, list(new_items)))
         >>> ml = MonitoredFocusList([0,1,2], focus=2)
         >>> ml.set_validate_contents_modified(modified)
         >>> ml.extend((6,7,8))

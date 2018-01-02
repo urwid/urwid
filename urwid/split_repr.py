@@ -131,10 +131,10 @@ def remove_defaults(d, fn):
     # create a dictionary of args with default values
     ddict = dict(list(zip(args[len(args) - len(defaults):], defaults)))
 
-    for k, v in d.items():
+    for k in list(d.keys()):
         if k in ddict:
             # remove values that match their defaults
-            if ddict[k] == v:
+            if ddict[k] == d[k]:
                 del d[k]
 
     return d

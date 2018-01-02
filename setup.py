@@ -79,9 +79,6 @@ if have_setuptools:
     setup_d['zip_safe'] = False
     setup_d['test_suite'] = 'urwid.tests'
 
-if PYTHON3:
-    setup_d['use_2to3'] = True
-
 if __name__ == "__main__":
     try:
         setup(**setup_d)
