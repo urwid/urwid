@@ -21,7 +21,7 @@
 
 from operator import attrgetter
 
-from urwid.compat import text_type
+from urwid.compat import text_type, with_metaclass
 from urwid.util import (MetaSuper, decompose_tagmarkup, calc_width,
     is_wide_char, move_prev_char, move_next_char)
 from urwid.text_layout import calc_pos, calc_coords, shift_line
@@ -204,14 +204,9 @@ def cache_widget_rows(cls):
     return cached_rows
 
 
-class Widget(object):
+class Widget(with_metaclass(WidgetMeta, object)):
     """
     Widget base class
-
-    .. attribute:: __metaclass__
-       :annotation: = urwid.WidgetMeta
-
-       See :class:`urwid.WidgetMeta` definition
 
     .. attribute:: _selectable
        :annotation: = False
@@ -444,8 +439,6 @@ class Widget(object):
        :returns: ``True`` if the position was set successfully anywhere on
                  *row*, ``False`` otherwise
     """
-    __metaclass__ = WidgetMeta
-
     _selectable = False
     _sizing = frozenset([FLOW, BOX, FIXED])
     _command_map = command_map

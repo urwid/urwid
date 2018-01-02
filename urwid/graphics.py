@@ -20,6 +20,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from urwid.compat import with_metaclass
 from urwid.util import decompose_tagmarkup, get_encoding_mode
 from urwid.canvas import CompositeCanvas, CanvasJoin, TextCanvas, \
     CanvasCombine, SolidCanvas
@@ -192,9 +193,7 @@ def nocache_bargraph_get_data(self, get_data_fn):
 class BarGraphError(Exception):
     pass
 
-class BarGraph(Widget):
-    __metaclass__ = BarGraphMeta
-
+class BarGraph(with_metaclass(BarGraphMeta, Widget)):
     _sizing = frozenset([BOX])
 
     ignore_focus = True

@@ -21,7 +21,7 @@
 # Urwid web site: http://excess.org/urwid/
 
 from urwid import escape
-from urwid.compat import bytes, text_type
+from urwid.compat import bytes, text_type, text_types
 
 import codecs
 
@@ -412,7 +412,7 @@ def _tagmarkup_recurse( tm, attr ):
         attr, element = tm
         return _tagmarkup_recurse( element, attr )
 
-    if not isinstance(tm, text_types + [bytes]):
+    if not isinstance(tm, text_types + (bytes,)):
         raise TagMarkupException("Invalid markup element: %r" % tm)
 
     # text
@@ -432,6 +432,7 @@ class MetaSuper(type):
     """adding .__super"""
     def __init__(cls, name, bases, d):
         super(MetaSuper, cls).__init__(name, bases, d)
+        print('ASD')
         if hasattr(cls, "_%s__super" % name):
             raise AttributeError("Class has same name as one of its super classes")
         setattr(cls, "_%s__super" % name, super(cls))
