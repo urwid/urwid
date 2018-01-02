@@ -2,6 +2,10 @@
    :alt: build status
    :target: https://travis-ci.org/urwid/urwid/
 
+.. image:: https://coveralls.io/repos/github/urwid/urwid/badge.svg
+   :alt: build coverage
+   :target: https://coveralls.io/github/and3rson/isc
+
 `Development version documentation <http://urwid.readthedocs.org/en/latest/>`_
 
 **Urwid is looking for new maintainers, please open an issue here to volunteer!**
