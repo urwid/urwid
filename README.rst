@@ -4,7 +4,7 @@
 
 .. image:: https://coveralls.io/repos/github/urwid/urwid/badge.svg
    :alt: build coverage
-   :target: https://coveralls.io/github/and3rson/isc
+   :target: https://coveralls.io/github/urwid/urwid
 
 `Development version documentation <http://urwid.readthedocs.org/en/latest/>`_
 
