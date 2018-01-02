@@ -1,30 +1,13 @@
 language: python
-matrix:
-  include:
-    - python: 2.7
-      env: TOXENV=py27
-    - python: 3.3
-      env: TOXENV=py33
-    - python: 3.4
-      env: TOXENV=py34
-    - python: 2.5
-      env: TOXENV=py35
-    - python: 3.6
-      env: TOXENV=py36
 before_install:
   - "sudo apt-get update"
   - "sudo apt-get install python-gi python3-gi"
 install:
   - "pip install tox"
 script:
-  - "DEPS=\"$TRAVIS_PYTHON_VERSION `python bin/deps.py`\"; echo $DEPS"
-  - "[ \"$DEPS\" == '2.7_with_system_site_packages pygobject tornado twisted' -o
-       \"$DEPS\" == '3.3 tornado twisted' -o
-       \"$DEPS\" == '3.4 tornado twisted' -o
-       \"$DEPS\" == '3.5 tornado twisted' -o
-       \"$DEPS\" == '3.6 tornado twisted' -o
-       \"$DEPS\" == 'pypy tornado twisted' ]"
   - "tox"
+  - "coverage combine"
+  - "coverage report"
 after_success:
   - "coveralls"
 
