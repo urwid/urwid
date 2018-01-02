@@ -19,7 +19,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from urwid.compat import PYTHON3
+from urwid.compat import PYTHON3, xrange
 
 
 def _call_modified(fn):
@@ -238,7 +238,7 @@ class MonitoredFocusList(MonitoredList):
         """
         num_new_items = len(new_items)
         start, stop, step = indices = slc.indices(len(self))
-        num_removed = len(range(*indices))
+        num_removed = len(list(xrange(*indices)))
 
         focus = self._validate_contents_modified(indices, new_items)
         if focus is not None:
@@ -255,11 +255,11 @@ class MonitoredFocusList(MonitoredList):
         else:
             if not num_new_items:
                 # extended slice being removed
-                if focus in range(start, stop, step):
+                if focus in xrange(start, stop, step):
                     focus += 1
 
                 # adjust for removed items
-                focus -= len(range(start, min(focus, stop), step))
+                focus -= len(list(xrange(start, min(focus, stop), step)))
 
         return min(focus, len(self) + num_new_items - num_removed -1)
 

@@ -828,7 +828,7 @@ def shard_body_row(sbody):
     row = []
     for done_rows, content_iter, cview in sbody:
         if content_iter:
-            row.extend(content_iter.next())
+            row.extend(next(content_iter))
         else:
             # need to skip this unchanged canvas
             if row and type(row[-1]) == int:
@@ -867,10 +867,10 @@ def shards_delta(shards, other_shards):
     done = other_done = 0
     for num_rows, cviews in shards:
         if other_num_rows is None:
-            other_num_rows, other_cviews = other_shards_iter.next()
+            other_num_rows, other_cviews = next(other_shards_iter)
         while other_done < done:
             other_done += other_num_rows
-            other_num_rows, other_cviews = other_shards_iter.next()
+            other_num_rows, other_cviews = next(other_shards_iter)
         if other_done > done:
             yield (num_rows, cviews)
             done += num_rows
@@ -889,10 +889,10 @@ def shard_cviews_delta(cviews, other_cviews):
     cols = other_cols = 0
     for cv in cviews:
         if other_cv is None:
-            other_cv = other_cviews_iter.next()
+            other_cv = next(other_cviews_iter)
         while other_cols < cols:
             other_cols += other_cv[2]
-            other_cv = other_cviews_iter.next()
+            other_cv = next(other_cviews_iter)
         if other_cols > cols:
             yield cv
             cols += cv[2]
@@ -926,7 +926,7 @@ def shard_body(cviews, shard_tail, create_iter=True, iter_default=None):
     for col_gap, done_rows, content_iter, tail_cview in shard_tail:
         while col_gap:
             try:
-                cview = cviews_iter.next()
+                cview = next(cviews_iter)
             except StopIteration:
                 raise CanvasError("cviews do not fill gaps in"
                     " shard_tail!")
@@ -1057,7 +1057,7 @@ def shards_join(shard_lists):
     All shards lists must have the same number of rows.
     """
     shards_iters = [iter(sl) for sl in shard_lists]
-    shards_current = [i.next() for i in shards_iters]
+    shards_current = [next(i) for i in shards_iters]
 
     new_shards = []
     while True:
@@ -1078,7 +1078,7 @@ def shards_join(shard_lists):
             for i in range(len(shards_current)):
                 if shards_current[i][0] > 0:
                     continue
-                shards_current[i] = shards_iters[i].next()
+                shards_current[i] = next(shards_iters[i])
         except StopIteration:
             break
     return new_shards

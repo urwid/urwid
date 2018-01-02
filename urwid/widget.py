@@ -21,6 +21,7 @@
 
 from operator import attrgetter
 
+from urwid.compat import text_type
 from urwid.util import (MetaSuper, decompose_tagmarkup, calc_width,
     is_wide_char, move_prev_char, move_next_char)
 from urwid.text_layout import calc_pos, calc_coords, shift_line
@@ -1406,8 +1407,8 @@ class Edit(Text):
         Return text converted to the same type as self.caption
         (bytes or unicode)
         """
-        tu = isinstance(text, unicode)
-        cu = isinstance(self._caption, unicode)
+        tu = isinstance(text, text_type)
+        cu = isinstance(self._caption, text_type)
         if tu == cu:
             return text
         if tu:
@@ -1465,8 +1466,8 @@ class Edit(Text):
 
         p = self.edit_pos
         if self.valid_char(key):
-            if (isinstance(key, unicode) and not
-                    isinstance(self._caption, unicode)):
+            if (isinstance(key, text_type) and not
+                    isinstance(self._caption, text_type)):
                 # screen is sending us unicode input, must be using utf-8
                 # encoding because that's all we support, so convert it
                 # to bytes to match our caption's type
@@ -1728,7 +1729,7 @@ class IntEdit(Edit):
         True
         """
         if self.edit_text:
-            return long(self.edit_text)
+            return int(self.edit_text)
         else:
             return 0
 

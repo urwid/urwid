@@ -21,7 +21,7 @@
 # Urwid web site: http://excess.org/urwid/
 
 
-from display_common import BaseScreen
+from .display_common import BaseScreen
 
 import time
 
@@ -39,7 +39,7 @@ class LCDScreen(BaseScreen):
     def reset_default_terminal_palette(self, *args):
         pass
 
-    def draw_screen(self, (cols, rows), r ):
+    def draw_screen(self, size, r ):
         pass
 
     def clear(self):

@@ -20,6 +20,10 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+# TODO: Remove this
+import sys
+sys.path.append('.')
+
 from urwid.version import VERSION, __version__
 from urwid.widget import (FLOW, BOX, FIXED, LEFT, RIGHT, CENTER, TOP, MIDDLE,
     BOTTOM, SPACE, ANY, CLIP, PACK, GIVEN, RELATIVE, RELATIVE_100, WEIGHT,

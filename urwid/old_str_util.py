@@ -23,7 +23,7 @@ from __future__ import print_function
 
 import re
 
-from urwid.compat import bytes, B, ord2
+from urwid.compat import bytes, B, ord2, text_type
 
 SAFE_ASCII_RE = re.compile(u"^[ -~]*$")
 SAFE_ASCII_BYTES_RE = re.compile(B("^[ -~]*$"))
@@ -241,7 +241,7 @@ def is_wide_char(text, offs):
 
     text may be unicode or a byte string in the target _byte_encoding
     """
-    if isinstance(text, unicode):
+    if isinstance(text, text_type):
         o = ord(text[offs])
         return get_width(o) == 2
     assert isinstance(text, bytes)
@@ -257,7 +257,7 @@ def move_prev_char(text, start_offs, end_offs):
     Return the position of the character before end_offs.
     """
     assert start_offs < end_offs
-    if isinstance(text, unicode):
+    if isinstance(text, text_type):
         return end_offs-1
     assert isinstance(text, bytes)
     if _byte_encoding == "utf8":
@@ -275,7 +275,7 @@ def move_next_char(text, start_offs, end_offs):
     Return the position of the character after start_offs.
     """
     assert start_offs < end_offs
-    if isinstance(text, unicode):
+    if isinstance(text, text_type):
         return start_offs+1
     assert isinstance(text, bytes)
     if _byte_encoding == "utf8":

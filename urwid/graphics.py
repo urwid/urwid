@@ -481,7 +481,8 @@ class BarGraph(Widget):
         o = []
         r = 0  # row remainder
 
-        def seg_combine((bt1, w1), (bt2, w2)):
+        def seg_combine(a, b):
+            (bt1, w1), (bt2, w2) = a, b
             if (bt1, w1) == (bt2, w2):
                 return (bt1, w1), None, None
             wmin = min(w1, w2)

@@ -28,10 +28,10 @@ except ImportError:
 
 from urwid.util import StoppingContext, int_scale
 from urwid import signals
-from urwid.compat import B, bytes3
+from urwid.compat import B, bytes3, xrange
 
 # for replacing unprintable bytes with '?'
-UNPRINTABLE_TRANS_TABLE = B("?") * 32 + bytes3(range(32,256))
+UNPRINTABLE_TRANS_TABLE = B("?") * 32 + bytes3(list(xrange(32,256)))
 
 
 # signals sent by BaseScreen

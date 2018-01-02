@@ -21,7 +21,7 @@
 
 from urwid.util import calc_width, calc_text_pos, calc_trim_text, is_wide_char, \
     move_prev_char, move_next_char
-from urwid.compat import bytes, PYTHON3, B
+from urwid.compat import bytes, PYTHON3, B, xrange
 
 class TextLayout:
     def supports_align_mode(self, align):
@@ -456,8 +456,8 @@ def calc_pos( text, layout, pref_col, row ):
     if pos is not None:
         return pos
 
-    rows_above = range(row-1,-1,-1)
-    rows_below = range(row+1,len(layout))
+    rows_above = list(xrange(row-1,-1,-1))
+    rows_below = list(xrange(row+1,len(layout)))
     while rows_above and rows_below:
         if rows_above:
             r = rows_above.pop(0)

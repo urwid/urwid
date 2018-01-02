@@ -30,7 +30,7 @@ from urwid import escape
 
 from urwid.display_common import BaseScreen, RealTerminal, AttrSpec, \
     UNPRINTABLE_TRANS_TABLE
-from urwid.compat import bytes, PYTHON3
+from urwid.compat import bytes, PYTHON3, text_type, xrange
 
 KEY_RESIZE = 410 # curses.KEY_RESIZE (sometimes not defined)
 KEY_MOUSE = 409 # curses.KEY_MOUSE
@@ -481,11 +481,13 @@ class Screen(BaseScreen, RealTerminal):
 
         self.s.attrset(attr)
 
-    def draw_screen(self, (cols, rows), r ):
+    def draw_screen(self, size, r ):
         """Paint screen with rendered canvas."""
         assert self._started
 
         assert r.rows() == rows, "canvas size and passed size don't match"
+
+        cols, rows = size
 
         y = -1
         for row in r.content():
@@ -558,7 +560,7 @@ class Screen(BaseScreen, RealTerminal):
 class _test:
     def __init__(self):
         self.ui = Screen()
-        self.l = _curses_colours.keys()
+        self.l = list(_curses_colours.keys())
         self.l.sort()
         for c in self.l:
             self.ui.register_palette( [
@@ -602,7 +604,7 @@ class _test:
             t = ""
             a = []
             for k in keys:
-                if type(k) == unicode: k = k.encode("utf-8")
+                if type(k) == text_type: k = k.encode("utf-8")
                 t += "'"+k + "' "
                 a += [(None,1), ('yellow on dark blue',len(k)),
                     (None,2)]

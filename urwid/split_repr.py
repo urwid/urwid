@@ -129,7 +129,7 @@ def remove_defaults(d, fn):
         del args[-1]
 
     # create a dictionary of args with default values
-    ddict = dict(zip(args[len(args) - len(defaults):], defaults))
+    ddict = dict(list(zip(args[len(args) - len(defaults):], defaults)))
 
     for k, v in d.items():
         if k in ddict:

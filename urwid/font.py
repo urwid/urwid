@@ -20,6 +20,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import print_function
+
 from urwid.escape import SAFE_ASCII_DEC_SPECIAL_RE
 from urwid.util import apply_target_encoding, str_util
 from urwid.canvas import TextCanvas
@@ -106,7 +108,7 @@ class Font(object):
         self.utf8_required |= utf8_required
 
     def characters(self):
-        l = self.char.keys()
+        l = list(self.char.keys())
         l.sort()
         return "".join(l)
 
@@ -433,18 +435,18 @@ add_font("Half Block 7x7",HalfBlock7x7Font)
 if __name__ == "__main__":
     l = get_all_fonts()
     all_ascii = "".join([chr(x) for x in range(32, 127)])
-    print "Available Fonts:     (U) = UTF-8 required"
-    print "----------------"
+    print("Available Fonts:     (U) = UTF-8 required")
+    print("----------------")
     for n,cls in l:
         f = cls()
         u = ""
         if f.utf8_required:
             u = "(U)"
-        print ("%-20s %3s " % (n,u)),
+        print(("%-20s %3s " % (n,u)), end=' ')
         c = f.characters()
         if c == all_ascii:
-            print "Full ASCII"
+            print("Full ASCII")
         elif c.startswith(all_ascii):
-            print "Full ASCII + " + c[len(all_ascii):]
+            print("Full ASCII + " + c[len(all_ascii):])
         else:
-            print "Characters: " + c
+            print("Characters: " + c)

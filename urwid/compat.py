@@ -39,10 +39,15 @@ if PYTHON3:
     chr2 = lambda x: bytes([x])
     B = lambda x: x.encode('iso8859-1')
     bytes3 = bytes
+    text_type = str
+    xrange = range
+    text_types = [str]
 else:
     ord2 = ord
     chr2 = chr
     B = lambda x: x
     bytes3 = lambda x: bytes().join([chr(c) for c in x])
-
+    text_type = unicode
+    xrange = xrange
+    text_types = [str, unicode]
 

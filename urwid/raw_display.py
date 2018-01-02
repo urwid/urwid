@@ -665,8 +665,11 @@ class Screen(BaseScreen, RealTerminal):
         self._setup_G1_done = True
 
 
-    def draw_screen(self, (maxcol, maxrow), r ):
+    def draw_screen(self, maxres, r ):
         """Paint screen with rendered canvas."""
+
+        (maxcol, maxrow) = maxres
+
         assert self._started
 
         assert maxrow == r.rows()

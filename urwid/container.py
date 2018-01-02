@@ -20,6 +20,7 @@
 # Urwid web site: http://excess.org/urwid/
 
 from itertools import chain, repeat
+from urwid.compat import xrange
 
 from urwid.util import is_mouse_press
 from urwid.widget import (Widget, Divider, FLOW, FIXED, PACK, BOX, WidgetWrap,
@@ -1589,9 +1590,9 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 return key
 
         if self._command_map[key] == 'cursor up':
-            candidates = range(i-1, -1, -1) # count backwards to 0
+            candidates = list(range(i-1, -1, -1)) # count backwards to 0
         else: # self._command_map[key] == 'cursor down'
-            candidates = range(i+1, len(self.contents))
+            candidates = list(range(i+1, len(self.contents)))
 
         if not item_rows:
             item_rows = self.get_item_rows(size, focus=True)
@@ -1607,9 +1608,9 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
             rows = item_rows[j]
             if self._command_map[key] == 'cursor up':
-                rowlist = range(rows-1, -1, -1)
+                rowlist = list(range(rows-1, -1, -1))
             else: # self._command_map[key] == 'cursor down'
-                rowlist = range(rows)
+                rowlist = list(range(rows))
             for row in rowlist:
                 tsize = self.get_item_size(size, j, True, item_rows)
                 if self.focus_item.move_cursor_to_coords(
@@ -2272,9 +2273,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             return key
 
         if self._command_map[key] == 'cursor left':
-            candidates = range(i-1, -1, -1) # count backwards to 0
+            candidates = list(range(i-1, -1, -1)) # count backwards to 0
         else: # key == 'right'
-            candidates = range(i+1, len(self.contents))
+            candidates = list(range(i+1, len(self.contents)))
 
         for j in candidates:
             if not self.contents[j][0].selectable():
