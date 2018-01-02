@@ -35,7 +35,7 @@ class FibonacciWalker(urwid.ListWalker):
     positions returned are (value at position-1, value at position) tuples.
     """
     def __init__(self):
-        self.focus = (0L,1L)
+        self.focus = (0,1)
         self.numeric_layout = NumericLayout()
 
     def _get_at_pos(self, pos):

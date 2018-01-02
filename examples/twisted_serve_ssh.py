@@ -31,6 +31,8 @@ Portions Copyright: 2010, Ian Ward <ian@excess.org>
 Licence:   LGPL <http://opensource.org/licenses/lgpl-2.1.php>
 """
 
+from __future__ import print_function
+
 import os
 
 import urwid

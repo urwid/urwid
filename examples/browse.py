@@ -31,6 +31,8 @@ Features:
 - outputs a quoted list of files and directories "selected" on exit
 """
 
+from __future__ import print_function
+
 import itertools
 import re
 import os
@@ -184,7 +186,7 @@ class DirectoryNode(urwid.ParentNode):
                     dirs.append(a)
                 else:
                     files.append(a)
-        except OSError, e:
+        except OSError as e:
             depth = self.get_depth() + 1
             self._children[None] = ErrorNode(self, parent=self, key=None,
                                              depth=depth)
@@ -274,7 +276,7 @@ class DirectoryBrowser:
 
         # on exit, write the flagged filenames to the console
         names = [escape_filename_sh(x) for x in get_flagged_names()]
-        print " ".join(names)
+        print(" ".join(names))
 
     def unhandled_input(self, k):
         # update display of focus directory
