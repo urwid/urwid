@@ -92,7 +92,7 @@ class WidgetContainerMixin(object):
         (non-container) widget.
 
         Note that the list does not contain the topmost container widget
-        (i.e, on which this method is called), but does include the
+        (i.e., on which this method is called), but does include the
         lowest leaf widget.
         """
         out = []

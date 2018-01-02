@@ -279,7 +279,7 @@ Urwid 1.0.1
 
  * Fix for a LineBox border __init__() parameters
 
- * Fix input input of UTF-8 in tour.py example by converting captions
+ * Fix input of UTF-8 in tour.py example by converting captions
    to unicode
 
  * Fix tutorial examples' use of TextCanvas and switch to using
@@ -307,7 +307,7 @@ Urwid 1.0.0
  * New experimental Terminal widget with xterm emulation and
    terminal.py example program (by aszlig)
 
- * Edit widget now supports a mask (for passwords), has a
+ * Edit widget now supports a mask (for passwords), has an
    insert_text_result() method for full-field validation and
    normalizes input text to Unicode or bytes based on the caption
    type used
@@ -566,7 +566,7 @@ Urwid 0.9.8
    without blocking.
 
  * The Columns, Pile and ListBox widgets now choose their first
-   selectable child widget as the focus widget by defaut.
+   selectable child widget as the focus widget by default.
 
  * New ListWalker base class for list walker classes.
 
@@ -593,7 +593,7 @@ Urwid 0.9.8
 
  * The raw_display module now uses an alternate buffer so that the
    original screen can be restored on exit. The old behaviour is
-   available by seting the alternate_buffer parameter of start() or
+   available by setting the alternate_buffer parameter of start() or
    run_wrapper() to False.
 
  * Many internal string processing functions have been rewritten in C to
@@ -611,7 +611,7 @@ Urwid 0.9.7.2
 
  * Fixed a UTF-8 input bug.
 
- * Added a clear() function to the the display modules to force the
+ * Added a clear() function to the display modules to force the
    screen to be repainted on the next draw_screen() call.
 
 
@@ -1048,7 +1048,7 @@ Urwid 0.8.6
 
    register_palette() and register_palette_entry() now accept "default"
    as foreground and/or background. If the terminal's default attributes
-   cannot be detected black on light gray will be used to accomodate
+   cannot be detected black on light gray will be used to accommodate
    terminals with always-black cursors.
 
    "default" is now the default for text with no attributes. This means

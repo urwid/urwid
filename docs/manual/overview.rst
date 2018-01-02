@@ -35,7 +35,7 @@ you can also write your own text layout classes.
 
 Urwid supports a range of common :ref:`display attributes
 <display-attributes>`, including 256-color foreground and background settings,
-bold, underline and standount settings for displaying text. Not all of these
+bold, underline and standout settings for displaying text. Not all of these
 are supported by all terminals, so Urwid helps you write applications that
 support different color modes depending on what the user's terminal supports
 and what they choose to enable.

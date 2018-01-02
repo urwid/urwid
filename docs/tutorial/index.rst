@@ -151,7 +151,7 @@ a widget before the correct one has been created.
   assigning to its :attr:`MainLoop.widget` property.
 
 * :ref:`decoration-widgets` like :class:`AttrMap` have an
-  ``original_widget`` property that we can assign to to change the widget they wrap.
+  ``original_widget`` property that we can assign to change the widget they wrap.
 
 * :class:`Divider` widgets are used to create blank lines,
   colored with :class:`AttrMap`.
@@ -317,9 +317,9 @@ return to previous menus by pressing *ESC*.
    :linenos:
 
 * *menu_button()* returns an :class:`AttrMap`-decorated :class:`Button`
-  and attaches a *callback* to the the its ``'click'`` signal.  This function is
+  and attaches a *callback* to its ``'click'`` signal.  This function is
   used for both sub-menus and final selection buttons.
-* *sub_menu()* creates a menu button and a closure that will open the the
+* *sub_menu()* creates a menu button and a closure that will open the
   menu when that button is clicked.  Notice that
   :ref:`text markup <text-markup>` is used to add ``'...'`` to the end of
   the *caption* passed to *menu_button()*.
