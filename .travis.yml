@@ -1,17 +1,21 @@
 language: python
-python:
-  - "2.7_with_system_site_packages"
-  - "3.3"
-  - "3.4"
-  - "3.5"
-  - "3.6"
-  - "pypy"
+matrix:
+  include:
+    - python: 2.7
+      env: TOXENV=py27
+    - python: 3.3
+      env: TOXENV=py33
+    - python: 3.4
+      env: TOXENV=py34
+    - python: 2.5
+      env: TOXENV=py35
+    - python: 3.6
+      env: TOXENV=py36
 before_install:
   - "sudo apt-get update"
   - "sudo apt-get install python-gi python3-gi"
 install:
-  - if [[ $TRAVIS_PYTHON_VERSION == '2.7_with_system_site_packages' ]]; then pip install "twisted==16.6.0"; fi
-  - "pip install setuptools twisted tornado coverage coveralls"
+  - "pip install tox"
 script:
   - "DEPS=\"$TRAVIS_PYTHON_VERSION `python bin/deps.py`\"; echo $DEPS"
   - "[ \"$DEPS\" == '2.7_with_system_site_packages pygobject tornado twisted' -o
@@ -20,8 +24,7 @@ script:
        \"$DEPS\" == '3.5 tornado twisted' -o
        \"$DEPS\" == '3.6 tornado twisted' -o
        \"$DEPS\" == 'pypy tornado twisted' ]"
-  - "coverage erase"
-  - "coverage run setup.py test"
-  - "coverage report"
+  - "tox"
+after_success:
   - "coveralls"
 
