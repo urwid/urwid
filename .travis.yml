@@ -21,7 +21,7 @@ script:
        \"$DEPS\" == '3.6 tornado twisted' -o
        \"$DEPS\" == 'pypy tornado twisted' ]"
   - "coverage erase"
-  - "coverage run python setup.py test"
+  - "coverage run setup.py test"
   - "coverage report"
   - "coveralls"
 
