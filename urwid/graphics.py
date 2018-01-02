@@ -840,6 +840,7 @@ class ProgressBar(Widget):
     def get_text(self):
         """
         Return the progress bar percentage text.
+        You can override this method to display custom text.
         """
         percent = min(100, max(0, int(self.current * 100 / self.done)))
         return str(percent) + " %"
