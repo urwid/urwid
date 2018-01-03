@@ -26,11 +26,11 @@ Curses-based UI implementation
 import curses
 import _curses
 
-from urwid import escape
+from . import escape
 
-from urwid.display_common import BaseScreen, RealTerminal, AttrSpec, \
+from .display_common import BaseScreen, RealTerminal, AttrSpec, \
     UNPRINTABLE_TRANS_TABLE
-from urwid.compat import bytes, PYTHON3
+from .compat import bytes, PYTHON3
 
 KEY_RESIZE = 410 # curses.KEY_RESIZE (sometimes not defined)
 KEY_MOUSE = 409 # curses.KEY_MOUSE

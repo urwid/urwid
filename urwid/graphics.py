@@ -20,15 +20,15 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from urwid.util import decompose_tagmarkup, get_encoding_mode
-from urwid.canvas import CompositeCanvas, CanvasJoin, TextCanvas, \
+from .util import decompose_tagmarkup, get_encoding_mode
+from .canvas import CompositeCanvas, CanvasJoin, TextCanvas, \
     CanvasCombine, SolidCanvas
-from urwid.widget import WidgetMeta, Widget, BOX, FIXED, FLOW, \
+from .widget import WidgetMeta, Widget, BOX, FIXED, FLOW, \
     nocache_widget_render, nocache_widget_render_instance, fixed_size, \
     WidgetWrap, Divider, SolidFill, Text, CENTER, CLIP
-from urwid.container import Pile, Columns
-from urwid.display_common import AttrSpec
-from urwid.decoration import WidgetDecoration
+from .container import Pile, Columns
+from .display_common import AttrSpec
+from .decoration import WidgetDecoration
 
 
 class BigText(Widget):

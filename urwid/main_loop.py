@@ -35,12 +35,12 @@ try:
 except ImportError:
     pass # windows
 
-from urwid.util import StoppingContext, is_mouse_event
-from urwid.compat import PYTHON3
-from urwid.command_map import command_map, REDRAW_SCREEN
-from urwid.wimp import PopUpTarget
-from urwid import signals
-from urwid.display_common import INPUT_DESCRIPTORS_CHANGED
+from .util import StoppingContext, is_mouse_event
+from .compat import PYTHON3
+from .command_map import command_map, REDRAW_SCREEN
+from .wimp import PopUpTarget
+from . import signals
+from .display_common import INPUT_DESCRIPTORS_CHANGED
 
 PIPE_BUFFER_READ_SIZE = 4096 # can expect this much on Linux, so try for that
 
@@ -108,7 +108,7 @@ class MainLoop(object):
         self.pop_ups = pop_ups # triggers property setting side-effect
 
         if not screen:
-            from urwid import raw_display
+            from . import raw_display
             screen = raw_display.Screen()
 
         if palette:

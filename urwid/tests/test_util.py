@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import unittest
 
-import urwid
-from urwid import util
-from urwid.compat import B
+from .. import util
+from .. import widget
+from ..compat import B
 
 
 class CalcWidthTest(unittest.TestCase):
@@ -31,7 +31,7 @@ class ConvertDecSpecialTest(unittest.TestCase):
     def ctest(self, desc, s, exp, expcs):
         exp = B(exp)
         util.set_encoding('ascii')
-        c = urwid.Text(s).render((5,))
+        c = widget.Text(s).render((5,))
         result = c._text[0]
         assert result==exp, "%s got:%r expected:%r" % (desc, result, exp)
         resultcs = c._cs[0]
@@ -40,9 +40,9 @@ class ConvertDecSpecialTest(unittest.TestCase):
 
     def test1(self):
         self.ctest("no conversion", u"hello", "hello", [(None,5)])
-        self.ctest("only special", u"£££££", "}}}}}", [("0",5)])
-        self.ctest("mix left", u"££abc", "}}abc", [("0",2),(None,3)])
-        self.ctest("mix right", u"abc££", "abc}}", [(None,3),("0",2)])
+        self.ctest("only special", u"£££££", "}}}}}", [("0", 5)])
+        self.ctest("mix left", u"££abc", "}}abc", [("0", 2), (None, 3)])
+        self.ctest("mix right", u"abc££", "abc}}", [(None, 3), ("0", 2)])
         self.ctest("mix inner", u"a££bc", "a}}bc",
             [(None,1),("0",2),(None,2)] )
         self.ctest("mix well", u"£a£b£", "}a}b}",
@@ -51,7 +51,7 @@ class ConvertDecSpecialTest(unittest.TestCase):
 
 class WithinDoubleByteTest(unittest.TestCase):
     def setUp(self):
-        urwid.set_encoding("euc-jp")
+        util.set_encoding("euc-jp")
 
     def wtest(self, s, ls, pos, expected, desc):
         result = util.within_double_byte(B(s), ls, pos)
@@ -165,14 +165,14 @@ class TagMarkupTest(unittest.TestCase):
 
     def test(self):
         for input, text, attr in self.mytests:
-            restext,resattr = urwid.decompose_tagmarkup( input )
+            restext, resattr = util.decompose_tagmarkup(input)
             assert restext == text, "got: %r expected: %r" % (restext, text)
             assert resattr == attr, "got: %r expected: %r" % (resattr, attr)
 
     def test_bad_tuple(self):
-        self.assertRaises(urwid.TagMarkupException, lambda:
-            urwid.decompose_tagmarkup((1,2,3)))
+        self.assertRaises(util.TagMarkupException, lambda:
+            util.decompose_tagmarkup((1, 2, 3)))
 
     def test_bad_type(self):
-        self.assertRaises(urwid.TagMarkupException, lambda:
-            urwid.decompose_tagmarkup(5))
+        self.assertRaises(util.TagMarkupException, lambda:
+            util.decompose_tagmarkup(5))

@@ -20,7 +20,7 @@
 # Urwid web site: http://excess.org/urwid/
 
 from inspect import getargspec
-from urwid.compat import PYTHON3, bytes
+from .compat import PYTHON3, bytes
 
 def split_repr(self):
     """

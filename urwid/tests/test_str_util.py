@@ -1,7 +1,7 @@
 import unittest
 
-from urwid.compat import B
-from urwid.escape import str_util
+from ..compat import B
+from ..escape import str_util
 
 
 class DecodeOneTest(unittest.TestCase):

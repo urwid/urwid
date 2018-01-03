@@ -2,8 +2,8 @@ import os
 import unittest
 import platform
 
-import urwid
-from urwid.compat import PYTHON3
+from .. import main_loop
+from ..compat import PYTHON3
 
 
 class EventLoopTestMixin(object):
@@ -16,7 +16,7 @@ class EventLoopTestMixin(object):
             os.write(wr, "hi".encode('ascii'))
         def step2():
             out.append(os.read(rd, 2).decode('ascii'))
-            raise urwid.ExitMainLoop
+            raise main_loop.ExitMainLoop
         handle = evl.alarm(0, step1)
         handle = evl.watch_file(rd, step2)
         evl.run()
@@ -52,7 +52,7 @@ class EventLoopTestMixin(object):
             out.append("waiting")
         def exit_clean():
             out.append("clean exit")
-            raise urwid.ExitMainLoop
+            raise main_loop.ExitMainLoop
         def exit_error():
             1/0
         handle = evl.alarm(0.01, exit_clean)
@@ -76,7 +76,7 @@ class EventLoopTestMixin(object):
 
 class SelectEventLoopTest(unittest.TestCase, EventLoopTestMixin):
     def setUp(self):
-        self.evl = urwid.SelectEventLoop()
+        self.evl = main_loop.SelectEventLoop()
 
 
 try:
@@ -86,7 +86,7 @@ except ImportError:
 else:
     class GLibEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         def setUp(self):
-            self.evl = urwid.GLibEventLoop()
+            self.evl = main_loop.GLibEventLoop()
 
 
 try:
@@ -97,7 +97,7 @@ else:
     class TornadoEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         def setUp(self):
             from tornado.ioloop import IOLoop
-            self.evl = urwid.TornadoEventLoop(IOLoop())
+            self.evl = main_loop.TornadoEventLoop(IOLoop())
 
 
 try:
@@ -107,7 +107,7 @@ except ImportError:
 else:
     class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         def setUp(self):
-            self.evl = urwid.TwistedEventLoop()
+            self.evl = main_loop.TwistedEventLoop()
 
         # can't restart twisted reactor, so use shortened tests
         def test_event_loop(self):
@@ -126,7 +126,7 @@ else:
                 out.append("waiting")
             def exit_clean():
                 out.append("clean exit")
-                raise urwid.ExitMainLoop
+                raise main_loop.ExitMainLoop
             def exit_error():
                 1/0
             handle = evl.watch_file(rd, step2)
@@ -147,6 +147,6 @@ except ImportError:
 else:
     class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         def setUp(self):
-            self.evl = urwid.AsyncioEventLoop()
+            self.evl = main_loop.AsyncioEventLoop()
 
         _expected_idle_handle = None

@@ -25,9 +25,9 @@ import unittest
 
 from itertools import dropwhile
 
-from urwid import vterm
-from urwid import signals
-from urwid.compat import B
+from .. import vterm
+from .. import signals
+from ..compat import B
 
 class DummyCommand(object):
     QUITSTRING = B('|||quit|||')

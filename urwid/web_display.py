@@ -30,7 +30,7 @@ import select
 import socket
 import glob
 
-from urwid import util
+from . import util
 _js_code = r"""
 // Urwid web (CGI/Asynchronous Javascript) display module
 //    Copyright (C) 2004-2005  Ian Ward

@@ -1,15 +1,15 @@
 import unittest
 
-from urwid.compat import B
-from urwid.tests.util import SelectableText
-import urwid
+from ..compat import B
+from .. import listbox, widget, container
+from ..tests.util import SelectableText
 
 
 class ListBoxCalculateVisibleTest(unittest.TestCase):
     def cvtest(self, desc, body, focus, offset_rows, inset_fraction,
         exp_offset_inset, exp_cur ):
 
-        lbox = urwid.ListBox(body)
+        lbox = listbox.ListBox(body)
         lbox.body.set_focus( focus )
         lbox.offset_rows = offset_rows
         lbox.inset_fraction = inset_fraction
@@ -26,7 +26,7 @@ class ListBoxCalculateVisibleTest(unittest.TestCase):
         assert cursor == exp_cur, "%s (cursor) got: %r expected: %r" %(desc,cursor,exp_cur)
 
     def test1_simple(self):
-        T = urwid.Text
+        T = widget.Text
 
         l = [T(""),T(""),T("\n"),T("\n\n"),T("\n"),T(""),T("")]
 
@@ -71,7 +71,7 @@ class ListBoxCalculateVisibleTest(unittest.TestCase):
 
 
     def test2_cursor(self):
-        T, E = urwid.Text, urwid.Edit
+        T, E = widget.Text, widget.Edit
 
         l1 = [T(""),T(""),T("\n"),E("","\n\nX"),T("\n"),T(""),T("")]
         l2 = [T(""),T(""),T("\n"),E("","YY\n\n"),T("\n"),T(""),T("")]
@@ -99,7 +99,7 @@ class ListBoxChangeFocusTest(unittest.TestCase):
             coming_from, cursor, snap_rows,
             exp_offset_rows, exp_inset_fraction, exp_cur ):
 
-        lbox = urwid.ListBox(body)
+        lbox = listbox.ListBox(body)
 
         lbox.change_focus( (4,5), pos, offset_inset, coming_from,
             cursor, snap_rows )
@@ -118,7 +118,7 @@ class ListBoxChangeFocusTest(unittest.TestCase):
 
 
     def test1unselectable(self):
-        T = urwid.Text
+        T = widget.Text
         l = [T("\n"),T("\n\n"),T("\n\n"),T("\n\n"),T("\n")]
 
         self.cftest( "simple unselectable",
@@ -134,7 +134,7 @@ class ListBoxChangeFocusTest(unittest.TestCase):
             l, 3, 2, None, None, None, 2, (0,1), None )
 
     def test2selectable(self):
-        T, S = urwid.Text, SelectableText
+        T, S = widget.Text, SelectableText
         l = [T("\n"),T("\n\n"),S("\n\n"),T("\n\n"),T("\n")]
 
         self.cftest( "simple selectable",
@@ -162,7 +162,7 @@ class ListBoxChangeFocusTest(unittest.TestCase):
             l, 2, 3, 'below', None, None, 3, (0,1), None )
 
     def test3large_selectable(self):
-        T, S = urwid.Text, SelectableText
+        T, S = widget.Text, SelectableText
         l = [T("\n"),S("\n\n\n\n\n\n"),T("\n")]
         self.cftest( "large selectable no snap",
             l, 1, -1, None, None, None, 0, (1,7), None )
@@ -193,12 +193,12 @@ class ListBoxChangeFocusTest(unittest.TestCase):
             m, 1, -5, 'below', None, None, 0, (1,6), None )
 
     def test4cursor(self):
-        T,E = urwid.Text, urwid.Edit
+        T, E = widget.Text, widget.Edit
         #...
 
     def test5set_focus_valign(self):
-        T,E = urwid.Text, urwid.Edit
-        lbox = urwid.ListBox(urwid.SimpleFocusListWalker([
+        T, E = widget.Text, widget.Edit
+        lbox = listbox.ListBox(listbox.SimpleFocusListWalker([
             T(''), T('')]))
         lbox.set_focus_valign('middle')
         # TODO: actually test the result
@@ -207,7 +207,7 @@ class ListBoxChangeFocusTest(unittest.TestCase):
 class ListBoxRenderTest(unittest.TestCase):
     def ltest(self,desc,body,focus,offset_inset_rows,exp_text,exp_cur):
         exp_text = [B(t) for t in exp_text]
-        lbox = urwid.ListBox(body)
+        lbox = listbox.ListBox(body)
         lbox.body.set_focus( focus )
         lbox.shift_focus((4,10), offset_inset_rows )
         canvas = lbox.render( (4,5), focus=1 )
@@ -221,7 +221,7 @@ class ListBoxRenderTest(unittest.TestCase):
 
 
     def test1_simple(self):
-        T = urwid.Text
+        T = widget.Text
 
         self.ltest( "simple one text item render",
             [T("1\n2")], 0, 0,
@@ -236,7 +236,7 @@ class ListBoxRenderTest(unittest.TestCase):
             ["2   ","3   ","4   ","5   ","6   "],None)
 
     def test2_trim(self):
-        T = urwid.Text
+        T = widget.Text
 
         self.ltest( "trim unfocused bottom",
             [T("1\n2"),T("3\n4"),T("5\n6")], 1, 2,
@@ -263,7 +263,7 @@ class ListBoxRenderTest(unittest.TestCase):
             ["2   ","3   ","4   ","5   ","6   "],None)
 
     def test3_shift(self):
-        T,E = urwid.Text, urwid.Edit
+        T, E = widget.Text, widget.Edit
 
         self.ltest( "shift up one fit",
             [T("1\n2"),T("3"),T("4"),T("5"),T("6")], 4, 5,
@@ -290,7 +290,7 @@ class ListBoxRenderTest(unittest.TestCase):
             ["1   ","2   ","3   ","4   ","abc "], (3,4))
 
     def test4_really_large_contents(self):
-        T,E = urwid.Text, urwid.Edit
+        T, E = widget.Text, widget.Edit
         self.ltest("really large edit",
             [T(u"hello"*100)], 0, 0,
             ["hell","ohel","lohe","lloh","ello"], None)
@@ -305,7 +305,7 @@ class ListBoxKeypressTest(unittest.TestCase):
         exp_focus, exp_offset_inset, exp_cur, lbox = None):
 
         if lbox is None:
-            lbox = urwid.ListBox(body)
+            lbox = listbox.ListBox(body)
             lbox.body.set_focus( focus )
             lbox.shift_focus((4,10), offset_inset )
 
@@ -326,7 +326,7 @@ class ListBoxKeypressTest(unittest.TestCase):
 
 
     def test1_up(self):
-        T,S,E = urwid.Text, SelectableText, urwid.Edit
+        T, S, E = widget.Text, SelectableText, widget.Edit
 
         self.ktest( "direct selectable both visible", 'up',
             [S(""),S("")], 1, 1,
@@ -426,7 +426,7 @@ class ListBoxKeypressTest(unittest.TestCase):
         assert lbox.inset_fraction[0] == 0
 
     def test2_down(self):
-        T,S,E = urwid.Text, SelectableText, urwid.Edit
+        T, S, E = widget.Text, SelectableText, widget.Edit
 
         self.ktest( "direct selectable both visible", 'down',
             [S(""),S("")], 0, 0,
@@ -531,7 +531,7 @@ class ListBoxKeypressTest(unittest.TestCase):
         assert lbox.inset_fraction[0] == 1
 
     def test3_page_up(self):
-        T,S,E = urwid.Text, SelectableText, urwid.Edit
+        T, S, E = widget.Text, SelectableText, widget.Edit
 
         self.ktest( "unselectable aligned to aligned", 'page up',
             [T(""),T("\n"),T("\n\n"),T(""),T("\n"),T("\n\n")], 3, 0,
@@ -642,7 +642,7 @@ class ListBoxKeypressTest(unittest.TestCase):
             1, 1, None )
 
     def test4_page_down(self):
-        T,S,E = urwid.Text, SelectableText, urwid.Edit
+        T, S, E = widget.Text, SelectableText, widget.Edit
 
         self.ktest( "unselectable aligned to aligned", 'page down',
             [T("\n\n"),T("\n"),T(""),T("\n\n"),T("\n"),T("")], 2, 4,
@@ -762,21 +762,21 @@ class ListBoxKeypressTest(unittest.TestCase):
 
 class ZeroHeightContentsTest(unittest.TestCase):
     def test_listbox_pile(self):
-        lb = urwid.ListBox(urwid.SimpleListWalker(
-            [urwid.Pile([])]))
+        lb = listbox.ListBox(listbox.SimpleListWalker(
+            [container.Pile([])]))
         lb.render((40,10), focus=True)
 
     def test_listbox_text_pile_page_down(self):
-        lb = urwid.ListBox(urwid.SimpleListWalker(
-            [urwid.Text(u'above'), urwid.Pile([])]))
+        lb = listbox.ListBox(listbox.SimpleListWalker(
+            [widget.Text(u'above'), container.Pile([])]))
         lb.keypress((40,10), 'page down')
         self.assertEqual(lb.get_focus()[1], 0)
         lb.keypress((40,10), 'page down') # second one caused ListBox failure
         self.assertEqual(lb.get_focus()[1], 0)
 
     def test_listbox_text_pile_page_up(self):
-        lb = urwid.ListBox(urwid.SimpleListWalker(
-            [urwid.Pile([]), urwid.Text(u'below')]))
+        lb = listbox.ListBox(listbox.SimpleListWalker(
+            [container.Pile([]), widget.Text(u'below')]))
         lb.set_focus(1)
         lb.keypress((40,10), 'page up')
         self.assertEqual(lb.get_focus()[1], 1)
@@ -784,18 +784,18 @@ class ZeroHeightContentsTest(unittest.TestCase):
         self.assertEqual(lb.get_focus()[1], 1)
 
     def test_listbox_text_pile_down(self):
-        sp = urwid.Pile([])
+        sp = container.Pile([])
         sp.selectable = lambda: True # abuse our Pile
-        lb = urwid.ListBox(urwid.SimpleListWalker([urwid.Text(u'above'), sp]))
+        lb = listbox.ListBox(listbox.SimpleListWalker([widget.Text(u'above'), sp]))
         lb.keypress((40,10), 'down')
         self.assertEqual(lb.get_focus()[1], 0)
         lb.keypress((40,10), 'down')
         self.assertEqual(lb.get_focus()[1], 0)
 
     def test_listbox_text_pile_up(self):
-        sp = urwid.Pile([])
+        sp = container.Pile([])
         sp.selectable = lambda: True # abuse our Pile
-        lb = urwid.ListBox(urwid.SimpleListWalker([sp, urwid.Text(u'below')]))
+        lb = listbox.ListBox(listbox.SimpleListWalker([sp, widget.Text(u'below')]))
         lb.set_focus(1)
         lb.keypress((40,10), 'up')
         self.assertEqual(lb.get_focus()[1], 1)
