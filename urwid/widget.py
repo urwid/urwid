@@ -1101,11 +1101,22 @@ class Edit(Text):
     deletion.  A caption may prefix the editing area.  Uses text class
     for text layout.
 
-    Users of this class to listen for ``"change"`` events
-    sent when the value of edit_text changes.  See :func:``connect_signal``.
+    Users of this class may listen for ``"change"`` or ``"postchange"``
+    events.  See :func:``connect_signal``.
+
+    * ``"change"`` is sent just before the value of edit_text changes.
+      It receives the new text as an argument.  Note that ``"change"`` cannot
+      change the text in question as edit_text changes the text afterwards.
+    * ``"postchange"`` is sent after the value of edit_text changes.
+      It receives the old value of the text as an argument and thus is
+      appropriate for changing the text.  It is possible for a ``"postchange"``
+      event handler to get into a loop of changing the text and then being
+      called when the event is re-emitted.  It is up to the event
+      handler to guard against this case (for instance, by not changing the
+      text if it is signaled for for text that it has already changed once).
     """
     # (this variable is picked up by the MetaSignals metaclass)
-    signals = ["change"]
+    signals = ["change", "postchange"]
 
     def valid_char(self, ch):
         """
@@ -1160,6 +1171,7 @@ class Edit(Text):
         self.allow_tab = allow_tab
         self._edit_pos = 0
         self.set_caption(caption)
+        self._edit_text = ''
         self.set_edit_text(edit_text)
         if edit_pos is None:
             edit_pos = len(edit_text)
@@ -1355,9 +1367,11 @@ class Edit(Text):
         text = self._normalize_to_caption(text)
         self.highlight = None
         self._emit("change", text)
+        old_text = self._edit_text
         self._edit_text = text
         if self.edit_pos > len(text):
             self.edit_pos = len(text)
+        self._emit("postchange", old_text)
         self._invalidate()
 
     def get_edit_text(self):
