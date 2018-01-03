@@ -29,6 +29,7 @@ import os
 from functools import wraps
 from itertools import count
 from weakref import WeakKeyDictionary
+import sys
 
 try:
     import fcntl
@@ -43,6 +44,33 @@ from urwid import signals
 from urwid.display_common import INPUT_DESCRIPTORS_CHANGED
 
 PIPE_BUFFER_READ_SIZE = 4096 # can expect this much on Linux, so try for that
+
+class ExceptionStorageMixin(object):
+    """Store and raise exceptions in py2 and py3 properly"""
+
+    def _store_exc(self):
+        exc_info = sys.exc_info()
+        if PYTHON3:
+            # Store the exception instance
+            self._exc_info = exc_info[1]
+        else:
+            # Store the exception type, value and traceback
+            self._exc_info = exc_info
+
+    def _maybe_raise_stored_exc(self):
+        try:
+            exc = self._exc_info
+        except AttributeError:
+            pass
+        else:
+            delattr(self, '_exc_info')
+            if PYTHON3:
+                # Simply re-raise previously stored exception
+                raise exc
+            else:
+                # Create new exception from stored type, value and traceback
+                raise exc[0], exc[1], exc[2]
+
 
 class ExitMainLoop(Exception):
     """
@@ -723,7 +751,7 @@ class SelectEventLoop(object):
             self._did_something = True
 
 
-class GLibEventLoop(object):
+class GLibEventLoop(ExceptionStorageMixin):
     """
     Event loop based on GLib.MainLoop
     """
@@ -737,7 +765,6 @@ class GLibEventLoop(object):
         self._glib_idle_enabled = False # have we called glib.idle_add?
         self._idle_callbacks = {}
         self._loop = GLib.MainLoop()
-        self._exc_info = None
         self._enable_glib_idle()
 
     def alarm(self, seconds, callback):
@@ -847,11 +874,8 @@ class GLibEventLoop(object):
         finally:
             if self._loop.is_running():
                 self._loop.quit()
-        if self._exc_info:
-            # An exception caused us to exit, raise it now
-            exc_info = self._exc_info
-            self._exc_info = None
-            raise exc_info[0], exc_info[1], exc_info[2]
+        # If an exception was stored previously, raise it now
+        self._maybe_raise_stored_exc()
 
     def handle_exit(self,f):
         """
@@ -868,8 +892,7 @@ class GLibEventLoop(object):
             except ExitMainLoop:
                 self._loop.quit()
             except:
-                import sys
-                self._exc_info = sys.exc_info()
+                self._store_exc()
                 if self._loop.is_running():
                     self._loop.quit()
             return False
@@ -1036,7 +1059,7 @@ class TwistedInputDescriptor(FileDescriptor):
         return self.cb()
 
 
-class TwistedEventLoop(object):
+class TwistedEventLoop(ExceptionStorageMixin):
     """
     Event loop based on Twisted_
     """
@@ -1071,7 +1094,6 @@ class TwistedEventLoop(object):
         self._idle_handle = 0
         self._twisted_idle_enabled = False
         self._idle_callbacks = {}
-        self._exc_info = None
         self.manage_reactor = manage_reactor
         self._enable_twisted_idle()
 
@@ -1182,11 +1204,7 @@ class TwistedEventLoop(object):
         if not self.manage_reactor:
             return
         self.reactor.run()
-        if self._exc_info:
-            # An exception caused us to exit, raise it now
-            exc_info = self._exc_info
-            self._exc_info = None
-            raise exc_info[0], exc_info[1], exc_info[2]
+        self._maybe_raise_stored_exc()
 
     def handle_exit(self, f, enable_idle=True):
         """
@@ -1205,9 +1223,7 @@ class TwistedEventLoop(object):
                 if self.manage_reactor:
                     self.reactor.stop()
             except:
-                import sys
-                print sys.exc_info()
-                self._exc_info = sys.exc_info()
+                self._store_exc()
                 if self.manage_reactor:
                     self.reactor.crash()
             if enable_idle:
@@ -1216,7 +1232,7 @@ class TwistedEventLoop(object):
         return wrapper
 
 
-class AsyncioEventLoop(object):
+class AsyncioEventLoop(ExceptionStorageMixin):
     """
     Event loop based on the standard library ``asyncio`` module.
 
@@ -1307,16 +1323,12 @@ class AsyncioEventLoop(object):
         # `handle` is just a list containing the current actual handle
         return self.remove_alarm(handle[0])
 
-    _exc_info = None
-
     def _exception_handler(self, loop, context):
         exc = context.get('exception')
         if exc:
             loop.stop()
             if not isinstance(exc, ExitMainLoop):
-                # Store the exc_info so we can re-raise after the loop stops
-                import sys
-                self._exc_info = sys.exc_info()
+                self._store_exc()
         else:
             loop.default_exception_handler(context)
 
@@ -1327,9 +1339,7 @@ class AsyncioEventLoop(object):
         """
         self._loop.set_exception_handler(self._exception_handler)
         self._loop.run_forever()
-        if self._exc_info:
-            raise self._exc_info[0], self._exc_info[1], self._exc_info[2]
-            self._exc_info = None
+        self._maybe_raise_stored_exc()
 
 
 def _refl(name, rval=None, exit=False):
