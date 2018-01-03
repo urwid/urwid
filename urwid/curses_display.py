@@ -485,9 +485,9 @@ class Screen(BaseScreen, RealTerminal):
         """Paint screen with rendered canvas."""
         assert self._started
 
-        assert r.rows() == rows, "canvas size and passed size don't match"
-
         cols, rows = size
+
+        assert r.rows() == rows, "canvas size and passed size don't match"
 
         y = -1
         for row in r.content():
