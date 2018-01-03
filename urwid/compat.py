@@ -20,6 +20,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import division, print_function
+
 import sys
 
 try: # python 2.4 and 2.5 compat

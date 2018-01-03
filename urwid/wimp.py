@@ -19,7 +19,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import print_function
+from __future__ import division, print_function
 
 from urwid.widget import (Text, WidgetWrap, delegate_to_widget_mixin, BOX,
     FLOW)

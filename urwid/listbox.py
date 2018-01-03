@@ -19,6 +19,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import division, print_function
+
 from urwid.compat import xrange, with_metaclass
 from urwid.util import is_mouse_press
 from urwid.canvas import SolidCanvas, CanvasCombine

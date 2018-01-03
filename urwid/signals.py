@@ -19,6 +19,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import division, print_function
 
 import itertools
 import weakref

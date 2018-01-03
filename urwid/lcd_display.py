@@ -20,6 +20,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import division, print_function
 
 from .display_common import BaseScreen
 

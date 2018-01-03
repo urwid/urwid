@@ -19,6 +19,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import division, print_function
+
 from itertools import chain, repeat
 from urwid.compat import xrange
 
