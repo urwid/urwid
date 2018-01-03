@@ -481,10 +481,11 @@ class Screen(BaseScreen, RealTerminal):
 
         self.s.attrset(attr)
 
-    def draw_screen(self, (cols, rows), r ):
+    def draw_screen(self, size, r ):
         """Paint screen with rendered canvas."""
         assert self._started
 
+        (cols, rows) = size
         assert r.rows() == rows, "canvas size and passed size don't match"
 
         y = -1

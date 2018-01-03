@@ -743,9 +743,10 @@ class Screen:
             rows = MAX_ROWS
         self.screen_size = cols, rows
 
-    def draw_screen(self, (cols, rows), r ):
+    def draw_screen(self, size, r ):
         """Send a screen update to the client."""
 
+        (cols, rows) = size
         if cols != self.last_screen_width:
             self.last_screen = {}
 

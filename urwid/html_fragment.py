@@ -76,13 +76,14 @@ class HtmlGenerator(BaseScreen):
     def reset_default_terminal_palette(self, *args):
         pass
 
-    def draw_screen(self, (cols, rows), r ):
+    def draw_screen(self, size, r ):
         """Create an html fragment from the render object.
         Append it to HtmlGenerator.fragments list.
         """
         # collect output in l
         l = []
 
+        (cols, rows) = size
         assert r.rows() == rows
 
         if r.cursor is not None:
