@@ -28,7 +28,7 @@ from urwid.signals import connect_signal
 from urwid.monitored_list import MonitoredList, MonitoredFocusList
 from urwid.container import WidgetContainerMixin
 from urwid.command_map import (CURSOR_UP, CURSOR_DOWN,
-    CURSOR_PAGE_UP, CURSOR_PAGE_DOWN)
+    CURSOR_PAGE_UP, CURSOR_PAGE_DOWN, CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT)
 
 class ListWalkerError(Exception):
     pass
@@ -1017,8 +1017,23 @@ class ListBox(Widget, WidgetContainerMixin):
         if self._command_map[key] == CURSOR_PAGE_DOWN:
             return actual_key(self._keypress_page_down((maxcol, maxrow)))
 
+        if self._command_map[key] == CURSOR_MAX_LEFT:
+            return actual_key(self._keypress_max_left())
+
+        if self._command_map[key] == CURSOR_MAX_RIGHT:
+            return actual_key(self._keypress_max_right())
+
         return key
 
+    def _keypress_max_left(self):
+        self.focus_position = next(iter(self.body.positions()))
+        self.set_focus_valign('top')
+        return True
+
+    def _keypress_max_right(self):
+        self.focus_position = next(iter(self.body.positions(reverse=True)))
+        self.set_focus_valign('bottom')
+        return True
 
     def _keypress_up(self, size):
         (maxcol, maxrow) = size
