@@ -12,6 +12,9 @@
 
 .. content-start
 
+About
+=====
+
 Urwid is a console user interface library for Python.
 It includes many features useful for text console application developers including:
 
@@ -28,3 +31,18 @@ It includes many features useful for text console application developers includi
 
 Home Page:
   http://urwid.org/
+
+Testing
+=======
+
+To run tests locally, install & run `tox`. You must have
+appropriate Python versions installed to run `tox` for
+each of them.
+
+To test code in all Python versions:
+
+.. code:: bash
+
+    tox                    # Test all versions specified in tox.ini:
+    tox -e py36            # Test Python 3.6 only
+    tox -e py27,py36,pypy  # Test Python 2.7, Python 3.6 & pypy
