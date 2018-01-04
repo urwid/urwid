@@ -19,6 +19,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import division, print_function
 
 from urwid.util import int_scale
 from urwid.widget import (Widget, WidgetError,
@@ -129,14 +130,14 @@ class AttrMap(delegate_to_widget_mixin('_original_widget'), WidgetDecoration):
         <AttrMap selectable flow widget <Edit selectable flow widget '' edit_pos=0> attr_map={None: 'notfocus'} focus_map={None: 'focus'}>
         >>> size = (5,)
         >>> am = AttrMap(Text(u"hi"), 'greeting', 'fgreet')
-        >>> am.render(size, focus=False).content().next() # ... = b in Python 3
+        >>> next(am.render(size, focus=False).content()) # ... = b in Python 3
         [('greeting', None, ...'hi   ')]
-        >>> am.render(size, focus=True).content().next()
+        >>> next(am.render(size, focus=True).content())
         [('fgreet', None, ...'hi   ')]
         >>> am2 = AttrMap(Text(('word', u"hi")), {'word':'greeting', None:'bg'})
         >>> am2
         <AttrMap flow widget <Text flow widget 'hi'> attr_map={'word': 'greeting', None: 'bg'}>
-        >>> am2.render(size).content().next()
+        >>> next(am2.render(size).content())
         [('greeting', None, ...'hi'), ('bg', None, ...'   ')]
         """
         self.__super.__init__(w)
@@ -247,9 +248,9 @@ class AttrWrap(AttrMap):
         <AttrWrap selectable flow widget <Edit selectable flow widget '' edit_pos=0> attr='notfocus' focus_attr='focus'>
         >>> size = (5,)
         >>> aw = AttrWrap(Text(u"hi"), 'greeting', 'fgreet')
-        >>> aw.render(size, focus=False).content().next()
+        >>> next(aw.render(size, focus=False).content())
         [('greeting', None, ...'hi   ')]
-        >>> aw.render(size, focus=True).content().next()
+        >>> next(aw.render(size, focus=True).content())
         [('fgreet', None, ...'hi   ')]
         """
         self.__super.__init__(w, attr, focus_attr)
@@ -460,7 +461,7 @@ class Padding(WidgetDecoration):
         >>> size = (7,)
         >>> def pr(w):
         ...     for t in w.render(size).text:
-        ...         print "|%s|" % (t.decode('ascii'),)
+        ...         print("|%s|" % (t.decode('ascii'),))
         >>> pr(Padding(Text(u"Head"), ('relative', 20), 'pack'))
         | Head  |
         >>> pr(Padding(Divider(u"-"), left=2, right=1))

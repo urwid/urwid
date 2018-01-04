@@ -19,6 +19,9 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import division, print_function
+
+from urwid.compat import xrange, with_metaclass
 from urwid.util import is_mouse_press
 from urwid.canvas import SolidCanvas, CanvasCombine
 from urwid.widget import Widget, nocache_widget_render_instance, BOX, GIVEN
@@ -33,9 +36,7 @@ from urwid.command_map import (CURSOR_UP, CURSOR_DOWN,
 class ListWalkerError(Exception):
     pass
 
-class ListWalker(object):
-    __metaclass__ = signals.MetaSignals
-
+class ListWalker(with_metaclass(signals.MetaSignals, object)):
     signals = ["modified"]
 
     def _modified(self):
@@ -141,7 +142,7 @@ class SimpleListWalker(MonitoredList, ListWalker):
         this list walker to be updated.
         """
         if not getattr(contents, '__getitem__', None):
-            raise ListWalkerError, "SimpleListWalker expecting list like object, got: %r"%(contents,)
+            raise ListWalkerError("SimpleListWalker expecting list like object, got: %r"%(contents,))
         MonitoredList.__init__(self, contents)
         self.focus = 0
 
@@ -175,7 +176,7 @@ class SimpleListWalker(MonitoredList, ListWalker):
             if position < 0 or position >= len(self):
                 raise ValueError
         except (TypeError, ValueError):
-            raise IndexError, "No widget at position %s" % (position,)
+            raise IndexError("No widget at position %s" % (position,))
         self.focus = position
         self._modified()
 
@@ -481,17 +482,17 @@ class ListBox(Widget, WidgetContainerMixin):
         for widget,w_pos,w_rows in fill_above:
             canvas = widget.render((maxcol,))
             if w_rows != canvas.rows():
-                raise ListBoxError, "Widget %r at position %r within listbox calculated %d rows but rendered %d!"% (widget,w_pos,w_rows, canvas.rows())
+                raise ListBoxError("Widget %r at position %r within listbox calculated %d rows but rendered %d!"% (widget,w_pos,w_rows, canvas.rows()))
             rows += w_rows
             combinelist.append((canvas, w_pos, False))
 
         focus_canvas = focus_widget.render((maxcol,), focus=focus)
 
         if focus_canvas.rows() != focus_rows:
-            raise ListBoxError, "Focus Widget %r at position %r within listbox calculated %d rows but rendered %d!"% (focus_widget,focus_pos,focus_rows, focus_canvas.rows())
+            raise ListBoxError("Focus Widget %r at position %r within listbox calculated %d rows but rendered %d!"% (focus_widget,focus_pos,focus_rows, focus_canvas.rows()))
         c_cursor = focus_canvas.cursor
         if cursor != c_cursor:
-            raise ListBoxError, "Focus Widget %r at position %r within listbox calculated cursor coords %r but rendered cursor coords %r!" %(focus_widget,focus_pos,cursor,c_cursor)
+            raise ListBoxError("Focus Widget %r at position %r within listbox calculated cursor coords %r but rendered cursor coords %r!" %(focus_widget,focus_pos,cursor,c_cursor))
 
         rows += focus_rows
         combinelist.append((focus_canvas, focus_pos, True))
@@ -499,7 +500,7 @@ class ListBox(Widget, WidgetContainerMixin):
         for widget,w_pos,w_rows in fill_below:
             canvas = widget.render((maxcol,))
             if w_rows != canvas.rows():
-                raise ListBoxError, "Widget %r at position %r within listbox calculated %d rows but rendered %d!"% (widget,w_pos,w_rows, canvas.rows())
+                raise ListBoxError("Widget %r at position %r within listbox calculated %d rows but rendered %d!"% (widget,w_pos,w_rows, canvas.rows()))
             rows += w_rows
             combinelist.append((canvas, w_pos, False))
 
@@ -513,13 +514,13 @@ class ListBox(Widget, WidgetContainerMixin):
             rows -= trim_bottom
 
         if rows > maxrow:
-            raise ListBoxError, "Listbox contents too long!  Probably urwid's fault (please report): %r" % ((top,middle,bottom),)
+            raise ListBoxError("Listbox contents too long!  Probably urwid's fault (please report): %r" % ((top,middle,bottom),))
 
         if rows < maxrow:
             bottom_pos = focus_pos
             if fill_below: bottom_pos = fill_below[-1][1]
             if trim_bottom != 0 or self._body.get_next(bottom_pos) != (None,None):
-                raise ListBoxError, "Listbox contents too short!  Probably urwid's fault (please report): %r" % ((top,middle,bottom),)
+                raise ListBoxError("Listbox contents too short!  Probably urwid's fault (please report): %r" % ((top,middle,bottom),))
             final_canvas.pad_trim_top_bottom(0, maxrow - rows)
 
         return final_canvas
@@ -603,7 +604,7 @@ class ListBox(Widget, WidgetContainerMixin):
         """
         w, pos = self._body.get_focus()
         if w is None:
-            raise IndexError, "No focus_position, ListBox is empty"
+            raise IndexError("No focus_position, ListBox is empty")
         return pos
     focus_position = property(_get_focus_position, set_focus, doc="""
         the position of child widget in focus. The valid values for this
@@ -785,14 +786,14 @@ class ListBox(Widget, WidgetContainerMixin):
 
         if offset_inset >= 0:
             if offset_inset >= maxrow:
-                raise ListBoxError, "Invalid offset_inset: %r, only %r rows in list box"% (offset_inset, maxrow)
+                raise ListBoxError("Invalid offset_inset: %r, only %r rows in list box"% (offset_inset, maxrow))
             self.offset_rows = offset_inset
             self.inset_fraction = (0,1)
         else:
             target, _ignore = self._body.get_focus()
             tgt_rows = target.rows( (maxcol,), True )
             if offset_inset + tgt_rows <= 0:
-                raise ListBoxError, "Invalid offset_inset: %r, only %r rows in target!" %(offset_inset, tgt_rows)
+                raise ListBoxError("Invalid offset_inset: %r, only %r rows in target!" %(offset_inset, tgt_rows))
             self.offset_rows = 0
             self.inset_fraction = (-offset_inset,tgt_rows)
         self._invalidate()
@@ -889,7 +890,7 @@ class ListBox(Widget, WidgetContainerMixin):
             self.inset_fraction = (0,1)
         else:
             if offset_inset + tgt_rows <= 0:
-                raise ListBoxError, "Invalid offset_inset: %s, only %s rows in target!" %(offset_inset, tgt_rows)
+                raise ListBoxError("Invalid offset_inset: %s, only %s rows in target!" %(offset_inset, tgt_rows))
             self.offset_rows = 0
             self.inset_fraction = (-offset_inset,tgt_rows)
 
@@ -917,7 +918,7 @@ class ListBox(Widget, WidgetContainerMixin):
             # start from preferred row and move back to closest edge
             (pref_col, pref_row) = cursor_coords
             if pref_row < 0 or pref_row >= tgt_rows:
-                raise ListBoxError, "cursor_coords row outside valid range for target. pref_row:%r target_rows:%r"%(pref_row,tgt_rows)
+                raise ListBoxError("cursor_coords row outside valid range for target. pref_row:%r target_rows:%r"%(pref_row,tgt_rows))
 
             if coming_from=='above':
                 attempt_rows = range( pref_row, -1, -1 )
@@ -940,10 +941,10 @@ class ListBox(Widget, WidgetContainerMixin):
         if offset_rows == 0:
             inum, iden = self.inset_fraction
             if inum < 0 or iden < 0 or inum >= iden:
-                raise ListBoxError, "Invalid inset_fraction: %r"%(self.inset_fraction,)
+                raise ListBoxError("Invalid inset_fraction: %r"%(self.inset_fraction,))
             inset_rows = focus_rows * inum // iden
             if inset_rows and inset_rows >= focus_rows:
-                raise ListBoxError, "urwid inset_fraction error (please report)"
+                raise ListBoxError("urwid inset_fraction error (please report)")
         return offset_rows, inset_rows
 
 
@@ -1272,8 +1273,8 @@ class ListBox(Widget, WidgetContainerMixin):
 
         # choose the topmost selectable and (newly) visible widget
         # search within snap_rows then visible region
-        search_order = ( range( snap_region_start, len(t))
-                + range( snap_region_start-1, -1, -1 ) )
+        search_order = (list(xrange(snap_region_start, len(t)))
+            + list(xrange(snap_region_start-1, -1, -1)))
         #assert 0, repr((t, search_order))
         bad_choices = []
         cut_off_selectable_chosen = 0
@@ -1457,8 +1458,8 @@ class ListBox(Widget, WidgetContainerMixin):
 
         # choose the bottommost selectable and (newly) visible widget
         # search within snap_rows then visible region
-        search_order = ( range( snap_region_start, len(t))
-                + range( snap_region_start-1, -1, -1 ) )
+        search_order = (list(xrange(snap_region_start, len(t)))
+            + list(xrange(snap_region_start-1, -1, -1)))
         #assert 0, repr((t, search_order))
         bad_choices = []
         cut_off_selectable_chosen = 0

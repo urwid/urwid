@@ -20,9 +20,12 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import division, print_function
+
 from urwid.escape import SAFE_ASCII_DEC_SPECIAL_RE
 from urwid.util import apply_target_encoding, str_util
 from urwid.canvas import TextCanvas
+from urwid.compat import text_type
 
 
 def separate_glyphs(gdata, height):
@@ -96,9 +99,16 @@ class Font(object):
         self.char = {}
         self.canvas = {}
         self.utf8_required = False
-        for gdata in self.data:
+        data = [self._to_text(block) for block in self.data]
+        for gdata in data:
             self.add_glyphs(gdata)
 
+    @staticmethod
+    def _to_text(obj, encoding='utf-8', errors='strict'):
+        if isinstance(obj, text_type):
+            return obj
+        elif isinstance(obj, bytes):
+            return obj.decode(encoding, errors)
 
     def add_glyphs(self, gdata):
         d, utf8_required = separate_glyphs(gdata, self.height)
@@ -106,7 +116,7 @@ class Font(object):
         self.utf8_required |= utf8_required
 
     def characters(self):
-        l = self.char.keys()
+        l = list(self.char.keys())
         l.sort()
         return "".join(l)
 
@@ -147,7 +157,7 @@ class Thin3x3Font(Font):
 ┌─┐ ┐ ┌─┐┌─┐  ┐┌─ ┌─ ┌─┐┌─┐┌─┐  │
 │ │ │ ┌─┘ ─┤└─┼└─┐├─┐  ┼├─┤└─┤  │
 └─┘ ┴ └─ └─┘  ┴ ─┘└─┘  ┴└─┘ ─┘  .
-""", ur"""
+""", r"""
 "###$$$%%%'*++,--.///:;==???[[\\\]]^__`
 " ┼┼┌┼┐O /'         /.. _┌─┐┌ \   ┐^  `
   ┼┼└┼┐ /  * ┼  ─  / ., _ ┌┘│  \  │
@@ -179,7 +189,7 @@ class HalfBlock5x4Font(Font):
    ▀█▀█▀ ▀▄█▄    █  ▀▄▀  ▐▌ ▐▌ ▄▄█▄▄ ▄▄█▄▄    ▄▄▄▄    █  ▀  ▀
    ▀█▀█▀ ▄ █ █  ▐▌▄ █ ▀▄▌▐▌ ▐▌  ▄▀▄    █             ▐▌  ▀ ▄▀
     ▀ ▀   ▀▀▀   ▀ ▀  ▀▀   ▀ ▀              ▄▀      ▀ ▀
-''', ur"""
+''', r"""
 <<<<<=====>>>>>?????@@@@@@[[[[\\\\]]]]^^^^____```{{{{||}}}}~~~~''´´´
   ▄▀      ▀▄   ▄▀▀▄ ▄▀▀▀▄ █▀▀ ▐▌  ▀▀█ ▄▀▄     ▀▄  ▄▀ █ ▀▄   ▄  █ ▄▀
 ▄▀   ▀▀▀▀   ▀▄   ▄▀ █ █▀█ █    █    █            ▄▀  █  ▀▄ ▐▐▌▌
@@ -258,7 +268,7 @@ class Thin6x6Font(Font):
 │   │   │   │         │    │      │ │   │     │ │   │     │
 └───┘   ┴   └───  └───┘    ┴   ───┘ └───┘     ┴ └───┘  ───┘
 
-""", ur'''
+""", r'''
 !!   """######$$$$$$%%%%%%&&&&&&((()))******++++++
 │    ││  ┌ ┌  ┌─┼─┐ ┌┐  /  ┌─┐   / \
 │       ─┼─┼─ │ │   └┘ /   │ │  │   │  \ /    │
@@ -266,7 +276,7 @@ class Thin6x6Font(Font):
 │       ─┼─┼─   │ │  / ┌┐ │  \, │   │  / \    │
 .        ┘ ┘  └─┼─┘ /  └┘ └───\  \ /
 
-''', ur"""
+''', r"""
 ,,-----..//////::;;<<<<=====>>>>??????@@@@@@
              /                  ┌───┐ ┌───┐
             /  . .   / ──── \       │ │┌──┤
@@ -274,7 +284,7 @@ class Thin6x6Font(Font):
           /    . ,  \  ────  /    │   │└──┘
 ,      . /           \      /     .   └───┘
 
-""", ur"""
+""", r"""
 [[\\\\\\]]^^^____``{{||}}~~~~~~
 ┌ \     ┐ /\     \ ┌ │ ┐
 │  \    │          │ │ │ ┌─┐
@@ -363,7 +373,7 @@ class HalfBlock7x7Font(Font):
              █▌     ▀      ▀█▌      ▐█▀           ▐█ ▀▀▀
 ▐█       ▐█ ▐█                                █▌   ▀███▀
 ▀
-""", ur"""
+""", r"""
 [[[[\\\\\]]]]^^^^^^^_____```{{{{{|||}}}}}~~~~~~~´´´
 ▐██▌▐█   ▐██▌  ▐█▌       ▐█    █▌▐█ ▐█           █▌
 ▐█   █▌    █▌ ▐█ █▌       █▌  █▌ ▐█  ▐█   ▄▄    ▐█
@@ -433,18 +443,18 @@ add_font("Half Block 7x7",HalfBlock7x7Font)
 if __name__ == "__main__":
     l = get_all_fonts()
     all_ascii = "".join([chr(x) for x in range(32, 127)])
-    print "Available Fonts:     (U) = UTF-8 required"
-    print "----------------"
+    print("Available Fonts:     (U) = UTF-8 required")
+    print("----------------")
     for n,cls in l:
         f = cls()
         u = ""
         if f.utf8_required:
             u = "(U)"
-        print ("%-20s %3s " % (n,u)),
+        print(("%-20s %3s " % (n,u)), end=' ')
         c = f.characters()
         if c == all_ascii:
-            print "Full ASCII"
+            print("Full ASCII")
         elif c.startswith(all_ascii):
-            print "Full ASCII + " + c[len(all_ascii):]
+            print("Full ASCII + " + c[len(all_ascii):])
         else:
-            print "Characters: " + c
+            print("Characters: " + c)

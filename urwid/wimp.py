@@ -19,6 +19,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import division, print_function
+
 from urwid.widget import (Text, WidgetWrap, delegate_to_widget_mixin, BOX,
     FLOW)
 from urwid.canvas import CompositeCanvas
@@ -184,12 +186,12 @@ class CheckBox(WidgetWrap):
         Return label text.
 
         >>> cb = CheckBox(u"Seriously")
-        >>> print cb.get_label()
+        >>> print(cb.get_label())
         Seriously
-        >>> print cb.label
+        >>> print(cb.label)
         Seriously
         >>> cb.set_label([('bright_attr', u"flashy"), u" normal"])
-        >>> print cb.label  #  only text is returned
+        >>> print(cb.label)  #  only text is returned
         flashy normal
         """
         return self._label.text
@@ -507,9 +509,9 @@ class Button(WidgetWrap):
         Return label text.
 
         >>> b = Button(u"Ok")
-        >>> print b.get_label()
+        >>> print(b.get_label())
         Ok
-        >>> print b.label
+        >>> print(b.label)
         Ok
         """
         return self._label.text

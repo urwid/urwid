@@ -19,7 +19,9 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from urwid.compat import PYTHON3
+from __future__ import division, print_function
+
+from urwid.compat import PYTHON3, xrange
 
 
 def _call_modified(fn):
@@ -238,7 +240,7 @@ class MonitoredFocusList(MonitoredList):
         """
         num_new_items = len(new_items)
         start, stop, step = indices = slc.indices(len(self))
-        num_removed = len(range(*indices))
+        num_removed = len(list(xrange(*indices)))
 
         focus = self._validate_contents_modified(indices, new_items)
         if focus is not None:
@@ -255,11 +257,11 @@ class MonitoredFocusList(MonitoredList):
         else:
             if not num_new_items:
                 # extended slice being removed
-                if focus in range(start, stop, step):
+                if focus in xrange(start, stop, step):
                     focus += 1
 
                 # adjust for removed items
-                focus -= len(range(start, min(focus, stop), step))
+                focus -= len(list(xrange(start, min(focus, stop), step)))
 
         return min(focus, len(self) + num_new_items - num_removed -1)
 
@@ -303,7 +305,7 @@ class MonitoredFocusList(MonitoredList):
     def __setitem__(self, i, y):
         """
         >>> def modified(indices, new_items):
-        ...     print "range%r <- %r" % (indices, new_items)
+        ...     print("range%r <- %r" % (indices, new_items))
         >>> ml = MonitoredFocusList([0,1,2,3], focus=2)
         >>> ml.set_validate_contents_modified(modified)
         >>> ml[0] = 9
@@ -347,7 +349,7 @@ class MonitoredFocusList(MonitoredList):
     def __imul__(self, n):
         """
         >>> def modified(indices, new_items):
-        ...     print "range%r <- %r" % (indices, list(new_items))
+        ...     print("range%r <- %r" % (indices, list(new_items)))
         >>> ml = MonitoredFocusList([0,1,2], focus=2)
         >>> ml.set_validate_contents_modified(modified)
         >>> ml *= 3
@@ -356,7 +358,7 @@ class MonitoredFocusList(MonitoredList):
         MonitoredFocusList([0, 1, 2, 0, 1, 2, 0, 1, 2], focus=2)
         >>> ml *= 0
         range(0, 9, 1) <- []
-        >>> print ml.focus
+        >>> print(ml.focus)
         None
         """
         if n > 0:
@@ -371,7 +373,7 @@ class MonitoredFocusList(MonitoredList):
     def append(self, item):
         """
         >>> def modified(indices, new_items):
-        ...     print "range%r <- %r" % (indices, new_items)
+        ...     print("range%r <- %r" % (indices, new_items))
         >>> ml = MonitoredFocusList([0,1,2], focus=2)
         >>> ml.set_validate_contents_modified(modified)
         >>> ml.append(6)
@@ -386,7 +388,7 @@ class MonitoredFocusList(MonitoredList):
     def extend(self, items):
         """
         >>> def modified(indices, new_items):
-        ...     print "range%r <- %r" % (indices, list(new_items))
+        ...     print("range%r <- %r" % (indices, list(new_items)))
         >>> ml = MonitoredFocusList([0,1,2], focus=2)
         >>> ml.set_validate_contents_modified(modified)
         >>> ml.extend((6,7,8))

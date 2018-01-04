@@ -19,8 +19,11 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import division, print_function
+
 from operator import attrgetter
 
+from urwid.compat import text_type, with_metaclass
 from urwid.util import (MetaSuper, decompose_tagmarkup, calc_width,
     is_wide_char, move_prev_char, move_next_char)
 from urwid.text_layout import calc_pos, calc_coords, shift_line
@@ -203,14 +206,9 @@ def cache_widget_rows(cls):
     return cached_rows
 
 
-class Widget(object):
+class Widget(with_metaclass(WidgetMeta, object)):
     """
     Widget base class
-
-    .. attribute:: __metaclass__
-       :annotation: = urwid.WidgetMeta
-
-       See :class:`urwid.WidgetMeta` definition
 
     .. attribute:: _selectable
        :annotation: = False
@@ -443,8 +441,6 @@ class Widget(object):
        :returns: ``True`` if the position was set successfully anywhere on
                  *row*, ``False`` otherwise
     """
-    __metaclass__ = WidgetMeta
-
     _selectable = False
     _sizing = frozenset([FLOW, BOX, FIXED])
     _command_map = command_map
@@ -827,7 +823,7 @@ class Text(Widget):
         >>> t = Text(('bold', u"stuff"), 'right', 'any')
         >>> t
         <Text flow widget 'stuff' align='right' wrap='any'>
-        >>> print t.text
+        >>> print(t.text)
         stuff
         >>> t.attrib
         [('bold', 5)]
@@ -868,10 +864,10 @@ class Text(Widget):
         :type markup: text markup
 
         >>> t = Text(u"foo")
-        >>> print t.text
+        >>> print(t.text)
         foo
         >>> t.set_text(u"bar")
-        >>> print t.text
+        >>> print(t.text)
         bar
         >>> t.text = u"baz"  # not supported because text stores text but set_text() takes markup
         Traceback (most recent call last):
@@ -1287,10 +1283,10 @@ class Edit(Text):
 
         >>> e = Edit("")
         >>> e.set_caption("cap1")
-        >>> print e.caption
+        >>> print(e.caption)
         cap1
         >>> e.set_caption(('bold', "cap2"))
-        >>> print e.caption
+        >>> print(e.caption)
         cap2
         >>> e.attrib
         [('bold', 4)]
@@ -1360,12 +1356,12 @@ class Edit(Text):
 
         >>> e = Edit()
         >>> e.set_edit_text(u"yes")
-        >>> print e.edit_text
+        >>> print(e.edit_text)
         yes
         >>> e
         <Edit selectable flow widget 'yes' edit_pos=0>
         >>> e.edit_text = u"no"  # Urwid 0.9.9 or later
-        >>> print e.edit_text
+        >>> print(e.edit_text)
         no
         """
         text = self._normalize_to_caption(text)
@@ -1383,9 +1379,9 @@ class Edit(Text):
         Return the edit text for this widget.
 
         >>> e = Edit(u"What? ", u"oh, nothing.")
-        >>> print e.get_edit_text()
+        >>> print(e.get_edit_text())
         oh, nothing.
-        >>> print e.edit_text
+        >>> print(e.edit_text)
         oh, nothing.
         """
         return self._edit_text
@@ -1410,7 +1406,7 @@ class Edit(Text):
         <Edit selectable flow widget '42.5' edit_pos=4>
         >>> e.set_edit_pos(2)
         >>> e.insert_text(u"a")
-        >>> print e.edit_text
+        >>> print(e.edit_text)
         42a.5
         """
         text = self._normalize_to_caption(text)
@@ -1424,8 +1420,8 @@ class Edit(Text):
         Return text converted to the same type as self.caption
         (bytes or unicode)
         """
-        tu = isinstance(text, unicode)
-        cu = isinstance(self._caption, unicode)
+        tu = isinstance(text, text_type)
+        cu = isinstance(self._caption, text_type)
         if tu == cu:
             return text
         if tu:
@@ -1469,12 +1465,12 @@ class Edit(Text):
         >>> e.keypress(size, 'x')
         >>> e.keypress(size, 'left')
         >>> e.keypress(size, '1')
-        >>> print e.edit_text
+        >>> print(e.edit_text)
         1x
         >>> e.keypress(size, 'backspace')
         >>> e.keypress(size, 'end')
         >>> e.keypress(size, '2')
-        >>> print e.edit_text
+        >>> print(e.edit_text)
         x2
         >>> e.keypress(size, 'shift f1')
         'shift f1'
@@ -1483,8 +1479,8 @@ class Edit(Text):
 
         p = self.edit_pos
         if self.valid_char(key):
-            if (isinstance(key, unicode) and not
-                    isinstance(self._caption, unicode)):
+            if (isinstance(key, text_type) and not
+                    isinstance(self._caption, text_type)):
                 # screen is sending us unicode input, must be using utf-8
                 # encoding because that's all we support, so convert it
                 # to bytes to match our caption's type
@@ -1718,10 +1714,10 @@ class IntEdit(Edit):
         >>> e, size = IntEdit(u"", 5002), (10,)
         >>> e.keypress(size, 'home')
         >>> e.keypress(size, 'delete')
-        >>> print e.edit_text
+        >>> print(e.edit_text)
         002
         >>> e.keypress(size, 'end')
-        >>> print e.edit_text
+        >>> print(e.edit_text)
         2
         """
         (maxcol,) = size
@@ -1746,7 +1742,7 @@ class IntEdit(Edit):
         True
         """
         if self.edit_text:
-            return long(self.edit_text)
+            return int(self.edit_text)
         else:
             return 0
 
