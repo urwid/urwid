@@ -539,6 +539,20 @@ class Screen(BaseScreen, RealTerminal):
         return ready
 
     def _getch(self, timeout):
+        """
+        Wait for character on _term_input_file.
+
+        >>> import os
+        >>> r, w = os.pipe()
+        >>> r = os.fdopen(r)
+        >>> w = os.fdopen(w, 'w')
+        >>> s = Screen(input=r)
+        >>> _ = w.write('x')
+        >>> w.close()
+        >>> chr(s._getch(1))
+        'x'
+
+        """
         ready = self._wait_for_input_ready(timeout)
         if self.gpm_mev is not None:
             if self.gpm_mev.stdout.fileno() in ready:
@@ -1020,6 +1034,32 @@ class Screen(BaseScreen, RealTerminal):
 
         0 <= index < 256 (some terminals will only have 16 or 88 colors)
         0 <= red, green, blue < 256
+
+        >>> import os
+        >>> r, w = os.pipe()
+        >>> r = os.fdopen(r)
+        >>> w = os.fdopen(w, 'w')
+        >>> s = Screen(output=w)
+        >>> s.modify_terminal_palette([
+        ...     (1, 10, 20, 30),
+        ...     (2, 40, 50, 60)
+        ... ])
+
+        >>> import os
+        >>> r, w = os.pipe()
+        >>> r = os.fdopen(r)
+        >>> w = os.fdopen(w, 'w')
+        >>> os.environ['TERM'] = 'fbterm'
+        >>> s = Screen(output=w)
+        >>> s.modify_terminal_palette([
+        ...     (1, 10, 20, 30),
+        ...     (2, 40, 50, 60)
+        ... ])
+        >>> s.write('foo\\n')
+        >>> w.close()
+        >>> r.read(128)
+        '\\x1b[3;1;10;20;30;2;40;50;60}foo\\n'
+
         """
 
         if self.term == 'fbterm':
@@ -1038,9 +1078,9 @@ class Screen(BaseScreen, RealTerminal):
     AttrSpec = lambda self, fg, bg: AttrSpec(fg, bg, self.colors)
 
 
-def _test():
+def _test():  # pragma: no cover
     import doctest
     doctest.testmod()
 
-if __name__=='__main__':
+if __name__=='__main__':  # pragma: no cover
     _test()
