@@ -27,6 +27,7 @@ import time
 import heapq
 import select
 import os
+import signal
 from functools import wraps
 from itertools import count
 from weakref import WeakKeyDictionary
@@ -128,6 +129,11 @@ class MainLoop(object):
         if event_loop is None:
             event_loop = SelectEventLoop()
         self.event_loop = event_loop
+
+        if hasattr(self.screen, 'signal_handler_setter'):
+            # Tell the screen what function it must use to set
+            # signal handlers
+            self.screen.signal_handler_setter = self.event_loop.set_signal_handler
 
         self._watch_pipes = {}
 
@@ -645,6 +651,12 @@ class SelectEventLoop(object):
             return True
         return False
 
+    def set_signal_handler(self, signum, handler):
+        """
+        Proxy function to signal.signal()
+        """
+        return signal.signal(signum, handler)
+
     def enter_idle(self, callback):
         """
         Add a callback for entering idle.
@@ -740,6 +752,7 @@ class GLibEventLoop(object):
         self._loop = GLib.MainLoop()
         self._exc_info = None
         self._enable_glib_idle()
+        self._signal_handlers = {}
 
     def alarm(self, seconds, callback):
         """
@@ -759,6 +772,40 @@ class GLibEventLoop(object):
         fd = self.GLib.timeout_add(int(seconds*1000), ret_false)
         self._alarms.append(fd)
         return (fd, callback)
+
+    def set_signal_handler(self, signum, handler):
+        """
+        Sets a handler for a specified signal.  This method's behaviour
+        method tries to imitate the signal() function from the signal
+        module.
+        """
+        glib_signals = [
+            signal.SIGHUP,
+            signal.SIGINT,
+            signal.SIGTERM,
+            signal.SIGUSR1,
+            signal.SIGUSR2,
+            signal.SIGWINCH
+        ]
+
+        if signum not in glib_signals:
+            # The GLib event loop supports only the signals listed above
+            return
+
+        if signum in self._signal_handlers:
+            self.GLib.source_remove(self._signal_handlers.pop(signum))
+
+        if handler == signal.SIG_IGN:
+            handler = lambda x: None
+        elif handler == signal.SIG_DFL:
+            return
+
+        def final_handler(signal_number):
+            handler(signal_number)
+            return self.GLib.SOURCE_CONTINUE
+
+        source = self.GLib.unix_signal_add(self.GLib.PRIORITY_DEFAULT, signum, final_handler, signum)
+        self._signal_handlers[signum] = source
 
     def remove_alarm(self, handle):
         """
@@ -987,6 +1034,12 @@ class TornadoEventLoop(object):
             self._ioloop.remove_handler(fd)
             return True
 
+    def set_signal_handler(self, signum, handler):
+        """
+        Proxy function to signal.signal()
+        """
+        return signal.signal(signum, handler)
+
     def enter_idle(self, callback):
         self._max_idle_handle += 1
         handle   = self._max_idle_handle
@@ -1131,6 +1184,12 @@ class TwistedEventLoop(object):
             del self._watch_files[handle]
             return True
         return False
+
+    def set_signal_handler(self, signum, handler):
+        """
+        Proxy function to signal.signal()
+        """
+        return signal.signal(signum, handler)
 
     def enter_idle(self, callback):
         """
@@ -1278,6 +1337,12 @@ class AsyncioEventLoop(object):
         Returns True if the input file exists, False otherwise
         """
         return self._loop.remove_reader(handle)
+
+    def set_signal_handler(self, signum, handler):
+        """
+        Proxy function to signal.signal()
+        """
+        return signal.signal(signum, handler)
 
     def enter_idle(self, callback):
         """
