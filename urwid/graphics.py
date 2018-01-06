@@ -163,6 +163,10 @@ class LineBox(WidgetDecoration, WidgetWrap):
         middle_widgets = []
         if lline:
             middle_widgets.append(('fixed', 1, lline))
+        else:
+            # Note: We need to define a fixed first widget (even if it's 0 width) so that the other
+            # widgets have something to anchor onto
+            middle_widgets.append(('fixed', 0, SolidFill(u"")))
         middle_widgets.append(original_widget)
         focus_col = len(middle_widgets) - 1
         if rline:
