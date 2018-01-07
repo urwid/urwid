@@ -637,7 +637,7 @@ class Screen(BaseScreen, RealTerminal):
 
     def get_cols_rows(self):
         """Return the terminal dimensions (num columns, num rows)."""
-        y, x = 80, 24
+        y, x = 24, 80
         try:
             buf = fcntl.ioctl(self._term_output_file.fileno(),
                               termios.TIOCGWINSZ, ' '*4)
