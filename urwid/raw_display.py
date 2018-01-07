@@ -394,9 +394,7 @@ class Screen(BaseScreen, RealTerminal):
             wrapper = lambda: self.parse_input(
                 event_loop, callback, self.get_available_raw_input())
         fds = self.get_input_descriptors()
-        handles = []
-        for fd in fds:
-            event_loop.watch_file(fd, wrapper)
+        handles = [event_loop.watch_file(fd, wrapper) for fd in fds]
         self._current_event_loop_handles = handles
 
     _input_timeout = None
