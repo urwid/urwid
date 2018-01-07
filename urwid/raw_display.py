@@ -81,6 +81,7 @@ class Screen(BaseScreen, RealTerminal):
         self.back_color_erase = not self.term.startswith("screen")
         self.register_palette_entry( None, 'default','default')
         self._next_timeout = None
+        self.signal_handler_setter = signal.signal
 
         # Our connections to the world
         self._term_output_file = output
@@ -121,13 +122,21 @@ class Screen(BaseScreen, RealTerminal):
         self.complete_wait = complete_wait
         self.resize_wait = resize_wait
 
-    def _sigwinch_handler(self, signum, frame):
+    def _sigwinch_handler(self, signum, frame=None):
+        """
+        frame -- will always be None when the GLib event loop is being used.
+        """
+
         if not self._resized:
             os.write(self._resize_pipe_wr, B('R'))
         self._resized = True
         self.screen_buf = None
 
-    def _sigcont_handler(self, signum, frame):
+    def _sigcont_handler(self, signum, frame=None):
+        """
+        frame -- will always be None when the GLib event loop is being used.
+        """
+
         self.stop()
         self.start()
         self._sigwinch_handler(None, None)
@@ -140,8 +149,8 @@ class Screen(BaseScreen, RealTerminal):
         Override this function to call from main thread in threaded
         applications.
         """
-        signal.signal(signal.SIGWINCH, self._sigwinch_handler)
-        signal.signal(signal.SIGCONT, self._sigcont_handler)
+        self.signal_handler_setter(signal.SIGWINCH, self._sigwinch_handler)
+        self.signal_handler_setter(signal.SIGCONT, self._sigcont_handler)
 
     def signal_restore(self):
         """
@@ -151,8 +160,8 @@ class Screen(BaseScreen, RealTerminal):
         Override this function to call from main thread in threaded
         applications.
         """
-        signal.signal(signal.SIGCONT, signal.SIG_DFL)
-        signal.signal(signal.SIGWINCH, signal.SIG_DFL)
+        self.signal_handler_setter(signal.SIGCONT, signal.SIG_DFL)
+        self.signal_handler_setter(signal.SIGWINCH, signal.SIG_DFL)
 
     def set_mouse_tracking(self, enable=True):
         """
