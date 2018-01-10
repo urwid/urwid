@@ -587,7 +587,103 @@ class MainLoop(object):
         self.screen.draw_screen(self.screen_size, canvas)
 
 
-class SelectEventLoop(object):
+class EventLoop(object):
+    """
+    Abstract class representing an event loop to be used by :class:`MainLoop`.
+    """
+
+    def alarm(self, seconds, callback):
+        """
+        Call callback() a given time from now.  No parameters are
+        passed to callback.
+
+        This method has no default implementation.
+
+        Returns a handle that may be passed to remove_alarm()
+
+        seconds -- floating point time to wait before calling callback
+        callback -- function to call from event loop
+        """
+        raise NotImplementedError()
+
+    def enter_idle(self, callback):
+        """
+        Add a callback for entering idle.
+
+        This method has no default implementation.
+
+        Returns a handle that may be passed to remove_idle()
+        """
+        raise NotImplementedError()
+
+    def remove_alarm(self, handle):
+        """
+        Remove an alarm.
+
+        This method has no default implementation.
+
+        Returns True if the alarm exists, False otherwise
+        """
+        raise NotImplementedError()
+
+    def remove_enter_idle(self, handle):
+        """
+        Remove an idle callback.
+
+        This method has no default implementation.
+
+        Returns True if the handle was removed.
+        """
+        raise NotImplementedError()
+
+    def remove_watch_file(self, handle):
+        """
+        Remove an input file.
+
+        This method has no default implementation.
+
+        Returns True if the input file exists, False otherwise
+        """
+        raise NotImplementedError()
+
+    def run(self):
+        """
+        Start the event loop.  Exit the loop when any callback raises
+        an exception.  If ExitMainLoop is raised, exit cleanly.
+
+        This method has no default implementation.
+        """
+        raise NotImplementedError()
+
+    def watch_file(self, fd, callback):
+        """
+        Call callback() when fd has some data to read.  No parameters
+        are passed to callback.
+
+        This method has no default implementation.
+
+        Returns a handle that may be passed to remove_watch_file()
+
+        fd -- file descriptor to watch for input
+        callback -- function to call when input is available
+        """
+        raise NotImplementedError()
+
+    def set_signal_handler(self, signum, handler):
+        """
+        Sets the signal handler for signal signum.
+
+        The default implementation of :meth:`set_signal_handler` 
+        is simply a proxy function that calls :func:`signal.signal()`
+        and returns the resulting value.
+
+        signum -- signal number
+        handler -- function (taking signum as its single argument),
+        or `signal.SIG_IGN`, or `signal.SIG_DFL`
+        """
+        return signal.signal(signum, handler)
+
+class SelectEventLoop(EventLoop):
     """
     Event loop based on :func:`select.select`
     """
@@ -650,12 +746,6 @@ class SelectEventLoop(object):
             del self._watch_files[handle]
             return True
         return False
-
-    def set_signal_handler(self, signum, handler):
-        """
-        Proxy function to signal.signal()
-        """
-        return signal.signal(signum, handler)
 
     def enter_idle(self, callback):
         """
@@ -736,7 +826,7 @@ class SelectEventLoop(object):
             self._did_something = True
 
 
-class GLibEventLoop(object):
+class GLibEventLoop(EventLoop):
     """
     Event loop based on GLib.MainLoop
     """
@@ -775,9 +865,22 @@ class GLibEventLoop(object):
 
     def set_signal_handler(self, signum, handler):
         """
-        Sets a handler for a specified signal.  This method's behaviour
-        method tries to imitate the signal() function from the signal
-        module.
+        Sets the signal handler for signal signum.
+
+        .. WARNING::
+            Because this method uses the `GLib`-specific `unix_signal_add`
+            function, its behaviour is different than `signal.signal().`
+
+            If `signum` is not `SIGHUP`, `SIGINT`, `SIGTERM`, `SIGUSR1`,
+            `SIGUSR2` or `SIGWINCH`, this method performs no actions and
+            immediately returns None.
+
+            Returns None in all cases (unlike :func:`signal.signal()`).
+        ..
+
+        signum -- signal number
+        handler -- function (taking signum as its single argument),
+        or `signal.SIG_IGN`, or `signal.SIG_DFL`
         """
         glib_signals = [
             signal.SIGHUP,
@@ -924,7 +1027,7 @@ class GLibEventLoop(object):
         return wrapper
 
 
-class TornadoEventLoop(object):
+class TornadoEventLoop(EventLoop):
     """ This is an Urwid-specific event loop to plug into its MainLoop.
         It acts as an adaptor for Tornado's IOLoop which does all
         heavy lifting except idle-callbacks.
@@ -1034,12 +1137,6 @@ class TornadoEventLoop(object):
             self._ioloop.remove_handler(fd)
             return True
 
-    def set_signal_handler(self, signum, handler):
-        """
-        Proxy function to signal.signal()
-        """
-        return signal.signal(signum, handler)
-
     def enter_idle(self, callback):
         self._max_idle_handle += 1
         handle   = self._max_idle_handle
@@ -1090,7 +1187,7 @@ class TwistedInputDescriptor(FileDescriptor):
         return self.cb()
 
 
-class TwistedEventLoop(object):
+class TwistedEventLoop(EventLoop):
     """
     Event loop based on Twisted_
     """
@@ -1185,12 +1282,6 @@ class TwistedEventLoop(object):
             return True
         return False
 
-    def set_signal_handler(self, signum, handler):
-        """
-        Proxy function to signal.signal()
-        """
-        return signal.signal(signum, handler)
-
     def enter_idle(self, callback):
         """
         Add a callback for entering idle.
@@ -1276,7 +1367,7 @@ class TwistedEventLoop(object):
         return wrapper
 
 
-class AsyncioEventLoop(object):
+class AsyncioEventLoop(EventLoop):
     """
     Event loop based on the standard library ``asyncio`` module.
 
@@ -1337,12 +1428,6 @@ class AsyncioEventLoop(object):
         Returns True if the input file exists, False otherwise
         """
         return self._loop.remove_reader(handle)
-
-    def set_signal_handler(self, signum, handler):
-        """
-        Proxy function to signal.signal()
-        """
-        return signal.signal(signum, handler)
 
     def enter_idle(self, callback):
         """
