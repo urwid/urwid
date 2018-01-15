@@ -46,3 +46,37 @@ To test code in all Python versions:
     tox                    # Test all versions specified in tox.ini:
     tox -e py36            # Test Python 3.6 only
     tox -e py27,py36,pypy  # Test Python 2.7, Python 3.6 & pypy
+
+Contributors
+============
+
+@wardi
+@aszlig
+@mgiusti
+@and3rson
+@pazz
+@wackywendell
+@eevee
+@marienz
+@rndusr
+@matthijskooijman
+@Julian
+@techtonik
+@garrison
+@ivanov
+@abadger
+@aglyzov
+@ismail-s
+@horazont
+@robla
+@usrlocalben
+@geier
+@federicotdn
+@jwilk
+@rr-
+@tonycpsu
+@westurner
+@grugq
+@inducer
+@winbornejw
+
