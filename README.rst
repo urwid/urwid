@@ -50,33 +50,32 @@ To test code in all Python versions:
 Contributors
 ============
 
-@wardi
-@aszlig
-@mgiusti
-@and3rson
-@pazz
-@wackywendell
-@eevee
-@marienz
-@rndusr
-@matthijskooijman
-@Julian
-@techtonik
-@garrison
-@ivanov
-@abadger
-@aglyzov
-@ismail-s
-@horazont
-@robla
-@usrlocalben
-@geier
-@federicotdn
-@jwilk
-@rr-
-@tonycpsu
-@westurner
-@grugq
-@inducer
-@winbornejw
-
+- `wardi <//github.com/wardi>`_
+- `aszlig <//github.com/aszlig>`_
+- `mgiusti <//github.com/mgiusti>`_
+- `and3rson <//github.com/and3rson>`_
+- `pazz <//github.com/pazz>`_
+- `wackywendell <//github.com/wackywendell>`_
+- `eevee <//github.com/eevee>`_
+- `marienz <//github.com/marienz>`_
+- `rndusr <//github.com/rndusr>`_
+- `matthijskooijman <//github.com/matthijskooijman>`_
+- `Julian <//github.com/Julian>`_
+- `techtonik <//github.com/techtonik>`_
+- `garrison <//github.com/garrison>`_
+- `ivanov <//github.com/ivanov>`_
+- `abadger <//github.com/abadger>`_
+- `aglyzov <//github.com/aglyzov>`_
+- `ismail-s <//github.com/ismail-s>`_
+- `horazont <//github.com/horazont>`_
+- `robla <//github.com/robla>`_
+- `usrlocalben <//github.com/usrlocalben>`_
+- `geier <//github.com/geier>`_
+- `federicotdn <//github.com/federicotdn>`_
+- `jwilk <//github.com/jwilk>`_
+- `rr- <//github.com/rr->`_
+- `tonycpsu <//github.com/tonycpsu>`_
+- `westurner <//github.com/westurner>`_
+- `grugq <//github.com/grugq>`_
+- `inducer <//github.com/inducer>`_
+- `winbornejw <//github.com/winbornejw>`_
