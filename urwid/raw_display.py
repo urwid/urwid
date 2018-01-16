@@ -787,7 +787,7 @@ class Screen(BaseScreen, RealTerminal):
                 if (run[-1:] == B(' ') and self.back_color_erase
                         and not using_standout(a)):
                     whitespace_at_end = True
-                    row = row[:-1] + [(a, cs, run.rstrip(B(' ')))]
+                    row = row[:-1] + [(a, cs, run)]
                 elif y == maxrow-1 and maxcol > 1:
                     row, back, ins = self._last_row(row)
 
