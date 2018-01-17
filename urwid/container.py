@@ -1774,7 +1774,6 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             self.focus_position = focus_column
         if focus_column is None:
             focus_column = 0
-        self.dividechars = dividechars
         self.pref_col = None
         self.min_width = min_width
         self._cache_maxcol = None
