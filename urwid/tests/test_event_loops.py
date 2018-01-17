@@ -130,8 +130,8 @@ else:
             def exit_error():
                 1/0
             handle = evl.watch_file(rd, step2)
-            handle = evl.alarm(0.01, exit_clean)
-            handle = evl.alarm(0.005, say_hello)
+            handle = evl.alarm(0.1, exit_clean)
+            handle = evl.alarm(0.05, say_hello)
             self.assertEqual(evl.enter_idle(say_waiting), 1)
             evl.run()
             self.assertTrue("da" in out, out)
