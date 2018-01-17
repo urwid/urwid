@@ -1,35 +1,34 @@
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>Urwid Tutorial &mdash; Urwid 1.3.1</title>
-    
-    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <title>Urwid Tutorial &#8212; Urwid 2.0.0</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '1.3.1',
+        VERSION:     '2.0.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/sidebar.js"></script>
-    <link rel="top" title="Urwid 1.3.1" href="../index.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Urwid Manual" href="../manual/index.html" />
     <link rel="prev" title="Example Programs" href="../examples/index.html" /> 
   </head>
   <body>
-    <div class="related">
+    <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -41,52 +40,52 @@
         <li class="right" >
           <a href="../examples/index.html" title="Example Programs"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.3.1</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.0</a> &#187;</li> 
       </ul>
     </div>  
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
-          <div class="body">
+          <div class="body" role="main">
             
   <div class="section" id="urwid-tutorial">
 <span id="id1"></span><h1>Urwid Tutorial<a class="headerlink" href="#urwid-tutorial" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="minimal-application">
 <h2>Minimal Application<a class="headerlink" href="#minimal-application" title="Permalink to this headline">¶</a></h2>
 <img alt="../_images/minimal1.png" src="../_images/minimal1.png" />
-<p>This program displays the string <tt class="docutils literal"><span class="pre">Hello</span> <span class="pre">World</span></tt> in the top left corner of the
+<p>This program displays the string <code class="docutils literal"><span class="pre">Hello</span> <span class="pre">World</span></code> in the top left corner of the
 screen and will run until interrupted with <em>CTRL+C</em> (<em>^C</em>).</p>
-<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+<div class="highlight-default"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
 2
 3
 4
 5
-6</pre></div></td><td class="code"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">urwid</span>
+6</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">urwid</span>
 
-<span class="n">txt</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s">u&quot;Hello World&quot;</span><span class="p">)</span>
-<span class="n">fill</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="s">&#39;top&#39;</span><span class="p">)</span>
+<span class="n">txt</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Hello World&quot;</span><span class="p">)</span>
+<span class="n">fill</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="s1">&#39;top&#39;</span><span class="p">)</span>
 <span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">fill</span><span class="p">)</span>
 <span class="n">loop</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
 </td></tr></table></div>
 <ul class="simple">
-<li>The <em>txt</em> <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><tt class="xref py py-class docutils literal"><span class="pre">Text</span></tt></a> widget handles formatting blocks of text,
-wrapping to the next line when necessary. Widgets like this are called &#8220;flow
-widgets&#8221; because their sizing can have a number of columns given, in this
+<li>The <em>txt</em> <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal"><span class="pre">Text</span></code></a> widget handles formatting blocks of text,
+wrapping to the next line when necessary. Widgets like this are called “flow
+widgets” because their sizing can have a number of columns given, in this
 case the full screen width, then they will flow to fill as many rows as
 necessary.</li>
-<li>The <em>fill</em> <a class="reference internal" href="../reference/widget.html#urwid.Filler" title="urwid.Filler"><tt class="xref py py-class docutils literal"><span class="pre">Filler</span></tt></a> widget fills in blank lines above or
+<li>The <em>fill</em> <a class="reference internal" href="../reference/widget.html#urwid.Filler" title="urwid.Filler"><code class="xref py py-class docutils literal"><span class="pre">Filler</span></code></a> widget fills in blank lines above or
 below flow widgets so that they can be displayed in a fixed number of rows.
 This Filler will align our Text to the top of the screen, filling all the
 rows below with blank lines. Widgets which are given both the number of
-columns and number of rows they must be displayed in are called &#8220;box
-widgets&#8221;.</li>
-<li>The <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><tt class="xref py py-class docutils literal"><span class="pre">MainLoop</span></tt></a> class handles displaying our widgets as
+columns and number of rows they must be displayed in are called “box
+widgets”.</li>
+<li>The <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a> class handles displaying our widgets as
 well as accepting input from the user.
-The widget passed to <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><tt class="xref py py-class docutils literal"><span class="pre">MainLoop</span></tt></a> is called the &#8220;topmost&#8221; widget.
+The widget passed to <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a> is called the “topmost” widget.
 The topmost widget is used to render the whole screen and so it must be a box widget.
-In this case our widgets can&#8217;t handle any user input so we need to interrupt
+In this case our widgets can’t handle any user input so we need to interrupt
 the program to exit with <em>^C</em>.</li>
 </ul>
 </div>
@@ -97,9 +96,9 @@ the program to exit with <em>^C</em>.</li>
 <img alt="../_images/input3.png" src="../_images/input3.png" />
 <img alt="../_images/input4.png" src="../_images/input4.png" />
 <img alt="../_images/input5.png" src="../_images/input5.png" />
-<p>This program initially displays the string <tt class="docutils literal"><span class="pre">Hello</span> <span class="pre">World</span></tt>, then it displays
+<p>This program initially displays the string <code class="docutils literal"><span class="pre">Hello</span> <span class="pre">World</span></code>, then it displays
 each key pressed, exiting when the user presses <em>Q</em>.</p>
-<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+<div class="highlight-default"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
  2
  3
  4
@@ -109,29 +108,29 @@ each key pressed, exiting when the user presses <em>Q</em>.</p>
  8
  9
 10
-11</pre></div></td><td class="code"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">urwid</span>
+11</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">urwid</span>
 
 <span class="k">def</span> <span class="nf">show_or_exit</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;q&#39;</span><span class="p">,</span> <span class="s">&#39;Q&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">,</span> <span class="s1">&#39;Q&#39;</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
     <span class="n">txt</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
 
-<span class="n">txt</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s">u&quot;Hello World&quot;</span><span class="p">)</span>
-<span class="n">fill</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="s">&#39;top&#39;</span><span class="p">)</span>
+<span class="n">txt</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Hello World&quot;</span><span class="p">)</span>
+<span class="n">fill</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="s1">&#39;top&#39;</span><span class="p">)</span>
 <span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">fill</span><span class="p">,</span> <span class="n">unhandled_input</span><span class="o">=</span><span class="n">show_or_exit</span><span class="p">)</span>
 <span class="n">loop</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
 </td></tr></table></div>
 <ul class="simple">
-<li>The <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><tt class="xref py py-class docutils literal"><span class="pre">MainLoop</span></tt></a> class has an optional function
+<li>The <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a> class has an optional function
 parameter <em>unhandled_input</em>. This function will be called once for each
 keypress that is not handled by the widgets being displayed.
 Since none of the widgets being displayed here handle input, every key the user
 presses will be passed to the <em>show_or_exit</em> function.</li>
-<li>The <a class="reference internal" href="../reference/exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><tt class="xref py py-exc docutils literal"><span class="pre">ExitMainLoop</span></tt></a> exception is used to exit
-cleanly from the <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.run" title="urwid.MainLoop.run"><tt class="xref py py-meth docutils literal"><span class="pre">MainLoop.run()</span></tt></a> function when the user
+<li>The <a class="reference internal" href="../reference/exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal"><span class="pre">ExitMainLoop</span></code></a> exception is used to exit
+cleanly from the <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal"><span class="pre">MainLoop.run()</span></code></a> function when the user
 presses <em>Q</em>. All other input is displayed by replacing the current Text
-widget&#8217;s content.</li>
+widget’s content.</li>
 </ul>
 </div>
 <div class="section" id="display-attributes">
@@ -140,11 +139,11 @@ widget&#8217;s content.</li>
 <img alt="../_images/attr2.png" src="../_images/attr2.png" />
 <img alt="../_images/attr3.png" src="../_images/attr3.png" />
 <img alt="../_images/attr4.png" src="../_images/attr4.png" />
-<p>This program displays the string <tt class="docutils literal"><span class="pre">Hello</span> <span class="pre">World</span></tt> in the center of the screen.
+<p>This program displays the string <code class="docutils literal"><span class="pre">Hello</span> <span class="pre">World</span></code> in the center of the screen.
 It uses different attributes for the text, the space on either side of the text
 and the space above and below the text. It waits for a keypress before exiting.</p>
 <p>The screenshots above show how these widgets react to being resized.</p>
-<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+<div class="highlight-default"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
  2
  3
  4
@@ -160,21 +159,21 @@ and the space above and below the text. It waits for a keypress before exiting.<
 14
 15
 16
-17</pre></div></td><td class="code"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">urwid</span>
+17</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">urwid</span>
 
 <span class="k">def</span> <span class="nf">exit_on_q</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;q&#39;</span><span class="p">,</span> <span class="s">&#39;Q&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">,</span> <span class="s1">&#39;Q&#39;</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 
 <span class="n">palette</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="p">(</span><span class="s">&#39;banner&#39;</span><span class="p">,</span> <span class="s">&#39;black&#39;</span><span class="p">,</span> <span class="s">&#39;light gray&#39;</span><span class="p">),</span>
-    <span class="p">(</span><span class="s">&#39;streak&#39;</span><span class="p">,</span> <span class="s">&#39;black&#39;</span><span class="p">,</span> <span class="s">&#39;dark red&#39;</span><span class="p">),</span>
-    <span class="p">(</span><span class="s">&#39;bg&#39;</span><span class="p">,</span> <span class="s">&#39;black&#39;</span><span class="p">,</span> <span class="s">&#39;dark blue&#39;</span><span class="p">),]</span>
+    <span class="p">(</span><span class="s1">&#39;banner&#39;</span><span class="p">,</span> <span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="s1">&#39;light gray&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;streak&#39;</span><span class="p">,</span> <span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="s1">&#39;dark red&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;bg&#39;</span><span class="p">,</span> <span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="s1">&#39;dark blue&#39;</span><span class="p">),]</span>
 
-<span class="n">txt</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">((</span><span class="s">&#39;banner&#39;</span><span class="p">,</span> <span class="s">u&quot; Hello World &quot;</span><span class="p">),</span> <span class="n">align</span><span class="o">=</span><span class="s">&#39;center&#39;</span><span class="p">)</span>
-<span class="n">map1</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="s">&#39;streak&#39;</span><span class="p">)</span>
+<span class="n">txt</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">((</span><span class="s1">&#39;banner&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot; Hello World &quot;</span><span class="p">),</span> <span class="n">align</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+<span class="n">map1</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="s1">&#39;streak&#39;</span><span class="p">)</span>
 <span class="n">fill</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">map1</span><span class="p">)</span>
-<span class="n">map2</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">fill</span><span class="p">,</span> <span class="s">&#39;bg&#39;</span><span class="p">)</span>
+<span class="n">map2</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">fill</span><span class="p">,</span> <span class="s1">&#39;bg&#39;</span><span class="p">)</span>
 <span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">map2</span><span class="p">,</span> <span class="n">palette</span><span class="p">,</span> <span class="n">unhandled_input</span><span class="o">=</span><span class="n">exit_on_q</span><span class="p">)</span>
 <span class="n">loop</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
@@ -182,7 +181,7 @@ and the space above and below the text. It waits for a keypress before exiting.<
 <ul>
 <li><p class="first">Display attributes are defined as part of a palette. Valid foreground,
 background and
-setting values are documented in <a class="reference internal" href="../manual/displayattributes.html#foreground-background"><em>Foreground and Background Settings</em></a>
+setting values are documented in <a class="reference internal" href="../manual/displayattributes.html#foreground-background"><span class="std std-ref">Foreground and Background Settings</span></a>
 A palette is a list of tuples containing:</p>
 <blockquote>
 <div><ol class="arabic simple">
@@ -196,38 +195,38 @@ next example)</li>
 </ol>
 </div></blockquote>
 </li>
-<li><p class="first">A <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><tt class="xref py py-class docutils literal"><span class="pre">Text</span></tt></a> widget is created containing the string <tt class="docutils literal"><span class="pre">&quot;</span> <span class="pre">Hello</span> <span class="pre">World</span> <span class="pre">&quot;</span></tt>
-with display attribute <tt class="docutils literal"><span class="pre">'banner'</span></tt>. The attributes of text in a Text widget is
+<li><p class="first">A <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal"><span class="pre">Text</span></code></a> widget is created containing the string <code class="docutils literal"><span class="pre">&quot;</span> <span class="pre">Hello</span> <span class="pre">World</span> <span class="pre">&quot;</span></code>
+with display attribute <code class="docutils literal"><span class="pre">'banner'</span></code>. The attributes of text in a Text widget is
 set by using a (<em>attribute</em>, <em>text</em>) tuple instead of a simple text string.
 Display attributes will flow with the text, and multiple display attributes may be
-specified by combining tuples into a list. This format is called <a class="reference internal" href="../manual/displayattributes.html#text-markup"><em>Text Markup</em></a>.</p>
+specified by combining tuples into a list. This format is called <a class="reference internal" href="../manual/displayattributes.html#text-markup"><span class="std std-ref">Text Markup</span></a>.</p>
 </li>
-<li><p class="first">An <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><tt class="xref py py-class docutils literal"><span class="pre">AttrMap</span></tt></a> widget is created to wrap the text
-widget with display attribute <tt class="docutils literal"><span class="pre">'streak'</span></tt>. <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><tt class="xref py py-class docutils literal"><span class="pre">AttrMap</span></tt></a> widgets
+<li><p class="first">An <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal"><span class="pre">AttrMap</span></code></a> widget is created to wrap the text
+widget with display attribute <code class="docutils literal"><span class="pre">'streak'</span></code>. <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal"><span class="pre">AttrMap</span></code></a> widgets
 allow you to map any display attribute to any other display attribute, but by default they
 will set the display attribute of everything that does not already have a display attribute.
 In this case the text has an attribute, so only the areas around the text
 used for alignment will be have the new attribute.</p>
 </li>
-<li><p class="first">A second <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><tt class="xref py py-class docutils literal"><span class="pre">AttrMap</span></tt></a> widget is created to wrap the
-<a class="reference internal" href="../reference/widget.html#urwid.Filler" title="urwid.Filler"><tt class="xref py py-class docutils literal"><span class="pre">Filler</span></tt></a> widget with attribute <tt class="docutils literal"><span class="pre">'bg'</span></tt>.</p>
+<li><p class="first">A second <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal"><span class="pre">AttrMap</span></code></a> widget is created to wrap the
+<a class="reference internal" href="../reference/widget.html#urwid.Filler" title="urwid.Filler"><code class="xref py py-class docutils literal"><span class="pre">Filler</span></code></a> widget with attribute <code class="docutils literal"><span class="pre">'bg'</span></code>.</p>
 </li>
 </ul>
 <p>When this program is run you can now clearly see the separation of the text,
 the alignment around the text, and the filler above and below the text.</p>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><a class="reference internal" href="../manual/displayattributes.html#using-display-attributes"><em>Using Display Attributes</em></a></p>
+<p class="last"><a class="reference internal" href="../manual/displayattributes.html#using-display-attributes"><span class="std std-ref">Using Display Attributes</span></a></p>
 </div>
 </div>
 <div class="section" id="high-color-modes">
 <h2>High Color Modes<a class="headerlink" href="#high-color-modes" title="Permalink to this headline">¶</a></h2>
 <img alt="../_images/highcolors1.png" src="../_images/highcolors1.png" />
-<p>This program displays the string <tt class="docutils literal"><span class="pre">Hello</span> <span class="pre">World</span></tt> in the center of the screen.
+<p>This program displays the string <code class="docutils literal"><span class="pre">Hello</span> <span class="pre">World</span></code> in the center of the screen.
 It uses a number of 256-color-mode colors to decorate the text,
 and will work in any terminal that supports 256-color mode. It will exit when
 <em>Q</em> is pressed.</p>
-<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+<div class="highlight-default"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
  2
  3
  4
@@ -255,31 +254,31 @@ and will work in any terminal that supports 256-color mode. It will exit when
 26
 27
 28
-29</pre></div></td><td class="code"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">urwid</span>
+29</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">urwid</span>
 
 <span class="k">def</span> <span class="nf">exit_on_q</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;q&#39;</span><span class="p">,</span> <span class="s">&#39;Q&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">,</span> <span class="s1">&#39;Q&#39;</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 
 <span class="n">palette</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="p">(</span><span class="s">&#39;banner&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;#ffa&#39;</span><span class="p">,</span> <span class="s">&#39;#60d&#39;</span><span class="p">),</span>
-    <span class="p">(</span><span class="s">&#39;streak&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;g50&#39;</span><span class="p">,</span> <span class="s">&#39;#60a&#39;</span><span class="p">),</span>
-    <span class="p">(</span><span class="s">&#39;inside&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;g38&#39;</span><span class="p">,</span> <span class="s">&#39;#808&#39;</span><span class="p">),</span>
-    <span class="p">(</span><span class="s">&#39;outside&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;g27&#39;</span><span class="p">,</span> <span class="s">&#39;#a06&#39;</span><span class="p">),</span>
-    <span class="p">(</span><span class="s">&#39;bg&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;g7&#39;</span><span class="p">,</span> <span class="s">&#39;#d06&#39;</span><span class="p">),]</span>
+    <span class="p">(</span><span class="s1">&#39;banner&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;#ffa&#39;</span><span class="p">,</span> <span class="s1">&#39;#60d&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;streak&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;g50&#39;</span><span class="p">,</span> <span class="s1">&#39;#60a&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;inside&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;g38&#39;</span><span class="p">,</span> <span class="s1">&#39;#808&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;outside&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;g27&#39;</span><span class="p">,</span> <span class="s1">&#39;#a06&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;bg&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;g7&#39;</span><span class="p">,</span> <span class="s1">&#39;#d06&#39;</span><span class="p">),]</span>
 
 <span class="n">placeholder</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">SolidFill</span><span class="p">()</span>
 <span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">placeholder</span><span class="p">,</span> <span class="n">palette</span><span class="p">,</span> <span class="n">unhandled_input</span><span class="o">=</span><span class="n">exit_on_q</span><span class="p">)</span>
 <span class="n">loop</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">set_terminal_properties</span><span class="p">(</span><span class="n">colors</span><span class="o">=</span><span class="mi">256</span><span class="p">)</span>
-<span class="n">loop</span><span class="o">.</span><span class="n">widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">placeholder</span><span class="p">,</span> <span class="s">&#39;bg&#39;</span><span class="p">)</span>
+<span class="n">loop</span><span class="o">.</span><span class="n">widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">placeholder</span><span class="p">,</span> <span class="s1">&#39;bg&#39;</span><span class="p">)</span>
 <span class="n">loop</span><span class="o">.</span><span class="n">widget</span><span class="o">.</span><span class="n">original_widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([]))</span>
 
 <span class="n">div</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Divider</span><span class="p">()</span>
-<span class="n">outside</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">div</span><span class="p">,</span> <span class="s">&#39;outside&#39;</span><span class="p">)</span>
-<span class="n">inside</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">div</span><span class="p">,</span> <span class="s">&#39;inside&#39;</span><span class="p">)</span>
-<span class="n">txt</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">((</span><span class="s">&#39;banner&#39;</span><span class="p">,</span> <span class="s">u&quot; Hello World &quot;</span><span class="p">),</span> <span class="n">align</span><span class="o">=</span><span class="s">&#39;center&#39;</span><span class="p">)</span>
-<span class="n">streak</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="s">&#39;streak&#39;</span><span class="p">)</span>
-<span class="n">pile</span> <span class="o">=</span> <span class="n">loop</span><span class="o">.</span><span class="n">widget</span><span class="o">.</span><span class="n">base_widget</span> <span class="c"># .base_widget skips the decorations</span>
+<span class="n">outside</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">div</span><span class="p">,</span> <span class="s1">&#39;outside&#39;</span><span class="p">)</span>
+<span class="n">inside</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">div</span><span class="p">,</span> <span class="s1">&#39;inside&#39;</span><span class="p">)</span>
+<span class="n">txt</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">((</span><span class="s1">&#39;banner&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot; Hello World &quot;</span><span class="p">),</span> <span class="n">align</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+<span class="n">streak</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="s1">&#39;streak&#39;</span><span class="p">)</span>
+<span class="n">pile</span> <span class="o">=</span> <span class="n">loop</span><span class="o">.</span><span class="n">widget</span><span class="o">.</span><span class="n">base_widget</span> <span class="c1"># .base_widget skips the decorations</span>
 <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="p">[</span><span class="n">outside</span><span class="p">,</span> <span class="n">inside</span><span class="p">,</span> <span class="n">streak</span><span class="p">,</span> <span class="n">inside</span><span class="p">,</span> <span class="n">outside</span><span class="p">]:</span>
     <span class="n">pile</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">item</span><span class="p">,</span> <span class="n">pile</span><span class="o">.</span><span class="n">options</span><span class="p">()))</span>
 
@@ -289,29 +288,29 @@ and will work in any terminal that supports 256-color mode. It will exit when
 <p>This palette only defines values for the high color foregroundand
 backgrounds, because only the high colors will be used. A real application
 should define values for all the modes in their palette. Valid foreground,
-background and setting values are documented in <a class="reference internal" href="../manual/displayattributes.html#foreground-background"><em>Foreground and Background Settings</em></a>.</p>
+background and setting values are documented in <a class="reference internal" href="../manual/displayattributes.html#foreground-background"><span class="std std-ref">Foreground and Background Settings</span></a>.</p>
 <ul class="simple">
-<li>Behind the scenes our <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><tt class="xref py py-class docutils literal"><span class="pre">MainLoop</span></tt></a> class has created a
-<a class="reference internal" href="../reference/display_modules.html#urwid.raw_display.Screen" title="urwid.raw_display.Screen"><tt class="xref py py-class docutils literal"><span class="pre">raw_display.Screen</span></tt></a> object for drawing the screen. The program
-is put into 256-color mode by using the screen object&#8217;s
-<a class="reference internal" href="../reference/display_modules.html#urwid.raw_display.Screen.set_terminal_properties" title="urwid.raw_display.Screen.set_terminal_properties"><tt class="xref py py-meth docutils literal"><span class="pre">set_terminal_properties()</span></tt></a> method.</li>
+<li>Behind the scenes our <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a> class has created a
+<a class="reference internal" href="../reference/display_modules.html#urwid.raw_display.Screen" title="urwid.raw_display.Screen"><code class="xref py py-class docutils literal"><span class="pre">raw_display.Screen</span></code></a> object for drawing the screen. The program
+is put into 256-color mode by using the screen object’s
+<a class="reference internal" href="../reference/display_modules.html#urwid.raw_display.Screen.set_terminal_properties" title="urwid.raw_display.Screen.set_terminal_properties"><code class="xref py py-meth docutils literal"><span class="pre">set_terminal_properties()</span></code></a> method.</li>
 </ul>
 <p>This example also demonstrates how you can build the widgets to display
 in a top-down order instead of the usual bottom-up order. In some
 places we need to use a <em>placeholder</em> widget because we must provide
 a widget before the correct one has been created.</p>
 <ul class="simple">
-<li>We change the topmost widget used by the <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><tt class="xref py py-class docutils literal"><span class="pre">MainLoop</span></tt></a> by
-assigning to its <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.widget" title="urwid.MainLoop.widget"><tt class="xref py py-attr docutils literal"><span class="pre">MainLoop.widget</span></tt></a> property.</li>
-<li><a class="reference internal" href="../manual/widgets.html#decoration-widgets"><em>Decoration Widgets</em></a> like <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><tt class="xref py py-class docutils literal"><span class="pre">AttrMap</span></tt></a> have an
-<tt class="docutils literal"><span class="pre">original_widget</span></tt> property that we can assign to to change the widget they wrap.</li>
-<li><a class="reference internal" href="../reference/widget.html#urwid.Divider" title="urwid.Divider"><tt class="xref py py-class docutils literal"><span class="pre">Divider</span></tt></a> widgets are used to create blank lines,
-colored with <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><tt class="xref py py-class docutils literal"><span class="pre">AttrMap</span></tt></a>.</li>
-<li><a class="reference internal" href="../manual/widgets.html#container-widgets"><em>Container Widgets</em></a> like <a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><tt class="xref py py-class docutils literal"><span class="pre">Pile</span></tt></a> have a
-<tt class="docutils literal"><span class="pre">contents</span></tt> property that we can treat like a list of
-(<em>widget</em>, <em>options</em>) tuples.  <a class="reference internal" href="../reference/widget.html#urwid.Pile.contents" title="urwid.Pile.contents"><tt class="xref py py-attr docutils literal"><span class="pre">Pile.contents</span></tt></a> supports normal list
-operations including <tt class="docutils literal"><span class="pre">append()</span></tt> to add child widgets.
-<a class="reference internal" href="../reference/widget.html#urwid.Pile.options" title="urwid.Pile.options"><tt class="xref py py-meth docutils literal"><span class="pre">Pile.options()</span></tt></a> is used to generate the default options
+<li>We change the topmost widget used by the <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a> by
+assigning to its <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.widget" title="urwid.MainLoop.widget"><code class="xref py py-attr docutils literal"><span class="pre">MainLoop.widget</span></code></a> property.</li>
+<li><a class="reference internal" href="../manual/widgets.html#decoration-widgets"><span class="std std-ref">Decoration Widgets</span></a> like <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal"><span class="pre">AttrMap</span></code></a> have an
+<code class="docutils literal"><span class="pre">original_widget</span></code> property that we can assign to change the widget they wrap.</li>
+<li><a class="reference internal" href="../reference/widget.html#urwid.Divider" title="urwid.Divider"><code class="xref py py-class docutils literal"><span class="pre">Divider</span></code></a> widgets are used to create blank lines,
+colored with <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal"><span class="pre">AttrMap</span></code></a>.</li>
+<li><a class="reference internal" href="../manual/widgets.html#container-widgets"><span class="std std-ref">Container Widgets</span></a> like <a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal"><span class="pre">Pile</span></code></a> have a
+<code class="docutils literal"><span class="pre">contents</span></code> property that we can treat like a list of
+(<em>widget</em>, <em>options</em>) tuples.  <a class="reference internal" href="../reference/widget.html#urwid.Pile.contents" title="urwid.Pile.contents"><code class="xref py py-attr docutils literal"><span class="pre">Pile.contents</span></code></a> supports normal list
+operations including <code class="docutils literal"><span class="pre">append()</span></code> to add child widgets.
+<a class="reference internal" href="../reference/widget.html#urwid.Pile.options" title="urwid.Pile.options"><code class="xref py py-meth docutils literal"><span class="pre">Pile.options()</span></code></a> is used to generate the default options
 for the new child widgets.</li>
 </ul>
 </div>
@@ -320,9 +319,9 @@ for the new child widgets.</li>
 <img alt="../_images/qa1.png" src="../_images/qa1.png" />
 <img alt="../_images/qa2.png" src="../_images/qa2.png" />
 <img alt="../_images/qa3.png" src="../_images/qa3.png" />
-<p>This program asks for your name then responds <tt class="docutils literal"><span class="pre">Nice</span> <span class="pre">to</span> <span class="pre">meet</span> <span class="pre">you,</span> <span class="pre">(your</span>
-<span class="pre">name).</span></tt></p>
-<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+<p>This program asks for your name then responds <code class="docutils literal"><span class="pre">Nice</span> <span class="pre">to</span> <span class="pre">meet</span> <span class="pre">you,</span> <span class="pre">(your</span>
+<span class="pre">name).</span></code></p>
+<div class="highlight-default"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
  2
  3
  4
@@ -339,45 +338,45 @@ for the new child widgets.</li>
 15
 16
 17
-18</pre></div></td><td class="code"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">urwid</span>
+18</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">urwid</span>
 
 <span class="k">def</span> <span class="nf">exit_on_q</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;q&#39;</span><span class="p">,</span> <span class="s">&#39;Q&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">,</span> <span class="s1">&#39;Q&#39;</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 
 <span class="k">class</span> <span class="nc">QuestionBox</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s">&#39;enter&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s1">&#39;enter&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">QuestionBox</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">keypress</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">original_widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span>
-            <span class="s">u&quot;Nice to meet you,</span><span class="se">\n</span><span class="si">%s</span><span class="s">.</span><span class="se">\n\n</span><span class="s">Press Q to exit.&quot;</span> <span class="o">%</span>
+            <span class="sa">u</span><span class="s2">&quot;Nice to meet you,</span><span class="se">\n</span><span class="si">%s</span><span class="s2">.</span><span class="se">\n\n</span><span class="s2">Press Q to exit.&quot;</span> <span class="o">%</span>
             <span class="n">edit</span><span class="o">.</span><span class="n">edit_text</span><span class="p">)</span>
 
-<span class="n">edit</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">(</span><span class="s">u&quot;What is your name?</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+<span class="n">edit</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;What is your name?</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
 <span class="n">fill</span> <span class="o">=</span> <span class="n">QuestionBox</span><span class="p">(</span><span class="n">edit</span><span class="p">)</span>
 <span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">fill</span><span class="p">,</span> <span class="n">unhandled_input</span><span class="o">=</span><span class="n">exit_on_q</span><span class="p">)</span>
 <span class="n">loop</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
 </td></tr></table></div>
-<p>The <a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><tt class="xref py py-class docutils literal"><span class="pre">Edit</span></tt></a> widget is based on the <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><tt class="xref py py-class docutils literal"><span class="pre">Text</span></tt></a> widget but it accepts
+<p>The <a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal"><span class="pre">Edit</span></code></a> widget is based on the <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal"><span class="pre">Text</span></code></a> widget but it accepts
 keyboard input for entering text, making corrections and
 moving the cursor around with the <em>HOME</em>, <em>END</em> and arrow keys.</p>
-<p>Here we are customizing the <a class="reference internal" href="../reference/widget.html#urwid.Filler" title="urwid.Filler"><tt class="xref py py-class docutils literal"><span class="pre">Filler</span></tt></a> decoration widget that is holding
-our <a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><tt class="xref py py-class docutils literal"><span class="pre">Edit</span></tt></a> widget by subclassing it and defining a new <tt class="docutils literal"><span class="pre">keypress()</span></tt>
+<p>Here we are customizing the <a class="reference internal" href="../reference/widget.html#urwid.Filler" title="urwid.Filler"><code class="xref py py-class docutils literal"><span class="pre">Filler</span></code></a> decoration widget that is holding
+our <a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal"><span class="pre">Edit</span></code></a> widget by subclassing it and defining a new <code class="docutils literal"><span class="pre">keypress()</span></code>
 method.  Customizing decoration or container widgets to handle input this way
 is a common pattern in Urwid applications.  This pattern is easier to maintain
 and extend than handling all special input in an <em>unhandled_input</em> function.</p>
 <ul class="simple">
 <li>In <em>QuestionBox.keypress()</em> all keypresses except <em>ENTER</em> are passed along to
-the default <a class="reference internal" href="../reference/widget.html#urwid.Filler.keypress" title="urwid.Filler.keypress"><tt class="xref py py-meth docutils literal"><span class="pre">Filler.keypress()</span></tt></a> which sends them to the
-child <a class="reference internal" href="../reference/widget.html#urwid.Edit.keypress" title="urwid.Edit.keypress"><tt class="xref py py-meth docutils literal"><span class="pre">Edit.keypress()</span></tt></a> method.</li>
-<li>Note that names containing <em>Q</em> can be entered into the <a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><tt class="xref py py-class docutils literal"><span class="pre">Edit</span></tt></a>
-widget without causing the program to exit because <a class="reference internal" href="../reference/widget.html#urwid.Edit.keypress" title="urwid.Edit.keypress"><tt class="xref py py-meth docutils literal"><span class="pre">Edit.keypress()</span></tt></a>
-indicates that it has handled the key by returning <tt class="docutils literal"><span class="pre">None</span></tt>.
-See <a class="reference internal" href="../reference/widget.html#urwid.Widget.keypress" title="urwid.Widget.keypress"><tt class="xref py py-meth docutils literal"><span class="pre">Widget.keypress()</span></tt></a> for more information.</li>
-<li>When <em>ENTER</em> is pressed the child widget <tt class="docutils literal"><span class="pre">original_widget</span></tt> is changed
-to a <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><tt class="xref py py-class docutils literal"><span class="pre">Text</span></tt></a> widget.</li>
-<li><a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><tt class="xref py py-class docutils literal"><span class="pre">Text</span></tt></a> widgets don&#8217;t handle any keyboard input so all input
+the default <a class="reference internal" href="../reference/widget.html#urwid.Filler.keypress" title="urwid.Filler.keypress"><code class="xref py py-meth docutils literal"><span class="pre">Filler.keypress()</span></code></a> which sends them to the
+child <a class="reference internal" href="../reference/widget.html#urwid.Edit.keypress" title="urwid.Edit.keypress"><code class="xref py py-meth docutils literal"><span class="pre">Edit.keypress()</span></code></a> method.</li>
+<li>Note that names containing <em>Q</em> can be entered into the <a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal"><span class="pre">Edit</span></code></a>
+widget without causing the program to exit because <a class="reference internal" href="../reference/widget.html#urwid.Edit.keypress" title="urwid.Edit.keypress"><code class="xref py py-meth docutils literal"><span class="pre">Edit.keypress()</span></code></a>
+indicates that it has handled the key by returning <code class="docutils literal"><span class="pre">None</span></code>.
+See <a class="reference internal" href="../reference/widget.html#urwid.Widget.keypress" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal"><span class="pre">Widget.keypress()</span></code></a> for more information.</li>
+<li>When <em>ENTER</em> is pressed the child widget <code class="docutils literal"><span class="pre">original_widget</span></code> is changed
+to a <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal"><span class="pre">Text</span></code></a> widget.</li>
+<li><a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal"><span class="pre">Text</span></code></a> widgets don’t handle any keyboard input so all input
 ends up in the <em>unhandled_input</em> function <em>exit_on_q</em>, allowing the
 user to exit the program.</li>
 </ul>
@@ -388,9 +387,9 @@ user to exit the program.</li>
 <img alt="../_images/sig2.png" src="../_images/sig2.png" />
 <img alt="../_images/sig3.png" src="../_images/sig3.png" />
 <img alt="../_images/sig4.png" src="../_images/sig4.png" />
-<p>This program asks for your name and responds <tt class="docutils literal"><span class="pre">Nice</span> <span class="pre">to</span> <span class="pre">meet</span> <span class="pre">you,</span> <span class="pre">(your</span> <span class="pre">name)</span></tt>
+<p>This program asks for your name and responds <code class="docutils literal"><span class="pre">Nice</span> <span class="pre">to</span> <span class="pre">meet</span> <span class="pre">you,</span> <span class="pre">(your</span> <span class="pre">name)</span></code>
 <em>while</em> you type your name.  Press <em>DOWN</em> then <em>SPACE</em> or <em>ENTER</em> to exit.</p>
-<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+<div class="highlight-default"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
  2
  3
  4
@@ -409,38 +408,38 @@ user to exit the program.</li>
 17
 18
 19
-20</pre></div></td><td class="code"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">urwid</span>
+20</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">urwid</span>
 
-<span class="n">palette</span> <span class="o">=</span> <span class="p">[(</span><span class="s">&#39;I say&#39;</span><span class="p">,</span> <span class="s">&#39;default,bold&#39;</span><span class="p">,</span> <span class="s">&#39;default&#39;</span><span class="p">,</span> <span class="s">&#39;bold&#39;</span><span class="p">),]</span>
-<span class="n">ask</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">((</span><span class="s">&#39;I say&#39;</span><span class="p">,</span> <span class="s">u&quot;What is your name?</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">))</span>
-<span class="n">reply</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s">u&quot;&quot;</span><span class="p">)</span>
-<span class="n">button</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="s">u&#39;Exit&#39;</span><span class="p">)</span>
+<span class="n">palette</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;I say&#39;</span><span class="p">,</span> <span class="s1">&#39;default,bold&#39;</span><span class="p">,</span> <span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="s1">&#39;bold&#39;</span><span class="p">),]</span>
+<span class="n">ask</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">((</span><span class="s1">&#39;I say&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;What is your name?</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">))</span>
+<span class="n">reply</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+<span class="n">button</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Exit&#39;</span><span class="p">)</span>
 <span class="n">div</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Divider</span><span class="p">()</span>
 <span class="n">pile</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([</span><span class="n">ask</span><span class="p">,</span> <span class="n">div</span><span class="p">,</span> <span class="n">reply</span><span class="p">,</span> <span class="n">div</span><span class="p">,</span> <span class="n">button</span><span class="p">])</span>
-<span class="n">top</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">pile</span><span class="p">,</span> <span class="n">valign</span><span class="o">=</span><span class="s">&#39;top&#39;</span><span class="p">)</span>
+<span class="n">top</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">pile</span><span class="p">,</span> <span class="n">valign</span><span class="o">=</span><span class="s1">&#39;top&#39;</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">on_ask_change</span><span class="p">(</span><span class="n">edit</span><span class="p">,</span> <span class="n">new_edit_text</span><span class="p">):</span>
-    <span class="n">reply</span><span class="o">.</span><span class="n">set_text</span><span class="p">((</span><span class="s">&#39;I say&#39;</span><span class="p">,</span> <span class="s">u&quot;Nice to meet you, </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">new_edit_text</span><span class="p">))</span>
+    <span class="n">reply</span><span class="o">.</span><span class="n">set_text</span><span class="p">((</span><span class="s1">&#39;I say&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;Nice to meet you, </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">new_edit_text</span><span class="p">))</span>
 
 <span class="k">def</span> <span class="nf">on_exit_clicked</span><span class="p">(</span><span class="n">button</span><span class="p">):</span>
     <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 
-<span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">ask</span><span class="p">,</span> <span class="s">&#39;change&#39;</span><span class="p">,</span> <span class="n">on_ask_change</span><span class="p">)</span>
-<span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="s">&#39;click&#39;</span><span class="p">,</span> <span class="n">on_exit_clicked</span><span class="p">)</span>
+<span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">ask</span><span class="p">,</span> <span class="s1">&#39;change&#39;</span><span class="p">,</span> <span class="n">on_ask_change</span><span class="p">)</span>
+<span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="s1">&#39;click&#39;</span><span class="p">,</span> <span class="n">on_exit_clicked</span><span class="p">)</span>
 
 <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">palette</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
 </td></tr></table></div>
 <ul class="simple">
-<li>An <a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><tt class="xref py py-class docutils literal"><span class="pre">Edit</span></tt></a> widget and a <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><tt class="xref py py-class docutils literal"><span class="pre">Text</span></tt></a> reply
+<li>An <a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal"><span class="pre">Edit</span></code></a> widget and a <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal"><span class="pre">Text</span></code></a> reply
 widget are created, like in the previous example.</li>
-<li>The <a class="reference internal" href="../reference/signals.html#urwid.connect_signal" title="urwid.connect_signal"><tt class="xref py py-func docutils literal"><span class="pre">connect_signal()</span></tt></a> function is used to attach our
-<em>on_ask_change()</em> function to our <a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><tt class="xref py py-class docutils literal"><span class="pre">Edit</span></tt></a> widget&#8217;s
-<tt class="docutils literal"><span class="pre">'change'</span></tt> signal. Now any time the content of the <a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><tt class="xref py py-class docutils literal"><span class="pre">Edit</span></tt></a>
+<li>The <a class="reference internal" href="../reference/signals.html#urwid.connect_signal" title="urwid.connect_signal"><code class="xref py py-func docutils literal"><span class="pre">connect_signal()</span></code></a> function is used to attach our
+<em>on_ask_change()</em> function to our <a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal"><span class="pre">Edit</span></code></a> widget’s
+<code class="docutils literal"><span class="pre">'change'</span></code> signal. Now any time the content of the <a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal"><span class="pre">Edit</span></code></a>
 widget changes <em>on_ask_change()</em> will be called and passed the new
 content.</li>
 <li>Finally we attach our <em>on_exit_clicked()</em> function to our
-exit <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><tt class="xref py py-class docutils literal"><span class="pre">Button</span></tt></a>&#8216;s <tt class="docutils literal"><span class="pre">'click'</span></tt> signal.</li>
+exit <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal"><span class="pre">Button</span></code></a>’s <code class="docutils literal"><span class="pre">'click'</span></code> signal.</li>
 <li><em>on_ask_change()</em> updates the reply text as the user enters their
 name and <em>on_exit_click()</em> exits.</li>
 </ul>
@@ -451,10 +450,10 @@ name and <em>on_exit_click()</em> exits.</li>
 <img alt="../_images/multiple2.png" src="../_images/multiple2.png" />
 <img alt="../_images/multiple3.png" src="../_images/multiple3.png" />
 <img alt="../_images/multiple4.png" src="../_images/multiple4.png" />
-<p>This program asks for your name and responds <tt class="docutils literal"><span class="pre">Nice</span> <span class="pre">to</span> <span class="pre">meet</span> <span class="pre">you,</span> <span class="pre">(your</span> <span class="pre">name).</span></tt>
+<p>This program asks for your name and responds <code class="docutils literal"><span class="pre">Nice</span> <span class="pre">to</span> <span class="pre">meet</span> <span class="pre">you,</span> <span class="pre">(your</span> <span class="pre">name).</span></code>
 It then asks again, and again. Old values may be changed and the responses will
 be updated when you press <em>ENTER</em>. <em>ENTER</em> on a blank line exits.</p>
-<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+<div class="highlight-default"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
  2
  3
  4
@@ -482,62 +481,62 @@ be updated when you press <em>ENTER</em>. <em>ENTER</em> on a blank line exits.<
 26
 27
 28
-29</pre></div></td><td class="code"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">urwid</span>
+29</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">urwid</span>
 
 <span class="k">def</span> <span class="nf">question</span><span class="p">():</span>
-    <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([</span><span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">((</span><span class="s">&#39;I say&#39;</span><span class="p">,</span> <span class="s">u&quot;What is your name?</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">))])</span>
+    <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([</span><span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">((</span><span class="s1">&#39;I say&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;What is your name?</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">))])</span>
 
 <span class="k">def</span> <span class="nf">answer</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">((</span><span class="s">&#39;I say&#39;</span><span class="p">,</span> <span class="s">u&quot;Nice to meet you, &quot;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">((</span><span class="s1">&#39;I say&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;Nice to meet you, &quot;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">))</span>
 
 <span class="k">class</span> <span class="nc">ConversationListBox</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">ListBox</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">body</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">SimpleFocusListWalker</span><span class="p">([</span><span class="n">question</span><span class="p">()])</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">ConversationListBox</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">body</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ConversationListBox</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">body</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="n">key</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ConversationListBox</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">keypress</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s">&#39;enter&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s1">&#39;enter&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">key</span>
         <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">focus</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">edit_text</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
-        <span class="c"># replace or add response</span>
+        <span class="c1"># replace or add response</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">focus</span><span class="o">.</span><span class="n">contents</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="p">[(</span><span class="n">answer</span><span class="p">(</span><span class="n">name</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">focus</span><span class="o">.</span><span class="n">options</span><span class="p">())]</span>
         <span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">focus_position</span>
-        <span class="c"># add a new question</span>
+        <span class="c1"># add a new question</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">question</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">focus_position</span> <span class="o">=</span> <span class="n">pos</span> <span class="o">+</span> <span class="mi">1</span>
 
-<span class="n">palette</span> <span class="o">=</span> <span class="p">[(</span><span class="s">&#39;I say&#39;</span><span class="p">,</span> <span class="s">&#39;default,bold&#39;</span><span class="p">,</span> <span class="s">&#39;default&#39;</span><span class="p">),]</span>
+<span class="n">palette</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;I say&#39;</span><span class="p">,</span> <span class="s1">&#39;default,bold&#39;</span><span class="p">,</span> <span class="s1">&#39;default&#39;</span><span class="p">),]</span>
 <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">ConversationListBox</span><span class="p">(),</span> <span class="n">palette</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
 </td></tr></table></div>
-<p><a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><tt class="xref py py-class docutils literal"><span class="pre">ListBox</span></tt></a> widgets let you scroll through a number of flow widgets
+<p><a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> widgets let you scroll through a number of flow widgets
 vertically.  It handles <em>UP</em>, <em>DOWN</em>, <em>PAGE UP</em> and <em>PAGE DOWN</em> keystrokes
-and changing the focus for you.  <a class="reference internal" href="../manual/widgets.html#listbox-contents"><em>ListBox Contents</em></a> are managed by
-a &#8220;list walker&#8221;, one of the list walkers that is easiest to use is
-<a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><tt class="xref py py-class docutils literal"><span class="pre">SimpleFocusListWalker</span></tt></a>.</p>
-<p><a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><tt class="xref py py-class docutils literal"><span class="pre">SimpleFocusListWalker</span></tt></a> is like a normal python list of widgets, but
+and changing the focus for you.  <a class="reference internal" href="../manual/widgets.html#listbox-contents"><span class="std std-ref">ListBox Contents</span></a> are managed by
+a “list walker”, one of the list walkers that is easiest to use is
+<a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><code class="xref py py-class docutils literal"><span class="pre">SimpleFocusListWalker</span></code></a>.</p>
+<p><a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><code class="xref py py-class docutils literal"><span class="pre">SimpleFocusListWalker</span></code></a> is like a normal python list of widgets, but
 any time you insert or remove widgets the focus position is updated
 automatically.</p>
-<p>Here we are customizing our <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><tt class="xref py py-class docutils literal"><span class="pre">ListBox</span></tt></a>&#8216;s keypress handling by overriding
+<p>Here we are customizing our <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a>’s keypress handling by overriding
 it in a subclass.</p>
 <ul class="simple">
 <li>The <em>question()</em> function is used to build widgets to communicate with the user.
-Here we return a <a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><tt class="xref py py-class docutils literal"><span class="pre">Pile</span></tt></a> widget with a single <a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><tt class="xref py py-class docutils literal"><span class="pre">Edit</span></tt></a> widget
+Here we return a <a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal"><span class="pre">Pile</span></code></a> widget with a single <a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal"><span class="pre">Edit</span></code></a> widget
 to start.</li>
-<li>We retrieve the name entered with <a class="reference internal" href="../reference/widget.html#urwid.ListBox.focus" title="urwid.ListBox.focus"><tt class="xref py py-attr docutils literal"><span class="pre">ListBox.focus</span></tt></a> to get the
-<a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><tt class="xref py py-class docutils literal"><span class="pre">Pile</span></tt></a> in focus, the standard
-<a class="reference internal" href="../manual/widgets.html#container-widgets"><em>container widget</em></a> method <tt class="docutils literal"><span class="pre">[0]</span></tt> to get the
-first child of the pile and <a class="reference internal" href="../reference/widget.html#urwid.Edit.edit_text" title="urwid.Edit.edit_text"><tt class="xref py py-attr docutils literal"><span class="pre">Edit.edit_text</span></tt></a> to get the user-entered
+<li>We retrieve the name entered with <a class="reference internal" href="../reference/widget.html#urwid.ListBox.focus" title="urwid.ListBox.focus"><code class="xref py py-attr docutils literal"><span class="pre">ListBox.focus</span></code></a> to get the
+<a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal"><span class="pre">Pile</span></code></a> in focus, the standard
+<a class="reference internal" href="../manual/widgets.html#container-widgets"><span class="std std-ref">container widget</span></a> method <code class="docutils literal"><span class="pre">[0]</span></code> to get the
+first child of the pile and <a class="reference internal" href="../reference/widget.html#urwid.Edit.edit_text" title="urwid.Edit.edit_text"><code class="xref py py-attr docutils literal"><span class="pre">Edit.edit_text</span></code></a> to get the user-entered
 text.</li>
 <li>For the response we use the fact that we can treat
-<a class="reference internal" href="../reference/widget.html#urwid.Pile.contents" title="urwid.Pile.contents"><tt class="xref py py-attr docutils literal"><span class="pre">Pile.contents</span></tt></a> like a list of (<em>widget</em>, <em>options</em>) tuples to create or
+<a class="reference internal" href="../reference/widget.html#urwid.Pile.contents" title="urwid.Pile.contents"><code class="xref py py-attr docutils literal"><span class="pre">Pile.contents</span></code></a> like a list of (<em>widget</em>, <em>options</em>) tuples to create or
 replace any existing response by assigning a one-tuple list to <em>contents[1:]</em>.  We create
-the default options using <a class="reference internal" href="../reference/widget.html#urwid.Pile.options" title="urwid.Pile.options"><tt class="xref py py-meth docutils literal"><span class="pre">Pile.options()</span></tt></a>.</li>
+the default options using <a class="reference internal" href="../reference/widget.html#urwid.Pile.options" title="urwid.Pile.options"><code class="xref py py-meth docutils literal"><span class="pre">Pile.options()</span></code></a>.</li>
 <li>To add another question after the current one we treat our
-<a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><tt class="xref py py-class docutils literal"><span class="pre">SimpleFocusListWalker</span></tt></a> stored as <tt class="xref py py-attr docutils literal"><span class="pre">ListBox.body</span></tt> like a normal
+<a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><code class="xref py py-class docutils literal"><span class="pre">SimpleFocusListWalker</span></code></a> stored as <a class="reference internal" href="../reference/widget.html#urwid.ListBox.body" title="urwid.ListBox.body"><code class="xref py py-attr docutils literal"><span class="pre">ListBox.body</span></code></a> like a normal
 list of widgets by calling <em>insert()</em>, then update the focus position to the widget we just
 created.</li>
 </ul>
@@ -547,9 +546,9 @@ created.</li>
 <img alt="../_images/smenu1.png" src="../_images/smenu1.png" />
 <img alt="../_images/smenu2.png" src="../_images/smenu2.png" />
 <img alt="../_images/smenu3.png" src="../_images/smenu3.png" />
-<p>We can create a very simple menu using a list of <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><tt class="xref py py-class docutils literal"><span class="pre">Button</span></tt></a> widgets.
+<p>We can create a very simple menu using a list of <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal"><span class="pre">Button</span></code></a> widgets.
 This program lets you choose an option then repeats what you chose.</p>
-<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+<div class="highlight-default"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
  2
  3
  4
@@ -576,49 +575,49 @@ This program lets you choose an option then repeats what you chose.</p>
 25
 26
 27
-28</pre></div></td><td class="code"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">urwid</span>
+28</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">urwid</span>
 
-<span class="n">choices</span> <span class="o">=</span> <span class="s">u&#39;Chapman Cleese Gilliam Idle Jones Palin&#39;</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+<span class="n">choices</span> <span class="o">=</span> <span class="sa">u</span><span class="s1">&#39;Chapman Cleese Gilliam Idle Jones Palin&#39;</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
 
 <span class="k">def</span> <span class="nf">menu</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">choices</span><span class="p">):</span>
     <span class="n">body</span> <span class="o">=</span> <span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="n">title</span><span class="p">),</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Divider</span><span class="p">()]</span>
     <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">choices</span><span class="p">:</span>
         <span class="n">button</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
-        <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="s">&#39;click&#39;</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
-        <span class="n">body</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">focus_map</span><span class="o">=</span><span class="s">&#39;reversed&#39;</span><span class="p">))</span>
+        <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="s1">&#39;click&#39;</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+        <span class="n">body</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">focus_map</span><span class="o">=</span><span class="s1">&#39;reversed&#39;</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ListBox</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">SimpleFocusListWalker</span><span class="p">(</span><span class="n">body</span><span class="p">))</span>
 
 <span class="k">def</span> <span class="nf">item_chosen</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="n">choice</span><span class="p">):</span>
-    <span class="n">response</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="s">u&#39;You chose &#39;</span><span class="p">,</span> <span class="n">choice</span><span class="p">,</span> <span class="s">u&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">])</span>
-    <span class="n">done</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="s">u&#39;Ok&#39;</span><span class="p">)</span>
-    <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">done</span><span class="p">,</span> <span class="s">&#39;click&#39;</span><span class="p">,</span> <span class="n">exit_program</span><span class="p">)</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="sa">u</span><span class="s1">&#39;You chose &#39;</span><span class="p">,</span> <span class="n">choice</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">])</span>
+    <span class="n">done</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Ok&#39;</span><span class="p">)</span>
+    <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">done</span><span class="p">,</span> <span class="s1">&#39;click&#39;</span><span class="p">,</span> <span class="n">exit_program</span><span class="p">)</span>
     <span class="n">main</span><span class="o">.</span><span class="n">original_widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([</span><span class="n">response</span><span class="p">,</span>
-        <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">done</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">focus_map</span><span class="o">=</span><span class="s">&#39;reversed&#39;</span><span class="p">)]))</span>
+        <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">done</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">focus_map</span><span class="o">=</span><span class="s1">&#39;reversed&#39;</span><span class="p">)]))</span>
 
 <span class="k">def</span> <span class="nf">exit_program</span><span class="p">(</span><span class="n">button</span><span class="p">):</span>
     <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 
-<span class="n">main</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Padding</span><span class="p">(</span><span class="n">menu</span><span class="p">(</span><span class="s">u&#39;Pythons&#39;</span><span class="p">,</span> <span class="n">choices</span><span class="p">),</span> <span class="n">left</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-<span class="n">top</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Overlay</span><span class="p">(</span><span class="n">main</span><span class="p">,</span> <span class="n">urwid</span><span class="o">.</span><span class="n">SolidFill</span><span class="p">(</span><span class="s">u&#39;</span><span class="se">\N{MEDIUM SHADE}</span><span class="s">&#39;</span><span class="p">),</span>
-    <span class="n">align</span><span class="o">=</span><span class="s">&#39;center&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;relative&#39;</span><span class="p">,</span> <span class="mi">60</span><span class="p">),</span>
-    <span class="n">valign</span><span class="o">=</span><span class="s">&#39;middle&#39;</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;relative&#39;</span><span class="p">,</span> <span class="mi">60</span><span class="p">),</span>
+<span class="n">main</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Padding</span><span class="p">(</span><span class="n">menu</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Pythons&#39;</span><span class="p">,</span> <span class="n">choices</span><span class="p">),</span> <span class="n">left</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">top</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Overlay</span><span class="p">(</span><span class="n">main</span><span class="p">,</span> <span class="n">urwid</span><span class="o">.</span><span class="n">SolidFill</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;</span><span class="se">\N{MEDIUM SHADE}</span><span class="s1">&#39;</span><span class="p">),</span>
+    <span class="n">align</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;relative&#39;</span><span class="p">,</span> <span class="mi">60</span><span class="p">),</span>
+    <span class="n">valign</span><span class="o">=</span><span class="s1">&#39;middle&#39;</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;relative&#39;</span><span class="p">,</span> <span class="mi">60</span><span class="p">),</span>
     <span class="n">min_width</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">min_height</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
-<span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="p">[(</span><span class="s">&#39;reversed&#39;</span><span class="p">,</span> <span class="s">&#39;standout&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">)])</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;reversed&#39;</span><span class="p">,</span> <span class="s1">&#39;standout&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)])</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
 </td></tr></table></div>
 <ul class="simple">
-<li><em>menu()</em> builds a <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><tt class="xref py py-class docutils literal"><span class="pre">ListBox</span></tt></a> with a <em>title</em> and a sequence of <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><tt class="xref py py-class docutils literal"><span class="pre">Button</span></tt></a>
-widgets.  Each button has its <tt class="docutils literal"><span class="pre">'click'</span></tt> signal attached to <em>item_chosen</em>,
+<li><em>menu()</em> builds a <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> with a <em>title</em> and a sequence of <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal"><span class="pre">Button</span></code></a>
+widgets.  Each button has its <code class="docutils literal"><span class="pre">'click'</span></code> signal attached to <em>item_chosen</em>,
 with item name is passed as data.
-The buttons are decorated with an <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><tt class="xref py py-class docutils literal"><span class="pre">AttrMap</span></tt></a> that applies
+The buttons are decorated with an <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal"><span class="pre">AttrMap</span></code></a> that applies
 a display attribute when a button is in focus.</li>
-<li><em>item_chosen()</em> replaces the menu displayed with text indicating the users&#8217;
+<li><em>item_chosen()</em> replaces the menu displayed with text indicating the users’
 choice.</li>
 <li><em>exit_program()</em> causes the program to exit on any keystroke.</li>
-<li>The menu is created and decorated with an <a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><tt class="xref py py-class docutils literal"><span class="pre">Overlay</span></tt></a> using a
-<a class="reference internal" href="../reference/widget.html#urwid.SolidFill" title="urwid.SolidFill"><tt class="xref py py-class docutils literal"><span class="pre">SolidFill</span></tt></a> as the background.  The <a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><tt class="xref py py-class docutils literal"><span class="pre">Overlay</span></tt></a> is given a
+<li>The menu is created and decorated with an <a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal"><span class="pre">Overlay</span></code></a> using a
+<a class="reference internal" href="../reference/widget.html#urwid.SolidFill" title="urwid.SolidFill"><code class="xref py py-class docutils literal"><span class="pre">SolidFill</span></code></a> as the background.  The <a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal"><span class="pre">Overlay</span></code></a> is given a
 miniumum width and height but is allowed to expand to 60% of the available
-space if the user&#8217;s terminal window is large enough.</li>
+space if the user’s terminal window is large enough.</li>
 </ul>
 </div>
 <div class="section" id="cascading-menu">
@@ -630,7 +629,7 @@ space if the user&#8217;s terminal window is large enough.</li>
 <p>A nested menu effect can be created by having some buttons open new menus.  This program
 lets you choose an option from a nested menu that cascades across the screen.  You may
 return to previous menus by pressing <em>ESC</em>.</p>
-<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+<div class="highlight-default"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
  2
  3
  4
@@ -699,18 +698,18 @@ return to previous menus by pressing <em>ESC</em>.</p>
 67
 68
 69
-70</pre></div></td><td class="code"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">urwid</span>
+70</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">urwid</span>
 
 <span class="k">def</span> <span class="nf">menu_button</span><span class="p">(</span><span class="n">caption</span><span class="p">,</span> <span class="n">callback</span><span class="p">):</span>
     <span class="n">button</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="n">caption</span><span class="p">)</span>
-    <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="s">&#39;click&#39;</span><span class="p">,</span> <span class="n">callback</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">focus_map</span><span class="o">=</span><span class="s">&#39;reversed&#39;</span><span class="p">)</span>
+    <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="s1">&#39;click&#39;</span><span class="p">,</span> <span class="n">callback</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">focus_map</span><span class="o">=</span><span class="s1">&#39;reversed&#39;</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">sub_menu</span><span class="p">(</span><span class="n">caption</span><span class="p">,</span> <span class="n">choices</span><span class="p">):</span>
     <span class="n">contents</span> <span class="o">=</span> <span class="n">menu</span><span class="p">(</span><span class="n">caption</span><span class="p">,</span> <span class="n">choices</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">open_menu</span><span class="p">(</span><span class="n">button</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">top</span><span class="o">.</span><span class="n">open_box</span><span class="p">(</span><span class="n">contents</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">menu_button</span><span class="p">([</span><span class="n">caption</span><span class="p">,</span> <span class="s">u&#39;...&#39;</span><span class="p">],</span> <span class="n">open_menu</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">menu_button</span><span class="p">([</span><span class="n">caption</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;...&#39;</span><span class="p">],</span> <span class="n">open_menu</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">menu</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">choices</span><span class="p">):</span>
     <span class="n">body</span> <span class="o">=</span> <span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="n">title</span><span class="p">),</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Divider</span><span class="p">()]</span>
@@ -718,25 +717,25 @@ return to previous menus by pressing <em>ESC</em>.</p>
     <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ListBox</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">SimpleFocusListWalker</span><span class="p">(</span><span class="n">body</span><span class="p">))</span>
 
 <span class="k">def</span> <span class="nf">item_chosen</span><span class="p">(</span><span class="n">button</span><span class="p">):</span>
-    <span class="n">response</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="s">u&#39;You chose &#39;</span><span class="p">,</span> <span class="n">button</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="s">u&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">])</span>
-    <span class="n">done</span> <span class="o">=</span> <span class="n">menu_button</span><span class="p">(</span><span class="s">u&#39;Ok&#39;</span><span class="p">,</span> <span class="n">exit_program</span><span class="p">)</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="sa">u</span><span class="s1">&#39;You chose &#39;</span><span class="p">,</span> <span class="n">button</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">])</span>
+    <span class="n">done</span> <span class="o">=</span> <span class="n">menu_button</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Ok&#39;</span><span class="p">,</span> <span class="n">exit_program</span><span class="p">)</span>
     <span class="n">top</span><span class="o">.</span><span class="n">open_box</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([</span><span class="n">response</span><span class="p">,</span> <span class="n">done</span><span class="p">])))</span>
 
 <span class="k">def</span> <span class="nf">exit_program</span><span class="p">(</span><span class="n">button</span><span class="p">):</span>
     <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 
-<span class="n">menu_top</span> <span class="o">=</span> <span class="n">menu</span><span class="p">(</span><span class="s">u&#39;Main Menu&#39;</span><span class="p">,</span> <span class="p">[</span>
-    <span class="n">sub_menu</span><span class="p">(</span><span class="s">u&#39;Applications&#39;</span><span class="p">,</span> <span class="p">[</span>
-        <span class="n">sub_menu</span><span class="p">(</span><span class="s">u&#39;Accessories&#39;</span><span class="p">,</span> <span class="p">[</span>
-            <span class="n">menu_button</span><span class="p">(</span><span class="s">u&#39;Text Editor&#39;</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">),</span>
-            <span class="n">menu_button</span><span class="p">(</span><span class="s">u&#39;Terminal&#39;</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">),</span>
+<span class="n">menu_top</span> <span class="o">=</span> <span class="n">menu</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Main Menu&#39;</span><span class="p">,</span> <span class="p">[</span>
+    <span class="n">sub_menu</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Applications&#39;</span><span class="p">,</span> <span class="p">[</span>
+        <span class="n">sub_menu</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Accessories&#39;</span><span class="p">,</span> <span class="p">[</span>
+            <span class="n">menu_button</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Text Editor&#39;</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">),</span>
+            <span class="n">menu_button</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Terminal&#39;</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">),</span>
         <span class="p">]),</span>
     <span class="p">]),</span>
-    <span class="n">sub_menu</span><span class="p">(</span><span class="s">u&#39;System&#39;</span><span class="p">,</span> <span class="p">[</span>
-        <span class="n">sub_menu</span><span class="p">(</span><span class="s">u&#39;Preferences&#39;</span><span class="p">,</span> <span class="p">[</span>
-            <span class="n">menu_button</span><span class="p">(</span><span class="s">u&#39;Appearance&#39;</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">),</span>
+    <span class="n">sub_menu</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;System&#39;</span><span class="p">,</span> <span class="p">[</span>
+        <span class="n">sub_menu</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Preferences&#39;</span><span class="p">,</span> <span class="p">[</span>
+            <span class="n">menu_button</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Appearance&#39;</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">),</span>
         <span class="p">]),</span>
-        <span class="n">menu_button</span><span class="p">(</span><span class="s">u&#39;Lock Screen&#39;</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">),</span>
+        <span class="n">menu_button</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Lock Screen&#39;</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">),</span>
     <span class="p">]),</span>
 <span class="p">])</span>
 
@@ -744,15 +743,15 @@ return to previous menus by pressing <em>ESC</em>.</p>
     <span class="n">max_box_levels</span> <span class="o">=</span> <span class="mi">4</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">box</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">CascadingBoxes</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">SolidFill</span><span class="p">(</span><span class="s">u&#39;/&#39;</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CascadingBoxes</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">SolidFill</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;/&#39;</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">open_box</span><span class="p">(</span><span class="n">box</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">open_box</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">box</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">original_widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Overlay</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">LineBox</span><span class="p">(</span><span class="n">box</span><span class="p">),</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">original_widget</span><span class="p">,</span>
-            <span class="n">align</span><span class="o">=</span><span class="s">&#39;center&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;relative&#39;</span><span class="p">,</span> <span class="mi">80</span><span class="p">),</span>
-            <span class="n">valign</span><span class="o">=</span><span class="s">&#39;middle&#39;</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;relative&#39;</span><span class="p">,</span> <span class="mi">80</span><span class="p">),</span>
+            <span class="n">align</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;relative&#39;</span><span class="p">,</span> <span class="mi">80</span><span class="p">),</span>
+            <span class="n">valign</span><span class="o">=</span><span class="s1">&#39;middle&#39;</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;relative&#39;</span><span class="p">,</span> <span class="mi">80</span><span class="p">),</span>
             <span class="n">min_width</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span> <span class="n">min_height</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
             <span class="n">left</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span>
             <span class="n">right</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_box_levels</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span>
@@ -761,38 +760,38 @@ return to previous menus by pressing <em>ESC</em>.</p>
         <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">+=</span> <span class="mi">1</span>
 
     <span class="k">def</span> <span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s">&#39;esc&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;esc&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">original_widget</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">original_widget</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">-=</span> <span class="mi">1</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">CascadingBoxes</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">keypress</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
 
 <span class="n">top</span> <span class="o">=</span> <span class="n">CascadingBoxes</span><span class="p">(</span><span class="n">menu_top</span><span class="p">)</span>
-<span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="p">[(</span><span class="s">&#39;reversed&#39;</span><span class="p">,</span> <span class="s">&#39;standout&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">)])</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;reversed&#39;</span><span class="p">,</span> <span class="s1">&#39;standout&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)])</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
 </td></tr></table></div>
 <ul class="simple">
-<li><em>menu_button()</em> returns an <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><tt class="xref py py-class docutils literal"><span class="pre">AttrMap</span></tt></a>-decorated <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><tt class="xref py py-class docutils literal"><span class="pre">Button</span></tt></a>
-and attaches a <em>callback</em> to the the its <tt class="docutils literal"><span class="pre">'click'</span></tt> signal.  This function is
+<li><em>menu_button()</em> returns an <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal"><span class="pre">AttrMap</span></code></a>-decorated <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal"><span class="pre">Button</span></code></a>
+and attaches a <em>callback</em> to its <code class="docutils literal"><span class="pre">'click'</span></code> signal.  This function is
 used for both sub-menus and final selection buttons.</li>
-<li><em>sub_menu()</em> creates a menu button and a closure that will open the the
+<li><em>sub_menu()</em> creates a menu button and a closure that will open the
 menu when that button is clicked.  Notice that
-<a class="reference internal" href="../manual/displayattributes.html#text-markup"><em>text markup</em></a> is used to add <tt class="docutils literal"><span class="pre">'...'</span></tt> to the end of
+<a class="reference internal" href="../manual/displayattributes.html#text-markup"><span class="std std-ref">text markup</span></a> is used to add <code class="docutils literal"><span class="pre">'...'</span></code> to the end of
 the <em>caption</em> passed to <em>menu_button()</em>.</li>
-<li><em>menu()</em> builds a <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><tt class="xref py py-class docutils literal"><span class="pre">ListBox</span></tt></a> with a <em>title</em> and a sequence of widgets.</li>
-<li><em>item_chosen()</em> displays the users&#8217; choice similar to the previous example.</li>
+<li><em>menu()</em> builds a <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> with a <em>title</em> and a sequence of widgets.</li>
+<li><em>item_chosen()</em> displays the users’ choice similar to the previous example.</li>
 <li><em>menu_top</em> is the top level menu with all of its child menus and
 options built using the functions above.</li>
 </ul>
-<p>This example introduces <a class="reference internal" href="../reference/widget.html#urwid.WidgetPlaceholder" title="urwid.WidgetPlaceholder"><tt class="xref py py-class docutils literal"><span class="pre">WidgetPlaceholder</span></tt></a>. <a class="reference internal" href="../reference/widget.html#urwid.WidgetPlaceholder" title="urwid.WidgetPlaceholder"><tt class="xref py py-class docutils literal"><span class="pre">WidgetPlaceholder</span></tt></a> is a
-<a class="reference internal" href="../manual/widgets.html#decoration-widgets"><em>decoration widget</em></a> that does nothing to the widget it
-decorates.  It is useful if you need a simple way to replace a widget that doesn&#8217;t
-involve knowing its position in a <a class="reference internal" href="../manual/widgets.html#container-widgets"><em>container</em></a>, or in this
+<p>This example introduces <a class="reference internal" href="../reference/widget.html#urwid.WidgetPlaceholder" title="urwid.WidgetPlaceholder"><code class="xref py py-class docutils literal"><span class="pre">WidgetPlaceholder</span></code></a>. <a class="reference internal" href="../reference/widget.html#urwid.WidgetPlaceholder" title="urwid.WidgetPlaceholder"><code class="xref py py-class docutils literal"><span class="pre">WidgetPlaceholder</span></code></a> is a
+<a class="reference internal" href="../manual/widgets.html#decoration-widgets"><span class="std std-ref">decoration widget</span></a> that does nothing to the widget it
+decorates.  It is useful if you need a simple way to replace a widget that doesn’t
+involve knowing its position in a <a class="reference internal" href="../manual/widgets.html#container-widgets"><span class="std std-ref">container</span></a>, or in this
 case as a base class for a widget that will be replacing its own contents regularly.</p>
 <ul class="simple">
-<li><em>CascadingBoxes</em> is a new widget that extends <a class="reference internal" href="../reference/widget.html#urwid.WidgetPlaceholder" title="urwid.WidgetPlaceholder"><tt class="xref py py-class docutils literal"><span class="pre">WidgetPlaceholder</span></tt></a>.
-It provides an <em>open_box()</em> method that displays a box widget <em>box</em> &#8220;on top of&#8221;
-all the previous content with an <a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><tt class="xref py py-class docutils literal"><span class="pre">Overlay</span></tt></a> and a <a class="reference internal" href="../reference/widget.html#urwid.LineBox" title="urwid.LineBox"><tt class="xref py py-class docutils literal"><span class="pre">LineBox</span></tt></a>.
+<li><em>CascadingBoxes</em> is a new widget that extends <a class="reference internal" href="../reference/widget.html#urwid.WidgetPlaceholder" title="urwid.WidgetPlaceholder"><code class="xref py py-class docutils literal"><span class="pre">WidgetPlaceholder</span></code></a>.
+It provides an <em>open_box()</em> method that displays a box widget <em>box</em> “on top of”
+all the previous content with an <a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal"><span class="pre">Overlay</span></code></a> and a <a class="reference internal" href="../reference/widget.html#urwid.LineBox" title="urwid.LineBox"><code class="xref py py-class docutils literal"><span class="pre">LineBox</span></code></a>.
 The position of each successive box is shifted right and down from the
 previous one.</li>
 <li><em>CascadingBoxes.keypress()</em> intercepts <em>ESC</em> keys to cause the current box
@@ -810,7 +809,7 @@ return to a previous menu level.</li>
 old menus off the left side of the screen.
 The look of buttons and other menu elements are heavily customized
 and new widget classes are used instead of factory functions.</p>
-<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+<div class="highlight-default"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
  2
  3
  4
@@ -890,95 +889,95 @@ and new widget classes are used instead of factory functions.</p>
 78
 79
 80
-81</pre></div></td><td class="code"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">urwid</span>
+81</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">urwid</span>
 
 <span class="k">class</span> <span class="nc">MenuButton</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">caption</span><span class="p">,</span> <span class="n">callback</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">MenuButton</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">)</span>
-        <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&#39;click&#39;</span><span class="p">,</span> <span class="n">callback</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MenuButton</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;click&#39;</span><span class="p">,</span> <span class="n">callback</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_w</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">SelectableIcon</span><span class="p">(</span>
-            <span class="p">[</span><span class="s">u&#39;  </span><span class="se">\N{BULLET}</span><span class="s"> &#39;</span><span class="p">,</span> <span class="n">caption</span><span class="p">],</span> <span class="mi">2</span><span class="p">),</span> <span class="bp">None</span><span class="p">,</span> <span class="s">&#39;selected&#39;</span><span class="p">)</span>
+            <span class="p">[</span><span class="sa">u</span><span class="s1">&#39;  </span><span class="se">\N{BULLET}</span><span class="s1"> &#39;</span><span class="p">,</span> <span class="n">caption</span><span class="p">],</span> <span class="mi">2</span><span class="p">),</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;selected&#39;</span><span class="p">)</span>
 
 <span class="k">class</span> <span class="nc">SubMenu</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">WidgetWrap</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">caption</span><span class="p">,</span> <span class="n">choices</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">SubMenu</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">MenuButton</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">caption</span><span class="p">,</span> <span class="s">u&quot;</span><span class="se">\N{HORIZONTAL ELLIPSIS}</span><span class="s">&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">open_menu</span><span class="p">))</span>
-        <span class="n">line</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Divider</span><span class="p">(</span><span class="s">u&#39;</span><span class="se">\N{LOWER ONE QUARTER BLOCK}</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SubMenu</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">MenuButton</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">caption</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;</span><span class="se">\N{HORIZONTAL ELLIPSIS}</span><span class="s2">&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">open_menu</span><span class="p">))</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Divider</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;</span><span class="se">\N{LOWER ONE QUARTER BLOCK}</span><span class="s1">&#39;</span><span class="p">)</span>
         <span class="n">listbox</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ListBox</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">SimpleFocusListWalker</span><span class="p">([</span>
-            <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="s">u&quot;</span><span class="se">\n</span><span class="s">  &quot;</span><span class="p">,</span> <span class="n">caption</span><span class="p">]),</span> <span class="s">&#39;heading&#39;</span><span class="p">),</span>
-            <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s">&#39;line&#39;</span><span class="p">),</span>
+            <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="sa">u</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  &quot;</span><span class="p">,</span> <span class="n">caption</span><span class="p">]),</span> <span class="s1">&#39;heading&#39;</span><span class="p">),</span>
+            <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s1">&#39;line&#39;</span><span class="p">),</span>
             <span class="n">urwid</span><span class="o">.</span><span class="n">Divider</span><span class="p">()]</span> <span class="o">+</span> <span class="n">choices</span> <span class="o">+</span> <span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Divider</span><span class="p">()]))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">menu</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">listbox</span><span class="p">,</span> <span class="s">&#39;options&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">menu</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">listbox</span><span class="p">,</span> <span class="s1">&#39;options&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">open_menu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">button</span><span class="p">):</span>
         <span class="n">top</span><span class="o">.</span><span class="n">open_box</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">menu</span><span class="p">)</span>
 
 <span class="k">class</span> <span class="nc">Choice</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">WidgetWrap</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">caption</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">Choice</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Choice</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">MenuButton</span><span class="p">(</span><span class="n">caption</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_chosen</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">caption</span> <span class="o">=</span> <span class="n">caption</span>
 
     <span class="k">def</span> <span class="nf">item_chosen</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">button</span><span class="p">):</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="s">u&#39;  You chose &#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">caption</span><span class="p">,</span> <span class="s">u&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">])</span>
-        <span class="n">done</span> <span class="o">=</span> <span class="n">MenuButton</span><span class="p">(</span><span class="s">u&#39;Ok&#39;</span><span class="p">,</span> <span class="n">exit_program</span><span class="p">)</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="sa">u</span><span class="s1">&#39;  You chose &#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">caption</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">])</span>
+        <span class="n">done</span> <span class="o">=</span> <span class="n">MenuButton</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Ok&#39;</span><span class="p">,</span> <span class="n">exit_program</span><span class="p">)</span>
         <span class="n">response_box</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([</span><span class="n">response</span><span class="p">,</span> <span class="n">done</span><span class="p">]))</span>
-        <span class="n">top</span><span class="o">.</span><span class="n">open_box</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">response_box</span><span class="p">,</span> <span class="s">&#39;options&#39;</span><span class="p">))</span>
+        <span class="n">top</span><span class="o">.</span><span class="n">open_box</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">response_box</span><span class="p">,</span> <span class="s1">&#39;options&#39;</span><span class="p">))</span>
 
 <span class="k">def</span> <span class="nf">exit_program</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
     <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 
-<span class="n">menu_top</span> <span class="o">=</span> <span class="n">SubMenu</span><span class="p">(</span><span class="s">u&#39;Main Menu&#39;</span><span class="p">,</span> <span class="p">[</span>
-    <span class="n">SubMenu</span><span class="p">(</span><span class="s">u&#39;Applications&#39;</span><span class="p">,</span> <span class="p">[</span>
-        <span class="n">SubMenu</span><span class="p">(</span><span class="s">u&#39;Accessories&#39;</span><span class="p">,</span> <span class="p">[</span>
-            <span class="n">Choice</span><span class="p">(</span><span class="s">u&#39;Text Editor&#39;</span><span class="p">),</span>
-            <span class="n">Choice</span><span class="p">(</span><span class="s">u&#39;Terminal&#39;</span><span class="p">),</span>
+<span class="n">menu_top</span> <span class="o">=</span> <span class="n">SubMenu</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Main Menu&#39;</span><span class="p">,</span> <span class="p">[</span>
+    <span class="n">SubMenu</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Applications&#39;</span><span class="p">,</span> <span class="p">[</span>
+        <span class="n">SubMenu</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Accessories&#39;</span><span class="p">,</span> <span class="p">[</span>
+            <span class="n">Choice</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Text Editor&#39;</span><span class="p">),</span>
+            <span class="n">Choice</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Terminal&#39;</span><span class="p">),</span>
         <span class="p">]),</span>
     <span class="p">]),</span>
-    <span class="n">SubMenu</span><span class="p">(</span><span class="s">u&#39;System&#39;</span><span class="p">,</span> <span class="p">[</span>
-        <span class="n">SubMenu</span><span class="p">(</span><span class="s">u&#39;Preferences&#39;</span><span class="p">,</span> <span class="p">[</span>
-            <span class="n">Choice</span><span class="p">(</span><span class="s">u&#39;Appearance&#39;</span><span class="p">),</span>
+    <span class="n">SubMenu</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;System&#39;</span><span class="p">,</span> <span class="p">[</span>
+        <span class="n">SubMenu</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Preferences&#39;</span><span class="p">,</span> <span class="p">[</span>
+            <span class="n">Choice</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Appearance&#39;</span><span class="p">),</span>
         <span class="p">]),</span>
-        <span class="n">Choice</span><span class="p">(</span><span class="s">u&#39;Lock Screen&#39;</span><span class="p">),</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;Lock Screen&#39;</span><span class="p">),</span>
     <span class="p">]),</span>
 <span class="p">])</span>
 
 <span class="n">palette</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="p">(</span><span class="bp">None</span><span class="p">,</span>  <span class="s">&#39;light gray&#39;</span><span class="p">,</span> <span class="s">&#39;black&#39;</span><span class="p">),</span>
-    <span class="p">(</span><span class="s">&#39;heading&#39;</span><span class="p">,</span> <span class="s">&#39;black&#39;</span><span class="p">,</span> <span class="s">&#39;light gray&#39;</span><span class="p">),</span>
-    <span class="p">(</span><span class="s">&#39;line&#39;</span><span class="p">,</span> <span class="s">&#39;black&#39;</span><span class="p">,</span> <span class="s">&#39;light gray&#39;</span><span class="p">),</span>
-    <span class="p">(</span><span class="s">&#39;options&#39;</span><span class="p">,</span> <span class="s">&#39;dark gray&#39;</span><span class="p">,</span> <span class="s">&#39;black&#39;</span><span class="p">),</span>
-    <span class="p">(</span><span class="s">&#39;focus heading&#39;</span><span class="p">,</span> <span class="s">&#39;white&#39;</span><span class="p">,</span> <span class="s">&#39;dark red&#39;</span><span class="p">),</span>
-    <span class="p">(</span><span class="s">&#39;focus line&#39;</span><span class="p">,</span> <span class="s">&#39;black&#39;</span><span class="p">,</span> <span class="s">&#39;dark red&#39;</span><span class="p">),</span>
-    <span class="p">(</span><span class="s">&#39;focus options&#39;</span><span class="p">,</span> <span class="s">&#39;black&#39;</span><span class="p">,</span> <span class="s">&#39;light gray&#39;</span><span class="p">),</span>
-    <span class="p">(</span><span class="s">&#39;selected&#39;</span><span class="p">,</span> <span class="s">&#39;white&#39;</span><span class="p">,</span> <span class="s">&#39;dark blue&#39;</span><span class="p">)]</span>
+    <span class="p">(</span><span class="kc">None</span><span class="p">,</span>  <span class="s1">&#39;light gray&#39;</span><span class="p">,</span> <span class="s1">&#39;black&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;heading&#39;</span><span class="p">,</span> <span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="s1">&#39;light gray&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;line&#39;</span><span class="p">,</span> <span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="s1">&#39;light gray&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;options&#39;</span><span class="p">,</span> <span class="s1">&#39;dark gray&#39;</span><span class="p">,</span> <span class="s1">&#39;black&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;focus heading&#39;</span><span class="p">,</span> <span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="s1">&#39;dark red&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;focus line&#39;</span><span class="p">,</span> <span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="s1">&#39;dark red&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;focus options&#39;</span><span class="p">,</span> <span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="s1">&#39;light gray&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;selected&#39;</span><span class="p">,</span> <span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="s1">&#39;dark blue&#39;</span><span class="p">)]</span>
 <span class="n">focus_map</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s">&#39;heading&#39;</span><span class="p">:</span> <span class="s">&#39;focus heading&#39;</span><span class="p">,</span>
-    <span class="s">&#39;options&#39;</span><span class="p">:</span> <span class="s">&#39;focus options&#39;</span><span class="p">,</span>
-    <span class="s">&#39;line&#39;</span><span class="p">:</span> <span class="s">&#39;focus line&#39;</span><span class="p">}</span>
+    <span class="s1">&#39;heading&#39;</span><span class="p">:</span> <span class="s1">&#39;focus heading&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;options&#39;</span><span class="p">:</span> <span class="s1">&#39;focus options&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;line&#39;</span><span class="p">:</span> <span class="s1">&#39;focus line&#39;</span><span class="p">}</span>
 
 <span class="k">class</span> <span class="nc">HorizontalBoxes</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Columns</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">HorizontalBoxes</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">([],</span> <span class="n">dividechars</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">HorizontalBoxes</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([],</span> <span class="n">dividechars</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">open_box</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">box</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">contents</span><span class="p">:</span>
             <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">contents</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">focus_position</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">box</span><span class="p">,</span> <span class="s">&#39;options&#39;</span><span class="p">,</span> <span class="n">focus_map</span><span class="p">),</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s">&#39;given&#39;</span><span class="p">,</span> <span class="mi">24</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">box</span><span class="p">,</span> <span class="s1">&#39;options&#39;</span><span class="p">,</span> <span class="n">focus_map</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="s1">&#39;given&#39;</span><span class="p">,</span> <span class="mi">24</span><span class="p">)))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">focus_position</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">contents</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
 
 <span class="n">top</span> <span class="o">=</span> <span class="n">HorizontalBoxes</span><span class="p">()</span>
 <span class="n">top</span><span class="o">.</span><span class="n">open_box</span><span class="p">(</span><span class="n">menu_top</span><span class="o">.</span><span class="n">menu</span><span class="p">)</span>
-<span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="s">&#39;middle&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">palette</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="s1">&#39;middle&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">palette</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
 </td></tr></table></div>
 <ul class="simple">
-<li><em>MenuButton</em> is a customized <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><tt class="xref py py-class docutils literal"><span class="pre">Button</span></tt></a> widget.  <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><tt class="xref py py-class docutils literal"><span class="pre">Button</span></tt></a> uses
-<a class="reference internal" href="../reference/widget.html#urwid.WidgetWrap" title="urwid.WidgetWrap"><tt class="xref py py-class docutils literal"><span class="pre">WidgetWrap</span></tt></a> to create its appearance and this class replaces the
-display widget created by <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><tt class="xref py py-class docutils literal"><span class="pre">Button</span></tt></a> by the wrapped widget in
+<li><em>MenuButton</em> is a customized <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal"><span class="pre">Button</span></code></a> widget.  <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal"><span class="pre">Button</span></code></a> uses
+<a class="reference internal" href="../reference/widget.html#urwid.WidgetWrap" title="urwid.WidgetWrap"><code class="xref py py-class docutils literal"><span class="pre">WidgetWrap</span></code></a> to create its appearance and this class replaces the
+display widget created by <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal"><span class="pre">Button</span></code></a> by the wrapped widget in
 <em>self._w</em>.</li>
-<li><em>SubMenu</em> is implemented with a <em>MenuButton</em> but uses <a class="reference internal" href="../reference/widget.html#urwid.WidgetWrap" title="urwid.WidgetWrap"><tt class="xref py py-class docutils literal"><span class="pre">WidgetWrap</span></tt></a>
+<li><em>SubMenu</em> is implemented with a <em>MenuButton</em> but uses <a class="reference internal" href="../reference/widget.html#urwid.WidgetWrap" title="urwid.WidgetWrap"><code class="xref py py-class docutils literal"><span class="pre">WidgetWrap</span></code></a>
 to hide the implementation instead of inheriting from <em>MenuButton</em>.
 The constructor builds a widget for the menu that this button will open
 and stores it in <em>self.menu</em>.</li>
@@ -986,13 +985,13 @@ and stores it in <em>self.menu</em>.</li>
 another menu.</li>
 </ul>
 <p>The <em>palette</em> used in this example includes an entry with the special name
-<tt class="docutils literal"><span class="pre">None</span></tt>.  The foreground and background specified in this entry are used
+<code class="docutils literal"><span class="pre">None</span></code>.  The foreground and background specified in this entry are used
 as a default when no other display attribute is specified.</p>
 <ul class="simple">
 <li><em>HorizontalBoxes</em> arranges the menus displayed similar to the previous
 example.  There is no special handling required for going to previous
-menus here because <a class="reference internal" href="../reference/widget.html#urwid.Columns" title="urwid.Columns"><tt class="xref py py-class docutils literal"><span class="pre">Columns</span></tt></a> already handles switching focus
-when <em>LEFT</em> or <em>RIGHT</em> is pressed.  <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><tt class="xref py py-class docutils literal"><span class="pre">AttrMap</span></tt></a> with the <em>focus_map</em>
+menus here because <a class="reference internal" href="../reference/widget.html#urwid.Columns" title="urwid.Columns"><code class="xref py py-class docutils literal"><span class="pre">Columns</span></code></a> already handles switching focus
+when <em>LEFT</em> or <em>RIGHT</em> is pressed.  <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal"><span class="pre">AttrMap</span></code></a> with the <em>focus_map</em>
 dict is used to change the appearance of a number of the display attributes
 when a menu is in focus.</li>
 </ul>
@@ -1004,11 +1003,11 @@ when a menu is in focus.</li>
 <img alt="../_images/adventure3.png" src="../_images/adventure3.png" />
 <img alt="../_images/adventure4.png" src="../_images/adventure4.png" />
 <p>We can use the same sort of code to build a simple adventure game.  Instead
-of menus we have &#8220;places&#8221; and instead of submenus and parent menus we just
-have &#8220;exits&#8221;.  This example scrolls previous places off the top of the
+of menus we have “places” and instead of submenus and parent menus we just
+have “exits”.  This example scrolls previous places off the top of the
 screen, allowing you to scroll back to view but not interact with previous
 places.</p>
-<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+<div class="highlight-default"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
  2
  3
  4
@@ -1090,60 +1089,60 @@ places.</p>
 80
 81
 82
-83</pre></div></td><td class="code"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">urwid</span>
+83</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">urwid</span>
 
 <span class="k">class</span> <span class="nc">ActionButton</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">caption</span><span class="p">,</span> <span class="n">callback</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">ActionButton</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">)</span>
-        <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&#39;click&#39;</span><span class="p">,</span> <span class="n">callback</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ActionButton</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;click&#39;</span><span class="p">,</span> <span class="n">callback</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_w</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">SelectableIcon</span><span class="p">(</span><span class="n">caption</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-            <span class="bp">None</span><span class="p">,</span> <span class="n">focus_map</span><span class="o">=</span><span class="s">&#39;reversed&#39;</span><span class="p">)</span>
+            <span class="kc">None</span><span class="p">,</span> <span class="n">focus_map</span><span class="o">=</span><span class="s1">&#39;reversed&#39;</span><span class="p">)</span>
 
 <span class="k">class</span> <span class="nc">Place</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">WidgetWrap</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">choices</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">Place</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span>
-            <span class="n">ActionButton</span><span class="p">([</span><span class="s">u&quot; &gt; go to &quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">enter_place</span><span class="p">))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">heading</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="s">u&quot;</span><span class="se">\n</span><span class="s">Location: &quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">])</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Place</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">ActionButton</span><span class="p">([</span><span class="sa">u</span><span class="s2">&quot; &gt; go to &quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">enter_place</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">heading</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="sa">u</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Location: &quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">choices</span> <span class="o">=</span> <span class="n">choices</span>
-        <span class="c"># create links back to ourself</span>
+        <span class="c1"># create links back to ourself</span>
         <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">choices</span><span class="p">:</span>
-            <span class="nb">getattr</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="s">&#39;choices&#39;</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="s1">&#39;choices&#39;</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">enter_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">button</span><span class="p">):</span>
         <span class="n">game</span><span class="o">.</span><span class="n">update_place</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
 <span class="k">class</span> <span class="nc">Thing</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">WidgetWrap</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">Thing</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span>
-            <span class="n">ActionButton</span><span class="p">([</span><span class="s">u&quot; * take &quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">take_thing</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Thing</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">ActionButton</span><span class="p">([</span><span class="sa">u</span><span class="s2">&quot; * take &quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">take_thing</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
 
     <span class="k">def</span> <span class="nf">take_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">button</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_w</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s">u&quot; - </span><span class="si">%s</span><span class="s"> (taken)&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_w</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot; - </span><span class="si">%s</span><span class="s2"> (taken)&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="n">game</span><span class="o">.</span><span class="n">take_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">exit_program</span><span class="p">(</span><span class="n">button</span><span class="p">):</span>
     <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 
-<span class="n">map_top</span> <span class="o">=</span> <span class="n">Place</span><span class="p">(</span><span class="s">u&#39;porch&#39;</span><span class="p">,</span> <span class="p">[</span>
-    <span class="n">Place</span><span class="p">(</span><span class="s">u&#39;kitchen&#39;</span><span class="p">,</span> <span class="p">[</span>
-        <span class="n">Place</span><span class="p">(</span><span class="s">u&#39;refrigerator&#39;</span><span class="p">,</span> <span class="p">[]),</span>
-        <span class="n">Place</span><span class="p">(</span><span class="s">u&#39;cupboard&#39;</span><span class="p">,</span> <span class="p">[</span>
-            <span class="n">Thing</span><span class="p">(</span><span class="s">u&#39;jug&#39;</span><span class="p">),</span>
+<span class="n">map_top</span> <span class="o">=</span> <span class="n">Place</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;porch&#39;</span><span class="p">,</span> <span class="p">[</span>
+    <span class="n">Place</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;kitchen&#39;</span><span class="p">,</span> <span class="p">[</span>
+        <span class="n">Place</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;refrigerator&#39;</span><span class="p">,</span> <span class="p">[]),</span>
+        <span class="n">Place</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;cupboard&#39;</span><span class="p">,</span> <span class="p">[</span>
+            <span class="n">Thing</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;jug&#39;</span><span class="p">),</span>
         <span class="p">]),</span>
     <span class="p">]),</span>
-    <span class="n">Place</span><span class="p">(</span><span class="s">u&#39;garden&#39;</span><span class="p">,</span> <span class="p">[</span>
-        <span class="n">Place</span><span class="p">(</span><span class="s">u&#39;tree&#39;</span><span class="p">,</span> <span class="p">[</span>
-            <span class="n">Thing</span><span class="p">(</span><span class="s">u&#39;lemon&#39;</span><span class="p">),</span>
-            <span class="n">Thing</span><span class="p">(</span><span class="s">u&#39;bird&#39;</span><span class="p">),</span>
+    <span class="n">Place</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;garden&#39;</span><span class="p">,</span> <span class="p">[</span>
+        <span class="n">Place</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;tree&#39;</span><span class="p">,</span> <span class="p">[</span>
+            <span class="n">Thing</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;lemon&#39;</span><span class="p">),</span>
+            <span class="n">Thing</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;bird&#39;</span><span class="p">),</span>
         <span class="p">]),</span>
     <span class="p">]),</span>
-    <span class="n">Place</span><span class="p">(</span><span class="s">u&#39;street&#39;</span><span class="p">,</span> <span class="p">[</span>
-        <span class="n">Place</span><span class="p">(</span><span class="s">u&#39;store&#39;</span><span class="p">,</span> <span class="p">[</span>
-            <span class="n">Thing</span><span class="p">(</span><span class="s">u&#39;sugar&#39;</span><span class="p">),</span>
+    <span class="n">Place</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;street&#39;</span><span class="p">,</span> <span class="p">[</span>
+        <span class="n">Place</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;store&#39;</span><span class="p">,</span> <span class="p">[</span>
+            <span class="n">Thing</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;sugar&#39;</span><span class="p">),</span>
         <span class="p">]),</span>
-        <span class="n">Place</span><span class="p">(</span><span class="s">u&#39;lake&#39;</span><span class="p">,</span> <span class="p">[</span>
-            <span class="n">Place</span><span class="p">(</span><span class="s">u&#39;beach&#39;</span><span class="p">,</span> <span class="p">[]),</span>
+        <span class="n">Place</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;lake&#39;</span><span class="p">,</span> <span class="p">[</span>
+            <span class="n">Place</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;beach&#39;</span><span class="p">,</span> <span class="p">[]),</span>
         <span class="p">]),</span>
     <span class="p">]),</span>
 <span class="p">])</span>
@@ -1156,7 +1155,7 @@ places.</p>
         <span class="bp">self</span><span class="o">.</span><span class="n">update_place</span><span class="p">(</span><span class="n">map_top</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">update_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">place</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">:</span> <span class="c"># disable interaction with previous place</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">:</span> <span class="c1"># disable interaction with previous place</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">WidgetDisable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([</span><span class="n">place</span><span class="o">.</span><span class="n">heading</span><span class="p">]</span> <span class="o">+</span> <span class="n">place</span><span class="o">.</span><span class="n">choices</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">top</span><span class="o">.</span><span class="n">focus_position</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
@@ -1164,21 +1163,21 @@ places.</p>
 
     <span class="k">def</span> <span class="nf">take_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thing</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">inventory</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">thing</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">inventory</span> <span class="o">&gt;=</span> <span class="nb">set</span><span class="p">([</span><span class="s">u&#39;sugar&#39;</span><span class="p">,</span> <span class="s">u&#39;lemon&#39;</span><span class="p">,</span> <span class="s">u&#39;jug&#39;</span><span class="p">]):</span>
-            <span class="n">response</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s">u&#39;You can make lemonade!</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
-            <span class="n">done</span> <span class="o">=</span> <span class="n">ActionButton</span><span class="p">(</span><span class="s">u&#39; - Joy&#39;</span><span class="p">,</span> <span class="n">exit_program</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">inventory</span> <span class="o">&gt;=</span> <span class="nb">set</span><span class="p">([</span><span class="sa">u</span><span class="s1">&#39;sugar&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;lemon&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s1">&#39;jug&#39;</span><span class="p">]):</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;You can make lemonade!</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">done</span> <span class="o">=</span> <span class="n">ActionButton</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39; - Joy&#39;</span><span class="p">,</span> <span class="n">exit_program</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">response</span><span class="p">,</span> <span class="n">done</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">update_place</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">place</span><span class="p">)</span>
 
 <span class="n">game</span> <span class="o">=</span> <span class="n">AdventureGame</span><span class="p">()</span>
-<span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">game</span><span class="o">.</span><span class="n">top</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="p">[(</span><span class="s">&#39;reversed&#39;</span><span class="p">,</span> <span class="s">&#39;standout&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">)])</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">game</span><span class="o">.</span><span class="n">top</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;reversed&#39;</span><span class="p">,</span> <span class="s1">&#39;standout&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)])</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
 </td></tr></table></div>
 <p>This example starts to show some separation between the application logic
 and the widgets that have been created.  The <em>AdventureGame</em> class is
 responsible for all the changes that happen through the game and manages
-the topmost widget, but isn&#8217;t a widget itself.  This is a good pattern to
+the topmost widget, but isn’t a widget itself.  This is a good pattern to
 follow as your application grows larger.</p>
 </div>
 </div>
@@ -1187,7 +1186,7 @@ follow as your application grows larger.</p>
           </div>
         </div>
       </div>
-      <div class="sphinxsidebar">
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
             <p class="logo"><a href="../index.html">
               <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
@@ -1216,29 +1215,28 @@ follow as your application grows larger.</p>
   <h4>Next topic</h4>
   <p class="topless"><a href="../manual/index.html"
                         title="next chapter">Urwid Manual</a></p>
-  <h3>This Page</h3>
-  <ul class="this-page-menu">
-    <li><a href="../_sources/tutorial/index.txt"
-           rel="nofollow">Show Source</a></li>
-  </ul>
-<div id="searchbox" style="display: none">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/tutorial/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
-    <p class="searchtip" style="font-size: 90%">
-    Enter search terms or a module, class or function name.
-    </p>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
     </div>
-    <div class="related">
+    <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -1250,12 +1248,12 @@ follow as your application grows larger.</p>
         <li class="right" >
           <a href="../examples/index.html" title="Example Programs"
              >previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.3.1</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.0</a> &#187;</li> 
       </ul>
     </div>
-    <div class="footer">
-        &copy; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.6.
     </div>
   </body>
 </html>

@@ -1,36 +1,34 @@
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>Display Attributes &mdash; Urwid 1.3.1</title>
-    
-    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <title>Display Attributes &#8212; Urwid 2.0.0</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '1.3.1',
+        VERSION:     '2.0.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/sidebar.js"></script>
-    <link rel="top" title="Urwid 1.3.1" href="../index.html" />
-    <link rel="up" title="Urwid Manual" href="index.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Canvas Cache" href="canvascache.html" />
     <link rel="prev" title="Encodings Supported" href="encodings.html" /> 
   </head>
   <body>
-    <div class="related">
+    <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -42,15 +40,15 @@
         <li class="right" >
           <a href="encodings.html" title="Encodings Supported"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.3.1</a> &raquo;</li>
-          <li><a href="index.html" accesskey="U">Urwid Manual</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.0</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li> 
       </ul>
     </div>  
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
-          <div class="body">
+          <div class="body" role="main">
             
   <div class="section" id="display-attributes">
 <span id="id1"></span><h1>Display Attributes<a class="headerlink" href="#display-attributes" title="Permalink to this headline">¶</a></h1>
@@ -59,92 +57,92 @@
 <p>You are encouraged to provide support for as many of these modes as you like, while
 allowing your interface to degrade gracefully by  providing command line arguments
 or other interfaces to switch modes.</p>
-<p>When setting up a palette with <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><tt class="xref py py-class docutils literal"><span class="pre">MainLoop</span></tt></a> (or directly
+<p>When setting up a palette with <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a> (or directly
 on your screen instance), you may specify attributes for 16-color, monochrome
 and high color modes. You can then switch between these modes with
-<a class="reference internal" href="../reference/display_modules.html#urwid.raw_display.Screen.set_terminal_properties" title="urwid.raw_display.Screen.set_terminal_properties"><tt class="xref py py-meth docutils literal"><span class="pre">screen.set_terminal_properties()</span></tt></a>,
-where <tt class="docutils literal"><span class="pre">screen</span></tt> is your screen instance or <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><tt class="xref py py-attr docutils literal"><span class="pre">MainLoop.screen</span></tt></a>.</p>
+<a class="reference internal" href="../reference/display_modules.html#urwid.raw_display.Screen.set_terminal_properties" title="urwid.raw_display.Screen.set_terminal_properties"><code class="xref py py-meth docutils literal"><span class="pre">screen.set_terminal_properties()</span></code></a>,
+where <code class="docutils literal"><span class="pre">screen</span></code> is your screen instance or <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><code class="xref py py-attr docutils literal"><span class="pre">MainLoop.screen</span></code></a>.</p>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><a class="reference internal" href="../reference/display_modules.html#urwid.BaseScreen.register_palette" title="urwid.BaseScreen.register_palette"><tt class="xref py py-meth docutils literal"><span class="pre">register_palette()</span> <span class="pre">reference</span></tt></a>,</p>
+<p class="last"><a class="reference internal" href="../reference/display_modules.html#urwid.BaseScreen.register_palette" title="urwid.BaseScreen.register_palette"><code class="xref py py-meth docutils literal"><span class="pre">register_palette()</span> <span class="pre">reference</span></code></a>,</p>
 </div>
 <div class="section" id="using-display-attributes">
 <span id="id2"></span><h2>Using Display Attributes<a class="headerlink" href="#using-display-attributes" title="Permalink to this headline">¶</a></h2>
 <p>Once you have defined a palette you may use the its display attribute names
 anywhere that expects a display attribute.  When no display attribute is defined
-<tt class="docutils literal"><span class="pre">None</span></tt> is used as a default display attribute.</p>
-<p><tt class="docutils literal"><span class="pre">None</span></tt> will typically be rendered with the terminal&#8217;s default foreground and
+<code class="docutils literal"><span class="pre">None</span></code> is used as a default display attribute.</p>
+<p><code class="docutils literal"><span class="pre">None</span></code> will typically be rendered with the terminal’s default foreground and
 background colors.</p>
 <p>You can also specify an exact foreground and background using an
-<a class="reference internal" href="../reference/attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><tt class="xref py py-class docutils literal"><span class="pre">AttrSpec</span></tt></a> instance instead of a display attribute name.
-Using <a class="reference internal" href="../reference/attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><tt class="xref py py-class docutils literal"><span class="pre">AttrSpec</span></tt></a> instances in your code may be trickier than using your
-screen&#8217;s palette because you must know which mode (number of colors) the screen is in.</p>
+<a class="reference internal" href="../reference/attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><code class="xref py py-class docutils literal"><span class="pre">AttrSpec</span></code></a> instance instead of a display attribute name.
+Using <a class="reference internal" href="../reference/attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><code class="xref py py-class docutils literal"><span class="pre">AttrSpec</span></code></a> instances in your code may be trickier than using your
+screen’s palette because you must know which mode (number of colors) the screen is in.</p>
 <div class="section" id="text-markup">
 <span id="id3"></span><h3>Text Markup<a class="headerlink" href="#text-markup" title="Permalink to this headline">¶</a></h3>
-<p>A <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><tt class="xref py py-class docutils literal"><span class="pre">Text</span></tt></a> widget can specify which display attributes each part of the
-text will use with the format defined in <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><tt class="xref py py-class docutils literal"><span class="pre">Text</span> <span class="pre">class</span> <span class="pre">reference</span></tt></a>.
+<p>A <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal"><span class="pre">Text</span></code></a> widget can specify which display attributes each part of the
+text will use with the format defined in <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal"><span class="pre">Text</span> <span class="pre">class</span> <span class="pre">reference</span></code></a>.
 Some examples:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">Text</span><span class="p">(</span><span class="s">u&quot;a simple string with default attribute&quot;</span><span class="p">)</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;a simple string with default attribute&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The string and space around will use the <tt class="docutils literal"><span class="pre">None</span></tt> default display attribute
-which usually appears in the terminal&#8217;s default foreground and background.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">Text</span><span class="p">((</span><span class="s">&#39;attr1&#39;</span><span class="p">,</span> <span class="s">u&quot;a string in display attribute attr1&quot;</span><span class="p">))</span>
+<p>The string and space around will use the <code class="docutils literal"><span class="pre">None</span></code> default display attribute
+which usually appears in the terminal’s default foreground and background.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">((</span><span class="s1">&#39;attr1&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;a string in display attribute attr1&quot;</span><span class="p">))</span>
 </pre></div>
 </div>
 <p>The string will appear with foreground and backgrounds specified in the display
-module&#8217;s palette for <tt class="docutils literal"><span class="pre">'attr1'</span></tt>, but the space around (before/after) the text
+module’s palette for <code class="docutils literal"><span class="pre">'attr1'</span></code>, but the space around (before/after) the text
 will appear with the default display attribute.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">Text</span><span class="p">([</span><span class="s">u&quot;a simple string &quot;</span><span class="p">,</span> <span class="p">(</span><span class="s">&#39;attr1&#39;</span><span class="p">,</span> <span class="s">u&quot;ending with attr1&quot;</span><span class="p">)])</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">([</span><span class="sa">u</span><span class="s2">&quot;a simple string &quot;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;attr1&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;ending with attr1&quot;</span><span class="p">)])</span>
 </pre></div>
 </div>
 <p>The first three words have the default display attribute and the last three words have
-display attribute <tt class="docutils literal"><span class="pre">'attr1'</span></tt>.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">Text</span><span class="p">([(</span><span class="s">&#39;attr1&#39;</span><span class="p">,</span> <span class="s">u&quot;start in attr1 &quot;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;attr2&#39;</span><span class="p">,</span> <span class="s">u&quot;end in attr2&quot;</span><span class="p">)])</span>
+display attribute <code class="docutils literal"><span class="pre">'attr1'</span></code>.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">([(</span><span class="s1">&#39;attr1&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;start in attr1 &quot;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;attr2&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;end in attr2&quot;</span><span class="p">)])</span>
 </pre></div>
 </div>
-<p>The first three words have display attribute <tt class="docutils literal"><span class="pre">'attr1'</span></tt> and the last three words have
-display attribute <tt class="docutils literal"><span class="pre">'attr2'</span></tt>.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">Text</span><span class="p">((</span><span class="s">&#39;attr1&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s">u&quot;nesting example &quot;</span><span class="p">,</span> <span class="p">(</span><span class="s">&#39;attr2&#39;</span><span class="p">,</span> <span class="s">u&quot;inside&quot;</span><span class="p">),</span> <span class="s">u&quot; outside&quot;</span><span class="p">]))</span>
+<p>The first three words have display attribute <code class="docutils literal"><span class="pre">'attr1'</span></code> and the last three words have
+display attribute <code class="docutils literal"><span class="pre">'attr2'</span></code>.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">((</span><span class="s1">&#39;attr1&#39;</span><span class="p">,</span> <span class="p">[</span><span class="sa">u</span><span class="s2">&quot;nesting example &quot;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;attr2&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;inside&quot;</span><span class="p">),</span> <span class="sa">u</span><span class="s2">&quot; outside&quot;</span><span class="p">]))</span>
 </pre></div>
 </div>
-<p>When markup is nested only the innermost attribute applies. Here <tt class="docutils literal"><span class="pre">&quot;inside&quot;</span></tt>
-has attribute <tt class="docutils literal"><span class="pre">'attr2'</span></tt> and all the rest of the text has attribute
-<tt class="docutils literal"><span class="pre">'attr1'</span></tt>.</p>
+<p>When markup is nested only the innermost attribute applies. Here <code class="docutils literal"><span class="pre">&quot;inside&quot;</span></code>
+has attribute <code class="docutils literal"><span class="pre">'attr2'</span></code> and all the rest of the text has attribute
+<code class="docutils literal"><span class="pre">'attr1'</span></code>.</p>
 </div>
 <div class="section" id="assigning-display-attributes-with-attrmap">
 <h3>Assigning Display Attributes with AttrMap<a class="headerlink" href="#assigning-display-attributes-with-attrmap" title="Permalink to this headline">¶</a></h3>
 <p>If you want a whole widget to be assigned a display attribute, or if you want to change
 one or more display attributes to other display attributes, you can wrap your widget
-in an <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><tt class="xref py py-class docutils literal"><span class="pre">AttrMap</span></tt></a> widget.  <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><tt class="xref py py-class docutils literal"><span class="pre">Text</span></tt></a> widgets have no way to specify
+in an <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal"><span class="pre">AttrMap</span></code></a> widget.  <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal"><span class="pre">Text</span></code></a> widgets have no way to specify
 a display attribute for the whitespace around the text caused by alignment and wrapping
-so <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><tt class="xref py py-class docutils literal"><span class="pre">AttrMap</span></tt></a> may be used. Some examples:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="s">u&quot;hello&quot;</span><span class="p">),</span> <span class="s">&#39;attr1&#39;</span><span class="p">)</span>
+so <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal"><span class="pre">AttrMap</span></code></a> may be used. Some examples:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;hello&quot;</span><span class="p">),</span> <span class="s1">&#39;attr1&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The whole <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><tt class="xref py py-class docutils literal"><span class="pre">Text</span></tt></a> widget will have display attribute <tt class="docutils literal"><span class="pre">'attr1'</span></tt> including
-whitespace around the <tt class="docutils literal"><span class="pre">&quot;hello&quot;</span></tt> text.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">((</span><span class="s">&#39;attr1&#39;</span><span class="p">,</span> <span class="s">u&quot;hello&quot;</span><span class="p">)),</span> <span class="s">&#39;attr2&#39;</span><span class="p">)</span>
+<p>The whole <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal"><span class="pre">Text</span></code></a> widget will have display attribute <code class="docutils literal"><span class="pre">'attr1'</span></code> including
+whitespace around the <code class="docutils literal"><span class="pre">&quot;hello&quot;</span></code> text.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">((</span><span class="s1">&#39;attr1&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;hello&quot;</span><span class="p">)),</span> <span class="s1">&#39;attr2&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The <tt class="docutils literal"><span class="pre">u&quot;hello&quot;</span></tt> text will appear with display attribute <tt class="docutils literal"><span class="pre">'attr1'</span></tt> and all surrounding
-whitespace will appear with display attribute <tt class="docutils literal"><span class="pre">'attr2'</span></tt>.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">([(</span><span class="s">&#39;attr1&#39;</span><span class="p">,</span> <span class="s">u&quot;hello&quot;</span><span class="p">),</span> <span class="s">u&quot; world&quot;</span><span class="p">]),</span> <span class="p">{</span><span class="s">&#39;attr1&#39;</span><span class="p">:</span> <span class="s">&#39;attr2&#39;</span><span class="p">})</span>
+<p>The <code class="docutils literal"><span class="pre">u&quot;hello&quot;</span></code> text will appear with display attribute <code class="docutils literal"><span class="pre">'attr1'</span></code> and all surrounding
+whitespace will appear with display attribute <code class="docutils literal"><span class="pre">'attr2'</span></code>.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">([(</span><span class="s1">&#39;attr1&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;hello&quot;</span><span class="p">),</span> <span class="sa">u</span><span class="s2">&quot; world&quot;</span><span class="p">]),</span> <span class="p">{</span><span class="s1">&#39;attr1&#39;</span><span class="p">:</span> <span class="s1">&#39;attr2&#39;</span><span class="p">})</span>
 </pre></div>
 </div>
-<p>The <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><tt class="xref py py-class docutils literal"><span class="pre">AttrMap</span></tt></a> widget will apply display attribute <tt class="docutils literal"><span class="pre">'attr2'</span></tt> to all parts of
-the <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><tt class="xref py py-class docutils literal"><span class="pre">Text</span></tt></a> widget that are using <tt class="docutils literal"><span class="pre">'attr1'</span></tt>.  The result is the <tt class="docutils literal"><span class="pre">&quot;hello&quot;</span></tt>
-text appearing with display attribute <tt class="docutils literal"><span class="pre">'attr2'</span></tt> and all other text and whitespace
+<p>The <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal"><span class="pre">AttrMap</span></code></a> widget will apply display attribute <code class="docutils literal"><span class="pre">'attr2'</span></code> to all parts of
+the <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal"><span class="pre">Text</span></code></a> widget that are using <code class="docutils literal"><span class="pre">'attr1'</span></code>.  The result is the <code class="docutils literal"><span class="pre">&quot;hello&quot;</span></code>
+text appearing with display attribute <code class="docutils literal"><span class="pre">'attr2'</span></code> and all other text and whitespace
 appearing in the default display attribute.</p>
-<p><a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><tt class="xref py py-class docutils literal"><span class="pre">AttrMap</span></tt></a> can also change display attributes differently when they are in focus.
-This can be used to &#8220;highlight&#8221; one or more widgets to make your interface more
-user friendly.  To use this feature set the <tt class="docutils literal"><span class="pre">focus_map</span></tt> parameter when creating the
-<a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><tt class="xref py py-class docutils literal"><span class="pre">AttrMap</span></tt></a> widget.</p>
+<p><a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal"><span class="pre">AttrMap</span></code></a> can also change display attributes differently when they are in focus.
+This can be used to “highlight” one or more widgets to make your interface more
+user friendly.  To use this feature set the <code class="docutils literal"><span class="pre">focus_map</span></code> parameter when creating the
+<a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal"><span class="pre">AttrMap</span></code></a> widget.</p>
 </div>
 </div>
 <div class="section" id="foreground-and-background-settings">
 <span id="foreground-background"></span><h2>Foreground and Background Settings<a class="headerlink" href="#foreground-and-background-settings" title="Permalink to this headline">¶</a></h2>
-<table border="1" class="docutils">
+<table border="1" class="colwidths-given docutils">
 <colgroup>
 <col width="32%" />
 <col width="21%" />
@@ -161,52 +159,70 @@ user friendly.  To use this feature set the <tt class="docutils literal"><span c
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><a class="reference internal" href="#standard-foreground"><em>16 standard foreground colors</em></a></td>
+<tr class="row-even"><td><a class="reference internal" href="#standard-foreground"><span class="std std-ref">16 standard foreground colors</span></a></td>
 <td>YES</td>
 <td>YES</td>
 <td>YES</td>
 <td>very widely supported</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#standard-background"><em>8 standard background colors</em></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#standard-background"><span class="std std-ref">8 standard background colors</span></a></td>
 <td>YES</td>
 <td>YES</td>
 <td>YES</td>
 <td>very widely supported</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#default-foreground-background"><em>default foreground/background</em></a></td>
+<tr class="row-even"><td><a class="reference internal" href="#default-foreground-background"><span class="std std-ref">default foreground/background</span></a></td>
 <td>YES</td>
 <td>YES</td>
 <td>YES</td>
 <td>widely supported</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#bold-underline-standout"><em>bold, underline, standout</em></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#bold-underline-standout"><span class="std std-ref">bold, underline, standout</span></a></td>
 <td>YES</td>
 <td>YES</td>
 <td>standout</td>
 <td>widely supported</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#bright-background"><em>&#8220;bright&#8221; background colors</em></a></td>
+<tr class="row-even"><td><a class="reference internal" href="#bold-underline-standout"><span class="std std-ref">italics</span></a></td>
+<td>YES</td>
+<td>YES</td>
+<td>NO</td>
+<td>widely supported</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#bold-underline-standout"><span class="std std-ref">blink</span></a></td>
+<td>YES/NO</td>
+<td>NO</td>
+<td>NO</td>
+<td>some support</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#bold-underline-standout"><span class="std std-ref">strikethrough</span></a></td>
+<td>YES</td>
+<td>NO</td>
+<td>NO</td>
+<td>some supported</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#bright-background"><span class="std std-ref">“bright” background colors</span></a></td>
 <td>YES</td>
 <td>urxvt</td>
-<td>&nbsp;</td>
+<td>&#160;</td>
 <td>some support</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#id5"><em>256-color foreground/background</em></a></td>
+<tr class="row-even"><td><a class="reference internal" href="#id5"><span class="std std-ref">256-color foreground/background</span></a></td>
 <td>YES</td>
-<td>&nbsp;</td>
-<td>&nbsp;</td>
+<td>&#160;</td>
+<td>&#160;</td>
 <td>some support</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#id6"><em>88-color foreground/background</em></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#id6"><span class="std std-ref">88-color foreground/background</span></a></td>
 <td>w/palette setting</td>
 <td>urxvt</td>
-<td>&nbsp;</td>
+<td>&#160;</td>
 <td>limited support</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#rgb-palette-setting"><em>RGB palette setting</em></a></td>
+<tr class="row-even"><td><a class="reference internal" href="#rgb-palette-setting"><span class="std std-ref">RGB palette setting</span></a></td>
 <td>YES</td>
-<td>&nbsp;</td>
-<td>&nbsp;</td>
+<td>&#160;</td>
+<td>&#160;</td>
 <td>limited support</td>
 </tr>
 </tbody>
@@ -214,45 +230,45 @@ user friendly.  To use this feature set the <tt class="docutils literal"><span c
 <div class="section" id="standard-foreground-colors">
 <span id="standard-foreground"></span><h3>16 Standard Foreground Colors<a class="headerlink" href="#standard-foreground-colors" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">'black'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'dark</span> <span class="pre">red'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'dark</span> <span class="pre">green'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'brown'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'dark</span> <span class="pre">blue'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'dark</span> <span class="pre">magenta'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'dark</span> <span class="pre">cyan'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'light</span> <span class="pre">gray'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'dark</span> <span class="pre">gray'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'light</span> <span class="pre">red'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'light</span> <span class="pre">green'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'yellow'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'light</span> <span class="pre">blue'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'light</span> <span class="pre">magenta'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'light</span> <span class="pre">cyan'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'white'</span></tt></li>
+<li><code class="docutils literal"><span class="pre">'black'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'dark</span> <span class="pre">red'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'dark</span> <span class="pre">green'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'brown'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'dark</span> <span class="pre">blue'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'dark</span> <span class="pre">magenta'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'dark</span> <span class="pre">cyan'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'light</span> <span class="pre">gray'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'dark</span> <span class="pre">gray'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'light</span> <span class="pre">red'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'light</span> <span class="pre">green'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'yellow'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'light</span> <span class="pre">blue'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'light</span> <span class="pre">magenta'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'light</span> <span class="pre">cyan'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'white'</span></code></li>
 </ul>
 </div>
 <div class="section" id="standard-background-colors">
 <span id="standard-background"></span><h3>8 Standard Background Colors<a class="headerlink" href="#standard-background-colors" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">'black'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'dark</span> <span class="pre">red'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'dark</span> <span class="pre">green'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'brown'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'dark</span> <span class="pre">blue'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'dark</span> <span class="pre">magenta'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'dark</span> <span class="pre">cyan'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'light</span> <span class="pre">gray'</span></tt></li>
+<li><code class="docutils literal"><span class="pre">'black'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'dark</span> <span class="pre">red'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'dark</span> <span class="pre">green'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'brown'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'dark</span> <span class="pre">blue'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'dark</span> <span class="pre">magenta'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'dark</span> <span class="pre">cyan'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'light</span> <span class="pre">gray'</span></code></li>
 </ul>
 </div>
 <div class="section" id="default-foreground-and-background">
 <span id="default-foreground-background"></span><h3>Default Foreground and Background<a class="headerlink" href="#default-foreground-and-background" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">'default'</span></tt> (or simply <tt class="docutils literal"><span class="pre">''</span></tt>)</li>
+<li><code class="docutils literal"><span class="pre">'default'</span></code> (or simply <code class="docutils literal"><span class="pre">''</span></code>)</li>
 </ul>
-<p><tt class="docutils literal"><span class="pre">'default'</span></tt> may be specified as a foreground or background to use a
-terminal&#8217;s default color. For terminals with transparent backgrounds
-<tt class="docutils literal"><span class="pre">'default'</span></tt> is the only way to show the transparent background. There is no
+<p><code class="docutils literal"><span class="pre">'default'</span></code> may be specified as a foreground or background to use a
+terminal’s default color. For terminals with transparent backgrounds
+<code class="docutils literal"><span class="pre">'default'</span></code> is the only way to show the transparent background. There is no
 way to tell what the default colors are, so it is best to use default
 foregrounds and backgrounds together (not with other colors) to ensure good
 contrast.</p>
@@ -260,51 +276,54 @@ contrast.</p>
 <div class="section" id="bold-underline-standout">
 <span id="id4"></span><h3>Bold, Underline, Standout<a class="headerlink" href="#bold-underline-standout" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">'bold'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'underline'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'standout'</span></tt></li>
+<li><code class="docutils literal"><span class="pre">'bold'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'underline'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'standout'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'blink'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'italics'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'strikethrough'</span></code></li>
 </ul>
-<p>These settings may be tagged on to foreground colors using commas, eg: <tt class="docutils literal"><span class="pre">'light</span>
-<span class="pre">gray,underline,bold'</span></tt></p>
+<p>These settings may be tagged on to foreground colors using commas, eg: <code class="docutils literal"><span class="pre">'light</span>
+<span class="pre">gray,underline,bold,strikethrough'</span></code></p>
 <p>For monochrome mode combinations of these are the only values that may be used.</p>
 <p>Many terminals will turn foreground colors into their bright versions when you
-use bold, eg: <tt class="docutils literal"><span class="pre">'dark</span> <span class="pre">blue,bold'</span></tt> might look the same as <tt class="docutils literal"><span class="pre">'light</span> <span class="pre">blue'</span></tt>.
-Some terminals also will display bright colors in a bold font even if you don&#8217;t
-specify bold. To inhibit this you can try setting <tt class="docutils literal"><span class="pre">bright_is_bold=False</span></tt> with
-<tt class="xref py py-meth docutils literal"><span class="pre">BaseScreen.set_terminal_properties()</span></tt>, but it is not always supported.</p>
-<p><tt class="docutils literal"><span class="pre">'standout'</span></tt> is usually displayed as the foreground and background colors reversed.</p>
+use bold, eg: <code class="docutils literal"><span class="pre">'dark</span> <span class="pre">blue,bold'</span></code> might look the same as <code class="docutils literal"><span class="pre">'light</span> <span class="pre">blue'</span></code>.
+Some terminals also will display bright colors in a bold font even if you don’t
+specify bold. To inhibit this you can try setting <code class="docutils literal"><span class="pre">bright_is_bold=False</span></code> with
+<code class="xref py py-meth docutils literal"><span class="pre">BaseScreen.set_terminal_properties()</span></code>, but it is not always supported.</p>
+<p><code class="docutils literal"><span class="pre">'standout'</span></code> is usually displayed as the foreground and background colors reversed.</p>
 </div>
 <div class="section" id="bright-background-colors">
-<span id="bright-background"></span><h3>&#8220;Bright&#8221; Background Colors<a class="headerlink" href="#bright-background-colors" title="Permalink to this headline">¶</a></h3>
+<span id="bright-background"></span><h3>“Bright” Background Colors<a class="headerlink" href="#bright-background-colors" title="Permalink to this headline">¶</a></h3>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
 <p class="last">Terminal support for bright background colors is spotty, and they generally
 should be avoided. If you are in a high-color mode you might have better luck
-using the high-color versions <tt class="docutils literal"><span class="pre">'h8'</span></tt>, <tt class="docutils literal"><span class="pre">'h9'</span></tt>, <tt class="docutils literal"><span class="pre">'h10'</span></tt>, ..., <tt class="docutils literal"><span class="pre">'h15'</span></tt>.</p>
+using the high-color versions <code class="docutils literal"><span class="pre">'h8'</span></code>, <code class="docutils literal"><span class="pre">'h9'</span></code>, <code class="docutils literal"><span class="pre">'h10'</span></code>, …, <code class="docutils literal"><span class="pre">'h15'</span></code>.</p>
 </div>
 <ul class="simple">
-<li><tt class="docutils literal"><span class="pre">'dark</span> <span class="pre">gray'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'light</span> <span class="pre">red'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'light</span> <span class="pre">green'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'yellow'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'light</span> <span class="pre">blue'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'light</span> <span class="pre">magenta'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'light</span> <span class="pre">cyan'</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">'white'</span></tt></li>
+<li><code class="docutils literal"><span class="pre">'dark</span> <span class="pre">gray'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'light</span> <span class="pre">red'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'light</span> <span class="pre">green'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'yellow'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'light</span> <span class="pre">blue'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'light</span> <span class="pre">magenta'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'light</span> <span class="pre">cyan'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'white'</span></code></li>
 </ul>
 </div>
 <div class="section" id="color-foreground-and-background-colors">
 <span id="id5"></span><span id="high-colors"></span><h3>256-Color Foreground and Background Colors<a class="headerlink" href="#color-foreground-and-background-colors" title="Permalink to this headline">¶</a></h3>
 <p>In 256-color mode you have the 16 basic colors, a 6 * 6 * 6 color cube and a gray
 scale with 24 entries (white and black not included).</p>
-<p>The color cube is weighted towards the brighter colors, with RGB points at <tt class="docutils literal"><span class="pre">0</span></tt>,
-<tt class="docutils literal"><span class="pre">0x5f</span></tt>, <tt class="docutils literal"><span class="pre">0x87</span></tt>, <tt class="docutils literal"><span class="pre">0xaf</span></tt>, <tt class="docutils literal"><span class="pre">0xd7</span></tt> and <tt class="docutils literal"><span class="pre">0xff</span></tt>.
-The hex characters <tt class="docutils literal"><span class="pre">'0'</span></tt>, <tt class="docutils literal"><span class="pre">'6'</span></tt>, <tt class="docutils literal"><span class="pre">'8'</span></tt>, <tt class="docutils literal"><span class="pre">'a'</span></tt>, <tt class="docutils literal"><span class="pre">'d'</span></tt> and
-<tt class="docutils literal"><span class="pre">'f'</span></tt> are used as short-forms for these values.</p>
-<p>High colors may be specified by their index <tt class="docutils literal"><span class="pre">'h0'</span></tt>, ..., <tt class="docutils literal"><span class="pre">'h255'</span></tt> or with the
-shortcuts for the color cube <tt class="docutils literal"><span class="pre">'#000'</span></tt>, <tt class="docutils literal"><span class="pre">'#006'</span></tt>, <tt class="docutils literal"><span class="pre">'#008'</span></tt>, ..., <tt class="docutils literal"><span class="pre">'#fff'</span></tt> or
-gray scale entries <tt class="docutils literal"><span class="pre">'g0'</span></tt> (black from color cube) , <tt class="docutils literal"><span class="pre">'g3'</span></tt>, <tt class="docutils literal"><span class="pre">'g7'</span></tt>, ...
-<tt class="docutils literal"><span class="pre">'g100'</span></tt> (white from color cube).</p>
+<p>The color cube is weighted towards the brighter colors, with RGB points at <code class="docutils literal"><span class="pre">0</span></code>,
+<code class="docutils literal"><span class="pre">0x5f</span></code>, <code class="docutils literal"><span class="pre">0x87</span></code>, <code class="docutils literal"><span class="pre">0xaf</span></code>, <code class="docutils literal"><span class="pre">0xd7</span></code> and <code class="docutils literal"><span class="pre">0xff</span></code>.
+The hex characters <code class="docutils literal"><span class="pre">'0'</span></code>, <code class="docutils literal"><span class="pre">'6'</span></code>, <code class="docutils literal"><span class="pre">'8'</span></code>, <code class="docutils literal"><span class="pre">'a'</span></code>, <code class="docutils literal"><span class="pre">'d'</span></code> and
+<code class="docutils literal"><span class="pre">'f'</span></code> are used as short-forms for these values.</p>
+<p>High colors may be specified by their index <code class="docutils literal"><span class="pre">'h0'</span></code>, …, <code class="docutils literal"><span class="pre">'h255'</span></code> or with the
+shortcuts for the color cube <code class="docutils literal"><span class="pre">'#000'</span></code>, <code class="docutils literal"><span class="pre">'#006'</span></code>, <code class="docutils literal"><span class="pre">'#008'</span></code>, …, <code class="docutils literal"><span class="pre">'#fff'</span></code> or
+gray scale entries <code class="docutils literal"><span class="pre">'g0'</span></code> (black from color cube) , <code class="docutils literal"><span class="pre">'g3'</span></code>, <code class="docutils literal"><span class="pre">'g7'</span></code>, …
+<code class="docutils literal"><span class="pre">'g100'</span></code> (white from color cube).</p>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
 <p class="last">The <a class="reference external" href="http://excess.org/urwid/browser/examples/palette_test.py">palette_test.py</a> example program</p>
@@ -314,13 +333,13 @@ gray scale entries <tt class="docutils literal"><span class="pre">'g0'</span></t
 <span id="id7"></span><h3>88-Color Foreground and Background Colors<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
 <p>In 88-color mode you have the 16 basic colors, a 4 * 4 * 4 color cube and a gray
 scale with 8 entries (white and black not included).</p>
-<p>The color cube is weighted towards the brighter colors, with RGB points at <tt class="docutils literal"><span class="pre">0</span></tt>,
-<tt class="docutils literal"><span class="pre">0x8b</span></tt>, <tt class="docutils literal"><span class="pre">0xcd</span></tt>, and <tt class="docutils literal"><span class="pre">0xff</span></tt>. The hex characters <tt class="docutils literal"><span class="pre">'0'</span></tt>, <tt class="docutils literal"><span class="pre">'8'</span></tt>, <tt class="docutils literal"><span class="pre">'c'</span></tt>
-and <tt class="docutils literal"><span class="pre">'f'</span></tt> are used as short-forms for these values.</p>
-<p>High colors may be specified by their index <tt class="docutils literal"><span class="pre">'h0'</span></tt>, ..., <tt class="docutils literal"><span class="pre">'h87'</span></tt> or with the
-shortcuts for the color cube <tt class="docutils literal"><span class="pre">'#000'</span></tt>, <tt class="docutils literal"><span class="pre">'#008'</span></tt>, <tt class="docutils literal"><span class="pre">'#00c'</span></tt>, ..., <tt class="docutils literal"><span class="pre">'#fff'</span></tt> or
-gray scale entries <tt class="docutils literal"><span class="pre">'g0'</span></tt> (black from color cube), <tt class="docutils literal"><span class="pre">'g19'</span></tt>, <tt class="docutils literal"><span class="pre">'g35'</span></tt>, ...
-<tt class="docutils literal"><span class="pre">'g100'</span></tt> (white from color cube).</p>
+<p>The color cube is weighted towards the brighter colors, with RGB points at <code class="docutils literal"><span class="pre">0</span></code>,
+<code class="docutils literal"><span class="pre">0x8b</span></code>, <code class="docutils literal"><span class="pre">0xcd</span></code>, and <code class="docutils literal"><span class="pre">0xff</span></code>. The hex characters <code class="docutils literal"><span class="pre">'0'</span></code>, <code class="docutils literal"><span class="pre">'8'</span></code>, <code class="docutils literal"><span class="pre">'c'</span></code>
+and <code class="docutils literal"><span class="pre">'f'</span></code> are used as short-forms for these values.</p>
+<p>High colors may be specified by their index <code class="docutils literal"><span class="pre">'h0'</span></code>, …, <code class="docutils literal"><span class="pre">'h87'</span></code> or with the
+shortcuts for the color cube <code class="docutils literal"><span class="pre">'#000'</span></code>, <code class="docutils literal"><span class="pre">'#008'</span></code>, <code class="docutils literal"><span class="pre">'#00c'</span></code>, …, <code class="docutils literal"><span class="pre">'#fff'</span></code> or
+gray scale entries <code class="docutils literal"><span class="pre">'g0'</span></code> (black from color cube), <code class="docutils literal"><span class="pre">'g19'</span></code>, <code class="docutils literal"><span class="pre">'g35'</span></code>, …
+<code class="docutils literal"><span class="pre">'g100'</span></code> (white from color cube).</p>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
 <p class="last">The <a class="reference external" href="http://excess.org/urwid/browser/examples/palette_test.py">palette_test.py</a> example program</p>
@@ -328,12 +347,12 @@ gray scale entries <tt class="docutils literal"><span class="pre">'g0'</span></t
 </div>
 <div class="section" id="rgb-palette-setting">
 <span id="id9"></span><h3>RGB Palette Setting<a class="headerlink" href="#rgb-palette-setting" title="Permalink to this headline">¶</a></h3>
-<p>A few terminals have the ability to customize the terminal palette&#8217;s RGB
-values with <a class="reference internal" href="../reference/display_modules.html#urwid.raw_display.Screen.modify_terminal_palette" title="urwid.raw_display.Screen.modify_terminal_palette"><tt class="xref py py-meth docutils literal"><span class="pre">raw_display.Screen.modify_terminal_palette()</span></tt></a>.
-There is no automatic way to tell if this is supported by a user&#8217;s
-terminal, so this feature shouldn&#8217;t be relied on.</p>
-<p><a class="reference internal" href="../reference/display_modules.html#urwid.raw_display.Screen.reset_default_terminal_palette" title="urwid.raw_display.Screen.reset_default_terminal_palette"><tt class="xref py py-meth docutils literal"><span class="pre">raw_display.Screen.reset_default_terminal_palette()</span></tt></a> is used to
-reset the palette in the <tt class="docutils literal"><span class="pre">palette_test.py</span></tt> example program when switching modes.</p>
+<p>A few terminals have the ability to customize the terminal palette’s RGB
+values with <a class="reference internal" href="../reference/display_modules.html#urwid.raw_display.Screen.modify_terminal_palette" title="urwid.raw_display.Screen.modify_terminal_palette"><code class="xref py py-meth docutils literal"><span class="pre">raw_display.Screen.modify_terminal_palette()</span></code></a>.
+There is no automatic way to tell if this is supported by a user’s
+terminal, so this feature shouldn’t be relied on.</p>
+<p><a class="reference internal" href="../reference/display_modules.html#urwid.raw_display.Screen.reset_default_terminal_palette" title="urwid.raw_display.Screen.reset_default_terminal_palette"><code class="xref py py-meth docutils literal"><span class="pre">raw_display.Screen.reset_default_terminal_palette()</span></code></a> is used to
+reset the palette in the <code class="docutils literal"><span class="pre">palette_test.py</span></code> example program when switching modes.</p>
 </div>
 </div>
 <div class="section" id="recommended-combinations">
@@ -362,7 +381,7 @@ edit boxes).</p>
           </div>
         </div>
       </div>
-      <div class="sphinxsidebar">
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
             <p class="logo"><a href="../index.html">
               <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
@@ -379,7 +398,7 @@ edit boxes).</p>
 <li><a class="reference internal" href="#standard-background-colors">8 Standard Background Colors</a></li>
 <li><a class="reference internal" href="#default-foreground-and-background">Default Foreground and Background</a></li>
 <li><a class="reference internal" href="#bold-underline-standout">Bold, Underline, Standout</a></li>
-<li><a class="reference internal" href="#bright-background-colors">&#8220;Bright&#8221; Background Colors</a></li>
+<li><a class="reference internal" href="#bright-background-colors">“Bright” Background Colors</a></li>
 <li><a class="reference internal" href="#color-foreground-and-background-colors">256-Color Foreground and Background Colors</a></li>
 <li><a class="reference internal" href="#id6">88-Color Foreground and Background Colors</a></li>
 <li><a class="reference internal" href="#rgb-palette-setting">RGB Palette Setting</a></li>
@@ -401,29 +420,28 @@ edit boxes).</p>
   <h4>Next topic</h4>
   <p class="topless"><a href="canvascache.html"
                         title="next chapter">Canvas Cache</a></p>
-  <h3>This Page</h3>
-  <ul class="this-page-menu">
-    <li><a href="../_sources/manual/displayattributes.txt"
-           rel="nofollow">Show Source</a></li>
-  </ul>
-<div id="searchbox" style="display: none">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/manual/displayattributes.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
-    <p class="searchtip" style="font-size: 90%">
-    Enter search terms or a module, class or function name.
-    </p>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
     </div>
-    <div class="related">
+    <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -435,13 +453,13 @@ edit boxes).</p>
         <li class="right" >
           <a href="encodings.html" title="Encodings Supported"
              >previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.3.1</a> &raquo;</li>
-          <li><a href="index.html" >Urwid Manual</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.0</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li> 
       </ul>
     </div>
-    <div class="footer">
-        &copy; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.6.
     </div>
   </body>
 </html>

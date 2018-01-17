@@ -1,36 +1,34 @@
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>Main Loop &mdash; Urwid 1.3.1</title>
-    
-    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <title>Main Loop &#8212; Urwid 2.0.0</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '1.3.1',
+        VERSION:     '2.0.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/sidebar.js"></script>
-    <link rel="top" title="Urwid 1.3.1" href="../index.html" />
-    <link rel="up" title="Urwid Manual" href="index.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Display Modules" href="displaymodules.html" />
     <link rel="prev" title="Library Overview" href="overview.html" /> 
   </head>
   <body>
-    <div class="related">
+    <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -42,137 +40,137 @@
         <li class="right" >
           <a href="overview.html" title="Library Overview"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.3.1</a> &raquo;</li>
-          <li><a href="index.html" accesskey="U">Urwid Manual</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.0</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li> 
       </ul>
     </div>  
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
-          <div class="body">
+          <div class="body" role="main">
             
   <div class="section" id="main-loop">
 <span id="id1"></span><h1>Main Loop<a class="headerlink" href="#main-loop" title="Permalink to this headline">¶</a></h1>
-<p>The <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><tt class="xref py py-class docutils literal"><span class="pre">MainLoop</span></tt></a> class ties together a <a class="reference internal" href="displaymodules.html#display-modules"><em>display
-module</em></a>, a set of widgets and an <a class="reference internal" href="#event-loops"><em>event loop</em></a>. It handles passing input from the display module to the
+<p>The <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a> class ties together a <a class="reference internal" href="displaymodules.html#display-modules"><span class="std std-ref">display
+module</span></a>, a set of widgets and an <a class="reference internal" href="#event-loops"><span class="std std-ref">event loop</span></a>. It handles passing input from the display module to the
 widgets, rendering the widgets and passing the rendered canvas to the display
 module to be drawn.</p>
-<p>You may filter the user&#8217;s input before it is passed to the widgets with your
-own code by using <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.input_filter" title="urwid.MainLoop.input_filter"><tt class="xref py py-meth docutils literal"><span class="pre">MainLoop.input_filter()</span></tt></a>, or have
+<p>You may filter the user’s input before it is passed to the widgets with your
+own code by using <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.input_filter" title="urwid.MainLoop.input_filter"><code class="xref py py-meth docutils literal"><span class="pre">MainLoop.input_filter()</span></code></a>, or have
 special code to handle input not handled by the widgets by using
-<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.unhandled_input" title="urwid.MainLoop.unhandled_input"><tt class="xref py py-func docutils literal"><span class="pre">MainLoop.unhandled_input()</span></tt></a>.</p>
+<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.unhandled_input" title="urwid.MainLoop.unhandled_input"><code class="xref py py-func docutils literal"><span class="pre">MainLoop.unhandled_input()</span></code></a>.</p>
 <p>You may set alarms to create timed events using
-<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.set_alarm_at" title="urwid.MainLoop.set_alarm_at"><tt class="xref py py-meth docutils literal"><span class="pre">MainLoop.set_alarm_at()</span></tt></a> or
-<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.set_alarm_in" title="urwid.MainLoop.set_alarm_in"><tt class="xref py py-meth docutils literal"><span class="pre">MainLoop.set_alarm_in()</span></tt></a>. These methods automatically add
-a call to <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.draw_screen" title="urwid.MainLoop.draw_screen"><tt class="xref py py-func docutils literal"><span class="pre">MainLoop.draw_screen()</span></tt></a> after calling your
-callback. <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.remove_alarm" title="urwid.MainLoop.remove_alarm"><tt class="xref py py-meth docutils literal"><span class="pre">MainLoop.remove_alarm()</span></tt></a> may be used to remove
+<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.set_alarm_at" title="urwid.MainLoop.set_alarm_at"><code class="xref py py-meth docutils literal"><span class="pre">MainLoop.set_alarm_at()</span></code></a> or
+<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.set_alarm_in" title="urwid.MainLoop.set_alarm_in"><code class="xref py py-meth docutils literal"><span class="pre">MainLoop.set_alarm_in()</span></code></a>. These methods automatically add
+a call to <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.draw_screen" title="urwid.MainLoop.draw_screen"><code class="xref py py-func docutils literal"><span class="pre">MainLoop.draw_screen()</span></code></a> after calling your
+callback. <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.remove_alarm" title="urwid.MainLoop.remove_alarm"><code class="xref py py-meth docutils literal"><span class="pre">MainLoop.remove_alarm()</span></code></a> may be used to remove
 alarms.</p>
 <p>When the main loop is running, any code that raises an
-<a class="reference internal" href="../reference/exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><tt class="xref py py-exc docutils literal"><span class="pre">ExitMainLoop</span></tt></a> exception will cause the loop to
+<a class="reference internal" href="../reference/exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal"><span class="pre">ExitMainLoop</span></code></a> exception will cause the loop to
 exit cleanly. If any other exception reaches the main loop code, it will shut
 down the screen to avoid leaving the terminal in an unusual state then re-raise
 the exception for normal handling.</p>
-<p>Using <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><tt class="xref py py-class docutils literal"><span class="pre">MainLoop</span></tt></a> is highly recommended, but if it does
+<p>Using <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a> is highly recommended, but if it does
 not fit the needs of your application you may choose to use your own code
-instead. There are no dependencies on <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><tt class="xref py py-class docutils literal"><span class="pre">MainLoop</span></tt></a> in
+instead. There are no dependencies on <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a> in
 other parts of Urwid.</p>
 <div class="section" id="widgets-displayed">
 <h2>Widgets Displayed<a class="headerlink" href="#widgets-displayed" title="Permalink to this headline">¶</a></h2>
-<p>The topmost widget displayed by <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><tt class="xref py py-class docutils literal"><span class="pre">MainLoop</span></tt></a> must be
+<p>The topmost widget displayed by <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a> must be
 passed as the first parameter to the constructor. If you want to change the
 topmost widget while running, you can assign a new widget to the
-<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><tt class="xref py py-class docutils literal"><span class="pre">MainLoop</span></tt></a> object&#8217;s
-<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.widget" title="urwid.MainLoop.widget"><tt class="xref py py-attr docutils literal"><span class="pre">MainLoop.widget</span></tt></a> attribute. This is useful for
+<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a> object’s
+<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.widget" title="urwid.MainLoop.widget"><code class="xref py py-attr docutils literal"><span class="pre">MainLoop.widget</span></code></a> attribute. This is useful for
 applications that have a number of different modes or views.</p>
 <p>The displayed widgets will be handling user input, so it is better to extend
 the widgets that are displayed with your application-specific input handling so
-that the application&#8217;s behaviour changes when the widgets change. If all your
-custom input handling is done from <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.unhandled_input" title="urwid.MainLoop.unhandled_input"><tt class="xref py py-meth docutils literal"><span class="pre">MainLoop.unhandled_input()</span></tt></a>,
+that the application’s behaviour changes when the widgets change. If all your
+custom input handling is done from <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.unhandled_input" title="urwid.MainLoop.unhandled_input"><code class="xref py py-meth docutils literal"><span class="pre">MainLoop.unhandled_input()</span></code></a>,
 it will be difficult to extend as your application gets more complicated.</p>
 </div>
 <div class="section" id="event-loops">
 <span id="id2"></span><h2>Event Loops<a class="headerlink" href="#event-loops" title="Permalink to this headline">¶</a></h2>
-<p>Urwid&#8217;s event loop classes handle waiting for things for the
-<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><tt class="xref py py-class docutils literal"><span class="pre">MainLoop</span></tt></a>. The different event loops allow you to
+<p>Urwid’s event loop classes handle waiting for things for the
+<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a>. The different event loops allow you to
 integrate with <a class="reference external" href="http://twistedmatrix.com/trac/">Twisted</a>, <a class="reference external" href="http://developer.gnome.org/glib/stable/">Glib</a>, <a class="reference external" href="http://www.tornadoweb.org/">Tornado</a>, <a class="reference external" href="https://docs.python.org/3/library/asyncio.html">Asyncio</a> libraries,
-or use a simple <tt class="docutils literal"><span class="pre">select</span></tt>-based
+or use a simple <code class="docutils literal"><span class="pre">select</span></code>-based
 loop. Event loop classes abstract the particulars of waiting for input and
 calling functions as a result of timeouts.</p>
 <p>You will typically only have a single event loop in your application, even if
-you have more than one <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><tt class="xref py py-class docutils literal"><span class="pre">MainLoop</span></tt></a> running.</p>
+you have more than one <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a> running.</p>
 <p>You can add your own files to watch to your event loop, with the
-<a class="reference internal" href="../reference/main_loop.html#urwid.SelectEventLoop.watch_file" title="urwid.SelectEventLoop.watch_file"><tt class="xref py py-meth docutils literal"><span class="pre">watch_file()</span></tt></a> method.
+<a class="reference internal" href="../reference/main_loop.html#urwid.SelectEventLoop.watch_file" title="urwid.SelectEventLoop.watch_file"><code class="xref py py-meth docutils literal"><span class="pre">watch_file()</span></code></a> method.
 Using this interface gives you the special handling
-of <a class="reference internal" href="../reference/exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><tt class="xref py py-exc docutils literal"><span class="pre">ExitMainLoop</span></tt></a> and other exceptions when using <a class="reference external" href="http://developer.gnome.org/glib/stable/">Glib</a>, <a class="reference external" href="http://twistedmatrix.com/trac/">Twisted</a> or
+of <a class="reference internal" href="../reference/exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal"><span class="pre">ExitMainLoop</span></code></a> and other exceptions when using <a class="reference external" href="http://developer.gnome.org/glib/stable/">Glib</a>, <a class="reference external" href="http://twistedmatrix.com/trac/">Twisted</a> or
 <a class="reference external" href="http://www.tornadoweb.org/">Tornado</a> callbacks.</p>
 <div class="section" id="selecteventloop">
-<h3><tt class="docutils literal"><span class="pre">SelectEventLoop</span></tt><a class="headerlink" href="#selecteventloop" title="Permalink to this headline">¶</a></h3>
-<p>This event loop is based on <tt class="docutils literal"><span class="pre">select.select()</span></tt>. This is the default event loop
-created if none is passed to <tt class="xref py py-class docutils literal"><span class="pre">MainLoop</span></tt>.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="c"># same as urwid.MainLoop(widget, event_loop=urwid.SelectEventLoop())</span>
+<h3><code class="docutils literal"><span class="pre">SelectEventLoop</span></code><a class="headerlink" href="#selecteventloop" title="Permalink to this headline">¶</a></h3>
+<p>This event loop is based on <code class="docutils literal"><span class="pre">select.select()</span></code>. This is the default event loop
+created if none is passed to <code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code>.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># same as urwid.MainLoop(widget, event_loop=urwid.SelectEventLoop())</span>
 <span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
 </pre></div>
 </div>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><a class="reference internal" href="../reference/main_loop.html#urwid.SelectEventLoop" title="urwid.SelectEventLoop"><tt class="xref py py-class docutils literal"><span class="pre">SelectEventLoop</span> <span class="pre">reference</span></tt></a></p>
+<p class="last"><a class="reference internal" href="../reference/main_loop.html#urwid.SelectEventLoop" title="urwid.SelectEventLoop"><code class="xref py py-class docutils literal"><span class="pre">SelectEventLoop</span> <span class="pre">reference</span></code></a></p>
 </div>
 </div>
 <div class="section" id="twistedeventloop">
-<h3><tt class="docutils literal"><span class="pre">TwistedEventLoop</span></tt><a class="headerlink" href="#twistedeventloop" title="Permalink to this headline">¶</a></h3>
-<p>This event loop uses Twisted&#8217;s reactor. It has been set up to emulate
-<a class="reference internal" href="../reference/main_loop.html#urwid.SelectEventLoop" title="urwid.SelectEventLoop"><tt class="xref py py-class docutils literal"><span class="pre">SelectEventLoop</span></tt></a>&#8216;s behaviour and will start the
+<h3><code class="docutils literal"><span class="pre">TwistedEventLoop</span></code><a class="headerlink" href="#twistedeventloop" title="Permalink to this headline">¶</a></h3>
+<p>This event loop uses Twisted’s reactor. It has been set up to emulate
+<a class="reference internal" href="../reference/main_loop.html#urwid.SelectEventLoop" title="urwid.SelectEventLoop"><code class="xref py py-class docutils literal"><span class="pre">SelectEventLoop</span></code></a>’s behaviour and will start the
 reactor and stop it on an error. This is not the standard way of using
-Twisted&#8217;s reactor, so you may need to modify this behaviour for your
+Twisted’s reactor, so you may need to modify this behaviour for your
 application.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">event_loop</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">TwistedEventLoop</span><span class="p">())</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">event_loop</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">TwistedEventLoop</span><span class="p">())</span>
 </pre></div>
 </div>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><a class="reference internal" href="../reference/main_loop.html#urwid.TwistedEventLoop" title="urwid.TwistedEventLoop"><tt class="xref py py-class docutils literal"><span class="pre">TwistedEventLoop</span> <span class="pre">reference</span></tt></a></p>
+<p class="last"><a class="reference internal" href="../reference/main_loop.html#urwid.TwistedEventLoop" title="urwid.TwistedEventLoop"><code class="xref py py-class docutils literal"><span class="pre">TwistedEventLoop</span> <span class="pre">reference</span></code></a></p>
 </div>
 </div>
 <div class="section" id="glibeventloop">
-<h3><tt class="docutils literal"><span class="pre">GLibEventLoop</span></tt><a class="headerlink" href="#glibeventloop" title="Permalink to this headline">¶</a></h3>
-<p>This event loop uses GLib&#8217;s event loop. This is useful if you are building an
-application that depends on DBus events, but don&#8217;t want to base your
+<h3><code class="docutils literal"><span class="pre">GLibEventLoop</span></code><a class="headerlink" href="#glibeventloop" title="Permalink to this headline">¶</a></h3>
+<p>This event loop uses GLib’s event loop. This is useful if you are building an
+application that depends on DBus events, but don’t want to base your
 application on Twisted.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">event_loop</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">GLibEventLoop</span><span class="p">())</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">event_loop</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">GLibEventLoop</span><span class="p">())</span>
 </pre></div>
 </div>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><a class="reference internal" href="../reference/main_loop.html#urwid.GLibEventLoop" title="urwid.GLibEventLoop"><tt class="xref py py-class docutils literal"><span class="pre">GLibEventLoop</span> <span class="pre">reference</span></tt></a></p>
+<p class="last"><a class="reference internal" href="../reference/main_loop.html#urwid.GLibEventLoop" title="urwid.GLibEventLoop"><code class="xref py py-class docutils literal"><span class="pre">GLibEventLoop</span> <span class="pre">reference</span></code></a></p>
 </div>
 </div>
 <div class="section" id="tornadoeventloop">
-<h3><tt class="docutils literal"><span class="pre">TornadoEventLoop</span></tt><a class="headerlink" href="#tornadoeventloop" title="Permalink to this headline">¶</a></h3>
+<h3><code class="docutils literal"><span class="pre">TornadoEventLoop</span></code><a class="headerlink" href="#tornadoeventloop" title="Permalink to this headline">¶</a></h3>
 <p>This event loop integrates with Tornado.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">tornado.ioloop</span> <span class="kn">import</span> <span class="n">IOLoop</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">tornado.ioloop</span> <span class="k">import</span> <span class="n">IOLoop</span>
 <span class="n">evl</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TornadoEventLoop</span><span class="p">(</span><span class="n">IOLoop</span><span class="p">())</span>
 <span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">event_loop</span><span class="o">=</span><span class="n">evl</span><span class="p">)</span>
 </pre></div>
 </div>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><a class="reference internal" href="../reference/main_loop.html#urwid.TornadoEventLoop" title="urwid.TornadoEventLoop"><tt class="xref py py-class docutils literal"><span class="pre">TornadoEventLoop</span> <span class="pre">reference</span></tt></a></p>
+<p class="last"><a class="reference internal" href="../reference/main_loop.html#urwid.TornadoEventLoop" title="urwid.TornadoEventLoop"><code class="xref py py-class docutils literal"><span class="pre">TornadoEventLoop</span> <span class="pre">reference</span></code></a></p>
 </div>
 </div>
 <div class="section" id="asyncioeventloop">
-<h3><tt class="docutils literal"><span class="pre">AsyncioEventLoop</span></tt><a class="headerlink" href="#asyncioeventloop" title="Permalink to this headline">¶</a></h3>
+<h3><code class="docutils literal"><span class="pre">AsyncioEventLoop</span></code><a class="headerlink" href="#asyncioeventloop" title="Permalink to this headline">¶</a></h3>
 <p>This event loop integrates with the asyncio module in Python 3.4,
 the asyncio package available for Python 3.3 or the trollius
 package available for Python 2.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">asyncio</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">asyncio</span>
 <span class="n">evl</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AsyncioEventLoop</span><span class="p">(</span><span class="n">loop</span><span class="o">=</span><span class="n">asyncio</span><span class="o">.</span><span class="n">get_event_loop</span><span class="p">())</span>
 <span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">event_loop</span><span class="o">=</span><span class="n">evl</span><span class="p">)</span>
 </pre></div>
 </div>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><a class="reference internal" href="../reference/main_loop.html#urwid.AsyncioEventLoop" title="urwid.AsyncioEventLoop"><tt class="xref py py-class docutils literal"><span class="pre">AsyncioEventLoop</span> <span class="pre">reference</span></tt></a></p>
+<p class="last"><a class="reference internal" href="../reference/main_loop.html#urwid.AsyncioEventLoop" title="urwid.AsyncioEventLoop"><code class="xref py py-class docutils literal"><span class="pre">AsyncioEventLoop</span> <span class="pre">reference</span></code></a></p>
 </div>
 </div>
 </div>
@@ -182,7 +180,7 @@ package available for Python 2.</p>
           </div>
         </div>
       </div>
-      <div class="sphinxsidebar">
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
             <p class="logo"><a href="../index.html">
               <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
@@ -191,11 +189,11 @@ package available for Python 2.</p>
 <li><a class="reference internal" href="#">Main Loop</a><ul>
 <li><a class="reference internal" href="#widgets-displayed">Widgets Displayed</a></li>
 <li><a class="reference internal" href="#event-loops">Event Loops</a><ul>
-<li><a class="reference internal" href="#selecteventloop"><tt class="docutils literal"><span class="pre">SelectEventLoop</span></tt></a></li>
-<li><a class="reference internal" href="#twistedeventloop"><tt class="docutils literal"><span class="pre">TwistedEventLoop</span></tt></a></li>
-<li><a class="reference internal" href="#glibeventloop"><tt class="docutils literal"><span class="pre">GLibEventLoop</span></tt></a></li>
-<li><a class="reference internal" href="#tornadoeventloop"><tt class="docutils literal"><span class="pre">TornadoEventLoop</span></tt></a></li>
-<li><a class="reference internal" href="#asyncioeventloop"><tt class="docutils literal"><span class="pre">AsyncioEventLoop</span></tt></a></li>
+<li><a class="reference internal" href="#selecteventloop"><code class="docutils literal"><span class="pre">SelectEventLoop</span></code></a></li>
+<li><a class="reference internal" href="#twistedeventloop"><code class="docutils literal"><span class="pre">TwistedEventLoop</span></code></a></li>
+<li><a class="reference internal" href="#glibeventloop"><code class="docutils literal"><span class="pre">GLibEventLoop</span></code></a></li>
+<li><a class="reference internal" href="#tornadoeventloop"><code class="docutils literal"><span class="pre">TornadoEventLoop</span></code></a></li>
+<li><a class="reference internal" href="#asyncioeventloop"><code class="docutils literal"><span class="pre">AsyncioEventLoop</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -209,29 +207,28 @@ package available for Python 2.</p>
   <h4>Next topic</h4>
   <p class="topless"><a href="displaymodules.html"
                         title="next chapter">Display Modules</a></p>
-  <h3>This Page</h3>
-  <ul class="this-page-menu">
-    <li><a href="../_sources/manual/mainloop.txt"
-           rel="nofollow">Show Source</a></li>
-  </ul>
-<div id="searchbox" style="display: none">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/manual/mainloop.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
-    <p class="searchtip" style="font-size: 90%">
-    Enter search terms or a module, class or function name.
-    </p>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
     </div>
-    <div class="related">
+    <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -243,13 +240,13 @@ package available for Python 2.</p>
         <li class="right" >
           <a href="overview.html" title="Library Overview"
              >previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.3.1</a> &raquo;</li>
-          <li><a href="index.html" >Urwid Manual</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.0</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li> 
       </ul>
     </div>
-    <div class="footer">
-        &copy; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.6.
     </div>
   </body>
 </html>

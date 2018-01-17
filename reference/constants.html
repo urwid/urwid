@@ -1,36 +1,34 @@
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>Constants &mdash; Urwid 1.3.1</title>
-    
-    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <title>Constants &#8212; Urwid 2.0.0</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '1.3.1',
+        VERSION:     '2.0.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <script type="text/javascript" src="../_static/sidebar.js"></script>
-    <link rel="top" title="Urwid 1.3.1" href="../index.html" />
-    <link rel="up" title="Urwid Reference" href="index.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Exceptions" href="exceptions.html" />
     <link rel="prev" title="Command Map" href="command_map.html" /> 
   </head>
   <body>
-    <div class="related">
+    <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -42,15 +40,15 @@
         <li class="right" >
           <a href="command_map.html" title="Command Map"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.3.1</a> &raquo;</li>
-          <li><a href="index.html" accesskey="U">Urwid Reference</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.0</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li> 
       </ul>
     </div>  
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
-          <div class="body">
+          <div class="body" role="main">
             
   <div class="section" id="constants">
 <h1>Constants<a class="headerlink" href="#constants" title="Permalink to this headline">¶</a></h1>
@@ -63,109 +61,109 @@ and tutorials tend to use the string values.</p>
 </div>
 <div class="section" id="widget-sizing-methods">
 <h2>Widget Sizing Methods<a class="headerlink" href="#widget-sizing-methods" title="Permalink to this headline">¶</a></h2>
-<p>One or more of these values returned by <a class="reference internal" href="widget.html#urwid.Widget.sizing" title="urwid.Widget.sizing"><tt class="xref py py-meth docutils literal"><span class="pre">Widget.sizing()</span></tt></a> to indicate
+<p>One or more of these values returned by <a class="reference internal" href="widget.html#urwid.Widget.sizing" title="urwid.Widget.sizing"><code class="xref py py-meth docutils literal"><span class="pre">Widget.sizing()</span></code></a> to indicate
 supported sizing methods.</p>
 <dl class="data">
 <dt id="urwid.FLOW">
-<tt class="descclassname">urwid.</tt><tt class="descname">FLOW</tt><em class="property"> = 'flow'</em><a class="headerlink" href="#urwid.FLOW" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">FLOW</code><em class="property"> = 'flow'</em><a class="headerlink" href="#urwid.FLOW" title="Permalink to this definition">¶</a></dt>
 <dd><p>Widget that is given a number of columns by its parent widget and
 calculates the number of rows it requires for rendering
-e.g. <a class="reference internal" href="widget.html#urwid.Text" title="urwid.Text"><tt class="xref py py-class docutils literal"><span class="pre">Text</span></tt></a></p>
+e.g. <a class="reference internal" href="widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal"><span class="pre">Text</span></code></a></p>
 </dd></dl>
 
 <dl class="data">
 <dt id="urwid.BOX">
-<tt class="descclassname">urwid.</tt><tt class="descname">BOX</tt><em class="property"> = 'box'</em><a class="headerlink" href="#urwid.BOX" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">BOX</code><em class="property"> = 'box'</em><a class="headerlink" href="#urwid.BOX" title="Permalink to this definition">¶</a></dt>
 <dd><p>Widget that is given a number of columns and rows by its parent
 widget and must render that size
-e.g. <a class="reference internal" href="widget.html#urwid.ListBox" title="urwid.ListBox"><tt class="xref py py-class docutils literal"><span class="pre">ListBox</span></tt></a></p>
+e.g. <a class="reference internal" href="widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a></p>
 </dd></dl>
 
 <dl class="data">
 <dt id="urwid.FIXED">
-<tt class="descclassname">urwid.</tt><tt class="descname">FIXED</tt><em class="property"> = 'fixed'</em><a class="headerlink" href="#urwid.FIXED" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">FIXED</code><em class="property"> = 'fixed'</em><a class="headerlink" href="#urwid.FIXED" title="Permalink to this definition">¶</a></dt>
 <dd><p>Widget that knows the number of columns and rows it requires and will
 only render at that exact size
-e.g. <a class="reference internal" href="widget.html#urwid.BigText" title="urwid.BigText"><tt class="xref py py-class docutils literal"><span class="pre">BigText</span></tt></a></p>
+e.g. <a class="reference internal" href="widget.html#urwid.BigText" title="urwid.BigText"><code class="xref py py-class docutils literal"><span class="pre">BigText</span></code></a></p>
 </dd></dl>
 
 </div>
 <div class="section" id="horizontal-alignment">
 <h2>Horizontal Alignment<a class="headerlink" href="#horizontal-alignment" title="Permalink to this headline">¶</a></h2>
-<p>Used to horizontally align text in <a class="reference internal" href="widget.html#urwid.Text" title="urwid.Text"><tt class="xref py py-class docutils literal"><span class="pre">Text</span></tt></a> widgets and child widgets
-of <a class="reference internal" href="widget.html#urwid.Padding" title="urwid.Padding"><tt class="xref py py-class docutils literal"><span class="pre">Padding</span></tt></a> and <a class="reference internal" href="widget.html#urwid.Overlay" title="urwid.Overlay"><tt class="xref py py-class docutils literal"><span class="pre">Overlay</span></tt></a>.</p>
+<p>Used to horizontally align text in <a class="reference internal" href="widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal"><span class="pre">Text</span></code></a> widgets and child widgets
+of <a class="reference internal" href="widget.html#urwid.Padding" title="urwid.Padding"><code class="xref py py-class docutils literal"><span class="pre">Padding</span></code></a> and <a class="reference internal" href="widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal"><span class="pre">Overlay</span></code></a>.</p>
 <dl class="data">
 <dt id="urwid.LEFT">
-<tt class="descclassname">urwid.</tt><tt class="descname">LEFT</tt><em class="property"> = 'left'</em><a class="headerlink" href="#urwid.LEFT" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">LEFT</code><em class="property"> = 'left'</em><a class="headerlink" href="#urwid.LEFT" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="urwid.CENTER">
-<tt class="descclassname">urwid.</tt><tt class="descname">CENTER</tt><em class="property"> = 'center'</em><a class="headerlink" href="#urwid.CENTER" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">CENTER</code><em class="property"> = 'center'</em><a class="headerlink" href="#urwid.CENTER" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="urwid.RIGHT">
-<tt class="descclassname">urwid.</tt><tt class="descname">RIGHT</tt><em class="property"> = 'right'</em><a class="headerlink" href="#urwid.RIGHT" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">RIGHT</code><em class="property"> = 'right'</em><a class="headerlink" href="#urwid.RIGHT" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
 <div class="section" id="veritcal-alignment">
 <h2>Veritcal Alignment<a class="headerlink" href="#veritcal-alignment" title="Permalink to this headline">¶</a></h2>
-<p>Used to vertically align child widgets of <a class="reference internal" href="widget.html#urwid.Filler" title="urwid.Filler"><tt class="xref py py-class docutils literal"><span class="pre">Filler</span></tt></a> and
-<a class="reference internal" href="widget.html#urwid.Overlay" title="urwid.Overlay"><tt class="xref py py-class docutils literal"><span class="pre">Overlay</span></tt></a>.</p>
+<p>Used to vertically align child widgets of <a class="reference internal" href="widget.html#urwid.Filler" title="urwid.Filler"><code class="xref py py-class docutils literal"><span class="pre">Filler</span></code></a> and
+<a class="reference internal" href="widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal"><span class="pre">Overlay</span></code></a>.</p>
 <dl class="data">
 <dt id="urwid.TOP">
-<tt class="descclassname">urwid.</tt><tt class="descname">TOP</tt><em class="property"> = 'top'</em><a class="headerlink" href="#urwid.TOP" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">TOP</code><em class="property"> = 'top'</em><a class="headerlink" href="#urwid.TOP" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="urwid.MIDDLE">
-<tt class="descclassname">urwid.</tt><tt class="descname">MIDDLE</tt><em class="property"> = 'middle'</em><a class="headerlink" href="#urwid.MIDDLE" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">MIDDLE</code><em class="property"> = 'middle'</em><a class="headerlink" href="#urwid.MIDDLE" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="urwid.BOTTOM">
-<tt class="descclassname">urwid.</tt><tt class="descname">BOTTOM</tt><em class="property"> = 'bottom'</em><a class="headerlink" href="#urwid.BOTTOM" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">BOTTOM</code><em class="property"> = 'bottom'</em><a class="headerlink" href="#urwid.BOTTOM" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
 <div class="section" id="width-and-height-settings">
 <h2>Width and Height Settings<a class="headerlink" href="#width-and-height-settings" title="Permalink to this headline">¶</a></h2>
 <p>Used to distribute or set widths and heights of child widgets of
-<a class="reference internal" href="widget.html#urwid.Padding" title="urwid.Padding"><tt class="xref py py-class docutils literal"><span class="pre">Padding</span></tt></a>, <a class="reference internal" href="widget.html#urwid.Filler" title="urwid.Filler"><tt class="xref py py-class docutils literal"><span class="pre">Filler</span></tt></a>, <a class="reference internal" href="widget.html#urwid.Columns" title="urwid.Columns"><tt class="xref py py-class docutils literal"><span class="pre">Columns</span></tt></a>,
-<a class="reference internal" href="widget.html#urwid.Pile" title="urwid.Pile"><tt class="xref py py-class docutils literal"><span class="pre">Pile</span></tt></a> and <a class="reference internal" href="widget.html#urwid.Overlay" title="urwid.Overlay"><tt class="xref py py-class docutils literal"><span class="pre">Overlay</span></tt></a>.</p>
+<a class="reference internal" href="widget.html#urwid.Padding" title="urwid.Padding"><code class="xref py py-class docutils literal"><span class="pre">Padding</span></code></a>, <a class="reference internal" href="widget.html#urwid.Filler" title="urwid.Filler"><code class="xref py py-class docutils literal"><span class="pre">Filler</span></code></a>, <a class="reference internal" href="widget.html#urwid.Columns" title="urwid.Columns"><code class="xref py py-class docutils literal"><span class="pre">Columns</span></code></a>,
+<a class="reference internal" href="widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal"><span class="pre">Pile</span></code></a> and <a class="reference internal" href="widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal"><span class="pre">Overlay</span></code></a>.</p>
 <dl class="data">
 <dt id="urwid.PACK">
-<tt class="descclassname">urwid.</tt><tt class="descname">PACK</tt><em class="property"> = 'pack'</em><a class="headerlink" href="#urwid.PACK" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">PACK</code><em class="property"> = 'pack'</em><a class="headerlink" href="#urwid.PACK" title="Permalink to this definition">¶</a></dt>
 <dd><p>Ask the child widget to calculate the number of columns or rows it needs</p>
 </dd></dl>
 
 <dl class="data">
 <dt id="urwid.GIVEN">
-<tt class="descclassname">urwid.</tt><tt class="descname">GIVEN</tt><em class="property"> = 'given'</em><a class="headerlink" href="#urwid.GIVEN" title="Permalink to this definition">¶</a></dt>
-<dd><p>A set number of columns or rows, e.g. (&#8216;given&#8217;, 10) will have exactly
+<code class="descclassname">urwid.</code><code class="descname">GIVEN</code><em class="property"> = 'given'</em><a class="headerlink" href="#urwid.GIVEN" title="Permalink to this definition">¶</a></dt>
+<dd><p>A set number of columns or rows, e.g. (‘given’, 10) will have exactly
 10 columns or rows given to the child widget</p>
 </dd></dl>
 
 <dl class="data">
 <dt id="urwid.RELATIVE">
-<tt class="descclassname">urwid.</tt><tt class="descname">RELATIVE</tt><em class="property"> = 'relative'</em><a class="headerlink" href="#urwid.RELATIVE" title="Permalink to this definition">¶</a></dt>
-<dd><p>A percentage of the total space, e.g. (&#8216;relative&#8217;, 50) will give half
+<code class="descclassname">urwid.</code><code class="descname">RELATIVE</code><em class="property"> = 'relative'</em><a class="headerlink" href="#urwid.RELATIVE" title="Permalink to this definition">¶</a></dt>
+<dd><p>A percentage of the total space, e.g. (‘relative’, 50) will give half
 of the total columns or rows to the child widget</p>
 </dd></dl>
 
 <dl class="data">
 <dt id="urwid.RELATIVE_100">
-<tt class="descclassname">urwid.</tt><tt class="descname">RELATIVE_100</tt><em class="property"> = ('relative', 100)</em><a class="headerlink" href="#urwid.RELATIVE_100" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">RELATIVE_100</code><em class="property"> = ('relative', 100)</em><a class="headerlink" href="#urwid.RELATIVE_100" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="urwid.WEIGHT">
-<tt class="descclassname">urwid.</tt><tt class="descname">WEIGHT</tt><em class="property"> = 'weight'</em><a class="headerlink" href="#urwid.WEIGHT" title="Permalink to this definition">¶</a></dt>
-<dd><p>A weight value for distributing columns or rows, e.g. (&#8216;weight&#8217;, 3)
+<code class="descclassname">urwid.</code><code class="descname">WEIGHT</code><em class="property"> = 'weight'</em><a class="headerlink" href="#urwid.WEIGHT" title="Permalink to this definition">¶</a></dt>
+<dd><p>A weight value for distributing columns or rows, e.g. (‘weight’, 3)
 will give 3 times as many columns or rows as another widget in the same
-container with (&#8216;weight&#8217;, 1).</p>
+container with (‘weight’, 1).</p>
 </dd></dl>
 
 </div>
@@ -173,22 +171,22 @@ container with (&#8216;weight&#8217;, 1).</p>
 <h2>Text Wrapping Modes<a class="headerlink" href="#text-wrapping-modes" title="Permalink to this headline">¶</a></h2>
 <dl class="data">
 <dt id="urwid.SPACE">
-<tt class="descclassname">urwid.</tt><tt class="descname">SPACE</tt><em class="property"> = 'space'</em><a class="headerlink" href="#urwid.SPACE" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">SPACE</code><em class="property"> = 'space'</em><a class="headerlink" href="#urwid.SPACE" title="Permalink to this definition">¶</a></dt>
 <dd><p>wrap text on space characters or at the boundaries of wide characters</p>
 </dd></dl>
 
 <dl class="data">
 <dt id="urwid.ANY">
-<tt class="descclassname">urwid.</tt><tt class="descname">ANY</tt><em class="property"> = 'any'</em><a class="headerlink" href="#urwid.ANY" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">ANY</code><em class="property"> = 'any'</em><a class="headerlink" href="#urwid.ANY" title="Permalink to this definition">¶</a></dt>
 <dd><p>wrap before any wide or narrow character that would exceed the available
 screen columns</p>
 </dd></dl>
 
 <dl class="data">
 <dt id="urwid.CLIP">
-<tt class="descclassname">urwid.</tt><tt class="descname">CLIP</tt><em class="property"> = 'clip'</em><a class="headerlink" href="#urwid.CLIP" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">CLIP</code><em class="property"> = 'clip'</em><a class="headerlink" href="#urwid.CLIP" title="Permalink to this definition">¶</a></dt>
 <dd><p>clip before any wide or narrow character that would exceed the available
-screen columns ad don&#8217;t display the remaining text on the line</p>
+screen columns ad don’t display the remaining text on the line</p>
 </dd></dl>
 
 </div>
@@ -198,42 +196,42 @@ screen columns ad don&#8217;t display the remaining text on the line</p>
 <h3>Standard background and foreground colors<a class="headerlink" href="#standard-background-and-foreground-colors" title="Permalink to this headline">¶</a></h3>
 <dl class="data">
 <dt id="urwid.BLACK">
-<tt class="descclassname">urwid.</tt><tt class="descname">BLACK</tt><em class="property"> = 'black'</em><a class="headerlink" href="#urwid.BLACK" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">BLACK</code><em class="property"> = 'black'</em><a class="headerlink" href="#urwid.BLACK" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="urwid.DARK_RED">
-<tt class="descclassname">urwid.</tt><tt class="descname">DARK_RED</tt><em class="property"> = 'dark red'</em><a class="headerlink" href="#urwid.DARK_RED" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">DARK_RED</code><em class="property"> = 'dark red'</em><a class="headerlink" href="#urwid.DARK_RED" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="urwid.DARK_GREEN">
-<tt class="descclassname">urwid.</tt><tt class="descname">DARK_GREEN</tt><em class="property"> = 'dark green'</em><a class="headerlink" href="#urwid.DARK_GREEN" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">DARK_GREEN</code><em class="property"> = 'dark green'</em><a class="headerlink" href="#urwid.DARK_GREEN" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="urwid.BROWN">
-<tt class="descclassname">urwid.</tt><tt class="descname">BROWN</tt><em class="property"> = 'brown'</em><a class="headerlink" href="#urwid.BROWN" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">BROWN</code><em class="property"> = 'brown'</em><a class="headerlink" href="#urwid.BROWN" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="urwid.DARK_BLUE">
-<tt class="descclassname">urwid.</tt><tt class="descname">DARK_BLUE</tt><em class="property"> = 'dark blue'</em><a class="headerlink" href="#urwid.DARK_BLUE" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">DARK_BLUE</code><em class="property"> = 'dark blue'</em><a class="headerlink" href="#urwid.DARK_BLUE" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="urwid.DARK_MAGENTA">
-<tt class="descclassname">urwid.</tt><tt class="descname">DARK_MAGENTA</tt><em class="property"> = 'dark magenta'</em><a class="headerlink" href="#urwid.DARK_MAGENTA" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">DARK_MAGENTA</code><em class="property"> = 'dark magenta'</em><a class="headerlink" href="#urwid.DARK_MAGENTA" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="urwid.DARK_CYAN">
-<tt class="descclassname">urwid.</tt><tt class="descname">DARK_CYAN</tt><em class="property"> = 'dark cyan'</em><a class="headerlink" href="#urwid.DARK_CYAN" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">DARK_CYAN</code><em class="property"> = 'dark cyan'</em><a class="headerlink" href="#urwid.DARK_CYAN" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="urwid.LIGHT_GRAY">
-<tt class="descclassname">urwid.</tt><tt class="descname">LIGHT_GRAY</tt><em class="property"> = 'light gray'</em><a class="headerlink" href="#urwid.LIGHT_GRAY" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">LIGHT_GRAY</code><em class="property"> = 'light gray'</em><a class="headerlink" href="#urwid.LIGHT_GRAY" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
@@ -241,57 +239,57 @@ screen columns ad don&#8217;t display the remaining text on the line</p>
 <h3>Standard foreground colors (not safe to use as background)<a class="headerlink" href="#standard-foreground-colors-not-safe-to-use-as-background" title="Permalink to this headline">¶</a></h3>
 <dl class="data">
 <dt id="urwid.DARK_GRAY">
-<tt class="descclassname">urwid.</tt><tt class="descname">DARK_GRAY</tt><em class="property"> = 'dark gray'</em><a class="headerlink" href="#urwid.DARK_GRAY" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">DARK_GRAY</code><em class="property"> = 'dark gray'</em><a class="headerlink" href="#urwid.DARK_GRAY" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="urwid.LIGHT_RED">
-<tt class="descclassname">urwid.</tt><tt class="descname">LIGHT_RED</tt><em class="property"> = 'light red'</em><a class="headerlink" href="#urwid.LIGHT_RED" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">LIGHT_RED</code><em class="property"> = 'light red'</em><a class="headerlink" href="#urwid.LIGHT_RED" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="urwid.LIGHT_GREEN">
-<tt class="descclassname">urwid.</tt><tt class="descname">LIGHT_GREEN</tt><em class="property"> = 'light green'</em><a class="headerlink" href="#urwid.LIGHT_GREEN" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">LIGHT_GREEN</code><em class="property"> = 'light green'</em><a class="headerlink" href="#urwid.LIGHT_GREEN" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="urwid.YELLOW">
-<tt class="descclassname">urwid.</tt><tt class="descname">YELLOW</tt><em class="property"> = 'yellow'</em><a class="headerlink" href="#urwid.YELLOW" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">YELLOW</code><em class="property"> = 'yellow'</em><a class="headerlink" href="#urwid.YELLOW" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="urwid.LIGHT_BLUE">
-<tt class="descclassname">urwid.</tt><tt class="descname">LIGHT_BLUE</tt><em class="property"> = 'light blue'</em><a class="headerlink" href="#urwid.LIGHT_BLUE" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">LIGHT_BLUE</code><em class="property"> = 'light blue'</em><a class="headerlink" href="#urwid.LIGHT_BLUE" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="urwid.LIGHT_MAGENTA">
-<tt class="descclassname">urwid.</tt><tt class="descname">LIGHT_MAGENTA</tt><em class="property"> = 'light magenta'</em><a class="headerlink" href="#urwid.LIGHT_MAGENTA" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">LIGHT_MAGENTA</code><em class="property"> = 'light magenta'</em><a class="headerlink" href="#urwid.LIGHT_MAGENTA" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="urwid.LIGHT_CYAN">
-<tt class="descclassname">urwid.</tt><tt class="descname">LIGHT_CYAN</tt><em class="property"> = 'light cyan'</em><a class="headerlink" href="#urwid.LIGHT_CYAN" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">LIGHT_CYAN</code><em class="property"> = 'light cyan'</em><a class="headerlink" href="#urwid.LIGHT_CYAN" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="data">
 <dt id="urwid.WHITE">
-<tt class="descclassname">urwid.</tt><tt class="descname">WHITE</tt><em class="property"> = 'white'</em><a class="headerlink" href="#urwid.WHITE" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">WHITE</code><em class="property"> = 'white'</em><a class="headerlink" href="#urwid.WHITE" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
 <div class="section" id="user-s-terminal-configuration-default-foreground-or-background">
-<h3>User&#8217;s terminal configuration default foreground or background<a class="headerlink" href="#user-s-terminal-configuration-default-foreground-or-background" title="Permalink to this headline">¶</a></h3>
+<h3>User’s terminal configuration default foreground or background<a class="headerlink" href="#user-s-terminal-configuration-default-foreground-or-background" title="Permalink to this headline">¶</a></h3>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">There is no way to tell if the user&#8217;s terminal has a light
+<p class="last">There is no way to tell if the user’s terminal has a light
 or dark color as their default foreground or background, so
 it is highly recommended to use this setting for both foreground
 and background when you do use it.</p>
 </div>
 <dl class="data">
 <dt id="urwid.DEFAULT">
-<tt class="descclassname">urwid.</tt><tt class="descname">DEFAULT</tt><em class="property"> = 'default'</em><a class="headerlink" href="#urwid.DEFAULT" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">urwid.</code><code class="descname">DEFAULT</code><em class="property"> = 'default'</em><a class="headerlink" href="#urwid.DEFAULT" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
@@ -300,7 +298,7 @@ and background when you do use it.</p>
 <p>Constants are not defined for these colors.</p>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><a class="reference internal" href="../manual/displayattributes.html#high-colors"><em>256-Color Foreground and Background Colors</em></a></p>
+<p class="last"><a class="reference internal" href="../manual/displayattributes.html#high-colors"><span class="std std-ref">256-Color Foreground and Background Colors</span></a></p>
 </div>
 </div>
 </div>
@@ -308,101 +306,101 @@ and background when you do use it.</p>
 <h2>Signal Names<a class="headerlink" href="#signal-names" title="Permalink to this headline">¶</a></h2>
 <dl class="data">
 <dt id="urwid.UPDATE_PALETTE_ENTRY">
-<tt class="descclassname">urwid.</tt><tt class="descname">UPDATE_PALETTE_ENTRY</tt><em class="property"> = 'update palette entry'</em><a class="headerlink" href="#urwid.UPDATE_PALETTE_ENTRY" title="Permalink to this definition">¶</a></dt>
-<dd><p>sent by <a class="reference internal" href="display_modules.html#urwid.BaseScreen" title="urwid.BaseScreen"><tt class="xref py py-class docutils literal"><span class="pre">BaseScreen</span></tt></a> (and subclasses like
-<a class="reference internal" href="display_modules.html#urwid.raw_display.Screen" title="urwid.raw_display.Screen"><tt class="xref py py-class docutils literal"><span class="pre">raw_display.Screen</span></tt></a>) when a palette entry is changed.
-<a class="reference internal" href="main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><tt class="xref py py-class docutils literal"><span class="pre">MainLoop</span></tt></a> handles this signal by redrawing the whole
+<code class="descclassname">urwid.</code><code class="descname">UPDATE_PALETTE_ENTRY</code><em class="property"> = 'update palette entry'</em><a class="headerlink" href="#urwid.UPDATE_PALETTE_ENTRY" title="Permalink to this definition">¶</a></dt>
+<dd><p>sent by <a class="reference internal" href="display_modules.html#urwid.BaseScreen" title="urwid.BaseScreen"><code class="xref py py-class docutils literal"><span class="pre">BaseScreen</span></code></a> (and subclasses like
+<a class="reference internal" href="display_modules.html#urwid.raw_display.Screen" title="urwid.raw_display.Screen"><code class="xref py py-class docutils literal"><span class="pre">raw_display.Screen</span></code></a>) when a palette entry is changed.
+<a class="reference internal" href="main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a> handles this signal by redrawing the whole
 screen.</p>
 </dd></dl>
 
 <dl class="data">
 <dt id="urwid.INPUT_DESCRIPTORS_CHANGED">
-<tt class="descclassname">urwid.</tt><tt class="descname">INPUT_DESCRIPTORS_CHANGED</tt><em class="property"> = 'input descriptors changed'</em><a class="headerlink" href="#urwid.INPUT_DESCRIPTORS_CHANGED" title="Permalink to this definition">¶</a></dt>
-<dd><p>sent by <a class="reference internal" href="display_modules.html#urwid.BaseScreen" title="urwid.BaseScreen"><tt class="xref py py-class docutils literal"><span class="pre">BaseScreen</span></tt></a> (and subclasses like
-<a class="reference internal" href="display_modules.html#urwid.raw_display.Screen" title="urwid.raw_display.Screen"><tt class="xref py py-class docutils literal"><span class="pre">raw_display.Screen</span></tt></a>) when the list of input file descriptors
-has changed.  <a class="reference internal" href="main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><tt class="xref py py-class docutils literal"><span class="pre">MainLoop</span></tt></a> handles this signal by updating
+<code class="descclassname">urwid.</code><code class="descname">INPUT_DESCRIPTORS_CHANGED</code><em class="property"> = 'input descriptors changed'</em><a class="headerlink" href="#urwid.INPUT_DESCRIPTORS_CHANGED" title="Permalink to this definition">¶</a></dt>
+<dd><p>sent by <a class="reference internal" href="display_modules.html#urwid.BaseScreen" title="urwid.BaseScreen"><code class="xref py py-class docutils literal"><span class="pre">BaseScreen</span></code></a> (and subclasses like
+<a class="reference internal" href="display_modules.html#urwid.raw_display.Screen" title="urwid.raw_display.Screen"><code class="xref py py-class docutils literal"><span class="pre">raw_display.Screen</span></code></a>) when the list of input file descriptors
+has changed.  <a class="reference internal" href="main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a> handles this signal by updating
 the file descriptors being watched by its event loop.</p>
 </dd></dl>
 
 </div>
 <div class="section" id="command-names">
 <h2>Command Names<a class="headerlink" href="#command-names" title="Permalink to this headline">¶</a></h2>
-<p>Command names are used as values in <a class="reference internal" href="command_map.html#urwid.CommandMap" title="urwid.CommandMap"><tt class="xref py py-class docutils literal"><span class="pre">CommandMap</span></tt></a> instances.
+<p>Command names are used as values in <a class="reference internal" href="command_map.html#urwid.CommandMap" title="urwid.CommandMap"><code class="xref py py-class docutils literal"><span class="pre">CommandMap</span></code></a> instances.
 Widgets look up the command associated with keypresses in their
-<a class="reference internal" href="widget.html#urwid.Widget.keypress" title="urwid.Widget.keypress"><tt class="xref py py-meth docutils literal"><span class="pre">Widget.keypress()</span></tt></a> methods.</p>
+<a class="reference internal" href="widget.html#urwid.Widget.keypress" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal"><span class="pre">Widget.keypress()</span></code></a> methods.</p>
 <p>You may define any new command names as you wish and look for them in
 your own widget code.  These are the standard ones expected by code
 included in Urwid.</p>
 <dl class="data">
 <dt id="urwid.REDRAW_SCREEN">
-<tt class="descclassname">urwid.</tt><tt class="descname">REDRAW_SCREEN</tt><em class="property"> = 'redraw screen'</em><a class="headerlink" href="#urwid.REDRAW_SCREEN" title="Permalink to this definition">¶</a></dt>
-<dd><p>Default associated keypress: &#8216;ctrl l&#8217;</p>
-<p><a class="reference internal" href="main_loop.html#urwid.MainLoop.process_input" title="urwid.MainLoop.process_input"><tt class="xref py py-meth docutils literal"><span class="pre">MainLoop.process_input()</span></tt></a> looks for this command to force
+<code class="descclassname">urwid.</code><code class="descname">REDRAW_SCREEN</code><em class="property"> = 'redraw screen'</em><a class="headerlink" href="#urwid.REDRAW_SCREEN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default associated keypress: ‘ctrl l’</p>
+<p><a class="reference internal" href="main_loop.html#urwid.MainLoop.process_input" title="urwid.MainLoop.process_input"><code class="xref py py-meth docutils literal"><span class="pre">MainLoop.process_input()</span></code></a> looks for this command to force
 a screen refresh. This is useful in case the screen becomes
 corrupted.</p>
 </dd></dl>
 
 <dl class="data">
 <dt id="urwid.ACTIVATE">
-<tt class="descclassname">urwid.</tt><tt class="descname">ACTIVATE</tt><em class="property"> = 'activate'</em><a class="headerlink" href="#urwid.ACTIVATE" title="Permalink to this definition">¶</a></dt>
-<dd><p>Default associated keypresses: &#8216; &#8216; (space), &#8216;enter&#8217;</p>
-<p>Activate a widget such as a <a class="reference internal" href="widget.html#urwid.Button" title="urwid.Button"><tt class="xref py py-class docutils literal"><span class="pre">Button</span></tt></a>, <a class="reference internal" href="widget.html#urwid.CheckBox" title="urwid.CheckBox"><tt class="xref py py-class docutils literal"><span class="pre">CheckBox</span></tt></a>
-or <a class="reference internal" href="widget.html#urwid.RadioButton" title="urwid.RadioButton"><tt class="xref py py-class docutils literal"><span class="pre">RadioButton</span></tt></a>.</p>
+<code class="descclassname">urwid.</code><code class="descname">ACTIVATE</code><em class="property"> = 'activate'</em><a class="headerlink" href="#urwid.ACTIVATE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default associated keypresses: ‘ ‘ (space), ‘enter’</p>
+<p>Activate a widget such as a <a class="reference internal" href="widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal"><span class="pre">Button</span></code></a>, <a class="reference internal" href="widget.html#urwid.CheckBox" title="urwid.CheckBox"><code class="xref py py-class docutils literal"><span class="pre">CheckBox</span></code></a>
+or <a class="reference internal" href="widget.html#urwid.RadioButton" title="urwid.RadioButton"><code class="xref py py-class docutils literal"><span class="pre">RadioButton</span></code></a>.</p>
 </dd></dl>
 
 <dl class="data">
 <dt id="urwid.CURSOR_UP">
-<tt class="descclassname">urwid.</tt><tt class="descname">CURSOR_UP</tt><em class="property"> = 'cursor up'</em><a class="headerlink" href="#urwid.CURSOR_UP" title="Permalink to this definition">¶</a></dt>
-<dd><p>Default associated keypress: &#8216;up&#8217;</p>
+<code class="descclassname">urwid.</code><code class="descname">CURSOR_UP</code><em class="property"> = 'cursor up'</em><a class="headerlink" href="#urwid.CURSOR_UP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default associated keypress: ‘up’</p>
 <p>Move the cursor or selection up one row.</p>
 </dd></dl>
 
 <dl class="data">
 <dt id="urwid.CURSOR_DOWN">
-<tt class="descclassname">urwid.</tt><tt class="descname">CURSOR_DOWN</tt><em class="property"> = 'cursor down'</em><a class="headerlink" href="#urwid.CURSOR_DOWN" title="Permalink to this definition">¶</a></dt>
-<dd><p>Default associated keypress: &#8216;down&#8217;</p>
+<code class="descclassname">urwid.</code><code class="descname">CURSOR_DOWN</code><em class="property"> = 'cursor down'</em><a class="headerlink" href="#urwid.CURSOR_DOWN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default associated keypress: ‘down’</p>
 <p>Move the cursor or selection down one row.</p>
 </dd></dl>
 
 <dl class="data">
 <dt id="urwid.CURSOR_LEFT">
-<tt class="descclassname">urwid.</tt><tt class="descname">CURSOR_LEFT</tt><em class="property"> = 'cursor left'</em><a class="headerlink" href="#urwid.CURSOR_LEFT" title="Permalink to this definition">¶</a></dt>
-<dd><p>Default associated keypress: &#8216;left&#8217;</p>
+<code class="descclassname">urwid.</code><code class="descname">CURSOR_LEFT</code><em class="property"> = 'cursor left'</em><a class="headerlink" href="#urwid.CURSOR_LEFT" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default associated keypress: ‘left’</p>
 <p>Move the cursor or selection left one column.</p>
 </dd></dl>
 
 <dl class="data">
 <dt id="urwid.CURSOR_RIGHT">
-<tt class="descclassname">urwid.</tt><tt class="descname">CURSOR_RIGHT</tt><em class="property"> = 'cursor right'</em><a class="headerlink" href="#urwid.CURSOR_RIGHT" title="Permalink to this definition">¶</a></dt>
-<dd><p>Default associated keypress: &#8216;right&#8217;</p>
+<code class="descclassname">urwid.</code><code class="descname">CURSOR_RIGHT</code><em class="property"> = 'cursor right'</em><a class="headerlink" href="#urwid.CURSOR_RIGHT" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default associated keypress: ‘right’</p>
 <p>Move the cursor or selection right one column.</p>
 </dd></dl>
 
 <dl class="data">
 <dt id="urwid.CURSOR_PAGE_UP">
-<tt class="descclassname">urwid.</tt><tt class="descname">CURSOR_PAGE_UP</tt><em class="property"> = 'cursor page up'</em><a class="headerlink" href="#urwid.CURSOR_PAGE_UP" title="Permalink to this definition">¶</a></dt>
-<dd><p>Default associated keypress: &#8216;page up&#8217;</p>
+<code class="descclassname">urwid.</code><code class="descname">CURSOR_PAGE_UP</code><em class="property"> = 'cursor page up'</em><a class="headerlink" href="#urwid.CURSOR_PAGE_UP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default associated keypress: ‘page up’</p>
 <p>Move the cursor or selection up one page.</p>
 </dd></dl>
 
 <dl class="data">
 <dt id="urwid.CURSOR_PAGE_DOWN">
-<tt class="descclassname">urwid.</tt><tt class="descname">CURSOR_PAGE_DOWN</tt><em class="property"> = 'cursor page down'</em><a class="headerlink" href="#urwid.CURSOR_PAGE_DOWN" title="Permalink to this definition">¶</a></dt>
-<dd><p>Default associated keypress: &#8216;page down&#8217;</p>
+<code class="descclassname">urwid.</code><code class="descname">CURSOR_PAGE_DOWN</code><em class="property"> = 'cursor page down'</em><a class="headerlink" href="#urwid.CURSOR_PAGE_DOWN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default associated keypress: ‘page down’</p>
 <p>Move the cursor or selection down one page.</p>
 </dd></dl>
 
 <dl class="data">
 <dt id="urwid.CURSOR_MAX_LEFT">
-<tt class="descclassname">urwid.</tt><tt class="descname">CURSOR_MAX_LEFT</tt><em class="property"> = 'cursor max left'</em><a class="headerlink" href="#urwid.CURSOR_MAX_LEFT" title="Permalink to this definition">¶</a></dt>
-<dd><p>Default associated keypress: &#8216;home&#8217;</p>
+<code class="descclassname">urwid.</code><code class="descname">CURSOR_MAX_LEFT</code><em class="property"> = 'cursor max left'</em><a class="headerlink" href="#urwid.CURSOR_MAX_LEFT" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default associated keypress: ‘home’</p>
 <p>Move the cursor or selection to the leftmost column.</p>
 </dd></dl>
 
 <dl class="data">
 <dt id="urwid.CURSOR_MAX_RIGHT">
-<tt class="descclassname">urwid.</tt><tt class="descname">CURSOR_MAX_RIGHT</tt><em class="property"> = 'cursor max right'</em><a class="headerlink" href="#urwid.CURSOR_MAX_RIGHT" title="Permalink to this definition">¶</a></dt>
-<dd><p>Default associated keypress: &#8216;end&#8217;</p>
+<code class="descclassname">urwid.</code><code class="descname">CURSOR_MAX_RIGHT</code><em class="property"> = 'cursor max right'</em><a class="headerlink" href="#urwid.CURSOR_MAX_RIGHT" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default associated keypress: ‘end’</p>
 <p>Move the cursor or selection to the rightmost column.</p>
 </dd></dl>
 
@@ -413,7 +411,7 @@ or <a class="reference internal" href="widget.html#urwid.RadioButton" title="urw
           </div>
         </div>
       </div>
-      <div class="sphinxsidebar">
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
             <p class="logo"><a href="../index.html">
               <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
@@ -428,7 +426,7 @@ or <a class="reference internal" href="widget.html#urwid.RadioButton" title="urw
 <li><a class="reference internal" href="#foreground-and-background-colors">Foreground and Background Colors</a><ul>
 <li><a class="reference internal" href="#standard-background-and-foreground-colors">Standard background and foreground colors</a></li>
 <li><a class="reference internal" href="#standard-foreground-colors-not-safe-to-use-as-background">Standard foreground colors (not safe to use as background)</a></li>
-<li><a class="reference internal" href="#user-s-terminal-configuration-default-foreground-or-background">User&#8217;s terminal configuration default foreground or background</a></li>
+<li><a class="reference internal" href="#user-s-terminal-configuration-default-foreground-or-background">User’s terminal configuration default foreground or background</a></li>
 <li><a class="reference internal" href="#and-88-color-foregrounds-and-backgrounds">256 and 88 Color Foregrounds and Backgrounds</a></li>
 </ul>
 </li>
@@ -445,29 +443,28 @@ or <a class="reference internal" href="widget.html#urwid.RadioButton" title="urw
   <h4>Next topic</h4>
   <p class="topless"><a href="exceptions.html"
                         title="next chapter">Exceptions</a></p>
-  <h3>This Page</h3>
-  <ul class="this-page-menu">
-    <li><a href="../_sources/reference/constants.txt"
-           rel="nofollow">Show Source</a></li>
-  </ul>
-<div id="searchbox" style="display: none">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/reference/constants.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
-    <p class="searchtip" style="font-size: 90%">
-    Enter search terms or a module, class or function name.
-    </p>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
     </div>
-    <div class="related">
+    <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -479,13 +476,13 @@ or <a class="reference internal" href="widget.html#urwid.RadioButton" title="urw
         <li class="right" >
           <a href="command_map.html" title="Command Map"
              >previous</a> |</li>
-        <li><a href="../index.html">Urwid 1.3.1</a> &raquo;</li>
-          <li><a href="index.html" >Urwid Reference</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.0</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li> 
       </ul>
     </div>
-    <div class="footer">
-        &copy; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.6.
     </div>
   </body>
 </html>
