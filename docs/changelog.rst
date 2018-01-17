@@ -2,6 +2,79 @@
 Changelog
 ---------
 
+Urwid 2.0.0
+===========
+
+2018-01-17
+
+ * Full Python 2.x/3.x support (by Andrew Dunai)
+
+ * Proper handling & customization of OS signals by GLib event loop (by Federico T)
+
+ * vterm: Fix handling of NUL characters (by aszlig)
+
+ * Add 256-color support for fbterm (by Benjamin Yates)
+
+ * Italics support (by Ian D. Scott)
+
+ * Store envron's TERM value as a Screen attribute (by Benjamin Yates)
+
+ * Replaced hashbangs to use proper Python binary (by Douglas La Rocca)
+
+ * Post-change signal for Edit, CheckBox and RadioButton widgets (by Toshio Kuratomi)
+
+ * ListBox.body update (by Random User)
+
+ * SimpleListWalker is now default when setting ListBox.body (by Random User)
+
+ * #246, #234: SelectEventLoop alarm improvements (by Dave Jones)
+
+ * #211: Title align & borderless sides for LineBox (by Toshio Kuratomi)
+
+ * Support for 'home' and 'end' keys in ListBox (by Random User)
+
+ * Various code cleanups (by Jordan Speicher, Marin Atanasov Nikolov)
+
+ * CI fixes (by Marlox, Ian Ward, Anatoly Techtonik, Tony Cebzanov & Ondřej Súkup)
+
+ * Example fixes (by Kenneth Nielsen)
+
+ * Documentation fixes (by anatoly techtonik, Marcin Kurczewski, mobyte0, Christian Geier & xndcn)
+
+ * Code cleanup & typo fixes (by Jakub Wilk & Boris Feld)
+
+ * Integration of tox for easier Python cross-version testing (by Andrew Dunai)
+
+ * Test fixes (by Michael Hudson-Doyle, Mike Gilbert & Andrew Dunai)
+
+ * Correct error messages in Decoration (by Marcin Kurczewski)
+
+ * #141: Fix for StandardTextLayout.calculate_text_segments (by Grzegorz Aksamit)
+
+ * #221: Fix for raw display should release file descriptors (by Alain Leufroy)
+
+ * #261: Fix issues with unicode characters in ProgressBar (by Andrew Dunai)
+
+ * Fix for 'page up' and 'page down' in ListBox when having focusable children (by Random User)
+
+ * Fixes for examples compatibility with Python 3 (by Lars Kellogg-Stedman)
+
+ * Fix default screen size on raw display (by Andreas Klöckner)
+
+ * Fix underlining for padded text (by Random User)
+
+ * Fix for terminal widget crash with Python 3 (by Sjc1000)
+
+ * Fix for string formatting error (by Jakub Wilk)
+
+ * Fix for iterator in WidgetContainerListContentsMixin (by Marlox)
+
+ * Fix for missing `modified` signal in SimpleFocusListWalker (by Michael Hansen)
+
+ * Dropped Python 3.2 support
+
+ * Test coverage is now collected
+
 Urwid 1.3.1
 ===========
 
