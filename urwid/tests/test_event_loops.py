@@ -119,24 +119,19 @@ else:
             rd, wr = os.pipe()
             self.assertEqual(os.write(wr, "data".encode('ascii')), 4)
             def step2():
-                print('step2()')
                 out.append(os.read(rd, 2).decode('ascii'))
             def say_hello():
-                print('say_hello()')
                 out.append("hello")
             def say_waiting():
-                print('say_waiting()')
                 out.append("waiting")
             def exit_clean():
-                print('exit_clean()')
                 out.append("clean exit")
                 raise urwid.ExitMainLoop
             def exit_error():
-                print('exit_error()')
                 1/0
             handle = evl.watch_file(rd, step2)
-            handle = evl.alarm(0.01, exit_clean)
-            handle = evl.alarm(0.005, say_hello)
+            handle = evl.alarm(0.1, exit_clean)
+            handle = evl.alarm(0.05, say_hello)
             self.assertEqual(evl.enter_idle(say_waiting), 1)
             evl.run()
             self.assertTrue("da" in out, out)
