@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Urwid Palette Test.  Showing off highcolor support
 #    Copyright (C) 2004-2009  Ian Ward

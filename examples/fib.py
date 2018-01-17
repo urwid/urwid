@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Urwid example fibonacci sequence viewer / unbounded data demo
 #    Copyright (C) 2004-2007  Ian Ward

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Urwid setup.py exports the useful bits
 #    Copyright (C) 2004-2014  Ian Ward
