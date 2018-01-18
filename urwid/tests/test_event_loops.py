@@ -88,6 +88,11 @@ else:
         def setUp(self):
             self.evl = urwid.GLibEventLoop()
 
+        def test_error(self):
+            evl = self.evl
+            evl.alarm(0.5, lambda: 1 / 0)  # Simulate error in event loop
+            self.assertRaises(ZeroDivisionError, evl.run)
+
 
 try:
     import tornado
@@ -139,6 +144,10 @@ else:
             self.assertTrue("hello" in out, out)
             self.assertTrue("clean exit" in out, out)
 
+        def test_error(self):
+            evl = self.evl
+            evl.alarm(0.5, lambda: 1 / 0)  # Simulate error in event loop
+            self.assertRaises(ZeroDivisionError, evl.run)
 
 try:
     import asyncio
@@ -150,3 +159,8 @@ else:
             self.evl = urwid.AsyncioEventLoop()
 
         _expected_idle_handle = None
+
+        def test_error(self):
+            evl = self.evl
+            evl.alarm(0.5, lambda: 1 / 0)  # Simulate error in event loop
+            self.assertRaises(ZeroDivisionError, evl.run)
