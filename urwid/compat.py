@@ -44,6 +44,21 @@ if PYTHON3:
     text_type = str
     xrange = range
     text_types = (str,)
+
+    def reraise(tp, value, tb=None):
+        """
+        Reraise an exception.
+        Taken from "six" library (https://pythonhosted.org/six/).
+        """
+        try:
+            if value is None:
+                value = tp()
+            if value.__traceback__ is not tb:
+                raise value.with_traceback(tb)
+            raise value
+        finally:
+            value = None
+            tb = None
 else:
     ord2 = ord
     chr2 = chr
@@ -53,6 +68,28 @@ else:
     xrange = xrange
     text_types = (str, unicode)
 
+    """
+    Reraise an exception.
+    Taken from "six" library (https://pythonhosted.org/six/).
+    """
+    def exec_(_code_, _globs_=None, _locs_=None):
+        """Execute code in a namespace."""
+        if _globs_ is None:
+            frame = sys._getframe(1)
+            _globs_ = frame.f_globals
+            if _locs_ is None:
+                _locs_ = frame.f_locals
+            del frame
+        elif _locs_ is None:
+            _locs_ = _globs_
+        exec("""exec _code_ in _globs_, _locs_""")
+
+    exec_("""def reraise(tp, value, tb=None):
+    try:
+        raise tp, value, tb
+    finally:
+        tb = None
+""")
 
 def with_metaclass(meta, *bases):
     """

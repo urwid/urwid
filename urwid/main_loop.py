@@ -38,7 +38,7 @@ except ImportError:
     pass # windows
 
 from urwid.util import StoppingContext, is_mouse_event
-from urwid.compat import PYTHON3
+from urwid.compat import PYTHON3, reraise
 from urwid.command_map import command_map, REDRAW_SCREEN
 from urwid.wimp import PopUpTarget
 from urwid import signals
@@ -673,7 +673,7 @@ class EventLoop(object):
         """
         Sets the signal handler for signal signum.
 
-        The default implementation of :meth:`set_signal_handler` 
+        The default implementation of :meth:`set_signal_handler`
         is simply a proxy function that calls :func:`signal.signal()`
         and returns the resulting value.
 
@@ -1002,7 +1002,7 @@ class GLibEventLoop(EventLoop):
             # An exception caused us to exit, raise it now
             exc_info = self._exc_info
             self._exc_info = None
-            raise exc_info[0](exc_info[1]).with_traceback(exc_info[2])
+            reraise(*exc_info)
 
     def handle_exit(self,f):
         """
@@ -1337,7 +1337,7 @@ class TwistedEventLoop(EventLoop):
             # An exception caused us to exit, raise it now
             exc_info = self._exc_info
             self._exc_info = None
-            raise exc_info[0](exc_info[1]).with_traceback(exc_info[2])
+            reraise(*exc_info)
 
     def handle_exit(self, f, enable_idle=True):
         """
@@ -1479,8 +1479,9 @@ class AsyncioEventLoop(EventLoop):
         self._loop.set_exception_handler(self._exception_handler)
         self._loop.run_forever()
         if self._exc_info:
-            raise self._exc_info[0](self._exc_info[1]).with_traceback(self._exc_info[2])
+            exc_info = self._exc_info
             self._exc_info = None
+            reraise(*exc_info)
 
 
 def _refl(name, rval=None, exit=False):
