@@ -2,6 +2,14 @@
 Changelog
 ---------
 
+Urwid 2.0.1
+===========
+
+2018-01-21
+
+ * #275: Late fix for proper exception reraising from within main loop
+   (by Andrew Dunai & Adam Sampson)
+
 Urwid 2.0.0
 ===========
 
@@ -9,7 +17,8 @@ Urwid 2.0.0
 
  * Full Python 2.x/3.x support (by Andrew Dunai)
 
- * Proper handling & customization of OS signals by GLib event loop (by Federico T)
+ * Proper handling & customization of OS signals by GLib event loop
+   (by Federico T)
 
  * vterm: Fix handling of NUL characters (by aszlig)
 
@@ -21,7 +30,8 @@ Urwid 2.0.0
 
  * Replaced hashbangs to use proper Python binary (by Douglas La Rocca)
 
- * Post-change signal for Edit, CheckBox and RadioButton widgets (by Toshio Kuratomi)
+ * Post-change signal for Edit, CheckBox and RadioButton widgets
+   (by Toshio Kuratomi)
 
  * ListBox.body update (by Random User)
 
@@ -35,11 +45,13 @@ Urwid 2.0.0
 
  * Various code cleanups (by Jordan Speicher, Marin Atanasov Nikolov)
 
- * CI fixes (by Marlox, Ian Ward, Anatoly Techtonik, Tony Cebzanov & Ondřej Súkup)
+ * CI fixes (by Marlox, Ian Ward, Anatoly Techtonik, Tony Cebzanov &
+   Ondřej Súkup)
 
  * Example fixes (by Kenneth Nielsen)
 
- * Documentation fixes (by anatoly techtonik, Marcin Kurczewski, mobyte0, Christian Geier & xndcn)
+ * Documentation fixes (by anatoly techtonik, Marcin Kurczewski, mobyte0,
+   Christian Geier & xndcn)
 
  * Code cleanup & typo fixes (by Jakub Wilk & Boris Feld)
 
@@ -49,13 +61,15 @@ Urwid 2.0.0
 
  * Correct error messages in Decoration (by Marcin Kurczewski)
 
- * #141: Fix for StandardTextLayout.calculate_text_segments (by Grzegorz Aksamit)
+ * #141: Fix for StandardTextLayout.calculate_text_segments
+   (by Grzegorz Aksamit)
 
  * #221: Fix for raw display should release file descriptors (by Alain Leufroy)
 
  * #261: Fix issues with unicode characters in ProgressBar (by Andrew Dunai)
 
- * Fix for 'page up' and 'page down' in ListBox when having focusable children (by Random User)
+ * Fix for 'page up' and 'page down' in ListBox when having focusable children
+   (by Random User)
 
  * Fixes for examples compatibility with Python 3 (by Lars Kellogg-Stedman)
 
@@ -69,7 +83,8 @@ Urwid 2.0.0
 
  * Fix for iterator in WidgetContainerListContentsMixin (by Marlox)
 
- * Fix for missing `modified` signal in SimpleFocusListWalker (by Michael Hansen)
+ * Fix for missing `modified` signal in SimpleFocusListWalker
+   (by Michael Hansen)
 
  * Dropped Python 3.2 support
 
