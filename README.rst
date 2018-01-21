@@ -8,8 +8,6 @@
 
 `Development version documentation <http://urwid.readthedocs.org/en/latest/>`_
 
-**Urwid is looking for new maintainers, please open an issue here to volunteer!**
-
 .. content-start
 
 About
