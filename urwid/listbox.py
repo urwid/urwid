@@ -137,6 +137,9 @@ class SimpleListWalker(MonitoredList, ListWalker):
         """
         contents -- list to copy into this object
 
+        This class inherits :class:`MonitoredList` which means
+        it can be treated as a list.
+
         Changes made to this object (when it is treated as a list) are
         detected automatically and will cause ListBox objects using
         this list walker to be updated.
@@ -209,6 +212,9 @@ class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
     def __init__(self, contents):
         """
         contents -- list to copy into this object
+
+        This class inherits :class:`MonitoredList` which means
+        it can be treated as a list.
 
         Changes made to this object (when it is treated as a list) are
         detected automatically and will cause ListBox objects using
