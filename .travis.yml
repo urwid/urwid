@@ -1,4 +1,4 @@
-group: deprecated-2017Q2
+group: deprecated-2017Q4
 language: python
 matrix:
   include:
