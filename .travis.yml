@@ -14,6 +14,8 @@ matrix:
   - python: pypy
     env: TOXENV=pypy
 before_install:
+  - "sudo rm -rf /var/lib/apt/lists/*"
+  - "sudo apt-get clean"
   - "sudo apt-get update"
   - "sudo apt-get install python-gi python3-gi"
 install:
