@@ -41,6 +41,7 @@ within_double_byte = str_util.within_double_byte
 def detect_encoding():
     # Try to determine if using a supported double-byte encoding
     import locale
+    initial = locale.getlocale()
     try:
         try:
             locale.setlocale(locale.LC_ALL, "")
@@ -53,6 +54,8 @@ def detect_encoding():
             return ""
         else:
             raise
+    finally:
+        locale.setlocale(locale.LC_ALL, initial)
 
 if 'detected_encoding' not in locals():
     detected_encoding = detect_encoding()
