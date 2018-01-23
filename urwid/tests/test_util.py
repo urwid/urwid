@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import unittest
+import locale
 
 import urwid
 from urwid import util
@@ -176,3 +177,18 @@ class TagMarkupTest(unittest.TestCase):
     def test_bad_type(self):
         self.assertRaises(urwid.TagMarkupException, lambda:
             urwid.decompose_tagmarkup(5))
+
+
+class PortabilityTest(unittest.TestCase):
+    def test_locale(self):
+        initial = locale.getlocale()
+
+        locale.setlocale(locale.LC_ALL, (None, None))
+        util.detect_encoding()
+        self.assertEqual(locale.getlocale(), (None, None))
+
+        locale.setlocale(locale.LC_ALL, ('en_US', 'UTF-8'))
+        util.detect_encoding()
+        self.assertEqual(locale.getlocale(), ('en_US', 'UTF-8'))
+
+        locale.setlocale(locale.LC_ALL, initial)
