@@ -35,7 +35,7 @@ from urwid.command_map import ACTIVATE
 
 class SelectableIcon(Text):
     _selectable = True
-    def __init__(self, text, cursor_position=1):
+    def __init__(self, text, cursor_position=0):
         """
         :param text: markup for this widget; see :class:`Text` for
                      description of text markup

@@ -132,6 +132,8 @@ Urwid 1.3.0
 
  * Documentation fixes (by Ismail, Matthew Mosesohn)
 
+ * SelectableIcon using cursor_position=0 by default instead of 1.
+
 Urwid 1.2.2
 ===========
 
