@@ -58,7 +58,7 @@ class SelectableIcon(Text):
         >>> si
         <SelectableIcon selectable flow widget '[!]'>
         >>> si.render((4,), focus=True).cursor
-        (1, 0)
+        (0, 0)
         >>> si = SelectableIcon("((*))", 2)
         >>> si.render((8,), focus=True).cursor
         (2, 0)
