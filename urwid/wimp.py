@@ -103,9 +103,9 @@ class CheckBox(WidgetWrap):
         return frozenset([FLOW])
 
     states = {
-        True: SelectableIcon("[X]"),
-        False: SelectableIcon("[ ]"),
-        'mixed': SelectableIcon("[#]") }
+        True: SelectableIcon("[X]", 1),
+        False: SelectableIcon("[ ]", 1),
+        'mixed': SelectableIcon("[#]", 1) }
     reserve_columns = 4
 
     # allow users of this class to listen for change events
@@ -322,9 +322,9 @@ class CheckBox(WidgetWrap):
 
 class RadioButton(CheckBox):
     states = {
-        True: SelectableIcon("(X)"),
-        False: SelectableIcon("( )"),
-        'mixed': SelectableIcon("(#)") }
+        True: SelectableIcon("(X)", 1),
+        False: SelectableIcon("( )", 1),
+        'mixed': SelectableIcon("(#)", 1) }
     reserve_columns = 4
 
     def __init__(self, group, label, state="first True",
