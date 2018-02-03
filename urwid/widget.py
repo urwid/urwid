@@ -1747,6 +1747,71 @@ class IntEdit(Edit):
             return 0
 
 
+class FloatEdit(Edit):
+    """Edit widget for float values"""
+
+    def valid_char(self, ch):
+        """
+        Return true for decimal digits.
+        """
+        return len(ch)==1 and ch in "0123456789."
+
+    def __init__(self,caption="",default=None):
+        """
+        caption -- caption markup
+        default -- default edit value
+        >>> FloatEdit(u"",  1.065434)
+        <FloatEdit selectable flow widget '1.065434' edit_pos=8>
+        """
+        if default is not None: val = str(default)
+        else: val = ""
+        self.__super.__init__(caption,val)
+
+    def keypress(self, size, key):
+        """
+        Handle editing keystrokes.  Remove leading zeros.
+        >>> e, size = FloatEdit(u"", 1.065434), (10,)
+        >>> e.keypress(size, 'home')
+        >>> e.keypress(size, 'delete')
+        >>> print e.edit_text
+        .065434
+        >>> e.keypress(size, 'end')
+        >>> print e.edit_text
+        .065434
+        >>> e.keypress(size, 'backspace')
+        >>> print e.edit_text
+        .06543
+        """
+        (maxcol,) = size
+        unhandled = Edit.keypress(self,(maxcol,),key)
+
+        if not unhandled:
+        # trim leading zeros
+            while self.edit_pos > 0 and self.edit_text.count('.') > 1 and \
+                  self.edit_text[-1] == ".":
+                self.set_edit_pos(self.edit_pos - 1)
+                self.set_edit_text(self.edit_text[:-1])
+
+        return unhandled
+
+    def value(self):
+        """
+        Return the numeric value of self.edit_text.
+        >>> e, size = FloatEdit(), (10,)
+        >>> e.keypress(size, '5')
+        >>> e.keypress(size, '1')
+        >>> e.keypress(size, '.')
+        >>> e.keypress(size, '5')
+        >>> e.keypress(size, '1')
+        >>> e.value() == 51.51
+        True
+        """
+        if self.edit_text:
+            return float(self.edit_text)
+        else:
+            return 0
+
+
 def delegate_to_widget_mixin(attribute_name):
     """
     Return a mixin class that delegates all standard widget methods
