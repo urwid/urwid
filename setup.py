@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Urwid setup.py exports the useful bits
 #    Copyright (C) 2004-2014  Ian Ward
@@ -70,6 +70,7 @@ setup_d = {
         "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: Implementation :: PyPy",
         ],
      }
@@ -77,9 +78,6 @@ setup_d = {
 if have_setuptools:
     setup_d['zip_safe'] = False
     setup_d['test_suite'] = 'urwid.tests'
-
-if PYTHON3:
-    setup_d['use_2to3'] = True
 
 if __name__ == "__main__":
     try:

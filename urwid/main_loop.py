@@ -21,12 +21,15 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import division, print_function
 
 import time
 import heapq
 import select
 import os
+import signal
 from functools import wraps
+from itertools import count
 from weakref import WeakKeyDictionary
 
 try:
@@ -35,7 +38,7 @@ except ImportError:
     pass # windows
 
 from urwid.util import StoppingContext, is_mouse_event
-from urwid.compat import PYTHON3
+from urwid.compat import PYTHON3, reraise
 from urwid.command_map import command_map, REDRAW_SCREEN
 from urwid.wimp import PopUpTarget
 from urwid import signals
@@ -126,6 +129,11 @@ class MainLoop(object):
         if event_loop is None:
             event_loop = SelectEventLoop()
         self.event_loop = event_loop
+
+        if hasattr(self.screen, 'signal_handler_setter'):
+            # Tell the screen what function it must use to set
+            # signal handlers
+            self.screen.signal_handler_setter = self.event_loop.set_signal_handler
 
         self._watch_pipes = {}
 
@@ -442,7 +450,7 @@ class MainLoop(object):
                 sec = next_alarm[0] - time.time()
                 if sec > 0:
                     break
-                tm, callback = next_alarm
+                tm, tie_break, callback = next_alarm
                 callback()
 
                 if self.event_loop._alarms:
@@ -579,7 +587,103 @@ class MainLoop(object):
         self.screen.draw_screen(self.screen_size, canvas)
 
 
-class SelectEventLoop(object):
+class EventLoop(object):
+    """
+    Abstract class representing an event loop to be used by :class:`MainLoop`.
+    """
+
+    def alarm(self, seconds, callback):
+        """
+        Call callback() a given time from now.  No parameters are
+        passed to callback.
+
+        This method has no default implementation.
+
+        Returns a handle that may be passed to remove_alarm()
+
+        seconds -- floating point time to wait before calling callback
+        callback -- function to call from event loop
+        """
+        raise NotImplementedError()
+
+    def enter_idle(self, callback):
+        """
+        Add a callback for entering idle.
+
+        This method has no default implementation.
+
+        Returns a handle that may be passed to remove_idle()
+        """
+        raise NotImplementedError()
+
+    def remove_alarm(self, handle):
+        """
+        Remove an alarm.
+
+        This method has no default implementation.
+
+        Returns True if the alarm exists, False otherwise
+        """
+        raise NotImplementedError()
+
+    def remove_enter_idle(self, handle):
+        """
+        Remove an idle callback.
+
+        This method has no default implementation.
+
+        Returns True if the handle was removed.
+        """
+        raise NotImplementedError()
+
+    def remove_watch_file(self, handle):
+        """
+        Remove an input file.
+
+        This method has no default implementation.
+
+        Returns True if the input file exists, False otherwise
+        """
+        raise NotImplementedError()
+
+    def run(self):
+        """
+        Start the event loop.  Exit the loop when any callback raises
+        an exception.  If ExitMainLoop is raised, exit cleanly.
+
+        This method has no default implementation.
+        """
+        raise NotImplementedError()
+
+    def watch_file(self, fd, callback):
+        """
+        Call callback() when fd has some data to read.  No parameters
+        are passed to callback.
+
+        This method has no default implementation.
+
+        Returns a handle that may be passed to remove_watch_file()
+
+        fd -- file descriptor to watch for input
+        callback -- function to call when input is available
+        """
+        raise NotImplementedError()
+
+    def set_signal_handler(self, signum, handler):
+        """
+        Sets the signal handler for signal signum.
+
+        The default implementation of :meth:`set_signal_handler`
+        is simply a proxy function that calls :func:`signal.signal()`
+        and returns the resulting value.
+
+        signum -- signal number
+        handler -- function (taking signum as its single argument),
+        or `signal.SIG_IGN`, or `signal.SIG_DFL`
+        """
+        return signal.signal(signum, handler)
+
+class SelectEventLoop(EventLoop):
     """
     Event loop based on :func:`select.select`
     """
@@ -589,6 +693,7 @@ class SelectEventLoop(object):
         self._watch_files = {}
         self._idle_handle = 0
         self._idle_callbacks = {}
+        self._tie_break = count()
 
     def alarm(self, seconds, callback):
         """
@@ -601,8 +706,9 @@ class SelectEventLoop(object):
         callback -- function to call from event loop
         """
         tm = time.time() + seconds
-        heapq.heappush(self._alarms, (tm, callback))
-        return (tm, callback)
+        handle = (tm, next(self._tie_break), callback)
+        heapq.heappush(self._alarms, handle)
+        return handle
 
     def remove_alarm(self, handle):
         """
@@ -691,7 +797,7 @@ class SelectEventLoop(object):
         """
         A single iteration of the event loop
         """
-        fds = self._watch_files.keys()
+        fds = list(self._watch_files.keys())
         if self._alarms or self._did_something:
             if self._alarms:
                 tm = self._alarms[0][0]
@@ -711,7 +817,7 @@ class SelectEventLoop(object):
                 self._did_something = False
             elif tm is not None:
                 # must have been a timeout
-                tm, alarm_callback = self._alarms.pop(0)
+                tm, tie_break, alarm_callback = heapq.heappop(self._alarms)
                 alarm_callback()
                 self._did_something = True
 
@@ -720,7 +826,7 @@ class SelectEventLoop(object):
             self._did_something = True
 
 
-class GLibEventLoop(object):
+class GLibEventLoop(EventLoop):
     """
     Event loop based on GLib.MainLoop
     """
@@ -736,6 +842,7 @@ class GLibEventLoop(object):
         self._loop = GLib.MainLoop()
         self._exc_info = None
         self._enable_glib_idle()
+        self._signal_handlers = {}
 
     def alarm(self, seconds, callback):
         """
@@ -755,6 +862,53 @@ class GLibEventLoop(object):
         fd = self.GLib.timeout_add(int(seconds*1000), ret_false)
         self._alarms.append(fd)
         return (fd, callback)
+
+    def set_signal_handler(self, signum, handler):
+        """
+        Sets the signal handler for signal signum.
+
+        .. WARNING::
+            Because this method uses the `GLib`-specific `unix_signal_add`
+            function, its behaviour is different than `signal.signal().`
+
+            If `signum` is not `SIGHUP`, `SIGINT`, `SIGTERM`, `SIGUSR1`,
+            `SIGUSR2` or `SIGWINCH`, this method performs no actions and
+            immediately returns None.
+
+            Returns None in all cases (unlike :func:`signal.signal()`).
+        ..
+
+        signum -- signal number
+        handler -- function (taking signum as its single argument),
+        or `signal.SIG_IGN`, or `signal.SIG_DFL`
+        """
+        glib_signals = [
+            signal.SIGHUP,
+            signal.SIGINT,
+            signal.SIGTERM,
+            signal.SIGUSR1,
+            signal.SIGUSR2,
+            signal.SIGWINCH
+        ]
+
+        if signum not in glib_signals:
+            # The GLib event loop supports only the signals listed above
+            return
+
+        if signum in self._signal_handlers:
+            self.GLib.source_remove(self._signal_handlers.pop(signum))
+
+        if handler == signal.SIG_IGN:
+            handler = lambda x: None
+        elif handler == signal.SIG_DFL:
+            return
+
+        def final_handler(signal_number):
+            handler(signal_number)
+            return self.GLib.SOURCE_CONTINUE
+
+        source = self.GLib.unix_signal_add(self.GLib.PRIORITY_DEFAULT, signum, final_handler, signum)
+        self._signal_handlers[signum] = source
 
     def remove_alarm(self, handle):
         """
@@ -848,7 +1002,7 @@ class GLibEventLoop(object):
             # An exception caused us to exit, raise it now
             exc_info = self._exc_info
             self._exc_info = None
-            raise exc_info[0], exc_info[1], exc_info[2]
+            reraise(*exc_info)
 
     def handle_exit(self,f):
         """
@@ -873,7 +1027,7 @@ class GLibEventLoop(object):
         return wrapper
 
 
-class TornadoEventLoop(object):
+class TornadoEventLoop(EventLoop):
     """ This is an Urwid-specific event loop to plug into its MainLoop.
         It acts as an adaptor for Tornado's IOLoop which does all
         heavy lifting except idle-callbacks.
@@ -1033,7 +1187,7 @@ class TwistedInputDescriptor(FileDescriptor):
         return self.cb()
 
 
-class TwistedEventLoop(object):
+class TwistedEventLoop(EventLoop):
     """
     Event loop based on Twisted_
     """
@@ -1183,7 +1337,7 @@ class TwistedEventLoop(object):
             # An exception caused us to exit, raise it now
             exc_info = self._exc_info
             self._exc_info = None
-            raise exc_info[0], exc_info[1], exc_info[2]
+            reraise(*exc_info)
 
     def handle_exit(self, f, enable_idle=True):
         """
@@ -1203,7 +1357,7 @@ class TwistedEventLoop(object):
                     self.reactor.stop()
             except:
                 import sys
-                print sys.exc_info()
+                print(sys.exc_info())
                 self._exc_info = sys.exc_info()
                 if self.manage_reactor:
                     self.reactor.crash()
@@ -1213,7 +1367,7 @@ class TwistedEventLoop(object):
         return wrapper
 
 
-class AsyncioEventLoop(object):
+class AsyncioEventLoop(EventLoop):
     """
     Event loop based on the standard library ``asyncio`` module.
 
@@ -1325,8 +1479,9 @@ class AsyncioEventLoop(object):
         self._loop.set_exception_handler(self._exception_handler)
         self._loop.run_forever()
         if self._exc_info:
-            raise self._exc_info[0], self._exc_info[1], self._exc_info[2]
+            exc_info = self._exc_info
             self._exc_info = None
+            reraise(*exc_info)
 
 
 def _refl(name, rval=None, exit=False):
@@ -1354,7 +1509,7 @@ def _refl(name, rval=None, exit=False):
             if args and argd:
                 args = args + ", "
             args = args + ", ".join([k+"="+repr(v) for k,v in argd.items()])
-            print self._name+"("+args+")"
+            print(self._name+"("+args+")")
             if exit:
                 raise ExitMainLoop()
             return self._rval

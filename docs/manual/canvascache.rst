@@ -53,7 +53,7 @@ will remain in the cache, and others will be garbage collected.
 Future Work
 ===========
 
-A updating method that invalidates regions of the display without redrawing
+An updating method that invalidates regions of the display without redrawing
 parent widgets would be more efficient for the common case of a single change
 on the screen that does not affect the screen layout. Send an email to the
 mailing list if you're interested in helping with this or other display

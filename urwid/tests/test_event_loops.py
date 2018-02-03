@@ -30,9 +30,14 @@ class EventLoopTestMixin(object):
 
     def test_remove_watch_file(self):
         evl = self.evl
-        handle = evl.watch_file(5, lambda: None)
-        self.assertTrue(evl.remove_watch_file(handle))
-        self.assertFalse(evl.remove_watch_file(handle))
+        fd_r, fd_w = os.pipe()
+        try:
+            handle = evl.watch_file(fd_r, lambda: None)
+            self.assertTrue(evl.remove_watch_file(handle))
+            self.assertFalse(evl.remove_watch_file(handle))
+        finally:
+            os.close(fd_r)
+            os.close(fd_w)
 
     _expected_idle_handle = 1
 
@@ -83,6 +88,11 @@ else:
         def setUp(self):
             self.evl = urwid.GLibEventLoop()
 
+        def test_error(self):
+            evl = self.evl
+            evl.alarm(0.5, lambda: 1 / 0)  # Simulate error in event loop
+            self.assertRaises(ZeroDivisionError, evl.run)
+
 
 try:
     import tornado
@@ -125,8 +135,8 @@ else:
             def exit_error():
                 1/0
             handle = evl.watch_file(rd, step2)
-            handle = evl.alarm(0.01, exit_clean)
-            handle = evl.alarm(0.005, say_hello)
+            handle = evl.alarm(0.1, exit_clean)
+            handle = evl.alarm(0.05, say_hello)
             self.assertEqual(evl.enter_idle(say_waiting), 1)
             evl.run()
             self.assertTrue("da" in out, out)
@@ -134,6 +144,10 @@ else:
             self.assertTrue("hello" in out, out)
             self.assertTrue("clean exit" in out, out)
 
+        def test_error(self):
+            evl = self.evl
+            evl.alarm(0.5, lambda: 1 / 0)  # Simulate error in event loop
+            self.assertRaises(ZeroDivisionError, evl.run)
 
 try:
     import asyncio
@@ -145,3 +159,8 @@ else:
             self.evl = urwid.AsyncioEventLoop()
 
         _expected_idle_handle = None
+
+        def test_error(self):
+            evl = self.evl
+            evl.alarm(0.5, lambda: 1 / 0)  # Simulate error in event loop
+            self.assertRaises(ZeroDivisionError, evl.run)

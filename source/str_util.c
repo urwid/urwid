@@ -715,7 +715,7 @@ static PyObject * calc_width(PyObject *self, PyObject *args)
         return NULL; 
 
     ret = Py_CalcWidth(text, start_offs, end_offs);
-    if (ret==-1) //an error occured
+    if (ret==-1) //an error occurred
         return NULL;
 
     return Py_BuildValue("l", ret);
@@ -843,7 +843,7 @@ static PyObject * calc_text_pos(PyObject *self, PyObject *args)
         return NULL;
 
     err = Py_CalcTextPos(text, start_offs, end_offs, pref_col, ret);
-    if (err==-1) //an error occured
+    if (err==-1) //an error occurred
         return NULL;
 
     return Py_BuildValue("(" FMT_N FMT_N ")", ret[0], ret[1]);

@@ -19,6 +19,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import division, print_function
+
 from urwid.widget import (Text, WidgetWrap, delegate_to_widget_mixin, BOX,
     FLOW)
 from urwid.canvas import CompositeCanvas
@@ -33,7 +35,7 @@ from urwid.command_map import ACTIVATE
 
 class SelectableIcon(Text):
     _selectable = True
-    def __init__(self, text, cursor_position=1):
+    def __init__(self, text, cursor_position=0):
         """
         :param text: markup for this widget; see :class:`Text` for
                      description of text markup
@@ -56,7 +58,7 @@ class SelectableIcon(Text):
         >>> si
         <SelectableIcon selectable flow widget '[!]'>
         >>> si.render((4,), focus=True).cursor
-        (1, 0)
+        (0, 0)
         >>> si = SelectableIcon("((*))", 2)
         >>> si.render((8,), focus=True).cursor
         (2, 0)
@@ -101,15 +103,15 @@ class CheckBox(WidgetWrap):
         return frozenset([FLOW])
 
     states = {
-        True: SelectableIcon("[X]"),
-        False: SelectableIcon("[ ]"),
-        'mixed': SelectableIcon("[#]") }
+        True: SelectableIcon("[X]", 1),
+        False: SelectableIcon("[ ]", 1),
+        'mixed': SelectableIcon("[#]", 1) }
     reserve_columns = 4
 
     # allow users of this class to listen for change events
     # sent when the state of this widget is modified
     # (this variable is picked up by the MetaSignals metaclass)
-    signals = ["change"]
+    signals = ["change", 'postchange']
 
     def __init__(self, label, state=False, has_mixed=False,
              on_state_change=None, user_data=None):
@@ -121,7 +123,7 @@ class CheckBox(WidgetWrap):
                                 function call for a single callback
         :param user_data: user_data for on_state_change
 
-        Signals supported: ``'change'``
+        Signals supported: ``'change'``, ``"postchange"``
 
         Register signal handler with::
 
@@ -184,12 +186,12 @@ class CheckBox(WidgetWrap):
         Return label text.
 
         >>> cb = CheckBox(u"Seriously")
-        >>> print cb.get_label()
+        >>> print(cb.get_label())
         Seriously
-        >>> print cb.label
+        >>> print(cb.label)
         Seriously
         >>> cb.set_label([('bright_attr', u"flashy"), u" normal"])
-        >>> print cb.label  #  only text is returned
+        >>> print(cb.label)  #  only text is returned
         flashy normal
         """
         return self._label.text
@@ -200,7 +202,7 @@ class CheckBox(WidgetWrap):
         Set the CheckBox state.
 
         state -- True, False or "mixed"
-        do_callback -- False to supress signal from this change
+        do_callback -- False to suppress signal from this change
 
         >>> changes = []
         >>> def callback_a(cb, state, user_data):
@@ -233,7 +235,8 @@ class CheckBox(WidgetWrap):
 
         # self._state is None is a special case when the CheckBox
         # has just been created
-        if do_callback and self._state is not None:
+        old_state = self._state
+        if do_callback and old_state is not None:
             self._emit('change', state)
         self._state = state
         # rebuild the display widget with the new state
@@ -241,6 +244,8 @@ class CheckBox(WidgetWrap):
             ('fixed', self.reserve_columns, self.states[state] ),
             self._label ] )
         self._w.focus_col = 0
+        if do_callback and old_state is not None:
+            self._emit('postchange', old_state)
 
     def get_state(self):
         """Return the state of the checkbox."""
@@ -317,9 +322,9 @@ class CheckBox(WidgetWrap):
 
 class RadioButton(CheckBox):
     states = {
-        True: SelectableIcon("(X)"),
-        False: SelectableIcon("( )"),
-        'mixed': SelectableIcon("(#)") }
+        True: SelectableIcon("(X)", 1),
+        False: SelectableIcon("( )", 1),
+        'mixed': SelectableIcon("(#)", 1) }
     reserve_columns = 4
 
     def __init__(self, group, label, state="first True",
@@ -335,7 +340,7 @@ class RadioButton(CheckBox):
         This function will append the new radio button to group.
         "first True" will set to True if group is empty.
 
-        Signals supported: ``'change'``
+        Signals supported: ``'change'``, ``"postchange"``
 
         Register signal handler with::
 
@@ -374,7 +379,7 @@ class RadioButton(CheckBox):
 
         state -- True, False or "mixed"
 
-        do_callback -- False to supress signal from this change
+        do_callback -- False to suppress signal from this change
 
         If state is True all other radio buttons in the same button
         group will be set to False.
@@ -504,9 +509,9 @@ class Button(WidgetWrap):
         Return label text.
 
         >>> b = Button(u"Ok")
-        >>> print b.get_label()
+        >>> print(b.get_label())
         Ok
-        >>> print b.label
+        >>> print(b.label)
         Ok
         """
         return self._label.text

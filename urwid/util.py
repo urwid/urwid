@@ -20,8 +20,10 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import division, print_function
+
 from urwid import escape
-from urwid.compat import bytes
+from urwid.compat import bytes, text_type, text_types
 
 import codecs
 
@@ -39,6 +41,7 @@ within_double_byte = str_util.within_double_byte
 def detect_encoding():
     # Try to determine if using a supported double-byte encoding
     import locale
+    initial = locale.getlocale()
     try:
         try:
             locale.setlocale(locale.LC_ALL, "")
@@ -51,6 +54,8 @@ def detect_encoding():
             return ""
         else:
             raise
+    finally:
+        locale.setlocale(locale.LC_ALL, initial)
 
 if 'detected_encoding' not in locals():
     detected_encoding = detect_encoding()
@@ -108,7 +113,7 @@ def apply_target_encoding( s ):
     """
     Return (encoded byte string, character set rle).
     """
-    if _use_dec_special and type(s) == unicode:
+    if _use_dec_special and type(s) == text_type:
         # first convert drawing characters
         try:
             s = s.translate( escape.DEC_SPECIAL_CHARMAP )
@@ -118,7 +123,7 @@ def apply_target_encoding( s ):
                     escape.ALT_DEC_SPECIAL_CHARS):
                 s = s.replace( c, escape.SO+alt+escape.SI )
 
-    if type(s) == unicode:
+    if type(s) == text_type:
         s = s.replace(escape.SI+escape.SO, u"") # remove redundant shifts
         s = codecs.encode(s, _target_encoding, 'replace')
 
@@ -412,7 +417,7 @@ def _tagmarkup_recurse( tm, attr ):
         attr, element = tm
         return _tagmarkup_recurse( element, attr )
 
-    if not isinstance(tm,(basestring, bytes)):
+    if not isinstance(tm, text_types + (bytes,)):
         raise TagMarkupException("Invalid markup element: %r" % tm)
 
     # text

@@ -19,6 +19,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import division, print_function
+
 """
 HTML PRE-based UI implementation
 """
@@ -76,12 +78,14 @@ class HtmlGenerator(BaseScreen):
     def reset_default_terminal_palette(self, *args):
         pass
 
-    def draw_screen(self, (cols, rows), r ):
+    def draw_screen(self, size, r ):
         """Create an html fragment from the render object.
         Append it to HtmlGenerator.fragments list.
         """
         # collect output in l
         l = []
+
+        cols, rows = size
 
         assert r.rows() == rows
 
@@ -134,7 +138,7 @@ class HtmlGenerator(BaseScreen):
     def get_cols_rows(self):
         """Return the next screen size in HtmlGenerator.sizes."""
         if not self.sizes:
-            raise HtmlGeneratorSimulationError, "Ran out of screen sizes to return!"
+            raise HtmlGeneratorSimulationError("Ran out of screen sizes to return!")
         return self.sizes.pop(0)
 
     def get_input(self, raw_keys=False):
@@ -219,7 +223,7 @@ def screenshot_init( sizes, keys ):
             assert type(row) == int
             assert row>0 and col>0
     except (AssertionError, ValueError):
-        raise Exception, "sizes must be in the form [ (col1,row1), (col2,row2), ...]"
+        raise Exception("sizes must be in the form [ (col1,row1), (col2,row2), ...]")
 
     try:
         for l in keys:
@@ -227,11 +231,11 @@ def screenshot_init( sizes, keys ):
             for k in l:
                 assert type(k) == str
     except (AssertionError, ValueError):
-        raise Exception, "keys must be in the form [ [keyA1, keyA2, ..], [keyB1, ..], ...]"
+        raise Exception("keys must be in the form [ [keyA1, keyA2, ..], [keyB1, ..], ...]")
 
-    import curses_display
+    from . import curses_display
     curses_display.Screen = HtmlGenerator
-    import raw_display
+    from . import raw_display
     raw_display.Screen = HtmlGenerator
 
     HtmlGenerator.sizes = sizes

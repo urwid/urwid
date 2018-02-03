@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """Demo of using urwid with Python 3.4's asyncio.
 
 This code works on older Python 3.x if you install `asyncio` from PyPI, and

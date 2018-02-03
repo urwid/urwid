@@ -19,6 +19,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import division, print_function
+
 """
 Direct terminal UI implementation
 """
@@ -79,6 +81,7 @@ class Screen(BaseScreen, RealTerminal):
         self.back_color_erase = not self.term.startswith("screen")
         self.register_palette_entry( None, 'default','default')
         self._next_timeout = None
+        self.signal_handler_setter = signal.signal
 
         # Our connections to the world
         self._term_output_file = output
@@ -119,13 +122,21 @@ class Screen(BaseScreen, RealTerminal):
         self.complete_wait = complete_wait
         self.resize_wait = resize_wait
 
-    def _sigwinch_handler(self, signum, frame):
+    def _sigwinch_handler(self, signum, frame=None):
+        """
+        frame -- will always be None when the GLib event loop is being used.
+        """
+
         if not self._resized:
             os.write(self._resize_pipe_wr, B('R'))
         self._resized = True
         self.screen_buf = None
 
-    def _sigcont_handler(self, signum, frame):
+    def _sigcont_handler(self, signum, frame=None):
+        """
+        frame -- will always be None when the GLib event loop is being used.
+        """
+
         self.stop()
         self.start()
         self._sigwinch_handler(None, None)
@@ -138,8 +149,8 @@ class Screen(BaseScreen, RealTerminal):
         Override this function to call from main thread in threaded
         applications.
         """
-        signal.signal(signal.SIGWINCH, self._sigwinch_handler)
-        signal.signal(signal.SIGCONT, self._sigcont_handler)
+        self.signal_handler_setter(signal.SIGWINCH, self._sigwinch_handler)
+        self.signal_handler_setter(signal.SIGCONT, self._sigcont_handler)
 
     def signal_restore(self):
         """
@@ -149,8 +160,8 @@ class Screen(BaseScreen, RealTerminal):
         Override this function to call from main thread in threaded
         applications.
         """
-        signal.signal(signal.SIGCONT, signal.SIG_DFL)
-        signal.signal(signal.SIGWINCH, signal.SIG_DFL)
+        self.signal_handler_setter(signal.SIGCONT, signal.SIG_DFL)
+        self.signal_handler_setter(signal.SIGWINCH, signal.SIG_DFL)
 
     def set_mouse_tracking(self, enable=True):
         """
@@ -392,9 +403,7 @@ class Screen(BaseScreen, RealTerminal):
             wrapper = lambda: self.parse_input(
                 event_loop, callback, self.get_available_raw_input())
         fds = self.get_input_descriptors()
-        handles = []
-        for fd in fds:
-            event_loop.watch_file(fd, wrapper)
+        handles = [event_loop.watch_file(fd, wrapper) for fd in fds]
         self._current_event_loop_handles = handles
 
     _input_timeout = None
@@ -637,7 +646,7 @@ class Screen(BaseScreen, RealTerminal):
 
     def get_cols_rows(self):
         """Return the terminal dimensions (num columns, num rows)."""
-        y, x = 80, 24
+        y, x = 24, 80
         try:
             buf = fcntl.ioctl(self._term_output_file.fileno(),
                               termios.TIOCGWINSZ, ' '*4)
@@ -665,8 +674,11 @@ class Screen(BaseScreen, RealTerminal):
         self._setup_G1_done = True
 
 
-    def draw_screen(self, (maxcol, maxrow), r ):
+    def draw_screen(self, maxres, r ):
         """Paint screen with rendered canvas."""
+
+        (maxcol, maxrow) = maxres
+
         assert self._started
 
         assert maxrow == r.rows()
@@ -738,9 +750,9 @@ class Screen(BaseScreen, RealTerminal):
             return self._attrspec_to_escape(
                 AttrSpec('default','default'))
 
-        def using_standout(a):
+        def using_standout_or_underline(a):
             a = self._pal_attrspec.get(a, a)
-            return isinstance(a, AttrSpec) and a.standout
+            return isinstance(a, AttrSpec) and (a.standout or a.underline)
 
         ins = None
         o.append(set_cursor_home())
@@ -773,7 +785,7 @@ class Screen(BaseScreen, RealTerminal):
             if row:
                 a, cs, run = row[-1]
                 if (run[-1:] == B(' ') and self.back_color_erase
-                        and not using_standout(a)):
+                        and not using_standout_or_underline(a)):
                     whitespace_at_end = True
                     row = row[:-1] + [(a, cs, run.rstrip(B(' ')))]
                 elif y == maxrow-1 and maxcol > 1:
@@ -834,7 +846,7 @@ class Screen(BaseScreen, RealTerminal):
         try:
             for l in o:
                 if isinstance(l, bytes) and PYTHON3:
-                    l = l.decode('utf-8')
+                    l = l.decode('utf-8', 'replace')
                 self.write(l)
             self.flush()
         except IOError as e:
@@ -933,7 +945,7 @@ class Screen(BaseScreen, RealTerminal):
             fg = "39"
         st = ("1;" * a.bold + "3;" * a.italics +
               "4;" * a.underline + "5;" * a.blink +
-              "7;" * a.standout)
+              "7;" * a.standout + "9;" * a.strikethrough)
         if a.background_high:
             bg = "48;5;%d" % a.background_number
         elif a.background_basic:

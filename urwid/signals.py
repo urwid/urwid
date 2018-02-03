@@ -19,6 +19,7 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import division, print_function
 
 import itertools
 import weakref
@@ -26,14 +27,14 @@ import weakref
 
 class MetaSignals(type):
     """
-    register the list of signals in the class varable signals,
+    register the list of signals in the class variable signals,
     including signals in superclasses.
     """
     def __init__(cls, name, bases, d):
         signals = d.get("signals", [])
         for superclass in cls.__bases__:
             signals.extend(getattr(superclass, 'signals', []))
-        signals = dict([(x,None) for x in signals]).keys()
+        signals = list(dict([(x,None) for x in signals]).keys())
         d["signals"] = signals
         register_signal(cls, signals)
         super(MetaSignals, cls).__init__(name, bases, d)
@@ -67,7 +68,7 @@ class Signals(object):
         :type signals: signal names
 
         This function must be called for a class before connecting any
-        signal callbacks or emiting any signals from that class' objects
+        signal callbacks or emitting any signals from that class' objects
         """
         self._supported[sig_cls] = signals
 

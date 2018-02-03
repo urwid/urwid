@@ -2,6 +2,94 @@
 Changelog
 ---------
 
+Urwid 2.0.1
+===========
+
+2018-01-21
+
+ * #275: Late fix for proper exception reraising from within main loop
+   (by Andrew Dunai & Adam Sampson)
+
+Urwid 2.0.0
+===========
+
+2018-01-17
+
+ * Full Python 2.x/3.x support (by Andrew Dunai)
+
+ * Proper handling & customization of OS signals by GLib event loop
+   (by Federico T)
+
+ * vterm: Fix handling of NUL characters (by aszlig)
+
+ * Add 256-color support for fbterm (by Benjamin Yates)
+
+ * Italics support (by Ian D. Scott)
+
+ * Store envron's TERM value as a Screen attribute (by Benjamin Yates)
+
+ * Replaced hashbangs to use proper Python binary (by Douglas La Rocca)
+
+ * Post-change signal for Edit, CheckBox and RadioButton widgets
+   (by Toshio Kuratomi)
+
+ * ListBox.body update (by Random User)
+
+ * SimpleListWalker is now default when setting ListBox.body (by Random User)
+
+ * #246, #234: SelectEventLoop alarm improvements (by Dave Jones)
+
+ * #211: Title align & borderless sides for LineBox (by Toshio Kuratomi)
+
+ * Support for 'home' and 'end' keys in ListBox (by Random User)
+
+ * Various code cleanups (by Jordan Speicher, Marin Atanasov Nikolov)
+
+ * CI fixes (by Marlox, Ian Ward, Anatoly Techtonik, Tony Cebzanov &
+   Ondřej Súkup)
+
+ * Example fixes (by Kenneth Nielsen)
+
+ * Documentation fixes (by anatoly techtonik, Marcin Kurczewski, mobyte0,
+   Christian Geier & xndcn)
+
+ * Code cleanup & typo fixes (by Jakub Wilk & Boris Feld)
+
+ * Integration of tox for easier Python cross-version testing (by Andrew Dunai)
+
+ * Test fixes (by Michael Hudson-Doyle, Mike Gilbert & Andrew Dunai)
+
+ * Correct error messages in Decoration (by Marcin Kurczewski)
+
+ * #141: Fix for StandardTextLayout.calculate_text_segments
+   (by Grzegorz Aksamit)
+
+ * #221: Fix for raw display should release file descriptors (by Alain Leufroy)
+
+ * #261: Fix issues with unicode characters in ProgressBar (by Andrew Dunai)
+
+ * Fix for 'page up' and 'page down' in ListBox when having focusable children
+   (by Random User)
+
+ * Fixes for examples compatibility with Python 3 (by Lars Kellogg-Stedman)
+
+ * Fix default screen size on raw display (by Andreas Klöckner)
+
+ * Fix underlining for padded text (by Random User)
+
+ * Fix for terminal widget crash with Python 3 (by Sjc1000)
+
+ * Fix for string formatting error (by Jakub Wilk)
+
+ * Fix for iterator in WidgetContainerListContentsMixin (by Marlox)
+
+ * Fix for missing `modified` signal in SimpleFocusListWalker
+   (by Michael Hansen)
+
+ * Dropped Python 3.2 support
+
+ * Test coverage is now collected
+
 Urwid 1.3.1
 ===========
 
@@ -43,6 +131,8 @@ Urwid 1.3.0
    (by Heiko Noordhof)
 
  * Documentation fixes (by Ismail, Matthew Mosesohn)
+
+ * SelectableIcon using cursor_position=0 by default instead of 1.
 
 Urwid 1.2.2
 ===========
@@ -279,7 +369,7 @@ Urwid 1.0.1
 
  * Fix for a LineBox border __init__() parameters
 
- * Fix input input of UTF-8 in tour.py example by converting captions
+ * Fix input of UTF-8 in tour.py example by converting captions
    to unicode
 
  * Fix tutorial examples' use of TextCanvas and switch to using
@@ -307,7 +397,7 @@ Urwid 1.0.0
  * New experimental Terminal widget with xterm emulation and
    terminal.py example program (by aszlig)
 
- * Edit widget now supports a mask (for passwords), has a
+ * Edit widget now supports a mask (for passwords), has an
    insert_text_result() method for full-field validation and
    normalizes input text to Unicode or bytes based on the caption
    type used
@@ -566,7 +656,7 @@ Urwid 0.9.8
    without blocking.
 
  * The Columns, Pile and ListBox widgets now choose their first
-   selectable child widget as the focus widget by defaut.
+   selectable child widget as the focus widget by default.
 
  * New ListWalker base class for list walker classes.
 
@@ -593,7 +683,7 @@ Urwid 0.9.8
 
  * The raw_display module now uses an alternate buffer so that the
    original screen can be restored on exit. The old behaviour is
-   available by seting the alternate_buffer parameter of start() or
+   available by setting the alternate_buffer parameter of start() or
    run_wrapper() to False.
 
  * Many internal string processing functions have been rewritten in C to
@@ -611,7 +701,7 @@ Urwid 0.9.7.2
 
  * Fixed a UTF-8 input bug.
 
- * Added a clear() function to the the display modules to force the
+ * Added a clear() function to the display modules to force the
    screen to be repainted on the next draw_screen() call.
 
 
@@ -1048,7 +1138,7 @@ Urwid 0.8.6
 
    register_palette() and register_palette_entry() now accept "default"
    as foreground and/or background. If the terminal's default attributes
-   cannot be detected black on light gray will be used to accomodate
+   cannot be detected black on light gray will be used to accommodate
    terminals with always-black cursors.
 
    "default" is now the default for text with no attributes. This means

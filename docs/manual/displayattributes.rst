@@ -159,6 +159,21 @@ Foreground and Background Settings
      - YES
      - standout
      - widely supported
+   * - :ref:`italics <bold-underline-standout>`
+     - YES
+     - YES
+     - NO
+     - widely supported
+   * - :ref:`blink <bold-underline-standout>`
+     - YES/NO
+     - NO
+     - NO
+     - some support
+   * - :ref:`strikethrough <bold-underline-standout>`
+     - YES
+     - NO
+     - NO
+     - some supported
    * - :ref:`"bright" background colors <bright-background>`
      - YES
      - urxvt
@@ -239,9 +254,12 @@ Bold, Underline, Standout
 * ``'bold'``
 * ``'underline'``
 * ``'standout'``
+* ``'blink'``
+* ``'italics'``
+* ``'strikethrough'``
 
 These settings may be tagged on to foreground colors using commas, eg: ``'light
-gray,underline,bold'``
+gray,underline,bold,strikethrough'``
 
 For monochrome mode combinations of these are the only values that may be used.
 

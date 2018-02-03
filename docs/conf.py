@@ -46,10 +46,18 @@ copyright = u'2014, Ian Ward et al'
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
-FILE_PATH = os.path.dirname(__file__).decode('utf-8')
+if sys.version_info > (3, 0):
+    FILE_PATH = os.path.dirname(__file__)
+else:
+    FILE_PATH = os.path.dirname(__file__).decode('utf-8')
 VERSION_MODULE = os.path.abspath(os.path.join(FILE_PATH,
     '../urwid/version.py'))
 VERSION_VARS = {}
+if sys.version_info > (3, 0):
+    def execfile(module, global_vars):
+        with open(module) as f:
+            code = compile(f.read(), "somefile.py", 'exec')
+            exec(code, global_vars)
 execfile(VERSION_MODULE, VERSION_VARS)
 # The short X.Y version.
 version = '.'.join([str(x) for x in VERSION_VARS['VERSION'][:2]])

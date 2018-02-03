@@ -19,6 +19,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import division, print_function
+
 """
 Urwid web application display module
 """
@@ -659,7 +661,7 @@ class Screen:
         urwid_id = "%09d%09d"%(random.randrange(10**9),
             random.randrange(10**9))
         self.pipe_name = os.path.join(_prefs.pipe_dir,"urwid"+urwid_id)
-        os.mkfifo(self.pipe_name+".in",0600)
+        os.mkfifo(self.pipe_name+".in",0o600)
         signal.signal(signal.SIGTERM,self._cleanup_pipe)
 
         self.input_fd = os.open(self.pipe_name+".in",
@@ -743,8 +745,10 @@ class Screen:
             rows = MAX_ROWS
         self.screen_size = cols, rows
 
-    def draw_screen(self, (cols, rows), r ):
+    def draw_screen(self, size, r ):
         """Send a screen update to the client."""
+
+        (cols, rows) = size
 
         if cols != self.last_screen_width:
             self.last_screen = {}

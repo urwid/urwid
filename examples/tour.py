@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # Urwid tour.  It slices, it dices..
 #    Copyright (C) 2004-2011  Ian Ward

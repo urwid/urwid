@@ -19,6 +19,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import division, print_function
+
 REDRAW_SCREEN = 'redraw screen'
 CURSOR_UP = 'cursor up'
 CURSOR_DOWN = 'cursor down'

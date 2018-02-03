@@ -1,4 +1,3 @@
-# encoding: utf-8
 """
 Twisted integration for Urwid.
 
@@ -30,6 +29,8 @@ License:   MIT <http://www.opensource.org/licenses/mit-license.php>
 Portions Copyright: 2010, Ian Ward <ian@excess.org>
 Licence:   LGPL <http://opensource.org/licenses/lgpl-2.1.php>
 """
+
+from __future__ import print_function
 
 import os
 
@@ -198,7 +199,7 @@ class TwistedScreen(Screen):
         """
         return self.terminalProtocol.width, self.terminalProtocol.height
 
-    def draw_screen(self, (maxcol, maxrow), r ):
+    def draw_screen(self, maxres, r ):
         """Render a canvas to the terminal.
 
         The canvas contains all the information required to render the Urwid
@@ -206,6 +207,7 @@ class TwistedScreen(Screen):
         tuples. This very simple implementation iterates each row and simply
         writes it out.
         """
+        (maxcol, maxrow) = maxres
         #self.terminal.eraseDisplay()
         lasta = None
         for i, row in enumerate(r.content()):
@@ -409,9 +411,10 @@ class UrwidTerminalSession(TerminalSession):
             IConchUser(self.original),
             self.height, self.width)
 
-    def windowChanged(self, (h, w, x, y)):
+    def windowChanged(self, dimensions):
         """Called when the window size has changed.
         """
+        (h, w, x, y) = dimensions
         self.chained_protocol.terminalProtocol.terminalSize(h, w)
 
 

@@ -20,6 +20,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import division, print_function
+
 """
 Terminal Escape Sequences for input and display
 """
