@@ -95,6 +95,8 @@ class IntegerEdit(NumEdit):
         >>> e.keypress(size, '9')
         >>> e.keypress(size, '0')
         >>> assert e.edit_text == "290"
+        >>> e, size = IntegerEdit("", ""), (10,)
+        >>> assert e.value() is None
         >>> # binary
         >>> e, size = IntegerEdit(u"", "1010", base=2), (10,)
         >>> e.keypress(size, 'end')
@@ -105,6 +107,16 @@ class IntegerEdit(NumEdit):
         >>> e.keypress(size, 'F')
         >>> e.keypress(size, 'F')
         >>> assert e.edit_text == "10FF"
+        >>> assert e.keypress(size, 'G') == 'G'  # unhandled key
+        >>> assert e.edit_text == "10FF"
+        >>> e, size = IntegerEdit(u"", 10.0), (10,)
+        Traceback (most recent call last):
+            ...
+        ValueError: default: Only 'str', 'int', 'long' or Decimal input allowed
+        >>> e, size = IntegerEdit(u"", Decimal("10.0")), (10,)
+        Traceback (most recent call last):
+            ...
+        ValueError: not an 'integer Decimal' instance
         """
         val = ""
         if default is not None:
@@ -170,6 +182,10 @@ class FloatEdit(NumEdit):
         >>> e.keypress(size, '5')
         >>> e.keypress(size, '1')
         >>> assert e.value() == Decimal("51.51")
+        >>> e, size = FloatEdit(decimalSeparator=":"), (10,)
+        Traceback (most recent call last):
+            ...
+        ValueError: invalid decimalSeparator: :
         >>> e, size = FloatEdit(decimalSeparator=","), (10,)
         >>> e.keypress(size, '5')
         >>> e.keypress(size, '1')
@@ -183,8 +199,16 @@ class FloatEdit(NumEdit):
         >>> e.keypress(size, 'backspace')
         >>> assert e.edit_text == "3.14"
         >>> assert e.value() == Decimal("3.1400")
+        >>> e.keypress(size, '1')
+        >>> e.keypress(size, '5')
+        >>> e.keypress(size, '9')
+        >>> assert e.value() == Decimal("3.1416")
         >>> e, size = FloatEdit("", ""), (10,)
         >>> assert e.value() is None
+        >>> e, size = FloatEdit(u"", 10.0), (10,)
+        Traceback (most recent call last):
+            ...
+        ValueError: default: Only 'str', 'int', 'long' or Decimal input allowed
         """
         self.significance = None
         self._decimalSeparator = decimalSeparator
