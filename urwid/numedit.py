@@ -99,7 +99,7 @@ class IntegerEdit(NumEdit):
         """
         val = ""
         if default is not None:
-            if not isinstance(default, (int, long, str, Decimal)):
+            if not isinstance(default, (int, str, Decimal)):
                 raise ValueError("default: Only 'str', 'int', "
                                  "'long' or Decimal input allowed")
 
@@ -107,7 +107,7 @@ class IntegerEdit(NumEdit):
             # in case a float is passed or some other error
             if isinstance(default, str) and len(default):
                 # check if it is a float, raises a ValueError otherwise
-                long(default)
+                int(default)
 
             elif isinstance(default, Decimal):
                 # a Decimal instance with no fractional part
@@ -187,7 +187,7 @@ class FloatEdit(NumEdit):
 
         val = ""
         if default is not None and default is not "":
-            if not isinstance(default, (int, long, str, Decimal)):
+            if not isinstance(default, (int, str, Decimal)):
                 raise ValueError("default: Only 'str', 'int', "
                                  "'long' or Decimal input allowed")
 
