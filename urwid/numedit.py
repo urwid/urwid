@@ -34,6 +34,7 @@ class NumEdit(Edit):
       + regular oct: 01234567
       + regular hex: 0123456789abcdef
     """
+    ALLOWED = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
     def __init__(self, allowed, caption, default):
         super(NumEdit, self).__init__(caption, default)
@@ -78,9 +79,7 @@ class NumEdit(Edit):
 class IntegerEdit(NumEdit):
     """Edit widget for integer values"""
 
-    ALLOWED = "0123456789"
-
-    def __init__(self, caption="", default=None):
+    def __init__(self, caption="", default=None, base=10):
         """
         caption -- caption markup
         default -- default edit value
@@ -96,6 +95,16 @@ class IntegerEdit(NumEdit):
         >>> e.keypress(size, '9')
         >>> e.keypress(size, '0')
         >>> assert e.edit_text == "290"
+        >>> # binary
+        >>> e, size = IntegerEdit(u"", "1010", base=2), (10,)
+        >>> e.keypress(size, 'end')
+        >>> e.keypress(size, '1')
+        >>> # HEX
+        >>> e, size = IntegerEdit(u"", "10", base=16), (10,)
+        >>> e.keypress(size, 'end')
+        >>> e.keypress(size, 'F')
+        >>> e.keypress(size, 'F')
+        >>> assert e.edit_text == "10FF"
         """
         val = ""
         if default is not None:
@@ -117,7 +126,7 @@ class IntegerEdit(NumEdit):
             # convert possible int, long or Decimal to str
             val = str(default)
 
-        super(IntegerEdit, self).__init__(self.ALLOWED, caption, val)
+        super(IntegerEdit, self).__init__(self.ALLOWED[:base], caption, val)
 
     def value(self):
         """
@@ -136,8 +145,6 @@ class IntegerEdit(NumEdit):
 
 class FloatEdit(NumEdit):
     """Edit widget for float values."""
-
-    ALLOWED = "0123456789"
 
     def __init__(self, caption="", default=None,
                  preserveSignificance=True, decimalSeparator='.'):
@@ -201,7 +208,7 @@ class FloatEdit(NumEdit):
 
             val = str(default)
 
-        super(FloatEdit, self).__init__(self.ALLOWED + decimalSeparator,
+        super(FloatEdit, self).__init__(self.ALLOWED[0:10] + decimalSeparator,
                                         caption, val)
 
     def value(self):
