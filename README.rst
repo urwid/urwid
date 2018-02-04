@@ -77,3 +77,4 @@ Contributors
 - `grugq <//github.com/grugq>`_
 - `inducer <//github.com/inducer>`_
 - `winbornejw <//github.com/winbornejw>`_
+- `hootnot <//github.com/hootnot>`_
