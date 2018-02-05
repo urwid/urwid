@@ -22,6 +22,7 @@
 
 from urwid import Edit
 from decimal import Decimal
+import re
 
 
 class NumEdit(Edit):
@@ -36,9 +37,10 @@ class NumEdit(Edit):
     """
     ALLOWED = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-    def __init__(self, allowed, caption, default):
+    def __init__(self, allowed, caption, default, trimLeadingZeros=True):
         super(NumEdit, self).__init__(caption, default)
         self._allowed = allowed
+        self.trimLeadingZeros = trimLeadingZeros
 
     def valid_char(self, ch):
         """
@@ -68,10 +70,11 @@ class NumEdit(Edit):
         unhandled = Edit.keypress(self, (maxcol,), key)
 
         if not unhandled:
-            # trim leading zeros
-            while self.edit_pos > 0 and self.edit_text[:1] == "0":
-                self.set_edit_pos(self.edit_pos - 1)
-                self.set_edit_text(self.edit_text[1:])
+            if self.trimLeadingZeros:
+                # trim leading zeros
+                while self.edit_pos > 0 and self.edit_text[:1] == "0":
+                    self.set_edit_pos(self.edit_pos - 1)
+                    self.set_edit_text(self.edit_text[1:])
 
         return unhandled
 
@@ -109,6 +112,13 @@ class IntegerEdit(NumEdit):
         >>> assert e.edit_text == "10Ff"
         >>> assert e.keypress(size, 'G') == 'G'  # unhandled key
         >>> assert e.edit_text == "10Ff"
+        >>> # keep leading 0's when not base 10
+        >>> e, size = IntegerEdit(u"", "10FF", base=16), (10,)
+        >>> assert e.edit_text == "10FF"
+        >>> e.keypress(size, 'home')
+        >>> e.keypress(size, 'delete')
+        >>> e.keypress(size, '0')
+        >>> assert e.edit_text == "00FF"
         >>> e, size = IntegerEdit(u"", 10.0), (10,)
         Traceback (most recent call last):
             ...
@@ -119,6 +129,7 @@ class IntegerEdit(NumEdit):
         ValueError: not an 'integer Decimal' instance
         """
         val = ""
+        allowed_chars = self.ALLOWED[:base]
         if default is not None:
             if not isinstance(default, (int, str, Decimal)):
                 raise ValueError("default: Only 'str', 'int', "
@@ -127,8 +138,11 @@ class IntegerEdit(NumEdit):
             # convert to a long first, this will raise a ValueError
             # in case a float is passed or some other error
             if isinstance(default, str) and len(default):
-                # check if it is a float, raises a ValueError otherwise
-                int(default)
+                # check if it is a valid initial value
+                validation_re = "^[{}]+$".format(allowed_chars)
+                if not re.match(validation_re, str(default), re.IGNORECASE):
+                    raise ValueError("invalid value: {} for base {}".format(
+                                     default, base))
 
             elif isinstance(default, Decimal):
                 # a Decimal instance with no fractional part
@@ -138,7 +152,8 @@ class IntegerEdit(NumEdit):
             # convert possible int, long or Decimal to str
             val = str(default)
 
-        super(IntegerEdit, self).__init__(self.ALLOWED[:base], caption, val)
+        super(IntegerEdit, self).__init__(allowed_chars, caption, val,
+                                          trimLeadingZeros=(base == 10))
 
     def value(self):
         """
