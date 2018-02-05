@@ -42,9 +42,9 @@ class NumEdit(Edit):
 
     def valid_char(self, ch):
         """
-        Return true for decimal digits.
+        Return true for allowed characters.
         """
-        return len(ch) == 1 and ch in self._allowed
+        return len(ch) == 1 and ch.upper() in self._allowed
 
     def keypress(self, size, key):
         """
@@ -105,10 +105,10 @@ class IntegerEdit(NumEdit):
         >>> e, size = IntegerEdit(u"", "10", base=16), (10,)
         >>> e.keypress(size, 'end')
         >>> e.keypress(size, 'F')
-        >>> e.keypress(size, 'F')
-        >>> assert e.edit_text == "10FF"
+        >>> e.keypress(size, 'f')
+        >>> assert e.edit_text == "10Ff"
         >>> assert e.keypress(size, 'G') == 'G'  # unhandled key
-        >>> assert e.edit_text == "10FF"
+        >>> assert e.edit_text == "10Ff"
         >>> e, size = IntegerEdit(u"", 10.0), (10,)
         Traceback (most recent call last):
             ...
