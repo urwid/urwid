@@ -104,6 +104,8 @@ class IntegerEdit(NumEdit):
         >>> e, size = IntegerEdit(u"", "1010", base=2), (10,)
         >>> e.keypress(size, 'end')
         >>> e.keypress(size, '1')
+        >>> assert e.edit_text == "10101"
+        >>> assert e.value() == Decimal("21")
         >>> # HEX
         >>> e, size = IntegerEdit(u"", "10", base=16), (10,)
         >>> e.keypress(size, 'end')
@@ -115,6 +117,7 @@ class IntegerEdit(NumEdit):
         >>> # keep leading 0's when not base 10
         >>> e, size = IntegerEdit(u"", "10FF", base=16), (10,)
         >>> assert e.edit_text == "10FF"
+        >>> assert e.value() == Decimal("4351")
         >>> e.keypress(size, 'home')
         >>> e.keypress(size, 'delete')
         >>> e.keypress(size, '0')
@@ -134,8 +137,9 @@ class IntegerEdit(NumEdit):
             ...
         ValueError: not an 'integer Decimal' instance
         """
+        self.base = base
         val = ""
-        allowed_chars = self.ALLOWED[:base]
+        allowed_chars = self.ALLOWED[:self.base]
         if default is not None:
             if not isinstance(default, (int, str, Decimal)):
                 raise ValueError("default: Only 'str', 'int', "
@@ -159,7 +163,7 @@ class IntegerEdit(NumEdit):
             val = str(default)
 
         super(IntegerEdit, self).__init__(allowed_chars, caption, val,
-                                          trimLeadingZeros=(base == 10))
+                                          trimLeadingZeros=(self.base == 10))
 
     def value(self):
         """
@@ -171,7 +175,7 @@ class IntegerEdit(NumEdit):
         >>> assert e.value() == 51
         """
         if self.edit_text:
-            return Decimal(self.edit_text)
+            return Decimal(int(self.edit_text, self.base))
 
         return None
 
