@@ -119,6 +119,12 @@ class IntegerEdit(NumEdit):
         >>> e.keypress(size, 'delete')
         >>> e.keypress(size, '0')
         >>> assert e.edit_text == "00FF"
+        >>> # test exception on incompatable value for base
+        >>> e, size = IntegerEdit(u"", "10FG", base=16), (10,)
+        Traceback (most recent call last):
+            ...
+        ValueError: invalid value: 10FG for base 16
+        >>> # test exception on float init value
         >>> e, size = IntegerEdit(u"", 10.0), (10,)
         Traceback (most recent call last):
             ...
