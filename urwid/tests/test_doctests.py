@@ -2,6 +2,7 @@ import unittest
 import doctest
 
 import urwid
+import urwid.numedit
 
 def load_tests(loader, tests, ignore):
     module_doctests = [
@@ -10,6 +11,7 @@ def load_tests(loader, tests, ignore):
         urwid.decoration,
         urwid.display_common,
         urwid.main_loop,
+        urwid.numedit,
         urwid.monitored_list,
         urwid.raw_display,
         'urwid.split_repr', # override function with same name
