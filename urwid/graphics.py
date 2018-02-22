@@ -99,7 +99,8 @@ class BigText(Widget):
 
 class LineBox(WidgetDecoration, WidgetWrap):
 
-    def __init__(self, original_widget, title="", title_align="center",
+    def __init__(self, original_widget, title="",
+                 title_align="center", title_attr=None,
                  tlcorner=u'┌', tline=u'─', lline=u'│',
                  trcorner=u'┐', blcorner=u'└', rline=u'│',
                  bline=u'─', brcorner=u'┘'):
@@ -108,6 +109,8 @@ class LineBox(WidgetDecoration, WidgetWrap):
 
         Use 'title' to set an initial title text with will be centered
         on top of the box.
+
+        Use `title_attr` to apply a specific attribute to the title text.
 
         Use `title_align` to align the title to the 'left', 'right', or 'center'.
         The default is 'center'.
@@ -141,7 +144,10 @@ class LineBox(WidgetDecoration, WidgetWrap):
         if not tline and title:
             raise ValueError('Cannot have a title when tline is empty string')
 
-        self.title_widget = Text(self.format_title(title))
+        if title_attr:
+            self.title_widget = Text((title_attr, self.format_title(title)))
+        else:
+            self.title_widget = Text(self.format_title(title))
 
         if tline:
             if title_align not in ('left', 'center', 'right'):
