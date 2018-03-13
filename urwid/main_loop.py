@@ -1468,8 +1468,8 @@ class AsyncioEventLoop(EventLoop):
                 # Store the exc_info so we can re-raise after the loop stops
                 import sys
                 self._exc_info = sys.exc_info()
-                if self._exc_info == (None,None,None):
-                    self._exc_info=exc
+                if self._exc_info == (None, None, None):
+                    self._exc_info = exc
         else:
             loop.default_exception_handler(context)
 
