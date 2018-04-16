@@ -888,8 +888,11 @@ class GLibEventLoop(EventLoop):
             signal.SIGTERM,
             signal.SIGUSR1,
             signal.SIGUSR2,
-            signal.SIGWINCH
         ]
+
+        # GLib supports SIGWINCH as of version 2.54.
+        if not self.GLib.check_version(2, 54, 0):
+            glib_signals.append(signal.SIGWINCH)
 
         if signum not in glib_signals:
             # The GLib event loop supports only the signals listed above
