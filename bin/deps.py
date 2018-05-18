@@ -22,4 +22,10 @@ try:
 except ImportError:
     pass
 
+try:
+    import trio
+    deps.append("trio")
+except ImportError:
+    pass
+
 print(" ".join(deps))
