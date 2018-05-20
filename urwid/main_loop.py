@@ -1603,7 +1603,10 @@ class TrioEventLoop(EventLoop):
 
         def faux_idle_callback():
             callback()
-            self.nursery.start_soon(self._trio_alarm, self._idle_emulation_delay, faux_idle_callback, cancel)
+            if self.nursery:
+                self.nursery.start_soon(self._trio_alarm, self._idle_emulation_delay, faux_idle_callback, cancel)
+            else:
+                self._alarm_queue.append((self._idle_emulation_delay, faux_idle_callback, cancel))
 
         if self.nursery:
             self.nursery.start_soon(self._trio_alarm, self._idle_emulation_delay, faux_idle_callback, cancel)
@@ -1647,7 +1650,8 @@ class TrioEventLoop(EventLoop):
                 trio.run(self._parent)
             except ExitMainLoop:
                 pass
-
+            finally:
+                self.nursery = None
 
 def _refl(name, rval=None, exit=False):
     """
