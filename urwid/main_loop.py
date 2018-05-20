@@ -1037,7 +1037,8 @@ class TornadoEventLoop(EventLoop):
         potential idle periods.
     """
     _ioloop_registry = WeakKeyDictionary()  # {<ioloop> : {<handle> : <idle_func>}}
-    _max_idle_handle = 0
+    _max_idle_handle = 0  # Used for Python2 idle emulation
+    _idle_emulation_delay = 1.0/256 # Used for Python3 idle emulation: a short time (in seconds)
 
     class PollProxy(object):
         """ A simple proxy for a Python's poll object that wraps the .poll() method
@@ -1093,7 +1094,10 @@ class TornadoEventLoop(EventLoop):
             from tornado.ioloop import IOLoop
             ioloop = IOLoop.instance()
         self._ioloop = ioloop
-        self._patch_poll_impl(ioloop)
+        if PYTHON3:
+            pass
+        else:
+            self._patch_poll_impl(ioloop)
         self._pending_alarms = {}
         self._watch_handles    = {}  # {<watch_handle> : <file_descriptor>}
         self._max_watch_handle = 0
@@ -1138,6 +1142,21 @@ class TornadoEventLoop(EventLoop):
             return True
 
     def enter_idle(self, callback):
+        if PYTHON3:
+            # XXX there's no such thing as "idle" in most event loops; this fakes
+            # it the same way as Twisted, by scheduling the callback to be called
+            # repeatedly
+            mutable_handle = [None]
+            def faux_idle_callback():
+                callback()
+                mutable_handle[0] = self._ioloop.call_later(
+                    self._idle_emulation_delay, faux_idle_callback)
+
+            mutable_handle[0] = self._ioloop.call_later(
+                self._idle_emulation_delay, faux_idle_callback)
+
+            return mutable_handle
+
         self._max_idle_handle += 1
         handle   = self._max_idle_handle
         idle_map = self._ioloop_registry[self._ioloop]
@@ -1145,6 +1164,9 @@ class TornadoEventLoop(EventLoop):
         return handle
 
     def remove_enter_idle(self, handle):
+        if PYTHON3:
+            return self.remove_alarm(handle[0])
+
         idle_map = self._ioloop_registry[self._ioloop]
         cb = idle_map.pop(handle, None)
         return cb is not None

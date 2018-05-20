@@ -58,7 +58,7 @@ class EventLoopTestMixin(object):
         handle = evl.alarm(0.01, exit_clean)
         handle = evl.alarm(0.005, say_hello)
         idle_handle = evl.enter_idle(say_waiting)
-        if self._expected_idle_handle is not None:
+        if self._expected_idle_handle is not None and not PYTHON3:
             self.assertEqual(idle_handle, 1)
         evl.run()
         self.assertTrue("hello" in out, out)
