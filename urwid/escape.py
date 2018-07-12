@@ -35,6 +35,10 @@ except ImportError:
 
 from urwid.compat import bytes, bytes3
 
+# NOTE: because of circular imports (urwid.util -> urwid.escape -> urwid.util)
+# from urwid.util import is_mouse_event -- will not work here
+import urwid.util
+
 within_double_byte = str_util.within_double_byte
 
 SO = "\x0e"
@@ -384,6 +388,8 @@ def process_keyqueue(codes, more_available):
         # Meta keys -- ESC+Key form
         run, remaining_codes = process_keyqueue(codes[1:],
             more_available)
+        if urwid.util.is_mouse_event(run[0]):
+            return ['esc'] + run, remaining_codes
         if run[0] == "esc" or run[0].find("meta ") >= 0:
             return ['esc']+run, remaining_codes
         return ['meta '+run[0]]+run[1:], remaining_codes
