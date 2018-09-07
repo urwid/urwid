@@ -21,8 +21,11 @@
 
 from __future__ import division, print_function
 
-from inspect import getargspec
 from urwid.compat import PYTHON3, bytes
+if not PYTHON3:
+    from inspect import getargspec
+else:
+    from inspect import getfullargspec
 
 def split_repr(self):
     """
@@ -122,7 +125,11 @@ def remove_defaults(d, fn):
     >>> Foo()
     <Foo object>
     """
-    args, varargs, varkw, defaults = getargspec(fn)
+    # args, varargs, varkw, defaults = getargspec(fn)
+    if not PYTHON3:
+        args, varargs, varkw, defaults = getargspec(fn)
+    else:
+        args, varargs, varkw, defaults, _, _, _ = getfullargspec(fn)
 
     # ignore *varargs and **kwargs
     if varkw:
