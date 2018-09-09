@@ -125,7 +125,6 @@ def remove_defaults(d, fn):
     >>> Foo()
     <Foo object>
     """
-    # args, varargs, varkw, defaults = getargspec(fn)
     if not PYTHON3:
         args, varargs, varkw, defaults = getargspec(fn)
     else:
