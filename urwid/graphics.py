@@ -400,7 +400,7 @@ class BarGraph(with_metaclass(BarGraphMeta, Widget)):
 
         if self.bar_width is not None:
             return [self.bar_width] * min(
-                len(bardata), maxcol / self.bar_width)
+                len(bardata), maxcol // self.bar_width)
 
         if len(bardata) >= maxcol:
             return [1] * maxcol
