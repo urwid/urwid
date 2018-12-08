@@ -1039,13 +1039,8 @@ class Text(Widget):
         else:
             text, attr = self.get_text()
         self._cache_maxcol = maxcol
-        self._cache_translation = self._calc_line_translation(
-            text, maxcol )
-
-    def _calc_line_translation(self, text, maxcol ):
-        return self.layout.layout(
-            text, self._cache_maxcol,
-            self._align_mode, self._wrap_mode )
+        self._cache_translation = self.layout.layout(
+            text, maxcol, self._align_mode, self._wrap_mode)
 
     def pack(self, size=None, focus=False):
         """
