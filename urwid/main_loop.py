@@ -1086,6 +1086,7 @@ class TornadoEventLoop(EventLoop):
             return  # we already patched this instance
 
         cls._ioloop_registry[ioloop] = idle_map = {}
+        # TODO: Add support for Tornado>=5.0.0
         ioloop._impl = cls.PollProxy(ioloop._impl, idle_map)
 
     def __init__(self, ioloop=None):
