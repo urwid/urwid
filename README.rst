@@ -1,4 +1,4 @@
-.. image:: https://travis-ci.org/urwid/urwid.png?branch=master
+.. image:: https://travis-ci.org/urwid/urwid.svg?branch=master
    :alt: build status
    :target: https://travis-ci.org/urwid/urwid/
 
