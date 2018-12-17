@@ -301,7 +301,7 @@ def rle_prepend_modify(rle, a_r):
         if a == al:
             rle[0] = (a,run+r)
         else:
-            rle[0:0] = [(al, r)]
+            rle[0:0] = [(a, r)]
 
 
 def rle_append_modify(rle, a_r):
