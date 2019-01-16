@@ -1,4 +1,4 @@
-.. image:: https://travis-ci.org/urwid/urwid.png?branch=master
+.. image:: https://travis-ci.org/urwid/urwid.svg?branch=master
    :alt: build status
    :target: https://travis-ci.org/urwid/urwid/
 
@@ -45,6 +45,15 @@ To test code in all Python versions:
     tox -e py36            # Test Python 3.6 only
     tox -e py27,py36,pypy  # Test Python 2.7, Python 3.6 & pypy
 
+Supported Python versions
+=========================
+
+- 2.7
+- 3.4
+- 3.5
+- 3.6
+- pypy
+
 Contributors
 ============
 
@@ -77,3 +86,4 @@ Contributors
 - `grugq <//github.com/grugq>`_
 - `inducer <//github.com/inducer>`_
 - `winbornejw <//github.com/winbornejw>`_
+- `hootnot <//github.com/hootnot>`_

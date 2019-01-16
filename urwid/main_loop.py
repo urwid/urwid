@@ -888,8 +888,11 @@ class GLibEventLoop(EventLoop):
             signal.SIGTERM,
             signal.SIGUSR1,
             signal.SIGUSR2,
-            signal.SIGWINCH
         ]
+
+        # GLib supports SIGWINCH as of version 2.54.
+        if not self.GLib.check_version(2, 54, 0):
+            glib_signals.append(signal.SIGWINCH)
 
         if signum not in glib_signals:
             # The GLib event loop supports only the signals listed above
@@ -1086,6 +1089,7 @@ class TornadoEventLoop(EventLoop):
             return  # we already patched this instance
 
         cls._ioloop_registry[ioloop] = idle_map = {}
+        # TODO: Add support for Tornado>=5.0.0
         ioloop._impl = cls.PollProxy(ioloop._impl, idle_map)
 
     def __init__(self, ioloop=None):

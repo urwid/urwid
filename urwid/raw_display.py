@@ -247,7 +247,7 @@ class Screen(BaseScreen, RealTerminal):
         fd = self._term_input_file.fileno()
         if os.isatty(fd):
             termios.tcsetattr(fd, termios.TCSADRAIN,
-        self._old_termios_settings)
+                self._old_termios_settings)
 
         self._mouse_tracking(False)
 
