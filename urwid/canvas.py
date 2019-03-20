@@ -930,8 +930,7 @@ def shard_body(cviews, shard_tail, create_iter=True, iter_default=None):
             try:
                 cview = next(cviews_iter)
             except StopIteration:
-                raise CanvasError("cviews do not fill gaps in"
-                    " shard_tail!")
+                break
             (trim_left, trim_top, cols, rows, attr_map, canv) = \
                 cview[:6]
             col += cols
@@ -1313,7 +1312,3 @@ def apply_text_layout(text, attr, ls, maxcol):
         c.append(linec)
 
     return TextCanvas(t, a, c, maxcol=maxcol)
-
-
-
-
