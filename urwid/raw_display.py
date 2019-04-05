@@ -93,7 +93,7 @@ class Screen(BaseScreen, RealTerminal):
 
     def _on_update_palette_entry(self, name, *attrspecs):
         # copy the attribute to a dictionary containing the escape seqences
-        a = attrspecs[{16:0,1:1,88:2,256:3}[self.colors]]
+        a = attrspecs[{16:0,1:1,88:2,256:3,2**24:3}[self.colors]]
         self._pal_attrspec[name] = a
         self._pal_escape[name] = self._attrspec_to_escape(a)
 
@@ -931,7 +931,9 @@ class Screen(BaseScreen, RealTerminal):
             bg = escape.ESC + '[2;%d}' % (a.background_number,)
             return fg + bg
 
-        if a.foreground_high:
+        if a.foreground_true:
+            fg = "38;2;%d;%d;%d" %(a.get_rgb_values()[0:3])
+        elif a.foreground_high:
             fg = "38;5;%d" % a.foreground_number
         elif a.foreground_basic:
             if a.foreground_number > 7:
@@ -946,7 +948,9 @@ class Screen(BaseScreen, RealTerminal):
         st = ("1;" * a.bold + "3;" * a.italics +
               "4;" * a.underline + "5;" * a.blink +
               "7;" * a.standout + "9;" * a.strikethrough)
-        if a.background_high:
+        if a.background_true:
+             bg = "48;2;%d;%d;%d" %(a.get_rgb_values()[3:6])
+        elif a.background_high:
             bg = "48;5;%d" % a.background_number
         elif a.background_basic:
             if a.background_number > 7:
@@ -1005,15 +1009,19 @@ class Screen(BaseScreen, RealTerminal):
         """
         if self.colors == 1:
             return
+        elif self.colors == 2**24:
+            colors = 256
+        else:
+            colors = self.colors
 
         def rgb_values(n):
-            if self.colors == 16:
+            if colors == 16:
                 aspec = AttrSpec("h%d"%n, "", 256)
             else:
-                aspec = AttrSpec("h%d"%n, "", self.colors)
+                aspec = AttrSpec("h%d"%n, "", colors)
             return aspec.get_rgb_values()[:3]
 
-        entries = [(n,) + rgb_values(n) for n in range(self.colors)]
+        entries = [(n,) + rgb_values(n) for n in range(min(colors, 256))]
         self.modify_terminal_palette(entries)
 
 

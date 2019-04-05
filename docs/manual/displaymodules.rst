@@ -57,7 +57,7 @@ optimized C code               no          YES
 compatible with any terminal   no          YES [1]_
 UTF-8 support                  YES         YES [2]_
 bright foreground without bold YES [3]_    no
-88- or 256-color support       YES         no
+88-/256-/24-bit color support  YES         no
 mouse dragging support         YES         no
 external event loop support    YES         no
 ============================== =========== ==============
