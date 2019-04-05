@@ -7,7 +7,7 @@
 .. currentmodule:: urwid
 
 Urwid supports a number of common display attributes in monochrome, 16-color,
-88-color and 256-color modes.
+88-color, 256-color, and 24-bit (true color) modes.
 
 You are encouraged to provide support for as many of these modes as you like, while
 allowing your interface to degrade gracefully by  providing command line arguments
@@ -292,6 +292,22 @@ specify bold. To inhibit this you can try setting ``bright_is_bold=False`` with
 
 
 .. _high-colors:
+
+.. _24-bit-foreground-background:
+
+24-Bit Foreground and Background Colors
+------------------------------------------
+
+In 24-bit color mode, any hex color code of the form #rrggbb can be used to
+specify a precise RGB value for foreground and background colors.  Support for
+24-bit color mode varies widely among terminal programs.  Furthermore, terminal
+multiplexers such as tmux and screen can sometimes interfere with the operation
+of 24-bit color mode unless properly configured.
+
+.. seealso::
+   The palette_test.py_ example program
+
+.. _palette_test.py: http://excess.org/urwid/browser/examples/palette_test.py
 
 .. _256-foreground-background:
 

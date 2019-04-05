@@ -80,20 +80,23 @@ _COLOR_VALUES_88 = (_BASIC_COLOR_VALUES +
 assert len(_COLOR_VALUES_256) == 256
 assert len(_COLOR_VALUES_88) == 88
 
-_FG_COLOR_MASK = 0x000000ff
-_BG_COLOR_MASK = 0x0000ff00
-_FG_BASIC_COLOR = 0x00010000
-_FG_HIGH_COLOR = 0x00020000
-_BG_BASIC_COLOR = 0x00040000
-_BG_HIGH_COLOR = 0x00080000
-_BG_SHIFT = 8
-_HIGH_88_COLOR = 0x00100000
-_STANDOUT = 0x02000000
-_UNDERLINE = 0x04000000
-_BOLD = 0x08000000
-_BLINK = 0x10000000
-_ITALICS = 0x20000000
-_STRIKETHROUGH = 0x40000000
+_FG_COLOR_MASK =      0x000000ffffff
+_BG_COLOR_MASK =      0xffffff000000
+_FG_BASIC_COLOR =    0x1000000000000
+_FG_HIGH_COLOR =     0x2000000000000
+_FG_TRUE_COLOR =     0x4000000000000
+_BG_BASIC_COLOR =    0x8000000000000
+_BG_HIGH_COLOR =    0x10000000000000
+_BG_TRUE_COLOR =    0x20000000000000
+_BG_SHIFT = 24
+_HIGH_88_COLOR =    0x40000000000000
+_HIGH_TRUE_COLOR =  0x80000000000000
+_STANDOUT =        0x100000000000000
+_UNDERLINE =       0x200000000000000
+_BOLD =            0x400000000000000
+_BLINK =           0x800000000000000
+_ITALICS =        0x1000000000000000
+_STRIKETHROUGH =  0x2000000000000000
 _FG_MASK = (_FG_COLOR_MASK | _FG_BASIC_COLOR | _FG_HIGH_COLOR |
     _STANDOUT | _UNDERLINE | _BLINK | _BOLD | _ITALICS | _STRIKETHROUGH)
 _BG_MASK = _BG_COLOR_MASK | _BG_BASIC_COLOR | _BG_HIGH_COLOR
@@ -229,6 +232,10 @@ def _gray_num_88(gnum):
     return _GRAY_START_88 + gnum
 
 
+def _color_desc_true(num):
+
+    return "#%06x" %(num)
+
 def _color_desc_256(num):
     """
     Return a string description of color number num.
@@ -293,6 +300,23 @@ def _color_desc_88(num):
         return '#%x%x%x' % (_CUBE_STEPS_88_16[r], _CUBE_STEPS_88_16[g],
             _CUBE_STEPS_88_16[b])
     return 'g%d' % _GRAY_STEPS_88_101[num - _GRAY_START_88]
+
+def _parse_color_true(desc):
+
+    c = _parse_color_256(desc)
+    if c is not None:
+        (r, g, b) = _COLOR_VALUES_256[c]
+        return (r << 16) + (g << 8) + b
+
+    if not desc.startswith("#"):
+        return None
+    if len(desc) == 7:
+        h = desc[1:]
+        return int(h, 16)
+    elif len(desc) == 4:
+        h = "0x%s0%s0%s" %(desc[1], desc[2], desc[3])
+        return int(h, 16)
+    return None
 
 def _parse_color_256(desc):
     """
@@ -382,6 +406,8 @@ def _parse_color_88(desc):
     >>> _parse_color_88('g#80')
     83
     """
+    if len(desc) == 7:
+        desc = desc[0:2] + desc[3] + desc[5]
     if len(desc) > 4:
         # keep the length within reason before parsing
         return None
@@ -490,9 +516,9 @@ class AttrSpec(object):
         >>> AttrSpec('#ddb', '#004', 88)
         AttrSpec('#ccc', '#000', colors=88)
         """
-        if colors not in (1, 16, 88, 256):
+        if colors not in (1, 16, 88, 256, 2**24):
             raise AttrSpecError('invalid number of colors (%d).' % colors)
-        self._value = 0 | _HIGH_88_COLOR * (colors == 88)
+        self._value = 0 | _HIGH_88_COLOR * (colors == 88) | _HIGH_TRUE_COLOR * (colors == 2**24)
         self.foreground = fg
         self.background = bg
         if self.colors > colors:
@@ -502,9 +528,11 @@ class AttrSpec(object):
 
     foreground_basic = property(lambda s: s._value & _FG_BASIC_COLOR != 0)
     foreground_high = property(lambda s: s._value & _FG_HIGH_COLOR != 0)
+    foreground_true = property(lambda s: s._value & _FG_TRUE_COLOR != 0)
     foreground_number = property(lambda s: s._value & _FG_COLOR_MASK)
     background_basic = property(lambda s: s._value & _BG_BASIC_COLOR != 0)
     background_high = property(lambda s: s._value & _BG_HIGH_COLOR != 0)
+    background_true = property(lambda s: s._value & _BG_TRUE_COLOR != 0)
     background_number = property(lambda s: (s._value & _BG_COLOR_MASK)
         >> _BG_SHIFT)
     italics = property(lambda s: s._value & _ITALICS != 0)
@@ -524,6 +552,8 @@ class AttrSpec(object):
             return 88
         if self._value & (_BG_HIGH_COLOR | _FG_HIGH_COLOR):
             return 256
+        if self._value & (_BG_TRUE_COLOR | _FG_TRUE_COLOR):
+            return 2**24
         if self._value & (_BG_BASIC_COLOR | _BG_BASIC_COLOR):
             return 16
         return 1
@@ -542,12 +572,14 @@ class AttrSpec(object):
 
     def _foreground_color(self):
         """Return only the color component of the foreground."""
-        if not (self.foreground_basic or self.foreground_high):
+        if not (self.foreground_basic or self.foreground_high or self.foreground_true):
             return 'default'
         if self.foreground_basic:
             return _BASIC_COLORS[self.foreground_number]
         if self.colors == 88:
             return _color_desc_88(self.foreground_number)
+        if self.colors == 2**24:
+            return _color_desc_true(self.foreground_number)
         return _color_desc_256(self.foreground_number)
 
     def _foreground(self):
@@ -579,6 +611,9 @@ class AttrSpec(object):
             elif self._value & _HIGH_88_COLOR:
                 scolor = _parse_color_88(part)
                 flags |= _FG_HIGH_COLOR
+            elif self._value & _HIGH_TRUE_COLOR:
+                scolor = _parse_color_true(part)
+                flags |= _FG_TRUE_COLOR
             else:
                 scolor = _parse_color_256(part)
                 flags |= _FG_HIGH_COLOR
@@ -598,12 +633,14 @@ class AttrSpec(object):
 
     def _background(self):
         """Return the background color."""
-        if not (self.background_basic or self.background_high):
+        if not (self.background_basic or self.background_high or self.background_true):
             return 'default'
         if self.background_basic:
             return _BASIC_COLORS[self.background_number]
         if self._value & _HIGH_88_COLOR:
             return _color_desc_88(self.background_number)
+        if self.colors == 2**24:
+            return _color_desc_true(self.background_number)
         return _color_desc_256(self.background_number)
 
     def _set_background(self, background):
@@ -616,6 +653,9 @@ class AttrSpec(object):
         elif self._value & _HIGH_88_COLOR:
             color = _parse_color_88(background)
             flags |= _BG_HIGH_COLOR
+        elif self._value & _HIGH_TRUE_COLOR:
+            color = _parse_color_true(background)
+            flags |= _BG_TRUE_COLOR
         else:
             color = _parse_color_256(background)
             flags |= _BG_HIGH_COLOR
@@ -640,19 +680,25 @@ class AttrSpec(object):
         >>> AttrSpec('default', 'g92').get_rgb_values()
         (None, None, None, 238, 238, 238)
         """
-        if not (self.foreground_basic or self.foreground_high):
+        if not (self.foreground_basic or self.foreground_high or self.foreground_true):
             vals = (None, None, None)
         elif self.colors == 88:
             assert self.foreground_number < 88, "Invalid AttrSpec _value"
             vals = _COLOR_VALUES_88[self.foreground_number]
+        elif self.colors == 2**24:
+            h = "%06x" %(self.foreground_number)
+            vals = tuple([int(x, 16) for x in [h[0:2], h[2:4], h[4:6]]])
         else:
             vals = _COLOR_VALUES_256[self.foreground_number]
 
-        if not (self.background_basic or self.background_high):
+        if not (self.background_basic or self.background_high or self.background_true):
             return vals + (None, None, None)
         elif self.colors == 88:
             assert self.background_number < 88, "Invalid AttrSpec _value"
             return vals + _COLOR_VALUES_88[self.background_number]
+        elif self.colors == 2**24:
+            h = "%06x" %(self.background_number)
+            return vals + tuple([int(x, 16) for x in [h[0:2], h[2:4], h[4:6]]])
         else:
             return vals + _COLOR_VALUES_256[self.background_number]
 
@@ -873,7 +919,7 @@ class BaseScreen(with_metaclass(signals.MetaSignals, object)):
             foreground_high = foreground
         if background_high is None:
             background_high = background
-        high_256 = AttrSpec(foreground_high, background_high, 256)
+        high_true = AttrSpec(foreground_high, background_high, 2**24)
 
         # 'hX' where X > 15 are different in 88/256 color, use
         # basic colors for 88-color mode if high colors are specified
@@ -882,7 +928,7 @@ class BaseScreen(with_metaclass(signals.MetaSignals, object)):
             if not desc.startswith('h'):
                 return False
             if ',' in desc:
-            	desc = desc.split(',',1)[0]
+                desc = desc.split(',',1)[0]
             num = int(desc[1:], 10)
             return num > 15
         if large_h(foreground_high) or large_h(background_high):
@@ -891,8 +937,8 @@ class BaseScreen(with_metaclass(signals.MetaSignals, object)):
             high_88 = AttrSpec(foreground_high, background_high, 88)
 
         signals.emit_signal(self, UPDATE_PALETTE_ENTRY,
-            name, basic, mono, high_88, high_256)
-        self._palette[name] = (basic, mono, high_88, high_256)
+                            name, basic, mono, high_88, high_true)
+        self._palette[name] = (basic, mono, high_88, high_true)
 
 
 def _test():
