@@ -1470,8 +1470,7 @@ class AsyncioEventLoop(EventLoop):
             loop.stop()
             if not isinstance(exc, ExitMainLoop):
                 # Store the exc_info so we can re-raise after the loop stops
-                import sys
-                self._exc_info = sys.exc_info()
+                self._exc_info = (type(exc), exc, None)
         else:
             loop.default_exception_handler(context)
 
