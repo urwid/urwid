@@ -24,7 +24,7 @@ It includes many features useful for text console application developers includi
 - Pre-built widgets include edit boxes, buttons, check boxes and radio buttons
 - Display modules include raw, curses, and experimental LCD and web displays
 - Support for UTF-8, simple 8-bit and CJK encodings
-- 256 and 88 color mode support
+- 24-bit (true color), 256 color, and 88 color mode support
 - Compatible with Python 2.7, 3.4+ and PyPy
 
 Home Page:
