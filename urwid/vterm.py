@@ -47,6 +47,7 @@ from urwid.widget import Widget, BOX
 from urwid.display_common import AttrSpec, RealTerminal, _BASIC_COLORS
 from urwid.compat import ord2, chr2, B, bytes, PYTHON3, xrange
 
+EOF = B('')
 ESC = chr(27)
 
 KEY_TRANSLATIONS = {
@@ -1530,19 +1531,19 @@ class Terminal(Widget):
         self.feed()
 
     def feed(self):
-        data = ''
+        data = EOF
 
         try:
             data = os.read(self.master, 4096)
         except OSError as e:
             if e.errno == 5: # End Of File
-                data = ''
+                data = EOF
             elif e.errno == errno.EWOULDBLOCK: # empty buffer
                 return
             else:
                 raise
 
-        if data == '': # EOF on BSD
+        if data == EOF: # EOF on BSD
             self.terminate()
             self._emit('closed')
             return
