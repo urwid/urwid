@@ -178,7 +178,7 @@ def demo2():
     loop.run_until_complete(coro)
     print("OK, good to go!  Try this in another terminal (or two):")
     print()
-    print("    socat TCP:127.0.0.1:12345 STDIN,raw")
+    print("    socat TCP:127.0.0.1:12345 STDIN,rawer")
     print()
     loop.run_forever()
 
