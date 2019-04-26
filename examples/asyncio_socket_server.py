@@ -124,10 +124,10 @@ class AsyncScreen(Screen):
                     # stops the screen and the loop
                     self.writer.abort()
 
-            # asyncio.async() schedules a coroutine without using `yield from`,
-            # which would make this code not work on Python 2
-            self._pending_task = asyncio.async(
-                self.reader.read(1024), loop=event_loop._loop)
+            # create_task() schedules a coroutine without using `yield from` or
+            # `await`, which are syntax errors in Pythons before 3.5
+            self._pending_task = event_loop._loop.create_task(
+                self.reader.read(1024))
             self._pending_task.add_done_callback(pump_reader)
 
         pump_reader()
