@@ -6,14 +6,21 @@ even Python 2 if you install `trollius`!
 """
 from __future__ import print_function
 
-import asyncio
+try:
+    import asyncio
+except ImportError:
+    import trollius as asyncio
+
 from datetime import datetime
 import sys
 import weakref
 
 import urwid
 from urwid.raw_display import Screen
+from urwid.display_common import BaseScreen
 
+import logging
+logging.basicConfig()
 
 loop = asyncio.get_event_loop()
 
@@ -75,17 +82,21 @@ def demo1():
 class AsyncScreen(Screen):
     """An urwid screen that speaks to an asyncio stream, rather than polling
     file descriptors.
+
+    This is fairly limited; it can't, for example, determine the size of the
+    remote screen.  Fixing that depends on the nature of the stream.
     """
-    def __init__(self, reader, writer):
+    def __init__(self, reader, writer, encoding="utf-8"):
         self.reader = reader
         self.writer = writer
+        self.encoding = encoding
 
         Screen.__init__(self, None, None)
 
     _pending_task = None
 
     def write(self, data):
-        self.writer.write(data)
+        self.writer.write(data.encode(self.encoding))
 
     def flush(self):
         pass
@@ -113,10 +124,10 @@ class AsyncScreen(Screen):
                     # stops the screen and the loop
                     self.writer.abort()
 
-            # asyncio.async() schedules a coroutine without using `yield from`,
-            # which would make this code not work on Python 2
-            self._pending_task = asyncio.async(
-                self.reader.read(1024), loop=event_loop._loop)
+            # create_task() schedules a coroutine without using `yield from` or
+            # `await`, which are syntax errors in Pythons before 3.5
+            self._pending_task = event_loop._loop.create_task(
+                self.reader.read(1024))
             self._pending_task.add_done_callback(pump_reader)
 
         pump_reader()
@@ -167,7 +178,7 @@ def demo2():
     loop.run_until_complete(coro)
     print("OK, good to go!  Try this in another terminal (or two):")
     print()
-    print("    socat TCP:127.0.0.1:12345 STDIN,raw")
+    print("    socat TCP:127.0.0.1:12345 STDIN,rawer")
     print()
     loop.run_forever()
 

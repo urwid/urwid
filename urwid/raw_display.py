@@ -91,6 +91,14 @@ class Screen(BaseScreen, RealTerminal):
         self._resize_pipe_rd, self._resize_pipe_wr = os.pipe()
         fcntl.fcntl(self._resize_pipe_rd, fcntl.F_SETFL, os.O_NONBLOCK)
 
+    def _input_fileno(self):
+        """Returns the fileno of the input stream, or None if it doesn't have one.  A stream without a fileno can't participate in whatever.
+        """
+        if hasattr(self._term_input_file, 'fileno'):
+            return self._term_input_file.fileno()
+        else:
+            return None
+
     def _on_update_palette_entry(self, name, *attrspecs):
         # copy the attribute to a dictionary containing the escape seqences
         a = attrspecs[{16:0,1:1,88:2,256:3,2**24:3}[self.colors]]
@@ -216,8 +224,8 @@ class Screen(BaseScreen, RealTerminal):
         else:
             self._rows_used = 0
 
-        fd = self._term_input_file.fileno()
-        if os.isatty(fd):
+        fd = self._input_fileno()
+        if fd is not None and os.isatty(fd):
             self._old_termios_settings = termios.tcgetattr(fd)
             tty.setcbreak(fd)
 
@@ -244,10 +252,9 @@ class Screen(BaseScreen, RealTerminal):
 
         self.signal_restore()
 
-        fd = self._term_input_file.fileno()
-        if os.isatty(fd):
-            termios.tcsetattr(fd, termios.TCSADRAIN,
-                self._old_termios_settings)
+        fd = self._input_fileno()
+        if fd is not None and os.isatty(fd):
+            termios.tcsetattr(fd, termios.TCSADRAIN, self._old_termios_settings)
 
         self._mouse_tracking(False)
 
@@ -367,11 +374,17 @@ class Screen(BaseScreen, RealTerminal):
         polled in external event loops to check for user input.
 
         Use this method if you are implementing your own event loop.
+
+        This method is only called by `hook_event_loop`, so if you override
+        that, you can safely ignore this.
         """
         if not self._started:
             return []
 
-        fd_list = [self._term_input_file.fileno(), self._resize_pipe_rd]
+        fd_list = [self._resize_pipe_rd]
+        fd = self._input_fileno()
+        if fd is not None:
+            fd_list.append(fd)
         if self.gpm_mev is not None:
             fd_list.append(self.gpm_mev.stdout.fileno())
         return fd_list
@@ -525,7 +538,10 @@ class Screen(BaseScreen, RealTerminal):
 
     def _wait_for_input_ready(self, timeout):
         ready = None
-        fd_list = [self._term_input_file.fileno()]
+        fd_list = []
+        fd = self._input_fileno()
+        if fd is not None:
+            fd_list.append(fd)
         if self.gpm_mev is not None:
             fd_list.append(self.gpm_mev.stdout.fileno())
         while True:
@@ -550,8 +566,9 @@ class Screen(BaseScreen, RealTerminal):
         if self.gpm_mev is not None:
             if self.gpm_mev.stdout.fileno() in ready:
                 self.gpm_event_pending = True
-        if self._term_input_file.fileno() in ready:
-            return ord(os.read(self._term_input_file.fileno(), 1))
+        fd = self._input_fileno()
+        if fd is not None and fd in ready:
+            return ord(os.read(fd, 1))
         return -1
 
     def _encode_gpm_event( self ):
@@ -648,9 +665,10 @@ class Screen(BaseScreen, RealTerminal):
         """Return the terminal dimensions (num columns, num rows)."""
         y, x = 24, 80
         try:
-            buf = fcntl.ioctl(self._term_output_file.fileno(),
-                              termios.TIOCGWINSZ, ' '*4)
-            y, x = struct.unpack('hh', buf)
+            if hasattr(self._term_output_file, 'fileno'):
+                buf = fcntl.ioctl(self._term_output_file.fileno(),
+                                termios.TIOCGWINSZ, ' '*4)
+                y, x = struct.unpack('hh', buf)
         except IOError:
             # Term size could not be determined
             pass
