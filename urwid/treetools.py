@@ -418,7 +418,8 @@ class TreeListBox(urwid.ListBox):
     collapsing of TreeWidgets"""
 
     def keypress(self, size, key):
-        key = self.__super.keypress(size, key)
+        if key not in ['home', 'end']:
+            key = self.__super.keypress(size, key)
         return self.unhandled_input(size, key)
 
     def unhandled_input(self, size, input):
