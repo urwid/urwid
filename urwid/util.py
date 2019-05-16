@@ -226,8 +226,8 @@ def trim_text_attr_cs( text, attr, cs, start_col, end_col ):
     cstr = rle_subseg( cs, spos, epos )
     if pad_left:
         al = rle_get_at( attr, spos-1 )
-        rle_append_beginning_modify( attrtr, (al, 1) )
-        rle_append_beginning_modify( cstr, (None, 1) )
+        rle_prepend_modify( attrtr, (al, 1) )
+        rle_prepend_modify( cstr, (None, 1) )
     if pad_right:
         al = rle_get_at( attr, epos )
         rle_append_modify( attrtr, (al, 1) )
@@ -286,7 +286,7 @@ def rle_len( rle ):
         run += r
     return run
 
-def rle_append_beginning_modify(rle, a_r):
+def rle_prepend_modify(rle, a_r):
     """
     Append (a, r) (unpacked from *a_r*) to BEGINNING of rle.
     Merge with first run when possible
