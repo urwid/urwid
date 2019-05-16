@@ -178,6 +178,23 @@ class TagMarkupTest(unittest.TestCase):
         self.assertRaises(urwid.TagMarkupException, lambda:
             urwid.decompose_tagmarkup(5))
 
+class RleTest(unittest.TestCase):
+    def test_rle_prepend(self):
+        rle0 = [('A', 10), ('B', 15)]
+        # the rle functions are mutating, so make a few copies of rle0
+        rle1, rle2 = rle0[:], rle0[:]
+        util.rle_prepend_modify(rle1, ('A', 3))
+        util.rle_prepend_modify(rle2, ('X', 2))
+        self.assertListEqual(rle1, [('A', 13), ('B', 15)])
+        self.assertListEqual(rle2, [('X', 2), ('A', 10), ('B', 15)])
+
+    def test_rle_append(self):
+        rle0 = [('A', 10), ('B', 15)]
+        rle3, rle4 = rle0[:], rle0[:]
+        util.rle_append_modify(rle3, ('B', 5))
+        util.rle_append_modify(rle4, ('K', 1))
+        self.assertListEqual(rle3, [('A', 10), ('B', 20)])
+        self.assertListEqual(rle4, [('A', 10), ('B', 15), ('K', 1)])
 
 class PortabilityTest(unittest.TestCase):
     def test_locale(self):
