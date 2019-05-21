@@ -10,5 +10,3 @@ Deprecated Classes
 .. autoclass:: FixedWidget
 
 .. autoclass:: AttrWrap
-
-.. autoclass:: PollingListWalker

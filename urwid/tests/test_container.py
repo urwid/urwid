@@ -314,8 +314,8 @@ class WidgetSquishTest(unittest.TestCase):
         t(1, True)
 
     def test_listbox(self):
-        self.wstest(urwid.ListBox([]))
-        self.wstest(urwid.ListBox([urwid.Text("hello")]))
+        self.wstest(urwid.ListBox(urwid.SimpleListWalker([])))
+        self.wstest(urwid.ListBox(urwid.SimpleListWalker([urwid.Text("hello")])))
 
     def test_bargraph(self):
         self.wstest(urwid.BarGraph(['foo','bar']))

@@ -9,7 +9,7 @@ class ListBoxCalculateVisibleTest(unittest.TestCase):
     def cvtest(self, desc, body, focus, offset_rows, inset_fraction,
         exp_offset_inset, exp_cur ):
 
-        lbox = urwid.ListBox(body)
+        lbox = urwid.ListBox(urwid.SimpleListWalker(body))
         lbox.body.set_focus( focus )
         lbox.offset_rows = offset_rows
         lbox.inset_fraction = inset_fraction
@@ -99,7 +99,7 @@ class ListBoxChangeFocusTest(unittest.TestCase):
             coming_from, cursor, snap_rows,
             exp_offset_rows, exp_inset_fraction, exp_cur ):
 
-        lbox = urwid.ListBox(body)
+        lbox = urwid.ListBox(urwid.SimpleListWalker(body))
 
         lbox.change_focus( (4,5), pos, offset_inset, coming_from,
             cursor, snap_rows )
@@ -207,7 +207,7 @@ class ListBoxChangeFocusTest(unittest.TestCase):
 class ListBoxRenderTest(unittest.TestCase):
     def ltest(self,desc,body,focus,offset_inset_rows,exp_text,exp_cur):
         exp_text = [B(t) for t in exp_text]
-        lbox = urwid.ListBox(body)
+        lbox = urwid.ListBox(urwid.SimpleListWalker(body))
         lbox.body.set_focus( focus )
         lbox.shift_focus((4,10), offset_inset_rows )
         canvas = lbox.render( (4,5), focus=1 )
@@ -305,7 +305,7 @@ class ListBoxKeypressTest(unittest.TestCase):
         exp_focus, exp_offset_inset, exp_cur, lbox = None):
 
         if lbox is None:
-            lbox = urwid.ListBox(body)
+            lbox = urwid.ListBox(urwid.SimpleListWalker(body))
             lbox.body.set_focus( focus )
             lbox.shift_focus((4,10), offset_inset )
 

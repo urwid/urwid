@@ -111,7 +111,7 @@ class DialogDisplay:
 class InputDialogDisplay(DialogDisplay):
     def __init__(self, text, height, width):
         self.edit = urwid.Edit()
-        body = urwid.ListBox([self.edit])
+        body = urwid.ListBox(urwid.SimpleListWalker([self.edit]))
         body = urwid.AttrWrap(body, 'selectable','focustext')
 
         DialogDisplay.__init__(self, text, height, width, body)
@@ -138,7 +138,7 @@ class TextDialogDisplay(DialogDisplay):
         # read the whole file (being slow, not lazy this time)
         for line in open(file).readlines():
             l.append( urwid.Text( line.rstrip() ))
-        body = urwid.ListBox(l)
+        body = urwid.ListBox(urwid.SimpleListWalker(l))
         body = urwid.AttrWrap(body, 'selectable','focustext')
 
         DialogDisplay.__init__(self, None, height, width, body)
@@ -172,7 +172,7 @@ class ListDialogDisplay(DialogDisplay):
             w = urwid.AttrWrap(w, 'selectable','focus')
             l.append(w)
 
-        lb = urwid.ListBox(l)
+        lb = urwid.ListBox(urwid.SimpleListWalker(l))
         lb = urwid.AttrWrap( lb, "selectable" )
         DialogDisplay.__init__(self, text, height, width, lb )
 
