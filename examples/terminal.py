@@ -22,7 +22,8 @@
 import urwid
 
 def main():
-    term = urwid.Terminal(None)
+    urwid.set_encoding('utf8')
+    term = urwid.Terminal(None, encoding='utf-8')
 
     mainframe = urwid.LineBox(
         urwid.Pile([
