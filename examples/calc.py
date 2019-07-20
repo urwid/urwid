@@ -639,6 +639,10 @@ class CalcDisplay:
         """Handle a keystroke."""
 
         self.loop.process_input([key])
+        
+        if isinstance(key, tuple):
+            # ignore mouse events
+            return
 
         if key.upper() in COLUMN_KEYS:
             # column switch
