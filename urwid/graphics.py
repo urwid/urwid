@@ -22,7 +22,7 @@
 
 from __future__ import division, print_function
 
-from urwid.compat import with_metaclass
+from urwid.compat import ord2, with_metaclass
 from urwid.util import decompose_tagmarkup, get_encoding_mode
 from urwid.canvas import CompositeCanvas, CanvasJoin, TextCanvas, \
     CanvasCombine, SolidCanvas
@@ -942,7 +942,7 @@ class ProgressBar(Widget):
             c._attr = [[(self.normal, maxcol)]]
         elif ccol >= maxcol:
             c._attr = [[(self.complete, maxcol)]]
-        elif cs and c._text[0][ccol] == " ":
+        elif cs and ord2(c._text[0][ccol]) == 32:
             t = c._text[0]
             cenc = self.eighths[cs].encode("utf-8")
             c._text[0] = t[:ccol] + cenc + t[ccol + 1:]
