@@ -1,12 +1,9 @@
-.. image:: https://travis-ci.org/urwid/urwid.svg?branch=master
-   :alt: build status
-   :target: https://travis-ci.org/urwid/urwid/
-
-.. image:: https://coveralls.io/repos/github/urwid/urwid/badge.svg
-   :alt: build coverage
-   :target: https://coveralls.io/github/urwid/urwid
-
-`Development version documentation <http://urwid.readthedocs.org/en/latest/>`_
+Urwid
+=====
+|pypi|_
+|docs|_
+|travis|_
+|coveralls|_
 
 .. content-start
 
@@ -88,3 +85,16 @@ Contributors
 - `inducer <//github.com/inducer>`_
 - `winbornejw <//github.com/winbornejw>`_
 - `hootnot <//github.com/hootnot>`_
+
+
+.. |pypi| image:: http://img.shields.io/pypi/v/urwid.svg   :alt: current version on PyPi
+.. _pypi: https://pypi.python.org/pypi/urwid
+
+.. |docs| image:: https://readthedocs.org/projects/urwid/badge/   :alt: docs link
+.. _docs: http://urwid.readthedocs.org/en/latest/
+
+.. |travis| image:: https://travis-ci.org/urwid/urwid.svg?branch=master   :alt: build status
+.. _travis: https://travis-ci.org/urwid/urwid/
+
+.. |coveralls| image:: https://coveralls.io/repos/github/urwid/urwid/badge.svg   :alt: test coverage
+.. _coveralls: https://coveralls.io/github/urwid/urwid
