@@ -154,6 +154,10 @@ try:
 except ImportError:
     pass
 else:
+    if not hasattr(asyncio, 'ensure_future'):
+        #-- Python < 3.4.4 (e.g. Debian Jessie)
+        asyncio.ensure_future = getattr(asyncio, 'async')
+
     class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         def setUp(self):
             self.evl = urwid.AsyncioEventLoop()
