@@ -32,22 +32,25 @@ from urwid.signals import disconnect_signal # doctests
 from urwid.split_repr import python3_repr
 from urwid.decoration import WidgetDecoration
 from urwid.command_map import ACTIVATE
+from urwid.constants import LEFT
 
 class SelectableIcon(Text):
     ignore_focus = False
     _selectable = True
-    def __init__(self, text, cursor_position=0):
+    def __init__(self, text, cursor_position=0, align=LEFT):
         """
         :param text: markup for this widget; see :class:`Text` for
                      description of text markup
         :param cursor_position: position the cursor will appear in the
                                 text when this widget is in focus
+        :param align: markup for this widget; see :class:`Text` for
+                      description of align
 
         This is a text widget that is selectable.  A cursor
         displayed at a fixed location in the text when in focus.
         This widget has no special handling of keyboard or mouse input.
         """
-        self.__super.__init__(text)
+        self.__super.__init__(text, align=align)
         self._cursor_position = cursor_position
 
     def render(self, size, focus=False):
@@ -450,12 +453,13 @@ class Button(WidgetWrap):
 
     signals = ["click"]
 
-    def __init__(self, label, on_press=None, user_data=None):
+    def __init__(self, label, on_press=None, user_data=None, align=LEFT):
         """
         :param label: markup for button label
         :param on_press: shorthand for connect_signal()
                          function call for a single callback
         :param user_data: user_data for on_press
+        :param align: typically (default) ``'left'``, ``'right'``, ``'center'``
 
         Signals supported: ``'click'``
 
@@ -473,8 +477,11 @@ class Button(WidgetWrap):
         >>> b = Button("Cancel")
         >>> b.render((15,), focus=True).text # ... = b in Python 3
         [...'< Cancel      >']
+        >>> b = Button("Cancel", align="center")
+        >>> b.render((15,), focus=True).text # ... = b in Python 3
+        [...'<    Cancel   >']
         """
-        self._label = SelectableIcon("", 0)
+        self._label = SelectableIcon("", 0, align=align)
         cols = Columns([
             ('fixed', 1, self.button_left),
             self._label,

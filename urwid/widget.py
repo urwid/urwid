@@ -35,39 +35,9 @@ from urwid.command_map import (command_map, CURSOR_LEFT, CURSOR_RIGHT,
     CURSOR_UP, CURSOR_DOWN, CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT)
 from urwid.split_repr import split_repr, remove_defaults, python3_repr
 
-
-# define some names for these constants to avoid misspellings in the source
-# and to document the constant strings we are using
-
-# Widget sizing methods
-
-FLOW = 'flow'
-BOX = 'box'
-FIXED = 'fixed'
-
-# Text alignment modes
-LEFT = 'left'
-RIGHT = 'right'
-CENTER = 'center'
-
-# Filler alignment
-TOP = 'top'
-MIDDLE = 'middle'
-BOTTOM = 'bottom'
-
-# Text wrapping modes
-SPACE = 'space'
-ANY = 'any'
-CLIP = 'clip'
-ELLIPSIS = 'ellipsis'
-
-# Width and Height settings
-PACK = 'pack'
-GIVEN = 'given'
-RELATIVE = 'relative'
-RELATIVE_100 = (RELATIVE, 100)
-WEIGHT = 'weight'
-
+from urwid.constants import FLOW, BOX, FIXED, LEFT, RIGHT, CENTER
+from urwid.constants import TOP, MIDDLE, BOTTOM, SPACE, ANY, CLIP
+from urwid.constants import PACK, GIVEN, RELATIVE, RELATIVE_100, WEIGHT
 
 class WidgetMeta(MetaSuper, signals.MetaSignals):
     """
