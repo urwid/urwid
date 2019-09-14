@@ -213,5 +213,10 @@ try:
 except ImportError:
     pass
 
+try:
+    from urwid.event_loop import ZMQEventLoop
+except ImportError:
+    pass
+
 # Backward compatibility
 VERSION = __version_tuple__
