@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import os
 import time
+import errno
 import heapq
 import typing
 from itertools import count
