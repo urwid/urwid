@@ -82,6 +82,7 @@ Contributors
 - `inducer <//github.com/inducer>`_
 - `winbornejw <//github.com/winbornejw>`_
 - `hootnot <//github.com/hootnot>`_
+- `raek <//github.com/raek>`_
 
 
 .. |pypi| image:: http://img.shields.io/pypi/v/urwid.svg
