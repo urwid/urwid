@@ -504,9 +504,10 @@ class MainLoop(object):
                 continue
             if is_mouse_event(k):
                 event, button, col, row = k
-                if self._topmost_widget.mouse_event(self.screen_size,
-                    event, button, col, row, focus=True ):
-                    k = None
+                if hasattr(self._topmost_widget, "mouse_event"):
+                    if self._topmost_widget.mouse_event(self.screen_size,
+                            event, button, col, row, focus=True):
+                        k = None
             elif self._topmost_widget.selectable():
                 k = self._topmost_widget.keypress(self.screen_size, k)
             if k:
