@@ -1107,6 +1107,7 @@ class Edit(Text):
       text if it is signaled for for text that it has already changed once).
     """
     _selectable = True
+    ignore_focus = False
     # (this variable is picked up by the MetaSignals metaclass)
     signals = ["change", "postchange"]
 

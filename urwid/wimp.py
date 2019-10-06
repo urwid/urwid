@@ -34,6 +34,7 @@ from urwid.decoration import WidgetDecoration
 from urwid.command_map import ACTIVATE
 
 class SelectableIcon(Text):
+    ignore_focus = False
     _selectable = True
     def __init__(self, text, cursor_position=0):
         """
