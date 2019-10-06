@@ -2014,7 +2014,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             elif t == PACK:
                 # FIXME: should be able to pack with a different
                 # maxcol value
-                static_w = w.pack((maxcol,), focus)[0]
+                static_w = w.pack((maxcol,), focus and i == self.focus_position)[0]
             else:
                 static_w = self.min_width
 
