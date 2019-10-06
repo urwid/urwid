@@ -1106,6 +1106,7 @@ class Edit(Text):
       handler to guard against this case (for instance, by not changing the
       text if it is signaled for for text that it has already changed once).
     """
+    _selectable = True
     # (this variable is picked up by the MetaSignals metaclass)
     signals = ["change", "postchange"]
 
@@ -1119,8 +1120,6 @@ class Edit(Text):
         This implementation returns True for all printable characters.
         """
         return is_wide_char(ch,0) or (len(ch)==1 and ord(ch) >= 32)
-
-    def selectable(self): return True
 
     def __init__(self, caption=u"", edit_text=u"", multiline=False,
             align=LEFT, wrap=SPACE, allow_tab=False,
