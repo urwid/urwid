@@ -975,19 +975,19 @@ class ListBox(Widget, WidgetContainerMixin):
             return actual_key(self._keypress_page_down((maxcol, maxrow)))
 
         if self._command_map[key] == CURSOR_MAX_LEFT:
-            return actual_key(self._keypress_max_left())
+            return actual_key(self._keypress_max_left((maxcol, maxrow)))
 
         if self._command_map[key] == CURSOR_MAX_RIGHT:
-            return actual_key(self._keypress_max_right())
+            return actual_key(self._keypress_max_right((maxcol, maxrow)))
 
         return key
 
-    def _keypress_max_left(self):
+    def _keypress_max_left(self, size):
         self.focus_position = next(iter(self.body.positions()))
         self.set_focus_valign('top')
         return True
 
-    def _keypress_max_right(self):
+    def _keypress_max_right(self, size):
         self.focus_position = next(iter(self.body.positions(reverse=True)))
         self.set_focus_valign('bottom')
         return True
