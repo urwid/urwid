@@ -512,7 +512,8 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self.set_overlay_parameters(align, width, valign, height,
             min_width, min_height, left, right, top, bottom)
 
-    def options(self, align_type, align_amount, width_type, width_amount,
+    @staticmethod
+    def options(align_type, align_amount, width_type, width_amount,
             valign_type, valign_amount, height_type, height_amount,
             min_width=None, min_height=None, left=0, right=0, top=0, bottom=0):
         """
@@ -1346,7 +1347,8 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         .. seealso:: Create new options tuples with the :meth:`options` method
         """)
 
-    def options(self, height_type=WEIGHT, height_amount=1):
+    @staticmethod
+    def options(height_type=WEIGHT, height_amount=1):
         """
         Return a new options tuple for use in a Pile's :attr:`contents` list.
 
@@ -1876,7 +1878,8 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         .. seealso:: Create new options tuples with the :meth:`options` method
         """)
 
-    def options(self, width_type=WEIGHT, width_amount=1, box_widget=False):
+    @staticmethod
+    def options(width_type=WEIGHT, width_amount=1, box_widget=False):
         """
         Return a new options tuple for use in a Pile's .contents list.
 
