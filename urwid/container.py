@@ -1227,11 +1227,12 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         .. note:: If the Pile is treated as a box widget there must be at least
             one ``'weight'`` tuple in :attr:`widget_list`.
         """
+        self._selectable = False
         self.__super.__init__()
         self._contents = MonitoredFocusList()
-        self._contents.set_modified_callback(self._invalidate)
+        self._contents.set_modified_callback(self._contents_modified)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
-        self._contents.set_validate_contents_modified(self._contents_modified)
+        self._contents.set_validate_contents_modified(self._validate_contents_modified)
 
         focus_item = focus_item
         for i, original in enumerate(widget_list):
@@ -1261,7 +1262,15 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         self.pref_col = 0
 
-    def _contents_modified(self, slc, new_items):
+    def _contents_modified(self):
+        """
+        Recalculate whether this widget should be selectable whenever the
+        contents has been changed.
+        """
+        self._selectable = any(w.selectable() for w, o in self.contents)
+        self._invalidate()
+
+    def _validate_contents_modified(self, slc, new_items):
         for item in new_items:
             try:
                 w, (t, n) = item
@@ -1360,11 +1369,6 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if height_type not in (GIVEN, WEIGHT):
             raise PileError('invalid height_type: %r' % (height_type,))
         return (height_type, height_amount)
-
-    def selectable(self):
-        """Return True if the focus item is selectable."""
-        w = self.focus
-        return w is not None and w.selectable()
 
     def set_focus(self, item):
         """
@@ -1736,11 +1740,12 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         *box_columns* will be displayed with this calculated number of rows,
         filling the full height.
         """
+        self._selectable = False
         self.__super.__init__()
         self._contents = MonitoredFocusList()
-        self._contents.set_modified_callback(self._invalidate)
+        self._contents.set_modified_callback(self._contents_modified)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
-        self._contents.set_validate_contents_modified(self._contents_modified)
+        self._contents.set_validate_contents_modified(self._validate_contents_modified)
 
         box_columns = set(box_columns or ())
 
@@ -1778,7 +1783,15 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self.min_width = min_width
         self._cache_maxcol = None
 
-    def _contents_modified(self, slc, new_items):
+    def _contents_modified(self):
+        """
+        Recalculate whether this widget should be selectable whenever the
+        contents has been changed.
+        """
+        self._selectable = any(w.selectable() for w, o in self.contents)
+        self._invalidate()
+
+    def _validate_contents_modified(self, slc, new_items):
         for item in new_items:
             try:
                 w, (t, n, b) = item
@@ -2265,10 +2278,11 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if self._command_map[key] not in ('cursor up', 'cursor down',
             'cursor page up', 'cursor page down'):
             self.pref_col = None
-        if len(size) == 1 and b:
-            key = w.keypress((mc, self.rows(size, True)), key)
-        else:
-            key = w.keypress((mc,) + size[1:], key)
+        if w.selectable():
+            if len(size) == 1 and b:
+                key = w.keypress((mc, self.rows(size, True)), key)
+            else:
+                key = w.keypress((mc,) + size[1:], key)
 
         if self._command_map[key] not in ('cursor left', 'cursor right'):
             return key
@@ -2285,12 +2299,6 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             self.focus_position = j
             return
         return key
-
-
-    def selectable(self):
-        """Return the selectable value of the focus column."""
-        w = self.focus
-        return w is not None and w.selectable()
 
 
 
