@@ -1171,6 +1171,33 @@ class Frame(Widget, WidgetContainerMixin):
         return self.body.mouse_event( (maxcol, maxrow-htrim-ftrim),
             event, button, col, row-htrim, focus )
 
+    def get_cursor_coords(self, size):
+        """Return the cursor coordinates of the focus widget."""
+        if not self.focus.selectable():
+            return None
+        if not hasattr(self.focus, 'get_cursor_coords'):
+            return None
+
+        fp = self.focus_position
+        (maxcol, maxrow) = size
+        (hrows, frows), _ = self.frame_top_bottom(size, True)
+
+        if fp == 'header':
+            row_adjust = 0
+            coords = self.header.get_cursor_coords((maxcol,))
+        elif fp == 'body':
+            row_adjust = hrows
+            coords = self.body.get_cursor_coords((maxcol, maxrow-hrows-frows))
+        else:
+            row_adjust = maxrow - frows
+            coords = self.footer.get_cursor_coords((maxcol,))
+
+        if coords is None:
+            return None
+
+        x, y = coords
+        return x, y + row_adjust
+
     def __iter__(self):
         """
         Return an iterator over the positions in this Frame top to bottom.
