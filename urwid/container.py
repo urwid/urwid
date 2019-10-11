@@ -1158,7 +1158,7 @@ class Frame(Widget, WidgetContainerMixin):
             if not hasattr(self.footer, 'mouse_event'):
                 return False
             return self.footer.mouse_event( (maxcol,), event,
-                button, col, row-maxrow+frows, focus )
+                button, col, row-maxrow+ftrim, focus )
 
         # within body
         focus = focus and self.focus_part == 'body'
