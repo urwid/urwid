@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 #
 # Urwid Text Layout classes
 #    Copyright (C) 2004-2011  Ian Ward
@@ -162,7 +163,7 @@ class StandardTextLayout(TextLayout):
                 if p!=n_end:
                     l += [(sc, p, n_end)]
                 if trimmed:
-                    l += [(1, n_end, '…'.encode())]
+                    l += [(1, n_end, u'…'.encode())]
                 l += [(pad_right,n_end)]
                 b.append(l)
                 p = n_cr+1
