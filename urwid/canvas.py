@@ -1228,7 +1228,8 @@ def apply_text_layout(text, attr, ls, maxcol):
             aw.k = 0
             aw.off = 0
         o = []
-        while aw.off < end_offs:
+        # the loop should run at least once, the '=' part ensures that
+        while aw.off <= end_offs:
             if len(attr)<=aw.k:
                 # run out of attributes
                 o.append((None,end_offs-max(start_offs,aw.off)))
