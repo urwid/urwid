@@ -76,8 +76,8 @@ class StandardTextLayout(TextLayout):
         """Return True if align is 'left', 'center' or 'right'."""
         return align in ('left', 'center', 'right')
     def supports_wrap_mode(self, wrap):
-        """Return True if wrap is 'any', 'space' or 'clip'."""
-        return wrap in ('any', 'space', 'clip')
+        """Return True if wrap is 'any', 'space', 'clip' or 'ellipsis'."""
+        return wrap in ('any', 'space', 'clip', 'ellipsis')
     def layout(self, text, width, align, wrap ):
         """Return a layout structure for text."""
         try:
@@ -136,16 +136,34 @@ class StandardTextLayout(TextLayout):
             sp_o = ord(sp_o)
         b = []
         p = 0
-        if wrap == 'clip':
+        if wrap in ('clip', 'ellipsis'):
             # no wrapping to calculate, so it's easy.
             while p<=len(text):
                 n_cr = text.find(nl, p)
                 if n_cr == -1:
                     n_cr = len(text)
                 sc = calc_width(text, p, n_cr)
-                l = [(0,n_cr)]
-                if p!=n_cr:
-                    l = [(sc, p, n_cr)] + l
+
+                # trim line to max width if needed, add ellipsis if trimmed
+                if wrap == 'ellipsis' and sc > width:
+                    trimmed = True
+                    spos, n_end, pad_left, pad_right = calc_trim_text(text, p, n_cr, 0, width-1)
+                    # pad_left should be 0, because the start_col parameter was 0 (no trimming on the left)
+                    # similarly spos should not be changed from p
+                    assert pad_left == 0
+                    assert spos == p
+                    sc = width - 1 - pad_right
+                else:
+                    trimmed = False
+                    n_end = n_cr
+                    pad_right = 0
+
+                l = []
+                if p!=n_end:
+                    l += [(sc, p, n_end)]
+                if trimmed:
+                    l += [(1, n_end, '…'.encode())]
+                l += [(pad_right,n_end)]
                 b.append(l)
                 p = n_cr+1
             return b
