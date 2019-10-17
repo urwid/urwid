@@ -53,6 +53,10 @@ def main():
         u"Text will be cut off at the left of this widget.")
     text_center_clip = (u"Center aligned and clipped widgets will have "
         u"text cut off both sides.")
+    text_ellipsis = (u"Text can be clippped using the ellipsis character (…)\n"
+        u"Extra text is discarded and a … mark is shown."
+         u"50-> 55-> 60-> 65-> 70-> 75-> 80-> 85-> 90-> 95-> 100>\n"
+    )
     text_any = (u"The 'any' wrap mode will wrap on any character.  This "
         u"mode will not collapse space characters at the end of the "
         u"line but it still honors embedded newline characters.\n"
@@ -149,6 +153,8 @@ def main():
         urwid.Text(text_right_clip, align='right', wrap='clip'),
         blank,
         urwid.Text(text_center_clip, align='center', wrap='clip'),
+        blank,
+        urwid.Text(text_ellipsis, wrap='ellipsis'),
         blank,
         urwid.Text(text_any, wrap='any'),
         blank,
