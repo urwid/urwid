@@ -59,6 +59,7 @@ BOTTOM = 'bottom'
 SPACE = 'space'
 ANY = 'any'
 CLIP = 'clip'
+ELLIPSIS = 'ellipsis'
 
 # Width and Height settings
 PACK = 'pack'
@@ -813,7 +814,7 @@ class Text(Widget):
         :type markup: :ref:`text-markup`
         :param align: typically ``'left'``, ``'center'`` or ``'right'``
         :type align: text alignment mode
-        :param wrap: typically ``'space'``, ``'any'`` or ``'clip'``
+        :param wrap: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
         :type wrap: text wrapping mode
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
         :type layout: text layout instance
@@ -937,7 +938,7 @@ class Text(Widget):
         Set text wrapping mode. Supported modes depend on text layout
         object in use but defaults to a :class:`StandardTextLayout` instance
 
-        :param mode: typically ``'space'``, ``'any'`` or ``'clip'``
+        :param mode: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
         :type mode: text wrapping mode
 
         >>> t = Text(u"some words")
@@ -966,7 +967,7 @@ class Text(Widget):
         the same time.
 
         :type align: text alignment mode
-        :param wrap: typically 'space', 'any' or 'clip'
+        :param wrap: typically 'space', 'any', 'clip' or 'ellipsis'
         :type wrap: text wrapping mode
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
         :type layout: text layout instance
