@@ -179,3 +179,21 @@ else:
 
             asyncio.ensure_future(error_coro())
             self.assertRaises(ZeroDivisionError, evl.run)
+
+
+try:
+    import trio
+except ImportError:
+    pass
+else:
+    class TrioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
+        def setUp(self):
+            self.evl = urwid.TrioEventLoop()
+
+        _expected_idle_handle = None
+
+        def test_error(self):
+            evl = self.evl
+            evl.alarm(0.5, lambda: 1 / 0)  # Simulate error in event loop
+            self.assertRaises(ZeroDivisionError, evl.run)
+

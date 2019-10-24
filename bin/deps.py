@@ -17,6 +17,12 @@ except ImportError:
     pass
 
 try:
+    import trio
+    deps.append("trio")
+except ImportError:
+    pass
+
+try:
     import twisted
     deps.append("twisted")
 except ImportError:
