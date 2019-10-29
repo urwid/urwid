@@ -30,8 +30,6 @@ class TrioEventLoop(EventLoop):
     ``trio`` is an async library for Python 3.5 and later.
     """
 
-    _idle_emulation_delay = 1.0/256 # a short time (in seconds)
-
     def __init__(self, nursery=None):
         """Constructor.
 
@@ -124,8 +122,8 @@ class TrioEventLoop(EventLoop):
         """Creates a Trio cancellation scope and a corresponding mutable flag
         that indicates whether the scope was cancelled already _from_ urwid.
 
-        This is needed because `CancelScope.cancelled_caught` stays `False` until
-        someone actually _handles_ the cancellation, and
+        This is needed because `CancelScope.cancelled_caught` stays `False`
+        until someone actually _handles_ the cancellation, and
         `CancelScope.cancel_called` can only be called from an async context
         (which we cannot guarantee).
         """
@@ -135,17 +133,30 @@ class TrioEventLoop(EventLoop):
         """Starts the event loop. Exits the loop when any callback raises an
         exception. If ExitMainLoop is raised, exits cleanly.
         """
+
         def _exception_handler(exc):
             if isinstance(exc, ExitMainLoop):
                 return None
             else:
                 return exc
 
+        class TrioIdleCallbackInstrument(self._trio.abc.Instrument):
+            def before_io_wait(self, timeout):
+                if timeout > 0:
+                    for idle_callback in self._idle_callbacks.values():
+                        idle_callback()
+
+        emulate_idle_callbacks = TrioIdleCallbackInstrument()
+
         with self._trio.MultiError.catch(_exception_handler):
             if not self._nursery:
-                self._trio.run(self._main_task)
+                self._trio.run(self._main_task, instruments=[emulate_idle_callbacks])
             else:
-                self._nursery.start_soon(self._main_task)
+                self._trio.hazmat.add_instrument(emulate_idle_callbacks)
+                try:
+                    self._nursery.start_soon(self._main_task)
+                finally:
+                    self._trio.hazmat.remove_instrument(emulate_idle_callbacks)
 
     def watch_file(self, fd, callback):
         """Calls `callback()` when the given file descriptor has some data
@@ -173,18 +184,6 @@ class TrioEventLoop(EventLoop):
             await self._sleep(seconds)
             callback()
 
-    async def _idle_task(self):
-        """Asynchronous task that sleeps for a short amount of time and then
-        calls all the registered idle callbacks.
-
-        Used to simulate idle callbacks in the Trio event loop that has no
-        concept of being idle.
-        """
-        while True:
-            await self._sleep(self._idle_emulation_delay)
-            for idle_callback in self._idle_callbacks.values():
-                idle_callback()
-
     async def _main_task(self):
         """Main Trio task that opens a nursery and then sleeps until the user
         exits the app by raising ExitMainLoop.
@@ -192,12 +191,12 @@ class TrioEventLoop(EventLoop):
 
         if self._nursery:
             self._schedule_pending_tasks()
-            await self._idle_task()
+            await self._trio.sleep_forever()
         else:
             try:
                 async with self._trio.open_nursery() as self._nursery:
                     self._schedule_pending_tasks()
-                    await self._idle_task()
+                    await self._trio.sleep_forever()
             finally:
                 self._nursery = None
 
