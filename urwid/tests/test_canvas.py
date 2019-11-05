@@ -138,15 +138,15 @@ class ShardBodyTest(unittest.TestCase):
 class ShardsTrimTest(unittest.TestCase):
     def sttop(self, shards, top, expected):
         result = canvas.shards_trim_top(shards, top)
-        assert result == expected, "got: %r expected: %r" (result, expected)
+        assert result == expected, "got: %r expected: %r" % (result, expected)
 
     def strows(self, shards, rows, expected):
         result = canvas.shards_trim_rows(shards, rows)
-        assert result == expected, "got: %r expected: %r" (result, expected)
+        assert result == expected, "got: %r expected: %r" % (result, expected)
 
     def stsides(self, shards, left, cols, expected):
         result = canvas.shards_trim_sides(shards, left, cols)
-        assert result == expected, "got: %r expected: %r" (result, expected)
+        assert result == expected, "got: %r expected: %r" % (result, expected)
 
 
     def test1(self):
@@ -229,7 +229,7 @@ class ShardsTrimTest(unittest.TestCase):
 class ShardsJoinTest(unittest.TestCase):
     def sjt(self, shard_lists, expected):
         result = canvas.shards_join(shard_lists)
-        assert result == expected, "got: %r expected: %r" (result, expected)
+        assert result == expected, "got: %r expected: %r" % (result, expected)
 
     def test(self):
         shards1 = [(5, [(0,0,10,5,None,"foo"), (0,0,5,8,None,"baz")]),
