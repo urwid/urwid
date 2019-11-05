@@ -24,8 +24,8 @@ It includes many features useful for text console application developers includi
 Home Page:
   http://urwid.org/
 
-Install
-=======
+Installation
+============
 
 To install using pip
 
