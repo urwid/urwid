@@ -112,29 +112,19 @@ class TrioEventLoop(EventLoop):
             True if the scope was cancelled, False if it was cancelled already
             before invoking this function
         """
-        scope, cancelled = scope
-        existed = not cancelled[0]
-        cancelled[0] = True
+        existed = not scope.cancel_called
         scope.cancel()
         return existed
-
-    def _create_cancel_scope(self):
-        """Creates a Trio cancellation scope and a corresponding mutable flag
-        that indicates whether the scope was cancelled already _from_ urwid.
-
-        This is needed because `CancelScope.cancelled_caught` stays `False`
-        until someone actually _handles_ the cancellation, and
-        `CancelScope.cancel_called` can only be called from an async context
-        (which we cannot guarantee).
-        """
-        return self._trio.CancelScope(), [False]
 
     def run(self):
         """Starts the event loop. Exits the loop when any callback raises an
         exception. If ExitMainLoop is raised, exits cleanly.
         """
 
+        idle_callbacks = self._idle_callbacks
+
         def _exception_handler(exc):
+            idle_callbacks.clear()
             if isinstance(exc, ExitMainLoop):
                 return None
             else:
@@ -143,7 +133,7 @@ class TrioEventLoop(EventLoop):
         class TrioIdleCallbackInstrument(self._trio.abc.Instrument):
             def before_io_wait(self, timeout):
                 if timeout > 0:
-                    for idle_callback in self._idle_callbacks.values():
+                    for idle_callback in idle_callbacks.values():
                         idle_callback()
 
         emulate_idle_callbacks = TrioIdleCallbackInstrument()
@@ -220,13 +210,12 @@ class TrioEventLoop(EventLoop):
         Returns:
             a cancellation scope for the Trio task
         """
-        handle = self._create_cancel_scope()
-        scope, _ = handle
+        scope = self._trio.CancelScope()
         if self._nursery:
             self._nursery.start_soon(task, scope, *args)
         else:
             self._pending_tasks.append((task, scope, args))
-        return handle
+        return scope
 
     async def _watch_task(self, scope, fd, callback):
         """Asynchronous task that watches the given file descriptor and calls

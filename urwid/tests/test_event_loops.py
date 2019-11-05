@@ -25,16 +25,24 @@ class EventLoopTestMixin(object):
     def test_remove_alarm(self):
         evl = self.evl
         handle = evl.alarm(50, lambda: None)
-        self.assertTrue(evl.remove_alarm(handle))
-        self.assertFalse(evl.remove_alarm(handle))
+        def step1():
+            self.assertTrue(evl.remove_alarm(handle))
+            self.assertFalse(evl.remove_alarm(handle))
+            raise urwid.ExitMainLoop
+        evl.alarm(0, step1)
+        evl.run()
 
     def test_remove_watch_file(self):
         evl = self.evl
         fd_r, fd_w = os.pipe()
         try:
             handle = evl.watch_file(fd_r, lambda: None)
-            self.assertTrue(evl.remove_watch_file(handle))
-            self.assertFalse(evl.remove_watch_file(handle))
+            def step1():
+                self.assertTrue(evl.remove_watch_file(handle))
+                self.assertFalse(evl.remove_watch_file(handle))
+                raise urwid.ExitMainLoop
+            evl.alarm(0, step1)
+            evl.run()
         finally:
             os.close(fd_r)
             os.close(fd_w)
@@ -62,7 +70,7 @@ class EventLoopTestMixin(object):
             self.assertEqual(idle_handle, 1)
         evl.run()
         self.assertTrue("hello" in out, out)
-        self.assertTrue("clean exit"in out, out)
+        self.assertTrue("clean exit" in out, out)
         handle = evl.watch_file(rd, exit_clean)
         del out[:]
         evl.run()
@@ -118,6 +126,12 @@ else:
         def test_event_loop(self):
             pass
 
+        def test_remove_alarm(self):
+            pass
+
+        def test_remove_watch_file(self):
+            pass
+
         def test_run(self):
             evl = self.evl
             out = []
@@ -129,6 +143,21 @@ else:
                 out.append("hello")
             def say_waiting():
                 out.append("waiting")
+            def test_remove_alarm():
+                handle = evl.alarm(50, lambda: None)
+                self.assertTrue(evl.remove_alarm(handle))
+                self.assertFalse(evl.remove_alarm(handle))
+                out.append("remove_alarm ok")
+            def test_remove_watch_file():
+                fd_r, fd_w = os.pipe()
+                try:
+                    handle = evl.watch_file(fd_r, lambda: None)
+                    self.assertTrue(evl.remove_watch_file(handle))
+                    self.assertFalse(evl.remove_watch_file(handle))
+                finally:
+                    os.close(fd_r)
+                    os.close(fd_w)
+                out.append("remove_watch_file ok")
             def exit_clean():
                 out.append("clean exit")
                 raise urwid.ExitMainLoop
@@ -137,11 +166,14 @@ else:
             handle = evl.watch_file(rd, step2)
             handle = evl.alarm(0.1, exit_clean)
             handle = evl.alarm(0.05, say_hello)
+            handle = evl.alarm(0.06, test_remove_alarm)
+            handle = evl.alarm(0.07, test_remove_watch_file)
             self.assertEqual(evl.enter_idle(say_waiting), 1)
             evl.run()
             self.assertTrue("da" in out, out)
             self.assertTrue("ta" in out, out)
             self.assertTrue("hello" in out, out)
+            self.assertTrue("remove_alarm ok" in out, out)
             self.assertTrue("clean exit" in out, out)
 
         def test_error(self):
@@ -196,4 +228,3 @@ else:
             evl = self.evl
             evl.alarm(0.5, lambda: 1 / 0)  # Simulate error in event loop
             self.assertRaises(ZeroDivisionError, evl.run)
-
