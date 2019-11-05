@@ -24,6 +24,20 @@ It includes many features useful for text console application developers includi
 Home Page:
   http://urwid.org/
 
+Install
+=======
+
+To install using pip
+
+.. code:: bash
+   
+   pip install urwid
+
+Alternatively if you are on Debian or Ubuntu
+
+.. code:: bash
+   apt-get install python-urwid
+
 Testing
 =======
 
