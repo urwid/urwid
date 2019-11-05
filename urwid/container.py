@@ -1777,8 +1777,6 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         if self.contents and focus_column is not None:
             self.focus_position = focus_column
-        if focus_column is None:
-            focus_column = 0
         self.pref_col = None
         self.min_width = min_width
         self._cache_maxcol = None
@@ -2027,7 +2025,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             elif t == PACK:
                 # FIXME: should be able to pack with a different
                 # maxcol value
-                static_w = w.pack((maxcol,), focus)[0]
+                static_w = w.pack((maxcol,), focus and i == self.focus_position)[0]
             else:
                 static_w = self.min_width
 

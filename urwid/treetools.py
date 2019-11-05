@@ -418,8 +418,7 @@ class TreeListBox(urwid.ListBox):
     collapsing of TreeWidgets"""
 
     def keypress(self, size, key):
-        if key not in ['home', 'end']:
-            key = self.__super.keypress(size, key)
+        key = self.__super.keypress(size, key)
         return self.unhandled_input(size, key)
 
     def unhandled_input(self, size, input):
@@ -428,10 +427,6 @@ class TreeListBox(urwid.ListBox):
             self.move_focus_to_parent(size)
         elif input == '-':
             self.collapse_focus_parent(size)
-        elif input == 'home':
-            self.focus_home(size)
-        elif input == 'end':
-            self.focus_end(size)
         else:
             return input
 
@@ -467,6 +462,12 @@ class TreeListBox(urwid.ListBox):
                 return
 
         self.change_focus(size, pos.get_parent())
+
+    def _keypress_max_left(self, size):
+        return self.focus_home(size)
+
+    def _keypress_max_right(self, size):
+        return self.focus_end(size)
 
     def focus_home(self, size):
         """Move focus to very top."""
