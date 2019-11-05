@@ -28,6 +28,7 @@ import heapq
 import select
 import os
 import signal
+import sys
 from functools import wraps
 from itertools import count
 from weakref import WeakKeyDictionary
@@ -1493,6 +1494,12 @@ class AsyncioEventLoop(EventLoop):
             reraise(*exc_info)
 
 
+# Import Trio's event loop only if we are on Python 3.5 or above (async def is
+# not supported in earlier versions).
+if sys.version_info >= (3, 5):
+    from ._async_kw_event_loop import TrioEventLoop
+
+ 
 def _refl(name, rval=None, exit=False):
     """
     This function is used to test the main loop classes.

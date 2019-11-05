@@ -60,6 +60,10 @@ try:
     from urwid.main_loop import TwistedEventLoop
 except ImportError:
     pass
+try:
+    from urwid.main_loop import TrioEventLoop
+except ImportError:
+    pass
 from urwid.text_layout import (TextLayout, StandardTextLayout, default_layout,
     LayoutSegment)
 from urwid.display_common import (UPDATE_PALETTE_ENTRY, DEFAULT, BLACK,
