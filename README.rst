@@ -36,6 +36,7 @@ To install using pip
 Alternatively if you are on Debian or Ubuntu
 
 .. code:: bash
+
    apt-get install python-urwid
 
 Testing
