@@ -1325,7 +1325,8 @@ class Terminal(Widget):
 
     signals = ['closed', 'beep', 'leds', 'title']
 
-    def __init__(self, command, env=None, main_loop=None, escape_sequence=None):
+    def __init__(self, command, env=None, main_loop=None, escape_sequence=None,
+                 encoding='ascii'):
         """
         A terminal emulator within a widget.
 
@@ -1343,6 +1344,13 @@ class Terminal(Widget):
 
         'escape_sequence' is the urwid key symbol which should be used to break
         out of the terminal widget. If it's not specified, "ctrl a" is used.
+
+        'encoding' specifies the encoding that is being used when local
+        keypresses in Unicode are encoded into raw bytes. The default encoding
+        is 'ascii' for backwards compatibility with urwid versions <= 2.0.1.
+        Set this to the encoding of your terminal (typically 'utf8') if you
+        want to be able to transmit non-ASCII characters to the spawned process.
+        Applies to Python 3.x only.
         """
         self.__super.__init__()
 
@@ -1360,6 +1368,8 @@ class Terminal(Widget):
             self.command = [self.env.get('SHELL', '/bin/sh')]
         else:
             self.command = command
+
+        self.encoding = encoding
 
         self.keygrab = False
         self.last_key = None
@@ -1624,6 +1634,6 @@ class Terminal(Widget):
             key += "\x0a"
 
         if PYTHON3:
-            key = key.encode('ascii')
+            key = key.encode(self.encoding, 'ignore')
 
         os.write(self.master, key)
