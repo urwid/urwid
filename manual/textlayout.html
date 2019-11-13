@@ -1,33 +1,26 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Text Layout &#8212; Urwid 2.0.1</title>
+    <meta charset="utf-8" />
+    <title>Text Layout &#8212; Urwid 2.1.0</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '2.0.1',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    
     <script type="text/javascript" src="../_static/sidebar.js"></script>
+    
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Encodings Supported" href="encodings.html" />
     <link rel="prev" title="User Input" href="userinput.html" /> 
-  </head>
-  <body>
+  </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -40,7 +33,7 @@
         <li class="right" >
           <a href="userinput.html" title="User Input"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li> 
       </ul>
     </div>  
@@ -53,10 +46,11 @@
   <div class="section" id="text-layout">
 <span id="id1"></span><h1>Text Layout<a class="headerlink" href="#text-layout" title="Permalink to this headline">¶</a></h1>
 <p>Mapping a text string to screen coordinates within a widget is called text
-layout. The <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal"><span class="pre">Text</span></code></a> widget’s default layout class supports
+layout. The <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widget’s default layout class supports
 aligning text to the left, center or right, and can wrap text on space
-characters, at any location, or clip text that is off the edge.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">(</span><span class="s2">&quot;Showing some different alignment modes&quot;</span><span class="p">,</span> <span class="n">align</span><span class="o">=...</span><span class="p">)</span>
+characters, at any location, or clip text that is off the edge, optionally
+inserting an ellipsis character.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">(</span><span class="s2">&quot;Showing some different alignment modes&quot;</span><span class="p">,</span> <span class="n">align</span><span class="o">=...</span><span class="p">)</span>
 
 <span class="n">align</span><span class="o">=</span><span class="s1">&#39;left&#39;</span> <span class="p">(</span><span class="n">default</span><span class="p">)</span>
 <span class="o">+----------------+</span>   <span class="o">+------------------------+</span>
@@ -80,54 +74,60 @@ characters, at any location, or clip text that is off the edge.</p>
 <span class="o">+----------------+</span>
 </pre></div>
 </div>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">(</span><span class="s2">&quot;Showing some different wrapping modes</span><span class="se">\n</span><span class="s2">newline&quot;</span><span class="p">,</span> <span class="n">wrap</span><span class="o">=...</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Text(&quot;Showing some different wrapping modes\nnewline&quot;, wrap=...)
 
-<span class="n">wrap</span><span class="o">=</span><span class="s1">&#39;space&#39;</span> <span class="p">(</span><span class="n">default</span><span class="p">)</span>
-<span class="o">+----------------+</span>   <span class="o">+------------------------+</span>
-<span class="o">|</span><span class="n">Showing</span> <span class="n">some</span>    <span class="o">|</span>   <span class="o">|</span><span class="n">Showing</span> <span class="n">some</span> <span class="n">different</span>  <span class="o">|</span>
-<span class="o">|</span><span class="n">different</span>       <span class="o">|</span>   <span class="o">|</span><span class="n">wrapping</span> <span class="n">modes</span>          <span class="o">|</span>
-<span class="o">|</span><span class="n">wrapping</span> <span class="n">modes</span>  <span class="o">|</span>   <span class="o">|</span><span class="n">newline</span>                 <span class="o">|</span>
-<span class="o">|</span><span class="n">newline</span>         <span class="o">|</span>   <span class="o">+------------------------+</span>
-<span class="o">+----------------+</span>
+wrap=&#39;space&#39; (default)
++----------------+   +------------------------+
+|Showing some    |   |Showing some different  |
+|different       |   |wrapping modes          |
+|wrapping modes  |   |newline                 |
+|newline         |   +------------------------+
++----------------+
 
-<span class="n">wrap</span><span class="o">=</span><span class="s1">&#39;any&#39;</span>
-<span class="o">+----------------+</span>   <span class="o">+------------------------+</span>
-<span class="o">|</span><span class="n">Showing</span> <span class="n">some</span> <span class="n">dif</span><span class="o">|</span>   <span class="o">|</span><span class="n">Showing</span> <span class="n">some</span> <span class="n">different</span> <span class="n">w</span><span class="o">|</span>
-<span class="o">|</span><span class="n">ferent</span> <span class="n">wrapping</span> <span class="o">|</span>   <span class="o">|</span><span class="n">rapping</span> <span class="n">modes</span>           <span class="o">|</span>
-<span class="o">|</span><span class="n">modes</span>           <span class="o">|</span>   <span class="o">|</span><span class="n">newline</span>                 <span class="o">|</span>
-<span class="o">|</span><span class="n">newline</span>         <span class="o">|</span>   <span class="o">+------------------------+</span>
-<span class="o">+----------------+</span>
+wrap=&#39;any&#39;
++----------------+   +------------------------+
+|Showing some dif|   |Showing some different w|
+|ferent wrapping |   |rapping modes           |
+|modes           |   |newline                 |
+|newline         |   +------------------------+
++----------------+
 
-<span class="n">wrap</span><span class="o">=</span><span class="s1">&#39;clip&#39;</span>
-<span class="o">+----------------+</span>   <span class="o">+------------------------+</span>
-<span class="o">|</span><span class="n">Showing</span> <span class="n">some</span> <span class="n">dif</span><span class="o">|</span>   <span class="o">|</span><span class="n">Showing</span> <span class="n">some</span> <span class="n">different</span> <span class="n">w</span><span class="o">|</span>
-<span class="o">|</span><span class="n">newline</span>         <span class="o">|</span>   <span class="o">|</span><span class="n">newline</span>                 <span class="o">|</span>
-<span class="o">+----------------+</span>   <span class="o">+------------------------+</span>
+wrap=&#39;clip&#39;
++----------------+   +------------------------+
+|Showing some dif|   |Showing some different w|
+|newline         |   |newline                 |
++----------------+   +------------------------+
+
+wrap=&#39;ellipsis&#39;
++----------------+   +------------------------+
+|Showing some di…|   |Showing some different …|
+|newline         |   |newline                 |
++----------------+   +------------------------+
 </pre></div>
 </div>
 <p>If this is good enough for your application feel free to skip the rest of this
 section.</p>
 <div class="admonition seealso">
-<p class="first admonition-title">See also</p>
-<p class="last"><a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal"><span class="pre">Text</span> <span class="pre">widget</span> <span class="pre">reference</span></code></a></p>
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span> <span class="pre">widget</span> <span class="pre">reference</span></code></a></p>
 </div>
 <div class="section" id="custom-text-layouts">
 <h2>Custom Text Layouts<a class="headerlink" href="#custom-text-layouts" title="Permalink to this headline">¶</a></h2>
-<p>The <a class="reference internal" href="../reference/text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal"><span class="pre">StandardTextLayout</span></code></a> is set as the class variable
-<code class="xref py py-attr docutils literal"><span class="pre">Text.layout</span></code>. Individual <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal"><span class="pre">Text</span></code></a>
+<p>The <a class="reference internal" href="../reference/text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardTextLayout</span></code></a> is set as the class variable
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">Text.layout</span></code>. Individual <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a>
 widgets may use a different layout class, or you can change the default by
-setting the <code class="xref py py-attr docutils literal"><span class="pre">Text.layout</span></code> class variable itself.</p>
+setting the <code class="xref py py-attr docutils literal notranslate"><span class="pre">Text.layout</span></code> class variable itself.</p>
 <p>A custom text layout class should extend the
-<a class="reference internal" href="../reference/text_layout.html#urwid.TextLayout" title="urwid.TextLayout"><code class="xref py py-class docutils literal"><span class="pre">TextLayout</span></code></a> base class and return text layout
-structures from its <code class="docutils literal"><span class="pre">layout()</span></code> method.</p>
+<a class="reference internal" href="../reference/text_layout.html#urwid.TextLayout" title="urwid.TextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextLayout</span></code></a> base class and return text layout
+structures from its <code class="docutils literal notranslate"><span class="pre">layout()</span></code> method.</p>
 <div class="admonition seealso">
-<p class="first admonition-title">See also</p>
-<p class="last"><a class="reference internal" href="../reference/text_layout.html#urwid.TextLayout" title="urwid.TextLayout"><code class="xref py py-class docutils literal"><span class="pre">TextLayout</span> <span class="pre">reference</span></code></a></p>
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../reference/text_layout.html#urwid.TextLayout" title="urwid.TextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextLayout</span> <span class="pre">reference</span></code></a></p>
 </div>
 </div>
 <div class="section" id="text-layout-structures">
 <h2>Text Layout Structures<a class="headerlink" href="#text-layout-structures" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="s2">&quot;This is how a string of text might be displayed&quot;</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;This is how a string of text might be displayed&quot;</span>
 <span class="mi">0</span><span class="o">----</span><span class="mi">5</span><span class="o">---</span><span class="mi">10</span><span class="o">---</span><span class="mi">15</span><span class="o">---</span><span class="mi">20</span><span class="o">---</span><span class="mi">25</span><span class="o">---</span><span class="mi">30</span><span class="o">---</span><span class="mi">35</span><span class="o">---</span><span class="mi">40</span><span class="o">---</span><span class="mi">45</span><span class="o">--</span>
 
 <span class="mi">0</span><span class="o">----</span><span class="mi">5</span><span class="o">---</span><span class="mi">10</span><span class="o">---</span><span class="mi">15</span><span class="o">---+</span>   <span class="n">right_aligned_text_layout</span> <span class="o">=</span> <span class="p">[</span>
@@ -139,32 +139,32 @@ structures from its <code class="docutils literal"><span class="pre">layout()</s
 </div>
 <p>The mapping from a text string to where that text will be displayed in the
 widget is expressed as a text layout structure.</p>
-<p>Text layout structures are used both for rendering <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal"><span class="pre">Text</span></code></a>
-widgets and for mapping <code class="docutils literal"><span class="pre">(x,</span> <span class="pre">y)</span></code> positions within a widget back to the
+<p>Text layout structures are used both for rendering <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a>
+widgets and for mapping <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span></code> positions within a widget back to the
 corresponding offsets in the text. The latter is used when moving the cursor in
-<a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal"><span class="pre">Edit</span></code></a> widgets up and down or by clicking with the mouse.</p>
+<a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Edit</span></code></a> widgets up and down or by clicking with the mouse.</p>
 <p>A text layout structure is a list of one or more line layouts. Each line layout
 corresponds to a row of text in the widget, starting from its top.</p>
 <p>A line layout is a list zero or more of the following tuples, each expressing
 text to be displayed from left to right:</p>
 <ol class="upperalpha simple">
-<li>(<em>column width</em>, <em>starting text offset</em>, <em>ending text offset</em>)</li>
-<li>(<em>column width of space characters to insert</em>, <em>text offset</em> or <code class="docutils literal"><span class="pre">None</span></code>)</li>
-<li>(<em>column width</em>, <em>text offset</em>, <em>new text to insert</em>)``</li>
+<li><p>(<em>column width</em>, <em>starting text offset</em>, <em>ending text offset</em>)</p></li>
+<li><p>(<em>column width of space characters to insert</em>, <em>text offset</em> or <code class="docutils literal notranslate"><span class="pre">None</span></code>)</p></li>
+<li><p>(<em>column width</em>, <em>text offset</em>, <em>new text to insert</em>)``</p></li>
 </ol>
-<p>Tuple A displays a segment of text from the <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal"><span class="pre">Text</span></code></a> widget.
+<p>Tuple A displays a segment of text from the <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widget.
 Column width is explicitly specified because some characters within the text
 may be zero width or double width.</p>
 <p>Tuple B inserts any number of space characters, and if those characters
 correspond to an offset within the text, that may be specified.</p>
 <p>Tuple C allows insertion of arbitrary text. This could be used for hyphenating
 split words or any other effect not covered by A or B. The
-<a class="reference internal" href="../reference/text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal"><span class="pre">StandardTextLayout</span></code></a> does not currently use this
+<a class="reference internal" href="../reference/text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardTextLayout</span></code></a> does not currently use this
 tuple in its line layouts.</p>
 <div class="admonition seealso">
-<p class="first admonition-title">See also</p>
-<p class="last"><a class="reference internal" href="../reference/text_layout.html#urwid.TextLayout" title="urwid.TextLayout"><code class="xref py py-class docutils literal"><span class="pre">TextLayout</span> <span class="pre">reference</span></code></a>,
-<a class="reference internal" href="../reference/text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal"><span class="pre">StandardTextLayout</span> <span class="pre">reference</span></code></a></p>
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../reference/text_layout.html#urwid.TextLayout" title="urwid.TextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextLayout</span> <span class="pre">reference</span></code></a>,
+<a class="reference internal" href="../reference/text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardTextLayout</span> <span class="pre">reference</span></code></a></p>
 </div>
 </div>
 </div>
@@ -201,13 +201,13 @@ tuple in its line layouts.</p>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -226,13 +226,13 @@ tuple in its line layouts.</p>
         <li class="right" >
           <a href="userinput.html" title="User Input"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.6.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1.
     </div>
   </body>
 </html>

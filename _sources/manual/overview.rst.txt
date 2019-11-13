@@ -33,12 +33,12 @@ comes with a configurable :ref:`text layout <text-layout>` that handles the
 most of the common alignment and wrapping modes. If you need more flexibility
 you can also write your own text layout classes.
 
-Urwid supports a range of common :ref:`display attributes
-<display-attributes>`, including 256-color foreground and background settings,
-bold, underline and standout settings for displaying text. Not all of these
-are supported by all terminals, so Urwid helps you write applications that
-support different color modes depending on what the user's terminal supports
-and what they choose to enable.
+Urwid supports a range of common :ref:`display attributes <display-attributes>`,
+including 24-bit and 256-color foreground and background settings, bold,
+underline and standout settings for displaying text. Not all of these are
+supported by all terminals, so Urwid helps you write applications that support
+different color modes depending on what the user's terminal supports and what
+they choose to enable.
 
 :class:`ListBox` is one of Urwid's most powerful widgets,
 and you may control of the :ref:`listbox contents <listbox-contents>` by using

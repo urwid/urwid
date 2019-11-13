@@ -1,33 +1,26 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>User Input &#8212; Urwid 2.0.1</title>
+    <meta charset="utf-8" />
+    <title>User Input &#8212; Urwid 2.1.0</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '2.0.1',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    
     <script type="text/javascript" src="../_static/sidebar.js"></script>
+    
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Text Layout" href="textlayout.html" />
     <link rel="prev" title="Widgets" href="widgets.html" /> 
-  </head>
-  <body>
+  </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -40,7 +33,7 @@
         <li class="right" >
           <a href="widgets.html" title="Widgets"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li> 
       </ul>
     </div>  
@@ -53,16 +46,16 @@
   <div class="section" id="user-input">
 <span id="id1"></span><h1>User Input<a class="headerlink" href="#user-input" title="Permalink to this headline">¶</a></h1>
 <p>All input from the user is parsed by a display module, and returned from either
-the <a class="reference internal" href="../reference/display_modules.html#urwid.raw_display.Screen.get_input" title="urwid.raw_display.Screen.get_input"><code class="xref py py-meth docutils literal"><span class="pre">get_input()</span></code></a> or
-<code class="xref py py-meth docutils literal"><span class="pre">get_input_nonblocking()</span></code> methods as a list.
+the <a class="reference internal" href="../reference/display_modules.html#urwid.raw_display.Screen.get_input" title="urwid.raw_display.Screen.get_input"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_input()</span></code></a> or
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">get_input_nonblocking()</span></code> methods as a list.
 Window resize events are also included in the user input.</p>
-<p>The <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a> class will take this input and pass each
-item to the widget methods <a class="reference internal" href="../reference/widget.html#urwid.Widget.keypress" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal"><span class="pre">keypress()</span></code></a> or
-<a class="reference internal" href="../reference/widget.html#urwid.Widget.mouse_event" title="urwid.Widget.mouse_event"><code class="xref py py-meth docutils literal"><span class="pre">mouse_event()</span></code></a>. You may
+<p>The <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> class will take this input and pass each
+item to the widget methods <a class="reference internal" href="../reference/widget.html#urwid.Widget.keypress" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">keypress()</span></code></a> or
+<a class="reference internal" href="../reference/widget.html#urwid.Widget.mouse_event" title="urwid.Widget.mouse_event"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mouse_event()</span></code></a>. You may
 filter input (possibly removing or altering it) before it is passed to the
 widgets, or can catch unhandled input by passing functions into the
-<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a> constructor. If the window was resized
-<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a> will query the new display size and update
+<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> constructor. If the window was resized
+<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> will query the new display size and update
 the screen.</p>
 <p>There may be more than one keystroke or mouse event processed at a time, and
 each is sent as a separate item in the list.</p>
@@ -71,94 +64,94 @@ each is sent as a separate item in the list.</p>
 <p>Not all keystrokes are sent by a user’s terminal to the program, and which keys
 are sent varies from terminal to terminal, but Urwid will report any keys that
 are sent.</p>
-<table border="1" class="docutils">
+<table class="docutils align-default">
 <colgroup>
-<col width="41%" />
-<col width="59%" />
+<col style="width: 41%" />
+<col style="width: 59%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Key pressed</th>
-<th class="head">Input returned</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Key pressed</p></th>
+<th class="head"><p>Input returned</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>H</td>
-<td><code class="docutils literal"><span class="pre">'h'</span></code></td>
+<tbody>
+<tr class="row-even"><td><p>H</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'h'</span></code></p></td>
 </tr>
-<tr class="row-odd"><td>SHIFT+H</td>
-<td><code class="docutils literal"><span class="pre">'H'</span></code></td>
+<tr class="row-odd"><td><p>SHIFT+H</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'H'</span></code></p></td>
 </tr>
-<tr class="row-even"><td>SPACE</td>
-<td><code class="docutils literal"><span class="pre">'</span> <span class="pre">'</span></code></td>
+<tr class="row-even"><td><p>SPACE</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'</span> <span class="pre">'</span></code></p></td>
 </tr>
-<tr class="row-odd"><td>ENTER</td>
-<td><code class="docutils literal"><span class="pre">'enter'</span></code></td>
+<tr class="row-odd"><td><p>ENTER</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'enter'</span></code></p></td>
 </tr>
-<tr class="row-even"><td>UP</td>
-<td><code class="docutils literal"><span class="pre">'up'</span></code></td>
+<tr class="row-even"><td><p>UP</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'up'</span></code></p></td>
 </tr>
-<tr class="row-odd"><td>PAGE DOWN</td>
-<td><code class="docutils literal"><span class="pre">'page</span> <span class="pre">down'</span></code></td>
+<tr class="row-odd"><td><p>PAGE DOWN</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'page</span> <span class="pre">down'</span></code></p></td>
 </tr>
-<tr class="row-even"><td>F5</td>
-<td><code class="docutils literal"><span class="pre">'f5'</span></code></td>
+<tr class="row-even"><td><p>F5</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'f5'</span></code></p></td>
 </tr>
-<tr class="row-odd"><td>SHIFT+F5</td>
-<td><code class="docutils literal"><span class="pre">'shift</span> <span class="pre">f5'</span></code></td>
+<tr class="row-odd"><td><p>SHIFT+F5</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'shift</span> <span class="pre">f5'</span></code></p></td>
 </tr>
-<tr class="row-even"><td>CTRL+SHIFT+F5</td>
-<td><code class="docutils literal"><span class="pre">'shift</span> <span class="pre">ctrl</span> <span class="pre">f5'</span></code></td>
+<tr class="row-even"><td><p>CTRL+SHIFT+F5</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'shift</span> <span class="pre">ctrl</span> <span class="pre">f5'</span></code></p></td>
 </tr>
-<tr class="row-odd"><td>ALT+J</td>
-<td><code class="docutils literal"><span class="pre">'meta</span> <span class="pre">j'</span></code></td>
+<tr class="row-odd"><td><p>ALT+J</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'meta</span> <span class="pre">j'</span></code></p></td>
 </tr>
 </tbody>
 </table>
 <p>With Unicode <a class="reference internal" href="encodings.html#text-encodings"><span class="std std-ref">text encoding</span></a> you will also receive
 Unicode strings for any non-ASCII characters:</p>
-<table border="1" class="docutils">
+<table class="docutils align-default">
 <colgroup>
-<col width="44%" />
-<col width="56%" />
+<col style="width: 44%" />
+<col style="width: 56%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Key pressed</th>
-<th class="head">Input returned</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Key pressed</p></th>
+<th class="head"><p>Input returned</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>é</td>
-<td><code class="docutils literal"><span class="pre">u'é'</span></code></td>
+<tbody>
+<tr class="row-even"><td><p>é</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">u'é'</span></code></p></td>
 </tr>
-<tr class="row-odd"><td>Ж</td>
-<td><code class="docutils literal"><span class="pre">u'Ж'</span></code></td>
+<tr class="row-odd"><td><p>Ж</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">u'Ж'</span></code></p></td>
 </tr>
-<tr class="row-even"><td>カ</td>
-<td><code class="docutils literal"><span class="pre">u'カ'</span></code></td>
+<tr class="row-even"><td><p>カ</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">u'カ'</span></code></p></td>
 </tr>
 </tbody>
 </table>
 <p>With non-Unicode <a class="reference internal" href="encodings.html#text-encodings"><span class="std std-ref">text encoding</span></a> characters will be sent
 as-is in the original encoding.</p>
-<table border="1" class="docutils">
+<table class="docutils align-default">
 <colgroup>
-<col width="21%" />
-<col width="79%" />
+<col style="width: 21%" />
+<col style="width: 79%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Key pressed</th>
-<th class="head">Input returned (each in its own encoding)</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>Key pressed</p></th>
+<th class="head"><p>Input returned (each in its own encoding)</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>é</td>
-<td><code class="docutils literal"><span class="pre">'é'</span></code></td>
+<tbody>
+<tr class="row-even"><td><p>é</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'é'</span></code></p></td>
 </tr>
-<tr class="row-odd"><td>Ж</td>
-<td><code class="docutils literal"><span class="pre">'Ж'</span></code></td>
+<tr class="row-odd"><td><p>Ж</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'Ж'</span></code></p></td>
 </tr>
-<tr class="row-even"><td>カ</td>
-<td><code class="docutils literal"><span class="pre">'カ'</span></code> (two bytes)</td>
+<tr class="row-even"><td><p>カ</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'カ'</span></code> (two bytes)</p></td>
 </tr>
 </tbody>
 </table>
@@ -170,57 +163,56 @@ create an input filter to do so.</p>
 <span id="id3"></span><h2>Mouse Input<a class="headerlink" href="#mouse-input" title="Permalink to this headline">¶</a></h2>
 <p>Mouse input is sent as a (<em>event</em>, <em>button</em>, <em>x</em>, <em>y</em>) tuple. <em>event</em> is a string
 describing the event. If the <em>SHIFT</em>, <em>ALT</em> or <em>CTRL</em> keys are held when a mouse
-event is sent then <em>event</em> may be prefixed by <code class="docutils literal"><span class="pre">'shift</span> <span class="pre">'</span></code>, <code class="docutils literal"><span class="pre">'meta</span> <span class="pre">'</span></code> or
-<code class="docutils literal"><span class="pre">'ctrl'</span></code>. <em>button</em> is a number from 1 to 5. <em>x</em> and <em>y</em> are character
-coordinates starting from <code class="docutils literal"><span class="pre">(0,</span> <span class="pre">0)</span></code> at the top-left of the screen.</p>
+event is sent then <em>event</em> may be prefixed by <code class="docutils literal notranslate"><span class="pre">'shift</span> <span class="pre">'</span></code>, <code class="docutils literal notranslate"><span class="pre">'meta</span> <span class="pre">'</span></code> or
+<code class="docutils literal notranslate"><span class="pre">'ctrl'</span></code>. <em>button</em> is a number from 1 to 5. <em>x</em> and <em>y</em> are character
+coordinates starting from <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">0)</span></code> at the top-left of the screen.</p>
 <p>Support for the right-mouse button and use of modifier keys is poor in many
 terminals and some users don’t have a middle mouse button, so these shouldn’t
 be relied on.</p>
 <div class="section" id="mouse-press-events">
-<h3><code class="docutils literal"><span class="pre">'mouse</span> <span class="pre">press'</span></code> Events<a class="headerlink" href="#mouse-press-events" title="Permalink to this headline">¶</a></h3>
+<h3><code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code> Events<a class="headerlink" href="#mouse-press-events" title="Permalink to this headline">¶</a></h3>
 <p>A mouse button was pressed.</p>
-<table border="1" class="docutils">
+<table class="docutils align-default">
 <colgroup>
-<col width="36%" />
-<col width="64%" />
+<col style="width: 36%" />
+<col style="width: 64%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head"><cite>button</cite> number</th>
-<th class="head">Mouse button</th>
+<thead>
+<tr class="row-odd"><th class="head"><p><cite>button</cite> number</p></th>
+<th class="head"><p>Mouse button</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td>1</td>
-<td>Left button</td>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>Left button</p></td>
 </tr>
-<tr class="row-odd"><td>2</td>
-<td>Middle button</td>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p>Middle button</p></td>
 </tr>
-<tr class="row-even"><td>3</td>
-<td>Right button</td>
+<tr class="row-even"><td><p>3</p></td>
+<td><p>Right button</p></td>
 </tr>
-<tr class="row-odd"><td>4</td>
-<td>Scroll wheel up <a class="footnote-reference" href="#first" id="id4">[1]</a></td>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p>Scroll wheel up <a class="footnote-reference brackets" href="#first" id="id4">1</a></p></td>
 </tr>
-<tr class="row-even"><td>5</td>
-<td>Scroll wheel down <a class="footnote-reference" href="#first" id="id5">[1]</a></td>
+<tr class="row-even"><td><p>5</p></td>
+<td><p>Scroll wheel down <a class="footnote-reference brackets" href="#first" id="id5">1</a></p></td>
 </tr>
 </tbody>
 </table>
-<table class="docutils footnote" frame="void" id="first" rules="none">
-<colgroup><col class="label" /><col /></colgroup>
-<tbody valign="top">
-<tr><td class="label">[1]</td><td><em>(<a class="fn-backref" href="#id4">1</a>, <a class="fn-backref" href="#id5">2</a>)</em> typically no corresponding release event is sent</td></tr>
-</tbody>
-</table>
+<dl class="footnote brackets">
+<dt class="label" id="first"><span class="brackets">1</span><span class="fn-backref">(<a href="#id4">1</a>,<a href="#id5">2</a>)</span></dt>
+<dd><p>typically no corresponding release event is sent</p>
+</dd>
+</dl>
 </div>
 <div class="section" id="mouse-release-events">
-<h3><code class="docutils literal"><span class="pre">'mouse</span> <span class="pre">release'</span></code> Events<a class="headerlink" href="#mouse-release-events" title="Permalink to this headline">¶</a></h3>
+<h3><code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code> Events<a class="headerlink" href="#mouse-release-events" title="Permalink to this headline">¶</a></h3>
 <p>Mouse release events will often not have information about which button was
 released. In this case <em>button</em> will be set to 0.</p>
 </div>
 <div class="section" id="mouse-drag-events">
-<h3><code class="docutils literal"><span class="pre">'mouse</span> <span class="pre">drag'</span></code> Events<a class="headerlink" href="#mouse-drag-events" title="Permalink to this headline">¶</a></h3>
+<h3><code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">drag'</span></code> Events<a class="headerlink" href="#mouse-drag-events" title="Permalink to this headline">¶</a></h3>
 <p>In the rare event that your user is using a terminal that can send these events
 you can use them to track their mouse dragging from one character cell to the
 next across the screen. Be aware that you might see <em>x</em> and/or <em>y</em> coordinates
@@ -242,9 +234,9 @@ one position off the screen if the user drags their mouse to the edge.</p>
 <li><a class="reference internal" href="#">User Input</a><ul>
 <li><a class="reference internal" href="#keyboard-input">Keyboard Input</a></li>
 <li><a class="reference internal" href="#mouse-input">Mouse Input</a><ul>
-<li><a class="reference internal" href="#mouse-press-events"><code class="docutils literal"><span class="pre">'mouse</span> <span class="pre">press'</span></code> Events</a></li>
-<li><a class="reference internal" href="#mouse-release-events"><code class="docutils literal"><span class="pre">'mouse</span> <span class="pre">release'</span></code> Events</a></li>
-<li><a class="reference internal" href="#mouse-drag-events"><code class="docutils literal"><span class="pre">'mouse</span> <span class="pre">drag'</span></code> Events</a></li>
+<li><a class="reference internal" href="#mouse-press-events"><code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code> Events</a></li>
+<li><a class="reference internal" href="#mouse-release-events"><code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code> Events</a></li>
+<li><a class="reference internal" href="#mouse-drag-events"><code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">drag'</span></code> Events</a></li>
 </ul>
 </li>
 </ul>
@@ -266,13 +258,13 @@ one position off the screen if the user drags their mouse to the edge.</p>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -291,13 +283,13 @@ one position off the screen if the user drags their mouse to the edge.</p>
         <li class="right" >
           <a href="widgets.html" title="Widgets"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.6.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1.
     </div>
   </body>
 </html>

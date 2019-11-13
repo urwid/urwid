@@ -1,33 +1,26 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>MainLoop and Event Loops &#8212; Urwid 2.0.1</title>
+    <meta charset="utf-8" />
+    <title>MainLoop and Event Loops &#8212; Urwid 2.1.0</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '2.0.1',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    
     <script type="text/javascript" src="../_static/sidebar.js"></script>
+    
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Widget Classes" href="widget.html" />
     <link rel="prev" title="Urwid Reference" href="index.html" /> 
-  </head>
-  <body>
+  </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -40,7 +33,7 @@
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li> 
       </ul>
     </div>  
@@ -56,51 +49,47 @@
 <h2>MainLoop<a class="headerlink" href="#mainloop" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="urwid.MainLoop">
-<em class="property">class </em><code class="descclassname">urwid.</code><code class="descname">MainLoop</code><span class="sig-paren">(</span><em>widget</em>, <em>palette=()</em>, <em>screen=None</em>, <em>handle_mouse=True</em>, <em>input_filter=None</em>, <em>unhandled_input=None</em>, <em>event_loop=None</em>, <em>pop_ups=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">MainLoop</code><span class="sig-paren">(</span><em class="sig-param">widget</em>, <em class="sig-param">palette=()</em>, <em class="sig-param">screen=None</em>, <em class="sig-param">handle_mouse=True</em>, <em class="sig-param">input_filter=None</em>, <em class="sig-param">unhandled_input=None</em>, <em class="sig-param">event_loop=None</em>, <em class="sig-param">pop_ups=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop" title="Permalink to this definition">¶</a></dt>
 <dd><p>This is the standard main loop implementation for a single interactive
 session.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>widget</strong> (<em>widget instance</em>) – the topmost widget used for painting the screen, stored as
-<a class="reference internal" href="#urwid.MainLoop.widget" title="urwid.MainLoop.widget"><code class="xref py py-attr docutils literal"><span class="pre">widget</span></code></a> and may be modified. Must be a box widget.</li>
-<li><strong>palette</strong> (<em>iterable of palette entries</em>) – initial palette for screen</li>
-<li><strong>screen</strong> (<em>display module screen instance</em>) – screen to use, default is a new <a class="reference internal" href="display_modules.html#urwid.raw_display.Screen" title="urwid.raw_display.Screen"><code class="xref py py-class docutils literal"><span class="pre">raw_display.Screen</span></code></a>
-instance; stored as <a class="reference internal" href="#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><code class="xref py py-attr docutils literal"><span class="pre">screen</span></code></a></li>
-<li><strong>handle_mouse</strong> (<em>bool</em>) – <code class="docutils literal"><span class="pre">True</span></code> to ask <a class="reference internal" href="#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><code class="xref py py-attr docutils literal"><span class="pre">screen</span></code></a> to process mouse events</li>
-<li><strong>input_filter</strong> (<em>callable</em>) – a function to filter input before sending it to
-<a class="reference internal" href="#urwid.MainLoop.widget" title="urwid.MainLoop.widget"><code class="xref py py-attr docutils literal"><span class="pre">widget</span></code></a>, called from <a class="reference internal" href="#urwid.MainLoop.input_filter" title="urwid.MainLoop.input_filter"><code class="xref py py-meth docutils literal"><span class="pre">input_filter()</span></code></a></li>
-<li><strong>unhandled_input</strong> (<em>callable</em>) – a function called when input is not handled by
-<a class="reference internal" href="#urwid.MainLoop.widget" title="urwid.MainLoop.widget"><code class="xref py py-attr docutils literal"><span class="pre">widget</span></code></a>, called from <a class="reference internal" href="#urwid.MainLoop.unhandled_input" title="urwid.MainLoop.unhandled_input"><code class="xref py py-meth docutils literal"><span class="pre">unhandled_input()</span></code></a></li>
-<li><strong>event_loop</strong> (<em>event loop instance</em>) – if <a class="reference internal" href="#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><code class="xref py py-attr docutils literal"><span class="pre">screen</span></code></a> supports external an event loop it may be
-given here, default is a new <a class="reference internal" href="#urwid.SelectEventLoop" title="urwid.SelectEventLoop"><code class="xref py py-class docutils literal"><span class="pre">SelectEventLoop</span></code></a> instance;
-stored as <a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal"><span class="pre">event_loop</span></code></a></li>
-<li><strong>pop_ups</strong> (<em>boolean</em>) – <cite>True</cite> to wrap <a class="reference internal" href="#urwid.MainLoop.widget" title="urwid.MainLoop.widget"><code class="xref py py-attr docutils literal"><span class="pre">widget</span></code></a> with a <a class="reference internal" href="widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal"><span class="pre">PopUpTarget</span></code></a>
-instance to allow any widget to open a pop-up anywhere on the screen</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>widget</strong> (<em>widget instance</em>) – the topmost widget used for painting the screen, stored as
+<a class="reference internal" href="#urwid.MainLoop.widget" title="urwid.MainLoop.widget"><code class="xref py py-attr docutils literal notranslate"><span class="pre">widget</span></code></a> and may be modified. Must be a box widget.</p></li>
+<li><p><strong>palette</strong> (<em>iterable of palette entries</em>) – initial palette for screen</p></li>
+<li><p><strong>screen</strong> (<em>display module screen instance</em>) – screen to use, default is a new <a class="reference internal" href="display_modules.html#urwid.raw_display.Screen" title="urwid.raw_display.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">raw_display.Screen</span></code></a>
+instance; stored as <a class="reference internal" href="#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><code class="xref py py-attr docutils literal notranslate"><span class="pre">screen</span></code></a></p></li>
+<li><p><strong>handle_mouse</strong> (<em>bool</em>) – <code class="docutils literal notranslate"><span class="pre">True</span></code> to ask <a class="reference internal" href="#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><code class="xref py py-attr docutils literal notranslate"><span class="pre">screen</span></code></a> to process mouse events</p></li>
+<li><p><strong>input_filter</strong> (<em>callable</em>) – a function to filter input before sending it to
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">widget</span></code>, called from <a class="reference internal" href="#urwid.MainLoop.input_filter" title="urwid.MainLoop.input_filter"><code class="xref py py-meth docutils literal notranslate"><span class="pre">input_filter()</span></code></a></p></li>
+<li><p><strong>unhandled_input</strong> (<em>callable</em>) – a function called when input is not handled by
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">widget</span></code>, called from <a class="reference internal" href="#urwid.MainLoop.unhandled_input" title="urwid.MainLoop.unhandled_input"><code class="xref py py-meth docutils literal notranslate"><span class="pre">unhandled_input()</span></code></a></p></li>
+<li><p><strong>event_loop</strong> (<em>event loop instance</em>) – if <a class="reference internal" href="#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><code class="xref py py-attr docutils literal notranslate"><span class="pre">screen</span></code></a> supports external an event loop it may be
+given here, default is a new <a class="reference internal" href="#urwid.SelectEventLoop" title="urwid.SelectEventLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">SelectEventLoop</span></code></a> instance;
+stored as <a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a></p></li>
+<li><p><strong>pop_ups</strong> (<em>boolean</em>) – <cite>True</cite> to wrap <code class="xref py py-attr docutils literal notranslate"><span class="pre">widget</span></code> with a <a class="reference internal" href="widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a>
+instance to allow any widget to open a pop-up anywhere on the screen</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 <dl class="attribute">
 <dt id="urwid.MainLoop.screen">
-<code class="descname">screen</code><a class="headerlink" href="#urwid.MainLoop.screen" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">screen</code><a class="headerlink" href="#urwid.MainLoop.screen" title="Permalink to this definition">¶</a></dt>
 <dd><p>The screen object this main loop uses for screen updates and reading input</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="urwid.MainLoop.event_loop">
-<code class="descname">event_loop</code><a class="headerlink" href="#urwid.MainLoop.event_loop" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">event_loop</code><a class="headerlink" href="#urwid.MainLoop.event_loop" title="Permalink to this definition">¶</a></dt>
 <dd><p>The event loop object this main loop uses for waiting on alarms and IO</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.MainLoop.draw_screen">
-<code class="descname">draw_screen</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.draw_screen" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">draw_screen</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.draw_screen" title="Permalink to this definition">¶</a></dt>
 <dd><p>Render the widgets and paint the screen. This method is called
-automatically from <a class="reference internal" href="#urwid.MainLoop.entering_idle" title="urwid.MainLoop.entering_idle"><code class="xref py py-meth docutils literal"><span class="pre">entering_idle()</span></code></a>.</p>
+automatically from <a class="reference internal" href="#urwid.MainLoop.entering_idle" title="urwid.MainLoop.entering_idle"><code class="xref py py-meth docutils literal notranslate"><span class="pre">entering_idle()</span></code></a>.</p>
 <p>If you modify the widgets displayed outside of handling input or
 responding to an alarm you will need to call this method yourself
 to repaint the screen.</p>
@@ -108,15 +97,15 @@ to repaint the screen.</p>
 
 <dl class="method">
 <dt id="urwid.MainLoop.entering_idle">
-<code class="descname">entering_idle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.entering_idle" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">entering_idle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.entering_idle" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method is called whenever the event loop is about to enter the
-idle state. <a class="reference internal" href="#urwid.MainLoop.draw_screen" title="urwid.MainLoop.draw_screen"><code class="xref py py-meth docutils literal"><span class="pre">draw_screen()</span></code></a> is called here to update the
+idle state. <a class="reference internal" href="#urwid.MainLoop.draw_screen" title="urwid.MainLoop.draw_screen"><code class="xref py py-meth docutils literal notranslate"><span class="pre">draw_screen()</span></code></a> is called here to update the
 screen when anything has changed.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.MainLoop.input_filter">
-<code class="descname">input_filter</code><span class="sig-paren">(</span><em>keys</em>, <em>raw</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.input_filter" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">input_filter</code><span class="sig-paren">(</span><em class="sig-param">keys</em>, <em class="sig-param">raw</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.input_filter" title="Permalink to this definition">¶</a></dt>
 <dd><p>This function is passed each all the input events and raw keystroke
 values. These values are passed to the <em>input_filter</em> function
 passed to the constructor. That function must return a list of keys to
@@ -126,172 +115,161 @@ defined this implementation will return all the input events.</p>
 
 <dl class="method">
 <dt id="urwid.MainLoop.process_input">
-<code class="descname">process_input</code><span class="sig-paren">(</span><em>keys</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.process_input" title="Permalink to this definition">¶</a></dt>
-<dd><p>This method will pass keyboard input and mouse events to <a class="reference internal" href="#urwid.MainLoop.widget" title="urwid.MainLoop.widget"><code class="xref py py-attr docutils literal"><span class="pre">widget</span></code></a>.
-This method is called automatically from the <a class="reference internal" href="#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal"><span class="pre">run()</span></code></a> method when
+<code class="sig-name descname">process_input</code><span class="sig-paren">(</span><em class="sig-param">keys</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.process_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method will pass keyboard input and mouse events to <a class="reference internal" href="#urwid.MainLoop.widget" title="urwid.MainLoop.widget"><code class="xref py py-attr docutils literal notranslate"><span class="pre">widget</span></code></a>.
+This method is called automatically from the <a class="reference internal" href="#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a> method when
 there is input, but may also be called to simulate input from the user.</p>
-<p><em>keys</em> is a list of input returned from <a class="reference internal" href="#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><code class="xref py py-attr docutils literal"><span class="pre">screen</span></code></a>’s get_input()
+<p><em>keys</em> is a list of input returned from <a class="reference internal" href="#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><code class="xref py py-attr docutils literal notranslate"><span class="pre">screen</span></code></a>’s get_input()
 or get_input_nonblocking() methods.</p>
-<p>Returns <code class="docutils literal"><span class="pre">True</span></code> if any key was handled by a widget or the
-<a class="reference internal" href="#urwid.MainLoop.unhandled_input" title="urwid.MainLoop.unhandled_input"><code class="xref py py-meth docutils literal"><span class="pre">unhandled_input()</span></code></a> method.</p>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">True</span></code> if any key was handled by a widget or the
+<a class="reference internal" href="#urwid.MainLoop.unhandled_input" title="urwid.MainLoop.unhandled_input"><code class="xref py py-meth docutils literal notranslate"><span class="pre">unhandled_input()</span></code></a> method.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.MainLoop.remove_alarm">
-<code class="descname">remove_alarm</code><span class="sig-paren">(</span><em>handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.remove_alarm" title="Permalink to this definition">¶</a></dt>
-<dd><p>Remove an alarm. Return <code class="docutils literal"><span class="pre">True</span></code> if <em>handle</em> was found, <code class="docutils literal"><span class="pre">False</span></code>
+<code class="sig-name descname">remove_alarm</code><span class="sig-paren">(</span><em class="sig-param">handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.remove_alarm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove an alarm. Return <code class="docutils literal notranslate"><span class="pre">True</span></code> if <em>handle</em> was found, <code class="docutils literal notranslate"><span class="pre">False</span></code>
 otherwise.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.MainLoop.remove_watch_file">
-<code class="descname">remove_watch_file</code><span class="sig-paren">(</span><em>handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.remove_watch_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>Remove a watch file. Returns <code class="docutils literal"><span class="pre">True</span></code> if the watch file
-exists, <code class="docutils literal"><span class="pre">False</span></code> otherwise.</p>
+<code class="sig-name descname">remove_watch_file</code><span class="sig-paren">(</span><em class="sig-param">handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.remove_watch_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a watch file. Returns <code class="docutils literal notranslate"><span class="pre">True</span></code> if the watch file
+exists, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.MainLoop.remove_watch_pipe">
-<code class="descname">remove_watch_pipe</code><span class="sig-paren">(</span><em>write_fd</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.remove_watch_pipe" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">remove_watch_pipe</code><span class="sig-paren">(</span><em class="sig-param">write_fd</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.remove_watch_pipe" title="Permalink to this definition">¶</a></dt>
 <dd><p>Close the read end of the pipe and remove the watch created by
-<a class="reference internal" href="#urwid.MainLoop.watch_pipe" title="urwid.MainLoop.watch_pipe"><code class="xref py py-meth docutils literal"><span class="pre">watch_pipe()</span></code></a>. You are responsible for closing the write end of
+<a class="reference internal" href="#urwid.MainLoop.watch_pipe" title="urwid.MainLoop.watch_pipe"><code class="xref py py-meth docutils literal notranslate"><span class="pre">watch_pipe()</span></code></a>. You are responsible for closing the write end of
 the pipe.</p>
-<p>Returns <code class="docutils literal"><span class="pre">True</span></code> if the watch pipe exists, <code class="docutils literal"><span class="pre">False</span></code> otherwise</p>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">True</span></code> if the watch pipe exists, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.MainLoop.run">
-<code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.run" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.run" title="Permalink to this definition">¶</a></dt>
 <dd><p>Start the main loop handling input events and updating the screen. The
-loop will continue until an <a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal"><span class="pre">ExitMainLoop</span></code></a> exception is raised.</p>
+loop will continue until an <a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a> exception is raised.</p>
 <p>If you would prefer to manage the event loop yourself, don’t use this
-method.  Instead, call <a class="reference internal" href="#urwid.MainLoop.start" title="urwid.MainLoop.start"><code class="xref py py-meth docutils literal"><span class="pre">start()</span></code></a> before starting the event loop,
-and <a class="reference internal" href="#urwid.MainLoop.stop" title="urwid.MainLoop.stop"><code class="xref py py-meth docutils literal"><span class="pre">stop()</span></code></a> once it’s finished.</p>
+method.  Instead, call <a class="reference internal" href="#urwid.MainLoop.start" title="urwid.MainLoop.start"><code class="xref py py-meth docutils literal notranslate"><span class="pre">start()</span></code></a> before starting the event loop,
+and <a class="reference internal" href="#urwid.MainLoop.stop" title="urwid.MainLoop.stop"><code class="xref py py-meth docutils literal notranslate"><span class="pre">stop()</span></code></a> once it’s finished.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.MainLoop.set_alarm_at">
-<code class="descname">set_alarm_at</code><span class="sig-paren">(</span><em>tm</em>, <em>callback</em>, <em>user_data=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.set_alarm_at" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">set_alarm_at</code><span class="sig-paren">(</span><em class="sig-param">tm</em>, <em class="sig-param">callback</em>, <em class="sig-param">user_data=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.set_alarm_at" title="Permalink to this definition">¶</a></dt>
 <dd><p>Schedule an alarm at <em>tm</em> time that will call <em>callback</em> from the
-within the <a class="reference internal" href="#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal"><span class="pre">run()</span></code></a> function. Returns a handle that may be passed to
-<a class="reference internal" href="#urwid.MainLoop.remove_alarm" title="urwid.MainLoop.remove_alarm"><code class="xref py py-meth docutils literal"><span class="pre">remove_alarm()</span></code></a>.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>tm</strong> (<em>float</em>) – time to call callback e.g. <code class="docutils literal"><span class="pre">time.time()</span> <span class="pre">+</span> <span class="pre">5</span></code></li>
-<li><strong>callback</strong> (<em>callable</em>) – function to call with two parameters: this main loop
-object and <em>user_data</em></li>
+within the <a class="reference internal" href="#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a> function. Returns a handle that may be passed to
+<a class="reference internal" href="#urwid.MainLoop.remove_alarm" title="urwid.MainLoop.remove_alarm"><code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_alarm()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tm</strong> (<em>float</em>) – time to call callback e.g. <code class="docutils literal notranslate"><span class="pre">time.time()</span> <span class="pre">+</span> <span class="pre">5</span></code></p></li>
+<li><p><strong>callback</strong> (<em>callable</em>) – function to call with two parameters: this main loop
+object and <em>user_data</em></p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.MainLoop.set_alarm_in">
-<code class="descname">set_alarm_in</code><span class="sig-paren">(</span><em>sec</em>, <em>callback</em>, <em>user_data=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.set_alarm_in" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">set_alarm_in</code><span class="sig-paren">(</span><em class="sig-param">sec</em>, <em class="sig-param">callback</em>, <em class="sig-param">user_data=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.set_alarm_in" title="Permalink to this definition">¶</a></dt>
 <dd><p>Schedule an alarm in <em>sec</em> seconds that will call <em>callback</em> from the
-within the <a class="reference internal" href="#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal"><span class="pre">run()</span></code></a> method.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>sec</strong> (<em>float</em>) – seconds until alarm</li>
-<li><strong>callback</strong> (<em>callable</em>) – function to call with two parameters: this main loop
-object and <em>user_data</em></li>
+within the <a class="reference internal" href="#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a> method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sec</strong> (<em>float</em>) – seconds until alarm</p></li>
+<li><p><strong>callback</strong> (<em>callable</em>) – function to call with two parameters: this main loop
+object and <em>user_data</em></p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.MainLoop.start">
-<code class="descname">start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.start" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.start" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets up the main loop, hooking into the event loop where necessary.
-Starts the <a class="reference internal" href="#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><code class="xref py py-attr docutils literal"><span class="pre">screen</span></code></a> if it hasn’t already been started.</p>
+Starts the <a class="reference internal" href="#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><code class="xref py py-attr docutils literal notranslate"><span class="pre">screen</span></code></a> if it hasn’t already been started.</p>
 <p>If you want to control starting and stopping the event loop yourself,
 you should call this method before starting, and call <cite>stop</cite> once the
 loop has finished.  You may also use this method as a context manager,
 which will stop the loop automatically at the end of the block:</p>
 <blockquote>
-<div><dl class="docutils">
-<dt>with main_loop.start():</dt>
-<dd>…</dd>
+<div><dl class="simple">
+<dt>with main_loop.start():</dt><dd><p>…</p>
+</dd>
 </dl>
 </div></blockquote>
 <p>Note that some event loop implementations don’t handle exceptions
 specially if you manage the event loop yourself.  In particular, the
 Twisted and asyncio loops won’t stop automatically when
-<a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal"><span class="pre">ExitMainLoop</span></code></a> (or anything else) is raised.</p>
+<a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a> (or anything else) is raised.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.MainLoop.stop">
-<code class="descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.stop" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.stop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Cleans up any hooks added to the event loop.  Only call this if you’re
 managing the event loop yourself, after the loop stops.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.MainLoop.unhandled_input">
-<code class="descname">unhandled_input</code><span class="sig-paren">(</span><em>input</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.unhandled_input" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">unhandled_input</code><span class="sig-paren">(</span><em class="sig-param">input</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.unhandled_input" title="Permalink to this definition">¶</a></dt>
 <dd><p>This function is called with any input that was not handled by the
 widgets, and calls the <em>unhandled_input</em> function passed to the
 constructor. If no <em>unhandled_input</em> was defined then the input
 will be ignored.</p>
 <p><em>input</em> is the keyboard or mouse input.</p>
-<p>The <em>unhandled_input</em> function should return <code class="docutils literal"><span class="pre">True</span></code> if it handled
+<p>The <em>unhandled_input</em> function should return <code class="docutils literal notranslate"><span class="pre">True</span></code> if it handled
 the input.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.MainLoop.watch_file">
-<code class="descname">watch_file</code><span class="sig-paren">(</span><em>fd</em>, <em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.watch_file" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">watch_file</code><span class="sig-paren">(</span><em class="sig-param">fd</em>, <em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.watch_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Call <em>callback</em> when <em>fd</em> has some data to read. No parameters are
 passed to callback.</p>
-<p>Returns a handle that may be passed to <a class="reference internal" href="#urwid.MainLoop.remove_watch_file" title="urwid.MainLoop.remove_watch_file"><code class="xref py py-meth docutils literal"><span class="pre">remove_watch_file()</span></code></a>.</p>
+<p>Returns a handle that may be passed to <a class="reference internal" href="#urwid.MainLoop.remove_watch_file" title="urwid.MainLoop.remove_watch_file"><code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_watch_file()</span></code></a>.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.MainLoop.watch_pipe">
-<code class="descname">watch_pipe</code><span class="sig-paren">(</span><em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.watch_pipe" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">watch_pipe</code><span class="sig-paren">(</span><em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.watch_pipe" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a pipe for use by a subprocess or thread to trigger a callback
 in the process/thread running the main loop.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>callback</strong> (<em>callable</em>) – function taking one parameter to call from within
-the process/thread running the main loop</td>
-</tr>
-</tbody>
-</table>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>callback</strong> (<em>callable</em>) – function taking one parameter to call from within
+the process/thread running the main loop</p>
+</dd>
+</dl>
 <p>This method returns a file descriptor attached to the write end of a
 pipe. The read end of the pipe is added to the list of files
-<a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal"><span class="pre">event_loop</span></code></a> is watching. When data is written to the pipe the
+<a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a> is watching. When data is written to the pipe the
 callback function will be called and passed a single value containing
 data read from the pipe.</p>
 <p>This method may be used any time you want to update widgets from
 another thread or subprocess.</p>
 <p>Data may be written to the returned file descriptor with
-<code class="docutils literal"><span class="pre">os.write(fd,</span> <span class="pre">data)</span></code>. Ensure that data is less than 512 bytes (or 4K
+<code class="docutils literal notranslate"><span class="pre">os.write(fd,</span> <span class="pre">data)</span></code>. Ensure that data is less than 512 bytes (or 4K
 on Linux) so that the callback will be triggered just once with the
 complete value of data passed in.</p>
-<p>If the callback returns <code class="docutils literal"><span class="pre">False</span></code> then the watch will be removed from
-<a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal"><span class="pre">event_loop</span></code></a> and the read end of the pipe will be closed. You
+<p>If the callback returns <code class="docutils literal notranslate"><span class="pre">False</span></code> then the watch will be removed from
+<a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a> and the read end of the pipe will be closed. You
 are responsible for closing the write end of the pipe with
-<code class="docutils literal"><span class="pre">os.close(fd)</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">os.close(fd)</span></code>.</p>
 </dd></dl>
 
-<dl class="attribute">
+<dl class="method">
 <dt id="urwid.MainLoop.widget">
-<code class="descname">widget</code><a class="headerlink" href="#urwid.MainLoop.widget" title="Permalink to this definition">¶</a></dt>
+<em class="property">property </em><code class="sig-name descname">widget</code><a class="headerlink" href="#urwid.MainLoop.widget" title="Permalink to this definition">¶</a></dt>
 <dd><p>Property for the topmost widget used to draw the screen.
 This must be a box widget.</p>
 </dd></dl>
@@ -303,11 +281,11 @@ This must be a box widget.</p>
 <h2>SelectEventLoop<a class="headerlink" href="#selecteventloop" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="urwid.SelectEventLoop">
-<em class="property">class </em><code class="descclassname">urwid.</code><code class="descname">SelectEventLoop</code><a class="headerlink" href="#urwid.SelectEventLoop" title="Permalink to this definition">¶</a></dt>
-<dd><p>Event loop based on <code class="xref py py-func docutils literal"><span class="pre">select.select()</span></code></p>
+<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">SelectEventLoop</code><a class="headerlink" href="#urwid.SelectEventLoop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Event loop based on <code class="xref py py-func docutils literal notranslate"><span class="pre">select.select()</span></code></p>
 <dl class="method">
 <dt id="urwid.SelectEventLoop.alarm">
-<code class="descname">alarm</code><span class="sig-paren">(</span><em>seconds</em>, <em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SelectEventLoop.alarm" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">alarm</code><span class="sig-paren">(</span><em class="sig-param">seconds</em>, <em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SelectEventLoop.alarm" title="Permalink to this definition">¶</a></dt>
 <dd><p>Call callback() a given time from now.  No parameters are
 passed to callback.</p>
 <p>Returns a handle that may be passed to remove_alarm()</p>
@@ -317,42 +295,42 @@ callback – function to call from event loop</p>
 
 <dl class="method">
 <dt id="urwid.SelectEventLoop.enter_idle">
-<code class="descname">enter_idle</code><span class="sig-paren">(</span><em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SelectEventLoop.enter_idle" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">enter_idle</code><span class="sig-paren">(</span><em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SelectEventLoop.enter_idle" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a callback for entering idle.</p>
 <p>Returns a handle that may be passed to remove_idle()</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.SelectEventLoop.remove_alarm">
-<code class="descname">remove_alarm</code><span class="sig-paren">(</span><em>handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SelectEventLoop.remove_alarm" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">remove_alarm</code><span class="sig-paren">(</span><em class="sig-param">handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SelectEventLoop.remove_alarm" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove an alarm.</p>
 <p>Returns True if the alarm exists, False otherwise</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.SelectEventLoop.remove_enter_idle">
-<code class="descname">remove_enter_idle</code><span class="sig-paren">(</span><em>handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SelectEventLoop.remove_enter_idle" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">remove_enter_idle</code><span class="sig-paren">(</span><em class="sig-param">handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SelectEventLoop.remove_enter_idle" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove an idle callback.</p>
 <p>Returns True if the handle was removed.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.SelectEventLoop.remove_watch_file">
-<code class="descname">remove_watch_file</code><span class="sig-paren">(</span><em>handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SelectEventLoop.remove_watch_file" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">remove_watch_file</code><span class="sig-paren">(</span><em class="sig-param">handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SelectEventLoop.remove_watch_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove an input file.</p>
 <p>Returns True if the input file exists, False otherwise</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.SelectEventLoop.run">
-<code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SelectEventLoop.run" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SelectEventLoop.run" title="Permalink to this definition">¶</a></dt>
 <dd><p>Start the event loop.  Exit the loop when any callback raises
 an exception.  If ExitMainLoop is raised, exit cleanly.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.SelectEventLoop.watch_file">
-<code class="descname">watch_file</code><span class="sig-paren">(</span><em>fd</em>, <em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SelectEventLoop.watch_file" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">watch_file</code><span class="sig-paren">(</span><em class="sig-param">fd</em>, <em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SelectEventLoop.watch_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Call callback() when fd has some data to read.  No parameters
 are passed to callback.</p>
 <p>Returns a handle that may be passed to remove_watch_file()</p>
@@ -367,11 +345,11 @@ callback – function to call when input is available</p>
 <h2>GLibEventLoop<a class="headerlink" href="#glibeventloop" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="urwid.GLibEventLoop">
-<em class="property">class </em><code class="descclassname">urwid.</code><code class="descname">GLibEventLoop</code><a class="headerlink" href="#urwid.GLibEventLoop" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">GLibEventLoop</code><a class="headerlink" href="#urwid.GLibEventLoop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Event loop based on GLib.MainLoop</p>
 <dl class="method">
 <dt id="urwid.GLibEventLoop.alarm">
-<code class="descname">alarm</code><span class="sig-paren">(</span><em>seconds</em>, <em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GLibEventLoop.alarm" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">alarm</code><span class="sig-paren">(</span><em class="sig-param">seconds</em>, <em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GLibEventLoop.alarm" title="Permalink to this definition">¶</a></dt>
 <dd><p>Call callback() a given time from now.  No parameters are
 passed to callback.</p>
 <p>Returns a handle that may be passed to remove_alarm()</p>
@@ -381,16 +359,16 @@ callback – function to call from event loop</p>
 
 <dl class="method">
 <dt id="urwid.GLibEventLoop.enter_idle">
-<code class="descname">enter_idle</code><span class="sig-paren">(</span><em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GLibEventLoop.enter_idle" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">enter_idle</code><span class="sig-paren">(</span><em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GLibEventLoop.enter_idle" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a callback for entering idle.</p>
 <p>Returns a handle that may be passed to remove_enter_idle()</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.GLibEventLoop.handle_exit">
-<code class="descname">handle_exit</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GLibEventLoop.handle_exit" title="Permalink to this definition">¶</a></dt>
-<dd><p>Decorator that cleanly exits the <a class="reference internal" href="#urwid.GLibEventLoop" title="urwid.GLibEventLoop"><code class="xref py py-class docutils literal"><span class="pre">GLibEventLoop</span></code></a> if
-<a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal"><span class="pre">ExitMainLoop</span></code></a> is thrown inside of the wrapped function. Store the
+<code class="sig-name descname">handle_exit</code><span class="sig-paren">(</span><em class="sig-param">f</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GLibEventLoop.handle_exit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator that cleanly exits the <a class="reference internal" href="#urwid.GLibEventLoop" title="urwid.GLibEventLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">GLibEventLoop</span></code></a> if
+<a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a> is thrown inside of the wrapped function. Store the
 exception info if some other exception occurs, it will be reraised after
 the loop quits.</p>
 <p><em>f</em> – function to be wrapped</p>
@@ -398,44 +376,44 @@ the loop quits.</p>
 
 <dl class="method">
 <dt id="urwid.GLibEventLoop.remove_alarm">
-<code class="descname">remove_alarm</code><span class="sig-paren">(</span><em>handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GLibEventLoop.remove_alarm" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">remove_alarm</code><span class="sig-paren">(</span><em class="sig-param">handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GLibEventLoop.remove_alarm" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove an alarm.</p>
 <p>Returns True if the alarm exists, False otherwise</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.GLibEventLoop.remove_enter_idle">
-<code class="descname">remove_enter_idle</code><span class="sig-paren">(</span><em>handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GLibEventLoop.remove_enter_idle" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">remove_enter_idle</code><span class="sig-paren">(</span><em class="sig-param">handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GLibEventLoop.remove_enter_idle" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove an idle callback.</p>
 <p>Returns True if the handle was removed.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.GLibEventLoop.remove_watch_file">
-<code class="descname">remove_watch_file</code><span class="sig-paren">(</span><em>handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GLibEventLoop.remove_watch_file" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">remove_watch_file</code><span class="sig-paren">(</span><em class="sig-param">handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GLibEventLoop.remove_watch_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove an input file.</p>
 <p>Returns True if the input file exists, False otherwise</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.GLibEventLoop.run">
-<code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GLibEventLoop.run" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GLibEventLoop.run" title="Permalink to this definition">¶</a></dt>
 <dd><p>Start the event loop.  Exit the loop when any callback raises
 an exception.  If ExitMainLoop is raised, exit cleanly.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.GLibEventLoop.set_signal_handler">
-<code class="descname">set_signal_handler</code><span class="sig-paren">(</span><em>signum</em>, <em>handler</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GLibEventLoop.set_signal_handler" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">set_signal_handler</code><span class="sig-paren">(</span><em class="sig-param">signum</em>, <em class="sig-param">handler</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GLibEventLoop.set_signal_handler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets the signal handler for signal signum.</p>
 <div class="admonition warning">
-<p class="first admonition-title">Warning</p>
+<p class="admonition-title">Warning</p>
 <p>Because this method uses the <cite>GLib</cite>-specific <cite>unix_signal_add</cite>
 function, its behaviour is different than <cite>signal.signal().</cite></p>
 <p>If <cite>signum</cite> is not <cite>SIGHUP</cite>, <cite>SIGINT</cite>, <cite>SIGTERM</cite>, <cite>SIGUSR1</cite>,
 <cite>SIGUSR2</cite> or <cite>SIGWINCH</cite>, this method performs no actions and
 immediately returns None.</p>
-<p class="last">Returns None in all cases (unlike <code class="xref py py-func docutils literal"><span class="pre">signal.signal()</span></code>).</p>
+<p>Returns None in all cases (unlike <code class="xref py py-func docutils literal notranslate"><span class="pre">signal.signal()</span></code>).</p>
 </div>
 <p>signum – signal number
 handler – function (taking signum as its single argument),
@@ -444,7 +422,7 @@ or <cite>signal.SIG_IGN</cite>, or <cite>signal.SIG_DFL</cite></p>
 
 <dl class="method">
 <dt id="urwid.GLibEventLoop.watch_file">
-<code class="descname">watch_file</code><span class="sig-paren">(</span><em>fd</em>, <em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GLibEventLoop.watch_file" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">watch_file</code><span class="sig-paren">(</span><em class="sig-param">fd</em>, <em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GLibEventLoop.watch_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Call callback() when fd has some data to read.  No parameters
 are passed to callback.</p>
 <p>Returns a handle that may be passed to remove_watch_file()</p>
@@ -459,32 +437,30 @@ callback – function to call when input is available</p>
 <h2>TwistedEventLoop<a class="headerlink" href="#twistedeventloop" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="urwid.TwistedEventLoop">
-<em class="property">class </em><code class="descclassname">urwid.</code><code class="descname">TwistedEventLoop</code><span class="sig-paren">(</span><em>reactor=None</em>, <em>manage_reactor=True</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">TwistedEventLoop</code><span class="sig-paren">(</span><em class="sig-param">reactor=None</em>, <em class="sig-param">manage_reactor=True</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Event loop based on <a class="reference external" href="http://twistedmatrix.com/trac/">Twisted</a></p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>reactor</strong> (<code class="xref py py-class docutils literal"><span class="pre">twisted.internet.reactor</span></code>.) – reactor to use</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Param:</th><td class="field-body">manage_reactor: <cite>True</cite> if you want this event loop to run
-and stop the reactor.</td>
-</tr>
-</tbody>
-</table>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>reactor</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">twisted.internet.reactor</span></code>.) – reactor to use</p>
+</dd>
+<dt class="field-even">Param</dt>
+<dd class="field-even"><p>manage_reactor: <cite>True</cite> if you want this event loop to run
+and stop the reactor.</p>
+</dd>
+</dl>
 <div class="admonition warning">
-<p class="first admonition-title">Warning</p>
+<p class="admonition-title">Warning</p>
 <p>Twisted’s reactor doesn’t like to be stopped and run again.  If you
-need to stop and run your <a class="reference internal" href="#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a>, consider setting
-<code class="docutils literal"><span class="pre">manage_reactor=False</span></code> and take care of running/stopping the reactor
+need to stop and run your <a class="reference internal" href="#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a>, consider setting
+<code class="docutils literal notranslate"><span class="pre">manage_reactor=False</span></code> and take care of running/stopping the reactor
 at the beginning/ending of your program yourself.</p>
-<p class="last">You can also forego using <a class="reference internal" href="#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal"><span class="pre">MainLoop</span></code></a>’s run() entirely, and
+<p>You can also forego using <a class="reference internal" href="#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a>’s run() entirely, and
 instead call start() and stop() before and after starting the
 reactor.</p>
 </div>
 <dl class="method">
 <dt id="urwid.TwistedEventLoop.alarm">
-<code class="descname">alarm</code><span class="sig-paren">(</span><em>seconds</em>, <em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop.alarm" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">alarm</code><span class="sig-paren">(</span><em class="sig-param">seconds</em>, <em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop.alarm" title="Permalink to this definition">¶</a></dt>
 <dd><p>Call callback() a given time from now.  No parameters are
 passed to callback.</p>
 <p>Returns a handle that may be passed to remove_alarm()</p>
@@ -494,16 +470,16 @@ callback – function to call from event loop</p>
 
 <dl class="method">
 <dt id="urwid.TwistedEventLoop.enter_idle">
-<code class="descname">enter_idle</code><span class="sig-paren">(</span><em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop.enter_idle" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">enter_idle</code><span class="sig-paren">(</span><em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop.enter_idle" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a callback for entering idle.</p>
 <p>Returns a handle that may be passed to remove_enter_idle()</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.TwistedEventLoop.handle_exit">
-<code class="descname">handle_exit</code><span class="sig-paren">(</span><em>f</em>, <em>enable_idle=True</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop.handle_exit" title="Permalink to this definition">¶</a></dt>
-<dd><p>Decorator that cleanly exits the <a class="reference internal" href="#urwid.TwistedEventLoop" title="urwid.TwistedEventLoop"><code class="xref py py-class docutils literal"><span class="pre">TwistedEventLoop</span></code></a> if
-<a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-class docutils literal"><span class="pre">ExitMainLoop</span></code></a> is thrown inside of the wrapped function. Store the
+<code class="sig-name descname">handle_exit</code><span class="sig-paren">(</span><em class="sig-param">f</em>, <em class="sig-param">enable_idle=True</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop.handle_exit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator that cleanly exits the <a class="reference internal" href="#urwid.TwistedEventLoop" title="urwid.TwistedEventLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">TwistedEventLoop</span></code></a> if
+<a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a> is thrown inside of the wrapped function. Store the
 exception info if some other exception occurs, it will be reraised after
 the loop quits.</p>
 <p><em>f</em> – function to be wrapped</p>
@@ -511,35 +487,35 @@ the loop quits.</p>
 
 <dl class="method">
 <dt id="urwid.TwistedEventLoop.remove_alarm">
-<code class="descname">remove_alarm</code><span class="sig-paren">(</span><em>handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop.remove_alarm" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">remove_alarm</code><span class="sig-paren">(</span><em class="sig-param">handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop.remove_alarm" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove an alarm.</p>
 <p>Returns True if the alarm exists, False otherwise</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.TwistedEventLoop.remove_enter_idle">
-<code class="descname">remove_enter_idle</code><span class="sig-paren">(</span><em>handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop.remove_enter_idle" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">remove_enter_idle</code><span class="sig-paren">(</span><em class="sig-param">handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop.remove_enter_idle" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove an idle callback.</p>
 <p>Returns True if the handle was removed.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.TwistedEventLoop.remove_watch_file">
-<code class="descname">remove_watch_file</code><span class="sig-paren">(</span><em>handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop.remove_watch_file" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">remove_watch_file</code><span class="sig-paren">(</span><em class="sig-param">handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop.remove_watch_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove an input file.</p>
 <p>Returns True if the input file exists, False otherwise</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.TwistedEventLoop.run">
-<code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop.run" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop.run" title="Permalink to this definition">¶</a></dt>
 <dd><p>Start the event loop.  Exit the loop when any callback raises
 an exception.  If ExitMainLoop is raised, exit cleanly.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.TwistedEventLoop.watch_file">
-<code class="descname">watch_file</code><span class="sig-paren">(</span><em>fd</em>, <em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop.watch_file" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">watch_file</code><span class="sig-paren">(</span><em class="sig-param">fd</em>, <em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop.watch_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Call callback() when fd has some data to read.  No parameters
 are passed to callback.</p>
 <p>Returns a handle that may be passed to remove_watch_file()</p>
@@ -554,7 +530,7 @@ callback – function to call when input is available</p>
 <h2>TornadoEventLoop<a class="headerlink" href="#tornadoeventloop" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="urwid.TornadoEventLoop">
-<em class="property">class </em><code class="descclassname">urwid.</code><code class="descname">TornadoEventLoop</code><span class="sig-paren">(</span><em>ioloop=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TornadoEventLoop" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">TornadoEventLoop</code><span class="sig-paren">(</span><em class="sig-param">ioloop=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TornadoEventLoop" title="Permalink to this definition">¶</a></dt>
 <dd><p>This is an Urwid-specific event loop to plug into its MainLoop.
 It acts as an adaptor for Tornado’s IOLoop which does all
 heavy lifting except idle-callbacks.</p>
@@ -563,9 +539,71 @@ monkey patch ioloop._impl.poll() function to be able to detect
 potential idle periods.</p>
 <dl class="class">
 <dt id="urwid.TornadoEventLoop.PollProxy">
-<em class="property">class </em><code class="descname">PollProxy</code><span class="sig-paren">(</span><em>poll_obj</em>, <em>idle_map</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TornadoEventLoop.PollProxy" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-name descname">PollProxy</code><span class="sig-paren">(</span><em class="sig-param">poll_obj</em>, <em class="sig-param">idle_map</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TornadoEventLoop.PollProxy" title="Permalink to this definition">¶</a></dt>
 <dd><p>A simple proxy for a Python’s poll object that wraps the .poll() method
 in order to detect idle periods and call Urwid callbacks</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.TornadoEventLoop.alarm">
+<code class="sig-name descname">alarm</code><span class="sig-paren">(</span><em class="sig-param">secs</em>, <em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TornadoEventLoop.alarm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call callback() a given time from now.  No parameters are
+passed to callback.</p>
+<p>This method has no default implementation.</p>
+<p>Returns a handle that may be passed to remove_alarm()</p>
+<p>seconds – floating point time to wait before calling callback
+callback – function to call from event loop</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.TornadoEventLoop.enter_idle">
+<code class="sig-name descname">enter_idle</code><span class="sig-paren">(</span><em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TornadoEventLoop.enter_idle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a callback for entering idle.</p>
+<p>This method has no default implementation.</p>
+<p>Returns a handle that may be passed to remove_idle()</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.TornadoEventLoop.remove_alarm">
+<code class="sig-name descname">remove_alarm</code><span class="sig-paren">(</span><em class="sig-param">handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TornadoEventLoop.remove_alarm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove an alarm.</p>
+<p>This method has no default implementation.</p>
+<p>Returns True if the alarm exists, False otherwise</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.TornadoEventLoop.remove_enter_idle">
+<code class="sig-name descname">remove_enter_idle</code><span class="sig-paren">(</span><em class="sig-param">handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TornadoEventLoop.remove_enter_idle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove an idle callback.</p>
+<p>This method has no default implementation.</p>
+<p>Returns True if the handle was removed.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.TornadoEventLoop.remove_watch_file">
+<code class="sig-name descname">remove_watch_file</code><span class="sig-paren">(</span><em class="sig-param">handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TornadoEventLoop.remove_watch_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove an input file.</p>
+<p>This method has no default implementation.</p>
+<p>Returns True if the input file exists, False otherwise</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.TornadoEventLoop.run">
+<code class="sig-name descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TornadoEventLoop.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start the event loop.  Exit the loop when any callback raises
+an exception.  If ExitMainLoop is raised, exit cleanly.</p>
+<p>This method has no default implementation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="urwid.TornadoEventLoop.watch_file">
+<code class="sig-name descname">watch_file</code><span class="sig-paren">(</span><em class="sig-param">fd</em>, <em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TornadoEventLoop.watch_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call callback() when fd has some data to read.  No parameters
+are passed to callback.</p>
+<p>This method has no default implementation.</p>
+<p>Returns a handle that may be passed to remove_watch_file()</p>
+<p>fd – file descriptor to watch for input
+callback – function to call when input is available</p>
 </dd></dl>
 
 </dd></dl>
@@ -575,14 +613,14 @@ in order to detect idle periods and call Urwid callbacks</p>
 <h2>AsyncioEventLoop<a class="headerlink" href="#asyncioeventloop" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="urwid.AsyncioEventLoop">
-<em class="property">class </em><code class="descclassname">urwid.</code><code class="descname">AsyncioEventLoop</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AsyncioEventLoop" title="Permalink to this definition">¶</a></dt>
-<dd><p>Event loop based on the standard library <code class="docutils literal"><span class="pre">asyncio</span></code> module.</p>
-<p><code class="docutils literal"><span class="pre">asyncio</span></code> is new in Python 3.4, but also exists as a backport on PyPI for
-Python 3.3.  The <code class="docutils literal"><span class="pre">trollius</span></code> package is available for older Pythons with
+<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">AsyncioEventLoop</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AsyncioEventLoop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Event loop based on the standard library <code class="docutils literal notranslate"><span class="pre">asyncio</span></code> module.</p>
+<p><code class="docutils literal notranslate"><span class="pre">asyncio</span></code> is new in Python 3.4, but also exists as a backport on PyPI for
+Python 3.3.  The <code class="docutils literal notranslate"><span class="pre">trollius</span></code> package is available for older Pythons with
 slightly different syntax, but also works with this loop.</p>
 <dl class="method">
 <dt id="urwid.AsyncioEventLoop.alarm">
-<code class="descname">alarm</code><span class="sig-paren">(</span><em>seconds</em>, <em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AsyncioEventLoop.alarm" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">alarm</code><span class="sig-paren">(</span><em class="sig-param">seconds</em>, <em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AsyncioEventLoop.alarm" title="Permalink to this definition">¶</a></dt>
 <dd><p>Call callback() a given time from now.  No parameters are
 passed to callback.</p>
 <p>Returns a handle that may be passed to remove_alarm()</p>
@@ -592,42 +630,42 @@ callback – function to call from event loop</p>
 
 <dl class="method">
 <dt id="urwid.AsyncioEventLoop.enter_idle">
-<code class="descname">enter_idle</code><span class="sig-paren">(</span><em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AsyncioEventLoop.enter_idle" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">enter_idle</code><span class="sig-paren">(</span><em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AsyncioEventLoop.enter_idle" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a callback for entering idle.</p>
 <p>Returns a handle that may be passed to remove_idle()</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.AsyncioEventLoop.remove_alarm">
-<code class="descname">remove_alarm</code><span class="sig-paren">(</span><em>handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AsyncioEventLoop.remove_alarm" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">remove_alarm</code><span class="sig-paren">(</span><em class="sig-param">handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AsyncioEventLoop.remove_alarm" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove an alarm.</p>
 <p>Returns True if the alarm exists, False otherwise</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.AsyncioEventLoop.remove_enter_idle">
-<code class="descname">remove_enter_idle</code><span class="sig-paren">(</span><em>handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AsyncioEventLoop.remove_enter_idle" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">remove_enter_idle</code><span class="sig-paren">(</span><em class="sig-param">handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AsyncioEventLoop.remove_enter_idle" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove an idle callback.</p>
 <p>Returns True if the handle was removed.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.AsyncioEventLoop.remove_watch_file">
-<code class="descname">remove_watch_file</code><span class="sig-paren">(</span><em>handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AsyncioEventLoop.remove_watch_file" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">remove_watch_file</code><span class="sig-paren">(</span><em class="sig-param">handle</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AsyncioEventLoop.remove_watch_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove an input file.</p>
 <p>Returns True if the input file exists, False otherwise</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.AsyncioEventLoop.run">
-<code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AsyncioEventLoop.run" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AsyncioEventLoop.run" title="Permalink to this definition">¶</a></dt>
 <dd><p>Start the event loop.  Exit the loop when any callback raises
 an exception.  If ExitMainLoop is raised, exit cleanly.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.AsyncioEventLoop.watch_file">
-<code class="descname">watch_file</code><span class="sig-paren">(</span><em>fd</em>, <em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AsyncioEventLoop.watch_file" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">watch_file</code><span class="sig-paren">(</span><em class="sig-param">fd</em>, <em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AsyncioEventLoop.watch_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Call callback() when fd has some data to read.  No parameters
 are passed to callback.</p>
 <p>Returns a handle that may be passed to remove_watch_file()</p>
@@ -676,13 +714,13 @@ callback – function to call when input is available</p>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -701,13 +739,13 @@ callback – function to call when input is available</p>
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.6.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1.
     </div>
   </body>
 </html>

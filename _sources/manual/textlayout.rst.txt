@@ -9,7 +9,8 @@
 Mapping a text string to screen coordinates within a widget is called text
 layout. The :class:`Text` widget's default layout class supports
 aligning text to the left, center or right, and can wrap text on space
-characters, at any location, or clip text that is off the edge.
+characters, at any location, or clip text that is off the edge, optionally
+inserting an ellipsis character.
 
 ::
 
@@ -59,6 +60,12 @@ characters, at any location, or clip text that is off the edge.
     wrap='clip'
     +----------------+   +------------------------+
     |Showing some dif|   |Showing some different w|
+    |newline         |   |newline                 |
+    +----------------+   +------------------------+
+
+    wrap='ellipsis'
+    +----------------+   +------------------------+
+    |Showing some di…|   |Showing some different …|
     |newline         |   |newline                 |
     +----------------+   +------------------------+
 

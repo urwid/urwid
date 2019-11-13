@@ -1,33 +1,26 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Encodings Supported &#8212; Urwid 2.0.1</title>
+    <meta charset="utf-8" />
+    <title>Encodings Supported &#8212; Urwid 2.1.0</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '2.0.1',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    
     <script type="text/javascript" src="../_static/sidebar.js"></script>
+    
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Display Attributes" href="displayattributes.html" />
     <link rel="prev" title="Text Layout" href="textlayout.html" /> 
-  </head>
-  <body>
+  </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -40,7 +33,7 @@
         <li class="right" >
           <a href="textlayout.html" title="Text Layout"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li> 
       </ul>
     </div>  
@@ -54,19 +47,19 @@
 <span id="text-encodings"></span><h1>Encodings Supported<a class="headerlink" href="#encodings-supported" title="Permalink to this headline">¶</a></h1>
 <p>Urwid has a single global setting for text encoding that is set on start-up
 based on the configured locale. You may change that setting with the
-<a class="reference internal" href="../reference/global_settings.html#urwid.set_encoding" title="urwid.set_encoding"><code class="xref py py-meth docutils literal"><span class="pre">set_encoding()</span></code></a> method. eg.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">urwid</span><span class="o">.</span><span class="n">set_encoding</span><span class="p">(</span><span class="s2">&quot;UTF-8&quot;</span><span class="p">)</span>
+<a class="reference internal" href="../reference/global_settings.html#urwid.set_encoding" title="urwid.set_encoding"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_encoding()</span></code></a> method. eg.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">urwid</span><span class="o">.</span><span class="n">set_encoding</span><span class="p">(</span><span class="s2">&quot;UTF-8&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>There are two distinct modes of handling encodings with Urwid: Unicode or
 Pass-through. The mode corresponds to using Unicode strings or normal strings
 in your widgets.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">txt_a</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;El Niño&quot;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">txt_a</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;El Niño&quot;</span><span class="p">)</span>
 <span class="n">txt_b</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">&quot;El Niño&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><code class="docutils literal"><span class="pre">txt_a</span></code> will be automatically encoded when it is displayed (Unicode mode).</p>
-<p><code class="docutils literal"><span class="pre">txt_b</span></code> is <strong>assumed</strong> to be in the encoding the user is expecting and passed
+<p><code class="docutils literal notranslate"><span class="pre">txt_a</span></code> will be automatically encoded when it is displayed (Unicode mode).</p>
+<p><code class="docutils literal notranslate"><span class="pre">txt_b</span></code> is <strong>assumed</strong> to be in the encoding the user is expecting and passed
 through as-is (Pass-through mode). If the encodings are different then the
 user will see “mojibake” (garbage) on their screen.</p>
 <p>The only time it makes sense to use pass-through mode is if you’re handling an
@@ -80,7 +73,7 @@ right-to-left text.</p>
 <p>You should be able to use any valid Unicode characters that are present in the
 global encoding setting in your widgets, with the addition of some common DEC
 graphic characters:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span>\u00A3 (£), \u00B0 (°), \u00B1 (±), \u00B7 (·), \u03C0 (π),
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>\u00A3 (£), \u00B0 (°), \u00B1 (±), \u00B7 (·), \u03C0 (π),
 \u2260 (≠), \u2264 (≤), \u2265 (≥), \u23ba (⎺), \u23bb (⎻),
 \u23bc (⎼), \u23bd (⎽), \u2500 (─), \u2502 (│), \u250c (┌),
 \u2510 (┐), \u2514 (└), \u2518 (┘), \u251c (├), \u2524 (┤),
@@ -94,16 +87,16 @@ the alternate character set sequences supported by some terminals.</p>
 <h2>Pass-through Support<a class="headerlink" href="#pass-through-support" title="Permalink to this headline">¶</a></h2>
 <p>Supported encodings for pass-through mode:</p>
 <ul class="simple">
-<li>UTF-8 (narrow and wide characters)</li>
-<li>ISO-8859-*</li>
-<li>EUC-JP (JISX 0208 only)</li>
-<li>EUC-KR</li>
-<li>EUC-CN (aka CN-GB)</li>
-<li>EUC-TW (CNS 11643 plain 1 only)</li>
-<li>GB2312</li>
-<li>GBK</li>
-<li>BIG5</li>
-<li>UHC</li>
+<li><p>UTF-8 (narrow and wide characters)</p></li>
+<li><p>ISO-8859-*</p></li>
+<li><p>EUC-JP (JISX 0208 only)</p></li>
+<li><p>EUC-KR</p></li>
+<li><p>EUC-CN (aka CN-GB)</p></li>
+<li><p>EUC-TW (CNS 11643 plain 1 only)</p></li>
+<li><p>GB2312</p></li>
+<li><p>GBK</p></li>
+<li><p>BIG5</p></li>
+<li><p>UHC</p></li>
 </ul>
 <p>In pass-through mode Urwid must still calculate character widths. For UTF-8
 mode the widths are specified in the Unicode standard. For ISO-8859-* all
@@ -159,13 +152,13 @@ Unicode text to display the characters it supports.</p>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -184,13 +177,13 @@ Unicode text to display the characters it supports.</p>
         <li class="right" >
           <a href="textlayout.html" title="Text Layout"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.6.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1.
     </div>
   </body>
 </html>

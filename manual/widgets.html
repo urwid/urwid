@@ -1,33 +1,26 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Widgets &#8212; Urwid 2.0.1</title>
+    <meta charset="utf-8" />
+    <title>Widgets &#8212; Urwid 2.1.0</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '2.0.1',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    
     <script type="text/javascript" src="../_static/sidebar.js"></script>
+    
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="User Input" href="userinput.html" />
     <link rel="prev" title="Display Modules" href="displaymodules.html" /> 
-  </head>
-  <body>
+  </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -40,7 +33,7 @@
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li> 
       </ul>
     </div>  
@@ -61,15 +54,15 @@ font size.</p>
 <p>The result of rendering a widget is a canvas suitable for displaying on the
 screen. When we render the topmost widget:</p>
 <ol class="arabic simple">
-<li>The topmost widget <em>(a)</em> is rendered the full size of the screen</li>
-<li><em>(a)</em> renders <em>(b)</em> any size up to the full size of the screen</li>
-<li><em>(b)</em> renders <em>(c)</em>, <em>(d)</em> and <em>(e)</em> dividing its available screen columns
-between them</li>
-<li><em>(e)</em> renders <em>(f)</em> and <em>(g)</em> dividing its available screen rows between
-them</li>
-<li><em>(e)</em> combines the canvases from <em>(f)</em> and <em>(g)</em> and returns them</li>
-<li><em>(b)</em> combines the canvases from <em>(c)</em>, <em>(d)</em> and <em>(e)</em> and returns them</li>
-<li><em>(a)</em> possibly modifies the canvas from <em>(b)</em> and returns it</li>
+<li><p>The topmost widget <em>(a)</em> is rendered the full size of the screen</p></li>
+<li><p><em>(a)</em> renders <em>(b)</em> any size up to the full size of the screen</p></li>
+<li><p><em>(b)</em> renders <em>(c)</em>, <em>(d)</em> and <em>(e)</em> dividing its available screen columns
+between them</p></li>
+<li><p><em>(e)</em> renders <em>(f)</em> and <em>(g)</em> dividing its available screen rows between
+them</p></li>
+<li><p><em>(e)</em> combines the canvases from <em>(f)</em> and <em>(g)</em> and returns them</p></li>
+<li><p><em>(b)</em> combines the canvases from <em>(c)</em>, <em>(d)</em> and <em>(e)</em> and returns them</p></li>
+<li><p><em>(a)</em> possibly modifies the canvas from <em>(b)</em> and returns it</p></li>
 </ol>
 <p>Widgets <em>(a)</em>, <em>(b)</em> and <em>(e)</em> are called container widgets because they
 contain other widgets. Container widgets choose the size and position of their
@@ -79,17 +72,17 @@ is in focus. The focus is used when handling keyboard input. If in the above
 example <em>(b)</em> ‘s focus widget is <em>(e)</em> and <em>(e)</em> ‘s focus widget is
 <em>(f)</em> then keyboard input will be handled this way:</p>
 <ol class="arabic simple">
-<li>The keypress is passed to the topmost widget <em>(a)</em></li>
-<li><em>(a)</em> passes the keypress to <em>(b)</em></li>
-<li><em>(b)</em> passes the keypress to <em>(e)</em>, its focus widget</li>
-<li><em>(e)</em> passes the keypress to <em>(f)</em>, its focus widget</li>
-<li><em>(f)</em> either handles the keypress or returns it</li>
-<li><em>(e)</em> has an opportunity to handle the keypress if it was returned from
-<em>(f)</em></li>
-<li><em>(b)</em> has an opportunity to handle the keypress if it was returned from
-<em>(e)</em></li>
-<li><em>(a)</em> has an opportunity to handle the keypress if it was returned from
-<em>(b)</em></li>
+<li><p>The keypress is passed to the topmost widget <em>(a)</em></p></li>
+<li><p><em>(a)</em> passes the keypress to <em>(b)</em></p></li>
+<li><p><em>(b)</em> passes the keypress to <em>(e)</em>, its focus widget</p></li>
+<li><p><em>(e)</em> passes the keypress to <em>(f)</em>, its focus widget</p></li>
+<li><p><em>(f)</em> either handles the keypress or returns it</p></li>
+<li><p><em>(e)</em> has an opportunity to handle the keypress if it was returned from
+<em>(f)</em></p></li>
+<li><p><em>(b)</em> has an opportunity to handle the keypress if it was returned from
+<em>(e)</em></p></li>
+<li><p><em>(a)</em> has an opportunity to handle the keypress if it was returned from
+<em>(b)</em></p></li>
 </ol>
 </div>
 <div class="section" id="box-flow-and-fixed-widgets">
@@ -105,41 +98,41 @@ how many screen rows they need.</p>
 <p>Occasionally it is also useful to have a widget that knows how many screen
 columns and rows it requires, regardless of the space available. This is
 called a fixed widget.</p>
-<table border="1" class="colwidths-given docutils" id="id6">
+<table class="colwidths-given docutils align-default" id="id6">
 <caption><span class="caption-text">How a Widget’s Size is Determined</span><a class="headerlink" href="#id6" title="Permalink to this table">¶</a></caption>
 <colgroup>
-<col width="20%" />
-<col width="40%" />
-<col width="40%" />
+<col style="width: 20%" />
+<col style="width: 40%" />
+<col style="width: 40%" />
 </colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">sizing mode</th>
-<th class="head">width</th>
-<th class="head">height</th>
+<thead>
+<tr class="row-odd"><th class="head"><p>sizing mode</p></th>
+<th class="head"><p>width</p></th>
+<th class="head"><p>height</p></th>
 </tr>
 </thead>
-<tbody valign="top">
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">'box'</span></code></td>
-<td>container decides</td>
-<td>container decides</td>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">'box'</span></code></p></td>
+<td><p>container decides</p></td>
+<td><p>container decides</p></td>
 </tr>
-<tr class="row-odd"><td><code class="docutils literal"><span class="pre">'flow'</span></code></td>
-<td>container decides</td>
-<td>widget’s <a class="reference internal" href="../reference/widget.html#urwid.Widget.rows" title="urwid.Widget.rows"><code class="xref py py-meth docutils literal"><span class="pre">rows()</span></code></a> method</td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">'flow'</span></code></p></td>
+<td><p>container decides</p></td>
+<td><p>widget’s <a class="reference internal" href="../reference/widget.html#urwid.Widget.rows" title="urwid.Widget.rows"><code class="xref py py-meth docutils literal notranslate"><span class="pre">rows()</span></code></a> method</p></td>
 </tr>
-<tr class="row-even"><td><code class="docutils literal"><span class="pre">'fixed'</span></code></td>
-<td>widget’s <a class="reference internal" href="../reference/widget.html#urwid.Widget.pack" title="urwid.Widget.pack"><code class="xref py py-meth docutils literal"><span class="pre">pack()</span></code></a> method</td>
-<td>widget’s <a class="reference internal" href="../reference/widget.html#urwid.Widget.pack" title="urwid.Widget.pack"><code class="xref py py-meth docutils literal"><span class="pre">pack()</span></code></a> method</td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">'fixed'</span></code></p></td>
+<td><p>widget’s <a class="reference internal" href="../reference/widget.html#urwid.Widget.pack" title="urwid.Widget.pack"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pack()</span></code></a> method</p></td>
+<td><p>widget’s <a class="reference internal" href="../reference/widget.html#urwid.Widget.pack" title="urwid.Widget.pack"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pack()</span></code></a> method</p></td>
 </tr>
 </tbody>
 </table>
-<p>It is an Urwid convention to use the variables <code class="xref py py-attr docutils literal"><span class="pre">maxcol</span></code> and
-<code class="xref py py-attr docutils literal"><span class="pre">maxrow</span></code> to store a widget’s size. Box widgets require both of <code class="docutils literal"><span class="pre">(maxcol,</span>
+<p>It is an Urwid convention to use the variables <code class="xref py py-attr docutils literal notranslate"><span class="pre">maxcol</span></code> and
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">maxrow</span></code> to store a widget’s size. Box widgets require both of <code class="docutils literal notranslate"><span class="pre">(maxcol,</span>
 <span class="pre">maxrow)</span></code> to be specified.</p>
-<p>Flow widgets expect a single-element tuple <code class="docutils literal"><span class="pre">(maxcol,)</span></code> instead because they
-calculate their <code class="xref py py-attr docutils literal"><span class="pre">maxrow</span></code> based on the <code class="xref py py-attr docutils literal"><span class="pre">maxcol</span></code> value.</p>
-<p>Fixed widgets expect the value <code class="docutils literal"><span class="pre">()</span></code> to be passed in to functions that take
-a size because they know their <code class="xref py py-attr docutils literal"><span class="pre">maxcol</span></code> and <code class="xref py py-attr docutils literal"><span class="pre">maxrow</span></code> values.</p>
+<p>Flow widgets expect a single-element tuple <code class="docutils literal notranslate"><span class="pre">(maxcol,)</span></code> instead because they
+calculate their <code class="xref py py-attr docutils literal notranslate"><span class="pre">maxrow</span></code> based on the <code class="xref py py-attr docutils literal notranslate"><span class="pre">maxcol</span></code> value.</p>
+<p>Fixed widgets expect the value <code class="docutils literal notranslate"><span class="pre">()</span></code> to be passed in to functions that take
+a size because they know their <code class="xref py py-attr docutils literal notranslate"><span class="pre">maxcol</span></code> and <code class="xref py py-attr docutils literal notranslate"><span class="pre">maxrow</span></code> values.</p>
 </div>
 <div class="section" id="included-widgets">
 <span id="basic-grafic-widgets"></span><h2>Included Widgets<a class="headerlink" href="#included-widgets" title="Permalink to this headline">¶</a></h2>
@@ -153,11 +146,11 @@ also be used as part of custom widgets you create.</p>
 <span id="id2"></span><h2>Decoration Widgets<a class="headerlink" href="#decoration-widgets" title="Permalink to this headline">¶</a></h2>
 <p>Decoration widgets alter the appearance or position of a single other widget.
 The widget they wrap is available as the
-<code class="xref py py-attr docutils literal"><span class="pre">original_widget</span></code> property.
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">original_widget</span></code> property.
 If you might be using more than one decoration widget you may use the
-<a class="reference internal" href="../reference/widget.html#urwid.WidgetDecoration.base_widget" title="urwid.WidgetDecoration.base_widget"><code class="xref py py-attr docutils literal"><span class="pre">base_widget</span></code></a> property to access the
+<a class="reference internal" href="../reference/widget.html#urwid.WidgetDecoration.base_widget" title="urwid.WidgetDecoration.base_widget"><code class="xref py py-attr docutils literal notranslate"><span class="pre">base_widget</span></code></a> property to access the
 “most” original_widget.
-<a class="reference internal" href="../reference/widget.html#urwid.Widget.base_widget" title="urwid.Widget.base_widget"><code class="xref py py-attr docutils literal"><span class="pre">Widget.base_widget</span></code></a> points to <code class="docutils literal"><span class="pre">self</span></code> on all non-decoration widgets, so
+<a class="reference internal" href="../reference/widget.html#urwid.Widget.base_widget" title="urwid.Widget.base_widget"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Widget.base_widget</span></code></a> points to <code class="docutils literal notranslate"><span class="pre">self</span></code> on all non-decoration widgets, so
 it is safe to use in any situation.</p>
 </div>
 <div class="section" id="container-widgets">
@@ -171,67 +164,67 @@ levels below the topmost widget.</p>
 container type.  Backwards compatibility is still maintained for the old
 container-specific ways of accessing and modifying contents, but this API
 is now the preferred way of modifying and traversing containers.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">container</span><span class="o">.</span><span class="n">focus</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">container</span><span class="o">.</span><span class="n">focus</span>
 </pre></div>
 </div>
 <p>is a read-only property that returns the widget in focus for this container.
 Empty containers and non-container widgets (that inherit from Widget)
-return <code class="docutils literal"><span class="pre">None</span></code>.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">container</span><span class="o">.</span><span class="n">focus_position</span>
+return <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">container</span><span class="o">.</span><span class="n">focus_position</span>
 </pre></div>
 </div>
 <p>is a read/write property that provides access to the position of the
 container’s widget in focus.  This will often be an integer value but may be
 any object.
-<a class="reference internal" href="../reference/widget.html#urwid.Columns" title="urwid.Columns"><code class="xref py py-class docutils literal"><span class="pre">Columns</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal"><span class="pre">Pile</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.GridFlow" title="urwid.GridFlow"><code class="xref py py-class docutils literal"><span class="pre">GridFlow</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal"><span class="pre">Overlay</span></code></a> and
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> with a <a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleListWalker" title="urwid.SimpleListWalker"><code class="xref py py-class docutils literal"><span class="pre">SimpleListWalker</span></code></a> or <a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><code class="xref py py-class docutils literal"><span class="pre">SimpleFocusListWalker</span></code></a>
-as its body use integer positions.  <a class="reference internal" href="../reference/widget.html#urwid.Frame" title="urwid.Frame"><code class="xref py py-class docutils literal"><span class="pre">Frame</span></code></a> uses <code class="docutils literal"><span class="pre">'body'</span></code>, <code class="docutils literal"><span class="pre">'header'</span></code>
-and <code class="docutils literal"><span class="pre">'footer'</span></code>;  <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> with a custom list walker will use the
+<a class="reference internal" href="../reference/widget.html#urwid.Columns" title="urwid.Columns"><code class="xref py py-class docutils literal notranslate"><span class="pre">Columns</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pile</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.GridFlow" title="urwid.GridFlow"><code class="xref py py-class docutils literal notranslate"><span class="pre">GridFlow</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal notranslate"><span class="pre">Overlay</span></code></a> and
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> with a <a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleListWalker" title="urwid.SimpleListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleListWalker</span></code></a> or <a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleFocusListWalker</span></code></a>
+as its body use integer positions.  <a class="reference internal" href="../reference/widget.html#urwid.Frame" title="urwid.Frame"><code class="xref py py-class docutils literal notranslate"><span class="pre">Frame</span></code></a> uses <code class="docutils literal notranslate"><span class="pre">'body'</span></code>, <code class="docutils literal notranslate"><span class="pre">'header'</span></code>
+and <code class="docutils literal notranslate"><span class="pre">'footer'</span></code>;  <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> with a custom list walker will use the
 positions the list walker returns.</p>
 <p>Reading this value on an empty container or on any non-container widgets
 (that inherit from Widget) raises an IndexError.  Writing to this property with
 an invalid position will also raise an IndexError.  Writing a new value
 automatically marks this widget to be redrawn and will be reflected in
-<code class="docutils literal"><span class="pre">container.focus</span></code>.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">container</span><span class="o">.</span><span class="n">contents</span>
+<code class="docutils literal notranslate"><span class="pre">container.focus</span></code>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">container</span><span class="o">.</span><span class="n">contents</span>
 </pre></div>
 </div>
 <p>is a read-only property (read/write in some cases) that provides access to a
 mapping- or list-like object that contains the child widgets and the options
 used for displaying those widgets in this container.  The mapping- or list-like
-object always allows reading from positions with the usual <code class="docutils literal"><span class="pre">__getitem__()</span></code>
-method and may support assignment and deletion with <code class="docutils literal"><span class="pre">__setitem__()</span></code> and
-<code class="docutils literal"><span class="pre">__delitem__()</span></code> methods.  The values are <code class="docutils literal"><span class="pre">(child</span> <span class="pre">widget,</span> <span class="pre">option)</span></code> tuples.
+object always allows reading from positions with the usual <code class="docutils literal notranslate"><span class="pre">__getitem__()</span></code>
+method and may support assignment and deletion with <code class="docutils literal notranslate"><span class="pre">__setitem__()</span></code> and
+<code class="docutils literal notranslate"><span class="pre">__delitem__()</span></code> methods.  The values are <code class="docutils literal notranslate"><span class="pre">(child</span> <span class="pre">widget,</span> <span class="pre">option)</span></code> tuples.
 When this object or its contents are modified the widget is automatically
 flagged to be redrawn.</p>
-<p><a class="reference internal" href="../reference/widget.html#urwid.Columns" title="urwid.Columns"><code class="xref py py-class docutils literal"><span class="pre">Columns</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal"><span class="pre">Pile</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.GridFlow" title="urwid.GridFlow"><code class="xref py py-class docutils literal"><span class="pre">GridFlow</span></code></a> allow assigning an
-iterable to <code class="docutils literal"><span class="pre">container.contents</span></code> to overwrite the values in
+<p><a class="reference internal" href="../reference/widget.html#urwid.Columns" title="urwid.Columns"><code class="xref py py-class docutils literal notranslate"><span class="pre">Columns</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pile</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.GridFlow" title="urwid.GridFlow"><code class="xref py py-class docutils literal notranslate"><span class="pre">GridFlow</span></code></a> allow assigning an
+iterable to <code class="docutils literal notranslate"><span class="pre">container.contents</span></code> to overwrite the values in
 with the ones provided.</p>
-<p><a class="reference internal" href="../reference/widget.html#urwid.Columns" title="urwid.Columns"><code class="xref py py-class docutils literal"><span class="pre">Columns</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal"><span class="pre">Pile</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.GridFlow" title="urwid.GridFlow"><code class="xref py py-class docutils literal"><span class="pre">GridFlow</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal"><span class="pre">Overlay</span></code></a> and
-<a class="reference internal" href="../reference/widget.html#urwid.Frame" title="urwid.Frame"><code class="xref py py-class docutils literal"><span class="pre">Frame</span></code></a> support <code class="docutils literal"><span class="pre">container.contents</span></code> item assignment and deletion.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">container</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<p><a class="reference internal" href="../reference/widget.html#urwid.Columns" title="urwid.Columns"><code class="xref py py-class docutils literal notranslate"><span class="pre">Columns</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pile</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.GridFlow" title="urwid.GridFlow"><code class="xref py py-class docutils literal notranslate"><span class="pre">GridFlow</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal notranslate"><span class="pre">Overlay</span></code></a> and
+<a class="reference internal" href="../reference/widget.html#urwid.Frame" title="urwid.Frame"><code class="xref py py-class docutils literal notranslate"><span class="pre">Frame</span></code></a> support <code class="docutils literal notranslate"><span class="pre">container.contents</span></code> item assignment and deletion.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">container</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>is a method that returns options objects for use in items added to
-<code class="docutils literal"><span class="pre">container.contents</span></code>.  The arguments are specific to the container type,
-and generally match the <code class="docutils literal"><span class="pre">__init__()</span></code> arguments for the container.
-The objects returned are currently tuples of strings and integers or <code class="docutils literal"><span class="pre">None</span></code>
+<code class="docutils literal notranslate"><span class="pre">container.contents</span></code>.  The arguments are specific to the container type,
+and generally match the <code class="docutils literal notranslate"><span class="pre">__init__()</span></code> arguments for the container.
+The objects returned are currently tuples of strings and integers or <code class="docutils literal notranslate"><span class="pre">None</span></code>
 for containers without child widget options.  This method exists to allow
 future versions of Urwid to add new options to existing containers.  Code
 that expects the option tuples to remain the same size will fail when new
 options are added, so defensive programming with options tuples is strongly
 encouraged.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">container</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">container</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 <span class="c1"># a.k.a.</span>
 <span class="n">container</span><span class="p">[</span><span class="n">x</span><span class="p">]</span>
 </pre></div>
 </div>
 <p>is a short-cut method behaving identically to:
-<code class="docutils literal"><span class="pre">container.contents[x][0].base_widget</span></code>.
+<code class="docutils literal notranslate"><span class="pre">container.contents[x][0].base_widget</span></code>.
 Which means roughly “give me the child widget at position <em>x</em> and skip all
 the decoration widgets wrapping it”.  Decoration widgets include
-<a class="reference internal" href="../reference/widget.html#urwid.Padding" title="urwid.Padding"><code class="xref py py-class docutils literal"><span class="pre">Padding</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Filler" title="urwid.Filler"><code class="xref py py-class docutils literal"><span class="pre">Filler</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal"><span class="pre">AttrMap</span></code></a> etc.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">container</span><span class="o">.</span><span class="n">get_focus_path</span><span class="p">()</span>
+<a class="reference internal" href="../reference/widget.html#urwid.Padding" title="urwid.Padding"><code class="xref py py-class docutils literal notranslate"><span class="pre">Padding</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Filler" title="urwid.Filler"><code class="xref py py-class docutils literal notranslate"><span class="pre">Filler</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a> etc.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">container</span><span class="o">.</span><span class="n">get_focus_path</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>is a method that returns the focus position for this container <em>and</em> all child
@@ -239,22 +232,22 @@ containers along the path defined by their focus settings.  This list of
 positions is the closest thing we have to the singular widget-in-focus in
 other UI frameworks, because the ultimate widget in focus in Urwid depends
 on the focus setting of all its parent container widgets.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">container</span><span class="o">.</span><span class="n">set_focus_path</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">container</span><span class="o">.</span><span class="n">set_focus_path</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>is a method that assigns to the focus_position property of each container
 along the path given by the list of positions <em>p</em>.  It may be used to restore
-focus to a widget as returned by a previous call to <code class="docutils literal"><span class="pre">container.get_focus_path()</span></code>.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">container</span><span class="o">.</span><span class="n">get_focus_widgets</span><span class="p">()</span>
+focus to a widget as returned by a previous call to <code class="docutils literal notranslate"><span class="pre">container.get_focus_path()</span></code>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">container</span><span class="o">.</span><span class="n">get_focus_widgets</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>is a method that returns the <code class="docutils literal"><span class="pre">.focus</span></code> values starting from this container
+<p>is a method that returns the <code class="docutils literal notranslate"><span class="pre">.focus</span></code> values starting from this container
 and proceeding along each child widget until reaching a leaf
 (non-container) widget.</p>
 <p>Note that the list does not contain the topmost container widget
 (i.e., on which this method is called), but does include the
 lowest leaf widget.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">container</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">()</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">container</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">()</span>
 <span class="c1"># typically</span>
 <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">container</span><span class="p">:</span> <span class="o">...</span>
 
@@ -265,39 +258,39 @@ lowest leaf widget.</p>
 </div>
 <p>are methods that allow iteration over the <em>positions</em> of this container.
 Normally the order of the positions generated by __reversed__() will be the
-opposite of __iter__().  The exception is the case of <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> with
+opposite of __iter__().  The exception is the case of <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> with
 certain custom list walkers, and the reason goes back to the original way list
 walker interface was defined.  Note that a custom list walker might also generate
 an unbounded number of positions, so care should be used with this interface and
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a>.</p>
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>.</p>
 <div class="section" id="pile-widgets">
 <h3>Pile Widgets<a class="headerlink" href="#pile-widgets" title="Permalink to this headline">¶</a></h3>
-<p><a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal"><span class="pre">Pile</span></code></a> widgets are used to combine multiple widgets by
+<p><a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pile</span></code></a> widgets are used to combine multiple widgets by
 stacking them vertically. A Pile can manage selectable widgets by keeping track
 of which widget is in focus and it can handle moving the focus between widgets
 when the user presses the <em>UP</em> and <em>DOWN</em> keys. A Pile will also work well when
-used within a <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a>.</p>
+used within a <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>.</p>
 <p>A Pile is selectable only if its focus widget is selectable. If you create a
 Pile containing one Text widget and one Edit widget the Pile will choose the
 Edit widget as its default focus widget.</p>
 </div>
 <div class="section" id="columns-widgets">
 <h3>Columns Widgets<a class="headerlink" href="#columns-widgets" title="Permalink to this headline">¶</a></h3>
-<p><a class="reference internal" href="../reference/widget.html#urwid.Columns" title="urwid.Columns"><code class="xref py py-class docutils literal"><span class="pre">Columns</span></code></a> widgets may be used to arrange either flow
+<p><a class="reference internal" href="../reference/widget.html#urwid.Columns" title="urwid.Columns"><code class="xref py py-class docutils literal notranslate"><span class="pre">Columns</span></code></a> widgets may be used to arrange either flow
 widgets or box widgets horizontally into columns. Columns widgets will manage
 selectable widgets by keeping track of which column is in focus and it can
 handle moving the focus between columns when the user presses the <em>LEFT</em> and
 <em>RIGHT</em> keys. Columns widgets also work well when used within a
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a>.</p>
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>.</p>
 <p>Columns widgets are selectable only if the column in focus is selectable. If a
 focus column is not specified the first selectable widget will be chosen as the
 focus column.</p>
 </div>
 <div class="section" id="gridflow-widgets">
 <h3>GridFlow Widgets<a class="headerlink" href="#gridflow-widgets" title="Permalink to this headline">¶</a></h3>
-<p>The <a class="reference internal" href="../reference/widget.html#urwid.GridFlow" title="urwid.GridFlow"><code class="xref py py-class docutils literal"><span class="pre">GridFlow</span></code></a> widget is a flow widget designed for use
-with <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal"><span class="pre">Button</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.CheckBox" title="urwid.CheckBox"><code class="xref py py-class docutils literal"><span class="pre">CheckBox</span></code></a> and
-<a class="reference internal" href="../reference/widget.html#urwid.RadioButton" title="urwid.RadioButton"><code class="xref py py-class docutils literal"><span class="pre">RadioButton</span></code></a> widgets. It renders all the widgets it
+<p>The <a class="reference internal" href="../reference/widget.html#urwid.GridFlow" title="urwid.GridFlow"><code class="xref py py-class docutils literal notranslate"><span class="pre">GridFlow</span></code></a> widget is a flow widget designed for use
+with <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal notranslate"><span class="pre">Button</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.CheckBox" title="urwid.CheckBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckBox</span></code></a> and
+<a class="reference internal" href="../reference/widget.html#urwid.RadioButton" title="urwid.RadioButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">RadioButton</span></code></a> widgets. It renders all the widgets it
 contains the same width and it arranges them from left to right and top to
 bottom.</p>
 <p>The GridFlow widget uses Pile, Columns, Padding and Divider widgets to build a
@@ -307,7 +300,7 @@ new space.</p>
 </div>
 <div class="section" id="overlay-widgets">
 <h3>Overlay Widgets<a class="headerlink" href="#overlay-widgets" title="Permalink to this headline">¶</a></h3>
-<p>The <a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal"><span class="pre">Overlay</span></code></a> widget is a box widget that contains two
+<p>The <a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal notranslate"><span class="pre">Overlay</span></code></a> widget is a box widget that contains two
 other box widgets. The bottom widget is rendered the full size of the Overlay
 widget and the top widget is placed on top, obscuring an area of the bottom
 widget. This widget can be used to create effects such as overlapping “windows”
@@ -315,51 +308,51 @@ or pop-up menus.</p>
 <p>The Overlay widget always treats the top widget as the one in focus. All
 keyboard input will be passed to the top widget.</p>
 <p>If you want to use a flow widget for the top widget, first wrap the flow
-widget with a <a class="reference internal" href="../reference/widget.html#urwid.Filler" title="urwid.Filler"><code class="xref py py-class docutils literal"><span class="pre">Filler</span></code></a> widget.</p>
+widget with a <a class="reference internal" href="../reference/widget.html#urwid.Filler" title="urwid.Filler"><code class="xref py py-class docutils literal notranslate"><span class="pre">Filler</span></code></a> widget.</p>
 </div>
 </div>
 <div class="section" id="listbox-contents">
 <span id="id4"></span><h2>ListBox Contents<a class="headerlink" href="#listbox-contents" title="Permalink to this headline">¶</a></h2>
-<p><a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> is a box widget that contains flow widgets.
+<p><a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> is a box widget that contains flow widgets.
 Its contents are displayed stacked vertically, and the
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> allows the user to scroll through its content.
-One of the flow widgets displayed in the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> is its
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> allows the user to scroll through its content.
+One of the flow widgets displayed in the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> is its
 focus widget.</p>
 <div class="section" id="listbox-focus-and-scrolling">
 <h3>ListBox Focus and Scrolling<a class="headerlink" href="#listbox-focus-and-scrolling" title="Permalink to this headline">¶</a></h3>
-<p>The <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> is a box widget that contains flow widgets.
+<p>The <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> is a box widget that contains flow widgets.
 Its contents are displayed stacked vertically, and the
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> allows the user to scroll through its content.
-One of the flow widgets displayed in the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> is the
-focus widget. The <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> passes key presses to the
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> allows the user to scroll through its content.
+One of the flow widgets displayed in the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> is the
+focus widget. The <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> passes key presses to the
 focus widget to allow the user to interact with it. If the focus widget does
-not handle a keypress then the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> may handle the
+not handle a keypress then the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> may handle the
 keypress by scrolling and/or selecting another widget to become the focus
 widget.</p>
-<p>The <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> tries to do the most sensible thing when
+<p>The <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> tries to do the most sensible thing when
 scrolling and changing focus. When the widgets displayed are all
-<a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal"><span class="pre">Text</span></code></a> widgets or other unselectable widgets then the
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> will behave like a web browser does when the
+<a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets or other unselectable widgets then the
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> will behave like a web browser does when the
 user presses <em>UP</em>, <em>DOWN</em>, <em>PAGE UP</em> and <em>PAGE DOWN</em>: new text is immediately
-scrolled in from the top or bottom. The <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> chooses
+scrolled in from the top or bottom. The <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> chooses
 one of the visible widgets as its focus widget when scrolling. When scrolling
-up the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> chooses the topmost widget as the focus,
-and when scrolling down the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> chooses the
+up the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> chooses the topmost widget as the focus,
+and when scrolling down the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> chooses the
 bottommost widget as the focus.</p>
-<p>The <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> remembers the location of the widget in
+<p>The <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> remembers the location of the widget in
 focus as either an “offset” or an “inset”. An offset is the number of rows
-between the top of the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> and the beginning of the
+between the top of the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> and the beginning of the
 focus widget. An offset of zero corresponds to a widget with its top aligned
-with the top of the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a>. An inset is the fraction
+with the top of the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>. An inset is the fraction
 of rows of the focus widget that are “above” the top of the
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> and not visible. The
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> uses this method of remembering the focus
-widget location so that when the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> is resized the
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> and not visible. The
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> uses this method of remembering the focus
+widget location so that when the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> is resized the
 text displayed will stay roughly aligned with the top of the
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a>.</p>
-<p>When there are selectable widgets in the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> the
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>.</p>
+<p>When there are selectable widgets in the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> the
 focus will move between the selectable widgets, skipping the unselectable
-widgets. The <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> will try to scroll all the rows of
+widgets. The <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> will try to scroll all the rows of
 a selectable widget into view so that the user can see the new focus widget in
 its entirety. This behavior can be used to bring more than a single widget into
 view by using composite widgets to combine a selectable widget with other
@@ -367,44 +360,44 @@ widgets that should be displayed at the same time.</p>
 </div>
 <div class="section" id="dynamic-listbox-with-listwalker">
 <h3>Dynamic ListBox with ListWalker<a class="headerlink" href="#dynamic-listbox-with-listwalker" title="Permalink to this headline">¶</a></h3>
-<p>While the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> stores the location of its focus
+<p>While the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> stores the location of its focus
 widget, it does not directly store the actual focus widget or other contents of
-the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a>. The storage of a
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a>’s content is delegated to a “List Walker”
-object. If a list of widgets is passed to the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a>
-constructor then it creates a <a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleListWalker" title="urwid.SimpleListWalker"><code class="xref py py-class docutils literal"><span class="pre">SimpleListWalker</span></code></a> object
+the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>. The storage of a
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>’s content is delegated to a “List Walker”
+object. If a list of widgets is passed to the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>
+constructor then it creates a <a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleListWalker" title="urwid.SimpleListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleListWalker</span></code></a> object
 to manage the list.</p>
-<p>When the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> is <a class="reference external" href=":meth:`ListBox.render`">rendering a canvas</a> or <a class="reference external" href=":meth:`ListBox.keypress`">handling
+<p>When the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> is <a class="reference external" href=":meth:`ListBox.render`">rendering a canvas</a> or <a class="reference external" href=":meth:`ListBox.keypress`">handling
 input</a> it will:</p>
 <ol class="arabic simple">
-<li>Call the <code class="xref py py-meth docutils literal"><span class="pre">get_focus()</span></code> method of its list walker object. This method
-will return the focus widget and a position object.</li>
-<li>Optionally call the <code class="xref py py-meth docutils literal"><span class="pre">get_prev()</span></code> method of its List Walker object one or
+<li><p>Call the <code class="xref py py-meth docutils literal notranslate"><span class="pre">get_focus()</span></code> method of its list walker object. This method
+will return the focus widget and a position object.</p></li>
+<li><p>Optionally call the <code class="xref py py-meth docutils literal notranslate"><span class="pre">get_prev()</span></code> method of its List Walker object one or
 more times, initially passing the focus position and then passing the new
 position returned on each successive call. This method will return the
-widget and position object “above” the position passed.</li>
-<li>Optionally call the <code class="xref py py-meth docutils literal"><span class="pre">get_next()</span></code> method of its List Walker object one or
+widget and position object “above” the position passed.</p></li>
+<li><p>Optionally call the <code class="xref py py-meth docutils literal notranslate"><span class="pre">get_next()</span></code> method of its List Walker object one or
 more times, similarly, to collect widgets and position objects “below” the
-focus position.</li>
-<li>Optionally call the <code class="xref py py-meth docutils literal"><span class="pre">set_focus()</span></code> method passing one of the position
-objects returned in the previous steps.</li>
+focus position.</p></li>
+<li><p>Optionally call the <code class="xref py py-meth docutils literal notranslate"><span class="pre">set_focus()</span></code> method passing one of the position
+objects returned in the previous steps.</p></li>
 </ol>
-<p>This is the only way the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> accesses its contents,
+<p>This is the only way the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> accesses its contents,
 and it will not store copies of any of the widgets or position objects beyond
 the current rendering or input handling operation.</p>
-<p>The <a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleListWalker" title="urwid.SimpleListWalker"><code class="xref py py-class docutils literal"><span class="pre">SimpleListWalker</span></code></a> stores a list of widgets, and uses
+<p>The <a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleListWalker" title="urwid.SimpleListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleListWalker</span></code></a> stores a list of widgets, and uses
 integer indexes into this list as its position objects. It stores the focus
 position as an integer, so if you insert a widget into the list above the focus
 position then you need to remember to increment the focus position in the
-<a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleListWalker" title="urwid.SimpleListWalker"><code class="xref py py-class docutils literal"><span class="pre">SimpleListWalker</span></code></a> object or the contents of the
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> will shift.</p>
+<a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleListWalker" title="urwid.SimpleListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleListWalker</span></code></a> object or the contents of the
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> will shift.</p>
 <p>A custom List Walker object may be passed to the
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> constructor instead of a plain list of widgets.
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> constructor instead of a plain list of widgets.
 List Walker objects must implement the <a class="reference internal" href="#list-walker-interface"><span class="std std-ref">List Walker Interface</span></a>.</p>
 <p>The <a class="reference external" href="http://excess.org/urwid/browser/examples/fib.py">fib.py</a> example program demonstrates a custom list walker that doesn’t
 store any widgets. It uses a tuple of two successive Fibonacci numbers as its
 position objects and it generates Text widgets to display the numbers on the
-fly. The result is a <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> that can scroll through an
+fly. The result is a <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> that can scroll through an
 unending list of widgets.</p>
 <p>The <a class="reference external" href="http://excess.org/urwid/browser/examples/edit.py">edit.py</a> example program demonstrates a custom list walker that loads lines
 from a text file only as the user scrolls them into view. This allows even
@@ -418,56 +411,56 @@ directories to be hidden from view when they are “collapsed”.</p>
 </div>
 <div class="section" id="setting-the-focus">
 <h3>Setting the Focus<a class="headerlink" href="#setting-the-focus" title="Permalink to this headline">¶</a></h3>
-<p>The easiest way to change the current <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> focus is
-to call the <a class="reference internal" href="../reference/widget.html#urwid.ListBox.set_focus" title="urwid.ListBox.set_focus"><code class="xref py py-meth docutils literal"><span class="pre">ListBox.set_focus()</span></code></a> method. This method doesn’t
-require that you know the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a>’s current dimensions
-<code class="docutils literal"><span class="pre">(maxcol,</span> <span class="pre">maxrow)</span></code>. It will wait until the next call to either keypress or
+<p>The easiest way to change the current <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> focus is
+to call the <a class="reference internal" href="../reference/widget.html#urwid.ListBox.set_focus" title="urwid.ListBox.set_focus"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ListBox.set_focus()</span></code></a> method. This method doesn’t
+require that you know the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>’s current dimensions
+<code class="docutils literal notranslate"><span class="pre">(maxcol,</span> <span class="pre">maxrow)</span></code>. It will wait until the next call to either keypress or
 render to complete setting the offset and inset values using the dimensions
 passed to that method.</p>
-<p>The position object passed to <code class="xref py py-meth docutils literal"><span class="pre">set_focus()</span></code> must be compatible with the
-List Walker object that the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> is using. For
-<a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleListWalker" title="urwid.SimpleListWalker"><code class="xref py py-class docutils literal"><span class="pre">SimpleListWalker</span></code></a> the position is the integer index of
+<p>The position object passed to <code class="xref py py-meth docutils literal notranslate"><span class="pre">set_focus()</span></code> must be compatible with the
+List Walker object that the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> is using. For
+<a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleListWalker" title="urwid.SimpleListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleListWalker</span></code></a> the position is the integer index of
 the widget within the list.</p>
 <p>The <em>coming_from</em> parameter should be set if you know that the old position is
 “above” or “below” the previous position. When the
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> completes setting the offset and inset values
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> completes setting the offset and inset values
 it tries to find the old widget among the visible widgets. If the old widget is
-still visible, if will try to avoid causing the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a>
+still visible, if will try to avoid causing the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>
 contents to scroll up or down from its previous position. If the widget is not
-visible, then the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> will:</p>
+visible, then the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> will:</p>
 <ul class="simple">
-<li>Display the new focus at the bottom of the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> if
-<em>coming_from</em> is “above”.</li>
-<li>Display the new focus at the top of the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> if
-<em>coming_from</em> is “below”.</li>
-<li>Display the new focus in the middle of the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> if
-coming_from is <code class="docutils literal"><span class="pre">None</span></code>.</li>
+<li><p>Display the new focus at the bottom of the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> if
+<em>coming_from</em> is “above”.</p></li>
+<li><p>Display the new focus at the top of the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> if
+<em>coming_from</em> is “below”.</p></li>
+<li><p>Display the new focus in the middle of the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> if
+coming_from is <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
 </ul>
 <p>If you know exactly where you want to display the new focus widget within the
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> you may call
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox.set_focus_valign" title="urwid.ListBox.set_focus_valign"><code class="xref py py-meth docutils literal"><span class="pre">ListBox.set_focus_valign()</span></code></a>.  This method lets you specify
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> you may call
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox.set_focus_valign" title="urwid.ListBox.set_focus_valign"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ListBox.set_focus_valign()</span></code></a>.  This method lets you specify
 the <em>top</em>, <em>bottom</em>, <em>middle</em>, a relative position or the exact number of rows
-from the top or bottom of the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a>.</p>
+from the top or bottom of the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>.</p>
 </div>
 <div class="section" id="list-walkers">
 <h3>List Walkers<a class="headerlink" href="#list-walkers" title="Permalink to this headline">¶</a></h3>
-<p><a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> does not manage the widgets it displays
+<p><a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> does not manage the widgets it displays
 directly, instead it passes that task to a class called a “list walker”. List
 walkers keep track of the widget in focus and provide an opaque position object
-that the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> may use to iterate through widgets
+that the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> may use to iterate through widgets
 above and below the focus widget.</p>
-<p>A <a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><code class="xref py py-class docutils literal"><span class="pre">SimpleFocusListWalker</span></code></a>
+<p>A <a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleFocusListWalker</span></code></a>
 is a list walker that behaves like a normal Python list. It may be used any
 time you will be displaying a moderate number of widgets.</p>
 <p>If you need to display a large number of widgets you should implement your own
 list walker that manages creating widgets as they are requested and destroying
 them later to avoid excessive memory use.</p>
 <p>List walkers may also be used to display tree or other structures within a
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a>. A number of the <a class="reference external" href="http://excess.org/urwid/examples.html">example programs</a> demonstrate the use of custom list
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>. A number of the <a class="reference external" href="http://excess.org/urwid/examples.html">example programs</a> demonstrate the use of custom list
 walker classes.</p>
 <div class="admonition seealso">
-<p class="first admonition-title">See also</p>
-<p class="last"><a class="reference internal" href="../reference/list_walkers.html#urwid.ListWalker" title="urwid.ListWalker"><code class="xref py py-class docutils literal"><span class="pre">ListWalker</span> <span class="pre">base</span> <span class="pre">class</span> <span class="pre">reference</span></code></a></p>
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../reference/list_walkers.html#urwid.ListWalker" title="urwid.ListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListWalker</span> <span class="pre">base</span> <span class="pre">class</span> <span class="pre">reference</span></code></a></p>
 </div>
 </div>
 <div class="section" id="list-walker-interface">
@@ -475,33 +468,33 @@ walker classes.</p>
 <div class="section" id="list-walker-api-version-1">
 <h4>List Walker API Version 1<a class="headerlink" href="#list-walker-api-version-1" title="Permalink to this headline">¶</a></h4>
 <p>This API will remain available and is still the least restrictive option for
-the programmer.  Your class should subclass <a class="reference internal" href="../reference/list_walkers.html#urwid.ListWalker" title="urwid.ListWalker"><code class="xref py py-class docutils literal"><span class="pre">ListWalker</span></code></a>.
+the programmer.  Your class should subclass <a class="reference internal" href="../reference/list_walkers.html#urwid.ListWalker" title="urwid.ListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListWalker</span></code></a>.
 Whenever the focus or content changes you are responsible for
-calling <code class="xref py py-meth docutils literal"><span class="pre">ListWalker._modified()</span></code>.</p>
+calling <code class="xref py py-meth docutils literal notranslate"><span class="pre">ListWalker._modified()</span></code>.</p>
 <dl class="method">
 <dt id="MyV1ListWalker.get_focus">
-<code class="descclassname">MyV1ListWalker.</code><code class="descname">get_focus</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#MyV1ListWalker.get_focus" title="Permalink to this definition">¶</a></dt>
-<dd><p>return a <code class="docutils literal"><span class="pre">(widget,</span> <span class="pre">position)</span></code> tuple or <code class="docutils literal"><span class="pre">(None,</span> <span class="pre">None)</span></code> if empty</p>
+<code class="sig-prename descclassname">MyV1ListWalker.</code><code class="sig-name descname">get_focus</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#MyV1ListWalker.get_focus" title="Permalink to this definition">¶</a></dt>
+<dd><p>return a <code class="docutils literal notranslate"><span class="pre">(widget,</span> <span class="pre">position)</span></code> tuple or <code class="docutils literal notranslate"><span class="pre">(None,</span> <span class="pre">None)</span></code> if empty</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="MyV1ListWalker.set_focus">
-<code class="descclassname">MyV1ListWalker.</code><code class="descname">set_focus</code><span class="sig-paren">(</span><em>position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV1ListWalker.set_focus" title="Permalink to this definition">¶</a></dt>
-<dd><p>set the focus and call <code class="docutils literal"><span class="pre">self._modified()</span></code> or raise an <code class="xref py py-exc docutils literal"><span class="pre">IndexError</span></code>.</p>
+<code class="sig-prename descclassname">MyV1ListWalker.</code><code class="sig-name descname">set_focus</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV1ListWalker.set_focus" title="Permalink to this definition">¶</a></dt>
+<dd><p>set the focus and call <code class="docutils literal notranslate"><span class="pre">self._modified()</span></code> or raise an <code class="xref py py-exc docutils literal notranslate"><span class="pre">IndexError</span></code>.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="MyV1ListWalker.get_next">
-<code class="descclassname">MyV1ListWalker.</code><code class="descname">get_next</code><span class="sig-paren">(</span><em>position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV1ListWalker.get_next" title="Permalink to this definition">¶</a></dt>
-<dd><p>return the <code class="docutils literal"><span class="pre">(widget,</span> <span class="pre">position)</span></code> tuple below <em>position</em> passed
-or <code class="docutils literal"><span class="pre">(None,</span> <span class="pre">None)</span></code> if there is none.</p>
+<code class="sig-prename descclassname">MyV1ListWalker.</code><code class="sig-name descname">get_next</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV1ListWalker.get_next" title="Permalink to this definition">¶</a></dt>
+<dd><p>return the <code class="docutils literal notranslate"><span class="pre">(widget,</span> <span class="pre">position)</span></code> tuple below <em>position</em> passed
+or <code class="docutils literal notranslate"><span class="pre">(None,</span> <span class="pre">None)</span></code> if there is none.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="MyV1ListWalker.get_prev">
-<code class="descclassname">MyV1ListWalker.</code><code class="descname">get_prev</code><span class="sig-paren">(</span><em>position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV1ListWalker.get_prev" title="Permalink to this definition">¶</a></dt>
-<dd><p>return the <code class="docutils literal"><span class="pre">(widget,</span> <span class="pre">position)</span></code> tuple above <em>position</em> passed
-or <code class="docutils literal"><span class="pre">(None,</span> <span class="pre">None)</span></code> if there is none.</p>
+<code class="sig-prename descclassname">MyV1ListWalker.</code><code class="sig-name descname">get_prev</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV1ListWalker.get_prev" title="Permalink to this definition">¶</a></dt>
+<dd><p>return the <code class="docutils literal notranslate"><span class="pre">(widget,</span> <span class="pre">position)</span></code> tuple above <em>position</em> passed
+or <code class="docutils literal notranslate"><span class="pre">(None,</span> <span class="pre">None)</span></code> if there is none.</p>
 </dd></dl>
 
 </div>
@@ -509,49 +502,49 @@ or <code class="docutils literal"><span class="pre">(None,</span> <span class="p
 <h4>List Walker API Version 2<a class="headerlink" href="#list-walker-api-version-2" title="Permalink to this headline">¶</a></h4>
 <p>This API is an attempt to remove some of the duplicate code that V1 requires for
 many users.  List walker API V1 will be implemented automatically by
-subclassing <code class="xref py py-class docutils literal"><span class="pre">ListWalker</span></code> and implementing the V2 methods.
+subclassing <code class="xref py py-class docutils literal notranslate"><span class="pre">ListWalker</span></code> and implementing the V2 methods.
 Whenever the focus or content changes you are responsible for
-calling <code class="xref py py-meth docutils literal"><span class="pre">ListWalker._modified()</span></code>.</p>
+calling <code class="xref py py-meth docutils literal notranslate"><span class="pre">ListWalker._modified()</span></code>.</p>
 <dl class="method">
 <dt id="MyV2ListWalker.__getitem__">
-<code class="descclassname">MyV2ListWalker.</code><code class="descname">__getitem__</code><span class="sig-paren">(</span><em>position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.__getitem__" title="Permalink to this definition">¶</a></dt>
-<dd><p>return widget at <em>position</em> or raise an <code class="xref py py-exc docutils literal"><span class="pre">IndexError</span></code> or <code class="xref py py-exc docutils literal"><span class="pre">KeyError</span></code></p>
+<code class="sig-prename descclassname">MyV2ListWalker.</code><code class="sig-name descname">__getitem__</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.__getitem__" title="Permalink to this definition">¶</a></dt>
+<dd><p>return widget at <em>position</em> or raise an <code class="xref py py-exc docutils literal notranslate"><span class="pre">IndexError</span></code> or <code class="xref py py-exc docutils literal notranslate"><span class="pre">KeyError</span></code></p>
 </dd></dl>
 
 <dl class="method">
 <dt id="MyV2ListWalker.next_position">
-<code class="descclassname">MyV2ListWalker.</code><code class="descname">next_position</code><span class="sig-paren">(</span><em>position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.next_position" title="Permalink to this definition">¶</a></dt>
-<dd><p>return the position below passed <em>position</em> or raise an <code class="xref py py-exc docutils literal"><span class="pre">IndexError</span></code> or <code class="xref py py-exc docutils literal"><span class="pre">KeyError</span></code></p>
+<code class="sig-prename descclassname">MyV2ListWalker.</code><code class="sig-name descname">next_position</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.next_position" title="Permalink to this definition">¶</a></dt>
+<dd><p>return the position below passed <em>position</em> or raise an <code class="xref py py-exc docutils literal notranslate"><span class="pre">IndexError</span></code> or <code class="xref py py-exc docutils literal notranslate"><span class="pre">KeyError</span></code></p>
 </dd></dl>
 
 <dl class="method">
 <dt id="MyV2ListWalker.prev_position">
-<code class="descclassname">MyV2ListWalker.</code><code class="descname">prev_position</code><span class="sig-paren">(</span><em>position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.prev_position" title="Permalink to this definition">¶</a></dt>
-<dd><p>return the position above passed <em>position</em> or raise an <code class="xref py py-exc docutils literal"><span class="pre">IndexError</span></code> or <code class="xref py py-exc docutils literal"><span class="pre">KeyError</span></code></p>
+<code class="sig-prename descclassname">MyV2ListWalker.</code><code class="sig-name descname">prev_position</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.prev_position" title="Permalink to this definition">¶</a></dt>
+<dd><p>return the position above passed <em>position</em> or raise an <code class="xref py py-exc docutils literal notranslate"><span class="pre">IndexError</span></code> or <code class="xref py py-exc docutils literal notranslate"><span class="pre">KeyError</span></code></p>
 </dd></dl>
 
 <dl class="method">
 <dt id="MyV2ListWalker.set_focus">
-<code class="descclassname">MyV2ListWalker.</code><code class="descname">set_focus</code><span class="sig-paren">(</span><em>position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.set_focus" title="Permalink to this definition">¶</a></dt>
-<dd><p>set the focus and call <code class="docutils literal"><span class="pre">self._modified()</span></code> or raise an <code class="xref py py-exc docutils literal"><span class="pre">IndexError</span></code>.</p>
+<code class="sig-prename descclassname">MyV2ListWalker.</code><code class="sig-name descname">set_focus</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.set_focus" title="Permalink to this definition">¶</a></dt>
+<dd><p>set the focus and call <code class="docutils literal notranslate"><span class="pre">self._modified()</span></code> or raise an <code class="xref py py-exc docutils literal notranslate"><span class="pre">IndexError</span></code>.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="MyV2ListWalker.focus">
-<code class="descclassname">MyV2ListWalker.</code><code class="descname">focus</code><a class="headerlink" href="#MyV2ListWalker.focus" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">MyV2ListWalker.</code><code class="sig-name descname">focus</code><a class="headerlink" href="#MyV2ListWalker.focus" title="Permalink to this definition">¶</a></dt>
 <dd><p>attribute or property containing the focus position, or define
-<a class="reference internal" href="#MyV1ListWalker.get_focus" title="MyV1ListWalker.get_focus"><code class="xref py py-meth docutils literal"><span class="pre">MyV1ListWalker.get_focus()</span></code></a> as above</p>
+<a class="reference internal" href="#MyV1ListWalker.get_focus" title="MyV1ListWalker.get_focus"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MyV1ListWalker.get_focus()</span></code></a> as above</p>
 </dd></dl>
 
 </div>
 <div class="section" id="list-walker-iteration">
 <h4>List Walker Iteration<a class="headerlink" href="#list-walker-iteration" title="Permalink to this headline">¶</a></h4>
 <p>There is an optional iteration helper method that may be defined in any list walker.
-When this is defined it will be used by <code class="xref py py-meth docutils literal"><span class="pre">ListBox.__iter__()</span></code> and
-<code class="xref py py-meth docutils literal"><span class="pre">ListBox.__reversed__()</span></code>:</p>
+When this is defined it will be used by <code class="xref py py-meth docutils literal notranslate"><span class="pre">ListBox.__iter__()</span></code> and
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">ListBox.__reversed__()</span></code>:</p>
 <dl class="method">
 <dt id="MyV2ListWalker.positions">
-<code class="descclassname">MyV2ListWalker.</code><code class="descname">positions</code><span class="sig-paren">(</span><em>reverse=False</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.positions" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">MyV2ListWalker.</code><code class="sig-name descname">positions</code><span class="sig-paren">(</span><em class="sig-param">reverse=False</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.positions" title="Permalink to this definition">¶</a></dt>
 <dd><p>return a forward or reverse iterable of positions</p>
 </dd></dl>
 
@@ -563,9 +556,9 @@ When this is defined it will be used by <code class="xref py py-meth docutils li
 <p>Widgets in Urwid are easiest to create by extending other widgets. If you are
 making a new type of widget that can use other widgets to display its content,
 like a new type of button or control, then you should start by extending
-<a class="reference internal" href="../reference/widget.html#urwid.WidgetWrap" title="urwid.WidgetWrap"><code class="xref py py-class docutils literal"><span class="pre">WidgetWrap</span></code></a> and passing the display widget to its constructor.</p>
-<p>The <a class="reference internal" href="../reference/widget.html#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal"><span class="pre">Widget</span></code></a> interface is described in detail in the
-<a class="reference internal" href="../reference/widget.html#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal"><span class="pre">Widget</span> <span class="pre">base</span> <span class="pre">class</span> <span class="pre">reference</span></code></a> and is useful if you’re looking to modify
+<a class="reference internal" href="../reference/widget.html#urwid.WidgetWrap" title="urwid.WidgetWrap"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetWrap</span></code></a> and passing the display widget to its constructor.</p>
+<p>The <a class="reference internal" href="../reference/widget.html#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> interface is described in detail in the
+<a class="reference internal" href="../reference/widget.html#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span> <span class="pre">base</span> <span class="pre">class</span> <span class="pre">reference</span></code></a> and is useful if you’re looking to modify
 the behavior of an existing widget,
 build a new widget class from scratch or just want a better understanding of
 the library.</p>
@@ -574,22 +567,22 @@ size. Widgets don’t store their size on screen, and instead are
 passed that information when they need it.</p>
 <p>This choice has some advantages:</p>
 <ul class="simple">
-<li>widgets may be reused in different locations</li>
-<li>reused widgets only need to be rendered once per size displayed</li>
-<li>widgets don’t need to know their parents</li>
-<li>less data to store and update</li>
-<li>no worrying about widgets that haven’t received their size yet</li>
-<li>same widgets could be displayed at different sizes to different users
-simultaneously</li>
+<li><p>widgets may be reused in different locations</p></li>
+<li><p>reused widgets only need to be rendered once per size displayed</p></li>
+<li><p>widgets don’t need to know their parents</p></li>
+<li><p>less data to store and update</p></li>
+<li><p>no worrying about widgets that haven’t received their size yet</p></li>
+<li><p>same widgets could be displayed at different sizes to different users
+simultaneously</p></li>
 </ul>
 <p>It also has disadvantages:</p>
 <ul class="simple">
-<li>difficult to determine a widget’s size on screen</li>
-<li>more parameters to parse</li>
-<li>duplicated size calculations across methods</li>
+<li><p>difficult to determine a widget’s size on screen</p></li>
+<li><p>more parameters to parse</p></li>
+<li><p>duplicated size calculations across methods</p></li>
 </ul>
 <p>For determining a widget’s size on screen it is possible to look up the size(s)
-it was rendered at in the <a class="reference internal" href="../reference/canvas.html#urwid.CanvasCache" title="urwid.CanvasCache"><code class="xref py py-class docutils literal"><span class="pre">CanvasCache</span></code></a>. There are plans
+it was rendered at in the <a class="reference internal" href="../reference/canvas.html#urwid.CanvasCache" title="urwid.CanvasCache"><code class="xref py py-class docutils literal notranslate"><span class="pre">CanvasCache</span></code></a>. There are plans
 to address some of the duplicated size handling code in the container widgets
 in a future Urwid release.</p>
 <p>The same holds true for a widget’s focus state, so that too is passed in to
@@ -603,11 +596,11 @@ the original widget, such as if you are creating a custom edit widget with
 different behavior than the usual Edit widgets. If you are creating a custom
 widget that doesn’t need tight coupling with the original widget then
 wrapping is more appropriate.</p>
-<p>The <a class="reference internal" href="../reference/widget.html#urwid.WidgetWrap" title="urwid.WidgetWrap"><code class="xref py py-class docutils literal"><span class="pre">WidgetWrap</span></code></a> class simplifies wrapping existing
+<p>The <a class="reference internal" href="../reference/widget.html#urwid.WidgetWrap" title="urwid.WidgetWrap"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetWrap</span></code></a> class simplifies wrapping existing
 widgets. You can create a custom widget simply by creating a subclass of
 WidgetWrap and passing a widget into WidgetWrap’s constructor.</p>
 <p>This is an example of a custom widget that uses WidgetWrap:</p>
-<div class="highlight-default"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+<div class="highlight-default notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
  2
  3
  4
@@ -643,14 +636,14 @@ query the state of the buttons.</p>
 </div>
 <div class="section" id="widgets-from-scratch">
 <h3>Widgets from Scratch<a class="headerlink" href="#widgets-from-scratch" title="Permalink to this headline">¶</a></h3>
-<p>Widgets must inherit from <a class="reference internal" href="../reference/widget.html#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal"><span class="pre">Widget</span></code></a>.
-Box widgets must implement <a class="reference internal" href="../reference/widget.html#urwid.Widget.selectable" title="urwid.Widget.selectable"><code class="xref py py-meth docutils literal"><span class="pre">Widget.selectable()</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal"><span class="pre">Widget.render()</span></code></a>
-methods, and flow widgets must implement <a class="reference internal" href="../reference/widget.html#urwid.Widget.selectable" title="urwid.Widget.selectable"><code class="xref py py-meth docutils literal"><span class="pre">Widget.selectable()</span></code></a>,
-<a class="reference internal" href="../reference/widget.html#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal"><span class="pre">Widget.render()</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.Widget.rows" title="urwid.Widget.rows"><code class="xref py py-meth docutils literal"><span class="pre">Widget.rows()</span></code></a> methods.</p>
-<p>The default <a class="reference internal" href="../reference/widget.html#urwid.Widget.sizing" title="urwid.Widget.sizing"><code class="xref py py-meth docutils literal"><span class="pre">Widget.sizing()</span></code></a> method returns a set of sizing modes supported
-from <code class="docutils literal"><span class="pre">self._sizing</span></code>, so we define <code class="docutils literal"><span class="pre">_sizing</span></code> attributes for our flow and
+<p>Widgets must inherit from <a class="reference internal" href="../reference/widget.html#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a>.
+Box widgets must implement <a class="reference internal" href="../reference/widget.html#urwid.Widget.selectable" title="urwid.Widget.selectable"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.selectable()</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a>
+methods, and flow widgets must implement <a class="reference internal" href="../reference/widget.html#urwid.Widget.selectable" title="urwid.Widget.selectable"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.selectable()</span></code></a>,
+<a class="reference internal" href="../reference/widget.html#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.Widget.rows" title="urwid.Widget.rows"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.rows()</span></code></a> methods.</p>
+<p>The default <a class="reference internal" href="../reference/widget.html#urwid.Widget.sizing" title="urwid.Widget.sizing"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.sizing()</span></code></a> method returns a set of sizing modes supported
+from <code class="docutils literal notranslate"><span class="pre">self._sizing</span></code>, so we define <code class="docutils literal notranslate"><span class="pre">_sizing</span></code> attributes for our flow and
 box widgets below.</p>
-<div class="highlight-default"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+<div class="highlight-default notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
  2
  3
  4
@@ -703,13 +696,13 @@ the entire area given.</p>
 value of False. Also note that for flow widgets the number of rows returned by
 the rows method must match the number of rows rendered by the render method.</p>
 <p>To improve the efficiency of your Urwid application you should be careful of
-how long your <code class="docutils literal"><span class="pre">rows()</span></code> methods take to execute. The <code class="docutils literal"><span class="pre">rows()</span></code> methods may be called many
+how long your <code class="docutils literal notranslate"><span class="pre">rows()</span></code> methods take to execute. The <code class="docutils literal notranslate"><span class="pre">rows()</span></code> methods may be called many
 times as part of input handling and rendering operations. If you are using a
 display widget that is time consuming to create you should consider caching it
 to reduce its impact on performance.</p>
 <p>It is possible to create a widget that will behave as either a flow widget or
 box widget depending on what is required:</p>
-<div class="highlight-default"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+<div class="highlight-default notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
  2
  3
  4
@@ -752,9 +745,9 @@ is expecting a flow widget or a box widget.</p>
 <h3>Selectable Widgets<a class="headerlink" href="#selectable-widgets" title="Permalink to this headline">¶</a></h3>
 <p>Selectable widgets such as Edit and Button widgets allow the user to interact
 with the application. A widget is selectable if its selectable method returns
-True. Selectable widgets must implement the <a class="reference internal" href="../reference/widget.html#urwid.Widget.keypress" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal"><span class="pre">Widget.keypress()</span></code></a> method to
+True. Selectable widgets must implement the <a class="reference internal" href="../reference/widget.html#urwid.Widget.keypress" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.keypress()</span></code></a> method to
 handle keyboard input.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">urwid</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">urwid</span>
 
 <span class="k">class</span> <span class="nc">SelectablePudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
     <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;flow&#39;</span><span class="p">])</span>
@@ -798,19 +791,19 @@ letters <em>P</em>, <em>U</em>, <em>D</em>, <em>D</em>, <em>I</em>, <em>N</em> a
 another widget may be able to handle them. This is a good convention to follow
 unless you have a very good reason not to. In this case the <em>UP</em> and <em>DOWN</em>
 keys are returned so that if this widget is in a
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> will behave
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> will behave
 as the user expects and change the focus or scroll the
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a>.</p>
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>.</p>
 </div>
 <div class="section" id="widget-displaying-the-cursor">
 <h3>Widget Displaying the Cursor<a class="headerlink" href="#widget-displaying-the-cursor" title="Permalink to this headline">¶</a></h3>
 <p>Widgets that display the cursor must implement the
-<a class="reference internal" href="../reference/widget.html#urwid.Widget.get_cursor_coords" title="urwid.Widget.get_cursor_coords"><code class="xref py py-meth docutils literal"><span class="pre">Widget.get_cursor_coords()</span></code></a> method.
+<a class="reference internal" href="../reference/widget.html#urwid.Widget.get_cursor_coords" title="urwid.Widget.get_cursor_coords"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.get_cursor_coords()</span></code></a> method.
 Similar to the rows method for flow widgets, this method lets other widgets
 make layout decisions without rendering the entire widget. The
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> widget in particular uses get_cursor_coords to
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> widget in particular uses get_cursor_coords to
 make sure that the cursor is visible within its focus widget.</p>
-<div class="highlight-default"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+<div class="highlight-default notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
  2
  3
  4
@@ -885,19 +878,19 @@ make sure that the cursor is visible within its focus widget.</p>
 <em>LEFT</em> and <em>RIGHT</em>. The cursor must only be added to the canvas when the widget
 is in focus. The get_cursor_coords method must always return the same cursor
 coordinates that render does.</p>
-<p>A widget displaying a cursor may choose to implement <a class="reference internal" href="../reference/widget.html#urwid.Widget.get_pref_col" title="urwid.Widget.get_pref_col"><code class="xref py py-meth docutils literal"><span class="pre">Widget.get_pref_col()</span></code></a>.
+<p>A widget displaying a cursor may choose to implement <a class="reference internal" href="../reference/widget.html#urwid.Widget.get_pref_col" title="urwid.Widget.get_pref_col"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.get_pref_col()</span></code></a>.
 This method
 returns the preferred column for the cursor, and is called when the focus is
 moving up or down off this widget.</p>
-<p>Another optional method is <a class="reference internal" href="../reference/widget.html#urwid.Widget.move_cursor_to_coords" title="urwid.Widget.move_cursor_to_coords"><code class="xref py py-meth docutils literal"><span class="pre">Widget.move_cursor_to_coords()</span></code></a>. This method allows other
+<p>Another optional method is <a class="reference internal" href="../reference/widget.html#urwid.Widget.move_cursor_to_coords" title="urwid.Widget.move_cursor_to_coords"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.move_cursor_to_coords()</span></code></a>. This method allows other
 widgets to try to position the cursor within this widget. The
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal"><span class="pre">ListBox</span></code></a> widget uses <a class="reference internal" href="../reference/widget.html#urwid.Widget.move_cursor_to_coords" title="urwid.Widget.move_cursor_to_coords"><code class="xref py py-meth docutils literal"><span class="pre">Widget.move_cursor_to_coords()</span></code></a> when
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> widget uses <a class="reference internal" href="../reference/widget.html#urwid.Widget.move_cursor_to_coords" title="urwid.Widget.move_cursor_to_coords"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.move_cursor_to_coords()</span></code></a> when
 changing focus and when the user pressed <em>PAGE UP</em> or <em>PAGE DOWN</em>. This method
-must return <code class="docutils literal"><span class="pre">True</span></code> on success and <code class="docutils literal"><span class="pre">False</span></code> on failure. If the cursor may be
+must return <code class="docutils literal notranslate"><span class="pre">True</span></code> on success and <code class="docutils literal notranslate"><span class="pre">False</span></code> on failure. If the cursor may be
 placed at any position within the row specified (not only at the exact column
 specified) then this method must move the cursor to that position and return
-<code class="docutils literal"><span class="pre">True</span></code>.</p>
-<div class="highlight-default"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+<code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+<div class="highlight-default notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
 2
 3
 4
@@ -916,19 +909,19 @@ specified) then this method must move the cursor to that position and return
 </div>
 <div class="section" id="widget-metaclass">
 <h2>Widget Metaclass<a class="headerlink" href="#widget-metaclass" title="Permalink to this headline">¶</a></h2>
-<p>The <a class="reference internal" href="../reference/widget.html#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal"><span class="pre">Widget</span></code></a> base class has a metaclass defined that
-creates a <code class="docutils literal"><span class="pre">__super</span></code> attribute for calling your superclass:
-<code class="docutils literal"><span class="pre">self.__super</span></code> is the same as the usual <code class="docutils literal"><span class="pre">super(MyClassName,</span> <span class="pre">self)</span></code>.
-This shortcut is of little use with Python 3’s new <code class="docutils literal"><span class="pre">super()</span></code> syntax, but
+<p>The <a class="reference internal" href="../reference/widget.html#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> base class has a metaclass defined that
+creates a <code class="docutils literal notranslate"><span class="pre">__super</span></code> attribute for calling your superclass:
+<code class="docutils literal notranslate"><span class="pre">self.__super</span></code> is the same as the usual <code class="docutils literal notranslate"><span class="pre">super(MyClassName,</span> <span class="pre">self)</span></code>.
+This shortcut is of little use with Python 3’s new <code class="docutils literal notranslate"><span class="pre">super()</span></code> syntax, but
 will likely be retained for backwards compatibility in future versions.</p>
-<p>This metaclass also uses <code class="xref py py-class docutils literal"><span class="pre">MetaSignal</span></code>
+<p>This metaclass also uses <code class="xref py py-class docutils literal notranslate"><span class="pre">MetaSignal</span></code>
 to allow signals to be defined as a list of signal names
-in a <code class="docutils literal"><span class="pre">signals</span></code> class attribute.  This is equivalent to calling
-<a class="reference internal" href="../reference/signals.html#urwid.register_signal" title="urwid.register_signal"><code class="xref py py-func docutils literal"><span class="pre">register_signal()</span></code></a> with the class name and list of signals and all those
+in a <code class="docutils literal notranslate"><span class="pre">signals</span></code> class attribute.  This is equivalent to calling
+<a class="reference internal" href="../reference/signals.html#urwid.register_signal" title="urwid.register_signal"><code class="xref py py-func docutils literal notranslate"><span class="pre">register_signal()</span></code></a> with the class name and list of signals and all those
 defined in superclasses after the class definition.</p>
 <div class="admonition seealso">
-<p class="first admonition-title">See also</p>
-<p class="last"><a class="reference internal" href="../reference/meta.html#urwid.WidgetMeta" title="urwid.WidgetMeta"><code class="xref py py-class docutils literal"><span class="pre">Widget</span> <span class="pre">metaclass</span> <span class="pre">WidgetMeta</span></code></a></p>
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../reference/meta.html#urwid.WidgetMeta" title="urwid.WidgetMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span> <span class="pre">metaclass</span> <span class="pre">WidgetMeta</span></code></a></p>
 </div>
 </div>
 </div>
@@ -995,13 +988,13 @@ defined in superclasses after the class definition.</p>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -1020,13 +1013,13 @@ defined in superclasses after the class definition.</p>
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.6.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1.
     </div>
   </body>
 </html>

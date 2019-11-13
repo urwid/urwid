@@ -1,33 +1,26 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Text Layout Classes &#8212; Urwid 2.0.1</title>
+    <meta charset="utf-8" />
+    <title>Text Layout Classes &#8212; Urwid 2.1.0</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '2.0.1',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    
     <script type="text/javascript" src="../_static/sidebar.js"></script>
+    
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Command Map" href="command_map.html" />
     <link rel="prev" title="Canvas Classes and Functions" href="canvas.html" /> 
-  </head>
-  <body>
+  </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -40,7 +33,7 @@
         <li class="right" >
           <a href="canvas.html" title="Canvas Classes and Functions"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li> 
       </ul>
     </div>  
@@ -54,31 +47,27 @@
 <h1>Text Layout Classes<a class="headerlink" href="#text-layout-classes" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="urwid.TextLayout">
-<em class="property">class </em><code class="descclassname">urwid.</code><code class="descname">TextLayout</code><a class="headerlink" href="#urwid.TextLayout" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">TextLayout</code><a class="headerlink" href="#urwid.TextLayout" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="method">
 <dt id="urwid.TextLayout.layout">
-<code class="descname">layout</code><span class="sig-paren">(</span><em>text</em>, <em>width</em>, <em>align</em>, <em>wrap</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextLayout.layout" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">layout</code><span class="sig-paren">(</span><em class="sig-param">text</em>, <em class="sig-param">width</em>, <em class="sig-param">align</em>, <em class="sig-param">wrap</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextLayout.layout" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a layout structure for text.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>text</strong> – string in current encoding or unicode string</li>
-<li><strong>width</strong> – number of screen columns available</li>
-<li><strong>align</strong> – align mode for text</li>
-<li><strong>wrap</strong> – wrap mode for text</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> – string in current encoding or unicode string</p></li>
+<li><p><strong>width</strong> – number of screen columns available</p></li>
+<li><p><strong>align</strong> – align mode for text</p></li>
+<li><p><strong>wrap</strong> – wrap mode for text</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 <p>Layout structure is a list of line layouts, one per output line.
 Line layouts are lists than may contain the following tuples:</p>
 <ul class="simple">
-<li>(column width of text segment, start offset, end offset)</li>
-<li>(number of space characters to insert, offset or None)</li>
-<li>(column width of insert text, offset, “insert text”)</li>
+<li><p>(column width of text segment, start offset, end offset)</p></li>
+<li><p>(number of space characters to insert, offset or None)</p></li>
+<li><p>(column width of insert text, offset, “insert text”)</p></li>
 </ul>
 <p>The offset in the last two tuples is used to determine the
 attribute used for the inserted spaces or text respectively.
@@ -89,13 +78,13 @@ then no attribute will be used.</p>
 
 <dl class="method">
 <dt id="urwid.TextLayout.supports_align_mode">
-<code class="descname">supports_align_mode</code><span class="sig-paren">(</span><em>align</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextLayout.supports_align_mode" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">supports_align_mode</code><span class="sig-paren">(</span><em class="sig-param">align</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextLayout.supports_align_mode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return True if align is a supported align mode.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.TextLayout.supports_wrap_mode">
-<code class="descname">supports_wrap_mode</code><span class="sig-paren">(</span><em>wrap</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextLayout.supports_wrap_mode" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">supports_wrap_mode</code><span class="sig-paren">(</span><em class="sig-param">wrap</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextLayout.supports_wrap_mode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return True if wrap is a supported wrap mode.</p>
 </dd></dl>
 
@@ -103,16 +92,16 @@ then no attribute will be used.</p>
 
 <dl class="class">
 <dt id="urwid.StandardTextLayout">
-<em class="property">class </em><code class="descclassname">urwid.</code><code class="descname">StandardTextLayout</code><a class="headerlink" href="#urwid.StandardTextLayout" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">StandardTextLayout</code><a class="headerlink" href="#urwid.StandardTextLayout" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="method">
 <dt id="urwid.StandardTextLayout.align_layout">
-<code class="descname">align_layout</code><span class="sig-paren">(</span><em>text</em>, <em>width</em>, <em>segs</em>, <em>wrap</em>, <em>align</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.StandardTextLayout.align_layout" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">align_layout</code><span class="sig-paren">(</span><em class="sig-param">text</em>, <em class="sig-param">width</em>, <em class="sig-param">segs</em>, <em class="sig-param">wrap</em>, <em class="sig-param">align</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.StandardTextLayout.align_layout" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert the layout segs to an aligned layout.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.StandardTextLayout.calculate_text_segments">
-<code class="descname">calculate_text_segments</code><span class="sig-paren">(</span><em>text</em>, <em>width</em>, <em>wrap</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.StandardTextLayout.calculate_text_segments" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">calculate_text_segments</code><span class="sig-paren">(</span><em class="sig-param">text</em>, <em class="sig-param">width</em>, <em class="sig-param">wrap</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.StandardTextLayout.calculate_text_segments" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the segments of text to display given width screen
 columns to display them.</p>
 <p>text - unicode text or byte string to display
@@ -123,13 +112,13 @@ wrap - wrapping mode used</p>
 
 <dl class="method">
 <dt id="urwid.StandardTextLayout.layout">
-<code class="descname">layout</code><span class="sig-paren">(</span><em>text</em>, <em>width</em>, <em>align</em>, <em>wrap</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.StandardTextLayout.layout" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">layout</code><span class="sig-paren">(</span><em class="sig-param">text</em>, <em class="sig-param">width</em>, <em class="sig-param">align</em>, <em class="sig-param">wrap</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.StandardTextLayout.layout" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a layout structure for text.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.StandardTextLayout.pack">
-<code class="descname">pack</code><span class="sig-paren">(</span><em>maxcol</em>, <em>layout</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.StandardTextLayout.pack" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">pack</code><span class="sig-paren">(</span><em class="sig-param">maxcol</em>, <em class="sig-param">layout</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.StandardTextLayout.pack" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a minimal maxcol value that would result in the same
 number of lines for layout.  layout must be a layout structure
 returned by self.layout().</p>
@@ -137,14 +126,14 @@ returned by self.layout().</p>
 
 <dl class="method">
 <dt id="urwid.StandardTextLayout.supports_align_mode">
-<code class="descname">supports_align_mode</code><span class="sig-paren">(</span><em>align</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.StandardTextLayout.supports_align_mode" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">supports_align_mode</code><span class="sig-paren">(</span><em class="sig-param">align</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.StandardTextLayout.supports_align_mode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return True if align is ‘left’, ‘center’ or ‘right’.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.StandardTextLayout.supports_wrap_mode">
-<code class="descname">supports_wrap_mode</code><span class="sig-paren">(</span><em>wrap</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.StandardTextLayout.supports_wrap_mode" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return True if wrap is ‘any’, ‘space’ or ‘clip’.</p>
+<code class="sig-name descname">supports_wrap_mode</code><span class="sig-paren">(</span><em class="sig-param">wrap</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.StandardTextLayout.supports_wrap_mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return True if wrap is ‘any’, ‘space’, ‘clip’ or ‘ellipsis’.</p>
 </dd></dl>
 
 </dd></dl>
@@ -176,13 +165,13 @@ returned by self.layout().</p>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -201,13 +190,13 @@ returned by self.layout().</p>
         <li class="right" >
           <a href="canvas.html" title="Canvas Classes and Functions"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.6.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1.
     </div>
   </body>
 </html>

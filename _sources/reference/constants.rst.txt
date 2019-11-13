@@ -121,7 +121,13 @@ Text Wrapping Modes
    :annotation: = 'clip'
 
    clip before any wide or narrow character that would exceed the available
-   screen columns ad don't display the remaining text on the line
+   screen columns and don't display the remaining text on the line
+
+.. data:: ELLIPSIS
+   :annotation: = 'ellipsis'
+
+   clip if text would exceed the available screen columns, add an ellipsis
+   character at the end
 
 
 Foreground and Background Colors

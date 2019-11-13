@@ -68,6 +68,25 @@ TreeWidget
 
 .. autoclass:: TreeWidget
 
+
+.. currentmodule:: urwid.numedit
+
+Extended Numerical Editing Classes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+IntegerEdit
+~~~~~~~~~~~
+
+.. autoclass:: IntegerEdit
+
+FloatEdit
+~~~~~~~~~~~
+
+.. autoclass:: FloatEdit
+
+
+.. currentmodule:: urwid
+
 SelectableIcon
 ~~~~~~~~~~~~~~
 

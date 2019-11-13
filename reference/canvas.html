@@ -1,33 +1,26 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Canvas Classes and Functions &#8212; Urwid 2.0.1</title>
+    <meta charset="utf-8" />
+    <title>Canvas Classes and Functions &#8212; Urwid 2.1.0</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '2.0.1',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    
     <script type="text/javascript" src="../_static/sidebar.js"></script>
+    
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Text Layout Classes" href="text_layout.html" />
     <link rel="prev" title="Raw Display Attributes" href="attrspec.html" /> 
-  </head>
-  <body>
+  </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -40,7 +33,7 @@
         <li class="right" >
           <a href="attrspec.html" title="Raw Display Attributes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li> 
       </ul>
     </div>  
@@ -56,15 +49,15 @@
 <h2>Canvas Classes<a class="headerlink" href="#canvas-classes" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="urwid.Canvas">
-<em class="property">class </em><code class="descclassname">urwid.</code><code class="descname">Canvas</code><span class="sig-paren">(</span><em>value1=None</em>, <em>value2=None</em>, <em>value3=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Canvas" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">Canvas</code><span class="sig-paren">(</span><em class="sig-param">value1=None</em>, <em class="sig-param">value2=None</em>, <em class="sig-param">value3=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Canvas" title="Permalink to this definition">¶</a></dt>
 <dd><p>base class for canvases</p>
-<dl class="docutils">
-<dt>value1, value2, value3 – if not None, raise a helpful error:</dt>
-<dd>the old Canvas class is now called TextCanvas.</dd>
+<dl class="simple">
+<dt>value1, value2, value3 – if not None, raise a helpful error:</dt><dd><p>the old Canvas class is now called TextCanvas.</p>
+</dd>
 </dl>
 <dl class="method">
 <dt id="urwid.Canvas.finalize">
-<code class="descname">finalize</code><span class="sig-paren">(</span><em>widget</em>, <em>size</em>, <em>focus</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Canvas.finalize" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">finalize</code><span class="sig-paren">(</span><em class="sig-param">widget</em>, <em class="sig-param">size</em>, <em class="sig-param">focus</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Canvas.finalize" title="Permalink to this definition">¶</a></dt>
 <dd><p>Mark this canvas as finalized (should not be any future
 changes to its content). This is required before caching
 the canvas.  This happens automatically after a widget’s
@@ -77,38 +70,34 @@ focus – focus parameter passed to widget’s render method</p>
 
 <dl class="method">
 <dt id="urwid.Canvas.set_pop_up">
-<code class="descname">set_pop_up</code><span class="sig-paren">(</span><em>w</em>, <em>left</em>, <em>top</em>, <em>overlay_width</em>, <em>overlay_height</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Canvas.set_pop_up" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">set_pop_up</code><span class="sig-paren">(</span><em class="sig-param">w</em>, <em class="sig-param">left</em>, <em class="sig-param">top</em>, <em class="sig-param">overlay_width</em>, <em class="sig-param">overlay_height</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Canvas.set_pop_up" title="Permalink to this definition">¶</a></dt>
 <dd><p>This method adds pop-up information to the canvas.  This information
 is intercepted by a PopUpTarget widget higher in the chain to
 display a pop-up at the given (left, top) position relative to the
 current canvas.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>w</strong> (<a class="reference internal" href="main_loop.html#urwid.MainLoop.widget" title="urwid.MainLoop.widget"><em>widget</em></a>) – widget to use for the pop-up</li>
-<li><strong>left</strong> (<em>int</em>) – x position for left edge of pop-up &gt;= 0</li>
-<li><strong>top</strong> (<em>int</em>) – y position for top edge of pop-up &gt;= 0</li>
-<li><strong>overlay_width</strong> (<em>int</em>) – width of overlay in screen columns &gt; 0</li>
-<li><strong>overlay_height</strong> (<em>int</em>) – height of overlay in screen rows &gt; 0</li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w</strong> (<em>widget</em>) – widget to use for the pop-up</p></li>
+<li><p><strong>left</strong> (<em>int</em>) – x position for left edge of pop-up &gt;= 0</p></li>
+<li><p><strong>top</strong> (<em>int</em>) – y position for top edge of pop-up &gt;= 0</p></li>
+<li><p><strong>overlay_width</strong> (<em>int</em>) – width of overlay in screen columns &gt; 0</p></li>
+<li><p><strong>overlay_height</strong> (<em>int</em>) – height of overlay in screen rows &gt; 0</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 </dd></dl>
 
-<dl class="attribute">
+<dl class="method">
 <dt id="urwid.Canvas.text">
-<code class="descname">text</code><a class="headerlink" href="#urwid.Canvas.text" title="Permalink to this definition">¶</a></dt>
+<em class="property">property </em><code class="sig-name descname">text</code><a class="headerlink" href="#urwid.Canvas.text" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the text content of the canvas as a list of strings,
 one for each row.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.Canvas.translate_coords">
-<code class="descname">translate_coords</code><span class="sig-paren">(</span><em>dx</em>, <em>dy</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Canvas.translate_coords" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">translate_coords</code><span class="sig-paren">(</span><em class="sig-param">dx</em>, <em class="sig-param">dy</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Canvas.translate_coords" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return coords shifted by (dx, dy).</p>
 </dd></dl>
 
@@ -116,7 +105,7 @@ one for each row.</p>
 
 <dl class="class">
 <dt id="urwid.TextCanvas">
-<em class="property">class </em><code class="descclassname">urwid.</code><code class="descname">TextCanvas</code><span class="sig-paren">(</span><em>text=None</em>, <em>attr=None</em>, <em>cs=None</em>, <em>cursor=None</em>, <em>maxcol=None</em>, <em>check_width=True</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextCanvas" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">TextCanvas</code><span class="sig-paren">(</span><em class="sig-param">text=None</em>, <em class="sig-param">attr=None</em>, <em class="sig-param">cs=None</em>, <em class="sig-param">cursor=None</em>, <em class="sig-param">maxcol=None</em>, <em class="sig-param">check_width=True</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextCanvas" title="Permalink to this definition">¶</a></dt>
 <dd><p>class for storing rendered text and attributes</p>
 <p>text – list of strings, one for each line
 attr – list of run length encoded attributes for text
@@ -126,13 +115,13 @@ maxcol – screen columns taken by this canvas
 check_width – check and fix width of all lines in text</p>
 <dl class="method">
 <dt id="urwid.TextCanvas.cols">
-<code class="descname">cols</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextCanvas.cols" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">cols</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextCanvas.cols" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the screen column width of this canvas.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.TextCanvas.content">
-<code class="descname">content</code><span class="sig-paren">(</span><em>trim_left=0</em>, <em>trim_top=0</em>, <em>cols=None</em>, <em>rows=None</em>, <em>attr_map=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextCanvas.content" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">content</code><span class="sig-paren">(</span><em class="sig-param">trim_left=0</em>, <em class="sig-param">trim_top=0</em>, <em class="sig-param">cols=None</em>, <em class="sig-param">rows=None</em>, <em class="sig-param">attr_map=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextCanvas.content" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the canvas content as a list of rows where each row
 is a list of (attr, cs, text) tuples.</p>
 <p>trim_left, trim_top, cols, rows may be set by
@@ -142,7 +131,7 @@ canvas.</p>
 
 <dl class="method">
 <dt id="urwid.TextCanvas.content_delta">
-<code class="descname">content_delta</code><span class="sig-paren">(</span><em>other</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextCanvas.content_delta" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">content_delta</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextCanvas.content_delta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the differences between other and this canvas.</p>
 <p>If other is the same object as self this will return no
 differences, otherwise this is the same as calling
@@ -151,13 +140,13 @@ content().</p>
 
 <dl class="method">
 <dt id="urwid.TextCanvas.rows">
-<code class="descname">rows</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextCanvas.rows" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">rows</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextCanvas.rows" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the number of rows in this canvas.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.TextCanvas.translated_coords">
-<code class="descname">translated_coords</code><span class="sig-paren">(</span><em>dx</em>, <em>dy</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextCanvas.translated_coords" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">translated_coords</code><span class="sig-paren">(</span><em class="sig-param">dx</em>, <em class="sig-param">dy</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextCanvas.translated_coords" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return cursor coords shifted by (dx, dy), or None if there
 is no cursor.</p>
 </dd></dl>
@@ -166,12 +155,14 @@ is no cursor.</p>
 
 <dl class="class">
 <dt id="urwid.BlankCanvas">
-<em class="property">class </em><code class="descclassname">urwid.</code><code class="descname">BlankCanvas</code><a class="headerlink" href="#urwid.BlankCanvas" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">BlankCanvas</code><a class="headerlink" href="#urwid.BlankCanvas" title="Permalink to this definition">¶</a></dt>
 <dd><p>a canvas with nothing on it, only works as part of a composite canvas
 since it doesn’t know its own size</p>
+<p>value1, value2, value3 – if not None, raise a helpful error:
+the old Canvas class is now called TextCanvas.</p>
 <dl class="method">
 <dt id="urwid.BlankCanvas.content">
-<code class="descname">content</code><span class="sig-paren">(</span><em>trim_left</em>, <em>trim_top</em>, <em>cols</em>, <em>rows</em>, <em>attr</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.BlankCanvas.content" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">content</code><span class="sig-paren">(</span><em class="sig-param">trim_left</em>, <em class="sig-param">trim_top</em>, <em class="sig-param">cols</em>, <em class="sig-param">rows</em>, <em class="sig-param">attr</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.BlankCanvas.content" title="Permalink to this definition">¶</a></dt>
 <dd><p>return (cols, rows) of spaces with default attributes.</p>
 </dd></dl>
 
@@ -179,11 +170,13 @@ since it doesn’t know its own size</p>
 
 <dl class="class">
 <dt id="urwid.SolidCanvas">
-<em class="property">class </em><code class="descclassname">urwid.</code><code class="descname">SolidCanvas</code><span class="sig-paren">(</span><em>fill_char</em>, <em>cols</em>, <em>rows</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SolidCanvas" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">SolidCanvas</code><span class="sig-paren">(</span><em class="sig-param">fill_char</em>, <em class="sig-param">cols</em>, <em class="sig-param">rows</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SolidCanvas" title="Permalink to this definition">¶</a></dt>
 <dd><p>A canvas filled completely with a single character.</p>
+<p>value1, value2, value3 – if not None, raise a helpful error:
+the old Canvas class is now called TextCanvas.</p>
 <dl class="method">
 <dt id="urwid.SolidCanvas.content_delta">
-<code class="descname">content_delta</code><span class="sig-paren">(</span><em>other</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SolidCanvas.content_delta" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">content_delta</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SolidCanvas.content_delta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the differences between other and this canvas.</p>
 </dd></dl>
 
@@ -191,26 +184,26 @@ since it doesn’t know its own size</p>
 
 <dl class="class">
 <dt id="urwid.CompositeCanvas">
-<em class="property">class </em><code class="descclassname">urwid.</code><code class="descname">CompositeCanvas</code><span class="sig-paren">(</span><em>canv=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">CompositeCanvas</code><span class="sig-paren">(</span><em class="sig-param">canv=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas" title="Permalink to this definition">¶</a></dt>
 <dd><p>class for storing a combination of canvases</p>
 <p>canv – a Canvas object to wrap this CompositeCanvas around.</p>
 <p>if canv is a CompositeCanvas, make a copy of its contents</p>
 <dl class="method">
 <dt id="urwid.CompositeCanvas.content">
-<code class="descname">content</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.content" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">content</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.content" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the canvas content as a list of rows where each row
 is a list of (attr, cs, text) tuples.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.CompositeCanvas.content_delta">
-<code class="descname">content_delta</code><span class="sig-paren">(</span><em>other</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.content_delta" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">content_delta</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.content_delta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the differences between other and this canvas.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.CompositeCanvas.fill_attr">
-<code class="descname">fill_attr</code><span class="sig-paren">(</span><em>a</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.fill_attr" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">fill_attr</code><span class="sig-paren">(</span><em class="sig-param">a</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.fill_attr" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply attribute a to all areas of this canvas with default
 attribute currently set to None, leaving other attributes
 intact.</p>
@@ -218,20 +211,20 @@ intact.</p>
 
 <dl class="method">
 <dt id="urwid.CompositeCanvas.fill_attr_apply">
-<code class="descname">fill_attr_apply</code><span class="sig-paren">(</span><em>mapping</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.fill_attr_apply" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">fill_attr_apply</code><span class="sig-paren">(</span><em class="sig-param">mapping</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.fill_attr_apply" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply an attribute-mapping dictionary to the canvas.</p>
 <p>mapping – dictionary of original-attribute:new-attribute items</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.CompositeCanvas.overlay">
-<code class="descname">overlay</code><span class="sig-paren">(</span><em>other</em>, <em>left</em>, <em>top</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.overlay" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">overlay</code><span class="sig-paren">(</span><em class="sig-param">other</em>, <em class="sig-param">left</em>, <em class="sig-param">top</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.overlay" title="Permalink to this definition">¶</a></dt>
 <dd><p>Overlay other onto this canvas.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.CompositeCanvas.pad_trim_left_right">
-<code class="descname">pad_trim_left_right</code><span class="sig-paren">(</span><em>left</em>, <em>right</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.pad_trim_left_right" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">pad_trim_left_right</code><span class="sig-paren">(</span><em class="sig-param">left</em>, <em class="sig-param">right</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.pad_trim_left_right" title="Permalink to this definition">¶</a></dt>
 <dd><p>Pad or trim this canvas on the left and right</p>
 <p>values &gt; 0 indicate screen columns to pad
 values &lt; 0 indicate screen columns to trim</p>
@@ -239,13 +232,13 @@ values &lt; 0 indicate screen columns to trim</p>
 
 <dl class="method">
 <dt id="urwid.CompositeCanvas.pad_trim_top_bottom">
-<code class="descname">pad_trim_top_bottom</code><span class="sig-paren">(</span><em>top</em>, <em>bottom</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.pad_trim_top_bottom" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">pad_trim_top_bottom</code><span class="sig-paren">(</span><em class="sig-param">top</em>, <em class="sig-param">bottom</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.pad_trim_top_bottom" title="Permalink to this definition">¶</a></dt>
 <dd><p>Pad or trim this canvas on the top and bottom.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.CompositeCanvas.set_depends">
-<code class="descname">set_depends</code><span class="sig-paren">(</span><em>widget_list</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.set_depends" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">set_depends</code><span class="sig-paren">(</span><em class="sig-param">widget_list</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.set_depends" title="Permalink to this definition">¶</a></dt>
 <dd><p>Explicitly specify the list of widgets that this canvas
 depends on.  If any of these widgets change this canvas
 will have to be updated.</p>
@@ -253,7 +246,7 @@ will have to be updated.</p>
 
 <dl class="method">
 <dt id="urwid.CompositeCanvas.trim">
-<code class="descname">trim</code><span class="sig-paren">(</span><em>top</em>, <em>count=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.trim" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">trim</code><span class="sig-paren">(</span><em class="sig-param">top</em>, <em class="sig-param">count=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.trim" title="Permalink to this definition">¶</a></dt>
 <dd><p>Trim lines from the top and/or bottom of canvas.</p>
 <p>top – number of lines to remove from top
 count – number of lines to keep, or None for all the rest</p>
@@ -261,7 +254,7 @@ count – number of lines to keep, or None for all the rest</p>
 
 <dl class="method">
 <dt id="urwid.CompositeCanvas.trim_end">
-<code class="descname">trim_end</code><span class="sig-paren">(</span><em>end</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.trim_end" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">trim_end</code><span class="sig-paren">(</span><em class="sig-param">end</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.trim_end" title="Permalink to this definition">¶</a></dt>
 <dd><p>Trim lines from the bottom of the canvas.</p>
 <p>end – number of lines to remove from the end</p>
 </dd></dl>
@@ -273,56 +266,50 @@ count – number of lines to keep, or None for all the rest</p>
 <h2>CompositeCanvas Builders<a class="headerlink" href="#compositecanvas-builders" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="urwid.CanvasCombine">
-<code class="descclassname">urwid.</code><code class="descname">CanvasCombine</code><span class="sig-paren">(</span><em>l</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasCombine" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">CanvasCombine</code><span class="sig-paren">(</span><em class="sig-param">l</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasCombine" title="Permalink to this definition">¶</a></dt>
 <dd><p>Stack canvases in l vertically and return resulting canvas.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>l</strong> – <p>list of (canvas, position, focus) tuples:</p>
-<dl class="docutils">
-<dt>position</dt>
-<dd>a value that widget.set_focus will accept or None if not
-allowed</dd>
-<dt>focus</dt>
-<dd>True if this canvas is the one that would be in focus
-if the whole widget is in focus</dd>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>l</strong> – <p>list of (canvas, position, focus) tuples:</p>
+<dl class="simple">
+<dt>position</dt><dd><p>a value that widget.set_focus will accept or None if not
+allowed</p>
+</dd>
+<dt>focus</dt><dd><p>True if this canvas is the one that would be in focus
+if the whole widget is in focus</p>
+</dd>
 </dl>
-</td>
-</tr>
-</tbody>
-</table>
+</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
 <dt id="urwid.CanvasJoin">
-<code class="descclassname">urwid.</code><code class="descname">CanvasJoin</code><span class="sig-paren">(</span><em>l</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasJoin" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">CanvasJoin</code><span class="sig-paren">(</span><em class="sig-param">l</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasJoin" title="Permalink to this definition">¶</a></dt>
 <dd><p>Join canvases in l horizontally. Return result.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>l</strong> – <p>list of (canvas, position, focus, cols) tuples:</p>
-<dl class="docutils">
-<dt>position</dt>
-<dd>value that widget.set_focus will accept or None if not allowed</dd>
-<dt>focus</dt>
-<dd>True if this canvas is the one that would be in focus if
-the whole widget is in focus</dd>
-<dt>cols</dt>
-<dd>is the number of screen columns that this widget will require,
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>l</strong> – <p>list of (canvas, position, focus, cols) tuples:</p>
+<dl class="simple">
+<dt>position</dt><dd><p>value that widget.set_focus will accept or None if not allowed</p>
+</dd>
+<dt>focus</dt><dd><p>True if this canvas is the one that would be in focus if
+the whole widget is in focus</p>
+</dd>
+<dt>cols</dt><dd><p>is the number of screen columns that this widget will require,
 if larger than the actual canvas.cols() value then this widget
-will be padded on the right.</dd>
+will be padded on the right.</p>
+</dd>
 </dl>
-</td>
-</tr>
-</tbody>
-</table>
+</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
 <dt id="urwid.CanvasOverlay">
-<code class="descclassname">urwid.</code><code class="descname">CanvasOverlay</code><span class="sig-paren">(</span><em>top_c</em>, <em>bottom_c</em>, <em>left</em>, <em>top</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasOverlay" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">CanvasOverlay</code><span class="sig-paren">(</span><em class="sig-param">top_c</em>, <em class="sig-param">bottom_c</em>, <em class="sig-param">left</em>, <em class="sig-param">top</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasOverlay" title="Permalink to this definition">¶</a></dt>
 <dd><p>Overlay canvas top_c onto bottom_c at position (left, top).</p>
 </dd></dl>
 
@@ -331,7 +318,7 @@ will be padded on the right.</dd>
 <h2>CanvasCache<a class="headerlink" href="#canvascache" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="urwid.CanvasCache">
-<em class="property">class </em><code class="descclassname">urwid.</code><code class="descname">CanvasCache</code><a class="headerlink" href="#urwid.CanvasCache" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">CanvasCache</code><a class="headerlink" href="#urwid.CanvasCache" title="Permalink to this definition">¶</a></dt>
 <dd><p>Cache for rendered canvases.  Automatically populated and
 accessed by Widget render() MetaClass magic, cleared by
 Widget._invalidate().</p>
@@ -343,30 +330,30 @@ garbage collected.</p>
 <p>_widgets[widget] = {(wcls, size, focus): weakref.ref(canvas), …}
 _refs[weakref.ref(canvas)] = (widget, wcls, size, focus)
 _deps[widget} = [dependent_widget, …]</p>
-<dl class="classmethod">
+<dl class="method">
 <dt id="urwid.CanvasCache.clear">
-<em class="property">classmethod </em><code class="descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasCache.clear" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasCache.clear" title="Permalink to this definition">¶</a></dt>
 <dd><p>Empty the cache.</p>
 </dd></dl>
 
-<dl class="classmethod">
+<dl class="method">
 <dt id="urwid.CanvasCache.fetch">
-<em class="property">classmethod </em><code class="descname">fetch</code><span class="sig-paren">(</span><em>widget</em>, <em>wcls</em>, <em>size</em>, <em>focus</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasCache.fetch" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">fetch</code><span class="sig-paren">(</span><em class="sig-param">widget</em>, <em class="sig-param">wcls</em>, <em class="sig-param">size</em>, <em class="sig-param">focus</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasCache.fetch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the cached canvas or None.</p>
 <p>widget – widget object requested
 wcls – widget class that contains render() function
 size, focus – render() parameters</p>
 </dd></dl>
 
-<dl class="classmethod">
+<dl class="method">
 <dt id="urwid.CanvasCache.invalidate">
-<em class="property">classmethod </em><code class="descname">invalidate</code><span class="sig-paren">(</span><em>widget</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasCache.invalidate" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">invalidate</code><span class="sig-paren">(</span><em class="sig-param">widget</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasCache.invalidate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove all canvases cached for widget.</p>
 </dd></dl>
 
-<dl class="classmethod">
+<dl class="method">
 <dt id="urwid.CanvasCache.store">
-<em class="property">classmethod </em><code class="descname">store</code><span class="sig-paren">(</span><em>wcls</em>, <em>canvas</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasCache.store" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">store</code><span class="sig-paren">(</span><em class="sig-param">wcls</em>, <em class="sig-param">canvas</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasCache.store" title="Permalink to this definition">¶</a></dt>
 <dd><p>Store a weakref to canvas in the cache.</p>
 <p>wcls – widget class that contains render() function
 canvas – rendered canvas with widget_info (widget, size, focus)</p>
@@ -410,13 +397,13 @@ canvas – rendered canvas with widget_info (widget, size, focus)</p>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -435,13 +422,13 @@ canvas – rendered canvas with widget_info (widget, size, focus)</p>
         <li class="right" >
           <a href="attrspec.html" title="Raw Display Attributes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.6.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1.
     </div>
   </body>
 </html>

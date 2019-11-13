@@ -1,33 +1,26 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Signal Functions &#8212; Urwid 2.0.1</title>
+    <meta charset="utf-8" />
+    <title>Signal Functions &#8212; Urwid 2.1.0</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '2.0.1',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    
     <script type="text/javascript" src="../_static/sidebar.js"></script>
+    
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Global Settings" href="global_settings.html" />
     <link rel="prev" title="List Walker Classes" href="list_walkers.html" /> 
-  </head>
-  <body>
+  </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -40,7 +33,7 @@
         <li class="right" >
           <a href="list_walkers.html" title="List Walker Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li> 
       </ul>
     </div>  
@@ -52,30 +45,28 @@
             
   <div class="section" id="signal-functions">
 <h1>Signal Functions<a class="headerlink" href="#signal-functions" title="Permalink to this headline">¶</a></h1>
-<p>The <code class="xref py py-func docutils literal"><span class="pre">urwid.*_signal()</span></code> functions use a shared Signals object instance
+<p>The <code class="xref py py-func docutils literal notranslate"><span class="pre">urwid.*_signal()</span></code> functions use a shared Signals object instance
 for tracking registered and connected signals.  There is no reason to
 instantiate your own Signals object.</p>
 <dl class="function">
 <dt id="urwid.connect_signal">
-<code class="descclassname">urwid.</code><code class="descname">connect_signal</code><span class="sig-paren">(</span><em>obj</em>, <em>name</em>, <em>callback</em>, <em>user_arg=None</em>, <em>weak_args=None</em>, <em>user_args=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.connect_signal" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">connect_signal</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">name</em>, <em class="sig-param">callback</em>, <em class="sig-param">user_arg=None</em>, <em class="sig-param">weak_args=None</em>, <em class="sig-param">user_args=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.connect_signal" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="urwid.Signals.connect">
-<code class="descclassname">Signals.</code><code class="descname">connect</code><span class="sig-paren">(</span><em>obj</em>, <em>name</em>, <em>callback</em>, <em>user_arg=None</em>, <em>weak_args=None</em>, <em>user_args=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Signals.connect" title="Permalink to this definition">¶</a></dt>
-<dd><table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>obj</strong> (<em>object</em>) – the object sending a signal</li>
-<li><strong>name</strong> (<em>signal name</em>) – the signal to listen for, typically a string</li>
-<li><strong>callback</strong> (<em>function</em>) – the function to call when that signal is sent</li>
-<li><strong>user_arg</strong> – deprecated additional argument to callback (appended
+<code class="sig-prename descclassname">Signals.</code><code class="sig-name descname">connect</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">name</em>, <em class="sig-param">callback</em>, <em class="sig-param">user_arg=None</em>, <em class="sig-param">weak_args=None</em>, <em class="sig-param">user_args=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Signals.connect" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> (<em>object</em>) – the object sending a signal</p></li>
+<li><p><strong>name</strong> (<em>signal name</em>) – the signal to listen for, typically a string</p></li>
+<li><p><strong>callback</strong> (<em>function</em>) – the function to call when that signal is sent</p></li>
+<li><p><strong>user_arg</strong> – deprecated additional argument to callback (appended
 after the arguments passed when the signal is
 emitted). If None no arguments will be added.
-Don’t use this argument, use user_args instead.</li>
-<li><strong>weak_args</strong> (<em>iterable</em>) – <p>additional arguments passed to the callback
+Don’t use this argument, use user_args instead.</p></li>
+<li><p><strong>weak_args</strong> (<em>iterable</em>) – <p>additional arguments passed to the callback
 (before any arguments passed when the signal
 is emitted and before any user_args).</p>
 <p>These arguments are stored as weak references
@@ -86,24 +77,22 @@ weak_args from being kept alive just because
 they are referenced by this signal handler.</p>
 <p>Use this argument only as a keyword argument,
 since user_arg might be removed in the future.</p>
-</li>
-<li><strong>user_args</strong> (<em>iterable</em>) – <p>additional arguments to pass to the callback,
+</p></li>
+<li><p><strong>user_args</strong> (<em>iterable</em>) – <p>additional arguments to pass to the callback,
 (before any arguments passed when the signal
 is emitted but after any weak_args).</p>
 <p>Use this argument only as a keyword argument,
 since user_arg might be removed in the future.</p>
-</li>
+</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 <p>When a matching signal is sent, callback will be called. The
 arguments it receives will be the user_args passed at connect
 time (as individual arguments) followed by all the positional
 parameters sent with the signal.</p>
 <p>As an example of using weak_args, consider the following snippet:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">urwid</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">urwid</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">debug</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">handler</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">newtext</span><span class="p">):</span>
 <span class="gp">... </span>   <span class="n">debug</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="s2">&quot;Edit widget changed to </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">newtext</span><span class="p">)</span>
@@ -120,7 +109,7 @@ signal handler is a closure that (implicitly) references the
 garbage collected, you can create a “fake” or “weak” closure
 (it’s not really a closure, since it doesn’t reference any
 outside variables, so it’s just a dynamic function):</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">debug</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">debug</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">handler</span><span class="p">(</span><span class="n">weak_debug</span><span class="p">,</span> <span class="n">widget</span><span class="p">,</span> <span class="n">newtext</span><span class="p">):</span>
 <span class="gp">... </span>   <span class="n">weak_debug</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="s2">&quot;Edit widget changed to </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">newtext</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">edit</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
@@ -141,26 +130,22 @@ urwid.disconnect_signal, which doesn’t need this key.</p>
 
 <dl class="function">
 <dt id="urwid.disconnect_by_key">
-<code class="descclassname">urwid.</code><code class="descname">disconnect_by_key</code><span class="sig-paren">(</span><em>obj</em>, <em>name</em>, <em>key</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.disconnect_by_key" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">disconnect_by_key</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">name</em>, <em class="sig-param">key</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.disconnect_by_key" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="urwid.Signals.disconnect_by_key">
-<code class="descclassname">Signals.</code><code class="descname">disconnect_by_key</code><span class="sig-paren">(</span><em>obj</em>, <em>name</em>, <em>key</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Signals.disconnect_by_key" title="Permalink to this definition">¶</a></dt>
-<dd><table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>obj</strong> (<em>object</em>) – the object to disconnect the signal from</li>
-<li><strong>name</strong> (<em>signal name</em>) – the signal to disconnect, typically a string</li>
-<li><strong>key</strong> (<em>Key</em>) – the key for this signal handler, as returned by
-connect_signal().</li>
+<code class="sig-prename descclassname">Signals.</code><code class="sig-name descname">disconnect_by_key</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">name</em>, <em class="sig-param">key</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Signals.disconnect_by_key" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> (<em>object</em>) – the object to disconnect the signal from</p></li>
+<li><p><strong>name</strong> (<em>signal name</em>) – the signal to disconnect, typically a string</p></li>
+<li><p><strong>key</strong> (<em>Key</em>) – the key for this signal handler, as returned by
+connect_signal().</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 <p>This function will remove a callback from the list connected
 to a signal with connect_signal(). The key passed should be the
 value returned by connect_signal().</p>
@@ -170,28 +155,24 @@ function will simply do nothing.</p>
 
 <dl class="function">
 <dt id="urwid.disconnect_signal">
-<code class="descclassname">urwid.</code><code class="descname">disconnect_signal</code><span class="sig-paren">(</span><em>obj</em>, <em>name</em>, <em>callback</em>, <em>user_arg=None</em>, <em>weak_args=None</em>, <em>user_args=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.disconnect_signal" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">disconnect_signal</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">name</em>, <em class="sig-param">callback</em>, <em class="sig-param">user_arg=None</em>, <em class="sig-param">weak_args=None</em>, <em class="sig-param">user_args=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.disconnect_signal" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="urwid.Signals.disconnect">
-<code class="descclassname">Signals.</code><code class="descname">disconnect</code><span class="sig-paren">(</span><em>obj</em>, <em>name</em>, <em>callback</em>, <em>user_arg=None</em>, <em>weak_args=None</em>, <em>user_args=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Signals.disconnect" title="Permalink to this definition">¶</a></dt>
-<dd><table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>obj</strong> (<em>object</em>) – the object to disconnect the signal from</li>
-<li><strong>name</strong> (<em>signal name</em>) – the signal to disconnect, typically a string</li>
-<li><strong>callback</strong> (<em>function</em>) – the callback function passed to connect_signal</li>
-<li><strong>user_arg</strong> – the user_arg parameter passed to connect_signal</li>
-<li><strong>weak_args</strong> – the weak_args parameter passed to connect_signal</li>
-<li><strong>user_args</strong> – the weak_args parameter passed to connect_signal</li>
+<code class="sig-prename descclassname">Signals.</code><code class="sig-name descname">disconnect</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">name</em>, <em class="sig-param">callback</em>, <em class="sig-param">user_arg=None</em>, <em class="sig-param">weak_args=None</em>, <em class="sig-param">user_args=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Signals.disconnect" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> (<em>object</em>) – the object to disconnect the signal from</p></li>
+<li><p><strong>name</strong> (<em>signal name</em>) – the signal to disconnect, typically a string</p></li>
+<li><p><strong>callback</strong> (<em>function</em>) – the callback function passed to connect_signal</p></li>
+<li><p><strong>user_arg</strong> – the user_arg parameter passed to connect_signal</p></li>
+<li><p><strong>weak_args</strong> – the weak_args parameter passed to connect_signal</p></li>
+<li><p><strong>user_args</strong> – the weak_args parameter passed to connect_signal</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 <p>This function will remove a callback from the list connected
 to a signal with connect_signal(). The arguments passed should
 be exactly the same as those passed to connect_signal().</p>
@@ -201,51 +182,43 @@ function will simply do nothing.</p>
 
 <dl class="function">
 <dt id="urwid.register_signal">
-<code class="descclassname">urwid.</code><code class="descname">register_signal</code><span class="sig-paren">(</span><em>sig_cls</em>, <em>signals</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.register_signal" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">register_signal</code><span class="sig-paren">(</span><em class="sig-param">sig_cls</em>, <em class="sig-param">signals</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.register_signal" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="urwid.Signals.register">
-<code class="descclassname">Signals.</code><code class="descname">register</code><span class="sig-paren">(</span><em>sig_cls</em>, <em>signals</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Signals.register" title="Permalink to this definition">¶</a></dt>
-<dd><table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>sig_class</strong> (<em>class</em>) – the class of an object that will be sending signals</li>
-<li><strong>signals</strong> (<em>signal names</em>) – a list of signals that may be sent, typically each
-signal is represented by a string</li>
+<code class="sig-prename descclassname">Signals.</code><code class="sig-name descname">register</code><span class="sig-paren">(</span><em class="sig-param">sig_cls</em>, <em class="sig-param">signals</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Signals.register" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sig_class</strong> (<em>class</em>) – the class of an object that will be sending signals</p></li>
+<li><p><strong>signals</strong> (<em>signal names</em>) – a list of signals that may be sent, typically each
+signal is represented by a string</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 <p>This function must be called for a class before connecting any
 signal callbacks or emitting any signals from that class’ objects</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="urwid.emit_signal">
-<code class="descclassname">urwid.</code><code class="descname">emit_signal</code><span class="sig-paren">(</span><em>obj</em>, <em>name</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.emit_signal" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">emit_signal</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">name</em>, <em class="sig-param">*args</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.emit_signal" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="urwid.Signals.emit">
-<code class="descclassname">Signals.</code><code class="descname">emit</code><span class="sig-paren">(</span><em>obj</em>, <em>name</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Signals.emit" title="Permalink to this definition">¶</a></dt>
-<dd><table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>obj</strong> (<em>object</em>) – the object sending a signal</li>
-<li><strong>name</strong> (<em>signal name</em>) – the signal to send, typically a string</li>
-<li><strong>*args</strong> – zero or more positional arguments to pass to the signal
-callback functions</li>
+<code class="sig-prename descclassname">Signals.</code><code class="sig-name descname">emit</code><span class="sig-paren">(</span><em class="sig-param">obj</em>, <em class="sig-param">name</em>, <em class="sig-param">*args</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Signals.emit" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> (<em>object</em>) – the object sending a signal</p></li>
+<li><p><strong>name</strong> (<em>signal name</em>) – the signal to send, typically a string</p></li>
+<li><p><strong>*args</strong> – zero or more positional arguments to pass to the signal
+callback functions</p></li>
 </ul>
-</td>
-</tr>
-</tbody>
-</table>
+</dd>
+</dl>
 <p>This function calls each of the callbacks connected to this signal
 with the args arguments as positional parameters.</p>
 <p>This function returns True if any of the callbacks returned True.</p>
@@ -278,13 +251,13 @@ with the args arguments as positional parameters.</p>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -303,13 +276,13 @@ with the args arguments as positional parameters.</p>
         <li class="right" >
           <a href="list_walkers.html" title="List Walker Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.6.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1.
     </div>
   </body>
 </html>

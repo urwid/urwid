@@ -2,6 +2,96 @@
 Changelog
 ---------
 
+Urwid 2.1.0
+===========
+
+2019-11-13
+
+ * Add support for Python 3.7 and 3.8, drop support for Python 3.3
+
+ * Add 24-bit (true color) support. (by Tony Cebzanov)
+
+ * Add TrioEventLoop (by Tamas Nepusz)
+
+ * Add support for input encoding in Terminal widget (by Tamas Nepusz)
+
+ * Add ability to specify LineBox title attribute (by Tom Pickering)
+
+ * Add custom checkbox symbol (by Krzysztof Królczyk)
+
+ * Add installation instruction to README (by Patryk Niedźwiedziński)
+
+ * Remove PollingListWalker class (by Heiko Noordhof)
+
+ * Change SelectableIcon default cursor_position to 0. (by Werner Beroux)
+
+ * Extended numerical editing: integers and floats (by hootnot)
+
+ * Re-raise coroutine exceptions in AsyncioEventLoop properly (by nocarryr)
+
+ * Fixed locale issue (by Andrew Dunai)
+
+ * Gate SIGWINCH behind GLib 2.54+ (by Nick Chavez)
+
+ * Remove method Text._calc_line_translation() (by rndusr)
+
+ * Fix colon in HalfBlock5x4Font (by Alex Ozer)
+
+ * Don't use deprecated inspect.getargspec() with python3 (by rndusr)
+
+ * Fix issue "Non-integer division in bargraph when using set_bar_width(1)"
+   (by Carlos Jenkins)
+
+ * Fix misleading indentation in Screen._stop() (by Akos Kiss)
+
+ * Fix crash on click-Esc & Esc-click (by Maxim Ivanov)
+
+ * Use 'TimerHandle.cancelled()' if available (by Mohamed Seleem)
+
+ * Break rather than raising exception on shard calculation bug. (by Tony
+   Cebzanov)
+
+ * Increase _idle_emulation_delay. (by Tony Cebzanov)
+
+ * Fix EOF detection for the Terminal widget on Python 3 (by Tamas Nepusz)
+
+ * Fix the asyncio example, and make the raw Screen work without real files (by
+   Eevee)
+
+ * Unbreak python ./examples/treesample HOME END keys. (by Dimitri John Ledkov)
+
+ * Urwid.util: Fix bug in rle_append_beginning_modify (by BkPHcgQL3V)
+
+ * Fix AttributeError on mouse click (by mbarkhau)
+
+ * Fix ProgressBar smoothing on Python 3.x (by Tamas Nepusz)
+
+ * Fix asyncio event loop test on py3.4 (by Maxim Ivanov)
+
+ * Handle case where MainLoop._topmost_widget does not implement mouse_event (by
+   Rasmus Bondesson)
+
+ * Implement `ellipsis` wrapping mode for StandardTextLayout (by Philip Matura)
+
+ * Fix .pack call in Columns.column_widths (by Philip Matura)
+
+ * Use ._selectable member for Edit widget (by Philip Matura)
+
+ * Fix use of ignore_focus, for widgets inheriting from Text (by Philip Matura)
+
+ * Remove some special handling for TreeListBox (by Philip Matura)
+
+ * Make Columns and Pile selectable when any child widget is (by Philip Matura)
+
+ * Implement get_cursor_coords for Frame widget (by Philip Matura)
+
+ * Fix Frame mouse_event when footer is trimmed (by Philip Matura)
+
+ * Fix Python 3.8 SyntaxWarning: 'str' object is not callable (by Anders Kaseorg)
+
+ * README: Use SVG build status badge (by Olle Jonsson)
+
+
 Urwid 2.0.1
 ===========
 
@@ -131,6 +221,8 @@ Urwid 1.3.0
    (by Heiko Noordhof)
 
  * Documentation fixes (by Ismail, Matthew Mosesohn)
+
+ * SelectableIcon using cursor_position=0 by default instead of 1.
 
 Urwid 1.2.2
 ===========

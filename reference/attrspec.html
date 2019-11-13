@@ -1,33 +1,26 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Raw Display Attributes &#8212; Urwid 2.0.1</title>
+    <meta charset="utf-8" />
+    <title>Raw Display Attributes &#8212; Urwid 2.1.0</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '2.0.1',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    
     <script type="text/javascript" src="../_static/sidebar.js"></script>
+    
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Canvas Classes and Functions" href="canvas.html" />
     <link rel="prev" title="Global Settings" href="global_settings.html" /> 
-  </head>
-  <body>
+  </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -40,7 +33,7 @@
         <li class="right" >
           <a href="global_settings.html" title="Global Settings"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li> 
       </ul>
     </div>  
@@ -54,10 +47,9 @@
 <h1>Raw Display Attributes<a class="headerlink" href="#raw-display-attributes" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="urwid.AttrSpec">
-<em class="property">class </em><code class="descclassname">urwid.</code><code class="descname">AttrSpec</code><span class="sig-paren">(</span><em>fg</em>, <em>bg</em>, <em>colors=256</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrSpec" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="docutils">
-<dt>fg – a string containing a comma-separated foreground color</dt>
-<dd><p class="first">and settings</p>
+<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">AttrSpec</code><span class="sig-paren">(</span><em class="sig-param">fg</em>, <em class="sig-param">bg</em>, <em class="sig-param">colors=256</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrSpec" title="Permalink to this definition">¶</a></dt>
+<dd><dl>
+<dt>fg – a string containing a comma-separated foreground color</dt><dd><p>and settings</p>
 <p>Color values:
 ‘default’ (use the terminal’s default foreground),
 ‘black’, ‘dark red’, ‘dark green’, ‘brown’, ‘dark blue’,
@@ -66,6 +58,7 @@
 ‘light magenta’, ‘light cyan’, ‘white’</p>
 <p>High-color example values:
 ‘#009’ (0% red, 0% green, 60% red, like HTML colors)
+‘#23facc’ (RRGGBB hex color code)
 ‘#fcc’ (100% red, 80% green, 80% blue)
 ‘g40’ (40% gray, decimal), ‘g#cc’ (80% gray, hex),
 ‘#000’, ‘g0’, ‘g#00’ (black),
@@ -74,7 +67,7 @@
 <p>Setting:
 ‘bold’, ‘italics’, ‘underline’, ‘blink’, ‘standout’,
 ‘strikethrough’</p>
-<p class="last">Some terminals use ‘bold’ for bright colors.  Most terminals
+<p>Some terminals use ‘bold’ for bright colors.  Most terminals
 ignore the ‘blink’ setting.  If the color is not given then
 ‘default’ will be assumed.</p>
 </dd>
@@ -91,10 +84,11 @@ see fg examples above</p>
 </div></blockquote>
 <p>colors – the maximum colors available for the specification</p>
 <blockquote>
-<div>Valid values include: 1, 16, 88 and 256.  High-color
-values are only usable with 88 or 256 colors.  With
-1 color only the foreground settings may be used.</div></blockquote>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s1">&#39;dark red&#39;</span><span class="p">,</span> <span class="s1">&#39;light gray&#39;</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+<div><p>Valid values include: 1, 16, 88, 256, and 2**24.  High-color
+values are only usable with 88, 256, or 2**24 colors.  With
+1 color only the foreground settings may be used.</p>
+</div></blockquote>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s1">&#39;dark red&#39;</span><span class="p">,</span> <span class="s1">&#39;light gray&#39;</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
 <span class="go">AttrSpec(&#39;dark red&#39;, &#39;light gray&#39;)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s1">&#39;yellow, underline, bold&#39;</span><span class="p">,</span> <span class="s1">&#39;dark blue&#39;</span><span class="p">)</span>
 <span class="go">AttrSpec(&#39;yellow,bold,underline&#39;, &#39;dark blue&#39;)</span>
@@ -104,28 +98,28 @@ values are only usable with 88 or 256 colors.  With
 <span class="go">AttrSpec(&#39;#ccc&#39;, &#39;#000&#39;, colors=88)</span>
 </pre></div>
 </div>
-<dl class="attribute">
+<dl class="method">
 <dt id="urwid.AttrSpec.background">
-<code class="descname">background</code><a class="headerlink" href="#urwid.AttrSpec.background" title="Permalink to this definition">¶</a></dt>
+<em class="property">property </em><code class="sig-name descname">background</code><a class="headerlink" href="#urwid.AttrSpec.background" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the background color.</p>
 </dd></dl>
 
-<dl class="attribute">
+<dl class="method">
 <dt id="urwid.AttrSpec.colors">
-<code class="descname">colors</code><a class="headerlink" href="#urwid.AttrSpec.colors" title="Permalink to this definition">¶</a></dt>
+<em class="property">property </em><code class="sig-name descname">colors</code><a class="headerlink" href="#urwid.AttrSpec.colors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the maximum colors required for this object.</p>
 <p>Returns 256, 88, 16 or 1.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="urwid.AttrSpec.get_rgb_values">
-<code class="descname">get_rgb_values</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrSpec.get_rgb_values" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_rgb_values</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrSpec.get_rgb_values" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return (fg_red, fg_green, fg_blue, bg_red, bg_green, bg_blue) color
 components.  Each component is in the range 0-255.  Values are taken
 from the XTerm defaults and may not exactly match the user’s terminal.</p>
 <p>If the foreground or background is ‘default’ then all their compenents
 will be returned as None.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s1">&#39;yellow&#39;</span><span class="p">,</span> <span class="s1">&#39;#ccf&#39;</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="mi">88</span><span class="p">)</span><span class="o">.</span><span class="n">get_rgb_values</span><span class="p">()</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s1">&#39;yellow&#39;</span><span class="p">,</span> <span class="s1">&#39;#ccf&#39;</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="mi">88</span><span class="p">)</span><span class="o">.</span><span class="n">get_rgb_values</span><span class="p">()</span>
 <span class="go">(255, 255, 0, 205, 205, 255)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="s1">&#39;g92&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get_rgb_values</span><span class="p">()</span>
 <span class="go">(None, None, None, 238, 238, 238)</span>
@@ -162,13 +156,13 @@ will be returned as None.</p>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -187,13 +181,13 @@ will be returned as None.</p>
         <li class="right" >
           <a href="global_settings.html" title="Global Settings"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.6.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1.
     </div>
   </body>
 </html>

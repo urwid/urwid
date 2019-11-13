@@ -1,33 +1,26 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Metaclasses &#8212; Urwid 2.0.1</title>
+    <meta charset="utf-8" />
+    <title>Metaclasses &#8212; Urwid 2.1.0</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '2.0.1',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    
     <script type="text/javascript" src="../_static/sidebar.js"></script>
+    
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Deprecated Classes" href="deprecated.html" />
     <link rel="prev" title="Exceptions" href="exceptions.html" /> 
-  </head>
-  <body>
+  </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -40,7 +33,7 @@
         <li class="right" >
           <a href="exceptions.html" title="Exceptions"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li> 
       </ul>
     </div>  
@@ -54,26 +47,26 @@
 <h1>Metaclasses<a class="headerlink" href="#metaclasses" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="urwid.WidgetMeta">
-<em class="property">class </em><code class="descclassname">urwid.</code><code class="descname">WidgetMeta</code><span class="sig-paren">(</span><em>name</em>, <em>bases</em>, <em>d</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.WidgetMeta" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#urwid.MetaSuper" title="urwid.MetaSuper"><code class="xref py py-class docutils literal"><span class="pre">MetaSuper</span></code></a>, <a class="reference internal" href="#urwid.MetaSignals" title="urwid.MetaSignals"><code class="xref py py-class docutils literal"><span class="pre">MetaSignals</span></code></a></p>
+<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">WidgetMeta</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">bases</em>, <em class="sig-param">d</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.WidgetMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#urwid.MetaSuper" title="urwid.MetaSuper"><code class="xref py py-class docutils literal notranslate"><span class="pre">MetaSuper</span></code></a>, <a class="reference internal" href="#urwid.MetaSignals" title="urwid.MetaSignals"><code class="xref py py-class docutils literal notranslate"><span class="pre">MetaSignals</span></code></a></p>
 <p>Automatic caching of render and rows methods.</p>
 <p>Class variable <em>no_cache</em> is a list of names of methods to not cache
-automatically.  Valid method names for <em>no_cache</em> are <code class="docutils literal"><span class="pre">'render'</span></code> and
-<code class="docutils literal"><span class="pre">'rows'</span></code>.</p>
-<p>Class variable <em>ignore_focus</em> if defined and set to <code class="docutils literal"><span class="pre">True</span></code> indicates
+automatically.  Valid method names for <em>no_cache</em> are <code class="docutils literal notranslate"><span class="pre">'render'</span></code> and
+<code class="docutils literal notranslate"><span class="pre">'rows'</span></code>.</p>
+<p>Class variable <em>ignore_focus</em> if defined and set to <code class="docutils literal notranslate"><span class="pre">True</span></code> indicates
 that the canvas this widget renders is not affected by the focus
 parameter, so it may be ignored when caching.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="urwid.MetaSuper">
-<em class="property">class </em><code class="descclassname">urwid.</code><code class="descname">MetaSuper</code><span class="sig-paren">(</span><em>name</em>, <em>bases</em>, <em>d</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MetaSuper" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">MetaSuper</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">bases</em>, <em class="sig-param">d</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MetaSuper" title="Permalink to this definition">¶</a></dt>
 <dd><p>adding .__super</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="urwid.MetaSignals">
-<em class="property">class </em><code class="descclassname">urwid.</code><code class="descname">MetaSignals</code><span class="sig-paren">(</span><em>name</em>, <em>bases</em>, <em>d</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MetaSignals" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">MetaSignals</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">bases</em>, <em class="sig-param">d</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MetaSignals" title="Permalink to this definition">¶</a></dt>
 <dd><p>register the list of signals in the class variable signals,
 including signals in superclasses.</p>
 </dd></dl>
@@ -105,13 +98,13 @@ including signals in superclasses.</p>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -130,13 +123,13 @@ including signals in superclasses.</p>
         <li class="right" >
           <a href="exceptions.html" title="Exceptions"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.0.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.6.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1.
     </div>
   </body>
 </html>
