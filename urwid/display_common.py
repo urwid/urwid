@@ -475,6 +475,7 @@ class AttrSpec(object):
 
               High-color example values:
               '#009' (0% red, 0% green, 60% red, like HTML colors)
+              '#23facc' (RRGGBB hex color code)
               '#fcc' (100% red, 80% green, 80% blue)
               'g40' (40% gray, decimal), 'g#cc' (80% gray, hex),
               '#000', 'g0', 'g#00' (black),
@@ -503,8 +504,8 @@ class AttrSpec(object):
 
         colors -- the maximum colors available for the specification
 
-                   Valid values include: 1, 16, 88 and 256.  High-color
-                   values are only usable with 88 or 256 colors.  With
+                   Valid values include: 1, 16, 88, 256, and 2**24.  High-color
+                   values are only usable with 88, 256, or 2**24 colors.  With
                    1 color only the foreground settings may be used.
 
         >>> AttrSpec('dark red', 'light gray', 16)

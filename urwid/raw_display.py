@@ -987,7 +987,7 @@ class Screen(BaseScreen, RealTerminal):
     def set_terminal_properties(self, colors=None, bright_is_bold=None,
         has_underline=None):
         """
-        colors -- number of colors terminal supports (1, 16, 88 or 256)
+        colors -- number of colors terminal supports (1, 16, 88, 256, or 2**24)
             or None to leave unchanged
         bright_is_bold -- set to True if this terminal uses the bold
             setting to create bright colors (numbers 8-15), set to False
