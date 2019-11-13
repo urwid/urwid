@@ -65,40 +65,83 @@ Supported Python versions
 - 3.8
 - pypy
 
-Contributors
-============
+Authors
+=======
 
-- `wardi <//github.com/wardi>`_
-- `aszlig <//github.com/aszlig>`_
-- `mgiusti <//github.com/mgiusti>`_
-- `and3rson <//github.com/and3rson>`_
-- `pazz <//github.com/pazz>`_
-- `wackywendell <//github.com/wackywendell>`_
-- `eevee <//github.com/eevee>`_
-- `marienz <//github.com/marienz>`_
-- `rndusr <//github.com/rndusr>`_
-- `matthijskooijman <//github.com/matthijskooijman>`_
-- `Julian <//github.com/Julian>`_
-- `techtonik <//github.com/techtonik>`_
-- `garrison <//github.com/garrison>`_
-- `ivanov <//github.com/ivanov>`_
-- `abadger <//github.com/abadger>`_
-- `aglyzov <//github.com/aglyzov>`_
-- `ismail-s <//github.com/ismail-s>`_
-- `horazont <//github.com/horazont>`_
-- `robla <//github.com/robla>`_
-- `usrlocalben <//github.com/usrlocalben>`_
-- `geier <//github.com/geier>`_
-- `federicotdn <//github.com/federicotdn>`_
-- `jwilk <//github.com/jwilk>`_
-- `rr- <//github.com/rr->`_
-- `tonycpsu <//github.com/tonycpsu>`_
-- `westurner <//github.com/westurner>`_
-- `grugq <//github.com/grugq>`_
-- `inducer <//github.com/inducer>`_
-- `winbornejw <//github.com/winbornejw>`_
-- `hootnot <//github.com/hootnot>`_
-- `raek <//github.com/raek>`_
+Creator
+-------
+
+`wardi <//github.com/wardi>`_
+
+Maintainers
+-----------
+
+`and3rson <//github.com/and3rson>`_,
+`tonycpsu <//github.com/tonycpsu>`_,
+`ulidtko <//github.com/ulidtko>`_
+
+Contributors
+------------
+
+`aathan <//github.com/aathan>`_,
+`abadger <//github.com/abadger>`_,
+`aglyzov <//github.com/aglyzov>`_,
+`akosthekiss <//github.com/akosthekiss>`_,
+`alexozer <//github.com/alexozer>`_,
+`andersk <//github.com/andersk>`_,
+`aszlig <//github.com/aszlig>`_,
+`atsampson <//github.com/atsampson>`_,
+`BkPHcgQL3V <//github.com/BkPHcgQL3V>`_,
+`BlindB0 <//github.com/BlindB0>`_,
+`bukzor <//github.com/bukzor>`_,
+`eevee <//github.com/eevee>`_,
+`federicotdn <//github.com/federicotdn>`_,
+`garrison <//github.com/garrison>`_,
+`geier <//github.com/geier>`_,
+`grugq <//github.com/grugq>`_,
+`hkoof <//github.com/hkoof>`_,
+`hootnot <//github.com/hootnot>`_,
+`horazont <//github.com/horazont>`_,
+`inducer <//github.com/inducer>`_,
+`ismail-s <//github.com/ismail-s>`_,
+`italomaia-bk <//github.com/italomaia-bk>`_,
+`ivanov <//github.com/ivanov>`_,
+`Julian <//github.com/Julian>`_,
+`jwilk <//github.com/jwilk>`_,
+`kajojify <//github.com/kajojify>`_,
+`Kamik423 <//github.com/Kamik423>`_,
+`kkrolczyk <//github.com/kkrolczyk>`_,
+`marienz <//github.com/marienz>`_,
+`matthijskooijman <//github.com/matthijskooijman>`_,
+`mbarkhau <//github.com/mbarkhau>`_,
+`mgiusti <//github.com/mgiusti>`_,
+`mikemccracken <//github.com/mikemccracken>`_,
+`nocarryr <//github.com/nocarryr>`_,
+`ntamas <//github.com/ntamas>`_,
+`olleolleolle <//github.com/olleolleolle>`_,
+`pazz <//github.com/pazz>`_,
+`pniedzwiedzinski <//github.com/pniedzwiedzinski>`_,
+`raek <//github.com/raek>`_,
+`richrd <//github.com/richrd>`_,
+`rndusr <//github.com/rndusr>`_,
+`robla <//github.com/robla>`_,
+`rr- <//github.com/rr->`_,
+`seleem1337 <//github.com/seleem1337>`_,
+`SenchoPens <//github.com/SenchoPens>`_,
+`shyal <//github.com/shyal>`_,
+`sitaktif <//github.com/sitaktif>`_,
+`tdryer <//github.com/tdryer>`_,
+`techtonik <//github.com/techtonik>`_,
+`tu500 <//github.com/tu500>`_,
+`usrlocalben <//github.com/usrlocalben>`_,
+`wackywendell <//github.com/wackywendell>`_,
+`wernight <//github.com/wernight>`_,
+`westurner <//github.com/westurner>`_,
+`whospal <//github.com/whospal>`_,
+`Wilfred <//github.com/Wilfred>`_,
+`winbornejw <//github.com/winbornejw>`_,
+`xnox <//github.com/xnox>`_,
+`yanzixiang <//github.com/yanzixiang>`_
 
 
 .. |pypi| image:: http://img.shields.io/pypi/v/urwid.svg
