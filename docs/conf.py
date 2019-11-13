@@ -156,7 +156,7 @@ html_static_path = ['tools/static']
 
 # Custom sidebar templates, maps document names to template names.
 html_sidebars = {
-    'index': 'indexsidebar.html',
+    'index': ['indexsidebar.html']
 }
 
 # Additional templates that should be rendered to pages, maps page names to
@@ -316,4 +316,4 @@ autoclass_content = "both"
 
 autodoc_member_order = "alphabetical"
 
-autodoc_default_flags = ["members"]
+autodoc_default_options = {"members": True}
