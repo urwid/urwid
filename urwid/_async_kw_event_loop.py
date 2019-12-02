@@ -250,6 +250,9 @@ class TrioEventLoop(EventLoop):
             callback: the callback to call
         """
         with scope:
-            while True:
+            # We check for the scope being cancelled before calling
+            # wait_readable because if callback cancels the scope, fd might be
+            # closed and calling wait_readable with a closed fd does not work.
+            while not scope.cancel_called:
                 await self._wait_readable(fd)
                 callback()
