@@ -1319,6 +1319,7 @@ class TermCanvas(Canvas):
             return [self.cols()]*self.rows()
         return self.content()
 
+
 class Terminal(Widget):
     _selectable = True
     _sizing = frozenset([BOX])
@@ -1539,14 +1540,14 @@ class Terminal(Widget):
         try:
             data = os.read(self.master, 4096)
         except OSError as e:
-            if e.errno == 5: # End Of File
+            if e.errno == 5: # EIO, child terminated
                 data = EOF
             elif e.errno == errno.EWOULDBLOCK: # empty buffer
                 return
             else:
                 raise
 
-        if data == EOF: # EOF on BSD
+        if data == EOF:
             self.terminate()
             self._emit('closed')
             return
