@@ -25,6 +25,8 @@ import unittest
 
 from itertools import dropwhile
 
+from urwid.listbox import ListBox
+from urwid.decoration import BoxAdapter
 from urwid import vterm
 from urwid import signals
 from urwid.compat import B
@@ -344,3 +346,7 @@ class TermTest(unittest.TestCase):
         self.expect('test2')
         self.expect_signal('caps_lock')
         self.disconnect_signal('leds')
+
+    def test_in_listbox(self):
+        listbox = ListBox([BoxAdapter(self.term, 80)])
+        rendered = listbox.render((80, 24))
