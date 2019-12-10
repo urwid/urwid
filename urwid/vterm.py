@@ -1361,20 +1361,11 @@ class Terminal(Widget):
         """
         self.__super.__init__()
 
-        if escape_sequence is None:
-            self.escape_sequence = "ctrl a"
-        else:
-            self.escape_sequence = escape_sequence
+        self.escape_sequence = escape_sequence or "ctrl a"
 
-        if env is None:
-            self.env = dict(os.environ)
-        else:
-            self.env = dict(env)
+        self.env = dict(env or os.environ)
 
-        if command is None:
-            self.command = [self.env.get('SHELL', '/bin/sh')]
-        else:
-            self.command = command
+        self.command = command or [self.env.get('SHELL', '/bin/sh')]
 
         self.encoding = encoding
 
@@ -1525,17 +1516,12 @@ class Terminal(Widget):
     def add_watch(self):
         if self.main_loop is None:
             return
-
         self.main_loop.watch_file(self.master, self.feed)
 
     def remove_watch(self):
         if self.main_loop is None:
             return
-
         self.main_loop.remove_watch_file(self.master)
-
-    def selectable(self):
-        return True
 
     def wait_and_feed(self, timeout=1.0):
         while True:
