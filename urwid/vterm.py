@@ -153,7 +153,7 @@ class TermModes(object):
         self.reverse_video = False
         self.constrain_scrolling = False
         self.autowrap = True
-        self.visible_cursor = True
+        self.visible_cursor = False
 
         # charset stuff
         self.main_charset = CHARSET_DEFAULT
@@ -1397,8 +1397,7 @@ class Terminal(Widget):
 
         # temporarily set width/height to figure out the new cursor position
         # given the provided width/height
-        orig_width = self.term.width
-        orig_height = self.term.height
+        orig_width, orig_height = self.term.width, self.term.height
 
         self.term.width = size[0]
         self.term.height = size[1]
@@ -1408,8 +1407,7 @@ class Terminal(Widget):
             self.term.term_cursor[1],
         )
 
-        self.term.width = orig_width
-        self.term.height = orig_height
+        self.term.width, self.term.height = orig_width, orig_height
 
         return (x, y)
 

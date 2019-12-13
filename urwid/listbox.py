@@ -324,7 +324,7 @@ class ListBox(Widget, WidgetContainerMixin):
         cursor = None
         if maxrow and focus_widget.selectable() and focus:
             if hasattr(focus_widget,'get_cursor_coords'):
-                cursor=focus_widget.get_cursor_coords((maxcol,))
+                cursor = focus_widget.get_cursor_coords((maxcol,))
 
         if cursor is not None:
             cx, cy = cursor
