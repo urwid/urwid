@@ -1389,6 +1389,30 @@ class Terminal(Widget):
         self.has_focus = False
         self.terminated = False
 
+    def get_cursor_coords(self, size):
+        """Return the cursor coordinates for this terminal
+        """
+        if self.term is None:
+            return None
+
+        # temporarily set width/height to figure out the new cursor position
+        # given the provided width/height
+        orig_width = self.term.width
+        orig_height = self.term.height
+
+        self.term.width = size[0]
+        self.term.height = size[1]
+
+        x, y = self.term.constrain_coords(
+            self.term.term_cursor[0],
+            self.term.term_cursor[1],
+        )
+
+        self.term.width = orig_width
+        self.term.height = orig_height
+
+        return (x, y)
+
     def spawn(self):
         env = self.env
         env['TERM'] = 'linux'
@@ -1492,16 +1516,23 @@ class Terminal(Widget):
         """
         Ignore SIGINT if this widget has focus.
         """
-        if self.terminated or self.has_focus == has_focus:
+        if self.terminated:
             return
 
         self.has_focus = has_focus
 
         if has_focus:
+            if self.term is not None:
+                self.term.modes.visible_cursor = True
+                self.term.set_term_cursor()
             self.old_tios = RealTerminal().tty_signal_keys()
             RealTerminal().tty_signal_keys(*(['undefined'] * 5))
         else:
-            RealTerminal().tty_signal_keys(*self.old_tios)
+            if self.term is not None:
+                self.term.modes.visible_cursor = False
+                self.term.set_term_cursor()
+            if hasattr(self, "old_tios"):
+                RealTerminal().tty_signal_keys(*self.old_tios)
 
     def render(self, size, focus=False):
         if not self.terminated:
