@@ -111,7 +111,6 @@ def validate_size(widget, size, canv):
     """
     if (size and size[1:] != (0,) and size[0] != canv.cols()) or \
         (len(size)>1 and size[1] != canv.rows()):
-        __import__('pdb').set_trace()
         raise WidgetError("Widget %r rendered (%d x %d) canvas"
             " when passed size %r!" % (widget, canv.cols(),
             canv.rows(), size))
