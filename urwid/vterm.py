@@ -1359,7 +1359,7 @@ class Terminal(Widget):
             ``utf8`` with ``urwid.set_encoding("utf8")``. See
             :ref:`text-encodings` for more details.
         """
-        self.__super.__init__()
+        Widget.__init__(self)
 
         self.escape_sequence = escape_sequence or "ctrl a"
 
