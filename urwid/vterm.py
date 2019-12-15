@@ -1328,7 +1328,7 @@ class Terminal(Widget):
     def __init__(self, command, env=None, main_loop=None, escape_sequence=None,
                  encoding='ascii'):
         """
-        A terminal emulator within a widget. BLAH
+        A terminal emulator within a widget.
 
         ``command`` is the command to execute inside the terminal, provided as a
         list of the command followed by its arguments.  If 'command' is None,
