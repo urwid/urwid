@@ -94,6 +94,7 @@ Contributors
 `BkPHcgQL3V <//github.com/BkPHcgQL3V>`_,
 `BlindB0 <//github.com/BlindB0>`_,
 `bukzor <//github.com/bukzor>`_,
+`d0c-s4vage <//github.com/d0c-s4vage>`_,
 `eevee <//github.com/eevee>`_,
 `federicotdn <//github.com/federicotdn>`_,
 `garrison <//github.com/garrison>`_,
