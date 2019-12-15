@@ -104,9 +104,9 @@ class TermTest(unittest.TestCase):
     def flush(self):
         self.write(chr(0x7f))
 
-    def read(self, raw=False):
+    def read(self, raw=False, focus=False):
         self.term.wait_and_feed()
-        rendered = self.term.render(self.termsize, focus=False)
+        rendered = self.term.render(self.termsize, focus=focus)
         if raw:
             is_empty = lambda c: c == (None, None, B(' '))
             content = list(rendered.content())
@@ -118,10 +118,10 @@ class TermTest(unittest.TestCase):
             lines = [line.rstrip() for line in content]
             return B('\n').join(lines).rstrip()
 
-    def expect(self, what, desc=None, raw=False):
+    def expect(self, what, desc=None, raw=False, focus=False):
         if not isinstance(what, list):
             what = B(what)
-        got = self.read(raw=raw)
+        got = self.read(raw=raw, focus=focus)
         if desc is None:
             desc = ''
         else:
@@ -269,10 +269,10 @@ class TermTest(unittest.TestCase):
 
     def test_cursor_visibility(self):
         self.write('\e[?25linvisible')
-        self.expect('invisible')
+        self.expect('invisible', focus=True)
         self.assertEqual(self.term.term.cursor, None)
         self.write('\rvisible\e[?25h\e[K')
-        self.expect('visible')
+        self.expect('visible', focus=True)
         self.assertNotEqual(self.term.term.cursor, None)
 
     def test_get_utf8_len(self):

@@ -153,7 +153,7 @@ class TermModes(object):
         self.reverse_video = False
         self.constrain_scrolling = False
         self.autowrap = True
-        self.visible_cursor = False
+        self.visible_cursor = True
 
         # charset stuff
         self.main_charset = CHARSET_DEFAULT
@@ -247,6 +247,7 @@ class TermCanvas(Canvas):
         self.width, self.height = width, height
         self.widget = widget
         self.modes = widget.term_modes
+        self.has_focus = False
 
         self.scrollback_buffer = TermScroller()
         self.scrolling_up = 0
@@ -270,7 +271,9 @@ class TermCanvas(Canvas):
 
         self.term_cursor = self.constrain_coords(x, y)
 
-        if self.modes.visible_cursor and self.scrolling_up < self.height - y:
+        if self.has_focus \
+                and self.modes.visible_cursor \
+                and self.scrolling_up < self.height - y:
             self.cursor = (x, y + self.scrolling_up)
         else:
             self.cursor = None
@@ -1519,16 +1522,14 @@ class Terminal(Widget):
 
         self.has_focus = has_focus
 
+        if self.term is not None:
+            self.term.has_focus = has_focus
+            self.term.set_term_cursor()
+
         if has_focus:
-            if self.term is not None:
-                self.term.modes.visible_cursor = True
-                self.term.set_term_cursor()
             self.old_tios = RealTerminal().tty_signal_keys()
             RealTerminal().tty_signal_keys(*(['undefined'] * 5))
         else:
-            if self.term is not None:
-                self.term.modes.visible_cursor = False
-                self.term.set_term_cursor()
             if hasattr(self, "old_tios"):
                 RealTerminal().tty_signal_keys(*self.old_tios)
 
