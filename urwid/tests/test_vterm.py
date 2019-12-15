@@ -245,6 +245,26 @@ class TermTest(unittest.TestCase):
         self.write('\e[?6h\e[10;20r\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\e[faa')
         self.expect('\n' * 9 + 'aa\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12')
 
+    def test_scrolling_region_simple_with_focus(self):
+        self.write('\e[10;20r\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\e[faa')
+        self.expect('aa' + '\n' * 9 + '2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12', focus=True)
+
+    def test_scrolling_region_reverse_with_focus(self):
+        self.write('\e[2J\e[1;2r\e[5Baaa\r\eM\eM\eMbbb\nXXX')
+        self.expect('\n\nbbb\nXXX\n\naaa', focus=True)
+
+    def test_scrolling_region_move_with_focus(self):
+        self.write('\e[10;20r\e[2J\e[10Bfoo\rbar\rblah\rmooh\r\e[10Aone\r\eM\eMtwo\r\eM\eMthree\r\eM\eMa')
+        self.expect('ahree\n\n\n\n\n\n\n\n\n\nmooh', focus=True)
+
+    def test_scrolling_twice_with_focus(self):
+        self.write('\e[?6h\e[10;20r\e[2;5rtest')
+        self.expect('\ntest', focus=True)
+
+    def test_cursor_scrolling_region_with_focus(self):
+        self.write('\e[?6h\e[10;20r\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\e[faa')
+        self.expect('\n' * 9 + 'aa\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12', focus=True)
+
     def test_relative_region_jump(self):
         self.write('\e[21H---\e[10;20r\e[?6h\e[18Htest')
         self.expect('\n' * 19 + 'test\n---')
