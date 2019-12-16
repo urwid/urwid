@@ -1,4 +1,10 @@
 import unittest
+try:
+    # Python3 version
+    import unittest.mock as mock
+except ImportError:
+    # Python2, rely on PyPi
+    import mock
 
 from urwid.tests.util import SelectableText
 import urwid
@@ -287,6 +293,17 @@ class GridFlowTest(unittest.TestCase):
     def test_v_sep(self):
         gf = urwid.GridFlow([urwid.Text("test")], 10, 3, 1, "center")
         self.assertEqual(gf.rows((40,), False), 1)
+
+    def test_keypress_v_sep_0(self):
+        """
+        Ensure proper keypress handling when v_sep is 0.
+        https://github.com/urwid/urwid/issues/387
+        """
+        call_back = mock.Mock()
+        button = urwid.Button("test", call_back)
+        gf = urwid.GridFlow([button], 10, 3, v_sep=0, align="center")
+        self.assertEqual(gf.keypress((20,), "enter"), None)
+        call_back.assert_called_with(button)
 
 
 class WidgetSquishTest(unittest.TestCase):
