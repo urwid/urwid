@@ -370,6 +370,9 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         if self.v_sep:
             # remove first divider
             del p.contents[:1]
+        else:
+            # Ensure p __selectable is updated
+            p._contents_modified()
 
         return p
 
