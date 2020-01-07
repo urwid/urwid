@@ -30,15 +30,8 @@ class TrioEventLoop(EventLoop):
     ``trio`` is an async library for Python 3.5 and later.
     """
 
-    def __init__(self, nursery=None):
-        """Constructor.
-
-        Parameters:
-            nursery: the Trio nursery in which the asynchronous tasks will
-                execute. `None` will make the event loop use `trio.run()` when
-                the loop is started and force it to create a nursery on its
-                own.
-        """
+    def __init__(self):
+        """Constructor."""
         import trio
 
         self._idle_handle = 0
@@ -123,13 +116,9 @@ class TrioEventLoop(EventLoop):
 
         idle_callbacks = self._idle_callbacks
 
-        def _exception_handler(exc):
-            idle_callbacks.clear()
-            if isinstance(exc, ExitMainLoop):
-                return None
-            else:
-                return exc
-
+        # This class is duplicated in run_async(). It would be nice to move
+        # this somewhere outside, but we cannot do it yet becase we need to
+        # derive it from self._trio.abc.Instrument
         class TrioIdleCallbackInstrument(self._trio.abc.Instrument):
             def before_io_wait(self, timeout):
                 if timeout > 0:
@@ -138,15 +127,40 @@ class TrioEventLoop(EventLoop):
 
         emulate_idle_callbacks = TrioIdleCallbackInstrument()
 
-        with self._trio.MultiError.catch(_exception_handler):
-            if not self._nursery:
-                self._trio.run(self._main_task, instruments=[emulate_idle_callbacks])
-            else:
-                self._trio.hazmat.add_instrument(emulate_idle_callbacks)
-                try:
-                    self._nursery.start_soon(self._main_task)
-                finally:
-                    self._trio.hazmat.remove_instrument(emulate_idle_callbacks)
+        with self._trio.MultiError.catch(self._handle_main_loop_exception):
+            self._trio.run(self._main_task, instruments=[emulate_idle_callbacks])
+
+    async def run_async(self):
+        """Starts the main loop and blocks asynchronously until the main loop
+        exits. This allows one to embed an urwid app in a Trio app even if the
+        Trio event loop is already running. Example::
+
+            with trio.open_nursery() as nursery:
+                event_loop = urwid.TrioEventLoop(nursery=nursery)
+                loop = urwid.MainLoop(widget, event_loop=event_loop)
+                with loop.start():
+                    await event_loop.run_async()
+        """
+
+        idle_callbacks = self._idle_callbacks
+
+        # This class is duplicated in run_async(). It would be nice to move
+        # this somewhere outside, but we cannot do it yet becase we need to
+        # derive it from self._trio.abc.Instrument
+        class TrioIdleCallbackInstrument(self._trio.abc.Instrument):
+            def before_io_wait(self, timeout):
+                if timeout > 0:
+                    for idle_callback in idle_callbacks.values():
+                        idle_callback()
+
+        emulate_idle_callbacks = TrioIdleCallbackInstrument()
+
+        with self._trio.MultiError.catch(self._handle_main_loop_exception):
+            self._trio.hazmat.add_instrument(emulate_idle_callbacks)
+            try:
+                await self._main_task()
+            finally:
+                self._trio.hazmat.remove_instrument(emulate_idle_callbacks)
 
     def watch_file(self, fd, callback):
         """Calls `callback()` when the given file descriptor has some data
@@ -174,21 +188,30 @@ class TrioEventLoop(EventLoop):
             await self._sleep(seconds)
             callback()
 
+    def _handle_main_loop_exception(self, exc):
+        """Handles exceptions raised from the main loop, catching ExitMainLoop
+        instead of letting it propagate through.
+
+        Note that since Trio may collect multiple exceptions from tasks into a
+        Trio MultiError, we cannot simply use a try..catch clause, we need a
+        helper function like this.
+        """
+        self._idle_callbacks.clear()
+        if isinstance(exc, ExitMainLoop):
+            return None
+        else:
+            return exc
+
     async def _main_task(self):
         """Main Trio task that opens a nursery and then sleeps until the user
         exits the app by raising ExitMainLoop.
         """
-
-        if self._nursery:
-            self._schedule_pending_tasks()
-            await self._trio.sleep_forever()
-        else:
-            try:
-                async with self._trio.open_nursery() as self._nursery:
-                    self._schedule_pending_tasks()
-                    await self._trio.sleep_forever()
-            finally:
-                self._nursery = None
+        try:
+            async with self._trio.open_nursery() as self._nursery:
+                self._schedule_pending_tasks()
+                await self._trio.sleep_forever()
+        finally:
+            self._nursery = None
 
     def _schedule_pending_tasks(self):
         """Schedules all pending asynchronous tasks that were created before
