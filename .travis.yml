@@ -1,5 +1,5 @@
-group: deprecated-2017Q4
 language: python
+dist: bionic
 matrix:
   include:
   - python: 2.7
@@ -9,16 +9,12 @@ matrix:
   - python: 3.6
     env: TOXENV=py36
   - python: 3.7
-    dist: xenial # needed for python 3.7 as of 2019-04-05
     env: TOXENV=py37
   - python: 3.8
-    dist: xenial # needed for python 3.7 as of 2019-04-05
     env: TOXENV=py38
-  - python: pypy
-    env: TOXENV=pypy
+  - python: pypy3
+    env: TOXENV=pypy3
 before_install:
-  - "sudo rm -rf /var/lib/apt/lists/*"
-  - "sudo apt-get clean"
   - "sudo apt-get update"
   - "sudo apt-get install python-gi python3-gi"
 install:
