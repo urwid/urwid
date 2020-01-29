@@ -11,6 +11,9 @@ matrix:
   - python: 3.7
     dist: xenial # needed for python 3.7 as of 2019-04-05
     env: TOXENV=py37
+  - python: 3.8
+    dist: xenial # needed for python 3.7 as of 2019-04-05
+    env: TOXENV=py38
   - python: pypy
     env: TOXENV=pypy
 before_install:
