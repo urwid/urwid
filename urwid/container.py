@@ -145,7 +145,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         :param h_sep: blank columns between each cell horizontally
         :param v_sep: blank rows between cells vertically
             (if more than one row is required to display all the cells)
-        :param align: horizontal alignment of cells, one of\:
+        :param align: horizontal alignment of cells, one of:
             'left', 'center', 'right', ('relative', percentage 0=left 100=right)
         """
         self._contents = MonitoredFocusList([
