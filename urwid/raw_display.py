@@ -101,7 +101,7 @@ class Screen(BaseScreen, RealTerminal):
 
     def _on_update_palette_entry(self, name, *attrspecs):
         # copy the attribute to a dictionary containing the escape seqences
-        a = attrspecs[{16:0,1:1,88:2,256:3,2**24:3}[self.colors]]
+        a = attrspecs[{16:0,1:1,88:2,256:3,2**24:4}[self.colors]]
         self._pal_attrspec[name] = a
         self._pal_escape[name] = self._attrspec_to_escape(a)
 
