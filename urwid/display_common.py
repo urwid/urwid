@@ -920,6 +920,8 @@ class BaseScreen(with_metaclass(signals.MetaSignals, object)):
             foreground_high = foreground
         if background_high is None:
             background_high = background
+
+        high_256 = AttrSpec(foreground_high, background_high, 256)
         high_true = AttrSpec(foreground_high, background_high, 2**24)
 
         # 'hX' where X > 15 are different in 88/256 color, use
@@ -938,8 +940,8 @@ class BaseScreen(with_metaclass(signals.MetaSignals, object)):
             high_88 = AttrSpec(foreground_high, background_high, 88)
 
         signals.emit_signal(self, UPDATE_PALETTE_ENTRY,
-                            name, basic, mono, high_88, high_true)
-        self._palette[name] = (basic, mono, high_88, high_true)
+                            name, basic, mono, high_88, high_256, high_true)
+        self._palette[name] = (basic, mono, high_88, high_256, high_true)
 
 
 def _test():
