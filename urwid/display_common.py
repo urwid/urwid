@@ -795,8 +795,8 @@ class BaseScreen(with_metaclass(signals.MetaSignals, object)):
         :meth:`_start`.
         """
         if not self._started:
+            self._started = True
             self._start(*args, **kwargs)
-        self._started = True
         return StoppingContext(self)
 
     def _start(self):
