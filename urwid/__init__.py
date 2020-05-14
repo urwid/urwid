@@ -23,12 +23,11 @@
 from __future__ import division, print_function
 
 from urwid.version import VERSION, __version__
-from urwid.widget import (FLOW, BOX, FIXED, LEFT, RIGHT, CENTER, TOP, MIDDLE,
-    BOTTOM, SPACE, ANY, CLIP, PACK, GIVEN, RELATIVE, RELATIVE_100, WEIGHT,
-    WidgetMeta,
-    WidgetError, Widget, FlowWidget, BoxWidget, fixed_size, FixedWidget,
+from urwid.widget import (WidgetMeta, WidgetError, Widget,
+    FlowWidget, BoxWidget, fixed_size, FixedWidget,
     Divider, SolidFill, TextError, Text, EditError, Edit, IntEdit,
-    delegate_to_widget_mixin, WidgetWrapError, WidgetWrap)
+    delegate_to_widget_mixin, WidgetWrapError, WidgetWrap,
+    WidgetSize, WidgetsChildrenSize, WidgetAlignment, TextWrapping)
 from urwid.decoration import (WidgetDecoration, WidgetPlaceholder,
     AttrMapError, AttrMap, AttrWrap, BoxAdapterError, BoxAdapter, PaddingError,
     Padding, FillerError, Filler, WidgetDisable)

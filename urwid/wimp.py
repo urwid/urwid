@@ -21,8 +21,7 @@
 
 from __future__ import division, print_function
 
-from urwid.widget import (Text, WidgetWrap, delegate_to_widget_mixin, BOX,
-    FLOW)
+from urwid.widget import (Text, WidgetWrap, delegate_to_widget_mixin)
 from urwid.canvas import CompositeCanvas
 from urwid.signals import connect_signal
 from urwid.container import Columns, Overlay
@@ -32,12 +31,12 @@ from urwid.signals import disconnect_signal # doctests
 from urwid.split_repr import python3_repr
 from urwid.decoration import WidgetDecoration
 from urwid.command_map import ACTIVATE
-from urwid.constants import LEFT
+from urwid.constants import WidgetAlignment, WidgetSize
 
 class SelectableIcon(Text):
     ignore_focus = False
     _selectable = True
-    def __init__(self, text, cursor_position=0, align=LEFT):
+    def __init__(self, text, cursor_position=0, align=WidgetAlignment.LEFT):
         """
         :param text: markup for this widget; see :class:`Text` for
                      description of text markup
@@ -104,7 +103,7 @@ class CheckBoxError(Exception):
 
 class CheckBox(WidgetWrap):
     def sizing(self):
-        return frozenset([FLOW])
+        return frozenset([WidgetSize.FLOW])
 
     states = {
         True: SelectableIcon("[X]", 1),
@@ -446,14 +445,14 @@ class RadioButton(CheckBox):
 
 class Button(WidgetWrap):
     def sizing(self):
-        return frozenset([FLOW])
+        return frozenset([WidgetSize.FLOW])
 
     button_left = Text("<")
     button_right = Text(">")
 
     signals = ["click"]
 
-    def __init__(self, label, on_press=None, user_data=None, align=LEFT):
+    def __init__(self, label, on_press=None, user_data=None, align=WidgetAlignment.LEFT):
         """
         :param label: markup for button label
         :param on_press: shorthand for connect_signal()
@@ -616,7 +615,7 @@ class PopUpLauncher(delegate_to_widget_mixin('_original_widget'),
 class PopUpTarget(WidgetDecoration):
     # FIXME: this whole class is a terrible hack and must be fixed
     # when layout and rendering are separated
-    _sizing = set([BOX])
+    _sizing = set([WidgetSize.BOX])
     _selectable = True
 
     def __init__(self, original_widget):

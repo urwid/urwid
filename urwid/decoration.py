@@ -22,13 +22,11 @@
 from __future__ import division, print_function
 
 from urwid.util import int_scale
-from urwid.widget import (Widget, WidgetError,
-    BOX, FLOW, LEFT, CENTER, RIGHT, PACK, CLIP, GIVEN, RELATIVE, RELATIVE_100,
-    TOP, MIDDLE, BOTTOM, delegate_to_widget_mixin)
+from urwid.widget import (Widget, WidgetError, delegate_to_widget_mixin)
 from urwid.split_repr import remove_defaults
 from urwid.canvas import CompositeCanvas, SolidCanvas
 from urwid.widget import Divider, Edit, Text, SolidFill # doctests
-
+from urwid.constants import WidgetAlignment, WidgetSize, WidgetsChildrenSize, TextWrapping
 
 class WidgetDecoration(Widget):  # "decorator" was already taken
     """
@@ -356,7 +354,7 @@ class BoxAdapter(WidgetDecoration):
         WidgetDecoration._set_original_widget)
 
     def sizing(self):
-        return set([FLOW])
+        return set([WidgetSize.FLOW])
 
     def rows(self, size, focus=False):
         """
@@ -417,7 +415,8 @@ class PaddingError(Exception):
     pass
 
 class Padding(WidgetDecoration):
-    def __init__(self, w, align=LEFT, width=RELATIVE_100, min_width=None,
+    def __init__(self, w, align=WidgetAlignment.LEFT,
+                 width=WidgetsChildrenSize.FILL_PARENT, min_width=None,
             left=0, right=0):
         """
         :param w: a box, flow or fixed widget to pad on the left and/or right
@@ -489,21 +488,21 @@ class Padding(WidgetDecoration):
             'fixed right'):
             if align[0]=='fixed left':
                 left = align[1]
-                align = LEFT
+                align = WidgetAlignment.LEFT
             else:
                 right = align[1]
-                align = RIGHT
+                align = WidgetAlignment.RIGHT
         if type(width) == tuple and width[0] in ('fixed left',
             'fixed right'):
             if width[0]=='fixed left':
                 left = width[1]
             else:
                 right = width[1]
-            width = RELATIVE_100
+            width = WidgetsChildrenSize.FILL_PARENT
 
         # convert old clipping mode width=None to width='clip'
         if width is None:
-            width = CLIP
+            width = TextWrapping.CLIP
 
         self.left = left
         self.right = right
@@ -514,8 +513,8 @@ class Padding(WidgetDecoration):
         self.min_width = min_width
 
     def sizing(self):
-        if self._width_type == CLIP:
-            return set([FLOW])
+        if self._width_type == TextWrapping.CLIP:
+            return set([WidgetSize.FLOW])
         return self.original_widget.sizing()
 
     def _repr_attrs(self):
@@ -561,7 +560,7 @@ class Padding(WidgetDecoration):
         maxcol = size[0]
         maxcol -= left+right
 
-        if self._width_type == CLIP:
+        if self._width_type == TextWrapping.CLIP:
             canv = self._original_widget.render((), focus)
         else:
             canv = self._original_widget.render((maxcol,)+size[1:], focus)
@@ -582,19 +581,19 @@ class Padding(WidgetDecoration):
 
         Override this method to define custom padding behaviour."""
         maxcol = size[0]
-        if self._width_type == CLIP:
+        if self._width_type == TextWrapping.CLIP:
             width, ignore = self._original_widget.pack((), focus=focus)
             return calculate_left_right_padding(maxcol,
                 self._align_type, self._align_amount,
-                CLIP, width, None, self.left, self.right)
-        if self._width_type == PACK:
+                TextWrapping.CLIP, width, None, self.left, self.right)
+        if self._width_type == WidgetsChildrenSize.PACK:
             maxwidth = max(maxcol - self.left - self.right,
                 self.min_width or 0)
             (width, ignore) = self._original_widget.pack((maxwidth,),
                 focus=focus)
             return calculate_left_right_padding(maxcol,
                 self._align_type, self._align_amount,
-                GIVEN, width, self.min_width,
+                WidgetsChildrenSize.GIVEN, width, self.min_width,
                 self.left, self.right)
         return calculate_left_right_padding(maxcol,
             self._align_type, self._align_amount,
@@ -605,11 +604,11 @@ class Padding(WidgetDecoration):
         """Return the rows needed for self.original_widget."""
         (maxcol,) = size
         left, right = self.padding_values(size, focus)
-        if self._width_type == PACK:
+        if self._width_type == WidgetsChildrenSize.PACK:
             pcols, prows = self._original_widget.pack((maxcol-left-right,),
                 focus)
             return prows
-        if self._width_type == CLIP:
+        if self._width_type == TextWrapping.CLIP:
             fcols, frows = self._original_widget.pack((), focus)
             return frows
         return self._original_widget.rows((maxcol-left-right,), focus=focus)
@@ -684,7 +683,7 @@ class FillerError(Exception):
     pass
 
 class Filler(WidgetDecoration):
-    def __init__(self, body, valign=MIDDLE, height=PACK, min_height=None,
+    def __init__(self, body, valign=WidgetAlignment.MIDDLE, height=WidgetsChildrenSize.PACK, min_height=None,
             top=0, bottom=0):
         """
         :param body: a flow widget or box widget to be filled around (stored
@@ -735,24 +734,24 @@ class Filler(WidgetDecoration):
                     raise FillerError("fixed top height may only be used "
                         "with fixed bottom valign")
                 top = height[1]
-                height = RELATIVE_100
+                height = WidgetsChildrenSize.FILL_PARENT
             elif height[0] == 'fixed bottom':
                 if not isinstance(valign, tuple) or valign[0] != 'fixed top':
                     raise FillerError("fixed bottom height may only be used "
                         "with fixed top valign")
                 bottom = height[1]
-                height = RELATIVE_100
+                height = WidgetsChildrenSize.FILL_PARENT
         if isinstance(valign, tuple):
             if valign[0] == 'fixed top':
                 top = valign[1]
-                valign = TOP
+                valign = WidgetAlignment.TOP
             elif valign[0] == 'fixed bottom':
                 bottom = valign[1]
-                valign = BOTTOM
+                valign = WidgetAlignment.BOTTOM
 
         # convert old flow mode parameter height=None to height='flow'
-        if height is None or height == FLOW:
-            height = PACK
+        if height is None or height == WidgetSize.FLOW:
+            height = WidgetsChildrenSize.PACK
 
         self.top = top
         self.bottom = bottom
@@ -761,7 +760,7 @@ class Filler(WidgetDecoration):
         self.height_type, self.height_amount = normalize_height(height,
             FillerError)
 
-        if self.height_type not in (GIVEN, PACK):
+        if self.height_type not in (WidgetsChildrenSize.GIVEN, WidgetsChildrenSize.PACK):
             self.min_height = min_height
         else:
             self.min_height = None
@@ -795,11 +794,11 @@ class Filler(WidgetDecoration):
         """
         (maxcol, maxrow) = size
 
-        if self.height_type == PACK:
+        if self.height_type == WidgetsChildrenSize.PACK:
             height = self._original_widget.rows((maxcol,),focus=focus)
             return calculate_top_bottom_filler(maxrow,
                 self.valign_type, self.valign_amount,
-                GIVEN, height,
+                WidgetsChildrenSize.GIVEN, height,
                 None, self.top, self.bottom)
 
         return calculate_top_bottom_filler(maxrow,
@@ -813,7 +812,7 @@ class Filler(WidgetDecoration):
         (maxcol, maxrow) = size
         top, bottom = self.filler_values(size, focus)
 
-        if self.height_type == PACK:
+        if self.height_type == WidgetsChildrenSize.PACK:
             canv = self._original_widget.render((maxcol,), focus)
         else:
             canv = self._original_widget.render((maxcol,maxrow-top-bottom),focus)
@@ -833,7 +832,7 @@ class Filler(WidgetDecoration):
     def keypress(self, size, key):
         """Pass keypress to self.original_widget."""
         (maxcol, maxrow) = size
-        if self.height_type == PACK:
+        if self.height_type == WidgetsChildrenSize.PACK:
             return self._original_widget.keypress((maxcol,), key)
 
         top, bottom = self.filler_values((maxcol,maxrow), True)
@@ -846,7 +845,7 @@ class Filler(WidgetDecoration):
             return None
 
         top, bottom = self.filler_values(size, True)
-        if self.height_type == PACK:
+        if self.height_type == WidgetsChildrenSize.PACK:
             coords = self._original_widget.get_cursor_coords((maxcol,))
         else:
             coords = self._original_widget.get_cursor_coords(
@@ -864,7 +863,7 @@ class Filler(WidgetDecoration):
         if not hasattr(self._original_widget, 'get_pref_col'):
             return None
 
-        if self.height_type == PACK:
+        if self.height_type == WidgetsChildrenSize.PACK:
             x = self._original_widget.get_pref_col((maxcol,))
         else:
             top, bottom = self.filler_values(size, True)
@@ -883,7 +882,7 @@ class Filler(WidgetDecoration):
         if row < top or row >= maxcol-bottom:
             return False
 
-        if self.height_type == PACK:
+        if self.height_type == WidgetsChildrenSize.PACK:
             return self._original_widget.move_cursor_to_coords((maxcol,),
                 col, row-top)
         return self._original_widget.move_cursor_to_coords(
@@ -899,7 +898,7 @@ class Filler(WidgetDecoration):
         if row < top or row >= maxrow-bottom:
             return False
 
-        if self.height_type == PACK:
+        if self.height_type == WidgetsChildrenSize.PACK:
             return self._original_widget.mouse_event((maxcol,),
                 event, button, col, row-top, focus)
         return self._original_widget.mouse_event((maxcol, maxrow-top-bottom),
@@ -931,9 +930,9 @@ def normalize_align(align, err):
     Split align into (align_type, align_amount).  Raise exception err
     if align doesn't match a valid alignment.
     """
-    if align in (LEFT, CENTER, RIGHT):
+    if align in (WidgetAlignment.LEFT, WidgetAlignment.CENTER, WidgetAlignment.RIGHT):
         return (align, None)
-    elif type(align) == tuple and len(align) == 2 and align[0] == RELATIVE:
+    elif type(align) == tuple and len(align) == 2 and align[0] == WidgetsChildrenSize.RELATIVE:
         return align
     raise err("align value %r is not one of 'left', 'center', "
         "'right', ('relative', percentage 0=left 100=right)"
@@ -944,7 +943,7 @@ def simplify_align(align_type, align_amount):
     Recombine (align_type, align_amount) into an align value.
     Inverse of normalize_align.
     """
-    if align_type == RELATIVE:
+    if align_type == WidgetsChildrenSize.RELATIVE:
         return (align_type, align_amount)
     return align_type
 
@@ -953,11 +952,11 @@ def normalize_width(width, err):
     Split width into (width_type, width_amount).  Raise exception err
     if width doesn't match a valid alignment.
     """
-    if width in (CLIP, PACK):
+    if width in (TextWrapping.CLIP, WidgetsChildrenSize.PACK):
         return (width, None)
     elif type(width) == int:
-        return (GIVEN, width)
-    elif type(width) == tuple and len(width) == 2 and width[0] == RELATIVE:
+        return (WidgetsChildrenSize.GIVEN, width)
+    elif type(width) == tuple and len(width) == 2 and width[0] == WidgetsChildrenSize.RELATIVE:
         return width
     raise err("width value %r is not one of fixed number of columns, "
         "'pack', ('relative', percentage of total width), 'clip'"
@@ -968,9 +967,9 @@ def simplify_width(width_type, width_amount):
     Recombine (width_type, width_amount) into an width value.
     Inverse of normalize_width.
     """
-    if width_type in (CLIP, PACK):
+    if width_type in (TextWrapping.CLIP, WidgetsChildrenSize.PACK):
         return width_type
-    elif width_type == GIVEN:
+    elif width_type == WidgetsChildrenSize.GIVEN:
         return width_amount
     return (width_type, width_amount)
 
@@ -979,10 +978,10 @@ def normalize_valign(valign, err):
     Split align into (valign_type, valign_amount).  Raise exception err
     if align doesn't match a valid alignment.
     """
-    if valign in (TOP, MIDDLE, BOTTOM):
+    if valign in (WidgetAlignment.TOP, WidgetAlignment.MIDDLE, WidgetAlignment.BOTTOM):
         return (valign, None)
     elif (isinstance(valign, tuple) and len(valign) == 2 and
-            valign[0] == RELATIVE):
+            valign[0] == WidgetsChildrenSize.RELATIVE):
         return valign
     raise err("valign value %r is not one of 'top', 'middle', "
         "'bottom', ('relative', percentage 0=left 100=right)"
@@ -993,7 +992,7 @@ def simplify_valign(valign_type, valign_amount):
     Recombine (valign_type, valign_amount) into an valign value.
     Inverse of normalize_valign.
     """
-    if valign_type == RELATIVE:
+    if valign_type == WidgetsChildrenSize.RELATIVE:
         return (valign_type, valign_amount)
     return valign_type
 
@@ -1002,13 +1001,13 @@ def normalize_height(height, err):
     Split height into (height_type, height_amount).  Raise exception err
     if height isn't valid.
     """
-    if height in (FLOW, PACK):
+    if height in (WidgetSize.FLOW, WidgetsChildrenSize.PACK):
         return (height, None)
     elif (isinstance(height, tuple) and len(height) == 2 and
-            height[0] == RELATIVE):
+            height[0] == WidgetsChildrenSize.RELATIVE):
         return height
     elif isinstance(height, int):
-        return (GIVEN, height)
+        return (WidgetsChildrenSize.GIVEN, height)
     raise err("height value %r is not one of fixed number of columns, "
         "'pack', ('relative', percentage of total height)"
         % (height,))
@@ -1018,9 +1017,9 @@ def simplify_height(height_type, height_amount):
     Recombine (height_type, height_amount) into an height value.
     Inverse of normalize_height.
     """
-    if height_type in (FLOW, PACK):
+    if height_type in (WidgetSize.FLOW, WidgetsChildrenSize.PACK):
         return height_type
-    elif height_type == GIVEN:
+    elif height_type == WidgetsChildrenSize.GIVEN:
         return height_amount
     return (height_type, height_amount)
 
@@ -1058,7 +1057,7 @@ def calculate_top_bottom_filler(maxrow, valign_type, valign_amount, height_type,
     >>> ctbf(20, 'relative', 30, 'relative', 60, 14, 0, 0)
     (2, 4)
     """
-    if height_type == RELATIVE:
+    if height_type == WidgetsChildrenSize.RELATIVE:
         maxheight = max(maxrow - top - bottom, 0)
         height = int_scale(height_amount, 101, maxheight + 1)
         if min_height is not None:
@@ -1066,7 +1065,9 @@ def calculate_top_bottom_filler(maxrow, valign_type, valign_amount, height_type,
     else:
         height = height_amount
 
-    standard_alignments = {TOP:0, MIDDLE:50, BOTTOM:100}
+    standard_alignments = {WidgetAlignment.TOP:0,
+                           WidgetAlignment.MIDDLE:50,
+                           WidgetAlignment.BOTTOM:100}
     valign = standard_alignments.get(valign_type, valign_amount)
 
     # add the remainder of top/bottom to the filler
@@ -1128,7 +1129,7 @@ def calculate_left_right_padding(maxcol, align_type, align_amount,
     >>> clrp(20, 'relative', 30, 'relative', 60, 14, 0, 0)
     (2, 4)
     """
-    if width_type == RELATIVE:
+    if width_type == WidgetsChildrenSize.RELATIVE:
         maxwidth = max(maxcol - left - right, 0)
         width = int_scale(width_amount, 101, maxwidth + 1)
         if min_width is not None:
@@ -1136,7 +1137,9 @@ def calculate_left_right_padding(maxcol, align_type, align_amount,
     else:
         width = width_amount
 
-    standard_alignments = {LEFT:0, CENTER:50, RIGHT:100}
+    standard_alignments = {WidgetAlignment.LEFT:0,
+                           WidgetAlignment.CENTER:50,
+                           WidgetAlignment.RIGHT:100}
     align = standard_alignments.get(align_type, align_amount)
 
     # add the remainder of left/right the padding
@@ -1155,7 +1158,7 @@ def calculate_left_right_padding(maxcol, align_type, align_amount,
         left += shift
 
     # only clip if width_type == 'clip'
-    if width_type != CLIP and (left < 0 or right < 0):
+    if width_type != TextWrapping.CLIP and (left < 0 or right < 0):
         left = max(left, 0)
         right = max(right, 0)
 

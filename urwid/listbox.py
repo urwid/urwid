@@ -24,7 +24,9 @@ from __future__ import division, print_function
 from urwid.compat import xrange, with_metaclass
 from urwid.util import is_mouse_press
 from urwid.canvas import SolidCanvas, CanvasCombine
-from urwid.widget import Widget, nocache_widget_render_instance, BOX, GIVEN
+from urwid.widget import Widget, nocache_widget_render_instance
+from urwid.constants import WidgetSize, WidgetsChildrenSize
+
 from urwid.decoration import calculate_top_bottom_filler, normalize_valign
 from urwid import signals
 from urwid.signals import connect_signal
@@ -227,7 +229,7 @@ class ListBox(Widget, WidgetContainerMixin):
     a horizontally stacked list of widgets
     """
     _selectable = True
-    _sizing = frozenset([BOX])
+    _sizing = frozenset([WidgetSize.BOX])
 
     def __init__(self, body):
         """
@@ -628,7 +630,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
         rows = focus_widget.rows((maxcol,), focus)
         rtop, rbot = calculate_top_bottom_filler(maxrow,
-            vt, va, GIVEN, rows, None, 0, 0)
+            vt, va, WidgetsChildrenSize.GIVEN, rows, None, 0, 0)
 
         self.shift_focus((maxcol, maxrow), rtop)
 

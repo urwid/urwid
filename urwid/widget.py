@@ -35,9 +35,22 @@ from urwid.command_map import (command_map, CURSOR_LEFT, CURSOR_RIGHT,
     CURSOR_UP, CURSOR_DOWN, CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT)
 from urwid.split_repr import split_repr, remove_defaults, python3_repr
 
-from urwid.constants import FLOW, BOX, FIXED, LEFT, RIGHT, CENTER
-from urwid.constants import TOP, MIDDLE, BOTTOM, SPACE, ANY, CLIP
-from urwid.constants import PACK, GIVEN, RELATIVE, RELATIVE_100, WEIGHT
+
+# best option, import just classes. Breaking API change.
+from urwid.constants import WidgetAlignment, WidgetSize, WidgetsChildrenSize, TextWrapping
+
+# option 2, bad: make it packages
+# from urwid.constants.WidgetAlignment import TOP, LEFT, RIGHT, CENTER, MIDDLE, BOTTOM
+# from urwid.constants.WidgetSize import BOX, FLOW, FIXED
+# from urwid.constants.WidgetsChildrenSize import PACK, RELATIVE, WEIGHT, FILL_PARENT, GIVEN
+# from urwid.constants.TextWrapping import SPACE, ANY, CLIP, ELLIPSIS
+
+# option 3, bad: reintroduce names to global scope...keeps API, but pollutes space
+
+#for EnumName in (WidgetAlignment, WidgetSize, WidgetsChildrenSize, TextWrapping):
+#    for w in EnumName:
+#        globals()[w.name] = w
+
 
 class WidgetMeta(MetaSuper, signals.MetaSignals):
     """
@@ -413,7 +426,7 @@ class Widget(with_metaclass(WidgetMeta, object)):
                  *row*, ``False`` otherwise
     """
     _selectable = False
-    _sizing = frozenset([FLOW, BOX, FIXED])
+    _sizing = frozenset(WidgetSize)# frozenset([WidgetSize.FLOW, WidgetSize.BOX, WidgetSize.FIXED])
     _command_map = command_map
 
     def _invalidate(self):
@@ -511,13 +524,13 @@ class Widget(with_metaclass(WidgetMeta, object)):
         required to display the text wrapped into a target number of rows.
         """
         if not size:
-            if FIXED in self.sizing():
+            if WidgetSize.FIXED in self.sizing():
                 raise NotImplementedError('Fixed widgets must override'
                     ' Widget.pack()')
             raise WidgetError('Cannot pack () size, this is not a fixed'
                 ' widget: %s' % repr(self))
         elif len(size) == 1:
-            if FLOW in self.sizing():
+            if WidgetSize.FLOW in self.sizing():
                 return size + (self.rows(size, focus),)
             raise WidgetError('Cannot pack (maxcol,) size, this is not a'
                 ' flow widget: %s' % repr(self))
@@ -556,10 +569,9 @@ class Widget(with_metaclass(WidgetMeta, object)):
         words = []
         if self.selectable():
             words = ["selectable"] + words
-        if self.sizing() and self.sizing() != frozenset([FLOW, BOX, FIXED]):
-            sizing_modes = list(self.sizing())
-            sizing_modes.sort()
-            words.append("/".join(sizing_modes))
+        if self.sizing() and self.sizing() != frozenset(WidgetSize):
+            # sizing_modes = list(self.sizing())
+            words.append(str(self.sizing()))
         return words + ["widget"]
 
     def _repr_attrs(self):
@@ -577,7 +589,7 @@ class FlowWidget(Widget):
     Base class of widgets that determine their rows from the number of
     columns available.
     """
-    _sizing = frozenset([FLOW])
+    _sizing = frozenset([WidgetSize.FLOW])
 
     def rows(self, size, focus=False):
         """
@@ -605,7 +617,7 @@ class BoxWidget(Widget):
     the top level widget attached to the display object
     """
     _selectable = True
-    _sizing = frozenset([BOX])
+    _sizing = frozenset([WidgetSize.BOX])
 
     def render(self, size, focus=False):
         """
@@ -635,7 +647,7 @@ class FixedWidget(Widget):
     Base class of widgets that know their width and height and
     cannot be resized
     """
-    _sizing = frozenset([FIXED])
+    _sizing = frozenset([WidgetSize.FIXED])
 
     def render(self, size, focus=False):
         """
@@ -654,7 +666,7 @@ class Divider(Widget):
     """
     Horizontal divider widget
     """
-    _sizing = frozenset([FLOW])
+    _sizing = frozenset([WidgetSize.FLOW])
 
     ignore_focus = True
 
@@ -762,12 +774,13 @@ class Text(Widget):
     """
     a horizontally resizeable text widget
     """
-    _sizing = frozenset([FLOW])
+    _sizing = frozenset([WidgetSize.FLOW])
 
     ignore_focus = True
     _repr_content_length_max = 140
 
-    def __init__(self, markup, align=LEFT, wrap=SPACE, layout=None):
+    def __init__(self, markup, align=WidgetAlignment.LEFT,
+                 wrap=TextWrapping.SPACE, layout=None):
         """
         :param markup: content of text widget, one of:
 
@@ -897,9 +910,10 @@ class Text(Widget):
         Traceback (most recent call last):
         TextError: Alignment mode 'somewhere' not supported.
         """
-        if not self.layout.supports_align_mode(mode):
-            raise TextError("Alignment mode %r not supported."%
-                (mode,))
+        # TODO: uncomment, and fix
+        #if not self.layout.supports_align_mode(mode):
+        #    raise TextError("Alignment mode %r not supported."%
+        #        (mode,))
         self._align_mode = mode
         self._invalidate()
 
@@ -926,8 +940,9 @@ class Text(Widget):
         Traceback (most recent call last):
         TextError: Wrap mode 'somehow' not supported.
         """
-        if not self.layout.supports_wrap_mode(mode):
-            raise TextError("Wrap mode %r not supported."%(mode,))
+        # TODO: uncomment, and fix
+        # if not self.layout.supports_wrap_mode(mode):
+        #    raise TextError("Wrap mode %r not supported."%(mode,))
         self._wrap_mode = mode
         self._invalidate()
 
@@ -1094,8 +1109,8 @@ class Edit(Text):
         return is_wide_char(ch,0) or (len(ch)==1 and ord(ch) >= 32)
 
     def __init__(self, caption=u"", edit_text=u"", multiline=False,
-            align=LEFT, wrap=SPACE, allow_tab=False,
-            edit_pos=None, layout=None, mask=None):
+            align=WidgetAlignment.LEFT, wrap=TextWrapping.SPACE,
+            allow_tab=False, edit_pos=None, layout=None, mask=None):
         """
         :param caption: markup for caption preceding edit_text, see
                         :class:`Text` for description of text markup.
@@ -1511,9 +1526,9 @@ class Edit(Text):
             x,y = self.get_cursor_coords((maxcol,))
 
             if self._command_map[key] == CURSOR_MAX_LEFT:
-                self.move_cursor_to_coords((maxcol,), LEFT, y)
+                self.move_cursor_to_coords((maxcol,), WidgetAlignment.LEFT, y)
             else:
-                self.move_cursor_to_coords((maxcol,), RIGHT, y)
+                self.move_cursor_to_coords((maxcol,), WidgetAlignment.RIGHT, y)
             return
 
         else:

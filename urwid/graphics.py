@@ -26,16 +26,17 @@ from urwid.compat import ord2, with_metaclass
 from urwid.util import decompose_tagmarkup, get_encoding_mode
 from urwid.canvas import CompositeCanvas, CanvasJoin, TextCanvas, \
     CanvasCombine, SolidCanvas
-from urwid.widget import WidgetMeta, Widget, BOX, FIXED, FLOW, \
+from urwid.widget import WidgetMeta, Widget, \
     nocache_widget_render, nocache_widget_render_instance, fixed_size, \
-    WidgetWrap, Divider, SolidFill, Text, CENTER, CLIP
+    WidgetWrap, Divider, SolidFill, Text
 from urwid.container import Pile, Columns
 from urwid.display_common import AttrSpec
 from urwid.decoration import WidgetDecoration
+from urwid.constants import WidgetAlignment, WidgetSize, WidgetsChildrenSize
 
 
 class BigText(Widget):
-    _sizing = frozenset([FIXED])
+    _sizing = frozenset([WidgetSize.FIXED])
 
     def __init__(self, markup, font):
         """
@@ -247,7 +248,7 @@ class BarGraphError(Exception):
     pass
 
 class BarGraph(with_metaclass(BarGraphMeta, Widget)):
-    _sizing = frozenset([BOX])
+    _sizing = frozenset([WidgetSize.BOX])
 
     ignore_focus = True
 
@@ -770,7 +771,7 @@ def calculate_bargraph_display(bardata, top, bar_widths, maxrow):
 
 
 class GraphVScale(Widget):
-    _sizing = frozenset([BOX])
+    _sizing = frozenset([WidgetSize.BOX])
 
     def __init__(self, labels, top):
         """
@@ -848,11 +849,11 @@ def scale_bar_values( bar, top, maxrow ):
 
 
 class ProgressBar(Widget):
-    _sizing = frozenset([FLOW])
+    _sizing = frozenset([WidgetSize.FLOW])
 
     eighths = u' ▏▎▍▌▋▊▉'
 
-    text_align = CENTER
+    text_align = WidgetAlignment.CENTER
 
     def __init__(self, normal, complete, current=0, done=100, satt=None):
         """
@@ -961,7 +962,7 @@ class ProgressBar(Widget):
 
 
 class PythonLogo(Widget):
-    _sizing = frozenset([FIXED])
+    _sizing = frozenset([WidgetSize.FIXED])
 
     def __init__(self):
         """

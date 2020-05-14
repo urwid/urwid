@@ -25,6 +25,8 @@ from __future__ import division, print_function
 from urwid.util import calc_width, calc_text_pos, calc_trim_text, is_wide_char, \
     move_prev_char, move_next_char
 from urwid.compat import bytes, PYTHON3, B, xrange
+from urwid.constants import WidgetAlignment, TextWrapping
+
 
 class TextLayout:
     def supports_align_mode(self, align):
@@ -74,11 +76,9 @@ class StandardTextLayout(TextLayout):
         #self.tab_stops = tab_stops
         #self.tab_stop_every = tab_stop_every
     def supports_align_mode(self, align):
-        """Return True if align is 'left', 'center' or 'right'."""
-        return align in ('left', 'center', 'right')
+        return align in WidgetAlignment
     def supports_wrap_mode(self, wrap):
-        """Return True if wrap is 'any', 'space', 'clip' or 'ellipsis'."""
-        return wrap in ('any', 'space', 'clip', 'ellipsis')
+        return wrap in TextWrapping
     def layout(self, text, width, align, wrap ):
         """Return a layout structure for text."""
         try:
@@ -107,14 +107,14 @@ class StandardTextLayout(TextLayout):
         out = []
         for l in segs:
             sc = line_width(l)
-            if sc == width or align=='left':
+            if sc == width or align==WidgetAlignment.LEFT:
                 out.append(l)
                 continue
 
-            if align == 'right':
+            if align == WidgetAlignment.RIGHT:
                 out.append([(width-sc, None)] + l)
                 continue
-            assert align == 'center'
+            assert align == WidgetAlignment.CENTER
             out.append([((width-sc+1) // 2, None)] + l)
         return out
 
@@ -137,7 +137,7 @@ class StandardTextLayout(TextLayout):
             sp_o = ord(sp_o)
         b = []
         p = 0
-        if wrap in ('clip', 'ellipsis'):
+        if wrap in (TextWrapping.ELLIPSIS, TextWrapping.CLIP):
             # no wrapping to calculate, so it's easy.
             while p<=len(text):
                 n_cr = text.find(nl, p)
