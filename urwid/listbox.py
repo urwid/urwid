@@ -81,11 +81,12 @@ class ListWalker(with_metaclass(signals.MetaSignals, object)):
         except (IndexError, KeyError):
             return None, None
 
-
 class SimpleListWalker(MonitoredList, ListWalker):
-    def __init__(self, contents):
+    def __init__(self, contents, wrap_around=False):
         """
         contents -- list to copy into this object
+
+        wrap_around -- if true, jumps to beginning/end of list on move
 
         This class inherits :class:`MonitoredList` which means
         it can be treated as a list.
@@ -98,6 +99,7 @@ class SimpleListWalker(MonitoredList, ListWalker):
             raise ListWalkerError("SimpleListWalker expecting list like object, got: %r"%(contents,))
         MonitoredList.__init__(self, contents)
         self.focus = 0
+        self.wrap_around = wrap_around
 
     def _get_contents(self):
         """
@@ -138,6 +140,8 @@ class SimpleListWalker(MonitoredList, ListWalker):
         Return position after start_from.
         """
         if len(self) - 1 <= position:
+            if self.wrap_around:
+                return 0
             raise IndexError
         return position + 1
 
@@ -146,6 +150,8 @@ class SimpleListWalker(MonitoredList, ListWalker):
         Return position before start_from.
         """
         if position <= 0:
+            if self.wrap_around:
+                return len(self) - 1
             raise IndexError
         return position - 1
 
@@ -159,9 +165,11 @@ class SimpleListWalker(MonitoredList, ListWalker):
 
 
 class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
-    def __init__(self, contents):
+    def __init__(self, contents, wrap_around=False):
         """
         contents -- list to copy into this object
+
+        wrap_around -- if true, jumps to beginning/end of list on move
 
         This class inherits :class:`MonitoredList` which means
         it can be treated as a list.
@@ -178,6 +186,7 @@ class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
             raise ListWalkerError("SimpleFocusListWalker expecting list like "
                 "object, got: %r"%(contents,))
         MonitoredFocusList.__init__(self, contents)
+        self.wrap_around = wrap_around
 
     def set_modified_callback(self, callback):
         """
@@ -199,6 +208,8 @@ class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
         Return position after start_from.
         """
         if len(self) - 1 <= position:
+            if self.wrap_around:
+                return 0
             raise IndexError
         return position + 1
 
@@ -207,6 +218,8 @@ class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
         Return position before start_from.
         """
         if position <= 0:
+            if self.wrap_around:
+                return len(self) - 1
             raise IndexError
         return position - 1
 
