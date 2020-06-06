@@ -609,7 +609,7 @@ class PopUpLauncher(delegate_to_widget_mixin('_original_widget'),
 class PopUpTarget(WidgetDecoration):
     # FIXME: this whole class is a terrible hack and must be fixed
     # when layout and rendering are separated
-    _sizing = set([BOX])
+    _sizing = frozenset([BOX])
     _selectable = True
 
     def __init__(self, original_widget):
