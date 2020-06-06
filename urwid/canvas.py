@@ -23,9 +23,13 @@ from __future__ import division, print_function
 
 import weakref
 
+from urwid.compat import PYTHON3
 from urwid.util import rle_len, rle_append_modify, rle_join_modify, rle_product, \
     calc_width, calc_text_pos, apply_target_encoding, trim_text_attr_cs
 from urwid.text_layout import trim_line, LayoutSegment
+
+if PYTHON3:
+    from typing import Any, Dict, List, Tuple, Type
 
 
 class CanvasCache(object):
@@ -44,9 +48,9 @@ class CanvasCache(object):
     _refs[weakref.ref(canvas)] = (widget, wcls, size, focus)
     _deps[widget} = [dependent_widget, ...]
     """
-    _widgets = {}
-    _refs = {}
-    _deps = {}
+    _widgets = {}  # type: Dict[Tuple[Type[Any], int, bool], weakref.ref[Canvas]]
+    _refs = {}  # type: Dict[weakref.ref[Canvas], Tuple[Any, int, bool]]
+    _deps = {}  # type: Dict[weakref.ref[Canvas], List[Any]]
     hits = 0
     fetches = 0
     cleanups = 0
