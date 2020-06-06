@@ -57,12 +57,12 @@ if PYTHON3:
             tb = None
 else:
     ord2 = ord
-    chr2 = chr
+    chr2 = chr  # type: ignore
     B = lambda x: x
-    bytes3 = lambda x: bytes().join([chr(c) for c in x])
-    text_type = unicode
+    bytes3 = lambda x: bytes().join([chr(c) for c in x])  # type: ignore
+    text_type = unicode  # type: ignore
     xrange = xrange
-    text_types = (str, unicode)
+    text_types = (str, unicode)  # type: ignore
 
     """
     Reraise an exception.
