@@ -1777,17 +1777,32 @@ class DelegateToWidgetMixin(Widget):
         canv = self.delegate.render(size, focus=focus)
         return CompositeCanvas(canv)
 
-    selectable = property(lambda self: self.delegate.selectable)
-    get_cursor_coords = property(
-        lambda self: self.delegate.get_cursor_coords)
-    get_pref_col = property(lambda self: self.delegate.get_pref_col)
-    keypress = property(lambda self: self.delegate.keypress)
-    move_cursor_to_coords = property(
-        lambda self: self.delegate.move_cursor_to_coords)
-    rows = property(lambda self: self.delegate.rows)
-    mouse_event = property(lambda self: self.delegate.mouse_event)
-    sizing = property(lambda self: self.delegate.sizing)
-    pack = property(lambda self: self.delegate.pack)
+    def selectable(self):
+        return self.delegate.selectable()
+
+    def get_cursor_coords(self, *args, **kwargs):
+        return self.delegate.get_cursor_coords(*args, **kwargs)
+
+    def get_pref_col(self, *args, **kwargs):
+        return self.delegate.get_pref_col(*args, **kwargs)
+
+    def keypress(self, *args, **kwargs):
+        return self.delegate.keypress(*args, **kwargs)
+
+    def move_cursor_to_coords(self, *args, **kwargs):
+        return self.delegate.move_cursor_to_coords(*args, **kwargs)
+
+    def rows(self, *args, **kwargs):
+        return self.delegate.rows(*args, **kwargs)
+
+    def mouse_event(self, *args, **kwargs):
+        return self.delegate.mouse_event(*args, **kwargs)
+
+    def sizing(self):
+        return self.delegate.sizing()
+
+    def pack(self, *args, **kwargs):
+        return self.delegate.pack(*args, **kwargs)
 
 
 class DelegateToOriginalWidgetMixin(Widget):
