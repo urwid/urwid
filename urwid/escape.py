@@ -31,7 +31,7 @@ import re
 try:
     from urwid import str_util
 except ImportError:
-    from urwid import old_str_util as str_util
+    from urwid import old_str_util as str_util  # type: ignore
 
 from urwid.compat import bytes3
 
