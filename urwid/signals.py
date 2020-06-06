@@ -51,7 +51,7 @@ class Key(object):
     Minimal class, whose only purpose is to produce objects with a
     unique hash
     """
-    __slots__ = []
+    __slots__ = ()
 
 class Signals(object):
     _signal_attr = '_urwid_signals' # attribute to attach to signal senders
