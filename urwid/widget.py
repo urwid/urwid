@@ -1767,7 +1767,7 @@ class DelegateToWidgetMixin(Widget):
     no_cache = ["rows"]  # crufty metaclass work-around
 
     # to be implemented in concrete class
-    delegate_attribute = None
+    delegate_attribute = None  # type: str
 
     @property
     def delegate(self):
