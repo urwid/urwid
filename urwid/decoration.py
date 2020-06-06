@@ -24,7 +24,7 @@ from __future__ import division, print_function
 from urwid.util import int_scale
 from urwid.widget import (Widget, WidgetError,
     BOX, FLOW, LEFT, CENTER, RIGHT, PACK, CLIP, GIVEN, RELATIVE, RELATIVE_100,
-    TOP, MIDDLE, BOTTOM, delegate_to_widget_mixin)
+    TOP, MIDDLE, BOTTOM, DelegateToOriginalWidgetMixin)
 from urwid.split_repr import remove_defaults
 from urwid.canvas import CompositeCanvas, SolidCanvas
 from urwid.widget import Divider, Edit, Text, SolidFill # doctests
@@ -86,8 +86,7 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
         return self._original_widget.sizing()
 
 
-class WidgetPlaceholder(delegate_to_widget_mixin('_original_widget'),
-        WidgetDecoration):
+class WidgetPlaceholder(DelegateToOriginalWidgetMixin, WidgetDecoration):
     """
     This is a do-nothing decoration widget that can be used for swapping
     between widgets without modifying the container of this widget.
@@ -104,7 +103,7 @@ class WidgetPlaceholder(delegate_to_widget_mixin('_original_widget'),
 class AttrMapError(WidgetError):
     pass
 
-class AttrMap(delegate_to_widget_mixin('_original_widget'), WidgetDecoration):
+class AttrMap(DelegateToOriginalWidgetMixin, WidgetDecoration):
     """
     AttrMap is a decoration that maps one set of attributes to another.
     This object will pass all function calls and variable references to the

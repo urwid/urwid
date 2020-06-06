@@ -21,7 +21,7 @@
 
 from __future__ import division, print_function
 
-from urwid.widget import (Text, WidgetWrap, delegate_to_widget_mixin, BOX,
+from urwid.widget import (Text, WidgetWrap, DelegateToOriginalWidgetMixin, BOX,
     FLOW)
 from urwid.canvas import CompositeCanvas
 from urwid.signals import connect_signal
@@ -566,8 +566,7 @@ class Button(WidgetWrap):
         return True
 
 
-class PopUpLauncher(delegate_to_widget_mixin('_original_widget'),
-        WidgetDecoration):
+class PopUpLauncher(DelegateToOriginalWidgetMixin, WidgetDecoration):
     def __init__(self, original_widget):
         self.__super.__init__(original_widget)
         self._pop_up_widget = None
