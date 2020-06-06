@@ -36,7 +36,7 @@ from urwid.command_map import (CURSOR_UP, CURSOR_DOWN,
 class ListWalkerError(Exception):
     pass
 
-class ListWalker(with_metaclass(signals.MetaSignals, object)):
+class ListWalker(with_metaclass(signals.MetaSignals, object)):  # type: ignore
     signals = ["modified"]
 
     def _modified(self):

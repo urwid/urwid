@@ -768,7 +768,7 @@ class RealTerminal(object):
 class ScreenError(Exception):
     pass
 
-class BaseScreen(with_metaclass(signals.MetaSignals, object)):
+class BaseScreen(with_metaclass(signals.MetaSignals, object)):  # type: ignore
     """
     Base class for Screen classes (raw_display.Screen, .. etc)
     """

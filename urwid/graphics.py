@@ -246,7 +246,7 @@ def nocache_bargraph_get_data(self, get_data_fn):
 class BarGraphError(Exception):
     pass
 
-class BarGraph(with_metaclass(BarGraphMeta, Widget)):
+class BarGraph(with_metaclass(BarGraphMeta, Widget)):  # type: ignore
     _sizing = frozenset([BOX])
 
     ignore_focus = True

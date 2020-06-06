@@ -207,7 +207,7 @@ def cache_widget_rows(cls):
     return cached_rows
 
 
-class Widget(with_metaclass(WidgetMeta, object)):
+class Widget(with_metaclass(WidgetMeta, object)):  # type: ignore
     """
     Widget base class
 
