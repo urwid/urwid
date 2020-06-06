@@ -44,7 +44,7 @@ class HtmlGenerator(BaseScreen):
     fragments = []
     sizes = []
     keys = []
-    started = True
+    _started = True
 
     def __init__(self):
         super(HtmlGenerator, self).__init__()
