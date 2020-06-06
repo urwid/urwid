@@ -347,6 +347,7 @@ class MonitoredFocusList(MonitoredList):
             return self.__setitem__(slice(i, j), y)
 
     def __imul__(self, n):
+        # type: (int) -> MonitoredFocusList
         """
         >>> def modified(indices, new_items):
         ...     print("range%r <- %r" % (indices, list(new_items)))
