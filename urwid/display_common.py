@@ -386,6 +386,20 @@ def _parse_color_256(desc):
     except ValueError:
         return None
 
+
+def _true_to_256(desc):
+
+    if  not (desc.startswith('#') and len(desc) == 7):
+        return None
+
+    c256 = _parse_color_256("#" + "".join([
+        format(int(x, 16)//16, "x")
+        for x in [desc[1:3], desc[3:5], desc[5:7] ]
+    ]
+    ))
+    return _color_desc_256(c256)
+
+
 def _parse_color_88(desc):
     """
     Return a color number for the description desc.
@@ -616,7 +630,7 @@ class AttrSpec(object):
                 scolor = _parse_color_true(part)
                 flags |= _FG_TRUE_COLOR
             else:
-                scolor = _parse_color_256(part)
+                scolor = _parse_color_256(_true_to_256(part) or part)
                 flags |= _FG_HIGH_COLOR
             # _parse_color_*() return None for unrecognised colors
             if scolor is None:
@@ -658,7 +672,7 @@ class AttrSpec(object):
             color = _parse_color_true(background)
             flags |= _BG_TRUE_COLOR
         else:
-            color = _parse_color_256(background)
+            color = _parse_color_256(_true_to_256(background) or background)
             flags |= _BG_HIGH_COLOR
         if color is None:
             raise AttrSpecError(("Unrecognised color specification " +
