@@ -242,7 +242,7 @@ class FloatEdit(NumEdit):
                              decimalSeparator))
 
         val = ""
-        if default is not None and default is not "":
+        if default is not None and default != "":
             if not isinstance(default, (int, str, Decimal)):
                 raise ValueError("default: Only 'str', 'int', "
                                  "'long' or Decimal input allowed")
