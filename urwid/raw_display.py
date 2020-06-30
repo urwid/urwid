@@ -813,19 +813,19 @@ class Screen(BaseScreen, RealTerminal):
             lasta = lastcs = None
             for (a,cs, run) in row:
                 assert isinstance(run, bytes) # canvases should render with bytes
-                if cs != 'U':
+                if cs != B('U'):
                     run = run.translate(UNPRINTABLE_TRANS_TABLE)
                 if first or lasta != a:
                     o.append(attr_to_escape(a))
                     lasta = a
                 if first or lastcs != cs:
-                    assert cs in [None, "0", "U"], repr(cs)
-                    if lastcs == "U":
+                    assert cs in [None, B("0"), B("U")], repr(cs)
+                    if lastcs == B("U"):
                         o.append( escape.IBMPC_OFF )
 
                     if cs is None:
                         o.append( escape.SI )
-                    elif cs == "U":
+                    elif cs == B("U"):
                         o.append( escape.IBMPC_ON )
                     else:
                         o.append( escape.SO )
@@ -835,10 +835,10 @@ class Screen(BaseScreen, RealTerminal):
             if ins:
                 (inserta, insertcs, inserttext) = ins
                 ias = attr_to_escape(inserta)
-                assert insertcs in [None, "0", "U"], repr(insertcs)
+                assert insertcs in [None, B("0"), B("U")], repr(insertcs)
                 if cs is None:
                     icss = escape.SI
-                elif cs == "U":
+                elif cs == B("U"):
                     icss = escape.IBMPC_ON
                 else:
                     icss = escape.SO
@@ -847,7 +847,7 @@ class Screen(BaseScreen, RealTerminal):
                     escape.INSERT_ON, inserttext,
                     escape.INSERT_OFF ]
 
-                if cs == "U":
+                if cs == B("U"):
                     o.append(escape.IBMPC_OFF)
             if whitespace_at_end:
                 o.append(escape.ERASE_IN_LINE_RIGHT)
