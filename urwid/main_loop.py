@@ -353,6 +353,11 @@ class MainLoop(object):
         self._reset_input_descriptors()
         self.idle_handle = self.event_loop.enter_idle(self.entering_idle)
 
+        # the screen is redrawn automatically after input and alarms,
+        # however, there can be none of those at the start,
+        # so draw the initial screen here unconditionally
+        self.event_loop.alarm(0, self.entering_idle)
+
         return StoppingContext(self)
 
     def stop(self):
@@ -1380,10 +1385,20 @@ class AsyncioEventLoop(EventLoop):
     ``asyncio`` is new in Python 3.4, but also exists as a backport on PyPI for
     Python 3.3.  The ``trollius`` package is available for older Pythons with
     slightly different syntax, but also works with this loop.
+
+       .. note::
+
+        If you make any changes to the urwid state outside of it
+        handling input or responding to alarms (for example, from asyncio.Task
+        running in background), and wish the screen to be
+        redrawn, you must call :meth:`MainLoop.draw_screen` method of the
+        main loop manually.
+
+        A good way to do this::
+
+            asyncio.get_event_loop().call_soon(main_loop.draw_screen)
     """
     _we_started_event_loop = False
-
-    _idle_emulation_delay = 1.0/30  # a short time (in seconds)
 
     def __init__(self, **kwargs):
         if 'loop' in kwargs:
@@ -1391,6 +1406,31 @@ class AsyncioEventLoop(EventLoop):
         else:
             import asyncio
             self._loop = asyncio.get_event_loop()
+
+        self._idle_asyncio_handle = None
+        self._idle_handle = 0
+        self._idle_callbacks = {}
+
+    def _also_call_idle(self, callback):
+        """
+        Wrap the callback to also call _entering_idle.
+        """
+        @wraps(callback)
+        def wrapper():
+            if not self._idle_asyncio_handle:
+                self._idle_asyncio_handle = self._loop.call_soon(self._entering_idle)
+            return callback()
+        return wrapper
+
+    def _entering_idle(self):
+        """
+        Call all the registered idle callbacks.
+        """
+        try:
+            for callback in self._idle_callbacks.values():
+                callback()
+        finally:
+            self._idle_asyncio_handle = None
 
     def alarm(self, seconds, callback):
         """
@@ -1402,7 +1442,7 @@ class AsyncioEventLoop(EventLoop):
         seconds -- time in seconds to wait before calling callback
         callback -- function to call from event loop
         """
-        return self._loop.call_later(seconds, callback)
+        return self._loop.call_later(seconds, self._also_call_idle(callback))
 
     def remove_alarm(self, handle):
         """
@@ -1429,7 +1469,7 @@ class AsyncioEventLoop(EventLoop):
         fd -- file descriptor to watch for input
         callback -- function to call when input is available
         """
-        self._loop.add_reader(fd, callback)
+        self._loop.add_reader(fd, self._also_call_idle(callback))
         return fd
 
     def remove_watch_file(self, handle):
@@ -1444,21 +1484,11 @@ class AsyncioEventLoop(EventLoop):
         """
         Add a callback for entering idle.
 
-        Returns a handle that may be passed to remove_idle()
+        Returns a handle that may be passed to remove_enter_idle()
         """
-        # XXX there's no such thing as "idle" in most event loops; this fakes
-        # it the same way as Twisted, by scheduling the callback to be called
-        # repeatedly
-        mutable_handle = [None]
-        def faux_idle_callback():
-            callback()
-            mutable_handle[0] = self._loop.call_later(
-                self._idle_emulation_delay, faux_idle_callback)
-
-        mutable_handle[0] = self._loop.call_later(
-            self._idle_emulation_delay, faux_idle_callback)
-
-        return mutable_handle
+        self._idle_handle += 1
+        self._idle_callbacks[self._idle_handle] = callback
+        return self._idle_handle
 
     def remove_enter_idle(self, handle):
         """
@@ -1466,8 +1496,11 @@ class AsyncioEventLoop(EventLoop):
 
         Returns True if the handle was removed.
         """
-        # `handle` is just a list containing the current actual handle
-        return self.remove_alarm(handle[0])
+        try:
+            del self._idle_callbacks[handle]
+        except KeyError:
+            return False
+        return True
 
     _exc_info = None
 
@@ -1475,6 +1508,11 @@ class AsyncioEventLoop(EventLoop):
         exc = context.get('exception')
         if exc:
             loop.stop()
+            if self._idle_asyncio_handle:
+                # clean it up to prevent old callbacks
+                # from messing things up if loop is restarted
+                self._idle_asyncio_handle.cancel()
+                self._idle_asyncio_handle = None
             if not isinstance(exc, ExitMainLoop):
                 # Store the exc_info so we can re-raise after the loop stops
                 self._exc_info = (type(exc), exc, exc.__traceback__)
