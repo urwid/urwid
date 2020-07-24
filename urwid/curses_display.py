@@ -515,8 +515,7 @@ class Screen(BaseScreen, RealTerminal):
                 try:
                     if cs in ("0", "U"):
                         for i in range(len(seg)):
-                            self.s.addch( 0x400000 +
-                                ord(seg[i]) )
+                            self.s.addch( 0x400000 + seg[i] if PYTHON3 else ord(seg[i]) )
                     else:
                         assert cs is None
                         if PYTHON3:
