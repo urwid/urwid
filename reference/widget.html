@@ -4,17 +4,17 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>Widget Classes &#8212; Urwid 2.1.0</title>
+    <title>Widget Classes &#8212; Urwid 2.1.1</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     
-    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-    <script type="text/javascript" src="../_static/jquery.js"></script>
-    <script type="text/javascript" src="../_static/underscore.js"></script>
-    <script type="text/javascript" src="../_static/doctools.js"></script>
-    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
     
-    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script src="../_static/sidebar.js"></script>
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -33,7 +33,7 @@
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li> 
       </ul>
     </div>  
@@ -340,7 +340,7 @@ always returns <code class="docutils literal notranslate"><span class="pre">None
 <dd><p>Property for reading and setting the focus position for
 container widgets. This default implementation raises
 <code class="xref py py-exc docutils literal notranslate"><span class="pre">IndexError</span></code>, making normal widgets fail the same way
-accessing <code class="xref py py-attr docutils literal notranslate"><span class="pre">focus_position</span></code> on an empty container widget would.</p>
+accessing <a class="reference internal" href="#urwid.Widget.focus_position" title="urwid.Widget.focus_position"><code class="xref py py-attr docutils literal notranslate"><span class="pre">focus_position</span></code></a> on an empty container widget would.</p>
 </dd></dl>
 
 <dl class="method">
@@ -458,7 +458,7 @@ display or behaviour of the original_widget but it is
 not part of determining a chain of focus.</p>
 <p>Don’t actually do this – use a WidgetDecoration subclass
 instead, these are not real widgets:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">WidgetDecoration</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;hi&quot;</span><span class="p">))</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">WidgetDecoration</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;hi&quot;</span><span class="p">))</span>
 <span class="go">&lt;WidgetDecoration flow widget &lt;Text flow widget &#39;hi&#39;&gt;&gt;</span>
 </pre></div>
 </div>
@@ -467,7 +467,7 @@ instead, these are not real widgets:</p>
 <em class="property">property </em><code class="sig-name descname">base_widget</code><a class="headerlink" href="#urwid.WidgetDecoration.base_widget" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the widget without decorations.  If there is only one
 Decoration then this is the same as original_widget.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Text</span><span class="p">(</span><span class="s1">&#39;hello&#39;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Text</span><span class="p">(</span><span class="s1">&#39;hello&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">wd1</span> <span class="o">=</span> <span class="n">WidgetDecoration</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">wd2</span> <span class="o">=</span> <span class="n">WidgetDecoration</span><span class="p">(</span><span class="n">wd1</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">wd3</span> <span class="o">=</span> <span class="n">WidgetDecoration</span><span class="p">(</span><span class="n">wd2</span><span class="p">)</span>
@@ -605,7 +605,7 @@ of <em>text markup</em> with no display attribute already applied</p>
 </ul>
 </dd>
 </dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Hello&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Hello&quot;</span><span class="p">)</span>
 <span class="go">&lt;Text flow widget &#39;Hello&#39;&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Text</span><span class="p">((</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;stuff&quot;</span><span class="p">),</span> <span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="s1">&#39;any&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">t</span>
@@ -656,7 +656,7 @@ returned from <a class="reference internal" href="#urwid.Text.get_text" title="u
 </p>
 </dd>
 </dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Hello&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span> <span class="c1"># ... = u in Python 2</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Hello&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span> <span class="c1"># ... = u in Python 2</span>
 <span class="go">(...&#39;Hello&#39;, [])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">((</span><span class="s1">&#39;bright&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;Headline&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
 <span class="go">(...&#39;Headline&#39;, [(&#39;bright&#39;, 8)])</span>
@@ -678,7 +678,7 @@ clipping, as a single element tuple.</p>
 specify a maximum column size</p>
 </dd>
 </dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;important things&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">pack</span><span class="p">()</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;important things&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">pack</span><span class="p">()</span>
 <span class="go">(16, 1)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;important things&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">pack</span><span class="p">((</span><span class="mi">15</span><span class="p">,))</span>
 <span class="go">(9, 2)</span>
@@ -693,7 +693,7 @@ specify a maximum column size</p>
 <code class="sig-name descname">render</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">focus=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Text.render" title="Permalink to this definition">¶</a></dt>
 <dd><p>Render contents with wrapping and alignment.  Return canvas.</p>
 <p>See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for parameter details.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;important things&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">18</span><span class="p">,))</span><span class="o">.</span><span class="n">text</span> <span class="c1"># ... = b in Python 3</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;important things&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">18</span><span class="p">,))</span><span class="o">.</span><span class="n">text</span> <span class="c1"># ... = b in Python 3</span>
 <span class="go">[...&#39;important things  &#39;]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;important things&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">11</span><span class="p">,))</span><span class="o">.</span><span class="n">text</span>
 <span class="go">[...&#39;important  &#39;, ...&#39;things     &#39;]</span>
@@ -706,7 +706,7 @@ specify a maximum column size</p>
 <code class="sig-name descname">rows</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">focus=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Text.rows" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the number of rows the rendered text requires.</p>
 <p>See <a class="reference internal" href="#urwid.Widget.rows" title="urwid.Widget.rows"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.rows()</span></code></a> for parameter details.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;important things&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rows</span><span class="p">((</span><span class="mi">18</span><span class="p">,))</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;important things&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rows</span><span class="p">((</span><span class="mi">18</span><span class="p">,))</span>
 <span class="go">1</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;important things&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rows</span><span class="p">((</span><span class="mi">11</span><span class="p">,))</span>
 <span class="go">2</span>
@@ -724,7 +724,7 @@ object in use but defaults to a <a class="reference internal" href="text_layout.
 <dd class="field-odd"><p><strong>mode</strong> (<em>text alignment mode</em>) – typically <code class="docutils literal notranslate"><span class="pre">'left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'center'</span></code> or <code class="docutils literal notranslate"><span class="pre">'right'</span></code></p>
 </dd>
 </dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;word&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;word&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">set_align_mode</span><span class="p">(</span><span class="s1">&#39;right&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">align</span>
 <span class="go">&#39;right&#39;</span>
@@ -753,7 +753,7 @@ the same time.</p>
 </ul>
 </dd>
 </dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;hi&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;hi&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">set_layout</span><span class="p">(</span><span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="s1">&#39;clip&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">t</span>
 <span class="go">&lt;Text flow widget &#39;hi&#39; align=&#39;right&#39; wrap=&#39;clip&#39;&gt;</span>
@@ -770,7 +770,7 @@ the same time.</p>
 <dd class="field-odd"><p><strong>markup</strong> (<em>text markup</em>) – see <a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> for description.</p>
 </dd>
 </dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;foo&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;foo&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
 <span class="go">foo</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;bar&quot;</span><span class="p">)</span>
@@ -793,7 +793,7 @@ object in use but defaults to a <a class="reference internal" href="text_layout.
 <dd class="field-odd"><p><strong>mode</strong> (<em>text wrapping mode</em>) – typically <code class="docutils literal notranslate"><span class="pre">'space'</span></code>, <code class="docutils literal notranslate"><span class="pre">'any'</span></code>, <code class="docutils literal notranslate"><span class="pre">'clip'</span></code> or <code class="docutils literal notranslate"><span class="pre">'ellipsis'</span></code></p>
 </dd>
 </dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;some words&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;some words&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">6</span><span class="p">,))</span><span class="o">.</span><span class="n">text</span> <span class="c1"># ... = b in Python 3</span>
 <span class="go">[...&#39;some  &#39;, ...&#39;words &#39;]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">set_wrap_mode</span><span class="p">(</span><span class="s1">&#39;clip&#39;</span><span class="p">)</span>
@@ -860,7 +860,7 @@ must match the text in the caption</p></li>
 </ul>
 </dd>
 </dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Edit</span><span class="p">()</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Edit</span><span class="p">()</span>
 <span class="go">&lt;Edit selectable flow widget &#39;&#39; edit_pos=0&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Edit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Y/n? &quot;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;yes&quot;</span><span class="p">)</span>
 <span class="go">&lt;Edit selectable flow widget &#39;yes&#39; caption=&#39;Y/n? &#39; edit_pos=3&gt;</span>
@@ -892,7 +892,7 @@ must match the text in the caption</p></li>
 <dt id="urwid.Edit.get_cursor_coords">
 <code class="sig-name descname">get_cursor_coords</code><span class="sig-paren">(</span><em class="sig-param">size</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Edit.get_cursor_coords" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the (<em>x</em>, <em>y</em>) coordinates of cursor within widget.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Edit</span><span class="p">(</span><span class="s2">&quot;? &quot;</span><span class="p">,</span><span class="s2">&quot;yes&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get_cursor_coords</span><span class="p">((</span><span class="mi">10</span><span class="p">,))</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Edit</span><span class="p">(</span><span class="s2">&quot;? &quot;</span><span class="p">,</span><span class="s2">&quot;yes&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get_cursor_coords</span><span class="p">((</span><span class="mi">10</span><span class="p">,))</span>
 <span class="go">(5, 0)</span>
 </pre></div>
 </div>
@@ -902,7 +902,7 @@ must match the text in the caption</p></li>
 <dt id="urwid.Edit.get_edit_text">
 <code class="sig-name descname">get_edit_text</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Edit.get_edit_text" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the edit text for this widget.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;What? &quot;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;oh, nothing.&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;What? &quot;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;oh, nothing.&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">get_edit_text</span><span class="p">())</span>
 <span class="go">oh, nothing.</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">edit_text</span><span class="p">)</span>
@@ -937,7 +937,7 @@ to indicate the leftmost or rightmost column available.</p>
 <p>This method is used internally and by other widgets when
 moving the cursor up or down between widgets so that the
 column selected is one that the user would expect.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span><span class="p">,)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span><span class="p">,)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Edit</span><span class="p">()</span><span class="o">.</span><span class="n">get_pref_col</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
 <span class="go">0</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;word&quot;</span><span class="p">)</span>
@@ -967,7 +967,7 @@ column selected is one that the user would expect.</p>
 <dd><p>Returns <code class="docutils literal notranslate"><span class="pre">(text,</span> <span class="pre">display</span> <span class="pre">attributes)</span></code>. See <a class="reference internal" href="#urwid.Text.get_text" title="urwid.Text.get_text"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Text.get_text()</span></code></a>
 for details.</p>
 <p>Text returned includes the caption and edit_text, possibly masked.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Edit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;What? &quot;</span><span class="p">,</span><span class="s2">&quot;oh, nothing.&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span> <span class="c1"># ... = u in Python 2</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Edit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;What? &quot;</span><span class="p">,</span><span class="s2">&quot;oh, nothing.&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span> <span class="c1"># ... = u in Python 2</span>
 <span class="go">(...&#39;What? oh, nothing.&#39;, [])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Edit</span><span class="p">((</span><span class="s1">&#39;bright&#39;</span><span class="p">,</span><span class="sa">u</span><span class="s2">&quot;user@host:~$ &quot;</span><span class="p">),</span><span class="s2">&quot;ls&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
 <span class="go">(...&#39;user@host:~$ ls&#39;, [(&#39;bright&#39;, 13)])</span>
@@ -989,7 +989,7 @@ one or more characters into edit_text.</p>
 must match the text in the caption</p>
 </dd>
 </dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;42&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;42&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">insert_text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;.5&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span>
 <span class="go">&lt;Edit selectable flow widget &#39;42.5&#39; edit_pos=4&gt;</span>
@@ -1018,7 +1018,7 @@ must match the text in the caption</p>
 <dt id="urwid.Edit.keypress">
 <code class="sig-name descname">keypress</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">key</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Edit.keypress" title="Permalink to this definition">¶</a></dt>
 <dd><p>Handle editing keystrokes, return others.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="p">,</span> <span class="n">size</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">(),</span> <span class="p">(</span><span class="mi">20</span><span class="p">,)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="p">,</span> <span class="n">size</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">(),</span> <span class="p">(</span><span class="mi">20</span><span class="p">,)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">keypress</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">keypress</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="s1">&#39;left&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">keypress</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">)</span>
@@ -1039,7 +1039,7 @@ must match the text in the caption</p>
 <dt id="urwid.Edit.mouse_event">
 <code class="sig-name descname">mouse_event</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">event</em>, <em class="sig-param">button</em>, <em class="sig-param">x</em>, <em class="sig-param">y</em>, <em class="sig-param">focus</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Edit.mouse_event" title="Permalink to this definition">¶</a></dt>
 <dd><p>Move the cursor to the location clicked for button 1.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">20</span><span class="p">,)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">20</span><span class="p">,)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span><span class="s2">&quot;words here&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">mouse_event</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="s1">&#39;mouse press&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 <span class="go">True</span>
@@ -1054,7 +1054,7 @@ must match the text in the caption</p>
 <code class="sig-name descname">move_cursor_to_coords</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">x</em>, <em class="sig-param">y</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Edit.move_cursor_to_coords" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the cursor position with (x,y) coordinates.
 Returns True if move succeeded, False otherwise.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span><span class="p">,)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span><span class="p">,)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span><span class="s2">&quot;edit</span><span class="se">\n</span><span class="s2">text&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">move_cursor_to_coords</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 <span class="go">True</span>
@@ -1081,7 +1081,7 @@ Returns True if move succeeded, False otherwise.</p>
 <code class="sig-name descname">render</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">focus=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Edit.render" title="Permalink to this definition">¶</a></dt>
 <dd><p>Render edit widget and return canvas.  Include cursor when in
 focus.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">(</span><span class="s2">&quot;? &quot;</span><span class="p">,</span><span class="s2">&quot;yes&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">10</span><span class="p">,),</span> <span class="n">focus</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">(</span><span class="s2">&quot;? &quot;</span><span class="p">,</span><span class="s2">&quot;yes&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">10</span><span class="p">,),</span> <span class="n">focus</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">text</span> <span class="c1"># ... = b in Python 3</span>
 <span class="go">[...&#39;? yes     &#39;]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">cursor</span>
@@ -1100,7 +1100,7 @@ focus.</p>
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">Text.__init__()</span></code> for description of text markup.</p>
 </dd>
 </dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">set_caption</span><span class="p">(</span><span class="s2">&quot;cap1&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">caption</span><span class="p">)</span>
 <span class="go">cap1</span>
@@ -1126,7 +1126,7 @@ Clips pos to [0, len(edit_text)].</p>
 <dd class="field-odd"><p><strong>pos</strong> (<em>int</em>) – cursor position</p>
 </dd>
 </dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;word&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;word&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">edit_pos</span>
 <span class="go">4</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">set_edit_pos</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
@@ -1152,7 +1152,7 @@ Clips pos to [0, len(edit_text)].</p>
 must match the text in the caption</p>
 </dd>
 </dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">()</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">set_edit_text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;yes&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">edit_text</span><span class="p">)</span>
 <span class="go">yes</span>
@@ -1180,7 +1180,7 @@ must match the text in the caption</p>
 <dt id="urwid.Edit.set_text">
 <code class="sig-name descname">set_text</code><span class="sig-paren">(</span><em class="sig-param">markup</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Edit.set_text" title="Permalink to this definition">¶</a></dt>
 <dd><p>Not supported by Edit widget.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Edit</span><span class="p">()</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="s2">&quot;test&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Edit</span><span class="p">()</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="s2">&quot;test&quot;</span><span class="p">)</span>
 <span class="gt">Traceback (most recent call last):</span>
 <span class="gr">EditError</span>: <span class="n">set_text() not supported.  Use set_caption() or set_edit_text() instead.</span>
 </pre></div>
@@ -1191,7 +1191,7 @@ must match the text in the caption</p>
 <dt id="urwid.Edit.update_text">
 <code class="sig-name descname">update_text</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Edit.update_text" title="Permalink to this definition">¶</a></dt>
 <dd><p>No longer supported.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Edit</span><span class="p">()</span><span class="o">.</span><span class="n">update_text</span><span class="p">()</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Edit</span><span class="p">()</span><span class="o">.</span><span class="n">update_text</span><span class="p">()</span>
 <span class="gt">Traceback (most recent call last):</span>
 <span class="gr">EditError</span>: <span class="n">update_text() has been removed.  Use set_caption() or set_edit_text() instead.</span>
 </pre></div>
@@ -1221,7 +1221,7 @@ must match the text in the caption</p>
 <dd><p>Edit widget for integer values</p>
 <p>caption – caption markup
 default – default edit value</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">IntEdit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="mi">42</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">IntEdit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="mi">42</span><span class="p">)</span>
 <span class="go">&lt;IntEdit selectable flow widget &#39;42&#39; edit_pos=2&gt;</span>
 </pre></div>
 </div>
@@ -1229,7 +1229,7 @@ default – default edit value</p>
 <dt id="urwid.IntEdit.keypress">
 <code class="sig-name descname">keypress</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">key</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.IntEdit.keypress" title="Permalink to this definition">¶</a></dt>
 <dd><p>Handle editing keystrokes.  Remove leading zeros.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="p">,</span> <span class="n">size</span> <span class="o">=</span> <span class="n">IntEdit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="mi">5002</span><span class="p">),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="p">,</span> <span class="n">size</span> <span class="o">=</span> <span class="n">IntEdit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="mi">5002</span><span class="p">),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">keypress</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="s1">&#39;home&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">keypress</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="s1">&#39;delete&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">edit_text</span><span class="p">)</span>
@@ -1251,7 +1251,7 @@ default – default edit value</p>
 <dt id="urwid.IntEdit.value">
 <code class="sig-name descname">value</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.IntEdit.value" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the numeric value of self.edit_text.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="p">,</span> <span class="n">size</span> <span class="o">=</span> <span class="n">IntEdit</span><span class="p">(),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="p">,</span> <span class="n">size</span> <span class="o">=</span> <span class="n">IntEdit</span><span class="p">(),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">keypress</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="s1">&#39;5&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">keypress</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">value</span><span class="p">()</span> <span class="o">==</span> <span class="mi">51</span>
@@ -1288,7 +1288,7 @@ Unregister signal handlers with:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">urwid</span><span class="o">.</span><span class="n">disconnect_signal</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="s1">&#39;click&#39;</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">user_data</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Button</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Ok&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Button</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Ok&quot;</span><span class="p">)</span>
 <span class="go">&lt;Button selectable flow widget &#39;Ok&#39;&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">15</span><span class="p">,),</span> <span class="n">focus</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">text</span> <span class="c1"># ... = b in Python 3</span>
@@ -1299,7 +1299,7 @@ Unregister signal handlers with:</p>
 <dt id="urwid.Button.get_label">
 <code class="sig-name descname">get_label</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Button.get_label" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return label text.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Ok&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Ok&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">get_label</span><span class="p">())</span>
 <span class="go">Ok</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
@@ -1312,7 +1312,7 @@ Unregister signal handlers with:</p>
 <dt id="urwid.Button.keypress">
 <code class="sig-name descname">keypress</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">key</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Button.keypress" title="Permalink to this definition">¶</a></dt>
 <dd><p>Send ‘click’ signal on ‘activate’ command.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">Button</span><span class="o">.</span><span class="n">_command_map</span><span class="p">[</span><span class="s1">&#39; &#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;activate&#39;</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">Button</span><span class="o">.</span><span class="n">_command_map</span><span class="p">[</span><span class="s1">&#39; &#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;activate&#39;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">Button</span><span class="o">.</span><span class="n">_command_map</span><span class="p">[</span><span class="s1">&#39;enter&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;activate&#39;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">15</span><span class="p">,)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
@@ -1332,7 +1332,7 @@ Unregister signal handlers with:</p>
 <dt id="urwid.Button.label">
 <em class="property">property </em><code class="sig-name descname">label</code><a class="headerlink" href="#urwid.Button.label" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return label text.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Ok&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Ok&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">get_label</span><span class="p">())</span>
 <span class="go">Ok</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
@@ -1345,7 +1345,7 @@ Unregister signal handlers with:</p>
 <dt id="urwid.Button.mouse_event">
 <code class="sig-name descname">mouse_event</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">event</em>, <em class="sig-param">button</em>, <em class="sig-param">x</em>, <em class="sig-param">y</em>, <em class="sig-param">focus</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Button.mouse_event" title="Permalink to this definition">¶</a></dt>
 <dd><p>Send ‘click’ signal on button 1 press.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">15</span><span class="p">,)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">15</span><span class="p">,)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Ok&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">clicked_buttons</span> <span class="o">=</span> <span class="p">[]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">handle_click</span><span class="p">(</span><span class="n">button</span><span class="p">):</span>
@@ -1366,7 +1366,7 @@ Unregister signal handlers with:</p>
 <code class="sig-name descname">set_label</code><span class="sig-paren">(</span><em class="sig-param">label</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Button.set_label" title="Permalink to this definition">¶</a></dt>
 <dd><p>Change the button label.</p>
 <p>label – markup for button label</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="s2">&quot;Ok&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="s2">&quot;Ok&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Yup yup&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b</span>
 <span class="go">&lt;Button selectable flow widget &#39;Yup yup&#39;&gt;</span>
@@ -1435,7 +1435,7 @@ Unregister signal handlers with:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">urwid</span><span class="o">.</span><span class="n">disconnect_signal</span><span class="p">(</span><span class="n">check_box</span><span class="p">,</span> <span class="s1">&#39;change&#39;</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">user_data</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">CheckBox</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Confirm&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">CheckBox</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Confirm&quot;</span><span class="p">)</span>
 <span class="go">&lt;CheckBox selectable flow widget &#39;Confirm&#39; state=False&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">CheckBox</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Yogourt&quot;</span><span class="p">,</span> <span class="s2">&quot;mixed&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 <span class="go">&lt;CheckBox selectable flow widget &#39;Yogourt&#39; state=&#39;mixed&#39;&gt;</span>
@@ -1450,7 +1450,7 @@ Unregister signal handlers with:</p>
 <dt id="urwid.CheckBox.get_label">
 <code class="sig-name descname">get_label</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CheckBox.get_label" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return label text.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cb</span> <span class="o">=</span> <span class="n">CheckBox</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Seriously&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cb</span> <span class="o">=</span> <span class="n">CheckBox</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Seriously&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">cb</span><span class="o">.</span><span class="n">get_label</span><span class="p">())</span>
 <span class="go">Seriously</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">cb</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
@@ -1472,7 +1472,7 @@ Unregister signal handlers with:</p>
 <dt id="urwid.CheckBox.keypress">
 <code class="sig-name descname">keypress</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">key</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CheckBox.keypress" title="Permalink to this definition">¶</a></dt>
 <dd><p>Toggle state on ‘activate’ command.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">CheckBox</span><span class="o">.</span><span class="n">_command_map</span><span class="p">[</span><span class="s1">&#39; &#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;activate&#39;</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">CheckBox</span><span class="o">.</span><span class="n">_command_map</span><span class="p">[</span><span class="s1">&#39; &#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;activate&#39;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">CheckBox</span><span class="o">.</span><span class="n">_command_map</span><span class="p">[</span><span class="s1">&#39;enter&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;activate&#39;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span><span class="p">,)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">cb</span> <span class="o">=</span> <span class="n">CheckBox</span><span class="p">(</span><span class="s1">&#39;press me&#39;</span><span class="p">)</span>
@@ -1492,7 +1492,7 @@ Unregister signal handlers with:</p>
 <dt id="urwid.CheckBox.label">
 <em class="property">property </em><code class="sig-name descname">label</code><a class="headerlink" href="#urwid.CheckBox.label" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return label text.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cb</span> <span class="o">=</span> <span class="n">CheckBox</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Seriously&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cb</span> <span class="o">=</span> <span class="n">CheckBox</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Seriously&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">cb</span><span class="o">.</span><span class="n">get_label</span><span class="p">())</span>
 <span class="go">Seriously</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">cb</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
@@ -1508,7 +1508,7 @@ Unregister signal handlers with:</p>
 <dt id="urwid.CheckBox.mouse_event">
 <code class="sig-name descname">mouse_event</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">event</em>, <em class="sig-param">button</em>, <em class="sig-param">x</em>, <em class="sig-param">y</em>, <em class="sig-param">focus</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CheckBox.mouse_event" title="Permalink to this definition">¶</a></dt>
 <dd><p>Toggle state on button 1 press.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">20</span><span class="p">,)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">20</span><span class="p">,)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">cb</span> <span class="o">=</span> <span class="n">CheckBox</span><span class="p">(</span><span class="s2">&quot;clickme&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">cb</span><span class="o">.</span><span class="n">state</span>
 <span class="go">False</span>
@@ -1526,7 +1526,7 @@ Unregister signal handlers with:</p>
 <dd><p>Change the check box label.</p>
 <p>label – markup for label.  See Text widget for description
 of text markup.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cb</span> <span class="o">=</span> <span class="n">CheckBox</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;foo&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cb</span> <span class="o">=</span> <span class="n">CheckBox</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;foo&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">cb</span>
 <span class="go">&lt;CheckBox selectable flow widget &#39;foo&#39; state=False&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">cb</span><span class="o">.</span><span class="n">set_label</span><span class="p">((</span><span class="s1">&#39;bright_attr&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;bar&quot;</span><span class="p">))</span>
@@ -1542,7 +1542,7 @@ of text markup.</p>
 <dd><p>Set the CheckBox state.</p>
 <p>state – True, False or “mixed”
 do_callback – False to suppress signal from this change</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">changes</span> <span class="o">=</span> <span class="p">[]</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">changes</span> <span class="o">=</span> <span class="p">[]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">callback_a</span><span class="p">(</span><span class="n">cb</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">user_data</span><span class="p">):</span>
 <span class="gp">... </span>    <span class="n">changes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;A </span><span class="si">%r</span><span class="s2"> </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">user_data</span><span class="p">))</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">callback_b</span><span class="p">(</span><span class="n">cb</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
@@ -1608,7 +1608,7 @@ be defined.</p>
 <dt id="urwid.CheckBox.toggle_state">
 <code class="sig-name descname">toggle_state</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CheckBox.toggle_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Cycle to the next valid state.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cb</span> <span class="o">=</span> <span class="n">CheckBox</span><span class="p">(</span><span class="s2">&quot;3-state&quot;</span><span class="p">,</span> <span class="n">has_mixed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cb</span> <span class="o">=</span> <span class="n">CheckBox</span><span class="p">(</span><span class="s2">&quot;3-state&quot;</span><span class="p">,</span> <span class="n">has_mixed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">cb</span><span class="o">.</span><span class="n">state</span>
 <span class="go">False</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">cb</span><span class="o">.</span><span class="n">toggle_state</span><span class="p">()</span>
@@ -1656,7 +1656,7 @@ Unregister signal handlers with:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">urwid</span><span class="o">.</span><span class="n">disconnect_signal</span><span class="p">(</span><span class="n">radio_button</span><span class="p">,</span> <span class="s1">&#39;change&#39;</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">user_data</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">bgroup</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># button group</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">bgroup</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># button group</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b1</span> <span class="o">=</span> <span class="n">RadioButton</span><span class="p">(</span><span class="n">bgroup</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;Agree&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b2</span> <span class="o">=</span> <span class="n">RadioButton</span><span class="p">(</span><span class="n">bgroup</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;Disagree&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">bgroup</span><span class="p">)</span>
@@ -1677,7 +1677,7 @@ Unregister signal handlers with:</p>
 <p>do_callback – False to suppress signal from this change</p>
 <p>If state is True all other radio buttons in the same button
 group will be set to False.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">bgroup</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># button group</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">bgroup</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># button group</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b1</span> <span class="o">=</span> <span class="n">RadioButton</span><span class="p">(</span><span class="n">bgroup</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;Agree&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b2</span> <span class="o">=</span> <span class="n">RadioButton</span><span class="p">(</span><span class="n">bgroup</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;Disagree&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b3</span> <span class="o">=</span> <span class="n">RadioButton</span><span class="p">(</span><span class="n">bgroup</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;Unsure&quot;</span><span class="p">)</span>
@@ -1702,7 +1702,7 @@ group will be set to False.</p>
 <dt id="urwid.RadioButton.toggle_state">
 <code class="sig-name descname">toggle_state</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.RadioButton.toggle_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set state to True.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">bgroup</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># button group</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">bgroup</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># button group</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b1</span> <span class="o">=</span> <span class="n">RadioButton</span><span class="p">(</span><span class="n">bgroup</span><span class="p">,</span> <span class="s2">&quot;Agree&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b2</span> <span class="o">=</span> <span class="n">RadioButton</span><span class="p">(</span><span class="n">bgroup</span><span class="p">,</span> <span class="s2">&quot;Disagree&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b1</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">b2</span><span class="o">.</span><span class="n">state</span>
@@ -1791,7 +1791,7 @@ WidgetDecoration, or it may hide them from outside access.</p>
 <dd><p>Edit widget for integer values</p>
 <p>caption – caption markup
 default – default edit value</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">IntegerEdit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="mi">42</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">IntegerEdit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="mi">42</span><span class="p">)</span>
 <span class="go">&lt;IntegerEdit selectable flow widget &#39;42&#39; edit_pos=2&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="p">,</span> <span class="n">size</span> <span class="o">=</span> <span class="n">IntegerEdit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;5002&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">keypress</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="s1">&#39;home&#39;</span><span class="p">)</span>
@@ -1846,7 +1846,7 @@ default – default edit value</p>
 <dt id="urwid.numedit.IntegerEdit.value">
 <code class="sig-name descname">value</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.numedit.IntegerEdit.value" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the numeric value of self.edit_text.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="p">,</span> <span class="n">size</span> <span class="o">=</span> <span class="n">IntegerEdit</span><span class="p">(),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="p">,</span> <span class="n">size</span> <span class="o">=</span> <span class="n">IntegerEdit</span><span class="p">(),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">keypress</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="s1">&#39;5&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">keypress</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">e</span><span class="o">.</span><span class="n">value</span><span class="p">()</span> <span class="o">==</span> <span class="mi">51</span>
@@ -1867,7 +1867,7 @@ default – default edit value</p>
 default – default edit value
 preserveSignificance – return value has the same signif. as default
 decimalSeparator – use ‘.’ as separator by default, optionally a ‘,’</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">FloatEdit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;&quot;</span><span class="p">,</span>  <span class="s2">&quot;1.065434&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">FloatEdit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;&quot;</span><span class="p">,</span>  <span class="s2">&quot;1.065434&quot;</span><span class="p">)</span>
 <span class="go">&lt;FloatEdit selectable flow widget &#39;1.065434&#39; edit_pos=8&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="p">,</span> <span class="n">size</span> <span class="o">=</span> <span class="n">FloatEdit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;1.065434&quot;</span><span class="p">),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">keypress</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="s1">&#39;home&#39;</span><span class="p">)</span>
@@ -1958,7 +1958,7 @@ required for selectable widgets.</p>
 <code class="sig-name descname">render</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">focus=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SelectableIcon.render" title="Permalink to this definition">¶</a></dt>
 <dd><p>Render the text content of this widget with a cursor when
 in focus.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">si</span> <span class="o">=</span> <span class="n">SelectableIcon</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;[!]&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">si</span> <span class="o">=</span> <span class="n">SelectableIcon</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;[!]&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">si</span>
 <span class="go">&lt;SelectableIcon selectable flow widget &#39;[!]&#39;&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">si</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">4</span><span class="p">,),</span> <span class="n">focus</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">cursor</span>
@@ -1998,7 +1998,7 @@ if <code class="docutils literal notranslate"><span class="pre">None</span></cod
 </ul>
 </dd>
 </dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrMap</span><span class="p">(</span><span class="n">Divider</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;!&quot;</span><span class="p">),</span> <span class="s1">&#39;bright&#39;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrMap</span><span class="p">(</span><span class="n">Divider</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;!&quot;</span><span class="p">),</span> <span class="s1">&#39;bright&#39;</span><span class="p">)</span>
 <span class="go">&lt;AttrMap flow widget &lt;Divider flow widget &#39;!&#39;&gt; attr_map={None: &#39;bright&#39;}&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">AttrMap</span><span class="p">(</span><span class="n">Edit</span><span class="p">(),</span> <span class="s1">&#39;notfocus&#39;</span><span class="p">,</span> <span class="s1">&#39;focus&#39;</span><span class="p">)</span>
 <span class="go">&lt;AttrMap selectable flow widget &lt;Edit selectable flow widget &#39;&#39; edit_pos=0&gt; attr_map={None: &#39;notfocus&#39;} focus_map={None: &#39;focus&#39;}&gt;</span>
@@ -2027,7 +2027,7 @@ if <code class="docutils literal notranslate"><span class="pre">None</span></cod
 <dd><p>Set the attribute mapping dictionary {from_attr: to_attr, …}</p>
 <p>Note this function does not accept a single attribute the way the
 constructor does.  You must specify {None: attribute} instead.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">w</span> <span class="o">=</span> <span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;hi&quot;</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">w</span> <span class="o">=</span> <span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;hi&quot;</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span><span class="o">.</span><span class="n">set_attr_map</span><span class="p">({</span><span class="s1">&#39;a&#39;</span><span class="p">:</span><span class="s1">&#39;b&#39;</span><span class="p">})</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span>
 <span class="go">&lt;AttrMap flow widget &lt;Text flow widget &#39;hi&#39;&gt; attr_map={&#39;a&#39;: &#39;b&#39;}&gt;</span>
@@ -2044,7 +2044,7 @@ constructor does.  You must specify {None: attribute} instead.</p>
 when in focus).</p>
 <p>Note this function does not accept a single attribute the way the
 constructor does.  You must specify {None: attribute} instead.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">w</span> <span class="o">=</span> <span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;hi&quot;</span><span class="p">),</span> <span class="p">{})</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">w</span> <span class="o">=</span> <span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;hi&quot;</span><span class="p">),</span> <span class="p">{})</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span><span class="o">.</span><span class="n">set_focus_map</span><span class="p">({</span><span class="s1">&#39;a&#39;</span><span class="p">:</span><span class="s1">&#39;b&#39;</span><span class="p">})</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span>
 <span class="go">&lt;AttrMap flow widget &lt;Text flow widget &#39;hi&#39;&gt; attr_map={} focus_map={&#39;a&#39;: &#39;b&#39;}&gt;</span>
@@ -2095,7 +2095,7 @@ widget and self.original_widget will be treated as a fixed
 widget.  self.original_widget will will be clipped to fit
 the available number of columns.  For example if align is
 <code class="docutils literal notranslate"><span class="pre">'left'</span></code> then self.original_widget may be clipped on the right.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">7</span><span class="p">,)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">7</span><span class="p">,)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">pr</span><span class="p">(</span><span class="n">w</span><span class="p">):</span>
 <span class="gp">... </span>    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">w</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">size</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">:</span>
 <span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;|</span><span class="si">%s</span><span class="s2">|&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;ascii&#39;</span><span class="p">),))</span>
@@ -2349,7 +2349,7 @@ be defined.</p>
 </ul>
 </dd>
 </dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Divider</span><span class="p">()</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Divider</span><span class="p">()</span>
 <span class="go">&lt;Divider flow widget&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Divider</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
 <span class="go">&lt;Divider flow widget &#39;-&#39;&gt;</span>
@@ -2361,7 +2361,7 @@ be defined.</p>
 <dt id="urwid.Divider.render">
 <code class="sig-name descname">render</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">focus=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Divider.render" title="Permalink to this definition">¶</a></dt>
 <dd><p>Render the divider as a canvas and return it.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Divider</span><span class="p">()</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">10</span><span class="p">,))</span><span class="o">.</span><span class="n">text</span> <span class="c1"># ... = b in Python 3</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Divider</span><span class="p">()</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">10</span><span class="p">,))</span><span class="o">.</span><span class="n">text</span> <span class="c1"># ... = b in Python 3</span>
 <span class="go">[...&#39;          &#39;]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Divider</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">top</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">10</span><span class="p">,))</span><span class="o">.</span><span class="n">text</span>
 <span class="go">[...&#39;          &#39;, ...&#39;----------&#39;]</span>
@@ -2375,7 +2375,7 @@ be defined.</p>
 <dt id="urwid.Divider.rows">
 <code class="sig-name descname">rows</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">focus=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Divider.rows" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the number of lines that will be rendered.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Divider</span><span class="p">()</span><span class="o">.</span><span class="n">rows</span><span class="p">((</span><span class="mi">10</span><span class="p">,))</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Divider</span><span class="p">()</span><span class="o">.</span><span class="n">rows</span><span class="p">((</span><span class="mi">10</span><span class="p">,))</span>
 <span class="go">1</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Divider</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">rows</span><span class="p">((</span><span class="mi">10</span><span class="p">,))</span>
 <span class="go">4</span>
@@ -2425,7 +2425,7 @@ adjoining LineBoxes.</p>
 <dd class="field-odd"><p><strong>fill_char</strong> (<em>bytes</em><em> or </em><em>unicode</em>) – character to fill area with</p>
 </dd>
 </dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">SolidFill</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;8&#39;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">SolidFill</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;8&#39;</span><span class="p">)</span>
 <span class="go">&lt;SolidFill box widget &#39;8&#39;&gt;</span>
 </pre></div>
 </div>
@@ -2433,7 +2433,7 @@ adjoining LineBoxes.</p>
 <dt id="urwid.SolidFill.render">
 <code class="sig-name descname">render</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">focus=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SolidFill.render" title="Permalink to this definition">¶</a></dt>
 <dd><p>Render the Fill as a canvas and return it.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">SolidFill</span><span class="p">()</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">text</span> <span class="c1"># ... = b in Python 3</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">SolidFill</span><span class="p">()</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">text</span> <span class="c1"># ... = b in Python 3</span>
 <span class="go">[...&#39;    &#39;, ...&#39;    &#39;]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">SolidFill</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span><span class="o">.</span><span class="n">text</span>
 <span class="go">[...&#39;#####&#39;, ...&#39;#####&#39;, ...&#39;#####&#39;]</span>
@@ -2708,7 +2708,7 @@ orig head/foot are from rows() calls.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>included for backwards compatibility. You should rather use
-the container property <code class="xref py py-attr docutils literal notranslate"><span class="pre">focus_position</span></code> to get this value.</p>
+the container property <a class="reference internal" href="#urwid.Frame.focus_position" title="urwid.Frame.focus_position"><code class="xref py py-attr docutils literal notranslate"><span class="pre">focus_position</span></code></a> to get this value.</p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -2747,7 +2747,7 @@ Focus may be changed on button 1 press.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>included for backwards compatibility. You should rather use
-the container property <code class="xref py py-attr docutils literal notranslate"><span class="pre">focus_position</span></code> to set this value.</p>
+the container property <a class="reference internal" href="#urwid.Frame.focus_position" title="urwid.Frame.focus_position"><code class="xref py py-attr docutils literal notranslate"><span class="pre">focus_position</span></code></a> to set this value.</p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2844,7 +2844,7 @@ value for options.</p>
 <p class="admonition-title">Warning</p>
 <p>This object may not be used to set or iterate over contents.</p>
 <p>You must use the list walker stored as
-<code class="xref py py-attr docutils literal notranslate"><span class="pre">body</span></code> to perform manipulation and iteration, if supported.</p>
+<a class="reference internal" href="#urwid.ListBox.body" title="urwid.ListBox.body"><code class="xref py py-attr docutils literal notranslate"><span class="pre">body</span></code></a> to perform manipulation and iteration, if supported.</p>
 </div>
 </dd></dl>
 
@@ -3228,7 +3228,7 @@ May change focus on button 1 press.</p>
 
 <dl class="method">
 <dt id="urwid.Columns.options">
-<code class="sig-name descname">options</code><span class="sig-paren">(</span><em class="sig-param">width_type='weight'</em>, <em class="sig-param">width_amount=1</em>, <em class="sig-param">box_widget=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Columns.options" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">options</code><span class="sig-paren">(</span><em class="sig-param">width_type='weight'</em>, <em class="sig-param">width_amount=1</em>, <em class="sig-param">box_widget=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Columns.options" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a new options tuple for use in a Pile’s .contents list.</p>
 <p>This sets an entry’s width type: one of the following:</p>
 <dl class="simple">
@@ -3477,7 +3477,7 @@ May change focus on button 1 press.</p>
 
 <dl class="method">
 <dt id="urwid.Pile.options">
-<code class="sig-name descname">options</code><span class="sig-paren">(</span><em class="sig-param">height_type='weight'</em>, <em class="sig-param">height_amount=1</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Pile.options" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">options</code><span class="sig-paren">(</span><em class="sig-param">height_type='weight'</em>, <em class="sig-param">height_amount=1</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Pile.options" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a new options tuple for use in a Pile’s <a class="reference internal" href="#urwid.Pile.contents" title="urwid.Pile.contents"><code class="xref py py-attr docutils literal notranslate"><span class="pre">contents</span></code></a> list.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -3726,7 +3726,7 @@ be defined.</p>
 </ul>
 </dd>
 </dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">BoxAdapter</span><span class="p">(</span><span class="n">SolidFill</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;x&quot;</span><span class="p">),</span> <span class="mi">5</span><span class="p">)</span> <span class="c1"># 5-rows of x&#39;s</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">BoxAdapter</span><span class="p">(</span><span class="n">SolidFill</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;x&quot;</span><span class="p">),</span> <span class="mi">5</span><span class="p">)</span> <span class="c1"># 5-rows of x&#39;s</span>
 <span class="go">&lt;BoxAdapter flow widget &lt;SolidFill box widget &#39;x&#39;&gt; height=5&gt;</span>
 </pre></div>
 </div>
@@ -3734,7 +3734,7 @@ be defined.</p>
 <dt id="urwid.BoxAdapter.rows">
 <code class="sig-name descname">rows</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">focus=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.BoxAdapter.rows" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the predetermined height (behave like a flow widget)</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">BoxAdapter</span><span class="p">(</span><span class="n">SolidFill</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;x&quot;</span><span class="p">),</span> <span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">rows</span><span class="p">((</span><span class="mi">20</span><span class="p">,))</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">BoxAdapter</span><span class="p">(</span><span class="n">SolidFill</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;x&quot;</span><span class="p">),</span> <span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">rows</span><span class="p">((</span><span class="mi">20</span><span class="p">,))</span>
 <span class="go">5</span>
 </pre></div>
 </div>
@@ -3883,7 +3883,7 @@ writing a different value for <cite>bottom_options</cite> raises an
 
 <dl class="method">
 <dt id="urwid.Overlay.options">
-<code class="sig-name descname">options</code><span class="sig-paren">(</span><em class="sig-param">align_type</em>, <em class="sig-param">align_amount</em>, <em class="sig-param">width_type</em>, <em class="sig-param">width_amount</em>, <em class="sig-param">valign_type</em>, <em class="sig-param">valign_amount</em>, <em class="sig-param">height_type</em>, <em class="sig-param">height_amount</em>, <em class="sig-param">min_width=None</em>, <em class="sig-param">min_height=None</em>, <em class="sig-param">left=0</em>, <em class="sig-param">right=0</em>, <em class="sig-param">top=0</em>, <em class="sig-param">bottom=0</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Overlay.options" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">options</code><span class="sig-paren">(</span><em class="sig-param">align_type</em>, <em class="sig-param">align_amount</em>, <em class="sig-param">width_type</em>, <em class="sig-param">width_amount</em>, <em class="sig-param">valign_type</em>, <em class="sig-param">valign_amount</em>, <em class="sig-param">height_type</em>, <em class="sig-param">height_amount</em>, <em class="sig-param">min_width=None</em>, <em class="sig-param">min_height=None</em>, <em class="sig-param">left=0</em>, <em class="sig-param">right=0</em>, <em class="sig-param">top=0</em>, <em class="sig-param">bottom=0</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Overlay.options" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a new options tuple for use in this Overlay’s .contents mapping.</p>
 <p>This is the common container API to create options for replacing the
 top widget of this Overlay.  It is provided for completeness
@@ -4098,7 +4098,7 @@ is <code class="docutils literal notranslate"><span class="pre">None</span></cod
 </ul>
 </dd>
 </dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pb</span> <span class="o">=</span> <span class="n">ProgressBar</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pb</span> <span class="o">=</span> <span class="n">ProgressBar</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pb</span>
 <span class="go">&lt;ProgressBar flow widget&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">pb</span><span class="o">.</span><span class="n">get_text</span><span class="p">())</span>
@@ -4198,25 +4198,31 @@ required to display the text wrapped into a target number of rows.</p>
 <h3>Terminal<a class="headerlink" href="#terminal" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="urwid.Terminal">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">Terminal</code><span class="sig-paren">(</span><em class="sig-param">command</em>, <em class="sig-param">env=None</em>, <em class="sig-param">main_loop=None</em>, <em class="sig-param">escape_sequence=None</em>, <em class="sig-param">encoding='ascii'</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Terminal" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">Terminal</code><span class="sig-paren">(</span><em class="sig-param">command</em>, <em class="sig-param">env=None</em>, <em class="sig-param">main_loop=None</em>, <em class="sig-param">escape_sequence=None</em>, <em class="sig-param">encoding='utf-8'</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Terminal" title="Permalink to this definition">¶</a></dt>
 <dd><p>A terminal emulator within a widget.</p>
-<p>‘command’ is the command to execute inside the terminal, provided as a
+<p><code class="docutils literal notranslate"><span class="pre">command</span></code> is the command to execute inside the terminal, provided as a
 list of the command followed by its arguments.  If ‘command’ is None,
 the command is the current user’s shell. You can also provide a callable
 instead of a command, which will be executed in the subprocess.</p>
-<p>‘env’ can be used to pass custom environment variables. If omitted,
+<p><code class="docutils literal notranslate"><span class="pre">env</span></code> can be used to pass custom environment variables. If omitted,
 os.environ is used.</p>
-<p>‘main_loop’ should be provided, because the canvas state machine needs
+<p><code class="docutils literal notranslate"><span class="pre">main_loop</span></code> should be provided, because the canvas state machine needs
 to act on input from the PTY master device. This object must have
 watch_file and remove_watch_file methods.</p>
-<p>‘escape_sequence’ is the urwid key symbol which should be used to break
-out of the terminal widget. If it’s not specified, “ctrl a” is used.</p>
-<p>‘encoding’ specifies the encoding that is being used when local
-keypresses in Unicode are encoded into raw bytes. The default encoding
-is ‘ascii’ for backwards compatibility with urwid versions &lt;= 2.0.1.
-Set this to the encoding of your terminal (typically ‘utf8’) if you
-want to be able to transmit non-ASCII characters to the spawned process.
+<p><code class="docutils literal notranslate"><span class="pre">escape_sequence</span></code> is the urwid key symbol which should be used to break
+out of the terminal widget. If it’s not specified, <code class="docutils literal notranslate"><span class="pre">ctrl</span> <span class="pre">a</span></code> is used.</p>
+<p><code class="docutils literal notranslate"><span class="pre">encoding</span></code> specifies the encoding that is being used when local
+keypresses in Unicode are encoded into raw bytes. UTF-8 is used by default.
+Set this to the encoding of your terminal if you need to transmit
+characters to the spawned process in non-UTF8 encoding.
 Applies to Python 3.x only.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you notice your Terminal instance is not printing unicode glyphs
+correctly, make sure the global encoding for urwid is set to
+<code class="docutils literal notranslate"><span class="pre">utf8</span></code> with <code class="docutils literal notranslate"><span class="pre">urwid.set_encoding(&quot;utf8&quot;)</span></code>. See
+<a class="reference internal" href="../manual/encodings.html#text-encodings"><span class="std std-ref">Encodings Supported</span></a> for more details.</p>
+</div>
 <dl class="method">
 <dt id="urwid.Terminal.change_focus">
 <code class="sig-name descname">change_focus</code><span class="sig-paren">(</span><em class="sig-param">has_focus</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Terminal.change_focus" title="Permalink to this definition">¶</a></dt>
@@ -4224,31 +4230,15 @@ Applies to Python 3.x only.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="urwid.Terminal.respond">
-<code class="sig-name descname">respond</code><span class="sig-paren">(</span><em class="sig-param">string</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Terminal.respond" title="Permalink to this definition">¶</a></dt>
-<dd><p>Respond to the underlying application with ‘string’.</p>
+<dt id="urwid.Terminal.get_cursor_coords">
+<code class="sig-name descname">get_cursor_coords</code><span class="sig-paren">(</span><em class="sig-param">size</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Terminal.get_cursor_coords" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the cursor coordinates for this terminal</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="urwid.Terminal.selectable">
-<code class="sig-name descname">selectable</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Terminal.selectable" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if this is a widget that is designed to take the
-focus, i.e. it contains something the user might want to
-interact with, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise,</p>
-</dd>
-</dl>
-<p>This default implementation returns <a class="reference internal" href="#urwid.Widget._selectable" title="urwid.Widget._selectable"><code class="xref py py-attr docutils literal notranslate"><span class="pre">_selectable</span></code></a>.
-Subclasses may leave these is if the are not selectable,
-or if they are always selectable they may
-set the <code class="xref py py-attr docutils literal notranslate"><span class="pre">_selectable</span></code> class variable to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
-<p>If this method returns <code class="docutils literal notranslate"><span class="pre">True</span></code> then the <a class="reference internal" href="#urwid.Widget.keypress" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">keypress()</span></code></a> method
-must be implemented.</p>
-<p>Returning <code class="docutils literal notranslate"><span class="pre">False</span></code> does not guarantee that this widget will never be in
-focus, only that this widget will usually be skipped over when changing
-focus. It is still possible for non selectable widgets to have the focus
-(typically when there are no other selectable widgets visible).</p>
+<dt id="urwid.Terminal.respond">
+<code class="sig-name descname">respond</code><span class="sig-paren">(</span><em class="sig-param">string</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Terminal.respond" title="Permalink to this definition">¶</a></dt>
+<dd><p>Respond to the underlying application with ‘string’.</p>
 </dd></dl>
 
 </dd></dl>
@@ -4348,7 +4338,7 @@ focus. It is still possible for non selectable widgets to have the focus
     </form>
     </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -4365,13 +4355,13 @@ focus. It is still possible for non selectable widgets to have the focus
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.
     </div>
   </body>
 </html>

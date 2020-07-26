@@ -2,6 +2,55 @@
 Changelog
 ---------
 
+Urwid 2.1.1
+===========
+
+2020-07-26
+
+ * Add TrioEventLoop.run_async(), removed nursery constructor arg (#392) (by
+   Tamás Nepusz)
+
+ * Add py38 to Travis tests (by Andrey Semakin)
+
+ * Add popular IDEs folders to .gitignore (by Andrey Semakin)
+
+ * Add wrap_around kwarg to SimpleListWalkers (by Krzysztof Królczyk)
+
+ * Change documentation on Terminal (by James Johnson)
+
+ * Remove debug documentation change test (by James Johnson)
+
+ * Remove support for py34 (by Andrey Semakin)
+
+ * Remove invalid escape sequence (by Andrey Lebedev)
+
+ * Fix GridFlow keypress handling when v_sep is 0 (by Aurelien Grenotton)
+
+ * Fix Terminal in ListBox (#382) (by James Johnson)
+
+ * Fix Crash on `fg`, SIGCONT (after Ctrl-Z, SIGSTOP, SIGTSTP) (by goncalopp)
+
+ * Fix 256-color mode on some terminals. Addresses #404. (by Tony Cebzanov)
+
+ * vterm: reduce __init__ boilerplate (by max ulidtko)
+
+ * vterm: errno 5 is not EOF. (by max ulidtko)
+
+ * Terminal: use UTF-8 by default. (by max ulidtko)
+
+ * Instance of Terminal has no __super attr -- thanks pylint! (by max ulidtko)
+
+ * Do not call wait_readable with a closed fd in TrioEventLoop (by Michael
+   Hudson-Doyle)
+
+ * Make options a static method where applicable (by Philip Matura)
+
+ * Set up Travis to run py38, speed up build (by Andrey Semakin)
+ 
+ * Use comparison with a string instead of "is" test with a literal (by Andrej
+   Shadura)
+
+
 Urwid 2.1.0
 ===========
 

@@ -4,17 +4,17 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="utf-8" />
-    <title>Changelog &#8212; Urwid 2.1.0</title>
+    <title>Changelog &#8212; Urwid 2.1.1</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     
-    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
     
-    <script type="text/javascript" src="_static/sidebar.js"></script>
+    <script src="_static/sidebar.js"></script>
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -29,7 +29,7 @@
         <li class="right" >
           <a href="reference/deprecated.html" title="Deprecated Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.1.0</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.1.1</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -40,6 +40,37 @@
             
   <div class="section" id="changelog">
 <h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="urwid-2-1-1">
+<h2>Urwid 2.1.1<a class="headerlink" href="#urwid-2-1-1" title="Permalink to this headline">¶</a></h2>
+<p>2020-07-26</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Add TrioEventLoop.run_async(), removed nursery constructor arg (#392) (by
+Tamás Nepusz)</p></li>
+<li><p>Add py38 to Travis tests (by Andrey Semakin)</p></li>
+<li><p>Add popular IDEs folders to .gitignore (by Andrey Semakin)</p></li>
+<li><p>Add wrap_around kwarg to SimpleListWalkers (by Krzysztof Królczyk)</p></li>
+<li><p>Change documentation on Terminal (by James Johnson)</p></li>
+<li><p>Remove debug documentation change test (by James Johnson)</p></li>
+<li><p>Remove support for py34 (by Andrey Semakin)</p></li>
+<li><p>Remove invalid escape sequence (by Andrey Lebedev)</p></li>
+<li><p>Fix GridFlow keypress handling when v_sep is 0 (by Aurelien Grenotton)</p></li>
+<li><p>Fix Terminal in ListBox (#382) (by James Johnson)</p></li>
+<li><p>Fix Crash on <cite>fg</cite>, SIGCONT (after Ctrl-Z, SIGSTOP, SIGTSTP) (by goncalopp)</p></li>
+<li><p>Fix 256-color mode on some terminals. Addresses #404. (by Tony Cebzanov)</p></li>
+<li><p>vterm: reduce __init__ boilerplate (by max ulidtko)</p></li>
+<li><p>vterm: errno 5 is not EOF. (by max ulidtko)</p></li>
+<li><p>Terminal: use UTF-8 by default. (by max ulidtko)</p></li>
+<li><p>Instance of Terminal has no __super attr – thanks pylint! (by max ulidtko)</p></li>
+<li><p>Do not call wait_readable with a closed fd in TrioEventLoop (by Michael
+Hudson-Doyle)</p></li>
+<li><p>Make options a static method where applicable (by Philip Matura)</p></li>
+<li><p>Set up Travis to run py38, speed up build (by Andrey Semakin)</p></li>
+<li><p>Use comparison with a string instead of “is” test with a literal (by Andrej
+Shadura)</p></li>
+</ul>
+</div></blockquote>
+</div>
 <div class="section" id="urwid-2-1-0">
 <h2>Urwid 2.1.0<a class="headerlink" href="#urwid-2-1-0" title="Permalink to this headline">¶</a></h2>
 <p>2019-11-13</p>
@@ -1110,6 +1141,7 @@ colour rendering.</p></li>
             </a></p><h3>Table of contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Changelog</a><ul>
+<li><a class="reference internal" href="#urwid-2-1-1">Urwid 2.1.1</a></li>
 <li><a class="reference internal" href="#urwid-2-1-0">Urwid 2.1.0</a></li>
 <li><a class="reference internal" href="#urwid-2-0-1">Urwid 2.0.1</a></li>
 <li><a class="reference internal" href="#urwid-2-0-0">Urwid 2.0.0</a></li>
@@ -1181,7 +1213,7 @@ colour rendering.</p></li>
     </form>
     </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -1195,12 +1227,12 @@ colour rendering.</p></li>
         <li class="right" >
           <a href="reference/deprecated.html" title="Deprecated Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.1.0</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.1.1</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.2.1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.
     </div>
   </body>
 </html>
