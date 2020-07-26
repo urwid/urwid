@@ -460,7 +460,7 @@ class ListBox(Widget, WidgetContainerMixin):
         if focus_canvas.rows() != focus_rows:
             raise ListBoxError("Focus Widget %r at position %r within listbox calculated %d rows but rendered %d!"% (focus_widget,focus_pos,focus_rows, focus_canvas.rows()))
         c_cursor = focus_canvas.cursor
-        if cursor != c_cursor:
+        if cursor is not None and cursor != c_cursor:
             raise ListBoxError("Focus Widget %r at position %r within listbox calculated cursor coords %r but rendered cursor coords %r!" %(focus_widget,focus_pos,cursor,c_cursor))
 
         rows += focus_rows
