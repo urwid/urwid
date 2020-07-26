@@ -214,5 +214,7 @@ fi
 
 git checkout master
 newpatch=$(( patch + 1 ))
-sed -i -e "s/VERSION = (.*)/VERSION = ($major, $minor, $newpatch)/" urwid/version.py
-git commit -m "Bump version to for $major.$minor.$newpatch for  development"
+sed -i -e "s/VERSION = (.*)/VERSION = ($major, $minor, $newpatch, 'dev')/" urwid/version.py
+git add urwid/version.py
+git commit -m "Bump version to ${major}.${minor}.${newpatch}-dev for development"
+git push origin master
