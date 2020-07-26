@@ -14,4 +14,4 @@ git checkout HEAD CNAME
 git checkout HEAD .nojekyll
 cp -r build/sphinx/html/. .
 git add `find build/sphinx/html | cut -c 19-`
-git status
+git status -uno
