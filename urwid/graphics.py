@@ -215,6 +215,21 @@ class LineBox(WidgetDecoration, WidgetWrap):
         self.title_widget.set_text(self.format_title(text))
         self.tline_widget._invalidate()
 
+    def pack(self, size=None, focus=False):
+        """
+        Return the number of screen columns and rows required for
+        this Linebox widget to be displayed without wrapping or
+        clipping, as a single element tuple.
+
+        :param size: ``None`` for unlimited screen columns or (*maxcol*,) to
+                     specify a maximum column size
+        :type size: widget size
+        """
+        size = list(self._original_widget.pack(size, focus))
+        size[0] += 2
+        size[1] += 2
+        return size
+
 
 class BarGraphMeta(WidgetMeta):
     """
