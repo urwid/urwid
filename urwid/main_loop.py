@@ -45,6 +45,10 @@ from urwid.wimp import PopUpTarget
 from urwid import signals
 from urwid.display_common import INPUT_DESCRIPTORS_CHANGED
 
+if PYTHON3:
+    from typing import Any, Callable, Dict
+
+
 PIPE_BUFFER_READ_SIZE = 4096 # can expect this much on Linux, so try for that
 
 class ExitMainLoop(Exception):
@@ -1041,7 +1045,8 @@ class TornadoEventLoop(EventLoop):
         monkey patch ioloop._impl.poll() function to be able to detect
         potential idle periods.
     """
-    _ioloop_registry = WeakKeyDictionary()  # {<ioloop> : {<handle> : <idle_func>}}
+    # {<ioloop> : {<handle> : <idle_func>}}
+    _ioloop_registry = WeakKeyDictionary()  # type: WeakKeyDictionary[Any, Dict[int, Callable[..., Any]]]
     _max_idle_handle = 0
 
     class PollProxy(object):

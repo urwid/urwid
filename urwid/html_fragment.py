@@ -28,6 +28,10 @@ HTML PRE-based UI implementation
 from urwid import util
 from urwid.main_loop import ExitMainLoop
 from urwid.display_common import AttrSpec, BaseScreen
+from urwid.compat import PYTHON3
+
+if PYTHON3:
+    from typing import List, Tuple
 
 
 # replace control characters with ?'s
@@ -41,10 +45,10 @@ class HtmlGeneratorSimulationError(Exception):
 
 class HtmlGenerator(BaseScreen):
     # class variables
-    fragments = []
-    sizes = []
-    keys = []
-    started = True
+    fragments = []  # type: List[str]
+    sizes = []  # type: List[Tuple[int, int]]
+    keys = []  # type: List[List[str]]
+    _started = True
 
     def __init__(self):
         super(HtmlGenerator, self).__init__()

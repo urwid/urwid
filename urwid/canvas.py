@@ -23,10 +23,13 @@ from __future__ import division, print_function
 
 import weakref
 
+from urwid.compat import PYTHON3
 from urwid.util import rle_len, rle_append_modify, rle_join_modify, rle_product, \
     calc_width, calc_text_pos, apply_target_encoding, trim_text_attr_cs
 from urwid.text_layout import trim_line, LayoutSegment
-from urwid.compat import bytes
+
+if PYTHON3:
+    from typing import Any, Dict, List, Tuple, Type
 
 
 class CanvasCache(object):
@@ -45,13 +48,14 @@ class CanvasCache(object):
     _refs[weakref.ref(canvas)] = (widget, wcls, size, focus)
     _deps[widget} = [dependent_widget, ...]
     """
-    _widgets = {}
-    _refs = {}
-    _deps = {}
+    _widgets = {}  # type: Dict[Tuple[Type[Any], int, bool], weakref.ref[Canvas]]
+    _refs = {}  # type: Dict[weakref.ref[Canvas], Tuple[Any, int, bool]]
+    _deps = {}  # type: Dict[weakref.ref[Canvas], List[Any]]
     hits = 0
     fetches = 0
     cleanups = 0
 
+    @classmethod
     def store(cls, wcls, canvas):
         """
         Store a weakref to canvas in the cache.
@@ -93,8 +97,8 @@ class CanvasCache(object):
         ref = weakref.ref(canvas, cls.cleanup)
         cls._refs[ref] = (widget, wcls, size, focus)
         cls._widgets.setdefault(widget, {})[(wcls, size, focus)] = ref
-    store = classmethod(store)
 
+    @classmethod
     def fetch(cls, widget, wcls, size, focus):
         """
         Return the cached canvas or None.
@@ -115,8 +119,8 @@ class CanvasCache(object):
         if canv:
             cls.hits += 1 # more stats
         return canv
-    fetch = classmethod(fetch)
 
+    @classmethod
     def invalidate(cls, widget):
         """
         Remove all canvases cached for widget.
@@ -139,8 +143,8 @@ class CanvasCache(object):
             pass
         for w in dependants:
             cls.invalidate(w)
-    invalidate = classmethod(invalidate)
 
+    @classmethod
     def cleanup(cls, ref):
         cls.cleanups += 1 # collect stats
 
@@ -162,8 +166,8 @@ class CanvasCache(object):
                 del cls._deps[widget]
             except KeyError:
                 pass
-    cleanup = classmethod(cleanup)
 
+    @classmethod
     def clear(cls):
         """
         Empty the cache.
@@ -171,7 +175,6 @@ class CanvasCache(object):
         cls._widgets = {}
         cls._refs = {}
         cls._deps = {}
-    clear = classmethod(clear)
 
 
 

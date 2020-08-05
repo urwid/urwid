@@ -25,7 +25,10 @@ from __future__ import division, print_function
 from urwid.escape import SAFE_ASCII_DEC_SPECIAL_RE
 from urwid.util import apply_target_encoding, str_util
 from urwid.canvas import TextCanvas
-from urwid.compat import text_type
+from urwid.compat import PYTHON3, text_type
+
+if PYTHON3:
+    from typing import List, Tuple
 
 
 def separate_glyphs(gdata, height):
@@ -81,7 +84,7 @@ def separate_glyphs(gdata, height):
         c = None
     return dout, utf8_required
 
-_all_fonts = []
+_all_fonts = []  # type: List[Tuple[str, Font]]
 def get_all_fonts():
     """
     Return a list of (font name, font class) tuples.

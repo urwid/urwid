@@ -207,7 +207,7 @@ def cache_widget_rows(cls):
     return cached_rows
 
 
-class Widget(with_metaclass(WidgetMeta, object)):
+class Widget(with_metaclass(WidgetMeta, object)):  # type: ignore
     """
     Widget base class
 
@@ -1750,36 +1750,70 @@ def delegate_to_widget_mixin(attribute_name):
 
     This mixin is designed to be used as a superclass of another widget.
     """
+
+    class _DelegateToWidgetMixin(DelegateToWidgetMixin):
+        delegate_attribute = attribute_name
+
+    return _DelegateToWidgetMixin
+
+
+class DelegateToWidgetMixin(Widget):
+    """Mixin class that delegates all standard widget methods to an attribute
+    given by `delegate_attribute`.
+    """
     # FIXME: this is so common, let's add proper support for it
     # when layout and rendering are separated
 
-    get_delegate = attrgetter(attribute_name)
-    class DelegateToWidgetMixin(Widget):
-        no_cache = ["rows"] # crufty metaclass work-around
+    no_cache = ["rows"]  # crufty metaclass work-around
 
-        def render(self, size, focus=False):
-            canv = get_delegate(self).render(size, focus=focus)
-            return CompositeCanvas(canv)
+    # to be implemented in concrete class
+    delegate_attribute = None  # type: str
 
-        selectable = property(lambda self:get_delegate(self).selectable)
-        get_cursor_coords = property(
-            lambda self:get_delegate(self).get_cursor_coords)
-        get_pref_col = property(lambda self:get_delegate(self).get_pref_col)
-        keypress = property(lambda self:get_delegate(self).keypress)
-        move_cursor_to_coords = property(
-            lambda self:get_delegate(self).move_cursor_to_coords)
-        rows = property(lambda self:get_delegate(self).rows)
-        mouse_event = property(lambda self:get_delegate(self).mouse_event)
-        sizing = property(lambda self:get_delegate(self).sizing)
-        pack = property(lambda self:get_delegate(self).pack)
-    return DelegateToWidgetMixin
+    @property
+    def delegate(self):
+        return getattr(self, self.delegate_attribute)
+
+    def render(self, size, focus=False):
+        canv = self.delegate.render(size, focus=focus)
+        return CompositeCanvas(canv)
+
+    def selectable(self):
+        return self.delegate.selectable()
+
+    def get_cursor_coords(self, *args, **kwargs):
+        return self.delegate.get_cursor_coords(*args, **kwargs)
+
+    def get_pref_col(self, *args, **kwargs):
+        return self.delegate.get_pref_col(*args, **kwargs)
+
+    def keypress(self, *args, **kwargs):
+        return self.delegate.keypress(*args, **kwargs)
+
+    def move_cursor_to_coords(self, *args, **kwargs):
+        return self.delegate.move_cursor_to_coords(*args, **kwargs)
+
+    def rows(self, *args, **kwargs):
+        return self.delegate.rows(*args, **kwargs)
+
+    def mouse_event(self, *args, **kwargs):
+        return self.delegate.mouse_event(*args, **kwargs)
+
+    def sizing(self):
+        return self.delegate.sizing()
+
+    def pack(self, *args, **kwargs):
+        return self.delegate.pack(*args, **kwargs)
 
 
+class DelegateToOriginalWidgetMixin(Widget):
+    delegate_attribute = '_original_widget'
 
 class WidgetWrapError(Exception):
     pass
 
-class WidgetWrap(delegate_to_widget_mixin('_wrapped_widget'), Widget):
+class WidgetWrap(DelegateToWidgetMixin, Widget):
+
+    delegate_attribute = '_wrapped_widget'
     def __init__(self, w):
         """
         w -- widget to wrap, stored as self._w

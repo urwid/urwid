@@ -24,10 +24,6 @@ from __future__ import division, print_function
 
 import sys
 
-try: # python 2.4 and 2.5 compat
-    bytes = bytes
-except NameError:
-    bytes = str
 
 PYTHON3 = sys.version_info > (3, 0)
 
@@ -61,12 +57,12 @@ if PYTHON3:
             tb = None
 else:
     ord2 = ord
-    chr2 = chr
+    chr2 = chr  # type: ignore
     B = lambda x: x
-    bytes3 = lambda x: bytes().join([chr(c) for c in x])
-    text_type = unicode
+    bytes3 = lambda x: bytes().join([chr(c) for c in x])  # type: ignore
+    text_type = unicode  # type: ignore
     xrange = xrange
-    text_types = (str, unicode)
+    text_types = (str, unicode)  # type: ignore
 
     """
     Reraise an exception.

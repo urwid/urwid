@@ -68,13 +68,13 @@ class MonitoredList(list):
     __add__ = _call_modified(list.__add__)
     __delitem__ = _call_modified(list.__delitem__)
     if not PYTHON3:
-        __delslice__ = _call_modified(list.__delslice__)
+        __delslice__ = _call_modified(list.__delslice__)  # type: ignore
     __iadd__ = _call_modified(list.__iadd__)
     __imul__ = _call_modified(list.__imul__)
     __rmul__ = _call_modified(list.__rmul__)
     __setitem__ = _call_modified(list.__setitem__)
     if not PYTHON3:
-        __setslice__ = _call_modified(list.__setslice__)
+        __setslice__ = _call_modified(list.__setslice__)  # type: ignore
     append = _call_modified(list.append)
     extend = _call_modified(list.extend)
     insert = _call_modified(list.insert)
@@ -347,6 +347,7 @@ class MonitoredFocusList(MonitoredList):
             return self.__setitem__(slice(i, j), y)
 
     def __imul__(self, n):
+        # type: (int) -> MonitoredFocusList
         """
         >>> def modified(indices, new_items):
         ...     print("range%r <- %r" % (indices, list(new_items)))

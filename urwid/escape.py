@@ -31,9 +31,9 @@ import re
 try:
     from urwid import str_util
 except ImportError:
-    from urwid import old_str_util as str_util
+    from urwid import old_str_util as str_util  # type: ignore
 
-from urwid.compat import bytes, bytes3
+from urwid.compat import bytes3
 
 # NOTE: because of circular imports (urwid.util -> urwid.escape -> urwid.util)
 # from urwid.util import is_mouse_event -- will not work here
