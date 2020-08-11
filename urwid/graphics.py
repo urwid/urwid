@@ -159,11 +159,13 @@ class LineBox(WidgetDecoration, WidgetWrap):
                 if title_align == 'center':
                     tline_widgets.append(tline)
             self.tline_widget = Columns(tline_widgets)
-            top = Columns([
-                ('fixed', 1, tlcorner),
-                self.tline_widget,
-                ('fixed', 1, trcorner)
-            ])
+            top_columns = []
+            if tlcorner.text:
+                top_columns.append(('fixed', 1, tlcorner),)
+            top_columns.append(self.tline_widget)
+            if trcorner.text:
+                top_columns.append(('fixed', 1, trcorner),)
+            top = Columns(top_columns)
 
         else:
             self.tline_widget = None
@@ -185,9 +187,14 @@ class LineBox(WidgetDecoration, WidgetWrap):
                 box_columns=[0, 2], focus_column=focus_col)
 
         if bline:
-            bottom = Columns([
-                ('fixed', 1, blcorner), bline, ('fixed', 1, brcorner)
-            ])
+            bottom_columns = []
+            if tlcorner.text:
+                bottom_columns.append(('fixed', 1, blcorner),)
+            bottom_columns.append(bline)
+            if trcorner.text:
+                bottom_columns.append(('fixed', 1, brcorner),)
+            top = Columns(top_columns)
+            bottom = Columns(bottom_columns)
         else:
             bottom = None
 

@@ -40,6 +40,15 @@ class LineBoxTest(unittest.TestCase):
 
         self.assertEqual(l, self.border(*nums))
 
+    def test_no_corners(self):
+        t = urwid.Text("")
+        l = urwid.LineBox(t, tlcorner="", trcorner="", blcorner="", brcorner="", lline="", rline="").render((3,)).text
+
+        # default
+        self.assertEqual(l,
+            self.border(B("\xe2\x94\x80"), B("\xe2\x94\x80"),
+                B("\xe2\x94\x80"), B(" "), B(" "),
+                B("\xe2\x94\x80"), B("\xe2\x94\x80"), B("\xe2\x94\x80")))
 
 class BarGraphTest(unittest.TestCase):
     def bgtest(self, desc, data, top, widths, maxrow, exp ):
