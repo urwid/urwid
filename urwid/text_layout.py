@@ -163,7 +163,7 @@ class StandardTextLayout(TextLayout):
                 if p!=n_end:
                     l += [(sc, p, n_end)]
                 if trimmed:
-                    l += [(1, n_end, u'…'.encode())]
+                    l += [(1, n_end, u'…'.encode("utf-8"))]
                 l += [(pad_right,n_end)]
                 b.append(l)
                 p = n_cr+1

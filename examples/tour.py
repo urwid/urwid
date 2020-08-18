@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding: utf-8
 #
 # Urwid tour.  It slices, it dices..
 #    Copyright (C) 2004-2011  Ian Ward
@@ -53,7 +54,7 @@ def main():
         u"Text will be cut off at the left of this widget.")
     text_center_clip = (u"Center aligned and clipped widgets will have "
         u"text cut off both sides.")
-    text_ellipsis = (u"Text can be clippped using the ellipsis character (…)\n"
+    text_ellipsis = (u"Text can be clipped using the ellipsis character (…)\n"
         u"Extra text is discarded and a … mark is shown."
          u"50-> 55-> 60-> 65-> 70-> 75-> 80-> 85-> 90-> 95-> 100>\n"
     )
