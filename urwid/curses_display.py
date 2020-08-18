@@ -32,7 +32,7 @@ from urwid import escape
 
 from urwid.display_common import BaseScreen, RealTerminal, AttrSpec, \
     UNPRINTABLE_TRANS_TABLE
-from urwid.compat import bytes, PYTHON3, text_type, xrange
+from urwid.compat import bytes, PYTHON3, text_type, xrange, ord2
 
 KEY_RESIZE = 410 # curses.KEY_RESIZE (sometimes not defined)
 KEY_MOUSE = 409 # curses.KEY_MOUSE
@@ -368,7 +368,7 @@ class Screen(BaseScreen, RealTerminal):
         l = []
         def append_button( b ):
             b |= mod
-            l.extend([ 27, ord('['), ord('M'), b+32, x+33, y+33 ])
+            l.extend([ 27, ord2('['), ord2('M'), b+32, x+33, y+33 ])
 
         if bstate & curses.BUTTON1_PRESSED and last & 1 == 0:
             append_button( 0 )
@@ -515,8 +515,7 @@ class Screen(BaseScreen, RealTerminal):
                 try:
                     if cs in ("0", "U"):
                         for i in range(len(seg)):
-                            self.s.addch( 0x400000 +
-                                ord(seg[i]) )
+                            self.s.addch( 0x400000 + ord2(seg[i]) )
                     else:
                         assert cs is None
                         if PYTHON3:
