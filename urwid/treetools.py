@@ -484,7 +484,8 @@ class TreeListBox(urwid.ListBox):
         rootnode = pos.get_root()
         rootwidget = rootnode.get_widget()
         lastwidget = rootwidget.last_child()
-        lastnode = lastwidget.get_node()
+        if lastwidget:
+            lastnode = lastwidget.get_node()
 
-        self.change_focus(size, lastnode, maxrow-1)
+            self.change_focus(size, lastnode, maxrow-1)
 
