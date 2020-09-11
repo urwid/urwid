@@ -323,7 +323,7 @@ def store_initial_cwd(name):
 def starts_expanded(name):
     """Return True if directory is a parent of initial cwd."""
 
-    if name is '/':
+    if name == '/':
         return True
 
     l = name.split(dir_sep())
