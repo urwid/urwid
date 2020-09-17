@@ -175,7 +175,6 @@ class Thin4x3Font(Font):
 """]
 add_font("Thin 4x3",Thin4x3Font)
 
-
 class Sextant3x3Font(Font):
     height = 3
     data = [u"""
@@ -192,8 +191,27 @@ class Sextant3x3Font(Font):
 """
  🬄🬄
 
+''', u"""
+:::;;;<<<===>>>???@@@
+ 🬭  🬭  🬖🬀   🬁🬢 🬇🬂🬧🬦🬂🬧
+ 🬰  🬰 🬁🬢 🬠🬰🬰 🬖🬀 🬇🬀▐🬉🬅
+ 🬂  🬅   🬀   🬁   🬁  🬂🬀
+""", u"""
+AAABBBCCCDDDEEEFFFGGGHHHIIIJJJKKKLLLMMMNNNOOOPPPQQQ
+🬞🬅🬢▐🬂🬧🬦🬂🬈▐🬂🬧▐🬂🬂▐🬂🬂🬦🬂🬈▐ ▐ 🬨🬀  ▐▐🬞🬅▐  ▐🬢🬫▐🬢▐🬦🬂🬧▐🬂🬧🬦🬂🬧
+▐🬋🬫▐🬂🬧▐ 🬞▐ ▐▐🬂 ▐🬂 ▐ 🬨▐🬂🬨 ▐ 🬞 ▐▐🬈🬏▐  ▐🬁▐▐ 🬨▐ ▐▐🬂🬀▐🬇🬘
+🬁 🬁🬁🬂🬀 🬂🬀🬁🬂🬀🬁🬂🬂🬁   🬂🬂🬁 🬁 🬂🬀 🬂🬀🬁 🬁🬁🬂🬂🬁 🬁🬁 🬁 🬂🬀🬁   🬂🬁
+""", u"""
+RRRSSSTTTUUUVVVWWWXXXYYYZZZ[[[]]]^^^___```
+▐🬂🬧🬦🬂🬈🬁🬨🬂▐ ▐▐ ▐▐ ▐🬉🬏🬘▐ ▐🬁🬂🬙 🬕🬀 🬂▌🬞🬅🬢    🬈🬏
+▐🬊🬐🬞🬂🬧 ▐ ▐ ▐🬉🬏🬘▐🬖🬷🬞🬅🬢 🬧🬀🬞🬅  ▌   ▌
+🬁 🬁 🬂🬀 🬁  🬂🬀 🬁 🬁 🬁🬁 🬁 🬁 🬁🬂🬂 🬂🬀 🬂🬀   🬂🬂🬂
+""", u"""
+\\\\\\
+🬇🬏
+ 🬁🬢
 
-''']
+"""]
 add_font("Sextant 3x3", Sextant3x3Font)
 
 class Sextant2x2Font(Font):
