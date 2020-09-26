@@ -2,6 +2,33 @@
 Changelog
 ---------
 
+Urwid 2.1.2
+===========
+
+2020-09-26
+
+ * Add pack method to LineBox. Fixes: #346 (by Miguel de Dios)
+
+ * Add a test to check the linebox.pack is good. (by Miguel de Dios)
+
+ * Add bin/release.sh script to partially automate releases. (by Tony Cebzanov)
+
+ * Add workaround for #386 (by Tony Cebzanov)
+
+ * Fix curses_display python3 ord() (by Ya-Liang Chang (Allen))
+
+ * Fix bumping to dev version in release.sh script (by Tony Cebzanov)
+
+ * Fix focus_end on a collapsed tree (by Anonymous Maarten)
+
+ * Fix crash with "ellipsis" clipping for py2 tour.py works with py2 now Typo in
+   tour.py (by akorb)
+
+ * Ignore resetting to invalid locale (Closes: #377) (by Jochen Sprickerhof)
+
+ * Use ord2 for python2/3 compatibility (by Ya-Liang Chang (Allen))
+
+
 Urwid 2.1.1
 ===========
 
