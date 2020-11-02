@@ -136,10 +136,15 @@ class TrioEventLoop(EventLoop):
         Trio event loop is already running. Example::
 
             with trio.open_nursery() as nursery:
-                event_loop = urwid.TrioEventLoop(nursery=nursery)
+                event_loop = urwid.TrioEventLoop()
+
+                # [...launch other async tasks in the nursery...]
+
                 loop = urwid.MainLoop(widget, event_loop=event_loop)
                 with loop.start():
                     await event_loop.run_async()
+
+                nursery.cancel_scope.cancel()
         """
 
         idle_callbacks = self._idle_callbacks
