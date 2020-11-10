@@ -214,7 +214,7 @@ class ZMQEventLoop(EventLoop):
                                         (self._alarms and timeout > 0)):
                 state = 'idle'
                 timeout = 0
-            ready = dict(self._poller.poll(timeout))
+            ready = dict(self._poller.poll(timeout * 1000))
         else:
             state = 'wait'
             ready = dict(self._poller.poll())
