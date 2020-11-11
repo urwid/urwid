@@ -71,6 +71,9 @@ setup_d = {
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: Implementation :: PyPy",
         ],
+    #if you need pyserial as dependency, please run "pip install urwid[lcd]"
+    'extras_require':{'lcd':['pyserial']}
+
      }
 
 if have_setuptools:

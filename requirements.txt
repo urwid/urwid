@@ -1,0 +1,2 @@
+#In the module urwid.lcd_display, pyserial is needed as dependency 
+#If you need this module and need pyserial as dependency, please run "pip install urwid[lcd]"
