@@ -37,7 +37,7 @@ Alternatively if you are on Debian or Ubuntu
 
 .. code:: bash
 
-   apt-get install python-urwid
+   apt-get install python3-urwid
 
 Testing
 =======
