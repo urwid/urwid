@@ -30,13 +30,19 @@ import select
 import struct
 import sys
 import signal
+import socket
+import threading
 
-try:
+
+if os.name == "nt":
+    IS_WINDOWS = True
+    from . import win32
+    from ctypes import byref
+else:
+    IS_WINDOWS = False
     import fcntl
     import termios
     import tty
-except ImportError:
-    pass # windows
 
 from urwid import util
 from urwid import escape
@@ -48,9 +54,11 @@ from urwid.compat import PYTHON3, bytes, B
 
 from subprocess import Popen, PIPE
 
+STDIN = object()
+
 
 class Screen(BaseScreen, RealTerminal):
-    def __init__(self, input=sys.stdin, output=sys.stdout):
+    def __init__(self, input=STDIN, output=sys.stdout):
         """Initialize a screen that directly prints escape codes to an output
         terminal.
         """
@@ -85,11 +93,16 @@ class Screen(BaseScreen, RealTerminal):
 
         # Our connections to the world
         self._term_output_file = output
+        if input is STDIN:
+            if IS_WINDOWS:
+                input, self._send_input = socket.socketpair()
+            else:
+                input = sys.stdin
         self._term_input_file = input
 
         # pipe for signalling external event loops about resize events
-        self._resize_pipe_rd, self._resize_pipe_wr = os.pipe()
-        fcntl.fcntl(self._resize_pipe_rd, fcntl.F_SETFL, os.O_NONBLOCK)
+        self._resize_pipe_rd, self._resize_pipe_wr = socket.socketpair()
+        self._resize_pipe_rd.setblocking(False)
 
     def _input_fileno(self):
         """Returns the fileno of the input stream, or None if it doesn't have one.  A stream without a fileno can't participate in whatever.
@@ -134,9 +147,8 @@ class Screen(BaseScreen, RealTerminal):
         """
         frame -- will always be None when the GLib event loop is being used.
         """
-
         if not self._resized:
-            os.write(self._resize_pipe_wr, B('R'))
+            self._resize_pipe_wr.send(B("R"))
         self._resized = True
         self.screen_buf = None
 
@@ -212,6 +224,9 @@ class Screen(BaseScreen, RealTerminal):
         os.waitpid(self.gpm_mev.pid, 0)
         self.gpm_mev = None
 
+    _dwOriginalOutMode = None
+    _dwOriginalInMode = None
+
     def _start(self, alternate_buffer=True):
         """
         Initialize the screen and input mode.
@@ -225,15 +240,35 @@ class Screen(BaseScreen, RealTerminal):
             self._rows_used = 0
 
         fd = self._input_fileno()
-        if fd is not None and os.isatty(fd):
+        if fd is not None and os.isatty(fd) and not IS_WINDOWS:
             self._old_termios_settings = termios.tcgetattr(fd)
             tty.setcbreak(fd)
 
-        self.signal_init()
+        if IS_WINDOWS:
+            hOut = win32.GetStdHandle(win32.STD_OUTPUT_HANDLE)
+            hIn = win32.GetStdHandle(win32.STD_INPUT_HANDLE)
+            self._dwOriginalOutMode = win32.DWORD()
+            self._dwOriginalInMode = win32.DWORD()
+            win32.GetConsoleMode(hOut, byref(self._dwOriginalOutMode))
+            win32.GetConsoleMode(hIn, byref(self._dwOriginalInMode))
+            # TODO: Restore on exit
+
+            dwOutMode = win32.DWORD(
+                self._dwOriginalOutMode.value | win32.ENABLE_VIRTUAL_TERMINAL_PROCESSING | win32.DISABLE_NEWLINE_AUTO_RETURN)
+            dwInMode = win32.DWORD(
+                self._dwOriginalInMode.value | win32.ENABLE_WINDOW_INPUT | win32.ENABLE_VIRTUAL_TERMINAL_INPUT
+            )
+
+            ok = win32.SetConsoleMode(hOut, dwOutMode)
+            assert ok
+            ok = win32.SetConsoleMode(hIn, dwInMode)
+            assert ok
+        else:
+            self.signal_init()
         self._alternate_buffer = alternate_buffer
         self._next_timeout = self.max_wait
 
-        if not self._signal_keys_set:
+        if not self._signal_keys_set and not IS_WINDOWS:
             self._old_signal_keys = self.tty_signal_keys(fileno=fd)
 
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
@@ -250,10 +285,11 @@ class Screen(BaseScreen, RealTerminal):
 
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
 
-        self.signal_restore()
+        if not IS_WINDOWS:
+            self.signal_restore()
 
         fd = self._input_fileno()
-        if fd is not None and os.isatty(fd):
+        if fd is not None and os.isatty(fd) and not IS_WINDOWS:
             termios.tcsetattr(fd, termios.TCSADRAIN, self._old_termios_settings)
 
         self._mouse_tracking(False)
@@ -273,6 +309,14 @@ class Screen(BaseScreen, RealTerminal):
 
         if self._old_signal_keys:
             self.tty_signal_keys(*(self._old_signal_keys + (fd,)))
+
+        if IS_WINDOWS:
+            hOut = win32.GetStdHandle(win32.STD_OUTPUT_HANDLE)
+            hIn = win32.GetStdHandle(win32.STD_INPUT_HANDLE)
+            ok = win32.SetConsoleMode(hOut, self._dwOriginalOutMode)
+            assert ok
+            ok = win32.SetConsoleMode(hIn, self._dwOriginalInMode)
+            assert ok
 
         super(Screen, self)._stop()
 
@@ -395,6 +439,10 @@ class Screen(BaseScreen, RealTerminal):
         """
         Remove any hooks added by hook_event_loop.
         """
+        if self._input_thread is not None:
+            self._input_thread.should_exit = True
+            self._input_thread = None
+
         for handle in self._current_event_loop_handles:
             event_loop.remove_watch_file(handle)
 
@@ -410,6 +458,9 @@ class Screen(BaseScreen, RealTerminal):
 
         Subclasses may wish to use parse_input to wrap the callback.
         """
+        if IS_WINDOWS:
+            self._input_thread = ReadInputThread(self._send_input, lambda: self._sigwinch_handler(0))
+            self._input_thread.start()
         if hasattr(self, 'get_input_nonblocking'):
             wrapper = self._make_legacy_input_wrapper(event_loop, callback)
         else:
@@ -419,6 +470,7 @@ class Screen(BaseScreen, RealTerminal):
         handles = [event_loop.watch_file(fd, wrapper) for fd in fds]
         self._current_event_loop_handles = handles
 
+    _input_thread = None
     _input_timeout = None
     _partial_codes = None
 
@@ -455,7 +507,7 @@ class Screen(BaseScreen, RealTerminal):
         # clean out the pipe used to signal external event loops
         # that a resize has occurred
         try:
-            while True: os.read(self._resize_pipe_rd, 1)
+            while True: self._resize_pipe_rd.recv(1)
         except OSError:
             pass
 
@@ -568,7 +620,10 @@ class Screen(BaseScreen, RealTerminal):
                 self.gpm_event_pending = True
         fd = self._input_fileno()
         if fd is not None and fd in ready:
-            return ord(os.read(fd, 1))
+            if IS_WINDOWS:
+                return ord(self._term_input_file.recv(1))
+            else:
+                return ord(os.read(fd, 1))
         return -1
 
     def _encode_gpm_event( self ):
@@ -666,9 +721,18 @@ class Screen(BaseScreen, RealTerminal):
         y, x = 24, 80
         try:
             if hasattr(self._term_output_file, 'fileno'):
-                buf = fcntl.ioctl(self._term_output_file.fileno(),
-                                termios.TIOCGWINSZ, ' '*4)
-                y, x = struct.unpack('hh', buf)
+                if IS_WINDOWS:
+                    assert self._term_output_file == sys.stdout
+                    handle = win32.GetStdHandle(win32.STD_OUTPUT_HANDLE)
+                    info = win32.CONSOLE_SCREEN_BUFFER_INFO()
+                    ok = win32.GetConsoleScreenBufferInfo(handle, byref(info))
+                    if ok == 0:
+                        raise IOError()
+                    y, x = info.dwSize.Y, info.dwSize.X
+                else:
+                    buf = fcntl.ioctl(self._term_output_file.fileno(),
+                                    termios.TIOCGWINSZ, ' '*4)
+                    y, x = struct.unpack('hh', buf)
         except IOError:
             # Term size could not be determined
             pass
@@ -1069,6 +1133,41 @@ class Screen(BaseScreen, RealTerminal):
     # shortcut for creating an AttrSpec with this screen object's
     # number of colors
     AttrSpec = lambda self, fg, bg: AttrSpec(fg, bg, self.colors)
+
+
+class ReadInputThread(threading.Thread):
+    name = "urwid Windows input reader"
+    daemon = True
+    should_exit: bool = False
+    _input: socket.socket
+
+    def __init__(self, input, resize):
+        self._input = input
+        self._resize = resize
+        super().__init__()
+
+    def run(self) -> None:
+        hIn = win32.GetStdHandle(win32.STD_INPUT_HANDLE)
+        MAX = 2048
+
+        read = win32.DWORD(0)
+        arrtype = win32.INPUT_RECORD * MAX
+        input_records = arrtype()
+
+        while True:
+            win32.ReadConsoleInputW(hIn, byref(input_records), MAX, byref(read))
+            if self.should_exit:
+                return
+            for i in range(read.value):
+                inp = input_records[i]
+                if inp.EventType == win32.EventType.KEY_EVENT:
+                    if not inp.Event.KeyEvent.bKeyDown:
+                        continue
+                    self._input.send(inp.Event.KeyEvent.uChar.AsciiChar)
+                elif inp.EventType == win32.EventType.WINDOW_BUFFER_SIZE_EVENT:
+                    self._resize()
+                else:
+                    pass  # TODO: handle mouse events
 
 
 def _test():
