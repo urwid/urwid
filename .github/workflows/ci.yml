@@ -1,0 +1,45 @@
+name: Smoke
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  python_wheels:
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
+      PIP_DOWNLOAD_CACHE: ${{ github.workspace }}/../.pip_download_cache
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-20.04, macos-10.15, windows-latest]
+        python-version: [3.6, 3.7, 3.8, 3.9]
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Add requirements
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install PyGObject
+        pip install tox tox-gh-actions
+
+    - name: Run tests
+      run: |
+        tox -e py
+        coverage report
+
+    - name: Build sdist/wheel
+      run: |
+        tox -e build
