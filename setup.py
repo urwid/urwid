@@ -51,6 +51,7 @@ setup_d = {
     'platforms':"unix-like",
     'description': "A full-featured console (xterm et al.) user interface library",
     'long_description':open("README.rst").read().split('.. content-start\n',1)[1],
+    'long_description_content_type':'text/x-rst',
     'classifiers':[
         "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
