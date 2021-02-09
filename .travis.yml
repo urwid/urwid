@@ -18,7 +18,7 @@ before_install:
   - "sudo apt-get update"
   - "sudo apt-get install python-gi python3-gi"
 install:
-  - "pip install tox coverage coveralls"
+  - "pip install tox coverage coverage_python_version coveralls"
 script:
   - "tox"
   - "coverage report"
