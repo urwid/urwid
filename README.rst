@@ -1,6 +1,6 @@
 Urwid
 =====
-|pypi| |docs| |travis| |coveralls|
+|pypi| |docs| |travis| |coveralls| |requirements|
 
 .. content-start
 
@@ -235,3 +235,7 @@ Contributors
 .. |coveralls| image:: https://coveralls.io/repos/github/urwid/urwid/badge.svg
     :alt: test coverage
     :target: https://coveralls.io/github/urwid/urwid
+
+.. |requirements| image:: https://requires.io/github/urwid/urwid/requirements.svg?branch=master
+    :alt: requirements status
+    :target: https://requires.io/github/urwid/urwid/requirements/?branch=master

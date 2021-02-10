@@ -4,5 +4,5 @@ coverage_python_version
 pytest
 pytest-cov
 twisted
-trio==0.18.0
+trio
 PyGObject

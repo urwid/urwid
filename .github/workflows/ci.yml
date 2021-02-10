@@ -1,0 +1,60 @@
+name: Smoke
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  unix:
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
+      PIP_DOWNLOAD_CACHE: ${{ github.workspace }}/../.pip_download_cache
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: [3.5, 3.6, 3.7, 3.8, 3.9]
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Ubuntu build deps
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get -qq update
+        sudo apt-get install -y python-gi python3-gi libgirepository1.0-dev
+
+    - name: Install deps with brew
+      if: runner.os == 'macOS'
+      run: |
+        brew install gtk+3 gobject-introspection gtk-mac-integration
+
+    - name: Add python requirements
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox tox-gh-actions
+
+    - name: Run tests
+      run: |
+        tox
+      env:
+        PLATFORM: ${{ matrix.os }}
+
+    - name: Generate some warnings
+      run: |
+        tox -e dev
+
+    - name: Build sdist/wheel
+      run: |
+        tox -e build

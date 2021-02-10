@@ -1,0 +1,112 @@
+name: manylinux
+
+on:
+  workflow_dispatch:
+#  pull_request:
+
+jobs:
+  build-sdist:
+    name: Build sdist package
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Build sdist
+        run: |
+          python -m pip install -U pip pep517
+          python -m pep517.build -s .
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: packages_sdist
+          path: |
+            dist/*.tar.gz
+
+  build-linux-i686:
+    name: Build Linux i686 packages
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout repos
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Build i686 packages
+        uses: RalfG/python-wheels-manylinux-build@v0.3.3-manylinux2014_i686
+        with:
+          python-versions: "cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: packages_linux_i686
+          path: |
+            dist/*-manylinux1_i686.whl
+
+
+  build-x86_64:
+    name: Build Linux x86_64 packages
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout repos
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Build x86_64 packages
+        uses: RalfG/python-wheels-manylinux-build@v0.3.3-manylinux2014_x86_64
+        with:
+          python-versions: "cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: packages_linux_x86_64
+          path: |
+            dist/*-manylinux1_x86_64.whl
+
+
+  build-aarch64:
+    name: Build Linux aarch64 packages
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout repos
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+
+      - name: Build aarch64 packages
+        uses: RalfG/python-wheels-manylinux-build@v0.3.3-manylinux2014_aarch64
+        with:
+          python-versions: "cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: packages_linux_aarch64
+          path: |
+            dist/*-manylinux2014_aarch64.whl
+
+  check_artifacts:
+    needs: [build-sdist, build-linux-i686, build-x86_64, build-aarch64]
+    defaults:
+      run:
+        shell: bash
+    name: Check artifacts are correct
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+
+      # note wheels should be in subdirectory <upload_name>
+      - name: Check number of downloaded artifacts
+        run: |
+          .github/workflows/wheel-check.sh 12
