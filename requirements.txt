@@ -1,0 +1,8 @@
+tornado<5.0.0
+coverage
+coverage_python_version
+pytest
+pytest-cov
+twisted
+trio==0.18.0
+PyGObject
