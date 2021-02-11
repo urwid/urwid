@@ -33,7 +33,7 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get -qq update
-        sudo apt-get install -y python-gi python3-gi
+        sudo apt-get install -y python-gi python3-gi libgirepository1.0-dev
 
     - name: Install deps with brew
       if: runner.os == 'macOS'
