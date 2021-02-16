@@ -681,6 +681,10 @@ class Screen(BaseScreen, RealTerminal):
         except OSError:
             # Term size could not be determined
             pass
+        # Provide some lightweight fallbacks in case the TIOCWINSZ doesn't
+        # give sane answers
+        if (x <= 0 or y <= 0) and self.term in ('ansi','vt100'):
+                y, x = 24, 80
         self.maxrow = y
         return x, y
 
