@@ -11,6 +11,16 @@ class LineBoxTest(unittest.TestCase):
                 bytes().join([l, B(" "), r]),
                 bytes().join([bl, b, br]),]
 
+    def test_linebox_pack(self):
+        # Bug #346 'pack' Padding does not run with LineBox
+        urwid.set_encoding("utf-8")
+        t = urwid.Text("AAA\nCCC\nDDD")
+        size = t.pack()
+        l = urwid.LineBox(t)
+
+        self.assertEqual(l.pack()[0], size[0] + 2)
+        self.assertEqual(l.pack()[1], size[1] + 2)
+
     def test_linebox_border(self):
         urwid.set_encoding("utf-8")
         t = urwid.Text("")

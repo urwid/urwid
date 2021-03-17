@@ -42,7 +42,11 @@ class TrioEventLoop(EventLoop):
         self._nursery = None
 
         self._sleep = trio.sleep
-        self._wait_readable = trio.hazmat.wait_readable
+        try:
+            self._wait_readable = trio.lowlevel.wait_readable
+        except AttributeError:
+            # Trio 0.14 or older
+            self._wait_readable = trio.hazmat.wait_readable
 
     def alarm(self, seconds, callback):
         """Calls `callback()` a given time from now.  No parameters are passed
@@ -136,10 +140,15 @@ class TrioEventLoop(EventLoop):
         Trio event loop is already running. Example::
 
             with trio.open_nursery() as nursery:
-                event_loop = urwid.TrioEventLoop(nursery=nursery)
+                event_loop = urwid.TrioEventLoop()
+
+                # [...launch other async tasks in the nursery...]
+
                 loop = urwid.MainLoop(widget, event_loop=event_loop)
                 with loop.start():
                     await event_loop.run_async()
+
+                nursery.cancel_scope.cancel()
         """
 
         idle_callbacks = self._idle_callbacks
@@ -155,12 +164,20 @@ class TrioEventLoop(EventLoop):
 
         emulate_idle_callbacks = TrioIdleCallbackInstrument()
 
+        try:
+            add_instrument = self._trio.lowlevel.add_instrument
+            remove_instrument = self._trio.lowlevel.remove_instrument
+        except AttributeError:
+            # Trio 0.14 or older
+            add_instrument = self._trio.hazmat.add_instrument
+            remove_instrument = self._trio.hazmat.remove_instrument
+
         with self._trio.MultiError.catch(self._handle_main_loop_exception):
-            self._trio.hazmat.add_instrument(emulate_idle_callbacks)
+            add_instrument(emulate_idle_callbacks)
             try:
                 await self._main_task()
             finally:
-                self._trio.hazmat.remove_instrument(emulate_idle_callbacks)
+                remove_instrument(emulate_idle_callbacks)
 
     def watch_file(self, fd, callback):
         """Calls `callback()` when the given file descriptor has some data

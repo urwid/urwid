@@ -55,7 +55,10 @@ def detect_encoding():
         else:
             raise
     finally:
-        locale.setlocale(locale.LC_ALL, initial)
+        try:
+            locale.setlocale(locale.LC_ALL, initial)
+        except locale.Error:
+            pass
 
 if 'detected_encoding' not in locals():
     detected_encoding = detect_encoding()
