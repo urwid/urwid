@@ -235,7 +235,7 @@ def main():
                 text_weight % 2), 'reverse')),
             ('fixed', 9, urwid.Text(text_fixed_9)),
             ('weight', 3, urwid.AttrWrap(urwid.Text(
-                text_weight % 2), 'reverse')),
+                text_weight % 3), 'reverse')),
             ('fixed', 14, urwid.Text(text_fixed_14)),
             ], 0, min_width=8),
         blank,
