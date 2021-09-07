@@ -131,6 +131,10 @@ input_sequences = [
 ] + [
     # mouse reporting (special handling done in KeyqueueTrie)
     ('[M', 'mouse'),
+
+    # mouse reporting for SGR 1006
+    ('[<', 'sgrmouse'),
+
     # report status response
     ('[0n', 'status ok')
 ]
@@ -165,6 +169,8 @@ class KeyqueueTrie(object):
             if root == "mouse":
                 return self.read_mouse_info(keys,
                     more_available)
+            elif root == "sgrmouse":
+                return self.read_sgrmouse_info (keys, more_available)
             return (root, keys)
         if not keys:
             # get more keys
@@ -192,7 +198,7 @@ class KeyqueueTrie(object):
         if (b & MOUSE_MULTIPLE_CLICK_MASK)>>9 == 2:    prefix = prefix + "triple "
 
         # 0->1, 1->2, 2->3, 64->4, 65->5
-        button = ((b&64)/64*3) + (b & 3) + 1
+        button = ((b&64)//64*3) + (b & 3) + 1
 
         if b & 3 == 3:
             action = "release"
@@ -207,6 +213,56 @@ class KeyqueueTrie(object):
             action = "press"
 
         return ( (prefix + "mouse " + action, button, x, y), keys[3:] )
+
+    def read_sgrmouse_info(self, keys, more_available):
+        # Helpful links:
+        # https://stackoverflow.com/questions/5966903/how-to-get-mousemove-and-mouseclick-in-bash
+        # http://invisible-island.net/xterm/ctlseqs/ctlseqs.pdf
+
+        if not keys:
+            if more_available:
+                raise MoreInputRequired()
+            return None
+
+        value = ''
+        pos_m = 0
+        found_m = False
+        for k in keys:
+            value = value + chr(k);
+            if ((k is ord('M')) or (k is ord('m'))):
+                found_m = True
+                break;
+            pos_m += 1
+        if not found_m:
+            if more_available:
+                raise MoreInputRequired()
+            return None
+
+        (b, x, y) = value[:-1].split(';')
+
+        # shift, meta, ctrl etc. is not communicated on my machine, so I
+        # can't and won't be able to add support for it.
+        # Double and triple clicks are not supported as well. They can be
+        # implemented by using a timer. This timer can check if the last
+        # registered click is below a certain threshold. This threshold
+        # is normally set in the operating system itself, so setting one
+        # here will cause an inconsistent behaviour. I do not plan to use
+        # that feature, so I won't implement it.
+
+        button = ((int(b) & 64) // 64 * 3) + (int(b) & 3) + 1
+        x = int(x) - 1
+        y = int(y) - 1
+
+        if (value[-1] == 'M'):
+            if int(b) & MOUSE_DRAG_FLAG:
+                action = "drag"
+            else:
+                action = "press"
+        else:
+            action = "release"
+
+        return ( ("mouse " + action, button, x, y), keys[pos_m + 1:] )
+
 
     def read_cursor_position(self, keys, more_available):
         """
@@ -441,8 +497,8 @@ def move_cursor_down(x):
 HIDE_CURSOR = ESC+"[?25l"
 SHOW_CURSOR = ESC+"[?25h"
 
-MOUSE_TRACKING_ON = ESC+"[?1000h"+ESC+"[?1002h"
-MOUSE_TRACKING_OFF = ESC+"[?1002l"+ESC+"[?1000l"
+MOUSE_TRACKING_ON = ESC+"[?1000h"+ESC+"[?1002h"+ESC+"[?1006h"
+MOUSE_TRACKING_OFF = ESC+"[?1006l"+ESC+"[?1002l"+ESC+"[?1000l"
 
 DESIGNATE_G1_SPECIAL = ESC+")0"
 
