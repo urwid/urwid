@@ -108,7 +108,7 @@ The screenshots above show how these widgets react to being resized.
   allow you to map any display attribute to any other display attribute, but by default they
   will set the display attribute of everything that does not already have a display attribute.
   In this case the text has an attribute, so only the areas around the text
-  used for alignment will be have the new attribute.
+  used for alignment will have the new attribute.
 
 * A second :class:`AttrMap` widget is created to wrap the
   :class:`Filler` widget with attribute ``'bg'``.
@@ -405,6 +405,3 @@ and the widgets that have been created.  The *AdventureGame* class is
 responsible for all the changes that happen through the game and manages
 the topmost widget, but isn't a widget itself.  This is a good pattern to
 follow as your application grows larger.
-
-
-
