@@ -36,7 +36,7 @@ from urwid.command_map import ACTIVATE
 class SelectableIcon(Text):
     ignore_focus = False
     _selectable = True
-    def __init__(self, text, cursor_position=0):
+    def __init__(self, text, cursor_position=0, *args, **kwargs):
         """
         :param text: markup for this widget; see :class:`Text` for
                      description of text markup
@@ -47,7 +47,7 @@ class SelectableIcon(Text):
         displayed at a fixed location in the text when in focus.
         This widget has no special handling of keyboard or mouse input.
         """
-        self.__super.__init__(text)
+        self.__super.__init__(text, *args, **kwargs)
         self._cursor_position = cursor_position
 
     def render(self, size, focus=False):
