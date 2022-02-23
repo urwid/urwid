@@ -21,7 +21,7 @@
 
 
 from urwid import Edit
-from decimal import Decimal
+from decimal import Decimal, localcontext
 import re
 
 
@@ -265,22 +265,13 @@ class FloatEdit(NumEdit):
         Return the numeric value of self.edit_text.
         """
         if self.edit_text:
-            # integer part (before .) and fractional part (after .)
-            fmt = "{ip}.{fp}"
-            if self.significance:
-                # in case of preserved significance, construct the
-                # format string to fill with trailing 0
-                fmt = "{{ip}}.{{fp:<0{sig}d}}".format(sig=self.significance)
-
             # get the ip and fp, handles also the case that there is no '.'
             ip, fp = ([v for v in
                       self.edit_text.split(self._decimalSeparator)] + [0])[0:2]
 
-            # in case the fp part surpasses the significance we round it
-            if self.significance and len(str(fp)) > self.significance:
-                fp = float(fp) / 10**(len(str(fp)) - self.significance)
-                fp = int(round(fp))
-
-            return Decimal(fmt.format(ip=ip, fp=int(fp)))
+            with localcontext() as ctx:
+                ctx = (self.significance or len(str(fp)))+1
+                return Decimal(self.edit_text.replace(
+                    self._decimalSeparator, '.')) * 1
 
         return None
