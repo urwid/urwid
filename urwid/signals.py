@@ -174,10 +174,7 @@ class Signals(object):
         def weakref_callback(weakref):
             o = obj_weak()
             if o:
-                try:
-                    del getattr(o, self._signal_attr, {})[name][key]
-                except KeyError:
-                    pass
+                self.disconnect_by_key(o, name, key)
 
         user_args = self._prepare_user_args(weak_args, user_args, weakref_callback)
         handlers.append((key, callback, user_arg, user_args))
@@ -300,4 +297,3 @@ register_signal = _signals.register
 connect_signal = _signals.connect
 disconnect_signal = _signals.disconnect
 disconnect_signal_by_key = _signals.disconnect_by_key
-
