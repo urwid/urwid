@@ -3,13 +3,16 @@
 # $1: python script to run
 # urxvt, xdotool and import are required to run this script
 
-CLASSNAME=$(head -c 6 /dev/urandom | base64 | tr -cd [:alnum:])
+CLASSNAME=urwid-docs-$(head -c 6 /dev/urandom | base64 | tr -cd '[:alnum:]')
 PYTHON=python
 
-urxvt -bg gray90 -b 0 +sb -fn '-misc-fixed-medium-*-*-*-*-140-*-*-*-*-*-*' \
+urxvt -bg gray90 -b 0 +sb \
+	-fn '-misc-fixed-medium-*-*-*-*-140-*-*-*-*-*-*' \
 	-fb '-misc-fixed-bold-*-*-*-*-140-*-*-*-*-*-*' \
-	-name "$CLASSNAME" -e "$PYTHON" "$1" &
+	-name "$CLASSNAME" \
+	-e "$PYTHON" "$1" &
 RXVTPID=$!
+trap 'kill $RXVTPID' EXIT
 until RXVTWINDOWID=$(xdotool search --classname "$CLASSNAME"); do
 	sleep 0.1
 done
@@ -24,5 +27,3 @@ while read -r line; do
 	import -window "$RXVTWINDOWID" "${image}$c.png"
 	(( c++ ))
 done
-
-kill $RXVTPID
