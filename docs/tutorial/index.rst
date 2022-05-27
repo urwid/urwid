@@ -132,7 +132,7 @@ and will work in any terminal that supports 256-color mode. It will exit when
 .. literalinclude:: highcolors.py
    :linenos:
 
-This palette only defines values for the high color foregroundand
+This palette only defines values for the high color foreground and
 backgrounds, because only the high colors will be used. A real application
 should define values for all the modes in their palette. Valid foreground,
 background and setting values are documented in :ref:`foreground-background`.
