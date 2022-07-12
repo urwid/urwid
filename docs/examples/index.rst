@@ -57,7 +57,7 @@ Monitor and display results from a subprocess
 palette_test.py
 ---------------
 
-.. image:: palette_test2.png
+.. image:: palette_test3.png
 
 Show available colors in various screen modes
 

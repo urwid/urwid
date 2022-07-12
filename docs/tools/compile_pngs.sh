@@ -14,6 +14,7 @@ if [ -n "$XVFB" ]; then
 fi
 
 for script in "$@"; do
+	echo
 	echo "doing $script"
 	if [ -f "${script}.xdotool" ]; then
 		"$SCREENSHOTS" "$script" < "${script}.xdotool"

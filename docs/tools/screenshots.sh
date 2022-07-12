@@ -27,14 +27,15 @@ image=${1%.py}
 sync_example_settled() {
 	pid=$1
 	n=0
-	while (( n < 10 )); do
-		sleep 0.010
+	while (( n < 80 )); do
+		sleep 0.005
 		procstate="$(cut -d' ' -f3 < /proc/"$pid"/stat)"
 		case $procstate in
-			R) n=0;;
-			*) _=$(( ++n ));;
+			R) n=0; printf '!';;
+			*) _=$(( ++n )); printf '.';;
 		esac
 	done
+	echo
 }
 
 # urxvt will have an interpreter as one child process; find it
