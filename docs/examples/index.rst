@@ -13,7 +13,7 @@ tour.py
 -------
 
 .. image:: tour1.png
-.. image:: tour2.png
+.. image:: tour3.png
 
 Show how many of the standard widgets may be arranged
 on the screen
