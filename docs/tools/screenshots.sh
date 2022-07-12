@@ -30,9 +30,10 @@ sync_example_settled() {
 	while (( n < 80 )); do
 		sleep 0.005
 		procstate="$(cut -d' ' -f3 < /proc/"$pid"/stat)"
+		printf %c "$(tr S . <<< $procstate)"
 		case $procstate in
-			R) n=0; printf '!';;
-			*) _=$(( ++n )); printf '.';;
+			R) n=0;;
+			*) _=$(( ++n ));;
 		esac
 	done
 	echo
