@@ -157,9 +157,9 @@ class TagMarkupTest(unittest.TestCase):
         ("simple one", "simple one", []),
         (('blue',"john"), "john", [('blue',4)]),
         (["a ","litt","le list"], "a little list", []),
-        (["mix",('high',[" it ",('ital',"up a")])," little"],
+        (["mix",[" it",('high',[" up",('ital'," a")])]," little"],
             "mix it up a little",
-            [(None,3),('high',4),('ital',4)]),
+            [(None, 6), ('high', 3), ('ital', 2)]),
         ([u"££", u"x££"], u"££x££", []),
         ([B("\xc2\x80"), B("\xc2\x80")], B("\xc2\x80\xc2\x80"), []),
         ]

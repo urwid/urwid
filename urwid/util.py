@@ -407,7 +407,7 @@ def _tagmarkup_recurse( tm, attr ):
                 top_attr, top_run = al[0]
                 if last_attr == top_attr:
                     ral[-1] = (top_attr, last_run + top_run)
-                    del al[-1]
+                    del al[0]
             rtl += tl
             ral += al
         return rtl, ral
