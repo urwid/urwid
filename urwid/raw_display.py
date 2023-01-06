@@ -265,10 +265,12 @@ class Screen(BaseScreen, RealTerminal):
             move_cursor = escape.set_cursor_position(
                 0, self.maxrow)
         self.write(
-            self._attrspec_to_escape(AttrSpec('',''))
+            escape.BEGIN_SYNCHRONIZED_UPDATE
+            + self._attrspec_to_escape(AttrSpec('',''))
             + escape.SI
             + move_cursor
-            + escape.SHOW_CURSOR)
+            + escape.SHOW_CURSOR
+            + escape.END_SYNCHRONIZED_UPDATE)
         self.flush()
 
         if self._old_signal_keys:
@@ -862,10 +864,12 @@ class Screen(BaseScreen, RealTerminal):
             # handle resize before trying to draw screen
             return
         try:
+            self.write(escape.BEGIN_SYNCHRONIZED_UPDATE)
             for l in o:
                 if isinstance(l, bytes) and PYTHON3:
                     l = l.decode('utf-8', 'replace')
                 self.write(l)
+            self.write(escape.END_SYNCHRONIZED_UPDATE)
             self.flush()
         except IOError as e:
             # ignore interrupted syscall
@@ -1060,9 +1064,13 @@ class Screen(BaseScreen, RealTerminal):
                 for index, red, green, blue in entries]
             self.write("\x1b[3;"+";".join(modify)+"}")
         else:
+            self.write(escape.BEGIN_SYNCHRONIZED_UPDATE)
             modify = ["%d;rgb:%02x/%02x/%02x" % (index, red, green, blue)
                 for index, red, green, blue in entries]
-            self.write("\x1b]4;"+";".join(modify)+"\x1b\\")
+            self.write(
+                escape.BEGIN_SYNCHRONIZED_UPDATE
+                + "\x1b]4;"+";".join(modify)+"\x1b\\"
+                + escape.END_SYNCHRONIZED_UPDATE)
         self.flush()
 
 
