@@ -191,8 +191,8 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         A list of the widgets in this GridFlow
 
         .. note:: only for backwards compatibility. You should use the new
-            use the new standard container property :attr:`contents` to modify
-            GridFlow contents.
+            standard container property :attr:`contents` to modify GridFlow
+            contents.
         """)
 
     def _get_cell_width(self):
@@ -276,9 +276,9 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         The widget in focus, for backwards compatibility.
 
         .. note:: only for backwards compatibility. You should use the new
-            use the new standard container property :attr:`focus` to get the
-            widget in focus and :attr:`focus_position` to get/set the cell in
-            focus by index.
+            standard container property :attr:`focus` to get the widget in
+            focus and :attr:`focus_position` to get/set the cell in focus by
+            index.
         """)
 
     def _get_focus_position(self):
