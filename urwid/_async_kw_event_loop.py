@@ -20,6 +20,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import annotations
+
 from .main_loop import EventLoop, ExitMainLoop
 
 

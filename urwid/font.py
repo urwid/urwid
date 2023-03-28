@@ -20,9 +20,11 @@
 # Urwid web site: http://excess.org/urwid/
 
 
+from __future__ import annotations
+
+from urwid.canvas import TextCanvas
 from urwid.escape import SAFE_ASCII_DEC_SPECIAL_RE
 from urwid.util import apply_target_encoding, str_util
-from urwid.canvas import TextCanvas
 
 
 def separate_glyphs(gdata, height):

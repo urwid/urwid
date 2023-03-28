@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import unittest
 
-from urwid import graphics
 import urwid
+from urwid import graphics
 
 
 class LineBoxTest(unittest.TestCase):

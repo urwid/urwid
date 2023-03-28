@@ -18,7 +18,10 @@ horizontal slider control, selected check box and selected radio button
 respectively.
 """
 
+from __future__ import annotations
+
 import sys
+
 import urwid.lcd_display
 
 CGRAM = """

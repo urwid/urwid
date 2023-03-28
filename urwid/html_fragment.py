@@ -24,10 +24,11 @@
 HTML PRE-based UI implementation
 """
 
-from urwid import util
-from urwid.main_loop import ExitMainLoop
-from urwid.display_common import AttrSpec, BaseScreen
+from __future__ import annotations
 
+from urwid import util
+from urwid.display_common import AttrSpec, BaseScreen
+from urwid.main_loop import ExitMainLoop
 
 # replace control characters with ?'s
 _trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 256)])

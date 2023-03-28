@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import urwid
+
 
 def show_or_exit(key):
     if key in ('q', 'Q'):

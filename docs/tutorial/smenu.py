@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import urwid
 
 choices = 'Chapman Cleese Gilliam Idle Jones Palin'.split()

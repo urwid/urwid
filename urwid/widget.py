@@ -20,19 +20,31 @@
 # Urwid web site: http://excess.org/urwid/
 
 
+from __future__ import annotations
+
 from operator import attrgetter
 
-from urwid.util import (MetaSuper, decompose_tagmarkup, calc_width,
-    is_wide_char, move_prev_char, move_next_char)
-from urwid.text_layout import calc_pos, calc_coords, shift_line
-from urwid import signals
-from urwid import text_layout
-from urwid.canvas import (CanvasCache, CompositeCanvas, SolidCanvas,
-    apply_text_layout)
-from urwid.command_map import (command_map, CURSOR_LEFT, CURSOR_RIGHT,
-    CURSOR_UP, CURSOR_DOWN, CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT)
-from urwid.split_repr import split_repr, remove_defaults
-
+from urwid import signals, text_layout
+from urwid.canvas import CanvasCache, CompositeCanvas, SolidCanvas, apply_text_layout
+from urwid.command_map import (
+    CURSOR_DOWN,
+    CURSOR_LEFT,
+    CURSOR_MAX_LEFT,
+    CURSOR_MAX_RIGHT,
+    CURSOR_RIGHT,
+    CURSOR_UP,
+    command_map,
+)
+from urwid.split_repr import remove_defaults, split_repr
+from urwid.text_layout import calc_coords, calc_pos, shift_line
+from urwid.util import (
+    MetaSuper,
+    calc_width,
+    decompose_tagmarkup,
+    is_wide_char,
+    move_next_char,
+    move_prev_char,
+)
 
 # define some names for these constants to avoid misspellings in the source
 # and to document the constant strings we are using

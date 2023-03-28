@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import unittest
 from unittest import mock
 
-from urwid.tests.util import SelectableText
 import urwid
+from urwid.tests.util import SelectableText
 
 
 class FrameTest(unittest.TestCase):

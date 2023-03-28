@@ -20,8 +20,17 @@
 # Urwid web site: http://excess.org/urwid/
 
 
-from urwid.util import calc_width, calc_text_pos, calc_trim_text, is_wide_char, \
-    move_prev_char, move_next_char
+from __future__ import annotations
+
+from urwid.util import (
+    calc_text_pos,
+    calc_trim_text,
+    calc_width,
+    is_wide_char,
+    move_next_char,
+    move_prev_char,
+)
+
 
 class TextLayout:
     def supports_align_mode(self, align):

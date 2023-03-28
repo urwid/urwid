@@ -22,12 +22,14 @@
 # Urwid web site: http://excess.org/urwid/
 
 
-import time
+from __future__ import annotations
+
 import heapq
-import select
 import os
+import select
 import signal
 import sys
+import time
 from functools import wraps
 from itertools import count
 from weakref import WeakKeyDictionary
@@ -37,12 +39,12 @@ try:
 except ImportError:
     pass # windows
 
-from urwid.util import StoppingContext, is_mouse_event
-from urwid.compat import reraise
-from urwid.command_map import command_map, REDRAW_SCREEN
-from urwid.wimp import PopUpTarget
 from urwid import signals
+from urwid.command_map import REDRAW_SCREEN, command_map
+from urwid.compat import reraise
 from urwid.display_common import INPUT_DESCRIPTORS_CHANGED
+from urwid.util import StoppingContext, is_mouse_event
+from urwid.wimp import PopUpTarget
 
 PIPE_BUFFER_READ_SIZE = 4096 # can expect this much on Linux, so try for that
 
@@ -1250,7 +1252,7 @@ class TwistedEventLoop(EventLoop):
 
         Returns True if the alarm exists, False otherwise
         """
-        from twisted.internet.error import AlreadyCancelled, AlreadyCalled
+        from twisted.internet.error import AlreadyCalled, AlreadyCancelled
         try:
             handle.cancel()
             return True
@@ -1497,7 +1499,7 @@ class AsyncioEventLoop(EventLoop):
 # not supported in earlier versions).
 from ._async_kw_event_loop import TrioEventLoop
 
- 
+
 def _refl(name, rval=None, exit=False):
     """
     This function is used to test the main loop classes.

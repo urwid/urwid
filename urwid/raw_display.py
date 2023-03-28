@@ -24,11 +24,13 @@
 Direct terminal UI implementation
 """
 
+from __future__ import annotations
+
 import os
 import select
+import signal
 import struct
 import sys
-import signal
 
 try:
     import fcntl
@@ -37,14 +39,17 @@ try:
 except ImportError:
     pass # windows
 
-from urwid import util
-from urwid import escape
-from urwid.display_common import BaseScreen, RealTerminal, \
-    UPDATE_PALETTE_ENTRY, AttrSpec, UNPRINTABLE_TRANS_TABLE, \
-    INPUT_DESCRIPTORS_CHANGED
-from urwid import signals
+from subprocess import PIPE, Popen
 
-from subprocess import Popen, PIPE
+from urwid import escape, signals, util
+from urwid.display_common import (
+    INPUT_DESCRIPTORS_CHANGED,
+    UNPRINTABLE_TRANS_TABLE,
+    UPDATE_PALETTE_ENTRY,
+    AttrSpec,
+    BaseScreen,
+    RealTerminal,
+)
 
 
 class Screen(BaseScreen, RealTerminal):

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import urwid
+
 
 class ActionButton(urwid.Button):
     def __init__(self, caption, callback):

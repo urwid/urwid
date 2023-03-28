@@ -30,6 +30,8 @@ Features:
 """
 
 
+from __future__ import annotations
+
 import urwid
 from urwid.wimp import SelectableIcon
 

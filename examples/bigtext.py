@@ -23,6 +23,8 @@
 Urwid example demonstrating use of the BigText widget.
 """
 
+from __future__ import annotations
+
 import urwid
 import urwid.raw_display
 

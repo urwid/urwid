@@ -24,6 +24,8 @@
 Terminal Escape Sequences for input and display
 """
 
+from __future__ import annotations
+
 import re
 
 try:

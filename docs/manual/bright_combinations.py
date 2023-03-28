@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import annotations
+
 import urwid
 
 RED_FGS = ('black', 'light gray', 'white', 'light cyan', 'light red',

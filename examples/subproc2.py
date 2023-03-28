@@ -2,6 +2,8 @@
 # this is part of the subproc.py example
 
 
+from __future__ import annotations
+
 import sys
 
 try:

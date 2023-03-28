@@ -21,40 +21,154 @@
 # Urwid web site: http://excess.org/urwid/
 
 
+from __future__ import annotations
+
+from urwid.canvas import (
+    BlankCanvas,
+    Canvas,
+    CanvasCache,
+    CanvasCombine,
+    CanvasError,
+    CanvasJoin,
+    CanvasOverlay,
+    CompositeCanvas,
+    SolidCanvas,
+    TextCanvas,
+)
+from urwid.command_map import (
+    ACTIVATE,
+    CURSOR_DOWN,
+    CURSOR_LEFT,
+    CURSOR_MAX_LEFT,
+    CURSOR_MAX_RIGHT,
+    CURSOR_PAGE_DOWN,
+    CURSOR_PAGE_UP,
+    CURSOR_RIGHT,
+    CURSOR_UP,
+    REDRAW_SCREEN,
+    CommandMap,
+    command_map,
+)
+from urwid.container import (
+    Columns,
+    ColumnsError,
+    Frame,
+    FrameError,
+    GridFlow,
+    GridFlowError,
+    Overlay,
+    OverlayError,
+    Pile,
+    PileError,
+    WidgetContainerMixin,
+)
+from urwid.decoration import (
+    AttrMap,
+    AttrMapError,
+    AttrWrap,
+    BoxAdapter,
+    BoxAdapterError,
+    Filler,
+    FillerError,
+    Padding,
+    PaddingError,
+    WidgetDecoration,
+    WidgetDisable,
+    WidgetPlaceholder,
+)
+from urwid.font import (
+    Font,
+    HalfBlock5x4Font,
+    HalfBlock6x5Font,
+    HalfBlock7x7Font,
+    HalfBlockHeavy6x5Font,
+    Thin3x3Font,
+    Thin4x3Font,
+    Thin6x6Font,
+    get_all_fonts,
+)
+from urwid.graphics import (
+    BarGraph,
+    BarGraphError,
+    BarGraphMeta,
+    BigText,
+    GraphVScale,
+    LineBox,
+    ProgressBar,
+    scale_bar_values,
+)
+from urwid.listbox import (
+    ListBox,
+    ListBoxError,
+    ListWalker,
+    ListWalkerError,
+    SimpleFocusListWalker,
+    SimpleListWalker,
+)
+from urwid.main_loop import (
+    AsyncioEventLoop,
+    ExitMainLoop,
+    GLibEventLoop,
+    MainLoop,
+    SelectEventLoop,
+    TornadoEventLoop,
+)
+from urwid.monitored_list import MonitoredFocusList, MonitoredList
+from urwid.signals import (
+    MetaSignals,
+    Signals,
+    connect_signal,
+    disconnect_signal,
+    emit_signal,
+    register_signal,
+)
 from urwid.version import VERSION, __version__
-from urwid.widget import (FLOW, BOX, FIXED, LEFT, RIGHT, CENTER, TOP, MIDDLE,
-    BOTTOM, SPACE, ANY, CLIP, PACK, GIVEN, RELATIVE, RELATIVE_100, WEIGHT,
+from urwid.widget import (
+    ANY,
+    BOTTOM,
+    BOX,
+    CENTER,
+    CLIP,
+    FIXED,
+    FLOW,
+    GIVEN,
+    LEFT,
+    MIDDLE,
+    PACK,
+    RELATIVE,
+    RELATIVE_100,
+    RIGHT,
+    SPACE,
+    TOP,
+    WEIGHT,
+    BoxWidget,
+    Divider,
+    Edit,
+    EditError,
+    FixedWidget,
+    FlowWidget,
+    IntEdit,
+    SolidFill,
+    Text,
+    TextError,
+    Widget,
+    WidgetError,
     WidgetMeta,
-    WidgetError, Widget, FlowWidget, BoxWidget, fixed_size, FixedWidget,
-    Divider, SolidFill, TextError, Text, EditError, Edit, IntEdit,
-    delegate_to_widget_mixin, WidgetWrapError, WidgetWrap)
-from urwid.decoration import (WidgetDecoration, WidgetPlaceholder,
-    AttrMapError, AttrMap, AttrWrap, BoxAdapterError, BoxAdapter, PaddingError,
-    Padding, FillerError, Filler, WidgetDisable)
-from urwid.container import (GridFlowError, GridFlow, OverlayError, Overlay,
-    FrameError, Frame, PileError, Pile, ColumnsError, Columns,
-    WidgetContainerMixin)
-from urwid.wimp import (SelectableIcon, CheckBoxError, CheckBox, RadioButton,
-    Button, PopUpLauncher, PopUpTarget)
-from urwid.listbox import (ListWalkerError, ListWalker, SimpleListWalker,
-    SimpleFocusListWalker, ListBoxError, ListBox)
-from urwid.graphics import (BigText, LineBox, BarGraphMeta, BarGraphError,
-    BarGraph, GraphVScale, ProgressBar, scale_bar_values)
-from urwid.canvas import (CanvasCache, CanvasError, Canvas, TextCanvas,
-    BlankCanvas, SolidCanvas, CompositeCanvas, CanvasCombine, CanvasOverlay,
-    CanvasJoin)
-from urwid.font import (get_all_fonts, Font, Thin3x3Font, Thin4x3Font,
-    HalfBlock5x4Font, HalfBlock6x5Font, HalfBlockHeavy6x5Font, Thin6x6Font,
-    HalfBlock7x7Font)
-from urwid.signals import (MetaSignals, Signals, emit_signal, register_signal,
-    connect_signal, disconnect_signal)
-from urwid.monitored_list import MonitoredList, MonitoredFocusList
-from urwid.command_map import (CommandMap, command_map,
-    REDRAW_SCREEN, CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT,
-    CURSOR_PAGE_UP, CURSOR_PAGE_DOWN, CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT,
-    ACTIVATE)
-from urwid.main_loop import (ExitMainLoop, MainLoop, SelectEventLoop,
-    GLibEventLoop, TornadoEventLoop, AsyncioEventLoop)
+    WidgetWrap,
+    WidgetWrapError,
+    delegate_to_widget_mixin,
+    fixed_size,
+)
+from urwid.wimp import (
+    Button,
+    CheckBox,
+    CheckBoxError,
+    PopUpLauncher,
+    PopUpTarget,
+    RadioButton,
+    SelectableIcon,
+)
+
 try:
     from urwid.main_loop import TwistedEventLoop
 except ImportError:
@@ -63,21 +177,63 @@ try:
     from urwid.main_loop import TrioEventLoop
 except ImportError:
     pass
-from urwid.text_layout import (TextLayout, StandardTextLayout, default_layout,
-    LayoutSegment)
-from urwid.display_common import (UPDATE_PALETTE_ENTRY, DEFAULT, BLACK,
-    DARK_RED, DARK_GREEN, BROWN, DARK_BLUE, DARK_MAGENTA, DARK_CYAN,
-    LIGHT_GRAY, DARK_GRAY, LIGHT_RED, LIGHT_GREEN, YELLOW, LIGHT_BLUE,
-    LIGHT_MAGENTA, LIGHT_CYAN, WHITE, AttrSpecError, AttrSpec, RealTerminal,
-    ScreenError, BaseScreen)
-from urwid.util import (calc_text_pos, calc_width, is_wide_char,
-    move_next_char, move_prev_char, within_double_byte, detected_encoding,
-    set_encoding, get_encoding_mode, apply_target_encoding, supports_unicode,
-    calc_trim_text, TagMarkupException, decompose_tagmarkup, MetaSuper,
-    int_scale, is_mouse_event)
-from urwid.treetools import (TreeWidgetError, TreeWidget, TreeNode,
-    ParentNode, TreeWalker, TreeListBox)
-from urwid.vterm import (TermModes, TermCharset, TermScroller, TermCanvas,
-    Terminal)
-
 from urwid import raw_display
+from urwid.display_common import (
+    BLACK,
+    BROWN,
+    DARK_BLUE,
+    DARK_CYAN,
+    DARK_GRAY,
+    DARK_GREEN,
+    DARK_MAGENTA,
+    DARK_RED,
+    DEFAULT,
+    LIGHT_BLUE,
+    LIGHT_CYAN,
+    LIGHT_GRAY,
+    LIGHT_GREEN,
+    LIGHT_MAGENTA,
+    LIGHT_RED,
+    UPDATE_PALETTE_ENTRY,
+    WHITE,
+    YELLOW,
+    AttrSpec,
+    AttrSpecError,
+    BaseScreen,
+    RealTerminal,
+    ScreenError,
+)
+from urwid.text_layout import (
+    LayoutSegment,
+    StandardTextLayout,
+    TextLayout,
+    default_layout,
+)
+from urwid.treetools import (
+    ParentNode,
+    TreeListBox,
+    TreeNode,
+    TreeWalker,
+    TreeWidget,
+    TreeWidgetError,
+)
+from urwid.util import (
+    MetaSuper,
+    TagMarkupException,
+    apply_target_encoding,
+    calc_text_pos,
+    calc_trim_text,
+    calc_width,
+    decompose_tagmarkup,
+    detected_encoding,
+    get_encoding_mode,
+    int_scale,
+    is_mouse_event,
+    is_wide_char,
+    move_next_char,
+    move_prev_char,
+    set_encoding,
+    supports_unicode,
+    within_double_byte,
+)
+from urwid.vterm import TermCanvas, TermCharset, Terminal, TermModes, TermScroller

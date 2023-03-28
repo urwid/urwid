@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import unittest
 
-from urwid import canvas
 import urwid
+from urwid import canvas
 
 
 class CanvasCacheTest(unittest.TestCase):

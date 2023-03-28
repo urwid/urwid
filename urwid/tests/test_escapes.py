@@ -2,6 +2,8 @@
 
 """ Tests covering escape sequences processing """
 
+from __future__ import annotations
+
 import unittest
 
 import urwid.escape

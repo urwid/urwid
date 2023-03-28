@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import urwid
+
 
 def exit_on_q(key):
     if key in ('q', 'Q'):

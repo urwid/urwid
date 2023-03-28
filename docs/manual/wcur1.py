@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import urwid
+
 
 class CursorPudding(urwid.Widget):
     _sizing = frozenset(['flow'])

@@ -20,16 +20,18 @@
 # Urwid web site: http://excess.org/urwid/
 
 
-from urwid.widget import (Text, WidgetWrap, delegate_to_widget_mixin, BOX,
-    FLOW)
+from __future__ import annotations
+
 from urwid.canvas import CompositeCanvas
-from urwid.signals import connect_signal
-from urwid.container import Columns, Overlay
-from urwid.util import is_mouse_press
-from urwid.text_layout import calc_coords
-from urwid.signals import disconnect_signal # doctests
-from urwid.decoration import WidgetDecoration
 from urwid.command_map import ACTIVATE
+from urwid.container import Columns, Overlay
+from urwid.decoration import WidgetDecoration
+from urwid.signals import disconnect_signal  # doctests
+from urwid.signals import connect_signal
+from urwid.text_layout import calc_coords
+from urwid.util import is_mouse_press
+from urwid.widget import BOX, FLOW, Text, WidgetWrap, delegate_to_widget_mixin
+
 
 class SelectableIcon(Text):
     ignore_focus = False
@@ -563,8 +565,7 @@ class Button(WidgetWrap):
         return True
 
 
-class PopUpLauncher(delegate_to_widget_mixin('_original_widget'),
-                    WidgetDecoration):
+class PopUpLauncher(delegate_to_widget_mixin('_original_widget'), WidgetDecoration):
     def __init__(self, original_widget):
         super().__init__(original_widget)
         self._pop_up_widget = None

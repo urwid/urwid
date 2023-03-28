@@ -20,16 +20,25 @@
 # Urwid web site: http://excess.org/urwid/
 
 
-from urwid.util import is_mouse_press
-from urwid.canvas import SolidCanvas, CanvasCombine
-from urwid.widget import Widget, nocache_widget_render_instance, BOX, GIVEN
-from urwid.decoration import calculate_top_bottom_filler, normalize_valign
+from __future__ import annotations
+
 from urwid import signals
-from urwid.signals import connect_signal, disconnect_signal
-from urwid.monitored_list import MonitoredList, MonitoredFocusList
+from urwid.canvas import CanvasCombine, SolidCanvas
+from urwid.command_map import (
+    CURSOR_DOWN,
+    CURSOR_MAX_LEFT,
+    CURSOR_MAX_RIGHT,
+    CURSOR_PAGE_DOWN,
+    CURSOR_PAGE_UP,
+    CURSOR_UP,
+)
 from urwid.container import WidgetContainerMixin
-from urwid.command_map import (CURSOR_UP, CURSOR_DOWN,
-    CURSOR_PAGE_UP, CURSOR_PAGE_DOWN, CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT)
+from urwid.decoration import calculate_top_bottom_filler, normalize_valign
+from urwid.monitored_list import MonitoredFocusList, MonitoredList
+from urwid.signals import connect_signal, disconnect_signal
+from urwid.util import is_mouse_press
+from urwid.widget import BOX, GIVEN, Widget, nocache_widget_render_instance
+
 
 class ListWalkerError(Exception):
     pass

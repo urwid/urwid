@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import unittest
 
-from urwid.tests.util import SelectableText
 import urwid
+from urwid.tests.util import SelectableText
 
 
 class ListBoxCalculateVisibleTest(unittest.TestCase):

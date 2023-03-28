@@ -27,7 +27,10 @@ Features:
 - custom wrap mode "numeric" for wrapping numbers to right and bottom
 """
 
+from __future__ import annotations
+
 import urwid
+
 
 class FibonacciWalker(urwid.ListWalker):
     """ListWalker-compatible class for browsing fibonacci set.

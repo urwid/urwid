@@ -1,11 +1,20 @@
 import unittest
+
 try:
     from unittest.mock import Mock
 except ImportError:
     # Python2, rely on PyPi
     from mock import Mock
 
-from urwid import connect_signal, disconnect_signal, register_signal, emit_signal, Signals, Edit
+from urwid import (
+    Edit,
+    Signals,
+    connect_signal,
+    disconnect_signal,
+    emit_signal,
+    register_signal,
+)
+
 
 class SiglnalsTest(unittest.TestCase):
 

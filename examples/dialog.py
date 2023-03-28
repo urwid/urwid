@@ -24,6 +24,8 @@ Urwid example similar to dialog(1) program
 
 """
 
+from __future__ import annotations
+
 import sys
 
 import urwid

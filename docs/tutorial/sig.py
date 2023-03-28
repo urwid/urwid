@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import urwid
 
 palette = [('I say', 'default,bold', 'default', 'bold'),]

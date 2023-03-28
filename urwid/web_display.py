@@ -23,15 +23,18 @@
 """
 Urwid web application display module
 """
+from __future__ import annotations
+
+import glob
 import os
-import sys
-import signal
 import random
 import select
+import signal
 import socket
-import glob
+import sys
 
 from urwid import util
+
 _js_code = r"""
 // Urwid web (CGI/Asynchronous Javascript) display module
 //    Copyright (C) 2004-2005  Ian Ward

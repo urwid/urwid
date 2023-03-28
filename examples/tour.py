@@ -23,9 +23,12 @@
 Urwid tour.  Shows many of the standard widget types and features.
 """
 
+from __future__ import annotations
+
 import urwid
 import urwid.raw_display
 import urwid.web_display
+
 
 def main():
     text_header = ("Welcome to the urwid tour!  "

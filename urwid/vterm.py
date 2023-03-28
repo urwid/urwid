@@ -21,29 +21,31 @@
 # Urwid web site: http://excess.org/urwid/
 
 
-import os
-import sys
-import time
+from __future__ import annotations
+
+import atexit
 import copy
 import errno
+import os
 import select
-import struct
 import signal
-import atexit
+import struct
+import sys
+import time
 import traceback
 
 try:
-    import pty
     import fcntl
+    import pty
     import termios
 except ImportError:
     pass # windows
 
 from urwid import util
-from urwid.escape import DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS
 from urwid.canvas import Canvas
-from urwid.widget import Widget, BOX
-from urwid.display_common import AttrSpec, RealTerminal, _BASIC_COLORS
+from urwid.display_common import _BASIC_COLORS, AttrSpec, RealTerminal
+from urwid.escape import ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS
+from urwid.widget import BOX, Widget
 
 EOF = b''
 ESC = chr(27)

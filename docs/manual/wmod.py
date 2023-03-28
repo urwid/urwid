@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import urwid
+
 
 class QuestionnaireItem(urwid.WidgetWrap):
     def __init__(self):

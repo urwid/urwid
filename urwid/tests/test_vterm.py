@@ -18,17 +18,18 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import annotations
+
 import errno
 import os
 import sys
 import unittest
-
 from itertools import dropwhile
 
-from urwid.listbox import ListBox
+from urwid import signals, vterm
 from urwid.decoration import BoxAdapter
-from urwid import vterm
-from urwid import signals
+from urwid.listbox import ListBox
+
 
 class DummyCommand:
     QUITSTRING = b'|||quit|||'

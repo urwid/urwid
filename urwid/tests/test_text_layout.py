@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import unittest
 
-from urwid import text_layout
 import urwid
+from urwid import text_layout
 
 
 class CalcBreaksTest:

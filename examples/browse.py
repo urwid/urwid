@@ -32,9 +32,11 @@ Features:
 """
 
 
+from __future__ import annotations
+
 import itertools
-import re
 import os
+import re
 
 import urwid
 

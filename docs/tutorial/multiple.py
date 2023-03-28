@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import urwid
+
 
 def question():
     return urwid.Pile([urwid.Edit(('I say', "What is your name?\n"))])

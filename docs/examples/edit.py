@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
-import sys
+from __future__ import annotations
+
 import os
+import sys
+
 import real_edit
 
 real_edit.EditDisplay(os.path.join(

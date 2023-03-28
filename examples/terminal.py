@@ -19,7 +19,10 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
+from __future__ import annotations
+
 import urwid
+
 
 def main():
     urwid.set_encoding('utf8')

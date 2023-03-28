@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import urwid
+
 
 class MenuButton(urwid.Button):
     def __init__(self, caption, callback):

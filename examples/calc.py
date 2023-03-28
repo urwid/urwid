@@ -32,6 +32,8 @@ Features:
 """
 
 
+from __future__ import annotations
+
 import urwid
 import urwid.raw_display
 import urwid.web_display

@@ -19,9 +19,11 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from setuptools import setup, Extension
+from __future__ import annotations
 
 import os
+
+from setuptools import Extension, setup
 
 with open(os.path.join("urwid", "version.py")) as f:
     globals_ = {}

@@ -30,6 +30,8 @@ edit.py <filename>
 
 """
 
+from __future__ import annotations
+
 import sys
 
 import urwid

@@ -20,6 +20,8 @@
 # Urwid web site: http://excess.org/urwid/
 
 
+from __future__ import annotations
+
 import re
 
 SAFE_ASCII_RE = re.compile("^[ -~]*$")

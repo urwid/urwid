@@ -23,12 +23,14 @@
 Keyboard test application
 """
 
+from __future__ import annotations
+
+import sys
+
+import urwid
 import urwid.curses_display
 import urwid.raw_display
 import urwid.web_display
-import urwid
-
-import sys
 
 if urwid.web_display.is_web_request():
     Screen = urwid.web_display.Screen

@@ -20,11 +20,21 @@
 # Urwid web site: http://excess.org/urwid/
 
 
+from __future__ import annotations
+
 import weakref
 
-from urwid.util import rle_len, rle_append_modify, rle_join_modify, rle_product, \
-    calc_width, calc_text_pos, apply_target_encoding, trim_text_attr_cs
-from urwid.text_layout import trim_line, LayoutSegment
+from urwid.text_layout import LayoutSegment, trim_line
+from urwid.util import (
+    apply_target_encoding,
+    calc_text_pos,
+    calc_width,
+    rle_append_modify,
+    rle_join_modify,
+    rle_len,
+    rle_product,
+    trim_text_attr_cs,
+)
 
 
 class CanvasCache:

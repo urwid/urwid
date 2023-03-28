@@ -19,6 +19,8 @@
 # Urwid web site: http://excess.org/urwid/
 
 
+from __future__ import annotations
+
 import os
 import sys
 
@@ -27,8 +29,8 @@ try:
 except ImportError:
     pass # windows
 
-from urwid.util import StoppingContext, int_scale
 from urwid import signals
+from urwid.util import StoppingContext, int_scale
 
 # for replacing unprintable bytes with '?'
 UNPRINTABLE_TRANS_TABLE = b"?" * 32 + bytes(list(range(32,256)))

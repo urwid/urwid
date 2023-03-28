@@ -31,8 +31,11 @@ Features:
 - custom list walker for displaying widgets in a tree fashion
 """
 
-import urwid
+from __future__ import annotations
+
 import os
+
+import urwid
 
 
 class ExampleTreeWidget(urwid.TreeWidget):

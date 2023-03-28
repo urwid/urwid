@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import urwid
 
 txt = urwid.Text("Hello World")

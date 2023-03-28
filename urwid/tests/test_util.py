@@ -1,5 +1,7 @@
-import unittest
+from __future__ import annotations
+
 import locale
+import unittest
 
 import urwid
 from urwid import util

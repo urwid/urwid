@@ -8,17 +8,19 @@ even Python 2 if you install `trollius`!
 try:
     import asyncio
 except ImportError:
-    import trollius as asyncio
-
-from datetime import datetime
-import sys
-import weakref
-
-import urwid
-from urwid.raw_display import Screen
-from urwid.display_common import BaseScreen
+from __future__ import annotations
 
 import logging
+import sys
+import weakref
+from datetime import datetime
+
+import trollius as asyncio
+
+import urwid
+from urwid.display_common import BaseScreen
+from urwid.raw_display import Screen
+
 logging.basicConfig()
 
 loop = asyncio.get_event_loop()

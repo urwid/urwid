@@ -20,6 +20,8 @@
 # Urwid web site: http://excess.org/urwid/
 
 
+from __future__ import annotations
+
 import itertools
 import weakref
 

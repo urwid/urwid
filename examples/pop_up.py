@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
+from __future__ import annotations
+
 import urwid
+
 
 class PopUpDialog(urwid.WidgetWrap):
     """A dialog that appears with nothing but a close button """

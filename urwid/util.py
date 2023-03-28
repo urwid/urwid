@@ -20,9 +20,11 @@
 # Urwid web site: http://excess.org/urwid/
 
 
-from urwid import escape
+from __future__ import annotations
 
 import codecs
+
+from urwid import escape
 
 str_util = escape.str_util
 

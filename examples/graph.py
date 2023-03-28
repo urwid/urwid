@@ -25,10 +25,12 @@ floating-window appearance.  Also shows use of alarms to create timed
 animation.
 """
 
-import urwid
+from __future__ import annotations
 
 import math
 import time
+
+import urwid
 
 UPDATE_INTERVAL = 0.2
 

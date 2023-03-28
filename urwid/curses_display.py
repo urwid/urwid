@@ -24,13 +24,19 @@
 Curses-based UI implementation
 """
 
+from __future__ import annotations
+
 import curses
+
 import _curses
 
 from urwid import escape
-
-from urwid.display_common import BaseScreen, RealTerminal, AttrSpec, \
-    UNPRINTABLE_TRANS_TABLE
+from urwid.display_common import (
+    UNPRINTABLE_TRANS_TABLE,
+    AttrSpec,
+    BaseScreen,
+    RealTerminal,
+)
 
 KEY_RESIZE = 410 # curses.KEY_RESIZE (sometimes not defined)
 KEY_MOUSE = 409 # curses.KEY_MOUSE
