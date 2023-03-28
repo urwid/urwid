@@ -540,21 +540,61 @@ class AttrSpec:
                 f'require more colors than have been specified ({colors:d}).'
             )
 
-    foreground_basic = property(lambda s: s._value & _FG_BASIC_COLOR != 0)
-    foreground_high = property(lambda s: s._value & _FG_HIGH_COLOR != 0)
-    foreground_true = property(lambda s: s._value & _FG_TRUE_COLOR != 0)
-    foreground_number = property(lambda s: s._value & _FG_COLOR_MASK)
-    background_basic = property(lambda s: s._value & _BG_BASIC_COLOR != 0)
-    background_high = property(lambda s: s._value & _BG_HIGH_COLOR != 0)
-    background_true = property(lambda s: s._value & _BG_TRUE_COLOR != 0)
-    background_number = property(lambda s: (s._value & _BG_COLOR_MASK)
-        >> _BG_SHIFT)
-    italics = property(lambda s: s._value & _ITALICS != 0)
-    bold = property(lambda s: s._value & _BOLD != 0)
-    underline = property(lambda s: s._value & _UNDERLINE != 0)
-    blink = property(lambda s: s._value & _BLINK != 0)
-    standout = property(lambda s: s._value & _STANDOUT != 0)
-    strikethrough = property(lambda s: s._value & _STRIKETHROUGH != 0)
+    @property
+    def foreground_basic(self):
+        return self._value & _FG_BASIC_COLOR != 0
+
+    @property
+    def foreground_high(self):
+        return self._value & _FG_HIGH_COLOR != 0
+
+    @property
+    def foreground_true(self):
+        return self._value & _FG_TRUE_COLOR != 0
+
+    @property
+    def foreground_number(self):
+        return self._value & _FG_COLOR_MASK
+
+    @property
+    def background_basic(self):
+        return self._value & _BG_BASIC_COLOR != 0
+
+    @property
+    def background_high(self):
+        return self._value & _BG_HIGH_COLOR != 0
+
+    @property
+    def background_true(self):
+        return self._value & _BG_TRUE_COLOR != 0
+
+    @property
+    def background_number(self):
+        return (self._value & _BG_COLOR_MASK) >> _BG_SHIFT
+
+    @property
+    def italics(self):
+        return self._value & _ITALICS != 0
+
+    @property
+    def bold(self):
+        return self._value & _BOLD != 0
+
+    @property
+    def underline(self):
+        return self._value & _UNDERLINE != 0
+
+    @property
+    def blink(self):
+        return self._value & _BLINK != 0
+
+    @property
+    def standout(self):
+        return self._value & _STANDOUT != 0
+
+    @property
+    def strikethrough(self):
+        return self._value & _STRIKETHROUGH != 0
 
     def _colors(self):
         """
@@ -788,7 +828,9 @@ class BaseScreen(metaclass=signals.MetaSignals):
         self._palette = {}
         self._started = False
 
-    started = property(lambda self: self._started)
+    @property
+    def started(self):
+        return self._started
 
     def start(self, *args, **kwargs):
         """Set up the screen.  If the screen has already been started, does

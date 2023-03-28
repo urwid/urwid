@@ -577,7 +577,9 @@ class Screen:
         self.has_color = True
         self._started = False
 
-    started = property(lambda self: self._started)
+    @property
+    def started(self):
+        return self._started
 
     def register_palette( self, l ):
         """Register a list of palette entries.

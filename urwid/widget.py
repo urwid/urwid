@@ -549,17 +549,23 @@ class Widget(metaclass=WidgetMeta):
             raise WidgetError(f'Cannot pack (maxcol,) size, this is not a flow widget: {self!r}')
         return size
 
-    base_widget = property(lambda self:self, doc="""
+    @property
+    def base_widget(self):
+        """
         Read-only property that steps through decoration widgets
         and returns the one at the base.  This default implementation
         returns self.
-        """)
+        """
+        return self
 
-    focus = property(lambda self:None, doc="""
+    @property
+    def focus(self):
+        """
         Read-only property returning the child widget in focus for
         container widgets.  This default implementation
         always returns ``None``, indicating that this widget has no children.
-        """)
+        """
+        return None
 
     def _not_a_container(self, val=None):
         raise IndexError(
@@ -892,14 +898,21 @@ class Text(Widget):
         """
         return self._text, self._attrib
 
-    text = property(lambda self:self.get_text()[0], doc="""
+    @property
+    def text(self):
+        """
         Read-only property returning the complete bytes/unicode content
         of this widget
-        """)
-    attrib = property(lambda self:self.get_text()[1], doc="""
+        """
+        return self.get_text()[0]
+
+    @property
+    def attrib(self):
+        """
         Read-only property returning the run-length encoded display
         attributes of this widget
-        """)
+        """
+        return self.get_text()[1]
 
     def set_align_mode(self, mode):
         """
@@ -979,7 +992,10 @@ class Text(Widget):
 
     align = property(lambda self:self._align_mode, set_align_mode)
     wrap = property(lambda self:self._wrap_mode, set_wrap_mode)
-    layout = property(lambda self:self._layout)
+
+    @property
+    def layout(self):
+        return self._layout
 
     def render(self, size, focus=False):
         """
@@ -1287,9 +1303,12 @@ class Edit(Text):
         self._caption, self._attrib = decompose_tagmarkup(caption)
         self._invalidate()
 
-    caption = property(lambda self:self._caption, doc="""
+    @property
+    def caption(self):
+        """
         Read-only property returning the caption for this widget.
-        """)
+        """
+        return self._caption
 
     def set_edit_pos(self, pos):
         """
@@ -1755,17 +1774,42 @@ def delegate_to_widget_mixin(attribute_name):
             canv = get_delegate(self).render(size, focus=focus)
             return CompositeCanvas(canv)
 
-        selectable = property(lambda self:get_delegate(self).selectable)
-        get_cursor_coords = property(
-            lambda self:get_delegate(self).get_cursor_coords)
-        get_pref_col = property(lambda self:get_delegate(self).get_pref_col)
-        keypress = property(lambda self:get_delegate(self).keypress)
-        move_cursor_to_coords = property(
-            lambda self:get_delegate(self).move_cursor_to_coords)
-        rows = property(lambda self:get_delegate(self).rows)
-        mouse_event = property(lambda self:get_delegate(self).mouse_event)
-        sizing = property(lambda self:get_delegate(self).sizing)
-        pack = property(lambda self:get_delegate(self).pack)
+        @property
+        def selectable(self):
+            return get_delegate(self).selectable
+
+        @property
+        def get_cursor_coords(self):
+            return get_delegate(self).get_cursor_coords
+
+        @property
+        def get_pref_col(self):
+            return get_delegate(self).get_pref_col
+
+        @property
+        def keypress(self):
+            return get_delegate(self).keypress
+
+        @property
+        def move_cursor_to_coords(self):
+            return get_delegate(self).move_cursor_to_coords
+
+        @property
+        def rows(self):
+            return get_delegate(self).rows
+
+        @property
+        def mouse_event(self):
+            return get_delegate(self).mouse_event
+
+        @property
+        def sizing(self):
+            return get_delegate(self).sizing
+
+        @property
+        def pack(self):
+            return get_delegate(self).pack
+
     return DelegateToWidgetMixin
 
 

@@ -606,7 +606,10 @@ class ListBox(Widget, WidgetContainerMixin):
                 raise KeyError(f"ListBox.contents key not found: {key!r}")
         finally:
             self._body.set_focus(old_focus)
-    contents = property(lambda self: self._contents, doc="""
+
+    @property
+    def contents(self):
+        """
         An object that allows reading widgets from the ListBox's list
         walker as a `(widget, options)` tuple. `None` is currently the only
         value for options.
@@ -617,7 +620,8 @@ class ListBox(Widget, WidgetContainerMixin):
 
             You must use the list walker stored as
             :attr:`.body` to perform manipulation and iteration, if supported.
-        """)
+        """
+        return self._contents
 
     def options(self):
         """

@@ -50,6 +50,7 @@ class CanvasCache:
     fetches = 0
     cleanups = 0
 
+    @classmethod
     def store(cls, wcls, canvas):
         """
         Store a weakref to canvas in the cache.
@@ -91,8 +92,8 @@ class CanvasCache:
         ref = weakref.ref(canvas, cls.cleanup)
         cls._refs[ref] = (widget, wcls, size, focus)
         cls._widgets.setdefault(widget, {})[(wcls, size, focus)] = ref
-    store = classmethod(store)
 
+    @classmethod
     def fetch(cls, widget, wcls, size, focus):
         """
         Return the cached canvas or None.
@@ -113,8 +114,8 @@ class CanvasCache:
         if canv:
             cls.hits += 1 # more stats
         return canv
-    fetch = classmethod(fetch)
 
+    @classmethod
     def invalidate(cls, widget):
         """
         Remove all canvases cached for widget.
@@ -137,8 +138,8 @@ class CanvasCache:
             pass
         for w in dependants:
             cls.invalidate(w)
-    invalidate = classmethod(invalidate)
 
+    @classmethod
     def cleanup(cls, ref):
         cls.cleanups += 1 # collect stats
 
@@ -160,8 +161,8 @@ class CanvasCache:
                 del cls._deps[widget]
             except KeyError:
                 pass
-    cleanup = classmethod(cleanup)
 
+    @classmethod
     def clear(cls):
         """
         Empty the cache.
@@ -169,8 +170,6 @@ class CanvasCache:
         cls._widgets = {}
         cls._refs = {}
         cls._deps = {}
-    clear = classmethod(clear)
-
 
 
 class CanvasError(Exception):
