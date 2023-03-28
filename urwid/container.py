@@ -156,13 +156,13 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         self.v_sep = v_sep
         self.align = align
         self._cache_maxcol = None
-        self.__super.__init__(None)
+        super().__init__(None)
         # set self._w to something other than None
         self.get_display_widget(((h_sep+cell_width)*len(cells),))
 
     def _invalidate(self):
         self._cache_maxcol = None
-        self.__super._invalidate()
+        super()._invalidate()
 
     def _contents_modified(self, slc, new_items):
         for item in new_items:
@@ -405,41 +405,41 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         Captures focus changes.
         """
         self.get_display_widget(size)
-        key = self.__super.keypress(size, key)
+        key = super().keypress(size, key)
         if key is None:
             self._set_focus_from_display_widget()
         return key
 
     def rows(self, size, focus=False):
         self.get_display_widget(size)
-        return self.__super.rows(size, focus=focus)
+        return super().rows(size, focus=focus)
 
     def render(self, size, focus=False ):
         self.get_display_widget(size)
-        return self.__super.render(size, focus)
+        return super().render(size, focus)
 
     def get_cursor_coords(self, size):
         """Get cursor from display widget."""
         self.get_display_widget(size)
-        return self.__super.get_cursor_coords(size)
+        return super().get_cursor_coords(size)
 
     def move_cursor_to_coords(self, size, col, row):
         """Set the widget in focus based on the col + row."""
         self.get_display_widget(size)
-        rval = self.__super.move_cursor_to_coords(size, col, row)
+        rval = super().move_cursor_to_coords(size, col, row)
         self._set_focus_from_display_widget()
         return rval
 
     def mouse_event(self, size, event, button, col, row, focus):
         self.get_display_widget(size)
-        self.__super.mouse_event(size, event, button, col, row, focus)
+        super().mouse_event(size, event, button, col, row, focus)
         self._set_focus_from_display_widget()
         return True # at a minimum we adjusted our focus
 
     def get_pref_col(self, size):
         """Return pref col from display widget."""
         self.get_display_widget(size)
-        return self.__super.get_pref_col(size)
+        return super().get_pref_col(size)
 
 
 
@@ -505,7 +505,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         widgets when determining the size and position of *top_w*. *bottom_w* is
         always rendered the full size available "below" *top_w*.
         """
-        self.__super.__init__()
+        super().__init__()
 
         self.top_w = top_w
         self.bottom_w = bottom_w
@@ -834,7 +834,7 @@ class Frame(Widget, WidgetContainerMixin):
         :param focus_part:  'header', 'footer' or 'body'
         :type focus_part: str
         """
-        self.__super.__init__()
+        super().__init__()
 
         self._header = header
         self._body = body
@@ -1254,7 +1254,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             one ``'weight'`` tuple in :attr:`widget_list`.
         """
         self._selectable = False
-        self.__super.__init__()
+        super().__init__()
         self._contents = MonitoredFocusList()
         self._contents.set_modified_callback(self._contents_modified)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
@@ -1768,7 +1768,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         filling the full height.
         """
         self._selectable = False
-        self.__super.__init__()
+        super().__init__()
         self._contents = MonitoredFocusList()
         self._contents.set_modified_callback(self._contents_modified)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
@@ -1945,7 +1945,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
     def _invalidate(self):
         self._cache_maxcol = None
-        self.__super._invalidate()
+        super()._invalidate()
 
     def set_focus_column(self, num):
         """

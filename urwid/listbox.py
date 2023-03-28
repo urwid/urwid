@@ -20,7 +20,6 @@
 # Urwid web site: http://excess.org/urwid/
 
 
-from urwid.compat import with_metaclass
 from urwid.util import is_mouse_press
 from urwid.canvas import SolidCanvas, CanvasCombine
 from urwid.widget import Widget, nocache_widget_render_instance, BOX, GIVEN
@@ -35,7 +34,7 @@ from urwid.command_map import (CURSOR_UP, CURSOR_DOWN,
 class ListWalkerError(Exception):
     pass
 
-class ListWalker(with_metaclass(signals.MetaSignals, object)):
+class ListWalker(metaclass=signals.MetaSignals):
     signals = ["modified"]
 
     def _modified(self):

@@ -22,7 +22,6 @@
 
 from operator import attrgetter
 
-from urwid.compat import with_metaclass
 from urwid.util import (MetaSuper, decompose_tagmarkup, calc_width,
     is_wide_char, move_prev_char, move_next_char)
 from urwid.text_layout import calc_pos, calc_coords, shift_line
@@ -206,7 +205,7 @@ def cache_widget_rows(cls):
     return cached_rows
 
 
-class Widget(with_metaclass(WidgetMeta, object)):
+class Widget(metaclass=WidgetMeta):
     """
     Widget base class
 
@@ -702,17 +701,17 @@ class Divider(Widget):
         >>> Divider(u'x', 1, 2)
         <Divider flow widget 'x' bottom=2 top=1>
         """
-        self.__super.__init__()
+        super().__init__()
         self.div_char = div_char
         self.top = top
         self.bottom = bottom
 
     def _repr_words(self):
-        return self.__super._repr_words() + [
+        return super()._repr_words() + [
             python3_repr(self.div_char)] * (self.div_char != " ")
 
     def _repr_attrs(self):
-        attrs = dict(self.__super._repr_attrs())
+        attrs = dict(super()._repr_attrs())
         if self.top: attrs['top'] = self.top
         if self.bottom: attrs['bottom'] = self.bottom
         return attrs
@@ -763,11 +762,11 @@ class SolidFill(BoxWidget):
         >>> SolidFill(u'8')
         <SolidFill box widget '8'>
         """
-        self.__super.__init__()
+        super().__init__()
         self.fill_char = fill_char
 
     def _repr_words(self):
-        return self.__super._repr_words() + [python3_repr(self.fill_char)]
+        return super()._repr_words() + [python3_repr(self.fill_char)]
 
     def render(self, size, focus=False ):
         """
@@ -825,7 +824,7 @@ class Text(Widget):
         >>> t.attrib
         [('bold', 5)]
         """
-        self.__super.__init__()
+        super().__init__()
         self._cache_maxcol = None
         self.set_text(markup)
         self.set_layout(align, wrap, layout)
@@ -835,7 +834,7 @@ class Text(Widget):
         Show the text in the repr in python3 format (b prefix for byte
         strings) and truncate if it's too long
         """
-        first = self.__super._repr_words()
+        first = super()._repr_words()
         text = self.get_text()[0]
         rest = python3_repr(text)
         if len(rest) > self._repr_content_length_max:
@@ -844,14 +843,14 @@ class Text(Widget):
         return first + [rest]
 
     def _repr_attrs(self):
-        attrs = dict(self.__super._repr_attrs(),
+        attrs = dict(super()._repr_attrs(),
             align=self._align_mode,
             wrap=self._wrap_mode)
         return remove_defaults(attrs, Text.__init__)
 
     def _invalidate(self):
         self._cache_maxcol = None
-        self.__super._invalidate()
+        super()._invalidate()
 
     def set_text(self,markup):
         """
@@ -1153,7 +1152,7 @@ class Edit(Text):
         <Edit selectable flow widget '3.14' align='right' edit_pos=4>
         """
 
-        self.__super.__init__("", align, wrap, layout)
+        super().__init__("", align, wrap, layout)
         self.multiline = multiline
         self.allow_tab = allow_tab
         self._edit_pos = 0
@@ -1167,13 +1166,13 @@ class Edit(Text):
         self._shift_view_to_cursor = False
 
     def _repr_words(self):
-        return self.__super._repr_words()[:-1] + [
+        return super()._repr_words()[:-1] + [
             python3_repr(self._edit_text)] + [
             f"caption={python3_repr(self._caption)}"] * bool(self._caption) + [
             'multiline'] * (self.multiline is True)
 
     def _repr_attrs(self):
-        attrs = dict(self.__super._repr_attrs(),
+        attrs = dict(super()._repr_attrs(),
             edit_pos=self._edit_pos)
         return remove_defaults(attrs, Edit.__init__)
 
@@ -1696,7 +1695,7 @@ class IntEdit(Edit):
         """
         if default is not None: val = str(default)
         else: val = ""
-        self.__super.__init__(caption,val)
+        super().__init__(caption,val)
 
     def keypress(self, size, key):
         """

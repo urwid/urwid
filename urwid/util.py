@@ -426,7 +426,6 @@ def is_mouse_press( ev ):
     return ev.find("press")>=0
 
 
-
 class MetaSuper(type):
     """adding .__super"""
     def __init__(cls, name, bases, d):

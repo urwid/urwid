@@ -29,7 +29,6 @@ except ImportError:
 
 from urwid.util import StoppingContext, int_scale
 from urwid import signals
-from urwid.compat import with_metaclass
 
 # for replacing unprintable bytes with '?'
 UNPRINTABLE_TRANS_TABLE = b"?" * 32 + bytes(list(range(32,256)))
@@ -778,7 +777,7 @@ class RealTerminal:
 class ScreenError(Exception):
     pass
 
-class BaseScreen(with_metaclass(signals.MetaSignals, object)):
+class BaseScreen(metaclass=signals.MetaSignals):
     """
     Base class for Screen classes (raw_display.Screen, .. etc)
     """

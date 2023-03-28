@@ -50,7 +50,7 @@ class TreeWidget(urwid.WidgetWrap):
         self.is_leaf = not hasattr(node, 'get_first_child')
         self.expanded = True
         widget = self.get_indented_widget()
-        self.__super.__init__(widget)
+        super().__init__(widget)
 
     def selectable(self):
         """
@@ -148,7 +148,7 @@ class TreeWidget(urwid.WidgetWrap):
             self.expanded = False
             self.update_expanded_icon()
         elif self._w.selectable():
-            return self.__super.keypress(size, key)
+            return super().keypress(size, key)
         else:
             return key
 
@@ -415,7 +415,7 @@ class TreeListBox(urwid.ListBox):
     collapsing of TreeWidgets"""
 
     def keypress(self, size, key):
-        key = self.__super.keypress(size, key)
+        key = super().keypress(size, key)
         return self.unhandled_input(size, key)
 
     def unhandled_input(self, size, input):

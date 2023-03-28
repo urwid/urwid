@@ -46,7 +46,7 @@ class SelectableIcon(Text):
         displayed at a fixed location in the text when in focus.
         This widget has no special handling of keyboard or mouse input.
         """
-        self.__super.__init__(text)
+        super().__init__(text)
         self._cursor_position = cursor_position
 
     def render(self, size, focus=False):
@@ -65,7 +65,7 @@ class SelectableIcon(Text):
         >>> si.render((2,), focus=True).cursor
         (0, 1)
         """
-        c = self.__super.render(size, focus)
+        c = super().render(size, focus)
         if focus:
             # create a new canvas so we can add a cursor
             c = CompositeCanvas(c)
@@ -144,7 +144,7 @@ class CheckBox(WidgetWrap):
         >>> cb.render((20,), focus=True).text # ... = b in Python 3
         [...'[X] Extra onions    ']
         """
-        self.__super.__init__(None) # self.w set by set_state below
+        super().__init__(None) # self.w set by set_state below
         self._label = Text("")
         self.has_mixed = has_mixed
         self._state = None
@@ -158,11 +158,11 @@ class CheckBox(WidgetWrap):
         self.set_state(state)
 
     def _repr_words(self):
-        return self.__super._repr_words() + [
+        return super()._repr_words() + [
             python3_repr(self.label)]
 
     def _repr_attrs(self):
-        return dict(self.__super._repr_attrs(),
+        return dict(super()._repr_attrs(),
             state=self.state)
 
     def set_label(self, label):
@@ -368,7 +368,7 @@ class RadioButton(CheckBox):
             state = not group
 
         self.group = group
-        self.__super.__init__(label, state, False, on_state_change,
+        super().__init__(label, state, False, on_state_change,
             user_data)
         group.append(self)
 
@@ -406,7 +406,7 @@ class RadioButton(CheckBox):
         if self._state == state:
             return
 
-        self.__super.set_state(state, do_callback)
+        super().set_state(state, do_callback)
 
         # if we're clearing the state we don't have to worry about
         # other buttons in the button group
@@ -478,7 +478,7 @@ class Button(WidgetWrap):
             self._label,
             ('fixed', 1, self.button_right)],
             dividechars=1)
-        self.__super.__init__(cols)
+        super().__init__(cols)
 
         # The old way of listening for a change was to pass the callback
         # in to the constructor.  Just convert it to the new way:
@@ -489,7 +489,7 @@ class Button(WidgetWrap):
 
     def _repr_words(self):
         # include button.label in repr(button)
-        return self.__super._repr_words() + [
+        return super()._repr_words() + [
             python3_repr(self.label)]
 
     def set_label(self, label):
@@ -567,7 +567,7 @@ class Button(WidgetWrap):
 class PopUpLauncher(delegate_to_widget_mixin('_original_widget'),
                     WidgetDecoration):
     def __init__(self, original_widget):
-        self.__super.__init__(original_widget)
+        super().__init__(original_widget)
         self._pop_up_widget = None
 
     def create_pop_up(self, *args, **kwargs):
@@ -597,7 +597,7 @@ class PopUpLauncher(delegate_to_widget_mixin('_original_widget'),
         self._invalidate()
 
     def render(self, size, focus=False):
-        canv = self.__super.render(size, focus)
+        canv = super().render(size, focus)
         if self._pop_up_widget:
             canv = CompositeCanvas(canv)
             canv.set_pop_up(self._pop_up_widget, **self.get_pop_up_parameters(size, focus))
@@ -611,7 +611,7 @@ class PopUpTarget(WidgetDecoration):
     _selectable = True
 
     def __init__(self, original_widget):
-        self.__super.__init__(original_widget)
+        super().__init__(original_widget)
         self._pop_up = None
         self._current_widget = self._original_widget
 

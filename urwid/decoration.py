@@ -48,7 +48,7 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
     def __init__(self, original_widget):
         self._original_widget = original_widget
     def _repr_words(self):
-        return self.__super._repr_words() + [repr(self._original_widget)]
+        return super()._repr_words() + [repr(self._original_widget)]
 
     def _get_original_widget(self):
         return self._original_widget
@@ -139,7 +139,7 @@ class AttrMap(delegate_to_widget_mixin('_original_widget'), WidgetDecoration):
         >>> next(am2.render(size).content())
         [('greeting', None, ...'hi'), ('bg', None, ...'   ')]
         """
-        self.__super.__init__(w)
+        super().__init__(w)
 
         if type(attr_map) != dict:
             self.set_attr_map({None: attr_map})
@@ -153,7 +153,7 @@ class AttrMap(delegate_to_widget_mixin('_original_widget'), WidgetDecoration):
 
     def _repr_attrs(self):
         # only include the focus_attr when it takes effect (not None)
-        d = dict(self.__super._repr_attrs(), attr_map=self._attr_map)
+        d = dict(super()._repr_attrs(), attr_map=self._attr_map)
         if self._focus_map is not None:
             d['focus_map'] = self._focus_map
         return d
@@ -252,11 +252,11 @@ class AttrWrap(AttrMap):
         >>> next(aw.render(size, focus=True).content())
         [('fgreet', None, ...'hi   ')]
         """
-        self.__super.__init__(w, attr, focus_attr)
+        super().__init__(w, attr, focus_attr)
 
     def _repr_attrs(self):
         # only include the focus_attr when it takes effect (not None)
-        d = dict(self.__super._repr_attrs(), attr=self.attr)
+        d = dict(super()._repr_attrs(), attr=self.attr)
         del d['attr_map']
         if 'focus_map' in d:
             del d['focus_map']
@@ -347,7 +347,7 @@ class BoxAdapter(WidgetDecoration):
         self.height = height
 
     def _repr_attrs(self):
-        return dict(self.__super._repr_attrs(), height=self.height)
+        return dict(super()._repr_attrs(), height=self.height)
 
     # originally stored as box_widget, keep for compatibility
     box_widget = property(WidgetDecoration._get_original_widget,
@@ -480,7 +480,7 @@ class Padding(WidgetDecoration):
         |  hi   |
         |  there|
         """
-        self.__super.__init__(w)
+        super().__init__(w)
 
         # convert obsolete parameters 'fixed left' and 'fixed right':
         if type(align) == tuple and align[0] in ('fixed left',
@@ -517,7 +517,7 @@ class Padding(WidgetDecoration):
         return self.original_widget.sizing()
 
     def _repr_attrs(self):
-        attrs = dict(self.__super._repr_attrs(),
+        attrs = dict(super()._repr_attrs(),
             align=self.align,
             width=self.width,
             left=self.left,
@@ -724,7 +724,7 @@ class Filler(WidgetDecoration):
         reducing the valign amount when necessary.  If height still
         cannot be satisfied it will also be reduced.
         """
-        self.__super.__init__(body)
+        super().__init__(body)
 
         # convert old parameters to the new top/bottom values
         if isinstance(height, tuple):
@@ -768,7 +768,7 @@ class Filler(WidgetDecoration):
         return {BOX} # always a box widget
 
     def _repr_attrs(self):
-        attrs = dict(self.__super._repr_attrs(),
+        attrs = dict(super()._repr_attrs(),
             valign=simplify_valign(self.valign_type, self.valign_amount),
             height=simplify_height(self.height_type, self.height_amount),
             top=self.top,
