@@ -24,10 +24,6 @@ from __future__ import division, print_function
 
 import sys
 
-try: # python 2.4 and 2.5 compat
-    bytes = bytes
-except NameError:
-    bytes = str
 
 PYTHON3 = sys.version_info > (3, 0)
 

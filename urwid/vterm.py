@@ -46,7 +46,7 @@ from urwid.canvas import Canvas
 from urwid.widget import Widget, BOX
 from urwid.display_common import (AttrSpec, RealTerminal, _BASIC_COLORS,
                                   _color_desc_256, _color_desc_true)
-from urwid.compat import ord2, chr2, B, bytes, PYTHON3, xrange
+from urwid.compat import ord2, chr2, B, PYTHON3, xrange
 
 EOF = B('')
 ESC = chr(27)
