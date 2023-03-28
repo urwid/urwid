@@ -23,7 +23,7 @@
 from __future__ import division, print_function
 
 from urwid import escape
-from urwid.compat import bytes, text_type, text_types
+from urwid.compat import text_type, text_types
 
 import codecs
 
@@ -118,13 +118,7 @@ def apply_target_encoding( s ):
     """
     if _use_dec_special and type(s) == text_type:
         # first convert drawing characters
-        try:
-            s = s.translate( escape.DEC_SPECIAL_CHARMAP )
-        except NotImplementedError:
-            # python < 2.4 needs to do this the hard way..
-            for c, alt in zip(escape.DEC_SPECIAL_CHARS,
-                    escape.ALT_DEC_SPECIAL_CHARS):
-                s = s.replace( c, escape.SO+alt+escape.SI )
+        s = s.translate(escape.DEC_SPECIAL_CHARMAP)
 
     if type(s) == text_type:
         s = s.replace(escape.SI+escape.SO, u"") # remove redundant shifts

@@ -21,7 +21,7 @@
 
 from __future__ import division, print_function
 
-from urwid.compat import PYTHON3, bytes
+from urwid.compat import PYTHON3
 if not PYTHON3:
     from inspect import getargspec
 else:

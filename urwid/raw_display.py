@@ -44,7 +44,7 @@ from urwid.display_common import BaseScreen, RealTerminal, \
     UPDATE_PALETTE_ENTRY, AttrSpec, UNPRINTABLE_TRANS_TABLE, \
     INPUT_DESCRIPTORS_CHANGED
 from urwid import signals
-from urwid.compat import PYTHON3, bytes, B
+from urwid.compat import PYTHON3, B
 
 from subprocess import Popen, PIPE
 
