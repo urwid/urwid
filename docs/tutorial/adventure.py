@@ -2,16 +2,16 @@ import urwid
 
 class ActionButton(urwid.Button):
     def __init__(self, caption, callback):
-        super(ActionButton, self).__init__("")
+        super().__init__("")
         urwid.connect_signal(self, 'click', callback)
         self._w = urwid.AttrMap(urwid.SelectableIcon(caption, 1),
             None, focus_map='reversed')
 
 class Place(urwid.WidgetWrap):
     def __init__(self, name, choices):
-        super(Place, self).__init__(
-            ActionButton([u" > go to ", name], self.enter_place))
-        self.heading = urwid.Text([u"\nLocation: ", name, "\n"])
+        super().__init__(
+            ActionButton([" > go to ", name], self.enter_place))
+        self.heading = urwid.Text(["\nLocation: ", name, "\n"])
         self.choices = choices
         # create links back to ourself
         for child in choices:
@@ -22,41 +22,41 @@ class Place(urwid.WidgetWrap):
 
 class Thing(urwid.WidgetWrap):
     def __init__(self, name):
-        super(Thing, self).__init__(
-            ActionButton([u" * take ", name], self.take_thing))
+        super().__init__(
+            ActionButton([" * take ", name], self.take_thing))
         self.name = name
 
     def take_thing(self, button):
-        self._w = urwid.Text(u" - %s (taken)" % self.name)
+        self._w = urwid.Text(" - %s (taken)" % self.name)
         game.take_thing(self)
 
 def exit_program(button):
     raise urwid.ExitMainLoop()
 
-map_top = Place(u'porch', [
-    Place(u'kitchen', [
-        Place(u'refrigerator', []),
-        Place(u'cupboard', [
-            Thing(u'jug'),
+map_top = Place('porch', [
+    Place('kitchen', [
+        Place('refrigerator', []),
+        Place('cupboard', [
+            Thing('jug'),
         ]),
     ]),
-    Place(u'garden', [
-        Place(u'tree', [
-            Thing(u'lemon'),
-            Thing(u'bird'),
+    Place('garden', [
+        Place('tree', [
+            Thing('lemon'),
+            Thing('bird'),
         ]),
     ]),
-    Place(u'street', [
-        Place(u'store', [
-            Thing(u'sugar'),
+    Place('street', [
+        Place('store', [
+            Thing('sugar'),
         ]),
-        Place(u'lake', [
-            Place(u'beach', []),
+        Place('lake', [
+            Place('beach', []),
         ]),
     ]),
 ])
 
-class AdventureGame(object):
+class AdventureGame:
     def __init__(self):
         self.log = urwid.SimpleFocusListWalker([])
         self.top = urwid.ListBox(self.log)
@@ -72,9 +72,9 @@ class AdventureGame(object):
 
     def take_thing(self, thing):
         self.inventory.add(thing.name)
-        if self.inventory >= set([u'sugar', u'lemon', u'jug']):
-            response = urwid.Text(u'You can make lemonade!\n')
-            done = ActionButton(u' - Joy', exit_program)
+        if self.inventory >= {'sugar', 'lemon', 'jug'}:
+            response = urwid.Text('You can make lemonade!\n')
+            done = ActionButton(' - Joy', exit_program)
             self.log[:] = [response, done]
         else:
             self.update_place(self.place)

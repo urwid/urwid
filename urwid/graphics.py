@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 #
 # Urwid graphics widgets
 #    Copyright (C) 2004-2011  Ian Ward
@@ -20,9 +19,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
-from urwid.compat import ord2, with_metaclass
+from urwid.compat import with_metaclass
 from urwid.util import decompose_tagmarkup, get_encoding_mode
 from urwid.canvas import CompositeCanvas, CanvasJoin, TextCanvas, \
     CanvasCombine, SolidCanvas
@@ -101,9 +99,9 @@ class LineBox(WidgetDecoration, WidgetWrap):
 
     def __init__(self, original_widget, title="",
                  title_align="center", title_attr=None,
-                 tlcorner=u'┌', tline=u'─', lline=u'│',
-                 trcorner=u'┐', blcorner=u'└', rline=u'│',
-                 bline=u'─', brcorner=u'┘'):
+                 tlcorner='┌', tline='─', lline='│',
+                 trcorner='┐', blcorner='└', rline='│',
+                 bline='─', brcorner='┘'):
         """
         Draw a line around original_widget.
 
@@ -175,7 +173,7 @@ class LineBox(WidgetDecoration, WidgetWrap):
         else:
             # Note: We need to define a fixed first widget (even if it's 0 width) so that the other
             # widgets have something to anchor onto
-            middle_widgets.append(('fixed', 0, SolidFill(u"")))
+            middle_widgets.append(('fixed', 0, SolidFill("")))
         middle_widgets.append(original_widget)
         focus_col = len(middle_widgets) - 1
         if rline:
@@ -240,7 +238,7 @@ class BarGraphMeta(WidgetMeta):
     should use set_data() instead of overriding get_data().
     """
     def __init__(cls, name, bases, d):
-        super(BarGraphMeta, cls).__init__(name, bases, d)
+        super().__init__(name, bases, d)
 
         if "get_data" in d:
             cls.render = nocache_widget_render(cls)
@@ -266,8 +264,8 @@ class BarGraph(with_metaclass(BarGraphMeta, Widget)):
 
     ignore_focus = True
 
-    eighths = u' ▁▂▃▄▅▆▇'
-    hlines = u'_⎺⎻─⎼⎽'
+    eighths = ' ▁▂▃▄▅▆▇'
+    hlines = '_⎺⎻─⎼⎽'
 
     def __init__(self, attlist, hatt=None, satt=None):
         """
@@ -713,7 +711,7 @@ def calculate_bargraph_display(bardata, top, bar_widths, maxrow):
         col += width
         barnum += 1
 
-    #print repr(rows)
+    # print(repr(rows))
     # build rowsets data structure
     rowsets = []
     y_count = 0
@@ -865,7 +863,7 @@ def scale_bar_values( bar, top, maxrow ):
 class ProgressBar(Widget):
     _sizing = frozenset([FLOW])
 
-    eighths = u' ▏▎▍▌▋▊▉'
+    eighths = ' ▏▎▍▌▋▊▉'
 
     text_align = CENTER
 
@@ -957,7 +955,7 @@ class ProgressBar(Widget):
             c._attr = [[(self.normal, maxcol)]]
         elif ccol >= maxcol:
             c._attr = [[(self.complete, maxcol)]]
-        elif cs and ord2(c._text[0][ccol]) == 32:
+        elif cs and c._text[0][ccol] == 32:
             t = c._text[0]
             cenc = self.eighths[cs].encode("utf-8")
             c._text[0] = t[:ccol] + cenc + t[ccol + 1:]

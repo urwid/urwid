@@ -19,7 +19,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
 """
 Direct terminal UI implementation
@@ -44,7 +43,7 @@ from urwid.display_common import BaseScreen, RealTerminal, \
     UPDATE_PALETTE_ENTRY, AttrSpec, UNPRINTABLE_TRANS_TABLE, \
     INPUT_DESCRIPTORS_CHANGED
 from urwid import signals
-from urwid.compat import PYTHON3, B
+from urwid.compat import B
 
 from subprocess import Popen, PIPE
 
@@ -54,7 +53,7 @@ class Screen(BaseScreen, RealTerminal):
         """Initialize a screen that directly prints escape codes to an output
         terminal.
         """
-        super(Screen, self).__init__()
+        super().__init__()
         self._pal_escape = {}
         self._pal_attrspec = {}
         signals.connect_signal(self, UPDATE_PALETTE_ENTRY,
@@ -246,7 +245,7 @@ class Screen(BaseScreen, RealTerminal):
         # restore mouse tracking to previous state
         self._mouse_tracking(self._mouse_tracking_enabled)
 
-        return super(Screen, self)._start()
+        return super()._start()
 
     def _stop(self):
         """
@@ -280,7 +279,7 @@ class Screen(BaseScreen, RealTerminal):
         if self._old_signal_keys:
             self.tty_signal_keys(*(self._old_signal_keys + (fd,)))
 
-        super(Screen, self)._stop()
+        super()._stop()
 
 
     def write(self, data):
@@ -537,7 +536,7 @@ class Screen(BaseScreen, RealTerminal):
         try:
             while self.gpm_mev is not None and self.gpm_event_pending:
                 codes.extend(self._encode_gpm_event())
-        except IOError as e:
+        except OSError as e:
             if e.args[0] != 11:
                 raise
         return codes
@@ -559,7 +558,7 @@ class Screen(BaseScreen, RealTerminal):
                     ready,w,err = select.select(
                         fd_list,[],fd_list, timeout)
                 break
-            except select.error as e:
+            except OSError as e:
                 if e.args[0] != 4:
                     raise
                 if self._resized:
@@ -675,7 +674,7 @@ class Screen(BaseScreen, RealTerminal):
                 buf = fcntl.ioctl(self._term_output_file.fileno(),
                                 termios.TIOCGWINSZ, ' '*4)
                 y, x = struct.unpack('hh', buf)
-        except IOError:
+        except OSError:
             # Term size could not be determined
             pass
         self.maxrow = y
@@ -693,7 +692,7 @@ class Screen(BaseScreen, RealTerminal):
                 self.write(escape.DESIGNATE_G1_SPECIAL)
                 self.flush()
                 break
-            except IOError:
+            except OSError:
                 pass
         self._setup_G1_done = True
 
@@ -869,11 +868,11 @@ class Screen(BaseScreen, RealTerminal):
             return
         try:
             for l in o:
-                if isinstance(l, bytes) and PYTHON3:
+                if isinstance(l, bytes):
                     l = l.decode('utf-8', 'replace')
                 self.write(l)
             self.flush()
-        except IOError as e:
+        except OSError as e:
             # ignore interrupted syscall
             if e.args[0] != 4:
                 raise

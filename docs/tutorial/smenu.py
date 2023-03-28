@@ -1,6 +1,6 @@
 import urwid
 
-choices = u'Chapman Cleese Gilliam Idle Jones Palin'.split()
+choices = 'Chapman Cleese Gilliam Idle Jones Palin'.split()
 
 def menu(title, choices):
     body = [urwid.Text(title), urwid.Divider()]
@@ -11,8 +11,8 @@ def menu(title, choices):
     return urwid.ListBox(urwid.SimpleFocusListWalker(body))
 
 def item_chosen(button, choice):
-    response = urwid.Text([u'You chose ', choice, u'\n'])
-    done = urwid.Button(u'Ok')
+    response = urwid.Text(['You chose ', choice, '\n'])
+    done = urwid.Button('Ok')
     urwid.connect_signal(done, 'click', exit_program)
     main.original_widget = urwid.Filler(urwid.Pile([response,
         urwid.AttrMap(done, None, focus_map='reversed')]))
@@ -20,8 +20,8 @@ def item_chosen(button, choice):
 def exit_program(button):
     raise urwid.ExitMainLoop()
 
-main = urwid.Padding(menu(u'Pythons', choices), left=2, right=2)
-top = urwid.Overlay(main, urwid.SolidFill(u'\N{MEDIUM SHADE}'),
+main = urwid.Padding(menu('Pythons', choices), left=2, right=2)
+top = urwid.Overlay(main, urwid.SolidFill('\N{MEDIUM SHADE}'),
     align='center', width=('relative', 60),
     valign='middle', height=('relative', 60),
     min_width=20, min_height=9)

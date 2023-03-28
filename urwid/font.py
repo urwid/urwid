@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 #
 # Urwid BigText fonts
 #    Copyright (C) 2004-2006  Ian Ward
@@ -20,12 +19,10 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
 from urwid.escape import SAFE_ASCII_DEC_SPECIAL_RE
 from urwid.util import apply_target_encoding, str_util
 from urwid.canvas import TextCanvas
-from urwid.compat import text_type
 
 
 def separate_glyphs(gdata, height):
@@ -92,7 +89,7 @@ def add_font(name, cls):
     _all_fonts.append((name, cls))
 
 
-class Font(object):
+class Font:
     def __init__(self):
         assert self.height
         assert self.data
@@ -105,7 +102,7 @@ class Font(object):
 
     @staticmethod
     def _to_text(obj, encoding='utf-8', errors='strict'):
-        if isinstance(obj, text_type):
+        if isinstance(obj, str):
             return obj
         elif isinstance(obj, bytes):
             return obj.decode(encoding, errors)
@@ -152,7 +149,7 @@ class Font(object):
 
 class Thin3x3Font(Font):
     height = 3
-    data = [u"""
+    data = ["""
 000111222333444555666777888999  !
 ┌─┐ ┐ ┌─┐┌─┐  ┐┌─ ┌─ ┌─┐┌─┐┌─┐  │
 │ │ │ ┌─┘ ─┤└─┼└─┐├─┐  ┼├─┤└─┤  │
@@ -167,7 +164,7 @@ add_font("Thin 3x3",Thin3x3Font)
 
 class Thin4x3Font(Font):
     height = 3
-    data = Thin3x3Font.data + [u"""
+    data = Thin3x3Font.data + ["""
 0000111122223333444455556666777788889999  ####$$$$
 ┌──┐  ┐ ┌──┐┌──┐   ┐┌── ┌── ┌──┐┌──┐┌──┐   ┼─┼┌┼┼┐
 │  │  │ ┌──┘  ─┤└──┼└──┐├──┐   ┼├──┤└──┤   ┼─┼└┼┼┐
@@ -177,13 +174,13 @@ add_font("Thin 4x3",Thin4x3Font)
 
 class HalfBlock5x4Font(Font):
     height = 4
-    data = [u"""
+    data = ["""
 00000111112222233333444445555566666777778888899999  !!
 ▄▀▀▄  ▄█  ▄▀▀▄ ▄▀▀▄ ▄  █ █▀▀▀ ▄▀▀  ▀▀▀█ ▄▀▀▄ ▄▀▀▄   █
 █  █   █    ▄▀   ▄▀ █▄▄█ █▄▄  █▄▄    ▐▌ ▀▄▄▀ ▀▄▄█   █
 █  █   █  ▄▀   ▄  █    █    █ █  █   █  █  █    █   ▀
  ▀▀   ▀▀▀ ▀▀▀▀  ▀▀     ▀ ▀▀▀   ▀▀    ▀   ▀▀   ▀▀    ▀
-""", u'''
+""", '''
 """######$$$$$$%%%%%&&&&&((()))******++++++,,,-----..////::;;;
 █▐▌ █ █  ▄▀█▀▄ ▐▌▐▌ ▄▀▄   █ █   ▄ ▄    ▄              ▐▌
    ▀█▀█▀ ▀▄█▄    █  ▀▄▀  ▐▌ ▐▌ ▄▄█▄▄ ▄▄█▄▄    ▄▄▄▄    █  ▀  ▀
@@ -195,37 +192,37 @@ class HalfBlock5x4Font(Font):
 ▄▀   ▀▀▀▀   ▀▄   ▄▀ █ █▀█ █    █    █            ▄▀  █  ▀▄ ▐▐▌▌
  ▀▄  ▀▀▀▀  ▄▀    ▀  █ ▀▀▀ █    ▐▌   █             █  █  █    ▀
    ▀      ▀      ▀   ▀▀▀  ▀▀▀   ▀ ▀▀▀     ▀▀▀▀     ▀ ▀ ▀
-""", u'''
+""", '''
 AAAAABBBBBCCCCCDDDDDEEEEEFFFFFGGGGGHHHHHIIJJJJJKKKKK
 ▄▀▀▄ █▀▀▄ ▄▀▀▄ █▀▀▄ █▀▀▀ █▀▀▀ ▄▀▀▄ █  █ █    █ █  █
 █▄▄█ █▄▄▀ █    █  █ █▄▄  █▄▄  █    █▄▄█ █    █ █▄▀
 █  █ █  █ █  ▄ █  █ █    █    █ ▀█ █  █ █ ▄  █ █ ▀▄
 ▀  ▀ ▀▀▀   ▀▀  ▀▀▀  ▀▀▀▀ ▀     ▀▀  ▀  ▀ ▀  ▀▀  ▀  ▀
-''', u'''
+''', '''
 LLLLLMMMMMMNNNNNOOOOOPPPPPQQQQQRRRRRSSSSSTTTTT
 █    █▄ ▄█ ██ █ ▄▀▀▄ █▀▀▄ ▄▀▀▄ █▀▀▄ ▄▀▀▄ ▀▀█▀▀
 █    █ ▀ █ █▐▌█ █  █ █▄▄▀ █  █ █▄▄▀ ▀▄▄    █
 █    █   █ █ ██ █  █ █    █ ▌█ █  █ ▄  █   █
 ▀▀▀▀ ▀   ▀ ▀  ▀  ▀▀  ▀     ▀▀▌ ▀  ▀  ▀▀    ▀
-''', u'''
+''', '''
 UUUUUVVVVVVWWWWWWXXXXXXYYYYYYZZZZZ
 █  █ █   █ █   █ █   █ █   █ ▀▀▀█
 █  █ ▐▌ ▐▌ █ ▄ █  ▀▄▀   ▀▄▀   ▄▀
 █  █  █ █  ▐▌█▐▌ ▄▀ ▀▄   █   █
  ▀▀    ▀    ▀ ▀  ▀   ▀   ▀   ▀▀▀▀
-''', u'''
+''', '''
 aaaaabbbbbcccccdddddeeeeeffffggggghhhhhiijjjjkkkkk
      █            █       ▄▀▀     █    ▄   ▄ █
  ▀▀▄ █▀▀▄ ▄▀▀▄ ▄▀▀█ ▄▀▀▄ ▀█▀ ▄▀▀▄ █▀▀▄ ▄   ▄ █ ▄▀
 ▄▀▀█ █  █ █  ▄ █  █ █▀▀   █  ▀▄▄█ █  █ █   █ █▀▄
  ▀▀▀ ▀▀▀   ▀▀   ▀▀▀  ▀▀   ▀   ▄▄▀ ▀  ▀ ▀ ▄▄▀ ▀  ▀
-''', u'''
+''', '''
 llmmmmmmnnnnnooooopppppqqqqqrrrrssssstttt
 █                                     █
 █ █▀▄▀▄ █▀▀▄ ▄▀▀▄ █▀▀▄ ▄▀▀█ █▀▀ ▄▀▀▀ ▀█▀
 █ █ █ █ █  █ █  █ █  █ █  █ █    ▀▀▄  █
 ▀ ▀   ▀ ▀  ▀  ▀▀  █▀▀   ▀▀█ ▀   ▀▀▀    ▀
-''', u'''
+''', '''
 uuuuuvvvvvwwwwwwxxxxxxyyyyyzzzzz
 
 █  █ █  █ █ ▄ █ ▀▄ ▄▀ █  █ ▀▀█▀
@@ -236,7 +233,7 @@ add_font("Half Block 5x4",HalfBlock5x4Font)
 
 class HalfBlock6x5Font(Font):
     height = 5
-    data = [u"""
+    data = ["""
 000000111111222222333333444444555555666666777777888888999999  ..::////
 ▄▀▀▀▄  ▄█   ▄▀▀▀▄ ▄▀▀▀▄ ▄  █  █▀▀▀▀ ▄▀▀▀  ▀▀▀▀█ ▄▀▀▀▄ ▄▀▀▀▄         █
 █   █   █       █     █ █  █  █     █        ▐▌ █   █ █   █     ▀  ▐▌
@@ -248,7 +245,7 @@ add_font("Half Block 6x5",HalfBlock6x5Font)
 
 class HalfBlockHeavy6x5Font(Font):
     height = 5
-    data = [u"""
+    data = ["""
 000000111111222222333333444444555555666666777777888888999999  ..::////
 ▄███▄  ▐█▌  ▄███▄ ▄███▄    █▌ █████ ▄███▄ █████ ▄███▄ ▄███▄         █▌
 █▌ ▐█  ▀█▌  ▀  ▐█ ▀  ▐█ █▌ █▌ █▌    █▌       █▌ █▌ ▐█ █▌ ▐█     █▌ ▐█
@@ -260,7 +257,7 @@ add_font("Half Block Heavy 6x5",HalfBlockHeavy6x5Font)
 
 class Thin6x6Font(Font):
     height = 6
-    data = [u"""
+    data = ["""
 000000111111222222333333444444555555666666777777888888999999''
 ┌───┐   ┐   ┌───┐ ┌───┐    ┐  ┌───  ┌───  ┌───┐ ┌───┐ ┌───┐ │
 │   │   │       │     │ ┌  │  │     │         │ │   │ │   │
@@ -292,7 +289,7 @@ class Thin6x6Font(Font):
 │    \  │          │ │ │
 └     \ ┘    ────  └ │ ┘
 
-""", u"""
+""", """
 AAAAAABBBBBBCCCCCCDDDDDDEEEEEEFFFFFFGGGGGGHHHHHHIIJJJJJJ
 ┌───┐ ┬───┐ ┌───┐ ┬───┐ ┬───┐ ┬───┐ ┌───┐ ┬   ┬ ┬     ┬
 │   │ │   │ │     │   │ │     │     │     │   │ │     │
@@ -300,7 +297,7 @@ AAAAAABBBBBBCCCCCCDDDDDDEEEEEEFFFFFFGGGGGGHHHHHHIIJJJJJJ
 │   │ │   │ │     │   │ │     │     │   │ │   │ │ ┬   │
 ┴   ┴ ┴───┘ └───┘ ┴───┘ ┴───┘ ┴     └───┘ ┴   ┴ ┴ └───┘
 
-""", u"""
+""", """
 KKKKKKLLLLLLMMMMMMNNNNNNOOOOOOPPPPPPQQQQQQRRRRRRSSSSSS
 ┬   ┬ ┬     ┌─┬─┐ ┬─┐ ┬ ┌───┐ ┬───┐ ┌───┐ ┬───┐ ┌───┐
 │ ┌─┘ │     │ │ │ │ │ │ │   │ │   │ │   │ │   │ │
@@ -308,7 +305,7 @@ KKKKKKLLLLLLMMMMMMNNNNNNOOOOOOPPPPPPQQQQQQRRRRRRSSSSSS
 │  └┐ │     │   │ │ │ │ │   │ │     │  ┐│ │ └─┐     │
 ┴   ┴ ┴───┘ ┴   ┴ ┴ └─┴ └───┘ ┴     └──┼┘ ┴   ┴ └───┘
                                        └
-""", u"""
+""", """
 TTTTTTUUUUUUVVVVVVWWWWWWXXXXXXYYYYYYZZZZZZ
 ┌─┬─┐ ┬   ┬ ┬   ┬ ┬   ┬ ┬   ┬ ┬   ┬ ┌───┐
   │   │   │ │   │ │   │ └┐ ┌┘ │   │   ┌─┘
@@ -316,7 +313,7 @@ TTTTTTUUUUUUVVVVVVWWWWWWXXXXXXYYYYYYZZZZZZ
   │   │   │ └┐ ┌┘ │ │ │ ┌┘ └┐   │   ┌┘
   ┴   └───┘  └─┘  └─┴─┘ ┴   ┴   ┴   └───┘
 
-""", u"""
+""", """
 aaaaaabbbbbbccccccddddddeeeeeefffgggggghhhhhhiijjj
                               ┌─┐
       │               │       │        │     .  .
@@ -324,7 +321,7 @@ aaaaaabbbbbbccccccddddddeeeeeefffgggggghhhhhhiijjj
 ┌───┤ │   │ │     │   │ ├───┘ │  │   │ │   │ │  │
 └───┴ └───┘ └───┘ └───┘ └───┘ ┴  └───┤ ┴   ┴ ┴  │
                                  └───┘         ─┘
-""", u"""
+""", """
 kkkkkkllmmmmmmnnnnnnooooooppppppqqqqqqrrrrrssssss
 
 │     │
@@ -332,7 +329,7 @@ kkkkkkllmmmmmmnnnnnnooooooppppppqqqqqqrrrrrssssss
 ├─┴┐  │ │ │ │ │   │ │   │ │   │ │   │ │    └───┐
 ┴  └─ └ ┴   ┴ ┴   ┴ └───┘ ├───┘ └───┤ ┴    └───┘
                           │         │
-""", u"""
+""", """
 ttttuuuuuuvvvvvvwwwwwwxxxxxxyyyyyyzzzzzz
 
  │
@@ -346,7 +343,7 @@ add_font("Thin 6x6",Thin6x6Font)
 
 class HalfBlock7x7Font(Font):
     height = 7
-    data = [u"""
+    data = ["""
 0000000111111122222223333333444444455555556666666777777788888889999999'''
  ▄███▄   ▐█▌   ▄███▄  ▄███▄     █▌ ▐█████▌ ▄███▄ ▐█████▌ ▄███▄  ▄███▄ ▐█
 ▐█   █▌  ▀█▌  ▐█   █▌▐█   █▌▐█  █▌ ▐█     ▐█         ▐█ ▐█   █▌▐█   █▌▐█
@@ -355,7 +352,7 @@ class HalfBlock7x7Font(Font):
 ▐█   █▌   █▌   ▄█▀   ▐█   █▌    █▌      █▌▐█   █▌   █▌  ▐█   █▌     █▌
  ▀███▀   ███▌ ▐█████▌ ▀███▀     █▌ ▐████▀  ▀███▀   ▐█    ▀███▀  ▀███▀
 
-""", u'''
+""", '''
 !!!   """""#######$$$$$$$%%%%%%%&&&&&&&(((())))*******++++++
 ▐█    ▐█ █▌ ▐█ █▌    █    ▄  █▌   ▄█▄    █▌▐█   ▄▄ ▄▄
 ▐█    ▐█ █▌▐█████▌ ▄███▄ ▐█▌▐█   ▐█ █▌  ▐█  █▌  ▀█▄█▀   ▐█
@@ -364,7 +361,7 @@ class HalfBlock7x7Font(Font):
             ▐█ █▌  ▀███▀   █▌▐█▌▐█  █▌  ▐█  █▌  ▀▀ ▀▀
 ▐█                   █    ▐█  ▀  ▀██▀█▌  █▌▐█
 
-''', u"""
+''', """
 ,,,------.../////:::;;;<<<<<<<======>>>>>>>???????@@@@@@@
                █▌          ▄█▌      ▐█▄     ▄███▄  ▄███▄
               ▐█ ▐█ ▐█   ▄█▀  ▐████▌  ▀█▄  ▐█   █▌▐█ ▄▄█▌
@@ -382,7 +379,7 @@ class HalfBlock7x7Font(Font):
 ▐█    ▐█   █▌                 █▌ ▐█  ▐█
 ▐██▌   █▌▐██▌       █████      █▌▐█ ▐█
 
-""", u"""
+""", """
 AAAAAAABBBBBBBCCCCCCCDDDDDDDEEEEEEEFFFFFFFGGGGGGGHHHHHHHIIIIJJJJJJJ
  ▄███▄ ▐████▄  ▄███▄ ▐████▄ ▐█████▌▐█████▌ ▄███▄ ▐█   █▌ ██▌     █▌
 ▐█   █▌▐█   █▌▐█     ▐█   █▌▐█     ▐█     ▐█     ▐█   █▌ ▐█      █▌
@@ -391,7 +388,7 @@ AAAAAAABBBBBBBCCCCCCCDDDDDDDEEEEEEEFFFFFFFGGGGGGGHHHHHHHIIIIJJJJJJJ
 ▐█   █▌▐█   █▌▐█     ▐█   █▌▐█     ▐█     ▐█   █▌▐█   █▌ ▐█ ▐█   █▌
 ▐█   █▌▐████▀  ▀███▀ ▐████▀ ▐█████▌▐█      ▀███▀ ▐█   █▌ ██▌ ▀███▀
 
-""", u"""
+""", """
 KKKKKKKLLLLLLLMMMMMMMMNNNNNNNOOOOOOOPPPPPPPQQQQQQQRRRRRRRSSSSSSS
 ▐█   █▌▐█      ▄█▌▐█▄ ▐██  █▌ ▄███▄ ▐████▄  ▄███▄ ▐████▄  ▄███▄
 ▐█  █▌ ▐█     ▐█ ▐▌ █▌▐██▌ █▌▐█   █▌▐█   █▌▐█   █▌▐█   █▌▐█
@@ -400,7 +397,7 @@ KKKKKKKLLLLLLLMMMMMMMMNNNNNNNOOOOOOOPPPPPPPQQQQQQQRRRRRRRSSSSSSS
 ▐█  █▌ ▐█     ▐█    █▌▐█ ▐██▌▐█   █▌▐█     ▐█ █▌█▌▐█   █▌     █▌
 ▐█   █▌▐█████▌▐█    █▌▐█  ██▌ ▀███▀ ▐█      ▀███▀ ▐█   █▌ ▀███▀
                                                ▀▀
-""", u"""
+""", """
 TTTTTTTUUUUUUUVVVVVVVWWWWWWWWXXXXXXXYYYYYYYZZZZZZZ
  █████▌▐█   █▌▐█   █▌▐█    █▌▐█   █▌ █▌  █▌▐█████▌
    █▌  ▐█   █▌ █▌ ▐█ ▐█    █▌ ▐█ █▌  ▐█ ▐█     █▌
@@ -409,7 +406,7 @@ TTTTTTTUUUUUUUVVVVVVVWWWWWWWWXXXXXXXYYYYYYYZZZZZZZ
    █▌  ▐█   █▌  ▐█▌  ▐█ ▐▌ █▌ █▌ ▐█    █▌   █▌
    █▌   ▀███▀    █    ▀█▌▐█▀ ▐█   █▌   █▌  ▐█████▌
 
-""", u"""
+""", """
 aaaaaaabbbbbbbcccccccdddddddeeeeeeefffffggggggghhhhhhhiiijjjj
        ▐█                 █▌         ▄█▌       ▐█      █▌  █▌
        ▐█                 █▌        ▐█         ▐█
@@ -418,7 +415,7 @@ aaaaaaabbbbbbbcccccccdddddddeeeeeeefffffggggggghhhhhhhiiijjjj
 ▐█▀▀▀█▌▐█   █▌▐█     ▐█   █▌▐█▀▀▀   ▐█  ▐█▄▄▄█▌▐█   █▌ █▌  █▌
  ▀████▌▐████▀  ▀███▀  ▀████▌ ▀███▀  ▐█    ▀▀▀█▌▐█   █▌ █▌  █▌
                                          ▀███▀           ▐██
-""", u"""
+""", """
 kkkkkkkllllmmmmmmmmnnnnnnnooooooopppppppqqqqqqqrrrrrrsssssss
 ▐█      ██
 ▐█      ▐█
@@ -427,7 +424,7 @@ kkkkkkkllllmmmmmmmmnnnnnnnooooooopppppppqqqqqqqrrrrrrsssssss
 ▐█▀▀█▄  ▐█ ▐█ ▐▌ █▌▐█   █▌▐█   █▌▐█   █▌▐█   █▌▐█      ▀▀▀█▌
 ▐█   █▌ ▐█▌▐█    █▌▐█   █▌ ▀███▀ ▐████▀  ▀████▌▐█     ▀███▀
                                  ▐█          █▌
-""", u"""
+""", """
 tttttuuuuuuuvvvvvvvwwwwwwwwxxxxxxxyyyyyyyzzzzzzz
   █▌
   █▌

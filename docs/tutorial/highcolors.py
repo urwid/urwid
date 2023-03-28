@@ -20,7 +20,7 @@ loop.widget.original_widget = urwid.Filler(urwid.Pile([]))
 div = urwid.Divider()
 outside = urwid.AttrMap(div, 'outside')
 inside = urwid.AttrMap(div, 'inside')
-txt = urwid.Text(('banner', u" Hello World "), align='center')
+txt = urwid.Text(('banner', " Hello World "), align='center')
 streak = urwid.AttrMap(txt, 'streak')
 pile = loop.widget.base_widget # .base_widget skips the decorations
 for item in [outside, inside, streak, inside, outside]:

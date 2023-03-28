@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 #
 # Urwid Text Layout classes
 #    Copyright (C) 2004-2011  Ian Ward
@@ -20,11 +19,10 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
 from urwid.util import calc_width, calc_text_pos, calc_trim_text, is_wide_char, \
     move_prev_char, move_next_char
-from urwid.compat import PYTHON3, B, xrange
+from urwid.compat import B
 
 class TextLayout:
     def supports_align_mode(self, align):
@@ -131,7 +129,7 @@ class StandardTextLayout(TextLayout):
         Returns a layout structure without alignment applied.
         """
         nl, nl_o, sp_o = "\n", "\n", " "
-        if PYTHON3 and isinstance(text, bytes):
+        if isinstance(text, bytes):
             nl = B(nl) # can only find bytes in python3 bytestrings
             nl_o = ord(nl_o) # + an item of a bytestring is the ordinal value
             sp_o = ord(sp_o)
@@ -163,7 +161,7 @@ class StandardTextLayout(TextLayout):
                 if p!=n_end:
                     l += [(sc, p, n_end)]
                 if trimmed:
-                    l += [(1, n_end, u'…'.encode("utf-8"))]
+                    l += [(1, n_end, '…'.encode())]
                 l += [(pad_right,n_end)]
                 b.append(l)
                 p = n_cr+1
@@ -318,8 +316,8 @@ class LayoutSegment:
             # use text stored in segment (self.text)
             spos, epos, pad_left, pad_right = calc_trim_text(
                 self.text, 0, len(self.text), start, end )
-            return [ (end-start, self.offs, bytes().ljust(pad_left) +
-                self.text[spos:epos] + bytes().ljust(pad_right)) ]
+            return [ (end-start, self.offs, b''.ljust(pad_left) +
+                self.text[spos:epos] + b''.ljust(pad_right)) ]
         elif self.end:
             # use text passed as parameter (text)
             spos, epos, pad_left, pad_right = calc_trim_text(
@@ -345,7 +343,7 @@ def line_width( segs ):
     """
     sc = 0
     seglist = segs
-    if segs and len(segs[0])==2 and segs[0][1]==None:
+    if segs and len(segs[0])==2 and segs[0][1] is None:
         seglist = segs[1:]
     for s in seglist:
         sc += s[0]
@@ -359,7 +357,7 @@ def shift_line( segs, amount ):
     """
     assert type(amount)==int, repr(amount)
 
-    if segs and len(segs[0])==2 and segs[0][1]==None:
+    if segs and len(segs[0])==2 and segs[0][1] is None:
         # existing shift
         amount += segs[0][0]
         if amount:
@@ -477,8 +475,8 @@ def calc_pos( text, layout, pref_col, row ):
     if pos is not None:
         return pos
 
-    rows_above = list(xrange(row-1,-1,-1))
-    rows_below = list(xrange(row+1,len(layout)))
+    rows_above = list(range(row-1,-1,-1))
+    rows_below = list(range(row+1,len(layout)))
     while rows_above and rows_below:
         if rows_above:
             r = rows_above.pop(0)

@@ -20,7 +20,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
 import os
 import sys
@@ -45,7 +44,7 @@ from urwid.escape import DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS
 from urwid.canvas import Canvas
 from urwid.widget import Widget, BOX
 from urwid.display_common import AttrSpec, RealTerminal, _BASIC_COLORS
-from urwid.compat import ord2, chr2, B, PYTHON3, xrange
+from urwid.compat import chr2, B
 
 EOF = B('')
 ESC = chr(27)
@@ -138,7 +137,7 @@ CSI_COMMANDS = {
 CHARSET_DEFAULT = 1
 CHARSET_UTF8 = 2
 
-class TermModes(object):
+class TermModes:
     def __init__(self):
         self.reset()
 
@@ -158,7 +157,7 @@ class TermModes(object):
         # charset stuff
         self.main_charset = CHARSET_DEFAULT
 
-class TermCharset(object):
+class TermCharset:
     MAPPING = {
         'default': None,
         'vt100':   '0',
@@ -228,15 +227,15 @@ class TermScroller(list):
 
     def append(self, obj):
         self.trunc()
-        super(TermScroller, self).append(obj)
+        super().append(obj)
 
     def insert(self, idx, obj):
         self.trunc()
-        super(TermScroller, self).insert(idx, obj)
+        super().insert(idx, obj)
 
     def extend(self, seq):
         self.trunc()
-        super(TermScroller, self).extend(seq)
+        super().extend(seq)
 
 class TermCanvas(Canvas):
     cacheable = False
@@ -253,7 +252,7 @@ class TermCanvas(Canvas):
         self.scrolling_up = 0
 
         self.utf8_eat_bytes = None
-        self.utf8_buffer = bytes()
+        self.utf8_buffer = b''
 
         self.coords["cursor"] = (0, 0, None)
 
@@ -318,7 +317,7 @@ class TermCanvas(Canvas):
         """
         Reset the terminal.
         """
-        self.escbuf = bytes()
+        self.escbuf = b''
         self.within_escape = False
         self.parsestate = 0
 
@@ -353,7 +352,7 @@ class TermCanvas(Canvas):
 
     def set_tabstop(self, x=None, remove=False, clear=False):
         if clear:
-            for tab in xrange(len(self.tabstops)):
+            for tab in range(len(self.tabstops)):
                 self.tabstops[tab] = 0
             return
 
@@ -385,7 +384,7 @@ class TermCanvas(Canvas):
             return
 
         for byte in data:
-            self.addbyte(ord2(byte))
+            self.addbyte(byte)
 
     def resize(self, width, height):
         """
@@ -395,18 +394,18 @@ class TermCanvas(Canvas):
 
         if width > self.width:
             # grow
-            for y in xrange(self.height):
+            for y in range(self.height):
                 self.term[y] += [self.empty_char()] * (width - self.width)
         elif width < self.width:
             # shrink
-            for y in xrange(self.height):
+            for y in range(self.height):
                 self.term[y] = self.term[y][:width]
 
         self.width = width
 
         if height > self.height:
             # grow
-            for y in xrange(self.height, height):
+            for y in range(self.height, height):
                 try:
                     last_line = self.scrollback_buffer.pop()
                 except IndexError:
@@ -427,7 +426,7 @@ class TermCanvas(Canvas):
                 self.term.insert(0, last_line)
         elif height < self.height:
             # shrink
-            for y in xrange(height, self.height):
+            for y in range(height, self.height):
                 self.scrollback_buffer.append(self.term.pop(0))
 
         self.height = height
@@ -487,7 +486,7 @@ class TermCanvas(Canvas):
             number_of_args, default_value, cmd = csi_cmd
             while len(escbuf) < number_of_args:
                 escbuf.append(default_value)
-            for i in xrange(len(escbuf)):
+            for i in range(len(escbuf)):
                 if escbuf[i] is None or escbuf[i] == 0:
                     escbuf[i] = default_value
 
@@ -549,7 +548,7 @@ class TermCanvas(Canvas):
                 return
         elif self.parsestate == 0 and char == B(']'):
             # start of OSC
-            self.escbuf = bytes()
+            self.escbuf = b''
             self.parsestate = 2
             return
         elif self.parsestate == 2 and char == B("\x07"):
@@ -570,7 +569,7 @@ class TermCanvas(Canvas):
             return
         elif self.parsestate == 0 and char == B('['):
             # start of CSI
-            self.escbuf = bytes()
+            self.escbuf = b''
             self.parsestate = 1
             return
         elif self.parsestate == 0 and char in (B('%'), B('#'), B('('), B(')')):
@@ -588,7 +587,7 @@ class TermCanvas(Canvas):
     def leave_escape(self):
         self.within_escape = False
         self.parsestate = 0
-        self.escbuf = bytes()
+        self.escbuf = b''
 
     def get_utf8_len(self, bytenum):
         """
@@ -683,7 +682,7 @@ class TermCanvas(Canvas):
             self.parse_escape(char)
         elif not dc and char == B("\x9b"): # CSI (equivalent to "ESC [")
             self.within_escape = True
-            self.escbuf = bytes()
+            self.escbuf = b''
             self.parsestate = 1
         else:
             self.push_cursor(char)
@@ -884,7 +883,7 @@ class TermCanvas(Canvas):
         """
         DEC screen alignment test: Fill screen with E's.
         """
-        for row in xrange(self.height):
+        for row in range(self.height):
             self.term[row] = self.empty_line('E')
 
     def blank_line(self, row):
@@ -991,7 +990,7 @@ class TermCanvas(Canvas):
 
         # within a single row
         if sy == ey:
-            for x in xrange(sx, ex + 1):
+            for x in range(sx, ex + 1):
                 self.term[sy][x] = self.empty_char()
             return
 
@@ -999,10 +998,10 @@ class TermCanvas(Canvas):
         y = sy
         while y <= ey:
             if y == sy:
-                for x in xrange(sx, self.width):
+                for x in range(sx, self.width):
                     self.term[y][x] = self.empty_char()
             elif y == ey:
-                for x in xrange(ex + 1):
+                for x in range(ex + 1):
                     self.term[y][x] = self.empty_char()
             else:
                 self.blank_line(y)
@@ -1137,8 +1136,8 @@ class TermCanvas(Canvas):
         """
         Reverse video/scanmode (DECSCNM) by swapping fg and bg colors.
         """
-        for y in xrange(self.height):
-            for x in xrange(self.width):
+        for y in range(self.height):
+            for x in range(self.width):
                 char = self.term[y][x]
                 attrs = self.reverse_attrspec(char[0], undo=undo)
                 self.term[y][x] = (attrs,) + char[1:]
@@ -1294,7 +1293,7 @@ class TermCanvas(Canvas):
         Clears the whole terminal screen and resets the cursor position
         to (0, 0) or to the coordinates given by 'cursor'.
         """
-        self.term = [self.empty_line() for x in xrange(self.height)]
+        self.term = [self.empty_line() for x in range(self.height)]
 
         if cursor is None:
             self.set_term_cursor(0, 0)
@@ -1310,12 +1309,10 @@ class TermCanvas(Canvas):
     def content(self, trim_left=0, trim_right=0, cols=None, rows=None,
                 attr_map=None):
         if self.scrolling_up == 0:
-            for line in self.term:
-                yield line
+            yield from self.term
         else:
             buf = self.scrollback_buffer + self.term
-            for line in buf[-(self.height+self.scrolling_up):-self.scrolling_up]:
-                yield line
+            yield from buf[-(self.height+self.scrolling_up):-self.scrolling_up]
 
     def content_delta(self, other):
         if other is self:
@@ -1558,7 +1555,7 @@ class Terminal(Widget):
             try:
                 select.select([self.master], [], [], timeout)
                 break
-            except select.error as e:
+            except OSError as e:
                 if e.args[0] != 4:
                     raise
         self.feed()
@@ -1656,7 +1653,6 @@ class Terminal(Widget):
         if self.term_modes.lfnl and key == "\x0d":
             key += "\x0a"
 
-        if PYTHON3:
-            key = key.encode(self.encoding, 'ignore')
+        key = key.encode(self.encoding, 'ignore')
 
         os.write(self.master, key)

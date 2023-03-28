@@ -18,7 +18,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
 import os
 import sys
@@ -30,10 +29,10 @@ except ImportError:
 
 from urwid.util import StoppingContext, int_scale
 from urwid import signals
-from urwid.compat import B, bytes3, xrange, with_metaclass
+from urwid.compat import B, with_metaclass
 
 # for replacing unprintable bytes with '?'
-UNPRINTABLE_TRANS_TABLE = B("?") * 32 + bytes3(list(xrange(32,256)))
+UNPRINTABLE_TRANS_TABLE = B("?") * 32 + bytes(list(range(32,256)))
 
 
 # signals sent by BaseScreen
@@ -474,7 +473,7 @@ def _parse_color_88(desc):
 class AttrSpecError(Exception):
     pass
 
-class AttrSpec(object):
+class AttrSpec:
     def __init__(self, fg, bg, colors=256):
         """
         fg -- a string containing a comma-separated foreground color
@@ -726,9 +725,9 @@ class AttrSpec(object):
     __hash__ = object.__hash__
 
 
-class RealTerminal(object):
+class RealTerminal:
     def __init__(self):
-        super(RealTerminal,self).__init__()
+        super().__init__()
         self._signal_keys_set = False
         self._old_signal_keys = None
 
@@ -789,7 +788,7 @@ class BaseScreen(with_metaclass(signals.MetaSignals, object)):
     signals = [UPDATE_PALETTE_ENTRY, INPUT_DESCRIPTORS_CHANGED]
 
     def __init__(self):
-        super(BaseScreen,self).__init__()
+        super().__init__()
         self._palette = {}
         self._started = False
 

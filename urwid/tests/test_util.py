@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import unittest
 import locale
 
@@ -40,13 +39,13 @@ class ConvertDecSpecialTest(unittest.TestCase):
                                                            resultcs, expcs)
 
     def test1(self):
-        self.ctest("no conversion", u"hello", "hello", [(None,5)])
-        self.ctest("only special", u"£££££", "}}}}}", [("0",5)])
-        self.ctest("mix left", u"££abc", "}}abc", [("0",2),(None,3)])
-        self.ctest("mix right", u"abc££", "abc}}", [(None,3),("0",2)])
-        self.ctest("mix inner", u"a££bc", "a}}bc",
+        self.ctest("no conversion", "hello", "hello", [(None,5)])
+        self.ctest("only special", "£££££", "}}}}}", [("0",5)])
+        self.ctest("mix left", "££abc", "}}abc", [("0",2),(None,3)])
+        self.ctest("mix right", "abc££", "abc}}", [(None,3),("0",2)])
+        self.ctest("mix inner", "a££bc", "a}}bc",
             [(None,1),("0",2),(None,2)] )
-        self.ctest("mix well", u"£a£b£", "}a}b}",
+        self.ctest("mix well", "£a£b£", "}a}b}",
             [("0",1),(None,1),("0",1),(None,1),("0",1)] )
 
 
@@ -160,7 +159,7 @@ class TagMarkupTest(unittest.TestCase):
         (["mix",[" it",('high',[" up",('ital'," a")])]," little"],
             "mix it up a little",
             [(None, 6), ('high', 3), ('ital', 2)]),
-        ([u"££", u"x££"], u"££x££", []),
+        (["££", "x££"], "££x££", []),
         ([B("\xc2\x80"), B("\xc2\x80")], B("\xc2\x80\xc2\x80"), []),
         ]
 

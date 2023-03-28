@@ -19,9 +19,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
-from urwid.compat import xrange, with_metaclass
+from urwid.compat import with_metaclass
 from urwid.util import is_mouse_press
 from urwid.canvas import SolidCanvas, CanvasCombine
 from urwid.widget import Widget, nocache_widget_render_instance, BOX, GIVEN
@@ -160,8 +159,8 @@ class SimpleListWalker(MonitoredList, ListWalker):
         Optional method for returning an iterable of positions.
         """
         if reverse:
-            return xrange(len(self) - 1, -1, -1)
-        return xrange(len(self))
+            return range(len(self) - 1, -1, -1)
+        return range(len(self))
 
 
 class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
@@ -228,8 +227,8 @@ class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
         Optional method for returning an iterable of positions.
         """
         if reverse:
-            return xrange(len(self) - 1, -1, -1)
-        return xrange(len(self))
+            return range(len(self) - 1, -1, -1)
+        return range(len(self))
 
 
 class ListBoxError(Exception):
@@ -588,7 +587,7 @@ class ListBox(Widget, WidgetContainerMixin):
         """)
 
     def _contents(self):
-        class ListBoxContents(object):
+        class ListBoxContents:
             __getitem__ = self._contents__getitem__
         return ListBoxContents()
     def _contents__getitem__(self, key):
@@ -1247,8 +1246,8 @@ class ListBox(Widget, WidgetContainerMixin):
 
         # choose the topmost selectable and (newly) visible widget
         # search within snap_rows then visible region
-        search_order = (list(xrange(snap_region_start, len(t)))
-            + list(xrange(snap_region_start-1, -1, -1)))
+        search_order = (list(range(snap_region_start, len(t)))
+            + list(range(snap_region_start-1, -1, -1)))
         #assert 0, repr((t, search_order))
         bad_choices = []
         cut_off_selectable_chosen = 0
@@ -1432,8 +1431,8 @@ class ListBox(Widget, WidgetContainerMixin):
 
         # choose the bottommost selectable and (newly) visible widget
         # search within snap_rows then visible region
-        search_order = (list(xrange(snap_region_start, len(t)))
-            + list(xrange(snap_region_start-1, -1, -1)))
+        search_order = (list(range(snap_region_start, len(t)))
+            + list(range(snap_region_start-1, -1, -1)))
         #assert 0, repr((t, search_order))
         bad_choices = []
         cut_off_selectable_chosen = 0

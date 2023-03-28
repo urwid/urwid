@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 #
 # Urwid LCD display module
 #    Copyright (C) 2010  Ian Ward
@@ -20,7 +19,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
 from .display_common import BaseScreen
 
@@ -93,7 +91,7 @@ class CFLCDScreen(LCDScreen):
         device_path -- eg. '/dev/ttyUSB0'
         baud -- baud rate
         """
-        super(CFLCDScreen, self).__init__()
+        super().__init__()
         self.device_path = device_path
         from serial import Serial
         self._device = Serial(device_path, baud, timeout=0)
@@ -196,7 +194,7 @@ class CFLCDScreen(LCDScreen):
 
 
 
-class KeyRepeatSimulator(object):
+class KeyRepeatSimulator:
     """
     Provide simulated repeat key events when given press and
     release events.
@@ -252,7 +250,7 @@ class KeyRepeatSimulator(object):
 
 
 class CF635Screen(CFLCDScreen):
-    u"""
+    """
     Crystal Fontz 635 display
 
     20x4 character display + cursor
@@ -274,22 +272,22 @@ class CF635Screen(CFLCDScreen):
     #   both groups are intended to draw horizontal bars with pixel
     #   precision, use ▇*[▆▄▃▁]? for a thin bar or ▉*[▋▌▍▏]? for a thick bar
     CGROM = (
-        u"①②③④⑤⑥⑦⑧①②③④⑤⑥⑦⑧"
-        u"►◄⇑⇓«»↖↗↙↘▲▼↲^ˇ█"
-        u" !\"#¤%&'()*+,-./"
-        u"0123456789:;<=>?"
-        u"¡ABCDEFGHIJKLMNO"
-        u"PQRSTUVWXYZÄÖÑÜ§"
-        u"¿abcdefghijklmno"
-        u"pqrstuvwxyzäöñüà"
-        u"⁰¹²³⁴⁵⁶⁷⁸⁹½¼±≥≤μ"
-        u"♪♫⑴♥♦⑵⌜⌟“”()αɛδ∞"
-        u"@£$¥èéùìòÇᴾØøʳÅå"
-        u"⌂¢ΦτλΩπΨΣθΞ♈ÆæßÉ"
-        u"ΓΛΠϒ_ÈÊêçğŞşİι~◊"
-        u"▇▆▄▃▁ƒ▉▋▌▍▏⑶◽▪↑→"
-        u"↓←ÁÍÓÚÝáíóúýÔôŮů"
-        u"ČĔŘŠŽčĕřšž[\]{|}")
+        "①②③④⑤⑥⑦⑧①②③④⑤⑥⑦⑧"
+        "►◄⇑⇓«»↖↗↙↘▲▼↲^ˇ█"
+        " !\"#¤%&'()*+,-./"
+        "0123456789:;<=>?"
+        "¡ABCDEFGHIJKLMNO"
+        "PQRSTUVWXYZÄÖÑÜ§"
+        "¿abcdefghijklmno"
+        "pqrstuvwxyzäöñüà"
+        "⁰¹²³⁴⁵⁶⁷⁸⁹½¼±≥≤μ"
+        "♪♫⑴♥♦⑵⌜⌟“”()αɛδ∞"
+        "@£$¥èéùìòÇᴾØøʳÅå"
+        "⌂¢ΦτλΩπΨΣθΞ♈ÆæßÉ"
+        "ΓΛΠϒ_ÈÊêçğŞşİι~◊"
+        "▇▆▄▃▁ƒ▉▋▌▍▏⑶◽▪↑→"
+        "↓←ÁÍÓÚÝáíóúýÔôŮů"
+        r"ČĔŘŠŽčĕřšž[\]{|}")
 
     cursor_style = CFLCDScreen.CURSOR_INVERTING_BLINKING_BLOCK
 
@@ -303,7 +301,7 @@ class CF635Screen(CFLCDScreen):
         repeat_next -- time between each repeated key
         key_map -- the keys to send for this device's buttons
         """
-        super(CF635Screen, self).__init__(device_path, baud)
+        super().__init__(device_path, baud)
 
         self.repeat_delay = repeat_delay
         self.repeat_next = repeat_next

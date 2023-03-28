@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 #
 # Urwid escape sequences common to curses_display and raw_display
 #    Copyright (C) 2004-2011  Ian Ward
@@ -20,7 +19,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
 """
 Terminal Escape Sequences for input and display
@@ -32,8 +30,6 @@ try:
     from urwid import str_util
 except ImportError:
     from urwid import old_str_util as str_util
-
-from urwid.compat import bytes3
 
 # NOTE: because of circular imports (urwid.util -> urwid.escape -> urwid.util)
 # from urwid.util import is_mouse_event -- will not work here
@@ -47,16 +43,16 @@ IBMPC_ON = "\x1b[11m"
 IBMPC_OFF = "\x1b[10m"
 
 DEC_TAG = "0"
-DEC_SPECIAL_CHARS = u'▮◆▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥π≠£·'
-ALT_DEC_SPECIAL_CHARS = u"_`abcdefghijklmnopqrstuvwxyz{|}~"
+DEC_SPECIAL_CHARS = '▮◆▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥π≠£·'
+ALT_DEC_SPECIAL_CHARS = "_`abcdefghijklmnopqrstuvwxyz{|}~"
 
 DEC_SPECIAL_CHARMAP = {}
 assert len(DEC_SPECIAL_CHARS) == len(ALT_DEC_SPECIAL_CHARS), repr((DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS))
 for c, alt in zip(DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS):
     DEC_SPECIAL_CHARMAP[ord(c)] = SO + alt + SI
 
-SAFE_ASCII_DEC_SPECIAL_RE = re.compile(u"^[ -~%s]*$" % DEC_SPECIAL_CHARS)
-DEC_SPECIAL_RE = re.compile(u"[%s]" % DEC_SPECIAL_CHARS)
+SAFE_ASCII_DEC_SPECIAL_RE = re.compile("^[ -~%s]*$" % DEC_SPECIAL_CHARS)
+DEC_SPECIAL_RE = re.compile("[%s]" % DEC_SPECIAL_CHARS)
 
 
 ###################
@@ -139,7 +135,7 @@ input_sequences = [
     ('[0n', 'status ok')
 ]
 
-class KeyqueueTrie(object):
+class KeyqueueTrie:
     def __init__( self, sequences ):
         self.data = {}
         for s, result in sequences:
@@ -228,10 +224,10 @@ class KeyqueueTrie(object):
         pos_m = 0
         found_m = False
         for k in keys:
-            value = value + chr(k);
+            value = value + chr(k)
             if ((k is ord('M')) or (k is ord('m'))):
                 found_m = True
-                break;
+                break
             pos_m += 1
         if not found_m:
             if more_available:
@@ -420,7 +416,7 @@ def process_keyqueue(codes, more_available):
             if k>256 or k&0xc0 != 0x80:
                 return ["<%d>"%code], codes[1:]
 
-        s = bytes3(codes[:need_more+1])
+        s = bytes(codes[:need_more+1])
 
         assert isinstance(s, bytes)
         try:

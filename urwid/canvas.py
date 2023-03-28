@@ -19,7 +19,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
 import weakref
 
@@ -28,7 +27,7 @@ from urwid.util import rle_len, rle_append_modify, rle_join_modify, rle_product,
 from urwid.text_layout import trim_line, LayoutSegment
 
 
-class CanvasCache(object):
+class CanvasCache:
     """
     Cache for rendered canvases.  Automatically populated and
     accessed by Widget render() MetaClass magic, cleared by
@@ -177,7 +176,7 @@ class CanvasCache(object):
 class CanvasError(Exception):
     pass
 
-class Canvas(object):
+class Canvas:
     """
     base class for canvases
     """
@@ -233,7 +232,7 @@ class Canvas(object):
         Return the text content of the canvas as a list of strings,
         one for each row.
         """
-        return [bytes().join([text for (attr, cs, text) in row])
+        return [b''.join([text for (attr, cs, text) in row])
             for row in self.content()]
 
     text = property(_text_content, _raise_old_repr_error)
@@ -325,7 +324,7 @@ class TextCanvas(Canvas):
         check_width -- check and fix width of all lines in text
         """
         Canvas.__init__(self)
-        if text == None:
+        if text is None:
             text = []
 
         if check_width:
@@ -345,9 +344,9 @@ class TextCanvas(Canvas):
             else:
                 maxcol = 0
 
-        if attr == None:
+        if attr is None:
             attr = [[] for x in range(len(text))]
-        if cs == None:
+        if cs is None:
             cs = [[] for x in range(len(text))]
 
         # pad text and attr to maxcol
@@ -356,7 +355,7 @@ class TextCanvas(Canvas):
             if w > maxcol:
                 raise CanvasError("Canvas text is wider than the maxcol specified \n%r\n%r\n%r"%(maxcol,widths,text))
             if w < maxcol:
-                text[i] = text[i] + bytes().rjust(maxcol-w)
+                text[i] = text[i] + b''.rjust(maxcol-w)
             a_gap = len(text[i]) - rle_len( attr[i] )
             if a_gap < 0:
                 raise CanvasError("Attribute extends beyond text \n%r\n%r" % (text[i],attr[i]) )
@@ -469,7 +468,7 @@ class BlankCanvas(Canvas):
         def_attr = None
         if attr and None in attr:
             def_attr = attr[None]
-        line = [(def_attr, None, bytes().rjust(cols))]
+        line = [(def_attr, None, b''.rjust(cols))]
         for i in range(rows):
             yield line
 
@@ -1300,14 +1299,14 @@ def apply_text_layout(text, attr, ls, maxcol):
                 rle_join_modify( linec, cs )
             elif s.offs:
                 if s.sc:
-                    line.append(bytes().rjust(s.sc))
+                    line.append(b''.rjust(s.sc))
                     attrrange( s.offs, s.offs, s.sc )
             else:
-                line.append(bytes().rjust(s.sc))
+                line.append(b''.rjust(s.sc))
                 linea.append((None, s.sc))
                 linec.append((None, s.sc))
 
-        t.append(bytes().join(line))
+        t.append(b''.join(line))
         a.append(linea)
         c.append(linec)
 

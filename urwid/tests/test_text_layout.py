@@ -5,7 +5,7 @@ from urwid.compat import B
 import urwid
 
 
-class CalcBreaksTest(object):
+class CalcBreaksTest:
     def cbtest(self, width, exp):
         result = text_layout.default_layout.calculate_text_segments(
             B(self.text), width, self.mode )
@@ -149,7 +149,7 @@ class SubsegTest(unittest.TestCase):
         self.st( (6, 2, 8), t, 1, 5,     [(1, 3), (2, 4, 6), (1, 6)] )
 
 
-class CalcTranslateTest(object):
+class CalcTranslateTest:
     def setUp(self):
         urwid.set_encoding("utf-8")
 

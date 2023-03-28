@@ -19,7 +19,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
 """
 HTML PRE-based UI implementation
@@ -47,7 +46,7 @@ class HtmlGenerator(BaseScreen):
     started = True
 
     def __init__(self):
-        super(HtmlGenerator, self).__init__()
+        super().__init__()
         self.colors = 16
         self.bright_is_bold = False # ignored
         self.has_underline = True # ignored

@@ -7,9 +7,9 @@ import urwid
 
 class LineBoxTest(unittest.TestCase):
     def border(self, tl, t, tr, l, r, bl, b, br):
-        return [bytes().join([tl, t, tr]),
-                bytes().join([l, B(" "), r]),
-                bytes().join([bl, b, br]),]
+        return [b''.join([tl, t, tr]),
+                b''.join([l, B(" "), r]),
+                b''.join([bl, b, br]),]
 
     def test_linebox_pack(self):
         # Bug #346 'pack' Padding does not run with LineBox

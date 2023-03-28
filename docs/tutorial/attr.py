@@ -9,7 +9,7 @@ palette = [
     ('streak', 'black', 'dark red'),
     ('bg', 'black', 'dark blue'),]
 
-txt = urwid.Text(('banner', u" Hello World "), align='center')
+txt = urwid.Text(('banner', " Hello World "), align='center')
 map1 = urwid.AttrMap(txt, 'streak')
 fill = urwid.Filler(map1)
 map2 = urwid.AttrMap(fill, 'bg')

@@ -27,8 +27,13 @@ for bg, fgs in BG_FGS:
     body.append(s(urwid.Divider()))
     body.append(s(
         urwid.GridFlow(
-            [urwid.AttrMap(urwid.Text("'{0}' on '{1}'".format(fg, bg)),
-                urwid.AttrSpec(fg, bg)) for fg in fgs],
+            [
+                urwid.AttrMap(
+                    urwid.Text(f"'{fg}' on '{bg}'"),
+                    urwid.AttrSpec(fg, bg)
+                )
+                for fg in fgs
+            ],
             35, 0, 0, 'left')))
     body.append(s(urwid.Divider()))
 

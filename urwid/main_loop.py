@@ -21,7 +21,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
 import time
 import heapq
@@ -39,7 +38,7 @@ except ImportError:
     pass # windows
 
 from urwid.util import StoppingContext, is_mouse_event
-from urwid.compat import PYTHON3, reraise
+from urwid.compat import reraise
 from urwid.command_map import command_map, REDRAW_SCREEN
 from urwid.wimp import PopUpTarget
 from urwid import signals
@@ -57,7 +56,7 @@ class ExitMainLoop(Exception):
 class CantUseExternalLoop(Exception):
     pass
 
-class MainLoop(object):
+class MainLoop:
     """
     This is the standard main loop implementation for a single interactive
     session.
@@ -589,7 +588,7 @@ class MainLoop(object):
         self.screen.draw_screen(self.screen_size, canvas)
 
 
-class EventLoop(object):
+class EventLoop:
     """
     Abstract class representing an event loop to be used by :class:`MainLoop`.
     """
@@ -788,7 +787,7 @@ class SelectEventLoop(EventLoop):
             while True:
                 try:
                     self._loop()
-                except select.error as e:
+                except OSError as e:
                     if e.args[0] != 4:
                         # not just something we need to retry
                         raise
@@ -1044,7 +1043,7 @@ class TornadoEventLoop(EventLoop):
     _ioloop_registry = WeakKeyDictionary()  # {<ioloop> : {<handle> : <idle_func>}}
     _max_idle_handle = 0
 
-    class PollProxy(object):
+    class PollProxy:
         """ A simple proxy for a Python's poll object that wraps the .poll() method
             in order to detect idle periods and call Urwid callbacks
         """
@@ -1217,7 +1216,7 @@ class TwistedEventLoop(EventLoop):
            instead call start() and stop() before and after starting the
            reactor.
 
-        .. _Twisted: http://twistedmatrix.com/trac/
+        .. _Twisted: https://twisted.org/
         """
         if reactor is None:
             import twisted.internet.reactor
@@ -1496,8 +1495,7 @@ class AsyncioEventLoop(EventLoop):
 
 # Import Trio's event loop only if we are on Python 3.5 or above (async def is
 # not supported in earlier versions).
-if sys.version_info >= (3, 5):
-    from ._async_kw_event_loop import TrioEventLoop
+from ._async_kw_event_loop import TrioEventLoop
 
  
 def _refl(name, rval=None, exit=False):
@@ -1516,7 +1514,7 @@ def _refl(name, rval=None, exit=False):
     42
 
     """
-    class Reflect(object):
+    class Reflect:
         def __init__(self, name, rval=None):
             self._name = name
             self._rval = rval
@@ -1532,7 +1530,7 @@ def _refl(name, rval=None, exit=False):
         def __getattr__(self, attr):
             if attr.endswith("_rval"):
                 raise AttributeError()
-            #print self._name+"."+attr
+            #print(self._name+"."+attr)
             if hasattr(self, attr+"_rval"):
                 return Reflect(self._name+"."+attr, getattr(self, attr+"_rval"))
             return Reflect(self._name+"."+attr)

@@ -19,7 +19,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
 """
 Curses-based UI implementation
@@ -32,7 +31,6 @@ from urwid import escape
 
 from urwid.display_common import BaseScreen, RealTerminal, AttrSpec, \
     UNPRINTABLE_TRANS_TABLE
-from urwid.compat import PYTHON3, text_type, xrange, ord2
 
 KEY_RESIZE = 410 # curses.KEY_RESIZE (sometimes not defined)
 KEY_MOUSE = 409 # curses.KEY_MOUSE
@@ -60,7 +58,7 @@ _curses_colours = {
 
 class Screen(BaseScreen, RealTerminal):
     def __init__(self):
-        super(Screen,self).__init__()
+        super().__init__()
         self.curses_pairs = [
             (None,None), # Can't be sure what pair 0 will default to
         ]
@@ -130,7 +128,7 @@ class Screen(BaseScreen, RealTerminal):
         if not self._signal_keys_set:
             self._old_signal_keys = self.tty_signal_keys()
 
-        super(Screen, self)._start()
+        super()._start()
 
     def _stop(self):
         """
@@ -146,7 +144,7 @@ class Screen(BaseScreen, RealTerminal):
         if self._old_signal_keys:
             self.tty_signal_keys(*self._old_signal_keys)
 
-        super(Screen, self)._stop()
+        super()._stop()
 
 
     def _setup_colour_pairs(self):
@@ -159,8 +157,8 @@ class Screen(BaseScreen, RealTerminal):
         if not self.has_color:
             return
 
-        for fg in xrange(8):
-            for bg in xrange(8):
+        for fg in range(8):
+            for bg in range(8):
                 # leave out white on black
                 if fg == curses.COLOR_WHITE and \
                    bg == curses.COLOR_BLACK:
@@ -368,7 +366,7 @@ class Screen(BaseScreen, RealTerminal):
         l = []
         def append_button( b ):
             b |= mod
-            l.extend([ 27, ord2('['), ord2('M'), b+32, x+33, y+33 ])
+            l.extend([ 27, '[', 'M', b+32, x+33, y+33 ])
 
         if bstate & curses.BUTTON1_PRESSED and last & 1 == 0:
             append_button( 0 )
@@ -515,14 +513,11 @@ class Screen(BaseScreen, RealTerminal):
                 try:
                     if cs in ("0", "U"):
                         for i in range(len(seg)):
-                            self.s.addch( 0x400000 + ord2(seg[i]) )
+                            self.s.addch( 0x400000 + seg[i] )
                     else:
                         assert cs is None
-                        if PYTHON3:
-                            assert isinstance(seg, bytes)
-                            self.s.addstr(seg.decode('utf-8'))
-                        else:
-                            self.s.addstr(seg)
+                        assert isinstance(seg, bytes)
+                        self.s.addstr(seg.decode('utf-8'))
                 except _curses.error:
                     # it's ok to get out of the
                     # screen on the lower right
@@ -605,7 +600,7 @@ class _test:
             t = ""
             a = []
             for k in keys:
-                if type(k) == text_type: k = k.encode("utf-8")
+                if type(k) == str: k = k.encode("utf-8")
                 t += "'"+k + "' "
                 a += [(None,1), ('yellow on dark blue',len(k)),
                     (None,2)]

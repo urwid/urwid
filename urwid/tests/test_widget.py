@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import unittest
 
 from urwid.compat import B
@@ -35,7 +34,7 @@ class TextTest(unittest.TestCase):
     def test5_encode_error(self):
         urwid.set_encoding("ascii")
         expected = [B("?  ")]
-        got = urwid.Text(u'û').render((3,))._text
+        got = urwid.Text('û').render((3,))._text
         assert got == expected, "got: %r expected: %r" % (got, expected)
 
 
@@ -44,7 +43,7 @@ class EditTest(unittest.TestCase):
         self.t1 = urwid.Edit(B(""),"blah blah")
         self.t2 = urwid.Edit(B("stuff:"), "blah blah")
         self.t3 = urwid.Edit(B("junk:\n"),"blah blah\n\nbloo",1)
-        self.t4 = urwid.Edit(u"better:")
+        self.t4 = urwid.Edit("better:")
 
     def ktest(self, e, key, expected, pos, desc):
         got= e.keypress((12,),key)
@@ -91,10 +90,10 @@ class EditTest(unittest.TestCase):
     def test_utf8_input(self):
         urwid.set_encoding("utf-8")
         self.t1.set_edit_text('')
-        self.t1.keypress((12,), u'û')
-        self.assertEqual(self.t1.edit_text, u'û'.encode('utf-8'))
-        self.t4.keypress((12,), u'û')
-        self.assertEqual(self.t4.edit_text, u'û')
+        self.t1.keypress((12,), 'û')
+        self.assertEqual(self.t1.edit_text, 'û'.encode())
+        self.t4.keypress((12,), 'û')
+        self.assertEqual(self.t4.edit_text, 'û')
 
 
 class EditRenderTest(unittest.TestCase):

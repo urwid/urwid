@@ -19,11 +19,10 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
 from operator import attrgetter
 
-from urwid.compat import text_type, with_metaclass
+from urwid.compat import with_metaclass
 from urwid.util import (MetaSuper, decompose_tagmarkup, calc_width,
     is_wide_char, move_prev_char, move_next_char)
 from urwid.text_layout import calc_pos, calc_coords, shift_line
@@ -86,7 +85,7 @@ class WidgetMeta(MetaSuper, signals.MetaSignals):
     def __init__(cls, name, bases, d):
         no_cache = d.get("no_cache", [])
 
-        super(WidgetMeta, cls).__init__(name, bases, d)
+        super().__init__(name, bases, d)
 
         if "render" in d:
             if "render" not in no_cache:
@@ -688,7 +687,7 @@ class Divider(Widget):
 
     ignore_focus = True
 
-    def __init__(self,div_char=u" ",top=0,bottom=0):
+    def __init__(self,div_char=" ",top=0,bottom=0):
         """
         :param div_char: character to repeat across line
         :type div_char: bytes or unicode
@@ -713,7 +712,7 @@ class Divider(Widget):
 
     def _repr_words(self):
         return self.__super._repr_words() + [
-            python3_repr(self.div_char)] * (self.div_char != u" ")
+            python3_repr(self.div_char)] * (self.div_char != " ")
 
     def _repr_attrs(self):
         attrs = dict(self.__super._repr_attrs())
@@ -1123,7 +1122,7 @@ class Edit(Text):
         """
         return is_wide_char(ch,0) or (len(ch)==1 and ord(ch) >= 32)
 
-    def __init__(self, caption=u"", edit_text=u"", multiline=False,
+    def __init__(self, caption="", edit_text="", multiline=False,
             align=LEFT, wrap=SPACE, allow_tab=False,
             edit_pos=None, layout=None, mask=None):
         """
@@ -1416,8 +1415,8 @@ class Edit(Text):
         Return text converted to the same type as self.caption
         (bytes or unicode)
         """
-        tu = isinstance(text, text_type)
-        cu = isinstance(self._caption, text_type)
+        tu = isinstance(text, str)
+        cu = isinstance(self._caption, str)
         if tu == cu:
             return text
         if tu:
@@ -1475,8 +1474,8 @@ class Edit(Text):
 
         p = self.edit_pos
         if self.valid_char(key):
-            if (isinstance(key, text_type) and not
-                    isinstance(self._caption, text_type)):
+            if (isinstance(key, str) and not
+                    isinstance(self._caption, str)):
                 # screen is sending us unicode input, must be using utf-8
                 # encoding because that's all we support, so convert it
                 # to bytes to match our caption's type

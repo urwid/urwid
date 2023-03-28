@@ -20,7 +20,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
 """
 Urwid tree view
@@ -193,7 +192,7 @@ class TreeWidget(urwid.WidgetWrap):
                 return lastdescendant
 
 
-class TreeNode(object):
+class TreeNode:
     """
     Store tree contents and cache TreeWidget objects.
     A TreeNode consists of the following elements:
@@ -243,7 +242,7 @@ class TreeNode(object):
         self.get_parent().change_child_key(self._key, key)
 
     def get_parent(self):
-        if self._parent == None and self.get_depth() > 0:
+        if self._parent is None and self.get_depth() > 0:
             self._parent = self.load_parent()
         return self._parent
 

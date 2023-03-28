@@ -19,7 +19,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
 from urwid.widget import (Text, WidgetWrap, delegate_to_widget_mixin, BOX,
     FLOW)
@@ -150,7 +149,7 @@ class CheckBox(WidgetWrap):
         self.has_mixed = has_mixed
         self._state = None
         if checked_symbol:
-            self.states[True] = SelectableIcon(u"[%s]" % checked_symbol, 1)
+            self.states[True] = SelectableIcon("[%s]" % checked_symbol, 1)
         # The old way of listening for a change was to pass the callback
         # in to the constructor.  Just convert it to the new way:
         if on_state_change:
@@ -609,7 +608,7 @@ class PopUpLauncher(delegate_to_widget_mixin('_original_widget'),
 class PopUpTarget(WidgetDecoration):
     # FIXME: this whole class is a terrible hack and must be fixed
     # when layout and rendering are separated
-    _sizing = set([BOX])
+    _sizing = {BOX}
     _selectable = True
 
     def __init__(self, original_widget):

@@ -286,7 +286,7 @@ def parse_chart(chart, convert):
                 entry = ""
             attr, text = attrtext
             if chart == CHART_TRUE:
-                out.append((attr, u"\u2584"))
+                out.append((attr, "\u2584"))
             else:
                 out.append((attr, text.ljust(elen)))
     return out

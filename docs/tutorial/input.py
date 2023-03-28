@@ -5,7 +5,7 @@ def show_or_exit(key):
         raise urwid.ExitMainLoop()
     txt.set_text(repr(key))
 
-txt = urwid.Text(u"Hello World")
+txt = urwid.Text("Hello World")
 fill = urwid.Filler(txt, 'top')
 loop = urwid.MainLoop(fill, unhandled_input=show_or_exit)
 loop.run()

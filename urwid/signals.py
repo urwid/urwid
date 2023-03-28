@@ -19,7 +19,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
 import itertools
 import weakref
@@ -34,10 +33,10 @@ class MetaSignals(type):
         signals = d.get("signals", [])
         for superclass in cls.__bases__:
             signals.extend(getattr(superclass, 'signals', []))
-        signals = list(dict([(x,None) for x in signals]).keys())
+        signals = list({x:None for x in signals}.keys())
         d["signals"] = signals
         register_signal(cls, signals)
-        super(MetaSignals, cls).__init__(name, bases, d)
+        super().__init__(name, bases, d)
 
 def setdefaultattr(obj, name, value):
     # like dict.setdefault() for object attributes
@@ -46,14 +45,14 @@ def setdefaultattr(obj, name, value):
     setattr(obj, name, value)
     return value
 
-class Key(object):
+class Key:
     """
     Minimal class, whose only purpose is to produce objects with a
     unique hash
     """
     __slots__ = []
 
-class Signals(object):
+class Signals:
     _signal_attr = '_urwid_signals' # attribute to attach to signal senders
 
     def __init__(self):
@@ -247,7 +246,7 @@ class Signals(object):
         :type obj: object
         :param name: the signal to send, typically a string
         :type name: signal name
-        :param \*args: zero or more positional arguments to pass to the signal
+        :param *args: zero or more positional arguments to pass to the signal
                       callback functions
 
         This function calls each of the callbacks connected to this signal

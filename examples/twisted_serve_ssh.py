@@ -30,7 +30,6 @@ Portions Copyright: 2010, Ian Ward <ian@excess.org>
 Licence:   LGPL <http://opensource.org/licenses/lgpl-2.1.php>
 """
 
-from __future__ import print_function
 
 import os
 
@@ -84,7 +83,7 @@ class IUrwidMind(Interface):
 
 
 
-class UrwidUi(object):
+class UrwidUi:
 
     def __init__(self, urwid_mind):
         self.mind = urwid_mind
@@ -111,7 +110,7 @@ class UrwidUi(object):
 
 
 
-class UnhandledKeyHandler(object):
+class UnhandledKeyHandler:
 
     def __init__(self, mind):
         self.mind = mind
@@ -217,7 +216,7 @@ class TwistedScreen(Screen):
                     text = '%s%s' % (self._attr_to_escape(attr), text)
                 lasta = attr
                 #if cs or attr:
-                #    print cs, attr
+                #    print(cs, attr)
                 self.write(text)
         cursor = r.get_cursor()
         if cursor is not None:

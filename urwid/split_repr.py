@@ -19,13 +19,9 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
-from urwid.compat import PYTHON3
-if not PYTHON3:
-    from inspect import getargspec
-else:
-    from inspect import getfullargspec
+from inspect import getfullargspec
+
 
 def split_repr(self):
     """
@@ -90,11 +86,6 @@ def python3_repr(v):
     "b''"
     """
     r = repr(v)
-    if not PYTHON3:
-        if isinstance(v, bytes):
-            return 'b' + r
-        if r.startswith('u'):
-            return r[1:]
     return r
 
 
@@ -125,10 +116,7 @@ def remove_defaults(d, fn):
     >>> Foo()
     <Foo object>
     """
-    if not PYTHON3:
-        args, varargs, varkw, defaults = getargspec(fn)
-    else:
-        args, varargs, varkw, defaults, _, _, _ = getfullargspec(fn)
+    args, varargs, varkw, defaults, _, _, _ = getfullargspec(fn)
 
     # ignore *varargs and **kwargs
     if varkw:

@@ -203,8 +203,8 @@ class GraphView(urwid.WidgetWrap):
 
     def main_shadow(self, w):
         """Wrap a shadow and background around widget w."""
-        bg = urwid.AttrWrap(urwid.SolidFill(u"\u2592"), 'screen edge')
-        shadow = urwid.AttrWrap(urwid.SolidFill(u" "), 'main shadow')
+        bg = urwid.AttrWrap(urwid.SolidFill("\u2592"), 'screen edge')
+        shadow = urwid.AttrWrap(urwid.SolidFill(" "), 'main shadow')
 
         bg = urwid.Overlay( shadow, bg,
             ('fixed left', 3), ('fixed right', 1),
@@ -288,7 +288,7 @@ class GraphView(urwid.WidgetWrap):
     def main_window(self):
         self.graph = self.bar_graph()
         self.graph_wrap = urwid.WidgetWrap( self.graph )
-        vline = urwid.AttrWrap( urwid.SolidFill(u'\u2502'), 'line')
+        vline = urwid.AttrWrap( urwid.SolidFill('\u2502'), 'line')
         c = self.graph_controls()
         w = urwid.Columns([('weight',2,self.graph_wrap),
             ('fixed',1,vline), c],

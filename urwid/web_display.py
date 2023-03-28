@@ -19,7 +19,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
 """
 Urwid web application display module
@@ -51,7 +50,7 @@ _js_code = r"""
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-// Urwid web site: http://excess.org/urwid/
+// Urwid web site: https://urwid.org/
 
 colours = new Object();
 colours = {
@@ -551,7 +550,7 @@ _html_page = [
 <head>
 <title>Urwid Web Display - ""","""</title>
 <style type="text/css">
-""" + _css_style + """
+""" + _css_style + r"""
 </style>
 </head>
 <body id="body" onload="load_web_display()">
@@ -889,7 +888,7 @@ class Screen:
         try:
             iready,oready,eready = select.select(
                 [self.input_fd],[],[],0.5)
-        except select.error as e:
+        except OSError as e:
             # return on interruptions
             if e.args[0] == 4:
                 if raw_keys:
@@ -1010,7 +1009,7 @@ def handle_short_request():
                 sys.stdout.write(data)
                 data = s.recv(BUF_SZ)
             return True
-        except socket.error:
+        except OSError:
             sys.stdout.write("Status: 404 Not Found\r\n\r\n")
             return True
 
@@ -1090,7 +1089,7 @@ def daemonize( errfile ):
         except OSError:
             pass
 
-    sys.stdin = open("/dev/null","r")
+    sys.stdin = open("/dev/null")
     sys.stdout = open("/dev/null","w")
     sys.stderr = ErrorLog( errfile )
 

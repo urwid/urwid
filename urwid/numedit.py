@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Urwid basic widget classes
 #    Copyright (C) 2004-2012  Ian Ward
@@ -20,9 +19,12 @@
 # Urwid web site: http://excess.org/urwid/
 
 
-from urwid import Edit
+from __future__ import annotations
+
 from decimal import Decimal
 import re
+
+from urwid import Edit
 
 
 class NumEdit(Edit):
@@ -38,7 +40,7 @@ class NumEdit(Edit):
     ALLOWED = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
     def __init__(self, allowed, caption, default, trimLeadingZeros=True):
-        super(NumEdit, self).__init__(caption, default)
+        super().__init__(caption, default)
         self._allowed = allowed
         self.trimLeadingZeros = trimLeadingZeros
 
@@ -149,7 +151,7 @@ class IntegerEdit(NumEdit):
             # in case a float is passed or some other error
             if isinstance(default, str) and len(default):
                 # check if it is a valid initial value
-                validation_re = "^[{}]+$".format(allowed_chars)
+                validation_re = f"^[{allowed_chars}]+$"
                 if not re.match(validation_re, str(default), re.IGNORECASE):
                     raise ValueError("invalid value: {} for base {}".format(
                                      default, base))
@@ -162,7 +164,7 @@ class IntegerEdit(NumEdit):
             # convert possible int, long or Decimal to str
             val = str(default)
 
-        super(IntegerEdit, self).__init__(allowed_chars, caption, val,
+        super().__init__(allowed_chars, caption, val,
                                           trimLeadingZeros=(self.base == 10))
 
     def value(self):
@@ -257,7 +259,7 @@ class FloatEdit(NumEdit):
 
             val = str(default)
 
-        super(FloatEdit, self).__init__(self.ALLOWED[0:10] + decimalSeparator,
+        super().__init__(self.ALLOWED[0:10] + decimalSeparator,
                                         caption, val)
 
     def value(self):

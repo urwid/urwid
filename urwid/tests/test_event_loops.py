@@ -1,19 +1,17 @@
 import os
 import unittest
-import platform
 
 import urwid
-from urwid.compat import PYTHON3
 
 
-class EventLoopTestMixin(object):
+class EventLoopTestMixin:
     def test_event_loop(self):
         rd, wr = os.pipe()
         evl = self.evl
         out = []
         def step1():
             out.append("writing")
-            os.write(wr, "hi".encode('ascii'))
+            os.write(wr, b"hi")
         def step2():
             out.append(os.read(rd, 2).decode('ascii'))
             raise urwid.ExitMainLoop
@@ -53,7 +51,7 @@ class EventLoopTestMixin(object):
         evl = self.evl
         out = []
         rd, wr = os.pipe()
-        self.assertEqual(os.write(wr, "data".encode('ascii')), 4)
+        self.assertEqual(os.write(wr, b"data"), 4)
         def say_hello():
             out.append("hello")
         def say_waiting():
@@ -136,7 +134,7 @@ else:
             evl = self.evl
             out = []
             rd, wr = os.pipe()
-            self.assertEqual(os.write(wr, "data".encode('ascii')), 4)
+            self.assertEqual(os.write(wr, b"data"), 4)
             def step2():
                 out.append(os.read(rd, 2).decode('ascii'))
             def say_hello():

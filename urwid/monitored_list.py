@@ -19,10 +19,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
-
-from urwid.compat import PYTHON3, xrange
-
 
 def _call_modified(fn):
     def call_modified_wrapper(self, *args, **kwargs):
@@ -67,14 +63,12 @@ class MonitoredList(list):
 
     __add__ = _call_modified(list.__add__)
     __delitem__ = _call_modified(list.__delitem__)
-    if not PYTHON3:
-        __delslice__ = _call_modified(list.__delslice__)
+
     __iadd__ = _call_modified(list.__iadd__)
     __imul__ = _call_modified(list.__imul__)
     __rmul__ = _call_modified(list.__rmul__)
     __setitem__ = _call_modified(list.__setitem__)
-    if not PYTHON3:
-        __setslice__ = _call_modified(list.__setslice__)
+
     append = _call_modified(list.append)
     extend = _call_modified(list.extend)
     insert = _call_modified(list.insert)
@@ -114,7 +108,7 @@ class MonitoredFocusList(MonitoredList):
         """
         focus = argd.pop('focus', 0)
 
-        super(MonitoredFocusList, self).__init__(*argl, **argd)
+        super().__init__(*argl, **argd)
 
         self._focus = focus
         self._focus_modified = lambda ml, indices, new_items: None
@@ -240,7 +234,7 @@ class MonitoredFocusList(MonitoredList):
         """
         num_new_items = len(new_items)
         start, stop, step = indices = slc.indices(len(self))
-        num_removed = len(list(xrange(*indices)))
+        num_removed = len(list(range(*indices)))
 
         focus = self._validate_contents_modified(indices, new_items)
         if focus is not None:
@@ -257,11 +251,11 @@ class MonitoredFocusList(MonitoredList):
         else:
             if not num_new_items:
                 # extended slice being removed
-                if focus in xrange(start, stop, step):
+                if focus in range(start, stop, step):
                     focus += 1
 
                 # adjust for removed items
-                focus -= len(list(xrange(start, min(focus, stop), step)))
+                focus -= len(list(range(start, min(focus, stop), step)))
 
         return min(focus, len(self) + num_new_items - num_removed -1)
 
@@ -298,7 +292,7 @@ class MonitoredFocusList(MonitoredList):
         else:
             focus = self._adjust_focus_on_contents_modified(slice(y,
                 y+1 or None))
-        rval = super(MonitoredFocusList, self).__delitem__(y)
+        rval = super().__delitem__(y)
         self._set_focus(focus)
         return rval
 
@@ -335,16 +329,9 @@ class MonitoredFocusList(MonitoredList):
             focus = self._adjust_focus_on_contents_modified(i, y)
         else:
             focus = self._adjust_focus_on_contents_modified(slice(i, i+1 or None), [y])
-        rval = super(MonitoredFocusList, self).__setitem__(i, y)
+        rval = super().__setitem__(i, y)
         self._set_focus(focus)
         return rval
-
-    if not PYTHON3:
-        def __delslice__(self, i, j):
-            return self.__delitem__(slice(i,j))
-
-        def __setslice__(self, i, j, y):
-            return self.__setitem__(slice(i, j), y)
 
     def __imul__(self, n):
         """
@@ -366,7 +353,7 @@ class MonitoredFocusList(MonitoredList):
                 slice(len(self), len(self)), list(self)*(n-1))
         else: # all contents are being removed
             focus = self._adjust_focus_on_contents_modified(slice(0, len(self)))
-        rval = super(MonitoredFocusList, self).__imul__(n)
+        rval = super().__imul__(n)
         self._set_focus(focus)
         return rval
 
@@ -381,7 +368,7 @@ class MonitoredFocusList(MonitoredList):
         """
         focus = self._adjust_focus_on_contents_modified(
             slice(len(self), len(self)), [item])
-        rval = super(MonitoredFocusList, self).append(item)
+        rval = super().append(item)
         self._set_focus(focus)
         return rval
 
@@ -396,7 +383,7 @@ class MonitoredFocusList(MonitoredList):
         """
         focus = self._adjust_focus_on_contents_modified(
             slice(len(self), len(self)), items)
-        rval = super(MonitoredFocusList, self).extend(items)
+        rval = super().extend(items)
         self._set_focus(focus)
         return rval
 
@@ -412,7 +399,7 @@ class MonitoredFocusList(MonitoredList):
         """
         focus = self._adjust_focus_on_contents_modified(slice(index, index),
             [item])
-        rval = super(MonitoredFocusList, self).insert(index, item)
+        rval = super().insert(index, item)
         self._set_focus(focus)
         return rval
 
@@ -434,7 +421,7 @@ class MonitoredFocusList(MonitoredList):
         """
         focus = self._adjust_focus_on_contents_modified(slice(index,
             index+1 or None))
-        rval = super(MonitoredFocusList, self).pop(index)
+        rval = super().pop(index)
         self._set_focus(focus)
         return rval
 
@@ -451,7 +438,7 @@ class MonitoredFocusList(MonitoredList):
         index = self.index(value)
         focus = self._adjust_focus_on_contents_modified(slice(index,
             index+1 or None))
-        rval = super(MonitoredFocusList, self).remove(value)
+        rval = super().remove(value)
         self._set_focus(focus)
         return rval
 
@@ -461,7 +448,7 @@ class MonitoredFocusList(MonitoredList):
         >>> ml.reverse(); ml
         MonitoredFocusList([4, 3, 2, 1, 0], focus=3)
         """
-        rval = super(MonitoredFocusList, self).reverse()
+        rval = super().reverse()
         self._set_focus(max(0, len(self) - self._focus - 1))
         return rval
 
@@ -474,14 +461,14 @@ class MonitoredFocusList(MonitoredList):
         if not self:
             return
         value = self[self._focus]
-        rval = super(MonitoredFocusList, self).sort(**kwargs)
+        rval = super().sort(**kwargs)
         self._set_focus(self.index(value))
         return rval
 
     if hasattr(list, 'clear'):
         def clear(self):
             focus = self._adjust_focus_on_contents_modified(slice(0, 0))
-            rval = super(MonitoredFocusList, self).clear()
+            rval = super().clear()
             self._set_focus(focus)
             return rval
 

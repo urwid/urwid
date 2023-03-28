@@ -19,10 +19,8 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
 from itertools import chain, repeat
-from urwid.compat import xrange
 
 from urwid.util import is_mouse_press
 from urwid.widget import (Widget, Divider, FLOW, FIXED, PACK, BOX, WidgetWrap,
@@ -36,7 +34,7 @@ from urwid.canvas import (CompositeCanvas, CanvasOverlay, CanvasCombine,
     SolidCanvas, CanvasJoin)
 
 
-class WidgetContainerMixin(object):
+class WidgetContainerMixin:
     """
     Mixin class for widget containers implementing common container methods
     """
@@ -106,7 +104,7 @@ class WidgetContainerMixin(object):
                 return out
             out.append(w)
 
-class WidgetContainerListContentsMixin(object):
+class WidgetContainerListContentsMixin:
     """
     Mixin class for widget containers whose positions are indexes into
     a list available as self.contents.
@@ -116,14 +114,14 @@ class WidgetContainerListContentsMixin(object):
         Return an iterable of positions for this container from first
         to last.
         """
-        return iter(xrange(len(self.contents)))
+        return iter(range(len(self.contents)))
 
     def __reversed__(self):
         """
         Return an iterable of positions for this container from last
         to first.
         """
-        return iter(xrange(len(self.contents) - 1, -1, -1))
+        return iter(range(len(self.contents) - 1, -1, -1))
 
 
 class GridFlowError(Exception):
@@ -624,7 +622,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         doc="index of child widget in focus, currently always 1")
 
     def _contents(self):
-        class OverlayContents(object):
+        class OverlayContents:
             def __len__(inner_self):
                 return 2
             __getitem__ = self._contents__getitem__
@@ -917,7 +915,7 @@ class Frame(Widget, WidgetContainerMixin):
         """)
 
     def _contents(self):
-        class FrameContents(object):
+        class FrameContents:
             def __len__(inner_self):
                 return len(inner_self.keys())
             def items(inner_self):

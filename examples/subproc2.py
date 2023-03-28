@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # this is part of the subproc.py example
 
-from __future__ import print_function
 
 import sys
 

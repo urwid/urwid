@@ -19,7 +19,6 @@
 #
 # Urwid web site: http://excess.org/urwid/
 
-from __future__ import division, print_function
 
 from urwid.util import int_scale
 from urwid.widget import (Widget, WidgetError,
@@ -356,7 +355,7 @@ class BoxAdapter(WidgetDecoration):
         WidgetDecoration._set_original_widget)
 
     def sizing(self):
-        return set([FLOW])
+        return {FLOW}
 
     def rows(self, size, focus=False):
         """
@@ -515,7 +514,7 @@ class Padding(WidgetDecoration):
 
     def sizing(self):
         if self._width_type == CLIP:
-            return set([FLOW])
+            return {FLOW}
         return self.original_widget.sizing()
 
     def _repr_attrs(self):
@@ -767,7 +766,7 @@ class Filler(WidgetDecoration):
             self.min_height = None
 
     def sizing(self):
-        return set([BOX]) # always a box widget
+        return {BOX} # always a box widget
 
     def _repr_attrs(self):
         attrs = dict(self.__super._repr_attrs(),
