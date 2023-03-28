@@ -29,10 +29,9 @@ from urwid.listbox import ListBox
 from urwid.decoration import BoxAdapter
 from urwid import vterm
 from urwid import signals
-from urwid.compat import B
 
 class DummyCommand:
-    QUITSTRING = B('|||quit|||')
+    QUITSTRING = b'|||quit|||'
 
     def __init__(self):
         self.reader, self.writer = os.pipe()
@@ -40,7 +39,7 @@ class DummyCommand:
     def __call__(self):
         # reset
         stdout = getattr(sys.stdout, 'buffer', sys.stdout)
-        stdout.write(B('\x1bc'))
+        stdout.write(b'\x1bc')
 
         while True:
             data = self.read(1024)
@@ -98,8 +97,8 @@ class TermTest(unittest.TestCase):
             self.term.render(self.termsize, focus=False)
 
     def write(self, data):
-        data = B(data)
-        self.command.write(data.replace(B(r'\e'), B('\x1b')))
+        data = data.encode('iso8859-1')
+        self.command.write(data.replace(br'\e', b'\x1b'))
 
     def flush(self):
         self.write(chr(0x7f))
@@ -108,7 +107,7 @@ class TermTest(unittest.TestCase):
         self.term.wait_and_feed()
         rendered = self.term.render(self.termsize, focus=focus)
         if raw:
-            is_empty = lambda c: c == (None, None, B(' '))
+            is_empty = lambda c: c == (None, None, b' ')
             content = list(rendered.content())
             lines = [list(dropwhile(is_empty, reversed(line)))
                      for line in content]
@@ -116,11 +115,11 @@ class TermTest(unittest.TestCase):
         else:
             content = rendered.text
             lines = [line.rstrip() for line in content]
-            return B('\n').join(lines).rstrip()
+            return b'\n'.join(lines).rstrip()
 
     def expect(self, what, desc=None, raw=False, focus=False):
         if not isinstance(what, list):
-            what = B(what)
+            what = what.encode('iso8859-1')
         got = self.read(raw=raw, focus=focus)
         if desc is None:
             desc = ''
@@ -322,24 +321,24 @@ class TermTest(unittest.TestCase):
         vterm.util._target_encoding = 'ascii'
         self.write('\\e)0\\e(0\x0fg\x0eg\\e)Bn\\e)0g\\e)B\\e(B\x0fn')
         self.expect([[
-            (None, '0', B('g')), (None, '0', B('g')),
-            (None, None, B('n')), (None, '0', B('g')),
-            (None, None, B('n'))
+            (None, '0', b'g'), (None, '0', b'g'),
+            (None, None, b'n'), (None, '0', b'g'),
+            (None, None, b'n')
         ]], raw=True)
 
     def test_ibmpc_mapping(self):
         vterm.util._target_encoding = 'ascii'
 
         self.write('\\e[11m\x18\\e[10m\x18')
-        self.expect([[(None, 'U', B('\x18'))]], raw=True)
+        self.expect([[(None, 'U', b'\x18')]], raw=True)
 
         self.write('\\ec\\e)U\x0e\x18\x0f\\e[3h\x18\\e[3l\x18')
-        self.expect([[(None, None, B('\x18'))]], raw=True)
+        self.expect([[(None, None, b'\x18')]], raw=True)
 
         self.write('\\ec\\e[11m\xdb\x18\\e[10m\xdb')
         self.expect([[
-            (None, 'U', B('\xdb')), (None, 'U', B('\x18')),
-            (None, None, B('\xdb'))
+            (None, 'U', b'\xdb'), (None, 'U', b'\x18'),
+            (None, None, b'\xdb')
         ]], raw=True)
 
     def test_set_title(self):
@@ -351,10 +350,10 @@ class TermTest(unittest.TestCase):
         self.connect_signal('title')
         self.write('\\e]666parsed right?\\e\\te\\e]0;test title\007st1')
         self.expect('test1')
-        self.expect_signal(B('test title'))
+        self.expect_signal(b'test title')
         self.write('\\e]3;stupid title\\e\\\\e[0G\\e[2Ktest2')
         self.expect('test2')
-        self.expect_signal(B('stupid title'))
+        self.expect_signal(b'stupid title')
         self.disconnect_signal('title')
 
     def test_set_leds(self):

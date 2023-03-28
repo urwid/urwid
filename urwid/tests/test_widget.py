@@ -1,6 +1,5 @@
 import unittest
 
-from urwid.compat import B
 import urwid
 
 
@@ -9,40 +8,40 @@ class TextTest(unittest.TestCase):
         self.t = urwid.Text("I walk the\ncity in the night")
 
     def test1_wrap(self):
-        expected = [B(t) for t in ("I walk the","city in   ","the night ")]
+        expected = [t.encode('iso8859-1') for t in ("I walk the","city in   ","the night ")]
         got = self.t.render((10,))._text
         assert got == expected, f"got: {got!r} expected: {expected!r}"
 
     def test2_left(self):
         self.t.set_align_mode('left')
-        expected = [B(t) for t in ("I walk the        ","city in the night ")]
+        expected = [t.encode('iso8859-1') for t in ("I walk the        ","city in the night ")]
         got = self.t.render((18,))._text
         assert got == expected, f"got: {got!r} expected: {expected!r}"
 
     def test3_right(self):
         self.t.set_align_mode('right')
-        expected = [B(t) for t in ("        I walk the"," city in the night")]
+        expected = [t.encode('iso8859-1') for t in ("        I walk the"," city in the night")]
         got = self.t.render((18,))._text
         assert got == expected, f"got: {got!r} expected: {expected!r}"
 
     def test4_center(self):
         self.t.set_align_mode('center')
-        expected = [B(t) for t in ("    I walk the    "," city in the night")]
+        expected = [t.encode('iso8859-1') for t in ("    I walk the    "," city in the night")]
         got = self.t.render((18,))._text
         assert got == expected, f"got: {got!r} expected: {expected!r}"
 
     def test5_encode_error(self):
         urwid.set_encoding("ascii")
-        expected = [B("?  ")]
+        expected = [b"?  "]
         got = urwid.Text('û').render((3,))._text
         assert got == expected, f"got: {got!r} expected: {expected!r}"
 
 
 class EditTest(unittest.TestCase):
     def setUp(self):
-        self.t1 = urwid.Edit(B(""),"blah blah")
-        self.t2 = urwid.Edit(B("stuff:"), "blah blah")
-        self.t3 = urwid.Edit(B("junk:\n"),"blah blah\n\nbloo",1)
+        self.t1 = urwid.Edit(b"","blah blah")
+        self.t2 = urwid.Edit(b"stuff:", "blah blah")
+        self.t3 = urwid.Edit(b"junk:\n","blah blah\n\nbloo",1)
         self.t4 = urwid.Edit("better:")
 
     def ktest(self, e, key, expected, pos, desc):
@@ -96,7 +95,7 @@ class EditTest(unittest.TestCase):
 
 class EditRenderTest(unittest.TestCase):
     def rtest(self, w, expected_text, expected_cursor):
-        expected_text = [B(t) for t in expected_text]
+        expected_text = [t.encode('iso8859-1') for t in expected_text]
         get_cursor = w.get_cursor_coords((4,))
         assert get_cursor == expected_cursor, "got: %r expected: %r" % (
             get_cursor, expected_cursor)

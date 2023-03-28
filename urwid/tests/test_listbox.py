@@ -1,6 +1,5 @@
 import unittest
 
-from urwid.compat import B
 from urwid.tests.util import SelectableText
 import urwid
 
@@ -206,7 +205,7 @@ class ListBoxChangeFocusTest(unittest.TestCase):
 
 class ListBoxRenderTest(unittest.TestCase):
     def ltest(self,desc,body,focus,offset_inset_rows,exp_text,exp_cur):
-        exp_text = [B(t) for t in exp_text]
+        exp_text = [t.encode('iso8859-1') for t in exp_text]
         lbox = urwid.ListBox(urwid.SimpleListWalker(body))
         lbox.body.set_focus( focus )
         lbox.shift_focus((4,10), offset_inset_rows )

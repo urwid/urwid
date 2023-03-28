@@ -3,12 +3,11 @@ import locale
 
 import urwid
 from urwid import util
-from urwid.compat import B
 
 
 class CalcWidthTest(unittest.TestCase):
     def wtest(self, desc, s, exp):
-        s = B(s)
+        s = s.encode('iso8859-1')
         result = util.calc_width( s, 0, len(s))
         assert result==exp, f"{desc} got:{result!r} expected:{exp!r}"
 
@@ -29,7 +28,7 @@ class CalcWidthTest(unittest.TestCase):
 
 class ConvertDecSpecialTest(unittest.TestCase):
     def ctest(self, desc, s, exp, expcs):
-        exp = B(exp)
+        exp = exp.encode('iso8859-1')
         util.set_encoding('ascii')
         c = urwid.Text(s).render((5,))
         result = c._text[0]
@@ -53,7 +52,7 @@ class WithinDoubleByteTest(unittest.TestCase):
         urwid.set_encoding("euc-jp")
 
     def wtest(self, s, ls, pos, expected, desc):
-        result = util.within_double_byte(B(s), ls, pos)
+        result = util.within_double_byte(s.encode('iso8859-1'), ls, pos)
         assert result==expected, f"{desc} got:{result!r} expected: {expected!r}"
     def test1(self):
         self.wtest("mnopqr",0,2,0,'simple no high bytes')
@@ -88,7 +87,7 @@ class WithinDoubleByteTest(unittest.TestCase):
 
 class CalcTextPosTest(unittest.TestCase):
     def ctptest(self, text, tests):
-        text = B(text)
+        text = text.encode('iso8859-1')
         for s,e,p, expected in tests:
             got = util.calc_text_pos( text, s, e, p )
             assert got == expected, f"{s, e, p!r} got:{got!r} expected:{expected!r}"
@@ -157,7 +156,7 @@ class TagMarkupTest(unittest.TestCase):
             "mix it up a little",
             [(None, 6), ('high', 3), ('ital', 2)]),
         (["££", "x££"], "££x££", []),
-        ([B("\xc2\x80"), B("\xc2\x80")], B("\xc2\x80\xc2\x80"), []),
+        ([b"\xc2\x80", b"\xc2\x80"], b"\xc2\x80\xc2\x80", []),
         ]
 
     def test(self):

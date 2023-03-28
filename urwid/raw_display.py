@@ -43,7 +43,6 @@ from urwid.display_common import BaseScreen, RealTerminal, \
     UPDATE_PALETTE_ENTRY, AttrSpec, UNPRINTABLE_TRANS_TABLE, \
     INPUT_DESCRIPTORS_CHANGED
 from urwid import signals
-from urwid.compat import B
 
 from subprocess import Popen, PIPE
 
@@ -135,7 +134,7 @@ class Screen(BaseScreen, RealTerminal):
         """
 
         if not self._resized:
-            os.write(self._resize_pipe_wr, B('R'))
+            os.write(self._resize_pipe_wr, b'R')
         self._resized = True
         self.screen_buf = None
 
@@ -807,10 +806,10 @@ class Screen(BaseScreen, RealTerminal):
             whitespace_at_end = False
             if row:
                 a, cs, run = row[-1]
-                if (run[-1:] == B(' ') and self.back_color_erase
+                if (run[-1:] == b' ' and self.back_color_erase
                         and not using_standout_or_underline(a)):
                     whitespace_at_end = True
-                    row = row[:-1] + [(a, cs, run.rstrip(B(' ')))]
+                    row = row[:-1] + [(a, cs, run.rstrip(b' '))]
                 elif y == maxrow-1 and maxcol > 1:
                     row, back, ins = self._last_row(row)
 

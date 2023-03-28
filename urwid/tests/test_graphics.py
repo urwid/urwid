@@ -1,14 +1,13 @@
 import unittest
 
 from urwid import graphics
-from urwid.compat import B
 import urwid
 
 
 class LineBoxTest(unittest.TestCase):
     def border(self, tl, t, tr, l, r, bl, b, br):
         return [b''.join([tl, t, tr]),
-                b''.join([l, B(" "), r]),
+                b''.join([l, b" ", r]),
                 b''.join([bl, b, br]),]
 
     def test_linebox_pack(self):
@@ -29,11 +28,11 @@ class LineBoxTest(unittest.TestCase):
 
         # default
         self.assertEqual(l,
-            self.border(B("\xe2\x94\x8c"), B("\xe2\x94\x80"),
-                B("\xe2\x94\x90"), B("\xe2\x94\x82"), B("\xe2\x94\x82"),
-                B("\xe2\x94\x94"), B("\xe2\x94\x80"), B("\xe2\x94\x98")))
+            self.border(b"\xe2\x94\x8c", b"\xe2\x94\x80",
+                b"\xe2\x94\x90", b"\xe2\x94\x82", b"\xe2\x94\x82",
+                b"\xe2\x94\x94", b"\xe2\x94\x80", b"\xe2\x94\x98"))
 
-        nums = [B(str(n)) for n in range(8)]
+        nums = [str(n).encode('iso8859-1') for n in range(8)]
         b = dict(zip(["tlcorner", "tline", "trcorner", "lline", "rline",
             "blcorner", "bline", "brcorner"], nums))
         l = urwid.LineBox(t, **b).render((3,)).text

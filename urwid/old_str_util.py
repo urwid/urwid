@@ -22,10 +22,8 @@
 
 import re
 
-from urwid.compat import B
-
 SAFE_ASCII_RE = re.compile("^[ -~]*$")
-SAFE_ASCII_BYTES_RE = re.compile(B("^[ -~]*$"))
+SAFE_ASCII_BYTES_RE = re.compile(b"^[ -~]*$")
 
 _byte_encoding = None
 

@@ -27,7 +27,6 @@
 # bytes3 creates a byte string from a list of ordinal values
 
 chr2 = lambda x: bytes([x])
-B = lambda x: x.encode('iso8859-1')
 
 
 def reraise(tp, value, tb=None):

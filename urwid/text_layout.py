@@ -22,7 +22,6 @@
 
 from urwid.util import calc_width, calc_text_pos, calc_trim_text, is_wide_char, \
     move_prev_char, move_next_char
-from urwid.compat import B
 
 class TextLayout:
     def supports_align_mode(self, align):
@@ -130,7 +129,7 @@ class StandardTextLayout(TextLayout):
         """
         nl, nl_o, sp_o = "\n", "\n", " "
         if isinstance(text, bytes):
-            nl = B(nl) # can only find bytes in python3 bytestrings
+            nl = nl.encode('iso8859-1') # can only find bytes in python3 bytestrings
             nl_o = ord(nl_o) # + an item of a bytestring is the ordinal value
             sp_o = ord(sp_o)
         b = []

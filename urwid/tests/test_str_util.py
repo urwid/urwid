@@ -1,12 +1,11 @@
 import unittest
 
-from urwid.compat import B
 from urwid.escape import str_util
 
 
 class DecodeOneTest(unittest.TestCase):
     def gwt(self, ch, exp_ord, exp_pos):
-        ch = B(ch)
+        ch = ch.encode('iso8859-1')
         o, pos = str_util.decode_one(ch,0)
         assert o==exp_ord, f" got:{o!r} expected:{exp_ord!r}"
         assert pos==exp_pos, f" got:{pos!r} expected:{exp_pos!r}"

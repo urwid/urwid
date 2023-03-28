@@ -1,7 +1,6 @@
 import unittest
 
 from urwid import canvas
-from urwid.compat import B
 import urwid
 
 
@@ -42,35 +41,35 @@ class CanvasCacheTest(unittest.TestCase):
 
 class CanvasTest(unittest.TestCase):
     def ct(self, text, attr, exp_content):
-        c = urwid.TextCanvas([B(t) for t in text], attr)
+        c = urwid.TextCanvas([t.encode('iso8859-1') for t in text], attr)
         content = list(c.content())
         assert content == exp_content, f"got: {content!r} expected: {exp_content!r}"
 
     def ct2(self, text, attr, left, top, cols, rows, def_attr, exp_content):
-        c = urwid.TextCanvas([B(t) for t in text], attr)
+        c = urwid.TextCanvas([t.encode('iso8859-1') for t in text], attr)
         content = list(c.content(left, top, cols, rows, def_attr))
         assert content == exp_content, f"got: {content!r} expected: {exp_content!r}"
 
     def test1(self):
-        self.ct(["Hello world"], None, [[(None, None, B("Hello world"))]])
+        self.ct(["Hello world"], None, [[(None, None, b"Hello world")]])
         self.ct(["Hello world"], [[("a",5)]],
-            [[("a", None, B("Hello")), (None, None, B(" world"))]])
+            [[("a", None, b"Hello"), (None, None, b" world")]])
         self.ct(["Hi","There"], None,
-            [[(None, None, B("Hi   "))], [(None, None, B("There"))]])
+            [[(None, None, b"Hi   ")], [(None, None, b"There")]])
 
     def test2(self):
         self.ct2(["Hello"], None, 0, 0, 5, 1, None,
-            [[(None, None, B("Hello"))]])
+            [[(None, None, b"Hello")]])
         self.ct2(["Hello"], None, 1, 0, 4, 1, None,
-            [[(None, None, B("ello"))]])
+            [[(None, None, b"ello")]])
         self.ct2(["Hello"], None, 0, 0, 4, 1, None,
-            [[(None, None, B("Hell"))]])
+            [[(None, None, b"Hell")]])
         self.ct2(["Hi","There"], None, 1, 0, 3, 2, None,
-            [[(None, None, B("i  "))], [(None, None, B("her"))]])
+            [[(None, None, b"i  ")], [(None, None, b"her")]])
         self.ct2(["Hi","There"], None, 0, 0, 5, 1, None,
-            [[(None, None, B("Hi   "))]])
+            [[(None, None, b"Hi   ")]])
         self.ct2(["Hi","There"], None, 0, 1, 5, 1, None,
-            [[(None, None, B("There"))]])
+            [[(None, None, b"There")]])
 
 
 class ShardBodyTest(unittest.TestCase):
@@ -265,45 +264,45 @@ class CanvasJoinTest(unittest.TestCase):
 
     def test(self):
         C = urwid.TextCanvas
-        hello = C([B("hello")])
-        there = C([B("there")], [[("a",5)]])
-        a = C([B("a")])
-        hi = C([B("hi")])
-        how = C([B("how")], [[("a",1)]])
-        dy = C([B("dy")])
-        how_you = C([B("how"), B("you")])
+        hello = C([b"hello"])
+        there = C([b"there"], [[("a",5)]])
+        a = C([b"a"])
+        hi = C([b"hi"])
+        how = C([b"how"], [[("a",1)]])
+        dy = C([b"dy"])
+        how_you = C([b"how", b"you"])
 
         self.cjtest("one", [(hello, 5)],
-            [[(None, None, B("hello"))]])
+            [[(None, None, b"hello")]])
         self.cjtest("two", [(hello, 5), (there, 5)],
-            [[(None, None, B("hello")), ("a", None, B("there"))]])
+            [[(None, None, b"hello"), ("a", None, b"there")]])
         self.cjtest("two space", [(hello, 7), (there, 5)],
-            [[(None, None, B("hello")),(None,None,B("  ")),
-            ("a", None, B("there"))]])
+            [[(None, None, b"hello"),(None,None,b"  "),
+            ("a", None, b"there")]])
         self.cjtest("three space", [(hi, 4), (how, 3), (dy, 2)],
-            [[(None, None, B("hi")),(None,None,B("  ")),("a",None, B("h")),
-            (None,None,B("ow")),(None,None,B("dy"))]])
+            [[(None, None, b"hi"),(None,None,b"  "),("a",None, b"h"),
+            (None,None,b"ow"),(None,None,b"dy")]])
         self.cjtest("four space", [(a, 2), (hi, 3), (dy, 3), (a, 1)],
-            [[(None, None, B("a")),(None,None,B(" ")),
-            (None, None, B("hi")),(None,None,B(" ")),
-            (None, None, B("dy")),(None,None,B(" ")),
-            (None, None, B("a"))]])
+            [[(None, None, b"a"),(None,None,b" "),
+            (None, None, b"hi"),(None,None,b" "),
+            (None, None, b"dy"),(None,None,b" "),
+            (None, None, b"a")]])
         self.cjtest("pile 2", [(how_you, 4), (hi, 2)],
-            [[(None, None, B('how')), (None, None, B(' ')),
-            (None, None, B('hi'))],
-            [(None, None, B('you')), (None, None, B(' ')),
-            (None, None, B('  '))]])
+            [[(None, None, b'how'), (None, None, b' '),
+            (None, None, b'hi')],
+            [(None, None, b'you'), (None, None, b' '),
+            (None, None, b'  ')]])
         self.cjtest("pile 2r", [(hi, 4), (how_you, 3)],
-            [[(None, None, B('hi')), (None, None, B('  ')),
-            (None, None, B('how'))],
-            [(None, None, B('    ')),
-            (None, None, B('you'))]])
+            [[(None, None, b'hi'), (None, None, b'  '),
+            (None, None, b'how')],
+            [(None, None, b'    '),
+            (None, None, b'you')]])
 
 
 class CanvasOverlayTest(unittest.TestCase):
     def cotest(self, desc, bgt, bga, fgt, fga, l, r, et):
-        bgt = B(bgt)
-        fgt = B(fgt)
+        bgt = bgt.encode('iso8859-1')
+        fgt = fgt.encode('iso8859-1')
         bg = urwid.CompositeCanvas(
             urwid.TextCanvas([bgt],[bga]))
         fg = urwid.CompositeCanvas(
@@ -314,57 +313,57 @@ class CanvasOverlayTest(unittest.TestCase):
 
     def test1(self):
         self.cotest("left", "qxqxqxqx", [], "HI", [], 0, 6,
-            [[(None, None, B("HI")),(None,None,B("qxqxqx"))]])
+            [[(None, None, b"HI"),(None,None,b"qxqxqx")]])
         self.cotest("right", "qxqxqxqx", [], "HI", [], 6, 0,
-            [[(None, None, B("qxqxqx")),(None,None,B("HI"))]])
+            [[(None, None, b"qxqxqx"),(None,None,b"HI")]])
         self.cotest("center", "qxqxqxqx", [], "HI", [], 3, 3,
-            [[(None, None, B("qxq")),(None,None,B("HI")),
-            (None,None,B("xqx"))]])
+            [[(None, None, b"qxq"),(None,None,b"HI"),
+            (None,None,b"xqx")]])
         self.cotest("center2", "qxqxqxqx", [], "HI  ", [], 2, 2,
-            [[(None, None, B("qx")),(None,None,B("HI  ")),
-            (None,None,B("qx"))]])
+            [[(None, None, b"qx"),(None,None,b"HI  "),
+            (None,None,b"qx")]])
         self.cotest("full", "rz", [], "HI", [], 0, 0,
-            [[(None, None, B("HI"))]])
+            [[(None, None, b"HI")]])
 
     def test2(self):
         self.cotest("same","asdfghjkl",[('a',9)],"HI",[('a',2)],4,3,
-            [[('a',None,B("asdf")),('a',None,B("HI")),('a',None,B("jkl"))]])
+            [[('a',None,b"asdf"),('a',None,b"HI"),('a',None,b"jkl")]])
         self.cotest("diff","asdfghjkl",[('a',9)],"HI",[('b',2)],4,3,
-            [[('a',None,B("asdf")),('b',None,B("HI")),('a',None,B("jkl"))]])
+            [[('a',None,b"asdf"),('b',None,b"HI"),('a',None,b"jkl")]])
         self.cotest("None end","asdfghjkl",[('a',9)],"HI  ",[('a',2)],
             2,3,
-            [[('a',None,B("as")),('a',None,B("HI")),
-            (None,None,B("  ")),('a',None,B("jkl"))]])
+            [[('a',None,b"as"),('a',None,b"HI"),
+            (None,None,b"  "),('a',None,b"jkl")]])
         self.cotest("float end","asdfghjkl",[('a',3)],"HI",[('a',2)],
             4,3,
-            [[('a',None,B("asd")),(None,None,B("f")),
-            ('a',None,B("HI")),(None,None,B("jkl"))]])
+            [[('a',None,b"asd"),(None,None,b"f"),
+            ('a',None,b"HI"),(None,None,b"jkl")]])
         self.cotest("cover 2","asdfghjkl",[('a',5),('c',4)],"HI",
             [('b',2)],4,3,
-            [[('a',None,B("asdf")),('b',None,B("HI")),('c',None,B("jkl"))]])
+            [[('a',None,b"asdf"),('b',None,b"HI"),('c',None,b"jkl")]])
         self.cotest("cover 2-2","asdfghjkl",
             [('a',4),('d',1),('e',1),('c',3)],
             "HI",[('b',2)], 4, 3,
-            [[('a',None,B("asdf")),('b',None,B("HI")),('c',None,B("jkl"))]])
+            [[('a',None,b"asdf"),('b',None,b"HI"),('c',None,b"jkl")]])
 
     def test3(self):
         urwid.set_encoding("euc-jp")
         self.cotest("db0","\xA1\xA1\xA1\xA1\xA1\xA1",[],"HI",[],2,2,
-            [[(None,None,B("\xA1\xA1")),(None,None,B("HI")),
-            (None,None,B("\xA1\xA1"))]])
+            [[(None,None,b"\xA1\xA1"),(None,None,b"HI"),
+            (None,None,b"\xA1\xA1")]])
         self.cotest("db1","\xA1\xA1\xA1\xA1\xA1\xA1",[],"OHI",[],1,2,
-            [[(None,None,B(" ")),(None,None,B("OHI")),
-            (None,None,B("\xA1\xA1"))]])
+            [[(None,None,b" "),(None,None,b"OHI"),
+            (None,None,b"\xA1\xA1")]])
         self.cotest("db2","\xA1\xA1\xA1\xA1\xA1\xA1",[],"OHI",[],2,1,
-            [[(None,None,B("\xA1\xA1")),(None,None,B("OHI")),
-            (None,None,B(" "))]])
+            [[(None,None,b"\xA1\xA1"),(None,None,b"OHI"),
+            (None,None,b" ")]])
         self.cotest("db3","\xA1\xA1\xA1\xA1\xA1\xA1",[],"OHIO",[],1,1,
-            [[(None,None,B(" ")),(None,None,B("OHIO")),(None,None,B(" "))]])
+            [[(None,None,b" "),(None,None,b"OHIO"),(None,None,b" ")]])
 
 
 class CanvasPadTrimTest(unittest.TestCase):
     def cptest(self, desc, ct, ca, l, r, et):
-        ct = B(ct)
+        ct = ct.encode('iso8859-1')
         c = urwid.CompositeCanvas(
             urwid.TextCanvas([ct], [ca]))
         c.pad_trim_left_right(l, r)
@@ -373,14 +372,14 @@ class CanvasPadTrimTest(unittest.TestCase):
 
     def test1(self):
         self.cptest("none", "asdf", [], 0, 0,
-            [[(None,None,B("asdf"))]])
+            [[(None,None,b"asdf")]])
         self.cptest("left pad", "asdf", [], 2, 0,
-            [[(None,None,B("  ")),(None,None,B("asdf"))]])
+            [[(None,None,b"  "),(None,None,b"asdf")]])
         self.cptest("right pad", "asdf", [], 0, 2,
-            [[(None,None,B("asdf")),(None,None,B("  "))]])
+            [[(None,None,b"asdf"),(None,None,b"  ")]])
 
     def test2(self):
         self.cptest("left trim", "asdf", [], -2, 0,
-            [[(None,None,B("df"))]])
+            [[(None,None,b"df")]])
         self.cptest("right trim", "asdf", [], 0, -2,
-            [[(None,None,B("as"))]])
+            [[(None,None,b"as")]])
