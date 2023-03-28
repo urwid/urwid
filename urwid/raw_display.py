@@ -986,7 +986,7 @@ class Screen(BaseScreen, RealTerminal):
                 bg = "%d" % (a.background_number + 40)
         else:
             bg = "49"
-        return escape.ESC + "[0;%s;%s%sm" % (fg, st, bg)
+        return f"{escape.ESC}[0;{fg};{st}{bg}m"
 
 
     def set_terminal_properties(self, colors=None, bright_is_bold=None,
@@ -1063,11 +1063,11 @@ class Screen(BaseScreen, RealTerminal):
         if self.term == 'fbterm':
             modify = ["%d;%d;%d;%d" % (index, red, green, blue)
                 for index, red, green, blue in entries]
-            self.write("\x1b[3;"+";".join(modify)+"}")
+            self.write(f"\x1b[3;{';'.join(modify)}}}")
         else:
             modify = ["%d;rgb:%02x/%02x/%02x" % (index, red, green, blue)
                 for index, red, green, blue in entries]
-            self.write("\x1b]4;"+";".join(modify)+"\x1b\\")
+            self.write(f"\x1b]4;{';'.join(modify)}\x1b\\")
         self.flush()
 
 

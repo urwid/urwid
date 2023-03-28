@@ -22,8 +22,8 @@ class ListBoxCalculateVisibleTest(unittest.TestCase):
             y += offset_inset
             cursor = x, y
 
-        assert offset_inset == exp_offset_inset, "%s got: %r expected: %r" %(desc,offset_inset,exp_offset_inset)
-        assert cursor == exp_cur, "%s (cursor) got: %r expected: %r" %(desc,cursor,exp_cur)
+        assert offset_inset == exp_offset_inset, f"{desc} got: {offset_inset!r} expected: {exp_offset_inset!r}"
+        assert cursor == exp_cur, f"{desc} (cursor) got: {cursor!r} expected: {exp_cur!r}"
 
     def test1_simple(self):
         T = urwid.Text
@@ -113,8 +113,8 @@ class ListBoxChangeFocusTest(unittest.TestCase):
             if hasattr(focus_widget,'get_cursor_coords'):
                 cursor=focus_widget.get_cursor_coords((4,))
 
-        assert act == exp, "%s got: %s expected: %s" %(desc, act, exp)
-        assert cursor == exp_cur, "%s (cursor) got: %r expected: %r" %(desc,cursor,exp_cur)
+        assert act == exp, f"{desc} got: {act} expected: {exp}"
+        assert cursor == exp_cur, f"{desc} (cursor) got: {cursor!r} expected: {exp_cur!r}"
 
 
     def test1unselectable(self):
@@ -216,8 +216,8 @@ class ListBoxRenderTest(unittest.TestCase):
 
         cursor = canvas.cursor
 
-        assert text == exp_text, "%s (text) got: %r expected: %r" %(desc,text,exp_text)
-        assert cursor == exp_cur, "%s (cursor) got: %r expected: %r" %(desc,cursor,exp_cur)
+        assert text == exp_text, f"{desc} (text) got: {text!r} expected: {exp_text!r}"
+        assert cursor == exp_cur, f"{desc} (cursor) got: {cursor!r} expected: {exp_cur!r}"
 
 
     def test1_simple(self):
@@ -320,8 +320,8 @@ class ListBoxKeypressTest(unittest.TestCase):
 
         exp = exp_focus, exp_offset_inset
         act = focus_pos, offset_inset
-        assert act == exp, "%s got: %r expected: %r" %(desc,act,exp)
-        assert cursor == exp_cur, "%s (cursor) got: %r expected: %r" %(desc,cursor,exp_cur)
+        assert act == exp, f"{desc} got: {act!r} expected: {exp!r}"
+        assert cursor == exp_cur, f"{desc} (cursor) got: {cursor!r} expected: {exp_cur!r}"
         return ret_key,lbox
 
 

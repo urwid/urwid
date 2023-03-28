@@ -123,7 +123,7 @@ class HtmlGenerator(BaseScreen):
             l.append("\n")
 
         # add the fragment to the list
-        self.fragments.append( "<pre>%s</pre>" % "".join(l) )
+        self.fragments.append( f"<pre>{''.join(l)}</pre>" )
 
     def clear(self):
         """
@@ -159,8 +159,8 @@ def html_span(s, aspec, cursor = -1):
         fg_r, fg_g, fg_b = _d_fg_r, _d_fg_g, _d_fg_b
     if bg_r is None:
         bg_r, bg_g, bg_b = _d_bg_r, _d_bg_g, _d_bg_b
-    html_fg = "#%02x%02x%02x" % (fg_r, fg_g, fg_b)
-    html_bg = "#%02x%02x%02x" % (bg_r, bg_g, bg_b)
+    html_fg = f"#{fg_r:02x}{fg_g:02x}{fg_b:02x}"
+    html_bg = f"#{bg_r:02x}{bg_g:02x}{bg_b:02x}"
     if aspec.standout:
         html_fg, html_bg = html_bg, html_fg
     extra = (";text-decoration:underline" * aspec.underline +

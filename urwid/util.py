@@ -406,13 +406,13 @@ def _tagmarkup_recurse( tm, attr ):
     if type(tm) == tuple:
         # tuples mark a new attribute boundary
         if len(tm) != 2:
-            raise TagMarkupException("Tuples must be in the form (attribute, tagmarkup): %r" % (tm,))
+            raise TagMarkupException(f"Tuples must be in the form (attribute, tagmarkup): {tm!r}")
 
         attr, element = tm
         return _tagmarkup_recurse( element, attr )
 
     if not isinstance(tm, (str, bytes)):
-        raise TagMarkupException("Invalid markup element: %r" % tm)
+        raise TagMarkupException(f"Invalid markup element: {tm!r}")
 
     # text
     return [tm], [(attr, len(tm))]
@@ -431,9 +431,9 @@ class MetaSuper(type):
     """adding .__super"""
     def __init__(cls, name, bases, d):
         super().__init__(name, bases, d)
-        if hasattr(cls, "_%s__super" % name):
+        if hasattr(cls, f"_{name}__super"):
             raise AttributeError("Class has same name as one of its super classes")
-        setattr(cls, "_%s__super" % name, super(cls))
+        setattr(cls, f"_{name}__super", super(cls))
 
 
 

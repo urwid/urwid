@@ -71,8 +71,7 @@ def normalize_repr(v):
     if isinstance(v, dict):
         items = [(repr(k), repr(v)) for k, v in v.items()]
         items.sort()
-        return "{" + ", ".join([
-            "%s: %s" % itm for itm in items]) + "}"
+        return f"{{{', '.join([('%s: %s' % itm) for itm in items])}}}"
 
     return repr(v)
 

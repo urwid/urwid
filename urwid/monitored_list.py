@@ -59,7 +59,7 @@ class MonitoredList(list):
         self._modified = callback
 
     def __repr__(self):
-        return "%s(%r)" % (self.__class__.__name__, list(self))
+        return f"{self.__class__.__name__}({list(self)!r})"
 
     __add__ = _call_modified(list.__add__)
     __delitem__ = _call_modified(list.__delitem__)
@@ -114,8 +114,7 @@ class MonitoredFocusList(MonitoredList):
         self._focus_modified = lambda ml, indices, new_items: None
 
     def __repr__(self):
-        return "%s(%r, focus=%r)" % (
-            self.__class__.__name__, list(self), self.focus)
+        return f"{self.__class__.__name__}({list(self)!r}, focus={self.focus!r})"
 
     def _get_focus(self):
         """
@@ -156,9 +155,9 @@ class MonitoredFocusList(MonitoredList):
             self._focus = 0
             return
         if index < 0 or index >= len(self):
-            raise IndexError('focus index is out of range: %s' % (index,))
+            raise IndexError(f'focus index is out of range: {index}')
         if index != int(index):
-            raise IndexError('invalid focus index: %s' % (index,))
+            raise IndexError(f'invalid focus index: {index}')
         index = int(index)
         if index != self._focus:
             self._focus_changed(index)

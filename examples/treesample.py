@@ -120,7 +120,7 @@ def get_example_tree():
     """ generate a quick 100 leaf tree for demo purposes """
     retval = {"name":"parent","children":[]}
     for i in range(10):
-        retval['children'].append({"name":"child " + str(i)})
+        retval['children'].append({"name":f"child {str(i)}"})
         retval['children'][i]['children']=[]
         for j in range(10):
             retval['children'][i]['children'].append({"name":"grandchild " +

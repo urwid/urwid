@@ -9,8 +9,7 @@ class QuestionBox(urwid.Filler):
         if key != 'enter':
             return super().keypress(size, key)
         self.original_widget = urwid.Text(
-            "Nice to meet you,\n%s.\n\nPress Q to exit." %
-            edit.edit_text)
+            f"Nice to meet you,\n{edit.edit_text}.\n\nPress Q to exit.")
 
 edit = urwid.Edit("What is your name?\n")
 fill = QuestionBox(edit)

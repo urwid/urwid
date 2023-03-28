@@ -153,8 +153,7 @@ class IntegerEdit(NumEdit):
                 # check if it is a valid initial value
                 validation_re = f"^[{allowed_chars}]+$"
                 if not re.match(validation_re, str(default), re.IGNORECASE):
-                    raise ValueError("invalid value: {} for base {}".format(
-                                     default, base))
+                    raise ValueError(f"invalid value: {default} for base {base}")
 
             elif isinstance(default, Decimal):
                 # a Decimal instance with no fractional part
@@ -240,8 +239,7 @@ class FloatEdit(NumEdit):
         self.significance = None
         self._decimalSeparator = decimalSeparator
         if decimalSeparator not in ['.', ',']:
-            raise ValueError("invalid decimalSeparator: {}".format(
-                             decimalSeparator))
+            raise ValueError(f"invalid decimalSeparator: {decimalSeparator}")
 
         val = ""
         if default is not None and default != "":

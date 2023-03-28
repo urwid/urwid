@@ -10,7 +10,7 @@ class CalcWidthTest(unittest.TestCase):
     def wtest(self, desc, s, exp):
         s = B(s)
         result = util.calc_width( s, 0, len(s))
-        assert result==exp, "%s got:%r expected:%r" % (desc, result, exp)
+        assert result==exp, f"{desc} got:{result!r} expected:{exp!r}"
 
     def test1(self):
         util.set_encoding("utf-8")
@@ -33,10 +33,9 @@ class ConvertDecSpecialTest(unittest.TestCase):
         util.set_encoding('ascii')
         c = urwid.Text(s).render((5,))
         result = c._text[0]
-        assert result==exp, "%s got:%r expected:%r" % (desc, result, exp)
+        assert result==exp, f"{desc} got:{result!r} expected:{exp!r}"
         resultcs = c._cs[0]
-        assert resultcs==expcs, "%s got:%r expected:%r" % (desc,
-                                                           resultcs, expcs)
+        assert resultcs==expcs, f"{desc} got:{resultcs!r} expected:{expcs!r}"
 
     def test1(self):
         self.ctest("no conversion", "hello", "hello", [(None,5)])
@@ -55,8 +54,7 @@ class WithinDoubleByteTest(unittest.TestCase):
 
     def wtest(self, s, ls, pos, expected, desc):
         result = util.within_double_byte(B(s), ls, pos)
-        assert result==expected, "%s got:%r expected: %r" % (desc,
-                                                             result, expected)
+        assert result==expected, f"{desc} got:{result!r} expected: {expected!r}"
     def test1(self):
         self.wtest("mnopqr",0,2,0,'simple no high bytes')
         self.wtest("mn\xA1\xA1qr",0,2,1,'simple 1st half')
@@ -93,8 +91,7 @@ class CalcTextPosTest(unittest.TestCase):
         text = B(text)
         for s,e,p, expected in tests:
             got = util.calc_text_pos( text, s, e, p )
-            assert got == expected, "%r got:%r expected:%r" % ((s,e,p),
-                                                               got, expected)
+            assert got == expected, f"{s, e, p!r} got:{got!r} expected:{expected!r}"
 
     def test1(self):
         text = "hello world out there"
@@ -166,8 +163,8 @@ class TagMarkupTest(unittest.TestCase):
     def test(self):
         for input, text, attr in self.mytests:
             restext,resattr = urwid.decompose_tagmarkup( input )
-            assert restext == text, "got: %r expected: %r" % (restext, text)
-            assert resattr == attr, "got: %r expected: %r" % (resattr, attr)
+            assert restext == text, f"got: {restext!r} expected: {text!r}"
+            assert resattr == attr, f"got: {resattr!r} expected: {attr!r}"
 
     def test_bad_tuple(self):
         self.assertRaises(urwid.TagMarkupException, lambda:

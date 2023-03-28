@@ -230,7 +230,7 @@ def re_tab(s):
     for i in range(8, len(s), 8):
         if s[i-2:i] == "  ":
             # collapse two or more spaces into a tab
-            l.append(s[p:i].rstrip() + "\t")
+            l.append(f"{s[p:i].rstrip()}\t")
             p = i
 
     if p == 0:

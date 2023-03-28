@@ -543,13 +543,11 @@ class Widget(with_metaclass(WidgetMeta, object)):
             if FIXED in self.sizing():
                 raise NotImplementedError('Fixed widgets must override'
                     ' Widget.pack()')
-            raise WidgetError('Cannot pack () size, this is not a fixed'
-                ' widget: %s' % repr(self))
+            raise WidgetError(f'Cannot pack () size, this is not a fixed widget: {self!r}')
         elif len(size) == 1:
             if FLOW in self.sizing():
                 return size + (self.rows(size, focus),)
-            raise WidgetError('Cannot pack (maxcol,) size, this is not a'
-                ' flow widget: %s' % repr(self))
+            raise WidgetError(f'Cannot pack (maxcol,) size, this is not a flow widget: {self!r}')
         return size
 
     base_widget = property(lambda self:self, doc="""
@@ -566,7 +564,7 @@ class Widget(with_metaclass(WidgetMeta, object)):
 
     def _not_a_container(self, val=None):
         raise IndexError(
-            "No focus_position, %r is not a container widget" % self)
+            f"No focus_position, {self!r} is not a container widget")
     focus_position = property(_not_a_container, _not_a_container, doc="""
         Property for reading and setting the focus position for
         container widgets. This default implementation raises
@@ -650,8 +648,7 @@ def fixed_size(size):
     Used by FixedWidgets to test size parameter.
     """
     if size != ():
-        raise ValueError("FixedWidget takes only () for size." \
-            "passed: %r" % (size,))
+        raise ValueError(f"FixedWidget takes only () for size.passed: {size!r}")
 
 class FixedWidget(Widget):
     """
@@ -927,8 +924,7 @@ class Text(Widget):
         TextError: Alignment mode 'somewhere' not supported.
         """
         if not self.layout.supports_align_mode(mode):
-            raise TextError("Alignment mode %r not supported."%
-                (mode,))
+            raise TextError(f"Alignment mode {mode!r} not supported.")
         self._align_mode = mode
         self._invalidate()
 
@@ -956,7 +952,7 @@ class Text(Widget):
         TextError: Wrap mode 'somehow' not supported.
         """
         if not self.layout.supports_wrap_mode(mode):
-            raise TextError("Wrap mode %r not supported."%(mode,))
+            raise TextError(f"Wrap mode {mode!r} not supported.")
         self._wrap_mode = mode
         self._invalidate()
 
@@ -1173,7 +1169,7 @@ class Edit(Text):
     def _repr_words(self):
         return self.__super._repr_words()[:-1] + [
             python3_repr(self._edit_text)] + [
-            'caption=' + python3_repr(self._caption)] * bool(self._caption) + [
+            f"caption={python3_repr(self._caption)}"] * bool(self._caption) + [
             'multiline'] * (self.multiline is True)
 
     def _repr_attrs(self):

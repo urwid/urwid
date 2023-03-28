@@ -11,31 +11,31 @@ class TextTest(unittest.TestCase):
     def test1_wrap(self):
         expected = [B(t) for t in ("I walk the","city in   ","the night ")]
         got = self.t.render((10,))._text
-        assert got == expected, "got: %r expected: %r" % (got, expected)
+        assert got == expected, f"got: {got!r} expected: {expected!r}"
 
     def test2_left(self):
         self.t.set_align_mode('left')
         expected = [B(t) for t in ("I walk the        ","city in the night ")]
         got = self.t.render((18,))._text
-        assert got == expected, "got: %r expected: %r" % (got, expected)
+        assert got == expected, f"got: {got!r} expected: {expected!r}"
 
     def test3_right(self):
         self.t.set_align_mode('right')
         expected = [B(t) for t in ("        I walk the"," city in the night")]
         got = self.t.render((18,))._text
-        assert got == expected, "got: %r expected: %r" % (got, expected)
+        assert got == expected, f"got: {got!r} expected: {expected!r}"
 
     def test4_center(self):
         self.t.set_align_mode('center')
         expected = [B(t) for t in ("    I walk the    "," city in the night")]
         got = self.t.render((18,))._text
-        assert got == expected, "got: %r expected: %r" % (got, expected)
+        assert got == expected, f"got: {got!r} expected: {expected!r}"
 
     def test5_encode_error(self):
         urwid.set_encoding("ascii")
         expected = [B("?  ")]
         got = urwid.Text('û').render((3,))._text
-        assert got == expected, "got: %r expected: %r" % (got, expected)
+        assert got == expected, f"got: {got!r} expected: {expected!r}"
 
 
 class EditTest(unittest.TestCase):
@@ -47,10 +47,8 @@ class EditTest(unittest.TestCase):
 
     def ktest(self, e, key, expected, pos, desc):
         got= e.keypress((12,),key)
-        assert got == expected, "%s.  got: %r expected:%r" % (desc, got,
-                                                              expected)
-        assert e.edit_pos == pos, "%s. pos: %r expected pos: %r" % (
-            desc, e.edit_pos, pos)
+        assert got == expected, f"{desc}.  got: {got!r} expected:{expected!r}"
+        assert e.edit_pos == pos, f"{desc}. pos: {e.edit_pos!r} expected pos: {pos!r}"
 
     def test1_left(self):
         self.t1.set_edit_pos(0)
@@ -104,8 +102,7 @@ class EditRenderTest(unittest.TestCase):
             get_cursor, expected_cursor)
         r = w.render((4,), focus = 1)
         text = [t for a, cs, t in [ln[0] for ln in r.content()]]
-        assert text == expected_text, "got: %r expected: %r" % (text,
-                                                                expected_text)
+        assert text == expected_text, f"got: {text!r} expected: {expected_text!r}"
         assert r.cursor == expected_cursor, "got: %r expected: %r" % (
             r.cursor, expected_cursor)
 

@@ -8,8 +8,8 @@ class DecodeOneTest(unittest.TestCase):
     def gwt(self, ch, exp_ord, exp_pos):
         ch = B(ch)
         o, pos = str_util.decode_one(ch,0)
-        assert o==exp_ord, " got:%r expected:%r" % (o, exp_ord)
-        assert pos==exp_pos, " got:%r expected:%r" % (pos, exp_pos)
+        assert o==exp_ord, f" got:{o!r} expected:{exp_ord!r}"
+        assert pos==exp_pos, f" got:{pos!r} expected:{exp_pos!r}"
 
     def test1byte(self):
         self.gwt("ab", ord("a"), 1)

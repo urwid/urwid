@@ -452,6 +452,6 @@ if __name__ == "__main__":
         if c == all_ascii:
             print("Full ASCII")
         elif c.startswith(all_ascii):
-            print("Full ASCII + " + c[len(all_ascii):])
+            print(f"Full ASCII + {c[len(all_ascii):]}")
         else:
-            print("Characters: " + c)
+            print(f"Characters: {c}")

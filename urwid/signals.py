@@ -150,8 +150,7 @@ class Signals:
 
         sig_cls = obj.__class__
         if not name in self._supported.get(sig_cls, []):
-            raise NameError("No such signal %r for object %r" %
-                (name, obj))
+            raise NameError(f"No such signal {name!r} for object {obj!r}")
 
         # Just generate an arbitrary (but unique) key
         key = Key()

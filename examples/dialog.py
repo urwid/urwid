@@ -215,7 +215,7 @@ class CheckListDialogDisplay(ListDialogDisplay):
         for i in self.items:
             if i.get_state():
                 l.append(i.get_label())
-        return exitcode, "".join(['"'+tag+'" ' for tag in l])
+        return exitcode, "".join([f'"{tag}" ' for tag in l])
 
 
 
@@ -334,7 +334,7 @@ def main():
 
     # Exit
     if exitstring:
-        sys.stderr.write(exitstring+"\n")
+        sys.stderr.write(f"{exitstring}\n")
 
     sys.exit(exitcode)
 

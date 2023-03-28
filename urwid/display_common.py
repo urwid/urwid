@@ -233,7 +233,7 @@ def _gray_num_88(gnum):
 
 def _color_desc_true(num):
 
-    return "#%06x" %(num)
+    return f"#{num:06x}"
 
 def _color_desc_256(num):
     """
@@ -313,7 +313,7 @@ def _parse_color_true(desc):
         h = desc[1:]
         return int(h, 16)
     elif len(desc) == 4:
-        h = "0x%s0%s0%s" %(desc[1], desc[2], desc[3])
+        h = f"0x{desc[1]}0{desc[2]}0{desc[3]}"
         return int(h, 16)
     return None
 
@@ -536,9 +536,10 @@ class AttrSpec:
         self.foreground = fg
         self.background = bg
         if self.colors > colors:
-            raise AttrSpecError(('foreground/background (%s/%s) require ' +
-                'more colors than have been specified (%d).') %
-                (repr(fg), repr(bg), colors))
+            raise AttrSpecError(
+                f'foreground/background ({fg!r}/{bg!r}) '
+                f'require more colors than have been specified ({colors:d}).'
+            )
 
     foreground_basic = property(lambda s: s._value & _FG_BASIC_COLOR != 0)
     foreground_high = property(lambda s: s._value & _FG_HIGH_COLOR != 0)
@@ -578,11 +579,11 @@ class AttrSpec:
         Return an executable python representation of the AttrSpec
         object.
         """
-        args = "%r, %r" % (self.foreground, self.background)
+        args = f"{self.foreground!r}, {self.background!r}"
         if self.colors == 88:
             # 88-color mode is the only one that is handled differently
-            args = args + ", colors=88"
-        return "%s(%s)" % (self.__class__.__name__, args)
+            args = f"{args}, colors=88"
+        return f"{self.__class__.__name__}({args})"
 
     def _foreground_color(self):
         """Return only the color component of the foreground."""
@@ -611,9 +612,8 @@ class AttrSpec:
             if part in _ATTRIBUTES:
                 # parse and store "settings"/attributes in flags
                 if flags & _ATTRIBUTES[part]:
-                    raise AttrSpecError(("Setting %s specified more than" +
-                        "once in foreground (%s)") % (repr(part),
-                        repr(foreground)))
+                    raise AttrSpecError(
+                        f"Setting {part!r} specified more than once in foreground ({foreground!r})")
                 flags |= _ATTRIBUTES[part]
                 continue
             # past this point we must be specifying a color
@@ -633,11 +633,9 @@ class AttrSpec:
                 flags |= _FG_HIGH_COLOR
             # _parse_color_*() return None for unrecognised colors
             if scolor is None:
-                raise AttrSpecError(("Unrecognised color specification %s " +
-                    "in foreground (%s)") % (repr(part), repr(foreground)))
+                raise AttrSpecError(f"Unrecognised color specification {part!r} in foreground ({foreground!r})")
             if color is not None:
-                raise AttrSpecError(("More than one color given for " +
-                    "foreground (%s)") % (repr(foreground),))
+                raise AttrSpecError(f"More than one color given for foreground ({foreground!r})")
             color = scolor
         if color is None:
             color = 0
@@ -674,8 +672,7 @@ class AttrSpec:
             color = _parse_color_256(_true_to_256(background) or background)
             flags |= _BG_HIGH_COLOR
         if color is None:
-            raise AttrSpecError(("Unrecognised color specification " +
-                "in background (%s)") % (repr(background),))
+            raise AttrSpecError(f"Unrecognised color specification in background ({background!r})")
         self._value = (self._value & ~_BG_MASK) | (color << _BG_SHIFT) | flags
 
     background = property(_background, _set_background)
@@ -700,7 +697,7 @@ class AttrSpec:
             assert self.foreground_number < 88, "Invalid AttrSpec _value"
             vals = _COLOR_VALUES_88[self.foreground_number]
         elif self.colors == 2**24:
-            h = "%06x" %(self.foreground_number)
+            h = f"{self.foreground_number:06x}"
             vals = tuple([int(x, 16) for x in [h[0:2], h[2:4], h[4:6]]])
         else:
             vals = _COLOR_VALUES_256[self.foreground_number]
@@ -711,7 +708,7 @@ class AttrSpec:
             assert self.background_number < 88, "Invalid AttrSpec _value"
             return vals + _COLOR_VALUES_88[self.background_number]
         elif self.colors == 2**24:
-            h = "%06x" %(self.background_number)
+            h = f"{self.background_number:06x}"
             return vals + tuple([int(x, 16) for x in [h[0:2], h[2:4], h[4:6]]])
         else:
             return vals + _COLOR_VALUES_256[self.background_number]
@@ -855,11 +852,10 @@ class BaseScreen(with_metaclass(signals.MetaSignals, object)):
                 self.register_palette_entry(*item)
                 continue
             if len(item) != 2:
-                raise ScreenError("Invalid register_palette entry: %s" %
-                    repr(item))
+                raise ScreenError(f"Invalid register_palette entry: {item!r}")
             name, like_name = item
             if like_name not in self._palette:
-                raise ScreenError("palette entry '%s' doesn't exist"%like_name)
+                raise ScreenError(f"palette entry '{like_name}' doesn't exist")
             self._palette[name] = self._palette[like_name]
 
     def register_palette_entry(self, name, foreground, background,

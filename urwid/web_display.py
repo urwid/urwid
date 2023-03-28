@@ -595,7 +595,7 @@ class Screen:
             assert len(item) == 2, "Invalid register_palette usage"
             name, like_name = item
             if like_name not in self.palette:
-                raise Exception("palette entry '%s' doesn't exist"%like_name)
+                raise Exception(f"palette entry '{like_name}' doesn't exist")
             self.palette[name] = self.palette[like_name]
 
     def register_palette_entry( self, name, foreground, background,
@@ -659,11 +659,11 @@ class Screen:
 
         urwid_id = "%09d%09d"%(random.randrange(10**9),
             random.randrange(10**9))
-        self.pipe_name = os.path.join(_prefs.pipe_dir,"urwid"+urwid_id)
-        os.mkfifo(self.pipe_name+".in",0o600)
+        self.pipe_name = os.path.join(_prefs.pipe_dir,f"urwid{urwid_id}")
+        os.mkfifo(f"{self.pipe_name}.in",0o600)
         signal.signal(signal.SIGTERM,self._cleanup_pipe)
 
-        self.input_fd = os.open(self.pipe_name+".in",
+        self.input_fd = os.open(f"{self.pipe_name}.in",
             os.O_NONBLOCK | os.O_RDONLY)
         self.input_tail = ""
         self.content_head = ("Content-type: "
@@ -673,9 +673,7 @@ class Screen:
             "--ZZ\r\n")
         if self.update_method=="polling":
             self.content_head = (
-                "Content-type: text/plain\r\n"
-                "X-Urwid-ID: "+urwid_id+"\r\n"
-                "\r\n\r\n")
+                f'Content-type: text/plain\r\nX-Urwid-ID: {urwid_id}\r\n\r\n\r\n')
 
         signal.signal(signal.SIGALRM,self._handle_alarm)
         signal.alarm( ALARM_DELAY )
@@ -730,8 +728,8 @@ class Screen:
         if not self.pipe_name: return
         # XXX which exceptions does this actually raise? EnvironmentError?
         try:
-            os.remove(self.pipe_name+".in")
-            os.remove(self.pipe_name+".update")
+            os.remove(f"{self.pipe_name}.in")
+            os.remove(f"{self.pipe_name}.update")
         except Exception:
             pass
 
@@ -816,7 +814,7 @@ class Screen:
                 else:
                     l.append(code_span(run, fg, bg))
 
-            send("".join(l)+"\n")
+            send(f"{''.join(l)}\n")
         self.last_screen = new_screen
         self.last_screen_width = cols
 
@@ -850,12 +848,12 @@ class Screen:
         Fork a child to run CGI disconnected for polling update method.
         Force parent process to exit.
         """
-        daemonize( self.pipe_name +".err" )
-        self.input_fd = os.open(self.pipe_name+".in",
+        daemonize( f"{self.pipe_name}.err" )
+        self.input_fd = os.open(f"{self.pipe_name}.in",
             os.O_NONBLOCK | os.O_RDONLY)
         self.update_method = "polling child"
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        s.bind( self.pipe_name+".update" )
+        s.bind( f"{self.pipe_name}.update" )
         s.listen(1)
         s.settimeout(POLL_CONNECT)
         self.server_socket = s
@@ -903,7 +901,7 @@ class Screen:
 
         keydata = os.read(self.input_fd, MAX_READ)
         os.close(self.input_fd)
-        self.input_fd = os.open(self.pipe_name+".in",
+        self.input_fd = os.open(f"{self.pipe_name}.in",
             os.O_NONBLOCK | os.O_RDONLY)
         #sys.stderr.write( repr((keydata,self.input_tail))+"\n" )
         keys = keydata.split("\n")
@@ -939,7 +937,7 @@ def code_span( s, fg, bg, cursor = -1):
              code_bg + code_fg + s[c_off:c2_off] + "\n" +
              code_fg + code_bg + s[c2_off:] + "\n")
     else:
-        return code_fg + code_bg + s + "\n"
+        return f"{code_fg + code_bg + s}\n"
 
 
 def html_escape(text):
@@ -1003,8 +1001,8 @@ def handle_short_request():
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         try:
             s.connect( os.path.join(_prefs.pipe_dir,
-                "urwid"+urwid_id+".update") )
-            data = "Content-type: text/plain\r\n\r\n"+s.recv(BUF_SZ)
+                f"urwid{urwid_id}.update") )
+            data = f'Content-type: text/plain\r\n\r\n{s.recv(BUF_SZ)}'
             while data:
                 sys.stdout.write(data)
                 data = s.recv(BUF_SZ)
@@ -1016,7 +1014,7 @@ def handle_short_request():
     # this is a keyboard input request
     try:
         fd = os.open((os.path.join(_prefs.pipe_dir,
-            "urwid"+urwid_id+".in")), os.O_WRONLY)
+            f"urwid{urwid_id}.in")), os.O_WRONLY)
     except OSError:
         sys.stdout.write("Status: 404 Not Found\r\n\r\n")
         return True

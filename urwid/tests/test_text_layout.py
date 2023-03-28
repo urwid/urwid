@@ -112,7 +112,7 @@ class SubsegTest(unittest.TestCase):
         text = B(text)
         s = urwid.LayoutSegment(seg)
         result = s.subseg( text, start, end )
-        assert result == exp, "Expected %r, got %r"%(exp,result)
+        assert result == exp, f"Expected {exp!r}, got {result!r}"
 
     def test1_padding(self):
         self.st( (10, None), "", 0, 8,    [(8, None)] )
@@ -314,8 +314,7 @@ class CalcPosTest(unittest.TestCase):
     def tests(self):
         for x,y, expected in self.mytests:
             got = text_layout.calc_pos( self.text, self.trans, x, y )
-            assert got == expected, "%r got:%r expected:%r" % ((x, y), got,
-                                                               expected)
+            assert got == expected, f"{x, y!r} got:{got!r} expected:{expected!r}"
 
 
 class Pos2CoordsTest(unittest.TestCase):
@@ -339,4 +338,4 @@ class Pos2CoordsTest(unittest.TestCase):
         for t, answer in self.mytests:
             for pos,a in zip(self.pos_list,answer) :
                 r = text_layout.calc_coords( self.text, t, pos)
-                assert r==a, "%r got: %r expected: %r"%(t,r,a)
+                assert r==a, f"{t!r} got: {r!r} expected: {a!r}"

@@ -4,7 +4,7 @@ def question():
     return urwid.Pile([urwid.Edit(('I say', "What is your name?\n"))])
 
 def answer(name):
-    return urwid.Text(('I say', "Nice to meet you, " + name + "\n"))
+    return urwid.Text(('I say', f"Nice to meet you, {name}\n"))
 
 class ConversationListBox(urwid.ListBox):
     def __init__(self):

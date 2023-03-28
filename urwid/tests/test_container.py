@@ -27,8 +27,7 @@ class FrameTest(unittest.TestCase):
 
         rval = f.frame_top_bottom(size, focus)
         exp = (top, bottom), (header_rows, footer_rows)
-        assert exp == rval, "%s expected %r but got %r"%(
-            desc,exp,rval)
+        assert exp == rval, f"{desc} expected {exp!r} but got {rval!r}"
 
     def test(self):
         self.ftbtest("simple", 'body', 0, 0, (9, 10), True, 0, 0)
@@ -66,15 +65,13 @@ class PileTest(unittest.TestCase):
             rkey, rfocus, rpref_col):
         p = urwid.Pile( l, focus_item )
         rval = p.keypress( (20,), key )
-        assert rkey == rval, "%s key expected %r but got %r" %(
-            desc, rkey, rval)
+        assert rkey == rval, f"{desc} key expected {rkey!r} but got {rval!r}"
         new_focus = l.index(p.get_focus())
         assert new_focus == rfocus, "%s focus expected %r but got %r" %(
             desc, rfocus, new_focus)
         new_pref = p.get_pref_col((20,))
         assert new_pref == rpref_col, (
-            "%s pref_col expected %r but got %r" % (
-            desc, rpref_col, new_pref))
+            f"{desc} pref_col expected {rpref_col!r} but got {new_pref!r}")
 
     def test_select_change(self):
         T,S,E = urwid.Text, SelectableText, urwid.Edit
@@ -140,7 +137,7 @@ class ColumnsTest(unittest.TestCase):
     def cwtest(self, desc, l, divide, size, exp, focus_column=0):
         c = urwid.Columns(l, divide, focus_column)
         rval = c.column_widths( size )
-        assert rval == exp, "%s expected %s, got %s"%(desc,exp,rval)
+        assert rval == exp, f"{desc} expected {exp}, got {rval}"
 
     def test_widths(self):
         x = urwid.Text("") # sample "column"
@@ -202,12 +199,11 @@ class ColumnsTest(unittest.TestCase):
     def mctest(self, desc, l, divide, size, col, row, exp, f_col, pref_col):
         c = urwid.Columns( l, divide )
         rval = c.move_cursor_to_coords( size, col, row )
-        assert rval == exp, "%s expected %r, got %r"%(desc,exp,rval)
+        assert rval == exp, f"{desc} expected {exp!r}, got {rval!r}"
         assert c.focus_col == f_col, "%s expected focus_col %s got %s"%(
             desc, f_col, c.focus_col)
         pc = c.get_pref_col( size )
-        assert pc == pref_col, "%s expected pref_col %s, got %s"%(
-            desc, pref_col, pc)
+        assert pc == pref_col, f"{desc} expected pref_col {pref_col}, got {pc}"
 
     def test_move_cursor(self):
         e, s, x = urwid.Edit("",""),SelectableText(""), urwid.Text("")

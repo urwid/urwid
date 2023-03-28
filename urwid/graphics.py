@@ -203,7 +203,7 @@ class LineBox(WidgetDecoration, WidgetWrap):
 
     def format_title(self, text):
         if len(text) > 0:
-            return " %s " % text
+            return f" {text} "
         else:
             return ""
 
@@ -315,7 +315,7 @@ class BarGraph(with_metaclass(BarGraphMeta, Widget)):
         self.attr = []
         self.char = []
         if len(attlist) < 2:
-            raise BarGraphError("attlist must include at least background and seg1: %r" % (attlist,))
+            raise BarGraphError(f"attlist must include at least background and seg1: {attlist!r}")
         assert len(attlist) >= 2, 'must at least specify bg and fg!'
         for a in attlist:
             if type(a) != tuple:
@@ -339,13 +339,13 @@ class BarGraph(with_metaclass(BarGraphMeta, Widget)):
             try:
                 (fg, bg), attr = i
             except ValueError:
-                raise BarGraphError("satt not in (fg,bg:attr) form: %r" % (i,))
+                raise BarGraphError(f"satt not in (fg,bg:attr) form: {i!r}")
             if type(fg) != int or fg >= len(attlist):
-                raise BarGraphError("fg not valid integer: %r" % (fg,))
+                raise BarGraphError(f"fg not valid integer: {fg!r}")
             if type(bg) != int or bg >= len(attlist):
-                raise BarGraphError("bg not valid integer: %r" % (fg,))
+                raise BarGraphError(f"bg not valid integer: {fg!r}")
             if fg <= bg:
-                raise BarGraphError("fg (%s) not > bg (%s)" % (fg, bg))
+                raise BarGraphError(f"fg ({fg}) not > bg ({bg})")
         self.satt = satt
 
     def set_data(self, bardata, top, hlines=None):
@@ -931,7 +931,7 @@ class ProgressBar(Widget):
         You can override this method to display custom text.
         """
         percent = min(100, max(0, int(self.current * 100 / self.done)))
-        return str(percent) + " %"
+        return f"{str(percent)} %"
 
     def render(self, size, focus=False):
         """

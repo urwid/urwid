@@ -89,8 +89,7 @@ class TreeWidget(urwid.WidgetWrap):
         return self._node
 
     def get_display_text(self):
-        return (self.get_node().get_key() + ": " +
-                str(self.get_node().get_value()))
+        return (f"{self.get_node().get_key()}: {str(self.get_node().get_value())}")
 
     def next_inorder(self):
         """Return the next TreeWidget depth first from this one."""
@@ -319,7 +318,7 @@ class ParentNode(TreeNode):
 
     def change_child_key(self, oldkey, newkey):
         if newkey in self._children:
-            raise TreeWidgetError("%s is already in use" % newkey)
+            raise TreeWidgetError(f"{newkey} is already in use")
         self._children[newkey] = self._children.pop(oldkey)
         self._children[newkey].set_key(newkey)
 
@@ -327,8 +326,7 @@ class ParentNode(TreeNode):
         try:
             return self.get_child_keys().index(key)
         except ValueError:
-            errorstring = ("Can't find key %s in ParentNode %s\n" +
-                           "ParentNode items: %s")
+            errorstring = f"Can't find key %s in ParentNode %s\nParentNode items: %s"
             raise TreeWidgetError(errorstring % (key, self.get_key(),
                                   str(self.get_child_keys())))
 

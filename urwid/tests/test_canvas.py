@@ -12,7 +12,7 @@ class CanvasCacheTest(unittest.TestCase):
 
     def cct(self, widget, size, focus, expected):
         got = urwid.CanvasCache.fetch(widget, urwid.Widget, size, focus)
-        assert expected==got, "got: %s expected: %s"%(got, expected)
+        assert expected==got, f"got: {got} expected: {expected}"
 
     def test1(self):
         a = urwid.Text("")
@@ -44,14 +44,12 @@ class CanvasTest(unittest.TestCase):
     def ct(self, text, attr, exp_content):
         c = urwid.TextCanvas([B(t) for t in text], attr)
         content = list(c.content())
-        assert content == exp_content, "got: %r expected: %r" % (content,
-                                                                 exp_content)
+        assert content == exp_content, f"got: {content!r} expected: {exp_content!r}"
 
     def ct2(self, text, attr, left, top, cols, rows, def_attr, exp_content):
         c = urwid.TextCanvas([B(t) for t in text], attr)
         content = list(c.content(left, top, cols, rows, def_attr))
-        assert content == exp_content, "got: %r expected: %r" % (content,
-                                                                 exp_content)
+        assert content == exp_content, f"got: {content!r} expected: {exp_content!r}"
 
     def test1(self):
         self.ct(["Hello world"], None, [[(None, None, B("Hello world"))]])
@@ -78,15 +76,15 @@ class CanvasTest(unittest.TestCase):
 class ShardBodyTest(unittest.TestCase):
     def sbt(self, shards, shard_tail, expected):
         result = canvas.shard_body(shards, shard_tail, False)
-        assert result == expected, "got: %r expected: %r" % (result, expected)
+        assert result == expected, f"got: {result!r} expected: {expected!r}"
 
     def sbttail(self, num_rows, sbody, expected):
         result = canvas.shard_body_tail(num_rows, sbody)
-        assert result == expected, "got: %r expected: %r" % (result, expected)
+        assert result == expected, f"got: {result!r} expected: {expected!r}"
 
     def sbtrow(self, sbody, expected):
         result = list(canvas.shard_body_row(sbody))
-        assert result == expected, "got: %r expected: %r" % (result, expected)
+        assert result == expected, f"got: {result!r} expected: {expected!r}"
 
 
     def test1(self):
@@ -138,15 +136,15 @@ class ShardBodyTest(unittest.TestCase):
 class ShardsTrimTest(unittest.TestCase):
     def sttop(self, shards, top, expected):
         result = canvas.shards_trim_top(shards, top)
-        assert result == expected, "got: %r expected: %r" % (result, expected)
+        assert result == expected, f"got: {result!r} expected: {expected!r}"
 
     def strows(self, shards, rows, expected):
         result = canvas.shards_trim_rows(shards, rows)
-        assert result == expected, "got: %r expected: %r" % (result, expected)
+        assert result == expected, f"got: {result!r} expected: {expected!r}"
 
     def stsides(self, shards, left, cols, expected):
         result = canvas.shards_trim_sides(shards, left, cols)
-        assert result == expected, "got: %r expected: %r" % (result, expected)
+        assert result == expected, f"got: {result!r} expected: {expected!r}"
 
 
     def test1(self):
@@ -229,7 +227,7 @@ class ShardsTrimTest(unittest.TestCase):
 class ShardsJoinTest(unittest.TestCase):
     def sjt(self, shard_lists, expected):
         result = canvas.shards_join(shard_lists)
-        assert result == expected, "got: %r expected: %r" % (result, expected)
+        assert result == expected, f"got: {result!r} expected: {expected!r}"
 
     def test(self):
         shards1 = [(5, [(0,0,10,5,None,"foo"), (0,0,5,8,None,"baz")]),
@@ -263,8 +261,7 @@ class CanvasJoinTest(unittest.TestCase):
         l = [(c, None, False, n) for c, n in l]
         result = list(urwid.CanvasJoin(l).content())
 
-        assert result == expected, "%s expected %r, got %r"%(
-            desc, expected, result)
+        assert result == expected, f"{desc} expected {expected!r}, got {result!r}"
 
     def test(self):
         C = urwid.TextCanvas
@@ -313,8 +310,7 @@ class CanvasOverlayTest(unittest.TestCase):
             urwid.TextCanvas([fgt],[fga]))
         bg.overlay(fg, l, 0)
         result = list(bg.content())
-        assert result == et, "%s expected %r, got %r"%(
-            desc, et, result)
+        assert result == et, f"{desc} expected {et!r}, got {result!r}"
 
     def test1(self):
         self.cotest("left", "qxqxqxqx", [], "HI", [], 0, 6,
@@ -373,8 +369,7 @@ class CanvasPadTrimTest(unittest.TestCase):
             urwid.TextCanvas([ct], [ca]))
         c.pad_trim_left_right(l, r)
         result = list(c.content())
-        assert result == et, "%s expected %r, got %r"%(
-            desc, et, result)
+        assert result == et, f"{desc} expected {et!r}, got {result!r}"
 
     def test1(self):
         self.cptest("none", "asdf", [], 0, 0,

@@ -54,41 +54,41 @@ KEY_TRANSLATIONS = {
     'backspace': chr(127),
     'tab':       chr(9),
     'esc':       ESC,
-    'up':        ESC + '[A',
-    'down':      ESC + '[B',
-    'right':     ESC + '[C',
-    'left':      ESC + '[D',
-    'home':      ESC + '[1~',
-    'insert':    ESC + '[2~',
-    'delete':    ESC + '[3~',
-    'end':       ESC + '[4~',
-    'page up':   ESC + '[5~',
-    'page down': ESC + '[6~',
+    'up':        f"{ESC}[A",
+    'down':      f"{ESC}[B",
+    'right':     f"{ESC}[C",
+    'left':      f"{ESC}[D",
+    'home':      f"{ESC}[1~",
+    'insert':    f"{ESC}[2~",
+    'delete':    f"{ESC}[3~",
+    'end':       f"{ESC}[4~",
+    'page up':   f"{ESC}[5~",
+    'page down': f"{ESC}[6~",
 
-    'f1':        ESC + '[[A',
-    'f2':        ESC + '[[B',
-    'f3':        ESC + '[[C',
-    'f4':        ESC + '[[D',
-    'f5':        ESC + '[[E',
-    'f6':        ESC + '[17~',
-    'f7':        ESC + '[18~',
-    'f8':        ESC + '[19~',
-    'f9':        ESC + '[20~',
-    'f10':       ESC + '[21~',
-    'f11':       ESC + '[23~',
-    'f12':       ESC + '[24~',
+    'f1':        f"{ESC}[[A",
+    'f2':        f"{ESC}[[B",
+    'f3':        f"{ESC}[[C",
+    'f4':        f"{ESC}[[D",
+    'f5':        f"{ESC}[[E",
+    'f6':        f"{ESC}[17~",
+    'f7':        f"{ESC}[18~",
+    'f8':        f"{ESC}[19~",
+    'f9':        f"{ESC}[20~",
+    'f10':       f"{ESC}[21~",
+    'f11':       f"{ESC}[23~",
+    'f12':       f"{ESC}[24~",
 }
 
 KEY_TRANSLATIONS_DECCKM = {
-    'up':        ESC + 'OA',
-    'down':      ESC + 'OB',
-    'right':     ESC + 'OC',
-    'left':      ESC + 'OD',
-    'f1':        ESC + 'OP',
-    'f2':        ESC + 'OQ',
-    'f3':        ESC + 'OR',
-    'f4':        ESC + 'OS',
-    'f5':        ESC + '[15~',
+    'up':        f"{ESC}OA",
+    'down':      f"{ESC}OB",
+    'right':     f"{ESC}OC",
+    'left':      f"{ESC}OD",
+    'f1':        f"{ESC}OP",
+    'f2':        f"{ESC}OQ",
+    'f3':        f"{ESC}OR",
+    'f4':        f"{ESC}OS",
+    'f5':        f"{ESC}[15~",
 }
 
 CSI_COMMANDS = {
@@ -522,7 +522,7 @@ class TermCanvas(Canvas):
         elif char == B('H'): # set tabstop
             self.set_tabstop()
         elif char == B('Z'): # DECID
-            self.widget.respond(ESC + '[?6c')
+            self.widget.respond(f"{ESC}[?6c")
         elif char == B('7'): # save current state
             self.save_cursor(with_attrs=True)
         elif char == B('8'): # restore current state
@@ -554,7 +554,7 @@ class TermCanvas(Canvas):
         elif self.parsestate == 2 and char == B("\x07"):
             # end of OSC
             self.parse_osc(self.escbuf.lstrip(B('0')))
-        elif self.parsestate == 2 and self.escbuf[-1:] + char == B(ESC + '\\'):
+        elif self.parsestate == 2 and self.escbuf[-1:] + char == B(f"{ESC}\\"):
             # end of OSC
             self.parse_osc(self.escbuf[:-1].lstrip(B('0')))
         elif self.parsestate == 2 and self.escbuf.startswith(B('P')) and \
@@ -1221,7 +1221,7 @@ class TermCanvas(Canvas):
         ourself as a VT102 terminal.
         """
         if not qmark:
-            self.widget.respond(ESC + '[?6c')
+            self.widget.respond(f"{ESC}[?6c")
 
     def csi_status_report(self, mode):
         """
@@ -1232,7 +1232,7 @@ class TermCanvas(Canvas):
         """
         if mode == 5:
             # terminal OK
-            self.widget.respond(ESC + '[0n')
+            self.widget.respond(f"{ESC}[0n")
         elif mode == 6:
             x, y = self.term_cursor
             self.widget.respond(ESC + '[%d;%dR' % (y + 1, x + 1))

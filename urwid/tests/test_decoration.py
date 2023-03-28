@@ -7,8 +7,7 @@ class PaddingTest(unittest.TestCase):
     def ptest(self, desc, align, width, maxcol, left, right,min_width=None):
         p = urwid.Padding(None, align, width, min_width)
         l, r = p.padding_values((maxcol,),False)
-        assert (l,r)==(left,right), "%s expected %s but got %s"%(
-            desc, (left,right), (l,r))
+        assert (l,r)==(left,right), f"{desc} expected {left, right} but got {l, r}"
 
     def petest(self, desc, align, width):
         self.assertRaises(urwid.PaddingError, lambda:
@@ -95,8 +94,7 @@ class FillerTest(unittest.TestCase):
             min_height=None):
         f = urwid.Filler(None, valign, height, min_height)
         t, b = f.filler_values((20,maxrow), False)
-        assert (t,b)==(top,bottom), "%s expected %s but got %s"%(
-            desc, (top,bottom), (t,b))
+        assert (t,b)==(top,bottom), f"{desc} expected {top, bottom} but got {t, b}"
 
     def fetest(self, desc, valign, height):
         self.assertRaises(urwid.FillerError, lambda:

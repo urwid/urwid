@@ -149,7 +149,7 @@ class CheckBox(WidgetWrap):
         self.has_mixed = has_mixed
         self._state = None
         if checked_symbol:
-            self.states[True] = SelectableIcon("[%s]" % checked_symbol, 1)
+            self.states[True] = SelectableIcon(f"[{checked_symbol}]", 1)
         # The old way of listening for a change was to pass the callback
         # in to the constructor.  Just convert it to the new way:
         if on_state_change:
@@ -232,8 +232,7 @@ class CheckBox(WidgetWrap):
             return
 
         if state not in self.states:
-            raise CheckBoxError("%s Invalid state: %s" % (
-                repr(self), repr(state)))
+            raise CheckBoxError(f"{self!r} Invalid state: {state!r}")
 
         # self._state is None is a special case when the CheckBox
         # has just been created

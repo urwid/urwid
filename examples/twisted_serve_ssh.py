@@ -119,7 +119,7 @@ class UnhandledKeyHandler:
         if isinstance(key, tuple):
             pass
         else:
-            f = getattr(self, 'key_%s' % key.replace(' ', '_'), None)
+            f = getattr(self, f"key_{key.replace(' ', '_')}", None)
             if f is None:
                 return
             else:
@@ -213,7 +213,7 @@ class TwistedScreen(Screen):
             self.terminal.cursorPosition(0, i)
             for (attr, cs, text) in row:
                 if attr != lasta:
-                    text = '%s%s' % (self._attr_to_escape(attr), text)
+                    text = f'{self._attr_to_escape(attr)}{text}'
                 lasta = attr
                 #if cs or attr:
                 #    print(cs, attr)
@@ -324,7 +324,7 @@ class TwistedScreen(Screen):
                 bg = "%d" % (a.background_number + 40)
         else:
             bg = "49"
-        return urwid.escape.ESC + "[0;%s;%s%sm" % (fg, st, bg)
+        return f"{urwid.escape.ESC}[0;{fg};{st}{bg}m"
 
 
 class UrwidTerminalProtocol(TerminalProtocol):

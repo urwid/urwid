@@ -560,16 +560,16 @@ class _test:
         self.l.sort()
         for c in self.l:
             self.ui.register_palette( [
-                (c+" on black", c, 'black', 'underline'),
-                (c+" on dark blue",c, 'dark blue', 'bold'),
-                (c+" on light gray",c,'light gray', 'standout'),
+                (f"{c} on black", c, 'black', 'underline'),
+                (f"{c} on dark blue",c, 'dark blue', 'bold'),
+                (f"{c} on light gray",c,'light gray', 'standout'),
                 ])
         self.ui.run_wrapper(self.run)
 
     def run(self):
         class FakeRender: pass
         r = FakeRender()
-        text = ["  has_color = "+repr(self.ui.has_color),""]
+        text = [f"  has_color = {self.ui.has_color!r}",""]
         attr = [[],[]]
         r.coords = {}
         r.cursor = None
@@ -577,7 +577,7 @@ class _test:
         for c in self.l:
             t = ""
             a = []
-            for p in c+" on black",c+" on dark blue",c+" on light gray":
+            for p in f"{c} on black",f"{c} on dark blue",f"{c} on light gray":
 
                 a.append((p,27))
                 t=t+ (p+27*" ")[:27]
@@ -601,11 +601,11 @@ class _test:
             a = []
             for k in keys:
                 if type(k) == str: k = k.encode("utf-8")
-                t += "'"+k + "' "
+                t += f"'{k}' "
                 a += [(None,1), ('yellow on dark blue',len(k)),
                     (None,2)]
 
-            text.append(t + ": "+ repr(raw))
+            text.append(f"{t}: {raw!r}")
             attr.append(a)
             text = text[-rows:]
             attr = attr[-rows:]

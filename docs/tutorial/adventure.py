@@ -27,7 +27,7 @@ class Thing(urwid.WidgetWrap):
         self.name = name
 
     def take_thing(self, button):
-        self._w = urwid.Text(" - %s (taken)" % self.name)
+        self._w = urwid.Text(f" - {self.name} (taken)")
         game.take_thing(self)
 
 def exit_program(button):

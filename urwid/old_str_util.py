@@ -359,7 +359,7 @@ def process_east_asian_width():
 
     print("widths = [")
     for o in out[1:]:  # treat control characters same as ascii
-        print("\t%r," % (o,))
+        print(f"\t{o!r},")
     print("]")
 
 if __name__ == "__main__":

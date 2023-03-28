@@ -92,7 +92,7 @@ class StandardTextLayout(TextLayout):
         returned by self.layout().
         """
         maxwidth = 0
-        assert layout, "huh? empty layout?: "+repr(layout)
+        assert layout, f"huh? empty layout?: {layout!r}"
         for l in layout:
             lw = line_width(l)
             if lw >= maxcol:

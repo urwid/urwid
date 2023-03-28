@@ -349,7 +349,7 @@ def escape_filename_sh(name):
     name.replace('"','\\"')
     name.replace('`','\\`')
     name.replace('$','\\$')
-    return '"'+name+'"'
+    return f'"{name}"'
 
 
 def escape_filename_sh_ansic(name):
@@ -359,14 +359,14 @@ def escape_filename_sh_ansic(name):
     # gather the escaped characters into a list
     for ch in name:
         if ord(ch) < 32:
-            out.append("\\x%02x"% ord(ch))
+            out.append(f"\\x{ord(ch):02x}")
         elif ch == '\\':
             out.append('\\\\')
         else:
             out.append(ch)
 
     # slap them back together in an ansi-c quote  $'...'
-    return "$'" + "".join(out) + "'"
+    return f"$'{''.join(out)}'"
 
 SPLIT_RE = re.compile(r'[a-zA-Z]+|\d+')
 def alphabetize(s):

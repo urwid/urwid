@@ -44,7 +44,7 @@ class LineBoxTest(unittest.TestCase):
 class BarGraphTest(unittest.TestCase):
     def bgtest(self, desc, data, top, widths, maxrow, exp ):
         rval = graphics.calculate_bargraph_display(data,top,widths,maxrow)
-        assert rval == exp, "%s expected %r, got %r"%(desc,exp,rval)
+        assert rval == exp, f"{desc} expected {exp!r}, got {rval!r}"
 
     def test1(self):
         self.bgtest('simplest',[[0]],5,[1],1,
@@ -92,7 +92,7 @@ class SmoothBarGraphTest(unittest.TestCase):
                 None, {(1,0):'red/black', (2,1):'blue/red'})
         g.set_data( data, top )
         rval = g.calculate_display((5,3))
-        assert rval == exp, "%s expected %r, got %r"%(desc,exp,rval)
+        assert rval == exp, f"{desc} expected {exp!r}, got {rval!r}"
 
     def test1(self):
         self.sbgtest('simple', [[3]], 5,

@@ -1521,9 +1521,9 @@ def _refl(name, rval=None, exit=False):
         def __call__(self, *argl, **argd):
             args = ", ".join([repr(a) for a in argl])
             if args and argd:
-                args = args + ", "
-            args = args + ", ".join([k+"="+repr(v) for k,v in argd.items()])
-            print(self._name+"("+args+")")
+                args = f"{args}, "
+            args = args + ", ".join([f"{k}={repr(v)}" for k,v in argd.items()])
+            print(f"{self._name}({args})")
             if exit:
                 raise ExitMainLoop()
             return self._rval
@@ -1531,9 +1531,9 @@ def _refl(name, rval=None, exit=False):
             if attr.endswith("_rval"):
                 raise AttributeError()
             #print(self._name+"."+attr)
-            if hasattr(self, attr+"_rval"):
-                return Reflect(self._name+"."+attr, getattr(self, attr+"_rval"))
-            return Reflect(self._name+"."+attr)
+            if hasattr(self, f"{attr}_rval"):
+                return Reflect(f"{self._name}.{attr}", getattr(self, f"{attr}_rval"))
+            return Reflect(f"{self._name}.{attr}")
     return Reflect(name)
 
 def _test():

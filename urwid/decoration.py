@@ -341,8 +341,7 @@ class BoxAdapter(WidgetDecoration):
         <BoxAdapter flow widget <SolidFill box widget 'x'> height=5>
         """
         if hasattr(box_widget, 'sizing') and BOX not in box_widget.sizing():
-            raise BoxAdapterError("%r is not a box widget" %
-                box_widget)
+            raise BoxAdapterError(f"{box_widget!r} is not a box widget")
         WidgetDecoration.__init__(self,box_widget)
 
         self.height = height
