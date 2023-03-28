@@ -75,19 +75,6 @@ def normalize_repr(v):
 
     return repr(v)
 
-def python3_repr(v):
-    """
-    Return strings and byte strings as they appear in Python 3
-
-    >>> python3_repr(u"text")
-    "'text'"
-    >>> python3_repr(bytes())
-    "b''"
-    """
-    r = repr(v)
-    return r
-
-
 
 def remove_defaults(d, fn):
     """

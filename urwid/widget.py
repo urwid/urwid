@@ -31,7 +31,7 @@ from urwid.canvas import (CanvasCache, CompositeCanvas, SolidCanvas,
     apply_text_layout)
 from urwid.command_map import (command_map, CURSOR_LEFT, CURSOR_RIGHT,
     CURSOR_UP, CURSOR_DOWN, CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT)
-from urwid.split_repr import split_repr, remove_defaults, python3_repr
+from urwid.split_repr import split_repr, remove_defaults
 
 
 # define some names for these constants to avoid misspellings in the source
@@ -708,7 +708,7 @@ class Divider(Widget):
 
     def _repr_words(self):
         return super()._repr_words() + [
-            python3_repr(self.div_char)] * (self.div_char != " ")
+            repr(self.div_char)] * (self.div_char != " ")
 
     def _repr_attrs(self):
         attrs = dict(super()._repr_attrs())
@@ -766,7 +766,7 @@ class SolidFill(BoxWidget):
         self.fill_char = fill_char
 
     def _repr_words(self):
-        return super()._repr_words() + [python3_repr(self.fill_char)]
+        return super()._repr_words() + [repr(self.fill_char)]
 
     def render(self, size, focus=False ):
         """
@@ -836,7 +836,7 @@ class Text(Widget):
         """
         first = super()._repr_words()
         text = self.get_text()[0]
-        rest = python3_repr(text)
+        rest = repr(text)
         if len(rest) > self._repr_content_length_max:
             rest = (rest[:self._repr_content_length_max * 2 // 3 - 3] +
                 '...' + rest[-self._repr_content_length_max // 3:])
@@ -1167,8 +1167,8 @@ class Edit(Text):
 
     def _repr_words(self):
         return super()._repr_words()[:-1] + [
-            python3_repr(self._edit_text)] + [
-            f"caption={python3_repr(self._caption)}"] * bool(self._caption) + [
+            repr(self._edit_text)] + [
+            f"caption={self._caption!r}"] * bool(self._caption) + [
             'multiline'] * (self.multiline is True)
 
     def _repr_attrs(self):

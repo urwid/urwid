@@ -28,7 +28,6 @@ from urwid.container import Columns, Overlay
 from urwid.util import is_mouse_press
 from urwid.text_layout import calc_coords
 from urwid.signals import disconnect_signal # doctests
-from urwid.split_repr import python3_repr
 from urwid.decoration import WidgetDecoration
 from urwid.command_map import ACTIVATE
 
@@ -159,7 +158,7 @@ class CheckBox(WidgetWrap):
 
     def _repr_words(self):
         return super()._repr_words() + [
-            python3_repr(self.label)]
+            repr(self.label)]
 
     def _repr_attrs(self):
         return dict(super()._repr_attrs(),
@@ -490,7 +489,7 @@ class Button(WidgetWrap):
     def _repr_words(self):
         # include button.label in repr(button)
         return super()._repr_words() + [
-            python3_repr(self.label)]
+            repr(self.label)]
 
     def set_label(self, label):
         """
