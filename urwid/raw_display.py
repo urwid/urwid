@@ -544,7 +544,7 @@ class Screen(BaseScreen, RealTerminal):
 
     def _wait_for_input_ready(self, timeout):
         ready = None
-        fd_list = []
+        fd_list = [self._resize_pipe_rd]
         fd = self._input_fileno()
         if fd is not None:
             fd_list.append(fd)
