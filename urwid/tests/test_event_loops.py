@@ -201,14 +201,14 @@ else:
             evl.alarm(0.5, lambda: 1 / 0)  # Simulate error in event loop
             self.assertRaises(ZeroDivisionError, evl.run)
 
-        async def test_coroutine_error(self):
+        def test_coroutine_error(self):
             evl = self.evl
 
             async def error_coro():
                 result = 1 / 0 # Simulate error in coroutine
-                yield result
+                return result
 
-            asyncio.ensure_future(await error_coro())
+            asyncio.ensure_future(error_coro())
             self.assertRaises(ZeroDivisionError, evl.run)
 
 

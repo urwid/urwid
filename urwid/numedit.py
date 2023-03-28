@@ -21,7 +21,7 @@
 
 
 from urwid import Edit
-from decimal import Decimal, localcontext
+from decimal import Decimal
 import re
 
 
@@ -206,7 +206,7 @@ class FloatEdit(NumEdit):
         >>> e.keypress(size, '.')
         >>> e.keypress(size, '5')
         >>> e.keypress(size, '1')
-        >>> assert e.value() == Decimal("51.51")
+        >>> assert e.value() == Decimal("51.51"), e.value()
         >>> e, size = FloatEdit(decimalSeparator=":"), (10,)
         Traceback (most recent call last):
             ...
@@ -227,7 +227,7 @@ class FloatEdit(NumEdit):
         >>> e.keypress(size, '1')
         >>> e.keypress(size, '5')
         >>> e.keypress(size, '9')
-        >>> assert e.value() == Decimal("3.1416")
+        >>> assert e.value() == Decimal("3.1416"), e.value()
         >>> e, size = FloatEdit("", ""), (10,)
         >>> assert e.value() is None
         >>> e, size = FloatEdit(u"", 10.0), (10,)
@@ -247,13 +247,13 @@ class FloatEdit(NumEdit):
                 raise ValueError("default: Only 'str', 'int', "
                                  "'long' or Decimal input allowed")
 
-            if isinstance(default, str) and len(default):
+            if isinstance(default, str) and default:
                 # check if it is a float, raises a ValueError otherwise
                 float(default)
                 default = Decimal(default)
 
-            if preserveSignificance:
-                self.significance = abs(default.as_tuple()[2])
+            if preserveSignificance and isinstance(default, Decimal):
+                self.significance = default
 
             val = str(default)
 
@@ -265,13 +265,9 @@ class FloatEdit(NumEdit):
         Return the numeric value of self.edit_text.
         """
         if self.edit_text:
-            # get the ip and fp, handles also the case that there is no '.'
-            ip, fp = ([v for v in
-                      self.edit_text.split(self._decimalSeparator)] + [0])[0:2]
-
-            with localcontext() as ctx:
-                ctx = (self.significance or len(str(fp)))+1
-                return Decimal(self.edit_text.replace(
-                    self._decimalSeparator, '.')) * 1
+            normalized = Decimal(self.edit_text.replace(self._decimalSeparator, '.'))
+            if self.significance is not None:
+                return normalized.quantize(self.significance)
+            return normalized
 
         return None
