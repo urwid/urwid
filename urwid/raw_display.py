@@ -140,34 +140,40 @@ class Screen(BaseScreen, RealTerminal):
         self._resized = True
         self.screen_buf = None
 
+    def _sigtstp_handler(self, signum, frame=None):
+        self.stop() # sets SIGTSTP handler to SIG_DFL
+        self.signal_handler_setter(signal.SIGCONT, self._sigcont_handler)
+        os.kill(os.getpid(), signal.SIGTSTP)
+
     def _sigcont_handler(self, signum, frame=None):
         """
         frame -- will always be None when the GLib event loop is being used.
         """
 
-        self.stop()
+        self.signal_restore()
         self.start()
         self._sigwinch_handler(None, None)
 
     def signal_init(self):
         """
         Called in the startup of run wrapper to set the SIGWINCH
-        and SIGCONT signal handlers.
+        and SIGTSTP signal handlers.
 
         Override this function to call from main thread in threaded
         applications.
         """
         self.signal_handler_setter(signal.SIGWINCH, self._sigwinch_handler)
-        self.signal_handler_setter(signal.SIGCONT, self._sigcont_handler)
+        self.signal_handler_setter(signal.SIGTSTP, self._sigtstp_handler)
 
     def signal_restore(self):
         """
         Called in the finally block of run wrapper to restore the
-        SIGWINCH and SIGCONT signal handlers.
+        SIGTSTP, SIGCONT and SIGWINCH signal handlers.
 
         Override this function to call from main thread in threaded
         applications.
         """
+        self.signal_handler_setter(signal.SIGTSTP, signal.SIG_DFL)
         self.signal_handler_setter(signal.SIGCONT, signal.SIG_DFL)
         self.signal_handler_setter(signal.SIGWINCH, signal.SIG_DFL)
 
