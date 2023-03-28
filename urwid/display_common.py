@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import os
 import sys
+import warnings
 
 try:
     import termios
@@ -869,9 +870,12 @@ class BaseScreen(metaclass=signals.MetaSignals):
 
         Deprecated in favor of calling `start` as a context manager.
         """
+        warnings.warn(
+            "run_wrapper is deprecated in favor of calling `start` as a context manager.",
+            DeprecationWarning,
+        )
         with self.start(*args, **kwargs):
             return fn()
-
 
     def register_palette(self, palette):
         """Register a set of palette entries.

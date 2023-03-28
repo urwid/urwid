@@ -22,6 +22,7 @@
 
 from __future__ import annotations
 
+import warnings
 from operator import attrgetter
 
 from urwid import signals, text_layout
@@ -623,6 +624,17 @@ class FlowWidget(Widget):
     """
     _sizing = frozenset([FLOW])
 
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            """
+            FlowWidget is deprecated. Inherit from Widget and add:
+
+                _sizing = frozenset(['flow'])
+
+            at the top of your class definition instead.""",
+            DeprecationWarning,
+        )
+
     def rows(self, size, focus=False):
         """
         All flow widgets must implement this function.
@@ -650,6 +662,18 @@ class BoxWidget(Widget):
     """
     _selectable = True
     _sizing = frozenset([BOX])
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            """
+            BoxWidget is deprecated. Inherit from Widget and add:
+
+                _sizing = frozenset(['box'])
+                _selectable = True
+
+            at the top of your class definition instead.""",
+            DeprecationWarning,
+        )
 
     def render(self, size, focus=False):
         """
@@ -679,6 +703,17 @@ class FixedWidget(Widget):
     cannot be resized
     """
     _sizing = frozenset([FIXED])
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            """
+            FixedWidget is deprecated. Inherit from Widget and add:
+
+                _sizing = frozenset(['fixed'])
+
+            at the top of your class definition instead.""",
+            DeprecationWarning,
+        )
 
     def render(self, size, focus=False):
         """

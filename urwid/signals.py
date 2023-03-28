@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import itertools
+import warnings
 import weakref
 
 
@@ -149,6 +150,11 @@ class Signals:
         handler can also be disconnected by calling
         urwid.disconnect_signal, which doesn't need this key.
         """
+        if user_arg is not None:
+            warnings.warn(
+                "Don't use user_arg argument, use user_args instead.",
+                DeprecationWarning,
+            )
 
         sig_cls = obj.__class__
         if not name in self._supported.get(sig_cls, []):
