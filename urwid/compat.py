@@ -26,9 +26,6 @@
 # B returns a byte string in all supported python versions
 # bytes3 creates a byte string from a list of ordinal values
 
-chr2 = lambda x: bytes([x])
-
-
 def reraise(tp, value, tb=None):
     """
     Reraise an exception.

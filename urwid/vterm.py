@@ -44,7 +44,6 @@ from urwid.escape import DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS
 from urwid.canvas import Canvas
 from urwid.widget import Widget, BOX
 from urwid.display_common import AttrSpec, RealTerminal, _BASIC_COLORS
-from urwid.compat import chr2
 
 EOF = b''
 ESC = chr(27)
@@ -616,27 +615,27 @@ class TermCanvas(Canvas):
             if byte >= 0xc0:
                 # start multibyte sequence
                 self.utf8_eat_bytes = self.get_utf8_len(byte)
-                self.utf8_buffer = chr2(byte)
+                self.utf8_buffer = bytes([byte])
                 return
             elif 0x80 <= byte < 0xc0 and self.utf8_eat_bytes is not None:
                 if self.utf8_eat_bytes > 1:
                     # continue multibyte sequence
                     self.utf8_eat_bytes -= 1
-                    self.utf8_buffer += chr2(byte)
+                    self.utf8_buffer += bytes([byte])
                     return
                 else:
                     # end multibyte sequence
                     self.utf8_eat_bytes = None
-                    sequence = (self.utf8_buffer+chr2(byte)).decode('utf-8', 'ignore')
+                    sequence = (self.utf8_buffer+bytes([byte])).decode('utf-8', 'ignore')
                     if len(sequence) == 0:
                         # invalid multibyte sequence, stop processing
                         return
                     char = sequence.encode(util._target_encoding, 'replace')
             else:
                 self.utf8_eat_bytes = None
-                char = chr2(byte)
+                char = bytes([byte])
         else:
-            char = chr2(byte)
+            char = bytes([byte])
 
         self.process_char(char)
 
