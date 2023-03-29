@@ -27,7 +27,7 @@ from urwid.canvas import SolidCanvas, CanvasCombine
 from urwid.widget import Widget, nocache_widget_render_instance, BOX, GIVEN
 from urwid.decoration import calculate_top_bottom_filler, normalize_valign
 from urwid import signals
-from urwid.signals import connect_signal
+from urwid.signals import connect_signal, disconnect_signal
 from urwid.monitored_list import MonitoredList, MonitoredFocusList
 from urwid.container import WidgetContainerMixin
 from urwid.command_map import (CURSOR_UP, CURSOR_DOWN,
@@ -250,13 +250,6 @@ class ListBox(Widget, WidgetContainerMixin):
         :type body: ListWalker
         """
         self._set_body(body)
-        try:
-            connect_signal(self._body, "modified", self._invalidate)
-        except NameError:
-            # our list walker has no modified signal so we must not
-            # cache our canvases because we don't know when our
-            # content has changed
-            self.render = nocache_widget_render_instance(self)
 
         # offset_rows is the number of rows between the top of the view
         # and the top of the focused item
@@ -281,10 +274,22 @@ class ListBox(Widget, WidgetContainerMixin):
         return self._body
 
     def _set_body(self, body):
+        try:
+            disconnect_signal(self._body, "modified", self._invalidate)
+        except AttributeError:
+            # _body is not yet assigned
+            pass
         if getattr(body, 'get_focus', None):
             self._body = body
         else:
             self._body = SimpleListWalker(body)
+        try:
+            connect_signal(self._body, "modified", self._invalidate)
+        except NameError:
+            # our list walker has no modified signal so we must not
+            # cache our canvases because we don't know when our
+            # content has changed
+            self.render = nocache_widget_render_instance(self)
         self._invalidate()
 
     body = property(_get_body, _set_body, doc="""

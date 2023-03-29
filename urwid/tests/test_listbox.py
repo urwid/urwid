@@ -802,3 +802,14 @@ class ZeroHeightContentsTest(unittest.TestCase):
         lb.keypress((40,10), 'up')
         self.assertEqual(lb.get_focus()[1], 1)
 
+
+class ListBoxSetBodyTest(unittest.TestCase):
+    def test_signal_connected(self):
+        lb = urwid.ListBox([])
+        lb.body = urwid.SimpleListWalker([])
+        self.assertEqual(
+                lb.body._urwid_signals['modified'][0][1],
+                lb._invalidate,
+                "outdated canvas cache reuse "
+                "after ListWalker's contents modified"
+                )
