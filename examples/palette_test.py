@@ -17,7 +17,7 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
 """
 Palette test.  Shows the available foreground and background settings
@@ -27,7 +27,6 @@ in monochrome, 16 color, 88 color, 256 color, and 24-bit (true) color modes.
 from __future__ import annotations
 
 import re
-import sys
 
 import urwid
 import urwid.raw_display

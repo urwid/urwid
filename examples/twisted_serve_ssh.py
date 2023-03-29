@@ -33,8 +33,6 @@ Licence:   LGPL <http://opensource.org/licenses/lgpl-2.1.php>
 
 from __future__ import annotations
 
-import os
-
 from twisted.application.internet import TCPServer
 from twisted.application.service import Application
 from twisted.conch.insults.insults import ServerProtocol, TerminalProtocol

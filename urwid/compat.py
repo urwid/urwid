@@ -17,14 +17,8 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
-
-# for iterating over byte strings:
-# ord2 calls ord in python2 only
-# chr2 converts an ordinal value to a length-1 byte string
-# B returns a byte string in all supported python versions
-# bytes3 creates a byte string from a list of ordinal values
 
 def reraise(tp, value, tb=None):
     """

@@ -5,20 +5,15 @@ This code works on older Python 3.x if you install `asyncio` from PyPI, and
 even Python 2 if you install `trollius`!
 """
 
-try:
-    import asyncio
-except ImportError:
 from __future__ import annotations
 
+import asyncio
 import logging
 import sys
 import weakref
 from datetime import datetime
 
-import trollius as asyncio
-
 import urwid
-from urwid.display_common import BaseScreen
 from urwid.raw_display import Screen
 
 logging.basicConfig()
