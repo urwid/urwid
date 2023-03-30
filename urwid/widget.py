@@ -22,6 +22,7 @@
 
 from __future__ import annotations
 
+import functools
 import warnings
 from operator import attrgetter
 
@@ -116,28 +117,17 @@ class WidgetMeta(MetaSuper, signals.MetaSignals):
 class WidgetError(Exception):
     pass
 
+
 def validate_size(widget, size, canv):
     """
     Raise a WidgetError if a canv does not match size size.
     """
     if (size and size[1:] != (0,) and size[0] != canv.cols()) or \
         (len(size)>1 and size[1] != canv.rows()):
-        raise WidgetError("Widget %r rendered (%d x %d) canvas"
-            " when passed size %r!" % (widget, canv.cols(),
-            canv.rows(), size))
-
-def update_wrapper(new_fn, fn):
-    """
-    Copy as much of the function detail from fn to new_fn
-    as we can.
-    """
-    try:
-        new_fn.__name__ = fn.__name__
-        new_fn.__dict__.update(fn.__dict__)
-        new_fn.__doc__ = fn.__doc__
-        new_fn.__module__ = fn.__module__
-    except TypeError:
-        pass # python2.3 ignore read-only attributes
+        raise WidgetError(
+            f"Widget {widget!r} rendered ({canv.cols():d} x {canv.rows():d}) canvas "
+            f"when passed size {size!r}!"
+        )
 
 
 def cache_widget_render(cls):
@@ -147,6 +137,8 @@ def cache_widget_render(cls):
     """
     ignore_focus = bool(getattr(cls, "ignore_focus", False))
     fn = cls.render
+
+    @functools.wraps(fn)
     def cached_render(self, size, focus=False):
         focus = focus and not ignore_focus
         canv = CanvasCache.fetch(self, cls, size, focus)
@@ -161,8 +153,8 @@ def cache_widget_render(cls):
         CanvasCache.store(cls, canv)
         return canv
     cached_render.original_fn = fn
-    update_wrapper(cached_render, fn)
     return cached_render
+
 
 def nocache_widget_render(cls):
     """
@@ -172,6 +164,8 @@ def nocache_widget_render(cls):
     fn = cls.render
     if hasattr(fn, "original_fn"):
         fn = fn.original_fn
+
+    @functools.wraps(fn)
     def finalize_render(self, size, focus=False):
         canv = fn(self, size, focus=focus)
         if canv.widget_info:
@@ -180,8 +174,8 @@ def nocache_widget_render(cls):
         canv.finalize(self, size, focus)
         return canv
     finalize_render.original_fn = fn
-    update_wrapper(finalize_render, fn)
     return finalize_render
+
 
 def nocache_widget_render_instance(self):
     """
@@ -190,6 +184,8 @@ def nocache_widget_render_instance(self):
     cache the canvas.
     """
     fn = self.render.original_fn
+
+    @functools.wraps(fn)
     def finalize_render(size, focus=False):
         canv = fn(self, size, focus=focus)
         if canv.widget_info:
@@ -197,8 +193,8 @@ def nocache_widget_render_instance(self):
         canv.finalize(self, size, focus)
         return canv
     finalize_render.original_fn = fn
-    update_wrapper(finalize_render, fn)
     return finalize_render
+
 
 def cache_widget_rows(cls):
     """
@@ -207,6 +203,8 @@ def cache_widget_rows(cls):
     """
     ignore_focus = bool(getattr(cls, "ignore_focus", False))
     fn = cls.rows
+
+    @functools.wraps(fn)
     def cached_rows(self, size, focus=False):
         focus = focus and not ignore_focus
         canv = CanvasCache.fetch(self, cls, size, focus)
@@ -214,7 +212,6 @@ def cache_widget_rows(cls):
             return canv.rows()
 
         return fn(self, size, focus)
-    update_wrapper(cached_rows, fn)
     return cached_rows
 
 
