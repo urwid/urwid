@@ -1,7 +1,8 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 
 """ Tests covering escape sequences processing """
+
+from __future__ import annotations
 
 import unittest
 

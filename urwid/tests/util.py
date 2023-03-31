@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import urwid
+
 
 class SelectableText(urwid.Text):
     def selectable(self):

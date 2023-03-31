@@ -4,22 +4,18 @@
 This code works on older Python 3.x if you install `asyncio` from PyPI, and
 even Python 2 if you install `trollius`!
 """
-from __future__ import print_function
 
-try:
-    import asyncio
-except ImportError:
-    import trollius as asyncio
+from __future__ import annotations
 
-from datetime import datetime
+import asyncio
+import logging
 import sys
 import weakref
+from datetime import datetime
 
 import urwid
 from urwid.raw_display import Screen
-from urwid.display_common import BaseScreen
 
-import logging
 logging.basicConfig()
 
 loop = asyncio.get_event_loop()

@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
+from __future__ import annotations
+
 import urwid
+
 
 class PopUpDialog(urwid.WidgetWrap):
     """A dialog that appears with nothing but a close button """
@@ -13,12 +16,12 @@ class PopUpDialog(urwid.WidgetWrap):
             "^^  I'm attached to the widget that opened me. "
             "Try resizing the window!\n"), close_button])
         fill = urwid.Filler(pile)
-        self.__super.__init__(urwid.AttrWrap(fill, 'popbg'))
+        super().__init__(urwid.AttrWrap(fill, 'popbg'))
 
 
 class ThingWithAPopUp(urwid.PopUpLauncher):
     def __init__(self):
-        self.__super.__init__(urwid.Button("click-me"))
+        super().__init__(urwid.Button("click-me"))
         urwid.connect_signal(self.original_widget, 'click',
             lambda button: self.open_pop_up())
 

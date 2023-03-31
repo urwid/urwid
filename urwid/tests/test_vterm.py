@@ -16,23 +16,23 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
+
+from __future__ import annotations
 
 import errno
 import os
 import sys
 import unittest
-
 from itertools import dropwhile
 
-from urwid.listbox import ListBox
+from urwid import signals, vterm
 from urwid.decoration import BoxAdapter
-from urwid import vterm
-from urwid import signals
-from urwid.compat import B
+from urwid.listbox import ListBox
 
-class DummyCommand(object):
-    QUITSTRING = B('|||quit|||')
+
+class DummyCommand:
+    QUITSTRING = b'|||quit|||'
 
     def __init__(self):
         self.reader, self.writer = os.pipe()
@@ -40,7 +40,7 @@ class DummyCommand(object):
     def __call__(self):
         # reset
         stdout = getattr(sys.stdout, 'buffer', sys.stdout)
-        stdout.write(B('\x1bc'))
+        stdout.write(b'\x1bc')
 
         while True:
             data = self.read(1024)
@@ -98,8 +98,8 @@ class TermTest(unittest.TestCase):
             self.term.render(self.termsize, focus=False)
 
     def write(self, data):
-        data = B(data)
-        self.command.write(data.replace(B('\e'), B('\x1b')))
+        data = data.encode('iso8859-1')
+        self.command.write(data.replace(br'\e', b'\x1b'))
 
     def flush(self):
         self.write(chr(0x7f))
@@ -108,7 +108,7 @@ class TermTest(unittest.TestCase):
         self.term.wait_and_feed()
         rendered = self.term.render(self.termsize, focus=focus)
         if raw:
-            is_empty = lambda c: c == (None, None, B(' '))
+            is_empty = lambda c: c == (None, None, b' ')
             content = list(rendered.content())
             lines = [list(dropwhile(is_empty, reversed(line)))
                      for line in content]
@@ -116,11 +116,11 @@ class TermTest(unittest.TestCase):
         else:
             content = rendered.text
             lines = [line.rstrip() for line in content]
-            return B('\n').join(lines).rstrip()
+            return b'\n'.join(lines).rstrip()
 
     def expect(self, what, desc=None, raw=False, focus=False):
         if not isinstance(what, list):
-            what = B(what)
+            what = what.encode('iso8859-1')
         got = self.read(raw=raw, focus=focus)
         if desc is None:
             desc = ''
@@ -138,7 +138,7 @@ class TermTest(unittest.TestCase):
         self.expect('hello\nworld')
 
     def test_linefeed2(self):
-        self.write('aa\b\b\eDbb')
+        self.write('aa\b\b\\eDbb')
         self.expect('aa\nbb')
 
     def test_carriage_return(self):
@@ -146,11 +146,11 @@ class TermTest(unittest.TestCase):
         self.expect('world')
 
     def test_insertlines(self):
-        self.write('\e[0;0flast\e[0;0f\e[10L\e[0;0ffirst\nsecond\n\e[11D')
+        self.write('\\e[0;0flast\\e[0;0f\\e[10L\\e[0;0ffirst\nsecond\n\\e[11D')
         self.expect('first\nsecond\n\n\n\n\n\n\n\n\nlast')
 
     def test_deletelines(self):
-        self.write('1\n2\n3\n4\e[2;1f\e[2M')
+        self.write('1\n2\n3\n4\\e[2;1f\\e[2M')
         self.expect('1\n4')
 
     def test_nul(self):
@@ -158,21 +158,21 @@ class TermTest(unittest.TestCase):
         self.expect('ab')
 
     def test_movement(self):
-        self.write('\e[10;20H11\e[10;0f\e[20C\e[K')
+        self.write(r'\e[10;20H11\e[10;0f\e[20C\e[K')
         self.expect('\n' * 9 + ' ' * 19 + '1')
-        self.write('\e[A\e[B\e[C\e[D\b\e[K')
+        self.write('\\e[A\\e[B\\e[C\\e[D\b\\e[K')
         self.expect('')
-        self.write('\e[50A2')
+        self.write(r'\e[50A2')
         self.expect(' ' * 19 + '2')
-        self.write('\b\e[K\e[50B3')
+        self.write('\b\\e[K\\e[50B3')
         self.expect('\n' * 23 + ' ' * 19 + '3')
-        self.write('\b\e[K' + '\eM' * 30 + '\e[100C4')
+        self.write('\b\\e[K' + r'\eM' * 30 + r'\e[100C4')
         self.expect(' ' * 79 + '4')
-        self.write('\e[100D\e[K5')
+        self.write(r'\e[100D\e[K5')
         self.expect('5')
 
     def edgewall(self):
-        edgewall = '1-\e[1;%(x)df-2\e[%(y)d;1f3-\e[%(y)d;%(x)df-4\x0d'
+        edgewall = '1-\\e[1;%(x)df-2\\e[%(y)d;1f3-\\e[%(y)d;%(x)df-4\x0d'
         self.write(edgewall % {'x': self.termsize[0] - 1,
                                'y': self.termsize[1] - 1})
 
@@ -195,7 +195,7 @@ class TermTest(unittest.TestCase):
                          + '3-' + ' ' * 76 + '-4')
         for y in range(23, 1, -1):
             self.resize(80, y, soft=True)
-            self.write('\e[%df\e[J3-\e[%d;%df-4' % (y, y, 79))
+            self.write(r'\e[%df\e[J3-\e[%d;%df-4' % (y, y, 79))
             desc = "try to rescale to 80x%d." % y
             self.expect('\n' * (y - 2) + '3-' + ' ' * 76 + '-4', desc)
         self.resize(80, 24, soft=True)
@@ -204,8 +204,8 @@ class TermTest(unittest.TestCase):
                          + '3-' + ' ' * 76 + '-4')
 
     def write_movements(self, arg):
-        fmt = 'XXX\n\e[faaa\e[Bccc\e[Addd\e[Bfff\e[Cbbb\e[A\e[Deee'
-        self.write(fmt.replace('\e[', '\e['+arg))
+        fmt = 'XXX\n\\e[faaa\\e[Bccc\\e[Addd\\e[Bfff\\e[Cbbb\\e[A\\e[Deee'
+        self.write(fmt.replace(r'\e[', r'\e['+arg))
 
     def test_defargs(self):
         self.write_movements('')
@@ -216,82 +216,82 @@ class TermTest(unittest.TestCase):
         self.expect('aaa   ddd      eee\n   ccc   fff bbb')
 
     def test_erase_line(self):
-        self.write('1234567890\e[5D\e[K\n1234567890\e[5D\e[1K\naaaaaaaaaaaaaaa\e[2Ka')
+        self.write('1234567890\\e[5D\\e[K\n1234567890\\e[5D\\e[1K\naaaaaaaaaaaaaaa\\e[2Ka')
         self.expect('12345\n      7890\n               a')
 
     def test_erase_display(self):
-        self.write('1234567890\e[5D\e[Ja')
+        self.write(r'1234567890\e[5D\e[Ja')
         self.expect('12345a')
-        self.write('98765\e[8D\e[1Jx')
+        self.write(r'98765\e[8D\e[1Jx')
         self.expect('   x5a98765')
 
     def test_scrolling_region_simple(self):
-        self.write('\e[10;20r\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\e[faa')
+        self.write('\\e[10;20r\\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\\e[faa')
         self.expect('aa' + '\n' * 9 + '2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12')
 
     def test_scrolling_region_reverse(self):
-        self.write('\e[2J\e[1;2r\e[5Baaa\r\eM\eM\eMbbb\nXXX')
+        self.write('\\e[2J\\e[1;2r\\e[5Baaa\r\\eM\\eM\\eMbbb\nXXX')
         self.expect('\n\nbbb\nXXX\n\naaa')
 
     def test_scrolling_region_move(self):
-        self.write('\e[10;20r\e[2J\e[10Bfoo\rbar\rblah\rmooh\r\e[10Aone\r\eM\eMtwo\r\eM\eMthree\r\eM\eMa')
+        self.write('\\e[10;20r\\e[2J\\e[10Bfoo\rbar\rblah\rmooh\r\\e[10Aone\r\\eM\\eMtwo\r\\eM\\eMthree\r\\eM\\eMa')
         self.expect('ahree\n\n\n\n\n\n\n\n\n\nmooh')
 
     def test_scrolling_twice(self):
-        self.write('\e[?6h\e[10;20r\e[2;5rtest')
+        self.write(r'\e[?6h\e[10;20r\e[2;5rtest')
         self.expect('\ntest')
 
     def test_cursor_scrolling_region(self):
-        self.write('\e[?6h\e[10;20r\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\e[faa')
+        self.write('\\e[?6h\\e[10;20r\\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\\e[faa')
         self.expect('\n' * 9 + 'aa\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12')
 
     def test_scrolling_region_simple_with_focus(self):
-        self.write('\e[10;20r\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\e[faa')
+        self.write('\\e[10;20r\\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\\e[faa')
         self.expect('aa' + '\n' * 9 + '2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12', focus=True)
 
     def test_scrolling_region_reverse_with_focus(self):
-        self.write('\e[2J\e[1;2r\e[5Baaa\r\eM\eM\eMbbb\nXXX')
+        self.write('\\e[2J\\e[1;2r\\e[5Baaa\r\\eM\\eM\\eMbbb\nXXX')
         self.expect('\n\nbbb\nXXX\n\naaa', focus=True)
 
     def test_scrolling_region_move_with_focus(self):
-        self.write('\e[10;20r\e[2J\e[10Bfoo\rbar\rblah\rmooh\r\e[10Aone\r\eM\eMtwo\r\eM\eMthree\r\eM\eMa')
+        self.write('\\e[10;20r\\e[2J\\e[10Bfoo\rbar\rblah\rmooh\r\\e[10Aone\r\\eM\\eMtwo\r\\eM\\eMthree\r\\eM\\eMa')
         self.expect('ahree\n\n\n\n\n\n\n\n\n\nmooh', focus=True)
 
     def test_scrolling_twice_with_focus(self):
-        self.write('\e[?6h\e[10;20r\e[2;5rtest')
+        self.write(r'\e[?6h\e[10;20r\e[2;5rtest')
         self.expect('\ntest', focus=True)
 
     def test_cursor_scrolling_region_with_focus(self):
-        self.write('\e[?6h\e[10;20r\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\e[faa')
+        self.write('\\e[?6h\\e[10;20r\\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\\e[faa')
         self.expect('\n' * 9 + 'aa\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12', focus=True)
 
     def test_relative_region_jump(self):
-        self.write('\e[21H---\e[10;20r\e[?6h\e[18Htest')
+        self.write(r'\e[21H---\e[10;20r\e[?6h\e[18Htest')
         self.expect('\n' * 19 + 'test\n---')
 
     def test_set_multiple_modes(self):
-        self.write('\e[?6;5htest')
+        self.write(r'\e[?6;5htest')
         self.expect('test')
         self.assertTrue(self.term.term_modes.constrain_scrolling)
         self.assertTrue(self.term.term_modes.reverse_video)
-        self.write('\e[?6;5l')
+        self.write(r'\e[?6;5l')
         self.expect('test')
         self.assertFalse(self.term.term_modes.constrain_scrolling)
         self.assertFalse(self.term.term_modes.reverse_video)
 
     def test_wrap_simple(self):
-        self.write('\e[?7h\e[1;%dHtt' % self.term.width)
+        self.write(r'\e[?7h\e[1;%dHtt' % self.term.width)
         self.expect(' ' * (self.term.width - 1) + 't\nt')
 
     def test_wrap_backspace_tab(self):
-        self.write('\e[?7h\e[1;%dHt\b\b\t\ta' % self.term.width)
+        self.write('\\e[?7h\\e[1;%dHt\b\b\t\ta' % self.term.width)
         self.expect(' ' * (self.term.width - 1) + 'a')
 
     def test_cursor_visibility(self):
-        self.write('\e[?25linvisible')
+        self.write(r'\e[?25linvisible')
         self.expect('invisible', focus=True)
         self.assertEqual(self.term.term.cursor, None)
-        self.write('\rvisible\e[?25h\e[K')
+        self.write('\rvisible\\e[?25h\\e[K')
         self.expect('visible', focus=True)
         self.assertNotEqual(self.term.term.cursor, None)
 
@@ -305,41 +305,41 @@ class TermTest(unittest.TestCase):
 
     def test_encoding_unicode(self):
         vterm.util._target_encoding = 'utf-8'
-        self.write('\e%G\xe2\x80\x94')
+        self.write('\\e%G\xe2\x80\x94')
         self.expect('\xe2\x80\x94')
 
     def test_encoding_unicode_ascii(self):
         vterm.util._target_encoding = 'ascii'
-        self.write('\e%G\xe2\x80\x94')
+        self.write('\\e%G\xe2\x80\x94')
         self.expect('?')
 
     def test_encoding_wrong_unicode(self):
         vterm.util._target_encoding = 'utf-8'
-        self.write('\e%G\xc0\x99')
+        self.write('\\e%G\xc0\x99')
         self.expect('')
 
     def test_encoding_vt100_graphics(self):
         vterm.util._target_encoding = 'ascii'
-        self.write('\e)0\e(0\x0fg\x0eg\e)Bn\e)0g\e)B\e(B\x0fn')
+        self.write('\\e)0\\e(0\x0fg\x0eg\\e)Bn\\e)0g\\e)B\\e(B\x0fn')
         self.expect([[
-            (None, '0', B('g')), (None, '0', B('g')),
-            (None, None, B('n')), (None, '0', B('g')),
-            (None, None, B('n'))
+            (None, '0', b'g'), (None, '0', b'g'),
+            (None, None, b'n'), (None, '0', b'g'),
+            (None, None, b'n')
         ]], raw=True)
 
     def test_ibmpc_mapping(self):
         vterm.util._target_encoding = 'ascii'
 
-        self.write('\e[11m\x18\e[10m\x18')
-        self.expect([[(None, 'U', B('\x18'))]], raw=True)
+        self.write('\\e[11m\x18\\e[10m\x18')
+        self.expect([[(None, 'U', b'\x18')]], raw=True)
 
-        self.write('\ec\e)U\x0e\x18\x0f\e[3h\x18\e[3l\x18')
-        self.expect([[(None, None, B('\x18'))]], raw=True)
+        self.write('\\ec\\e)U\x0e\x18\x0f\\e[3h\x18\\e[3l\x18')
+        self.expect([[(None, None, b'\x18')]], raw=True)
 
-        self.write('\ec\e[11m\xdb\x18\e[10m\xdb')
+        self.write('\\ec\\e[11m\xdb\x18\\e[10m\xdb')
         self.expect([[
-            (None, 'U', B('\xdb')), (None, 'U', B('\x18')),
-            (None, None, B('\xdb'))
+            (None, 'U', b'\xdb'), (None, 'U', b'\x18'),
+            (None, None, b'\xdb')
         ]], raw=True)
 
     def test_set_title(self):
@@ -349,20 +349,20 @@ class TermTest(unittest.TestCase):
             self._the_title = title
 
         self.connect_signal('title')
-        self.write('\e]666parsed right?\e\\te\e]0;test title\007st1')
+        self.write('\\e]666parsed right?\\e\\te\\e]0;test title\007st1')
         self.expect('test1')
-        self.expect_signal(B('test title'))
-        self.write('\e]3;stupid title\e\\\e[0G\e[2Ktest2')
+        self.expect_signal(b'test title')
+        self.write('\\e]3;stupid title\\e\\\\e[0G\\e[2Ktest2')
         self.expect('test2')
-        self.expect_signal(B('stupid title'))
+        self.expect_signal(b'stupid title')
         self.disconnect_signal('title')
 
     def test_set_leds(self):
         self.connect_signal('leds')
-        self.write('\e[0qtest1')
+        self.write(r'\e[0qtest1')
         self.expect('test1')
         self.expect_signal('clear')
-        self.write('\e[3q\e[H\e[Ktest2')
+        self.write(r'\e[3q\e[H\e[Ktest2')
         self.expect('test2')
         self.expect_signal('caps_lock')
         self.disconnect_signal('leds')

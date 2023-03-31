@@ -17,12 +17,14 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
 """
 Urwid example similar to dialog(1) program
 
 """
+
+from __future__ import annotations
 
 import sys
 
@@ -215,7 +217,7 @@ class CheckListDialogDisplay(ListDialogDisplay):
         for i in self.items:
             if i.get_state():
                 l.append(i.get_label())
-        return exitcode, "".join(['"'+tag+'" ' for tag in l])
+        return exitcode, "".join([f'"{tag}" ' for tag in l])
 
 
 
@@ -307,8 +309,8 @@ def show_usage():
     """
     Display a helpful usage message.
     """
-    modelist = [(mode, help) for (mode, (fn, help)) in MODES.items()]
-    modelist.sort()
+    modelist = sorted((mode, help) for (mode, (fn, help)) in MODES.items())
+
     sys.stdout.write(
         __doc__ +
         "\n".join(["%-15s %s"%(mode,help) for (mode,help) in modelist])
@@ -334,7 +336,7 @@ def main():
 
     # Exit
     if exitstring:
-        sys.stderr.write(exitstring+"\n")
+        sys.stderr.write(f"{exitstring}\n")
 
     sys.exit(exitcode)
 

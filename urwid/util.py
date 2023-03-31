@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 #
 # Urwid utility functions
 #    Copyright (C) 2004-2011  Ian Ward
@@ -18,14 +17,14 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
-from __future__ import division, print_function
 
-from urwid import escape
-from urwid.compat import text_type, text_types
+from __future__ import annotations
 
 import codecs
+
+from urwid import escape
 
 str_util = escape.str_util
 
@@ -98,7 +97,7 @@ def set_encoding( encoding ):
     _target_encoding = 'ascii'
     try:
         if encoding:
-            u"".encode(encoding)
+            "".encode(encoding)
             _target_encoding = encoding
     except LookupError: pass
 
@@ -116,12 +115,12 @@ def apply_target_encoding( s ):
     """
     Return (encoded byte string, character set rle).
     """
-    if _use_dec_special and type(s) == text_type:
+    if _use_dec_special and type(s) == str:
         # first convert drawing characters
         s = s.translate(escape.DEC_SPECIAL_CHARMAP)
 
-    if type(s) == text_type:
-        s = s.replace(escape.SI+escape.SO, u"") # remove redundant shifts
+    if type(s) == str:
+        s = s.replace(escape.SI+escape.SO, "") # remove redundant shifts
         s = codecs.encode(s, _target_encoding, 'replace')
 
     assert isinstance(s, bytes)
@@ -132,7 +131,7 @@ def apply_target_encoding( s ):
 
     assert isinstance(sis[0], bytes)
 
-    sis0 = sis[0].replace(SI, bytes())
+    sis0 = sis[0].replace(SI, b'')
     sout = []
     cout = []
     if sis0:
@@ -153,7 +152,7 @@ def apply_target_encoding( s ):
             rle_append_modify(cout, (escape.DEC_TAG.encode('ascii'), len(sin)))
             continue
         sin, son = sl
-        son = son.replace(SI, bytes())
+        son = son.replace(SI, b'')
         if sin:
             sout.append(sin)
             rle_append_modify(cout, (escape.DEC_TAG, len(sin)))
@@ -161,7 +160,7 @@ def apply_target_encoding( s ):
             sout.append(son)
             rle_append_modify(cout, (None, len(son)))
 
-    outstr = bytes().join(sout)
+    outstr = b''.join(sout)
     return outstr, cout
 
 
@@ -230,8 +229,8 @@ def trim_text_attr_cs( text, attr, cs, start_col, end_col ):
         rle_append_modify( attrtr, (al, 1) )
         rle_append_modify( cstr, (None, 1) )
 
-    return (bytes().rjust(pad_left) + text[spos:epos] +
-        bytes().rjust(pad_right), attrtr, cstr)
+    return (b''.rjust(pad_left) + text[spos:epos] +
+        b''.rjust(pad_right), attrtr, cstr)
 
 
 def rle_get_at( rle, pos ):
@@ -409,13 +408,13 @@ def _tagmarkup_recurse( tm, attr ):
     if type(tm) == tuple:
         # tuples mark a new attribute boundary
         if len(tm) != 2:
-            raise TagMarkupException("Tuples must be in the form (attribute, tagmarkup): %r" % (tm,))
+            raise TagMarkupException(f"Tuples must be in the form (attribute, tagmarkup): {tm!r}")
 
         attr, element = tm
         return _tagmarkup_recurse( element, attr )
 
-    if not isinstance(tm, text_types + (bytes,)):
-        raise TagMarkupException("Invalid markup element: %r" % tm)
+    if not isinstance(tm, (str, bytes)):
+        raise TagMarkupException(f"Invalid markup element: {tm!r}")
 
     # text
     return [tm], [(attr, len(tm))]
@@ -429,14 +428,13 @@ def is_mouse_press( ev ):
     return ev.find("press")>=0
 
 
-
 class MetaSuper(type):
     """adding .__super"""
     def __init__(cls, name, bases, d):
-        super(MetaSuper, cls).__init__(name, bases, d)
-        if hasattr(cls, "_%s__super" % name):
+        super().__init__(name, bases, d)
+        if hasattr(cls, f"_{name}__super"):
             raise AttributeError("Class has same name as one of its super classes")
-        setattr(cls, "_%s__super" % name, super(cls))
+        setattr(cls, f"_{name}__super", super(cls))
 
 
 
@@ -461,7 +459,7 @@ def int_scale(val, val_range, out_range):
     return num // dem
 
 
-class StoppingContext(object):
+class StoppingContext:
     """Context manager that calls ``stop`` on a given object on exit.  Used to
     make the ``start`` method on `MainLoop` and `BaseScreen` optionally act as
     context managers.

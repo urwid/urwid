@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 #
 # Urwid graphics widgets
 #    Copyright (C) 2004-2011  Ian Ward
@@ -18,20 +17,38 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
-from __future__ import division, print_function
 
-from urwid.compat import ord2, with_metaclass
-from urwid.util import decompose_tagmarkup, get_encoding_mode
-from urwid.canvas import CompositeCanvas, CanvasJoin, TextCanvas, \
-    CanvasCombine, SolidCanvas
-from urwid.widget import WidgetMeta, Widget, BOX, FIXED, FLOW, \
-    nocache_widget_render, nocache_widget_render_instance, fixed_size, \
-    WidgetWrap, Divider, SolidFill, Text, CENTER, CLIP
-from urwid.container import Pile, Columns
-from urwid.display_common import AttrSpec
+from __future__ import annotations
+
+from urwid.canvas import (
+    CanvasCombine,
+    CanvasJoin,
+    CompositeCanvas,
+    SolidCanvas,
+    TextCanvas,
+)
+from urwid.container import Columns, Pile
 from urwid.decoration import WidgetDecoration
+from urwid.display_common import AttrSpec
+from urwid.util import decompose_tagmarkup, get_encoding_mode
+from urwid.widget import (
+    BOX,
+    CENTER,
+    CLIP,
+    FIXED,
+    FLOW,
+    Divider,
+    SolidFill,
+    Text,
+    Widget,
+    WidgetMeta,
+    WidgetWrap,
+    fixed_size,
+    nocache_widget_render,
+    nocache_widget_render_instance,
+)
 
 
 class BigText(Widget):
@@ -101,9 +118,9 @@ class LineBox(WidgetDecoration, WidgetWrap):
 
     def __init__(self, original_widget, title="",
                  title_align="center", title_attr=None,
-                 tlcorner=u'┌', tline=u'─', lline=u'│',
-                 trcorner=u'┐', blcorner=u'└', rline=u'│',
-                 bline=u'─', brcorner=u'┘'):
+                 tlcorner='┌', tline='─', lline='│',
+                 trcorner='┐', blcorner='└', rline='│',
+                 bline='─', brcorner='┘'):
         """
         Draw a line around original_widget.
 
@@ -175,7 +192,7 @@ class LineBox(WidgetDecoration, WidgetWrap):
         else:
             # Note: We need to define a fixed first widget (even if it's 0 width) so that the other
             # widgets have something to anchor onto
-            middle_widgets.append(('fixed', 0, SolidFill(u"")))
+            middle_widgets.append(('fixed', 0, SolidFill("")))
         middle_widgets.append(original_widget)
         focus_col = len(middle_widgets) - 1
         if rline:
@@ -205,7 +222,7 @@ class LineBox(WidgetDecoration, WidgetWrap):
 
     def format_title(self, text):
         if len(text) > 0:
-            return " %s " % text
+            return f" {text} "
         else:
             return ""
 
@@ -240,7 +257,7 @@ class BarGraphMeta(WidgetMeta):
     should use set_data() instead of overriding get_data().
     """
     def __init__(cls, name, bases, d):
-        super(BarGraphMeta, cls).__init__(name, bases, d)
+        super().__init__(name, bases, d)
 
         if "get_data" in d:
             cls.render = nocache_widget_render(cls)
@@ -261,13 +278,13 @@ def nocache_bargraph_get_data(self, get_data_fn):
 class BarGraphError(Exception):
     pass
 
-class BarGraph(with_metaclass(BarGraphMeta, Widget)):
+class BarGraph(Widget, metaclass=BarGraphMeta):
     _sizing = frozenset([BOX])
 
     ignore_focus = True
 
-    eighths = u' ▁▂▃▄▅▆▇'
-    hlines = u'_⎺⎻─⎼⎽'
+    eighths = ' ▁▂▃▄▅▆▇'
+    hlines = '_⎺⎻─⎼⎽'
 
     def __init__(self, attlist, hatt=None, satt=None):
         """
@@ -317,7 +334,7 @@ class BarGraph(with_metaclass(BarGraphMeta, Widget)):
         self.attr = []
         self.char = []
         if len(attlist) < 2:
-            raise BarGraphError("attlist must include at least background and seg1: %r" % (attlist,))
+            raise BarGraphError(f"attlist must include at least background and seg1: {attlist!r}")
         assert len(attlist) >= 2, 'must at least specify bg and fg!'
         for a in attlist:
             if type(a) != tuple:
@@ -341,13 +358,13 @@ class BarGraph(with_metaclass(BarGraphMeta, Widget)):
             try:
                 (fg, bg), attr = i
             except ValueError:
-                raise BarGraphError("satt not in (fg,bg:attr) form: %r" % (i,))
+                raise BarGraphError(f"satt not in (fg,bg:attr) form: {i!r}")
             if type(fg) != int or fg >= len(attlist):
-                raise BarGraphError("fg not valid integer: %r" % (fg,))
+                raise BarGraphError(f"fg not valid integer: {fg!r}")
             if type(bg) != int or bg >= len(attlist):
-                raise BarGraphError("bg not valid integer: %r" % (fg,))
+                raise BarGraphError(f"bg not valid integer: {fg!r}")
             if fg <= bg:
-                raise BarGraphError("fg (%s) not > bg (%s)" % (fg, bg))
+                raise BarGraphError(f"fg ({fg}) not > bg ({bg})")
         self.satt = satt
 
     def set_data(self, bardata, top, hlines=None):
@@ -369,9 +386,8 @@ class BarGraph(with_metaclass(BarGraphMeta, Widget)):
         and it will have a second segment that starts at 30%.
         """
         if hlines is not None:
-            hlines = hlines[:]  # shallow copy
-            hlines.sort()
-            hlines.reverse()
+            hlines = sorted(hlines[:], reverse=True)  # shallow copy
+
         self.data = bardata, top, hlines
         self._invalidate()
 
@@ -713,7 +729,7 @@ def calculate_bargraph_display(bardata, top, bar_widths, maxrow):
         col += width
         barnum += 1
 
-    #print repr(rows)
+    # print(repr(rows))
     # build rowsets data structure
     rowsets = []
     y_count = 0
@@ -807,9 +823,8 @@ class GraphVScale(Widget):
         top -- top y position
         """
 
-        labels = labels[:]  # shallow copy
-        labels.sort()
-        labels.reverse()
+        labels = sorted(labels[:], reverse=True)  # shallow copy
+
         self.pos = []
         self.txt = []
         for y, markup in labels:
@@ -865,7 +880,7 @@ def scale_bar_values( bar, top, maxrow ):
 class ProgressBar(Widget):
     _sizing = frozenset([FLOW])
 
-    eighths = u' ▏▎▍▌▋▊▉'
+    eighths = ' ▏▎▍▌▋▊▉'
 
     text_align = CENTER
 
@@ -933,7 +948,7 @@ class ProgressBar(Widget):
         You can override this method to display custom text.
         """
         percent = min(100, max(0, int(self.current * 100 / self.done)))
-        return str(percent) + " %"
+        return f"{str(percent)} %"
 
     def render(self, size, focus=False):
         """
@@ -957,7 +972,7 @@ class ProgressBar(Widget):
             c._attr = [[(self.normal, maxcol)]]
         elif ccol >= maxcol:
             c._attr = [[(self.complete, maxcol)]]
-        elif cs and ord2(c._text[0][ccol]) == 32:
+        elif cs and c._text[0][ccol] == 32:
             t = c._text[0]
             cenc = self.eighths[cs].encode("utf-8")
             c._text[0] = t[:ccol] + cenc + t[ccol + 1:]

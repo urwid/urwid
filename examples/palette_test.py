@@ -17,15 +17,16 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
 """
 Palette test.  Shows the available foreground and background settings
 in monochrome, 16 color, 88 color, 256 color, and 24-bit (true) color modes.
 """
 
+from __future__ import annotations
+
 import re
-import sys
 
 import urwid
 import urwid.raw_display
@@ -281,12 +282,12 @@ def parse_chart(chart, convert):
                 entry = entry[elen:].strip()
             else: # try the whole thing
                 attrtext = convert(entry.strip())
-                assert attrtext, "Invalid palette entry: %r" % entry
+                assert attrtext, f"Invalid palette entry: {entry!r}"
                 elen = len(entry)
                 entry = ""
             attr, text = attrtext
             if chart == CHART_TRUE:
-                out.append((attr, u"\u2584"))
+                out.append((attr, "\u2584"))
             else:
                 out.append((attr, text.ljust(elen)))
     return out

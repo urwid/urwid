@@ -1,19 +1,22 @@
+from __future__ import annotations
+
 import urwid
+
 
 class MenuButton(urwid.Button):
     def __init__(self, caption, callback):
-        super(MenuButton, self).__init__("")
+        super().__init__("")
         urwid.connect_signal(self, 'click', callback)
         self._w = urwid.AttrMap(urwid.SelectableIcon(
-            [u'  \N{BULLET} ', caption], 2), None, 'selected')
+            ['  \N{BULLET} ', caption], 2), None, 'selected')
 
 class SubMenu(urwid.WidgetWrap):
     def __init__(self, caption, choices):
-        super(SubMenu, self).__init__(MenuButton(
-            [caption, u"\N{HORIZONTAL ELLIPSIS}"], self.open_menu))
-        line = urwid.Divider(u'\N{LOWER ONE QUARTER BLOCK}')
+        super().__init__(MenuButton(
+            [caption, "\N{HORIZONTAL ELLIPSIS}"], self.open_menu))
+        line = urwid.Divider('\N{LOWER ONE QUARTER BLOCK}')
         listbox = urwid.ListBox(urwid.SimpleFocusListWalker([
-            urwid.AttrMap(urwid.Text([u"\n  ", caption]), 'heading'),
+            urwid.AttrMap(urwid.Text(["\n  ", caption]), 'heading'),
             urwid.AttrMap(line, 'line'),
             urwid.Divider()] + choices + [urwid.Divider()]))
         self.menu = urwid.AttrMap(listbox, 'options')
@@ -23,31 +26,31 @@ class SubMenu(urwid.WidgetWrap):
 
 class Choice(urwid.WidgetWrap):
     def __init__(self, caption):
-        super(Choice, self).__init__(
+        super().__init__(
             MenuButton(caption, self.item_chosen))
         self.caption = caption
 
     def item_chosen(self, button):
-        response = urwid.Text([u'  You chose ', self.caption, u'\n'])
-        done = MenuButton(u'Ok', exit_program)
+        response = urwid.Text(['  You chose ', self.caption, '\n'])
+        done = MenuButton('Ok', exit_program)
         response_box = urwid.Filler(urwid.Pile([response, done]))
         top.open_box(urwid.AttrMap(response_box, 'options'))
 
 def exit_program(key):
     raise urwid.ExitMainLoop()
 
-menu_top = SubMenu(u'Main Menu', [
-    SubMenu(u'Applications', [
-        SubMenu(u'Accessories', [
-            Choice(u'Text Editor'),
-            Choice(u'Terminal'),
+menu_top = SubMenu('Main Menu', [
+    SubMenu('Applications', [
+        SubMenu('Accessories', [
+            Choice('Text Editor'),
+            Choice('Terminal'),
         ]),
     ]),
-    SubMenu(u'System', [
-        SubMenu(u'Preferences', [
-            Choice(u'Appearance'),
+    SubMenu('System', [
+        SubMenu('Preferences', [
+            Choice('Appearance'),
         ]),
-        Choice(u'Lock Screen'),
+        Choice('Lock Screen'),
     ]),
 ])
 
@@ -67,7 +70,7 @@ focus_map = {
 
 class HorizontalBoxes(urwid.Columns):
     def __init__(self):
-        super(HorizontalBoxes, self).__init__([], dividechars=1)
+        super().__init__([], dividechars=1)
 
     def open_box(self, box):
         if self.contents:

@@ -1,18 +1,21 @@
+from __future__ import annotations
+
 import urwid
 
+
 def question():
-    return urwid.Pile([urwid.Edit(('I say', u"What is your name?\n"))])
+    return urwid.Pile([urwid.Edit(('I say', "What is your name?\n"))])
 
 def answer(name):
-    return urwid.Text(('I say', u"Nice to meet you, " + name + "\n"))
+    return urwid.Text(('I say', f"Nice to meet you, {name}\n"))
 
 class ConversationListBox(urwid.ListBox):
     def __init__(self):
         body = urwid.SimpleFocusListWalker([question()])
-        super(ConversationListBox, self).__init__(body)
+        super().__init__(body)
 
     def keypress(self, size, key):
-        key = super(ConversationListBox, self).keypress(size, key)
+        key = super().keypress(size, key)
         if key != 'enter':
             return key
         name = self.focus[0].edit_text

@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import unittest
 
-from urwid.compat import B
-from urwid.tests.util import SelectableText
 import urwid
+from urwid.tests.util import SelectableText
 
 
 class ListBoxCalculateVisibleTest(unittest.TestCase):
@@ -22,8 +23,8 @@ class ListBoxCalculateVisibleTest(unittest.TestCase):
             y += offset_inset
             cursor = x, y
 
-        assert offset_inset == exp_offset_inset, "%s got: %r expected: %r" %(desc,offset_inset,exp_offset_inset)
-        assert cursor == exp_cur, "%s (cursor) got: %r expected: %r" %(desc,cursor,exp_cur)
+        assert offset_inset == exp_offset_inset, f"{desc} got: {offset_inset!r} expected: {exp_offset_inset!r}"
+        assert cursor == exp_cur, f"{desc} (cursor) got: {cursor!r} expected: {exp_cur!r}"
 
     def test1_simple(self):
         T = urwid.Text
@@ -113,8 +114,8 @@ class ListBoxChangeFocusTest(unittest.TestCase):
             if hasattr(focus_widget,'get_cursor_coords'):
                 cursor=focus_widget.get_cursor_coords((4,))
 
-        assert act == exp, "%s got: %s expected: %s" %(desc, act, exp)
-        assert cursor == exp_cur, "%s (cursor) got: %r expected: %r" %(desc,cursor,exp_cur)
+        assert act == exp, f"{desc} got: {act} expected: {exp}"
+        assert cursor == exp_cur, f"{desc} (cursor) got: {cursor!r} expected: {exp_cur!r}"
 
 
     def test1unselectable(self):
@@ -206,18 +207,18 @@ class ListBoxChangeFocusTest(unittest.TestCase):
 
 class ListBoxRenderTest(unittest.TestCase):
     def ltest(self,desc,body,focus,offset_inset_rows,exp_text,exp_cur):
-        exp_text = [B(t) for t in exp_text]
+        exp_text = [t.encode('iso8859-1') for t in exp_text]
         lbox = urwid.ListBox(urwid.SimpleListWalker(body))
         lbox.body.set_focus( focus )
         lbox.shift_focus((4,10), offset_inset_rows )
         canvas = lbox.render( (4,5), focus=1 )
 
-        text = [bytes().join([t for at, cs, t in ln]) for ln in canvas.content()]
+        text = [b''.join([t for at, cs, t in ln]) for ln in canvas.content()]
 
         cursor = canvas.cursor
 
-        assert text == exp_text, "%s (text) got: %r expected: %r" %(desc,text,exp_text)
-        assert cursor == exp_cur, "%s (cursor) got: %r expected: %r" %(desc,cursor,exp_cur)
+        assert text == exp_text, f"{desc} (text) got: {text!r} expected: {exp_text!r}"
+        assert cursor == exp_cur, f"{desc} (cursor) got: {cursor!r} expected: {exp_cur!r}"
 
 
     def test1_simple(self):
@@ -292,11 +293,11 @@ class ListBoxRenderTest(unittest.TestCase):
     def test4_really_large_contents(self):
         T,E = urwid.Text, urwid.Edit
         self.ltest("really large edit",
-            [T(u"hello"*100)], 0, 0,
+            [T("hello"*100)], 0, 0,
             ["hell","ohel","lohe","lloh","ello"], None)
 
         self.ltest("really large edit",
-            [E(u"", u"hello"*100)], 0, 0,
+            [E("", "hello"*100)], 0, 0,
             ["hell","ohel","lohe","lloh","llo "], (3,4))
 
 
@@ -320,8 +321,8 @@ class ListBoxKeypressTest(unittest.TestCase):
 
         exp = exp_focus, exp_offset_inset
         act = focus_pos, offset_inset
-        assert act == exp, "%s got: %r expected: %r" %(desc,act,exp)
-        assert cursor == exp_cur, "%s (cursor) got: %r expected: %r" %(desc,cursor,exp_cur)
+        assert act == exp, f"{desc} got: {act!r} expected: {exp!r}"
+        assert cursor == exp_cur, f"{desc} (cursor) got: {cursor!r} expected: {exp_cur!r}"
         return ret_key,lbox
 
 
@@ -768,7 +769,7 @@ class ZeroHeightContentsTest(unittest.TestCase):
 
     def test_listbox_text_pile_page_down(self):
         lb = urwid.ListBox(urwid.SimpleListWalker(
-            [urwid.Text(u'above'), urwid.Pile([])]))
+            [urwid.Text('above'), urwid.Pile([])]))
         lb.keypress((40,10), 'page down')
         self.assertEqual(lb.get_focus()[1], 0)
         lb.keypress((40,10), 'page down') # second one caused ListBox failure
@@ -776,7 +777,7 @@ class ZeroHeightContentsTest(unittest.TestCase):
 
     def test_listbox_text_pile_page_up(self):
         lb = urwid.ListBox(urwid.SimpleListWalker(
-            [urwid.Pile([]), urwid.Text(u'below')]))
+            [urwid.Pile([]), urwid.Text('below')]))
         lb.set_focus(1)
         lb.keypress((40,10), 'page up')
         self.assertEqual(lb.get_focus()[1], 1)
@@ -786,7 +787,7 @@ class ZeroHeightContentsTest(unittest.TestCase):
     def test_listbox_text_pile_down(self):
         sp = urwid.Pile([])
         sp.selectable = lambda: True # abuse our Pile
-        lb = urwid.ListBox(urwid.SimpleListWalker([urwid.Text(u'above'), sp]))
+        lb = urwid.ListBox(urwid.SimpleListWalker([urwid.Text('above'), sp]))
         lb.keypress((40,10), 'down')
         self.assertEqual(lb.get_focus()[1], 0)
         lb.keypress((40,10), 'down')
@@ -795,7 +796,7 @@ class ZeroHeightContentsTest(unittest.TestCase):
     def test_listbox_text_pile_up(self):
         sp = urwid.Pile([])
         sp.selectable = lambda: True # abuse our Pile
-        lb = urwid.ListBox(urwid.SimpleListWalker([sp, urwid.Text(u'below')]))
+        lb = urwid.ListBox(urwid.SimpleListWalker([sp, urwid.Text('below')]))
         lb.set_focus(1)
         lb.keypress((40,10), 'up')
         self.assertEqual(lb.get_focus()[1], 1)

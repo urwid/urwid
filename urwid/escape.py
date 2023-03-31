@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 #
 # Urwid escape sequences common to curses_display and raw_display
 #    Copyright (C) 2004-2011  Ian Ward
@@ -18,13 +17,14 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
-from __future__ import division, print_function
 
 """
 Terminal Escape Sequences for input and display
 """
+
+from __future__ import annotations
 
 import re
 
@@ -32,8 +32,6 @@ try:
     from urwid import str_util
 except ImportError:
     from urwid import old_str_util as str_util
-
-from urwid.compat import bytes3
 
 # NOTE: because of circular imports (urwid.util -> urwid.escape -> urwid.util)
 # from urwid.util import is_mouse_event -- will not work here
@@ -47,16 +45,16 @@ IBMPC_ON = "\x1b[11m"
 IBMPC_OFF = "\x1b[10m"
 
 DEC_TAG = "0"
-DEC_SPECIAL_CHARS = u'▮◆▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥π≠£·'
-ALT_DEC_SPECIAL_CHARS = u"_`abcdefghijklmnopqrstuvwxyz{|}~"
+DEC_SPECIAL_CHARS = '▮◆▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥π≠£·'
+ALT_DEC_SPECIAL_CHARS = "_`abcdefghijklmnopqrstuvwxyz{|}~"
 
 DEC_SPECIAL_CHARMAP = {}
 assert len(DEC_SPECIAL_CHARS) == len(ALT_DEC_SPECIAL_CHARS), repr((DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS))
 for c, alt in zip(DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS):
     DEC_SPECIAL_CHARMAP[ord(c)] = SO + alt + SI
 
-SAFE_ASCII_DEC_SPECIAL_RE = re.compile(u"^[ -~%s]*$" % DEC_SPECIAL_CHARS)
-DEC_SPECIAL_RE = re.compile(u"[%s]" % DEC_SPECIAL_CHARS)
+SAFE_ASCII_DEC_SPECIAL_RE = re.compile(f"^[ -~{DEC_SPECIAL_CHARS}]*$")
+DEC_SPECIAL_RE = re.compile(f"[{DEC_SPECIAL_CHARS}]")
 
 
 ###################
@@ -101,12 +99,12 @@ input_sequences = [
     for prefix, modifier in zip('O[', ('meta ', 'shift '))
     for letter, key in zip('abcd', ('up', 'down', 'right', 'left'))
 ] + [
-    ("[" + digit + symbol, modifier + key)
+    (f"[{digit}{symbol}", modifier + key)
     for modifier, symbol in zip(('shift ', 'meta '), '$^')
     for digit, key in zip('235678',
         ('insert', 'delete', 'page up', 'page down', 'home', 'end'))
 ] + [
-    ('O' + chr(ord('p')+n), str(n)) for n in range(10)
+    (f"O{chr(ord('p') + n)}", str(n)) for n in range(10)
 ] + [
     # modified cursor keys + home, end, 5 -- [#X and [1;#X forms
     (prefix+digit+letter, escape_modifier(digit) + key)
@@ -116,12 +114,12 @@ input_sequences = [
         ('up','down','right','left','5','end','5','home'))
 ] + [
     # modified F1-F4 keys -- O#X form
-    ("O"+digit+letter, escape_modifier(digit) + key)
+    (f"O{digit}{letter}", escape_modifier(digit) + key)
     for digit in "12345678"
     for letter,key in zip("PQRS",('f1','f2','f3','f4'))
 ] + [
     # modified F1-F13 keys -- [XX;#~ form
-    ("["+str(num)+";"+digit+"~", escape_modifier(digit) + key)
+    (f"[{str(num)};{digit}~", escape_modifier(digit) + key)
     for digit in "12345678"
     for num,key in zip(
         (3,5,6,11,12,13,14,15,17,18,19,20,21,23,24,25,26,28,29,31,32,33,34),
@@ -139,7 +137,7 @@ input_sequences = [
     ('[0n', 'status ok')
 ]
 
-class KeyqueueTrie(object):
+class KeyqueueTrie:
     def __init__( self, sequences ):
         self.data = {}
         for s, result in sequences:
@@ -191,11 +189,11 @@ class KeyqueueTrie(object):
         x, y = (keys[1] - 33)%256, (keys[2] - 33)%256  # supports 0-255
 
         prefix = ""
-        if b & 4:    prefix = prefix + "shift "
-        if b & 8:    prefix = prefix + "meta "
-        if b & 16:    prefix = prefix + "ctrl "
-        if (b & MOUSE_MULTIPLE_CLICK_MASK)>>9 == 1:    prefix = prefix + "double "
-        if (b & MOUSE_MULTIPLE_CLICK_MASK)>>9 == 2:    prefix = prefix + "triple "
+        if b & 4:    prefix = f"{prefix}shift "
+        if b & 8:    prefix = f"{prefix}meta "
+        if b & 16:    prefix = f"{prefix}ctrl "
+        if (b & MOUSE_MULTIPLE_CLICK_MASK)>>9 == 1:    prefix = f"{prefix}double "
+        if (b & MOUSE_MULTIPLE_CLICK_MASK)>>9 == 2:    prefix = f"{prefix}triple "
 
         # 0->1, 1->2, 2->3, 64->4, 65->5
         button = ((b&64)//64*3) + (b & 3) + 1
@@ -212,7 +210,7 @@ class KeyqueueTrie(object):
         else:
             action = "press"
 
-        return ( (prefix + "mouse " + action, button, x, y), keys[3:] )
+        return ( (f"{prefix}mouse {action}", button, x, y), keys[3:] )
 
     def read_sgrmouse_info(self, keys, more_available):
         # Helpful links:
@@ -228,10 +226,10 @@ class KeyqueueTrie(object):
         pos_m = 0
         found_m = False
         for k in keys:
-            value = value + chr(k);
+            value = value + chr(k)
             if ((k is ord('M')) or (k is ord('m'))):
                 found_m = True
-                break;
+                break
             pos_m += 1
         if not found_m:
             if more_available:
@@ -261,7 +259,7 @@ class KeyqueueTrie(object):
         else:
             action = "release"
 
-        return ( ("mouse " + action, button, x, y), keys[pos_m + 1:] )
+        return ( (f"mouse {action}", button, x, y), keys[pos_m + 1:] )
 
 
     def read_cursor_position(self, keys, more_available):
@@ -385,9 +383,9 @@ def process_keyqueue(codes, more_available):
     if code in _keyconv:
         return [_keyconv[code]], codes[1:]
     if code >0 and code <27:
-        return ["ctrl %s" % chr(ord('a')+code-1)], codes[1:]
+        return [f"ctrl {chr(ord('a') + code - 1)}"], codes[1:]
     if code >27 and code <32:
-        return ["ctrl %s" % chr(ord('A')+code-1)], codes[1:]
+        return [f"ctrl {chr(ord('A') + code - 1)}"], codes[1:]
 
     em = str_util.get_byte_encoding()
 
@@ -420,7 +418,7 @@ def process_keyqueue(codes, more_available):
             if k>256 or k&0xc0 != 0x80:
                 return ["<%d>"%code], codes[1:]
 
-        s = bytes3(codes[:need_more+1])
+        s = bytes(codes[:need_more+1])
 
         assert isinstance(s, bytes)
         try:
@@ -448,7 +446,7 @@ def process_keyqueue(codes, more_available):
             return ['esc'] + run, remaining_codes
         if run[0] == "esc" or run[0].find("meta ") >= 0:
             return ['esc']+run, remaining_codes
-        return ['meta '+run[0]]+run[1:], remaining_codes
+        return [f"meta {run[0]}"]+run[1:], remaining_codes
 
     return ['esc'], codes[1:]
 
@@ -459,23 +457,23 @@ def process_keyqueue(codes, more_available):
 
 ESC = "\x1b"
 
-CURSOR_HOME = ESC+"[H"
+CURSOR_HOME = f"{ESC}[H"
 CURSOR_HOME_COL = "\r"
 
-APP_KEYPAD_MODE = ESC+"="
-NUM_KEYPAD_MODE = ESC+">"
+APP_KEYPAD_MODE = f"{ESC}="
+NUM_KEYPAD_MODE = f"{ESC}>"
 
-SWITCH_TO_ALTERNATE_BUFFER = ESC+"7"+ESC+"[?47h"
-RESTORE_NORMAL_BUFFER = ESC+"[?47l"+ESC+"8"
+SWITCH_TO_ALTERNATE_BUFFER = f"{ESC}7{ESC}[?47h"
+RESTORE_NORMAL_BUFFER = f"{ESC}[?47l{ESC}8"
 
 #RESET_SCROLL_REGION = ESC+"[;r"
 #RESET = ESC+"c"
 
-REPORT_STATUS = ESC + "[5n"
-REPORT_CURSOR_POSITION = ESC+"[6n"
+REPORT_STATUS = f"{ESC}[5n"
+REPORT_CURSOR_POSITION = f"{ESC}[6n"
 
-INSERT_ON = ESC + "[4h"
-INSERT_OFF = ESC + "[4l"
+INSERT_ON = f"{ESC}[4h"
+INSERT_OFF = f"{ESC}[4l"
 
 def set_cursor_position( x, y ):
     assert type(x) == int
@@ -494,12 +492,12 @@ def move_cursor_down(x):
     if x < 1: return ""
     return ESC+"[%dB" % x
 
-HIDE_CURSOR = ESC+"[?25l"
-SHOW_CURSOR = ESC+"[?25h"
+HIDE_CURSOR = f"{ESC}[?25l"
+SHOW_CURSOR = f"{ESC}[?25h"
 
-MOUSE_TRACKING_ON = ESC+"[?1000h"+ESC+"[?1002h"+ESC+"[?1006h"
-MOUSE_TRACKING_OFF = ESC+"[?1006l"+ESC+"[?1002l"+ESC+"[?1000l"
+MOUSE_TRACKING_ON = f"{ESC}[?1000h{ESC}[?1002h{ESC}[?1006h"
+MOUSE_TRACKING_OFF = f"{ESC}[?1006l{ESC}[?1002l{ESC}[?1000l"
 
-DESIGNATE_G1_SPECIAL = ESC+")0"
+DESIGNATE_G1_SPECIAL = f"{ESC})0"
 
-ERASE_IN_LINE_RIGHT = ESC+"[K"
+ERASE_IN_LINE_RIGHT = f"{ESC}[K"
