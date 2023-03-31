@@ -1,0 +1,19 @@
+Development Status :: 5 - Production/Stable
+Environment :: Console
+Environment :: Console :: Curses
+Intended Audience :: Developers
+License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)
+Operating System :: POSIX
+Operating System :: Unix
+Operating System :: MacOS :: MacOS X
+Topic :: Software Development :: Libraries :: Python Modules
+Topic :: Software Development :: Widget Sets
+Programming Language :: Python :: 3
+Programming Language :: Python :: 3.7
+Programming Language :: Python :: 3.8
+Programming Language :: Python :: 3.9
+Programming Language :: Python :: 3.10
+Programming Language :: Python :: 3.11
+Programming Language :: Python :: 3 :: Only
+Programming Language :: Python :: Implementation :: CPython
+Programming Language :: Python :: Implementation :: PyPy

@@ -1,19 +1,7 @@
 import unittest
+from unittest.mock import Mock
 
-try:
-    from unittest.mock import Mock
-except ImportError:
-    # Python2, rely on PyPi
-    from mock import Mock
-
-from urwid import (
-    Edit,
-    Signals,
-    connect_signal,
-    disconnect_signal,
-    emit_signal,
-    register_signal,
-)
+from urwid import Edit, Signals, connect_signal, disconnect_signal, emit_signal, register_signal
 
 
 class SiglnalsTest(unittest.TestCase):
@@ -39,12 +27,12 @@ class SiglnalsTest(unittest.TestCase):
 
     def test_weak_del(self):
         emitter = SiglnalsTest.EmClass()
-        w1 = Mock()
-        w2 = Mock()
-        w3 = Mock()
+        w1 = Mock(name="w1")
+        w2 = Mock(name="w2")
+        w3 = Mock(name="w3")
 
-        handler1 = Mock()
-        handler2 = Mock()
+        handler1 = Mock(name="handler1")
+        handler2 = Mock(name="handler2")
 
         k1 = connect_signal(emitter, 'test', handler1, weak_args=[w1], user_args=[42, "abc"])
         k2 = connect_signal(emitter, 'test', handler2, weak_args=[w2, w3], user_args=[8])
@@ -57,7 +45,11 @@ class SiglnalsTest(unittest.TestCase):
         handler1.reset_mock()
         handler2.reset_mock()
         del w1
-        self.assertEqual(len(getattr(emitter, Signals._signal_attr)['test']), 1)
+        self.assertEqual(
+            len(getattr(emitter, Signals._signal_attr)['test']),
+            1,
+            getattr(emitter, Signals._signal_attr)['test']
+        )
         emit_signal(emitter, 'test', "Bar")
         handler1.assert_not_called()
         handler2.assert_called_once_with(w2, w3, 8, "Bar")
