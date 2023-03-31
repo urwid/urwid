@@ -611,7 +611,7 @@ class AttrSpec:
             return 256
         if self._value & (_BG_TRUE_COLOR | _FG_TRUE_COLOR):
             return 2**24
-        if self._value & (_BG_BASIC_COLOR | _BG_BASIC_COLOR):
+        if self._value & (_BG_BASIC_COLOR | _FG_BASIC_COLOR):
             return 16
         return 1
     colors = property(_colors)
