@@ -253,8 +253,7 @@ class Signals:
         :type obj: object
         :param name: the signal to send, typically a string
         :type name: signal name
-        :param *args: zero or more positional arguments to pass to the signal
-                      callback functions
+        :param args: zero or more positional arguments to pass to the signal callback functions
 
         This function calls each of the callbacks connected to this signal
         with the args arguments as positional parameters.
