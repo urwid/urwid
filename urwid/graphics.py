@@ -386,9 +386,8 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         and it will have a second segment that starts at 30%.
         """
         if hlines is not None:
-            hlines = hlines[:]  # shallow copy
-            hlines.sort()
-            hlines.reverse()
+            hlines = sorted(hlines[:], reverse=True)  # shallow copy
+
         self.data = bardata, top, hlines
         self._invalidate()
 
@@ -824,9 +823,8 @@ class GraphVScale(Widget):
         top -- top y position
         """
 
-        labels = labels[:]  # shallow copy
-        labels.sort()
-        labels.reverse()
+        labels = sorted(labels[:], reverse=True)  # shallow copy
+
         self.pos = []
         self.txt = []
         for y, markup in labels:

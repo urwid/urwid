@@ -309,8 +309,8 @@ def show_usage():
     """
     Display a helpful usage message.
     """
-    modelist = [(mode, help) for (mode, (fn, help)) in MODES.items()]
-    modelist.sort()
+    modelist = sorted((mode, help) for (mode, (fn, help)) in MODES.items())
+
     sys.stdout.write(
         __doc__ +
         "\n".join(["%-15s %s"%(mode,help) for (mode,help) in modelist])

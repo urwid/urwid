@@ -562,8 +562,8 @@ class Screen(BaseScreen, RealTerminal):
 class _test:
     def __init__(self):
         self.ui = Screen()
-        self.l = list(_curses_colours.keys())
-        self.l.sort()
+        self.l = sorted(_curses_colours)
+
         for c in self.l:
             self.ui.register_palette( [
                 (f"{c} on black", c, 'black', 'underline'),

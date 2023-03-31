@@ -599,9 +599,7 @@ class Widget(metaclass=WidgetMeta):
         if self.selectable():
             words = ["selectable"] + words
         if self.sizing() and self.sizing() != frozenset([FLOW, BOX, FIXED]):
-            sizing_modes = list(self.sizing())
-            sizing_modes.sort()
-            words.append("/".join(sizing_modes))
+            words.append("/".join(sorted(self.sizing())))
         return words + ["widget"]
 
     def _repr_attrs(self):

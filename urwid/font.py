@@ -115,8 +115,8 @@ class Font:
         self.utf8_required |= utf8_required
 
     def characters(self):
-        l = list(self.char.keys())
-        l.sort()
+        l = sorted(self.char)
+
         return "".join(l)
 
     def char_width(self, c):

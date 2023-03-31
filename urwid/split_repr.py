@@ -48,9 +48,8 @@ def split_repr(self):
     >>> Bar()
     <Bar words here too attrs='appear too' barttr=42>
     """
-    alist = [(str(k), normalize_repr(v))
-        for k, v in self._repr_attrs().items()]
-    alist.sort()
+    alist = sorted((str(k), normalize_repr(v)) for k, v in self._repr_attrs().items())
+
     words = self._repr_words()
     if not words and not alist:
         # if we're just going to print the classname fall back
@@ -71,8 +70,8 @@ def normalize_repr(v):
     "'foo'"
     """
     if isinstance(v, dict):
-        items = [(repr(k), repr(v)) for k, v in v.items()]
-        items.sort()
+        items = sorted((repr(k), repr(v)) for k, v in v.items())
+
         return f"{{{', '.join([('%s: %s' % itm) for itm in items])}}}"
 
     return repr(v)
