@@ -17,24 +17,36 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
-from __future__ import division, print_function
 
+from __future__ import annotations
+
+import functools
+import warnings
 from operator import attrgetter
 
-from urwid.compat import text_type, with_metaclass
-from urwid.util import (MetaSuper, decompose_tagmarkup, calc_width,
-    is_wide_char, move_prev_char, move_next_char)
-from urwid.text_layout import calc_pos, calc_coords, shift_line
-from urwid import signals
-from urwid import text_layout
-from urwid.canvas import (CanvasCache, CompositeCanvas, SolidCanvas,
-    apply_text_layout)
-from urwid.command_map import (command_map, CURSOR_LEFT, CURSOR_RIGHT,
-    CURSOR_UP, CURSOR_DOWN, CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT)
-from urwid.split_repr import split_repr, remove_defaults, python3_repr
-
+from urwid import signals, text_layout
+from urwid.canvas import CanvasCache, CompositeCanvas, SolidCanvas, apply_text_layout
+from urwid.command_map import (
+    CURSOR_DOWN,
+    CURSOR_LEFT,
+    CURSOR_MAX_LEFT,
+    CURSOR_MAX_RIGHT,
+    CURSOR_RIGHT,
+    CURSOR_UP,
+    command_map,
+)
+from urwid.split_repr import remove_defaults, split_repr
+from urwid.text_layout import calc_coords, calc_pos, shift_line
+from urwid.util import (
+    MetaSuper,
+    calc_width,
+    decompose_tagmarkup,
+    is_wide_char,
+    move_next_char,
+    move_prev_char,
+)
 
 # define some names for these constants to avoid misspellings in the source
 # and to document the constant strings we are using
@@ -86,7 +98,7 @@ class WidgetMeta(MetaSuper, signals.MetaSignals):
     def __init__(cls, name, bases, d):
         no_cache = d.get("no_cache", [])
 
-        super(WidgetMeta, cls).__init__(name, bases, d)
+        super().__init__(name, bases, d)
 
         if "render" in d:
             if "render" not in no_cache:
@@ -105,28 +117,17 @@ class WidgetMeta(MetaSuper, signals.MetaSignals):
 class WidgetError(Exception):
     pass
 
+
 def validate_size(widget, size, canv):
     """
     Raise a WidgetError if a canv does not match size size.
     """
     if (size and size[1:] != (0,) and size[0] != canv.cols()) or \
         (len(size)>1 and size[1] != canv.rows()):
-        raise WidgetError("Widget %r rendered (%d x %d) canvas"
-            " when passed size %r!" % (widget, canv.cols(),
-            canv.rows(), size))
-
-def update_wrapper(new_fn, fn):
-    """
-    Copy as much of the function detail from fn to new_fn
-    as we can.
-    """
-    try:
-        new_fn.__name__ = fn.__name__
-        new_fn.__dict__.update(fn.__dict__)
-        new_fn.__doc__ = fn.__doc__
-        new_fn.__module__ = fn.__module__
-    except TypeError:
-        pass # python2.3 ignore read-only attributes
+        raise WidgetError(
+            f"Widget {widget!r} rendered ({canv.cols():d} x {canv.rows():d}) canvas "
+            f"when passed size {size!r}!"
+        )
 
 
 def cache_widget_render(cls):
@@ -136,6 +137,8 @@ def cache_widget_render(cls):
     """
     ignore_focus = bool(getattr(cls, "ignore_focus", False))
     fn = cls.render
+
+    @functools.wraps(fn)
     def cached_render(self, size, focus=False):
         focus = focus and not ignore_focus
         canv = CanvasCache.fetch(self, cls, size, focus)
@@ -150,8 +153,8 @@ def cache_widget_render(cls):
         CanvasCache.store(cls, canv)
         return canv
     cached_render.original_fn = fn
-    update_wrapper(cached_render, fn)
     return cached_render
+
 
 def nocache_widget_render(cls):
     """
@@ -161,6 +164,8 @@ def nocache_widget_render(cls):
     fn = cls.render
     if hasattr(fn, "original_fn"):
         fn = fn.original_fn
+
+    @functools.wraps(fn)
     def finalize_render(self, size, focus=False):
         canv = fn(self, size, focus=focus)
         if canv.widget_info:
@@ -169,8 +174,8 @@ def nocache_widget_render(cls):
         canv.finalize(self, size, focus)
         return canv
     finalize_render.original_fn = fn
-    update_wrapper(finalize_render, fn)
     return finalize_render
+
 
 def nocache_widget_render_instance(self):
     """
@@ -179,6 +184,8 @@ def nocache_widget_render_instance(self):
     cache the canvas.
     """
     fn = self.render.original_fn
+
+    @functools.wraps(fn)
     def finalize_render(size, focus=False):
         canv = fn(self, size, focus=focus)
         if canv.widget_info:
@@ -186,8 +193,8 @@ def nocache_widget_render_instance(self):
         canv.finalize(self, size, focus)
         return canv
     finalize_render.original_fn = fn
-    update_wrapper(finalize_render, fn)
     return finalize_render
+
 
 def cache_widget_rows(cls):
     """
@@ -196,6 +203,8 @@ def cache_widget_rows(cls):
     """
     ignore_focus = bool(getattr(cls, "ignore_focus", False))
     fn = cls.rows
+
+    @functools.wraps(fn)
     def cached_rows(self, size, focus=False):
         focus = focus and not ignore_focus
         canv = CanvasCache.fetch(self, cls, size, focus)
@@ -203,11 +212,10 @@ def cache_widget_rows(cls):
             return canv.rows()
 
         return fn(self, size, focus)
-    update_wrapper(cached_rows, fn)
     return cached_rows
 
 
-class Widget(with_metaclass(WidgetMeta, object)):
+class Widget(metaclass=WidgetMeta):
     """
     Widget base class
 
@@ -544,30 +552,34 @@ class Widget(with_metaclass(WidgetMeta, object)):
             if FIXED in self.sizing():
                 raise NotImplementedError('Fixed widgets must override'
                     ' Widget.pack()')
-            raise WidgetError('Cannot pack () size, this is not a fixed'
-                ' widget: %s' % repr(self))
+            raise WidgetError(f'Cannot pack () size, this is not a fixed widget: {self!r}')
         elif len(size) == 1:
             if FLOW in self.sizing():
                 return size + (self.rows(size, focus),)
-            raise WidgetError('Cannot pack (maxcol,) size, this is not a'
-                ' flow widget: %s' % repr(self))
+            raise WidgetError(f'Cannot pack (maxcol,) size, this is not a flow widget: {self!r}')
         return size
 
-    base_widget = property(lambda self:self, doc="""
+    @property
+    def base_widget(self):
+        """
         Read-only property that steps through decoration widgets
         and returns the one at the base.  This default implementation
         returns self.
-        """)
+        """
+        return self
 
-    focus = property(lambda self:None, doc="""
+    @property
+    def focus(self):
+        """
         Read-only property returning the child widget in focus for
         container widgets.  This default implementation
         always returns ``None``, indicating that this widget has no children.
-        """)
+        """
+        return None
 
     def _not_a_container(self, val=None):
         raise IndexError(
-            "No focus_position, %r is not a container widget" % self)
+            f"No focus_position, {self!r} is not a container widget")
     focus_position = property(_not_a_container, _not_a_container, doc="""
         Property for reading and setting the focus position for
         container widgets. This default implementation raises
@@ -587,9 +599,7 @@ class Widget(with_metaclass(WidgetMeta, object)):
         if self.selectable():
             words = ["selectable"] + words
         if self.sizing() and self.sizing() != frozenset([FLOW, BOX, FIXED]):
-            sizing_modes = list(self.sizing())
-            sizing_modes.sort()
-            words.append("/".join(sizing_modes))
+            words.append("/".join(sorted(self.sizing())))
         return words + ["widget"]
 
     def _repr_attrs(self):
@@ -608,6 +618,17 @@ class FlowWidget(Widget):
     columns available.
     """
     _sizing = frozenset([FLOW])
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            """
+            FlowWidget is deprecated. Inherit from Widget and add:
+
+                _sizing = frozenset(['flow'])
+
+            at the top of your class definition instead.""",
+            DeprecationWarning,
+        )
 
     def rows(self, size, focus=False):
         """
@@ -637,6 +658,18 @@ class BoxWidget(Widget):
     _selectable = True
     _sizing = frozenset([BOX])
 
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            """
+            BoxWidget is deprecated. Inherit from Widget and add:
+
+                _sizing = frozenset(['box'])
+                _selectable = True
+
+            at the top of your class definition instead.""",
+            DeprecationWarning,
+        )
+
     def render(self, size, focus=False):
         """
         All widgets must implement this function.
@@ -651,8 +684,7 @@ def fixed_size(size):
     Used by FixedWidgets to test size parameter.
     """
     if size != ():
-        raise ValueError("FixedWidget takes only () for size." \
-            "passed: %r" % (size,))
+        raise ValueError(f"FixedWidget takes only () for size.passed: {size!r}")
 
 class FixedWidget(Widget):
     """
@@ -666,6 +698,17 @@ class FixedWidget(Widget):
     cannot be resized
     """
     _sizing = frozenset([FIXED])
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            """
+            FixedWidget is deprecated. Inherit from Widget and add:
+
+                _sizing = frozenset(['fixed'])
+
+            at the top of your class definition instead.""",
+            DeprecationWarning,
+        )
 
     def render(self, size, focus=False):
         """
@@ -688,7 +731,7 @@ class Divider(Widget):
 
     ignore_focus = True
 
-    def __init__(self,div_char=u" ",top=0,bottom=0):
+    def __init__(self,div_char=" ",top=0,bottom=0):
         """
         :param div_char: character to repeat across line
         :type div_char: bytes or unicode
@@ -706,17 +749,17 @@ class Divider(Widget):
         >>> Divider(u'x', 1, 2)
         <Divider flow widget 'x' bottom=2 top=1>
         """
-        self.__super.__init__()
+        super().__init__()
         self.div_char = div_char
         self.top = top
         self.bottom = bottom
 
     def _repr_words(self):
-        return self.__super._repr_words() + [
-            python3_repr(self.div_char)] * (self.div_char != u" ")
+        return super()._repr_words() + [
+            repr(self.div_char)] * (self.div_char != " ")
 
     def _repr_attrs(self):
-        attrs = dict(self.__super._repr_attrs())
+        attrs = dict(super()._repr_attrs())
         if self.top: attrs['top'] = self.top
         if self.bottom: attrs['bottom'] = self.bottom
         return attrs
@@ -767,11 +810,11 @@ class SolidFill(BoxWidget):
         >>> SolidFill(u'8')
         <SolidFill box widget '8'>
         """
-        self.__super.__init__()
+        super().__init__()
         self.fill_char = fill_char
 
     def _repr_words(self):
-        return self.__super._repr_words() + [python3_repr(self.fill_char)]
+        return super()._repr_words() + [repr(self.fill_char)]
 
     def render(self, size, focus=False ):
         """
@@ -829,7 +872,7 @@ class Text(Widget):
         >>> t.attrib
         [('bold', 5)]
         """
-        self.__super.__init__()
+        super().__init__()
         self._cache_maxcol = None
         self.set_text(markup)
         self.set_layout(align, wrap, layout)
@@ -839,23 +882,23 @@ class Text(Widget):
         Show the text in the repr in python3 format (b prefix for byte
         strings) and truncate if it's too long
         """
-        first = self.__super._repr_words()
+        first = super()._repr_words()
         text = self.get_text()[0]
-        rest = python3_repr(text)
+        rest = repr(text)
         if len(rest) > self._repr_content_length_max:
             rest = (rest[:self._repr_content_length_max * 2 // 3 - 3] +
                 '...' + rest[-self._repr_content_length_max // 3:])
         return first + [rest]
 
     def _repr_attrs(self):
-        attrs = dict(self.__super._repr_attrs(),
+        attrs = dict(super()._repr_attrs(),
             align=self._align_mode,
             wrap=self._wrap_mode)
         return remove_defaults(attrs, Text.__init__)
 
     def _invalidate(self):
         self._cache_maxcol = None
-        self.__super._invalidate()
+        super()._invalidate()
 
     def set_text(self,markup):
         """
@@ -897,14 +940,21 @@ class Text(Widget):
         """
         return self._text, self._attrib
 
-    text = property(lambda self:self.get_text()[0], doc="""
+    @property
+    def text(self):
+        """
         Read-only property returning the complete bytes/unicode content
         of this widget
-        """)
-    attrib = property(lambda self:self.get_text()[1], doc="""
+        """
+        return self.get_text()[0]
+
+    @property
+    def attrib(self):
+        """
         Read-only property returning the run-length encoded display
         attributes of this widget
-        """)
+        """
+        return self.get_text()[1]
 
     def set_align_mode(self, mode):
         """
@@ -928,8 +978,7 @@ class Text(Widget):
         TextError: Alignment mode 'somewhere' not supported.
         """
         if not self.layout.supports_align_mode(mode):
-            raise TextError("Alignment mode %r not supported."%
-                (mode,))
+            raise TextError(f"Alignment mode {mode!r} not supported.")
         self._align_mode = mode
         self._invalidate()
 
@@ -957,7 +1006,7 @@ class Text(Widget):
         TextError: Wrap mode 'somehow' not supported.
         """
         if not self.layout.supports_wrap_mode(mode):
-            raise TextError("Wrap mode %r not supported."%(mode,))
+            raise TextError(f"Wrap mode {mode!r} not supported.")
         self._wrap_mode = mode
         self._invalidate()
 
@@ -985,7 +1034,10 @@ class Text(Widget):
 
     align = property(lambda self:self._align_mode, set_align_mode)
     wrap = property(lambda self:self._wrap_mode, set_wrap_mode)
-    layout = property(lambda self:self._layout)
+
+    @property
+    def layout(self):
+        return self._layout
 
     def render(self, size, focus=False):
         """
@@ -1123,7 +1175,7 @@ class Edit(Text):
         """
         return is_wide_char(ch,0) or (len(ch)==1 and ord(ch) >= 32)
 
-    def __init__(self, caption=u"", edit_text=u"", multiline=False,
+    def __init__(self, caption="", edit_text="", multiline=False,
             align=LEFT, wrap=SPACE, allow_tab=False,
             edit_pos=None, layout=None, mask=None):
         """
@@ -1158,7 +1210,7 @@ class Edit(Text):
         <Edit selectable flow widget '3.14' align='right' edit_pos=4>
         """
 
-        self.__super.__init__("", align, wrap, layout)
+        super().__init__("", align, wrap, layout)
         self.multiline = multiline
         self.allow_tab = allow_tab
         self._edit_pos = 0
@@ -1172,13 +1224,13 @@ class Edit(Text):
         self._shift_view_to_cursor = False
 
     def _repr_words(self):
-        return self.__super._repr_words()[:-1] + [
-            python3_repr(self._edit_text)] + [
-            'caption=' + python3_repr(self._caption)] * bool(self._caption) + [
+        return super()._repr_words()[:-1] + [
+            repr(self._edit_text)] + [
+            f"caption={self._caption!r}"] * bool(self._caption) + [
             'multiline'] * (self.multiline is True)
 
     def _repr_attrs(self):
-        attrs = dict(self.__super._repr_attrs(),
+        attrs = dict(super()._repr_attrs(),
             edit_pos=self._edit_pos)
         return remove_defaults(attrs, Edit.__init__)
 
@@ -1293,9 +1345,12 @@ class Edit(Text):
         self._caption, self._attrib = decompose_tagmarkup(caption)
         self._invalidate()
 
-    caption = property(lambda self:self._caption, doc="""
+    @property
+    def caption(self):
+        """
         Read-only property returning the caption for this widget.
-        """)
+        """
+        return self._caption
 
     def set_edit_pos(self, pos):
         """
@@ -1416,8 +1471,8 @@ class Edit(Text):
         Return text converted to the same type as self.caption
         (bytes or unicode)
         """
-        tu = isinstance(text, text_type)
-        cu = isinstance(self._caption, text_type)
+        tu = isinstance(text, str)
+        cu = isinstance(self._caption, str)
         if tu == cu:
             return text
         if tu:
@@ -1475,8 +1530,8 @@ class Edit(Text):
 
         p = self.edit_pos
         if self.valid_char(key):
-            if (isinstance(key, text_type) and not
-                    isinstance(self._caption, text_type)):
+            if (isinstance(key, str) and not
+                    isinstance(self._caption, str)):
                 # screen is sending us unicode input, must be using utf-8
                 # encoding because that's all we support, so convert it
                 # to bytes to match our caption's type
@@ -1701,7 +1756,7 @@ class IntEdit(Edit):
         """
         if default is not None: val = str(default)
         else: val = ""
-        self.__super.__init__(caption,val)
+        super().__init__(caption,val)
 
     def keypress(self, size, key):
         """
@@ -1761,17 +1816,42 @@ def delegate_to_widget_mixin(attribute_name):
             canv = get_delegate(self).render(size, focus=focus)
             return CompositeCanvas(canv)
 
-        selectable = property(lambda self:get_delegate(self).selectable)
-        get_cursor_coords = property(
-            lambda self:get_delegate(self).get_cursor_coords)
-        get_pref_col = property(lambda self:get_delegate(self).get_pref_col)
-        keypress = property(lambda self:get_delegate(self).keypress)
-        move_cursor_to_coords = property(
-            lambda self:get_delegate(self).move_cursor_to_coords)
-        rows = property(lambda self:get_delegate(self).rows)
-        mouse_event = property(lambda self:get_delegate(self).mouse_event)
-        sizing = property(lambda self:get_delegate(self).sizing)
-        pack = property(lambda self:get_delegate(self).pack)
+        @property
+        def selectable(self):
+            return get_delegate(self).selectable
+
+        @property
+        def get_cursor_coords(self):
+            return get_delegate(self).get_cursor_coords
+
+        @property
+        def get_pref_col(self):
+            return get_delegate(self).get_pref_col
+
+        @property
+        def keypress(self):
+            return get_delegate(self).keypress
+
+        @property
+        def move_cursor_to_coords(self):
+            return get_delegate(self).move_cursor_to_coords
+
+        @property
+        def rows(self):
+            return get_delegate(self).rows
+
+        @property
+        def mouse_event(self):
+            return get_delegate(self).mouse_event
+
+        @property
+        def sizing(self):
+            return get_delegate(self).sizing
+
+        @property
+        def pack(self):
+            return get_delegate(self).pack
+
     return DelegateToWidgetMixin
 
 

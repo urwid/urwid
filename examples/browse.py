@@ -19,7 +19,7 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
 """
 Urwid example lazy directory browser / tree view
@@ -31,11 +31,12 @@ Features:
 - outputs a quoted list of files and directories "selected" on exit
 """
 
-from __future__ import print_function
+
+from __future__ import annotations
 
 import itertools
-import re
 import os
+import re
 
 import urwid
 
@@ -48,7 +49,7 @@ class FlagFileWidget(urwid.TreeWidget):
         'dirmark')
 
     def __init__(self, node):
-        self.__super.__init__(node)
+        super().__init__(node)
         # insert an extra AttrWrap for our own use
         self._w = urwid.AttrWrap(self._w, None)
         self.flagged = False
@@ -59,7 +60,7 @@ class FlagFileWidget(urwid.TreeWidget):
 
     def keypress(self, size, key):
         """allow subclasses to intercept keystrokes"""
-        key = self.__super.keypress(size, key)
+        key = super().keypress(size, key)
         if key:
             key = self.unhandled_keys(size, key)
         return key
@@ -89,7 +90,7 @@ class FlagFileWidget(urwid.TreeWidget):
 class FileTreeWidget(FlagFileWidget):
     """Widget for individual files."""
     def __init__(self, node):
-        self.__super.__init__(node)
+        super().__init__(node)
         path = node.get_value()
         add_widget(path, self)
 
@@ -114,7 +115,7 @@ class ErrorWidget(urwid.TreeWidget):
 class DirectoryWidget(FlagFileWidget):
     """Widget for a directory."""
     def __init__(self, node):
-        self.__super.__init__(node)
+        super().__init__(node)
         path = node.get_value()
         add_widget(path, self)
         self.expanded = starts_expanded(path)
@@ -350,7 +351,7 @@ def escape_filename_sh(name):
     name.replace('"','\\"')
     name.replace('`','\\`')
     name.replace('$','\\$')
-    return '"'+name+'"'
+    return f'"{name}"'
 
 
 def escape_filename_sh_ansic(name):
@@ -360,14 +361,14 @@ def escape_filename_sh_ansic(name):
     # gather the escaped characters into a list
     for ch in name:
         if ord(ch) < 32:
-            out.append("\\x%02x"% ord(ch))
+            out.append(f"\\x{ord(ch):02x}")
         elif ch == '\\':
             out.append('\\\\')
         else:
             out.append(ch)
 
     # slap them back together in an ansi-c quote  $'...'
-    return "$'" + "".join(out) + "'"
+    return f"$'{''.join(out)}'"
 
 SPLIT_RE = re.compile(r'[a-zA-Z]+|\d+')
 def alphabetize(s):

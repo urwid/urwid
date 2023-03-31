@@ -17,17 +17,36 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
-from __future__ import division, print_function
 
-from urwid.util import int_scale
-from urwid.widget import (Widget, WidgetError,
-    BOX, FLOW, LEFT, CENTER, RIGHT, PACK, CLIP, GIVEN, RELATIVE, RELATIVE_100,
-    TOP, MIDDLE, BOTTOM, delegate_to_widget_mixin)
-from urwid.split_repr import remove_defaults
+from __future__ import annotations
+
 from urwid.canvas import CompositeCanvas, SolidCanvas
-from urwid.widget import Divider, Edit, Text, SolidFill # doctests
+from urwid.split_repr import remove_defaults
+from urwid.util import int_scale
+from urwid.widget import (  # doctests
+    BOTTOM,
+    BOX,
+    CENTER,
+    CLIP,
+    FLOW,
+    GIVEN,
+    LEFT,
+    MIDDLE,
+    PACK,
+    RELATIVE,
+    RELATIVE_100,
+    RIGHT,
+    TOP,
+    Divider,
+    Edit,
+    SolidFill,
+    Text,
+    Widget,
+    WidgetError,
+    delegate_to_widget_mixin,
+)
 
 
 class WidgetDecoration(Widget):  # "decorator" was already taken
@@ -49,7 +68,7 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
     def __init__(self, original_widget):
         self._original_widget = original_widget
     def _repr_words(self):
-        return self.__super._repr_words() + [repr(self._original_widget)]
+        return super()._repr_words() + [repr(self._original_widget)]
 
     def _get_original_widget(self):
         return self._original_widget
@@ -140,7 +159,7 @@ class AttrMap(delegate_to_widget_mixin('_original_widget'), WidgetDecoration):
         >>> next(am2.render(size).content())
         [('greeting', None, ...'hi'), ('bg', None, ...'   ')]
         """
-        self.__super.__init__(w)
+        super().__init__(w)
 
         if type(attr_map) != dict:
             self.set_attr_map({None: attr_map})
@@ -154,7 +173,7 @@ class AttrMap(delegate_to_widget_mixin('_original_widget'), WidgetDecoration):
 
     def _repr_attrs(self):
         # only include the focus_attr when it takes effect (not None)
-        d = dict(self.__super._repr_attrs(), attr_map=self._attr_map)
+        d = dict(super()._repr_attrs(), attr_map=self._attr_map)
         if self._focus_map is not None:
             d['focus_map'] = self._focus_map
         return d
@@ -253,11 +272,11 @@ class AttrWrap(AttrMap):
         >>> next(aw.render(size, focus=True).content())
         [('fgreet', None, ...'hi   ')]
         """
-        self.__super.__init__(w, attr, focus_attr)
+        super().__init__(w, attr, focus_attr)
 
     def _repr_attrs(self):
         # only include the focus_attr when it takes effect (not None)
-        d = dict(self.__super._repr_attrs(), attr=self.attr)
+        d = dict(super()._repr_attrs(), attr=self.attr)
         del d['attr_map']
         if 'focus_map' in d:
             del d['focus_map']
@@ -342,21 +361,20 @@ class BoxAdapter(WidgetDecoration):
         <BoxAdapter flow widget <SolidFill box widget 'x'> height=5>
         """
         if hasattr(box_widget, 'sizing') and BOX not in box_widget.sizing():
-            raise BoxAdapterError("%r is not a box widget" %
-                box_widget)
+            raise BoxAdapterError(f"{box_widget!r} is not a box widget")
         WidgetDecoration.__init__(self,box_widget)
 
         self.height = height
 
     def _repr_attrs(self):
-        return dict(self.__super._repr_attrs(), height=self.height)
+        return dict(super()._repr_attrs(), height=self.height)
 
     # originally stored as box_widget, keep for compatibility
     box_widget = property(WidgetDecoration._get_original_widget,
         WidgetDecoration._set_original_widget)
 
     def sizing(self):
-        return set([FLOW])
+        return {FLOW}
 
     def rows(self, size, focus=False):
         """
@@ -482,7 +500,7 @@ class Padding(WidgetDecoration):
         |  hi   |
         |  there|
         """
-        self.__super.__init__(w)
+        super().__init__(w)
 
         # convert obsolete parameters 'fixed left' and 'fixed right':
         if type(align) == tuple and align[0] in ('fixed left',
@@ -515,11 +533,11 @@ class Padding(WidgetDecoration):
 
     def sizing(self):
         if self._width_type == CLIP:
-            return set([FLOW])
+            return {FLOW}
         return self.original_widget.sizing()
 
     def _repr_attrs(self):
-        attrs = dict(self.__super._repr_attrs(),
+        attrs = dict(super()._repr_attrs(),
             align=self.align,
             width=self.width,
             left=self.left,
@@ -726,7 +744,7 @@ class Filler(WidgetDecoration):
         reducing the valign amount when necessary.  If height still
         cannot be satisfied it will also be reduced.
         """
-        self.__super.__init__(body)
+        super().__init__(body)
 
         # convert old parameters to the new top/bottom values
         if isinstance(height, tuple):
@@ -767,10 +785,10 @@ class Filler(WidgetDecoration):
             self.min_height = None
 
     def sizing(self):
-        return set([BOX]) # always a box widget
+        return {BOX} # always a box widget
 
     def _repr_attrs(self):
-        attrs = dict(self.__super._repr_attrs(),
+        attrs = dict(super()._repr_attrs(),
             valign=simplify_valign(self.valign_type, self.valign_amount),
             height=simplify_height(self.height_type, self.height_amount),
             top=self.top,

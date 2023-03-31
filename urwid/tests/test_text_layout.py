@@ -1,14 +1,15 @@
+from __future__ import annotations
+
 import unittest
 
-from urwid import text_layout
-from urwid.compat import B
 import urwid
+from urwid import text_layout
 
 
-class CalcBreaksTest(object):
+class CalcBreaksTest:
     def cbtest(self, width, exp):
         result = text_layout.default_layout.calculate_text_segments(
-            B(self.text), width, self.mode )
+            self.text.encode('iso8859-1'), width, self.mode )
         assert len(result) == len(exp), repr((result, exp))
         for l,e in zip(result, exp):
             end = l[-1][-1]
@@ -97,11 +98,11 @@ class CalcBreaksCantDisplayTest(unittest.TestCase):
         urwid.set_encoding("euc-jp")
         self.assertRaises(text_layout.CanNotDisplayText,
             text_layout.default_layout.calculate_text_segments,
-            B('\xA1\xA1'), 1, 'space' )
+            b'\xA1\xA1', 1, 'space' )
         urwid.set_encoding("utf-8")
         self.assertRaises(text_layout.CanNotDisplayText,
             text_layout.default_layout.calculate_text_segments,
-            B('\xe9\xa2\x96'), 1, 'space' )
+            b'\xe9\xa2\x96', 1, 'space' )
 
 
 class SubsegTest(unittest.TestCase):
@@ -109,10 +110,10 @@ class SubsegTest(unittest.TestCase):
         urwid.set_encoding("euc-jp")
 
     def st(self, seg, text, start, end, exp):
-        text = B(text)
+        text = text.encode('iso8859-1')
         s = urwid.LayoutSegment(seg)
         result = s.subseg( text, start, end )
-        assert result == exp, "Expected %r, got %r"%(exp,result)
+        assert result == exp, f"Expected {exp!r}, got {result!r}"
 
     def test1_padding(self):
         self.st( (10, None), "", 0, 8,    [(8, None)] )
@@ -121,18 +122,18 @@ class SubsegTest(unittest.TestCase):
         self.st( (10, 0), "", 0, 20,     [(10, 0)] )
 
     def test2_text(self):
-        self.st( (10, 0, B("1234567890")), "", 0, 8,  [(8,0,B("12345678"))] )
-        self.st( (10, 0, B("1234567890")), "", 2, 10, [(8,0,B("34567890"))] )
-        self.st( (10, 0, B("12\xA1\xA156\xA1\xA190")), "", 2, 8,
-            [(6, 0, B("\xA1\xA156\xA1\xA1"))] )
-        self.st( (10, 0, B("12\xA1\xA156\xA1\xA190")), "", 3, 8,
-            [(5, 0, B(" 56\xA1\xA1"))] )
-        self.st( (10, 0, B("12\xA1\xA156\xA1\xA190")), "", 2, 7,
-            [(5, 0, B("\xA1\xA156 "))] )
-        self.st( (10, 0, B("12\xA1\xA156\xA1\xA190")), "", 3, 7,
-            [(4, 0, B(" 56 "))] )
-        self.st( (10, 0, B("12\xA1\xA156\xA1\xA190")), "", 0, 20,
-            [(10, 0, B("12\xA1\xA156\xA1\xA190"))] )
+        self.st( (10, 0, b"1234567890"), "", 0, 8,  [(8,0,b"12345678")] )
+        self.st( (10, 0, b"1234567890"), "", 2, 10, [(8,0,b"34567890")] )
+        self.st( (10, 0, b"12\xA1\xA156\xA1\xA190"), "", 2, 8,
+            [(6, 0, b"\xA1\xA156\xA1\xA1")] )
+        self.st( (10, 0, b"12\xA1\xA156\xA1\xA190"), "", 3, 8,
+            [(5, 0, b" 56\xA1\xA1")] )
+        self.st( (10, 0, b"12\xA1\xA156\xA1\xA190"), "", 2, 7,
+            [(5, 0, b"\xA1\xA156 ")] )
+        self.st( (10, 0, b"12\xA1\xA156\xA1\xA190"), "", 3, 7,
+            [(4, 0, b" 56 ")] )
+        self.st( (10, 0, b"12\xA1\xA156\xA1\xA190"), "", 0, 20,
+            [(10, 0, b"12\xA1\xA156\xA1\xA190")] )
 
     def test3_range(self):
         t = "1234567890"
@@ -149,7 +150,7 @@ class SubsegTest(unittest.TestCase):
         self.st( (6, 2, 8), t, 1, 5,     [(1, 3), (2, 4, 6), (1, 6)] )
 
 
-class CalcTranslateTest(object):
+class CalcTranslateTest:
     def setUp(self):
         urwid.set_encoding("utf-8")
 
@@ -227,7 +228,7 @@ class CalcTranslateWordTest3(CalcTranslateTest, unittest.TestCase):
     def setUp(self):
         urwid.set_encoding('utf-8')
 
-    text = B('\xe6\x9b\xbf\xe6\xb4\xbc\n\xe6\xb8\x8e\xe6\xba\x8f\xe6\xbd\xba')
+    text = b'\xe6\x9b\xbf\xe6\xb4\xbc\n\xe6\xb8\x8e\xe6\xba\x8f\xe6\xbd\xba'
     width = 10
     mode = 'space'
     result_left = [
@@ -292,7 +293,7 @@ class CalcTranslateClipTest(CalcTranslateTest, unittest.TestCase):
         [(14, 36, 50), (0, 50)]]
 
 class CalcTranslateCantDisplayTest(CalcTranslateTest, unittest.TestCase):
-    text = B('Hello\xe9\xa2\x96')
+    text = b'Hello\xe9\xa2\x96'
     mode = 'space'
     width = 1
     result_left = [[]]
@@ -314,8 +315,7 @@ class CalcPosTest(unittest.TestCase):
     def tests(self):
         for x,y, expected in self.mytests:
             got = text_layout.calc_pos( self.text, self.trans, x, y )
-            assert got == expected, "%r got:%r expected:%r" % ((x, y), got,
-                                                               expected)
+            assert got == expected, f"{x, y!r} got:{got!r} expected:{expected!r}"
 
 
 class Pos2CoordsTest(unittest.TestCase):
@@ -339,4 +339,4 @@ class Pos2CoordsTest(unittest.TestCase):
         for t, answer in self.mytests:
             for pos,a in zip(self.pos_list,answer) :
                 r = text_layout.calc_coords( self.text, t, pos)
-                assert r==a, "%r got: %r expected: %r"%(t,r,a)
+                assert r==a, f"{t!r} got: {r!r} expected: {a!r}"

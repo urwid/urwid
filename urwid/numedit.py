@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Urwid basic widget classes
 #    Copyright (C) 2004-2012  Ian Ward
@@ -17,12 +16,15 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
+
+from __future__ import annotations
+
+import re
+from decimal import Decimal
 
 from urwid import Edit
-from decimal import Decimal
-import re
 
 
 class NumEdit(Edit):
@@ -38,7 +40,7 @@ class NumEdit(Edit):
     ALLOWED = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
     def __init__(self, allowed, caption, default, trimLeadingZeros=True):
-        super(NumEdit, self).__init__(caption, default)
+        super().__init__(caption, default)
         self._allowed = allowed
         self.trimLeadingZeros = trimLeadingZeros
 
@@ -149,10 +151,9 @@ class IntegerEdit(NumEdit):
             # in case a float is passed or some other error
             if isinstance(default, str) and len(default):
                 # check if it is a valid initial value
-                validation_re = "^[{}]+$".format(allowed_chars)
+                validation_re = f"^[{allowed_chars}]+$"
                 if not re.match(validation_re, str(default), re.IGNORECASE):
-                    raise ValueError("invalid value: {} for base {}".format(
-                                     default, base))
+                    raise ValueError(f"invalid value: {default} for base {base}")
 
             elif isinstance(default, Decimal):
                 # a Decimal instance with no fractional part
@@ -162,7 +163,7 @@ class IntegerEdit(NumEdit):
             # convert possible int, long or Decimal to str
             val = str(default)
 
-        super(IntegerEdit, self).__init__(allowed_chars, caption, val,
+        super().__init__(allowed_chars, caption, val,
                                           trimLeadingZeros=(self.base == 10))
 
     def value(self):
@@ -238,8 +239,7 @@ class FloatEdit(NumEdit):
         self.significance = None
         self._decimalSeparator = decimalSeparator
         if decimalSeparator not in ['.', ',']:
-            raise ValueError("invalid decimalSeparator: {}".format(
-                             decimalSeparator))
+            raise ValueError(f"invalid decimalSeparator: {decimalSeparator}")
 
         val = ""
         if default is not None and default != "":
@@ -257,7 +257,7 @@ class FloatEdit(NumEdit):
 
             val = str(default)
 
-        super(FloatEdit, self).__init__(self.ALLOWED[0:10] + decimalSeparator,
+        super().__init__(self.ALLOWED[0:10] + decimalSeparator,
                                         caption, val)
 
     def value(self):

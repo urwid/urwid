@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import unittest
 
 import urwid
@@ -7,8 +9,7 @@ class PaddingTest(unittest.TestCase):
     def ptest(self, desc, align, width, maxcol, left, right,min_width=None):
         p = urwid.Padding(None, align, width, min_width)
         l, r = p.padding_values((maxcol,),False)
-        assert (l,r)==(left,right), "%s expected %s but got %s"%(
-            desc, (left,right), (l,r))
+        assert (l,r)==(left,right), f"{desc} expected {left, right} but got {l, r}"
 
     def petest(self, desc, align, width):
         self.assertRaises(urwid.PaddingError, lambda:
@@ -77,13 +78,13 @@ class PaddingTest(unittest.TestCase):
         # fixing this gets deep into things like Edit._shift_view_to_cursor
         # though, so this might not get fixed for a while
 
-        p = urwid.Padding(urwid.Edit(u'',u''), width='pack', left=4)
+        p = urwid.Padding(urwid.Edit('',''), width='pack', left=4)
         self.assertEqual(p.render((10,), True).cursor, None)
         self.assertEqual(p.get_cursor_coords((10,)), None)
         self.assertEqual(p.render((4,), True).cursor, None)
         self.assertEqual(p.get_cursor_coords((4,)), None)
 
-        p = urwid.Padding(urwid.Edit(u'',u''), width=('relative', 100), left=4)
+        p = urwid.Padding(urwid.Edit('',''), width=('relative', 100), left=4)
         self.assertEqual(p.render((10,), True).cursor, (4, 0))
         self.assertEqual(p.get_cursor_coords((10,)), (4, 0))
         self.assertEqual(p.render((4,), True).cursor, None)
@@ -95,8 +96,7 @@ class FillerTest(unittest.TestCase):
             min_height=None):
         f = urwid.Filler(None, valign, height, min_height)
         t, b = f.filler_values((20,maxrow), False)
-        assert (t,b)==(top,bottom), "%s expected %s but got %s"%(
-            desc, (top,bottom), (t,b))
+        assert (t,b)==(top,bottom), f"{desc} expected {top, bottom} but got {t, b}"
 
     def fetest(self, desc, valign, height):
         self.assertRaises(urwid.FillerError, lambda:
@@ -146,4 +146,4 @@ class FillerTest(unittest.TestCase):
             10,1,1,8)
 
     def test_repr(self):
-        repr(urwid.Filler(urwid.Text(u'hai')))
+        repr(urwid.Filler(urwid.Text('hai')))

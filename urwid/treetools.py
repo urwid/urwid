@@ -18,9 +18,8 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
-from __future__ import division, print_function
 
 """
 Urwid tree view
@@ -30,6 +29,8 @@ Features:
 - custom list walker for displaying widgets in a tree fashion
 """
 
+
+from __future__ import annotations
 
 import urwid
 from urwid.wimp import SelectableIcon
@@ -51,7 +52,7 @@ class TreeWidget(urwid.WidgetWrap):
         self.is_leaf = not hasattr(node, 'get_first_child')
         self.expanded = True
         widget = self.get_indented_widget()
-        self.__super.__init__(widget)
+        super().__init__(widget)
 
     def selectable(self):
         """
@@ -90,8 +91,7 @@ class TreeWidget(urwid.WidgetWrap):
         return self._node
 
     def get_display_text(self):
-        return (self.get_node().get_key() + ": " +
-                str(self.get_node().get_value()))
+        return (f"{self.get_node().get_key()}: {str(self.get_node().get_value())}")
 
     def next_inorder(self):
         """Return the next TreeWidget depth first from this one."""
@@ -150,7 +150,7 @@ class TreeWidget(urwid.WidgetWrap):
             self.expanded = False
             self.update_expanded_icon()
         elif self._w.selectable():
-            return self.__super.keypress(size, key)
+            return super().keypress(size, key)
         else:
             return key
 
@@ -193,7 +193,7 @@ class TreeWidget(urwid.WidgetWrap):
                 return lastdescendant
 
 
-class TreeNode(object):
+class TreeNode:
     """
     Store tree contents and cache TreeWidget objects.
     A TreeNode consists of the following elements:
@@ -243,7 +243,7 @@ class TreeNode(object):
         self.get_parent().change_child_key(self._key, key)
 
     def get_parent(self):
-        if self._parent == None and self.get_depth() > 0:
+        if self._parent is None and self.get_depth() > 0:
             self._parent = self.load_parent()
         return self._parent
 
@@ -320,7 +320,7 @@ class ParentNode(TreeNode):
 
     def change_child_key(self, oldkey, newkey):
         if newkey in self._children:
-            raise TreeWidgetError("%s is already in use" % newkey)
+            raise TreeWidgetError(f"{newkey} is already in use")
         self._children[newkey] = self._children.pop(oldkey)
         self._children[newkey].set_key(newkey)
 
@@ -328,8 +328,7 @@ class ParentNode(TreeNode):
         try:
             return self.get_child_keys().index(key)
         except ValueError:
-            errorstring = ("Can't find key %s in ParentNode %s\n" +
-                           "ParentNode items: %s")
+            errorstring = f"Can't find key %s in ParentNode %s\nParentNode items: %s"
             raise TreeWidgetError(errorstring % (key, self.get_key(),
                                   str(self.get_child_keys())))
 
@@ -418,7 +417,7 @@ class TreeListBox(urwid.ListBox):
     collapsing of TreeWidgets"""
 
     def keypress(self, size, key):
-        key = self.__super.keypress(size, key)
+        key = super().keypress(size, key)
         return self.unhandled_input(size, key)
 
     def unhandled_input(self, size, input):

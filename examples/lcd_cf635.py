@@ -18,7 +18,10 @@ horizontal slider control, selected check box and selected radio button
 respectively.
 """
 
+from __future__ import annotations
+
 import sys
+
 import urwid.lcd_display
 
 CGRAM = """
@@ -136,7 +139,7 @@ class LCDHorizontalSlider(urwid.WidgetWrap):
             self.bar,
             ('fixed', 1, urwid.SelectableIcon('\x04')),
             ])
-        self.__super.__init__(cols)
+        super().__init__(cols)
         self.callback = callback
 
     def keypress(self, size, key):
@@ -147,7 +150,7 @@ class LCDHorizontalSlider(urwid.WidgetWrap):
                 self._w.get_focus_column() != 0)
             self.callback(self.bar.value)
         else:
-            return self.__super.keypress(size, key)
+            return super().keypress(size, key)
 
 
 
@@ -156,7 +159,7 @@ class MenuOption(urwid.Button):
     A menu option, indicated with a single arrow character
     """
     def __init__(self, label, submenu):
-        self.__super.__init__("")
+        super().__init__("")
         # use a Text widget for label, we want the cursor
         # on the arrow not the label
         self._label = urwid.Text("")
@@ -172,19 +175,19 @@ class MenuOption(urwid.Button):
     def keypress(self, size, key):
         if key == 'right':
             key = 'enter'
-        return self.__super.keypress(size, key)
+        return super().keypress(size, key)
 
 
 class Menu(urwid.ListBox):
     def __init__(self, widgets):
         self.menu_parent = None
-        self.__super.__init__(urwid.SimpleListWalker(widgets))
+        super().__init__(urwid.SimpleListWalker(widgets))
 
     def keypress(self, size, key):
         """
         Go back to the previous menu on cancel button (mapped to esc)
         """
-        key = self.__super.keypress(size, key)
+        key = super().keypress(size, key)
         if key in ('left', 'esc') and self.menu_parent:
             show_menu(self.menu_parent)
         else:

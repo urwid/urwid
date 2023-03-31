@@ -17,21 +17,21 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
-from __future__ import division, print_function
 
-from urwid.widget import (Text, WidgetWrap, delegate_to_widget_mixin, BOX,
-    FLOW)
+from __future__ import annotations
+
 from urwid.canvas import CompositeCanvas
-from urwid.signals import connect_signal
-from urwid.container import Columns, Overlay
-from urwid.util import is_mouse_press
-from urwid.text_layout import calc_coords
-from urwid.signals import disconnect_signal # doctests
-from urwid.split_repr import python3_repr
-from urwid.decoration import WidgetDecoration
 from urwid.command_map import ACTIVATE
+from urwid.container import Columns, Overlay
+from urwid.decoration import WidgetDecoration
+from urwid.signals import disconnect_signal  # doctests
+from urwid.signals import connect_signal
+from urwid.text_layout import calc_coords
+from urwid.util import is_mouse_press
+from urwid.widget import BOX, FLOW, Text, WidgetWrap, delegate_to_widget_mixin
+
 
 class SelectableIcon(Text):
     ignore_focus = False
@@ -47,7 +47,7 @@ class SelectableIcon(Text):
         displayed at a fixed location in the text when in focus.
         This widget has no special handling of keyboard or mouse input.
         """
-        self.__super.__init__(text)
+        super().__init__(text)
         self._cursor_position = cursor_position
 
     def render(self, size, focus=False):
@@ -66,7 +66,7 @@ class SelectableIcon(Text):
         >>> si.render((2,), focus=True).cursor
         (0, 1)
         """
-        c = self.__super.render(size, focus)
+        c = super().render(size, focus)
         if focus:
             # create a new canvas so we can add a cursor
             c = CompositeCanvas(c)
@@ -145,12 +145,12 @@ class CheckBox(WidgetWrap):
         >>> cb.render((20,), focus=True).text # ... = b in Python 3
         [...'[X] Extra onions    ']
         """
-        self.__super.__init__(None) # self.w set by set_state below
+        super().__init__(None) # self.w set by set_state below
         self._label = Text("")
         self.has_mixed = has_mixed
         self._state = None
         if checked_symbol:
-            self.states[True] = SelectableIcon(u"[%s]" % checked_symbol, 1)
+            self.states[True] = SelectableIcon(f"[{checked_symbol}]", 1)
         # The old way of listening for a change was to pass the callback
         # in to the constructor.  Just convert it to the new way:
         if on_state_change:
@@ -159,11 +159,11 @@ class CheckBox(WidgetWrap):
         self.set_state(state)
 
     def _repr_words(self):
-        return self.__super._repr_words() + [
-            python3_repr(self.label)]
+        return super()._repr_words() + [
+            repr(self.label)]
 
     def _repr_attrs(self):
-        return dict(self.__super._repr_attrs(),
+        return dict(super()._repr_attrs(),
             state=self.state)
 
     def set_label(self, label):
@@ -233,8 +233,7 @@ class CheckBox(WidgetWrap):
             return
 
         if state not in self.states:
-            raise CheckBoxError("%s Invalid state: %s" % (
-                repr(self), repr(state)))
+            raise CheckBoxError(f"{self!r} Invalid state: {state!r}")
 
         # self._state is None is a special case when the CheckBox
         # has just been created
@@ -370,7 +369,7 @@ class RadioButton(CheckBox):
             state = not group
 
         self.group = group
-        self.__super.__init__(label, state, False, on_state_change,
+        super().__init__(label, state, False, on_state_change,
             user_data)
         group.append(self)
 
@@ -408,7 +407,7 @@ class RadioButton(CheckBox):
         if self._state == state:
             return
 
-        self.__super.set_state(state, do_callback)
+        super().set_state(state, do_callback)
 
         # if we're clearing the state we don't have to worry about
         # other buttons in the button group
@@ -480,7 +479,7 @@ class Button(WidgetWrap):
             self._label,
             ('fixed', 1, self.button_right)],
             dividechars=1)
-        self.__super.__init__(cols)
+        super().__init__(cols)
 
         # The old way of listening for a change was to pass the callback
         # in to the constructor.  Just convert it to the new way:
@@ -491,8 +490,8 @@ class Button(WidgetWrap):
 
     def _repr_words(self):
         # include button.label in repr(button)
-        return self.__super._repr_words() + [
-            python3_repr(self.label)]
+        return super()._repr_words() + [
+            repr(self.label)]
 
     def set_label(self, label):
         """
@@ -566,10 +565,9 @@ class Button(WidgetWrap):
         return True
 
 
-class PopUpLauncher(delegate_to_widget_mixin('_original_widget'),
-                    WidgetDecoration):
+class PopUpLauncher(delegate_to_widget_mixin('_original_widget'), WidgetDecoration):
     def __init__(self, original_widget):
-        self.__super.__init__(original_widget)
+        super().__init__(original_widget)
         self._pop_up_widget = None
 
     def create_pop_up(self, *args, **kwargs):
@@ -599,7 +597,7 @@ class PopUpLauncher(delegate_to_widget_mixin('_original_widget'),
         self._invalidate()
 
     def render(self, size, focus=False):
-        canv = self.__super.render(size, focus)
+        canv = super().render(size, focus)
         if self._pop_up_widget:
             canv = CompositeCanvas(canv)
             canv.set_pop_up(self._pop_up_widget, **self.get_pop_up_parameters(size, focus))
@@ -609,11 +607,11 @@ class PopUpLauncher(delegate_to_widget_mixin('_original_widget'),
 class PopUpTarget(WidgetDecoration):
     # FIXME: this whole class is a terrible hack and must be fixed
     # when layout and rendering are separated
-    _sizing = set([BOX])
+    _sizing = {BOX}
     _selectable = True
 
     def __init__(self, original_widget):
-        self.__super.__init__(original_widget)
+        super().__init__(original_widget)
         self._pop_up = None
         self._current_widget = self._original_widget
 

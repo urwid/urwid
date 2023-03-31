@@ -1,8 +1,11 @@
-import unittest
+from __future__ import annotations
+
 import doctest
+import unittest
 
 import urwid
 import urwid.numedit
+
 
 def load_tests(loader, tests, ignore):
     module_doctests = [

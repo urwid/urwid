@@ -17,9 +17,8 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
-from __future__ import division, print_function
 
 REDRAW_SCREEN = 'redraw screen'
 CURSOR_UP = 'cursor up'
@@ -32,7 +31,7 @@ CURSOR_MAX_LEFT = 'cursor max left'
 CURSOR_MAX_RIGHT = 'cursor max right'
 ACTIVATE = 'activate'
 
-class CommandMap(object):
+class CommandMap:
     """
     dict-like object for looking up commands from keystrokes
 

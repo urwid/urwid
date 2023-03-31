@@ -17,26 +17,57 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
-from __future__ import division, print_function
+
+from __future__ import annotations
 
 from itertools import chain, repeat
-from urwid.compat import xrange
 
+from urwid.canvas import (
+    CanvasCombine,
+    CanvasJoin,
+    CanvasOverlay,
+    CompositeCanvas,
+    SolidCanvas,
+)
+from urwid.decoration import (
+    Filler,
+    Padding,
+    calculate_left_right_padding,
+    calculate_top_bottom_filler,
+    normalize_align,
+    normalize_height,
+    normalize_valign,
+    normalize_width,
+    simplify_align,
+    simplify_height,
+    simplify_valign,
+    simplify_width,
+)
+from urwid.monitored_list import MonitoredFocusList, MonitoredList
 from urwid.util import is_mouse_press
-from urwid.widget import (Widget, Divider, FLOW, FIXED, PACK, BOX, WidgetWrap,
-    GIVEN, WEIGHT, LEFT, RIGHT, RELATIVE, TOP, BOTTOM, CLIP, RELATIVE_100)
-from urwid.decoration import (Padding, Filler, calculate_left_right_padding,
-    calculate_top_bottom_filler, normalize_align, normalize_width,
-    normalize_valign, normalize_height, simplify_align, simplify_width,
-    simplify_valign, simplify_height)
-from urwid.monitored_list import MonitoredList, MonitoredFocusList
-from urwid.canvas import (CompositeCanvas, CanvasOverlay, CanvasCombine,
-    SolidCanvas, CanvasJoin)
+from urwid.widget import (
+    BOTTOM,
+    BOX,
+    CLIP,
+    FIXED,
+    FLOW,
+    GIVEN,
+    LEFT,
+    PACK,
+    RELATIVE,
+    RELATIVE_100,
+    RIGHT,
+    TOP,
+    WEIGHT,
+    Divider,
+    Widget,
+    WidgetWrap,
+)
 
 
-class WidgetContainerMixin(object):
+class WidgetContainerMixin:
     """
     Mixin class for widget containers implementing common container methods
     """
@@ -106,7 +137,7 @@ class WidgetContainerMixin(object):
                 return out
             out.append(w)
 
-class WidgetContainerListContentsMixin(object):
+class WidgetContainerListContentsMixin:
     """
     Mixin class for widget containers whose positions are indexes into
     a list available as self.contents.
@@ -116,14 +147,14 @@ class WidgetContainerListContentsMixin(object):
         Return an iterable of positions for this container from first
         to last.
         """
-        return iter(xrange(len(self.contents)))
+        return iter(range(len(self.contents)))
 
     def __reversed__(self):
         """
         Return an iterable of positions for this container from last
         to first.
         """
-        return iter(xrange(len(self.contents) - 1, -1, -1))
+        return iter(range(len(self.contents) - 1, -1, -1))
 
 
 class GridFlowError(Exception):
@@ -158,13 +189,13 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         self.v_sep = v_sep
         self.align = align
         self._cache_maxcol = None
-        self.__super.__init__(None)
+        super().__init__(None)
         # set self._w to something other than None
         self.get_display_widget(((h_sep+cell_width)*len(cells),))
 
     def _invalidate(self):
         self._cache_maxcol = None
-        self.__super._invalidate()
+        super()._invalidate()
 
     def _contents_modified(self, slc, new_items):
         for item in new_items:
@@ -173,7 +204,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
                 if t != GIVEN:
                     raise ValueError
             except (TypeError, ValueError):
-                raise GridFlowError("added content invalid %r" % (item,))
+                raise GridFlowError(f"added content invalid {item!r}")
 
     def _get_cells(self):
         ml = MonitoredList(w for w, t in self.contents)
@@ -234,7 +265,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         width_amount -- None to use the default cell_width for this GridFlow
         """
         if width_type != GIVEN:
-            raise GridFlowError("invalid width_type: %r" % (width_type,))
+            raise GridFlowError(f"invalid width_type: {width_type!r}")
         if width_amount is None:
             width_amount = self._cell_width
         return (width_type, width_amount)
@@ -271,7 +302,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             if cell == w:
                 self.focus_position = i
                 return
-        raise ValueError("Widget not found in GridFlow contents: %r" % (cell,))
+        raise ValueError(f"Widget not found in GridFlow contents: {cell!r}")
     focus_cell = property(get_focus, _set_focus_cell, doc="""
         The widget in focus, for backwards compatibility.
 
@@ -299,7 +330,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             if position < 0 or position >= len(self.contents):
                 raise IndexError
         except (TypeError, IndexError):
-            raise IndexError("No GridFlow child widget at position %s" % (position,))
+            raise IndexError(f"No GridFlow child widget at position {position}")
         self.contents.focus = position
     focus_position = property(_get_focus_position, _set_focus_position, doc="""
         index of child widget in focus. Raises :exc:`IndexError` if read when
@@ -407,41 +438,41 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         Captures focus changes.
         """
         self.get_display_widget(size)
-        key = self.__super.keypress(size, key)
+        key = super().keypress(size, key)
         if key is None:
             self._set_focus_from_display_widget()
         return key
 
     def rows(self, size, focus=False):
         self.get_display_widget(size)
-        return self.__super.rows(size, focus=focus)
+        return super().rows(size, focus=focus)
 
     def render(self, size, focus=False ):
         self.get_display_widget(size)
-        return self.__super.render(size, focus)
+        return super().render(size, focus)
 
     def get_cursor_coords(self, size):
         """Get cursor from display widget."""
         self.get_display_widget(size)
-        return self.__super.get_cursor_coords(size)
+        return super().get_cursor_coords(size)
 
     def move_cursor_to_coords(self, size, col, row):
         """Set the widget in focus based on the col + row."""
         self.get_display_widget(size)
-        rval = self.__super.move_cursor_to_coords(size, col, row)
+        rval = super().move_cursor_to_coords(size, col, row)
         self._set_focus_from_display_widget()
         return rval
 
     def mouse_event(self, size, event, button, col, row, focus):
         self.get_display_widget(size)
-        self.__super.mouse_event(size, event, button, col, row, focus)
+        super().mouse_event(size, event, button, col, row, focus)
         self._set_focus_from_display_widget()
         return True # at a minimum we adjusted our focus
 
     def get_pref_col(self, size):
         """Return pref col from display widget."""
         self.get_display_widget(size)
-        return self.__super.get_pref_col(size)
+        return super().get_pref_col(size)
 
 
 
@@ -507,7 +538,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         widgets when determining the size and position of *top_w*. *bottom_w* is
         always rendered the full size available "below" *top_w*.
         """
-        self.__super.__init__()
+        super().__init__()
 
         self.top_w = top_w
         self.bottom_w = bottom_w
@@ -624,7 +655,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         doc="index of child widget in focus, currently always 1")
 
     def _contents(self):
-        class OverlayContents(object):
+        class OverlayContents:
             def __len__(inner_self):
                 return 2
             __getitem__ = self._contents__getitem__
@@ -641,13 +672,12 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 self.right, self.valign_type, self.valign_amount,
                 self.height_type, self.height_amount,
                 self.min_height, self.top, self.bottom))
-        raise IndexError("Overlay.contents has no position %r"
-            % (index,))
+        raise IndexError(f"Overlay.contents has no position {index!r}")
     def _contents__setitem__(self, index, value):
         try:
             value_w, value_options = value
         except (ValueError, TypeError):
-            raise OverlayError("added content invalid: %r" % (value,))
+            raise OverlayError(f"added content invalid: {value!r}")
         if index == 0:
             if value_options != self._DEFAULT_BOTTOM_OPTIONS:
                 raise OverlayError("bottom_options must be set to "
@@ -660,8 +690,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                     height_type, height_amount, min_height, top, bottom,
                     ) = value_options
             except (ValueError, TypeError):
-                raise OverlayError("top_options is invalid: %r"
-                    % (value_options,))
+                raise OverlayError(f"top_options is invalid: {value_options!r}")
             # normalize first, this is where errors are raised
             align_type, align_amount = normalize_align(
                 simplify_align(align_type, align_amount), OverlayError)
@@ -686,8 +715,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             self.min_width = min_width
             self.min_height = min_height
         else:
-            raise IndexError("Overlay.contents has no position %r"
-                % (index,))
+            raise IndexError(f"Overlay.contents has no position {index!r}")
         self._invalidate()
     contents = property(_contents, doc="""
         a list-like object similar to::
@@ -839,7 +867,7 @@ class Frame(Widget, WidgetContainerMixin):
         :param focus_part:  'header', 'footer' or 'body'
         :type focus_part: str
         """
-        self.__super.__init__()
+        super().__init__()
 
         self._header = header
         self._body = body
@@ -882,10 +910,10 @@ class Frame(Widget, WidgetContainerMixin):
         :type part: str
         """
         if part not in ('header', 'footer', 'body'):
-            raise IndexError('Invalid position for Frame: %s' % (part,))
+            raise IndexError(f'Invalid position for Frame: {part}')
         if (part == 'header' and self._header is None) or (
                 part == 'footer' and self._footer is None):
-            raise IndexError('This Frame has no %s' % (part,))
+            raise IndexError(f'This Frame has no {part}')
         self.focus_part = part
         self._invalidate()
 
@@ -917,7 +945,7 @@ class Frame(Widget, WidgetContainerMixin):
         """)
 
     def _contents(self):
-        class FrameContents(object):
+        class FrameContents:
             def __len__(inner_self):
                 return len(inner_self.keys())
             def items(inner_self):
@@ -954,16 +982,16 @@ class Frame(Widget, WidgetContainerMixin):
             return (self._header, None)
         if key == 'footer' and self._footer:
             return (self._footer, None)
-        raise KeyError("Frame.contents has no key: %r" % (key,))
+        raise KeyError(f"Frame.contents has no key: {key!r}")
     def _contents__setitem__(self, key, value):
         if key not in ('body', 'header', 'footer'):
-            raise KeyError("Frame.contents has no key: %r" % (key,))
+            raise KeyError(f"Frame.contents has no key: {key!r}")
         try:
             value_w, value_options = value
             if value_options is not None:
                 raise ValueError
         except (ValueError, TypeError):
-            raise FrameError("added content invalid: %r" % (value,))
+            raise FrameError(f"added content invalid: {value!r}")
         if key == 'body':
             self.body = value_w
         elif key == 'footer':
@@ -972,10 +1000,10 @@ class Frame(Widget, WidgetContainerMixin):
             self.header = value_w
     def _contents__delitem__(self, key):
         if key not in ('header', 'footer'):
-            raise KeyError("Frame.contents can't remove key: %r" % (key,))
+            raise KeyError(f"Frame.contents can't remove key: {key!r}")
         if (key == 'header' and self._header is None
                 ) or (key == 'footer' and self._footer is None):
-            raise KeyError("Frame.contents has no key: %r" % (key,))
+            raise KeyError(f"Frame.contents has no key: {key!r}")
         if key == 'header':
             self.header = None
         else:
@@ -1259,7 +1287,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             one ``'weight'`` tuple in :attr:`widget_list`.
         """
         self._selectable = False
-        self.__super.__init__()
+        super().__init__()
         self._contents = MonitoredFocusList()
         self._contents.set_modified_callback(self._contents_modified)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
@@ -1284,7 +1312,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 self.contents.append((w, (f, height)))
             else:
                 raise PileError(
-                    "initial widget list item invalid %r" % (original,))
+                    f"initial widget list item invalid {original!r}")
             if focus_item is None and w.selectable():
                 focus_item = i
 
@@ -1308,7 +1336,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 if t not in (PACK, GIVEN, WEIGHT):
                     raise ValueError
             except (TypeError, ValueError):
-                raise PileError("added content invalid: %r" % (item,))
+                raise PileError(f"added content invalid: {item!r}")
 
     def _get_widget_list(self):
         ml = MonitoredList(w for w, t in self.contents)
@@ -1399,7 +1427,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if height_type == PACK:
             return (PACK, None)
         if height_type not in (GIVEN, WEIGHT):
-            raise PileError('invalid height_type: %r' % (height_type,))
+            raise PileError(f'invalid height_type: {height_type!r}')
         return (height_type, height_amount)
 
     def set_focus(self, item):
@@ -1419,7 +1447,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             if item == w:
                 self.focus_position = i
                 return
-        raise ValueError("Widget not found in Pile contents: %r" % (item,))
+        raise ValueError(f"Widget not found in Pile contents: {item!r}")
 
     def get_focus(self):
         """
@@ -1462,7 +1490,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             if position < 0 or position >= len(self.contents):
                 raise IndexError
         except (TypeError, IndexError):
-            raise IndexError("No Pile child widget at position %s" % (position,))
+            raise IndexError(f"No Pile child widget at position {position}")
         self.contents.focus = position
     focus_position = property(_get_focus_position, _set_focus_position, doc="""
         index of child widget in focus. Raises :exc:`IndexError` if read when
@@ -1773,7 +1801,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         filling the full height.
         """
         self._selectable = False
-        self.__super.__init__()
+        super().__init__()
         self._contents = MonitoredFocusList()
         self._contents.set_modified_callback(self._contents_modified)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
@@ -1801,7 +1829,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 self.contents.append((w, (f, width, i in box_columns)))
             else:
                 raise ColumnsError(
-                    "initial widget list item invalid: %r" % (original,))
+                    f"initial widget list item invalid: {original!r}")
             if focus_column is None and w.selectable():
                 focus_column = i
 
@@ -1828,7 +1856,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 if t not in (PACK, GIVEN, WEIGHT):
                     raise ValueError
             except (TypeError, ValueError):
-                raise ColumnsError("added content invalid %r" % (item,))
+                raise ColumnsError(f"added content invalid {item!r}")
 
     def _get_widget_list(self):
         ml = MonitoredList(w for w, t in self.contents)
@@ -1945,12 +1973,12 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if width_type == PACK:
             width_amount = None
         if width_type not in (PACK, GIVEN, WEIGHT):
-            raise ColumnsError('invalid width_type: %r' % (width_type,))
+            raise ColumnsError(f'invalid width_type: {width_type!r}')
         return (width_type, width_amount, box_widget)
 
     def _invalidate(self):
         self._cache_maxcol = None
-        self.__super._invalidate()
+        super()._invalidate()
 
     def set_focus_column(self, num):
         """
@@ -1987,7 +2015,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             if item == w:
                 self.focus_position = i
                 return
-        raise ValueError("Widget not found in Columns contents: %r" % (item,))
+        raise ValueError(f"Widget not found in Columns contents: {item!r}")
 
     def get_focus(self):
         """
@@ -2019,7 +2047,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             if position < 0 or position >= len(self.contents):
                 raise IndexError
         except (TypeError, IndexError):
-            raise IndexError("No Columns child widget at position %s" % (position,))
+            raise IndexError(f"No Columns child widget at position {position}")
         self.contents.focus = position
     focus_position = property(_get_focus_position, _set_focus_position, doc="""
         index of child widget in focus. Raises :exc:`IndexError` if read when

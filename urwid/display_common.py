@@ -16,24 +16,25 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
-from __future__ import division, print_function
+
+from __future__ import annotations
 
 import os
 import sys
+import warnings
 
 try:
     import termios
 except ImportError:
     pass # windows
 
-from urwid.util import StoppingContext, int_scale
 from urwid import signals
-from urwid.compat import B, bytes3, xrange, with_metaclass
+from urwid.util import StoppingContext, int_scale
 
 # for replacing unprintable bytes with '?'
-UNPRINTABLE_TRANS_TABLE = B("?") * 32 + bytes3(list(xrange(32,256)))
+UNPRINTABLE_TRANS_TABLE = b"?" * 32 + bytes(list(range(32,256)))
 
 
 # signals sent by BaseScreen
@@ -234,7 +235,7 @@ def _gray_num_88(gnum):
 
 def _color_desc_true(num):
 
-    return "#%06x" %(num)
+    return f"#{num:06x}"
 
 def _color_desc_256(num):
     """
@@ -314,7 +315,7 @@ def _parse_color_true(desc):
         h = desc[1:]
         return int(h, 16)
     elif len(desc) == 4:
-        h = "0x%s0%s0%s" %(desc[1], desc[2], desc[3])
+        h = f"0x{desc[1]}0{desc[2]}0{desc[3]}"
         return int(h, 16)
     return None
 
@@ -474,7 +475,7 @@ def _parse_color_88(desc):
 class AttrSpecError(Exception):
     pass
 
-class AttrSpec(object):
+class AttrSpec:
     def __init__(self, fg, bg, colors=256):
         """
         fg -- a string containing a comma-separated foreground color
@@ -537,25 +538,66 @@ class AttrSpec(object):
         self.foreground = fg
         self.background = bg
         if self.colors > colors:
-            raise AttrSpecError(('foreground/background (%s/%s) require ' +
-                'more colors than have been specified (%d).') %
-                (repr(fg), repr(bg), colors))
+            raise AttrSpecError(
+                f'foreground/background ({fg!r}/{bg!r}) '
+                f'require more colors than have been specified ({colors:d}).'
+            )
 
-    foreground_basic = property(lambda s: s._value & _FG_BASIC_COLOR != 0)
-    foreground_high = property(lambda s: s._value & _FG_HIGH_COLOR != 0)
-    foreground_true = property(lambda s: s._value & _FG_TRUE_COLOR != 0)
-    foreground_number = property(lambda s: s._value & _FG_COLOR_MASK)
-    background_basic = property(lambda s: s._value & _BG_BASIC_COLOR != 0)
-    background_high = property(lambda s: s._value & _BG_HIGH_COLOR != 0)
-    background_true = property(lambda s: s._value & _BG_TRUE_COLOR != 0)
-    background_number = property(lambda s: (s._value & _BG_COLOR_MASK)
-        >> _BG_SHIFT)
-    italics = property(lambda s: s._value & _ITALICS != 0)
-    bold = property(lambda s: s._value & _BOLD != 0)
-    underline = property(lambda s: s._value & _UNDERLINE != 0)
-    blink = property(lambda s: s._value & _BLINK != 0)
-    standout = property(lambda s: s._value & _STANDOUT != 0)
-    strikethrough = property(lambda s: s._value & _STRIKETHROUGH != 0)
+    @property
+    def foreground_basic(self):
+        return self._value & _FG_BASIC_COLOR != 0
+
+    @property
+    def foreground_high(self):
+        return self._value & _FG_HIGH_COLOR != 0
+
+    @property
+    def foreground_true(self):
+        return self._value & _FG_TRUE_COLOR != 0
+
+    @property
+    def foreground_number(self):
+        return self._value & _FG_COLOR_MASK
+
+    @property
+    def background_basic(self):
+        return self._value & _BG_BASIC_COLOR != 0
+
+    @property
+    def background_high(self):
+        return self._value & _BG_HIGH_COLOR != 0
+
+    @property
+    def background_true(self):
+        return self._value & _BG_TRUE_COLOR != 0
+
+    @property
+    def background_number(self):
+        return (self._value & _BG_COLOR_MASK) >> _BG_SHIFT
+
+    @property
+    def italics(self):
+        return self._value & _ITALICS != 0
+
+    @property
+    def bold(self):
+        return self._value & _BOLD != 0
+
+    @property
+    def underline(self):
+        return self._value & _UNDERLINE != 0
+
+    @property
+    def blink(self):
+        return self._value & _BLINK != 0
+
+    @property
+    def standout(self):
+        return self._value & _STANDOUT != 0
+
+    @property
+    def strikethrough(self):
+        return self._value & _STRIKETHROUGH != 0
 
     def _colors(self):
         """
@@ -569,7 +611,7 @@ class AttrSpec(object):
             return 256
         if self._value & (_BG_TRUE_COLOR | _FG_TRUE_COLOR):
             return 2**24
-        if self._value & (_BG_BASIC_COLOR | _BG_BASIC_COLOR):
+        if self._value & (_BG_BASIC_COLOR | _FG_BASIC_COLOR):
             return 16
         return 1
     colors = property(_colors)
@@ -579,11 +621,11 @@ class AttrSpec(object):
         Return an executable python representation of the AttrSpec
         object.
         """
-        args = "%r, %r" % (self.foreground, self.background)
+        args = f"{self.foreground!r}, {self.background!r}"
         if self.colors == 88:
             # 88-color mode is the only one that is handled differently
-            args = args + ", colors=88"
-        return "%s(%s)" % (self.__class__.__name__, args)
+            args = f"{args}, colors=88"
+        return f"{self.__class__.__name__}({args})"
 
     def _foreground_color(self):
         """Return only the color component of the foreground."""
@@ -612,9 +654,8 @@ class AttrSpec(object):
             if part in _ATTRIBUTES:
                 # parse and store "settings"/attributes in flags
                 if flags & _ATTRIBUTES[part]:
-                    raise AttrSpecError(("Setting %s specified more than" +
-                        "once in foreground (%s)") % (repr(part),
-                        repr(foreground)))
+                    raise AttrSpecError(
+                        f"Setting {part!r} specified more than once in foreground ({foreground!r})")
                 flags |= _ATTRIBUTES[part]
                 continue
             # past this point we must be specifying a color
@@ -634,11 +675,9 @@ class AttrSpec(object):
                 flags |= _FG_HIGH_COLOR
             # _parse_color_*() return None for unrecognised colors
             if scolor is None:
-                raise AttrSpecError(("Unrecognised color specification %s " +
-                    "in foreground (%s)") % (repr(part), repr(foreground)))
+                raise AttrSpecError(f"Unrecognised color specification {part!r} in foreground ({foreground!r})")
             if color is not None:
-                raise AttrSpecError(("More than one color given for " +
-                    "foreground (%s)") % (repr(foreground),))
+                raise AttrSpecError(f"More than one color given for foreground ({foreground!r})")
             color = scolor
         if color is None:
             color = 0
@@ -675,8 +714,7 @@ class AttrSpec(object):
             color = _parse_color_256(_true_to_256(background) or background)
             flags |= _BG_HIGH_COLOR
         if color is None:
-            raise AttrSpecError(("Unrecognised color specification " +
-                "in background (%s)") % (repr(background),))
+            raise AttrSpecError(f"Unrecognised color specification in background ({background!r})")
         self._value = (self._value & ~_BG_MASK) | (color << _BG_SHIFT) | flags
 
     background = property(_background, _set_background)
@@ -701,7 +739,7 @@ class AttrSpec(object):
             assert self.foreground_number < 88, "Invalid AttrSpec _value"
             vals = _COLOR_VALUES_88[self.foreground_number]
         elif self.colors == 2**24:
-            h = "%06x" %(self.foreground_number)
+            h = f"{self.foreground_number:06x}"
             vals = tuple([int(x, 16) for x in [h[0:2], h[2:4], h[4:6]]])
         else:
             vals = _COLOR_VALUES_256[self.foreground_number]
@@ -712,7 +750,7 @@ class AttrSpec(object):
             assert self.background_number < 88, "Invalid AttrSpec _value"
             return vals + _COLOR_VALUES_88[self.background_number]
         elif self.colors == 2**24:
-            h = "%06x" %(self.background_number)
+            h = f"{self.background_number:06x}"
             return vals + tuple([int(x, 16) for x in [h[0:2], h[2:4], h[4:6]]])
         else:
             return vals + _COLOR_VALUES_256[self.background_number]
@@ -726,9 +764,9 @@ class AttrSpec(object):
     __hash__ = object.__hash__
 
 
-class RealTerminal(object):
+class RealTerminal:
     def __init__(self):
-        super(RealTerminal,self).__init__()
+        super().__init__()
         self._signal_keys_set = False
         self._old_signal_keys = None
 
@@ -782,18 +820,20 @@ class RealTerminal(object):
 class ScreenError(Exception):
     pass
 
-class BaseScreen(with_metaclass(signals.MetaSignals, object)):
+class BaseScreen(metaclass=signals.MetaSignals):
     """
     Base class for Screen classes (raw_display.Screen, .. etc)
     """
     signals = [UPDATE_PALETTE_ENTRY, INPUT_DESCRIPTORS_CHANGED]
 
     def __init__(self):
-        super(BaseScreen,self).__init__()
+        super().__init__()
         self._palette = {}
         self._started = False
 
-    started = property(lambda self: self._started)
+    @property
+    def started(self):
+        return self._started
 
     def start(self, *args, **kwargs):
         """Set up the screen.  If the screen has already been started, does
@@ -830,9 +870,12 @@ class BaseScreen(with_metaclass(signals.MetaSignals, object)):
 
         Deprecated in favor of calling `start` as a context manager.
         """
+        warnings.warn(
+            "run_wrapper is deprecated in favor of calling `start` as a context manager.",
+            DeprecationWarning,
+        )
         with self.start(*args, **kwargs):
             return fn()
-
 
     def register_palette(self, palette):
         """Register a set of palette entries.
@@ -856,11 +899,10 @@ class BaseScreen(with_metaclass(signals.MetaSignals, object)):
                 self.register_palette_entry(*item)
                 continue
             if len(item) != 2:
-                raise ScreenError("Invalid register_palette entry: %s" %
-                    repr(item))
+                raise ScreenError(f"Invalid register_palette entry: {item!r}")
             name, like_name = item
             if like_name not in self._palette:
-                raise ScreenError("palette entry '%s' doesn't exist"%like_name)
+                raise ScreenError(f"palette entry '{like_name}' doesn't exist")
             self._palette[name] = self._palette[like_name]
 
     def register_palette_entry(self, name, foreground, background,

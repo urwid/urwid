@@ -1,15 +1,16 @@
+from __future__ import annotations
+
 import unittest
 
-from urwid import graphics
-from urwid.compat import B
 import urwid
+from urwid import graphics
 
 
 class LineBoxTest(unittest.TestCase):
     def border(self, tl, t, tr, l, r, bl, b, br):
-        return [bytes().join([tl, t, tr]),
-                bytes().join([l, B(" "), r]),
-                bytes().join([bl, b, br]),]
+        return [b''.join([tl, t, tr]),
+                b''.join([l, b" ", r]),
+                b''.join([bl, b, br]),]
 
     def test_linebox_pack(self):
         # Bug #346 'pack' Padding does not run with LineBox
@@ -29,11 +30,11 @@ class LineBoxTest(unittest.TestCase):
 
         # default
         self.assertEqual(l,
-            self.border(B("\xe2\x94\x8c"), B("\xe2\x94\x80"),
-                B("\xe2\x94\x90"), B("\xe2\x94\x82"), B("\xe2\x94\x82"),
-                B("\xe2\x94\x94"), B("\xe2\x94\x80"), B("\xe2\x94\x98")))
+            self.border(b"\xe2\x94\x8c", b"\xe2\x94\x80",
+                b"\xe2\x94\x90", b"\xe2\x94\x82", b"\xe2\x94\x82",
+                b"\xe2\x94\x94", b"\xe2\x94\x80", b"\xe2\x94\x98"))
 
-        nums = [B(str(n)) for n in range(8)]
+        nums = [str(n).encode('iso8859-1') for n in range(8)]
         b = dict(zip(["tlcorner", "tline", "trcorner", "lline", "rline",
             "blcorner", "bline", "brcorner"], nums))
         l = urwid.LineBox(t, **b).render((3,)).text
@@ -44,7 +45,7 @@ class LineBoxTest(unittest.TestCase):
 class BarGraphTest(unittest.TestCase):
     def bgtest(self, desc, data, top, widths, maxrow, exp ):
         rval = graphics.calculate_bargraph_display(data,top,widths,maxrow)
-        assert rval == exp, "%s expected %r, got %r"%(desc,exp,rval)
+        assert rval == exp, f"{desc} expected {exp!r}, got {rval!r}"
 
     def test1(self):
         self.bgtest('simplest',[[0]],5,[1],1,
@@ -92,7 +93,7 @@ class SmoothBarGraphTest(unittest.TestCase):
                 None, {(1,0):'red/black', (2,1):'blue/red'})
         g.set_data( data, top )
         rval = g.calculate_display((5,3))
-        assert rval == exp, "%s expected %r, got %r"%(desc,exp,rval)
+        assert rval == exp, f"{desc} expected {exp!r}, got {rval!r}"
 
     def test1(self):
         self.sbgtest('simple', [[3]], 5,

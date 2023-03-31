@@ -17,18 +17,27 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
-from __future__ import division, print_function
+
+from __future__ import annotations
 
 import weakref
 
-from urwid.util import rle_len, rle_append_modify, rle_join_modify, rle_product, \
-    calc_width, calc_text_pos, apply_target_encoding, trim_text_attr_cs
-from urwid.text_layout import trim_line, LayoutSegment
+from urwid.text_layout import LayoutSegment, trim_line
+from urwid.util import (
+    apply_target_encoding,
+    calc_text_pos,
+    calc_width,
+    rle_append_modify,
+    rle_join_modify,
+    rle_len,
+    rle_product,
+    trim_text_attr_cs,
+)
 
 
-class CanvasCache(object):
+class CanvasCache:
     """
     Cache for rendered canvases.  Automatically populated and
     accessed by Widget render() MetaClass magic, cleared by
@@ -51,6 +60,7 @@ class CanvasCache(object):
     fetches = 0
     cleanups = 0
 
+    @classmethod
     def store(cls, wcls, canvas):
         """
         Store a weakref to canvas in the cache.
@@ -92,8 +102,8 @@ class CanvasCache(object):
         ref = weakref.ref(canvas, cls.cleanup)
         cls._refs[ref] = (widget, wcls, size, focus)
         cls._widgets.setdefault(widget, {})[(wcls, size, focus)] = ref
-    store = classmethod(store)
 
+    @classmethod
     def fetch(cls, widget, wcls, size, focus):
         """
         Return the cached canvas or None.
@@ -114,8 +124,8 @@ class CanvasCache(object):
         if canv:
             cls.hits += 1 # more stats
         return canv
-    fetch = classmethod(fetch)
 
+    @classmethod
     def invalidate(cls, widget):
         """
         Remove all canvases cached for widget.
@@ -138,8 +148,8 @@ class CanvasCache(object):
             pass
         for w in dependants:
             cls.invalidate(w)
-    invalidate = classmethod(invalidate)
 
+    @classmethod
     def cleanup(cls, ref):
         cls.cleanups += 1 # collect stats
 
@@ -161,8 +171,8 @@ class CanvasCache(object):
                 del cls._deps[widget]
             except KeyError:
                 pass
-    cleanup = classmethod(cleanup)
 
+    @classmethod
     def clear(cls):
         """
         Empty the cache.
@@ -170,14 +180,12 @@ class CanvasCache(object):
         cls._widgets = {}
         cls._refs = {}
         cls._deps = {}
-    clear = classmethod(clear)
-
 
 
 class CanvasError(Exception):
     pass
 
-class Canvas(object):
+class Canvas:
     """
     base class for canvases
     """
@@ -233,7 +241,7 @@ class Canvas(object):
         Return the text content of the canvas as a list of strings,
         one for each row.
         """
-        return [bytes().join([text for (attr, cs, text) in row])
+        return [b''.join([text for (attr, cs, text) in row])
             for row in self.content()]
 
     text = property(_text_content, _raise_old_repr_error)
@@ -325,7 +333,7 @@ class TextCanvas(Canvas):
         check_width -- check and fix width of all lines in text
         """
         Canvas.__init__(self)
-        if text == None:
+        if text is None:
             text = []
 
         if check_width:
@@ -345,27 +353,27 @@ class TextCanvas(Canvas):
             else:
                 maxcol = 0
 
-        if attr == None:
+        if attr is None:
             attr = [[] for x in range(len(text))]
-        if cs == None:
+        if cs is None:
             cs = [[] for x in range(len(text))]
 
         # pad text and attr to maxcol
         for i in range(len(text)):
             w = widths[i]
             if w > maxcol:
-                raise CanvasError("Canvas text is wider than the maxcol specified \n%r\n%r\n%r"%(maxcol,widths,text))
+                raise CanvasError(f"Canvas text is wider than the maxcol specified \n{maxcol!r}\n{widths!r}\n{text!r}")
             if w < maxcol:
-                text[i] = text[i] + bytes().rjust(maxcol-w)
+                text[i] = text[i] + b''.rjust(maxcol-w)
             a_gap = len(text[i]) - rle_len( attr[i] )
             if a_gap < 0:
-                raise CanvasError("Attribute extends beyond text \n%r\n%r" % (text[i],attr[i]) )
+                raise CanvasError(f"Attribute extends beyond text \n{text[i]!r}\n{attr[i]!r}" )
             if a_gap:
                 rle_append_modify( attr[i], (None, a_gap))
 
             cs_gap = len(text[i]) - rle_len( cs[i] )
             if cs_gap < 0:
-                raise CanvasError("Character Set extends beyond text \n%r\n%r" % (text[i],cs[i]) )
+                raise CanvasError(f"Character Set extends beyond text \n{text[i]!r}\n{cs[i]!r}" )
             if cs_gap:
                 rle_append_modify( cs[i], (None, cs_gap))
 
@@ -469,7 +477,7 @@ class BlankCanvas(Canvas):
         def_attr = None
         if attr and None in attr:
             def_attr = attr[None]
-        line = [(def_attr, None, bytes().rjust(cols))]
+        line = [(def_attr, None, b''.rjust(cols))]
         for i in range(rows):
             yield line
 
@@ -492,7 +500,7 @@ class SolidCanvas(Canvas):
     def __init__(self, fill_char, cols, rows):
         Canvas.__init__(self)
         end, col = calc_text_pos(fill_char, 0, len(fill_char), 1)
-        assert col == 1, "Invalid fill_char: %r" % fill_char
+        assert col == 1, f"Invalid fill_char: {fill_char!r}"
         self._text, cs = apply_target_encoding(fill_char[:end])
         self._cs = cs[0][0]
         self.size = cols, rows
@@ -740,8 +748,8 @@ class CompositeCanvas(Canvas):
         right = self.cols() - left - width
         bottom = self.rows() - top - height
 
-        assert right >= 0, "top canvas of overlay not the size expected!" + repr((other.cols(),left,right,width))
-        assert bottom >= 0, "top canvas of overlay not the size expected!" + repr((other.rows(),top,bottom,height))
+        assert right >= 0, f"top canvas of overlay not the size expected!{repr((other.cols(), left, right, width))}"
+        assert bottom >= 0, f"top canvas of overlay not the size expected!{repr((other.rows(), top, bottom, height))}"
 
         shards = self.shards
         top_shards = []
@@ -1300,14 +1308,14 @@ def apply_text_layout(text, attr, ls, maxcol):
                 rle_join_modify( linec, cs )
             elif s.offs:
                 if s.sc:
-                    line.append(bytes().rjust(s.sc))
+                    line.append(b''.rjust(s.sc))
                     attrrange( s.offs, s.offs, s.sc )
             else:
-                line.append(bytes().rjust(s.sc))
+                line.append(b''.rjust(s.sc))
                 linea.append((None, s.sc))
                 linec.append((None, s.sc))
 
-        t.append(bytes().join(line))
+        t.append(b''.join(line))
         a.append(linea)
         c.append(linec)
 

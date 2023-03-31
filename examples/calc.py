@@ -17,7 +17,7 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
 """
 Urwid advanced example column calculator application
@@ -31,7 +31,8 @@ Features:
 - outputs commands that may be used to recreate expression on exit
 """
 
-from __future__ import print_function
+
+from __future__ import annotations
 
 import urwid
 import urwid.raw_display
@@ -137,7 +138,7 @@ class Cell:
 
         self.edit = urwid.IntEdit()
         if not self.is_top:
-            self.edit.set_caption( self.op + " " )
+            self.edit.set_caption( f"{self.op} " )
         self.edit.set_layout( None, None, CALC_LAYOUT )
 
     def get_value(self):
@@ -146,7 +147,7 @@ class Cell:
         if self.child is not None:
             return self.child.get_result()
         else:
-            return int("0"+self.edit.edit_text)
+            return int(f"0{self.edit.edit_text}")
 
     def get_result(self):
         """Return the numeric result of this cell's operation."""
@@ -203,9 +204,9 @@ class ParentEdit(urwid.Edit):
         """Set the letter of the child column for display."""
 
         self.letter = letter
-        caption = "("+letter+")"
+        caption = f"({letter})"
         if self.op is not None:
-            caption = self.op+" "+caption
+            caption = f"{self.op} {caption}"
         self.set_caption(caption)
 
     def keypress(self, size, key):
@@ -478,7 +479,7 @@ class CellColumn( urwid.WidgetWrap ):
             if c.op is not None: # only applies to first cell
                 l.append(c.op)
             if c.child is not None:
-                l.append("("+c.child.get_expression()+")")
+                l.append(f"({c.child.get_expression()})")
             else:
                 l.append("%d"%c.get_value())
 

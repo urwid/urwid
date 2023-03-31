@@ -30,24 +30,26 @@ Portions Copyright: 2010, Ian Ward <ian@excess.org>
 Licence:   LGPL <http://opensource.org/licenses/lgpl-2.1.php>
 """
 
-from __future__ import print_function
 
-import os
+from __future__ import annotations
+
+from twisted.application.internet import TCPServer
+from twisted.application.service import Application
+from twisted.conch.insults.insults import ServerProtocol, TerminalProtocol
+from twisted.conch.interfaces import IConchUser, ISession
+from twisted.conch.manhole_ssh import (
+    ConchFactory,
+    TerminalRealm,
+    TerminalSession,
+    TerminalSessionTransport,
+    TerminalUser,
+)
+from twisted.cred.portal import Portal
+from twisted.python.components import Adapter, Componentized
+from zope.interface import Attribute, Interface, implements
 
 import urwid
 from urwid.raw_display import Screen
-
-from zope.interface import Interface, Attribute, implements
-from twisted.application.service import Application
-from twisted.application.internet import TCPServer
-from twisted.cred.portal import Portal
-from twisted.conch.interfaces import IConchUser, ISession
-from twisted.conch.insults.insults import TerminalProtocol, ServerProtocol
-from twisted.conch.manhole_ssh import (ConchFactory, TerminalRealm,
-    TerminalUser, TerminalSession, TerminalSessionTransport)
-
-from twisted.python.components import Componentized, Adapter
-
 
 
 class IUrwidUi(Interface):
@@ -84,7 +86,7 @@ class IUrwidMind(Interface):
 
 
 
-class UrwidUi(object):
+class UrwidUi:
 
     def __init__(self, urwid_mind):
         self.mind = urwid_mind
@@ -111,7 +113,7 @@ class UrwidUi(object):
 
 
 
-class UnhandledKeyHandler(object):
+class UnhandledKeyHandler:
 
     def __init__(self, mind):
         self.mind = mind
@@ -120,7 +122,7 @@ class UnhandledKeyHandler(object):
         if isinstance(key, tuple):
             pass
         else:
-            f = getattr(self, 'key_%s' % key.replace(' ', '_'), None)
+            f = getattr(self, f"key_{key.replace(' ', '_')}", None)
             if f is None:
                 return
             else:
@@ -214,10 +216,10 @@ class TwistedScreen(Screen):
             self.terminal.cursorPosition(0, i)
             for (attr, cs, text) in row:
                 if attr != lasta:
-                    text = '%s%s' % (self._attr_to_escape(attr), text)
+                    text = f'{self._attr_to_escape(attr)}{text}'
                 lasta = attr
                 #if cs or attr:
-                #    print cs, attr
+                #    print(cs, attr)
                 self.write(text)
         cursor = r.get_cursor()
         if cursor is not None:
@@ -325,7 +327,7 @@ class TwistedScreen(Screen):
                 bg = "%d" % (a.background_number + 40)
         else:
             bg = "49"
-        return urwid.escape.ESC + "[0;%s;%s%sm" % (fg, st, bg)
+        return f"{urwid.escape.ESC}[0;{fg};{st}{bg}m"
 
 
 class UrwidTerminalProtocol(TerminalProtocol):

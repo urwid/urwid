@@ -749,6 +749,7 @@ specified) then this method must move the cursor to that position and return
 
 .. literalinclude:: wcur2.py
    :linenos:
+   :lines: 7-
 
 
 Widget Metaclass

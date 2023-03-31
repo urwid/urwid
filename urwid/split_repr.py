@@ -17,15 +17,13 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
-from __future__ import division, print_function
 
-from urwid.compat import PYTHON3
-if not PYTHON3:
-    from inspect import getargspec
-else:
-    from inspect import getfullargspec
+from __future__ import annotations
+
+from inspect import getfullargspec
+
 
 def split_repr(self):
     """
@@ -50,9 +48,8 @@ def split_repr(self):
     >>> Bar()
     <Bar words here too attrs='appear too' barttr=42>
     """
-    alist = [(str(k), normalize_repr(v))
-        for k, v in self._repr_attrs().items()]
-    alist.sort()
+    alist = sorted((str(k), normalize_repr(v)) for k, v in self._repr_attrs().items())
+
     words = self._repr_words()
     if not words and not alist:
         # if we're just going to print the classname fall back
@@ -73,30 +70,11 @@ def normalize_repr(v):
     "'foo'"
     """
     if isinstance(v, dict):
-        items = [(repr(k), repr(v)) for k, v in v.items()]
-        items.sort()
-        return "{" + ", ".join([
-            "%s: %s" % itm for itm in items]) + "}"
+        items = sorted((repr(k), repr(v)) for k, v in v.items())
+
+        return f"{{{', '.join([('%s: %s' % itm) for itm in items])}}}"
 
     return repr(v)
-
-def python3_repr(v):
-    """
-    Return strings and byte strings as they appear in Python 3
-
-    >>> python3_repr(u"text")
-    "'text'"
-    >>> python3_repr(bytes())
-    "b''"
-    """
-    r = repr(v)
-    if not PYTHON3:
-        if isinstance(v, bytes):
-            return 'b' + r
-        if r.startswith('u'):
-            return r[1:]
-    return r
-
 
 
 def remove_defaults(d, fn):
@@ -125,10 +103,7 @@ def remove_defaults(d, fn):
     >>> Foo()
     <Foo object>
     """
-    if not PYTHON3:
-        args, varargs, varkw, defaults = getargspec(fn)
-    else:
-        args, varargs, varkw, defaults, _, _, _ = getfullargspec(fn)
+    args, varargs, varkw, defaults, _, _, _ = getfullargspec(fn)
 
     # ignore *varargs and **kwargs
     if varkw:

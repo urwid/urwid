@@ -17,18 +17,18 @@
 #    License along with this library; if not, write to the Free Software
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Urwid web site: http://excess.org/urwid/
+# Urwid web site: https://urwid.org/
 
-from __future__ import division, print_function
 
 """
 HTML PRE-based UI implementation
 """
 
-from urwid import util
-from urwid.main_loop import ExitMainLoop
-from urwid.display_common import AttrSpec, BaseScreen
+from __future__ import annotations
 
+from urwid import util
+from urwid.display_common import AttrSpec, BaseScreen
+from urwid.main_loop import ExitMainLoop
 
 # replace control characters with ?'s
 _trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 256)])
@@ -47,7 +47,7 @@ class HtmlGenerator(BaseScreen):
     started = True
 
     def __init__(self):
-        super(HtmlGenerator, self).__init__()
+        super().__init__()
         self.colors = 16
         self.bright_is_bold = False # ignored
         self.has_underline = True # ignored
@@ -124,7 +124,7 @@ class HtmlGenerator(BaseScreen):
             l.append("\n")
 
         # add the fragment to the list
-        self.fragments.append( "<pre>%s</pre>" % "".join(l) )
+        self.fragments.append( f"<pre>{''.join(l)}</pre>" )
 
     def clear(self):
         """
@@ -160,8 +160,8 @@ def html_span(s, aspec, cursor = -1):
         fg_r, fg_g, fg_b = _d_fg_r, _d_fg_g, _d_fg_b
     if bg_r is None:
         bg_r, bg_g, bg_b = _d_bg_r, _d_bg_g, _d_bg_b
-    html_fg = "#%02x%02x%02x" % (fg_r, fg_g, fg_b)
-    html_bg = "#%02x%02x%02x" % (bg_r, bg_g, bg_b)
+    html_fg = f"#{fg_r:02x}{fg_g:02x}{fg_b:02x}"
+    html_bg = f"#{bg_r:02x}{bg_g:02x}{bg_b:02x}"
     if aspec.standout:
         html_fg, html_bg = html_bg, html_fg
     extra = (";text-decoration:underline" * aspec.underline +

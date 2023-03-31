@@ -1,7 +1,8 @@
 import unittest
-from urwid.numedit import FloatEdit
 from decimal import Decimal
 from itertools import product
+
+from urwid.numedit import FloatEdit
 
 
 class FloatEditNoPreservePrecicionTest(unittest.TestCase):
