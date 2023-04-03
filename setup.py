@@ -33,40 +33,11 @@ with open(os.path.join("urwid", "version.py")) as f:
     release = locals_['__version__']
 
 
-with open("README.rst") as f:
-    long_description = f.read().split('.. content-start\n', 1)[1]
-
-
 setup_d = {
     'name': "urwid",
     'version': release,
-    'author': "Ian Ward",
-    'author_email': "ian@excess.org",
     'ext_modules': [Extension('urwid.str_util', sources=['source/str_util.c'])],
-    'packages': ['urwid', 'urwid.tests'], 'url': "https://urwid.org/", 'license': "LGPL",
-    'keywords': "curses ui widget scroll listbox user interface text layout console ncurses",
-    'platforms': "unix-like", 'description': "A full-featured console (xterm et al.) user interface library",
-    'long_description': long_description, 'classifiers': [
-        "Development Status :: 5 - Production/Stable",
-        "Environment :: Console",
-        "Environment :: Console :: Curses",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)",
-        "Operating System :: POSIX",
-        "Operating System :: Unix",
-        "Operating System :: MacOS :: MacOS X",
-        "Topic :: Software Development :: Libraries :: Python Modules",
-        "Topic :: Software Development :: Widget Sets",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: Implementation :: PyPy",
-    ],
-    'zip_safe': False,
+    'url': "https://urwid.org/",
     'test_suite': 'urwid.tests',
 }
 

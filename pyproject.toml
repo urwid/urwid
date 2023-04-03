@@ -1,0 +1,86 @@
+[build-system]
+# Minimum requirements for the build system to execute.
+# PEP 508 specifications for PEP 518.
+requires = [
+    "setuptools >= 61.0.0",
+    "wheel"
+]
+build-backend="setuptools.build_meta"
+
+[project]
+name = "urwid"
+description = "A full-featured console (xterm et al.) user interface library"
+requires-python = ">=3.7.0"
+keywords = ["curses", "ui", "widget", "scroll", "listbox", "user interface", "text layout", "console", "ncurses"]
+license={text="LGPL-2.1-only"}  # Use SPDX classifier
+readme = {file = "README.rst", content-type = "text/x-rst"}
+authors=[{name="Ian Ward", email="ian@excess.org"}]
+dynamic = ["classifiers", "version"]  # "dependencies",
+
+[project.urls]
+"Homepage" = "https://urwid.org/"
+"Documentation" = "https://urwid.org/manual/index.html"
+"Repository" = "https://github.com/urwid/urwid"
+"Bug Tracker" = "https://github.com/urwid/urwid/issues"
+
+[tool.setuptools]
+platforms=["unix-like"]
+zip-safe = false
+
+[tool.setuptools.packages.find]
+exclude = [
+  "doc",
+  "test",
+  ".*"
+]
+include = ["urwid", 'urwid.tests']
+namespaces = false
+
+[tool.setuptools.dynamic]
+#dependencies = {file = ["requirements.txt"]}
+classifiers = {file = ["classifiers.txt"]}
+
+[tool.distutils.bdist_wheel]
+universal = 0
+
+[tool.isort]
+profile = "black"
+line_length = 120
+
+[tool.coverage.run]
+omit = ["urwid/tests/*", ".tox/*", "setup.py"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+  # Have to re-enable the standard pragma
+  "pragma: no cover",
+
+  # Don't complain about missing debug-only code:
+  "def __repr__",
+
+  # Don't complain if tests don't hit defensive assertion code:
+  "raise NotImplementedError",
+
+  # Exclude methods marked as abstract
+  "@abstractmethod",
+
+  # Exclude import statements
+  "^from\b",
+  "^import\b",
+
+  # Exclude variable declarations that are executed when file is loaded
+  "^[a-zA-Z_]+\b\\s=",
+
+  # Code for static analysis is never covered:
+  "if typing.TYPE_CHECKING:",
+
+  # Fallback code with no installed deps is almost impossible to cover properly
+  "except ImportError:",
+
+  # Don't complain if non-runnable code isn't run:
+  "if __name__ == .__main__.:",
+
+  # OS Specific
+  "if platform.system()",
+]

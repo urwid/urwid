@@ -1,5 +1,0 @@
-[run]
-omit =
-    .tox/*
-    setup.py
-
