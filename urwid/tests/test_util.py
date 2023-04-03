@@ -193,6 +193,7 @@ class RleTest(unittest.TestCase):
         self.assertListEqual(rle3, [('A', 10), ('B', 20)])
         self.assertListEqual(rle4, [('A', 10), ('B', 15), ('K', 1)])
 
+
 class PortabilityTest(unittest.TestCase):
     def test_locale(self):
         initial = locale.getlocale()
@@ -201,8 +202,28 @@ class PortabilityTest(unittest.TestCase):
         util.detect_encoding()
         self.assertEqual(locale.getlocale(), (None, None))
 
-        locale.setlocale(locale.LC_ALL, ('en_US', 'UTF-8'))
+        try:
+            locale.setlocale(locale.LC_ALL, ('en_US', 'UTF-8'))
+        except locale.Error as exc:
+            if "unsupported locale setting" not in str(exc):
+                raise
+
+            print(
+                f"Locale change impossible, probably locale not supported by system (libc ignores this error).\n"
+                f"{exc}"
+            )
+            return
+
         util.detect_encoding()
         self.assertEqual(locale.getlocale(), ('en_US', 'UTF-8'))
 
-        locale.setlocale(locale.LC_ALL, initial)
+        try:
+            locale.setlocale(locale.LC_ALL, initial)
+        except locale.Error as exc:
+            if "unsupported locale setting" not in str(exc):
+                raise
+
+            print(
+                f"Locale restore impossible, probably locale not supported by system (libc ignores this error).\n"
+                f"{exc}"
+            )
