@@ -129,6 +129,7 @@ from urwid.widget import (
     BOX,
     CENTER,
     CLIP,
+    ELLIPSIS,
     FIXED,
     FLOW,
     GIVEN,
