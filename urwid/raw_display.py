@@ -26,6 +26,7 @@ Direct terminal UI implementation
 
 from __future__ import annotations
 
+import io
 import os
 import select
 import signal

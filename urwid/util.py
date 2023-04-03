@@ -23,8 +23,12 @@
 from __future__ import annotations
 
 import codecs
+import typing
 
 from urwid import escape
+
+if typing.TYPE_CHECKING:
+    from typing_extensions import Self
 
 str_util = escape.str_util
 
@@ -116,15 +120,15 @@ def get_encoding_mode():
     return str_util.get_byte_encoding()
 
 
-def apply_target_encoding( s ):
+def apply_target_encoding(s: str | bytes):
     """
     Return (encoded byte string, character set rle).
     """
-    if _use_dec_special and type(s) == str:
+    if _use_dec_special and isinstance(s, str):
         # first convert drawing characters
         s = s.translate(escape.DEC_SPECIAL_CHARMAP)
 
-    if type(s) == str:
+    if isinstance(s, str):
         s = s.replace(escape.SI+escape.SO, "") # remove redundant shifts
         s = codecs.encode(s, _target_encoding, 'replace')
 
@@ -183,10 +187,7 @@ def supports_unicode():
     return _target_encoding and _target_encoding != 'ascii'
 
 
-
-
-
-def calc_trim_text( text, start_offs, end_offs, start_col, end_col ):
+def calc_trim_text( text, start_offs: int, end_offs: int, start_col: int, end_col: int):
     """
     Calculate the result of trimming text.
     start_offs -- offset into text to treat as screen column 0
@@ -215,14 +216,11 @@ def calc_trim_text( text, start_offs, end_offs, start_col, end_col ):
     return ( spos, pos, pad_left, pad_right )
 
 
-
-
-def trim_text_attr_cs( text, attr, cs, start_col, end_col ):
+def trim_text_attr_cs(text, attr, cs, start_col: int, end_col: int):
     """
     Return ( trimmed text, trimmed attr, trimmed cs ).
     """
-    spos, epos, pad_left, pad_right = calc_trim_text(
-        text, 0, len(text), start_col, end_col )
+    spos, epos, pad_left, pad_right = calc_trim_text(text, 0, len(text), start_col, end_col )
     attrtr = rle_subseg( attr, spos, epos )
     cstr = rle_subseg( cs, spos, epos )
     if pad_left:
@@ -238,7 +236,7 @@ def trim_text_attr_cs( text, attr, cs, start_col, end_col ):
         b''.rjust(pad_right), attrtr, cstr)
 
 
-def rle_get_at( rle, pos ):
+def rle_get_at(rle, pos: int):
     """
     Return the attribute at offset pos.
     """
@@ -252,7 +250,7 @@ def rle_get_at( rle, pos ):
     return None
 
 
-def rle_subseg( rle, start, end ):
+def rle_subseg(rle, start: int, end: int):
     """Return a sub segment of an rle list."""
     l = []
     x = 0
@@ -274,7 +272,7 @@ def rle_subseg( rle, start, end ):
     return l
 
 
-def rle_len( rle ):
+def rle_len(rle) -> int:
     """
     Return the number of characters covered by a run length
     encoded attribute list.
@@ -282,12 +280,13 @@ def rle_len( rle ):
 
     run = 0
     for v in rle:
-        assert type(v) == tuple, repr(rle)
+        assert isinstance(v, tuple), repr(rle)
         a, r = v
         run += r
     return run
 
-def rle_prepend_modify(rle, a_r):
+
+def rle_prepend_modify(rle, a_r) -> None:
     """
     Append (a, r) (unpacked from *a_r*) to BEGINNING of rle.
     Merge with first run when possible
@@ -319,6 +318,7 @@ def rle_append_modify(rle, a_r):
     la,lr = rle[-1]
     rle[-1] = (a, lr+r)
 
+
 def rle_join_modify( rle, rle2 ):
     """
     Append attribute list rle2 to rle.
@@ -330,6 +330,7 @@ def rle_join_modify( rle, rle2 ):
         return
     rle_append_modify(rle, rle2[0])
     rle += rle2[1:]
+
 
 def rle_product( rle1, rle2 ):
     """
@@ -375,6 +376,7 @@ def rle_factor( rle ):
 
 class TagMarkupException(Exception): pass
 
+
 def decompose_tagmarkup(tm):
     """Return (text string, attribute list) for tagmarkup passed."""
 
@@ -387,18 +389,19 @@ def decompose_tagmarkup(tm):
 
     return text, al
 
-def _tagmarkup_recurse( tm, attr ):
+
+def _tagmarkup_recurse(tm, attr):
     """Return (text list, attribute list) for tagmarkup passed.
 
     tm -- tagmarkup
     attr -- current attribute or None"""
 
-    if type(tm) == list:
+    if isinstance(tm, list):
         # for lists recurse to process each subelement
         rtl = []
         ral = []
         for element in tm:
-            tl, al = _tagmarkup_recurse( element, attr )
+            tl, al = _tagmarkup_recurse(element, attr)
             if ral:
                 # merge attributes when possible
                 last_attr, last_run = ral[-1]
@@ -410,7 +413,7 @@ def _tagmarkup_recurse( tm, attr ):
             ral += al
         return rtl, ral
 
-    if type(tm) == tuple:
+    if isinstance(tm, tuple):
         # tuples mark a new attribute boundary
         if len(tm) != 2:
             raise TagMarkupException(f"Tuples must be in the form (attribute, tagmarkup): {tm!r}")
@@ -425,25 +428,24 @@ def _tagmarkup_recurse( tm, attr ):
     return [tm], [(attr, len(tm))]
 
 
+def is_mouse_event(ev: str) -> bool:
+    return isinstance(ev, tuple) and len(ev) == 4 and "mouse" in ev[0]
 
-def is_mouse_event( ev ):
-    return type(ev) == tuple and len(ev)==4 and ev[0].find("mouse")>=0
 
-def is_mouse_press( ev ):
-    return ev.find("press")>=0
+def is_mouse_press(ev: str) -> bool:
+    return "press" in ev
 
 
 class MetaSuper(type):
     """adding .__super"""
-    def __init__(cls, name, bases, d):
+    def __init__(cls, name: str, bases, d):
         super().__init__(name, bases, d)
         if hasattr(cls, f"_{name}__super"):
             raise AttributeError("Class has same name as one of its super classes")
         setattr(cls, f"_{name}__super", super(cls))
 
 
-
-def int_scale(val, val_range, out_range):
+def int_scale(val: int, val_range: int, out_range: int):
     """
     Scale val in the range [0, val_range-1] to an integer in the range
     [0, out_range-1].  This implementation uses the "round-half-up" rounding
@@ -472,7 +474,7 @@ class StoppingContext:
     def __init__(self, wrapped):
         self._wrapped = wrapped
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *exc_info):

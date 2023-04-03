@@ -23,6 +23,10 @@
 from __future__ import annotations
 
 import re
+import typing
+
+if typing.TYPE_CHECKING:
+    from typing_extensions import Literal
 
 SAFE_ASCII_RE = re.compile("^[ -~]*$")
 SAFE_ASCII_BYTES_RE = re.compile(b"^[ -~]*$")
@@ -33,7 +37,7 @@ _byte_encoding = None
 # generated from
 # http://www.unicode.org/Public/4.0-Update/EastAsianWidth-4.0.0.txt
 
-widths = [
+widths: list[tuple[int, Literal[0, 1, 2]]] = [
     (126, 1),
     (159, 0),
     (687, 1),
@@ -76,7 +80,8 @@ widths = [
 
 # ACCESSOR FUNCTIONS
 
-def get_width( o ):
+
+def get_width(o) -> Literal[0, 1, 2]:
     """Return the screen column width for unicode ordinal o."""
     global widths
     if o == 0xe or o == 0xf:
@@ -86,7 +91,8 @@ def get_width( o ):
             return wid
     return 1
 
-def decode_one( text, pos ):
+
+def decode_one(text: bytes, pos: int) -> tuple[int, int]:
     """
     Return (ordinal at pos, next position) for UTF-8 encoded text.
     """
@@ -138,13 +144,15 @@ def decode_one( text, pos ):
         return o, pos+4
     return error
 
-def decode_one_uni(text, i):
+
+def decode_one_uni(text: str, i: int) -> tuple[int, int]:
     """
     decode_one implementation for unicode strings
     """
     return ord(text[i]), i+1
 
-def decode_one_right(text, pos):
+
+def decode_one_right(text: bytes, pos: int) -> tuple[int, int]:
     """
     Return (ordinal at pos, next position) for UTF-8 encoded text.
     pos is assumed to be on the trailing byte of a utf-8 sequence.
@@ -160,15 +168,18 @@ def decode_one_right(text, pos):
         if p == p-4:
             return error
 
-def set_byte_encoding(enc):
+
+def set_byte_encoding(enc: Literal['utf8', 'narrow', 'wide']):
     assert enc in ('utf8', 'narrow', 'wide')
     global _byte_encoding
     _byte_encoding = enc
 
+
 def get_byte_encoding():
     return _byte_encoding
 
-def calc_text_pos(text, start_offs, end_offs, pref_col):
+
+def calc_text_pos(text: str | bytes, start_offs: int, end_offs: int, pref_col: int) -> tuple[int, int]:
     """
     Calculate the closest position to the screen column pref_col in text
     where start_offs is the offset into text assumed to be screen column 0
@@ -180,12 +191,12 @@ def calc_text_pos(text, start_offs, end_offs, pref_col):
     """
     assert start_offs <= end_offs, repr((start_offs, end_offs))
     utfs = isinstance(text, bytes) and _byte_encoding == "utf8"
-    unis = not isinstance(text, bytes)
+    unis = isinstance(text, str)
     if unis or utfs:
         decode = [decode_one, decode_one_uni][unis]
         i = start_offs
         sc = 0
-        n = 1 # number to advance by
+        n = 1  # number to advance by
         while i < end_offs:
             o, n = decode(text, i)
             w = get_width(o)
@@ -194,7 +205,8 @@ def calc_text_pos(text, start_offs, end_offs, pref_col):
             i = n
             sc += w
         return i, sc
-    assert type(text) == bytes, repr(text)
+
+    assert isinstance(text, bytes), repr(text)
     # "wide" and "narrow"
     i = start_offs+pref_col
     if i >= end_offs:
@@ -204,7 +216,8 @@ def calc_text_pos(text, start_offs, end_offs, pref_col):
             i -= 1
     return i, i-start_offs
 
-def calc_width(text, start_offs, end_offs):
+
+def calc_width(text: str | bytes, start_offs: int, end_offs: int) -> int:
     """
     Return the screen column width of text between start_offs and end_offs.
 
@@ -219,8 +232,7 @@ def calc_width(text, start_offs, end_offs):
 
     utfs = isinstance(text, bytes) and _byte_encoding == "utf8"
     unis = not isinstance(text, bytes)
-    if (unis and not SAFE_ASCII_RE.match(text)
-            ) or (utfs and not SAFE_ASCII_BYTES_RE.match(text)):
+    if (unis and not SAFE_ASCII_RE.match(text)) or (utfs and not SAFE_ASCII_BYTES_RE.match(text)):
         decode = [decode_one, decode_one_uni][unis]
         i = start_offs
         sc = 0
@@ -234,7 +246,8 @@ def calc_width(text, start_offs, end_offs):
     # "wide", "narrow" or all printable ASCII, just return the character count
     return end_offs - start_offs
 
-def is_wide_char(text, offs):
+
+def is_wide_char(text: str | bytes, offs: int) -> bool:
     """
     Test if the character at offs within text is wide.
 
@@ -251,7 +264,8 @@ def is_wide_char(text, offs):
         return within_double_byte(text, offs, offs) == 1
     return False
 
-def move_prev_char(text, start_offs, end_offs):
+
+def move_prev_char(text: str | bytes, start_offs: int, end_offs: int):
     """
     Return the position of the character before end_offs.
     """
@@ -269,7 +283,8 @@ def move_prev_char(text, start_offs, end_offs):
         return end_offs-2
     return end_offs-1
 
-def move_next_char(text, start_offs, end_offs):
+
+def move_next_char(text: str | bytes, start_offs: int, end_offs: int) -> int:
     """
     Return the position of the character after start_offs.
     """
@@ -279,15 +294,15 @@ def move_next_char(text, start_offs, end_offs):
     assert isinstance(text, bytes)
     if _byte_encoding == "utf8":
         o = start_offs+1
-        while o<end_offs and text[o]&0xc0 == 0x80:
+        while o < end_offs and text[o] & 0xc0 == 0x80:
             o += 1
         return o
-    if _byte_encoding == "wide" and within_double_byte(text,
-        start_offs, start_offs) == 1:
+    if _byte_encoding == "wide" and within_double_byte(text, start_offs, start_offs) == 1:
         return start_offs +2
     return start_offs+1
 
-def within_double_byte(text, line_start, pos):
+
+def within_double_byte(text: bytes, line_start: int, pos: int) -> Literal[0, 1, 2]:
     """Return whether pos is within a double-byte encoded character.
 
     text -- byte string in question
@@ -304,16 +319,18 @@ def within_double_byte(text, line_start, pos):
 
     if v >= 0x40 and v < 0x7f:
         # might be second half of big5, uhc or gbk encoding
-        if pos == line_start: return 0
+        if pos == line_start:
+            return 0
 
         if text[pos-1] >= 0x81:
             if within_double_byte(text, line_start, pos-1) == 1:
                 return 2
         return 0
 
-    if v < 0x80: return 0
+    if v < 0x80:
+        return 0
 
-    i = pos -1
+    i = pos - 1
     while i >= line_start:
         if text[i] < 0x80:
             break
@@ -323,9 +340,10 @@ def within_double_byte(text, line_start, pos):
         return 1
     return 2
 
+
 # TABLE GENERATION CODE
 
-def process_east_asian_width():
+def process_east_asian_width() -> None:
     import sys
     out = []
     last = None
@@ -361,6 +379,7 @@ def process_east_asian_width():
     for o in out[1:]:  # treat control characters same as ascii
         print(f"\t{o!r},")
     print("]")
+
 
 if __name__ == "__main__":
     process_east_asian_width()

@@ -22,15 +22,11 @@
 
 from __future__ import annotations
 
+import typing
+from collections.abc import Iterable, Sequence
 from itertools import chain, repeat
 
-from urwid.canvas import (
-    CanvasCombine,
-    CanvasJoin,
-    CanvasOverlay,
-    CompositeCanvas,
-    SolidCanvas,
-)
+from urwid.canvas import CanvasCombine, CanvasJoin, CanvasOverlay, CompositeCanvas, SolidCanvas
 from urwid.decoration import (
     Filler,
     Padding,
@@ -65,6 +61,9 @@ from urwid.widget import (
     Widget,
     WidgetWrap,
 )
+
+if typing.TYPE_CHECKING:
+    from typing_extensions import Literal
 
 
 class WidgetContainerMixin:
@@ -119,7 +118,7 @@ class WidgetContainerMixin:
                 w.focus_position = p # modifies w.focus
             w = w.focus.base_widget
 
-    def get_focus_widgets(self):
+    def get_focus_widgets(self) -> list[Widget]:
         """
         Return the .focus values starting from this container
         and proceeding along each child widget until reaching a leaf
@@ -136,6 +135,7 @@ class WidgetContainerMixin:
             if w is None:
                 return out
             out.append(w)
+
 
 class WidgetContainerListContentsMixin:
     """
@@ -160,6 +160,7 @@ class WidgetContainerListContentsMixin:
 class GridFlowError(Exception):
     pass
 
+
 class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixin):
     """
     The GridFlow widget is a flow widget that renders all the widgets it
@@ -169,7 +170,14 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
     def sizing(self):
         return frozenset([FLOW])
 
-    def __init__(self, cells, cell_width, h_sep, v_sep, align):
+    def __init__(
+            self,
+            cells: Sequence[Widget],
+            cell_width: int,
+            h_sep: int,
+            v_sep: int,
+            align: Literal['left', 'center', 'right'] | tuple[Literal['relative'], int],
+    ):
         """
         :param cells: list of flow widgets to display
         :param cell_width: column width for each cell
@@ -179,8 +187,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         :param align: horizontal alignment of cells, one of:
             'left', 'center', 'right', ('relative', percentage 0=left 100=right)
         """
-        self._contents = MonitoredFocusList([
-            (w, (GIVEN, cell_width)) for w in cells])
+        self._contents = MonitoredFocusList([(w, (GIVEN, cell_width)) for w in cells])
         self._contents.set_modified_callback(self._invalidate)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
         self._contents.set_validate_contents_modified(self._contents_modified)
@@ -193,7 +200,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         # set self._w to something other than None
         self.get_display_widget(((h_sep+cell_width)*len(cells),))
 
-    def _invalidate(self):
+    def _invalidate(self) -> None:
         self._cache_maxcol = None
         super()._invalidate()
 
@@ -212,6 +219,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             self._set_cells(ml)
         ml.set_modified_callback(user_modified)
         return ml
+
     def _set_cells(self, widgets):
         focus_position = self.focus_position
         self.contents = [
@@ -226,9 +234,10 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             contents.
         """)
 
-    def _get_cell_width(self):
+    def _get_cell_width(self) -> int:
         return self._cell_width
-    def _set_cell_width(self, width):
+
+    def _set_cell_width(self, width: int) -> None:
         focus_position = self.focus_position
         self.contents = [
             (w, (GIVEN, width)) for (w, options) in self.contents]
@@ -241,6 +250,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
 
     def _get_contents(self):
         return self._contents
+
     def _set_contents(self, c):
         self._contents[:] = c
     contents = property(_get_contents, _set_contents, doc="""
@@ -257,7 +267,11 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         .. seealso:: Create new options tuples with the :meth:`options` method.
         """)
 
-    def options(self, width_type=GIVEN, width_amount=None):
+    def options(
+        self,
+        width_type: Literal['given'] = GIVEN,
+        width_amount: int | None = None,
+    ) -> tuple[Literal['given'], int]:
         """
         Return a new options tuple for use in a GridFlow's .contents list.
 
@@ -270,7 +284,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             width_amount = self._cell_width
         return (width_type, width_amount)
 
-    def set_focus(self, cell):
+    def set_focus(self, cell: Widget | int):
         """
         Set the cell in focus, for backwards compatibility.
 
@@ -297,7 +311,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
     focus = property(get_focus,
         doc="the child widget in focus or None when GridFlow is empty")
 
-    def _set_focus_cell(self, cell):
+    def _set_focus_cell(self, cell: Widget) -> None:
         for i, (w, options) in enumerate(self.contents):
             if cell == w:
                 self.focus_position = i
@@ -312,7 +326,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             index.
         """)
 
-    def _get_focus_position(self):
+    def _get_focus_position(self) -> int | None:
         """
         Return the index of the widget in focus or None if this GridFlow is
         empty.
@@ -320,7 +334,8 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         if not self.contents:
             raise IndexError("No focus_position, GridFlow is empty")
         return self.contents.focus
-    def _set_focus_position(self, position):
+
+    def _set_focus_position(self, position: int) -> None:
         """
         Set the widget in focus.
 
@@ -337,7 +352,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         GridFlow is empty, or when set to an invalid index.
         """)
 
-    def get_display_widget(self, size):
+    def get_display_widget(self, size: tuple[int]) -> Divider | Pile:
         """
         Arrange the cells into columns (and possibly a pile) for
         display, input or to calculate rows, and update the display
@@ -353,7 +368,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
 
         return self._w
 
-    def generate_display_widget(self, size):
+    def generate_display_widget(self, size: tuple[int]) -> Divider | Pile:
         """
         Actually generate display widget (ignoring cache)
         """
@@ -407,7 +422,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
 
         return p
 
-    def _set_focus_from_display_widget(self):
+    def _set_focus_from_display_widget(self) -> None:
         """
         Set the focus to the item in focus in the display widget.
         """
@@ -431,8 +446,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         # pad.first_position was set by generate_display_widget() above
         self.focus_position = pile_focus.first_position + col_focus_position
 
-
-    def keypress(self, size, key):
+    def keypress(self, size: tuple[int], key: str) -> str | None:
         """
         Pass keypress to display widget for handling.
         Captures focus changes.
@@ -443,41 +457,41 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             self._set_focus_from_display_widget()
         return key
 
-    def rows(self, size, focus=False):
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
         self.get_display_widget(size)
         return super().rows(size, focus=focus)
 
-    def render(self, size, focus=False ):
+    def render(self, size: tuple[int], focus: bool = False):
         self.get_display_widget(size)
         return super().render(size, focus)
 
-    def get_cursor_coords(self, size):
+    def get_cursor_coords(self, size: tuple[int]) -> tuple[int, int]:
         """Get cursor from display widget."""
         self.get_display_widget(size)
         return super().get_cursor_coords(size)
 
-    def move_cursor_to_coords(self, size, col, row):
+    def move_cursor_to_coords(self, size: tuple[int], col: int, row: int):
         """Set the widget in focus based on the col + row."""
         self.get_display_widget(size)
         rval = super().move_cursor_to_coords(size, col, row)
         self._set_focus_from_display_widget()
         return rval
 
-    def mouse_event(self, size, event, button, col, row, focus):
+    def mouse_event(self, size: tuple[int], event, button: int, col: int, row: int, focus: bool) -> Literal[True]:
         self.get_display_widget(size)
         super().mouse_event(size, event, button, col, row, focus)
         self._set_focus_from_display_widget()
-        return True # at a minimum we adjusted our focus
+        return True  # at a minimum we adjusted our focus
 
-    def get_pref_col(self, size):
+    def get_pref_col(self, size: tuple[int]):
         """Return pref col from display widget."""
         self.get_display_widget(size)
         return super().get_pref_col(size)
 
 
-
 class OverlayError(Exception):
     pass
+
 
 class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     """
@@ -490,8 +504,21 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         LEFT, None, RELATIVE, 100, None, 0, 0,
         TOP, None, RELATIVE, 100, None, 0, 0)
 
-    def __init__(self, top_w, bottom_w, align, width, valign, height,
-            min_width=None, min_height=None, left=0, right=0, top=0, bottom=0):
+    def __init__(
+            self,
+            top_w: Widget,
+            bottom_w: Widget,
+            align: Literal['left', 'center', 'right'] | tuple[Literal['relative'], int],
+            width: Literal['pack'] | int | tuple[Literal['relative'], int],
+            valign: Literal['top', 'middle', 'bottom'] | tuple[Literal['relative'], int],
+            height: Literal['pack'] | int | tuple[Literal['relative'], int],
+            min_width: int | None = None,
+            min_height: int | None = None,
+            left: int = 0,
+            right: int = 0,
+            top: int = 0,
+            bottom: int = 0,
+    ) -> None:
         """
         :param top_w: a flow, box or fixed widget to overlay "on top"
         :type top_w: Widget
@@ -547,9 +574,22 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             min_width, min_height, left, right, top, bottom)
 
     @staticmethod
-    def options(align_type, align_amount, width_type, width_amount,
-            valign_type, valign_amount, height_type, height_amount,
-            min_width=None, min_height=None, left=0, right=0, top=0, bottom=0):
+    def options(
+        align_type: Literal['left', 'center', 'right', 'relative'],
+        align_amount: int | None,
+        width_type,
+        width_amount,
+        valign_type: Literal['top', 'middle', 'bottom', 'relative'],
+        valign_amount: int | None,
+        height_type,
+        height_amount,
+        min_width: int | None = None,
+        min_height: int | None = None,
+        left: int = 0,
+        right: int = 0,
+        top: int = 0,
+        bottom: int = 0,
+    ):
         """
         Return a new options tuple for use in this Overlay's .contents mapping.
 
@@ -563,8 +603,19 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             min_width, left, right, valign_type, valign_amount,
             height_type, height_amount, min_height, top, bottom)
 
-    def set_overlay_parameters(self, align, width, valign, height,
-            min_width=None, min_height=None, left=0, right=0, top=0, bottom=0):
+    def set_overlay_parameters(
+        self,
+        align: Literal['left', 'center', 'right'] | tuple[Literal['relative'], int],
+        width: int | None,
+        valign: Literal['top', 'middle', 'bottom'] | tuple[Literal['relative'], int],
+        height: int | None,
+        min_width: int | None = None,
+        min_height: int | None = None,
+        left: int = 0,
+        right: int = 0,
+        top: int = 0,
+        bottom: int = 0,
+    ):
         """
         Adjust the overlay size and position parameters.
 
@@ -601,7 +652,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 top = height[1]
                 height = RELATIVE_100
 
-        if width is None: # more obsolete values accepted
+        if width is None:  # more obsolete values accepted
             width = PACK
         if height is None:
             height = PACK
@@ -620,16 +671,15 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             valign_type, valign_amount, height_type, height_amount,
             min_width, min_height, left, right, top, bottom))
 
-    def selectable(self):
+    def selectable(self) -> bool:
         """Return selectable from top_w."""
         return self.top_w.selectable()
 
-    def keypress(self, size, key):
+    def keypress(self, size: tuple[int, int], key: str) -> str | None:
         """Pass keypress to top_w."""
-        return self.top_w.keypress(self.top_w_size(size,
-            *self.calculate_padding_filler(size, True)), key)
+        return self.top_w.keypress(self.top_w_size(size, *self.calculate_padding_filler(size, True)), key)
 
-    def _get_focus(self):
+    def _get_focus(self) -> Widget:
         """
         Currently self.top_w is always the focus of an Overlay
         """
@@ -637,11 +687,12 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     focus = property(_get_focus,
         doc="the top widget in this overlay is always in focus")
 
-    def _get_focus_position(self):
+    def _get_focus_position(self) -> Literal[1]:
         """
         Return the top widget position (currently always 1).
         """
         return 1
+
     def _set_focus_position(self, position):
         """
         Set the widget in focus.  Currently only position 0 is accepted.
@@ -649,8 +700,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         position -- index of child widget to be made focus
         """
         if position != 1:
-            raise IndexError("Overlay widget focus_position currently "
-                "must always be set to 1, not %s" % (position,))
+            raise IndexError(f"Overlay widget focus_position currently must always be set to 1, not {position}")
     focus_position = property(_get_focus_position, _set_focus_position,
         doc="index of child widget in focus, currently always 1")
 
@@ -661,7 +711,8 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             __getitem__ = self._contents__getitem__
             __setitem__ = self._contents__setitem__
         return OverlayContents()
-    def _contents__getitem__(self, index):
+
+    def _contents__getitem__(self, index: Literal[0, 1]):
         if index == 0:
             return (self.bottom_w, self._DEFAULT_BOTTOM_OPTIONS)
         if index == 1:
@@ -673,15 +724,15 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 self.height_type, self.height_amount,
                 self.min_height, self.top, self.bottom))
         raise IndexError(f"Overlay.contents has no position {index!r}")
-    def _contents__setitem__(self, index, value):
+
+    def _contents__setitem__(self, index: Literal[0, 1], value):
         try:
             value_w, value_options = value
         except (ValueError, TypeError):
             raise OverlayError(f"added content invalid: {value!r}")
         if index == 0:
             if value_options != self._DEFAULT_BOTTOM_OPTIONS:
-                raise OverlayError("bottom_options must be set to "
-                    "%r" % (self._DEFAULT_BOTTOM_OPTIONS,))
+                raise OverlayError(f"bottom_options must be set to {self._DEFAULT_BOTTOM_OPTIONS!r}")
             self.bottom_w = value_w
         elif index == 1:
             try:
@@ -739,20 +790,19 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         :exc:`OverlayError`.
         """)
 
-    def get_cursor_coords(self, size):
+    def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:
         """Return cursor coords from top_w, if any."""
         if not hasattr(self.top_w, 'get_cursor_coords'):
             return None
         (maxcol, maxrow) = size
-        left, right, top, bottom = self.calculate_padding_filler(size,
-            True)
+        left, right, top, bottom = self.calculate_padding_filler(size, True)
         x, y = self.top_w.get_cursor_coords(
             (maxcol-left-right, maxrow-top-bottom) )
         if y >= maxrow:  # required??
             y = maxrow-1
         return x+left, y+top
 
-    def calculate_padding_filler(self, size, focus):
+    def calculate_padding_filler(self, size: tuple[int, int], focus: bool) -> tuple[int, int, int, int]:
         """Return (padding left, right, filler top, bottom)."""
         (maxcol, maxrow) = size
         height = None
@@ -779,7 +829,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         elif self.height_type == PACK:
             # top_w is a flow widget
             height = self.top_w.rows((maxcol,),focus=focus)
-            top, bottom =  calculate_top_bottom_filler(maxrow,
+            top, bottom = calculate_top_bottom_filler(maxrow,
                 self.valign_type, self.valign_amount,
                 GIVEN, height, None, self.top, self.bottom)
             if height > maxrow: # flow widget rendered too large
@@ -802,11 +852,9 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             return (maxcol-left-right,)
         return (maxcol-left-right, maxrow-top-bottom)
 
-
-    def render(self, size, focus=False):
+    def render(self, size: tuple[int, int], focus: bool = False) -> CompositeCanvas:
         """Render top_w overlayed on bottom_w."""
-        left, right, top, bottom = self.calculate_padding_filler(size,
-            focus)
+        left, right, top, bottom = self.calculate_padding_filler(size, focus)
         bottom_c = self.bottom_w.render(size)
         if not bottom_c.cols() or not bottom_c.rows():
             return CompositeCanvas(bottom_c)
@@ -821,17 +869,14 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         return CanvasOverlay(top_c, bottom_c, left, top)
 
-
-    def mouse_event(self, size, event, button, col, row, focus):
+    def mouse_event(self, size: tuple[int, int], event, button: int, col: int, row: int, focus: bool) -> bool | None:
         """Pass event to top_w, ignore if outside of top_w."""
         if not hasattr(self.top_w, 'mouse_event'):
             return False
 
-        left, right, top, bottom = self.calculate_padding_filler(size,
-            focus)
+        left, right, top, bottom = self.calculate_padding_filler(size, focus)
         maxcol, maxrow = size
-        if ( col<left or col>=maxcol-right or
-            row<top or row>=maxrow-bottom ):
+        if col<left or col>=maxcol-right or row<top or row>=maxrow-bottom:
             return False
 
         return self.top_w.mouse_event(
@@ -841,6 +886,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
 class FrameError(Exception):
     pass
+
 
 class Frame(Widget, WidgetContainerMixin):
     """
@@ -856,7 +902,13 @@ class Frame(Widget, WidgetContainerMixin):
     _selectable = True
     _sizing = frozenset([BOX])
 
-    def __init__(self, body, header=None, footer=None, focus_part='body'):
+    def __init__(
+            self,
+            body: Widget,
+            header: Widget | None = None,
+            footer: Widget | None = None,
+            focus_part: Literal['header', 'footer', 'body'] = 'body',
+    ):
         """
         :param body: a box widget for the body of the frame
         :type body: Widget
@@ -874,32 +926,34 @@ class Frame(Widget, WidgetContainerMixin):
         self._footer = footer
         self.focus_part = focus_part
 
-    def get_header(self):
+    def get_header(self) -> Widget | None:
         return self._header
-    def set_header(self, header):
+
+    def set_header(self, header: Widget | None):
         self._header = header
         if header is None and self.focus_part == 'header':
             self.focus_part = 'body'
         self._invalidate()
     header = property(get_header, set_header)
 
-    def get_body(self):
+    def get_body(self) -> Widget:
         return self._body
-    def set_body(self, body):
+    def set_body(self, body: Widget) -> None:
         self._body = body
         self._invalidate()
     body = property(get_body, set_body)
 
-    def get_footer(self):
+    def get_footer(self) -> Widget | None:
         return self._footer
-    def set_footer(self, footer):
+
+    def set_footer(self, footer: Widget | None) -> None:
         self._footer = footer
         if footer is None and self.focus_part == 'footer':
             self.focus_part = 'body'
         self._invalidate()
     footer = property(get_footer, set_footer)
 
-    def set_focus(self, part):
+    def set_focus(self, part: Literal['header', 'footer', 'body']) -> None:
         """
         Determine which part of the frame is in focus.
 
@@ -917,7 +971,7 @@ class Frame(Widget, WidgetContainerMixin):
         self.focus_part = part
         self._invalidate()
 
-    def get_focus(self):
+    def get_focus(self) -> Literal['header', 'footer', 'body']:
         """
         Return an indicator which part of the frame is in focus
 
@@ -929,7 +983,7 @@ class Frame(Widget, WidgetContainerMixin):
         """
         return self.focus_part
 
-    def _get_focus(self):
+    def _get_focus(self) -> Widget:
         return {
             'header': self._header,
             'footer': self._footer,
@@ -948,10 +1002,13 @@ class Frame(Widget, WidgetContainerMixin):
         class FrameContents:
             def __len__(inner_self):
                 return len(inner_self.keys())
+
             def items(inner_self):
                 return [(k, inner_self[k]) for k in inner_self.keys()]
+
             def values(inner_self):
                 return [inner_self[k] for k in inner_self.keys()]
+
             def update(inner_self, E=None, **F):
                 if E:
                     keys = getattr(E, 'keys', None)
@@ -968,14 +1025,16 @@ class Frame(Widget, WidgetContainerMixin):
             __setitem__ = self._contents__setitem__
             __delitem__ = self._contents__delitem__
         return FrameContents()
-    def _contents_keys(self):
+
+    def _contents_keys(self) -> list[Literal['header', 'footer', 'body']]:
         keys = ['body']
         if self._header:
             keys.append('header')
         if self._footer:
             keys.append('footer')
         return keys
-    def _contents__getitem__(self, key):
+
+    def _contents__getitem__(self, key: Literal['header', 'footer', 'body']):
         if key == 'body':
             return (self._body, None)
         if key == 'header' and self._header:
@@ -983,7 +1042,8 @@ class Frame(Widget, WidgetContainerMixin):
         if key == 'footer' and self._footer:
             return (self._footer, None)
         raise KeyError(f"Frame.contents has no key: {key!r}")
-    def _contents__setitem__(self, key, value):
+
+    def _contents__setitem__(self, key: Literal['header', 'footer', 'body'], value):
         if key not in ('body', 'header', 'footer'):
             raise KeyError(f"Frame.contents has no key: {key!r}")
         try:
@@ -998,7 +1058,8 @@ class Frame(Widget, WidgetContainerMixin):
             self.footer = value_w
         else:
             self.header = value_w
-    def _contents__delitem__(self, key):
+
+    def _contents__delitem__(self, key: Literal['header', 'footer', 'body']):
         if key not in ('header', 'footer'):
             raise KeyError(f"Frame.contents can't remove key: {key!r}")
         if (key == 'header' and self._header is None
@@ -1029,7 +1090,7 @@ class Frame(Widget, WidgetContainerMixin):
         compatibility.
         """)
 
-    def options(self):
+    def options(self) -> None:
         """
         There are currently no options for Frame contents.
 
@@ -1037,7 +1098,7 @@ class Frame(Widget, WidgetContainerMixin):
         """
         return None
 
-    def frame_top_bottom(self, size, focus):
+    def frame_top_bottom(self, size: tuple[int, int], focus: bool) -> tuple[tuple[int, int], tuple[int, int]]:
         """
         Calculate the number of rows for the header and footer.
 
@@ -1090,11 +1151,9 @@ class Frame(Widget, WidgetContainerMixin):
 
         return (hrows, frows),(hrows, frows)
 
-
-    def render(self, size, focus=False):
+    def render(self, size: tuple[int, int], focus: bool = False) -> CompositeCanvas:
         (maxcol, maxrow) = size
-        (htrim, ftrim),(hrows, frows) = self.frame_top_bottom(
-            (maxcol, maxrow), focus)
+        (htrim, ftrim),(hrows, frows) = self.frame_top_bottom((maxcol, maxrow), focus)
 
         combinelist = []
         depends_on = []
@@ -1136,8 +1195,7 @@ class Frame(Widget, WidgetContainerMixin):
 
         return CanvasCombine(combinelist)
 
-
-    def keypress(self, size, key):
+    def keypress(self, size: tuple[int, int], key: str) -> str | None:
         """Pass keypress to widget in focus."""
         (maxcol, maxrow) = size
 
@@ -1162,15 +1220,13 @@ class Frame(Widget, WidgetContainerMixin):
             return key
         return self.body.keypress( (maxcol, remaining), key )
 
-
-    def mouse_event(self, size, event, button, col, row, focus):
+    def mouse_event(self, size: tuple[str, str], event, button: int, col: int, row: int, focus: bool) -> bool | None:
         """
         Pass mouse event to appropriate part of frame.
         Focus may be changed on button 1 press.
         """
         (maxcol, maxrow) = size
-        (htrim, ftrim),(hrows, frows) = self.frame_top_bottom(
-            (maxcol, maxrow), focus)
+        (htrim, ftrim),(hrows, frows) = self.frame_top_bottom((maxcol, maxrow), focus)
 
         if row < htrim: # within header
             focus = focus and self.focus_part == 'header'
@@ -1203,7 +1259,7 @@ class Frame(Widget, WidgetContainerMixin):
         return self.body.mouse_event( (maxcol, maxrow-htrim-ftrim),
             event, button, col, row-htrim, focus )
 
-    def get_cursor_coords(self, size):
+    def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:
         """Return the cursor coordinates of the focus widget."""
         if not self.focus.selectable():
             return None
@@ -1254,13 +1310,14 @@ class Frame(Widget, WidgetContainerMixin):
 class PileError(Exception):
     pass
 
+
 class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     """
     A pile of widgets stacked vertically from top to bottom
     """
     _sizing = frozenset([FLOW, BOX])
 
-    def __init__(self, widget_list, focus_item=None):
+    def __init__(self, widget_list: Iterable[Widget], focus_item: Widget | int | None = None) -> None:
         """
         :param widget_list: child widgets
         :type widget_list: iterable
@@ -1293,7 +1350,6 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
         self._contents.set_validate_contents_modified(self._validate_contents_modified)
 
-        focus_item = focus_item
         for i, original in enumerate(widget_list):
             w = original
             if not isinstance(w, tuple):
@@ -1321,7 +1377,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         self.pref_col = 0
 
-    def _contents_modified(self):
+    def _contents_modified(self) -> None:
         """
         Recalculate whether this widget should be selectable whenever the
         contents has been changed.
@@ -1340,10 +1396,13 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
     def _get_widget_list(self):
         ml = MonitoredList(w for w, t in self.contents)
+
         def user_modified():
             self._set_widget_list(ml)
+
         ml.set_modified_callback(user_modified)
         return ml
+
     def _set_widget_list(self, widgets):
         focus_position = self.focus_position
         self.contents = [
@@ -1364,10 +1423,12 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             # return the old item type names
             ({GIVEN: FIXED, PACK: FLOW}.get(f, f), height)
             for w, (f, height) in self.contents)
+
         def user_modified():
             self._set_item_types(ml)
         ml.set_modified_callback(user_modified)
         return ml
+
     def _set_item_types(self, item_types):
         focus_position = self.focus_position
         self.contents = [
@@ -1415,7 +1476,10 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """)
 
     @staticmethod
-    def options(height_type=WEIGHT, height_amount=1):
+    def options(
+        height_type: Literal['pack', 'given', 'weight'] = WEIGHT,
+        height_amount: int | None = 1,
+    ) -> tuple[Literal['pack'], None] | tuple[Literal['given', 'weight'], int]:
         """
         Return a new options tuple for use in a Pile's :attr:`contents` list.
 
@@ -1430,7 +1494,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             raise PileError(f'invalid height_type: {height_type!r}')
         return (height_type, height_amount)
 
-    def set_focus(self, item):
+    def set_focus(self, item: Widget | int) -> None:
         """
         Set the item in focus, for backwards compatibility.
 
@@ -1449,7 +1513,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 return
         raise ValueError(f"Widget not found in Pile contents: {item!r}")
 
-    def get_focus(self):
+    def get_focus(self) -> Widget | None:
         """
         Return the widget in focus, for backwards compatibility.  You may
         also use the new standard container property .focus to get the
@@ -1472,7 +1536,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             focus position.
         """)
 
-    def _get_focus_position(self):
+    def _get_focus_position(self) -> int:
         """
         Return the index of the widget in focus or None if this Pile is
         empty.
@@ -1480,7 +1544,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if not self.contents:
             raise IndexError("No focus_position, Pile is empty")
         return self.contents.focus
-    def _set_focus_position(self, position):
+    def _set_focus_position(self, position: int) -> None:
         """
         Set the widget in focus.
 
@@ -1504,7 +1568,13 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self._update_pref_col_from_focus(size)
         return self.pref_col
 
-    def get_item_size(self, size, i, focus, item_rows=None):
+    def get_item_size(
+        self,
+        size: tuple[int] | tuple[int, int],
+        i: int,
+        focus: bool,
+        item_rows: list[int] | None = None,
+    ) -> tuple[int] | tuple[int, int]:
         """
         Return a size appropriate for passing to self.contents[i][0].render
         """
@@ -1519,7 +1589,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         else:
             return (maxcol,)
 
-    def get_item_rows(self, size, focus):
+    def get_item_rows(self, size: tuple[int] | tuple[int, int], focus: bool) -> list[int]:
         """
         Return a list of the number of rows used by each widget
         in self.contents
@@ -1537,8 +1607,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 if f == GIVEN:
                     l.append(height)
                 else:
-                    l.append(w.rows((maxcol,),
-                        focus=focus and self.focus_item == w))
+                    l.append(w.rows((maxcol,), focus=focus and self.focus_item == w))
             return l
 
         # pile is a box widget
@@ -1556,7 +1625,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 l.append(None)
                 wtotal += height
             else:
-                l.append(0) # zero-weighted items treated as ('given', 0)
+                l.append(0)  # zero-weighted items treated as ('given', 0)
 
         if wtotal == 0:
             raise PileError("No weighted widgets found for Pile treated as a box widget")
@@ -1603,7 +1672,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             out.pad_trim_top_bottom(0, size[1] - out.rows())
         return out
 
-    def get_cursor_coords(self, size):
+    def get_cursor_coords(self, size: tuple[int] | tuple[int, int]) -> tuple[int, int] | None:
         """Return the cursor coordinates of the focus widget."""
         if not self.selectable():
             return None
@@ -1635,10 +1704,10 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 y += r
         return x, y
 
-    def rows(self, size, focus=False ):
+    def rows(self, size: tuple[int] | tuple[int, int], focus: bool = False) -> int:
         return sum(self.get_item_rows(size, focus))
 
-    def keypress(self, size, key ):
+    def keypress(self, size: tuple[int] | tuple[int, int], key: str) -> str | None:
         """Pass the keypress to the widget in focus.
         Unhandled 'up' and 'down' keys may cause a focus change."""
         if not self.contents:
@@ -1687,7 +1756,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         # nothing to select
         return key
 
-    def _update_pref_col_from_focus(self, size):
+    def _update_pref_col_from_focus(self, size: tuple[int] | tuple[int, int]) -> None:
         """Update self.pref_col from the focus widget."""
 
         if not hasattr(self.focus, 'get_pref_col'):
@@ -1698,16 +1767,15 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if pref_col is not None:
             self.pref_col = pref_col
 
-    def move_cursor_to_coords(self, size, col, row):
+    def move_cursor_to_coords(self, size: tuple[int] | tuple[int, int], col: int, row: int) -> bool:
         """Capture pref col and set new focus."""
         self.pref_col = col
 
         #FIXME guessing focus==True
-        focus=True
+        focus = True
         wrow = 0
         item_rows = self.get_item_rows(size, focus)
-        for i, (r, w) in enumerate(zip(item_rows,
-                (w for (w, options) in self.contents))):
+        for i, (r, w) in enumerate(zip(item_rows, (w for (w, options) in self.contents))):
             if wrow + r > row:
                 break
             wrow += r
@@ -1726,7 +1794,15 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self.focus_position = i
         return True
 
-    def mouse_event(self, size, event, button, col, row, focus):
+    def mouse_event(
+        self,
+        size: tuple[int] | tuple[int, int],
+        event,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool | None:
         """
         Pass the event to the contained widget.
         May change focus on button 1 press.
@@ -1750,9 +1826,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             return False
 
         tsize = self.get_item_size(size, i, focus, item_rows)
-        return w.mouse_event(tsize, event, button, col, row-wrow,
-            focus)
-
+        return w.mouse_event(tsize, event, button, col, row-wrow, focus)
 
 
 class ColumnsError(Exception):
@@ -1765,8 +1839,14 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     """
     _sizing = frozenset([FLOW, BOX])
 
-    def __init__(self, widget_list, dividechars=0, focus_column=None,
-        min_width=1, box_columns=None):
+    def __init__(
+        self,
+        widget_list: Iterable[Widget],
+        dividechars: int = 0,
+        focus_column: int | None = None,
+        min_width: int = 1,
+        box_columns: Iterable[int] | None = None,
+    ):
         """
         :param widget_list: iterable of flow or box widgets
         :param dividechars: number of blank characters between columns
@@ -1841,7 +1921,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self.min_width = min_width
         self._cache_maxcol = None
 
-    def _contents_modified(self):
+    def _contents_modified(self) -> None:
         """
         Recalculate whether this widget should be selectable whenever the
         contents has been changed.
@@ -1849,7 +1929,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self._selectable = any(w.selectable() for w, o in self.contents)
         self._invalidate()
 
-    def _validate_contents_modified(self, slc, new_items):
+    def _validate_contents_modified(self, slc, new_items) -> None:
         for item in new_items:
             try:
                 w, (t, n, b) = item
@@ -1858,18 +1938,22 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             except (TypeError, ValueError):
                 raise ColumnsError(f"added content invalid {item!r}")
 
-    def _get_widget_list(self):
+    def _get_widget_list(self) -> MonitoredList:
         ml = MonitoredList(w for w, t in self.contents)
         def user_modified():
             self._set_widget_list(ml)
         ml.set_modified_callback(user_modified)
         return ml
+
     def _set_widget_list(self, widgets):
         focus_position = self.focus_position
         self.contents = [
-            (new, options) for (new, (w, options)) in zip(widgets,
                 # need to grow contents list if widgets is longer
-                chain(self.contents, repeat((None, (WEIGHT, 1, False)))))]
+            (new, options) for (new, (w, options)) in zip(
+                widgets,
+                chain(self.contents, repeat((None, (WEIGHT, 1, False))))
+            )
+        ]
         if focus_position < len(widgets):
             self.focus_position = focus_position
     widget_list = property(_get_widget_list, _set_widget_list, doc="""
@@ -1879,7 +1963,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             standard container property :attr:`contents`.
         """)
 
-    def _get_column_types(self):
+    def _get_column_types(self) -> MonitoredList:
         ml = MonitoredList(
             # return the old column type names
             ({GIVEN: FIXED, PACK: FLOW}.get(t, t), n)
@@ -1888,12 +1972,14 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             self._set_column_types(ml)
         ml.set_modified_callback(user_modified)
         return ml
+
     def _set_column_types(self, column_types):
         focus_position = self.focus_position
         self.contents = [
             (w, ({FIXED: GIVEN, FLOW: PACK}.get(new_t, new_t), new_n, b))
             for ((new_t, new_n), (w, (t, n, b)))
-            in zip(column_types, self.contents)]
+            in zip(column_types, self.contents)
+        ]
         if focus_position < len(column_types):
             self.focus_position = focus_position
     column_types = property(_get_column_types, _set_column_types, doc="""
@@ -1902,13 +1988,14 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         container property .contents to modify Pile contents.
         """)
 
-    def _get_box_columns(self):
+    def _get_box_columns(self) -> MonitoredList:
         ml = MonitoredList(
             i for i, (w, (t, n, b)) in enumerate(self.contents) if b)
         def user_modified():
             self._set_box_columns(ml)
         ml.set_modified_callback(user_modified)
         return ml
+
     def _set_box_columns(self, box_columns):
         box_columns = set(box_columns)
         self.contents = [
@@ -1922,21 +2009,21 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             standard container property :attr:`contents`.
         """)
 
-    def _get_has_pack_type(self):
+    def _get_has_pack_type(self) -> bool:
         import warnings
-        warnings.warn(".has_flow_type is deprecated, "
-            "read values from .contents instead.", DeprecationWarning)
+        warnings.warn(".has_flow_type is deprecated, read values from .contents instead.", DeprecationWarning)
         return PACK in self.column_types
+
     def _set_has_pack_type(self, value):
         import warnings
-        warnings.warn(".has_flow_type is deprecated, "
-            "read values from .contents instead.", DeprecationWarning)
+        warnings.warn(".has_flow_type is deprecated, read values from .contents instead.", DeprecationWarning)
     has_flow_type = property(_get_has_pack_type, _set_has_pack_type, doc="""
         .. deprecated:: 1.0 Read values from :attr:`contents` instead.
         """)
 
     def _get_contents(self):
         return self._contents
+
     def _set_contents(self, c):
         self._contents[:] = c
     contents = property(_get_contents, _set_contents, doc="""
@@ -1948,7 +2035,11 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """)
 
     @staticmethod
-    def options(width_type=WEIGHT, width_amount=1, box_widget=False):
+    def options(
+        width_type: Literal['pack', 'given', 'weight'] = WEIGHT,
+        width_amount: int | None = 1,
+        box_widget: bool = False,
+    ) -> tuple[Literal['pack'], None, bool] | tuple[Literal['given', 'weight'], int, bool]:
         """
         Return a new options tuple for use in a Pile's .contents list.
 
@@ -1976,11 +2067,11 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             raise ColumnsError(f'invalid width_type: {width_type!r}')
         return (width_type, width_amount, box_widget)
 
-    def _invalidate(self):
+    def _invalidate(self) -> None:
         self._cache_maxcol = None
         super()._invalidate()
 
-    def set_focus_column(self, num):
+    def set_focus_column(self, num: int) -> None:
         """
         Set the column in focus by its index in :attr:`widget_list`.
 
@@ -1992,7 +2083,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         self._set_focus_position(num)
 
-    def get_focus_column(self):
+    def get_focus_column(self) -> int:
         """
         Return the focus column index.
 
@@ -2001,7 +2092,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         return self.focus_position
 
-    def set_focus(self, item):
+    def set_focus(self, item: Widget | int) -> None:
         """
         Set the item in focus
 
@@ -2017,7 +2108,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 return
         raise ValueError(f"Widget not found in Columns contents: {item!r}")
 
-    def get_focus(self):
+    def get_focus(self) -> Widget | None:
         """
         Return the widget in focus, for backwards compatibility.  You may
         also use the new standard container property .focus to get the
@@ -2029,7 +2120,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     focus = property(get_focus,
         doc="the child widget in focus or None when Columns is empty")
 
-    def _get_focus_position(self):
+    def _get_focus_position(self) -> int | None:
         """
         Return the index of the widget in focus or None if this Columns is
         empty.
@@ -2037,7 +2128,8 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if not self.widget_list:
             raise IndexError("No focus_position, Columns is empty")
         return self.contents.focus
-    def _set_focus_position(self, position):
+
+    def _set_focus_position(self, position: int) -> None:
         """
         Set the widget in focus.
 
@@ -2062,7 +2154,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             standard container property :attr:`focus_position` to get the focus.
         """)
 
-    def column_widths(self, size, focus=False):
+    def column_widths(self, size: tuple[int] | tuple[int, int], focus: bool = False) -> list[int]:
         """
         Return a list of column widths.
 
@@ -2123,7 +2215,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self._cache_column_widths = widths
         return widths
 
-    def render(self, size, focus=False):
+    def render(self, size: tuple[int] | tuple[int, int], focus: bool = False) -> SolidCanvas | CompositeCanvas:
         """
         Render columns and return canvas.
 
@@ -2155,8 +2247,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             else:
                 sub_size = (mc,) + size[1:]
 
-            canv = w.render(sub_size,
-                focus = focus and self.focus_position == i)
+            canv = w.render(sub_size, focus=focus and self.focus_position == i)
 
             if i < len(widths) - 1:
                 mc += self.dividechars
@@ -2195,7 +2286,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             for wc in widths[:self.focus_position] if wc > 0])
         return x, y
 
-    def move_cursor_to_coords(self, size, col, row):
+    def move_cursor_to_coords(self, size: tuple[int] | tuple[int, int], col: int, row: int) -> bool:
         """
         Choose a selectable column to focus based on the coords.
 
@@ -2242,7 +2333,15 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self.pref_col = col
         return True
 
-    def mouse_event(self, size, event, button, col, row, focus):
+    def mouse_event(
+        self,
+        size: tuple[int] | tuple[int, int],
+        event,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool | None:
         """
         Send event to appropriate column.
         May change focus on button 1 press.
@@ -2261,21 +2360,18 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 continue
 
             focus = focus and self.focus_col == i
-            if is_mouse_press(event) and button == 1:
-                if w.selectable():
-                    self.focus_position = i
+            if is_mouse_press(event) and button == 1 and w.selectable():
+                self.focus_position = i
 
             if not hasattr(w, 'mouse_event'):
                 return False
 
             if len(size) == 1 and b:
-                return w.mouse_event((end - x, self.rows(size)), event, button,
-                    col - x, row, focus)
-            return w.mouse_event((end - x,) + size[1:], event, button,
-                col - x, row, focus)
+                return w.mouse_event((end - x, self.rows(size)), event, button, col - x, row, focus)
+            return w.mouse_event((end - x,) + size[1:], event, button, col - x, row, focus)
         return False
 
-    def get_pref_col(self, size):
+    def get_pref_col(self, size: tuple[int] | tuple[int, int]) -> int:
         """Return the pref col from the column in focus."""
         widths = self.column_widths(size)
 
@@ -2300,7 +2396,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             col += sum(widths[:self.focus_position] )
         return col
 
-    def rows(self, size, focus=False):
+    def rows(self, size: tuple[int] | tuple[int, int], focus: bool = False) -> int:
         """
         Return the number of rows required by the columns.
         This only makes sense if :attr:`widget_list` contains flow widgets.
@@ -2313,11 +2409,10 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         for i, (mc, (w, (t, n, b))) in enumerate(zip(widths, self.contents)):
             if b:
                 continue
-            rows = max(rows,
-                w.rows((mc,), focus=focus and self.focus_position == i))
+            rows = max(rows, w.rows((mc,), focus=focus and self.focus_position == i))
         return rows
 
-    def keypress(self, size, key):
+    def keypress(self, size: tuple[int] | tuple[int, int], key: str) -> str | None:
         """
         Pass keypress to the focus column.
 
@@ -2360,13 +2455,10 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         return key
 
 
-
-
-
-
 def _test():
     import doctest
     doctest.testmod()
+
 
 if __name__=='__main__':
     _test()

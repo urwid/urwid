@@ -507,8 +507,7 @@ class MainLoop:
             if is_mouse_event(k):
                 event, button, col, row = k
                 if hasattr(self._topmost_widget, "mouse_event"):
-                    if self._topmost_widget.mouse_event(self.screen_size,
-                            event, button, col, row, focus=True):
+                    if self._topmost_widget.mouse_event(self.screen_size, event, button, col, row, focus=True):
                         k = None
             elif self._topmost_widget.selectable():
                 k = self._topmost_widget.keypress(self.screen_size, k)
@@ -1185,7 +1184,7 @@ class TwistedInputDescriptor(FileDescriptor):
     def __init__(self, reactor, fd, cb):
         self._fileno = fd
         self.cb = cb
-        FileDescriptor.__init__(self, reactor)
+        super().__init__(reactor)
 
     def fileno(self):
         return self._fileno

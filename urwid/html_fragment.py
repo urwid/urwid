@@ -220,16 +220,16 @@ def screenshot_init( sizes, keys ):
     """
     try:
         for (row,col) in sizes:
-            assert type(row) == int
-            assert row>0 and col>0
+            assert isinstance(row, int)
+            assert row > 0 and col > 0
     except (AssertionError, ValueError):
         raise Exception("sizes must be in the form [ (col1,row1), (col2,row2), ...]")
 
     try:
         for l in keys:
-            assert type(l) == list
+            assert isinstance(l, list)
             for k in l:
-                assert type(k) == str
+                assert isinstance(k, str)
     except (AssertionError, ValueError):
         raise Exception("keys must be in the form [ [keyA1, keyA2, ..], [keyB1, ..], ...]")
 
