@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import os
+import sys
 import unittest
 
 import urwid
@@ -181,35 +183,31 @@ else:
             evl.alarm(0.5, lambda: 1 / 0)  # Simulate error in event loop
             self.assertRaises(ZeroDivisionError, evl.run)
 
-try:
-    import asyncio
-except ImportError:
-    pass
-else:
-    if not hasattr(asyncio, 'ensure_future'):
-        #-- Python < 3.4.4 (e.g. Debian Jessie)
-        asyncio.ensure_future = getattr(asyncio, 'async')
 
-    class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
-        def setUp(self):
-            self.evl = urwid.AsyncioEventLoop()
+class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
+    def setUp(self):
+        self.evl = urwid.AsyncioEventLoop()
 
-        _expected_idle_handle = None
+    _expected_idle_handle = None
 
-        def test_error(self):
-            evl = self.evl
-            evl.alarm(0.5, lambda: 1 / 0)  # Simulate error in event loop
-            self.assertRaises(ZeroDivisionError, evl.run)
+    def test_error(self):
+        evl = self.evl
+        evl.alarm(0.5, lambda: 1 / 0)  # Simulate error in event loop
+        self.assertRaises(ZeroDivisionError, evl.run)
 
-        def test_coroutine_error(self):
-            evl = self.evl
+    @unittest.skipIf(
+        sys.implementation.name == "pypy",
+        "Well known dead wait (lock?) on pypy.",
+    )
+    def test_coroutine_error(self):
+        evl = self.evl
 
-            async def error_coro():
-                result = 1 / 0 # Simulate error in coroutine
-                return result
+        async def error_coro():
+            result = 1 / 0 # Simulate error in coroutine
+            return result
 
-            asyncio.ensure_future(error_coro())
-            self.assertRaises(ZeroDivisionError, evl.run)
+        asyncio.ensure_future(error_coro())
+        self.assertRaises(ZeroDivisionError, evl.run)
 
 
 try:

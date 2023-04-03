@@ -1,0 +1,4 @@
+tornado<5.0.0
+coverage[toml]
+twisted
+trio

@@ -1,8 +1,6 @@
 Urwid
 =====
-|pypi| |docs| |travis| |coveralls|
-
-.. content-start
+|pypi| |docs| |ci|
 
 About
 =====
@@ -50,19 +48,20 @@ To test code in all Python versions:
 
 .. code:: bash
 
-    tox                    # Test all versions specified in tox.ini:
-    tox -e py36            # Test Python 3.6 only
-    tox -e py27,py36,pypy  # Test Python 2.7, Python 3.6 & pypy
+    tox                     # Test all versions specified in tox.ini:
+    tox -e py39             # Test Python 3.9 only
+    tox -e py39,py10,pypy3  # Test Python 3.9, Python 3.10 & pypy3
 
 Supported Python versions
 =========================
 
-- 2.7
-- 3.5
-- 3.6
 - 3.7
 - 3.8
-- pypy
+- 3.9
+- 3.10
+- 3.11
+- 3.12
+- pypy3
 
 Authors
 =======
@@ -220,17 +219,18 @@ Contributors
 `zrax <//github.com/zrax>`_
 
 
-.. |pypi| image:: http://img.shields.io/pypi/v/urwid.svg
+.. |pypi| image:: https://img.shields.io/pypi/v/urwid
     :alt: current version on PyPi
     :target: https://pypi.python.org/pypi/urwid
 
-.. |docs| image:: https://readthedocs.org/projects/urwid/badge/
-    :alt: docs link
-    :target: http://urwid.readthedocs.org/en/latest/
+.. |docs| image:: https://readthedocs.org/projects/urwid/badge/?version=latest
+    :alt: Documentation Status
+    :target: https://urwid.readthedocs.io/en/latest/?badge=latest
 
-.. |travis| image:: https://travis-ci.org/urwid/urwid.svg?branch=master
-    :alt: build status
-    :target: https://travis-ci.org/urwid/urwid/
+.. |ci| image:: https://github.com/urwid/urwid/actions/workflows/pythonpackage.yml/badge.svg?branch=master
+    :target: https://github.com/urwid/urwid/actions
+    :alt: CI status
+
 
 .. |coveralls| image:: https://coveralls.io/repos/github/urwid/urwid/badge.svg
     :alt: test coverage
