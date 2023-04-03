@@ -37,27 +37,32 @@ move_prev_char = str_util.move_prev_char
 within_double_byte = str_util.within_double_byte
 
 
-def detect_encoding():
+def detect_encoding() -> str:
     # Try to determine if using a supported double-byte encoding
     import locale
-    initial = locale.getlocale()
+
+    no_set_locale = locale.getpreferredencoding(False)
+
+    if no_set_locale != "ascii":
+        # ascii is fallback locale in case of detect failed
+
+        return no_set_locale
+
+    # Use actual `getpreferredencoding` with public API only
+    old_loc = locale.setlocale(locale.LC_CTYPE)  # == getlocale, but not mangle data
     try:
         try:
-            locale.setlocale(locale.LC_ALL, "")
+            locale.setlocale(locale.LC_CTYPE, "")
         except locale.Error:
             pass
-        return locale.getlocale()[1] or ""
-    except ValueError as e:
-        # with invalid LANG value python will throw ValueError
-        if e.args and e.args[0].startswith("unknown locale"):
-            return ""
-        else:
-            raise
+        # internally call private `_get_locale_encoding`
+        return locale.getpreferredencoding(False)
     finally:
         try:
-            locale.setlocale(locale.LC_ALL, initial)
+            locale.setlocale(locale.LC_CTYPE, old_loc)
         except locale.Error:
             pass
+
 
 if 'detected_encoding' not in locals():
     detected_encoding = detect_encoding()
