@@ -22,6 +22,9 @@
 
 from __future__ import annotations
 
+import typing
+from collections.abc import MutableSequence
+
 from urwid import signals
 from urwid.canvas import CanvasCombine, SolidCanvas
 from urwid.command_map import (
@@ -39,9 +42,15 @@ from urwid.signals import connect_signal, disconnect_signal
 from urwid.util import is_mouse_press
 from urwid.widget import BOX, GIVEN, Widget, nocache_widget_render_instance
 
+if typing.TYPE_CHECKING:
+    from typing_extensions import Literal
+
+    from urwid.canvas import CompositeCanvas
+
 
 class ListWalkerError(Exception):
     pass
+
 
 class ListWalker(metaclass=signals.MetaSignals):
     signals = ["modified"]
@@ -88,8 +97,9 @@ class ListWalker(metaclass=signals.MetaSignals):
         except (IndexError, KeyError):
             return None, None
 
+
 class SimpleListWalker(MonitoredList, ListWalker):
-    def __init__(self, contents, wrap_around=False):
+    def __init__(self, contents, wrap_around: bool = False):
         """
         contents -- list to copy into this object
 
@@ -102,7 +112,7 @@ class SimpleListWalker(MonitoredList, ListWalker):
         detected automatically and will cause ListBox objects using
         this list walker to be updated.
         """
-        if not getattr(contents, '__getitem__', None):
+        if not isinstance(contents, MutableSequence):
             raise ListWalkerError(f"SimpleListWalker expecting list like object, got: {contents!r}")
         MonitoredList.__init__(self, contents)
         self.focus = 0
@@ -122,17 +132,16 @@ class SimpleListWalker(MonitoredList, ListWalker):
             self.focus = max(0, len(self)-1)
         ListWalker._modified(self)
 
-    def set_modified_callback(self, callback):
+    def set_modified_callback(self, callback) -> typing.NoReturn:
         """
         This function inherited from MonitoredList is not
         implemented in SimpleListWalker.
 
         Use connect_signal(list_walker, "modified", ...) instead.
         """
-        raise NotImplementedError('Use connect_signal('
-            'list_walker, "modified", ...) instead.')
+        raise NotImplementedError('Use connect_signal(list_walker, "modified", ...) instead.')
 
-    def set_focus(self, position):
+    def set_focus(self, position: int) -> None:
         """Set focus position."""
         try:
             if position < 0 or position >= len(self):
@@ -142,7 +151,7 @@ class SimpleListWalker(MonitoredList, ListWalker):
         self.focus = position
         self._modified()
 
-    def next_position(self, position):
+    def next_position(self, position: int) -> int:
         """
         Return position after start_from.
         """
@@ -152,7 +161,7 @@ class SimpleListWalker(MonitoredList, ListWalker):
             raise IndexError
         return position + 1
 
-    def prev_position(self, position):
+    def prev_position(self, position: int) -> int:
         """
         Return position before start_from.
         """
@@ -162,7 +171,7 @@ class SimpleListWalker(MonitoredList, ListWalker):
             raise IndexError
         return position - 1
 
-    def positions(self, reverse=False):
+    def positions(self, reverse: bool = False):
         """
         Optional method for returning an iterable of positions.
         """
@@ -189,28 +198,26 @@ class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
         normal list methods will cause the focus to be updated
         intelligently.
         """
-        if not getattr(contents, '__getitem__', None):
-            raise ListWalkerError("SimpleFocusListWalker expecting list like "
-                "object, got: %r"%(contents,))
+        if not isinstance(contents, MutableSequence):
+            raise ListWalkerError(f"SimpleFocusListWalker expecting list like object, got: {contents!r}")
         MonitoredFocusList.__init__(self, contents)
         self.wrap_around = wrap_around
 
-    def set_modified_callback(self, callback):
+    def set_modified_callback(self, callback) -> typing.NoReturn:
         """
         This function inherited from MonitoredList is not
         implemented in SimpleFocusListWalker.
 
         Use connect_signal(list_walker, "modified", ...) instead.
         """
-        raise NotImplementedError('Use connect_signal('
-            'list_walker, "modified", ...) instead.')
+        raise NotImplementedError('Use connect_signal(list_walker, "modified", ...) instead.')
 
-    def set_focus(self, position):
+    def set_focus(self, position: int) -> None:
         """Set focus position."""
         self.focus = position
         self._modified()
 
-    def next_position(self, position):
+    def next_position(self, position: int) -> int:
         """
         Return position after start_from.
         """
@@ -220,7 +227,7 @@ class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
             raise IndexError
         return position + 1
 
-    def prev_position(self, position):
+    def prev_position(self, position: int) -> int:
         """
         Return position before start_from.
         """
@@ -230,7 +237,7 @@ class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
             raise IndexError
         return position - 1
 
-    def positions(self, reverse=False):
+    def positions(self, reverse: bool = False):
         """
         Optional method for returning an iterable of positions.
         """
@@ -241,6 +248,7 @@ class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
 
 class ListBoxError(Exception):
     pass
+
 
 class ListBox(Widget, WidgetContainerMixin):
     """
@@ -276,7 +284,6 @@ class ListBox(Widget, WidgetContainerMixin):
         # variable for delayed valign change used by set_focus_valign
         self.set_focus_valign_pending = None
 
-
     def _get_body(self):
         return self._body
 
@@ -304,8 +311,7 @@ class ListBox(Widget, WidgetContainerMixin):
     widgets to be displayed inside the list box
     """)
 
-
-    def calculate_visible(self, size, focus=False ):
+    def calculate_visible(self, size: tuple[int, int], focus: bool = False):
         """
         Returns the widgets that would be displayed in
         the ListBox given the current *size* and *focus*.
@@ -439,8 +445,7 @@ class ListBox(Widget, WidgetContainerMixin):
                 focus_pos, focus_rows, cursor ),
             (trim_top, fill_above), (trim_bottom, fill_below))
 
-
-    def render(self, size, focus=False ):
+    def render(self, size: tuple[int, int], focus: bool = False) -> CompositeCanvas | SolidCanvas:
         """
         Render ListBox and return canvas.
 
@@ -459,21 +464,32 @@ class ListBox(Widget, WidgetContainerMixin):
 
         combinelist = []
         rows = 0
-        fill_above.reverse() # fill_above is in bottom-up order
+        fill_above.reverse()  # fill_above is in bottom-up order
         for widget,w_pos,w_rows in fill_above:
             canvas = widget.render((maxcol,))
             if w_rows != canvas.rows():
-                raise ListBoxError("Widget %r at position %r within listbox calculated %d rows but rendered %d!"% (widget,w_pos,w_rows, canvas.rows()))
+                raise ListBoxError(
+                    f"Widget {widget!r} at position {w_pos!r} "
+                    f"within listbox calculated {w_rows:d} rows "
+                    f"but rendered {canvas.rows():d}!"
+                )
             rows += w_rows
             combinelist.append((canvas, w_pos, False))
 
         focus_canvas = focus_widget.render((maxcol,), focus=focus)
 
         if focus_canvas.rows() != focus_rows:
-            raise ListBoxError("Focus Widget %r at position %r within listbox calculated %d rows but rendered %d!"% (focus_widget,focus_pos,focus_rows, focus_canvas.rows()))
+            raise ListBoxError(
+                f"Focus Widget {focus_widget!r} at position {focus_pos!r} "
+                f"within listbox calculated {focus_rows:d} rows "
+                f"but rendered {focus_canvas.rows():d}!"
+            )
         c_cursor = focus_canvas.cursor
         if cursor is not None and cursor != c_cursor:
-            raise ListBoxError(f"Focus Widget {focus_widget!r} at position {focus_pos!r} within listbox calculated cursor coords {cursor!r} but rendered cursor coords {c_cursor!r}!")
+            raise ListBoxError(
+                f"Focus Widget {focus_widget!r} at position {focus_pos!r} "
+                f"within listbox calculated cursor coords {cursor!r} "
+                f"but rendered cursor coords {c_cursor!r}!")
 
         rows += focus_rows
         combinelist.append((focus_canvas, focus_pos, True))
@@ -481,7 +497,10 @@ class ListBox(Widget, WidgetContainerMixin):
         for widget,w_pos,w_rows in fill_below:
             canvas = widget.render((maxcol,))
             if w_rows != canvas.rows():
-                raise ListBoxError("Widget %r at position %r within listbox calculated %d rows but rendered %d!"% (widget,w_pos,w_rows, canvas.rows()))
+                raise ListBoxError(
+                    f"Widget {widget!r} at position {w_pos!r} "
+                    f"within listbox calculated {w_rows:d} "
+                    f"rows but rendered {canvas.rows():d}!")
             rows += w_rows
             combinelist.append((canvas, w_pos, False))
 
@@ -495,19 +514,22 @@ class ListBox(Widget, WidgetContainerMixin):
             rows -= trim_bottom
 
         if rows > maxrow:
-            raise ListBoxError(f"Listbox contents too long!  Probably urwid's fault (please report): {top, middle, bottom!r}")
+            raise ListBoxError(
+                f"Listbox contents too long!  Probably urwid's fault (please report): {top, middle, bottom!r}"
+            )
 
         if rows < maxrow:
             bottom_pos = focus_pos
             if fill_below: bottom_pos = fill_below[-1][1]
             if trim_bottom != 0 or self._body.get_next(bottom_pos) != (None,None):
-                raise ListBoxError(f"Listbox contents too short!  Probably urwid's fault (please report): {top, middle, bottom!r}")
+                raise ListBoxError(
+                    f"Listbox contents too short!  Probably urwid's fault (please report): {top, middle, bottom!r}"
+                )
             final_canvas.pad_trim_top_bottom(0, maxrow - rows)
 
         return final_canvas
 
-
-    def get_cursor_coords(self, size):
+    def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:
         """
         See :meth:`Widget.get_cursor_coords` for details
         """
@@ -528,8 +550,10 @@ class ListBox(Widget, WidgetContainerMixin):
             return None
         return (x, y)
 
-
-    def set_focus_valign(self, valign):
+    def set_focus_valign(
+        self,
+        valign: Literal['top', 'middle', 'bottom'] | tuple[Literal['fixed top', 'fixed bottom', 'relative'], int],
+    ):
         """Set the focus widget's display offset and inset.
 
         :param valign: one of:
@@ -538,11 +562,10 @@ class ListBox(Widget, WidgetContainerMixin):
             ('fixed bottom', rows)
             ('relative', percentage 0=top 100=bottom)
         """
-        vt, va = normalize_valign(valign,ListBoxError)
+        vt, va = normalize_valign(valign, ListBoxError)
         self.set_focus_valign_pending = vt, va
 
-
-    def set_focus(self, position, coming_from=None):
+    def set_focus(self, position, coming_from: Literal['above', 'below'] | None = None) -> None:
         """
         Set the focus position and try to keep the old focus in view.
 
@@ -597,6 +620,7 @@ class ListBox(Widget, WidgetContainerMixin):
         class ListBoxContents:
             __getitem__ = self._contents__getitem__
         return ListBoxContents()
+
     def _contents__getitem__(self, key):
         # try list walker protocol v2 first
         getitem = getattr(self._body, '__getitem__', None)
@@ -640,13 +664,13 @@ class ListBox(Widget, WidgetContainerMixin):
         """
         return None
 
-    def _set_focus_valign_complete(self, size, focus):
+    def _set_focus_valign_complete(self, size: tuple[int, int], focus: bool) -> None:
         """
         Finish setting the offset and inset now that we have have a
         maxcol & maxrow.
         """
         (maxcol, maxrow) = size
-        vt,va = self.set_focus_valign_pending
+        vt, va = self.set_focus_valign_pending
         self.set_focus_valign_pending = None
         self.set_focus_pending = None
 
@@ -655,12 +679,11 @@ class ListBox(Widget, WidgetContainerMixin):
             return
 
         rows = focus_widget.rows((maxcol,), focus)
-        rtop, rbot = calculate_top_bottom_filler(maxrow,
-            vt, va, GIVEN, rows, None, 0, 0)
+        rtop, rbot = calculate_top_bottom_filler(maxrow, vt, va, GIVEN, rows, None, 0, 0)
 
         self.shift_focus((maxcol, maxrow), rtop)
 
-    def _set_focus_first_selectable(self, size, focus):
+    def _set_focus_first_selectable(self, size: tuple[int, int], focus: bool) -> None:
         """
         Choose the first visible, selectable widget below the
         current focus as the focus widget.
@@ -668,8 +691,7 @@ class ListBox(Widget, WidgetContainerMixin):
         (maxcol, maxrow) = size
         self.set_focus_valign_pending = None
         self.set_focus_pending = None
-        middle, top, bottom = self.calculate_visible(
-            (maxcol, maxrow), focus=focus)
+        middle, top, bottom = self.calculate_visible((maxcol, maxrow), focus=focus)
         if middle is None:
             return
 
@@ -691,18 +713,16 @@ class ListBox(Widget, WidgetContainerMixin):
                 return
             new_row_offset += rows
 
-    def _set_focus_complete(self, size, focus):
+    def _set_focus_complete(self, size: tuple[int, int], focus: bool) -> None:
         """
         Finish setting the position now that we have maxcol & maxrow.
         """
         (maxcol, maxrow) = size
         self._invalidate()
         if self.set_focus_pending == "first selectable":
-            return self._set_focus_first_selectable(
-                (maxcol,maxrow), focus)
+            return self._set_focus_first_selectable((maxcol, maxrow), focus)
         if self.set_focus_valign_pending is not None:
-            return self._set_focus_valign_complete(
-                (maxcol,maxrow), focus)
+            return self._set_focus_valign_complete((maxcol,maxrow), focus)
         coming_from, focus_widget, focus_pos = self.set_focus_pending
         self.set_focus_pending = None
 
@@ -715,8 +735,8 @@ class ListBox(Widget, WidgetContainerMixin):
         # restore old focus temporarily
         self._body.set_focus(focus_pos)
 
-        middle,top,bottom=self.calculate_visible((maxcol,maxrow),focus)
-        focus_offset, focus_widget, focus_pos, focus_rows, cursor=middle
+        middle, top, bottom=self.calculate_visible((maxcol,maxrow), focus)
+        focus_offset, focus_widget, focus_pos, focus_rows, cursor = middle
         trim_top, fill_above = top
         trim_bottom, fill_below = bottom
 
@@ -724,15 +744,13 @@ class ListBox(Widget, WidgetContainerMixin):
         for widget, pos, rows in fill_above:
             offset -= rows
             if pos == position:
-                self.change_focus((maxcol, maxrow), pos,
-                    offset, 'below' )
+                self.change_focus((maxcol, maxrow), pos, offset, 'below')
                 return
 
         offset = focus_offset + focus_rows
         for widget, pos, rows in fill_below:
             if pos == position:
-                self.change_focus((maxcol, maxrow), pos,
-                    offset, 'above' )
+                self.change_focus((maxcol, maxrow), pos, offset, 'above')
                 return
             offset += rows
 
@@ -741,16 +759,15 @@ class ListBox(Widget, WidgetContainerMixin):
         widget, position = self._body.get_focus()
         rows = widget.rows((maxcol,), focus)
 
-        if coming_from=='below':
+        if coming_from == 'below':
             offset = 0
-        elif coming_from=='above':
+        elif coming_from == 'above':
             offset = maxrow-rows
         else:
             offset = (maxrow-rows) // 2
         self.shift_focus((maxcol, maxrow), offset)
 
-
-    def shift_focus(self, size, offset_inset):
+    def shift_focus(self, size: tuple[int, int], offset_inset: int) -> None:
         """
         Move the location of the current focus relative to the top.
         This is used internally by methods that know the widget's *size*.
@@ -782,7 +799,7 @@ class ListBox(Widget, WidgetContainerMixin):
             self.inset_fraction = (-offset_inset,tgt_rows)
         self._invalidate()
 
-    def update_pref_col_from_focus(self, size):
+    def update_pref_col_from_focus(self, size: tuple[int, int]):
         """Update self.pref_col from the focus widget."""
         # TODO: should this not be private?
         (maxcol, maxrow) = size
@@ -795,15 +812,20 @@ class ListBox(Widget, WidgetContainerMixin):
             pref_col = widget.get_pref_col((maxcol,))
         if pref_col is None and hasattr(widget,'get_cursor_coords'):
             coords = widget.get_cursor_coords((maxcol,))
-            if type(coords) == tuple:
-                pref_col,y = coords
+            if isinstance(coords, tuple):
+                pref_col, y = coords
         if pref_col is not None:
             self.pref_col = pref_col
 
-
-    def change_focus(self, size, position,
-            offset_inset = 0, coming_from = None,
-            cursor_coords = None, snap_rows = None):
+    def change_focus(
+        self,
+        size: tuple[int, int],
+        position,
+        offset_inset: int = 0,
+        coming_from: Literal['above', 'below'] | None = None,
+        cursor_coords: tuple[int, int] | None = None,
+        snap_rows: int | None = None,
+    ) -> None:
         """
         Change the current focus widget.
         This is used internally by methods that know the widget's *size*.
@@ -915,7 +937,7 @@ class ListBox(Widget, WidgetContainerMixin):
             if target.move_cursor_to_coords((maxcol,),pref_col,row):
                 break
 
-    def get_focus_offset_inset(self, size):
+    def get_focus_offset_inset(self, size: tuple[int, int]) -> tuple[int, int]:
         """Return (offset rows, inset rows) for focus widget."""
         (maxcol, maxrow) = size
         focus_widget, pos = self._body.get_focus()
@@ -931,8 +953,7 @@ class ListBox(Widget, WidgetContainerMixin):
                 raise ListBoxError("urwid inset_fraction error (please report)")
         return offset_rows, inset_rows
 
-
-    def make_cursor_visible(self, size):
+    def make_cursor_visible(self, size: tuple[int, int]) -> None:
         """Shift the focus widget so that its cursor is visible."""
         (maxcol, maxrow) = size
 
@@ -941,14 +962,13 @@ class ListBox(Widget, WidgetContainerMixin):
             return
         if not focus_widget.selectable():
             return
-        if not hasattr(focus_widget,'get_cursor_coords'):
+        if not hasattr(focus_widget, 'get_cursor_coords'):
             return
         cursor = focus_widget.get_cursor_coords((maxcol,))
         if cursor is None:
             return
         cx, cy = cursor
-        offset_rows, inset_rows = self.get_focus_offset_inset(
-            (maxcol, maxrow))
+        offset_rows, inset_rows = self.get_focus_offset_inset((maxcol, maxrow))
 
         if cy < inset_rows:
             self.shift_focus( (maxcol,maxrow), - (cy) )
@@ -958,8 +978,7 @@ class ListBox(Widget, WidgetContainerMixin):
             self.shift_focus( (maxcol,maxrow), maxrow-cy-1 )
             return
 
-
-    def keypress(self, size, key):
+    def keypress(self, size: tuple[int, int], key: str) -> str | None:
         """Move selection through the list elements scrolling when
         necessary. Keystrokes are first passed to widget in focus
         in case that widget can handle them.
@@ -973,7 +992,7 @@ class ListBox(Widget, WidgetContainerMixin):
         (maxcol, maxrow) = size
 
         if self.set_focus_pending or self.set_focus_valign_pending:
-            self._set_focus_complete( (maxcol,maxrow), focus=True )
+            self._set_focus_complete( (maxcol,maxrow), focus=True)
 
         focus_widget, pos = self._body.get_focus()
         if focus_widget is None: # empty listbox, can't do anything
@@ -1010,22 +1029,22 @@ class ListBox(Widget, WidgetContainerMixin):
 
         return key
 
-    def _keypress_max_left(self, size):
+    def _keypress_max_left(self, size: tuple[int, int]) -> bool:
         self.focus_position = next(iter(self.body.positions()))
         self.set_focus_valign('top')
         return True
 
-    def _keypress_max_right(self, size):
+    def _keypress_max_right(self, size: tuple[int, int]) -> bool:
         self.focus_position = next(iter(self.body.positions(reverse=True)))
         self.set_focus_valign('bottom')
         return True
 
-    def _keypress_up(self, size):
+    def _keypress_up(self, size: tuple[int, int]) -> bool | None:
         (maxcol, maxrow) = size
 
-        middle, top, bottom = self.calculate_visible(
-            (maxcol,maxrow), True)
-        if middle is None: return True
+        middle, top, bottom = self.calculate_visible((maxcol,maxrow), True)
+        if middle is None:
+            return True
 
         focus_row_offset,focus_widget,focus_pos,_ignore,cursor = middle
         trim_top, fill_above = top
@@ -1039,8 +1058,7 @@ class ListBox(Widget, WidgetContainerMixin):
             row_offset -= rows
             if rows and widget.selectable():
                 # this one will do
-                self.change_focus((maxcol,maxrow), pos,
-                    row_offset, 'below')
+                self.change_focus((maxcol,maxrow), pos, row_offset, 'below')
                 return
 
         # at this point we must scroll
@@ -1067,8 +1085,7 @@ class ListBox(Widget, WidgetContainerMixin):
             if widget is None:
                 self.shift_focus((maxcol,maxrow), row_offset)
                 return
-            self.change_focus((maxcol,maxrow), pos,
-                row_offset, 'below')
+            self.change_focus((maxcol,maxrow), pos, row_offset, 'below')
             return
 
         # check if cursor will stop scroll from taking effect
@@ -1089,20 +1106,18 @@ class ListBox(Widget, WidgetContainerMixin):
                     # must scroll further than 1 line
                     row_offset = - (rows-1)
 
-                self.change_focus((maxcol,maxrow),pos,
-                    row_offset, 'below')
+                self.change_focus((maxcol,maxrow),pos,row_offset, 'below')
                 return
 
         # if all else fails, just shift the current focus.
         self.shift_focus((maxcol,maxrow), focus_row_offset+1)
 
-
-    def _keypress_down(self, size):
+    def _keypress_down(self, size: tuple[int, int]) -> bool | None:
         (maxcol, maxrow) = size
 
-        middle, top, bottom = self.calculate_visible(
-            (maxcol,maxrow), True)
-        if middle is None: return True
+        middle, top, bottom = self.calculate_visible((maxcol,maxrow), True)
+        if middle is None:
+            return True
 
         focus_row_offset,focus_widget,focus_pos,focus_rows,cursor=middle
         trim_bottom, fill_below = bottom
@@ -1116,8 +1131,7 @@ class ListBox(Widget, WidgetContainerMixin):
         for widget, pos, rows in fill_below:
             if rows and widget.selectable():
                 # this one will do
-                self.change_focus((maxcol,maxrow), pos,
-                    row_offset, 'above')
+                self.change_focus((maxcol,maxrow), pos, row_offset, 'above')
                 return
             row_offset += rows
 
@@ -1134,8 +1148,7 @@ class ListBox(Widget, WidgetContainerMixin):
             rows = widget.rows((maxcol,))
             if rows and widget.selectable():
                 # this one will do
-                self.change_focus((maxcol,maxrow), pos,
-                    row_offset, 'above')
+                self.change_focus((maxcol,maxrow), pos, row_offset, 'above')
                 return
             row_offset += rows
 
@@ -1143,14 +1156,12 @@ class ListBox(Widget, WidgetContainerMixin):
             # just take bottom one if current is not selectable
             # or if focus has moved out of view
             if widget is None:
-                self.shift_focus((maxcol,maxrow),
-                    row_offset-rows)
+                self.shift_focus((maxcol,maxrow),row_offset-rows)
                 return
             # FIXME: catch this bug in testcase
             #self.change_focus((maxcol,maxrow), pos,
             #    row_offset+rows, 'above')
-            self.change_focus((maxcol,maxrow), pos,
-                row_offset-rows, 'above')
+            self.change_focus((maxcol,maxrow), pos,row_offset-rows, 'above')
             return
 
         # check if cursor will stop scroll from taking effect
@@ -1178,13 +1189,13 @@ class ListBox(Widget, WidgetContainerMixin):
         # if all else fails, keep the current focus.
         self.shift_focus((maxcol,maxrow), focus_row_offset-1)
 
-
-    def _keypress_page_up(self, size):
+    def _keypress_page_up(self, size: tuple[int, int]) -> bool | None:
         (maxcol, maxrow) = size
 
         middle, top, bottom = self.calculate_visible(
             (maxcol,maxrow), True)
-        if middle is None: return True
+        if middle is None:
+            return True
 
         row_offset, focus_widget, focus_pos, focus_rows, cursor = middle
         trim_top, fill_above = top
@@ -1217,7 +1228,6 @@ class ListBox(Widget, WidgetContainerMixin):
 
         # not used below:
         scroll_from_row = topmost_visible = None
-
 
         # gather potential target widgets
         t = []
@@ -1257,8 +1267,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
         # choose the topmost selectable and (newly) visible widget
         # search within snap_rows then visible region
-        search_order = (list(range(snap_region_start, len(t)))
-            + list(range(snap_region_start-1, -1, -1)))
+        search_order = (list(range(snap_region_start, len(t))) + list(range(snap_region_start-1, -1, -1)))
         #assert 0, repr((t, search_order))
         bad_choices = []
         cut_off_selectable_chosen = 0
@@ -1275,23 +1284,30 @@ class ListBox(Widget, WidgetContainerMixin):
 
             # if completely within snap region, adjust row_offset
             if rows + row_offset <= 0:
-                self.change_focus( (maxcol,maxrow), pos,
-                    -(rows-1), 'below',
+                self.change_focus(
+                    (maxcol,maxrow),
+                    pos,
+                    -(rows-1),
+                    'below',
                     (self.pref_col, rows-1),
-                    snap_rows-((-row_offset)-(rows-1)))
+                    snap_rows-((-row_offset)-(rows-1)),
+                )
             else:
-                self.change_focus( (maxcol,maxrow), pos,
-                    row_offset, 'below',
-                    (self.pref_col, pref_row), snap_rows )
+                self.change_focus(
+                    (maxcol,maxrow),
+                    pos,
+                    row_offset,
+                    'below',
+                    (self.pref_col, pref_row),
+                    snap_rows,
+                )
 
             # if we're as far up as we can scroll, take this one
-            if (fill_above and self._body.get_prev(fill_above[-1][1])
-                == (None,None) ):
+            if fill_above and self._body.get_prev(fill_above[-1][1]) == (None, None):
                 pass #return
 
             # find out where that actually puts us
-            middle, top, bottom = self.calculate_visible(
-                (maxcol,maxrow), True)
+            middle, top, bottom = self.calculate_visible((maxcol,maxrow), True)
             act_row_offset, _ign1, _ign2, _ign3, _ign4 = middle
 
             # discard chosen widget if it will reduce scroll amount
@@ -1360,16 +1376,14 @@ class ListBox(Widget, WidgetContainerMixin):
             return
         # bring in only one row if possible
         rows = widget.rows((maxcol,), True)
-        self.change_focus((maxcol,maxrow), pos, -(rows-1),
-            'below', (self.pref_col, rows-1), 0 )
+        self.change_focus((maxcol,maxrow), pos, -(rows-1), 'below', (self.pref_col, rows-1), 0 )
 
-
-    def _keypress_page_down(self, size):
+    def _keypress_page_down(self, size: tuple[int, int]) -> bool | None:
         (maxcol, maxrow) = size
 
-        middle, top, bottom = self.calculate_visible(
-            (maxcol,maxrow), True)
-        if middle is None: return True
+        middle, top, bottom = self.calculate_visible((maxcol,maxrow), True)
+        if middle is None:
+            return True
 
         row_offset, focus_widget, focus_pos, focus_rows, cursor = middle
         trim_bottom, fill_below = bottom
@@ -1401,7 +1415,6 @@ class ListBox(Widget, WidgetContainerMixin):
 
         # not used below:
         scroll_from_row = bottom_edge = None
-
 
         # gather potential target widgets
         t = []
@@ -1442,8 +1455,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
         # choose the bottommost selectable and (newly) visible widget
         # search within snap_rows then visible region
-        search_order = (list(range(snap_region_start, len(t)))
-            + list(range(snap_region_start-1, -1, -1)))
+        search_order = (list(range(snap_region_start, len(t))) + list(range(snap_region_start-1, -1, -1)))
         #assert 0, repr((t, search_order))
         bad_choices = []
         cut_off_selectable_chosen = 0
@@ -1460,18 +1472,26 @@ class ListBox(Widget, WidgetContainerMixin):
 
             # if completely within snap region, adjust row_offset
             if row_offset >= maxrow:
-                self.change_focus( (maxcol,maxrow), pos,
-                    maxrow-1, 'above',
+                self.change_focus(
+                    (maxcol,maxrow),
+                    pos,
+                    maxrow-1,
+                    'above',
                     (self.pref_col, 0),
-                    snap_rows+maxrow-row_offset-1 )
+                    snap_rows+maxrow-row_offset-1,
+                )
             else:
-                self.change_focus( (maxcol,maxrow), pos,
-                    row_offset, 'above',
-                    (self.pref_col, pref_row), snap_rows )
+                self.change_focus(
+                    (maxcol,maxrow),
+                    pos,
+                    row_offset,
+                    'above',
+                    (self.pref_col, pref_row),
+                    snap_rows,
+                )
 
             # find out where that actually puts us
-            middle, top, bottom = self.calculate_visible(
-                (maxcol,maxrow), True)
+            middle, top, bottom = self.calculate_visible((maxcol,maxrow), True)
             act_row_offset, _ign1, _ign2, _ign3, _ign4 = middle
 
             # discard chosen widget if it will reduce scroll amount
@@ -1499,7 +1519,8 @@ class ListBox(Widget, WidgetContainerMixin):
         good_choices = [j for j in search_order if j not in bad_choices]
         for i in good_choices + search_order:
             row_offset, widget, pos, rows = t[i]
-            if pos == focus_pos: continue
+            if pos == focus_pos:
+                continue
 
             if not rows: # never focus a 0-height widget
                 continue
@@ -1513,7 +1534,6 @@ class ListBox(Widget, WidgetContainerMixin):
                 row_offset, 'above', None,
                 snap_rows )
             return
-
 
         # no choices available, just shift current one
         self.shift_focus((maxcol, maxrow), max(1-focus_rows,row_offset))
@@ -1536,10 +1556,9 @@ class ListBox(Widget, WidgetContainerMixin):
             return
         # bring in only one row if possible
         rows = widget.rows((maxcol,), True)
-        self.change_focus((maxcol,maxrow), pos, maxrow-1,
-            'above', (self.pref_col, 0), 0 )
+        self.change_focus((maxcol,maxrow), pos, maxrow-1, 'above', (self.pref_col, 0), 0 )
 
-    def mouse_event(self, size, event, button, col, row, focus):
+    def mouse_event(self, size: tuple[int, int], event, button: int, col: int, row: int, focus: bool) -> bool | None:
         """
         Pass the event to the contained widgets.
         May change focus on button 1 press.
@@ -1554,10 +1573,8 @@ class ListBox(Widget, WidgetContainerMixin):
         trim_top, fill_above = top
         _ignore, fill_below = bottom
 
-        fill_above.reverse() # fill_above is in bottom-up order
-        w_list = ( fill_above +
-            [ (focus_widget, focus_pos, focus_rows) ] +
-            fill_below )
+        fill_above.reverse()  # fill_above is in bottom-up order
+        w_list = ( fill_above + [(focus_widget, focus_pos, focus_rows)] + fill_below)
 
         wrow = -trim_top
         for w, w_pos, w_rows in w_list:
@@ -1575,11 +1592,9 @@ class ListBox(Widget, WidgetContainerMixin):
         if not hasattr(w,'mouse_event'):
             return False
 
-        return w.mouse_event((maxcol,), event, button, col, row-wrow,
-            focus)
+        return w.mouse_event((maxcol,), event, button, col, row-wrow,focus)
 
-
-    def ends_visible(self, size, focus=False):
+    def ends_visible(self, size: tuple[int, int], focus: bool = False):
         """
         Return a list that may contain ``'top'`` and/or ``'bottom'``.
 
@@ -1674,4 +1689,5 @@ class ListBox(Widget, WidgetContainerMixin):
         while True:
             yield pos
             w, pos = self._body.get_next(pos)
-            if not w: break
+            if not w:
+                break

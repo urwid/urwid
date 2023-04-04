@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Container
 from decimal import Decimal
 
 from urwid import Edit
@@ -39,18 +40,24 @@ class NumEdit(Edit):
     """
     ALLOWED = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-    def __init__(self, allowed, caption, default, trimLeadingZeros=True):
+    def __init__(
+        self,
+        allowed: Container[str],
+        caption,
+        default: str | bytes,
+        trimLeadingZeros: bool = True,
+    ):
         super().__init__(caption, default)
         self._allowed = allowed
         self.trimLeadingZeros = trimLeadingZeros
 
-    def valid_char(self, ch):
+    def valid_char(self, ch: str) -> bool:
         """
         Return true for allowed characters.
         """
         return len(ch) == 1 and ch.upper() in self._allowed
 
-    def keypress(self, size, key):
+    def keypress(self, size: tuple[int], key: str) -> str | None:
         """
         Handle editing keystrokes.  Remove leading zeros.
 
@@ -71,12 +78,11 @@ class NumEdit(Edit):
         (maxcol,) = size
         unhandled = Edit.keypress(self, (maxcol,), key)
 
-        if not unhandled:
-            if self.trimLeadingZeros:
-                # trim leading zeros
-                while self.edit_pos > 0 and self.edit_text[:1] == "0":
-                    self.set_edit_pos(self.edit_pos - 1)
-                    self.set_edit_text(self.edit_text[1:])
+        if not unhandled and self.trimLeadingZeros:
+            # trim leading zeros
+            while self.edit_pos > 0 and self.edit_text[:1] == "0":
+                self.set_edit_pos(self.edit_pos - 1)
+                self.set_edit_text(self.edit_text[1:])
 
         return unhandled
 
@@ -84,7 +90,12 @@ class NumEdit(Edit):
 class IntegerEdit(NumEdit):
     """Edit widget for integer values"""
 
-    def __init__(self, caption="", default=None, base=10):
+    def __init__(
+        self,
+        caption="",
+        default: int | str | Decimal | None = None,
+        base: int = 10,
+    ) -> None:
         """
         caption -- caption markup
         default -- default edit value
@@ -144,8 +155,7 @@ class IntegerEdit(NumEdit):
         allowed_chars = self.ALLOWED[:self.base]
         if default is not None:
             if not isinstance(default, (int, str, Decimal)):
-                raise ValueError("default: Only 'str', 'int', "
-                                 "'long' or Decimal input allowed")
+                raise ValueError("default: Only 'str', 'int' or Decimal input allowed")
 
             # convert to a long first, this will raise a ValueError
             # in case a float is passed or some other error
@@ -163,10 +173,9 @@ class IntegerEdit(NumEdit):
             # convert possible int, long or Decimal to str
             val = str(default)
 
-        super().__init__(allowed_chars, caption, val,
-                                          trimLeadingZeros=(self.base == 10))
+        super().__init__(allowed_chars, caption, val, trimLeadingZeros=(self.base == 10))
 
-    def value(self):
+    def value(self) -> Decimal | None:
         """
         Return the numeric value of self.edit_text.
 
@@ -184,8 +193,13 @@ class IntegerEdit(NumEdit):
 class FloatEdit(NumEdit):
     """Edit widget for float values."""
 
-    def __init__(self, caption="", default=None,
-                 preserveSignificance=True, decimalSeparator='.'):
+    def __init__(
+        self,
+        caption="",
+        default: str | int | Decimal | None = None,
+        preserveSignificance: bool = True,
+        decimalSeparator: str = '.',
+    ) -> None:
         """
         caption -- caption markup
         default -- default edit value
@@ -244,8 +258,7 @@ class FloatEdit(NumEdit):
         val = ""
         if default is not None and default != "":
             if not isinstance(default, (int, str, Decimal)):
-                raise ValueError("default: Only 'str', 'int', "
-                                 "'long' or Decimal input allowed")
+                raise ValueError("default: Only 'str', 'int' or Decimal input allowed")
 
             if isinstance(default, str) and default:
                 # check if it is a float, raises a ValueError otherwise
@@ -260,7 +273,7 @@ class FloatEdit(NumEdit):
         super().__init__(self.ALLOWED[0:10] + decimalSeparator,
                                         caption, val)
 
-    def value(self):
+    def value(self) -> Decimal | None:
         """
         Return the numeric value of self.edit_text.
         """

@@ -31,12 +31,7 @@ import curses
 import _curses
 
 from urwid import escape
-from urwid.display_common import (
-    UNPRINTABLE_TRANS_TABLE,
-    AttrSpec,
-    BaseScreen,
-    RealTerminal,
-)
+from urwid.display_common import UNPRINTABLE_TRANS_TABLE, AttrSpec, BaseScreen, RealTerminal
 
 KEY_RESIZE = 410 # curses.KEY_RESIZE (sometimes not defined)
 KEY_MOUSE = 409 # curses.KEY_MOUSE
@@ -80,7 +75,7 @@ class Screen(BaseScreen, RealTerminal):
 
         self.register_palette_entry(None, 'default','default')
 
-    def set_mouse_tracking(self, enable=True):
+    def set_mouse_tracking(self, enable: bool = True) -> None:
         """
         Enable mouse tracking.
 
@@ -108,7 +103,7 @@ class Screen(BaseScreen, RealTerminal):
 
         self._mouse_tracking_enabled = enable
 
-    def _start(self):
+    def _start(self) -> None:
         """
         Initialize the screen and input mode.
         """
@@ -136,7 +131,7 @@ class Screen(BaseScreen, RealTerminal):
 
         super()._start()
 
-    def _stop(self):
+    def _stop(self) -> None:
         """
         Restore the screen.
         """
@@ -152,8 +147,7 @@ class Screen(BaseScreen, RealTerminal):
 
         super()._stop()
 
-
-    def _setup_colour_pairs(self):
+    def _setup_colour_pairs(self) -> None:
         """
         Initialize all 63 color pairs based on the term:
         bg * 8 + 7 - fg
@@ -172,8 +166,8 @@ class Screen(BaseScreen, RealTerminal):
 
                 curses.init_pair(bg * 8 + 7 - fg, fg, bg)
 
-    def _curs_set(self,x):
-        if self.cursor_state== "fixed" or x == self.cursor_state:
+    def _curs_set(self, x):
+        if self.cursor_state == "fixed" or x == self.cursor_state:
             return
         try:
             curses.curs_set(x)
@@ -181,14 +175,12 @@ class Screen(BaseScreen, RealTerminal):
         except _curses.error:
             self.cursor_state = "fixed"
 
-
-    def _clear(self):
+    def _clear(self) -> None:
         self.s.clear()
         self.s.refresh()
 
-
-    def _getch(self, wait_tenths):
-        if wait_tenths==0:
+    def _getch(self, wait_tenths: int | None):
+        if wait_tenths == 0:
             return self._getch_nodelay()
         if wait_tenths is None:
             curses.cbreak()
@@ -209,8 +201,12 @@ class Screen(BaseScreen, RealTerminal):
 
         return self.s.getch()
 
-    def set_input_timeouts(self, max_wait=None, complete_wait=0.1,
-        resize_wait=0.1):
+    def set_input_timeouts(
+        self,
+        max_wait: int | float | None = None,
+        complete_wait: int | float = 0.1,
+        resize_wait: int | float = 0.1,
+    ):
         """
         Set the get_input timeout values.  All values have a granularity
         of 0.1s, ie. any value between 0.15 and 0.05 will be treated as
@@ -285,7 +281,7 @@ class Screen(BaseScreen, RealTerminal):
         # Avoid pegging CPU at 100% when slowly resizing, and work
         # around a bug with some braindead curses implementations that
         # return "no key" between "window resize" commands
-        if keys==['window resize'] and self.prev_input_resize:
+        if keys == ['window resize'] and self.prev_input_resize:
             while True:
                 keys, raw2 = self._get_input(self.resize_tenths)
                 raw += raw2
@@ -299,7 +295,7 @@ class Screen(BaseScreen, RealTerminal):
                 keys.append('window resize')
 
 
-        if keys==['window resize']:
+        if keys == ['window resize']:
             self.prev_input_resize = 2
         elif self.prev_input_resize == 2 and not keys:
             self.prev_input_resize = 1
@@ -309,7 +305,6 @@ class Screen(BaseScreen, RealTerminal):
         if raw_keys:
             return keys, raw
         return keys
-
 
     def _get_input(self, wait_tenths):
         # this works around a strange curses bug with window resizing
@@ -357,7 +352,6 @@ class Screen(BaseScreen, RealTerminal):
             processed.append('window resize')
 
         return processed, raw
-
 
     def _encode_mouse_event(self):
         # convert to escape sequence
@@ -420,8 +414,7 @@ class Screen(BaseScreen, RealTerminal):
         self.last_bstate = next
         return l
 
-
-    def _dbg_instr(self): # messy input string (intended for debugging)
+    def _dbg_instr(self):  # messy input string (intended for debugging)
         curses.echo()
         self.s.nodelay(0)
         curses.halfdelay(100)
@@ -429,26 +422,23 @@ class Screen(BaseScreen, RealTerminal):
         curses.noecho()
         return str
 
-    def _dbg_out(self,str): # messy output function (intended for debugging)
+    def _dbg_out(self, str) -> None:  # messy output function (intended for debugging)
         self.s.clrtoeol()
         self.s.addstr(str)
         self.s.refresh()
         self._curs_set(1)
 
-    def _dbg_query(self,question): # messy query (intended for debugging)
+    def _dbg_query(self,question):  # messy query (intended for debugging)
         self._dbg_out(question)
         return self._dbg_instr()
 
-    def _dbg_refresh(self):
+    def _dbg_refresh(self) -> None:
         self.s.refresh()
 
-
-
-    def get_cols_rows(self):
+    def get_cols_rows(self) -> tuple[int, int]:
         """Return the terminal dimensions (num columns, num rows)."""
         rows,cols = self.s.getmaxyx()
-        return cols,rows
-
+        return cols, rows
 
     def _setattr(self, a):
         if a is None:
@@ -487,7 +477,7 @@ class Screen(BaseScreen, RealTerminal):
 
         self.s.attrset(attr)
 
-    def draw_screen(self, size, r ):
+    def draw_screen(self, size: tuple[int, int], r):
         """Paint screen with rendered canvas."""
         assert self._started
 
@@ -548,15 +538,12 @@ class Screen(BaseScreen, RealTerminal):
         self.s.refresh()
         self.keep_cache_alive_link = r
 
-
-    def clear(self):
+    def clear(self) -> None:
         """
         Force the screen to be completely repainted on the next
         call to draw_screen().
         """
         self.s.clear()
-
-
 
 
 class _test:
@@ -570,13 +557,15 @@ class _test:
                 (f"{c} on dark blue",c, 'dark blue', 'bold'),
                 (f"{c} on light gray",c,'light gray', 'standout'),
                 ])
-        self.ui.run_wrapper(self.run)
 
-    def run(self):
+        with self.ui.start():
+            self.run()
+
+    def run(self) -> None:
         class FakeRender: pass
         r = FakeRender()
         text = [f"  has_color = {self.ui.has_color!r}",""]
-        attr = [[],[]]
+        attr = [[], []]
         r.coords = {}
         r.cursor = None
 
@@ -606,10 +595,11 @@ class _test:
             t = ""
             a = []
             for k in keys:
-                if type(k) == str: k = k.encode("utf-8")
+                if isinstance(k, str):
+                    k = k.encode("utf-8")
+
                 t += f"'{k}' "
-                a += [(None,1), ('yellow on dark blue',len(k)),
-                    (None,2)]
+                a += [(None, 1), ('yellow on dark blue', len(k)), (None, 2)]
 
             text.append(f"{t}: {raw!r}")
             attr.append(a)
@@ -617,7 +607,5 @@ class _test:
             attr = attr[-rows:]
 
 
-
-
-if '__main__'==__name__:
+if '__main__' == __name__:
     _test()

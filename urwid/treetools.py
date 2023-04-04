@@ -281,7 +281,7 @@ class TreeNode:
 class ParentNode(TreeNode):
     """Maintain sort order for TreeNodes."""
     def __init__(self, value, parent=None, key=None, depth=None):
-        TreeNode.__init__(self, value, parent=parent, key=key, depth=depth)
+        super().__init__(value, parent=parent, key=key, depth=depth)
 
         self._child_keys = None
         self._children = {}

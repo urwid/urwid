@@ -32,7 +32,7 @@ class MetaSignals(type):
     register the list of signals in the class variable signals,
     including signals in superclasses.
     """
-    def __init__(cls, name, bases, d):
+    def __init__(cls, name: str, bases, d):
         signals = d.get("signals", [])
         for superclass in cls.__bases__:
             signals.extend(getattr(superclass, 'signals', []))
@@ -48,15 +48,17 @@ def setdefaultattr(obj, name, value):
     setattr(obj, name, value)
     return value
 
+
 class Key:
     """
     Minimal class, whose only purpose is to produce objects with a
     unique hash
     """
-    __slots__ = []
+    __slots__ = ()
+
 
 class Signals:
-    _signal_attr = '_urwid_signals' # attribute to attach to signal senders
+    _signal_attr = '_urwid_signals'  # attribute to attach to signal senders
 
     def __init__(self):
         self._supported = {}
@@ -74,7 +76,7 @@ class Signals:
         """
         self._supported[sig_cls] = signals
 
-    def connect(self, obj, name, callback, user_arg=None, weak_args=None, user_args=None):
+    def connect(self, obj, name: str, callback, user_arg=None, weak_args=None, user_args=None) -> Key:
         """
         :param obj: the object sending a signal
         :type obj: object
@@ -191,8 +193,7 @@ class Signals:
         # Turn weak_args into weakrefs and prepend them to user_args
         return [weakref.ref(a, callback) for a in (weak_args or [])] + (user_args or [])
 
-
-    def disconnect(self, obj, name, callback, user_arg=None, weak_args=None, user_args=None):
+    def disconnect(self, obj, name: str, callback, user_arg=None, weak_args=None, user_args=None):
         """
         :param obj: the object to disconnect the signal from
         :type obj: object
@@ -226,7 +227,7 @@ class Signals:
             if h[1:] == (callback, user_arg, user_args):
                 return self.disconnect_by_key(obj, name, h[0])
 
-    def disconnect_by_key(self, obj, name, key):
+    def disconnect_by_key(self, obj, name: str, key: Key):
         """
         :param obj: the object to disconnect the signal from
         :type obj: object
@@ -247,7 +248,7 @@ class Signals:
         handlers = signals.get(name, [])
         handlers[:] = [h for h in handlers if h[0] is not key]
 
-    def emit(self, obj, name, *args):
+    def emit(self, obj, name: str, *args):
         """
         :param obj: the object sending a signal
         :type obj: object
