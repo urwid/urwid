@@ -97,31 +97,10 @@ from urwid.graphics import (
     ProgressBar,
     scale_bar_values,
 )
-from urwid.listbox import (
-    ListBox,
-    ListBoxError,
-    ListWalker,
-    ListWalkerError,
-    SimpleFocusListWalker,
-    SimpleListWalker,
-)
-from urwid.main_loop import (
-    AsyncioEventLoop,
-    ExitMainLoop,
-    GLibEventLoop,
-    MainLoop,
-    SelectEventLoop,
-    TornadoEventLoop,
-)
+from urwid.listbox import ListBox, ListBoxError, ListWalker, ListWalkerError, SimpleFocusListWalker, SimpleListWalker
+from urwid.main_loop import AsyncioEventLoop, ExitMainLoop, GLibEventLoop, MainLoop, SelectEventLoop, TornadoEventLoop
 from urwid.monitored_list import MonitoredFocusList, MonitoredList
-from urwid.signals import (
-    MetaSignals,
-    Signals,
-    connect_signal,
-    disconnect_signal,
-    emit_signal,
-    register_signal,
-)
+from urwid.signals import MetaSignals, Signals, connect_signal, disconnect_signal, emit_signal, register_signal
 from urwid.version import VERSION, __version__
 from urwid.widget import (
     ANY,
@@ -160,15 +139,7 @@ from urwid.widget import (
     delegate_to_widget_mixin,
     fixed_size,
 )
-from urwid.wimp import (
-    Button,
-    CheckBox,
-    CheckBoxError,
-    PopUpLauncher,
-    PopUpTarget,
-    RadioButton,
-    SelectableIcon,
-)
+from urwid.wimp import Button, CheckBox, CheckBoxError, PopUpLauncher, PopUpTarget, RadioButton, SelectableIcon
 
 try:
     from urwid.main_loop import TwistedEventLoop
@@ -204,20 +175,8 @@ from urwid.display_common import (
     RealTerminal,
     ScreenError,
 )
-from urwid.text_layout import (
-    LayoutSegment,
-    StandardTextLayout,
-    TextLayout,
-    default_layout,
-)
-from urwid.treetools import (
-    ParentNode,
-    TreeListBox,
-    TreeNode,
-    TreeWalker,
-    TreeWidget,
-    TreeWidgetError,
-)
+from urwid.text_layout import LayoutSegment, StandardTextLayout, TextLayout, default_layout
+from urwid.treetools import ParentNode, TreeListBox, TreeNode, TreeWalker, TreeWidget, TreeWidgetError
 from urwid.util import (
     MetaSuper,
     TagMarkupException,

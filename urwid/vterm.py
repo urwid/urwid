@@ -242,7 +242,7 @@ class TermCanvas(Canvas):
     cacheable = False
 
     def __init__(self, width, height, widget):
-        Canvas.__init__(self)
+        super().__init__()
 
         self.width, self.height = width, height
         self.widget = widget
@@ -1360,7 +1360,7 @@ class Terminal(Widget):
             ``utf8`` with ``urwid.set_encoding("utf8")``. See
             :ref:`text-encodings` for more details.
         """
-        Widget.__init__(self)
+        super().__init__()
 
         self.escape_sequence = escape_sequence or "ctrl a"
 

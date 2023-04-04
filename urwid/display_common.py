@@ -964,7 +964,7 @@ class BaseScreen(metaclass=signals.MetaSignals):
         """
         basic = AttrSpec(foreground, background, 16)
 
-        if type(mono) == tuple:
+        if isinstance(mono, tuple):
             # old style of specifying mono attributes was to put them
             # in a tuple.  convert to comma-separated string
             mono = ",".join(mono)
@@ -1003,6 +1003,7 @@ class BaseScreen(metaclass=signals.MetaSignals):
 def _test():
     import doctest
     doctest.testmod()
+
 
 if __name__=='__main__':
     _test()

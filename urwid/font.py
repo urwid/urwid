@@ -80,12 +80,16 @@ def separate_glyphs(gdata, height):
         c = None
     return dout, utf8_required
 
+
 _all_fonts = []
+
+
 def get_all_fonts():
     """
     Return a list of (font name, font class) tuples.
     """
     return _all_fonts[:]
+
 
 def add_font(name, cls):
     _all_fonts.append((name, cls))
@@ -103,7 +107,7 @@ class Font:
             self.add_glyphs(gdata)
 
     @staticmethod
-    def _to_text(obj, encoding='utf-8', errors='strict'):
+    def _to_text(obj, encoding='utf-8', errors='strict') -> str:
         if isinstance(obj, str):
             return obj
         elif isinstance(obj, bytes):
@@ -114,12 +118,12 @@ class Font:
         self.char.update(d)
         self.utf8_required |= utf8_required
 
-    def characters(self):
+    def characters(self) -> str:
         l = sorted(self.char)
 
         return "".join(l)
 
-    def char_width(self, c):
+    def char_width(self, c) -> int:
         if c in self.char:
             return self.char[c][0]
         return 0
@@ -141,7 +145,6 @@ class Font:
             check_width=False)
         self.canvas[c] = canv
         return canv
-
 
 
 #safe_palette = u"┘┐┌└┼─├┤┴┬│"
@@ -436,7 +439,9 @@ tttttuuuuuuuvvvvvvvwwwwwwwwxxxxxxxyyyyyyyzzzzzzz
   █▌  ▀███▀   ▐█▌   ▀█▌▐█▀ ▐█   █▌  ▀▀▀█▌▐█████▌
                                    ▀███▀
 """]
-add_font("Half Block 7x7",HalfBlock7x7Font)
+
+
+add_font("Half Block 7x7", HalfBlock7x7Font)
 
 
 if __name__ == "__main__":
@@ -449,7 +454,7 @@ if __name__ == "__main__":
         u = ""
         if f.utf8_required:
             u = "(U)"
-        print(("%-20s %3s " % (n,u)), end=' ')
+        print(f"{n:<20} {u:>3} ", end=' ')
         c = f.characters()
         if c == all_ascii:
             print("Full ASCII")

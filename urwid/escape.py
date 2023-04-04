@@ -27,6 +27,7 @@ Terminal Escape Sequences for input and display
 from __future__ import annotations
 
 import re
+from collections.abc import MutableMapping, Sequence
 
 try:
     from urwid import str_util
@@ -137,36 +138,36 @@ input_sequences = [
     ('[0n', 'status ok')
 ]
 
+
 class KeyqueueTrie:
-    def __init__( self, sequences ):
+    def __init__(self, sequences) -> None:
         self.data = {}
         for s, result in sequences:
-            assert type(result) != dict
+            assert not isinstance(result, dict)
             self.add(self.data, s, result)
 
     def add(self, root, s, result):
-        assert type(root) == dict, "trie conflict detected"
+        assert isinstance(root, MutableMapping), "trie conflict detected"
         assert len(s) > 0, "trie conflict detected"
 
         if ord(s[0]) in root:
             return self.add(root[ord(s[0])], s[1:], result)
-        if len(s)>1:
+        if len(s) > 1:
             d = {}
             root[ord(s[0])] = d
             return self.add(d, s[1:], result)
         root[ord(s)] = result
 
-    def get(self, keys, more_available):
+    def get(self, keys, more_available: bool):
         result = self.get_recurse(self.data, keys, more_available)
         if not result:
             result = self.read_cursor_position(keys, more_available)
         return result
 
-    def get_recurse(self, root, keys, more_available):
-        if type(root) != dict:
+    def get_recurse(self, root, keys, more_available: bool):
+        if not isinstance(root, MutableMapping):
             if root == "mouse":
-                return self.read_mouse_info(keys,
-                    more_available)
+                return self.read_mouse_info(keys, more_available)
             elif root == "sgrmouse":
                 return self.read_sgrmouse_info (keys, more_available)
             return (root, keys)
@@ -179,7 +180,7 @@ class KeyqueueTrie:
             return None
         return self.get_recurse(root[keys[0]], keys[1:], more_available)
 
-    def read_mouse_info(self, keys, more_available):
+    def read_mouse_info(self, keys, more_available: bool):
         if len(keys) < 3:
             if more_available:
                 raise MoreInputRequired()
@@ -212,7 +213,7 @@ class KeyqueueTrie:
 
         return ( (f"{prefix}mouse {action}", button, x, y), keys[3:] )
 
-    def read_sgrmouse_info(self, keys, more_available):
+    def read_sgrmouse_info(self, keys, more_available: bool):
         # Helpful links:
         # https://stackoverflow.com/questions/5966903/how-to-get-mousemove-and-mouseclick-in-bash
         # http://invisible-island.net/xterm/ctlseqs/ctlseqs.pdf
@@ -227,7 +228,7 @@ class KeyqueueTrie:
         found_m = False
         for k in keys:
             value = value + chr(k)
-            if ((k is ord('M')) or (k is ord('m'))):
+            if (k is ord('M')) or (k is ord('m')):
                 found_m = True
                 break
             pos_m += 1
@@ -261,8 +262,7 @@ class KeyqueueTrie:
 
         return ( (f"mouse {action}", button, x, y), keys[pos_m + 1:] )
 
-
-    def read_cursor_position(self, keys, more_available):
+    def read_cursor_position(self, keys, more_available: bool):
         """
         Interpret cursor position information being sent by the
         user's terminal.  Returned as ('cursor position', x, y)
@@ -305,12 +305,9 @@ class KeyqueueTrie:
             if not x and k == ord('0'):
                 return None
             x = x * 10 + k - ord('0')
-        if not keys[i:]:
-            if more_available:
-                raise MoreInputRequired()
+        if not keys[i:] and more_available:
+            raise MoreInputRequired()
         return None
-
-
 
 
 # This is added to button value to signal mouse release by curses_display
@@ -366,8 +363,7 @@ _keyconv = {
 }
 
 
-
-def process_keyqueue(codes, more_available):
+def process_keyqueue(codes: Sequence[int], more_available: bool):
     """
     codes -- list of key codes
     more_available -- if True then raise MoreInputRequired when in the
@@ -377,46 +373,44 @@ def process_keyqueue(codes, more_available):
     returns (list of input, list of remaining key codes).
     """
     code = codes[0]
-    if code >= 32 and code <= 126:
+    if 32 <= code <= 126:
         key = chr(code)
         return [key], codes[1:]
     if code in _keyconv:
         return [_keyconv[code]], codes[1:]
-    if code >0 and code <27:
+    if 0 < code < 27:
         return [f"ctrl {chr(ord('a') + code - 1)}"], codes[1:]
-    if code >27 and code <32:
+    if 27 < code < 32:
         return [f"ctrl {chr(ord('A') + code - 1)}"], codes[1:]
 
     em = str_util.get_byte_encoding()
 
-    if (em == 'wide' and code < 256 and
-        within_double_byte(chr(code),0,0)):
-        if not codes[1:]:
-            if more_available:
-                raise MoreInputRequired()
+    if em == 'wide' and code < 256 and within_double_byte(chr(code), 0, 0):
+        if not codes[1:] and more_available:
+            raise MoreInputRequired()
         if codes[1:] and codes[1] < 256:
             db = chr(code)+chr(codes[1])
             if within_double_byte(db, 0, 1):
                 return [db], codes[2:]
-    if em == 'utf8' and code>127 and code<256:
-        if code & 0xe0 == 0xc0: # 2-byte form
+    if em == 'utf8' and 127 < code < 256:
+        if code & 0xe0 == 0xc0:  # 2-byte form
             need_more = 1
-        elif code & 0xf0 == 0xe0: # 3-byte form
+        elif code & 0xf0 == 0xe0:  # 3-byte form
             need_more = 2
-        elif code & 0xf8 == 0xf0: # 4-byte form
+        elif code & 0xf8 == 0xf0:  # 4-byte form
             need_more = 3
         else:
-            return ["<%d>"%code], codes[1:]
+            return [f"<{code:d}>"], codes[1:]
 
         for i in range(need_more):
             if len(codes)-1 <= i:
                 if more_available:
                     raise MoreInputRequired()
                 else:
-                    return ["<%d>"%code], codes[1:]
+                    return [f"<{code:d}>"], codes[1:]
             k = codes[i+1]
             if k>256 or k&0xc0 != 0x80:
-                return ["<%d>"%code], codes[1:]
+                return [f"<{code:d}>"], codes[1:]
 
         s = bytes(codes[:need_more+1])
 
@@ -424,13 +418,13 @@ def process_keyqueue(codes, more_available):
         try:
             return [s.decode("utf-8")], codes[need_more+1:]
         except UnicodeDecodeError:
-            return ["<%d>"%code], codes[1:]
+            return [f"<{code:d}>"], codes[1:]
 
-    if code >127 and code <256:
+    if 127 < code < 256:
         key = chr(code)
         return [key], codes[1:]
     if code != 27:
-        return ["<%d>"%code], codes[1:]
+        return [f"<{code:d}>"], codes[1:]
 
     result = input_trie.get(codes[1:], more_available)
 
@@ -440,8 +434,7 @@ def process_keyqueue(codes, more_available):
 
     if codes[1:]:
         # Meta keys -- ESC+Key form
-        run, remaining_codes = process_keyqueue(codes[1:],
-            more_available)
+        run, remaining_codes = process_keyqueue(codes[1:], more_available)
         if urwid.util.is_mouse_event(run[0]):
             return ['esc'] + run, remaining_codes
         if run[0] == "esc" or run[0].find("meta ") >= 0:
@@ -475,22 +468,30 @@ REPORT_CURSOR_POSITION = f"{ESC}[6n"
 INSERT_ON = f"{ESC}[4h"
 INSERT_OFF = f"{ESC}[4l"
 
-def set_cursor_position( x, y ):
-    assert type(x) == int
-    assert type(y) == int
-    return ESC+"[%d;%dH" %(y+1, x+1)
 
-def move_cursor_right(x):
-    if x < 1: return ""
-    return ESC+"[%dC" % x
+def set_cursor_position(x: int, y: int) -> str:
+    assert isinstance(x, int)
+    assert isinstance(y, int)
+    return ESC + f"[{y + 1:d};{x + 1:d}H"
 
-def move_cursor_up(x):
-    if x < 1: return ""
-    return ESC+"[%dA" % x
 
-def move_cursor_down(x):
-    if x < 1: return ""
-    return ESC+"[%dB" % x
+def move_cursor_right(x: int) -> str:
+    if x < 1:
+        return ""
+    return ESC + f"[{x:d}C"
+
+
+def move_cursor_up(x: int) -> str:
+    if x < 1:
+        return ""
+    return ESC + f"[{x:d}A"
+
+
+def move_cursor_down(x: int) -> str:
+    if x < 1:
+        return ""
+    return ESC + f"[{x:d}B"
+
 
 HIDE_CURSOR = f"{ESC}[?25l"
 SHOW_CURSOR = f"{ESC}[?25h"

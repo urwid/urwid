@@ -22,13 +22,9 @@
 
 from __future__ import annotations
 
-from urwid.canvas import (
-    CanvasCombine,
-    CanvasJoin,
-    CompositeCanvas,
-    SolidCanvas,
-    TextCanvas,
-)
+import typing
+
+from urwid.canvas import CanvasCombine, CanvasJoin, CompositeCanvas, SolidCanvas, TextCanvas
 from urwid.container import Columns, Pile
 from urwid.decoration import WidgetDecoration
 from urwid.display_common import AttrSpec
@@ -49,6 +45,9 @@ from urwid.widget import (
     nocache_widget_render,
     nocache_widget_render_instance,
 )
+
+if typing.TYPE_CHECKING:
+    from typing_extensions import Literal
 
 
 class BigText(Widget):
@@ -116,11 +115,21 @@ class BigText(Widget):
 
 class LineBox(WidgetDecoration, WidgetWrap):
 
-    def __init__(self, original_widget, title="",
-                 title_align="center", title_attr=None,
-                 tlcorner='┌', tline='─', lline='│',
-                 trcorner='┐', blcorner='└', rline='│',
-                 bline='─', brcorner='┘'):
+    def __init__(
+        self,
+        original_widget: Widget,
+        title: str = "",
+        title_align: Literal['left', 'center', 'right'] = "center",
+        title_attr=None,
+        tlcorner: str = '┌',
+        tline: str = '─',
+        lline: str = '│',
+        trcorner: str = '┐',
+        blcorner: str = '└',
+        rline: str = '│',
+        bline: str = '─',
+        brcorner: str = '┘',
+    ) -> None:
         """
         Draw a line around original_widget.
 
@@ -232,7 +241,7 @@ class LineBox(WidgetDecoration, WidgetWrap):
         self.title_widget.set_text(self.format_title(text))
         self.tline_widget._invalidate()
 
-    def pack(self, size=None, focus=False):
+    def pack(self, size=None, focus: bool = False):
         """
         Return the number of screen columns and rows required for
         this Linebox widget to be displayed without wrapping or
@@ -275,8 +284,10 @@ def nocache_bargraph_get_data(self, get_data_fn):
     self.render = nocache_widget_render_instance(self)
     self._get_data = get_data_fn
 
+
 class BarGraphError(Exception):
     pass
+
 
 class BarGraph(Widget, metaclass=BarGraphMeta):
     _sizing = frozenset([BOX])
@@ -337,7 +348,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
             raise BarGraphError(f"attlist must include at least background and seg1: {attlist!r}")
         assert len(attlist) >= 2, 'must at least specify bg and fg!'
         for a in attlist:
-            if type(a) != tuple:
+            if not isinstance(a, tuple):
                 self.attr.append(a)
                 self.char.append(' ')
             else:
@@ -348,7 +359,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         self.hatt = []
         if hatt is None:
             hatt = [self.attr[0]]
-        elif type(hatt) != list:
+        elif not isinstance(hatt, list):
             hatt = [hatt]
         self.hatt = hatt
 
@@ -359,9 +370,9 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
                 (fg, bg), attr = i
             except ValueError:
                 raise BarGraphError(f"satt not in (fg,bg:attr) form: {i!r}")
-            if type(fg) != int or fg >= len(attlist):
+            if not isinstance(fg, int) or fg >= len(attlist):
                 raise BarGraphError(f"fg not valid integer: {fg!r}")
-            if type(bg) != int or bg >= len(attlist):
+            if not isinstance(bg, int) or bg >= len(attlist):
                 raise BarGraphError(f"bg not valid integer: {fg!r}")
             if fg <= bg:
                 raise BarGraphError(f"fg ({fg}) not > bg ({bg})")
@@ -391,7 +402,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         self.data = bardata, top, hlines
         self._invalidate()
 
-    def _get_data(self, size):
+    def _get_data(self, size: tuple[int, int]):
         """
         Return (bardata, top, hlines)
 
@@ -410,7 +421,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
 
         return bardata, top, hlines
 
-    def set_bar_width(self, width):
+    def set_bar_width(self, width: int | None):
         """
         Set a preferred bar width for calculate_bar_widths to use.
 
@@ -420,7 +431,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         self.bar_width = width
         self._invalidate()
 
-    def calculate_bar_widths(self, size, bardata):
+    def calculate_bar_widths(self, size: tuple[int, int], bardata):
         """
         Return a list of bar widths, one for each bar in data.
 
@@ -446,16 +457,16 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
             remain -= 1
         return widths
 
-    def selectable(self):
+    def selectable(self) -> Literal[False]:
         """
         Return False.
         """
         return False
 
-    def use_smoothed(self):
+    def use_smoothed(self) -> bool:
         return self.satt and get_encoding_mode() == "utf8"
 
-    def calculate_display(self, size):
+    def calculate_display(self, size: tuple[int, int]):
         """
         Calculate display data.
         """
@@ -477,7 +488,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
 
         return disp
 
-    def hlines_display(self, disp, top, hlines, maxrow):
+    def hlines_display(self, disp, top: int, hlines, maxrow: int):
         """
         Add hlines to display structure represented as bar_type tuple
         values:
@@ -523,8 +534,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         def fill_row(row, chnum):
             rout = []
             for bar_type, width in row:
-                if (type(bar_type) == int and
-                        len(self.hatt) > bar_type):
+                if (isinstance(bar_type, int) and len(self.hatt) > bar_type):
                     rout.append(((bar_type, chnum), width))
                     continue
                 rout.append((bar_type, width))
@@ -574,7 +584,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
                 l1 = (bt1, w1 - w2)
             elif w2 > w1:
                 l2 = (bt2, w2 - w1)
-            if type(bt1) == tuple:
+            if isinstance(bt1, tuple):
                 return (bt1, wmin), l1, l2
             if (bt2, bt1) not in self.satt:
                 if r < 4:
@@ -582,7 +592,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
                 return (bt1, wmin), l1, l2
             return ((bt2, bt1, 8 - r), wmin), l1, l2
 
-        def row_combine_last(count, row):
+        def row_combine_last(count: int, row):
             o_count, o_row = o[-1]
             row = row[:]  # shallow copy, so we don't destroy orig.
             o_row = o_row[:]
@@ -623,7 +633,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
             r = y_count
         return [(y // 8, row) for (y, row) in o]
 
-    def render(self, size, focus=False):
+    def render(self, size: tuple[int, int], focus: bool = False) -> CompositeCanvas:
         """
         Render BarGraph.
         """
@@ -634,7 +644,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         for y_count, row in disp:
             l = []
             for bar_type, width in row:
-                if type(bar_type) == tuple:
+                if isinstance(bar_type, tuple):
                     if len(bar_type) == 3:
                         # vertical eighths
                         fg, bg, k = bar_type
@@ -657,7 +667,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         return canv
 
 
-def calculate_bargraph_display(bardata, top, bar_widths, maxrow):
+def calculate_bargraph_display(bardata, top, bar_widths, maxrow: int):
     """
     Calculate a rendering of the bar graph described by data, bar_widths
     and height.
@@ -689,7 +699,7 @@ def calculate_bargraph_display(bardata, top, bar_widths, maxrow):
     # build intermediate data structure
     rows = [None] * maxrow
 
-    def add_segment(seg_num, col, row, width, rows=rows):
+    def add_segment(seg_num: int, col: int, row: int, width: int, rows=rows) -> None:
         if rows[row]:
             last_seg, last_col, last_end = rows[row][-1]
             if last_end > col:
@@ -832,13 +842,13 @@ class GraphVScale(Widget):
             self.txt.append(Text(markup))
         self.top = top
 
-    def selectable(self):
+    def selectable(self) -> Literal[False]:
         """
         Return False.
         """
         return False
 
-    def render(self, size, focus=False):
+    def render(self, size: tuple[int, int], focus: bool = False):
         """
         Render GraphVScale.
         """
@@ -870,7 +880,7 @@ class GraphVScale(Widget):
 
 
 
-def scale_bar_values( bar, top, maxrow ):
+def scale_bar_values(bar, top, maxrow: int):
     """
     Return a list of bar values aliased to integer values of maxrow.
     """
@@ -884,7 +894,7 @@ class ProgressBar(Widget):
 
     text_align = CENTER
 
-    def __init__(self, normal, complete, current=0, done=100, satt=None):
+    def __init__(self, normal, complete, current: int = 0, done: int = 100, satt=None):
         """
         :param normal: display attribute for incomplete part of progress bar
         :param complete: display attribute for complete part of progress bar
@@ -939,10 +949,10 @@ class ProgressBar(Widget):
         self._invalidate()
     done = property(lambda self: self._done, _set_done)
 
-    def rows(self, size, focus=False):
+    def rows(self, size, focus: bool = False) -> int:
         return 1
 
-    def get_text(self):
+    def get_text(self) -> str:
         """
         Return the progress bar percentage text.
         You can override this method to display custom text.
@@ -950,7 +960,7 @@ class ProgressBar(Widget):
         percent = min(100, max(0, int(self.current * 100 / self.done)))
         return f"{str(percent)} %"
 
-    def render(self, size, focus=False):
+    def render(self, size: tuple[int], focus: bool = False):
         """
         Render the progress bar.
         """
@@ -993,7 +1003,7 @@ class ProgressBar(Widget):
 class PythonLogo(Widget):
     _sizing = frozenset([FIXED])
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Create canvas containing an ASCII version of the Python
         Logo and store it.
@@ -1008,22 +1018,24 @@ class PythonLogo(Widget):
             (blu, "  |__|  "), (yel, "______|\n"),
             (yel, "     |____o_|")]).render((width,))
 
-    def pack(self, size=None, focus=False):
+    def pack(self, size=None, focus: bool = False):
         """
         Return the size from our pre-rendered canvas.
         """
         return self._canvas.cols(), self._canvas.rows()
 
-    def render(self, size, focus=False):
+    def render(self, size, focus: bool = False):
         """
         Return the pre-rendered canvas.
         """
         fixed_size(size)
         return self._canvas
 
+
 def _test():
     import doctest
     doctest.testmod()
+
 
 if __name__=='__main__':
     _test()

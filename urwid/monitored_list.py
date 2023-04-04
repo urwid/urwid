@@ -19,19 +19,32 @@
 #
 # Urwid web site: https://urwid.org/
 
+from __future__ import annotations
 
-def _call_modified(fn):
-    def call_modified_wrapper(self, *args, **kwargs):
+import typing
+from collections.abc import Callable
+
+if typing.TYPE_CHECKING:
+    from typing_extensions import ParamSpec
+
+    ArgSpec = ParamSpec("ArgSpec")
+    Ret = typing.TypeVar("Ret")
+
+
+def _call_modified(fn: Callable[ArgSpec, Ret]) -> Callable[ArgSpec, Ret]:
+    def call_modified_wrapper(self: MonitoredList, *args, **kwargs):
         rval = fn(self, *args, **kwargs)
         self._modified()
         return rval
     return call_modified_wrapper
+
 
 class MonitoredList(list):
     """
     This class can trigger a callback any time its contents are changed
     with the usual list operations append, extend, etc.
     """
+
     def _modified(self):
         pass
 
@@ -116,7 +129,7 @@ class MonitoredFocusList(MonitoredList):
     def __repr__(self):
         return f"{self.__class__.__name__}({list(self)!r}, focus={self.focus!r})"
 
-    def _get_focus(self):
+    def _get_focus(self) -> int | None:
         """
         Return the index of the item "in focus" or None if
         the list is empty.
@@ -129,7 +142,7 @@ class MonitoredFocusList(MonitoredList):
             return None
         return self._focus
 
-    def _set_focus(self, index):
+    def _set_focus(self, index: int) -> None:
         """
         index -- index into this list, any index out of range will
             raise an IndexError, except when the list is empty and
@@ -169,10 +182,10 @@ class MonitoredFocusList(MonitoredList):
         or an IndexError will be raised.
         """)
 
-    def _focus_changed(self, new_focus):
+    def _focus_changed(self, new_focus: int):
         pass
 
-    def set_focus_changed_callback(self, callback):
+    def set_focus_changed_callback(self, callback: Callable[[int], typing.Any]) -> None:
         """
         Assign a callback to be called when the focus index changes
         for any reason.  The callback is in the form:
@@ -222,7 +235,7 @@ class MonitoredFocusList(MonitoredList):
         """
         self._validate_contents_modified = callback
 
-    def _adjust_focus_on_contents_modified(self, slc, new_items=()):
+    def _adjust_focus_on_contents_modified(self, slc: slice, new_items=()) -> int:
         """
         Default behaviour is to move the focus to the item following
         any removed items, unless that item was simply replaced.
@@ -260,7 +273,7 @@ class MonitoredFocusList(MonitoredList):
 
     # override all the list methods that modify the list
 
-    def __delitem__(self, y):
+    def __delitem__(self, y: int | slice):
         """
         >>> ml = MonitoredFocusList([0,1,2,3,4], focus=2)
         >>> del ml[3]; ml
@@ -289,13 +302,12 @@ class MonitoredFocusList(MonitoredList):
         if isinstance(y, slice):
             focus = self._adjust_focus_on_contents_modified(y)
         else:
-            focus = self._adjust_focus_on_contents_modified(slice(y,
-                y+1 or None))
+            focus = self._adjust_focus_on_contents_modified(slice(y, y+1 or None))
         rval = super().__delitem__(y)
         self._set_focus(focus)
         return rval
 
-    def __setitem__(self, i, y):
+    def __setitem__(self, i: int | slice, y):
         """
         >>> def modified(indices, new_items):
         ...     print("range%r <- %r" % (indices, new_items))
@@ -332,7 +344,7 @@ class MonitoredFocusList(MonitoredList):
         self._set_focus(focus)
         return rval
 
-    def __imul__(self, n):
+    def __imul__(self, n: int):
         """
         >>> def modified(indices, new_items):
         ...     print("range%r <- %r" % (indices, list(new_items)))
@@ -348,9 +360,8 @@ class MonitoredFocusList(MonitoredList):
         None
         """
         if n > 0:
-            focus = self._adjust_focus_on_contents_modified(
-                slice(len(self), len(self)), list(self)*(n-1))
-        else: # all contents are being removed
+            focus = self._adjust_focus_on_contents_modified(slice(len(self), len(self)), list(self) * (n-1))
+        else:  # all contents are being removed
             focus = self._adjust_focus_on_contents_modified(slice(0, len(self)))
         rval = super().__imul__(n)
         self._set_focus(focus)
@@ -386,7 +397,7 @@ class MonitoredFocusList(MonitoredList):
         self._set_focus(focus)
         return rval
 
-    def insert(self, index, item):
+    def insert(self, index: int, item):
         """
         >>> ml = MonitoredFocusList([0,1,2,3], focus=2)
         >>> ml.insert(-1, -1); ml
@@ -396,13 +407,12 @@ class MonitoredFocusList(MonitoredList):
         >>> ml.insert(3, -3); ml
         MonitoredFocusList([-2, 0, 1, -3, 2, -1, 3], focus=4)
         """
-        focus = self._adjust_focus_on_contents_modified(slice(index, index),
-            [item])
+        focus = self._adjust_focus_on_contents_modified(slice(index, index), [item])
         rval = super().insert(index, item)
         self._set_focus(focus)
         return rval
 
-    def pop(self, index=-1):
+    def pop(self, index: int = -1):
         """
         >>> ml = MonitoredFocusList([-2,0,1,-3,2,3], focus=4)
         >>> ml.pop(3); ml
@@ -418,8 +428,7 @@ class MonitoredFocusList(MonitoredList):
         2
         MonitoredFocusList([0, 1], focus=1)
         """
-        focus = self._adjust_focus_on_contents_modified(slice(index,
-            index+1 or None))
+        focus = self._adjust_focus_on_contents_modified(slice(index, index + 1 or None))
         rval = super().pop(index)
         self._set_focus(focus)
         return rval
@@ -472,12 +481,10 @@ class MonitoredFocusList(MonitoredList):
             return rval
 
 
-
-
-
 def _test():
     import doctest
     doctest.testmod()
+
 
 if __name__=='__main__':
     _test()
