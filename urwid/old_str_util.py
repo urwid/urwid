@@ -92,53 +92,70 @@ def get_width(o) -> Literal[0, 1, 2]:
     return 1
 
 
-def decode_one(text: bytes, pos: int) -> tuple[int, int]:
+def decode_one(text: bytes| str, pos: int) -> tuple[int, int]:
     """
     Return (ordinal at pos, next position) for UTF-8 encoded text.
     """
-    assert isinstance(text, bytes), text
-    b1 = text[pos]
+    lt = len(text) - pos
+
+    b2 = 0  # Fallback, not changing anything
+    b3 = 0  # Fallback, not changing anything
+    b4 = 0  # Fallback, not changing anything
+
+    try:
+        if isinstance(text, str):
+            b1 = ord(text[pos])
+            if lt > 1:
+                b2 = ord(text[pos + 1])
+            if lt > 2:
+                b3 = ord(text[pos + 2])
+            if lt > 3:
+                b4 = ord(text[pos + 3])
+        else:
+            b1 = text[pos]
+            if lt > 1:
+                b2 = text[pos + 1]
+            if lt > 2:
+                b3 = text[pos + 2]
+            if lt > 3:
+                b4 = text[pos + 3]
+    except Exception as e:
+        raise ValueError(f"{e}: {text=!r}, {pos=!r}, {lt=}").with_traceback(e.__traceback__) from e
+
     if not b1 & 0x80:
         return b1, pos+1
     error = ord("?"), pos+1
-    lt = len(text)
-    lt = lt-pos
+
     if lt < 2:
         return error
     if b1 & 0xe0 == 0xc0:
-        b2 = text[pos+1]
         if b2 & 0xc0 != 0x80:
             return error
-        o = ((b1&0x1f)<<6)|(b2&0x3f)
+        o = ((b1 & 0x1f) << 6) | (b2 & 0x3f)
         if o < 0x80:
             return error
         return o, pos+2
     if lt < 3:
         return error
     if b1 & 0xf0 == 0xe0:
-        b2 = text[pos+1]
         if b2 & 0xc0 != 0x80:
             return error
-        b3 = text[pos+2]
         if b3 & 0xc0 != 0x80:
             return error
-        o = ((b1&0x0f)<<12)|((b2&0x3f)<<6)|(b3&0x3f)
+        o = ((b1 & 0x0f) << 12) | ((b2 & 0x3f) << 6) | (b3 & 0x3f)
         if o < 0x800:
             return error
         return o, pos+3
     if lt < 4:
         return error
     if b1 & 0xf8 == 0xf0:
-        b2 = text[pos+1]
         if b2 & 0xc0 != 0x80:
             return error
-        b3 = text[pos+2]
         if b3 & 0xc0 != 0x80:
             return error
-        b4 = text[pos+2]
         if b4 & 0xc0 != 0x80:
             return error
-        o = ((b1&0x07)<<18)|((b2&0x3f)<<12)|((b3&0x3f)<<6)|(b4&0x3f)
+        o = ((b1 & 0x07) << 18) | ((b2 & 0x3f) << 12)|((b3 & 0x3f) << 6) | (b4 & 0x3f)
         if o < 0x10000:
             return error
         return o, pos+4
