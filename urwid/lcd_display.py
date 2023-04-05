@@ -23,8 +23,13 @@
 from __future__ import annotations
 
 import time
+import typing
+from collections.abc import Iterable, Sequence
 
 from .display_common import BaseScreen
+
+if typing.TYPE_CHECKING:
+    from typing_extensions import Literal
 
 
 class LCDScreen(BaseScreen):
@@ -89,7 +94,7 @@ class CFLCDScreen(LCDScreen):
     colors = 1
     has_underline = False
 
-    def __init__(self, device_path, baud):
+    def __init__(self, device_path: str, baud: int):
         """
         device_path -- eg. '/dev/ttyUSB0'
         baud -- baud rate
@@ -98,44 +103,43 @@ class CFLCDScreen(LCDScreen):
         self.device_path = device_path
         from serial import Serial
         self._device = Serial(device_path, baud, timeout=0)
-        self._unprocessed = ""
-
+        self._unprocessed = bytearray()
 
     @classmethod
-    def get_crc(cls, buf):
+    def get_crc(cls, buf: bytearray) -> int:
         # This seed makes the output of this shift based algorithm match
         # the table based algorithm. The center 16 bits of the 32-bit
         # "newCRC" are used for the CRC. The MSB of the lower byte is used
         # to see what bit was shifted out of the center 16 bit CRC
         # accumulator ("carry flag analog");
-        newCRC = 0x00F32100
+        new_crc = 0x00F32100
         for byte in buf:
             # Push this byte’s bits through a software
             # implementation of a hardware shift & xor.
             for bit_count in range(8):
                 # Shift the CRC accumulator
-                newCRC >>= 1
+                new_crc >>= 1
                 # The new MSB of the CRC accumulator comes
                 # from the LSB of the current data byte.
-                if ord(byte) & (0x01 << bit_count):
-                    newCRC |= 0x00800000
+                if byte & (0x01 << bit_count):
+                    new_crc |= 0x00800000
                 # If the low bit of the current CRC accumulator was set
                 # before the shift, then we need to XOR the accumulator
                 # with the polynomial (center 16 bits of 0x00840800)
-                if newCRC & 0x00000080:
-                    newCRC ^= 0x00840800
+                if new_crc & 0x00000080:
+                    new_crc ^= 0x00840800
         # All the data has been done. Do 16 more bits of 0 data.
         for bit_count in range(16):
             # Shift the CRC accumulator
-            newCRC >>= 1
+            new_crc >>= 1
             # If the low bit of the current CRC accumulator was set
             # before the shift we need to XOR the accumulator with
             # 0x00840800.
-            if newCRC & 0x00000080:
-                newCRC ^= 0x00840800
+            if new_crc & 0x00000080:
+                new_crc ^= 0x00840800
         # Return the center 16 bits, making this CRC match the one’s
         # complement that is sent in the packet.
-        return ((~newCRC)>>8) & 0xffff
+        return ((~new_crc) >> 8) & 0xffff
 
     def _send_packet(self, command, data):
         """
@@ -148,7 +152,7 @@ class CFLCDScreen(LCDScreen):
         buf = buf + chr(crc & 0xff) + chr(crc >> 8)
         self._device.write(buf)
 
-    def _read_packet(self):
+    def _read_packet(self) -> tuple[int, bytearray] | None:
         """
         low-level packet reading.
         returns (command/report code, data) or None
@@ -157,25 +161,26 @@ class CFLCDScreen(LCDScreen):
         is received.
         """
         # pull in any new data available
-        self._unprocessed = self._unprocessed + self._device.read()
+        self._unprocessed += self._device.read()
         while True:
             try:
                 command, data, unprocessed = self._parse_data(self._unprocessed)
                 self._unprocessed = unprocessed
                 return command, data
             except self.MoreDataRequired:
-                return
+                return None
             except self.InvalidPacket:
                 # throw out a byte and try to parse again
                 self._unprocessed = self._unprocessed[1:]
 
     class InvalidPacket(Exception):
         pass
+
     class MoreDataRequired(Exception):
         pass
 
     @classmethod
-    def _parse_data(cls, data):
+    def _parse_data(cls, data: bytearray) -> tuple[int, bytearray, bytearray]:
         """
         Try to read a packet from the start of data, returning
         (command/report code, packet_data, remaining_data)
@@ -183,18 +188,22 @@ class CFLCDScreen(LCDScreen):
         """
         if len(data) < 2:
             raise cls.MoreDataRequired
-        command = ord(data[0])
-        plen = ord(data[1])
-        if plen > cls.MAX_PACKET_DATA_LENGTH:
+
+        command: int = data[0]
+        packet_len: int = data[1]
+
+        if packet_len > cls.MAX_PACKET_DATA_LENGTH:
             raise cls.InvalidPacket("length value too large")
-        if len(data) < plen + 4:
+
+        if len(data) < packet_len + 4:
             raise cls.MoreDataRequired
-        crc = cls.get_crc(data[:2 + plen])
-        pcrc = ord(data[2 + plen]) + (ord(data[3 + plen]) << 8 )
+
+        data_end = 2 + packet_len
+        crc = cls.get_crc(data[:data_end])
+        pcrc = ord(data[data_end: data_end + 1]) + (ord(data[data_end + 1: data_end + 2]) << 8)
         if crc != pcrc:
             raise cls.InvalidPacket("CRC doesn't match")
-        return (command, data[2:2 + plen], data[4 + plen:])
-
+        return command, data[2: data_end], data[data_end + 2:]
 
 
 class KeyRepeatSimulator:
@@ -205,50 +214,48 @@ class KeyRepeatSimulator:
     If two or more keys are pressed disable repeating until all
     keys are released.
     """
-    def __init__(self, repeat_delay, repeat_next):
+    def __init__(self, repeat_delay: float | int, repeat_next: float | int) -> None:
         """
         repeat_delay -- seconds to wait before starting to repeat keys
         repeat_next -- time between each repeated key
         """
         self.repeat_delay = repeat_delay
         self.repeat_next = repeat_next
-        self.pressed = {}
+        self.pressed: dict[str, float] = {}
         self.multiple_pressed = False
 
-    def press(self, key):
+    def press(self, key: str) -> None:
         if self.pressed:
             self.multiple_pressed = True
         self.pressed[key] = time.time()
 
-    def release(self, key):
+    def release(self, key: str) -> None:
         if key not in self.pressed:
-            return # ignore extra release events
+            return  # ignore extra release events
         del self.pressed[key]
         if not self.pressed:
             self.multiple_pressed = False
 
-    def next_event(self):
+    def next_event(self) -> tuple[float, str] | None:
         """
         Return (remaining, key) where remaining is the number of seconds
         (float) until the key repeat event should be sent, or None if no
         events are pending.
         """
         if len(self.pressed) != 1 or self.multiple_pressed:
-            return
+            return None
         for key in self.pressed:
-            return max(0, self.pressed[key] + self.repeat_delay
-                - time.time()), key
+            return max(0., self.pressed[key] + self.repeat_delay - time.time()), key
 
-    def sent_event(self):
+    def sent_event(self) -> None:
         """
         Cakk this method when you have sent a key repeat event so the
         timer will be reset for the next event
         """
         if len(self.pressed) != 1:
-            return # ignore event that shouldn't have been sent
+            return  # ignore event that shouldn't have been sent
         for key in self.pressed:
-            self.pressed[key] = (
-                time.time() - self.repeat_delay + self.repeat_next)
+            self.pressed[key] = (time.time() - self.repeat_delay + self.repeat_next)
             return
 
 
@@ -294,9 +301,14 @@ class CF635Screen(CFLCDScreen):
 
     cursor_style = CFLCDScreen.CURSOR_INVERTING_BLINKING_BLOCK
 
-    def __init__(self, device_path, baud=115200,
-            repeat_delay=0.5, repeat_next=0.125,
-            key_map=['up', 'down', 'left', 'right', 'enter', 'esc']):
+    def __init__(
+        self,
+        device_path: str,
+        baud: int = 115200,
+        repeat_delay: float = 0.5,
+        repeat_next: float = 0.125,
+        key_map: Iterable[str] = ('up', 'down', 'left', 'right', 'enter', 'esc'),
+    ):
         """
         device_path -- eg. '/dev/ttyUSB0'
         baud -- baud rate
@@ -309,7 +321,7 @@ class CF635Screen(CFLCDScreen):
         self.repeat_delay = repeat_delay
         self.repeat_next = repeat_next
         self.key_repeat = KeyRepeatSimulator(repeat_delay, repeat_next)
-        self.key_map = key_map
+        self.key_map = tuple(key_map)
 
         self._last_command = None
         self._last_command_time = 0
@@ -318,7 +330,6 @@ class CF635Screen(CFLCDScreen):
         self._previous_canvas = None
         self._update_cursor = False
 
-
     def get_input_descriptors(self):
         """
         return the fd from our serial device so we get called
@@ -326,7 +337,7 @@ class CF635Screen(CFLCDScreen):
         """
         return [self._device.fd]
 
-    def get_input_nonblocking(self):
+    def get_input_nonblocking(self) -> tuple[None, list[str], list[int]]:
         """
         Return a (next_input_timeout, keys_pressed, raw_keycodes)
         tuple.
@@ -341,18 +352,16 @@ class CF635Screen(CFLCDScreen):
         raw_keycodes are the bytes of messages we received, which might
         not seem to have any correspondence to keys_pressed.
         """
-        input = []
-        raw_input = []
+        data_input: list[str] = []
+        raw_data_input: list[int] = []
         timeout = None
 
-        while True:
-            packet = self._read_packet()
-            if not packet:
-                break
+        packet = self._read_packet()
+        while packet:
             command, data = packet
 
             if command == self.CMD_KEY_ACTIVITY and data:
-                d0 = ord(data[0])
+                d0 = data[0]
                 if 1 <= d0 <= 12:
                     release = d0 > 6
                     keycode = d0 - (release * 6) - 1
@@ -360,26 +369,27 @@ class CF635Screen(CFLCDScreen):
                     if release:
                         self.key_repeat.release(key)
                     else:
-                        input.append(key)
+                        data_input.append(key)
                         self.key_repeat.press(key)
-                    raw_input.append(d0)
+                    raw_data_input.append(d0)
 
-            elif command & 0xc0 == 0x40: # "ACK"
+            elif command & 0xc0 == 0x40:  # "ACK"
                 if command & 0x3f == self._last_command:
                     self._send_next_command()
+
+            packet = self._read_packet()
 
         next_repeat = self.key_repeat.next_event()
         if next_repeat:
             timeout, key = next_repeat
             if not timeout:
-                input.append(key)
+                data_input.append(key)
                 self.key_repeat.sent_event()
                 timeout = None
 
-        return timeout, input, []
+        return timeout, data_input, raw_data_input
 
-
-    def _send_next_command(self):
+    def _send_next_command(self) -> None:
         """
         send out the next command in the queue
         """
@@ -391,13 +401,13 @@ class CF635Screen(CFLCDScreen):
         self._last_command = command # record command for ACK
         self._last_command_time = time.time()
 
-    def queue_command(self, command, data):
+    def queue_command(self, command: int, data: str) -> None:
         self._command_queue.append((command, data))
         # not waiting? send away!
         if self._last_command is None:
             self._send_next_command()
 
-    def draw_screen(self, size, canvas):
+    def draw_screen(self, size: tuple[int, int], canvas):
         assert size == self.DISPLAY_SIZE
 
         if self._screen_buf:
@@ -412,8 +422,7 @@ class CF635Screen(CFLCDScreen):
             for a, cs, run in row:
                 text.append(run)
             if not osb or osb[y] != text:
-                self.queue_command(self.CMD_LCD_DATA, chr(0) + chr(y) +
-                    "".join(text))
+                self.queue_command(self.CMD_LCD_DATA, chr(0) + chr(y) + "".join(text))
             sb.append(text)
             y += 1
 
@@ -432,7 +441,7 @@ class CF635Screen(CFLCDScreen):
         self._screen_buf = sb
         self._previous_canvas = canvas
 
-    def program_cgram(self, index, data):
+    def program_cgram(self, index: int, data: Sequence[int]) -> None:
         """
         Program character data.  Characters available as chr(0) through
         chr(7), and repeated as chr(8) through chr(15).
@@ -444,10 +453,9 @@ class CF635Screen(CFLCDScreen):
         """
         assert 0 <= index <= 7
         assert len(data) == 8
-        self.queue_command(self.CMD_CGRAM, chr(index) +
-            "".join([chr(x) for x in data]))
+        self.queue_command(self.CMD_CGRAM, chr(index) + "".join([chr(x) for x in data]))
 
-    def set_cursor_style(self, style):
+    def set_cursor_style(self, style: Literal[1, 2, 3, 4]) -> None:
         """
         style -- CURSOR_BLINKING_BLOCK, CURSOR_UNDERSCORE,
             CURSOR_BLINKING_BLOCK_UNDERSCORE or
@@ -457,7 +465,7 @@ class CF635Screen(CFLCDScreen):
         self.cursor_style = style
         self._update_cursor = True
 
-    def set_backlight(self, value):
+    def set_backlight(self, value: int) -> None:
         """
         Set backlight brightness
 
@@ -466,14 +474,14 @@ class CF635Screen(CFLCDScreen):
         assert 0 <= value <= 100
         self.queue_command(self.CMD_BACKLIGHT, chr(value))
 
-    def set_lcd_contrast(self, value):
+    def set_lcd_contrast(self, value: int) -> None:
         """
         value -- 0 to 255
         """
         assert 0 <= value <= 255
         self.queue_command(self.CMD_LCD_CONTRAST, chr(value))
 
-    def set_led_pin(self, led, rg, value):
+    def set_led_pin(self, led: Literal[0, 1, 2, 3], rg: Literal[0, 1], value: int):
         """
         led -- 0 to 3
         rg -- 0 for red, 1 for green
@@ -482,6 +490,4 @@ class CF635Screen(CFLCDScreen):
         assert 0 <= led <= 3
         assert rg in (0, 1)
         assert 0 <= value <= 100
-        self.queue_command(self.CMD_GPO, chr(12 - 2 * led - rg) +
-            chr(value))
-
+        self.queue_command(self.CMD_GPO, chr(12 - 2 * led - rg) + chr(value))

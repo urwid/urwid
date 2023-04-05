@@ -67,8 +67,7 @@ class TreeWidget(urwid.WidgetWrap):
                 [self.unexpanded_icon, self.expanded_icon][self.expanded]),
                 widget], dividechars=1)
         indent_cols = self.get_indent_cols()
-        return urwid.Padding(widget,
-            width=('relative', 100), left=indent_cols)
+        return urwid.Padding(widget, width=('relative', 100), left=indent_cols)
 
     def update_expanded_icon(self):
         """Update display widget text for parent widgets"""
@@ -138,7 +137,7 @@ class TreeWidget(urwid.WidgetWrap):
                 prevnode = thisnode.get_parent()
             return prevnode.get_widget()
 
-    def keypress(self, size, key):
+    def keypress(self, size, key: str) -> str | None:
         """Handle expand & collapse requests (non-leaf nodes)"""
         if self.is_leaf:
             return key
@@ -154,8 +153,8 @@ class TreeWidget(urwid.WidgetWrap):
         else:
             return key
 
-    def mouse_event(self, size, event, button, col, row, focus):
-        if self.is_leaf or event != 'mouse press' or button!=1:
+    def mouse_event(self, size, event, button: int, col: int, row: int, focus: bool) -> bool:
+        if self.is_leaf or event != 'mouse press' or button !=1:
             return False
 
         if row == 0 and col == self.get_indent_cols():
@@ -416,11 +415,11 @@ class TreeListBox(urwid.ListBox):
     """A ListBox with special handling for navigation and
     collapsing of TreeWidgets"""
 
-    def keypress(self, size, key):
+    def keypress(self, size: tuple[int, int], key: str) -> str | None:
         key = super().keypress(size, key)
         return self.unhandled_input(size, key)
 
-    def unhandled_input(self, size, input):
+    def unhandled_input(self, size: tuple[int, int], input: str) -> str | None:
         """Handle macro-navigation keys"""
         if input == 'left':
             self.move_focus_to_parent(size)
@@ -429,7 +428,7 @@ class TreeListBox(urwid.ListBox):
         else:
             return input
 
-    def collapse_focus_parent(self, size):
+    def collapse_focus_parent(self, size: tuple[int, int]) -> None:
         """Collapse parent directory."""
 
         widget, pos = self.body.get_focus()
@@ -439,7 +438,7 @@ class TreeListBox(urwid.ListBox):
         if pos != ppos:
             self.keypress(size, "-")
 
-    def move_focus_to_parent(self, size):
+    def move_focus_to_parent(self, size: tuple[int, int]) -> None:
         """Move focus to parent of widget in focus."""
 
         widget, pos = self.body.get_focus()
@@ -449,7 +448,7 @@ class TreeListBox(urwid.ListBox):
         if parentpos is None:
             return
 
-        middle, top, bottom = self.calculate_visible( size )
+        middle, top, bottom = self.calculate_visible(size)
 
         row_offset, focus_widget, focus_pos, focus_rows, cursor = middle
         trim_top, fill_above = top
@@ -462,20 +461,20 @@ class TreeListBox(urwid.ListBox):
 
         self.change_focus(size, pos.get_parent())
 
-    def _keypress_max_left(self, size):
+    def _keypress_max_left(self, size: tuple[int, int]) -> None:
         return self.focus_home(size)
 
-    def _keypress_max_right(self, size):
+    def _keypress_max_right(self, size: tuple[int, int]) -> None:
         return self.focus_end(size)
 
-    def focus_home(self, size):
+    def focus_home(self, size: tuple[int, int]) -> None:
         """Move focus to very top."""
 
         widget, pos = self.body.get_focus()
         rootnode = pos.get_root()
         self.change_focus(size, rootnode)
 
-    def focus_end( self, size ):
+    def focus_end(self, size: tuple[int, int]) -> None:
         """Move focus to far bottom."""
 
         maxrow, maxcol = size

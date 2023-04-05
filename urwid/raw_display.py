@@ -32,6 +32,7 @@ import select
 import signal
 import struct
 import sys
+import typing
 
 try:
     import fcntl
@@ -52,6 +53,9 @@ from urwid.display_common import (
     RealTerminal,
 )
 
+if typing.TYPE_CHECKING:
+    from typing_extensions import Literal
+
 
 class Screen(BaseScreen, RealTerminal):
     def __init__(self, input=sys.stdin, output=sys.stdout):
@@ -61,10 +65,9 @@ class Screen(BaseScreen, RealTerminal):
         super().__init__()
         self._pal_escape = {}
         self._pal_attrspec = {}
-        signals.connect_signal(self, UPDATE_PALETTE_ENTRY,
-            self._on_update_palette_entry)
-        self.colors = 16 # FIXME: detect this
-        self.has_underline = True # FIXME: detect this
+        signals.connect_signal(self, UPDATE_PALETTE_ENTRY, self._on_update_palette_entry)
+        self.colors = 16  # FIXME: detect this
+        self.has_underline = True  # FIXME: detect this
         self._keyqueue = []
         self.prev_input_resize = 0
         self.set_input_timeouts()
@@ -72,8 +75,8 @@ class Screen(BaseScreen, RealTerminal):
         self._screen_buf_canvas = None
         self._resized = False
         self.maxrow = None
-        self.gpm_mev = None
-        self.gpm_event_pending = False
+        self.gpm_mev: Popen | None = None
+        self.gpm_event_pending: bool = False
         self._mouse_tracking_enabled = False
         self.last_bstate = 0
         self._setup_G1_done = False
@@ -210,8 +213,7 @@ class Screen(BaseScreen, RealTerminal):
             return
         if not Popen:
             return
-        m = Popen(["/usr/bin/mev","-e","158"], stdin=PIPE, stdout=PIPE,
-            close_fds=True)
+        m = Popen(["/usr/bin/mev", "-e", "158"], stdin=PIPE, stdout=PIPE, close_fds=True, encoding="ascii")
         fcntl.fcntl(m.stdout.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
         self.gpm_mev = m
 
@@ -303,7 +305,15 @@ class Screen(BaseScreen, RealTerminal):
         """
         self._term_output_file.flush()
 
-    def get_input(self, raw_keys=False):
+    @typing.overload
+    def get_input(self, raw_keys: Literal[False]) -> list[str]:
+        ...
+
+    @typing.overload
+    def get_input(self, raw_keys: Literal[True]) -> tuple[list[str], list[int]]:
+        ...
+
+    def get_input(self, raw_keys: bool = False) -> list[str] | tuple[list[str], list[int]]:
         """Return pending input as a list.
 
         raw_keys -- return raw keycodes as well as translated versions
@@ -353,21 +363,21 @@ class Screen(BaseScreen, RealTerminal):
         keys, raw = self.parse_input(None, None, self.get_available_raw_input())
 
         # Avoid pegging CPU at 100% when slowly resizing
-        if keys==['window resize'] and self.prev_input_resize:
+        if keys == ['window resize'] and self.prev_input_resize:
             while True:
                 self._wait_for_input_ready(self.resize_wait)
                 keys, raw2 = self.parse_input(None, None, self.get_available_raw_input())
                 raw += raw2
-                #if not keys:
-                #    keys, raw2 = self._get_input(
-                #        self.resize_wait)
-                #    raw += raw2
-                if keys!=['window resize']:
+                # if not keys:
+                #     keys, raw2 = self._get_input(
+                #         self.resize_wait)
+                #     raw += raw2
+                if keys != ['window resize']:
                     break
-            if keys[-1:]!=['window resize']:
+            if keys[-1:] != ['window resize']:
                 keys.append('window resize')
 
-        if keys==['window resize']:
+        if keys == ['window resize']:
             self.prev_input_resize = 2
         elif self.prev_input_resize == 2 and not keys:
             self.prev_input_resize = 1
@@ -378,7 +388,7 @@ class Screen(BaseScreen, RealTerminal):
             return keys, raw
         return keys
 
-    def get_input_descriptors(self):
+    def get_input_descriptors(self) -> list[int]:
         """
         Return a list of integer file descriptors that should be
         polled in external event loops to check for user input.
@@ -571,7 +581,7 @@ class Screen(BaseScreen, RealTerminal):
                     break
         return ready
 
-    def _getch(self, timeout):
+    def _getch(self, timeout: int) ->int:
         ready = self._wait_for_input_ready(timeout)
         if self.gpm_mev is not None:
             if self.gpm_mev.stdout.fileno() in ready:
@@ -581,17 +591,17 @@ class Screen(BaseScreen, RealTerminal):
             return ord(os.read(fd, 1))
         return -1
 
-    def _encode_gpm_event( self ):
+    def _encode_gpm_event(self) -> list[int]:
         self.gpm_event_pending = False
-        s = self.gpm_mev.stdout.readline().decode('ascii')
-        l = s.split(",")
+        s = self.gpm_mev.stdout.readline()
+        l = s.split(", ")
         if len(l) != 6:
             # unexpected output, stop tracking
             self._stop_gpm_tracking()
             signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
             return []
         ev, x, y, ign, b, m = s.split(",")
-        ev = int( ev.split("x")[-1], 16)
+        ev = int(ev.split("x")[-1], 16)
         x = int( x.split(" ")[-1] )
         y = int( y.lstrip().split(" ")[0] )
         b = int( b.split(" ")[-1] )
@@ -603,15 +613,18 @@ class Screen(BaseScreen, RealTerminal):
         l = []
 
         mod = 0
-        if m & 1:    mod |= 4 # shift
-        if m & 10:    mod |= 8 # alt
-        if m & 4:    mod |= 16 # ctrl
+        if m & 1:
+            mod |= 4 # shift
+        if m & 10:
+            mod |= 8 # alt
+        if m & 4:
+            mod |= 16 # ctrl
 
-        def append_button( b ):
+        def append_button(b):
             b |= mod
-            l.extend([ 27, ord('['), ord('M'), b+32, x+32, y+32 ])
+            l.extend([27, ord('['), ord('M'), b+32, x+32, y+32])
 
-        def determine_button_release( flag ):
+        def determine_button_release(flag: int) -> None:
             if b & 4 and last & 1:
                 append_button( 0 + flag )
                 next |= 1
@@ -670,21 +683,19 @@ class Screen(BaseScreen, RealTerminal):
     def _getch_nodelay(self):
         return self._getch(0)
 
-
     def get_cols_rows(self):
         """Return the terminal dimensions (num columns, num rows)."""
         y, x = 24, 80
         try:
             if hasattr(self._term_output_file, 'fileno'):
-                buf = fcntl.ioctl(self._term_output_file.fileno(),
-                                termios.TIOCGWINSZ, ' '*4)
+                buf = fcntl.ioctl(self._term_output_file.fileno(), termios.TIOCGWINSZ, ' '*4)
                 y, x = struct.unpack('hh', buf)
         except OSError:
             # Term size could not be determined
             pass
         # Provide some lightweight fallbacks in case the TIOCWINSZ doesn't
         # give sane answers
-        if (x <= 0 or y <= 0) and self.term in ('ansi','vt100'):
+        if (x <= 0 or y <= 0) and self.term in ('ansi', 'vt100'):
                 y, x = 24, 80
         self.maxrow = y
         return x, y
@@ -856,7 +867,7 @@ class Screen(BaseScreen, RealTerminal):
                     icss = escape.IBMPC_ON
                 else:
                     icss = escape.SO
-                o += [    "\x08"*back,
+                o += ["\x08" * back,
                     ias, icss,
                     escape.INSERT_ON, inserttext,
                     escape.INSERT_OFF ]

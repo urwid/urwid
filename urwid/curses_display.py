@@ -27,14 +27,18 @@ Curses-based UI implementation
 from __future__ import annotations
 
 import curses
+import typing
 
 import _curses
 
 from urwid import escape
 from urwid.display_common import UNPRINTABLE_TRANS_TABLE, AttrSpec, BaseScreen, RealTerminal
 
-KEY_RESIZE = 410 # curses.KEY_RESIZE (sometimes not defined)
-KEY_MOUSE = 409 # curses.KEY_MOUSE
+if typing.TYPE_CHECKING:
+    from typing_extensions import Literal
+
+KEY_RESIZE = 410  # curses.KEY_RESIZE (sometimes not defined)
+KEY_MOUSE = 409  # curses.KEY_MOUSE
 
 _curses_colours = {
     'default':        (-1,                    0),
@@ -179,7 +183,7 @@ class Screen(BaseScreen, RealTerminal):
         self.s.clear()
         self.s.refresh()
 
-    def _getch(self, wait_tenths: int | None):
+    def _getch(self, wait_tenths: int | None) -> int:
         if wait_tenths == 0:
             return self._getch_nodelay()
         if wait_tenths is None:
@@ -189,7 +193,7 @@ class Screen(BaseScreen, RealTerminal):
         self.s.nodelay(0)
         return self.s.getch()
 
-    def _getch_nodelay(self):
+    def _getch_nodelay(self) -> int:
         self.s.nodelay(1)
         while 1:
             # this call fails sometimes, but seems to work when I try again
@@ -233,7 +237,15 @@ class Screen(BaseScreen, RealTerminal):
         self.complete_tenths = convert_to_tenths(complete_wait)
         self.resize_tenths = convert_to_tenths(resize_wait)
 
-    def get_input(self, raw_keys=False):
+    @typing.overload
+    def get_input(self, raw_keys: Literal[False]) -> list[str]:
+        ...
+
+    @typing.overload
+    def get_input(self, raw_keys: Literal[True]) -> tuple[list[str], list[int]]:
+        ...
+
+    def get_input(self, raw_keys: bool = False) -> list[str] | tuple[list[str], list[int]]:
         """Return pending input as a list.
 
         raw_keys -- return raw keycodes as well as translated versions
@@ -276,7 +288,7 @@ class Screen(BaseScreen, RealTerminal):
         """
         assert self._started
 
-        keys, raw = self._get_input( self.max_tenths )
+        keys, raw = self._get_input(self.max_tenths)
 
         # Avoid pegging CPU at 100% when slowly resizing, and work
         # around a bug with some braindead curses implementations that
@@ -286,14 +298,12 @@ class Screen(BaseScreen, RealTerminal):
                 keys, raw2 = self._get_input(self.resize_tenths)
                 raw += raw2
                 if not keys:
-                    keys, raw2 = self._get_input(
-                        self.resize_tenths)
+                    keys, raw2 = self._get_input(self.resize_tenths)
                     raw += raw2
-                if keys!=['window resize']:
+                if keys != ['window resize']:
                     break
-            if keys[-1:]!=['window resize']:
+            if keys[-1:] != ['window resize']:
                 keys.append('window resize')
-
 
         if keys == ['window resize']:
             self.prev_input_resize = 2
@@ -306,7 +316,7 @@ class Screen(BaseScreen, RealTerminal):
             return keys, raw
         return keys
 
-    def _get_input(self, wait_tenths):
+    def _get_input(self, wait_tenths: int | None) -> tuple[list[str], list[int]]:
         # this works around a strange curses bug with window resizing
         # not being reported correctly with repeated calls to this
         # function without a doupdate call in between
@@ -319,9 +329,9 @@ class Screen(BaseScreen, RealTerminal):
 
         while key >= 0:
             raw.append(key)
-            if key==KEY_RESIZE:
+            if key == KEY_RESIZE:
                 resize = True
-            elif key==KEY_MOUSE:
+            elif key == KEY_MOUSE:
                 keys += self._encode_mouse_event()
             else:
                 keys.append(key)
@@ -337,9 +347,9 @@ class Screen(BaseScreen, RealTerminal):
             key = self._getch(self.complete_tenths)
             while key >= 0:
                 raw.append(key)
-                if key==KEY_RESIZE:
+                if key == KEY_RESIZE:
                     resize = True
-                elif key==KEY_MOUSE:
+                elif key == KEY_MOUSE:
                     keys += self._encode_mouse_event()
                 else:
                     keys.append(key)
@@ -353,20 +363,24 @@ class Screen(BaseScreen, RealTerminal):
 
         return processed, raw
 
-    def _encode_mouse_event(self):
+    def _encode_mouse_event(self) -> list[int]:
         # convert to escape sequence
         last = next = self.last_bstate
-        (id,x,y,z,bstate) = curses.getmouse()
+        (id, x, y, z, bstate) = curses.getmouse()
 
         mod = 0
-        if bstate & curses.BUTTON_SHIFT:    mod |= 4
-        if bstate & curses.BUTTON_ALT:        mod |= 8
-        if bstate & curses.BUTTON_CTRL:        mod |= 16
+        if bstate & curses.BUTTON_SHIFT:
+            mod |= 4
+        if bstate & curses.BUTTON_ALT:
+            mod |= 8
+        if bstate & curses.BUTTON_CTRL:
+            mod |= 16
 
         l = []
-        def append_button( b ):
+
+        def append_button(b: int) -> None:
             b |= mod
-            l.extend([ 27, '[', 'M', b+32, x+33, y+33 ])
+            l.extend([27, ord('['), ord('M'), b+32, x+33, y+33])
 
         if bstate & curses.BUTTON1_PRESSED and last & 1 == 0:
             append_button( 0 )
@@ -509,7 +523,7 @@ class Screen(BaseScreen, RealTerminal):
                 try:
                     if cs in ("0", "U"):
                         for i in range(len(seg)):
-                            self.s.addch( 0x400000 + seg[i] )
+                            self.s.addch(0x400000 + seg[i])
                     else:
                         assert cs is None
                         assert isinstance(seg, bytes)

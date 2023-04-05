@@ -22,6 +22,9 @@
 
 from __future__ import annotations
 
+import typing
+from collections.abc import MutableSequence
+
 from urwid.canvas import CompositeCanvas
 from urwid.command_map import ACTIVATE
 from urwid.container import Columns, Overlay
@@ -32,10 +35,17 @@ from urwid.text_layout import calc_coords
 from urwid.util import is_mouse_press
 from urwid.widget import BOX, FLOW, Text, WidgetWrap, delegate_to_widget_mixin
 
+if typing.TYPE_CHECKING:
+    from typing_extensions import Literal
+
+    from urwid.canvas import Canvas, TextCanvas
+    from urwid.widget import Widget
+
 
 class SelectableIcon(Text):
     ignore_focus = False
     _selectable = True
+
     def __init__(self, text, cursor_position=0):
         """
         :param text: markup for this widget; see :class:`Text` for
@@ -50,7 +60,7 @@ class SelectableIcon(Text):
         super().__init__(text)
         self._cursor_position = cursor_position
 
-    def render(self, size, focus=False):
+    def render(self, size: tuple[int], focus: bool = False) -> TextCanvas | CompositeCanvas:
         """
         Render the text content of this widget with a cursor when
         in focus.
@@ -73,7 +83,7 @@ class SelectableIcon(Text):
             c.cursor = self.get_cursor_coords(size)
         return c
 
-    def get_cursor_coords(self, size):
+    def get_cursor_coords(self, size: tuple[int]) -> tuple[int, int] | None:
         """
         Return the position of the cursor if visible.  This method
         is required for widgets that display a cursor.
@@ -89,15 +99,17 @@ class SelectableIcon(Text):
             return None
         return x, y
 
-    def keypress(self, size, key):
+    def keypress(self, size: tuple[int], key: str) -> str:
         """
         No keys are handled by this widget.  This method is
         required for selectable widgets.
         """
         return key
 
+
 class CheckBoxError(Exception):
     pass
+
 
 class CheckBox(WidgetWrap):
     def sizing(self):
@@ -114,8 +126,15 @@ class CheckBox(WidgetWrap):
     # (this variable is picked up by the MetaSignals metaclass)
     signals = ["change", 'postchange']
 
-    def __init__(self, label, state=False, has_mixed=False,
-             on_state_change=None, user_data=None, checked_symbol=None):
+    def __init__(
+        self,
+        label,
+        state: bool | Literal['mixed'] = False,
+        has_mixed: bool = False,
+        on_state_change=None,
+        user_data=None,
+        checked_symbol: str | None = None,
+    ):
         """
         :param label: markup for check box label
         :param state: False, True or "mixed"
@@ -200,7 +219,7 @@ class CheckBox(WidgetWrap):
         return self._label.text
     label = property(get_label)
 
-    def set_state(self, state, do_callback=True):
+    def set_state(self, state: bool | Literal['mixed'], do_callback: bool = True) -> None:
         """
         Set the CheckBox state.
 
@@ -249,12 +268,12 @@ class CheckBox(WidgetWrap):
         if do_callback and old_state is not None:
             self._emit('postchange', old_state)
 
-    def get_state(self):
+    def get_state(self) -> bool | Literal['mixed']:
         """Return the state of the checkbox."""
         return self._state
     state = property(get_state, set_state)
 
-    def keypress(self, size, key):
+    def keypress(self, size: tuple[int], key: str) -> str | None:
         """
         Toggle state on 'activate' command.
 
@@ -276,7 +295,7 @@ class CheckBox(WidgetWrap):
 
         self.toggle_state()
 
-    def toggle_state(self):
+    def toggle_state(self) -> None:
         """
         Cycle to the next valid state.
 
@@ -303,7 +322,7 @@ class CheckBox(WidgetWrap):
         elif self.state == 'mixed':
             self.set_state(False)
 
-    def mouse_event(self, size, event, button, x, y, focus):
+    def mouse_event(self, size: tuple[int], event, button: int, x: int, y: int, focus: bool) -> bool:
         """
         Toggle state on button 1 press.
 
@@ -329,8 +348,14 @@ class RadioButton(CheckBox):
         'mixed': SelectableIcon("(#)", 1) }
     reserve_columns = 4
 
-    def __init__(self, group, label, state="first True",
-             on_state_change=None, user_data=None):
+    def __init__(
+        self,
+        group: MutableSequence[CheckBox],
+        label,
+        state: bool | Literal['mixed', 'first True'] = "first True",
+        on_state_change=None,
+        user_data=None,
+    ) -> None:
         """
         :param group: list for radio buttons in same group
         :param label: markup for radio button label
@@ -365,17 +390,14 @@ class RadioButton(CheckBox):
         >>> b2.render((15,), focus=True).text # ... = b in Python 3
         [...'( ) Disagree   ']
         """
-        if state=="first True":
+        if state == "first True":
             state = not group
 
         self.group = group
-        super().__init__(label, state, False, on_state_change,
-            user_data)
+        super().__init__(label, state, False, on_state_change, user_data)
         group.append(self)
 
-
-
-    def set_state(self, state, do_callback=True):
+    def set_state(self, state: bool | Literal['mixed'], do_callback: bool = True) -> None:
         """
         Set the RadioButton state.
 
@@ -416,12 +438,12 @@ class RadioButton(CheckBox):
 
         # clear the state of each other radio button
         for cb in self.group:
-            if cb is self: continue
+            if cb is self:
+                continue
             if cb._state:
                 cb.set_state(False)
 
-
-    def toggle_state(self):
+    def toggle_state(self) -> None:
         """
         Set state to True.
 
@@ -449,7 +471,7 @@ class Button(WidgetWrap):
 
     signals = ["click"]
 
-    def __init__(self, label, on_press=None, user_data=None):
+    def __init__(self, label, on_press=None, user_data=None) -> None:
         """
         :param label: markup for button label
         :param on_press: shorthand for connect_signal()
@@ -493,7 +515,7 @@ class Button(WidgetWrap):
         return super()._repr_words() + [
             repr(self.label)]
 
-    def set_label(self, label):
+    def set_label(self, label) -> None:
         """
         Change the button label.
 
@@ -519,7 +541,7 @@ class Button(WidgetWrap):
         return self._label.text
     label = property(get_label)
 
-    def keypress(self, size, key):
+    def keypress(self, size: tuple[int], key: str) -> str | None:
         """
         Send 'click' signal on 'activate' command.
 
@@ -541,7 +563,7 @@ class Button(WidgetWrap):
 
         self._emit('click')
 
-    def mouse_event(self, size, event, button, x, y, focus):
+    def mouse_event(self, size: tuple[int], event, button: int, x: int, y: int, focus: bool) -> bool:
         """
         Send 'click' signal on button 1 press.
 
@@ -566,7 +588,7 @@ class Button(WidgetWrap):
 
 
 class PopUpLauncher(delegate_to_widget_mixin('_original_widget'), WidgetDecoration):
-    def __init__(self, original_widget):
+    def __init__(self, original_widget: Widget) -> None:
         super().__init__(original_widget)
         self._pop_up_widget = None
 
@@ -588,15 +610,15 @@ class PopUpLauncher(delegate_to_widget_mixin('_original_widget'), WidgetDecorati
         """
         raise NotImplementedError("Subclass must override this method")
 
-    def open_pop_up(self, *args, **kwargs):
+    def open_pop_up(self, *args, **kwargs) -> None:
         self._pop_up_widget = self.create_pop_up(*args, **kwargs)
         self._invalidate()
 
-    def close_pop_up(self):
+    def close_pop_up(self) -> None:
         self._pop_up_widget = None
         self._invalidate()
 
-    def render(self, size, focus=False):
+    def render(self, size, focus: bool = False) -> CompositeCanvas | Canvas:
         canv = super().render(size, focus)
         if self._pop_up_widget:
             canv = CompositeCanvas(canv)
@@ -610,23 +632,27 @@ class PopUpTarget(WidgetDecoration):
     _sizing = {BOX}
     _selectable = True
 
-    def __init__(self, original_widget):
+    def __init__(self, original_widget: Widget) -> None:
         super().__init__(original_widget)
         self._pop_up = None
         self._current_widget = self._original_widget
 
-    def _update_overlay(self, size, focus):
+    def _update_overlay(self, size: tuple[int, int], focus: bool) -> None:
         canv = self._original_widget.render(size, focus=focus)
-        self._cache_original_canvas = canv # imperfect performance hack
+        self._cache_original_canvas = canv  # imperfect performance hack
         pop_up = canv.get_pop_up()
         if pop_up:
-            left, top, (
-                w, overlay_width, overlay_height) = pop_up
+            left, top, (w, overlay_width, overlay_height) = pop_up
             if self._pop_up != w:
                 self._pop_up = w
-                self._current_widget = Overlay(w, self._original_widget,
-                    ('fixed left', left), overlay_width,
-                    ('fixed top', top), overlay_height)
+                self._current_widget = Overlay(
+                    w,
+                    self._original_widget,
+                    ('fixed left', left),
+                    overlay_width,
+                    ('fixed top', top),
+                    overlay_height,
+                )
             else:
                 self._current_widget.set_overlay_parameters(
                     ('fixed left', left), overlay_width,
@@ -635,36 +661,39 @@ class PopUpTarget(WidgetDecoration):
             self._pop_up = None
             self._current_widget = self._original_widget
 
-    def render(self, size, focus=False):
+    def render(self, size: tuple[int, int], focus: bool = False) -> Canvas:
         self._update_overlay(size, focus)
         return self._current_widget.render(size, focus=focus)
-    def get_cursor_coords(self, size):
+
+    def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:
         self._update_overlay(size, True)
         return self._current_widget.get_cursor_coords(size)
-    def get_pref_col(self, size):
+
+    def get_pref_col(self, size: tuple[int, int]) -> int:
         self._update_overlay(size, True)
         return self._current_widget.get_pref_col(size)
-    def keypress(self, size, key):
+
+    def keypress(self, size: tuple[int, int], key: str) -> str | None:
         self._update_overlay(size, True)
         return self._current_widget.keypress(size, key)
-    def move_cursor_to_coords(self, size, x, y):
+
+    def move_cursor_to_coords(self, size: tuple[int, int], x: int, y: int):
         self._update_overlay(size, True)
         return self._current_widget.move_cursor_to_coords(size, x, y)
-    def mouse_event(self, size, event, button, x, y, focus):
+
+    def mouse_event(self, size: tuple[int, int], event, button: int, x: int, y: int, focus: bool) -> bool | None:
         self._update_overlay(size, focus)
         return self._current_widget.mouse_event(size, event, button, x, y, focus)
-    def pack(self, size=None, focus=False):
+
+    def pack(self, size: tuple[int, int] | None = None, focus: bool = False) -> tuple[int, int]:
         self._update_overlay(size, focus)
         return self._current_widget.pack(size)
-
-
-
-
 
 
 def _test():
     import doctest
     doctest.testmod()
+
 
 if __name__=='__main__':
     _test()

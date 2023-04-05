@@ -164,6 +164,7 @@ class LineBox(WidgetDecoration, WidgetWrap):
             lline = SolidFill(lline)
         if rline:
             rline = SolidFill(rline)
+
         tlcorner, trcorner = Text(tlcorner), Text(trcorner)
         blcorner, brcorner = Text(blcorner), Text(brcorner)
 
