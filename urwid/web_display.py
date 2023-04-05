@@ -32,8 +32,12 @@ import select
 import signal
 import socket
 import sys
+import typing
 
 from urwid import util
+
+if typing.TYPE_CHECKING:
+    from typing_extensions import Literal
 
 _js_code = r"""
 // Urwid web (CGI/Asynchronous Javascript) display module
@@ -883,31 +887,37 @@ class Screen:
         """Return the screen size."""
         return self.screen_size
 
-    def get_input(self, raw_keys=False):
+    @typing.overload
+    def get_input(self, raw_keys: Literal[False]) -> list[str]:
+        ...
+
+    @typing.overload
+    def get_input(self, raw_keys: Literal[True]) -> tuple[list[str], list[int]]:
+        ...
+
+    def get_input(self, raw_keys: bool = False) -> list[str] | tuple[list[str], list[int]]:
         """Return pending input as a list."""
         l = []
         resized = False
 
         try:
-            iready,oready,eready = select.select(
-                [self.input_fd],[],[],0.5)
+            iready, oready, eready = select.select([self.input_fd],[],[],0.5)
         except OSError as e:
             # return on interruptions
             if e.args[0] == 4:
                 if raw_keys:
-                    return [],[]
+                    return [], []
                 return []
             raise
 
         if not iready:
             if raw_keys:
-                return [],[]
+                return [], []
             return []
 
         keydata = os.read(self.input_fd, MAX_READ)
         os.close(self.input_fd)
-        self.input_fd = os.open(f"{self.pipe_name}.in",
-            os.O_NONBLOCK | os.O_RDONLY)
+        self.input_fd = os.open(f"{self.pipe_name}.in", os.O_NONBLOCK | os.O_RDONLY)
         #sys.stderr.write( repr((keydata,self.input_tail))+"\n" )
         keys = keydata.split("\n")
         keys[0] = self.input_tail + keys[0]
@@ -915,7 +925,7 @@ class Screen:
 
         for k in keys[:-1]:
             if k.startswith("window resize "):
-                ign1,ign2,x,y = k.split(" ",3)
+                ign1, ign2, x, y = k.split(" ", 3)
                 x = int(x)
                 y = int(y)
                 self._set_screen_size(x, y)

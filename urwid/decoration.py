@@ -414,7 +414,7 @@ class BoxAdapter(WidgetDecoration):
             return None
         return self._original_widget.get_pref_col((maxcol, self.height))
 
-    def keypress(self, size: tuple[int], key):
+    def keypress(self, size: tuple[int], key: str) -> str | None:
         (maxcol,) = size
         return self._original_widget.keypress((maxcol, self.height), key)
 
@@ -667,7 +667,7 @@ class Padding(WidgetDecoration):
             return frows
         return self._original_widget.rows((maxcol-left-right,), focus=focus)
 
-    def keypress(self, size: tuple[int] | tuple[int, int], key):
+    def keypress(self, size: tuple[int] | tuple[int, int], key: str) -> str | None:
         """Pass keypress to self._original_widget."""
         maxcol = size[0]
         left, right = self.padding_values(size, True)
@@ -897,14 +897,14 @@ class Filler(WidgetDecoration):
         canv.pad_trim_top_bottom(top, bottom)
         return canv
 
-    def keypress(self, size: tuple[int, int], key):
+    def keypress(self, size: tuple[int, int], key: str) -> str | None:
         """Pass keypress to self.original_widget."""
         (maxcol, maxrow) = size
         if self.height_type == PACK:
             return self._original_widget.keypress((maxcol,), key)
 
         top, bottom = self.filler_values((maxcol, maxrow), True)
-        return self._original_widget.keypress((maxcol,maxrow-top-bottom), key)
+        return self._original_widget.keypress((maxcol, maxrow-top-bottom), key)
 
     def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:
         """Return cursor coords from self.original_widget if any."""

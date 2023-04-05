@@ -30,6 +30,8 @@ import select
 import signal
 import sys
 import time
+import typing
+from collections.abc import Callable, Iterable
 from functools import wraps
 from itertools import count
 from weakref import WeakKeyDictionary
@@ -37,7 +39,7 @@ from weakref import WeakKeyDictionary
 try:
     import fcntl
 except ImportError:
-    pass # windows
+    pass  # windows
 
 from urwid import signals
 from urwid.command_map import REDRAW_SCREEN, command_map
@@ -46,7 +48,12 @@ from urwid.display_common import INPUT_DESCRIPTORS_CHANGED
 from urwid.util import StoppingContext, is_mouse_event
 from urwid.wimp import PopUpTarget
 
+if typing.TYPE_CHECKING:
+    from .display_common import BaseScreen
+    from .widget import Widget
+
 PIPE_BUFFER_READ_SIZE = 4096 # can expect this much on Linux, so try for that
+
 
 class ExitMainLoop(Exception):
     """
@@ -55,8 +62,10 @@ class ExitMainLoop(Exception):
     """
     pass
 
+
 class CantUseExternalLoop(Exception):
     pass
+
 
 class MainLoop:
     """
@@ -104,9 +113,17 @@ class MainLoop:
         The event loop object this main loop uses for waiting on alarms and IO
     """
 
-    def __init__(self, widget, palette=(), screen=None,
-            handle_mouse=True, input_filter=None, unhandled_input=None,
-            event_loop=None, pop_ups=False):
+    def __init__(
+        self,
+        widget: Widget,
+        palette=(),
+        screen: BaseScreen | None = None,
+        handle_mouse: bool = True,
+        input_filter: Callable[[list[str], list[int]], list[str]] | None = None,
+        unhandled_input: Callable[[str], bool] | None = None,
+        event_loop=None,
+        pop_ups: bool = False,
+    ):
         self._widget = widget
         self.handle_mouse = handle_mouse
         self.pop_ups = pop_ups # triggers property setting side-effect
@@ -124,10 +141,8 @@ class MainLoop:
         self._unhandled_input = unhandled_input
         self._input_filter = input_filter
 
-        if not hasattr(screen, 'hook_event_loop'
-                ) and event_loop is not None:
-            raise NotImplementedError("screen object passed "
-                "%r does not support external event loops" % (screen,))
+        if not hasattr(screen, 'hook_event_loop') and event_loop is not None:
+            raise NotImplementedError(f"screen object passed {screen!r} does not support external event loops")
         if event_loop is None:
             event_loop = SelectEventLoop()
         self.event_loop = event_loop
@@ -385,11 +400,11 @@ class MainLoop:
         try:
             self.event_loop.run()
         except:
-            self.screen.stop() # clean up screen control
+            self.screen.stop()  # clean up screen control
             raise
         self.stop()
 
-    def _update(self, keys, raw):
+    def _update(self, keys: list[str], raw: list[int]):
         """
         >>> w = _refl("widget")
         >>> w.selectable_rval = True
@@ -414,7 +429,7 @@ class MainLoop:
             if 'window resize' in keys:
                 self.screen_size = None
 
-    def _run_screen_event_loop(self):
+    def _run_screen_event_loop(self) -> None:
         """
         This method is used when the screen does not support using
         external event loops.
@@ -430,7 +445,8 @@ class MainLoop:
             if not next_alarm and self.event_loop._alarms:
                 next_alarm = heapq.heappop(self.event_loop._alarms)
 
-            keys = None
+            keys: list[str] = []
+            raw: list[int] = []
             while not keys:
                 if next_alarm:
                     sec = max(0, next_alarm[0] - time.time())
@@ -484,7 +500,7 @@ class MainLoop:
         screen.get_input(True)
         """
 
-    def process_input(self, keys):
+    def process_input(self, keys: Iterable[str]) -> bool:
         """
         This method will pass keyboard input and mouse events to :attr:`widget`.
         This method is called automatically from the :meth:`run` method when
@@ -537,7 +553,7 @@ class MainLoop:
         True
         """
 
-    def input_filter(self, keys, raw):
+    def input_filter(self, keys: list[str], raw: list[int]) -> list[str]:
         """
         This function is passed each all the input events and raw keystroke
         values. These values are passed to the *input_filter* function
@@ -549,7 +565,7 @@ class MainLoop:
             return self._input_filter(keys, raw)
         return keys
 
-    def unhandled_input(self, input):
+    def unhandled_input(self, input: str) -> bool:
         """
         This function is called with any input that was not handled by the
         widgets, and calls the *unhandled_input* function passed to the
@@ -594,7 +610,7 @@ class EventLoop:
     Abstract class representing an event loop to be used by :class:`MainLoop`.
     """
 
-    def alarm(self, seconds, callback):
+    def alarm(self, seconds: float | int, callback):
         """
         Call callback() a given time from now.  No parameters are
         passed to callback.
@@ -685,6 +701,7 @@ class EventLoop:
         """
         return signal.signal(signum, handler)
 
+
 class SelectEventLoop(EventLoop):
     """
     Event loop based on :func:`select.select`
@@ -697,7 +714,7 @@ class SelectEventLoop(EventLoop):
         self._idle_callbacks = {}
         self._tie_break = count()
 
-    def alarm(self, seconds, callback):
+    def alarm(self, seconds: float | int, callback):
         """
         Call callback() a given time from now.  No parameters are
         passed to callback.
@@ -804,8 +821,7 @@ class SelectEventLoop(EventLoop):
             if self._alarms:
                 tm = self._alarms[0][0]
                 timeout = max(0, tm - time.time())
-            if self._did_something and (not self._alarms or
-                    (self._alarms and timeout > 0)):
+            if self._did_something and (not self._alarms or (self._alarms and timeout > 0)):
                 timeout = 0
                 tm = 'idle'
             ready, w, err = select.select(fds, [], fds, timeout)
@@ -846,7 +862,7 @@ class GLibEventLoop(EventLoop):
         self._enable_glib_idle()
         self._signal_handlers = {}
 
-    def alarm(self, seconds, callback):
+    def alarm(self, seconds: float | int, callback):
         """
         Call callback() a given time from now.  No parameters are
         passed to callback.
@@ -943,8 +959,7 @@ class GLibEventLoop(EventLoop):
             callback()
             self._enable_glib_idle()
             return True
-        self._watch_files[fd] = \
-             self.GLib.io_add_watch(fd,self.GLib.IO_IN,io_callback)
+        self._watch_files[fd] = self.GLib.io_add_watch(fd, self.GLib.IO_IN, io_callback)
         return fd
 
     def remove_watch_file(self, handle):
@@ -1009,7 +1024,7 @@ class GLibEventLoop(EventLoop):
             self._exc_info = None
             reraise(*exc_info)
 
-    def handle_exit(self,f):
+    def handle_exit(self, f):
         """
         Decorator that cleanly exits the :class:`GLibEventLoop` if
         :exc:`ExitMainLoop` is thrown inside of the wrapped function. Store the
@@ -1018,9 +1033,9 @@ class GLibEventLoop(EventLoop):
 
         *f* -- function to be wrapped
         """
-        def wrapper(*args,**kargs):
+        def wrapper(*args, **kargs):
             try:
-                return f(*args,**kargs)
+                return f(*args, **kargs)
             except ExitMainLoop:
                 self._loop.quit()
             except:
@@ -1054,7 +1069,7 @@ class TornadoEventLoop(EventLoop):
             self._idle_done = False
             self._prev_timeout = 0
 
-        def __getattr__(self, name):
+        def __getattr__(self, name: str):
             return getattr(self.__poll_obj, name)
 
         def poll(self, timeout):
@@ -1106,7 +1121,7 @@ class TornadoEventLoop(EventLoop):
         self._exception        = None
 
     def alarm(self, secs, callback):
-        ioloop  = self._ioloop
+        ioloop = self._ioloop
         def wrapped():
             try:
                 del self._pending_alarms[handle]
@@ -1180,6 +1195,7 @@ try:
 except ImportError:
     FileDescriptor = object
 
+
 class TwistedInputDescriptor(FileDescriptor):
     def __init__(self, reactor, fd, cb):
         self._fileno = fd
@@ -1197,9 +1213,9 @@ class TwistedEventLoop(EventLoop):
     """
     Event loop based on Twisted_
     """
-    _idle_emulation_delay = 1.0/256 # a short time (in seconds)
+    _idle_emulation_delay = 1.0/256  # a short time (in seconds)
 
-    def __init__(self, reactor=None, manage_reactor=True):
+    def __init__(self, reactor=None, manage_reactor: bool = True):
         """
         :param reactor: reactor to use
         :type reactor: :class:`twisted.internet.reactor`.
@@ -1270,8 +1286,7 @@ class TwistedEventLoop(EventLoop):
         fd -- file descriptor to watch for input
         callback -- function to call when input is available
         """
-        ind = TwistedInputDescriptor(self.reactor, fd,
-            self.handle_exit(callback))
+        ind = TwistedInputDescriptor(self.reactor, fd, self.handle_exit(callback))
         self._watch_files[fd] = ind
         self.reactor.addReader(ind)
         return fd
@@ -1345,7 +1360,7 @@ class TwistedEventLoop(EventLoop):
             self._exc_info = None
             reraise(*exc_info)
 
-    def handle_exit(self, f, enable_idle=True):
+    def handle_exit(self, f, enable_idle: bool = True):
         """
         Decorator that cleanly exits the :class:`TwistedEventLoop` if
         :class:`ExitMainLoop` is thrown inside of the wrapped function. Store the
@@ -1499,7 +1514,7 @@ class AsyncioEventLoop(EventLoop):
 from ._async_kw_event_loop import TrioEventLoop
 
 
-def _refl(name, rval=None, exit=False):
+def _refl(name: str, rval=None, exit=False):
     """
     This function is used to test the main loop classes.
 
@@ -1516,9 +1531,10 @@ def _refl(name, rval=None, exit=False):
 
     """
     class Reflect:
-        def __init__(self, name, rval=None):
+        def __init__(self, name: int, rval=None):
             self._name = name
             self._rval = rval
+
         def __call__(self, *argl, **argd):
             args = ", ".join([repr(a) for a in argl])
             if args and argd:
@@ -1528,6 +1544,7 @@ def _refl(name, rval=None, exit=False):
             if exit:
                 raise ExitMainLoop()
             return self._rval
+
         def __getattr__(self, attr):
             if attr.endswith("_rval"):
                 raise AttributeError()
@@ -1537,9 +1554,11 @@ def _refl(name, rval=None, exit=False):
             return Reflect(f"{self._name}.{attr}")
     return Reflect(name)
 
+
 def _test():
     import doctest
     doctest.testmod()
+
 
 if __name__=='__main__':
     _test()

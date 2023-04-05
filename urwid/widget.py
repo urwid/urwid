@@ -521,7 +521,7 @@ class Widget(metaclass=WidgetMeta):
         """
         return self._sizing
 
-    def pack(self, size, focus=False):
+    def pack(self, size: tuple[[]] | tuple[int] | tuple[int, int], focus: bool = False) -> tuple[int, int]:
         """
         See :meth:`Widget.render` for parameter details.
 
@@ -550,8 +550,7 @@ class Widget(metaclass=WidgetMeta):
         """
         if not size:
             if FIXED in self.sizing():
-                raise NotImplementedError('Fixed widgets must override'
-                    ' Widget.pack()')
+                raise NotImplementedError('Fixed widgets must override Widget.pack()')
             raise WidgetError(f'Cannot pack () size, this is not a fixed widget: {self!r}')
         elif len(size) == 1:
             if FLOW in self.sizing():
@@ -560,7 +559,7 @@ class Widget(metaclass=WidgetMeta):
         return size
 
     @property
-    def base_widget(self):
+    def base_widget(self) -> Widget:
         """
         Read-only property that steps through decoration widgets
         and returns the one at the base.  This default implementation
@@ -569,7 +568,7 @@ class Widget(metaclass=WidgetMeta):
         return self
 
     @property
-    def focus(self):
+    def focus(self) -> Widget | None:
         """
         Read-only property returning the child widget in focus for
         container widgets.  This default implementation
@@ -630,13 +629,13 @@ class FlowWidget(Widget):
             DeprecationWarning,
         )
 
-    def rows(self, size, focus=False):
+    def rows(self, size: int, focus: bool = False) -> int:
         """
         All flow widgets must implement this function.
         """
         raise NotImplementedError()
 
-    def render(self, size, focus=False):
+    def render(self, size: tuple[int], focus: bool = False):
         """
         All widgets must implement this function.
         """
@@ -670,7 +669,7 @@ class BoxWidget(Widget):
             DeprecationWarning,
         )
 
-    def render(self, size, focus=False):
+    def render(self, size: tuple[int, int], focus: bool = False):
         """
         All widgets must implement this function.
         """
@@ -1183,16 +1182,16 @@ class Edit(Text):
     # (this variable is picked up by the MetaSignals metaclass)
     signals = ["change", "postchange"]
 
-    def valid_char(self, ch):
+    def valid_char(self, ch: str) -> bool:
         """
         Filter for text that may be entered into this widget by the user
 
         :param ch: character to be inserted
-        :type ch: bytes or unicode
+        :type ch: str
 
         This implementation returns True for all printable characters.
         """
-        return is_wide_char(ch,0) or (len(ch)==1 and ord(ch) >= 32)
+        return is_wide_char(ch, 0) or (len(ch) == 1 and ord(ch) >= 32)
 
     def __init__(
             self,
@@ -1535,7 +1534,7 @@ class Edit(Text):
         result_pos += len(text)
         return (result_text, result_pos)
 
-    def keypress(self, size: tuple[int], key: str | bytes):
+    def keypress(self, size: tuple[int], key: str) -> str | None:
         """
         Handle editing keystrokes, return others.
 
@@ -1770,9 +1769,9 @@ class IntEdit(Edit):
         """
         Return true for decimal digits.
         """
-        return len(ch)==1 and ch in "0123456789"
+        return len(ch) == 1 and ch in "0123456789"
 
-    def __init__(self,caption="",default=None):
+    def __init__(self, caption="", default: int | str = None) -> None:
         """
         caption -- caption markup
         default -- default edit value
@@ -1780,11 +1779,13 @@ class IntEdit(Edit):
         >>> IntEdit(u"", 42)
         <IntEdit selectable flow widget '42' edit_pos=2>
         """
-        if default is not None: val = str(default)
-        else: val = ""
-        super().__init__(caption,val)
+        if default is not None:
+            val = str(default)
+        else:
+            val = ""
+        super().__init__(caption, val)
 
-    def keypress(self, size, key):
+    def keypress(self, size: tuple[int], key: str) -> str | None:
         """
         Handle editing keystrokes.  Remove leading zeros.
 
@@ -1808,7 +1809,7 @@ class IntEdit(Edit):
 
         return unhandled
 
-    def value(self):
+    def value(self) -> int:
         """
         Return the numeric value of self.edit_text.
 
@@ -1824,7 +1825,7 @@ class IntEdit(Edit):
             return 0
 
 
-def delegate_to_widget_mixin(attribute_name):
+def delegate_to_widget_mixin(attribute_name: str):
     """
     Return a mixin class that delegates all standard widget methods
     to an attribute given by attribute_name.
@@ -1835,10 +1836,11 @@ def delegate_to_widget_mixin(attribute_name):
     # when layout and rendering are separated
 
     get_delegate = attrgetter(attribute_name)
-    class DelegateToWidgetMixin(Widget):
-        no_cache = ["rows"] # crufty metaclass work-around
 
-        def render(self, size, focus=False):
+    class DelegateToWidgetMixin(Widget):
+        no_cache = ["rows"]  # crufty metaclass work-around
+
+        def render(self, size, focus: bool = False) -> CompositeCanvas:
             canv = get_delegate(self).render(size, focus=focus)
             return CompositeCanvas(canv)
 
@@ -1881,12 +1883,12 @@ def delegate_to_widget_mixin(attribute_name):
     return DelegateToWidgetMixin
 
 
-
 class WidgetWrapError(Exception):
     pass
 
+
 class WidgetWrap(delegate_to_widget_mixin('_wrapped_widget'), Widget):
-    def __init__(self, w):
+    def __init__(self, w: Widget):
         """
         w -- widget to wrap, stored as self._w
 
@@ -1932,10 +1934,10 @@ class WidgetWrap(delegate_to_widget_mixin('_wrapped_widget'), Widget):
     w = property(_raise_old_name_error, _raise_old_name_error)
 
 
-
 def _test():
     import doctest
     doctest.testmod()
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     _test()

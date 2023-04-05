@@ -317,7 +317,7 @@ def within_double_byte(text: bytes, line_start: int, pos: int) -> Literal[0, 1, 
     assert isinstance(text, bytes)
     v = text[pos]
 
-    if v >= 0x40 and v < 0x7f:
+    if 0x40 <= v < 0x7f:
         # might be second half of big5, uhc or gbk encoding
         if pos == line_start:
             return 0
