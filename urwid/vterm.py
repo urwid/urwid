@@ -1364,8 +1364,14 @@ class Terminal(Widget):
 
     signals = ['closed', 'beep', 'leds', 'title']
 
-    def __init__(self, command, env=None, main_loop=None, escape_sequence=None,
-                 encoding='utf-8'):
+    def __init__(
+        self,
+        command,
+        env=None,
+        main_loop=None,
+        escape_sequence=None,
+        encoding='utf-8',
+    ):
         """
         A terminal emulator within a widget.
 
@@ -1425,7 +1431,7 @@ class Terminal(Widget):
         self.has_focus = False
         self.terminated = False
 
-    def get_cursor_coords(self, size):
+    def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:
         """Return the cursor coordinates for this terminal
         """
         if self.term is None:
@@ -1447,7 +1453,7 @@ class Terminal(Widget):
 
         return (x, y)
 
-    def spawn(self):
+    def spawn(self) -> None:
         env = self.env
         env['TERM'] = 'linux'
 
@@ -1471,7 +1477,7 @@ class Terminal(Widget):
 
         atexit.register(self.terminate)
 
-    def terminate(self):
+    def terminate(self) -> None:
         if self.terminated:
             return
 
@@ -1499,28 +1505,28 @@ class Terminal(Widget):
 
             os.close(self.master)
 
-    def beep(self):
+    def beep(self) -> None:
         self._emit('beep')
 
-    def leds(self, which):
+    def leds(self, which) -> None:
         self._emit('leds', which)
 
-    def respond(self, string):
+    def respond(self, string) -> None:
         """
         Respond to the underlying application with 'string'.
         """
         self.response_buffer.append(string)
 
-    def flush_responses(self):
+    def flush_responses(self) -> None:
         for string in self.response_buffer:
             os.write(self.master, string.encode('ascii'))
         self.response_buffer = []
 
-    def set_termsize(self, width, height):
+    def set_termsize(self, width: int, height: int) -> None:
         winsize = struct.pack("HHHH", height, width, 0, 0)
         fcntl.ioctl(self.master, termios.TIOCSWINSZ, winsize)
 
-    def touch_term(self, width, height):
+    def touch_term(self, width: int, height: int) -> None:
         process_opened = False
 
         if self.pid is None:
@@ -1543,10 +1549,10 @@ class Terminal(Widget):
         if process_opened:
             self.add_watch()
 
-    def set_title(self, title):
+    def set_title(self, title) -> None:
         self._emit('title', title)
 
-    def change_focus(self, has_focus):
+    def change_focus(self, has_focus) -> None:
         """
         Ignore SIGINT if this widget has focus.
         """
@@ -1566,7 +1572,7 @@ class Terminal(Widget):
             if hasattr(self, "old_tios"):
                 RealTerminal().tty_signal_keys(*self.old_tios)
 
-    def render(self, size, focus=False):
+    def render(self, size: tuple[int, int], focus: bool = False):
         if not self.terminated:
             self.change_focus(focus)
 
@@ -1578,17 +1584,17 @@ class Terminal(Widget):
 
         return self.term
 
-    def add_watch(self):
+    def add_watch(self) -> None:
         if self.main_loop is None:
             return
         self.main_loop.watch_file(self.master, self.feed)
 
-    def remove_watch(self):
+    def remove_watch(self) -> None:
         if self.main_loop is None:
             return
         self.main_loop.remove_watch_file(self.master)
 
-    def wait_and_feed(self, timeout=1.0):
+    def wait_and_feed(self, timeout: float = 1.0) -> None:
         while True:
             try:
                 select.select([self.master], [], [], timeout)
@@ -1598,7 +1604,7 @@ class Terminal(Widget):
                     raise
         self.feed()
 
-    def feed(self):
+    def feed(self) -> None:
         data = EOF
 
         try:
@@ -1620,7 +1626,7 @@ class Terminal(Widget):
 
         self.flush_responses()
 
-    def keypress(self, size, key):
+    def keypress(self, size: tuple[int, int], key: str) -> str | None:
         if self.terminated:
             return key
 

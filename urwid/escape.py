@@ -363,7 +363,7 @@ _keyconv = {
 }
 
 
-def process_keyqueue(codes: Sequence[int], more_available: bool):
+def process_keyqueue(codes: Sequence[int], more_available: bool) -> tuple[list[str], Sequence[int]]:
     """
     codes -- list of key codes
     more_available -- if True then raise MoreInputRequired when in the
@@ -385,7 +385,7 @@ def process_keyqueue(codes: Sequence[int], more_available: bool):
 
     em = str_util.get_byte_encoding()
 
-    if em == 'wide' and code < 256 and within_double_byte(chr(code), 0, 0):
+    if em == 'wide' and code < 256 and within_double_byte(code.to_bytes(1, "little"), 0, 0):
         if not codes[1:] and more_available:
             raise MoreInputRequired()
         if codes[1:] and codes[1] < 256:
@@ -409,7 +409,7 @@ def process_keyqueue(codes: Sequence[int], more_available: bool):
                 else:
                     return [f"<{code:d}>"], codes[1:]
             k = codes[i+1]
-            if k>256 or k&0xc0 != 0x80:
+            if k > 256 or k & 0xc0 != 0x80:
                 return [f"<{code:d}>"], codes[1:]
 
         s = bytes(codes[:need_more+1])

@@ -26,9 +26,14 @@ HTML PRE-based UI implementation
 
 from __future__ import annotations
 
+import typing
+
 from urwid import util
 from urwid.display_common import AttrSpec, BaseScreen
 from urwid.main_loop import ExitMainLoop
+
+if typing.TYPE_CHECKING:
+    from typing_extensions import Literal
 
 # replace control characters with ?'s
 _trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 256)])
@@ -36,8 +41,10 @@ _trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 256)])
 _default_foreground = 'black'
 _default_background = 'light gray'
 
+
 class HtmlGeneratorSimulationError(Exception):
     pass
+
 
 class HtmlGenerator(BaseScreen):
     # class variables
@@ -49,13 +56,16 @@ class HtmlGenerator(BaseScreen):
     def __init__(self):
         super().__init__()
         self.colors = 16
-        self.bright_is_bold = False # ignored
-        self.has_underline = True # ignored
-        self.register_palette_entry(None,
-            _default_foreground, _default_background)
+        self.bright_is_bold = False  # ignored
+        self.has_underline = True  # ignored
+        self.register_palette_entry(None, _default_foreground, _default_background)
 
-    def set_terminal_properties(self, colors=None, bright_is_bold=None,
-        has_underline=None):
+    def set_terminal_properties(
+        self,
+        colors: int | None = None,
+        bright_is_bold: bool | None = None,
+        has_underline: bool | None = None,
+    ) -> None:
 
         if colors is None:
             colors = self.colors
@@ -100,9 +110,7 @@ class HtmlGenerator(BaseScreen):
             col = 0
 
             for a, cs, run in row:
-                if not str is bytes:
-                    run = run.decode()
-                run = run.translate(_trans_table)
+                run = run.decode().translate(_trans_table)
                 if isinstance(a, AttrSpec):
                     aspec = a
                 else:
@@ -141,7 +149,15 @@ class HtmlGenerator(BaseScreen):
             raise HtmlGeneratorSimulationError("Ran out of screen sizes to return!")
         return self.sizes.pop(0)
 
-    def get_input(self, raw_keys=False):
+    @typing.overload
+    def get_input(self, raw_keys: Literal[False]) -> list[str]:
+        ...
+
+    @typing.overload
+    def get_input(self, raw_keys: Literal[True]) -> tuple[list[str], list[int]]:
+        ...
+
+    def get_input(self, raw_keys: bool = False) -> list[str] | tuple[list[str], list[int]]:
         """Return the next list of keypresses in HtmlGenerator.keys."""
         if not self.keys:
             raise ExitMainLoop()
@@ -149,11 +165,12 @@ class HtmlGenerator(BaseScreen):
             return (self.keys.pop(0), [])
         return self.keys.pop(0)
 
-_default_aspec = AttrSpec(_default_foreground, _default_background)
-(_d_fg_r, _d_fg_g, _d_fg_b, _d_bg_r, _d_bg_g, _d_bg_b) = (
-    _default_aspec.get_rgb_values())
 
-def html_span(s, aspec, cursor = -1):
+_default_aspec = AttrSpec(_default_foreground, _default_background)
+(_d_fg_r, _d_fg_g, _d_fg_b, _d_bg_r, _d_bg_g, _d_bg_b) = _default_aspec.get_rgb_values()
+
+
+def html_span(s, aspec, cursor: int = -1):
     fg_r, fg_g, fg_b, bg_r, bg_g, bg_b = aspec.get_rgb_values()
     # use real colours instead of default fg/bg
     if fg_r is None:
@@ -164,13 +181,10 @@ def html_span(s, aspec, cursor = -1):
     html_bg = f"#{bg_r:02x}{bg_g:02x}{bg_b:02x}"
     if aspec.standout:
         html_fg, html_bg = html_bg, html_fg
-    extra = (";text-decoration:underline" * aspec.underline +
-        ";font-weight:bold" * aspec.bold)
+    extra = (";text-decoration:underline" * aspec.underline + ";font-weight:bold" * aspec.bold)
     def html_span(fg, bg, s):
         if not s: return ""
-        return ('<span style="color:%s;'
-            'background:%s%s">%s</span>' %
-            (fg, bg, extra, html_escape(s)))
+        return f'<span style="color:{fg};background:{bg}{extra}">{html_escape(s)}</span>'
 
     if cursor >= 0:
         c_off, _ign = util.calc_text_pos(s, 0, len(s), cursor)
@@ -182,14 +196,15 @@ def html_span(s, aspec, cursor = -1):
         return html_span(html_fg, html_bg, s)
 
 
-def html_escape(text):
+def html_escape(text: str) -> str:
     """Escape text so that it will be displayed safely within HTML"""
     text = text.replace('&','&amp;')
     text = text.replace('<','&lt;')
     text = text.replace('>','&gt;')
     return text
 
-def screenshot_init( sizes, keys ):
+
+def screenshot_init(sizes: list[tuple[int, int]], keys: list[list[str]]) -> None:
     """
     Replace curses_display.Screen and raw_display.Screen class with
     HtmlGenerator.
@@ -219,7 +234,7 @@ def screenshot_init( sizes, keys ):
         [ ["down"]*5, ["a","b","c","window resize"], ["Q"] ] )
     """
     try:
-        for (row,col) in sizes:
+        for (row, col) in sizes:
             assert isinstance(row, int)
             assert row > 0 and col > 0
     except (AssertionError, ValueError):
