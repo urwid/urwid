@@ -84,3 +84,17 @@ exclude_lines = [
   # OS Specific
   "if platform.system()",
 ]
+
+[tool.mypy]
+show_error_context = true
+show_column_numbers = true
+show_error_codes = true
+pretty = true
+
+[[tool.mypy.overrides]]
+module = [
+  "gi.*",
+  "trio.*",
+  "serial.*"
+]
+ignore_missing_imports = true
