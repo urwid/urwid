@@ -586,10 +586,10 @@ class _test:
         for c in self.l:
             t = ""
             a = []
-            for p in f"{c} on black",f"{c} on dark blue",f"{c} on light gray":
+            for p in f"{c} on black", f"{c} on dark blue", f"{c} on light gray":
 
-                a.append((p,27))
-                t=t+ (p+27*" ")[:27]
+                a.append((p, 27))
+                t += (p + 27 * " ")[:27]
             text.append( t )
             attr.append( a )
 

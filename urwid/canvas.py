@@ -252,8 +252,7 @@ class Canvas:
         Return the text content of the canvas as a list of strings,
         one for each row.
         """
-        return [b''.join([text for (attr, cs, text) in row])
-            for row in self.content()]
+        return [b''.join([text for (attr, cs, text) in row]) for row in self.content()]
 
     text = property(_text_content, _raise_old_repr_error)
     attr = property(_raise_old_repr_error, _raise_old_repr_error)

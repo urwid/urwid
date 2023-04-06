@@ -112,6 +112,7 @@ class Font:
             return obj
         elif isinstance(obj, bytes):
             return obj.decode(encoding, errors)
+        raise TypeError(f"{obj!r} is not str|bytes")
 
     def add_glyphs(self, gdata):
         d, utf8_required = separate_glyphs(gdata, self.height)

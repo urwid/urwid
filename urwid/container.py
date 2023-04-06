@@ -171,12 +171,12 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         return frozenset([FLOW])
 
     def __init__(
-            self,
-            cells: Sequence[Widget],
-            cell_width: int,
-            h_sep: int,
-            v_sep: int,
-            align: Literal['left', 'center', 'right'] | tuple[Literal['relative'], int],
+        self,
+        cells: Sequence[Widget],
+        cell_width: int,
+        h_sep: int,
+        v_sep: int,
+        align: Literal['left', 'center', 'right'] | tuple[Literal['relative'], int],
     ):
         """
         :param cells: list of flow widgets to display
@@ -505,19 +505,19 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         TOP, None, RELATIVE, 100, None, 0, 0)
 
     def __init__(
-            self,
-            top_w: Widget,
-            bottom_w: Widget,
-            align: Literal['left', 'center', 'right'] | tuple[Literal['relative'], int],
-            width: Literal['pack'] | int | tuple[Literal['relative'], int],
-            valign: Literal['top', 'middle', 'bottom'] | tuple[Literal['relative'], int],
-            height: Literal['pack'] | int | tuple[Literal['relative'], int],
-            min_width: int | None = None,
-            min_height: int | None = None,
-            left: int = 0,
-            right: int = 0,
-            top: int = 0,
-            bottom: int = 0,
+        self,
+        top_w: Widget,
+        bottom_w: Widget,
+        align: Literal['left', 'center', 'right'] | tuple[Literal['relative', 'fixed left', 'fixed right'], int],
+        width: Literal['pack'] | int | tuple[Literal['relative'], int],
+        valign: Literal['top', 'middle', 'bottom'] | tuple[Literal['relative', 'fixed top', 'fixed bottom'], int],
+        height: Literal['pack'] | int | tuple[Literal['relative'], int],
+        min_width: int | None = None,
+        min_height: int | None = None,
+        left: int = 0,
+        right: int = 0,
+        top: int = 0,
+        bottom: int = 0,
     ) -> None:
         """
         :param top_w: a flow, box or fixed widget to overlay "on top"
@@ -570,19 +570,20 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self.top_w = top_w
         self.bottom_w = bottom_w
 
-        self.set_overlay_parameters(align, width, valign, height,
-            min_width, min_height, left, right, top, bottom)
+        self.set_overlay_parameters(
+            align, width, valign, height, min_width, min_height, left, right, top, bottom
+        )
 
     @staticmethod
     def options(
         align_type: Literal['left', 'center', 'right', 'relative'],
         align_amount: int | None,
-        width_type,
-        width_amount,
+        width_type: Literal['clip', 'pack', 'relative', 'given'],
+        width_amount: int | None,
         valign_type: Literal['top', 'middle', 'bottom', 'relative'],
         valign_amount: int | None,
-        height_type,
-        height_amount,
+        height_type: Literal['flow', 'pack', 'relative', 'given'],
+        height_amount: int | None,
         min_width: int | None = None,
         min_height: int | None = None,
         left: int = 0,
@@ -599,15 +600,28 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         See also :meth:`.set_overlay_parameters`
         """
 
-        return (align_type, align_amount, width_type, width_amount,
-            min_width, left, right, valign_type, valign_amount,
-            height_type, height_amount, min_height, top, bottom)
+        return (
+            align_type,
+            align_amount,
+            width_type,
+            width_amount,
+            min_width,
+            left,
+            right,
+            valign_type,
+            valign_amount,
+            height_type,
+            height_amount,
+            min_height,
+            top,
+            bottom,
+        )
 
     def set_overlay_parameters(
         self,
-        align: Literal['left', 'center', 'right'] | tuple[Literal['relative'], int],
+        align: Literal['left', 'center', 'right'] | tuple[Literal['relative', 'fixed left', 'fixed right'], int],
         width: int | None,
-        valign: Literal['top', 'middle', 'bottom'] | tuple[Literal['relative'], int],
+        valign: Literal['top', 'middle', 'bottom'] | tuple[Literal['relative', 'fixed top', 'fixed bottom'], int],
         height: int | None,
         min_width: int | None = None,
         min_height: int | None = None,
@@ -666,10 +680,14 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             min_height = None
 
         # use container API to set the parameters
-        self.contents[1] = (self.top_w, self.options(
-            align_type, align_amount, width_type, width_amount,
-            valign_type, valign_amount, height_type, height_amount,
-            min_width, min_height, left, right, top, bottom))
+        self.contents[1] = (
+            self.top_w,
+            self.options(
+                align_type, align_amount, width_type, width_amount,
+                valign_type, valign_amount, height_type, height_amount,
+                min_width, min_height, left, right, top, bottom
+            )
+        )
 
     def selectable(self) -> bool:
         """Return selectable from top_w."""

@@ -209,10 +209,9 @@ class Screen(BaseScreen, RealTerminal):
     def _start_gpm_tracking(self):
         if not os.path.isfile("/usr/bin/mev"):
             return
-        if not os.environ.get('TERM',"").lower().startswith("linux"):
+        if not os.environ.get('TERM', "").lower().startswith("linux"):
             return
-        if not Popen:
-            return
+
         m = Popen(["/usr/bin/mev", "-e", "158"], stdin=PIPE, stdout=PIPE, close_fds=True, encoding="ascii")
         fcntl.fcntl(m.stdout.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
         self.gpm_mev = m
