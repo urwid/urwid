@@ -1845,7 +1845,7 @@ def delegate_to_widget_mixin(attribute_name: str):
             return CompositeCanvas(canv)
 
         @property
-        def selectable(self):
+        def selectable(self) -> Callable[[], bool]:
             return get_delegate(self).selectable
 
         @property
@@ -1869,7 +1869,9 @@ def delegate_to_widget_mixin(attribute_name: str):
             return get_delegate(self).rows
 
         @property
-        def mouse_event(self):
+        def mouse_event(
+            self
+        ) -> Callable[[tuple[()] | tuple[int] | tuple[int, int], str, int, int, int, bool], bool | None]:
             return get_delegate(self).mouse_event
 
         @property

@@ -220,6 +220,7 @@ class AttrMap(delegate_to_widget_mixin('_original_widget'), WidgetDecoration):
         # FIXME: a dictionary that detects modifications would be better
         if self._focus_map:
             return dict(self._focus_map)
+        return None
 
     def set_focus_map(self, focus_map: dict[Hashable | None, Hashable]) -> None:
         """
@@ -460,7 +461,7 @@ class Padding(WidgetDecoration):
     def __init__(
         self,
         w: Widget,
-        align: Literal["left", "center", "right"] = LEFT,
+        align: Literal["left", "center", "right"] | tuple[Literal['relative'], int] = LEFT,
         width: int | Literal['pack', 'clip'] | tuple[Literal['relative'], int] = RELATIVE_100,
         min_width: int | None = None,
         left: int = 0,

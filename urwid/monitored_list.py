@@ -21,6 +21,7 @@
 
 from __future__ import annotations
 
+import functools
 import typing
 from collections.abc import Callable
 
@@ -32,6 +33,7 @@ if typing.TYPE_CHECKING:
 
 
 def _call_modified(fn: Callable[ArgSpec, Ret]) -> Callable[ArgSpec, Ret]:
+    @functools.wraps(fn)
     def call_modified_wrapper(self: MonitoredList, *args, **kwargs):
         rval = fn(self, *args, **kwargs)
         self._modified()

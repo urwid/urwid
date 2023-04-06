@@ -246,6 +246,7 @@ class KeyRepeatSimulator:
             return None
         for key in self.pressed:
             return max(0., self.pressed[key] + self.repeat_delay - time.time()), key
+        return None
 
     def sent_event(self) -> None:
         """

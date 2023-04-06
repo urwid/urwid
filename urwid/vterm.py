@@ -33,6 +33,8 @@ import struct
 import sys
 import time
 import traceback
+import typing
+from collections.abc import Iterable, Mapping, Sequence
 
 try:
     import fcntl
@@ -46,6 +48,9 @@ from urwid.canvas import Canvas
 from urwid.display_common import _BASIC_COLORS, AttrSpec, RealTerminal
 from urwid.escape import ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS
 from urwid.widget import BOX, Widget
+
+if typing.TYPE_CHECKING:
+    from typing_extensions import Literal
 
 EOF = b''
 ESC = chr(27)
@@ -138,11 +143,12 @@ CSI_COMMANDS = {
 CHARSET_DEFAULT = 1
 CHARSET_UTF8 = 2
 
+
 class TermModes:
-    def __init__(self):
+    def __init__(self) -> None:
         self.reset()
 
-    def reset(self):
+    def reset(self) -> None:
         # ECMA-48
         self.display_ctrl = False
         self.insert = False
@@ -158,6 +164,7 @@ class TermModes:
         # charset stuff
         self.main_charset = CHARSET_DEFAULT
 
+
 class TermCharset:
     MAPPING = {
         'default': None,
@@ -166,7 +173,7 @@ class TermCharset:
         'user':    None,
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._g = [
             'default',
             'vt100',
@@ -174,16 +181,20 @@ class TermCharset:
 
         self._sgr_mapping = False
 
+        # prepare defaults
+        self.active = 0
+        self.current: str | None = None
+
         self.activate(0)
 
-    def define(self, g, charset):
+    def define(self, g: int, charset: str) -> None:
         """
         Redefine G'g' with new mapping.
         """
         self._g[g] = charset
         self.activate(g=self.active)
 
-    def activate(self, g):
+    def activate(self, g: int) -> None:
         """
         Activate the given charset slot.
         """
@@ -215,6 +226,7 @@ class TermCharset:
         else:
             return char
 
+
 class TermScroller(list):
     """
     List subclass that handles the terminal scrollback buffer,
@@ -238,10 +250,11 @@ class TermScroller(list):
         self.trunc()
         super().extend(seq)
 
+
 class TermCanvas(Canvas):
     cacheable = False
 
-    def __init__(self, width, height, widget):
+    def __init__(self, width: int, height: int, widget: Terminal) -> None:
         super().__init__()
 
         self.width, self.height = width, height
@@ -254,12 +267,16 @@ class TermCanvas(Canvas):
 
         self.utf8_eat_bytes = None
         self.utf8_buffer = b''
+        self.escbuf = b''
 
         self.coords["cursor"] = (0, 0, None)
 
+        self.term_cursor = [0, 0]  # do not allow to shoot in the leg at `set_term_cursor`
+        self.cursor: tuple[int, int] | None = None
+
         self.reset()
 
-    def set_term_cursor(self, x=None, y=None):
+    def set_term_cursor(self, x: int | None = None, y: int | None = None) -> None:
         """
         Set terminal cursor to x/y and update canvas cursor. If one or both axes
         are omitted, use the values of the current position.
@@ -271,21 +288,19 @@ class TermCanvas(Canvas):
 
         self.term_cursor = self.constrain_coords(x, y)
 
-        if self.has_focus \
-                and self.modes.visible_cursor \
-                and self.scrolling_up < self.height - y:
+        if self.has_focus and self.modes.visible_cursor and self.scrolling_up < self.height - y:
             self.cursor = (x, y + self.scrolling_up)
         else:
             self.cursor = None
 
-    def reset_scroll(self):
+    def reset_scroll(self) -> None:
         """
         Reset scrolling region to full terminal size.
         """
         self.scrollregion_start = 0
         self.scrollregion_end = self.height - 1
 
-    def scroll_buffer(self, up=True, reset=False, lines=None):
+    def scroll_buffer(self, up: bool = True, reset: bool = False, lines: int | None = None) -> None:
         """
         Scroll the scrolling buffer up (up=True) or down (up=False) the given
         amount of lines or half the screen height.
@@ -314,7 +329,7 @@ class TermCanvas(Canvas):
 
         self.set_term_cursor()
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset the terminal.
         """
@@ -340,7 +355,7 @@ class TermCanvas(Canvas):
         # initialize self.term
         self.clear()
 
-    def init_tabstops(self, extend=False):
+    def init_tabstops(self, extend: bool = False) -> None:
         tablen, mod = divmod(self.width, 8)
         if mod > 0:
             tablen += 1
@@ -351,7 +366,7 @@ class TermCanvas(Canvas):
         else:
             self.tabstops = [1 << 0] * tablen
 
-    def set_tabstop(self, x=None, remove=False, clear=False):
+    def set_tabstop(self, x: int | None = None, remove: bool = False, clear: bool = False) -> None:
         if clear:
             for tab in range(len(self.tabstops)):
                 self.tabstops[tab] = 0
@@ -366,17 +381,17 @@ class TermCanvas(Canvas):
         else:
             self.tabstops[div] |= (1 << mod)
 
-    def is_tabstop(self, x=None):
+    def is_tabstop(self, x: int | None = None) -> bool:
         if x is None:
             x = self.term_cursor[0]
 
         div, mod = divmod(x, 8)
         return (self.tabstops[div] & (1 << mod)) > 0
 
-    def empty_line(self, char=b' '):
+    def empty_line(self, char: bytes = b' '):
         return [self.empty_char(char)] * self.width
 
-    def empty_char(self, char=b' '):
+    def empty_char(self, char: bytes = b' '):
         return (self.attrspec, self.charset.current, char)
 
     def addstr(self, data):
@@ -387,7 +402,7 @@ class TermCanvas(Canvas):
         for byte in data:
             self.addbyte(byte)
 
-    def resize(self, width, height):
+    def resize(self, width: int, height: int) -> None:
         """
         Resize the terminal to the given width and height.
         """
@@ -440,7 +455,7 @@ class TermCanvas(Canvas):
         # extend tabs
         self.init_tabstops(extend=True)
 
-    def set_g01(self, char, mod):
+    def set_g01(self, char: bytes, mod: str) -> None:
         """
         Set G0 or G1 according to 'char' and modifier 'mod'.
         """
@@ -463,7 +478,7 @@ class TermCanvas(Canvas):
 
         self.charset.define(g, cset)
 
-    def parse_csi(self, char):
+    def parse_csi(self, char: bytes) -> None:
         """
         Parse ECMA-48 CSI (Control Sequence Introducer) sequences.
         """
@@ -498,50 +513,50 @@ class TermCanvas(Canvas):
                 # unpacked tuples in CSI_COMMANDS.
                 pass
 
-    def parse_noncsi(self, char, mod=None):
+    def parse_noncsi(self, char: bytes, mod: str | None = None) -> None:
         """
         Parse escape sequences which are not CSI.
         """
         if mod == b'#' and char == b'8':
             self.decaln()
-        elif mod == b'%': # select main character set
+        elif mod == b'%':  # select main character set
             if char == b'@':
                 self.modes.main_charset = CHARSET_DEFAULT
             elif char in b'G8':
                 # 8 is obsolete and only for backwards compatibility
                 self.modes.main_charset = CHARSET_UTF8
-        elif mod == b'(' or mod == b')': # define G0/G1
+        elif mod == b'(' or mod == b')':  # define G0/G1
             self.set_g01(char, mod)
-        elif char == b'M': # reverse line feed
+        elif char == b'M':  # reverse line feed
             self.linefeed(reverse=True)
-        elif char == b'D': # line feed
+        elif char == b'D':  # line feed
             self.linefeed()
-        elif char == b'c': # reset terminal
+        elif char == b'c':  # reset terminal
             self.reset()
-        elif char == b'E': # newline
+        elif char == b'E':  # newline
             self.newline()
-        elif char == b'H': # set tabstop
+        elif char == b'H':  # set tabstop
             self.set_tabstop()
-        elif char == b'Z': # DECID
+        elif char == b'Z':  # DECID
             self.widget.respond(f"{ESC}[?6c")
-        elif char == b'7': # save current state
+        elif char == b'7':  # save current state
             self.save_cursor(with_attrs=True)
-        elif char == b'8': # restore current state
+        elif char == b'8':  # restore current state
             self.restore_cursor(with_attrs=True)
 
-    def parse_osc(self, buf):
+    def parse_osc(self, buf: bytes) -> None:
         """
         Parse operating system command.
         """
-        if buf.startswith(b';'): # set window title and icon
+        if buf.startswith(b';'):  # set window title and icon
             self.widget.set_title(buf[1:])
-        elif buf.startswith(b'3;'): # set window title
+        elif buf.startswith(b'3;'):  # set window title
             self.widget.set_title(buf[2:])
 
-    def parse_escape(self, char):
+    def parse_escape(self, char: bytes) -> None:
         if self.parsestate == 1:
             # within CSI
-            if char in CSI_COMMANDS.keys():
+            if char in CSI_COMMANDS:
                 self.parse_csi(char)
                 self.parsestate = 0
             elif char in b'0123456789;' or (not self.escbuf and char == b'?'):
@@ -558,8 +573,7 @@ class TermCanvas(Canvas):
         elif self.parsestate == 2 and self.escbuf[-1:] + char == f"{ESC}\\".encode('iso8859-1'):
             # end of OSC
             self.parse_osc(self.escbuf[:-1].lstrip(b'0'))
-        elif self.parsestate == 2 and self.escbuf.startswith(b'P') and \
-             len(self.escbuf) == 8:
+        elif self.parsestate == 2 and self.escbuf.startswith(b'P') and len(self.escbuf) == 8:
             # set palette (ESC]Pnrrggbb)
             pass
         elif self.parsestate == 2 and not self.escbuf and char == b'R':
@@ -585,12 +599,12 @@ class TermCanvas(Canvas):
 
         self.leave_escape()
 
-    def leave_escape(self):
+    def leave_escape(self) -> None:
         self.within_escape = False
         self.parsestate = 0
         self.escbuf = b''
 
-    def get_utf8_len(self, bytenum):
+    def get_utf8_len(self, bytenum: int) -> int:
         """
         Process startbyte and return the number of bytes following it to get a
         valid UTF-8 multibyte sequence.
@@ -605,7 +619,7 @@ class TermCanvas(Canvas):
 
         return length
 
-    def addbyte(self, byte):
+    def addbyte(self, byte: int) -> None:
         """
         Parse main charset and add the processed byte(s) to the terminal state
         machine.
@@ -628,7 +642,7 @@ class TermCanvas(Canvas):
                 else:
                     # end multibyte sequence
                     self.utf8_eat_bytes = None
-                    sequence = (self.utf8_buffer+bytes([byte])).decode('utf-8', 'ignore')
+                    sequence = (self.utf8_buffer + bytes([byte])).decode('utf-8', 'ignore')
                     if len(sequence) == 0:
                         # invalid multibyte sequence, stop processing
                         return
@@ -641,7 +655,7 @@ class TermCanvas(Canvas):
 
         self.process_char(char)
 
-    def process_char(self, char):
+    def process_char(self, char: int | bytes):
         """
         Process a single character (single- and multi-byte).
 
@@ -654,41 +668,41 @@ class TermCanvas(Canvas):
 
         dc = self.modes.display_ctrl
 
-        if char == b"\x1b" and self.parsestate != 2: # escape
+        if char == b"\x1b" and self.parsestate != 2:  # escape
             self.within_escape = True
-        elif not dc and char == b"\x0d": # carriage return
+        elif not dc and char == b"\x0d":  # carriage return
             self.carriage_return()
-        elif not dc and char == b"\x0f": # activate G0
+        elif not dc and char == b"\x0f":  # activate G0
             self.charset.activate(0)
-        elif not dc and char == b"\x0e": # activate G1
+        elif not dc and char == b"\x0e":  # activate G1
             self.charset.activate(1)
-        elif not dc and char in b"\x0a\x0b\x0c": # line feed
+        elif not dc and char in b"\x0a\x0b\x0c":  # line feed
             self.linefeed()
             if self.modes.lfnl:
                 self.carriage_return()
-        elif not dc and char == b"\x09": # char tab
+        elif not dc and char == b"\x09":  # char tab
             self.tab()
-        elif not dc and char == b"\x08": # backspace
+        elif not dc and char == b"\x08":  # backspace
             if x > 0:
                 self.set_term_cursor(x - 1, y)
-        elif not dc and char == b"\x07" and self.parsestate != 2: # beep
+        elif not dc and char == b"\x07" and self.parsestate != 2:  # beep
             # we need to check if we're in parsestate 2, as an OSC can be
             # terminated by the BEL character!
             self.widget.beep()
-        elif not dc and char in b"\x18\x1a": # CAN/SUB
+        elif not dc and char in b"\x18\x1a":  # CAN/SUB
             self.leave_escape()
-        elif not dc and char in b"\x00\x7f": # NUL/DEL
-            pass # this is ignored
+        elif not dc and char in b"\x00\x7f":  # NUL/DEL
+            pass  # this is ignored
         elif self.within_escape:
             self.parse_escape(char)
-        elif not dc and char == b"\x9b": # CSI (equivalent to "ESC [")
+        elif not dc and char == b"\x9b":  # CSI (equivalent to "ESC [")
             self.within_escape = True
             self.escbuf = b''
             self.parsestate = 1
         else:
             self.push_cursor(char)
 
-    def set_char(self, char, x=None, y=None):
+    def set_char(self, char, x: int | None = None, y: int | None = None) -> None:
         """
         Set character of either the current cursor position
         or a position given by 'x' and/or 'y' to 'char'.
@@ -701,7 +715,7 @@ class TermCanvas(Canvas):
         x, y = self.constrain_coords(x, y)
         self.term[y][x] = (self.attrspec, self.charset.current, char)
 
-    def constrain_coords(self, x, y, ignore_scrolling=False):
+    def constrain_coords(self, x: int, y: int, ignore_scrolling: bool = False) -> tuple[int, int]:
         """
         Checks if x/y are within the terminal and returns the corrected version.
         If 'ignore_scrolling' is set, constrain within the full size of the
@@ -725,7 +739,7 @@ class TermCanvas(Canvas):
 
         return x, y
 
-    def linefeed(self, reverse=False):
+    def linefeed(self, reverse: bool = False) -> None:
         """
         Move the cursor down (or up if reverse is True) one line but don't reset
         horizontal position.
@@ -749,18 +763,24 @@ class TermCanvas(Canvas):
 
         self.set_term_cursor(x, y)
 
-    def carriage_return(self):
+    def carriage_return(self) -> None:
         self.set_term_cursor(0, self.term_cursor[1])
 
-    def newline(self):
+    def newline(self) -> None:
         """
         Do a carriage return followed by a line feed.
         """
         self.carriage_return()
         self.linefeed()
 
-    def move_cursor(self, x, y, relative_x=False, relative_y=False,
-                    relative=False):
+    def move_cursor(
+        self,
+        x: int,
+        y: int,
+        relative_x: bool = False,
+        relative_y: bool = False,
+        relative: bool = False,
+    ) -> None:
         """
         Move cursor to position x/y while constraining terminal sizes.
         If 'relative' is True, x/y is relative to the current cursor
@@ -780,7 +800,7 @@ class TermCanvas(Canvas):
 
         self.set_term_cursor(x, y)
 
-    def push_char(self, char, x, y):
+    def push_char(self, char, x: int, y: int) -> None:
         """
         Push one character to current position and advance cursor to x/y.
         """
@@ -830,13 +850,12 @@ class TermCanvas(Canvas):
             self.is_rotten_cursor = False
             self.push_char(char, x, y)
 
-    def save_cursor(self, with_attrs=False):
+    def save_cursor(self, with_attrs: bool = False) -> None:
         self.saved_cursor = tuple(self.term_cursor)
         if with_attrs:
-            self.saved_attrs = (copy.copy(self.attrspec),
-                                copy.copy(self.charset))
+            self.saved_attrs = (copy.copy(self.attrspec), copy.copy(self.charset))
 
-    def restore_cursor(self, with_attrs=False):
+    def restore_cursor(self, with_attrs: bool = False) -> None:
         if self.saved_cursor is None:
             return
 
@@ -844,10 +863,9 @@ class TermCanvas(Canvas):
         self.set_term_cursor(x, y)
 
         if with_attrs and self.saved_attrs is not None:
-            self.attrspec, self.charset = (copy.copy(self.saved_attrs[0]),
-                                           copy.copy(self.saved_attrs[1]))
+            self.attrspec, self.charset = (copy.copy(self.saved_attrs[0]), copy.copy(self.saved_attrs[1]))
 
-    def tab(self, tabstop=8):
+    def tab(self, tabstop: int = 8) -> None:
         """
         Moves cursor to the next 'tabstop' filling everything in between
         with spaces.
@@ -864,7 +882,7 @@ class TermCanvas(Canvas):
         self.is_rotten_cursor = False
         self.set_term_cursor(x, y)
 
-    def scroll(self, reverse=False):
+    def scroll(self, reverse: bool = False) -> None:
         """
         Append a new line at the bottom and put the topmost line into the
         scrollback buffer.
@@ -880,20 +898,25 @@ class TermCanvas(Canvas):
             self.scrollback_buffer.append(killed)
             self.term.insert(self.scrollregion_end, self.empty_line())
 
-    def decaln(self):
+    def decaln(self) -> None:
         """
         DEC screen alignment test: Fill screen with E's.
         """
         for row in range(self.height):
             self.term[row] = self.empty_line('E')
 
-    def blank_line(self, row):
+    def blank_line(self, row) -> None:
         """
         Blank a single line at the specified row, without modifying other lines.
         """
         self.term[row] = self.empty_line()
 
-    def insert_chars(self, position=None, chars=1, char=None):
+    def insert_chars(
+        self,
+        position: tuple[int, int] | None = None,
+        chars: int = 1,
+        char: bytes | None = None,
+    ) -> None:
         """
         Insert 'chars' number of either empty characters - or those specified by
         'char' - before 'position' (or the current position if not specified)
@@ -917,7 +940,7 @@ class TermCanvas(Canvas):
             self.term[y].pop()
             chars -= 1
 
-    def remove_chars(self, position=None, chars=1):
+    def remove_chars(self, position: tuple[int, int] | None = None, chars: int = 1) -> None:
         """
         Remove 'chars' number of empty characters from 'position' (or the current
         position if not specified) pulling subsequent characters of the line to
@@ -936,7 +959,7 @@ class TermCanvas(Canvas):
             self.term[y].append(self.empty_char())
             chars -= 1
 
-    def insert_lines(self, row=None, lines=1):
+    def insert_lines(self, row: int | None = None, lines: int = 1) -> None:
         """
         Insert 'lines' of empty lines after the specified row, pushing all
         subsequent lines to the bottom. If no 'row' is specified, the current
@@ -955,7 +978,7 @@ class TermCanvas(Canvas):
             self.term.pop(self.scrollregion_end)
             lines -= 1
 
-    def remove_lines(self, row=None, lines=1):
+    def remove_lines(self, row: int | None = None, lines: int = 1) -> None:
         """
         Remove 'lines' number of lines at the specified row, pulling all
         subsequent lines to the top. If no 'row' is specified, the current row
@@ -974,7 +997,11 @@ class TermCanvas(Canvas):
             self.term.insert(self.scrollregion_end, self.empty_line())
             lines -= 1
 
-    def erase(self, start, end):
+    def erase(
+        self,
+        start: tuple[int, int] | tuple[int, int, bool],
+        end: tuple[int, int] | tuple[int, int, bool],
+    ) -> None:
         """
         Erase a region of the terminal. The 'start' tuple (x, y) defines the
         starting position of the erase, while end (x, y) the last position.
@@ -1009,7 +1036,7 @@ class TermCanvas(Canvas):
 
             y += 1
 
-    def sgi_to_attrspec(self, attrs, fg, bg, attributes):
+    def sgi_to_attrspec(self, attrs: Iterable[int], fg: int, bg: int, attributes: set[str]) -> AttrSpec | None:
         """
         Parse SGI sequence and return an AttrSpec representing the sequence
         including all earlier sequences specified as 'fg', 'bg' and
@@ -1063,7 +1090,7 @@ class TermCanvas(Canvas):
         if 'bold' in attributes and fg is not None:
             fg += 8
 
-        def _defaulter(color):
+        def _defaulter(color: int | None) -> str:
             if color is None:
                 return 'default'
             else:
@@ -1117,7 +1144,7 @@ class TermCanvas(Canvas):
         else:
             self.attrspec = attrspec
 
-    def reverse_attrspec(self, attrspec, undo=False):
+    def reverse_attrspec(self, attrspec: AttrSpec | None, undo: bool = False) -> AttrSpec:
         """
         Put standout mode to the 'attrspec' given and remove it if 'undo' is
         True.
@@ -1133,7 +1160,7 @@ class TermCanvas(Canvas):
             attrspec.foreground = ','.join(attrs)
         return attrspec
 
-    def reverse_video(self, undo=False):
+    def reverse_video(self, undo: bool = False) -> None:
         """
         Reverse video/scanmode (DECSCNM) by swapping fg and bg colors.
         """
@@ -1143,7 +1170,13 @@ class TermCanvas(Canvas):
                 attrs = self.reverse_attrspec(char[0], undo=undo)
                 self.term[y][x] = (attrs,) + char[1:]
 
-    def set_mode(self, mode, flag, qmark, reset):
+    def set_mode(
+        self,
+        mode: Literal[1, 3, 4, 5, 6, 7, 20, 25] | int,
+        flag: bool,
+        qmark: bool,
+        reset: bool,
+    ) -> None:
         """
         Helper method for csi_set_modes: set single mode.
         """
@@ -1176,7 +1209,7 @@ class TermCanvas(Canvas):
             elif mode == 20:
                 self.modes.lfnl = flag
 
-    def csi_set_modes(self, modes, qmark, reset=False):
+    def csi_set_modes(self, modes: Iterable[int], qmark: bool, reset: bool = False) -> None:
         """
         Set (DECSET/ECMA-48) or reset modes (DECRST/ECMA-48) if reset is True.
         """
@@ -1185,28 +1218,24 @@ class TermCanvas(Canvas):
         for mode in modes:
             self.set_mode(mode, flag, qmark, reset)
 
-    def csi_set_scroll(self, top=0, bottom=0):
+    def csi_set_scroll(self, top: int = 0, bottom: int = 0) -> None:
         """
         Set scrolling region, 'top' is the line number of first line in the
         scrolling region. 'bottom' is the line number of bottom line. If both
         are set to 0, the whole screen will be used (default).
         """
-        if top == 0:
+        if not top:
             top = 1
-        if bottom == 0:
+        if not bottom:
             bottom = self.height
 
         if top < bottom <= self.height:
-            self.scrollregion_start = self.constrain_coords(
-                0, top - 1, ignore_scrolling=True
-            )[1]
-            self.scrollregion_end = self.constrain_coords(
-                0, bottom - 1, ignore_scrolling=True
-            )[1]
+            self.scrollregion_start = self.constrain_coords(0, top - 1, ignore_scrolling=True)[1]
+            self.scrollregion_end = self.constrain_coords(0, bottom - 1, ignore_scrolling=True)[1]
 
             self.set_term_cursor(0, 0)
 
-    def csi_clear_tabstop(self, mode=0):
+    def csi_clear_tabstop(self, mode: Literal[0, 3] | int = 0):
         """
         Clear tabstop at current position or if 'mode' is 3, delete all
         tabstops.
@@ -1216,7 +1245,7 @@ class TermCanvas(Canvas):
         elif mode == 3:
             self.set_tabstop(clear=True)
 
-    def csi_get_device_attributes(self, qmark):
+    def csi_get_device_attributes(self, qmark: bool) -> None:
         """
         Report device attributes (what are you?). In our case, we'll report
         ourself as a VT102 terminal.
@@ -1224,7 +1253,7 @@ class TermCanvas(Canvas):
         if not qmark:
             self.widget.respond(f"{ESC}[?6c")
 
-    def csi_status_report(self, mode):
+    def csi_status_report(self, mode: Literal[5, 6] | int) -> None:
         """
         Report various information about the terminal status.
         Information is queried by 'mode', where possible values are:
@@ -1238,7 +1267,7 @@ class TermCanvas(Canvas):
             x, y = self.term_cursor
             self.widget.respond(ESC + '[%d;%dR' % (y + 1, x + 1))
 
-    def csi_erase_line(self, mode):
+    def csi_erase_line(self, mode: Literal[0, 1, 2] | int) -> None:
         """
         Erase current line, modes are:
             0 -> erase from cursor to end of line.
@@ -1254,7 +1283,7 @@ class TermCanvas(Canvas):
         elif mode == 2:
             self.blank_line(y)
 
-    def csi_erase_display(self, mode):
+    def csi_erase_display(self, mode: Literal[0, 1, 2] | int) -> None:
         """
         Erase display, modes are:
             0 -> erase from cursor to end of display.
@@ -1268,7 +1297,7 @@ class TermCanvas(Canvas):
         elif mode == 2:
             self.clear(cursor=self.term_cursor)
 
-    def csi_set_keyboard_leds(self, mode=0):
+    def csi_set_keyboard_leds(self, mode: Literal[0, 1, 2, 3] | int = 0) -> None:
         """
         Set keyboard LEDs, modes are:
             0 -> clear all LEDs
@@ -1289,26 +1318,32 @@ class TermCanvas(Canvas):
         if mode in states:
             self.widget.leds(states[mode])
 
-    def clear(self, cursor=None):
+    def clear(self, cursor: tuple[int, int] | None = None) -> None:
         """
         Clears the whole terminal screen and resets the cursor position
         to (0, 0) or to the coordinates given by 'cursor'.
         """
-        self.term = [self.empty_line() for x in range(self.height)]
+        self.term = [self.empty_line() for _ in range(self.height)]
 
         if cursor is None:
             self.set_term_cursor(0, 0)
         else:
             self.set_term_cursor(*cursor)
 
-    def cols(self):
+    def cols(self) -> int:
         return self.width
 
-    def rows(self):
+    def rows(self) -> int:
         return self.height
 
-    def content(self, trim_left=0, trim_right=0, cols=None, rows=None,
-                attr_map=None):
+    def content(
+        self,
+        trim_left: int = 0,
+        trim_right: int = 0,
+        cols: int | None = None,
+        rows: int | None = None,
+        attr=None,
+    ):
         if self.scrolling_up == 0:
             yield from self.term
         else:
@@ -1329,11 +1364,11 @@ class Terminal(Widget):
 
     def __init__(
         self,
-        command,
-        env=None,
+        command: Sequence[str] | None,
+        env: Mapping[str, str] | Iterable[Sequence[str]] | None = None,
         main_loop=None,
-        escape_sequence=None,
-        encoding='utf-8',
+        escape_sequence: str | None = None,
+        encoding: str = 'utf-8',
     ):
         """
         A terminal emulator within a widget.
@@ -1379,7 +1414,7 @@ class Terminal(Widget):
         self.keygrab = False
         self.last_key = None
 
-        self.response_buffer = []
+        self.response_buffer: list[str] = []
 
         self.term_modes = TermModes()
 
@@ -1390,7 +1425,7 @@ class Terminal(Widget):
 
         self.width = None
         self.height = None
-        self.term = None
+        self.term: TermCanvas | None = None
         self.has_focus = False
         self.terminated = False
 
@@ -1450,8 +1485,7 @@ class Terminal(Widget):
 
         if self.pid > 0:
             self.set_termsize(0, 0)
-            for sig in (signal.SIGHUP, signal.SIGCONT, signal.SIGINT,
-                        signal.SIGTERM, signal.SIGKILL):
+            for sig in (signal.SIGHUP, signal.SIGCONT, signal.SIGINT, signal.SIGTERM, signal.SIGKILL):
                 try:
                     os.kill(self.pid, sig)
                     pid, status = os.waitpid(self.pid, os.WNOHANG)
@@ -1474,7 +1508,7 @@ class Terminal(Widget):
     def leds(self, which) -> None:
         self._emit('leds', which)
 
-    def respond(self, string) -> None:
+    def respond(self, string: str) -> None:
         """
         Respond to the underlying application with 'string'.
         """
@@ -1573,7 +1607,7 @@ class Terminal(Widget):
         try:
             data = os.read(self.master, 4096)
         except OSError as e:
-            if e.errno == 5: # EIO, child terminated
+            if e.errno == 5:  # EIO, child terminated
                 data = EOF
             elif e.errno == errno.EWOULDBLOCK: # empty buffer
                 return
@@ -1596,7 +1630,7 @@ class Terminal(Widget):
         if key == "window resize":
             width, height = size
             self.touch_term(width, height)
-            return
+            return None
 
         if (self.last_key == self.escape_sequence
             and key == self.escape_sequence):
@@ -1609,18 +1643,18 @@ class Terminal(Widget):
                 # stop grabbing the terminal
                 self.keygrab = False
                 self.last_key = key
-                return
+                return None
         else:
             if key == 'page up':
                 self.term.scroll_buffer()
                 self.last_key = key
                 self._invalidate()
-                return
+                return None
             elif key == 'page down':
                 self.term.scroll_buffer(up=False)
                 self.last_key = key
                 self._invalidate()
-                return
+                return None
             elif (self.last_key == self.escape_sequence
                   and key != self.escape_sequence):
                 # hand down keypress directly after ungrab.
@@ -1630,7 +1664,7 @@ class Terminal(Widget):
                 # start grabbing the terminal
                 self.keygrab = True
                 self.last_key = key
-                return
+                return None
             elif self._command_map[key] is None or key == 'enter':
                 # printable character or escape sequence means:
                 # lock in terminal...
@@ -1663,3 +1697,5 @@ class Terminal(Widget):
         key = key.encode(self.encoding, 'ignore')
 
         os.write(self.master, key)
+
+        return None
