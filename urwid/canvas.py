@@ -244,7 +244,7 @@ class Canvas:
     def _get_widget_info(self):
         warnings.warn(
             f"Method `{self.__class__.__name__}._get_widget_info` is deprecated, "
-            f"please use property `{self.__class__.__name__}widget_info`",
+            f"please use property `{self.__class__.__name__}.widget_info`",
             DeprecationWarning,
             stacklevel=2,
         )
