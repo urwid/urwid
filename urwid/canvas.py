@@ -261,7 +261,7 @@ class Canvas:
     def _text_content(self):
         warnings.warn(
             f"Method `{self.__class__.__name__}._text_content` is deprecated, "
-            f"please use property `{self.__class__.__name__}text`",
+            f"please use property `{self.__class__.__name__}.text`",
             DeprecationWarning,
             stacklevel=2,
         )
