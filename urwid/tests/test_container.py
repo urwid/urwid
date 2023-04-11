@@ -256,11 +256,10 @@ class ColumnsTest(unittest.TestCase):
         c.mouse_event((10,), 'foo', 1, 0, 0, True)
         c.get_pref_col((10,))
 
-    def test_lenght(self):
+    def test_length(self):
         columns = urwid.Columns(urwid.Text(c) for c in "ABC")
         self.assertEqual(3, len(columns))
         self.assertEqual(3, len(columns.contents))
-
 
 
 class OverlayTest(unittest.TestCase):
@@ -283,7 +282,7 @@ class OverlayTest(unittest.TestCase):
             urwid.SolidFill('B'),
             'right', 1, 'bottom', 1).get_cursor_coords((2,2)), (1,1))
 
-    def test_lenght(self):
+    def test_length(self):
         ovl = urwid.Overlay(
             urwid.SolidFill('X'),
             urwid.SolidFill('O'),
@@ -319,7 +318,7 @@ class GridFlowTest(unittest.TestCase):
         self.assertEqual(gf.keypress((20,), "enter"), None)
         call_back.assert_called_with(button)
 
-    def test_lenght(self):
+    def test_length(self):
         grid = urwid.GridFlow((urwid.Text(c) for c in "ABC"), 1, 0, 0, 'left')
         self.assertEqual(3, len(grid))
         self.assertEqual(3, len(grid.contents))
