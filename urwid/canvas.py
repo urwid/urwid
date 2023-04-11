@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import typing
+import warnings
 import weakref
 from collections.abc import Sequence
 
@@ -203,10 +204,6 @@ class Canvas:
     _renamed_error = CanvasError("The old Canvas class is now called "
         "TextCanvas. Canvas is now the base class for all canvas "
         "classes.")
-    _old_repr_error = CanvasError("The internal representation of "
-        "canvases is no longer stored as .text, .attr, and .cs "
-        "lists, please see the TextCanvas class for the new "
-        "representation of canvas content.")
 
     def __init__(
         self,
@@ -240,23 +237,35 @@ class Canvas:
             raise self._finalized_error
         self._widget_info = widget, size, focus
 
-    def _get_widget_info(self):
+    @property
+    def widget_info(self):
         return self._widget_info
-    widget_info = property(_get_widget_info)
 
-    def _raise_old_repr_error(self, val=None) -> typing.NoReturn:
-        raise self._old_repr_error
+    def _get_widget_info(self):
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._get_widget_info` is deprecated, "
+            f"please use property `{self.__class__.__name__}widget_info`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.widget_info
 
-    def _text_content(self):
+    @property
+    def text(self) -> list[bytes]:
         """
         Return the text content of the canvas as a list of strings,
         one for each row.
         """
         return [b''.join([text for (attr, cs, text) in row]) for row in self.content()]
 
-    text = property(_text_content, _raise_old_repr_error)
-    attr = property(_raise_old_repr_error, _raise_old_repr_error)
-    cs = property(_raise_old_repr_error, _raise_old_repr_error)
+    def _text_content(self):
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._text_content` is deprecated, "
+            f"please use property `{self.__class__.__name__}text`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.text
 
     def content(
         self,

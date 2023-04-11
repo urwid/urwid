@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import typing
+import warnings
 from collections.abc import MutableSequence
 
 from urwid import signals
@@ -118,14 +119,23 @@ class SimpleListWalker(MonitoredList, ListWalker):
         self.focus = 0
         self.wrap_around = wrap_around
 
-    def _get_contents(self):
+    @property
+    def contents(self):
         """
         Return self.
 
         Provides compatibility with old SimpleListWalker class.
         """
         return self
-    contents = property(_get_contents)
+
+    def _get_contents(self):
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._get_contents` is deprecated, "
+            f"please use property`{self.__class__.__name__}.contents`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.contents
 
     def _modified(self):
         if self.focus >= len(self):
@@ -257,14 +267,14 @@ class ListBox(Widget, WidgetContainerMixin):
     _selectable = True
     _sizing = frozenset([BOX])
 
-    def __init__(self, body):
+    def __init__(self, body: ListWalker):
         """
         :param body: a ListWalker subclass such as
             :class:`SimpleFocusListWalker` that contains
             widgets to be displayed inside the list box
         :type body: ListWalker
         """
-        self._set_body(body)
+        self.body = body
 
         # offset_rows is the number of rows between the top of the view
         # and the top of the focused item
@@ -284,10 +294,16 @@ class ListBox(Widget, WidgetContainerMixin):
         # variable for delayed valign change used by set_focus_valign
         self.set_focus_valign_pending = None
 
-    def _get_body(self):
+    @property
+    def body(self):
+        """
+        a ListWalker subclass such as :class:`SimpleFocusListWalker` that contains
+        widgets to be displayed inside the list box
+        """
         return self._body
 
-    def _set_body(self, body):
+    @body.setter
+    def body(self, body):
         try:
             disconnect_signal(self._body, "modified", self._invalidate)
         except AttributeError:
@@ -306,10 +322,23 @@ class ListBox(Widget, WidgetContainerMixin):
             self.render = nocache_widget_render_instance(self)
         self._invalidate()
 
-    body = property(_get_body, _set_body, doc="""
-    a ListWalker subclass such as :class:`SimpleFocusListWalker` that contains
-    widgets to be displayed inside the list box
-    """)
+    def _get_body(self):
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._get_body` is deprecated, "
+            f"please use property `{self.__class__.__name__}.body`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.body
+
+    def _set_body(self, body):
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._set_body` is deprecated, "
+            f"please use property `{self.__class__.__name__}.body`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.body = body
 
     def calculate_visible(self, size: tuple[int, int], focus: bool = False):
         """
@@ -591,13 +620,14 @@ class ListBox(Widget, WidgetContainerMixin):
         """
         return self._body.get_focus()
 
-    def _get_focus(self):
+    @property
+    def focus(self):
         """
+        the child widget in focus or None when ListBox is empty.
+
         Return the widget in focus according to our :obj:`list walker <ListWalker>`.
         """
         return self._body.get_focus()[0]
-    focus = property(_get_focus,
-                     doc="the child widget in focus or None when ListBox is empty")
 
     def _get_focus_position(self):
         """

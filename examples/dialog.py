@@ -118,16 +118,16 @@ class InputDialogDisplay(DialogDisplay):
 
         DialogDisplay.__init__(self, text, height, width, body)
 
-        self.frame.set_focus('body')
+        self.frame.focus_position = 'body'
 
     def unhandled_key(self, size, k):
         if k in ('up','page up'):
-            self.frame.set_focus('body')
+            self.frame.focus_position = 'body'
         if k in ('down','page down'):
-            self.frame.set_focus('footer')
+            self.frame.focus_position = 'footer'
         if k == 'enter':
             # pass enter to the "ok" button
-            self.frame.set_focus('footer')
+            self.frame.focus_position = 'footer'
             self.view.keypress( size, k )
 
     def on_exit(self, exitcode):
@@ -148,9 +148,9 @@ class TextDialogDisplay(DialogDisplay):
 
     def unhandled_key(self, size, k):
         if k in ('up','page up','down','page down'):
-            self.frame.set_focus('body')
+            self.frame.focus_position = 'body'
             self.view.keypress( size, k )
-            self.frame.set_focus('footer')
+            self.frame.focus_position = 'footer'
 
 
 class ListDialogDisplay(DialogDisplay):
@@ -178,17 +178,17 @@ class ListDialogDisplay(DialogDisplay):
         lb = urwid.AttrWrap( lb, "selectable" )
         DialogDisplay.__init__(self, text, height, width, lb )
 
-        self.frame.set_focus('body')
+        self.frame.focus_position = 'body'
 
     def unhandled_key(self, size, k):
         if k in ('up','page up'):
-            self.frame.set_focus('body')
+            self.frame.focus_position = 'body'
         if k in ('down','page down'):
-            self.frame.set_focus('footer')
+            self.frame.focus_position = 'footer'
         if k == 'enter':
             # pass enter to the "ok" button
-            self.frame.set_focus('footer')
-            self.buttons.set_focus(0)
+            self.frame.focus_position = 'footer'
+            self.buttons.focus_position = 0
             self.view.keypress( size, k )
 
     def on_exit(self, exitcode):

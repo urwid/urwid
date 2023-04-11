@@ -570,7 +570,7 @@ class CalcDisplay:
     def __init__(self):
         self.columns = urwid.Columns([HelpColumn(), CellColumn("A")], 1)
         self.col_list = self.columns.widget_list
-        self.columns.set_focus_column( 1 )
+        self.columns.focus_position = 1
         view = urwid.AttrWrap(self.columns, 'body')
         self.view = urwid.Frame(view) # for showing messages
         self.col_link = {}
@@ -629,7 +629,7 @@ class CalcDisplay:
         if key is None:
             return
 
-        if self.columns.get_focus_column() == 0:
+        if self.columns.focus_position == 0:
             if key not in ('up','down','page up','page down'):
                 raise CalcEvent(E_invalid_in_help_col)
 
@@ -648,41 +648,41 @@ class CalcDisplay:
         if key.upper() in COLUMN_KEYS:
             # column switch
             i = COLUMN_KEYS.index(key.upper())
-            if i >= len( self.col_list ):
+            if i >= len(self.columns):
                 raise CalcEvent(E_no_such_column % key.upper())
-            self.columns.set_focus_column( i )
+            self.columns.focus_position = i
             return
         elif key == "(":
             # open a new column
-            if len( self.col_list ) >= len(COLUMN_KEYS):
+            if len(self.columns) >= len(COLUMN_KEYS):
                 raise CalcEvent(E_no_more_columns)
-            i = self.columns.get_focus_column()
+            i = self.columns.focus_position
             if i == 0:
                 # makes no sense in help column
                 return key
-            col = self.col_list[i]
-            new_letter = COLUMN_KEYS[len(self.col_list)]
-            parent, child = col.create_child( new_letter )
+            col = self.columns.contents[i][0]
+            new_letter = COLUMN_KEYS[len(self.columns)]
+            parent, child = col.create_child(new_letter )
             if child is None:
                 # something invalid in focus
                 return key
             self.col_list.append(child)
             self.set_link( parent, col, child )
-            self.columns.set_focus_column(len(self.col_list)-1)
+            self.columns.focus_position = len(self.columns)-1
 
         elif key == ")":
-            i = self.columns.get_focus_column()
+            i = self.columns.focus_position
             if i == 0:
                 # makes no sense in help column
                 return key
-            col = self.col_list[i]
+            col = self.columns.contents[i][0]
             parent, pcol = self.get_parent( col )
             if parent is None:
                 # column has no parent
                 raise CalcEvent(E_no_parent_column)
 
             new_i = self.col_list.index( pcol )
-            self.columns.set_focus_column( new_i )
+            self.columns.focus_position = new_i
         else:
             return key
 
@@ -704,7 +704,7 @@ class CalcDisplay:
         """Return True if the column passed is empty."""
 
         i = COLUMN_KEYS.index(letter)
-        col = self.col_list[i]
+        col = self.columns.contents[i][0]
         return col.is_empty()
 
 
@@ -712,19 +712,19 @@ class CalcDisplay:
         """Delete the column with the given letter."""
 
         i = COLUMN_KEYS.index(letter)
-        col = self.col_list[i]
+        col = self.columns.contents[i][0]
 
         parent, pcol = self.get_parent( col )
 
-        f = self.columns.get_focus_column()
+        f = self.columns.focus_position
         if f == i:
             # move focus to the parent column
             f = self.col_list.index(pcol)
-            self.columns.set_focus_column(f)
+            self.columns.focus_position = f
 
         parent.remove_child()
         pcol.update_results(parent)
-        del self.col_list[i]
+        del self.columns.contents[i]
 
         # delete children of this column
         keep_right_cols = []
@@ -742,8 +742,8 @@ class CalcDisplay:
         self.col_list[i:] = keep_right_cols
 
         # fix the letter assignments
-        for j in range(i, len(self.col_list)):
-            col = self.col_list[j]
+        for j in range(i, len(self.columns)):
+            col = self.columns.contents[j][0]
             # fix the column heading
             col.set_letter( COLUMN_KEYS[j] )
             parent, pcol = self.get_parent( col )
@@ -753,8 +753,8 @@ class CalcDisplay:
     def update_parent_columns(self):
         "Update the parent columns of the current focus column."
 
-        f = self.columns.get_focus_column()
-        col = self.col_list[f]
+        f = self.columns.focus_position
+        col = self.columns.contents[f][0]
         while 1:
             parent, pcol = self.get_parent(col)
             if pcol is None:
@@ -765,13 +765,11 @@ class CalcDisplay:
                 return
             col = pcol
 
-
     def get_expression_result(self):
         """Return (expression, result) as strings."""
 
-        col = self.col_list[1]
-        return col.get_expression(), "%d"%col.get_result()
-
+        col = self.columns.contents[1][0]
+        return col.get_expression(), f"{col.get_result():d}"
 
 
 class CalcNumLayout(urwid.TextLayout):

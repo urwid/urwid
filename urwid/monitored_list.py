@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import functools
 import typing
+import warnings
 from collections.abc import Callable
 
 if typing.TYPE_CHECKING:
@@ -131,20 +132,26 @@ class MonitoredFocusList(MonitoredList):
     def __repr__(self):
         return f"{self.__class__.__name__}({list(self)!r}, focus={self.focus!r})"
 
-    def _get_focus(self) -> int | None:
+    @property
+    def focus(self) -> int | None:
         """
+        Get/set the focus index.  This value is read as None when the list
+        is empty, and may only be set to a value between 0 and len(self)-1
+        or an IndexError will be raised.
+
         Return the index of the item "in focus" or None if
         the list is empty.
 
-        >>> MonitoredFocusList([1,2,3], focus=2)._get_focus()
+        >>> MonitoredFocusList([1,2,3], focus=2).focus
         2
-        >>> MonitoredFocusList()._get_focus()
+        >>> MonitoredFocusList().focus
         """
         if not self:
             return None
         return self._focus
 
-    def _set_focus(self, index: int) -> None:
+    @focus.setter
+    def focus(self, index: int) -> None:
         """
         index -- index into this list, any index out of range will
             raise an IndexError, except when the list is empty and
@@ -157,11 +164,11 @@ class MonitoredFocusList(MonitoredList):
         instance with set_focus_changed_callback().
 
         >>> ml = MonitoredFocusList([9, 10, 11])
-        >>> ml._set_focus(2); ml._get_focus()
+        >>> ml.focus = 2; ml.focus
         2
-        >>> ml._set_focus(0); ml._get_focus()
+        >>> ml.focus = 0; ml.focus
         0
-        >>> ml._set_focus(-2)
+        >>> ml.focus = -2
         Traceback (most recent call last):
         ...
         IndexError: focus index is out of range: -2
@@ -178,11 +185,23 @@ class MonitoredFocusList(MonitoredList):
             self._focus_changed(index)
         self._focus = index
 
-    focus = property(_get_focus, _set_focus, doc="""
-        Get/set the focus index.  This value is read as None when the list
-        is empty, and may only be set to a value between 0 and len(self)-1
-        or an IndexError will be raised.
-        """)
+    def _get_focus(self) -> int | None:
+        warnings.warn(
+            f"method `{self.__class__.__name__}._get_focus` is deprecated, "
+            f"please use `{self.__class__.__name__}.focus` property",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.focus
+
+    def _set_focus(self, index: int) -> None:
+        warnings.warn(
+            f"method `{self.__class__.__name__}._set_focus` is deprecated, "
+            f"please use `{self.__class__.__name__}.focus` property",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.focus = index
 
     def _focus_changed(self, new_focus: int):
         pass
@@ -306,7 +325,7 @@ class MonitoredFocusList(MonitoredList):
         else:
             focus = self._adjust_focus_on_contents_modified(slice(y, y+1 or None))
         rval = super().__delitem__(y)
-        self._set_focus(focus)
+        self.focus = focus
         return rval
 
     def __setitem__(self, i: int | slice, y):
@@ -343,7 +362,7 @@ class MonitoredFocusList(MonitoredList):
         else:
             focus = self._adjust_focus_on_contents_modified(slice(i, i+1 or None), [y])
         rval = super().__setitem__(i, y)
-        self._set_focus(focus)
+        self.focus = focus
         return rval
 
     def __imul__(self, n: int):
@@ -366,7 +385,7 @@ class MonitoredFocusList(MonitoredList):
         else:  # all contents are being removed
             focus = self._adjust_focus_on_contents_modified(slice(0, len(self)))
         rval = super().__imul__(n)
-        self._set_focus(focus)
+        self.focus = focus
         return rval
 
     def append(self, item):
@@ -381,7 +400,7 @@ class MonitoredFocusList(MonitoredList):
         focus = self._adjust_focus_on_contents_modified(
             slice(len(self), len(self)), [item])
         rval = super().append(item)
-        self._set_focus(focus)
+        self.focus = focus
         return rval
 
     def extend(self, items):
@@ -396,7 +415,7 @@ class MonitoredFocusList(MonitoredList):
         focus = self._adjust_focus_on_contents_modified(
             slice(len(self), len(self)), items)
         rval = super().extend(items)
-        self._set_focus(focus)
+        self.focus = focus
         return rval
 
     def insert(self, index: int, item):
@@ -411,7 +430,7 @@ class MonitoredFocusList(MonitoredList):
         """
         focus = self._adjust_focus_on_contents_modified(slice(index, index), [item])
         rval = super().insert(index, item)
-        self._set_focus(focus)
+        self.focus = focus
         return rval
 
     def pop(self, index: int = -1):
@@ -432,7 +451,7 @@ class MonitoredFocusList(MonitoredList):
         """
         focus = self._adjust_focus_on_contents_modified(slice(index, index + 1 or None))
         rval = super().pop(index)
-        self._set_focus(focus)
+        self.focus = focus
         return rval
 
     def remove(self, value):
@@ -449,7 +468,7 @@ class MonitoredFocusList(MonitoredList):
         focus = self._adjust_focus_on_contents_modified(slice(index,
             index+1 or None))
         rval = super().remove(value)
-        self._set_focus(focus)
+        self.focus = focus
         return rval
 
     def reverse(self):
@@ -459,7 +478,7 @@ class MonitoredFocusList(MonitoredList):
         MonitoredFocusList([4, 3, 2, 1, 0], focus=3)
         """
         rval = super().reverse()
-        self._set_focus(max(0, len(self) - self._focus - 1))
+        self.focus = max(0, len(self) - self._focus - 1)
         return rval
 
     def sort(self, **kwargs):
@@ -472,7 +491,7 @@ class MonitoredFocusList(MonitoredList):
             return
         value = self[self._focus]
         rval = super().sort(**kwargs)
-        self._set_focus(self.index(value))
+        self.focus = self.index(value)
         return rval
 
     if hasattr(list, 'clear'):

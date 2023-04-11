@@ -22,8 +22,10 @@
 
 from __future__ import annotations
 
+import abc
 import typing
-from collections.abc import Iterable, Sequence
+import warnings
+from collections.abc import Iterable, Iterator, Sequence
 from itertools import chain, repeat
 
 from urwid.canvas import CanvasCombine, CanvasJoin, CanvasOverlay, CompositeCanvas, SolidCanvas
@@ -70,7 +72,7 @@ class WidgetContainerMixin:
     """
     Mixin class for widget containers implementing common container methods
     """
-    def __getitem__(self, position):
+    def __getitem__(self, position) -> Widget:
         """
         Container short-cut for self.contents[position][0].base_widget
         which means "give me the child widget at position without any
@@ -136,25 +138,109 @@ class WidgetContainerMixin:
                 return out
             out.append(w)
 
+    @property
+    @abc.abstractmethod
+    def focus(self) -> Widget:
+        """
+        Read-only property returning the child widget in focus for
+        container widgets.  This default implementation
+        always returns ``None``, indicating that this widget has no children.
+        """
+
+    def _get_focus(self) -> Widget:
+        warnings.warn(
+            f"method `{self.__class__.__name__}._get_focus` is deprecated, "
+            f"please use `{self.__class__.__name__}.focus` property",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.focus
+
 
 class WidgetContainerListContentsMixin:
     """
     Mixin class for widget containers whose positions are indexes into
     a list available as self.contents.
     """
-    def __iter__(self):
+    def __iter__(self) -> Iterator[int]:
         """
         Return an iterable of positions for this container from first
         to last.
         """
         return iter(range(len(self.contents)))
 
-    def __reversed__(self):
+    def __reversed__(self) -> Iterator[int]:
         """
         Return an iterable of positions for this container from last
         to first.
         """
         return iter(range(len(self.contents) - 1, -1, -1))
+
+    def __len__(self) -> int:
+        return len(self.contents)
+
+    @property
+    @abc.abstractmethod
+    def contents(self) -> list[tuple[Widget, typing.Any]]:
+        """The contents of container as a list of (widget, options)"""
+
+    @contents.setter
+    def contents(self, new_contents: list[tuple[Widget, typing.Any]]) -> None:
+        """The contents of container as a list of (widget, options)"""
+
+    def _get_contents(self) -> list[tuple[Widget, typing.Any]]:
+        warnings.warn(
+            f"method `{self.__class__.__name__}._get_contents` is deprecated, "
+            f"please use `{self.__class__.__name__}.contents` property",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.contents
+
+    def _set_contents(self, c: list[tuple[Widget, typing.Any]]) -> None:
+        warnings.warn(
+            f"method `{self.__class__.__name__}._set_contents` is deprecated, "
+            f"please use `{self.__class__.__name__}.contents` property",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.contents = c
+
+    @property
+    @abc.abstractmethod
+    def focus_position(self) -> int | None:
+        """
+        index of child widget in focus.
+        """
+
+    @focus_position.setter
+    def focus_position(self, position: int) -> None:
+        """
+        index of child widget in focus.
+        """
+
+    def _get_focus_position(self) -> int | None:
+        warnings.warn(
+            f"method `{self.__class__.__name__}._get_focus_position` is deprecated, "
+            f"please use `{self.__class__.__name__}.focus_position` property",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.focus_position
+
+    def _set_focus_position(self, position: int) -> None:
+        """
+        Set the widget in focus.
+
+        position -- index of child widget to be made focus
+        """
+        warnings.warn(
+            f"method `{self.__class__.__name__}._set_focus_position` is deprecated, "
+            f"please use `{self.__class__.__name__}.focus_position` property",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.focus_position = position
 
 
 class GridFlowError(Exception):
@@ -172,14 +258,14 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
 
     def __init__(
         self,
-        cells: Sequence[Widget],
+        cells: Iterable[Widget],
         cell_width: int,
         h_sep: int,
         v_sep: int,
         align: Literal['left', 'center', 'right'] | tuple[Literal['relative'], int],
     ):
         """
-        :param cells: list of flow widgets to display
+        :param cells: iterable of flow widgets to display
         :param cell_width: column width for each cell
         :param h_sep: blank columns between each cell horizontally
         :param v_sep: blank rows between cells vertically
@@ -198,7 +284,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         self._cache_maxcol = None
         super().__init__(None)
         # set self._w to something other than None
-        self.get_display_widget(((h_sep+cell_width)*len(cells),))
+        self.get_display_widget(((h_sep+cell_width)*len(self._contents),))
 
     def _invalidate(self) -> None:
         self._cache_maxcol = None
@@ -213,47 +299,97 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             except (TypeError, ValueError):
                 raise GridFlowError(f"added content invalid {item!r}")
 
-    def _get_cells(self):
-        ml = MonitoredList(w for w, t in self.contents)
-        def user_modified():
-            self._set_cells(ml)
-        ml.set_modified_callback(user_modified)
-        return ml
-
-    def _set_cells(self, widgets):
-        focus_position = self.focus_position
-        self.contents = [
-            (new, (GIVEN, self._cell_width)) for new in widgets]
-        if focus_position < len(widgets):
-            self.focus_position = focus_position
-    cells = property(_get_cells, _set_cells, doc="""
+    @property
+    def cells(self):
+        """
         A list of the widgets in this GridFlow
 
         .. note:: only for backwards compatibility. You should use the new
             standard container property :attr:`contents` to modify GridFlow
             contents.
-        """)
+        """
+        warnings.warn(
+            "only for backwards compatibility."
+            "You should use the new standard container property `contents` to modify GridFlow",
+            PendingDeprecationWarning,
+            stacklevel=2
+        )
+        ml = MonitoredList(w for w, t in self.contents)
 
-    def _get_cell_width(self) -> int:
+        def user_modified():
+            self.cells = ml
+        ml.set_modified_callback(user_modified)
+        return ml
+
+    @cells.setter
+    def cells(self, widgets: Sequence[Widget]):
+        warnings.warn(
+            "only for backwards compatibility."
+            "You should use the new standard container property `contents` to modify GridFlow",
+            PendingDeprecationWarning,
+            stacklevel=2
+        )
+        focus_position = self.focus_position
+        self.contents = [
+            (new, (GIVEN, self._cell_width)) for new in widgets]
+        if focus_position < len(widgets):
+            self.focus_position = focus_position
+
+    def _get_cells(self):
+        warnings.warn(
+            "only for backwards compatibility."
+            "You should use the new standard container property `contents` to modify GridFlow",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.cells
+
+    def _set_cells(self, widgets: Sequence[Widget]):
+        warnings.warn(
+            "only for backwards compatibility."
+            "You should use the new standard container property `contents` to modify GridFlow",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.cells = widgets
+
+    @property
+    def cell_width(self) -> int:
+        """
+        The width of each cell in the GridFlow. Setting this value affects
+        all cells.
+        """
         return self._cell_width
 
-    def _set_cell_width(self, width: int) -> None:
+    @cell_width.setter
+    def cell_width(self, width: int) -> None:
         focus_position = self.focus_position
         self.contents = [
             (w, (GIVEN, width)) for (w, options) in self.contents]
         self.focus_position = focus_position
         self._cell_width = width
-    cell_width = property(_get_cell_width, _set_cell_width, doc="""
-        The width of each cell in the GridFlow. Setting this value affects
-        all cells.
-        """)
 
-    def _get_contents(self):
-        return self._contents
+    def _get_cell_width(self) -> int:
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._get_cell_width` is deprecated, "
+            f"please use property `{self.__class__.__name__}.cell_width`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.cell_width
 
-    def _set_contents(self, c):
-        self._contents[:] = c
-    contents = property(_get_contents, _set_contents, doc="""
+    def _set_cell_width(self, width: int) -> None:
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._set_cell_width` is deprecated, "
+            f"please use property `{self.__class__.__name__}.cell_width`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.cell_width = width
+
+    @property
+    def contents(self):
+        """
         The contents of this GridFlow as a list of (widget, options)
         tuples.
 
@@ -265,7 +401,12 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         widget will update automatically.
 
         .. seealso:: Create new options tuples with the :meth:`options` method.
-        """)
+        """
+        return self._contents
+
+    @contents.setter
+    def contents(self, c):
+        self._contents[:] = c
 
     def options(
         self,
@@ -284,7 +425,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             width_amount = self._cell_width
         return (width_type, width_amount)
 
-    def set_focus(self, cell: Widget | int):
+    def set_focus(self, cell: Widget | int) -> None:
         """
         Set the cell in focus, for backwards compatibility.
 
@@ -294,9 +435,23 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         :param cell: contained element to focus
         :type cell: Widget or int
         """
+        warnings.warn(
+            "only for backwards compatibility."
+            "You may also use the new standard container property `focus_position` to set the focus.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         if isinstance(cell, int):
-            return self._set_focus_position(cell)
-        return self._set_focus_cell(cell)
+            self.focus_position = cell
+            return
+        self.focus_cell = cell
+
+    @property
+    def focus(self) -> Widget | None:
+        """the child widget in focus or None when GridFlow is empty"""
+        if not self.contents:
+            return None
+        return self.contents[self.focus_position][0]
 
     def get_focus(self):
         """
@@ -305,37 +460,62 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         .. note:: only for backwards compatibility. You may also use the new
             standard container property :attr:`focus` to get the focus.
         """
-        if not self.contents:
-            return None
-        return self.contents[self.focus_position][0]
-    focus = property(get_focus,
-        doc="the child widget in focus or None when GridFlow is empty")
+        warnings.warn(
+            "only for backwards compatibility."
+            "You may also use the new standard container property `focus` to get the focus.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        return self.focus
 
-    def _set_focus_cell(self, cell: Widget) -> None:
+    @property
+    def focus_cell(self):
+        warnings.warn(
+            "only for backwards compatibility."
+            "You may also use the new standard container property"
+            "`focus` to get the focus and `focus_position` to get/set the cell in focus by index",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        return self.focus
+
+    @focus_cell.setter
+    def focus_cell(self, cell: Widget) -> None:
+        warnings.warn(
+            "only for backwards compatibility."
+            "You may also use the new standard container property"
+            "`focus` to get the focus and `focus_position` to get/set the cell in focus by index",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         for i, (w, options) in enumerate(self.contents):
             if cell == w:
                 self.focus_position = i
                 return
         raise ValueError(f"Widget not found in GridFlow contents: {cell!r}")
-    focus_cell = property(get_focus, _set_focus_cell, doc="""
-        The widget in focus, for backwards compatibility.
 
-        .. note:: only for backwards compatibility. You should use the new
-            standard container property :attr:`focus` to get the widget in
-            focus and :attr:`focus_position` to get/set the cell in focus by
-            index.
-        """)
+    def _set_focus_cell(self, cell: Widget) -> None:
+        warnings.warn(
+            "only for backwards compatibility."
+            "You may also use the new standard container property"
+            "`focus` to get the focus and `focus_position` to get/set the cell in focus by index",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.focus_cell = cell
 
-    def _get_focus_position(self) -> int | None:
+    @property
+    def focus_position(self) -> int | None:
         """
-        Return the index of the widget in focus or None if this GridFlow is
-        empty.
+        index of child widget in focus.
+        Raises :exc:`IndexError` if read when GridFlow is empty, or when set to an invalid index.
         """
         if not self.contents:
             raise IndexError("No focus_position, GridFlow is empty")
         return self.contents.focus
 
-    def _set_focus_position(self, position: int) -> None:
+    @focus_position.setter
+    def focus_position(self, position: int) -> None:
         """
         Set the widget in focus.
 
@@ -347,10 +527,6 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         except (TypeError, IndexError):
             raise IndexError(f"No GridFlow child widget at position {position}")
         self.contents.focus = position
-    focus_position = property(_get_focus_position, _set_focus_position, doc="""
-        index of child widget in focus. Raises :exc:`IndexError` if read when
-        GridFlow is empty, or when set to an invalid index.
-        """)
 
     def get_display_widget(self, size: tuple[int]) -> Divider | Pile:
         """
@@ -697,21 +873,24 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """Pass keypress to top_w."""
         return self.top_w.keypress(self.top_w_size(size, *self.calculate_padding_filler(size, True)), key)
 
-    def _get_focus(self) -> Widget:
+    @property
+    def focus(self) -> Widget:
         """
-        Currently self.top_w is always the focus of an Overlay
+        Read-only property returning the child widget in focus for
+        container widgets.  This default implementation
+        always returns ``None``, indicating that this widget has no children.
         """
         return self.top_w
-    focus = property(_get_focus,
-        doc="the top widget in this overlay is always in focus")
 
-    def _get_focus_position(self) -> Literal[1]:
+    @property
+    def focus_position(self) -> Literal[1]:
         """
         Return the top widget position (currently always 1).
         """
         return 1
 
-    def _set_focus_position(self, position):
+    @focus_position.setter
+    def focus_position(self, position: int) -> None:
         """
         Set the widget in focus.  Currently only position 0 is accepted.
 
@@ -719,16 +898,43 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         if position != 1:
             raise IndexError(f"Overlay widget focus_position currently must always be set to 1, not {position}")
-    focus_position = property(_get_focus_position, _set_focus_position,
-        doc="index of child widget in focus, currently always 1")
 
-    def _contents(self):
+    @property
+    def contents(self):
+        """
+        a list-like object similar to::
+
+            [(bottom_w, bottom_options)),
+             (top_w, top_options)]
+
+        This object may be used to read or update top and bottom widgets and
+        top widgets's options, but no widgets may be added or removed.
+
+        `top_options` takes the form
+        `(align_type, align_amount, width_type, width_amount, min_width, left,
+        right, valign_type, valign_amount, height_type, height_amount,
+        min_height, top, bottom)`
+
+        bottom_options is always
+        `('left', None, 'relative', 100, None, 0, 0,
+        'top', None, 'relative', 100, None, 0, 0)`
+        which means that bottom widget always covers the full area of the Overlay.
+        writing a different value for `bottom_options` raises an
+        :exc:`OverlayError`.
+        """
         class OverlayContents:
             def __len__(inner_self):
                 return 2
             __getitem__ = self._contents__getitem__
             __setitem__ = self._contents__setitem__
         return OverlayContents()
+
+    @contents.setter
+    def contents(self, new_contents):
+        if len(new_contents) != 2:
+            raise ValueError("Contents length for overlay should be only 2")
+        self.contents[0] = new_contents[0]
+        self.contents[1] = new_contents[1]
 
     def _contents__getitem__(self, index: Literal[0, 1]):
         if index == 0:
@@ -786,27 +992,6 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         else:
             raise IndexError(f"Overlay.contents has no position {index!r}")
         self._invalidate()
-    contents = property(_contents, doc="""
-        a list-like object similar to::
-
-            [(bottom_w, bottom_options)),
-             (top_w, top_options)]
-
-        This object may be used to read or update top and bottom widgets and
-        top widgets's options, but no widgets may be added or removed.
-
-        `top_options` takes the form
-        `(align_type, align_amount, width_type, width_amount, min_width, left,
-        right, valign_type, valign_amount, height_type, height_amount,
-        min_height, top, bottom)`
-
-        bottom_options is always
-        `('left', None, 'relative', 100, None, 0, 0,
-        'top', None, 'relative', 100, None, 0, 0)`
-        which means that bottom widget always covers the full area of the Overlay.
-        writing a different value for `bottom_options` raises an
-        :exc:`OverlayError`.
-        """)
 
     def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:
         """Return cursor coords from top_w, if any."""
@@ -971,12 +1156,21 @@ class Frame(Widget, WidgetContainerMixin):
         self._invalidate()
     footer = property(get_footer, set_footer)
 
-    def set_focus(self, part: Literal['header', 'footer', 'body']) -> None:
+    @property
+    def focus_position(self) -> Literal['header', 'footer', 'body']:
+        """
+        writeable property containing an indicator which part of the frame
+        that is in focus: `'body', 'header'` or `'footer'`.
+
+        :returns: one of 'header', 'footer' or 'body'.
+        :rtype: str
+        """
+        return self.focus_part
+
+    @focus_position.setter
+    def focus_position(self, part: Literal['header', 'footer', 'body']) -> None:
         """
         Determine which part of the frame is in focus.
-
-        .. note:: included for backwards compatibility. You should rather use
-            the container property :attr:`.focus_position` to set this value.
 
         :param part: 'header', 'footer' or 'body'
         :type part: str
@@ -991,7 +1185,8 @@ class Frame(Widget, WidgetContainerMixin):
 
     def get_focus(self) -> Literal['header', 'footer', 'body']:
         """
-        Return an indicator which part of the frame is in focus
+        writeable property containing an indicator which part of the frame
+        that is in focus: `'body', 'header'` or `'footer'`.
 
         .. note:: included for backwards compatibility. You should rather use
             the container property :attr:`.focus_position` to get this value.
@@ -999,24 +1194,54 @@ class Frame(Widget, WidgetContainerMixin):
         :returns: one of 'header', 'footer' or 'body'.
         :rtype: str
         """
-        return self.focus_part
+        warnings.warn(
+            "included for backwards compatibility."
+            "You should rather use the container property `.focus_position` to get this value.",
+            PendingDeprecationWarning,
+        )
+        return self.focus_position
 
-    def _get_focus(self) -> Widget:
+    def set_focus(self, part: Literal['header', 'footer', 'body']) -> None:
+        warnings.warn(
+            "included for backwards compatibility."
+            "You should rather use the container property `.focus_position` to set this value.",
+            PendingDeprecationWarning,
+        )
+        self.focus_position = part
+
+    @property
+    def focus(self) -> Widget:
+        """
+        child :class:`Widget` in focus: the body, header or footer widget.
+        This is a read-only property."""
         return {
             'header': self._header,
             'footer': self._footer,
             'body': self._body
             }[self.focus_part]
-    focus = property(_get_focus, doc="""
-        child :class:`Widget` in focus: the body, header or footer widget.
-        This is a read-only property.""")
 
-    focus_position = property(get_focus, set_focus, doc="""
-        writeable property containing an indicator which part of the frame
-        that is in focus: `'body', 'header'` or `'footer'`.
-        """)
+    @property
+    def contents(self):
+        """
+        a dict-like object similar to::
 
-    def _contents(self):
+            {
+                'body': (body_widget, None),
+                'header': (header_widget, None),  # if frame has a header
+                'footer': (footer_widget, None) # if frame has a footer
+            }
+
+        This object may be used to read or update the contents of the Frame.
+
+        The values are similar to the list-like .contents objects used
+        in other containers with (:class:`Widget`, options) tuples, but are
+        constrained to keys for each of the three usual parts of a Frame.
+        When other keys are used a :exc:`KeyError` will be raised.
+
+        Currently all options are `None`, but using the :meth:`options` method
+        to create the options value is recommended for forwards
+        compatibility.
+        """
         class FrameContents:
             def __len__(inner_self):
                 return len(inner_self.keys())
@@ -1080,33 +1305,21 @@ class Frame(Widget, WidgetContainerMixin):
     def _contents__delitem__(self, key: Literal['header', 'footer', 'body']):
         if key not in ('header', 'footer'):
             raise KeyError(f"Frame.contents can't remove key: {key!r}")
-        if (key == 'header' and self._header is None
-                ) or (key == 'footer' and self._footer is None):
+        if (key == 'header' and self._header is None) or (key == 'footer' and self._footer is None):
             raise KeyError(f"Frame.contents has no key: {key!r}")
         if key == 'header':
             self.header = None
         else:
             self.footer = None
-    contents = property(_contents, doc="""
-        a dict-like object similar to::
 
-            {
-                'body': (body_widget, None),
-                'header': (header_widget, None),  # if frame has a header
-                'footer': (footer_widget, None) # if frame has a footer
-            }
-
-        This object may be used to read or update the contents of the Frame.
-
-        The values are similar to the list-like .contents objects used
-        in other containers with (:class:`Widget`, options) tuples, but are
-        constrained to keys for each of the three usual parts of a Frame.
-        When other keys are used a :exc:`KeyError` will be raised.
-
-        Currently all options are `None`, but using the :meth:`options` method
-        to create the options value is recommended for forwards
-        compatibility.
-        """)
+    def _contents(self):
+        warnings.warn(
+            f"method `{self.__class__.__name__}._contents` is deprecated, "
+            f"please use property `{self.__class__.__name__}.contents`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.contents
 
     def options(self) -> None:
         """
@@ -1238,19 +1451,18 @@ class Frame(Widget, WidgetContainerMixin):
             return key
         return self.body.keypress( (maxcol, remaining), key )
 
-    def mouse_event(self, size: tuple[str, str], event, button: int, col: int, row: int, focus: bool) -> bool | None:
+    def mouse_event(self, size: tuple[int, int], event, button: int, col: int, row: int, focus: bool) -> bool | None:
         """
         Pass mouse event to appropriate part of frame.
         Focus may be changed on button 1 press.
         """
         (maxcol, maxrow) = size
-        (htrim, ftrim),(hrows, frows) = self.frame_top_bottom((maxcol, maxrow), focus)
+        (htrim, ftrim), (hrows, frows) = self.frame_top_bottom((maxcol, maxrow), focus)
 
         if row < htrim: # within header
             focus = focus and self.focus_part == 'header'
-            if is_mouse_press(event) and button==1:
-                if self.header.selectable():
-                    self.set_focus('header')
+            if is_mouse_press(event) and button == 1 and self.header.selectable():
+                self.focus_position = 'header'
             if not hasattr(self.header, 'mouse_event'):
                 return False
             return self.header.mouse_event( (maxcol,), event,
@@ -1258,9 +1470,8 @@ class Frame(Widget, WidgetContainerMixin):
 
         if row >= maxrow-ftrim: # within footer
             focus = focus and self.focus_part == 'footer'
-            if is_mouse_press(event) and button==1:
-                if self.footer.selectable():
-                    self.set_focus('footer')
+            if is_mouse_press(event) and button == 1 and self.footer.selectable():
+                self.focus_position = 'footer'
             if not hasattr(self.footer, 'mouse_event'):
                 return False
             return self.footer.mouse_event( (maxcol,), event,
@@ -1270,7 +1481,7 @@ class Frame(Widget, WidgetContainerMixin):
         focus = focus and self.focus_part == 'body'
         if is_mouse_press(event) and button==1:
             if self.body.selectable():
-                self.set_focus('body')
+                self.focus_position = 'body'
 
         if not hasattr(self.body, 'mouse_event'):
             return False
@@ -1391,7 +1602,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 focus_item = i
 
         if self.contents and focus_item is not None:
-            self.set_focus(focus_item)
+            self.focus_position = focus_item
 
         self.pref_col = 0
 
@@ -1412,16 +1623,29 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             except (TypeError, ValueError):
                 raise PileError(f"added content invalid: {item!r}")
 
-    def _get_widget_list(self):
+    @property
+    def widget_list(self):
+        """
+        A list of the widgets in this Pile
+
+        .. note:: only for backwards compatibility. You should use the new
+            standard container property :attr:`contents`.
+        """
+        warnings.warn(
+            "only for backwards compatibility. You should use the new standard container property `contents`",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         ml = MonitoredList(w for w, t in self.contents)
 
         def user_modified():
-            self._set_widget_list(ml)
+            self.widget_list = ml
 
         ml.set_modified_callback(user_modified)
         return ml
 
-    def _set_widget_list(self, widgets):
+    @widget_list.setter
+    def widget_list(self, widgets):
         focus_position = self.focus_position
         self.contents = [
             (new, options) for (new, (w, options)) in zip(widgets,
@@ -1429,25 +1653,37 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 chain(self.contents, repeat((None, (WEIGHT, 1)))))]
         if focus_position < len(widgets):
             self.focus_position = focus_position
-    widget_list = property(_get_widget_list, _set_widget_list, doc="""
-        A list of the widgets in this Pile
+
+    @property
+    def item_types(self):
+        """
+        A list of the options values for widgets in this Pile.
 
         .. note:: only for backwards compatibility. You should use the new
             standard container property :attr:`contents`.
-        """)
-
-    def _get_item_types(self):
+        """
+        warnings.warn(
+            "only for backwards compatibility. You should use the new standard container property `contents`",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         ml = MonitoredList(
             # return the old item type names
             ({GIVEN: FIXED, PACK: FLOW}.get(f, f), height)
             for w, (f, height) in self.contents)
 
         def user_modified():
-            self._set_item_types(ml)
+            self.item_types = ml
         ml.set_modified_callback(user_modified)
         return ml
 
-    def _set_item_types(self, item_types):
+    @item_types.setter
+    def item_types(self, item_types):
+        warnings.warn(
+            "only for backwards compatibility. You should use the new standard container property `contents`",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         focus_position = self.focus_position
         self.contents = [
             (w, ({FIXED: GIVEN, FLOW: PACK}.get(new_t, new_t), new_height))
@@ -1455,18 +1691,10 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             in zip(item_types, self.contents)]
         if focus_position < len(item_types):
             self.focus_position = focus_position
-    item_types = property(_get_item_types, _set_item_types, doc="""
-        A list of the options values for widgets in this Pile.
 
-        .. note:: only for backwards compatibility. You should use the new
-            standard container property :attr:`contents`.
-        """)
-
-    def _get_contents(self):
-        return self._contents
-    def _set_contents(self, c):
-        self._contents[:] = c
-    contents = property(_get_contents, _set_contents, doc="""
+    @property
+    def contents(self):
+        """
         The contents of this Pile as a list of (widget, options) tuples.
 
         options currently may be one of
@@ -1491,7 +1719,12 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         will updated automatically.
 
         .. seealso:: Create new options tuples with the :meth:`options` method
-        """)
+        """
+        return self._contents
+
+    @contents.setter
+    def contents(self, c):
+        self._contents[:] = c
 
     @staticmethod
     def options(
@@ -1512,7 +1745,15 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             raise PileError(f'invalid height_type: {height_type!r}')
         return (height_type, height_amount)
 
-    def set_focus(self, item: Widget | int) -> None:
+    @property
+    def focus(self) -> Widget | None:
+        """the child widget in focus or None when Pile is empty"""
+        if not self.contents:
+            return None
+        return self.contents[self.focus_position][0]
+
+    @focus.setter
+    def focus(self, item: Widget | int) -> None:
         """
         Set the item in focus, for backwards compatibility.
 
@@ -1524,7 +1765,8 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         :type item: Widget or int
         """
         if isinstance(item, int):
-            return self._set_focus_position(item)
+            self.focus_position = item
+            return
         for i, (w, options) in enumerate(self.contents):
             if item == w:
                 self.focus_position = i
@@ -1537,32 +1779,57 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         also use the new standard container property .focus to get the
         child widget in focus.
         """
-        if not self.contents:
-            return None
-        return self.contents[self.focus_position][0]
-    focus = property(get_focus,
-        doc="the child widget in focus or None when Pile is empty")
+        warnings.warn(
+            "for backwards compatibility."
+            "You may also use the new standard container property .focus to get the child widget in focus.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        return self.focus
 
-    focus_item = property(get_focus, set_focus, doc="""
-        A property for reading and setting the widget in focus.
+    def set_focus(self, item: Widget | int) -> None:
+        warnings.warn(
+            "for backwards compatibility."
+            "You may also use the new standard container property .focus to get the child widget in focus.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        self.focus = item
 
-        .. note::
+    @property
+    def focus_item(self):
+        warnings.warn(
+            "only for backwards compatibility."
+            "You should use the new standard container properties "
+            "`focus` and `focus_position` to get the child widget in focus or modify the focus position.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.focus
 
-            only for backwards compatibility. You should use the new
-            standard container properties :attr:`focus` and
-            :attr:`focus_position` to get the child widget in focus or modify the
-            focus position.
-        """)
+    @focus_item.setter
+    def focus_item(self, new_item):
+        warnings.warn(
+            "only for backwards compatibility."
+            "You should use the new standard container properties "
+            "`focus` and `focus_position` to get the child widget in focus or modify the focus position.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.focus = new_item
 
-    def _get_focus_position(self) -> int:
+    @property
+    def focus_position(self) -> int:
         """
-        Return the index of the widget in focus or None if this Pile is
-        empty.
+        index of child widget in focus.
+        Raises :exc:`IndexError` if read when Pile is empty, or when set to an invalid index.
         """
         if not self.contents:
             raise IndexError("No focus_position, Pile is empty")
         return self.contents.focus
-    def _set_focus_position(self, position: int) -> None:
+
+    @focus_position.setter
+    def focus_position(self, position: int) -> None:
         """
         Set the widget in focus.
 
@@ -1574,10 +1841,6 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         except (TypeError, IndexError):
             raise IndexError(f"No Pile child widget at position {position}")
         self.contents.focus = position
-    focus_position = property(_get_focus_position, _set_focus_position, doc="""
-        index of child widget in focus. Raises :exc:`IndexError` if read when
-        Pile is empty, or when set to an invalid index.
-        """)
 
     def get_pref_col(self, size):
         """Return the preferred column for the cursor, or None."""
@@ -1625,7 +1888,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 if f == GIVEN:
                     l.append(height)
                 else:
-                    l.append(w.rows((maxcol,), focus=focus and self.focus_item == w))
+                    l.append(w.rows((maxcol,), focus=focus and self.focus == w))
             return l
 
         # pile is a box widget
@@ -1633,7 +1896,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         wtotal = 0
         for w, (f, height) in self.contents:
             if f == PACK:
-                rows = w.rows((maxcol,), focus=focus and self.focus_item == w)
+                rows = w.rows((maxcol,), focus=focus and self.focus == w)
                 l.append(rows)
                 remaining -= rows
             elif f == GIVEN:
@@ -1666,7 +1929,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         combinelist = []
         for i, (w, (f, height)) in enumerate(self.contents):
-            item_focus = self.focus_item == w
+            item_focus = self.focus == w
             canv = None
             if f == GIVEN:
                 canv = w.render((maxcol, height), focus=focus and item_focus)
@@ -1694,7 +1957,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """Return the cursor coordinates of the focus widget."""
         if not self.selectable():
             return None
-        if not hasattr(self.focus_item, 'get_cursor_coords'):
+        if not hasattr(self.focus, 'get_cursor_coords'):
             return None
 
         i = self.focus_position
@@ -1708,9 +1971,9 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 if item_rows is None:
                     item_rows = self.get_item_rows(size, focus=True)
                 maxrow = item_rows[i]
-            coords = self.focus_item.get_cursor_coords((maxcol, maxrow))
+            coords = self.focus.get_cursor_coords((maxcol, maxrow))
         else:
-            coords = self.focus_item.get_cursor_coords((maxcol,))
+            coords = self.focus.get_cursor_coords((maxcol,))
 
         if coords is None:
             return None
@@ -1766,8 +2029,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 rowlist = list(range(rows))
             for row in rowlist:
                 tsize = self.get_item_size(size, j, True, item_rows)
-                if self.focus_item.move_cursor_to_coords(
-                        tsize, self.pref_col, row):
+                if self.focus.move_cursor_to_coords(tsize, self.pref_col, row):
                     break
             return
 
@@ -1835,7 +2097,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         else:
             return False
 
-        focus = focus and self.focus_item == w
+        focus = focus and self.focus == w
         if is_mouse_press(event) and button == 1:
             if w.selectable():
                 self.focus_position = i
@@ -1956,14 +2218,33 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             except (TypeError, ValueError):
                 raise ColumnsError(f"added content invalid {item!r}")
 
-    def _get_widget_list(self) -> MonitoredList:
+    @property
+    def widget_list(self) -> MonitoredList:
+        """
+        A list of the widgets in this Columns
+
+        .. note:: only for backwards compatibility. You should use the new
+            standard container property :attr:`contents`.
+        """
+        warnings.warn(
+            "only for backwards compatibility. You should use the new standard container `contents`",
+            PendingDeprecationWarning,
+            stacklevel=2
+        )
         ml = MonitoredList(w for w, t in self.contents)
+
         def user_modified():
-            self._set_widget_list(ml)
+            self.widget_list = ml
         ml.set_modified_callback(user_modified)
         return ml
 
-    def _set_widget_list(self, widgets):
+    @widget_list.setter
+    def widget_list(self, widgets):
+        warnings.warn(
+            "only for backwards compatibility. You should use the new standard container `contents`",
+            PendingDeprecationWarning,
+            stacklevel=2
+        )
         focus_position = self.focus_position
         self.contents = [
                 # need to grow contents list if widgets is longer
@@ -1974,24 +2255,38 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         ]
         if focus_position < len(widgets):
             self.focus_position = focus_position
-    widget_list = property(_get_widget_list, _set_widget_list, doc="""
-        A list of the widgets in this Columns
 
-        .. note:: only for backwards compatibility. You should use the new
-            standard container property :attr:`contents`.
-        """)
-
-    def _get_column_types(self) -> MonitoredList:
+    @property
+    def column_types(self) -> MonitoredList:
+        """
+        A list of the old partial options values for widgets in this Pile,
+        for backwards compatibility only.  You should use the new standard
+        container property .contents to modify Pile contents.
+        """
+        warnings.warn(
+            "for backwards compatibility only."
+            "You should use the new standard container property .contents to modify Pile contents.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         ml = MonitoredList(
             # return the old column type names
             ({GIVEN: FIXED, PACK: FLOW}.get(t, t), n)
             for w, (t, n, b) in self.contents)
+
         def user_modified():
-            self._set_column_types(ml)
+            self.column_types = ml
         ml.set_modified_callback(user_modified)
         return ml
 
-    def _set_column_types(self, column_types):
+    @column_types.setter
+    def column_types(self, column_types):
+        warnings.warn(
+            "for backwards compatibility only."
+            "You should use the new standard container property .contents to modify Pile contents.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         focus_position = self.focus_position
         self.contents = [
             (w, ({FIXED: GIVEN, FLOW: PACK}.get(new_t, new_t), new_n, b))
@@ -2000,57 +2295,69 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         ]
         if focus_position < len(column_types):
             self.focus_position = focus_position
-    column_types = property(_get_column_types, _set_column_types, doc="""
-        A list of the old partial options values for widgets in this Pile,
-        for backwards compatibility only.  You should use the new standard
-        container property .contents to modify Pile contents.
-        """)
 
-    def _get_box_columns(self) -> MonitoredList:
-        ml = MonitoredList(
-            i for i, (w, (t, n, b)) in enumerate(self.contents) if b)
-        def user_modified():
-            self._set_box_columns(ml)
-        ml.set_modified_callback(user_modified)
-        return ml
-
-    def _set_box_columns(self, box_columns):
-        box_columns = set(box_columns)
-        self.contents = [
-            (w, (t, n, i in box_columns))
-            for (i, (w, (t, n, b))) in enumerate(self.contents)]
-    box_columns = property(_get_box_columns, _set_box_columns, doc="""
+    @property
+    def box_columns(self) -> MonitoredList:
+        """
         A list of the indexes of the columns that are to be treated as
         box widgets when the Columns is treated as a flow widget.
 
         .. note:: only for backwards compatibility. You should use the new
             standard container property :attr:`contents`.
-        """)
+        """
+        warnings.warn(
+            "only for backwards compatibility."
+            "You should use the new standard container property `contents`",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        ml = MonitoredList(
+            i for i, (w, (t, n, b)) in enumerate(self.contents) if b)
 
-    def _get_has_pack_type(self) -> bool:
-        import warnings
+        def user_modified():
+            self.box_columns = ml
+        ml.set_modified_callback(user_modified)
+        return ml
+
+    @box_columns.setter
+    def box_columns(self, box_columns):
+        warnings.warn(
+            "only for backwards compatibility."
+            "You should use the new standard container property `contents`",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        box_columns = set(box_columns)
+        self.contents = [
+            (w, (t, n, i in box_columns))
+            for (i, (w, (t, n, b))) in enumerate(self.contents)]
+
+    @property
+    def has_flow_type(self) -> bool:
+        """
+        .. deprecated:: 1.0 Read values from :attr:`contents` instead.
+        """
         warnings.warn(".has_flow_type is deprecated, read values from .contents instead.", DeprecationWarning)
         return PACK in self.column_types
 
-    def _set_has_pack_type(self, value):
-        import warnings
+    @has_flow_type.setter
+    def has_flow_type(self, value):
         warnings.warn(".has_flow_type is deprecated, read values from .contents instead.", DeprecationWarning)
-    has_flow_type = property(_get_has_pack_type, _set_has_pack_type, doc="""
-        .. deprecated:: 1.0 Read values from :attr:`contents` instead.
-        """)
 
-    def _get_contents(self):
-        return self._contents
-
-    def _set_contents(self, c):
-        self._contents[:] = c
-    contents = property(_get_contents, _set_contents, doc="""
+    @property
+    def contents(self):
+        """
         The contents of this Columns as a list of `(widget, options)` tuples.
         This list may be modified like a normal list and the Columns
         widget will update automatically.
 
         .. seealso:: Create new options tuples with the :meth:`options` method
-        """)
+        """
+        return self._contents
+
+    @contents.setter
+    def contents(self, c):
+        self._contents[:] = c
 
     @staticmethod
     def options(
@@ -2099,7 +2406,13 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         .. note:: only for backwards compatibility. You may also use the new
             standard container property :attr:`focus_position` to set the focus.
         """
-        self._set_focus_position(num)
+        warnings.warn(
+            "only for backwards compatibility."
+            "You may also use the new standard container property `focus_position`",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        self.focus_position = num
 
     def get_focus_column(self) -> int:
         """
@@ -2108,6 +2421,12 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         .. note:: only for backwards compatibility. You may also use the new
             standard container property :attr:`focus_position` to get the focus.
         """
+        warnings.warn(
+            "only for backwards compatibility."
+            "You may also use the new standard container property `focus_position`",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         return self.focus_position
 
     def set_focus(self, item: Widget | int) -> None:
@@ -2118,16 +2437,26 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             standard container property :attr:`focus_position` to get the focus.
 
         :param item: widget or integer index"""
+        warnings.warn(
+            "only for backwards compatibility."
+            "You may also use the new standard container property `focus_position` to get the focus.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         if isinstance(item, int):
-            return self._set_focus_position(item)
+            self.focus_position = item
+            return
         for i, (w, options) in enumerate(self.contents):
             if item == w:
                 self.focus_position = i
                 return
         raise ValueError(f"Widget not found in Columns contents: {item!r}")
 
-    def get_focus(self) -> Widget | None:
+    @property
+    def focus(self) -> Widget | None:
         """
+        the child widget in focus or None when Columns is empty
+
         Return the widget in focus, for backwards compatibility.  You may
         also use the new standard container property .focus to get the
         child widget in focus.
@@ -2135,19 +2464,34 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if not self.contents:
             return None
         return self.contents[self.focus_position][0]
-    focus = property(get_focus,
-        doc="the child widget in focus or None when Columns is empty")
 
-    def _get_focus_position(self) -> int | None:
+    def get_focus(self):
         """
-        Return the index of the widget in focus or None if this Columns is
-        empty.
+        Return the widget in focus, for backwards compatibility.
+
+        .. note:: only for backwards compatibility. You may also use the new
+            standard container property :attr:`focus` to get the focus.
+        """
+        warnings.warn(
+            "only for backwards compatibility."
+            "You may also use the new standard container property `focus` to get the focus.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        return self.focus
+
+    @property
+    def focus_position(self) -> int | None:
+        """
+        index of child widget in focus.
+        Raises :exc:`IndexError` if read when Columns is empty, or when set to an invalid index.
         """
         if not self.widget_list:
             raise IndexError("No focus_position, Columns is empty")
         return self.contents.focus
 
-    def _set_focus_position(self, position: int) -> None:
+    @focus_position.setter
+    def focus_position(self, position: int) -> None:
         """
         Set the widget in focus.
 
@@ -2159,18 +2503,33 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         except (TypeError, IndexError):
             raise IndexError(f"No Columns child widget at position {position}")
         self.contents.focus = position
-    focus_position = property(_get_focus_position, _set_focus_position, doc="""
-        index of child widget in focus. Raises :exc:`IndexError` if read when
-        Columns is empty, or when set to an invalid index.
-        """)
 
-    focus_col = property(_get_focus_position, _set_focus_position, doc="""
+    @property
+    def focus_col(self):
+        """
         A property for reading and setting the index of the column in
         focus.
 
         .. note:: only for backwards compatibility. You may also use the new
             standard container property :attr:`focus_position` to get the focus.
-        """)
+        """
+        warnings.warn(
+            "only for backwards compatibility."
+            "You may also use the new standard container property `focus_position` to get the focus.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        return self.focus_position
+
+    @focus_col.setter
+    def focus_col(self, new_position) -> None:
+        warnings.warn(
+            "only for backwards compatibility."
+            "You may also use the new standard container property `focus_position` to get the focus.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        self.focus_position = new_position
 
     def column_widths(self, size: tuple[int] | tuple[int, int], focus: bool = False) -> list[int]:
         """
@@ -2370,14 +2729,14 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         for i, (width, (w, (t, n, b))) in enumerate(zip(widths, self.contents)):
             if col < x:
                 return False
-            w = self.widget_list[i]
+            w = self.contents[i][0]
             end = x + width
 
             if col >= end:
                 x = end + self.dividechars
                 continue
 
-            focus = focus and self.focus_col == i
+            focus = focus and self.focus_position == i
             if is_mouse_press(event) and button == 1 and w.selectable():
                 self.focus_position = i
 
@@ -2404,7 +2763,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             else:
                 col = w.get_pref_col((cwidth,) + size[1:])
             if isinstance(col, int):
-                col += self.focus_col * self.dividechars
+                col += self.focus_position * self.dividechars
                 col += sum(widths[:self.focus_position])
         if col is None:
             col = self.pref_col

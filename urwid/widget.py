@@ -25,6 +25,7 @@ from __future__ import annotations
 import functools
 import typing
 import warnings
+from collections.abc import Callable
 from operator import attrgetter
 
 from urwid import signals, text_layout
@@ -1338,17 +1339,6 @@ class Edit(Text):
         else:
             return pref_col
 
-    def update_text(self) -> typing.NoReturn:
-        """
-        No longer supported.
-
-        >>> Edit().update_text()
-        Traceback (most recent call last):
-        EditError: update_text() has been removed.  Use set_caption() or set_edit_text() instead.
-        """
-        raise EditError("update_text() has been removed.  Use "
-            "set_caption() or set_edit_text() instead.")
-
     def set_caption(self, caption):
         """
         Set the caption markup for this widget.
@@ -1906,6 +1896,31 @@ class WidgetWrap(delegate_to_widget_mixin('_wrapped_widget'), Widget):
         """
         self._wrapped_widget = w
 
+    @property
+    def _w(self) -> Widget:
+        return self._wrapped_widget
+
+    @_w.setter
+    def _w(self, new_widget: Widget) -> None:
+        """
+        Change the wrapped widget.  This is meant to be called
+        only by subclasses.
+
+        >>> size = (10,)
+        >>> ww = WidgetWrap(Edit("hello? ","hi"))
+        >>> ww.render(size).text # ... = b in Python 3
+        [...'hello? hi ']
+        >>> ww.selectable()
+        True
+        >>> ww._w = Text("goodbye") # calls _set_w()
+        >>> ww.render(size).text
+        [...'goodbye   ']
+        >>> ww.selectable()
+        False
+        """
+        self._wrapped_widget = new_widget
+        self._invalidate()
+
     def _set_w(self, w):
         """
         Change the wrapped widget.  This is meant to be called
@@ -1923,17 +1938,13 @@ class WidgetWrap(delegate_to_widget_mixin('_wrapped_widget'), Widget):
         >>> ww.selectable()
         False
         """
+        warnings.warn(
+            "_set_w is deprecated. Please use 'WidgetWrap._w' property directly",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._wrapped_widget = w
         self._invalidate()
-    _w = property(lambda self:self._wrapped_widget, _set_w)
-
-    def _raise_old_name_error(self, val=None):
-        raise WidgetWrapError("The WidgetWrap.w member variable has "
-            "been renamed to WidgetWrap._w (not intended for use "
-            "outside the class and its subclasses).  "
-            "Please update your code to use self._w "
-            "instead of self.w.")
-    w = property(_raise_old_name_error, _raise_old_name_error)
 
 
 def _test():
