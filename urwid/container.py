@@ -1129,32 +1129,90 @@ class Frame(Widget, WidgetContainerMixin):
         self._footer = footer
         self.focus_part = focus_part
 
-    def get_header(self) -> Widget | None:
+    @property
+    def header(self) -> Widget | None:
         return self._header
 
-    def set_header(self, header: Widget | None):
+    @header.setter
+    def header(self, header: Widget | None):
         self._header = header
         if header is None and self.focus_part == 'header':
             self.focus_part = 'body'
         self._invalidate()
-    header = property(get_header, set_header)
 
-    def get_body(self) -> Widget:
+    def get_header(self) -> Widget | None:
+        warnings.warn(
+            f"method `{self.__class__.__name__}.get_header` is deprecated, "
+            f"standard property `{self.__class__.__name__}.header` should be used instead",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        return self.header
+
+    def set_header(self, header: Widget | None):
+        warnings.warn(
+            f"method `{self.__class__.__name__}.set_header` is deprecated, "
+            f"standard property `{self.__class__.__name__}.header` should be used instead",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        self.header = header
+
+    @property
+    def body(self) -> Widget:
         return self._body
-    def set_body(self, body: Widget) -> None:
+
+    @body.setter
+    def body(self, body: Widget) -> None:
         self._body = body
         self._invalidate()
-    body = property(get_body, set_body)
 
-    def get_footer(self) -> Widget | None:
+    def get_body(self) -> Widget:
+        warnings.warn(
+            f"method `{self.__class__.__name__}.get_body` is deprecated, "
+            f"standard property {self.__class__.__name__}.body should be used instead",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        return self.body
+
+    def set_body(self, body: Widget) -> None:
+        warnings.warn(
+            f"method `{self.__class__.__name__}.set_body` is deprecated, "
+            f"standard property `{self.__class__.__name__}.body` should be used instead",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        self.body = body
+
+    @property
+    def footer(self) -> Widget | None:
         return self._footer
 
-    def set_footer(self, footer: Widget | None) -> None:
+    @footer.setter
+    def footer(self, footer: Widget | None) -> None:
         self._footer = footer
         if footer is None and self.focus_part == 'footer':
             self.focus_part = 'body'
         self._invalidate()
-    footer = property(get_footer, set_footer)
+
+    def get_footer(self) -> Widget | None:
+        warnings.warn(
+            f"method `{self.__class__.__name__}.get_footer` is deprecated, "
+            f"standard property `{self.__class__.__name__}.footer` should be used instead",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        return self.footer
+
+    def set_footer(self, footer: Widget | None) -> None:
+        warnings.warn(
+            f"method `{self.__class__.__name__}.set_footer` is deprecated, "
+            f"standard property `{self.__class__.__name__}.footer` should be used instead",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        self.footer = footer
 
     @property
     def focus_position(self) -> Literal['header', 'footer', 'body']:
@@ -1177,8 +1235,7 @@ class Frame(Widget, WidgetContainerMixin):
         """
         if part not in ('header', 'footer', 'body'):
             raise IndexError(f'Invalid position for Frame: {part}')
-        if (part == 'header' and self._header is None) or (
-                part == 'footer' and self._footer is None):
+        if (part == 'header' and self._header is None) or (part == 'footer' and self._footer is None):
             raise IndexError(f'This Frame has no {part}')
         self.focus_part = part
         self._invalidate()
