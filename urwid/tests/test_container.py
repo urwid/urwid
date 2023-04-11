@@ -134,7 +134,7 @@ class PileTest(unittest.TestCase):
         p.mouse_event((5,), 'button press', 1, 1, 1, False)
         p.mouse_event((5,), 'button press', 1, 1, 1, True)
 
-    def test_lenght(self):
+    def test_length(self):
         pile = urwid.Pile(urwid.Text(c) for c in "ABC")
         self.assertEqual(3, len(pile))
         self.assertEqual(3, len(pile.contents))
