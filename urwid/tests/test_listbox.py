@@ -94,6 +94,30 @@ class ListBoxCalculateVisibleTest(unittest.TestCase):
         self.cvtest( "cursor way off bottom",
             l1, 3, 100, (0,1), 2, (1, 4) )
 
+    def test_sized(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text(str(num)) for num in range(5)]))
+        self.assertEqual(5, len(lbox))
+
+    def test_not_sized(self):
+        class TestWalker(urwid.ListWalker):
+            @property
+            def contents(self):
+                return self
+
+            @staticmethod
+            def next_position(position: int) -> tuple[urwid.Text, int]:
+                return urwid.Text(str(position)), position
+
+            @staticmethod
+            def prev_position(position: int) -> tuple[urwid.Text, int]:
+                return urwid.Text(str(position)), position
+
+        lbox = urwid.ListBox(TestWalker())
+        with self.assertRaises(AttributeError) as exc:
+            len(lbox)
+
+        self.assertEqual(f"{TestWalker.__name__} is not Sized", str(exc.exception))
+
 
 class ListBoxChangeFocusTest(unittest.TestCase):
     def cftest(self, desc, body, pos, offset_inset,
@@ -814,3 +838,13 @@ class ListBoxSetBodyTest(unittest.TestCase):
                 "outdated canvas cache reuse "
                 "after ListWalker's contents modified"
                 )
+
+
+class TestListWalkerFromIterable(unittest.TestCase):
+    def test_01_simple_list_walker(self):
+        walker = urwid.SimpleListWalker(str(num) for num in range(5))
+        self.assertEqual(5, len(walker))
+
+    def test_02_simple_focus_list_walker(self):
+        walker = urwid.SimpleFocusListWalker(str(num) for num in range(5))
+        self.assertEqual(5, len(walker))

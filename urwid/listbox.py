@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import typing
 import warnings
-from collections.abc import MutableSequence
+from collections.abc import Iterable, Sized
 
 from urwid import signals
 from urwid.canvas import CanvasCombine, SolidCanvas
@@ -100,7 +100,7 @@ class ListWalker(metaclass=signals.MetaSignals):
 
 
 class SimpleListWalker(MonitoredList, ListWalker):
-    def __init__(self, contents, wrap_around: bool = False):
+    def __init__(self, contents: Iterable[typing.Any], wrap_around: bool = False):
         """
         contents -- list to copy into this object
 
@@ -113,7 +113,7 @@ class SimpleListWalker(MonitoredList, ListWalker):
         detected automatically and will cause ListBox objects using
         this list walker to be updated.
         """
-        if not isinstance(contents, MutableSequence):
+        if not isinstance(contents, Iterable):
             raise ListWalkerError(f"SimpleListWalker expecting list like object, got: {contents!r}")
         MonitoredList.__init__(self, contents)
         self.focus = 0
@@ -191,7 +191,7 @@ class SimpleListWalker(MonitoredList, ListWalker):
 
 
 class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
-    def __init__(self, contents, wrap_around=False):
+    def __init__(self, contents: Iterable[typing.Any], wrap_around: bool = False):
         """
         contents -- list to copy into this object
 
@@ -208,8 +208,8 @@ class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
         normal list methods will cause the focus to be updated
         intelligently.
         """
-        if not isinstance(contents, MutableSequence):
-            raise ListWalkerError(f"SimpleFocusListWalker expecting list like object, got: {contents!r}")
+        if not isinstance(contents, Iterable):
+            raise ListWalkerError(f"SimpleFocusListWalker expecting iterable object, got: {contents!r}")
         MonitoredFocusList.__init__(self, contents)
         self.wrap_around = wrap_around
 
@@ -274,7 +274,12 @@ class ListBox(Widget, WidgetContainerMixin):
             widgets to be displayed inside the list box
         :type body: ListWalker
         """
-        self.body = body
+        if getattr(body, 'get_focus', None):
+            self._body: ListWalker = body
+        else:
+            self._body = SimpleListWalker(body)
+
+        self.body = self._body  # Initialization hack
 
         # offset_rows is the number of rows between the top of the view
         # and the top of the focused item
@@ -339,6 +344,11 @@ class ListBox(Widget, WidgetContainerMixin):
             stacklevel=2,
         )
         self.body = body
+
+    def __len__(self) -> int:
+        if isinstance(self._body, Sized):
+            return len(self._body)
+        raise AttributeError(f"{self._body.__class__.__name__} is not Sized")
 
     def calculate_visible(self, size: tuple[int, int], focus: bool = False):
         """
