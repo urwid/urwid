@@ -134,6 +134,11 @@ class PileTest(unittest.TestCase):
         p.mouse_event((5,), 'button press', 1, 1, 1, False)
         p.mouse_event((5,), 'button press', 1, 1, 1, True)
 
+    def test_length(self):
+        pile = urwid.Pile(urwid.Text(c) for c in "ABC")
+        self.assertEqual(3, len(pile))
+        self.assertEqual(3, len(pile.contents))
+
 
 class ColumnsTest(unittest.TestCase):
     def cwtest(self, desc, l, divide, size, exp, focus_column=0):
@@ -202,8 +207,7 @@ class ColumnsTest(unittest.TestCase):
         c = urwid.Columns( l, divide )
         rval = c.move_cursor_to_coords( size, col, row )
         assert rval == exp, f"{desc} expected {exp!r}, got {rval!r}"
-        assert c.focus_col == f_col, "%s expected focus_col %s got %s"%(
-            desc, f_col, c.focus_col)
+        assert c.focus_position == f_col, f"{desc} expected focus_col {f_col} got {c.focus_position}"
         pc = c.get_pref_col( size )
         assert pc == pref_col, f"{desc} expected pref_col {pref_col}, got {pc}"
 
@@ -252,6 +256,10 @@ class ColumnsTest(unittest.TestCase):
         c.mouse_event((10,), 'foo', 1, 0, 0, True)
         c.get_pref_col((10,))
 
+    def test_length(self):
+        columns = urwid.Columns(urwid.Text(c) for c in "ABC")
+        self.assertEqual(3, len(columns))
+        self.assertEqual(3, len(columns.contents))
 
 
 class OverlayTest(unittest.TestCase):
@@ -273,6 +281,18 @@ class OverlayTest(unittest.TestCase):
         self.assertEqual(urwid.Overlay(urwid.Filler(urwid.Edit()),
             urwid.SolidFill('B'),
             'right', 1, 'bottom', 1).get_cursor_coords((2,2)), (1,1))
+
+    def test_length(self):
+        ovl = urwid.Overlay(
+            urwid.SolidFill('X'),
+            urwid.SolidFill('O'),
+            'center',
+            ("relative", 20),
+            "middle",
+            ("relative", 20),
+        )
+        self.assertEqual(2, len(ovl))
+        self.assertEqual(2, len(ovl.contents))
 
 
 class GridFlowTest(unittest.TestCase):
@@ -297,6 +317,11 @@ class GridFlowTest(unittest.TestCase):
         gf = urwid.GridFlow([button], 10, 3, v_sep=0, align="center")
         self.assertEqual(gf.keypress((20,), "enter"), None)
         call_back.assert_called_with(button)
+
+    def test_length(self):
+        grid = urwid.GridFlow((urwid.Text(c) for c in "ABC"), 1, 0, 0, 'left')
+        self.assertEqual(3, len(grid))
+        self.assertEqual(3, len(grid.contents))
 
 
 class WidgetSquishTest(unittest.TestCase):

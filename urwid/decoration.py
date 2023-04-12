@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import typing
+import warnings
 from collections.abc import Hashable, Mapping
 
 from urwid.canvas import CompositeCanvas, SolidCanvas
@@ -77,15 +78,35 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
     def _repr_words(self):
         return super()._repr_words() + [repr(self._original_widget)]
 
-    def _get_original_widget(self) -> Widget:
+    @property
+    def original_widget(self) -> Widget:
         return self._original_widget
 
-    def _set_original_widget(self, original_widget):
+    @original_widget.setter
+    def original_widget(self, original_widget: Widget) -> None:
         self._original_widget = original_widget
         self._invalidate()
-    original_widget = property(_get_original_widget, _set_original_widget)
 
-    def _get_base_widget(self):
+    def _get_original_widget(self) -> Widget:
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._get_original_widget` is deprecated, "
+            f"please use property `{self.__class__.__name__}.original_widget`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.original_widget
+
+    def _set_original_widget(self, original_widget):
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._set_original_widget` is deprecated, "
+            f"please use property `{self.__class__.__name__}.original_widget`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.original_widget = original_widget
+
+    @property
+    def base_widget(self) -> Widget:
         """
         Return the widget without decorations.  If there is only one
         Decoration then this is the same as original_widget.
@@ -104,7 +125,14 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
             w = w._original_widget
         return w
 
-    base_widget = property(_get_base_widget)
+    def _get_base_widget(self):
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._get_base_widget` is deprecated, "
+            f"please use property `{self.__class__.__name__}.base_widget`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.base_widget
 
     def selectable(self) -> bool:
         return self._original_widget.selectable()
@@ -299,10 +327,40 @@ class AttrWrap(AttrMap):
             d['focus_attr'] = self.focus_attr
         return d
 
-    # backwards compatibility, widget used to be stored as w
-    get_w = WidgetDecoration._get_original_widget
-    set_w = WidgetDecoration._set_original_widget
-    w = property(get_w, set_w)
+    @property
+    def w(self) -> Widget:
+        """backwards compatibility, widget used to be stored as w"""
+        warnings.warn(
+            "backwards compatibility, widget used to be stored as w",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        return self.original_widget
+
+    @w.setter
+    def w(self, new_widget: Widget) -> None:
+        warnings.warn(
+            "backwards compatibility, widget used to be stored as w",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        self.original_widget = new_widget
+
+    def get_w(self):
+        warnings.warn(
+            "backwards compatibility, widget used to be stored as w",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.original_widget
+
+    def set_w(self, new_widget: Widget) -> None:
+        warnings.warn(
+            "backwards compatibility, widget used to be stored as w",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.original_widget = new_widget
 
     def get_attr(self):
         return self.attr_map[None]
@@ -387,7 +445,23 @@ class BoxAdapter(WidgetDecoration):
         return dict(super()._repr_attrs(), height=self.height)
 
     # originally stored as box_widget, keep for compatibility
-    box_widget = property(WidgetDecoration._get_original_widget, WidgetDecoration._set_original_widget)
+    @property
+    def box_widget(self) -> Widget:
+        warnings.warn(
+            "originally stored as box_widget, keep for compatibility",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        return self.original_widget
+
+    @box_widget.setter
+    def box_widget(self, widget: Widget):
+        warnings.warn(
+            "originally stored as box_widget, keep for compatibility",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        self.original_widget = widget
 
     def sizing(self):
         return {FLOW}
@@ -571,33 +645,71 @@ class Padding(WidgetDecoration):
             min_width=self.min_width)
         return remove_defaults(attrs, Padding.__init__)
 
-    def _get_align(self) -> Literal['left', 'center', 'right'] | tuple[Literal['relative'], int]:
+    @property
+    def align(self) -> Literal['left', 'center', 'right'] | tuple[Literal['relative'], int]:
         """
         Return the padding alignment setting.
         """
         return simplify_align(self._align_type, self._align_amount)
 
-    def _set_align(self, align: Literal['left', 'center', 'right'] | tuple[Literal['relative'], int]) -> None:
+    @align.setter
+    def align(self, align: Literal['left', 'center', 'right'] | tuple[Literal['relative'], int]) -> None:
         """
         Set the padding alignment.
         """
         self._align_type, self._align_amount = normalize_align(align, PaddingError)
         self._invalidate()
-    align = property(_get_align, _set_align)
 
-    def _get_width(self) -> Literal['clip', 'pack'] | int | tuple[Literal['relative'], int]:
+    def _get_align(self) -> Literal['left', 'center', 'right'] | tuple[Literal['relative'], int]:
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._get_align` is deprecated, "
+            f"please use property `{self.__class__.__name__}.align`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.align
+
+    def _set_align(self, align: Literal['left', 'center', 'right'] | tuple[Literal['relative'], int]) -> None:
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._set_align` is deprecated, "
+            f"please use property `{self.__class__.__name__}.align`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.align = align
+
+    @property
+    def width(self) -> Literal['clip', 'pack'] | int | tuple[Literal['relative'], int]:
         """
         Return the padding width.
         """
         return simplify_width(self._width_type, self._width_amount)
 
-    def _set_width(self, width: Literal['clip', 'pack'] | int | tuple[Literal['relative'], int]) -> None:
+    @width.setter
+    def width(self, width: Literal['clip', 'pack'] | int | tuple[Literal['relative'], int]) -> None:
         """
         Set the padding width.
         """
         self._width_type, self._width_amount = normalize_width(width, PaddingError)
         self._invalidate()
-    width = property(_get_width, _set_width)
+
+    def _get_width(self) -> Literal['clip', 'pack'] | int | tuple[Literal['relative'], int]:
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._get_width` is deprecated, "
+            f"please use property `{self.__class__.__name__}.width`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.width
+
+    def _set_width(self, width: Literal['clip', 'pack'] | int | tuple[Literal['relative'], int]) -> None:
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._set_width` is deprecated, "
+            f"please use property `{self.__class__.__name__}.width`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.width = width
 
     def render(
         self,
@@ -847,10 +959,41 @@ class Filler(WidgetDecoration):
             min_height=self.min_height)
         return remove_defaults(attrs, Filler.__init__)
 
-    # backwards compatibility, widget used to be stored as body
-    get_body = WidgetDecoration._get_original_widget
-    set_body = WidgetDecoration._set_original_widget
-    body = property(get_body, set_body)
+    @property
+    def body(self):
+        """backwards compatibility, widget used to be stored as body"""
+        warnings.warn(
+            "backwards compatibility, widget used to be stored as body",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        return self.original_widget
+
+    @body.setter
+    def body(self, new_body):
+        warnings.warn(
+            "backwards compatibility, widget used to be stored as body",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        self.original_widget = new_body
+
+    def get_body(self):
+        """backwards compatibility, widget used to be stored as body"""
+        warnings.warn(
+            "backwards compatibility, widget used to be stored as body",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.original_widget
+
+    def set_body(self, new_body):
+        warnings.warn(
+            "backwards compatibility, widget used to be stored as body",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.original_widget = new_body
 
     def selectable(self) -> bool:
         """Return selectable from body."""
