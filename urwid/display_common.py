@@ -610,7 +610,8 @@ class AttrSpec:
     def strikethrough(self) -> bool:
         return self._value & _STRIKETHROUGH != 0
 
-    def _colors(self) -> int:
+    @property
+    def colors(self) -> int:
         """
         Return the maximum colors required for this object.
 
@@ -625,7 +626,15 @@ class AttrSpec:
         if self._value & (_BG_BASIC_COLOR | _FG_BASIC_COLOR):
             return 16
         return 1
-    colors = property(_colors)
+
+    def _colors(self) -> int:
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._colors` is deprecated, "
+            f"please use property `{self.__class__.__name__}.colors`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.colors
 
     def __repr__(self) -> str:
         """
@@ -650,7 +659,8 @@ class AttrSpec:
             return _color_desc_true(self.foreground_number)
         return _color_desc_256(self.foreground_number)
 
-    def _foreground(self) -> str:
+    @property
+    def foreground(self) -> str:
         return (
             self._foreground_color()
             + ',bold' * self.bold
@@ -661,7 +671,8 @@ class AttrSpec:
             + ',strikethrough' * self.strikethrough
         )
 
-    def _set_foreground(self, foreground: str) -> None:
+    @foreground.setter
+    def foreground(self, foreground: str) -> None:
         color = None
         flags = 0
         # handle comma-separated foreground
@@ -699,9 +710,26 @@ class AttrSpec:
             color = 0
         self._value = (self._value & ~_FG_MASK) | color | flags
 
-    foreground = property(_foreground, _set_foreground)
+    def _foreground(self) -> str:
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._foreground` is deprecated, "
+            f"please use property `{self.__class__.__name__}.foreground`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.foreground
 
-    def _background(self) -> str:
+    def _set_foreground(self, foreground: str) -> None:
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._set_foreground` is deprecated, "
+            f"please use property `{self.__class__.__name__}.foreground`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.foreground = foreground
+
+    @property
+    def background(self) -> str:
         """Return the background color."""
         if not (self.background_basic or self.background_high or self.background_true):
             return 'default'
@@ -713,7 +741,8 @@ class AttrSpec:
             return _color_desc_true(self.background_number)
         return _color_desc_256(self.background_number)
 
-    def _set_background(self, background: str) -> None:
+    @background.setter
+    def background(self, background: str) -> None:
         flags = 0
         if background in ('', 'default'):
             color = 0
@@ -733,7 +762,23 @@ class AttrSpec:
             raise AttrSpecError(f"Unrecognised color specification in background ({background!r})")
         self._value = (self._value & ~_BG_MASK) | (color << _BG_SHIFT) | flags
 
-    background = property(_background, _set_background)
+    def _background(self) -> str:
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._background` is deprecated, "
+            f"please use property `{self.__class__.__name__}.background`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.background
+
+    def _set_background(self, background: str) -> None:
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._set_background` is deprecated, "
+            f"please use property `{self.__class__.__name__}.background`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.background = background
 
     def get_rgb_values(self):
         """

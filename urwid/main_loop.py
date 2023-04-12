@@ -31,6 +31,7 @@ import signal
 import sys
 import time
 import typing
+import warnings
 from collections.abc import Callable, Iterable
 from functools import wraps
 from itertools import count
@@ -154,25 +155,51 @@ class MainLoop:
 
         self._watch_pipes = {}
 
-    def _set_widget(self, widget):
+    @property
+    def widget(self) -> Widget:
+        """
+       Property for the topmost widget used to draw the screen.
+       This must be a box widget.
+       """
+        return self._widget
+
+    @widget.setter
+    def widget(self, widget: Widget) -> None:
         self._widget = widget
         if self.pop_ups:
             self._topmost_widget.original_widget = self._widget
         else:
             self._topmost_widget = self._widget
-    widget = property(lambda self:self._widget, _set_widget, doc=
-       """
-       Property for the topmost widget used to draw the screen.
-       This must be a box widget.
-       """)
 
-    def _set_pop_ups(self, pop_ups):
+    def _set_widget(self, widget: Widget) -> None:
+        warnings.warn(
+            f"method `{self.__class__.__name__}._set_widget` is deprecated, "
+            f"please use `{self.__class__.__name__}.widget` property",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.widget = widget
+
+    @property
+    def pop_ups(self):
+        return self._pop_ups
+
+    @pop_ups.setter
+    def pop_ups(self, pop_ups) -> None:
         self._pop_ups = pop_ups
         if pop_ups:
             self._topmost_widget = PopUpTarget(self._widget)
         else:
             self._topmost_widget = self._widget
-    pop_ups = property(lambda self:self._pop_ups, _set_pop_ups)
+
+    def _set_pop_ups(self, pop_ups) -> None:
+        warnings.warn(
+            f"method `{self.__class__.__name__}._set_pop_ups` is deprecated, "
+            f"please use `{self.__class__.__name__}.pop_ups` property",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.pop_ups = pop_ups
 
     def set_alarm_in(self, sec, callback, user_data=None):
         """
@@ -1039,7 +1066,6 @@ class GLibEventLoop(EventLoop):
             except ExitMainLoop:
                 self._loop.quit()
             except:
-                import sys
                 self._exc_info = sys.exc_info()
                 if self._loop.is_running():
                     self._loop.quit()
@@ -1377,7 +1403,6 @@ class TwistedEventLoop(EventLoop):
                 if self.manage_reactor:
                     self.reactor.stop()
             except:
-                import sys
                 print(sys.exc_info())
                 self._exc_info = sys.exc_info()
                 if self.manage_reactor:

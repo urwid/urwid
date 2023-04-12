@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import typing
+import warnings
 
 from urwid.canvas import CanvasCombine, CanvasJoin, CompositeCanvas, SolidCanvas, TextCanvas
 from urwid.container import Columns, Pile
@@ -942,13 +943,26 @@ class ProgressBar(Widget):
         self._invalidate()
     current = property(lambda self: self._current, set_completion)
 
-    def _set_done(self, done):
+    @property
+    def done(self):
+        return self._done
+
+    @done.setter
+    def done(self, done):
         """
         done -- progress amount at 100%
         """
         self._done = done
         self._invalidate()
-    done = property(lambda self: self._done, _set_done)
+
+    def _set_done(self, done):
+        warnings.warn(
+            f"Method `{self.__class__.__name__}._set_done` is deprecated, "
+            f"please use property `{self.__class__.__name__}.done`",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.done = done
 
     def rows(self, size, focus: bool = False) -> int:
         return 1
