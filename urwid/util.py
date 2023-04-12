@@ -382,7 +382,10 @@ def decompose_tagmarkup(tm):
 
     tl, al = _tagmarkup_recurse(tm, None)
     # join as unicode or bytes based on type of first element
-    text = tl[0][:0].join(tl)
+    if tl:
+        text = tl[0][:0].join(tl)
+    else:
+        text = ""
 
     if al and al[-1][0] is None:
         del al[-1]
