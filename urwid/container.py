@@ -1659,7 +1659,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 focus_item = i
 
         if self.contents and focus_item is not None:
-            self.focus_position = focus_item
+            self.focus = focus_item
 
         self.pref_col = 0
 

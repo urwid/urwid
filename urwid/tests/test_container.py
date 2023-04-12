@@ -395,6 +395,12 @@ class WidgetSquishTest(unittest.TestCase):
         self.fwstest(urwid.Button("hello"))
         self.fwstest(urwid.RadioButton([], "hello"))
 
+    def testFocus(self):
+        expect_focused = urwid.Button("Focused")
+        pile = urwid.Pile((urwid.Button("First"), expect_focused, urwid.Button("Last")), focus_item=expect_focused)
+        self.assertEqual(1, pile.focus_position)
+        self.assertEqual(expect_focused, pile.focus)
+
 
 class CommonContainerTest(unittest.TestCase):
     def test_pile(self):
