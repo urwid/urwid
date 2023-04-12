@@ -227,3 +227,10 @@ class PortabilityTest(unittest.TestCase):
                 f"Locale restore impossible, probably locale not supported by system (libc ignores this error).\n"
                 f"{exc}"
             )
+
+
+class TestEmptyMarkup(unittest.TestCase):
+    def test_001_empty(self):
+        text = urwid.Text('')
+        text.set_text(text.get_text())
+        self.assertEqual("", text.text)
