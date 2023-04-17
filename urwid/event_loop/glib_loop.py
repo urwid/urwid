@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid main loop code
 #    Copyright (C) 2004-2012  Ian Ward
 #    Copyright (C) 2008 Walter Mundt
@@ -21,6 +19,10 @@
 #
 # Urwid web site: https://urwid.org/
 
+"""GLib based urwid IOLoop implementation.
+
+PyGObject library is required.
+"""
 
 from __future__ import annotations
 

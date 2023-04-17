@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid main loop code using Python-3.5 features (Trio, Curio, etc)
 #    Copyright (C) 2018 Toshio Kuratomi
 #    Copyright (C) 2019 Tamas Nepusz
@@ -19,6 +17,11 @@
 #    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 # Urwid web site: https://urwid.org/
+
+"""Trio IOLoop based urwid IOLoop implementation.
+
+Trio library is required.
+"""
 
 from __future__ import annotations
 

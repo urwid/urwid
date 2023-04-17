@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid main loop code
 #    Copyright (C) 2004-2012  Ian Ward
 #    Copyright (C) 2008 Walter Mundt
@@ -21,6 +19,7 @@
 #
 # Urwid web site: https://urwid.org/
 
+"""Asyncio based urwid IOLoop implementation."""
 
 from __future__ import annotations
 

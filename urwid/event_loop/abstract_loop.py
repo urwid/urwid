@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid main loop code
 #    Copyright (C) 2004-2012  Ian Ward
 #    Copyright (C) 2008 Walter Mundt
@@ -21,8 +19,11 @@
 #
 # Urwid web site: https://urwid.org/
 
+"""Abstract shared code for urwid IOLoop implementation."""
+
 from __future__ import annotations
 
+import abc
 import signal
 import typing
 from collections.abc import Callable
@@ -41,11 +42,12 @@ class ExitMainLoop(Exception):
     pass
 
 
-class EventLoop:
+class EventLoop(abc.ABC):
     """
     Abstract class representing an event loop to be used by :class:`MainLoop`.
     """
 
+    @abc.abstractmethod
     def alarm(self, seconds: float | int, callback: Callable[[], typing.Any]) -> typing.Any:
         """
         Call callback() a given time from now.  No parameters are
@@ -58,8 +60,8 @@ class EventLoop:
         seconds -- floating point time to wait before calling callback
         callback -- function to call from event loop
         """
-        raise NotImplementedError()
 
+    @abc.abstractmethod
     def enter_idle(self, callback):
         """
         Add a callback for entering idle.
@@ -68,8 +70,8 @@ class EventLoop:
 
         Returns a handle that may be passed to remove_idle()
         """
-        raise NotImplementedError()
 
+    @abc.abstractmethod
     def remove_alarm(self, handle) -> bool:
         """
         Remove an alarm.
@@ -78,8 +80,8 @@ class EventLoop:
 
         Returns True if the alarm exists, False otherwise
         """
-        raise NotImplementedError()
 
+    @abc.abstractmethod
     def remove_enter_idle(self, handle) -> bool:
         """
         Remove an idle callback.
@@ -88,8 +90,8 @@ class EventLoop:
 
         Returns True if the handle was removed.
         """
-        raise NotImplementedError()
 
+    @abc.abstractmethod
     def remove_watch_file(self, handle) -> bool:
         """
         Remove an input file.
@@ -98,8 +100,8 @@ class EventLoop:
 
         Returns True if the input file exists, False otherwise
         """
-        raise NotImplementedError()
 
+    @abc.abstractmethod
     def run(self) -> None:
         """
         Start the event loop.  Exit the loop when any callback raises
@@ -107,8 +109,8 @@ class EventLoop:
 
         This method has no default implementation.
         """
-        raise NotImplementedError()
 
+    @abc.abstractmethod
     def watch_file(self, fd: int, callback: Callable[[], typing.Any]):
         """
         Call callback() when fd has some data to read.  No parameters
@@ -121,7 +123,6 @@ class EventLoop:
         fd -- file descriptor to watch for input
         callback -- function to call when input is available
         """
-        raise NotImplementedError()
 
     def set_signal_handler(
         self,
