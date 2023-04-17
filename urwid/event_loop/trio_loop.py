@@ -22,7 +22,28 @@
 
 from __future__ import annotations
 
-from .main_loop import EventLoop, ExitMainLoop
+import typing
+from collections.abc import Callable
+
+import trio
+
+from .abstract_loop import EventLoop, ExitMainLoop
+
+__all__ = ("TrioEventLoop",)
+
+
+class _TrioIdleCallbackInstrument(trio.abc.Instrument):
+    """IDLE callbacks emulation helper."""
+
+    __slots__ = ("idle_callbacks",)
+
+    def __init__(self, idle_callbacks):
+        self.idle_callbacks = idle_callbacks
+
+    def before_io_wait(self, timeout):
+        if timeout > 0:
+            for idle_callback in self.idle_callbacks.values():
+                idle_callback()
 
 
 class TrioEventLoop(EventLoop):
@@ -34,23 +55,17 @@ class TrioEventLoop(EventLoop):
 
     def __init__(self):
         """Constructor."""
-        import trio
 
         self._idle_handle = 0
         self._idle_callbacks = {}
         self._pending_tasks = []
 
-        self._trio = trio
         self._nursery = None
 
         self._sleep = trio.sleep
-        try:
-            self._wait_readable = trio.lowlevel.wait_readable
-        except AttributeError:
-            # Trio 0.14 or older
-            self._wait_readable = trio.hazmat.wait_readable
+        self._wait_readable = trio.lowlevel.wait_readable
 
-    def alarm(self, seconds, callback):
+    def alarm(self, seconds: float | int, callback: Callable[[], typing.Any]):
         """Calls `callback()` a given time from now.  No parameters are passed
         to the callback.
 
@@ -63,7 +78,7 @@ class TrioEventLoop(EventLoop):
         """
         return self._start_task(self._alarm_task, seconds, callback)
 
-    def enter_idle(self, callback):
+    def enter_idle(self, callback: Callable[[], typing.Any]) -> int:
         """Calls `callback()` when the event loop enters the idle state.
 
         There is no such thing as being idle in a Trio event loop so we
@@ -81,7 +96,7 @@ class TrioEventLoop(EventLoop):
         """
         return self._cancel_scope(handle)
 
-    def remove_enter_idle(self, handle):
+    def remove_enter_idle(self, handle) -> bool:
         """Removes an idle callback.
 
         Parameters:
@@ -93,7 +108,7 @@ class TrioEventLoop(EventLoop):
             return False
         return True
 
-    def remove_watch_file(self, handle):
+    def remove_watch_file(self, handle: trio.CancelScope) -> bool:
         """Removes a file descriptor being watched for input.
 
         Parameters:
@@ -104,7 +119,7 @@ class TrioEventLoop(EventLoop):
         """
         return self._cancel_scope(handle)
 
-    def _cancel_scope(self, scope):
+    def _cancel_scope(self, scope: trio.CancelScope) -> bool:
         """Cancels the given Trio cancellation scope.
 
         Returns:
@@ -115,26 +130,16 @@ class TrioEventLoop(EventLoop):
         scope.cancel()
         return existed
 
-    def run(self):
+    def run(self) -> None:
         """Starts the event loop. Exits the loop when any callback raises an
         exception. If ExitMainLoop is raised, exits cleanly.
         """
 
-        idle_callbacks = self._idle_callbacks
+        emulate_idle_callbacks = _TrioIdleCallbackInstrument(self._idle_callbacks)
 
-        # This class is duplicated in run_async(). It would be nice to move
-        # this somewhere outside, but we cannot do it yet becase we need to
-        # derive it from self._trio.abc.Instrument
-        class TrioIdleCallbackInstrument(self._trio.abc.Instrument):
-            def before_io_wait(self, timeout):
-                if timeout > 0:
-                    for idle_callback in idle_callbacks.values():
-                        idle_callback()
-
-        emulate_idle_callbacks = TrioIdleCallbackInstrument()
-
-        with self._trio.MultiError.catch(self._handle_main_loop_exception):
-            self._trio.run(self._main_task, instruments=[emulate_idle_callbacks])
+        # TODO(Aleksei): trio.MultiError is deprecated in favor of exceptiongroup package usage and `Except *`
+        with trio.MultiError.catch(self._handle_main_loop_exception):
+            trio.run(self._main_task, instruments=[emulate_idle_callbacks])
 
     async def run_async(self):
         """Starts the main loop and blocks asynchronously until the main loop
@@ -153,35 +158,16 @@ class TrioEventLoop(EventLoop):
                 nursery.cancel_scope.cancel()
         """
 
-        idle_callbacks = self._idle_callbacks
+        emulate_idle_callbacks = _TrioIdleCallbackInstrument(self._idle_callbacks)
 
-        # This class is duplicated in run_async(). It would be nice to move
-        # this somewhere outside, but we cannot do it yet becase we need to
-        # derive it from self._trio.abc.Instrument
-        class TrioIdleCallbackInstrument(self._trio.abc.Instrument):
-            def before_io_wait(self, timeout):
-                if timeout > 0:
-                    for idle_callback in idle_callbacks.values():
-                        idle_callback()
-
-        emulate_idle_callbacks = TrioIdleCallbackInstrument()
-
-        try:
-            add_instrument = self._trio.lowlevel.add_instrument
-            remove_instrument = self._trio.lowlevel.remove_instrument
-        except AttributeError:
-            # Trio 0.14 or older
-            add_instrument = self._trio.hazmat.add_instrument
-            remove_instrument = self._trio.hazmat.remove_instrument
-
-        with self._trio.MultiError.catch(self._handle_main_loop_exception):
-            add_instrument(emulate_idle_callbacks)
+        with trio.MultiError.catch(self._handle_main_loop_exception):
+            trio.lowlevel.add_instrument(emulate_idle_callbacks)
             try:
                 await self._main_task()
             finally:
-                remove_instrument(emulate_idle_callbacks)
+                trio.lowlevel.remove_instrument(emulate_idle_callbacks)
 
-    def watch_file(self, fd, callback):
+    def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> trio.CancelScope:
         """Calls `callback()` when the given file descriptor has some data
         to read. No parameters are passed to the callback.
 
@@ -194,7 +180,12 @@ class TrioEventLoop(EventLoop):
         """
         return self._start_task(self._watch_task, fd, callback)
 
-    async def _alarm_task(self, scope, seconds, callback):
+    async def _alarm_task(
+        self,
+        scope: trio.CancelScope,
+        seconds: float | int,
+        callback: Callable[[], typing.Any],
+    ) -> None:
         """Asynchronous task that sleeps for a given number of seconds and then
         calls the given callback.
 
@@ -207,7 +198,7 @@ class TrioEventLoop(EventLoop):
             await self._sleep(seconds)
             callback()
 
-    def _handle_main_loop_exception(self, exc):
+    def _handle_main_loop_exception(self, exc: BaseException) -> BaseException | None:
         """Handles exceptions raised from the main loop, catching ExitMainLoop
         instead of letting it propagate through.
 
@@ -226,9 +217,9 @@ class TrioEventLoop(EventLoop):
         exits the app by raising ExitMainLoop.
         """
         try:
-            async with self._trio.open_nursery() as self._nursery:
+            async with trio.open_nursery() as self._nursery:
                 self._schedule_pending_tasks()
-                await self._trio.sleep_forever()
+                await trio.sleep_forever()
         finally:
             self._nursery = None
 
@@ -252,7 +243,7 @@ class TrioEventLoop(EventLoop):
         Returns:
             a cancellation scope for the Trio task
         """
-        scope = self._trio.CancelScope()
+        scope = trio.CancelScope()
         if self._nursery:
             self._nursery.start_soon(task, scope, *args)
         else:

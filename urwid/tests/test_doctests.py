@@ -13,11 +13,11 @@ def load_tests(loader, tests, ignore):
         urwid.wimp,
         urwid.decoration,
         urwid.display_common,
-        urwid.main_loop,
+        urwid.event_loop.main_loop,
         urwid.numedit,
         urwid.monitored_list,
         urwid.raw_display,
-        'urwid.split_repr', # override function with same name
+        'urwid.split_repr',  # override function with same name
         urwid.util,
         urwid.signals,
         urwid.graphics,

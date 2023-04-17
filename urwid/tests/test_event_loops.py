@@ -114,6 +114,8 @@ else:
             from tornado.ioloop import IOLoop
             self.evl = urwid.TornadoEventLoop(IOLoop())
 
+        _expected_idle_handle = None
+
 
 try:
     import twisted
