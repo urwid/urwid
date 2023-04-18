@@ -30,7 +30,7 @@ import typing
 
 from urwid import util
 from urwid.display_common import AttrSpec, BaseScreen
-from urwid.main_loop import ExitMainLoop
+from urwid.event_loop import ExitMainLoop
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
