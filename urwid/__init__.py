@@ -98,7 +98,6 @@ from urwid.graphics import (
     scale_bar_values,
 )
 from urwid.listbox import ListBox, ListBoxError, ListWalker, ListWalkerError, SimpleFocusListWalker, SimpleListWalker
-from urwid import event_loop
 from urwid.event_loop import EventLoop, AsyncioEventLoop, ExitMainLoop, MainLoop, SelectEventLoop
 from urwid.monitored_list import MonitoredFocusList, MonitoredList
 from urwid.signals import MetaSignals, Signals, connect_signal, disconnect_signal, emit_signal, register_signal
