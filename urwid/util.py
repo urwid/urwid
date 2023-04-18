@@ -450,8 +450,8 @@ class MetaSuper(type):
         @property
         def _super(self):
             warnings.warn(
-                f"`{name}.__super` is a deprecated hack for old python versions."
-                f"Please use `super()` call explicit.",
+                f"`{name}.__super` was a deprecated feature for old python versions."
+                f"Please use `super()` call instead.",
                 DeprecationWarning,
                 stacklevel=3,
             )
