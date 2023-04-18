@@ -98,7 +98,7 @@ from urwid.graphics import (
     scale_bar_values,
 )
 from urwid.listbox import ListBox, ListBoxError, ListWalker, ListWalkerError, SimpleFocusListWalker, SimpleListWalker
-from urwid.main_loop import AsyncioEventLoop, ExitMainLoop, GLibEventLoop, MainLoop, SelectEventLoop, TornadoEventLoop
+from urwid.event_loop import EventLoop, AsyncioEventLoop, ExitMainLoop, MainLoop, SelectEventLoop
 from urwid.monitored_list import MonitoredFocusList, MonitoredList
 from urwid.signals import MetaSignals, Signals, connect_signal, disconnect_signal, emit_signal, register_signal
 from urwid.version import VERSION, __version__
@@ -141,14 +141,6 @@ from urwid.widget import (
 )
 from urwid.wimp import Button, CheckBox, CheckBoxError, PopUpLauncher, PopUpTarget, RadioButton, SelectableIcon
 
-try:
-    from urwid.main_loop import TwistedEventLoop
-except ImportError:
-    pass
-try:
-    from urwid.main_loop import TrioEventLoop
-except ImportError:
-    pass
 from urwid import raw_display
 from urwid.display_common import (
     BLACK,
@@ -197,3 +189,25 @@ from urwid.util import (
     within_double_byte,
 )
 from urwid.vterm import TermCanvas, TermCharset, Terminal, TermModes, TermScroller
+
+# Optional event loops with external dependencies
+
+try:
+    from urwid.event_loop import TornadoEventLoop
+except ImportError:
+    pass
+
+try:
+    from urwid.event_loop import GLibEventLoop
+except ImportError:
+    pass
+
+try:
+    from urwid.event_loop import TwistedEventLoop
+except ImportError:
+    pass
+
+try:
+    from urwid.event_loop import TrioEventLoop
+except ImportError:
+    pass
