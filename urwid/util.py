@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import codecs
 import typing
+import warnings
 
 from urwid import escape
 
@@ -445,7 +446,17 @@ class MetaSuper(type):
         super().__init__(name, bases, d)
         if hasattr(cls, f"_{name}__super"):
             raise AttributeError("Class has same name as one of its super classes")
-        setattr(cls, f"_{name}__super", super(cls))
+
+        @property
+        def _super(self):
+            warnings.warn(
+                f"`{name}.__super` is a deprecated hack for old python versions."
+                f"Please use `super()` call explicit.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
+            return super(cls, self)
+        setattr(cls, f"_{name}__super", _super)
 
 
 def int_scale(val: int, val_range: int, out_range: int):
