@@ -158,7 +158,7 @@ def apply_target_encoding(s: str | bytes):
             sin = sl[0]
             assert isinstance(sin, bytes)
             sout.append(sin)
-            rle_append_modify(cout, (escape.DEC_TAG.encode('ascii'), len(sin)))
+            rle_append_modify(cout, (escape.DEC_TAG, len(sin)))
             continue
         sin, son = sl
         son = son.replace(SI, b'')
