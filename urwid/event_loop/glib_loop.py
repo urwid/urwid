@@ -19,7 +19,7 @@
 #
 # Urwid web site: https://urwid.org/
 
-"""GLib based urwid IOLoop implementation.
+"""GLib based urwid EventLoop implementation.
 
 PyGObject library is required.
 """

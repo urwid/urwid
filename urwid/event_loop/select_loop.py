@@ -19,7 +19,7 @@
 #
 # Urwid web site: https://urwid.org/
 
-"""Select based urwid IOLoop implementation."""
+"""Select based urwid EventLoop implementation."""
 
 from __future__ import annotations
 

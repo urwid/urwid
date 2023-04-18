@@ -19,7 +19,7 @@
 #
 # Urwid web site: https://urwid.org/
 
-"""Tornado IOLoop based urwid IOLoop implementation.
+"""Tornado IOLoop based urwid EventLoop implementation.
 
 Tornado library is required.
 """

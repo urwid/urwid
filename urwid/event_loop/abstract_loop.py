@@ -19,7 +19,7 @@
 #
 # Urwid web site: https://urwid.org/
 
-"""Abstract shared code for urwid IOLoop implementation."""
+"""Abstract shared code for urwid EventLoop implementation."""
 
 from __future__ import annotations
 

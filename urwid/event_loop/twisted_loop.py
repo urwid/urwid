@@ -19,7 +19,7 @@
 #
 # Urwid web site: https://urwid.org/
 
-"""Twisted IOLoop based urwid IOLoop implementation.
+"""Twisted Reactor based urwid EventLoop implementation.
 
 Twisted library is required.
 """

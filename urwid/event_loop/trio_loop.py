@@ -18,7 +18,7 @@
 #
 # Urwid web site: https://urwid.org/
 
-"""Trio IOLoop based urwid IOLoop implementation.
+"""Trio Runner based urwid EventLoop implementation.
 
 Trio library is required.
 """

@@ -19,7 +19,7 @@
 #
 # Urwid web site: https://urwid.org/
 
-"""Asyncio based urwid IOLoop implementation."""
+"""Asyncio based urwid EventLoop implementation."""
 
 from __future__ import annotations
 
