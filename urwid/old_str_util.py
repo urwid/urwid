@@ -82,7 +82,7 @@ widths: list[tuple[int, Literal[0, 1, 2]]] = [
 # ACCESSOR FUNCTIONS
 
 
-def get_width(o) -> Literal[0, 1, 2]:
+def get_width(o: int) -> Literal[0, 1, 2]:
     """Return the screen column width for unicode ordinal o."""
     global widths
     if o == 0xe or o == 0xf:
