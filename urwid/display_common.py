@@ -487,6 +487,8 @@ class AttrSpecError(Exception):
 
 
 class AttrSpec:
+    __slots__ = ("_value",)
+
     def __init__(self, fg: str, bg: str, colors: Literal[1, 16, 88, 256, 16777216] = 256) -> None:
         """
         fg -- a string containing a comma-separated foreground color
@@ -553,6 +555,13 @@ class AttrSpec:
                 f'foreground/background ({fg!r}/{bg!r}) '
                 f'require more colors than have been specified ({colors:d}).'
             )
+
+    def __hash__(self) -> int:
+        """Safe hashable.
+
+         Instance is mutable -> use ID component.
+         """
+        return hash((self.__class__, self._value, id(self)))
 
     @property
     def foreground_basic(self) -> bool:

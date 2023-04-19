@@ -24,10 +24,17 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 import typing
 from collections.abc import Callable
 
 from .abstract_loop import EventLoop, ExitMainLoop
+
+if typing.TYPE_CHECKING:
+    from typing_extensions import ParamSpec
+
+    _Spec = ParamSpec("_Spec")
+    _T = typing.TypeVar("_T")
 
 __all__ = ("AsyncioEventLoop",)
 
@@ -36,10 +43,16 @@ class AsyncioEventLoop(EventLoop):
     """
     Event loop based on the standard library ``asyncio`` module.
 
+    .. note::
+        If you make any changes to the urwid state outside of it
+        handling input or responding to alarms (for example, from asyncio.Task
+        running in background), and wish the screen to be
+        redrawn, you must call :meth:`MainLoop.draw_screen` method of the
+        main loop manually.
+        A good way to do this::
+            asyncio.get_event_loop().call_soon(main_loop.draw_screen)
     """
     _we_started_event_loop = False
-
-    _idle_emulation_delay = 1.0/30  # a short time (in seconds)
 
     def __init__(self, *, loop: asyncio.AbstractEventLoop | None = None, **kwargs) -> None:
         if loop:
@@ -48,6 +61,33 @@ class AsyncioEventLoop(EventLoop):
             self._loop = asyncio.get_event_loop()
 
         self._exc: BaseException | None = None
+
+        self._idle_asyncio_handle: asyncio.TimerHandle | None = None
+        self._idle_handle: int = 0
+        self._idle_callbacks: dict[int, Callable[[], typing.Any]] = {}
+
+    def _also_call_idle(self, callback: Callable[_Spec, _T]) -> Callable[_Spec, _T]:
+        """
+        Wrap the callback to also call _entering_idle.
+        """
+
+        @functools.wraps(callback)
+        def wrapper(*args: _Spec.args, **kwargs: _Spec.kwargs) -> _T:
+            if not self._idle_asyncio_handle:
+                self._idle_asyncio_handle = self._loop.call_later(0, self._entering_idle)
+            return callback(*args, **kwargs)
+
+        return wrapper
+
+    def _entering_idle(self) -> None:
+        """
+        Call all the registered idle callbacks.
+        """
+        try:
+            for callback in self._idle_callbacks.values():
+                callback()
+        finally:
+            self._idle_asyncio_handle = None
 
     def alarm(self, seconds: float | int, callback:  Callable[[], typing.Any]) -> asyncio.TimerHandle:
         """
@@ -59,7 +99,7 @@ class AsyncioEventLoop(EventLoop):
         seconds -- time in seconds to wait before calling callback
         callback -- function to call from event loop
         """
-        return self._loop.call_later(seconds, callback)
+        return self._loop.call_later(seconds, self._also_call_idle(callback))
 
     def remove_alarm(self, handle) -> bool:
         """
@@ -86,7 +126,7 @@ class AsyncioEventLoop(EventLoop):
         fd -- file descriptor to watch for input
         callback -- function to call when input is available
         """
-        self._loop.add_reader(fd, callback)
+        self._loop.add_reader(fd, self._also_call_idle(callback))
         return fd
 
     def remove_watch_file(self, handle: int) -> bool:
@@ -97,38 +137,42 @@ class AsyncioEventLoop(EventLoop):
         """
         return self._loop.remove_reader(handle)
 
-    def enter_idle(self, callback: Callable[[], typing.Any]) -> list[asyncio.TimerHandle]:
+    def enter_idle(self, callback: Callable[[], typing.Any]) -> int:
         """
         Add a callback for entering idle.
 
-        Returns a handle that may be passed to remove_idle()
+        Returns a handle that may be passed to remove_enter_idle()
         """
         # XXX there's no such thing as "idle" in most event loops; this fakes
         # it the same way as Twisted, by scheduling the callback to be called
         # repeatedly
-        mutable_handle: list[asyncio.TimerHandle] = []
+        self._idle_handle += 1
+        self._idle_callbacks[self._idle_handle] = callback
+        return self._idle_handle
 
-        def faux_idle_callback():
-            callback()
-            mutable_handle[0] = self._loop.call_later(self._idle_emulation_delay, faux_idle_callback)
-
-        mutable_handle.append(self._loop.call_later(self._idle_emulation_delay, faux_idle_callback))
-
-        return mutable_handle
-
-    def remove_enter_idle(self, handle) -> bool:
+    def remove_enter_idle(self, handle: int) -> bool:
         """
         Remove an idle callback.
 
         Returns True if the handle was removed.
         """
-        # `handle` is just a list containing the current actual handle
-        return self.remove_alarm(handle[0])
+        try:
+            del self._idle_callbacks[handle]
+        except KeyError:
+            return False
+        return True
 
     def _exception_handler(self, loop: asyncio.AbstractEventLoop, context):
         exc = context.get('exception')
         if exc:
             loop.stop()
+
+            if self._idle_asyncio_handle:
+                # clean it up to prevent old callbacks
+                # from messing things up if loop is restarted
+                self._idle_asyncio_handle.cancel()
+                self._idle_asyncio_handle = None
+
             if not isinstance(exc, ExitMainLoop):
                 # Store the exc_info so we can re-raise after the loop stops
                 self._exc = exc

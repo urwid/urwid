@@ -48,6 +48,7 @@ from urwid.canvas import Canvas
 from urwid.display_common import _BASIC_COLORS, AttrSpec, RealTerminal
 from urwid.escape import ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS
 from urwid.widget import BOX, Widget
+from urwid import event_loop
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
@@ -1366,7 +1367,7 @@ class Terminal(Widget):
         self,
         command: Sequence[str] | None,
         env: Mapping[str, str] | Iterable[Sequence[str]] | None = None,
-        main_loop=None,
+        main_loop: event_loop.EventLoop | None = None,
         escape_sequence: str | None = None,
         encoding: str = 'utf-8',
     ):
@@ -1418,7 +1419,10 @@ class Terminal(Widget):
 
         self.term_modes = TermModes()
 
-        self.main_loop = main_loop
+        if main_loop is not None:
+            self.main_loop = main_loop
+        else:
+            self.main_loop = event_loop.SelectEventLoop()
 
         self.master = None
         self.pid = None
