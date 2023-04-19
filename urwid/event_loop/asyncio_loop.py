@@ -144,8 +144,7 @@ class AsyncioEventLoop(EventLoop):
         Returns a handle that may be passed to remove_enter_idle()
         """
         # XXX there's no such thing as "idle" in most event loops; this fakes
-        # it the same way as Twisted, by scheduling the callback to be called
-        # repeatedly
+        # it by adding extra callback to the timer and file watch callbacks.
         self._idle_handle += 1
         self._idle_callbacks[self._idle_handle] = callback
         return self._idle_handle
