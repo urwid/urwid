@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import typing
 import warnings
+from collections.abc import Iterator, Sequence
 from pprint import pformat
 
 from urwid.canvas import CanvasError, TextCanvas
@@ -93,23 +94,89 @@ def separate_glyphs(gdata: str, height: int) -> tuple[dict[str, tuple[int, list[
     return result, utf8_required
 
 
-_all_fonts: list[tuple[str, type[Font]]] = []
+def add_font(name: str, cls: FontRegistry) -> None:
+    warnings.warn(
+        "`add_font` is deprecated, please set 'name' attribute to the font class,"
+        " use metaclass keyword argument 'font_name'"
+        " or use `Font.register(<name>)`",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    cls.register(name)
 
 
-def get_all_fonts() -> list[tuple[str, type[Font]]]:
+class FontRegistryWarning(UserWarning):
+    """FontRegistry warning."""
+
+
+class FontRegistry(type):
+    """Font registry.
+
+    Store all registered fonts, register during class creation if possible.
     """
-    Return a list of (font name, font class) tuples.
-    """
-    return _all_fonts[:]
+    __slots__ = ()
+
+    __registered: dict[str, FontRegistry] = {}
+
+    def __iter__(self) -> Iterator[str]:
+        """Iterate over registered font names."""
+        return iter(self.__registered)
+
+    def __getitem__(self, item: str) -> FontRegistry | None:
+        """Get font by name if registered."""
+        return self.__registered.get(item)
+
+    @property
+    def registered(cls) -> Sequence[str]:
+        """Registered font names in alphabetical order."""
+        return tuple(sorted(cls.__registered))
+
+    @classmethod
+    def as_list(mcs) -> list[tuple[str, FontRegistry]]:
+        """List of (font name, font class) tuples."""
+        return list(mcs.__registered.items())
+
+    def __new__(
+        cls: type[FontRegistry],
+        name: str,
+        bases: tuple[type, ...],
+        namespace: dict[str, typing.Any],
+        **kwds: typing.Any,
+    ) -> FontRegistry:
+        font_name: str = namespace.setdefault("name", kwds.get("font_name", ""))
+        font_class = super().__new__(cls, name, bases, namespace)
+        if font_name:
+            if font_name not in cls.__registered:
+                cls.__registered[font_name] = font_class
+            if cls.__registered[font_name] != font_class:
+                warnings.warn(
+                    f"{font_name!r} is already registered, please override explicit if required or change name",
+                    FontRegistryWarning,
+                    stacklevel=2,
+                )
+        return font_class
+
+    def register(cls, font_name: str) -> None:
+        """Register font explicit.
+
+        :param font_name: Font name to use in registration.
+        """
+        if not font_name:
+            raise ValueError('"font_name" is not set.')
+        cls.__registered[font_name] = cls
 
 
-def add_font(name: str, cls: type[Font]) -> None:
-    _all_fonts.append((name, cls))
+get_all_fonts = FontRegistry.as_list
 
 
-class Font:
+class Font(metaclass=FontRegistry):
+    """Font base class."""
+
+    __slots__ = ("char", "canvas", "utf8_required")
+
     height: int
     data: list[str]
+    name: str
 
     def __init__(self) -> None:
         assert self.height
@@ -122,7 +189,11 @@ class Font:
             self.add_glyphs(gdata)
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}()\n  {self.height!r}\n  {pformat(self.data, indent=4)}"
+        return f"{self.__class__.__name__}()"
+
+    def __str__(self) -> str:
+        """Font description."""
+        return f"{self.__class__.__name__}():\n  {self.height!r}\n  {pformat(self.data, indent=4)}"
 
     @staticmethod
     def _to_text(
@@ -172,7 +243,7 @@ class Font:
             canv = TextCanvas(byte_lines, None, character_set_lines, maxcol=width, check_width=False)
         except CanvasError as exc:
             raise CanvasError(
-                f"Failed render of {character!r} from line {line!r}:\n{self!r}\n:{exc}"
+                f"Failed render of {character!r} from line {line!r}:\n{self}\n:{exc}"
             ).with_traceback(exc.__traceback__) from exc
 
         self.canvas[character] = canv
@@ -185,6 +256,7 @@ class Font:
 
 
 class Thin3x3Font(Font):
+    name = "Thin 3x3"
     height = 3
     data = ["""
 000111222333444555666777888999  !
@@ -199,10 +271,8 @@ class Thin3x3Font(Font):
 """]
 
 
-add_font("Thin 3x3",Thin3x3Font)
-
-
 class Thin4x3Font(Font):
+    name = "Thin 4x3"
     height = 3
     data = Thin3x3Font.data + ["""
 0000111122223333444455556666777788889999  ####$$$$
@@ -212,10 +282,8 @@ class Thin4x3Font(Font):
 """]
 
 
-add_font("Thin 4x3",Thin4x3Font)
-
-
 class Sextant3x3Font(Font):
+    name = "Sextant 3x3"
     height = 3
     data = [u"""
    !!!###$$$%%%&&&'''((()))***+++,,,---...///
@@ -255,20 +323,18 @@ RRRSSSTTTUUUVVVWWWXXXYYYZZZ[[[]]]^^^___```
 """]
 
 
-add_font("Sextant 3x3", Sextant3x3Font)
-
-
 class Sextant2x2Font(Font):
+    name = "Sextant 2x2"
     height = 2
     data = [u"""
 ..,,%%00112233445566778899
     🬁🬖▐🬨🬇▌🬁🬗🬠🬸🬦▐▐🬒▐🬭🬁🬙▐🬸▐🬸
 🬇 🬇🬀🬁🬇🬉🬍 🬄🬉🬋🬇🬍🬁🬊🬇🬅🬉🬍 🬄🬉🬍 🬉
 """]
-add_font("Sextant 2x2", Sextant2x2Font)
 
 
 class HalfBlock5x4Font(Font):
+    name = "Half Block 5x4"
     height = 4
     data = ["""
 00000111112222233333444445555566666777778888899999  !!
@@ -327,10 +393,8 @@ uuuuuvvvvvwwwwwwxxxxxxyyyyyzzzzz
 ''']
 
 
-add_font("Half Block 5x4",HalfBlock5x4Font)
-
-
 class HalfBlock6x5Font(Font):
+    name = "Half Block 6x5"
     height = 5
     data = ["""
 000000111111222222333333444444555555666666777777888888999999  ..::////
@@ -342,10 +406,8 @@ class HalfBlock6x5Font(Font):
 """]
 
 
-add_font("Half Block 6x5",HalfBlock6x5Font)
-
-
 class HalfBlockHeavy6x5Font(Font):
+    name = "Half Block Heavy 6x5"
     height = 5
     data = ["""
 000000111111222222333333444444555555666666777777888888999999  ..::////
@@ -357,10 +419,8 @@ class HalfBlockHeavy6x5Font(Font):
 """]
 
 
-add_font("Half Block Heavy 6x5",HalfBlockHeavy6x5Font)
-
-
 class Thin6x6Font(Font):
+    name = "Thin 6x6"
     height = 6
     data = ["""
 000000111111222222333333444444555555666666777777888888999999''
@@ -445,10 +505,8 @@ ttttuuuuuuvvvvvvwwwwwwxxxxxxyyyyyyzzzzzz
 """]
 
 
-add_font("Thin 6x6", Thin6x6Font)
-
-
 class HalfBlock7x7Font(Font):
+    name = "Half Block 7x7"
     height = 7
     data = ["""
 0000000111111122222223333333444444455555556666666777777788888889999999'''
@@ -543,15 +601,12 @@ tttttuuuuuuuvvvvvvvwwwwwwwwxxxxxxxyyyyyyyzzzzzzz
 """]
 
 
-add_font("Half Block 7x7", HalfBlock7x7Font)
-
-
 if __name__ == "__main__":
     all_ascii = frozenset(chr(x) for x in range(32, 127))
     print("Available Fonts:     (U) = UTF-8 required")
     print("----------------")
-    for n, cls in get_all_fonts():
-        f = cls()
+    for n, font_cls in get_all_fonts():
+        f = font_cls()
         u = ""
         if f.utf8_required:
             u = "(U)"
