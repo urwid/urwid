@@ -1124,13 +1124,15 @@ class TermCanvas(Canvas):
                 fg = None
             else:
                 fg = self.attrspec.foreground_number
-                if fg >= 8: fg -= 8
+                if fg >= 8:
+                    fg -= 8
 
             if 'default' in self.attrspec.background:
                 bg = None
             else:
                 bg = self.attrspec.background_number
-                if bg >= 8: bg -= 8
+                if bg >= 8:
+                    bg -= 8
 
             for attr in ('bold', 'underline', 'blink', 'standout'):
                 if not getattr(self.attrspec, attr):
@@ -1155,10 +1157,10 @@ class TermCanvas(Canvas):
         attrs = [fg.strip() for fg in attrspec.foreground.split(',')]
         if 'standout' in attrs and undo:
             attrs.remove('standout')
-            attrspec.foreground = ','.join(attrs)
+            attrspec = attrspec.copy_modified(fg=','.join(attrs))
         elif 'standout' not in attrs and not undo:
             attrs.append('standout')
-            attrspec.foreground = ','.join(attrs)
+            attrspec = attrspec.copy_modified(fg=','.join(attrs))
         return attrspec
 
     def reverse_video(self, undo: bool = False) -> None:

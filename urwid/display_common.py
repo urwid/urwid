@@ -36,7 +36,7 @@ from urwid import signals
 from urwid.util import StoppingContext, int_scale
 
 if typing.TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing_extensions import Literal, Self
 
 # for replacing unprintable bytes with '?'
 UNPRINTABLE_TRANS_TABLE = b"?" * 32 + bytes(range(32, 256))
@@ -487,7 +487,7 @@ class AttrSpecError(Exception):
 
 
 class AttrSpec:
-    __slots__ = ("_value",)
+    __slots__ = ("__value",)
 
     def __init__(self, fg: str, bg: str, colors: Literal[1, 16, 88, 256, 16777216] = 256) -> None:
         """
@@ -547,77 +547,102 @@ class AttrSpec:
         """
         if colors not in (1, 16, 88, 256, 2**24):
             raise AttrSpecError(f'invalid number of colors ({colors:d}).')
-        self._value = 0 | _HIGH_88_COLOR * (colors == 88) | _HIGH_TRUE_COLOR * (colors == 2**24)
-        self.foreground = fg
-        self.background = bg
+        self.__value = 0 | _HIGH_88_COLOR * (colors == 88) | _HIGH_TRUE_COLOR * (colors == 2 ** 24)
+        self.__set_foreground(fg)
+        self.__set_background(bg)
         if self.colors > colors:
             raise AttrSpecError(
                 f'foreground/background ({fg!r}/{bg!r}) '
                 f'require more colors than have been specified ({colors:d}).'
             )
 
-    def __hash__(self) -> int:
-        """Safe hashable.
+    def copy_modified(
+        self,
+        fg: str | None = None,
+        bg: str | None = None,
+        colors: Literal[1, 16, 88, 256, 16777216] | None = None,
+    ) -> Self:
+        if fg is None:
+            foreground = self.foreground
+        else:
+            foreground = fg
 
-         Instance is mutable -> use ID component.
-         """
-        return hash((self.__class__, self._value, id(self)))
+        if bg is None:
+            background = self.background
+        else:
+            background = bg
+
+        if colors is None:
+            new_colors = self.colors
+        else:
+            new_colors = colors
+
+        return self.__class__(foreground, background, new_colors)
+
+    def __hash__(self) -> int:
+        """Instance is immutable and ashable."""
+        return hash((self.__class__, self.__value))
+
+    @property
+    def _value(self) -> int:
+        """Read-only value access."""
+        return self.__value
 
     @property
     def foreground_basic(self) -> bool:
-        return self._value & _FG_BASIC_COLOR != 0
+        return self.__value & _FG_BASIC_COLOR != 0
 
     @property
     def foreground_high(self) -> bool:
-        return self._value & _FG_HIGH_COLOR != 0
+        return self.__value & _FG_HIGH_COLOR != 0
 
     @property
     def foreground_true(self) -> bool:
-        return self._value & _FG_TRUE_COLOR != 0
+        return self.__value & _FG_TRUE_COLOR != 0
 
     @property
     def foreground_number(self) -> int:
-        return self._value & _FG_COLOR_MASK
+        return self.__value & _FG_COLOR_MASK
 
     @property
     def background_basic(self) -> bool:
-        return self._value & _BG_BASIC_COLOR != 0
+        return self.__value & _BG_BASIC_COLOR != 0
 
     @property
     def background_high(self) -> bool:
-        return self._value & _BG_HIGH_COLOR != 0
+        return self.__value & _BG_HIGH_COLOR != 0
 
     @property
     def background_true(self) -> bool:
-        return self._value & _BG_TRUE_COLOR != 0
+        return self.__value & _BG_TRUE_COLOR != 0
 
     @property
     def background_number(self) -> int:
-        return (self._value & _BG_COLOR_MASK) >> _BG_SHIFT
+        return (self.__value & _BG_COLOR_MASK) >> _BG_SHIFT
 
     @property
     def italics(self) -> bool:
-        return self._value & _ITALICS != 0
+        return self.__value & _ITALICS != 0
 
     @property
     def bold(self) -> bool:
-        return self._value & _BOLD != 0
+        return self.__value & _BOLD != 0
 
     @property
     def underline(self) -> bool:
-        return self._value & _UNDERLINE != 0
+        return self.__value & _UNDERLINE != 0
 
     @property
     def blink(self) -> bool:
-        return self._value & _BLINK != 0
+        return self.__value & _BLINK != 0
 
     @property
     def standout(self) -> bool:
-        return self._value & _STANDOUT != 0
+        return self.__value & _STANDOUT != 0
 
     @property
     def strikethrough(self) -> bool:
-        return self._value & _STRIKETHROUGH != 0
+        return self.__value & _STRIKETHROUGH != 0
 
     @property
     def colors(self) -> int:
@@ -626,13 +651,13 @@ class AttrSpec:
 
         Returns 256, 88, 16 or 1.
         """
-        if self._value & _HIGH_88_COLOR:
+        if self.__value & _HIGH_88_COLOR:
             return 88
-        if self._value & (_BG_HIGH_COLOR | _FG_HIGH_COLOR):
+        if self.__value & (_BG_HIGH_COLOR | _FG_HIGH_COLOR):
             return 256
-        if self._value & (_BG_TRUE_COLOR | _FG_TRUE_COLOR):
+        if self.__value & (_BG_TRUE_COLOR | _FG_TRUE_COLOR):
             return 2**24
-        if self._value & (_BG_BASIC_COLOR | _FG_BASIC_COLOR):
+        if self.__value & (_BG_BASIC_COLOR | _FG_BASIC_COLOR):
             return 16
         return 1
 
@@ -680,8 +705,7 @@ class AttrSpec:
             + ',strikethrough' * self.strikethrough
         )
 
-    @foreground.setter
-    def foreground(self, foreground: str) -> None:
+    def __set_foreground(self, foreground: str) -> None:
         color = None
         flags = 0
         # handle comma-separated foreground
@@ -700,10 +724,10 @@ class AttrSpec:
             elif part in _BASIC_COLORS:
                 scolor = _BASIC_COLORS.index(part)
                 flags |= _FG_BASIC_COLOR
-            elif self._value & _HIGH_88_COLOR:
+            elif self.__value & _HIGH_88_COLOR:
                 scolor = _parse_color_88(part)
                 flags |= _FG_HIGH_COLOR
-            elif self._value & _HIGH_TRUE_COLOR:
+            elif self.__value & _HIGH_TRUE_COLOR:
                 scolor = _parse_color_true(part)
                 flags |= _FG_TRUE_COLOR
             else:
@@ -717,7 +741,7 @@ class AttrSpec:
             color = scolor
         if color is None:
             color = 0
-        self._value = (self._value & ~_FG_MASK) | color | flags
+        self.__value = (self.__value & ~_FG_MASK) | color | flags
 
     def _foreground(self) -> str:
         warnings.warn(
@@ -728,15 +752,6 @@ class AttrSpec:
         )
         return self.foreground
 
-    def _set_foreground(self, foreground: str) -> None:
-        warnings.warn(
-            f"Method `{self.__class__.__name__}._set_foreground` is deprecated, "
-            f"please use property `{self.__class__.__name__}.foreground`",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.foreground = foreground
-
     @property
     def background(self) -> str:
         """Return the background color."""
@@ -744,24 +759,23 @@ class AttrSpec:
             return 'default'
         if self.background_basic:
             return _BASIC_COLORS[self.background_number]
-        if self._value & _HIGH_88_COLOR:
+        if self.__value & _HIGH_88_COLOR:
             return _color_desc_88(self.background_number)
         if self.colors == 2**24:
             return _color_desc_true(self.background_number)
         return _color_desc_256(self.background_number)
 
-    @background.setter
-    def background(self, background: str) -> None:
+    def __set_background(self, background: str) -> None:
         flags = 0
         if background in ('', 'default'):
             color = 0
         elif background in _BASIC_COLORS:
             color = _BASIC_COLORS.index(background)
             flags |= _BG_BASIC_COLOR
-        elif self._value & _HIGH_88_COLOR:
+        elif self.__value & _HIGH_88_COLOR:
             color = _parse_color_88(background)
             flags |= _BG_HIGH_COLOR
-        elif self._value & _HIGH_TRUE_COLOR:
+        elif self.__value & _HIGH_TRUE_COLOR:
             color = _parse_color_true(background)
             flags |= _BG_TRUE_COLOR
         else:
@@ -769,7 +783,7 @@ class AttrSpec:
             flags |= _BG_HIGH_COLOR
         if color is None:
             raise AttrSpecError(f"Unrecognised color specification in background ({background!r})")
-        self._value = (self._value & ~_BG_MASK) | (color << _BG_SHIFT) | flags
+        self.__value = (self.__value & ~_BG_MASK) | (color << _BG_SHIFT) | flags
 
     def _background(self) -> str:
         warnings.warn(
@@ -779,15 +793,6 @@ class AttrSpec:
             stacklevel=2,
         )
         return self.background
-
-    def _set_background(self, background: str) -> None:
-        warnings.warn(
-            f"Method `{self.__class__.__name__}._set_background` is deprecated, "
-            f"please use property `{self.__class__.__name__}.background`",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.background = background
 
     def get_rgb_values(self):
         """
@@ -826,7 +831,7 @@ class AttrSpec:
             return vals + _COLOR_VALUES_256[self.background_number]
 
     def __eq__(self, other: typing.Any) -> bool:
-        return isinstance(other, AttrSpec) and self._value == other._value
+        return isinstance(other, AttrSpec) and self.__value == other.__value
 
     def __ne__(self, other: typing.Any) -> bool:
         return not self == other
