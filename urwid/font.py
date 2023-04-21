@@ -22,53 +22,66 @@
 
 from __future__ import annotations
 
-from urwid.canvas import TextCanvas
+import typing
+import warnings
+from collections.abc import Iterator, Sequence
+from pprint import pformat
+
+from urwid.canvas import CanvasError, TextCanvas
 from urwid.escape import SAFE_ASCII_DEC_SPECIAL_RE
 from urwid.util import apply_target_encoding, str_util
 
+if typing.TYPE_CHECKING:
+    from typing_extensions import Literal
 
-def separate_glyphs(gdata, height):
+
+def separate_glyphs(gdata: str, height: int) -> tuple[dict[str, tuple[int, list[str]]], bool]:
     """return (dictionary of glyphs, utf8 required)"""
-    gl = gdata.split("\n")
-    del gl[0]
-    del gl[-1]
-    for g in gl:
-        assert "\t" not in g
-    assert len(gl) == height+1, repr(gdata)
-    key_line = gl[0]
-    del gl[0]
-    c = None # current character
-    key_index = 0 # index into character key line
-    end_col = 0 # column position at end of glyph
-    start_col = 0 # column position at start of glyph
-    jl = [0]*height # indexes into lines of gdata (gl)
-    dout = {}
+    gl: list[str] = gdata.split("\n")[1: -1]
+
+    if any("\t" in elem for elem in gl):
+        raise ValueError(f"Incorrect glyphs data:\n{gdata!r}")
+
+    if len(gl) != height + 1:
+        raise ValueError(f"Incorrect glyphs height (expected: {height}):\n{gdata}")
+
+    key_line: str = gl[0]
+
+    character: str | None = None  # current character
+    key_index = 0  # index into character key line
+    end_col = 0  # column position at end of glyph
+    start_col = 0  # column position at start of glyph
+    jl: list[int] = [0] * height  # indexes into lines of gdata (gl)
+    result: dict[str, tuple[int, list[str]]] = {}
     utf8_required = False
     while True:
-        if c is None:
+        if character is None:
             if key_index >= len(key_line):
                 break
-            c = key_line[key_index]
-        if key_index < len(key_line) and key_line[key_index] == c:
-            end_col += str_util.get_width(ord(c))
+            character = key_line[key_index]
+
+        if key_index < len(key_line) and key_line[key_index] == character:
+            end_col += str_util.get_width(ord(character))
             key_index += 1
             continue
-        out = []
-        for k in range(height):
-            l = gl[k]
-            j = jl[k]
+
+        out: list[str] = []
+        y = 0
+        fill = 0
+
+        for k, line in enumerate(gl[1:]):
+            j: int = jl[k]
             y = 0
             fill = 0
             while y < end_col - start_col:
-                if j >= len(l):
+                if j >= len(line):
                     fill = end_col - start_col - y
                     break
-                y += str_util.get_width(ord(l[j]))
+                y += str_util.get_width(ord(line[j]))
                 j += 1
-            assert y + fill == end_col - start_col, \
-                repr((y, fill, end_col))
+            assert y + fill == end_col - start_col, repr((y, fill, end_col))
 
-            segment = l[jl[k]:j]
+            segment = line[jl[k]:j]
             if not SAFE_ASCII_DEC_SPECIAL_RE.match(segment):
                 utf8_required = True
 
@@ -76,75 +89,164 @@ def separate_glyphs(gdata, height):
             jl[k] = j
 
         start_col = end_col
-        dout[c] = (y + fill, out)
-        c = None
-    return dout, utf8_required
+        result[character] = (y + fill, out)
+        character = None
+    return result, utf8_required
 
 
-_all_fonts = []
+def add_font(name: str, cls: FontRegistry) -> None:
+    warnings.warn(
+        "`add_font` is deprecated, please set 'name' attribute to the font class,"
+        " use metaclass keyword argument 'font_name'"
+        " or use `Font.register(<name>)`",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    cls.register(name)
 
 
-def get_all_fonts():
+class FontRegistryWarning(UserWarning):
+    """FontRegistry warning."""
+
+
+class FontRegistry(type):
+    """Font registry.
+
+    Store all registered fonts, register during class creation if possible.
     """
-    Return a list of (font name, font class) tuples.
-    """
-    return _all_fonts[:]
+    __slots__ = ()
+
+    __registered: dict[str, FontRegistry] = {}
+
+    def __iter__(self) -> Iterator[str]:
+        """Iterate over registered font names."""
+        return iter(self.__registered)
+
+    def __getitem__(self, item: str) -> FontRegistry | None:
+        """Get font by name if registered."""
+        return self.__registered.get(item)
+
+    @property
+    def registered(cls) -> Sequence[str]:
+        """Registered font names in alphabetical order."""
+        return tuple(sorted(cls.__registered))
+
+    @classmethod
+    def as_list(mcs) -> list[tuple[str, FontRegistry]]:
+        """List of (font name, font class) tuples."""
+        return list(mcs.__registered.items())
+
+    def __new__(
+        cls: type[FontRegistry],
+        name: str,
+        bases: tuple[type, ...],
+        namespace: dict[str, typing.Any],
+        **kwds: typing.Any,
+    ) -> FontRegistry:
+        font_name: str = namespace.setdefault("name", kwds.get("font_name", ""))
+        font_class = super().__new__(cls, name, bases, namespace)
+        if font_name:
+            if font_name not in cls.__registered:
+                cls.__registered[font_name] = font_class
+            if cls.__registered[font_name] != font_class:
+                warnings.warn(
+                    f"{font_name!r} is already registered, please override explicit if required or change name",
+                    FontRegistryWarning,
+                    stacklevel=2,
+                )
+        return font_class
+
+    def register(cls, font_name: str) -> None:
+        """Register font explicit.
+
+        :param font_name: Font name to use in registration.
+        """
+        if not font_name:
+            raise ValueError('"font_name" is not set.')
+        cls.__registered[font_name] = cls
 
 
-def add_font(name, cls):
-    _all_fonts.append((name, cls))
+get_all_fonts = FontRegistry.as_list
 
 
-class Font:
-    def __init__(self):
+class Font(metaclass=FontRegistry):
+    """Font base class."""
+
+    __slots__ = ("char", "canvas", "utf8_required")
+
+    height: int
+    data: list[str]
+    name: str
+
+    def __init__(self) -> None:
         assert self.height
         assert self.data
-        self.char = {}
-        self.canvas = {}
+        self.char: dict[str, tuple[int, list[str]]] = {}
+        self.canvas: dict[str, TextCanvas] = {}
         self.utf8_required = False
-        data = [self._to_text(block) for block in self.data]
+        data: list[str] = [self._to_text(block) for block in self.data]
         for gdata in data:
             self.add_glyphs(gdata)
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}()"
+
+    def __str__(self) -> str:
+        """Font description."""
+        return f"{self.__class__.__name__}():\n  {self.height!r}\n  {pformat(self.data, indent=4)}"
+
     @staticmethod
-    def _to_text(obj, encoding='utf-8', errors='strict') -> str:
+    def _to_text(
+        obj: str | bytes,
+        encoding: str = 'utf-8',
+        errors: Literal['strict', 'ignore', 'replace'] | str = 'strict',
+    ) -> str:
         if isinstance(obj, str):
             return obj
         elif isinstance(obj, bytes):
+            warnings.warn(
+                "Bytes based fonts are deprecated, please switch to the text one",
+                DeprecationWarning,
+                stacklevel=3,
+            )
             return obj.decode(encoding, errors)
         raise TypeError(f"{obj!r} is not str|bytes")
 
-    def add_glyphs(self, gdata):
+    def add_glyphs(self, gdata: str) -> None:
         d, utf8_required = separate_glyphs(gdata, self.height)
         self.char.update(d)
         self.utf8_required |= utf8_required
 
     def characters(self) -> str:
-        l = sorted(self.char)
+        return "".join(sorted(self.char))
 
-        return "".join(l)
-
-    def char_width(self, c) -> int:
-        if c in self.char:
-            return self.char[c][0]
+    def char_width(self, character: str) -> int:
+        if character in self.char:
+            return self.char[character][0]
         return 0
 
-    def char_data(self, c):
-        return self.char[c][1]
+    def char_data(self, character: str) -> list[str]:
+        return self.char[character][1]
 
-    def render(self, c):
-        if c in self.canvas:
-            return self.canvas[c]
-        width, l = self.char[c]
-        tl = []
-        csl = []
-        for d in l:
+    def render(self, character: str) -> TextCanvas:
+        if character in self.canvas:
+            return self.canvas[character]
+        width, line = self.char[character]
+        byte_lines = []
+        character_set_lines = []
+        for d in line:
             t, cs = apply_target_encoding(d)
-            tl.append(t)
-            csl.append(cs)
-        canv = TextCanvas(tl, None, csl, maxcol=width,
-            check_width=False)
-        self.canvas[c] = canv
+            byte_lines.append(t)
+            character_set_lines.append(cs)
+
+        try:
+            canv = TextCanvas(byte_lines, None, character_set_lines, maxcol=width, check_width=False)
+        except CanvasError as exc:
+            raise CanvasError(
+                f"Failed render of {character!r} from line {line!r}:\n{self}\n:{exc}"
+            ).with_traceback(exc.__traceback__) from exc
+
+        self.canvas[character] = canv
         return canv
 
 
@@ -154,6 +256,7 @@ class Font:
 
 
 class Thin3x3Font(Font):
+    name = "Thin 3x3"
     height = 3
     data = ["""
 000111222333444555666777888999  !
@@ -166,9 +269,10 @@ class Thin3x3Font(Font):
   ┼┼└┼┐ /  * ┼  ─  / ., _ ┌┘│  \  │
     └┼┘/ O    ,  ./       . └   \ ┘ ──
 """]
-add_font("Thin 3x3",Thin3x3Font)
+
 
 class Thin4x3Font(Font):
+    name = "Thin 4x3"
     height = 3
     data = Thin3x3Font.data + ["""
 0000111122223333444455556666777788889999  ####$$$$
@@ -176,9 +280,10 @@ class Thin4x3Font(Font):
 │  │  │ ┌──┘  ─┤└──┼└──┐├──┐   ┼├──┤└──┤   ┼─┼└┼┼┐
 └──┘  ┴ └── └──┘   ┴ ──┘└──┘   ┴└──┘ ──┘      └┼┼┘
 """]
-add_font("Thin 4x3",Thin4x3Font)
+
 
 class Sextant3x3Font(Font):
+    name = "Sextant 3x3"
     height = 3
     data = [u"""
    !!!###$$$%%%&&&'''((()))***+++,,,---...///
@@ -216,18 +321,20 @@ RRRSSSTTTUUUVVVWWWXXXYYYZZZ[[[]]]^^^___```
  🬁🬢
 
 """]
-add_font("Sextant 3x3", Sextant3x3Font)
+
 
 class Sextant2x2Font(Font):
+    name = "Sextant 2x2"
     height = 2
     data = [u"""
 ..,,%%00112233445566778899
     🬁🬖▐🬨🬇▌🬁🬗🬠🬸🬦▐▐🬒▐🬭🬁🬙▐🬸▐🬸
 🬇 🬇🬀🬁🬇🬉🬍 🬄🬉🬋🬇🬍🬁🬊🬇🬅🬉🬍 🬄🬉🬍 🬉
 """]
-add_font("Sextant 2x2", Sextant2x2Font)
+
 
 class HalfBlock5x4Font(Font):
+    name = "Half Block 5x4"
     height = 4
     data = ["""
 00000111112222233333444445555566666777778888899999  !!
@@ -284,9 +391,10 @@ uuuuuvvvvvwwwwwwxxxxxxyyyyyzzzzz
 █  █ ▐▌▐▌ ▐▌█▐▌  ▄▀▄  ▀▄▄█ ▄▀
  ▀▀   ▀▀   ▀ ▀  ▀   ▀  ▄▄▀ ▀▀▀▀
 ''']
-add_font("Half Block 5x4",HalfBlock5x4Font)
+
 
 class HalfBlock6x5Font(Font):
+    name = "Half Block 6x5"
     height = 5
     data = ["""
 000000111111222222333333444444555555666666777777888888999999  ..::////
@@ -296,9 +404,10 @@ class HalfBlock6x5Font(Font):
 █   █   █   ▄▀    ▄   █    █      █ █   █   ▐▌  █   █     █       ▐▌
  ▀▀▀   ▀▀▀  ▀▀▀▀▀  ▀▀▀     ▀  ▀▀▀▀   ▀▀▀    ▀    ▀▀▀   ▀▀▀    ▀   ▀
 """]
-add_font("Half Block 6x5",HalfBlock6x5Font)
+
 
 class HalfBlockHeavy6x5Font(Font):
+    name = "Half Block Heavy 6x5"
     height = 5
     data = ["""
 000000111111222222333333444444555555666666777777888888999999  ..::////
@@ -308,9 +417,10 @@ class HalfBlockHeavy6x5Font(Font):
 █▌ ▐█   █▌  ▄█▀   ▄  ▐█    █▌    ▐█ █▌ ▐█   █▌  █▌ ▐█    ▐█     █▌▐█
 ▀███▀  ███▌ █████ ▀███▀    █▌ ████▀ ▀███▀  ▐█   ▀███▀ ▀███▀   █▌  █▌
 """]
-add_font("Half Block Heavy 6x5",HalfBlockHeavy6x5Font)
+
 
 class Thin6x6Font(Font):
+    name = "Thin 6x6"
     height = 6
     data = ["""
 000000111111222222333333444444555555666666777777888888999999''
@@ -393,10 +503,10 @@ ttttuuuuuuvvvvvvwwwwwwxxxxxxyyyyyyzzzzzz
  └─ └───┴  └─┘  └─┴─┘ ─┘ └─ └───┤ ┴────
                             └───┘
 """]
-add_font("Thin 6x6",Thin6x6Font)
 
 
 class HalfBlock7x7Font(Font):
+    name = "Half Block 7x7"
     height = 7
     data = ["""
 0000000111111122222223333333444444455555556666666777777788888889999999'''
@@ -491,24 +601,21 @@ tttttuuuuuuuvvvvvvvwwwwwwwwxxxxxxxyyyyyyyzzzzzzz
 """]
 
 
-add_font("Half Block 7x7", HalfBlock7x7Font)
-
-
 if __name__ == "__main__":
-    l = get_all_fonts()
-    all_ascii = "".join([chr(x) for x in range(32, 127)])
+    all_ascii = frozenset(chr(x) for x in range(32, 127))
     print("Available Fonts:     (U) = UTF-8 required")
     print("----------------")
-    for n,cls in l:
-        f = cls()
+    for n, font_cls in get_all_fonts():
+        f = font_cls()
         u = ""
         if f.utf8_required:
             u = "(U)"
         print(f"{n:<20} {u:>3} ", end=' ')
-        c = f.characters()
-        if c == all_ascii:
+        chars = f.characters()
+        font_chars = frozenset(chars)
+        if font_chars == all_ascii:
             print("Full ASCII")
-        elif c.startswith(all_ascii):
-            print(f"Full ASCII + {c[len(all_ascii):]}")
+        elif font_chars & all_ascii == all_ascii:
+            print(f"Full ASCII + {''.join(font_chars^all_ascii)!r}")
         else:
-            print(f"Characters: {c}")
+            print(f"Characters: {chars!r}")

@@ -78,6 +78,7 @@ from urwid.decoration import (
 )
 from urwid.font import (
     Font,
+    FontRegistry,
     HalfBlock5x4Font,
     HalfBlock6x5Font,
     HalfBlock7x7Font,
