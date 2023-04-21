@@ -580,7 +580,7 @@ class AttrSpec:
         return self.__class__(foreground, background, new_colors)
 
     def __hash__(self) -> int:
-        """Instance is immutable and ashable."""
+        """Instance is immutable and hashable."""
         return hash((self.__class__, self.__value))
 
     @property
