@@ -48,6 +48,7 @@ from urwid.canvas import Canvas
 from urwid.display_common import _BASIC_COLORS, AttrSpec, RealTerminal
 from urwid.escape import ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS
 from urwid.widget import BOX, Widget
+from urwid import event_loop
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
@@ -1123,13 +1124,15 @@ class TermCanvas(Canvas):
                 fg = None
             else:
                 fg = self.attrspec.foreground_number
-                if fg >= 8: fg -= 8
+                if fg >= 8:
+                    fg -= 8
 
             if 'default' in self.attrspec.background:
                 bg = None
             else:
                 bg = self.attrspec.background_number
-                if bg >= 8: bg -= 8
+                if bg >= 8:
+                    bg -= 8
 
             for attr in ('bold', 'underline', 'blink', 'standout'):
                 if not getattr(self.attrspec, attr):
@@ -1154,10 +1157,10 @@ class TermCanvas(Canvas):
         attrs = [fg.strip() for fg in attrspec.foreground.split(',')]
         if 'standout' in attrs and undo:
             attrs.remove('standout')
-            attrspec.foreground = ','.join(attrs)
+            attrspec = attrspec.copy_modified(fg=','.join(attrs))
         elif 'standout' not in attrs and not undo:
             attrs.append('standout')
-            attrspec.foreground = ','.join(attrs)
+            attrspec = attrspec.copy_modified(fg=','.join(attrs))
         return attrspec
 
     def reverse_video(self, undo: bool = False) -> None:
@@ -1366,7 +1369,7 @@ class Terminal(Widget):
         self,
         command: Sequence[str] | None,
         env: Mapping[str, str] | Iterable[Sequence[str]] | None = None,
-        main_loop=None,
+        main_loop: event_loop.EventLoop | None = None,
         escape_sequence: str | None = None,
         encoding: str = 'utf-8',
     ):
@@ -1418,7 +1421,10 @@ class Terminal(Widget):
 
         self.term_modes = TermModes()
 
-        self.main_loop = main_loop
+        if main_loop is not None:
+            self.main_loop = main_loop
+        else:
+            self.main_loop = event_loop.SelectEventLoop()
 
         self.master = None
         self.pid = None

@@ -71,12 +71,13 @@ class EventLoopTestMixin:
         if self._expected_idle_handle is not None:
             self.assertEqual(idle_handle, 1)
         evl.run()
+        self.assertTrue("waiting" in out, out)
         self.assertTrue("hello" in out, out)
         self.assertTrue("clean exit" in out, out)
         handle = evl.watch_file(rd, exit_clean)
         del out[:]
         evl.run()
-        self.assertEqual(out, ["clean exit"])
+        self.assertEqual(["clean exit"], out)
         self.assertTrue(evl.remove_watch_file(handle))
         handle = evl.alarm(0, exit_error)
         self.assertRaises(ZeroDivisionError, evl.run)
@@ -208,7 +209,7 @@ class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
             result = 1 / 0 # Simulate error in coroutine
             return result
 
-        asyncio.ensure_future(error_coro())
+        asyncio.ensure_future(error_coro(), loop=asyncio.get_event_loop_policy().get_event_loop())
         self.assertRaises(ZeroDivisionError, evl.run)
 
 

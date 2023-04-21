@@ -47,25 +47,49 @@ class TornadoEventLoop(EventLoop):
     """ This is an Urwid-specific event loop to plug into its MainLoop.
         It acts as an adaptor for Tornado's IOLoop which does all
         heavy lifting except idle-callbacks.
-
-        Notice, since Tornado has no concept of idle callbacks we
-        monkey patch ioloop._impl.poll() function to be able to detect
-        potential idle periods.
     """
-    _idle_emulation_delay = 1.0 / 30  # a short time (in seconds)
 
     def __init__(self, loop: ioloop.IOLoop | None = None) -> None:
         if loop:
             self._loop: ioloop.IOLoop = loop
         else:
-            self._loop = ioloop.IOLoop.instance()
+            self._loop = ioloop.IOLoop.current()  # TODO(Aleksei): Switch to the syncio.EventLoop as tornado >= 6.0 !
 
         self._pending_alarms: dict[object, int] = {}
         self._watch_handles: dict[int, int] = {}  # {<watch_handle> : <file_descriptor>}
         self._max_watch_handle: int = 0
         self._exc: BaseException | None = None
 
+        self._idle_asyncio_handle: object | None = None
+        self._idle_handle: int = 0
+        self._idle_callbacks: dict[int, Callable[[], typing.Any]] = {}
+
+    def _also_call_idle(self, callback: Callable[_Spec, _T]) -> Callable[_Spec, _T]:
+        """
+        Wrap the callback to also call _entering_idle.
+        """
+
+        @functools.wraps(callback)
+        def wrapper(*args: _Spec.args, **kwargs: _Spec.kwargs) -> _T:
+            if not self._idle_asyncio_handle:
+                self._idle_asyncio_handle = self._loop.call_later(0, self._entering_idle)
+            return callback(*args, **kwargs)
+
+        return wrapper
+
+    def _entering_idle(self) -> None:
+        """
+        Call all the registered idle callbacks.
+        """
+        try:
+            for callback in self._idle_callbacks.values():
+                callback()
+        finally:
+            self._idle_asyncio_handle = None
+
     def alarm(self, seconds: float | int, callback:  Callable[[], typing.Any]):
+        @self._also_call_idle
+        @functools.wraps(callback)
         def wrapped() -> None:
             try:
                 del self._pending_alarms[handle]
@@ -77,7 +101,7 @@ class TornadoEventLoop(EventLoop):
         self._pending_alarms[handle] = 1
         return handle
 
-    def remove_alarm(self, handle) -> bool:
+    def remove_alarm(self, handle: object) -> bool:
         self._loop.remove_timeout(handle)
         try:
             del self._pending_alarms[handle]
@@ -87,6 +111,7 @@ class TornadoEventLoop(EventLoop):
             return True
 
     def watch_file(self, fd: int, callback: Callable[[], _T]) -> int:
+        @self._also_call_idle
         def handler(_fd: int, _events: int) -> None:
             self.handle_exit(callback)()
 
@@ -104,34 +129,29 @@ class TornadoEventLoop(EventLoop):
             self._loop.remove_handler(fd)
             return True
 
-    def enter_idle(self, callback: Callable[[], typing.Any]) -> list[object]:
+    def enter_idle(self, callback: Callable[[], typing.Any]) -> int:
         """
         Add a callback for entering idle.
 
         Returns a handle that may be passed to remove_idle()
         """
         # XXX there's no such thing as "idle" in most event loops; this fakes
-        # it the same way as Twisted, by scheduling the callback to be called
-        # repeatedly
-        mutable_handle: list[object] = []
+        # it by adding extra callback to the timer and file watch callbacks.
+        self._idle_handle += 1
+        self._idle_callbacks[self._idle_handle] = callback
+        return self._idle_handle
 
-        def faux_idle_callback():
-            callback()
-            mutable_handle[0] = self._loop.call_later(self._idle_emulation_delay, faux_idle_callback)
-
-        mutable_handle.append(self._loop.call_later(self._idle_emulation_delay, faux_idle_callback))
-
-        # asyncio used as backend, real type comes from asyncio_loop.call_later
-        return mutable_handle
-
-    def remove_enter_idle(self, handle) -> bool:
+    def remove_enter_idle(self, handle: int) -> bool:
         """
         Remove an idle callback.
 
         Returns True if the handle was removed.
         """
-        # `handle` is just a list containing the current actual handle
-        return self.remove_alarm(handle[0])
+        try:
+            del self._idle_callbacks[handle]
+        except KeyError:
+            return False
+        return True
 
     def handle_exit(self, f: Callable[_Spec, _T]) -> Callable[_Spec, _T | Literal[False]]:
         @functools.wraps(f)
@@ -139,10 +159,17 @@ class TornadoEventLoop(EventLoop):
             try:
                 return f(*args, **kwargs)
             except ExitMainLoop:
-                self._loop.stop()
+                pass  # handled later
             except Exception as exc:
                 self._exc = exc
-                self._loop.stop()
+
+            if self._idle_asyncio_handle:
+                # clean it up to prevent old callbacks
+                # from messing things up if loop is restarted
+                self._loop.remove_timeout(self._idle_asyncio_handle)
+                self._idle_asyncio_handle = None
+
+            self._loop.stop()
             return False
         return wrapper
 
