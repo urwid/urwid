@@ -139,7 +139,8 @@ class StandardTextLayout(TextLayout):
                 out.append([(width-sc, None)] + l)
                 continue
             assert align == 'center'
-            out.append([((width-sc+1) // 2, None)] + l)
+            pad_trim_left = (width-sc+1) // 2
+            out.append([(pad_trim_left, None)] + l if pad_trim_left else l)
         return out
 
     def calculate_text_segments(
