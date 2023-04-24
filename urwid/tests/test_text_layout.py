@@ -292,6 +292,23 @@ class CalcTranslateClipTest(CalcTranslateTest, unittest.TestCase):
         [(7, None), (0, 35)],
         [(14, 36, 50), (0, 50)]]
 
+class CalcTranslateClipTest2(CalcTranslateTest, unittest.TestCase):
+    text = "Hello!\nto\nWorld!"
+    mode = 'clip'
+    width = 5  # line width (of first and last lines) minus one
+    result_left = [
+        [(6, 0, 6), (0, 6)],
+        [(2, 7, 9), (0, 9)],
+        [(6, 10, 16), (0, 16)]]
+    result_right = [
+        [(-1, None), (6, 0, 6), (0, 6)],
+        [(3, None), (2, 7, 9), (0, 9)],
+        [(-1, None), (6, 10, 16), (0, 16)]]
+    result_center = [
+        [(6, 0, 6), (0, 6)],
+        [(2, None), (2, 7, 9), (0, 9)],
+        [(6, 10, 16), (0, 16)]]
+
 class CalcTranslateCantDisplayTest(CalcTranslateTest, unittest.TestCase):
     text = b'Hello\xe9\xa2\x96'
     mode = 'space'
