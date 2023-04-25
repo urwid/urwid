@@ -23,10 +23,11 @@ from __future__ import annotations
 import errno
 import os
 import sys
+import typing
 import unittest
 from itertools import dropwhile
 
-from urwid import signals, vterm
+from urwid import Widget, signals, vterm
 from urwid.decoration import BoxAdapter
 from urwid.listbox import ListBox
 
@@ -34,10 +35,10 @@ from urwid.listbox import ListBox
 class DummyCommand:
     QUITSTRING = b'|||quit|||'
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.reader, self.writer = os.pipe()
 
-    def __call__(self):
+    def __call__(self) -> None:
         # reset
         stdout = getattr(sys.stdout, 'buffer', sys.stdout)
         stdout.write(b'\x1bc')
@@ -49,7 +50,7 @@ class DummyCommand:
             stdout.write(data)
             stdout.flush()
 
-    def read(self, size):
+    def read(self, size: int) -> bytes:
         while True:
             try:
                 return os.read(self.reader, size)
@@ -57,27 +58,27 @@ class DummyCommand:
                 if e.errno != errno.EINTR:
                     raise
 
-    def write(self, data):
+    def write(self, data: bytes) -> None:
         os.write(self.writer, data)
 
-    def quit(self):
+    def quit(self) -> None:
         self.write(self.QUITSTRING)
 
 
 class TermTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.command = DummyCommand()
 
         self.term = vterm.Terminal(self.command)
         self.resize(80, 24)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.command.quit()
 
-    def connect_signal(self, signal):
+    def connect_signal(self, signal: str):
         self._sig_response = None
 
-        def _set_signal_response(widget, *args, **kwargs):
+        def _set_signal_response(widget: Widget, *args, **kwargs) -> None:
             self._sig_response = (args, kwargs)
         self._set_signal_response = _set_signal_response
 
@@ -86,39 +87,51 @@ class TermTest(unittest.TestCase):
     def expect_signal(self, *args, **kwargs):
         self.assertEqual(self._sig_response, (args, kwargs))
 
-    def disconnect_signal(self, signal):
+    def disconnect_signal(self, signal: str) -> None:
         signals.disconnect_signal(self.term, signal, self._set_signal_response)
 
     def caught_beep(self, obj):
         self.beeped = True
 
-    def resize(self, width, height, soft=False):
+    def resize(self, width: int, height: int, soft: bool = False) -> None:
         self.termsize = (width, height)
         if not soft:
             self.term.render(self.termsize, focus=False)
 
-    def write(self, data):
+    def write(self, data: str) -> None:
         data = data.encode('iso8859-1')
         self.command.write(data.replace(br'\e', b'\x1b'))
 
-    def flush(self):
+    def flush(self) -> None:
         self.write(chr(0x7f))
 
-    def read(self, raw=False, focus=False):
+    @typing.overload
+    def read(self, raw: bool = False, focus: bool = ...) -> bytes:
+        ...
+
+    @typing.overload
+    def read(self, raw: bool = True, focus: bool = ...) -> list[list[bytes, typing.Any, typing.Any]]:
+        ...
+
+    def read(self, raw: bool = False, focus: bool = False) -> bytes | list[list[bytes, typing.Any, typing.Any]]:
         self.term.wait_and_feed()
         rendered = self.term.render(self.termsize, focus=focus)
         if raw:
             is_empty = lambda c: c == (None, None, b' ')
             content = list(rendered.content())
-            lines = [list(dropwhile(is_empty, reversed(line)))
-                     for line in content]
-            return [list(reversed(line)) for line in lines if len(line)]
+            lines = (tuple(dropwhile(is_empty, reversed(line))) for line in content)
+            return [list(reversed(line)) for line in lines if line]
         else:
             content = rendered.text
-            lines = [line.rstrip() for line in content]
+            lines = (line.rstrip() for line in content)
             return b'\n'.join(lines).rstrip()
 
-    def expect(self, what, desc=None, raw=False, focus=False):
+    def expect(
+        self,
+        what: str | list[tuple[typing.Any, str | None, bytes]],
+        desc: str | None = None, raw: bool = False,
+        focus: bool = False,
+    ) -> None:
         if not isinstance(what, list):
             what = what.encode('iso8859-1')
         got = self.read(raw=raw, focus=focus)
@@ -126,7 +139,7 @@ class TermTest(unittest.TestCase):
             desc = ''
         else:
             desc += '\n'
-        desc += 'Expected:\n%r\nGot:\n%r' % (what, got)
+        desc += f'Expected:\n{what!r}\nGot:\n{got!r}'
         self.assertEqual(got, what, desc)
 
     def test_simplestring(self):
@@ -226,6 +239,7 @@ class TermTest(unittest.TestCase):
         self.expect('   x5a98765')
 
     def test_scrolling_region_simple(self):
+        # TODO(Aleksei): Issue #544
         self.write('\\e[10;20r\\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\\e[faa')
         self.expect('aa' + '\n' * 9 + '2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12')
 
@@ -242,10 +256,12 @@ class TermTest(unittest.TestCase):
         self.expect('\ntest')
 
     def test_cursor_scrolling_region(self):
+        # TODO(Aleksei): Issue #544
         self.write('\\e[?6h\\e[10;20r\\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\\e[faa')
         self.expect('\n' * 9 + 'aa\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12')
 
     def test_scrolling_region_simple_with_focus(self):
+        # TODO(Aleksei): Issue #544
         self.write('\\e[10;20r\\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\\e[faa')
         self.expect('aa' + '\n' * 9 + '2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12', focus=True)
 
@@ -262,6 +278,7 @@ class TermTest(unittest.TestCase):
         self.expect('\ntest', focus=True)
 
     def test_cursor_scrolling_region_with_focus(self):
+        # TODO(Aleksei): Issue #544
         self.write('\\e[?6h\\e[10;20r\\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\\e[faa')
         self.expect('\n' * 9 + 'aa\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12', focus=True)
 

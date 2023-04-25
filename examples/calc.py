@@ -491,9 +491,10 @@ class CellColumn( urwid.WidgetWrap ):
         return self.content[-1].get_result()
 
 
+class HelpColumn(urwid.Widget):
+    _selectable = True
+    _sizing = frozenset([urwid.BOX])
 
-
-class HelpColumn(urwid.BoxWidget):
     help_text = [
         ('title', "Column Calculator"),
         "",

@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
+import time
+import typing
 import unittest
 
 import urwid
@@ -11,38 +13,48 @@ import urwid
 class EventLoopTestMixin:
     def test_event_loop(self):
         rd, wr = os.pipe()
-        evl = self.evl
+        evl: urwid.EventLoop = self.evl
         out = []
+
         def step1():
             out.append("writing")
             os.write(wr, b"hi")
+
         def step2():
             out.append(os.read(rd, 2).decode('ascii'))
             raise urwid.ExitMainLoop
-        handle = evl.alarm(0, step1)
-        handle = evl.watch_file(rd, step2)
+
+        _handle = evl.alarm(0, step1)
+        _handle = evl.watch_file(rd, step2)
+
         evl.run()
+        time.sleep(0.1)
         self.assertEqual(out, ["writing", "hi"])
 
     def test_remove_alarm(self):
-        evl = self.evl
+        evl: urwid.EventLoop = self.evl
         handle = evl.alarm(50, lambda: None)
+
         def step1():
             self.assertTrue(evl.remove_alarm(handle))
             self.assertFalse(evl.remove_alarm(handle))
             raise urwid.ExitMainLoop
+
         evl.alarm(0, step1)
         evl.run()
 
     def test_remove_watch_file(self):
-        evl = self.evl
+        evl: urwid.EventLoop = self.evl
         fd_r, fd_w = os.pipe()
+
         try:
             handle = evl.watch_file(fd_r, lambda: None)
+
             def step1():
                 self.assertTrue(evl.remove_watch_file(handle))
                 self.assertFalse(evl.remove_watch_file(handle))
                 raise urwid.ExitMainLoop
+
             evl.alarm(0, step1)
             evl.run()
         finally:
@@ -52,36 +64,45 @@ class EventLoopTestMixin:
     _expected_idle_handle = 1
 
     def test_run(self):
-        evl = self.evl
+        evl: urwid.EventLoop = self.evl
         out = []
         rd, wr = os.pipe()
         self.assertEqual(os.write(wr, b"data"), 4)
+
         def say_hello():
             out.append("hello")
+
         def say_waiting():
             out.append("waiting")
-        def exit_clean():
+
+        def exit_clean() -> typing.NoReturn:
             out.append("clean exit")
             raise urwid.ExitMainLoop
-        def exit_error():
+
+        def exit_error() -> typing.NoReturn:
             1/0
-        handle = evl.alarm(0.01, exit_clean)
-        handle = evl.alarm(0.005, say_hello)
+
+        _handle = evl.alarm(0.01, exit_clean)
+        _handle = evl.alarm(0.005, say_hello)
         idle_handle = evl.enter_idle(say_waiting)
         if self._expected_idle_handle is not None:
             self.assertEqual(idle_handle, 1)
+
         evl.run()
+        time.sleep(0.1)
         self.assertTrue("waiting" in out, out)
         self.assertTrue("hello" in out, out)
         self.assertTrue("clean exit" in out, out)
         handle = evl.watch_file(rd, exit_clean)
         del out[:]
+
         evl.run()
+        time.sleep(0.1)
         self.assertEqual(["clean exit"], out)
         self.assertTrue(evl.remove_watch_file(handle))
-        handle = evl.alarm(0, exit_error)
+        _handle = evl.alarm(0, exit_error)
         self.assertRaises(ZeroDivisionError, evl.run)
-        handle = evl.watch_file(rd, exit_error)
+        _handle = evl.watch_file(rd, exit_error)
         self.assertRaises(ZeroDivisionError, evl.run)
 
 
@@ -142,17 +163,22 @@ else:
             out = []
             rd, wr = os.pipe()
             self.assertEqual(os.write(wr, b"data"), 4)
+
             def step2():
                 out.append(os.read(rd, 2).decode('ascii'))
+
             def say_hello():
                 out.append("hello")
+
             def say_waiting():
                 out.append("waiting")
+
             def test_remove_alarm():
                 handle = evl.alarm(50, lambda: None)
                 self.assertTrue(evl.remove_alarm(handle))
                 self.assertFalse(evl.remove_alarm(handle))
                 out.append("remove_alarm ok")
+
             def test_remove_watch_file():
                 fd_r, fd_w = os.pipe()
                 try:
@@ -163,18 +189,22 @@ else:
                     os.close(fd_r)
                     os.close(fd_w)
                 out.append("remove_watch_file ok")
-            def exit_clean():
+
+            def exit_clean() -> typing.NoReturn:
                 out.append("clean exit")
                 raise urwid.ExitMainLoop
-            def exit_error():
+
+            def exit_error() -> typing.NoReturn:
                 1/0
-            handle = evl.watch_file(rd, step2)
-            handle = evl.alarm(0.1, exit_clean)
-            handle = evl.alarm(0.05, say_hello)
-            handle = evl.alarm(0.06, test_remove_alarm)
-            handle = evl.alarm(0.07, test_remove_watch_file)
+
+            _handle = evl.watch_file(rd, step2)
+            _handle = evl.alarm(0.1, exit_clean)
+            _handle = evl.alarm(0.05, say_hello)
+            _handle = evl.alarm(0.06, test_remove_alarm)
+            _handle = evl.alarm(0.07, test_remove_watch_file)
             self.assertEqual(evl.enter_idle(say_waiting), 1)
             evl.run()
+            time.sleep(0.2)
             self.assertTrue("da" in out, out)
             self.assertTrue("ta" in out, out)
             self.assertTrue("hello" in out, out)
@@ -206,7 +236,7 @@ class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         evl = self.evl
 
         async def error_coro():
-            result = 1 / 0 # Simulate error in coroutine
+            result = 1 / 0  # Simulate error in coroutine
             return result
 
         asyncio.ensure_future(error_coro(), loop=asyncio.get_event_loop_policy().get_event_loop())

@@ -34,7 +34,7 @@ import sys
 import time
 import traceback
 import typing
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence, Callable
 
 try:
     import fcntl
@@ -202,25 +202,25 @@ class TermCharset:
         self.active = g
         self.current = self.MAPPING.get(self._g[g], None)
 
-    def set_sgr_ibmpc(self):
+    def set_sgr_ibmpc(self) -> None:
         """
         Set graphics rendition mapping to IBM PC CP437.
         """
         self._sgr_mapping = True
 
-    def reset_sgr_ibmpc(self):
+    def reset_sgr_ibmpc(self) -> None:
         """
         Reset graphics rendition mapping to IBM PC CP437.
         """
         self._sgr_mapping = False
         self.activate(g=self.active)
 
-    def apply_mapping(self, char):
+    def apply_mapping(self, char: bytes) -> bytes:
         if self._sgr_mapping or self._g[self.active] == 'ibmpc':
             dec_pos = DEC_SPECIAL_CHARS.find(char.decode('cp437'))
             if dec_pos >= 0:
                 self.current = '0'
-                return str(ALT_DEC_SPECIAL_CHARS[dec_pos])
+                return ALT_DEC_SPECIAL_CHARS[dec_pos].encode("cp437")
             else:
                 self.current = 'U'
                 return char
@@ -272,7 +272,7 @@ class TermCanvas(Canvas):
 
         self.coords["cursor"] = (0, 0, None)
 
-        self.term_cursor = [0, 0]  # do not allow to shoot in the leg at `set_term_cursor`
+        self.term_cursor = (0, 0)  # do not allow to shoot in the leg at `set_term_cursor`
         self.cursor: tuple[int, int] | None = None
 
         self.reset()
@@ -627,8 +627,7 @@ class TermCanvas(Canvas):
 
         byte -- an integer ordinal
         """
-        if (self.modes.main_charset == CHARSET_UTF8 or
-            util._target_encoding == 'utf8'):
+        if self.modes.main_charset == CHARSET_UTF8 or util._target_encoding == 'utf8':
             if byte >= 0xc0:
                 # start multibyte sequence
                 self.utf8_eat_bytes = self.get_utf8_len(byte)
@@ -656,7 +655,7 @@ class TermCanvas(Canvas):
 
         self.process_char(char)
 
-    def process_char(self, char: int | bytes):
+    def process_char(self, char: int | bytes) -> None:
         """
         Process a single character (single- and multi-byte).
 
@@ -703,7 +702,7 @@ class TermCanvas(Canvas):
         else:
             self.push_cursor(char)
 
-    def set_char(self, char, x: int | None = None, y: int | None = None) -> None:
+    def set_char(self, char: bytes, x: int | None = None, y: int | None = None) -> None:
         """
         Set character of either the current cursor position
         or a position given by 'x' and/or 'y' to 'char'.
@@ -792,16 +791,16 @@ class TermCanvas(Canvas):
             relative_y = relative_x = True
 
         if relative_x:
-            x = self.term_cursor[0] + x
+            x += self.term_cursor[0]
 
         if relative_y:
-            y = self.term_cursor[1] + y
+            y += self.term_cursor[1]
         elif self.modes.constrain_scrolling:
             y += self.scrollregion_start
 
         self.set_term_cursor(x, y)
 
-    def push_char(self, char, x: int, y: int) -> None:
+    def push_char(self, char: bytes | None, x: int, y: int) -> None:
         """
         Push one character to current position and advance cursor to x/y.
         """
@@ -814,7 +813,7 @@ class TermCanvas(Canvas):
 
         self.set_term_cursor(x, y)
 
-    def push_cursor(self, char=None):
+    def push_cursor(self, char: bytes | None = None) -> None:
         """
         Move cursor one character forward wrapping lines as needed.
         If 'char' is given, put the character into the former position.
@@ -906,7 +905,7 @@ class TermCanvas(Canvas):
         for row in range(self.height):
             self.term[row] = self.empty_line('E')
 
-    def blank_line(self, row) -> None:
+    def blank_line(self, row: int) -> None:
         """
         Blank a single line at the specified row, without modifying other lines.
         """
@@ -1367,7 +1366,7 @@ class Terminal(Widget):
 
     def __init__(
         self,
-        command: Sequence[str] | None,
+        command: Sequence[str] | Callable[[], ...] | None,
         env: Mapping[str, str] | Iterable[Sequence[str]] | None = None,
         main_loop: event_loop.EventLoop | None = None,
         escape_sequence: str | None = None,
@@ -1376,10 +1375,10 @@ class Terminal(Widget):
         """
         A terminal emulator within a widget.
 
-        ``command`` is the command to execute inside the terminal, provided as a
-        list of the command followed by its arguments.  If 'command' is None,
-        the command is the current user's shell. You can also provide a callable
-        instead of a command, which will be executed in the subprocess.
+        ``command`` is the command to execute inside the terminal,
+        provided as a list of the command followed by its arguments.
+        If 'command' is None, the command is the current user's shell.
+        You can also provide a callable instead of a command, which will be executed in the subprocess.
 
         ``env`` can be used to pass custom environment variables. If omitted,
         os.environ is used.
@@ -1661,8 +1660,7 @@ class Terminal(Widget):
                 self.last_key = key
                 self._invalidate()
                 return None
-            elif (self.last_key == self.escape_sequence
-                  and key != self.escape_sequence):
+            elif self.last_key == self.escape_sequence and key != self.escape_sequence:
                 # hand down keypress directly after ungrab.
                 self.last_key = key
                 return key
