@@ -801,12 +801,13 @@ class Divider(Widget):
         return canv
 
 
-class SolidFill(BoxWidget):
+class SolidFill(Widget):
     """
     A box widget that fills an area with a single character
     """
     _selectable = False
     ignore_focus = True
+    _sizing = frozenset([BOX])
 
     def __init__(self, fill_char: str = " ") -> None:
         """
