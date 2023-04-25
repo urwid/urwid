@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
-import time
 import typing
 import unittest
 
@@ -28,7 +27,6 @@ class EventLoopTestMixin:
         _handle = evl.watch_file(rd, step2)
 
         evl.run()
-        time.sleep(0.1)
         self.assertEqual(out, ["writing", "hi"])
 
     def test_remove_alarm(self):
@@ -89,7 +87,6 @@ class EventLoopTestMixin:
             self.assertEqual(idle_handle, 1)
 
         evl.run()
-        time.sleep(0.1)
         self.assertTrue("waiting" in out, out)
         self.assertTrue("hello" in out, out)
         self.assertTrue("clean exit" in out, out)
@@ -97,7 +94,6 @@ class EventLoopTestMixin:
         del out[:]
 
         evl.run()
-        time.sleep(0.1)
         self.assertEqual(["clean exit"], out)
         self.assertTrue(evl.remove_watch_file(handle))
         _handle = evl.alarm(0, exit_error)
@@ -122,7 +118,7 @@ else:
 
         def test_error(self):
             evl = self.evl
-            evl.alarm(0.5, lambda: 1 / 0)  # Simulate error in event loop
+            evl.alarm(0, lambda: 1 / 0)  # Simulate error in event loop
             self.assertRaises(ZeroDivisionError, evl.run)
 
 
@@ -204,7 +200,6 @@ else:
             _handle = evl.alarm(0.07, test_remove_watch_file)
             self.assertEqual(evl.enter_idle(say_waiting), 1)
             evl.run()
-            time.sleep(0.2)
             self.assertTrue("da" in out, out)
             self.assertTrue("ta" in out, out)
             self.assertTrue("hello" in out, out)
@@ -213,7 +208,7 @@ else:
 
         def test_error(self):
             evl = self.evl
-            evl.alarm(0.5, lambda: 1 / 0)  # Simulate error in event loop
+            evl.alarm(0, lambda: 1 / 0)  # Simulate error in event loop
             self.assertRaises(ZeroDivisionError, evl.run)
 
 
@@ -225,7 +220,7 @@ class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
 
     def test_error(self):
         evl = self.evl
-        evl.alarm(0.5, lambda: 1 / 0)  # Simulate error in event loop
+        evl.alarm(0, lambda: 1 / 0)  # Simulate error in event loop
         self.assertRaises(ZeroDivisionError, evl.run)
 
     @unittest.skipIf(
@@ -256,5 +251,5 @@ else:
 
         def test_error(self):
             evl = self.evl
-            evl.alarm(0.5, lambda: 1 / 0)  # Simulate error in event loop
+            evl.alarm(0, lambda: 1 / 0)  # Simulate error in event loop
             self.assertRaises(ZeroDivisionError, evl.run)
