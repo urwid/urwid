@@ -227,17 +227,17 @@ class CheckBox(WidgetWrap):
         do_callback -- False to suppress signal from this change
 
         >>> changes = []
-        >>> def callback_a(cb, state, user_data):
+        >>> def callback_a(user_data, cb, state):
         ...     changes.append("A %r %r" % (state, user_data))
         >>> def callback_b(cb, state):
         ...     changes.append("B %r" % state)
         >>> cb = CheckBox('test', False, False)
-        >>> key1 = connect_signal(cb, 'change', callback_a, "user_a")
+        >>> key1 = connect_signal(cb, 'change', callback_a, user_args=("user_a",))
         >>> key2 = connect_signal(cb, 'change', callback_b)
         >>> cb.set_state(True) # both callbacks will be triggered
         >>> cb.state
         True
-        >>> disconnect_signal(cb, 'change', callback_a, "user_a")
+        >>> disconnect_signal(cb, 'change', callback_a, user_args=("user_a",))
         >>> cb.state = False
         >>> cb.state
         False

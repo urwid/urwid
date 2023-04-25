@@ -23,8 +23,10 @@
 from __future__ import annotations
 
 import itertools
+import typing
 import warnings
 import weakref
+from collections.abc import Callable, Collection, Container, Iterable
 
 
 class MetaSignals(type):
@@ -32,14 +34,15 @@ class MetaSignals(type):
     register the list of signals in the class variable signals,
     including signals in superclasses.
     """
-    def __init__(cls, name: str, bases, d):
+    def __init__(cls, name: str, bases: tuple[type, ...], d: dict[str, typing.Any]) -> None:
         signals = d.get("signals", [])
         for superclass in cls.__bases__:
             signals.extend(getattr(superclass, 'signals', []))
-        signals = list({x:None for x in signals}.keys())
+        signals = list({x: None for x in signals}.keys())
         d["signals"] = signals
         register_signal(cls, signals)
         super().__init__(name, bases, d)
+
 
 def setdefaultattr(obj, name, value):
     # like dict.setdefault() for object attributes
@@ -63,7 +66,7 @@ class Signals:
     def __init__(self):
         self._supported = {}
 
-    def register(self, sig_cls, signals):
+    def register(self, sig_cls, signals: Container[str]) -> None:
         """
         :param sig_class: the class of an object that will be sending signals
         :type sig_class: class
@@ -76,7 +79,16 @@ class Signals:
         """
         self._supported[sig_cls] = signals
 
-    def connect(self, obj, name: str, callback, user_arg=None, weak_args=None, user_args=None) -> Key:
+    def connect(
+        self,
+        obj,
+        name: str,
+        callback: Callable[..., typing.Any],
+        user_arg: typing.Any = None,
+        *,
+        weak_args: Iterable[typing.Any] = (),
+        user_args: Iterable[typing.Any] = (),
+    ) -> Key:
         """
         :param obj: the object sending a signal
         :type obj: object
@@ -159,7 +171,7 @@ class Signals:
             )
 
         sig_cls = obj.__class__
-        if not name in self._supported.get(sig_cls, []):
+        if name not in self._supported.get(sig_cls, ()):
             raise NameError(f"No such signal {name!r} for object {obj!r}")
 
         # Just generate an arbitrary (but unique) key
@@ -189,11 +201,27 @@ class Signals:
 
         return key
 
-    def _prepare_user_args(self, weak_args, user_args, callback = None):
+    def _prepare_user_args(
+        self,
+        weak_args: Iterable[typing.Any] = (),
+        user_args: Iterable[typing.Any] = (),
+        callback: Callable[..., typing.Any] | None = None,
+    ) -> tuple[Collection[weakref.ReferenceType], Collection[typing.Any]]:
         # Turn weak_args into weakrefs and prepend them to user_args
-        return [weakref.ref(a, callback) for a in (weak_args or [])] + (user_args or [])
+        w_args = tuple(weakref.ref(w_arg, callback) for w_arg in weak_args)
+        args = tuple(user_args) or ()
+        return (w_args, args)
 
-    def disconnect(self, obj, name: str, callback, user_arg=None, weak_args=None, user_args=None):
+    def disconnect(
+        self,
+        obj,
+        name: str,
+        callback: Callable[..., typing.Any],
+        user_arg: typing.Any = None,
+        *,
+        weak_args: Iterable[typing.Any] = (),
+        user_args: Iterable[typing.Any] = (),
+    ) -> None:
         """
         :param obj: the object to disconnect the signal from
         :type obj: object
@@ -227,7 +255,7 @@ class Signals:
             if h[1:] == (callback, user_arg, user_args):
                 return self.disconnect_by_key(obj, name, h[0])
 
-    def disconnect_by_key(self, obj, name: str, key: Key):
+    def disconnect_by_key(self, obj, name: str, key: Key) -> None:
         """
         :param obj: the object to disconnect the signal from
         :type obj: object
@@ -248,7 +276,7 @@ class Signals:
         handlers = signals.get(name, [])
         handlers[:] = [h for h in handlers if h[0] is not key]
 
-    def emit(self, obj, name: str, *args):
+    def emit(self, obj, name: str, *args) -> bool:
         """
         :param obj: the object sending a signal
         :type obj: object
@@ -264,38 +292,33 @@ class Signals:
         result = False
         signals = getattr(obj, self._signal_attr, {})
         handlers = signals.get(name, [])
-        for key, callback, user_arg, user_args in handlers:
-            result |= self._call_callback(callback, user_arg, user_args, args)
+        for key, callback, user_arg, (weak_args, user_args) in handlers:
+            result |= self._call_callback(callback, user_arg, weak_args, user_args, args)
         return result
 
-    def _call_callback(self, callback, user_arg, user_args, emit_args):
-        if user_args:
-            args_to_pass = []
-            for arg in user_args:
-                if isinstance(arg, weakref.ReferenceType):
-                    arg = arg()
-                    if arg is None:
-                        # If the weakref is None, the referenced object
-                        # was cleaned up. We just skip the entire
-                        # callback in this case. The weakref cleanup
-                        # handler will have removed the callback when
-                        # this happens, so no need to actually remove
-                        # the callback here.
-                        return False
-                args_to_pass.append(arg)
-
-            args_to_pass.extend(emit_args)
-        else:
-            # Optimization: Don't create a new list when there are
-            # no user_args
-            args_to_pass = emit_args
+    def _call_callback(
+        self,
+        callback,
+        user_arg: typing.Any,
+        weak_args: Collection[weakref.ReferenceType],
+        user_args: Collection[typing.Any],
+        emit_args: Iterable[typing.Any],
+    ) -> bool:
+        args_to_pass = []
+        for w_arg in weak_args:
+            real_arg = w_arg()
+            if real_arg is not None:
+                args_to_pass.append(real_arg)
+            else:
+                # de-referenced
+                return False
 
         # The deprecated user_arg argument was added to the end
         # instead of the beginning.
-        if user_arg is not None:
-            args_to_pass = itertools.chain(args_to_pass, (user_arg,))
+        args = itertools.chain(args_to_pass, user_args, emit_args, (user_arg,) if user_arg is not None else ())
 
-        return bool(callback(*args_to_pass))
+        return bool(callback(*args))
+
 
 _signals = Signals()
 emit_signal = _signals.emit
