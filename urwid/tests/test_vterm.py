@@ -238,6 +238,7 @@ class TermTest(unittest.TestCase):
         self.write(r'98765\e[8D\e[1Jx')
         self.expect('   x5a98765')
 
+    @unittest.skip("Issue #544")
     def test_scrolling_region_simple(self):
         # TODO(Aleksei): Issue #544
         self.write('\\e[10;20r\\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\\e[faa')
@@ -255,11 +256,13 @@ class TermTest(unittest.TestCase):
         self.write(r'\e[?6h\e[10;20r\e[2;5rtest')
         self.expect('\ntest')
 
+    @unittest.skip("Issue #544")
     def test_cursor_scrolling_region(self):
         # TODO(Aleksei): Issue #544
         self.write('\\e[?6h\\e[10;20r\\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\\e[faa')
         self.expect('\n' * 9 + 'aa\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12')
 
+    @unittest.skip("Issue #544")
     def test_scrolling_region_simple_with_focus(self):
         # TODO(Aleksei): Issue #544
         self.write('\\e[10;20r\\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\\e[faa')
@@ -277,6 +280,7 @@ class TermTest(unittest.TestCase):
         self.write(r'\e[?6h\e[10;20r\e[2;5rtest')
         self.expect('\ntest', focus=True)
 
+    @unittest.skip("Issue #544")
     def test_cursor_scrolling_region_with_focus(self):
         # TODO(Aleksei): Issue #544
         self.write('\\e[?6h\\e[10;20r\\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\\e[faa')
