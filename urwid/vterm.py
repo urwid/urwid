@@ -34,32 +34,35 @@ import sys
 import time
 import traceback
 import typing
-from collections.abc import Iterable, Mapping, Sequence, Callable
+import warnings
+from collections import deque
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from dataclasses import dataclass
 
 try:
     import fcntl
     import pty
     import termios
 except ImportError:
-    pass # windows
+    pass  # windows
 
-from urwid import util
+from urwid import event_loop, util
 from urwid.canvas import Canvas
 from urwid.display_common import _BASIC_COLORS, AttrSpec, RealTerminal
 from urwid.escape import ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS
 from urwid.widget import BOX, Widget
-from urwid import event_loop
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
 EOF = b''
 ESC = chr(27)
+ESC_B = b'\x1b'
 
 KEY_TRANSLATIONS = {
-    'enter':     chr(13),
+    'enter':     "\r",
     'backspace': chr(127),
-    'tab':       chr(9),
+    'tab':       "\t",
     'esc':       ESC,
     'up':        f"{ESC}[A",
     'down':      f"{ESC}[B",
@@ -98,7 +101,19 @@ KEY_TRANSLATIONS_DECCKM = {
     'f5':        f"{ESC}[15~",
 }
 
-CSI_COMMANDS = {
+
+class CSIAlias(typing.NamedTuple):
+    alias_mark: str  # can not have constructor with default first and non-default second arg
+    alias: bytes
+
+
+class CSICommand(typing.NamedTuple):
+    num_args: int
+    default: int
+    callback: Callable[[TermCanvas, list[int], bool], typing.Any]  # return value ignored
+
+
+CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     # possible values:
     #     None -> ignore sequence
     #     (<minimum number of args>, <fallback if no argument>, callback)
@@ -107,47 +122,62 @@ CSI_COMMANDS = {
     # while callback is executed as:
     #     callback(<instance of TermCanvas>, arguments, has_question_mark)
 
-    b'@': (1, 1, lambda s, number, q: s.insert_chars(chars=number[0])),
-    b'A': (1, 1, lambda s, rows, q: s.move_cursor(0, -rows[0], relative=True)),
-    b'B': (1, 1, lambda s, rows, q: s.move_cursor(0, rows[0], relative=True)),
-    b'C': (1, 1, lambda s, cols, q: s.move_cursor(cols[0], 0, relative=True)),
-    b'D': (1, 1, lambda s, cols, q: s.move_cursor(-cols[0], 0, relative=True)),
-    b'E': (1, 1, lambda s, rows, q: s.move_cursor(0, rows[0], relative_y=True)),
-    b'F': (1, 1, lambda s, rows, q: s.move_cursor(0, -rows[0], relative_y=True)),
-    b'G': (1, 1, lambda s, col, q: s.move_cursor(col[0] - 1, 0, relative_y=True)),
-    b'H': (2, 1, lambda s, x_y, q: s.move_cursor(x_y[1] - 1, x_y[0] - 1)),
-    b'J': (1, 0, lambda s, mode, q: s.csi_erase_display(mode[0])),
-    b'K': (1, 0, lambda s, mode, q: s.csi_erase_line(mode[0])),
-    b'L': (1, 1, lambda s, number, q: s.insert_lines(lines=number[0])),
-    b'M': (1, 1, lambda s, number, q: s.remove_lines(lines=number[0])),
-    b'P': (1, 1, lambda s, number, q: s.remove_chars(chars=number[0])),
-    b'X': (1, 1, lambda s, number, q: s.erase(s.term_cursor,
-                                                (s.term_cursor[0]+number[0] - 1,
-                                                 s.term_cursor[1]))),
-    b'a': ('alias', b'C'),
-    b'c': (0, 0, lambda s, none, q: s.csi_get_device_attributes(q)),
-    b'd': (1, 1, lambda s, row, q: s.move_cursor(0, row[0] - 1, relative_x=True)),
-    b'e': ('alias', b'B'),
-    b'f': ('alias', b'H'),
-    b'g': (1, 0, lambda s, mode, q: s.csi_clear_tabstop(mode[0])),
-    b'h': (1, 0, lambda s, modes, q: s.csi_set_modes(modes, q)),
-    b'l': (1, 0, lambda s, modes, q: s.csi_set_modes(modes, q, reset=True)),
-    b'm': (1, 0, lambda s, attrs, q: s.csi_set_attr(attrs)),
-    b'n': (1, 0, lambda s, mode, q: s.csi_status_report(mode[0])),
-    b'q': (1, 0, lambda s, mode, q: s.csi_set_keyboard_leds(mode[0])),
-    b'r': (2, 0, lambda s, t_b, q: s.csi_set_scroll(t_b[0], t_b[1])),
-    b's': (0, 0, lambda s, none, q: s.save_cursor()),
-    b'u': (0, 0, lambda s, none, q: s.restore_cursor()),
-    b'`': ('alias', b'G'),
+    b'@': CSICommand(1, 1, lambda s, number, q: s.insert_chars(chars=number[0])),
+    b'A': CSICommand(1, 1, lambda s, rows, q: s.move_cursor(0, -rows[0], relative=True)),
+    b'B': CSICommand(1, 1, lambda s, rows, q: s.move_cursor(0, rows[0], relative=True)),
+    b'C': CSICommand(1, 1, lambda s, cols, q: s.move_cursor(cols[0], 0, relative=True)),
+    b'D': CSICommand(1, 1, lambda s, cols, q: s.move_cursor(-cols[0], 0, relative=True)),
+    b'E': CSICommand(1, 1, lambda s, rows, q: s.move_cursor(0, rows[0], relative_y=True)),
+    b'F': CSICommand(1, 1, lambda s, rows, q: s.move_cursor(0, -rows[0], relative_y=True)),
+    b'G': CSICommand(1, 1, lambda s, col, q: s.move_cursor(col[0] - 1, 0, relative_y=True)),
+    b'H': CSICommand(2, 1, lambda s, x_y, q: s.move_cursor(x_y[1] - 1, x_y[0] - 1)),
+    b'J': CSICommand(1, 0, lambda s, mode, q: s.csi_erase_display(mode[0])),
+    b'K': CSICommand(1, 0, lambda s, mode, q: s.csi_erase_line(mode[0])),
+    b'L': CSICommand(1, 1, lambda s, number, q: s.insert_lines(lines=number[0])),
+    b'M': CSICommand(1, 1, lambda s, number, q: s.remove_lines(lines=number[0])),
+    b'P': CSICommand(1, 1, lambda s, number, q: s.remove_chars(chars=number[0])),
+    b'X': CSICommand(
+        1,
+        1,
+        lambda s, number, q: s.erase(s.term_cursor, (s.term_cursor[0]+number[0] - 1, s.term_cursor[1]))
+    ),
+    b'a': CSIAlias('alias', b'C'),
+    b'c': CSICommand(0, 0, lambda s, none, q: s.csi_get_device_attributes(q)),
+    b'd': CSICommand(1, 1, lambda s, row, q: s.move_cursor(0, row[0] - 1, relative_x=True)),
+    b'e': CSIAlias('alias', b'B'),
+    b'f': CSIAlias('alias', b'H'),
+    b'g': CSICommand(1, 0, lambda s, mode, q: s.csi_clear_tabstop(mode[0])),
+    b'h': CSICommand(1, 0, lambda s, modes, q: s.csi_set_modes(modes, q)),
+    b'l': CSICommand(1, 0, lambda s, modes, q: s.csi_set_modes(modes, q, reset=True)),
+    b'm': CSICommand(1, 0, lambda s, attrs, q: s.csi_set_attr(attrs)),
+    b'n': CSICommand(1, 0, lambda s, mode, q: s.csi_status_report(mode[0])),
+    b'q': CSICommand(1, 0, lambda s, mode, q: s.csi_set_keyboard_leds(mode[0])),
+    b'r': CSICommand(2, 0, lambda s, t_b, q: s.csi_set_scroll(t_b[0], t_b[1])),
+    b's': CSICommand(0, 0, lambda s, none, q: s.save_cursor()),
+    b'u': CSICommand(0, 0, lambda s, none, q: s.restore_cursor()),
+    b'`': CSIAlias('alias', b'G'),
 }
 
-CHARSET_DEFAULT = 1
-CHARSET_UTF8 = 2
+CHARSET_DEFAULT: Literal[1] = 1  # type annotated exclusively for buggy IDE
+CHARSET_UTF8: Literal[2] = 2
 
 
+@dataclass(eq=True, order=False)
 class TermModes:
-    def __init__(self) -> None:
-        self.reset()
+    # ECMA-48
+    display_ctrl: bool = False
+    insert: bool = False
+    lfnl: bool = False
+
+    # DEC private modes
+    keys_decckm: bool = False
+    reverse_video: bool = False
+    constrain_scrolling: bool = False
+    autowrap: bool = True
+    visible_cursor: bool = True
+
+    # charset stuff
+    main_charset: Literal[1, 2] = CHARSET_DEFAULT
 
     def reset(self) -> None:
         # ECMA-48
@@ -167,6 +197,8 @@ class TermModes:
 
 
 class TermCharset:
+    __slots__ = ("_g", "_sgr_mapping", "active", "current")
+
     MAPPING = {
         'default': None,
         'vt100':   '0',
@@ -235,19 +267,27 @@ class TermScroller(list):
     """
     SCROLLBACK_LINES = 10000
 
-    def trunc(self):
+    def __init__(self, iterable: Iterable[typing.Any]) -> None:
+        warnings.warn(
+            "`TermScroller` is deprecated. Please use `collections.deque` with non-zero `maxlen` instead.",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        super().__init__(iterable)
+
+    def trunc(self) -> None:
         if len(self) >= self.SCROLLBACK_LINES:
             self.pop(0)
 
-    def append(self, obj):
+    def append(self, obj) -> None:
         self.trunc()
         super().append(obj)
 
-    def insert(self, idx, obj):
+    def insert(self, idx: typing.SupportsIndex, obj) -> None:
         self.trunc()
         super().insert(idx, obj)
 
-    def extend(self, seq):
+    def extend(self, seq) -> None:
         self.trunc()
         super().extend(seq)
 
@@ -260,20 +300,37 @@ class TermCanvas(Canvas):
 
         self.width, self.height = width, height
         self.widget = widget
-        self.modes = widget.term_modes
+        self.modes: TermModes = widget.term_modes
         self.has_focus = False
 
-        self.scrollback_buffer = TermScroller()
+        self.scrollback_buffer: deque[list[tuple[AttrSpec | None, str | None, bytes]]] = deque(maxlen=10000)
         self.scrolling_up = 0
 
-        self.utf8_eat_bytes = None
-        self.utf8_buffer = b''
+        self.utf8_eat_bytes: int | None = None
+        self.utf8_buffer = bytearray()
         self.escbuf = b''
 
         self.coords["cursor"] = (0, 0, None)
 
-        self.term_cursor = (0, 0)  # do not allow to shoot in the leg at `set_term_cursor`
-        self.cursor: tuple[int, int] | None = None
+        self.term_cursor: tuple[int, int] = (0, 0)  # do not allow to shoot in the leg at `set_term_cursor`
+
+        self.within_escape = False
+        self.parsestate = 0
+
+        self.attrspec: AttrSpec | None = None
+
+        self.charset = TermCharset()
+
+        self.saved_cursor: tuple[int, int] | None = None
+        self.saved_attrs: tuple[AttrSpec | None, TermCharset] | None = None
+
+        self.is_rotten_cursor = False
+
+        self.scrollregion_start = 0
+        self.scrollregion_end = self.height - 1
+
+        self.tabstops: list[int] = []
+        self.term: list[list[tuple[AttrSpec | None, str | None, bytes]]] = []
 
         self.reset()
 
@@ -389,13 +446,13 @@ class TermCanvas(Canvas):
         div, mod = divmod(x, 8)
         return (self.tabstops[div] & (1 << mod)) > 0
 
-    def empty_line(self, char: bytes = b' '):
+    def empty_line(self, char: bytes = b' ') -> list[tuple[AttrSpec | None, str | None, bytes]]:
         return [self.empty_char(char)] * self.width
 
-    def empty_char(self, char: bytes = b' '):
+    def empty_char(self, char: bytes = b' ') -> tuple[AttrSpec | None, str | None, bytes]:
         return (self.attrspec, self.charset.current, char)
 
-    def addstr(self, data):
+    def addstr(self, data: Iterable[int]) -> None:
         if self.width <= 0 or self.height <= 0:
             # not displayable, do nothing!
             return
@@ -432,9 +489,9 @@ class TermCanvas(Canvas):
                     continue
 
                 # adjust x axis of scrollback buffer to the current width
-                if len(last_line) < self.width:
-                    last_line += [self.empty_char()] * \
-                                 (self.width - len(last_line))
+                padding = self.width - len(last_line)
+                if padding > 0:
+                    last_line += [self.empty_char()] * padding
                 else:
                     last_line = last_line[:self.width]
 
@@ -456,7 +513,7 @@ class TermCanvas(Canvas):
         # extend tabs
         self.init_tabstops(extend=True)
 
-    def set_g01(self, char: bytes, mod: str) -> None:
+    def set_g01(self, char: bytes, mod: bytes) -> None:
         """
         Set G0 or G1 according to 'char' and modifier 'mod'.
         """
@@ -494,11 +551,16 @@ class TermCanvas(Canvas):
 
             escbuf.append(num)
 
-        if CSI_COMMANDS[char] is not None:
-            if CSI_COMMANDS[char][0] == 'alias':
-                csi_cmd = CSI_COMMANDS[(CSI_COMMANDS[char][1])]
+        cmd_ = CSI_COMMANDS[char]
+        if cmd_ is not None:
+            if isinstance(cmd_, CSIAlias):
+                csi_cmd: CSICommand = CSI_COMMANDS[cmd_.alias]  # type: ignore[assignment]
+            elif isinstance(cmd_, CSICommand):
+                csi_cmd = cmd_
+            elif cmd_[0] == 'alias':  # fallback, hard deprecated
+                csi_cmd = CSI_COMMANDS[CSIAlias(*cmd_).alias]
             else:
-                csi_cmd = CSI_COMMANDS[char]
+                csi_cmd = CSICommand(*cmd_)  # fallback, hard deprecated
 
             number_of_args, default_value, cmd = csi_cmd
             while len(escbuf) < number_of_args:
@@ -514,7 +576,7 @@ class TermCanvas(Canvas):
                 # unpacked tuples in CSI_COMMANDS.
                 pass
 
-    def parse_noncsi(self, char: bytes, mod: str | None = None) -> None:
+    def parse_noncsi(self, char: bytes, mod: bytes = b'') -> None:
         """
         Parse escape sequences which are not CSI.
         """
@@ -526,7 +588,7 @@ class TermCanvas(Canvas):
             elif char in b'G8':
                 # 8 is obsolete and only for backwards compatibility
                 self.modes.main_charset = CHARSET_UTF8
-        elif mod == b'(' or mod == b')':  # define G0/G1
+        elif mod in (b'(', b')'):  # define G0/G1
             self.set_g01(char, mod)
         elif char == b'M':  # reverse line feed
             self.linefeed(reverse=True)
@@ -568,7 +630,7 @@ class TermCanvas(Canvas):
             self.escbuf = b''
             self.parsestate = 2
             return
-        elif self.parsestate == 2 and char == b"\x07":
+        elif self.parsestate == 2 and char == b"\a":
             # end of OSC
             self.parse_osc(self.escbuf.lstrip(b'0'))
         elif self.parsestate == 2 and self.escbuf[-1:] + char == f"{ESC}\\".encode('iso8859-1'):
@@ -631,13 +693,13 @@ class TermCanvas(Canvas):
             if byte >= 0xc0:
                 # start multibyte sequence
                 self.utf8_eat_bytes = self.get_utf8_len(byte)
-                self.utf8_buffer = bytes([byte])
+                self.utf8_buffer = bytearray([byte])
                 return
             elif 0x80 <= byte < 0xc0 and self.utf8_eat_bytes is not None:
                 if self.utf8_eat_bytes > 1:
                     # continue multibyte sequence
                     self.utf8_eat_bytes -= 1
-                    self.utf8_buffer += bytes([byte])
+                    self.utf8_buffer.append(byte)
                     return
                 else:
                     # end multibyte sequence
@@ -668,24 +730,24 @@ class TermCanvas(Canvas):
 
         dc = self.modes.display_ctrl
 
-        if char == b"\x1b" and self.parsestate != 2:  # escape
+        if char == ESC_B and self.parsestate != 2:  # escape
             self.within_escape = True
-        elif not dc and char == b"\x0d":  # carriage return
+        elif not dc and char == b'\r':  # carriage return CR
             self.carriage_return()
         elif not dc and char == b"\x0f":  # activate G0
             self.charset.activate(0)
         elif not dc and char == b"\x0e":  # activate G1
             self.charset.activate(1)
-        elif not dc and char in b"\x0a\x0b\x0c":  # line feed
+        elif not dc and char in b"\n\v\f":  # line feed LF/VT/FF
             self.linefeed()
             if self.modes.lfnl:
                 self.carriage_return()
-        elif not dc and char == b"\x09":  # char tab
+        elif not dc and char == b"\t":  # char tab
             self.tab()
-        elif not dc and char == b"\x08":  # backspace
+        elif not dc and char == b"\b":  # backspace BS
             if x > 0:
                 self.set_term_cursor(x - 1, y)
-        elif not dc and char == b"\x07" and self.parsestate != 2:  # beep
+        elif not dc and char == b"\a" and self.parsestate != 2:  # BEL
             # we need to check if we're in parsestate 2, as an OSC can be
             # terminated by the BEL character!
             self.widget.beep()
@@ -1107,7 +1169,7 @@ class TermCanvas(Canvas):
         else:
             return AttrSpec(fg, bg)
 
-    def csi_set_attr(self, attrs):
+    def csi_set_attr(self, attrs: Sequence[int]) -> None:
         """
         Set graphics rendition.
         """
@@ -1366,8 +1428,8 @@ class Terminal(Widget):
 
     def __init__(
         self,
-        command: Sequence[str] | Callable[[], ...] | None,
-        env: Mapping[str, str] | Iterable[Sequence[str]] | None = None,
+        command: Sequence[str | bytes] | Callable[[], ...] | None,
+        env: Mapping[str, str] | Iterable[tuple[str, str]] | None = None,
         main_loop: event_loop.EventLoop | None = None,
         escape_sequence: str | None = None,
         encoding: str = 'utf-8',
@@ -1405,7 +1467,7 @@ class Terminal(Widget):
         """
         super().__init__()
 
-        self.escape_sequence = escape_sequence or "ctrl a"
+        self.escape_sequence: str = escape_sequence or "ctrl a"
 
         self.env = dict(env or os.environ)
 
@@ -1414,7 +1476,7 @@ class Terminal(Widget):
         self.encoding = encoding
 
         self.keygrab = False
-        self.last_key = None
+        self.last_key: str | None = None
 
         self.response_buffer: list[str] = []
 
@@ -1425,11 +1487,11 @@ class Terminal(Widget):
         else:
             self.main_loop = event_loop.SelectEventLoop()
 
-        self.master = None
-        self.pid = None
+        self.master: int | None = None
+        self.pid: int | None = None
 
-        self.width = None
-        self.height = None
+        self.width: int | None = None
+        self.height: int | None = None
         self.term: TermCanvas | None = None
         self.has_focus = False
         self.terminated = False
@@ -1510,7 +1572,7 @@ class Terminal(Widget):
     def beep(self) -> None:
         self._emit('beep')
 
-    def leds(self, which) -> None:
+    def leds(self, which: Literal['clear', 'scroll_lock', 'num_lock', 'caps_lock']) -> None:
         self._emit('leds', which)
 
     def respond(self, string: str) -> None:
@@ -1612,9 +1674,9 @@ class Terminal(Widget):
         try:
             data = os.read(self.master, 4096)
         except OSError as e:
-            if e.errno == 5:  # EIO, child terminated
+            if e.errno == errno.EIO:  # EIO, child terminated
                 data = EOF
-            elif e.errno == errno.EWOULDBLOCK: # empty buffer
+            elif e.errno == errno.EWOULDBLOCK:  # empty buffer
                 return
             else:
                 raise
@@ -1637,8 +1699,7 @@ class Terminal(Widget):
             self.touch_term(width, height)
             return None
 
-        if (self.last_key == self.escape_sequence
-            and key == self.escape_sequence):
+        if self.last_key == self.escape_sequence and key == self.escape_sequence:
             # escape sequence pressed twice...
             self.last_key = key
             self.keygrab = True
@@ -1655,21 +1716,25 @@ class Terminal(Widget):
                 self.last_key = key
                 self._invalidate()
                 return None
-            elif key == 'page down':
+
+            if key == 'page down':
                 self.term.scroll_buffer(up=False)
                 self.last_key = key
                 self._invalidate()
                 return None
-            elif self.last_key == self.escape_sequence and key != self.escape_sequence:
+
+            if self.last_key == self.escape_sequence and key != self.escape_sequence:
                 # hand down keypress directly after ungrab.
                 self.last_key = key
                 return key
-            elif self.escape_sequence == key:
+
+            if self.escape_sequence == key:
                 # start grabbing the terminal
                 self.keygrab = True
                 self.last_key = key
                 return None
-            elif self._command_map[key] is None or key == 'enter':
+
+            if self._command_map[key] is None or key == 'enter':
                 # printable character or escape sequence means:
                 # lock in terminal...
                 self.keygrab = True
@@ -1690,16 +1755,14 @@ class Terminal(Widget):
                 key = chr(ord(key[-1]) - ord('A') + 1)
         else:
             if self.term_modes.keys_decckm and key in KEY_TRANSLATIONS_DECCKM:
-                key = KEY_TRANSLATIONS_DECCKM.get(key)
+                key = KEY_TRANSLATIONS_DECCKM[key]
             else:
                 key = KEY_TRANSLATIONS.get(key, key)
 
         # ENTER transmits both a carriage return and linefeed in LF/NL mode.
-        if self.term_modes.lfnl and key == "\x0d":
-            key += "\x0a"
+        if self.term_modes.lfnl and key == "\r":
+            key += "\n"
 
-        key = key.encode(self.encoding, 'ignore')
-
-        os.write(self.master, key)
+        os.write(self.master, key.encode(self.encoding, 'ignore'))
 
         return None
