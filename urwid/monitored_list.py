@@ -190,7 +190,7 @@ class MonitoredFocusList(MonitoredList):
             f"method `{self.__class__.__name__}._get_focus` is deprecated, "
             f"please use `{self.__class__.__name__}.focus` property",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
         return self.focus
 
@@ -199,7 +199,7 @@ class MonitoredFocusList(MonitoredList):
             f"method `{self.__class__.__name__}._set_focus` is deprecated, "
             f"please use `{self.__class__.__name__}.focus` property",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
         self.focus = index
 

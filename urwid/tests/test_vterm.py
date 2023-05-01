@@ -26,6 +26,7 @@ import sys
 import typing
 import unittest
 from itertools import dropwhile
+from time import sleep
 
 from urwid import Widget, signals, vterm
 from urwid.decoration import BoxAdapter
@@ -60,6 +61,7 @@ class DummyCommand:
 
     def write(self, data: bytes) -> None:
         os.write(self.writer, data)
+        sleep(0.025)
 
     def quit(self) -> None:
         self.write(self.QUITSTRING)
