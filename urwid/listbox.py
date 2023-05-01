@@ -133,9 +133,9 @@ class SimpleListWalker(MonitoredList, ListWalker):
             f"Method `{self.__class__.__name__}._get_contents` is deprecated, "
             f"please use property`{self.__class__.__name__}.contents`",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
-        return self.contents
+        return self
 
     def _modified(self):
         if self.focus >= len(self):
@@ -332,7 +332,7 @@ class ListBox(Widget, WidgetContainerMixin):
             f"Method `{self.__class__.__name__}._get_body` is deprecated, "
             f"please use property `{self.__class__.__name__}.body`",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
         return self.body
 
@@ -341,7 +341,7 @@ class ListBox(Widget, WidgetContainerMixin):
             f"Method `{self.__class__.__name__}._set_body` is deprecated, "
             f"please use property `{self.__class__.__name__}.body`",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
         self.body = body
 
@@ -628,6 +628,13 @@ class ListBox(Widget, WidgetContainerMixin):
         compatibility. You may also use the new standard container
         properties :attr:`focus` and :attr:`focus_position` to read these values.
         """
+        warnings.warn(
+            "only for backwards compatibility."
+            "You may also use the new standard container property `focus` to get the focus "
+            "and property `focus_position` to read these values.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         return self._body.get_focus()
 
     @property
@@ -638,6 +645,15 @@ class ListBox(Widget, WidgetContainerMixin):
         Return the widget in focus according to our :obj:`list walker <ListWalker>`.
         """
         return self._body.get_focus()[0]
+
+    def _get_focus(self) -> Widget:
+        warnings.warn(
+            f"method `{self.__class__.__name__}._get_focus` is deprecated, "
+            f"please use `{self.__class__.__name__}.focus` property",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        return self.focus
 
     def _get_focus_position(self):
         """
