@@ -152,7 +152,7 @@ class WidgetContainerMixin:
             f"method `{self.__class__.__name__}._get_focus` is deprecated, "
             f"please use `{self.__class__.__name__}.focus` property",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
         return self.focus
 
@@ -224,7 +224,7 @@ class WidgetContainerListContentsMixin:
             f"method `{self.__class__.__name__}._get_focus_position` is deprecated, "
             f"please use `{self.__class__.__name__}.focus_position` property",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
         return self.focus_position
 
@@ -238,7 +238,7 @@ class WidgetContainerListContentsMixin:
             f"method `{self.__class__.__name__}._set_focus_position` is deprecated, "
             f"please use `{self.__class__.__name__}.focus_position` property",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
         self.focus_position = position
 
@@ -340,7 +340,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             "only for backwards compatibility."
             "You should use the new standard container property `contents` to modify GridFlow",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
         return self.cells
 
@@ -349,7 +349,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             "only for backwards compatibility."
             "You should use the new standard container property `contents` to modify GridFlow",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
         self.cells = widgets
 
@@ -374,7 +374,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             f"Method `{self.__class__.__name__}._get_cell_width` is deprecated, "
             f"please use property `{self.__class__.__name__}.cell_width`",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
         return self.cell_width
 
@@ -383,7 +383,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             f"Method `{self.__class__.__name__}._set_cell_width` is deprecated, "
             f"please use property `{self.__class__.__name__}.cell_width`",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
         self.cell_width = width
 
@@ -442,13 +442,34 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             stacklevel=2,
         )
         if isinstance(cell, int):
-            self.focus_position = cell
+            try:
+                if cell < 0 or cell >= len(self.contents):
+                    raise IndexError
+            except (TypeError, IndexError):
+                raise IndexError(f"No GridFlow child widget at position {cell}")
+            self.contents.focus = cell
             return
-        self.focus_cell = cell
+
+        for i, (w, options) in enumerate(self.contents):
+            if cell == w:
+                self.focus_position = i
+                return
+        raise ValueError(f"Widget not found in GridFlow contents: {cell!r}")
 
     @property
     def focus(self) -> Widget | None:
         """the child widget in focus or None when GridFlow is empty"""
+        if not self.contents:
+            return None
+        return self.contents[self.focus_position][0]
+
+    def _get_focus(self) -> Widget:
+        warnings.warn(
+            f"method `{self.__class__.__name__}._get_focus` is deprecated, "
+            f"please use `{self.__class__.__name__}.focus` property",
+            DeprecationWarning,
+            stacklevel=3,
+        )
         if not self.contents:
             return None
         return self.contents[self.focus_position][0]
@@ -466,7 +487,9 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             PendingDeprecationWarning,
             stacklevel=2,
         )
-        return self.focus
+        if not self.contents:
+            return None
+        return self.contents[self.focus_position][0]
 
     @property
     def focus_cell(self):
@@ -500,9 +523,13 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             "You may also use the new standard container property"
             "`focus` to get the focus and `focus_position` to get/set the cell in focus by index",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
-        self.focus_cell = cell
+        for i, (w, options) in enumerate(self.contents):
+            if cell == w:
+                self.focus_position = i
+                return
+        raise ValueError(f"Widget not found in GridFlow contents: {cell!r}")
 
     @property
     def focus_position(self) -> int | None:
@@ -521,6 +548,36 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
 
         position -- index of child widget to be made focus
         """
+        try:
+            if position < 0 or position >= len(self.contents):
+                raise IndexError
+        except (TypeError, IndexError):
+            raise IndexError(f"No GridFlow child widget at position {position}")
+        self.contents.focus = position
+
+    def _get_focus_position(self) -> int | None:
+        warnings.warn(
+            f"method `{self.__class__.__name__}._get_focus_position` is deprecated, "
+            f"please use `{self.__class__.__name__}.focus_position` property",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        if not self.contents:
+            raise IndexError("No focus_position, GridFlow is empty")
+        return self.contents.focus
+
+    def _set_focus_position(self, position: int) -> None:
+        """
+        Set the widget in focus.
+
+        position -- index of child widget to be made focus
+        """
+        warnings.warn(
+            f"method `{self.__class__.__name__}._set_focus_position` is deprecated, "
+            f"please use `{self.__class__.__name__}.focus_position` property",
+            DeprecationWarning,
+            stacklevel=3,
+        )
         try:
             if position < 0 or position >= len(self.contents):
                 raise IndexError
@@ -882,6 +939,15 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         return self.top_w
 
+    def _get_focus(self) -> Widget:
+        warnings.warn(
+            f"method `{self.__class__.__name__}._get_focus` is deprecated, "
+            f"please use `{self.__class__.__name__}.focus` property",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        return self.top_w
+
     @property
     def focus_position(self) -> Literal[1]:
         """
@@ -896,6 +962,30 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         position -- index of child widget to be made focus
         """
+        if position != 1:
+            raise IndexError(f"Overlay widget focus_position currently must always be set to 1, not {position}")
+
+    def _get_focus_position(self) -> int | None:
+        warnings.warn(
+            f"method `{self.__class__.__name__}._get_focus_position` is deprecated, "
+            f"please use `{self.__class__.__name__}.focus_position` property",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        return 1
+
+    def _set_focus_position(self, position: int) -> None:
+        """
+        Set the widget in focus.
+
+        position -- index of child widget to be made focus
+        """
+        warnings.warn(
+            f"method `{self.__class__.__name__}._set_focus_position` is deprecated, "
+            f"please use `{self.__class__.__name__}.focus_position` property",
+            DeprecationWarning,
+            stacklevel=3,
+        )
         if position != 1:
             raise IndexError(f"Overlay widget focus_position currently must always be set to 1, not {position}")
 
@@ -1277,6 +1367,19 @@ class Frame(Widget, WidgetContainerMixin):
             'body': self._body
             }[self.focus_part]
 
+    def _get_focus(self) -> Widget:
+        warnings.warn(
+            f"method `{self.__class__.__name__}._get_focus` is deprecated, "
+            f"please use `{self.__class__.__name__}.focus` property",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        return {
+            'header': self._header,
+            'footer': self._footer,
+            'body': self._body
+        }[self.focus_part]
+
     @property
     def contents(self):
         """
@@ -1374,7 +1477,7 @@ class Frame(Widget, WidgetContainerMixin):
             f"method `{self.__class__.__name__}._contents` is deprecated, "
             f"please use property `{self.__class__.__name__}.contents`",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
         return self.contents
 
@@ -1830,6 +1933,17 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 return
         raise ValueError(f"Widget not found in Pile contents: {item!r}")
 
+    def _get_focus(self) -> Widget:
+        warnings.warn(
+            f"method `{self.__class__.__name__}._get_focus` is deprecated, "
+            f"please use `{self.__class__.__name__}.focus` property",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        if not self.contents:
+            return None
+        return self.contents[self.focus_position][0]
+
     def get_focus(self) -> Widget | None:
         """
         Return the widget in focus, for backwards compatibility.  You may
@@ -1842,7 +1956,9 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             PendingDeprecationWarning,
             stacklevel=2,
         )
-        return self.focus
+        if not self.contents:
+            return None
+        return self.contents[self.focus_position][0]
 
     def set_focus(self, item: Widget | int) -> None:
         warnings.warn(
@@ -1851,7 +1967,14 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             PendingDeprecationWarning,
             stacklevel=2,
         )
-        self.focus = item
+        if isinstance(item, int):
+            self.focus_position = item
+            return
+        for i, (w, options) in enumerate(self.contents):
+            if item == w:
+                self.focus_position = i
+                return
+        raise ValueError(f"Widget not found in Pile contents: {item!r}")
 
     @property
     def focus_item(self):
@@ -1892,6 +2015,36 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         position -- index of child widget to be made focus
         """
+        try:
+            if position < 0 or position >= len(self.contents):
+                raise IndexError
+        except (TypeError, IndexError):
+            raise IndexError(f"No Pile child widget at position {position}")
+        self.contents.focus = position
+
+    def _get_focus_position(self) -> int | None:
+        warnings.warn(
+            f"method `{self.__class__.__name__}._get_focus_position` is deprecated, "
+            f"please use `{self.__class__.__name__}.focus_position` property",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        if not self.contents:
+            raise IndexError("No focus_position, Pile is empty")
+        return self.contents.focus
+
+    def _set_focus_position(self, position: int) -> None:
+        """
+        Set the widget in focus.
+
+        position -- index of child widget to be made focus
+        """
+        warnings.warn(
+            f"method `{self.__class__.__name__}._set_focus_position` is deprecated, "
+            f"please use `{self.__class__.__name__}.focus_position` property",
+            DeprecationWarning,
+            stacklevel=3,
+        )
         try:
             if position < 0 or position >= len(self.contents):
                 raise IndexError
@@ -2522,6 +2675,17 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             return None
         return self.contents[self.focus_position][0]
 
+    def _get_focus(self) -> Widget:
+        warnings.warn(
+            f"method `{self.__class__.__name__}._get_focus` is deprecated, "
+            f"please use `{self.__class__.__name__}.focus` property",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        if not self.contents:
+            return None
+        return self.contents[self.focus_position][0]
+
     def get_focus(self):
         """
         Return the widget in focus, for backwards compatibility.
@@ -2535,7 +2699,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             PendingDeprecationWarning,
             stacklevel=2,
         )
-        return self.focus
+        if not self.contents:
+            return None
+        return self.contents[self.focus_position][0]
 
     @property
     def focus_position(self) -> int | None:
@@ -2543,7 +2709,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         index of child widget in focus.
         Raises :exc:`IndexError` if read when Columns is empty, or when set to an invalid index.
         """
-        if not self.widget_list:
+        if not self.contents:
             raise IndexError("No focus_position, Columns is empty")
         return self.contents.focus
 
@@ -2554,6 +2720,36 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         position -- index of child widget to be made focus
         """
+        try:
+            if position < 0 or position >= len(self.contents):
+                raise IndexError
+        except (TypeError, IndexError):
+            raise IndexError(f"No Columns child widget at position {position}")
+        self.contents.focus = position
+
+    def _get_focus_position(self) -> int | None:
+        warnings.warn(
+            f"method `{self.__class__.__name__}._get_focus_position` is deprecated, "
+            f"please use `{self.__class__.__name__}.focus_position` property",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        if not self.contents:
+            raise IndexError("No focus_position, Columns is empty")
+        return self.contents.focus
+
+    def _set_focus_position(self, position: int) -> None:
+        """
+        Set the widget in focus.
+
+        position -- index of child widget to be made focus
+        """
+        warnings.warn(
+            f"method `{self.__class__.__name__}._set_focus_position` is deprecated, "
+            f"please use `{self.__class__.__name__}.focus_position` property",
+            DeprecationWarning,
+            stacklevel=3,
+        )
         try:
             if position < 0 or position >= len(self.contents):
                 raise IndexError
