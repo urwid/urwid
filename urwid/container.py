@@ -525,7 +525,11 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             DeprecationWarning,
             stacklevel=3,
         )
-        self.focus_cell = cell
+        for i, (w, options) in enumerate(self.contents):
+            if cell == w:
+                self.focus_position = i
+                return
+        raise ValueError(f"Widget not found in GridFlow contents: {cell!r}")
 
     @property
     def focus_position(self) -> int | None:
