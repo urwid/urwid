@@ -592,7 +592,7 @@ class PopUpLauncher(delegate_to_widget_mixin('_original_widget'), WidgetDecorati
         super().__init__(original_widget)
         self._pop_up_widget = None
 
-    def create_pop_up(self, *args, **kwargs):
+    def create_pop_up(self):
         """
         Subclass must override this method and return a widget
         to be used for the pop-up.  This method is called once each time
@@ -600,7 +600,7 @@ class PopUpLauncher(delegate_to_widget_mixin('_original_widget'), WidgetDecorati
         """
         raise NotImplementedError("Subclass must override this method")
 
-    def get_pop_up_parameters(self, *args, **kwargs):
+    def get_pop_up_parameters(self):
         """
         Subclass must override this method and have it return a dict, eg:
 
@@ -610,8 +610,8 @@ class PopUpLauncher(delegate_to_widget_mixin('_original_widget'), WidgetDecorati
         """
         raise NotImplementedError("Subclass must override this method")
 
-    def open_pop_up(self, *args, **kwargs) -> None:
-        self._pop_up_widget = self.create_pop_up(*args, **kwargs)
+    def open_pop_up(self) -> None:
+        self._pop_up_widget = self.create_pop_up()
         self._invalidate()
 
     def close_pop_up(self) -> None:
@@ -622,7 +622,7 @@ class PopUpLauncher(delegate_to_widget_mixin('_original_widget'), WidgetDecorati
         canv = super().render(size, focus)
         if self._pop_up_widget:
             canv = CompositeCanvas(canv)
-            canv.set_pop_up(self._pop_up_widget, **self.get_pop_up_parameters(size, focus))
+            canv.set_pop_up(self._pop_up_widget, **self.get_pop_up_parameters())
         return canv
 
 
