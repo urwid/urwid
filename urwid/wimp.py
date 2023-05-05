@@ -118,7 +118,8 @@ class CheckBox(WidgetWrap):
     states = {
         True: SelectableIcon("[X]", 1),
         False: SelectableIcon("[ ]", 1),
-        'mixed': SelectableIcon("[#]", 1) }
+        'mixed': SelectableIcon("[#]", 1)
+    }
     reserve_columns = 4
 
     # allow users of this class to listen for change events
@@ -154,36 +155,48 @@ class CheckBox(WidgetWrap):
 
           urwid.disconnect_signal(check_box, 'change', callback, user_data)
 
-        >>> CheckBox(u"Confirm")
+        >>> CheckBox("Confirm")
         <CheckBox selectable flow widget 'Confirm' state=False>
-        >>> CheckBox(u"Yogourt", "mixed", True)
+        >>> CheckBox("Yogourt", "mixed", True)
         <CheckBox selectable flow widget 'Yogourt' state='mixed'>
-        >>> cb = CheckBox(u"Extra onions", True)
+        >>> cb = CheckBox("Extra onions", True)
         >>> cb
         <CheckBox selectable flow widget 'Extra onions' state=True>
-        >>> cb.render((20,), focus=True).text # ... = b in Python 3
-        [...'[X] Extra onions    ']
+        >>> cb.render((20,), focus=True).text
+        [b'[X] Extra onions    ']
+        >>> CheckBox("Test", None)
+        Traceback (most recent call last):
+        ...
+        ValueError: None not in (True, False, 'mixed')
         """
-        super().__init__(None) # self.w set by set_state below
-        self._label = Text("")
+        if state not in self.states:
+            raise ValueError(f"{state!r} not in {tuple(self.states.keys())}")
+
+        self._label = Text(label)
         self.has_mixed = has_mixed
-        self._state = None
+
+        self._state = state
         if checked_symbol:
             self.states[True] = SelectableIcon(f"[{checked_symbol}]", 1)
         # The old way of listening for a change was to pass the callback
         # in to the constructor.  Just convert it to the new way:
         if on_state_change:
             connect_signal(self, 'change', on_state_change, user_data)
-        self.set_label(label)
-        self.set_state(state)
+
+        # Initial create expect no callbacks call, create explicit
+        super().__init__(
+            Columns(
+                [('fixed', self.reserve_columns, self.states[state]), self._label],
+                focus_column=0,
+            ),
+        )
 
     def _repr_words(self):
         return super()._repr_words() + [
             repr(self.label)]
 
     def _repr_attrs(self):
-        return dict(super()._repr_attrs(),
-            state=self.state)
+        return dict(super()._repr_attrs(), state=self.state)
 
     def set_label(self, label):
         """
@@ -257,15 +270,12 @@ class CheckBox(WidgetWrap):
         # self._state is None is a special case when the CheckBox
         # has just been created
         old_state = self._state
-        if do_callback and old_state is not None:
+        if do_callback:
             self._emit('change', state)
         self._state = state
         # rebuild the display widget with the new state
-        self._w = Columns( [
-            ('fixed', self.reserve_columns, self.states[state] ),
-            self._label ] )
-        self._w.focus_col = 0
-        if do_callback and old_state is not None:
+        self._w = Columns([('fixed', self.reserve_columns, self.states[state]), self._label], focus_column=0)
+        if do_callback:
             self._emit('postchange', old_state)
 
     def get_state(self) -> bool | Literal['mixed']:
