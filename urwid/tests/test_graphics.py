@@ -7,6 +7,13 @@ from urwid import graphics
 
 
 class LineBoxTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.old_encoding = urwid.util._target_encoding
+        urwid.set_encoding("utf-8")
+
+    def tearDown(self) -> None:
+        urwid.set_encoding(self.old_encoding)
+
     def border(self, tl, t, tr, l, r, bl, b, br):
         return [b''.join([tl, t, tr]),
                 b''.join([l, b" ", r]),
@@ -14,7 +21,6 @@ class LineBoxTest(unittest.TestCase):
 
     def test_linebox_pack(self):
         # Bug #346 'pack' Padding does not run with LineBox
-        urwid.set_encoding("utf-8")
         t = urwid.Text("AAA\nCCC\nDDD")
         size = t.pack()
         l = urwid.LineBox(t)
@@ -23,7 +29,6 @@ class LineBoxTest(unittest.TestCase):
         self.assertEqual(l.pack()[1], size[1] + 2)
 
     def test_linebox_border(self):
-        urwid.set_encoding("utf-8")
         t = urwid.Text("")
 
         l = urwid.LineBox(t).render((3,)).text
@@ -87,8 +92,14 @@ class BarGraphTest(unittest.TestCase):
              (1,[(3,3)]) ] )
 
 class SmoothBarGraphTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.old_encoding = urwid.util._target_encoding
+        urwid.set_encoding("utf-8")
+
+    def tearDown(self) -> None:
+        urwid.set_encoding(self.old_encoding)
+
     def sbgtest(self, desc, data, top, exp ):
-        urwid.set_encoding('utf-8')
         g = urwid.BarGraph( ['black','red','blue'],
                 None, {(1,0):'red/black', (2,1):'blue/red'})
         g.set_data( data, top )
