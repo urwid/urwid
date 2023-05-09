@@ -597,10 +597,10 @@ class _test:
         attr += [[],[],[]]
         cols,rows = self.ui.get_cols_rows()
         keys = None
-        while keys!=['q']:
-            r.text=([t.ljust(cols) for t in text]+[""]*rows)[:rows]
-            r.attr=(attr+[[]]*rows) [:rows]
-            self.ui.draw_screen((cols,rows),r)
+        while keys != ['q']:
+            r.text = ([t.ljust(cols) for t in text] + [""] * rows)[:rows]
+            r.attr = (attr + [[] for _ in range(rows)])[:rows]
+            self.ui.draw_screen((cols, rows), r)
             keys, raw = self.ui.get_input( raw_keys = True )
             if 'window resize' in keys:
                 cols, rows = self.ui.get_cols_rows()

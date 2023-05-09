@@ -1,8 +1,21 @@
 from __future__ import annotations
 
+import contextlib
 import unittest
+from collections.abc import Generator
 
 import urwid
+
+
+@contextlib.contextmanager
+def encoding(encoding_name: str) -> Generator[None, None, None]:
+    old_encoding = 'ascii'  # Default fallback value
+    try:
+        old_encoding = urwid.util._target_encoding
+        urwid.set_encoding(encoding_name)
+        yield
+    finally:
+        urwid.set_encoding(old_encoding)
 
 
 class TextTest(unittest.TestCase):
@@ -33,10 +46,10 @@ class TextTest(unittest.TestCase):
         assert got == expected, f"got: {got!r} expected: {expected!r}"
 
     def test5_encode_error(self):
-        urwid.set_encoding("ascii")
-        expected = [b"?  "]
-        got = urwid.Text('û').render((3,))._text
-        assert got == expected, f"got: {got!r} expected: {expected!r}"
+        with encoding("ascii"):
+            expected = [b"?  "]
+            got = urwid.Text('û').render((3,))._text
+            assert got == expected, f"got: {got!r} expected: {expected!r}"
 
 
 class EditTest(unittest.TestCase):
@@ -87,12 +100,12 @@ class EditTest(unittest.TestCase):
         self.ktest(self.t3,'down','down',15,"down at bottom")
 
     def test_utf8_input(self):
-        urwid.set_encoding("utf-8")
-        self.t1.set_edit_text('')
-        self.t1.keypress((12,), 'û')
-        self.assertEqual(self.t1.edit_text, 'û'.encode())
-        self.t4.keypress((12,), 'û')
-        self.assertEqual(self.t4.edit_text, 'û')
+        with encoding("utf-8"):
+            self.t1.set_edit_text('')
+            self.t1.keypress((12,), 'û')
+            self.assertEqual(self.t1.edit_text, 'û'.encode())
+            self.t4.keypress((12,), 'û')
+            self.assertEqual(self.t4.edit_text, 'û')
 
 
 class EditRenderTest(unittest.TestCase):

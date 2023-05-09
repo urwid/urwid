@@ -302,6 +302,12 @@ class CanvasJoinTest(unittest.TestCase):
 
 
 class CanvasOverlayTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.old_encoding = urwid.util._target_encoding
+
+    def tearDown(self) -> None:
+        urwid.set_encoding(self.old_encoding)
+
     def cotest(self, desc, bgt, bga, fgt, fga, l, r, et):
         bgt = bgt.encode('iso8859-1')
         fgt = fgt.encode('iso8859-1')
