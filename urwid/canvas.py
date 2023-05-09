@@ -61,7 +61,7 @@ class CanvasCache:
     """
     _widgets = {}
     _refs = {}
-    _deps = {}
+    _deps: dict[Widget, list[Widget]] = {}
     hits = 0
     fetches = 0
     cleanups = 0
@@ -157,7 +157,7 @@ class CanvasCache:
 
     @classmethod
     def cleanup(cls, ref):
-        cls.cleanups += 1 # collect stats
+        cls.cleanups += 1  # collect stats
 
         w = cls._refs.get(ref, None)
         del cls._refs[ref]
@@ -198,12 +198,16 @@ class Canvas:
     """
     cacheable = True
 
-    _finalized_error = CanvasError("This canvas has been finalized. "
+    _finalized_error = CanvasError(
+        "This canvas has been finalized. "
         "Use CompositeCanvas to wrap this canvas if "
-        "you need to make changes.")
-    _renamed_error = CanvasError("The old Canvas class is now called "
+        "you need to make changes."
+    )
+    _renamed_error = CanvasError(
+        "The old Canvas class is now called "
         "TextCanvas. Canvas is now the base class for all canvas "
-        "classes.")
+        "classes."
+    )
 
     def __init__(
         self,
@@ -221,7 +225,12 @@ class Canvas:
         self.coords = {}
         self.shortcuts = {}
 
-    def finalize(self, widget, size, focus):
+    def finalize(
+        self,
+        widget: Widget,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+        focus: bool,
+    ) -> None:
         """
         Mark this canvas as finalized (should not be any future
         changes to its content). This is required before caching
@@ -386,9 +395,9 @@ class TextCanvas(Canvas):
                 maxcol = 0
 
         if attr is None:
-            attr = [[]] * len(text)
+            attr = [[] for _ in range(len(text))]
         if cs is None:
-            cs = [[]] * len(text)
+            cs = [[] for _ in range(len(text))]
 
         # pad text and attr to maxcol
         for i in range(len(text)):
@@ -397,11 +406,11 @@ class TextCanvas(Canvas):
                 raise CanvasError(f"Canvas text is wider than the maxcol specified \n{maxcol!r}\n{widths!r}\n{text!r}")
             if w < maxcol:
                 text[i] += b''.rjust(maxcol - w)
-            a_gap = len(text[i]) - rle_len( attr[i] )
+            a_gap = len(text[i]) - rle_len(attr[i])
             if a_gap < 0:
-                raise CanvasError(f"Attribute extends beyond text \n{text[i]!r}\n{attr[i]!r}" )
+                raise CanvasError(f"Attribute extends beyond text \n{text[i]!r}\n{attr[i]!r}")
             if a_gap:
-                rle_append_modify( attr[i], (None, a_gap))
+                rle_append_modify(attr[i], (None, a_gap))
 
             cs_gap = len(text[i]) - rle_len( cs[i] )
             if cs_gap < 0:

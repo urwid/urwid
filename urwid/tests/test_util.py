@@ -8,6 +8,12 @@ from urwid import util
 
 
 class CalcWidthTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.old_encoding = urwid.util._target_encoding
+
+    def tearDown(self) -> None:
+        urwid.set_encoding(self.old_encoding)
+
     def wtest(self, desc, s, exp):
         s = s.encode('iso8859-1')
         result = util.calc_width( s, 0, len(s))
@@ -29,6 +35,12 @@ class CalcWidthTest(unittest.TestCase):
 
 
 class ConvertDecSpecialTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.old_encoding = urwid.util._target_encoding
+
+    def tearDown(self) -> None:
+        urwid.set_encoding(self.old_encoding)
+
     def ctest(self, desc, s, exp, expcs):
         exp = exp.encode('iso8859-1')
         util.set_encoding('ascii')
@@ -51,7 +63,11 @@ class ConvertDecSpecialTest(unittest.TestCase):
 
 class WithinDoubleByteTest(unittest.TestCase):
     def setUp(self):
+        self.old_encoding = urwid.util._target_encoding
         urwid.set_encoding("euc-jp")
+
+    def tearDown(self) -> None:
+        urwid.set_encoding(self.old_encoding)
 
     def wtest(self, s, ls, pos, expected, desc):
         result = util.within_double_byte(s.encode('iso8859-1'), ls, pos)
@@ -88,6 +104,12 @@ class WithinDoubleByteTest(unittest.TestCase):
 
 
 class CalcTextPosTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.old_encoding = urwid.util._target_encoding
+
+    def tearDown(self) -> None:
+        urwid.set_encoding(self.old_encoding)
+
     def ctptest(self, text, tests):
         text = text.encode('iso8859-1')
         for s,e,p, expected in tests:

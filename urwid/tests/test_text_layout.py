@@ -1,9 +1,22 @@
 from __future__ import annotations
 
+import contextlib
 import unittest
+from collections.abc import Generator
 
 import urwid
 from urwid import text_layout
+
+
+@contextlib.contextmanager
+def encoding(encoding_name: str) -> Generator[None, None, None]:
+    old_encoding = 'ascii'  # Default fallback value
+    try:
+        old_encoding = urwid.util._target_encoding
+        urwid.set_encoding(encoding_name)
+        yield
+    finally:
+        urwid.set_encoding(old_encoding)
 
 
 class CalcBreaksTest:
@@ -33,7 +46,11 @@ class CalcBreaksCharTest(CalcBreaksTest, unittest.TestCase):
 
 class CalcBreaksDBCharTest(CalcBreaksTest, unittest.TestCase):
     def setUp(self):
+        self.old_encoding = urwid.util._target_encoding
         urwid.set_encoding("euc-jp")
+
+    def tearDown(self) -> None:
+        urwid.set_encoding(self.old_encoding)
 
     mode = 'any'
     text = "abfgh\xA1\xA1j\xA1\xA1xskhtrvs\naltjhgsdf\xA1\xA1jahtshgf"
@@ -68,7 +85,11 @@ class CalcBreaksWordTest2(CalcBreaksTest, unittest.TestCase):
 
 class CalcBreaksDBWordTest(CalcBreaksTest, unittest.TestCase):
     def setUp(self):
+        self.old_encoding = urwid.util._target_encoding
         urwid.set_encoding("euc-jp")
+
+    def tearDown(self) -> None:
+        urwid.set_encoding(self.old_encoding)
 
     mode = 'space'
     text = "hel\xA1\xA1 world\nout-\xA1\xA1tre blah"
@@ -81,8 +102,12 @@ class CalcBreaksDBWordTest(CalcBreaksTest, unittest.TestCase):
 
 
 class CalcBreaksUTF8Test(CalcBreaksTest, unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
+        self.old_encoding = urwid.util._target_encoding
         urwid.set_encoding("utf-8")
+
+    def tearDown(self) -> None:
+        urwid.set_encoding(self.old_encoding)
 
     mode = 'space'
     text = '\xe6\x9b\xbf\xe6\xb4\xbc\xe6\xb8\x8e\xe6\xba\x8f\xe6\xbd\xba'
@@ -95,19 +120,27 @@ class CalcBreaksUTF8Test(CalcBreaksTest, unittest.TestCase):
 
 class CalcBreaksCantDisplayTest(unittest.TestCase):
     def test(self):
-        urwid.set_encoding("euc-jp")
-        self.assertRaises(text_layout.CanNotDisplayText,
-            text_layout.default_layout.calculate_text_segments,
-            b'\xA1\xA1', 1, 'space' )
-        urwid.set_encoding("utf-8")
-        self.assertRaises(text_layout.CanNotDisplayText,
-            text_layout.default_layout.calculate_text_segments,
-            b'\xe9\xa2\x96', 1, 'space' )
+        with encoding("euc-jp"):
+            self.assertRaises(
+                text_layout.CanNotDisplayText,
+                text_layout.default_layout.calculate_text_segments,
+                b'\xA1\xA1', 1, 'space'
+            )
+        with encoding("utf-8"):
+            self.assertRaises(
+                text_layout.CanNotDisplayText,
+                text_layout.default_layout.calculate_text_segments,
+                b'\xe9\xa2\x96', 1, 'space'
+            )
 
 
 class SubsegTest(unittest.TestCase):
     def setUp(self):
+        self.old_encoding = urwid.util._target_encoding
         urwid.set_encoding("euc-jp")
+
+    def tearDown(self) -> None:
+        urwid.set_encoding(self.old_encoding)
 
     def st(self, seg, text, start, end, exp):
         text = text.encode('iso8859-1')
@@ -151,8 +184,12 @@ class SubsegTest(unittest.TestCase):
 
 
 class CalcTranslateTest:
-    def setUp(self):
+    def setUp(self) -> None:
+        self.old_encoding = urwid.util._target_encoding
         urwid.set_encoding("utf-8")
+
+    def tearDown(self) -> None:
+        urwid.set_encoding(self.old_encoding)
 
     def test1_left(self):
         result = urwid.default_layout.layout( self.text,
@@ -225,8 +262,12 @@ class CalcTranslateWordTest2(CalcTranslateTest, unittest.TestCase):
 
 
 class CalcTranslateWordTest3(CalcTranslateTest, unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
+        self.old_encoding = urwid.util._target_encoding
         urwid.set_encoding('utf-8')
+
+    def tearDown(self) -> None:
+        urwid.set_encoding(self.old_encoding)
 
     text = b'\xe6\x9b\xbf\xe6\xb4\xbc\n\xe6\xb8\x8e\xe6\xba\x8f\xe6\xbd\xba'
     width = 10
