@@ -98,6 +98,11 @@ class Screen(BaseScreen, RealTerminal):
         self._resize_pipe_rd, self._resize_pipe_wr = os.pipe()
         fcntl.fcntl(self._resize_pipe_rd, fcntl.F_SETFL, os.O_NONBLOCK)
 
+        # These store the previous signal handlers after setting ours
+        self._prev_sigcont_handler = None
+        self._prev_sigtstp_handler = None
+        self._prev_sigwinch_handler = None
+
     def _input_fileno(self):
         """Returns the fileno of the input stream, or None if it doesn't have one.  A stream without a fileno can't participate in whatever.
         """
@@ -147,17 +152,27 @@ class Screen(BaseScreen, RealTerminal):
         self._resized = True
         self.screen_buf = None
 
+        if callable(self._prev_sigwinch_handler):
+            self._prev_sigwinch_handler(signum, frame)
+
     def _sigtstp_handler(self, signum, frame=None):
-        self.stop() # sets SIGTSTP handler to SIG_DFL
-        self.signal_handler_setter(signal.SIGCONT, self._sigcont_handler)
+        self.stop() # Restores the previous signal handlers
+        self._prev_sigcont_handler = self.signal_handler_setter(signal.SIGCONT, self._sigcont_handler)
+        # Handled by the previous handler.
+        # If non-default, it may set its own SIGCONT handler which should hopefully call our own.
         os.kill(os.getpid(), signal.SIGTSTP)
 
     def _sigcont_handler(self, signum, frame=None):
         """
         frame -- will always be None when the GLib event loop is being used.
         """
-
         self.signal_restore()
+
+        if callable(self._prev_sigcont_handler):
+            # May set its own SIGTSTP handler which would be stored and replaced in
+            # `signal_init()` (via `start()`).
+            self._prev_sigcont_handler(signum, frame)
+
         self.start()
         self._sigwinch_handler(None, None)
 
@@ -169,8 +184,8 @@ class Screen(BaseScreen, RealTerminal):
         Override this function to call from main thread in threaded
         applications.
         """
-        self.signal_handler_setter(signal.SIGWINCH, self._sigwinch_handler)
-        self.signal_handler_setter(signal.SIGTSTP, self._sigtstp_handler)
+        self._prev_sigwinch_handler = self.signal_handler_setter(signal.SIGWINCH, self._sigwinch_handler)
+        self._prev_sigtstp_handler = self.signal_handler_setter(signal.SIGTSTP, self._sigtstp_handler)
 
     def signal_restore(self):
         """
@@ -180,9 +195,9 @@ class Screen(BaseScreen, RealTerminal):
         Override this function to call from main thread in threaded
         applications.
         """
-        self.signal_handler_setter(signal.SIGTSTP, signal.SIG_DFL)
-        self.signal_handler_setter(signal.SIGCONT, signal.SIG_DFL)
-        self.signal_handler_setter(signal.SIGWINCH, signal.SIG_DFL)
+        self.signal_handler_setter(signal.SIGTSTP, self._prev_sigtstp_handler or signal.SIG_DFL)
+        self.signal_handler_setter(signal.SIGCONT, self._prev_sigcont_handler or signal.SIG_DFL)
+        self.signal_handler_setter(signal.SIGWINCH, self._prev_sigwinch_handler or signal.SIG_DFL)
 
     def set_mouse_tracking(self, enable=True):
         """
