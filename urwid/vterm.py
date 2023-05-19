@@ -45,7 +45,7 @@ except ImportError:
 
 from urwid import util
 from urwid.canvas import Canvas
-from urwid.display_common import _BASIC_COLORS, AttrSpec, RealTerminal,
+from urwid.display_common import (_BASIC_COLORS, AttrSpec, RealTerminal,
                                   _color_desc_256, _color_desc_true)
 from urwid.escape import ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS
 from urwid.widget import BOX, Widget
