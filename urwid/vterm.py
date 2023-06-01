@@ -44,7 +44,8 @@ from urwid import util
 from urwid.escape import DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS
 from urwid.canvas import Canvas
 from urwid.widget import Widget, BOX
-from urwid.display_common import AttrSpec, RealTerminal, _BASIC_COLORS
+from urwid.display_common import (AttrSpec, RealTerminal, _BASIC_COLORS,
+                                  _color_desc_256, _color_desc_true)
 from urwid.compat import ord2, chr2, B, bytes, PYTHON3, xrange
 
 EOF = B('')
@@ -1009,21 +1010,44 @@ class TermCanvas(Canvas):
 
             y += 1
 
-    def sgi_to_attrspec(self, attrs, fg, bg, attributes):
+    def sgi_to_attrspec(self, attrs, fg, bg, attributes, prev_colors):
         """
         Parse SGI sequence and return an AttrSpec representing the sequence
         including all earlier sequences specified as 'fg', 'bg' and
         'attributes'.
         """
-        for attr in attrs:
+
+        idx = 0
+        colors = prev_colors
+
+        while idx < len(attrs):
+            attr = attrs[idx]
             if 30 <= attr <= 37:
                 fg = attr - 30
+                colors = max(16, colors)
             elif 40 <= attr <= 47:
                 bg = attr - 40
-            elif attr == 38:
-                # set default foreground color, set underline
-                attributes.add('underline')
-                fg = None
+                colors = max(16, colors)
+            elif attr == 38 or attr == 48:
+                if idx + 2 < len(attrs) and attrs[idx + 1] == 5:
+                    # 8 bit color specification
+                    color = attrs[idx + 2]
+                    colors = max(256, colors)
+                    if attr == 38:
+                        fg = color
+                    else:
+                        bg = color
+                    idx += 2
+                elif idx + 4 < len(attrs) and attrs[idx + 1] == 2:
+                    # 24 bit color specification
+                    color = (attrs[idx + 2] << 16) + \
+                        (attrs[idx + 3] << 8) + attrs[idx + 4]
+                    colors = 2**24
+                    if attr == 38:
+                        fg = color
+                    else:
+                        bg = color
+                    idx += 4
             elif attr == 39:
                 # set default foreground color, remove underline
                 attributes.discard('underline')
@@ -1060,17 +1084,23 @@ class TermCanvas(Canvas):
                 fg = bg = None
                 attributes.clear()
 
-        if 'bold' in attributes and fg is not None:
+            idx += 1
+
+        if 'bold' in attributes and colors == 16 and fg is not None and fg < 8:
             fg += 8
 
-        def _defaulter(color):
+        def _defaulter(color, colors):
             if color is None:
                 return 'default'
-            else:
-                return _BASIC_COLORS[color]
+            # Note: we can't detect 88 color mode
+            if color > 255 or colors == 2**24:
+                return _color_desc_true(color)
+            if color > 15 or colors == 256:
+                return _color_desc_256(color)
+            return _BASIC_COLORS[color]
 
-        fg = _defaulter(fg)
-        bg = _defaulter(bg)
+        fg = _defaulter(fg, colors)
+        bg = _defaulter(bg, colors)
 
         if len(attributes) > 0:
             fg = ','.join([fg] + list(attributes))
@@ -1078,7 +1108,10 @@ class TermCanvas(Canvas):
         if fg == 'default' and bg == 'default':
             return None
         else:
-            return AttrSpec(fg, bg)
+            if colors:
+                return AttrSpec(fg, bg, colors=colors)
+            else:
+                return AttrSpec(fg, bg)
 
     def csi_set_attr(self, attrs):
         """
@@ -1096,13 +1129,15 @@ class TermCanvas(Canvas):
                 fg = None
             else:
                 fg = self.attrspec.foreground_number
-                if fg >= 8: fg -= 8
+                if fg >= 8 and self.attrspec._colors() == 16:
+                    fg -= 8
 
             if 'default' in self.attrspec.background:
                 bg = None
             else:
                 bg = self.attrspec.background_number
-                if bg >= 8: bg -= 8
+                if bg >= 8 and self.attrspec._colors() == 16:
+                    bg -= 8
 
             for attr in ('bold', 'underline', 'blink', 'standout'):
                 if not getattr(self.attrspec, attr):
@@ -1110,7 +1145,9 @@ class TermCanvas(Canvas):
 
                 attributes.add(attr)
 
-        attrspec = self.sgi_to_attrspec(attrs, fg, bg, attributes)
+        attrspec = self.sgi_to_attrspec(attrs, fg, bg, attributes,
+                                        self.attrspec._colors()
+                                        if self.attrspec else 1)
 
         if self.modes.reverse_video:
             self.attrspec = self.reverse_attrspec(attrspec)
