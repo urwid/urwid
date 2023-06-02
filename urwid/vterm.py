@@ -1076,8 +1076,7 @@ class TermCanvas(Canvas):
                         bg = color
                     idx += 4
             elif attr == 39:
-                # set default foreground color, remove underline
-                attributes.discard('underline')
+                # set default foreground color
                 fg = None
             elif attr == 49:
                 # set default background color
