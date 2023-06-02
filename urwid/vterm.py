@@ -550,10 +550,11 @@ class TermCanvas(Canvas):
         """
         Parse operating system command.
         """
-        if buf.startswith(b';'):  # set window title and icon
-            self.widget.set_title(buf[1:])
-        elif buf.startswith(b'3;'):  # set window title
-            self.widget.set_title(buf[2:])
+        if (buf.startswith(b';')
+                or buf.startswith(b'0;')
+                or buf.startswith(b'2;')):
+            # set window title
+            self.widget.set_title(buf.decode().partition(";")[2])
 
     def parse_escape(self, char: bytes) -> None:
         if self.parsestate == 1:
