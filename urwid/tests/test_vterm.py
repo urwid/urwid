@@ -370,10 +370,10 @@ class TermTest(unittest.TestCase):
         self.connect_signal('title')
         self.write('\\e]666parsed right?\\e\\te\\e]0;test title\007st1')
         self.expect('test1')
-        self.expect_signal(b'test title')
-        self.write('\\e]3;stupid title\\e\\\\e[0G\\e[2Ktest2')
+        self.expect_signal('test title')
+        self.write('\\e];stupid title\\e\\\\e[0G\\e[2Ktest2')
         self.expect('test2')
-        self.expect_signal(b'stupid title')
+        self.expect_signal('stupid title')
         self.disconnect_signal('title')
 
     def test_set_leds(self):
