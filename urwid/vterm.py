@@ -905,7 +905,7 @@ class TermCanvas(Canvas):
         DEC screen alignment test: Fill screen with E's.
         """
         for row in range(self.height):
-            self.term[row] = self.empty_line('E')
+            self.term[row] = self.empty_line(b'E')
 
     def blank_line(self, row: int) -> None:
         """
