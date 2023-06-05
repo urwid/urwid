@@ -46,7 +46,7 @@ from urwid.util import MetaSuper, calc_width, decompose_tagmarkup, is_wide_char,
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
-    from urwid.canvas import TextCanvas
+    from urwid.canvas import Canvas, TextCanvas
 
 
 # define some names for these constants to avoid misspellings in the source
@@ -140,7 +140,7 @@ def cache_widget_render(cls):
     fn = cls.render
 
     @functools.wraps(fn)
-    def cached_render(self, size, focus=False):
+    def cached_render(self, size, focus: bool = False) -> Canvas:
         focus = focus and not ignore_focus
         canv = CanvasCache.fetch(self, cls, size, focus)
         if canv:
@@ -153,6 +153,7 @@ def cache_widget_render(cls):
         canv.finalize(self, size, focus)
         CanvasCache.store(cls, canv)
         return canv
+
     cached_render.original_fn = fn
     return cached_render
 
