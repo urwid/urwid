@@ -21,21 +21,11 @@
 
 from __future__ import annotations
 
-import os
-
 from setuptools import Extension, setup
-
-with open(os.path.join("urwid", "version.py")) as f:
-    globals_ = {}
-    locals_ = {}
-    # Execute safe way: do not expose anything
-    exec(f.read(), globals_, locals_)
-    release = locals_['__version__']
 
 
 setup_d = {
     'name': "urwid",
-    'version': release,
     'ext_modules': [Extension('urwid.str_util', sources=['source/str_util.c'])],
     'url': "https://urwid.org/",
     'test_suite': 'urwid.tests',

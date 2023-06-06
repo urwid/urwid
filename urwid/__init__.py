@@ -102,7 +102,7 @@ from urwid.listbox import ListBox, ListBoxError, ListWalker, ListWalkerError, Si
 from urwid.event_loop import EventLoop, AsyncioEventLoop, ExitMainLoop, MainLoop, SelectEventLoop
 from urwid.monitored_list import MonitoredFocusList, MonitoredList
 from urwid.signals import MetaSignals, Signals, connect_signal, disconnect_signal, emit_signal, register_signal
-from urwid.version import VERSION, __version__
+from urwid.version import __version__, __version_tuple__
 from urwid.widget import (
     ANY,
     BOTTOM,
@@ -212,3 +212,6 @@ try:
     from urwid.event_loop import TrioEventLoop
 except ImportError:
     pass
+
+# Backward compatibility
+VERSION = __version_tuple__

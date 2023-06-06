@@ -447,3 +447,6 @@ GitHub.sublime-settings
 
 ### GPG template
 secring.*
+
+# Generated version
+/urwid/version.py

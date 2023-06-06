@@ -3,7 +3,8 @@
 # PEP 508 specifications for PEP 518.
 requires = [
     "setuptools >= 61.0.0",
-    "wheel"
+    "setuptools_scm[toml]>=6.2",
+    "wheel",
 ]
 build-backend="setuptools.build_meta"
 
@@ -44,6 +45,9 @@ classifiers = {file = ["classifiers.txt"]}
 
 [tool.distutils.bdist_wheel]
 universal = 0
+
+[tool.setuptools_scm]
+write_to = "urwid/version.py"
 
 [tool.isort]
 profile = "black"

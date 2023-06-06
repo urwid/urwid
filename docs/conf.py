@@ -57,7 +57,7 @@ def execfile(module, global_vars):
         exec(code, global_vars)
 execfile(VERSION_MODULE, VERSION_VARS)
 # The short X.Y version.
-version = '.'.join([str(x) for x in VERSION_VARS['VERSION'][:2]])
+version = '.'.join(str(x) for x in VERSION_VARS['__version_tuple__'][:2])
 # The full version, including alpha/beta/rc tags.
 release = VERSION_VARS['__version__']
 
