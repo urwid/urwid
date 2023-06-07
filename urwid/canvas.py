@@ -61,13 +61,13 @@ class CanvasCache:
     """
     _widgets = {}
     _refs = {}
-    _deps: dict[Widget, set[Widget]] = {}
+    _deps: dict[Widget, list[Widget]] = {}
     hits = 0
     fetches = 0
     cleanups = 0
 
     @classmethod
-    def store(cls, wcls, canvas: Canvas) -> None:
+    def store(cls, wcls, canvas):
         """
         Store a weakref to canvas in the cache.
 
@@ -79,32 +79,31 @@ class CanvasCache:
 
         assert canvas.widget_info, "Can't store canvas without widget_info"
         widget, size, focus = canvas.widget_info
-
-        def walk_depends(children: list[tuple[int, int, Canvas, int | str | None]]) -> set[Widget]:
+        def walk_depends(canv):
             """
             Collect all child widgets for determining who we
             depend on.
             """
             # FIXME: is this recursion necessary?  The cache
             # invalidating might work with only one level.
-            depends = set()
-            for x, y, c, pos in children:
+            depends = []
+            for x, y, c, pos in canv.children:
                 if c.widget_info:
-                    depends.add(c.widget_info[0])
-                else:
-                    depends.intersection_update(walk_depends(getattr(c, 'children', ())))
+                    depends.append(c.widget_info[0])
+                elif hasattr(c, 'children'):
+                    depends.extend(walk_depends(c))
             return depends
 
         # use explicit depends_on if available from the canvas
-        depends_on: list[Widget] | set[Widget] | None = getattr(canvas, 'depends_on', None)
-        if depends_on is None:
-            depends_on = walk_depends(getattr(canvas, 'children', ()))
+        depends_on = getattr(canvas, 'depends_on', None)
+        if depends_on is None and hasattr(canvas, 'children'):
+            depends_on = walk_depends(canvas)
         if depends_on:
             for w in depends_on:
                 if w not in cls._widgets:
                     return
             for w in depends_on:
-                cls._deps.setdefault(w, set()).add(widget)
+                cls._deps.setdefault(w,[]).append(widget)
 
         ref = weakref.ref(canvas, cls.cleanup)
         cls._refs[ref] = (widget, wcls, size, focus)
@@ -148,7 +147,7 @@ class CanvasCache:
             pass
         if widget not in cls._deps:
             return
-        dependants = cls._deps.get(widget, set())
+        dependants = cls._deps.get(widget, [])
         try:
             del cls._deps[widget]
         except KeyError:
@@ -222,7 +221,7 @@ class Canvas:
         """
         if value1 is not None:
             raise self._renamed_error
-        self._widget_info: tuple[Widget, tuple[()] | tuple[int] | tuple[int, int], bool] | None = None
+        self._widget_info = None
         self.coords = {}
         self.shortcuts = {}
 
@@ -620,7 +619,7 @@ class CompositeCanvas(Canvas):
 
         if canv is None:
             self.shards = []
-            self.children: list[tuple[int, int, Canvas, int | str | None]] = []
+            self.children = []
         else:
             if hasattr(canv, "shards"):
                 self.shards = canv.shards
@@ -1154,7 +1153,7 @@ def CanvasCombine(l):
 
     combined_canvas = CompositeCanvas()
     shards = []
-    children: list[tuple[int, int, Canvas, int | str | None]] = []
+    children = []
     row = 0
     focus_index = 0
     n = 0
