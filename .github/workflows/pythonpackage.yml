@@ -1,6 +1,10 @@
 name: Python package
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request: {}
 
 jobs:
   Test:
@@ -29,3 +33,77 @@ jobs:
           coverage report
 #      - name: Coveralls
 #        uses: coverallsapp/github-action@v1
+
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    needs: [ Test ]
+    # build only on push: heavy job
+    if: github.event_name == 'push'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ "ubuntu-latest", "macos-latest" ]
+
+    steps:
+      - uses: actions/checkout@v3.5.3
+
+      # Used to host cibuildwheel
+      - uses: actions/setup-python@v4.6.1
+        with:
+          python-version: "3.11"
+
+      - name: Set up QEMU
+        if: runner.os == 'Linux'
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: all
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.13.1
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: ./wheelhouse/*.whl
+
+  build_sdist:
+    name: Build source distribution
+    needs: [ Test ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3.5.3
+
+      - uses: actions/setup-python@v4.6.1
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -U twine build
+
+      - name: Build sdist
+        run:  python -m build -s
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: dist/*.tar.gz
+
+  upload_pypi:
+    needs: [ build_wheels, build_sdist ]
+    # upload to PyPI on every tag
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    # alternatively, to publish when a GitHub Release is created, use the following rule:
+    # if: github.event_name == 'release' && github.event.action == 'published'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          # unpacks default artifact into dist/
+          # if `name: artifact` is omitted, the action will create extra parent dir
+          name: artifact
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@v1.5.0
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_password }}
+          # To test: repository_url: https://test.pypi.org/legacy/
