@@ -74,7 +74,7 @@ if 'detected_encoding' not in locals():
 else:
     assert 0, "It worked!"
 
-_target_encoding = None
+_target_encoding = 'ascii'
 _use_dec_special = True
 
 
