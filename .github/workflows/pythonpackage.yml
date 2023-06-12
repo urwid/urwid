@@ -17,6 +17,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3.5.3
+        with:
+          fetch-depth: 0  # need for setuptools_scm
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4.6.1
         with:
@@ -47,6 +49,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3.5.3
+        with:
+          fetch-depth: 0  # need for setuptools_scm
 
       # Used to host cibuildwheel
       - uses: actions/setup-python@v4.6.1
@@ -61,6 +65,10 @@ jobs:
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.13.1
+        env:
+          # configure cibuildwheel to build native archs ('auto'), and some
+          # emulated ones
+          CIBW_ARCHS_LINUX: auto aarch64
 
       - uses: actions/upload-artifact@v3
         with:
@@ -72,6 +80,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3.5.3
+        with:
+          fetch-depth: 0  # need for setuptools_scm
 
       - uses: actions/setup-python@v4.6.1
         with:
