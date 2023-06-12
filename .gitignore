@@ -450,3 +450,5 @@ secring.*
 
 # Generated version
 /urwid/version.py
+# Built packages
+/wheelhouse
