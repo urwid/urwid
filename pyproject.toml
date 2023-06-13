@@ -49,6 +49,11 @@ universal = 0
 [tool.setuptools_scm]
 write_to = "urwid/version.py"
 
+[tool.cibuildwheel]
+# Disable building PyPy wheels on all platforms
+# Disable musllinux as not popular platform
+skip = ["pp*", "*-musllinux_*"]
+
 [tool.isort]
 profile = "black"
 line_length = 120

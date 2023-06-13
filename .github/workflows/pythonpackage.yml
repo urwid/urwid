@@ -69,6 +69,7 @@ jobs:
           # configure cibuildwheel to build native archs ('auto'), and some
           # emulated ones
           CIBW_ARCHS_LINUX: auto aarch64
+          CIBW_ARCHS_MACOS: x86_64 universal2 arm64
 
       - uses: actions/upload-artifact@v3
         with:
