@@ -436,9 +436,9 @@ using a dictionary indexed by parent directory names. This allows the
 directories to be read only as required. The custom list walker also allows
 directories to be hidden from view when they are "collapsed".
 
-.. _fib.py: http://excess.org/urwid/browser/examples/fib.py
-.. _edit.py: http://excess.org/urwid/browser/examples/edit.py
-.. _browse.py: http://excess.org/urwid/browser/examples/browse.py
+.. _fib.py: https://github.com/urwid/urwid/blob/master/examples/fib.py
+.. _edit.py: https://github.com/urwid/urwid/blob/master/examples/edit.py
+.. _browse.py: https://github.com/urwid/urwid/blob/master/examples/browse.py
 
 
 Setting the Focus
