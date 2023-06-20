@@ -12,7 +12,7 @@ jobs:
     strategy:
       max-parallel: 6
       matrix:
-        os: [ "ubuntu-latest"]  # , "windows-latest"   # enable windows after Windows driver will be added
+        os: [ "ubuntu-latest" ]  # , "macos-latest", "windows-latest"   # enable windows after Windows driver will be added
         python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11" ]
 
     steps:
@@ -33,8 +33,24 @@ jobs:
         run: |
           coverage run -m unittest discover -s urwid -v
           coverage report
-#      - name: Coveralls
-#        uses: coverallsapp/github-action@v1
+          coverage xml
+      - name: Coveralls Parallel
+        uses: coverallsapp/github-action@v2
+        with:
+          flag-name: run-${{ matrix.python-version }}-${{ matrix.os }}"
+          parallel: true
+          file: coverage.xml
+
+  UploadCoverage:
+    name: Upload coverage to Coveralls
+    needs: [ Test ]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Coveralls Finished
+        uses: coverallsapp/github-action@v2
+        with:
+          parallel-finished: true
 
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
