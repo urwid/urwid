@@ -191,7 +191,6 @@ class ZMQEventLoop(EventLoop):
         Start the event loop. Exit the loop when any callback raises an
         exception. If :exc:`ExitMainLoop` is raised, exit cleanly.
         """
-        import zmq
         try:
             while True:
                 try:
