@@ -47,10 +47,16 @@ jobs:
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
-      - name: Coveralls Finished
-        uses: coverallsapp/github-action@v2
+      - name: Set up Python
+        uses: actions/setup-python@v1
         with:
-          parallel-finished: true
+          python-version: 3.x
+      - name: Coveralls Finished
+        run: |
+          python -m pip install coveralls
+          coveralls --finish
+        env:
+          GITHUB_TOKEN: ${{ secrets.github_token }}
 
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
