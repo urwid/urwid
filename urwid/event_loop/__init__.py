@@ -31,3 +31,8 @@ try:
     from .trio_loop import TrioEventLoop
 except ImportError:
     pass
+
+try:
+    from .zmq_loop import ZMQEventLoop
+except ImportError:
+    pass

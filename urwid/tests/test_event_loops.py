@@ -253,3 +253,13 @@ else:
             evl = self.evl
             evl.alarm(0, lambda: 1 / 0)  # Simulate error in event loop
             self.assertRaises(ZeroDivisionError, evl.run)
+
+
+try:
+    import zmq
+except ImportError:
+    pass
+else:
+    class ZMQEventLoopTest(unittest.TestCase, EventLoopTestMixin):
+        def setUp(self):
+            self.evl = urwid.ZMQEventLoop()

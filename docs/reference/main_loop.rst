@@ -32,3 +32,8 @@ AsyncioEventLoop
 ----------------
 
 .. autoclass:: AsyncioEventLoop
+
+ZMQEventLoop
+------------
+
+.. autoclass:: ZMQEventLoop
