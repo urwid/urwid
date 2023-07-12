@@ -28,9 +28,12 @@ def main():
     urwid.set_encoding('utf8')
     term = urwid.Terminal(None, encoding='utf-8')
 
+    size_widget = urwid.Text('')
+
     mainframe = urwid.LineBox(
         urwid.Pile([
             ('weight', 70, term),
+            ('fixed', 1, urwid.Filler(size_widget)),
             ('fixed', 1, urwid.Filler(urwid.Edit('focus test edit: '))),
         ]),
     )
@@ -45,8 +48,18 @@ def main():
         if key in ('q', 'Q'):
             quit()
 
+    def handle_resize(widget, size):
+        size_widget.set_text(f"Terminal size: [{size[0]}, {size[1]}]")
+
     urwid.connect_signal(term, 'title', set_title)
     urwid.connect_signal(term, 'closed', quit)
+
+    try:
+        urwid.connect_signal(term, 'resize', handle_resize)
+    except NameError:
+        # if using a version of Urwid vterm that doesn't support
+        # resize, don't register the signal handler.
+        pass
 
     loop = urwid.MainLoop(
         mainframe,
@@ -55,6 +68,7 @@ def main():
 
     term.main_loop = loop
     loop.run()
+
 
 if __name__ == '__main__':
     main()
