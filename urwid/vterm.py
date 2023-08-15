@@ -1459,7 +1459,7 @@ class Terminal(Widget):
     _selectable = True
     _sizing = frozenset([BOX])
 
-    signals = ['closed', 'beep', 'leds', 'title']
+    signals = ['closed', 'beep', 'leds', 'title', 'resize']
 
     def __init__(
         self,
@@ -1647,6 +1647,8 @@ class Terminal(Widget):
 
         if process_opened:
             self.add_watch()
+
+        self._emit("resize", (width, height))
 
     def set_title(self, title) -> None:
         self._emit('title', title)
