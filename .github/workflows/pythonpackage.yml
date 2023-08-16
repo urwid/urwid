@@ -68,7 +68,7 @@ jobs:
           pip install --upgrade isort
       - name: Check imports with isort
         run: |
-          isort --check --diff urwid/event_loop urwid/font.py urwid/escape.py urwid/command_map.py
+          isort --check --diff urwid/event_loop urwid/widget urwid/font.py urwid/escape.py urwid/command_map.py
 
   Black:
     name: Validate black formatting
@@ -86,7 +86,7 @@ jobs:
           pip install --upgrade black regex
       - name: Check code style with black
         run: |
-          black --check urwid/event_loop urwid/font.py urwid/escape.py urwid/command_map.py
+          black --check urwid/event_loop urwid/widget urwid/font.py urwid/escape.py urwid/command_map.py
 
   Ruff:
     name: Check with Ruff
@@ -104,7 +104,7 @@ jobs:
           pip install --upgrade ruff
       - name: Lint with ruff
         run: |
-          ruff --format github urwid/event_loop urwid/font.py urwid/escape.py urwid/command_map.py
+          ruff --format github urwid/event_loop urwid/widget urwid/font.py urwid/escape.py urwid/command_map.py
 
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
