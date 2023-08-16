@@ -11,6 +11,8 @@ def load_tests(loader, tests, ignore):
     module_doctests = [
         urwid.widget.attr_map,
         urwid.widget.attr_wrap,
+        urwid.widget.bar_graph,
+        urwid.widget.big_text,
         urwid.widget.box_adapter,
         urwid.widget.columns,
         urwid.widget.constants,
@@ -20,10 +22,12 @@ def load_tests(loader, tests, ignore):
         urwid.widget.filler,
         urwid.widget.frame,
         urwid.widget.grid_flow,
+        urwid.widget.line_box,
         urwid.widget.overlay,
         urwid.widget.padding,
         urwid.widget.pile,
         urwid.widget.popup,
+        urwid.widget.progress_bar,
         urwid.widget.solid_fill,
         urwid.widget.text,
         urwid.widget.widget,
@@ -37,7 +41,6 @@ def load_tests(loader, tests, ignore):
         'urwid.split_repr',  # override function with same name
         urwid.util,
         urwid.signals,
-        urwid.graphics,
         ]
     for m in module_doctests:
         tests.addTests(doctest.DocTestSuite(m,

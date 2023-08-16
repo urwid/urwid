@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from .attr_map import AttrMap, AttrMapError
 from .attr_wrap import AttrWrap
+from .bar_graph import BarGraph, BarGraphError, BarGraphMeta, GraphVScale, scale_bar_values
+from .big_text import BigText
 from .box_adapter import BoxAdapter, BoxAdapterError
 from .columns import Columns, ColumnsError
 from .constants import (
@@ -26,10 +28,12 @@ from .edit import Edit, EditError, IntEdit
 from .filler import Filler, FillerError, calculate_top_bottom_filler
 from .frame import Frame, FrameError
 from .grid_flow import GridFlow, GridFlowError
+from .line_box import LineBox
 from .overlay import Overlay, OverlayError
 from .padding import Padding, PaddingError, calculate_left_right_padding
 from .pile import Pile, PileError
 from .popup import PopUpLauncher, PopUpTarget
+from .progress_bar import ProgressBar
 from .solid_fill import SolidFill
 from .text import Text, TextError
 from .widget import (
@@ -132,6 +136,14 @@ __all__ = (
     "CheckBoxError",
     "RadioButton",
     "SelectableIcon",
+    "BigText",
+    "LineBox",
+    "BarGraph",
+    "BarGraphError",
+    "BarGraphMeta",
+    "GraphVScale",
+    "scale_bar_values",
+    "ProgressBar",
 )
 
 # Backward compatibility

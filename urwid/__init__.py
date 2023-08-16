@@ -62,16 +62,7 @@ from urwid.font import (
     Thin6x6Font,
     get_all_fonts,
 )
-from urwid.graphics import (
-    BarGraph,
-    BarGraphError,
-    BarGraphMeta,
-    BigText,
-    GraphVScale,
-    LineBox,
-    ProgressBar,
-    scale_bar_values,
-)
+
 from urwid.listbox import ListBox, ListBoxError, ListWalker, ListWalkerError, SimpleFocusListWalker, SimpleListWalker
 from urwid.event_loop import EventLoop, AsyncioEventLoop, ExitMainLoop, MainLoop, SelectEventLoop
 from urwid.monitored_list import MonitoredFocusList, MonitoredList
@@ -143,6 +134,14 @@ from urwid.widget import (
     CheckBoxError,
     RadioButton,
     SelectableIcon,
+    BigText,
+    LineBox,
+    BarGraph,
+    BarGraphError,
+    BarGraphMeta,
+    GraphVScale,
+    scale_bar_values,
+    ProgressBar,
 )
 
 from urwid import raw_display
