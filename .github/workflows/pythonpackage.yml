@@ -86,6 +86,7 @@ jobs:
           # emulated ones
           CIBW_ARCHS_LINUX: auto aarch64
           CIBW_ARCHS_MACOS: x86_64 universal2 arm64
+          CIBW_SKIP: cp312*  # Issue #583
 
       - uses: actions/upload-artifact@v3
         with:
