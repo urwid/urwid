@@ -26,11 +26,12 @@ from __future__ import annotations
 import asyncio
 import functools
 import typing
-from collections.abc import Callable
 
 from .abstract_loop import EventLoop, ExitMainLoop
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable
+
     from typing_extensions import ParamSpec
 
     _Spec = ParamSpec("_Spec")
@@ -52,6 +53,7 @@ class AsyncioEventLoop(EventLoop):
         A good way to do this::
             asyncio.get_event_loop().call_soon(main_loop.draw_screen)
     """
+
     _we_started_event_loop = False
 
     def __init__(self, *, loop: asyncio.AbstractEventLoop | None = None, **kwargs) -> None:
@@ -89,7 +91,7 @@ class AsyncioEventLoop(EventLoop):
         finally:
             self._idle_asyncio_handle = None
 
-    def alarm(self, seconds: float | int, callback:  Callable[[], typing.Any]) -> asyncio.TimerHandle:
+    def alarm(self, seconds: float, callback: Callable[[], typing.Any]) -> asyncio.TimerHandle:
         """
         Call callback() a given time from now.  No parameters are
         passed to callback.
@@ -107,11 +109,7 @@ class AsyncioEventLoop(EventLoop):
 
         Returns True if the alarm exists, False otherwise
         """
-        cancelled = (
-            handle.cancelled()
-            if getattr(handle, 'cancelled', None)
-            else handle._cancelled
-        )
+        cancelled = handle.cancelled() if getattr(handle, "cancelled", None) else handle._cancelled
         existed = not cancelled
         handle.cancel()
         return existed
@@ -162,7 +160,7 @@ class AsyncioEventLoop(EventLoop):
         return True
 
     def _exception_handler(self, loop: asyncio.AbstractEventLoop, context):
-        exc = context.get('exception')
+        exc = context.get("exception")
         if exc:
             loop.stop()
 

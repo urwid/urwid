@@ -26,11 +26,13 @@ Trio library is required.
 from __future__ import annotations
 
 import typing
-from collections.abc import Callable
 
 import trio
 
 from .abstract_loop import EventLoop, ExitMainLoop
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Callable
 
 __all__ = ("TrioEventLoop",)
 
@@ -68,7 +70,7 @@ class TrioEventLoop(EventLoop):
         self._sleep = trio.sleep
         self._wait_readable = trio.lowlevel.wait_readable
 
-    def alarm(self, seconds: float | int, callback: Callable[[], typing.Any]):
+    def alarm(self, seconds: float, callback: Callable[[], typing.Any]):
         """Calls `callback()` a given time from now.  No parameters are passed
         to the callback.
 
@@ -186,7 +188,7 @@ class TrioEventLoop(EventLoop):
     async def _alarm_task(
         self,
         scope: trio.CancelScope,
-        seconds: float | int,
+        seconds: float,
         callback: Callable[[], typing.Any],
     ) -> None:
         """Asynchronous task that sleeps for a given number of seconds and then
@@ -212,8 +214,8 @@ class TrioEventLoop(EventLoop):
         self._idle_callbacks.clear()
         if isinstance(exc, ExitMainLoop):
             return None
-        else:
-            return exc
+
+        return exc
 
     async def _main_task(self):
         """Main Trio task that opens a nursery and then sleeps until the user

@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import typing
 import warnings
-from collections.abc import Iterator, Sequence
 from pprint import pformat
 
 from urwid.canvas import CanvasError, TextCanvas
@@ -32,12 +31,14 @@ from urwid.escape import SAFE_ASCII_DEC_SPECIAL_RE
 from urwid.util import apply_target_encoding, str_util
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Iterator, Sequence
+
     from typing_extensions import Literal
 
 
 def separate_glyphs(gdata: str, height: int) -> tuple[dict[str, tuple[int, list[str]]], bool]:
     """return (dictionary of glyphs, utf8 required)"""
-    gl: list[str] = gdata.split("\n")[1: -1]
+    gl: list[str] = gdata.split("\n")[1:-1]
 
     if any("\t" in elem for elem in gl):
         raise ValueError(f"Incorrect glyphs data:\n{gdata!r}")
@@ -79,9 +80,10 @@ def separate_glyphs(gdata: str, height: int) -> tuple[dict[str, tuple[int, list[
                     break
                 y += str_util.get_width(ord(line[j]))
                 j += 1
-            assert y + fill == end_col - start_col, repr((y, fill, end_col))
+            if y + fill != end_col - start_col:
+                raise ValueError(repr((y, fill, end_col)))
 
-            segment = line[jl[k]:j]
+            segment = line[jl[k] : j]
             if not SAFE_ASCII_DEC_SPECIAL_RE.match(segment):
                 utf8_required = True
 
@@ -114,9 +116,10 @@ class FontRegistry(type):
 
     Store all registered fonts, register during class creation if possible.
     """
+
     __slots__ = ()
 
-    __registered: dict[str, FontRegistry] = {}
+    __registered: typing.ClassVar[dict[str, FontRegistry]] = {}
 
     def __iter__(self) -> Iterator[str]:
         """Iterate over registered font names."""
@@ -136,7 +139,7 @@ class FontRegistry(type):
         """List of (font name, font class) tuples."""
         return list(mcs.__registered.items())
 
-    def __new__(
+    def __new__(  # noqa: PYI034  # new can not return Self
         cls: type[FontRegistry],
         name: str,
         bases: tuple[type, ...],
@@ -175,12 +178,15 @@ class Font(metaclass=FontRegistry):
     __slots__ = ("char", "canvas", "utf8_required")
 
     height: int
-    data: list[str]
+    data: Sequence[str]
     name: str
 
     def __init__(self) -> None:
-        assert self.height
-        assert self.data
+        if not self.height:
+            raise ValueError(f'"height" is invalid: {self.height!r}')
+        if not self.data:
+            raise ValueError(f'"data" is empty: {self.data!r}')
+
         self.char: dict[str, tuple[int, list[str]]] = {}
         self.canvas: dict[str, TextCanvas] = {}
         self.utf8_required = False
@@ -198,18 +204,20 @@ class Font(metaclass=FontRegistry):
     @staticmethod
     def _to_text(
         obj: str | bytes,
-        encoding: str = 'utf-8',
-        errors: Literal['strict', 'ignore', 'replace'] | str = 'strict',
+        encoding: str = "utf-8",
+        errors: Literal["strict", "ignore", "replace"] = "strict",
     ) -> str:
         if isinstance(obj, str):
             return obj
-        elif isinstance(obj, bytes):
+
+        if isinstance(obj, bytes):
             warnings.warn(
                 "Bytes based fonts are deprecated, please switch to the text one",
                 DeprecationWarning,
                 stacklevel=3,
             )
             return obj.decode(encoding, errors)
+
         raise TypeError(f"{obj!r} is not str|bytes")
 
     def add_glyphs(self, gdata: str) -> None:
@@ -242,187 +250,212 @@ class Font(metaclass=FontRegistry):
         try:
             canv = TextCanvas(byte_lines, None, character_set_lines, maxcol=width, check_width=False)
         except CanvasError as exc:
-            raise CanvasError(
-                f"Failed render of {character!r} from line {line!r}:\n{self}\n:{exc}"
-            ).with_traceback(exc.__traceback__) from exc
+            raise CanvasError(f"Failed render of {character!r} from line {line!r}:\n{self}\n:{exc}").with_traceback(
+                exc.__traceback__
+            ) from exc
 
         self.canvas[character] = canv
         return canv
 
 
-#safe_palette = u"┘┐┌└┼─├┤┴┬│"
-#more_palette = u"═║╒╓╔╕╖╗╘╙╚╛╜╝╞╟╠╡╢╣╤╥╦╧╨╩╪╫╬○"
-#block_palette = u"▄#█#▀#▌#▐#▖#▗#▘#▙#▚#▛#▜#▝#▞#▟"
+# safe_palette = u"┘┐┌└┼─├┤┴┬│"
+# more_palette = u"═║╒╓╔╕╖╗╘╙╚╛╜╝╞╟╠╡╢╣╤╥╦╧╨╩╪╫╬○"
+# block_palette = u"▄#█#▀#▌#▐#▖#▗#▘#▙#▚#▛#▜#▝#▞#▟"
 
 
 class Thin3x3Font(Font):
     name = "Thin 3x3"
     height = 3
-    data = ["""
+    data = (
+        """
 000111222333444555666777888999  !
 ┌─┐ ┐ ┌─┐┌─┐  ┐┌─ ┌─ ┌─┐┌─┐┌─┐  │
 │ │ │ ┌─┘ ─┤└─┼└─┐├─┐  ┼├─┤└─┤  │
 └─┘ ┴ └─ └─┘  ┴ ─┘└─┘  ┴└─┘ ─┘  .
-""", r"""
+""",
+        r"""
 "###$$$%%%'*++,--.///:;==???[[\\\]]^__`
 " ┼┼┌┼┐O /'         /.. _┌─┐┌ \   ┐^  `
   ┼┼└┼┐ /  * ┼  ─  / ., _ ┌┘│  \  │
     └┼┘/ O    ,  ./       . └   \ ┘ ──
-"""]
+""",
+    )
 
 
 class Thin4x3Font(Font):
     name = "Thin 4x3"
     height = 3
-    data = Thin3x3Font.data + ["""
+    data = (
+        *Thin3x3Font.data,
+        """
 0000111122223333444455556666777788889999  ####$$$$
 ┌──┐  ┐ ┌──┐┌──┐   ┐┌── ┌── ┌──┐┌──┐┌──┐   ┼─┼┌┼┼┐
 │  │  │ ┌──┘  ─┤└──┼└──┐├──┐   ┼├──┤└──┤   ┼─┼└┼┼┐
 └──┘  ┴ └── └──┘   ┴ ──┘└──┘   ┴└──┘ ──┘      └┼┼┘
-"""]
+""",
+    )
 
 
 class Sextant3x3Font(Font):
     name = "Sextant 3x3"
     height = 3
-    data = [u"""
+    data = (
+        """
    !!!###$$$%%%&&&'''((()))***+++,,,---...///
     ▐ 🬞🬲🬲🬞🬍🬋🬉🬄🬖🬦🬧  🬉 🬞🬅 🬁🬢 🬞🬦🬞 🬦            🬖
     🬉 🬇🬛🬛🬞🬰🬗🬞🬅🬭🬦🬈🬖   🬉🬏  🬘 🬇🬨🬈🬁🬨🬂 🬭 🬁🬂🬂 🬭 🬞🬅
     🬁  🬀🬀 🬁   🬂 🬂🬁    🬁 🬁         🬅     🬂
-""", u"""
+""",
+        """
 000111222333444555666777888999
 🬦🬂🬧🬞🬫 🬇🬂🬧🬁🬂🬧 🬞🬫▐🬂🬂🬞🬅🬀🬁🬂🬙🬦🬂🬧🬦🬂🬧
 ▐🬁▐ ▐ 🬞🬅🬀 🬂🬧🬇🬌🬫🬁🬂🬧▐🬂🬧 🬔 🬦🬂🬧 🬂🬙
  🬂🬀 🬁 🬁🬂🬂🬁🬂🬀  🬁🬁🬂🬀 🬂🬀 🬀  🬂🬀 🬂
-""", u"""
+""",
+        """
 \"\"\"
  🬄🬄
 
 
-""", u"""
+""",
+        """
 :::;;;<<<===>>>???@@@
  🬭  🬭  🬖🬀   🬁🬢 🬇🬂🬧🬦🬂🬧
  🬰  🬰 🬁🬢 🬠🬰🬰 🬖🬀 🬇🬀▐🬉🬅
  🬂  🬅   🬀   🬁   🬁  🬂🬀
-""", u"""
+""",
+        """
 AAABBBCCCDDDEEEFFFGGGHHHIIIJJJKKKLLLMMMNNNOOOPPPQQQ
 🬞🬅🬢▐🬂🬧🬦🬂🬈▐🬂🬧▐🬂🬂▐🬂🬂🬦🬂🬈▐ ▐ 🬨🬀  ▐▐🬞🬅▐  ▐🬢🬫▐🬢▐🬦🬂🬧▐🬂🬧🬦🬂🬧
 ▐🬋🬫▐🬂🬧▐ 🬞▐ ▐▐🬂 ▐🬂 ▐ 🬨▐🬂🬨 ▐ 🬞 ▐▐🬈🬏▐  ▐🬁▐▐ 🬨▐ ▐▐🬂🬀▐🬇🬘
 🬁 🬁🬁🬂🬀 🬂🬀🬁🬂🬀🬁🬂🬂🬁   🬂🬂🬁 🬁 🬂🬀 🬂🬀🬁 🬁🬁🬂🬂🬁 🬁🬁 🬁 🬂🬀🬁   🬂🬁
-""", u"""
+""",
+        """
 RRRSSSTTTUUUVVVWWWXXXYYYZZZ[[[]]]^^^___```
 ▐🬂🬧🬦🬂🬈🬁🬨🬂▐ ▐▐ ▐▐ ▐🬉🬏🬘▐ ▐🬁🬂🬙 🬕🬀 🬂▌🬞🬅🬢    🬈🬏
 ▐🬊🬐🬞🬂🬧 ▐ ▐ ▐🬉🬏🬘▐🬖🬷🬞🬅🬢 🬧🬀🬞🬅  ▌   ▌
 🬁 🬁 🬂🬀 🬁  🬂🬀 🬁 🬁 🬁🬁 🬁 🬁 🬁🬂🬂 🬂🬀 🬂🬀   🬂🬂🬂
-""", u"""
+""",
+        """
 \\\\\\
 🬇🬏
  🬁🬢
 
-"""]
+""",
+    )
 
 
 class Sextant2x2Font(Font):
     name = "Sextant 2x2"
     height = 2
-    data = [u"""
+    data = """
 ..,,%%00112233445566778899
     🬁🬖▐🬨🬇▌🬁🬗🬠🬸🬦▐▐🬒▐🬭🬁🬙▐🬸▐🬸
 🬇 🬇🬀🬁🬇🬉🬍 🬄🬉🬋🬇🬍🬁🬊🬇🬅🬉🬍 🬄🬉🬍 🬉
-"""]
+"""
 
 
 class HalfBlock5x4Font(Font):
     name = "Half Block 5x4"
     height = 4
-    data = ["""
+    data = (
+        """
 00000111112222233333444445555566666777778888899999  !!
 ▄▀▀▄  ▄█  ▄▀▀▄ ▄▀▀▄ ▄  █ █▀▀▀ ▄▀▀  ▀▀▀█ ▄▀▀▄ ▄▀▀▄   █
 █  █   █    ▄▀   ▄▀ █▄▄█ █▄▄  █▄▄    ▐▌ ▀▄▄▀ ▀▄▄█   █
 █  █   █  ▄▀   ▄  █    █    █ █  █   █  █  █    █   ▀
  ▀▀   ▀▀▀ ▀▀▀▀  ▀▀     ▀ ▀▀▀   ▀▀    ▀   ▀▀   ▀▀    ▀
-""", '''
+""",
+        '''
 """######$$$$$$%%%%%&&&&&((()))******++++++,,,-----..////::;;;
 █▐▌ █ █  ▄▀█▀▄ ▐▌▐▌ ▄▀▄   █ █   ▄ ▄    ▄              ▐▌
    ▀█▀█▀ ▀▄█▄    █  ▀▄▀  ▐▌ ▐▌ ▄▄█▄▄ ▄▄█▄▄    ▄▄▄▄    █  ▀  ▀
    ▀█▀█▀ ▄ █ █  ▐▌▄ █ ▀▄▌▐▌ ▐▌  ▄▀▄    █             ▐▌  ▀ ▄▀
     ▀ ▀   ▀▀▀   ▀ ▀  ▀▀   ▀ ▀              ▄▀      ▀ ▀
-''', r"""
-<<<<<=====>>>>>?????@@@@@@[[[[\\\\]]]]^^^^____```{{{{||}}}}~~~~''´´´
+''',
+        r"""
+<<<<<=====>>>>>?????@@@@@@[[[[\\\\]]]]^^^^____```{{{{||}}}}~~~~''```
   ▄▀      ▀▄   ▄▀▀▄ ▄▀▀▀▄ █▀▀ ▐▌  ▀▀█ ▄▀▄     ▀▄  ▄▀ █ ▀▄   ▄  █ ▄▀
 ▄▀   ▀▀▀▀   ▀▄   ▄▀ █ █▀█ █    █    █            ▄▀  █  ▀▄ ▐▐▌▌
  ▀▄  ▀▀▀▀  ▄▀    ▀  █ ▀▀▀ █    ▐▌   █             █  █  █    ▀
    ▀      ▀      ▀   ▀▀▀  ▀▀▀   ▀ ▀▀▀     ▀▀▀▀     ▀ ▀ ▀
-""", '''
+""",
+        """
 AAAAABBBBBCCCCCDDDDDEEEEEFFFFFGGGGGHHHHHIIJJJJJKKKKK
 ▄▀▀▄ █▀▀▄ ▄▀▀▄ █▀▀▄ █▀▀▀ █▀▀▀ ▄▀▀▄ █  █ █    █ █  █
 █▄▄█ █▄▄▀ █    █  █ █▄▄  █▄▄  █    █▄▄█ █    █ █▄▀
 █  █ █  █ █  ▄ █  █ █    █    █ ▀█ █  █ █ ▄  █ █ ▀▄
 ▀  ▀ ▀▀▀   ▀▀  ▀▀▀  ▀▀▀▀ ▀     ▀▀  ▀  ▀ ▀  ▀▀  ▀  ▀
-''', '''
+""",
+        """
 LLLLLMMMMMMNNNNNOOOOOPPPPPQQQQQRRRRRSSSSSTTTTT
 █    █▄ ▄█ ██ █ ▄▀▀▄ █▀▀▄ ▄▀▀▄ █▀▀▄ ▄▀▀▄ ▀▀█▀▀
 █    █ ▀ █ █▐▌█ █  █ █▄▄▀ █  █ █▄▄▀ ▀▄▄    █
 █    █   █ █ ██ █  █ █    █ ▌█ █  █ ▄  █   █
 ▀▀▀▀ ▀   ▀ ▀  ▀  ▀▀  ▀     ▀▀▌ ▀  ▀  ▀▀    ▀
-''', '''
+""",
+        """
 UUUUUVVVVVVWWWWWWXXXXXXYYYYYYZZZZZ
 █  █ █   █ █   █ █   █ █   █ ▀▀▀█
 █  █ ▐▌ ▐▌ █ ▄ █  ▀▄▀   ▀▄▀   ▄▀
 █  █  █ █  ▐▌█▐▌ ▄▀ ▀▄   █   █
  ▀▀    ▀    ▀ ▀  ▀   ▀   ▀   ▀▀▀▀
-''', '''
+""",
+        """
 aaaaabbbbbcccccdddddeeeeeffffggggghhhhhiijjjjkkkkk
      █            █       ▄▀▀     █    ▄   ▄ █
  ▀▀▄ █▀▀▄ ▄▀▀▄ ▄▀▀█ ▄▀▀▄ ▀█▀ ▄▀▀▄ █▀▀▄ ▄   ▄ █ ▄▀
 ▄▀▀█ █  █ █  ▄ █  █ █▀▀   █  ▀▄▄█ █  █ █   █ █▀▄
  ▀▀▀ ▀▀▀   ▀▀   ▀▀▀  ▀▀   ▀   ▄▄▀ ▀  ▀ ▀ ▄▄▀ ▀  ▀
-''', '''
+""",
+        """
 llmmmmmmnnnnnooooopppppqqqqqrrrrssssstttt
 █                                     █
 █ █▀▄▀▄ █▀▀▄ ▄▀▀▄ █▀▀▄ ▄▀▀█ █▀▀ ▄▀▀▀ ▀█▀
 █ █ █ █ █  █ █  █ █  █ █  █ █    ▀▀▄  █
 ▀ ▀   ▀ ▀  ▀  ▀▀  █▀▀   ▀▀█ ▀   ▀▀▀    ▀
-''', '''
+""",
+        """
 uuuuuvvvvvwwwwwwxxxxxxyyyyyzzzzz
 
 █  █ █  █ █ ▄ █ ▀▄ ▄▀ █  █ ▀▀█▀
 █  █ ▐▌▐▌ ▐▌█▐▌  ▄▀▄  ▀▄▄█ ▄▀
  ▀▀   ▀▀   ▀ ▀  ▀   ▀  ▄▄▀ ▀▀▀▀
-''']
+""",
+    )
 
 
 class HalfBlock6x5Font(Font):
     name = "Half Block 6x5"
     height = 5
-    data = ["""
+    data = """
 000000111111222222333333444444555555666666777777888888999999  ..::////
 ▄▀▀▀▄  ▄█   ▄▀▀▀▄ ▄▀▀▀▄ ▄  █  █▀▀▀▀ ▄▀▀▀  ▀▀▀▀█ ▄▀▀▀▄ ▄▀▀▀▄         █
 █   █   █       █     █ █  █  █     █        ▐▌ █   █ █   █     ▀  ▐▌
 █   █   █     ▄▀    ▀▀▄ ▀▀▀█▀ ▀▀▀▀▄ █▀▀▀▄    █  ▄▀▀▀▄  ▀▀▀█     ▄  █
 █   █   █   ▄▀    ▄   █    █      █ █   █   ▐▌  █   █     █       ▐▌
  ▀▀▀   ▀▀▀  ▀▀▀▀▀  ▀▀▀     ▀  ▀▀▀▀   ▀▀▀    ▀    ▀▀▀   ▀▀▀    ▀   ▀
-"""]
+"""
 
 
 class HalfBlockHeavy6x5Font(Font):
     name = "Half Block Heavy 6x5"
     height = 5
-    data = ["""
+    data = """
 000000111111222222333333444444555555666666777777888888999999  ..::////
 ▄███▄  ▐█▌  ▄███▄ ▄███▄    █▌ █████ ▄███▄ █████ ▄███▄ ▄███▄         █▌
 █▌ ▐█  ▀█▌  ▀  ▐█ ▀  ▐█ █▌ █▌ █▌    █▌       █▌ █▌ ▐█ █▌ ▐█     █▌ ▐█
 █▌ ▐█   █▌    ▄█▀   ██▌ █████ ████▄ ████▄   ▐█  ▐███▌ ▀████        █▌
 █▌ ▐█   █▌  ▄█▀   ▄  ▐█    █▌    ▐█ █▌ ▐█   █▌  █▌ ▐█    ▐█     █▌▐█
 ▀███▀  ███▌ █████ ▀███▀    █▌ ████▀ ▀███▀  ▐█   ▀███▀ ▀███▀   █▌  █▌
-"""]
+"""
 
 
 class Thin6x6Font(Font):
     name = "Thin 6x6"
     height = 6
-    data = ["""
+    data = (
+        """
 000000111111222222333333444444555555666666777777888888999999''
 ┌───┐   ┐   ┌───┐ ┌───┐    ┐  ┌───  ┌───  ┌───┐ ┌───┐ ┌───┐ │
 │   │   │       │     │ ┌  │  │     │         │ │   │ │   │
@@ -430,7 +463,8 @@ class Thin6x6Font(Font):
 │   │   │   │         │    │      │ │   │     │ │   │     │
 └───┘   ┴   └───  └───┘    ┴   ───┘ └───┘     ┴ └───┘  ───┘
 
-""", r'''
+""",
+        r'''
 !!   """######$$$$$$%%%%%%&&&&&&((()))******++++++
 │    ││  ┌ ┌  ┌─┼─┐ ┌┐  /  ┌─┐   / \
 │       ─┼─┼─ │ │   └┘ /   │ │  │   │  \ /    │
@@ -438,7 +472,8 @@ class Thin6x6Font(Font):
 │       ─┼─┼─   │ │  / ┌┐ │  \, │   │  / \    │
 .        ┘ ┘  └─┼─┘ /  └┘ └───\  \ /
 
-''', r"""
+''',
+        r"""
 ,,-----..//////::;;<<<<=====>>>>??????@@@@@@
              /                  ┌───┐ ┌───┐
             /  . .   / ──── \       │ │┌──┤
@@ -446,7 +481,8 @@ class Thin6x6Font(Font):
           /    . ,  \  ────  /    │   │└──┘
 ,      . /           \      /     .   └───┘
 
-""", r"""
+""",
+        r"""
 [[\\\\\\]]^^^____``{{||}}~~~~~~
 ┌ \     ┐ /\     \ ┌ │ ┐
 │  \    │          │ │ │ ┌─┐
@@ -454,7 +490,8 @@ class Thin6x6Font(Font):
 │    \  │          │ │ │
 └     \ ┘    ────  └ │ ┘
 
-""", """
+""",
+        """
 AAAAAABBBBBBCCCCCCDDDDDDEEEEEEFFFFFFGGGGGGHHHHHHIIJJJJJJ
 ┌───┐ ┬───┐ ┌───┐ ┬───┐ ┬───┐ ┬───┐ ┌───┐ ┬   ┬ ┬     ┬
 │   │ │   │ │     │   │ │     │     │     │   │ │     │
@@ -462,7 +499,8 @@ AAAAAABBBBBBCCCCCCDDDDDDEEEEEEFFFFFFGGGGGGHHHHHHIIJJJJJJ
 │   │ │   │ │     │   │ │     │     │   │ │   │ │ ┬   │
 ┴   ┴ ┴───┘ └───┘ ┴───┘ ┴───┘ ┴     └───┘ ┴   ┴ ┴ └───┘
 
-""", """
+""",
+        """
 KKKKKKLLLLLLMMMMMMNNNNNNOOOOOOPPPPPPQQQQQQRRRRRRSSSSSS
 ┬   ┬ ┬     ┌─┬─┐ ┬─┐ ┬ ┌───┐ ┬───┐ ┌───┐ ┬───┐ ┌───┐
 │ ┌─┘ │     │ │ │ │ │ │ │   │ │   │ │   │ │   │ │
@@ -470,7 +508,8 @@ KKKKKKLLLLLLMMMMMMNNNNNNOOOOOOPPPPPPQQQQQQRRRRRRSSSSSS
 │  └┐ │     │   │ │ │ │ │   │ │     │  ┐│ │ └─┐     │
 ┴   ┴ ┴───┘ ┴   ┴ ┴ └─┴ └───┘ ┴     └──┼┘ ┴   ┴ └───┘
                                        └
-""", """
+""",
+        """
 TTTTTTUUUUUUVVVVVVWWWWWWXXXXXXYYYYYYZZZZZZ
 ┌─┬─┐ ┬   ┬ ┬   ┬ ┬   ┬ ┬   ┬ ┬   ┬ ┌───┐
   │   │   │ │   │ │   │ └┐ ┌┘ │   │   ┌─┘
@@ -478,7 +517,8 @@ TTTTTTUUUUUUVVVVVVWWWWWWXXXXXXYYYYYYZZZZZZ
   │   │   │ └┐ ┌┘ │ │ │ ┌┘ └┐   │   ┌┘
   ┴   └───┘  └─┘  └─┴─┘ ┴   ┴   ┴   └───┘
 
-""", """
+""",
+        """
 aaaaaabbbbbbccccccddddddeeeeeefffgggggghhhhhhiijjj
                               ┌─┐
       │               │       │        │     .  .
@@ -486,7 +526,8 @@ aaaaaabbbbbbccccccddddddeeeeeefffgggggghhhhhhiijjj
 ┌───┤ │   │ │     │   │ ├───┘ │  │   │ │   │ │  │
 └───┴ └───┘ └───┘ └───┘ └───┘ ┴  └───┤ ┴   ┴ ┴  │
                                  └───┘         ─┘
-""", """
+""",
+        """
 kkkkkkllmmmmmmnnnnnnooooooppppppqqqqqqrrrrrssssss
 
 │     │
@@ -494,7 +535,8 @@ kkkkkkllmmmmmmnnnnnnooooooppppppqqqqqqrrrrrssssss
 ├─┴┐  │ │ │ │ │   │ │   │ │   │ │   │ │    └───┐
 ┴  └─ └ ┴   ┴ ┴   ┴ └───┘ ├───┘ └───┤ ┴    └───┘
                           │         │
-""", """
+""",
+        """
 ttttuuuuuuvvvvvvwwwwwwxxxxxxyyyyyyzzzzzz
 
  │
@@ -502,13 +544,15 @@ ttttuuuuuuvvvvvvwwwwwwxxxxxxyyyyyyzzzzzz
  │  │   │ └┐ ┌┘ │ │ │  ├─┤  │   │ ┌───┘
  └─ └───┴  └─┘  └─┴─┘ ─┘ └─ └───┤ ┴────
                             └───┘
-"""]
+""",
+    )
 
 
 class HalfBlock7x7Font(Font):
     name = "Half Block 7x7"
     height = 7
-    data = ["""
+    data = (
+        """
 0000000111111122222223333333444444455555556666666777777788888889999999'''
  ▄███▄   ▐█▌   ▄███▄  ▄███▄     █▌ ▐█████▌ ▄███▄ ▐█████▌ ▄███▄  ▄███▄ ▐█
 ▐█   █▌  ▀█▌  ▐█   █▌▐█   █▌▐█  █▌ ▐█     ▐█         ▐█ ▐█   █▌▐█   █▌▐█
@@ -517,7 +561,8 @@ class HalfBlock7x7Font(Font):
 ▐█   █▌   █▌   ▄█▀   ▐█   █▌    █▌      █▌▐█   █▌   █▌  ▐█   █▌     █▌
  ▀███▀   ███▌ ▐█████▌ ▀███▀     █▌ ▐████▀  ▀███▀   ▐█    ▀███▀  ▀███▀
 
-""", '''
+""",
+        '''
 !!!   """""#######$$$$$$$%%%%%%%&&&&&&&(((())))*******++++++
 ▐█    ▐█ █▌ ▐█ █▌    █    ▄  █▌   ▄█▄    █▌▐█   ▄▄ ▄▄
 ▐█    ▐█ █▌▐█████▌ ▄███▄ ▐█▌▐█   ▐█ █▌  ▐█  █▌  ▀█▄█▀   ▐█
@@ -526,7 +571,8 @@ class HalfBlock7x7Font(Font):
             ▐█ █▌  ▀███▀   █▌▐█▌▐█  █▌  ▐█  █▌  ▀▀ ▀▀
 ▐█                   █    ▐█  ▀  ▀██▀█▌  █▌▐█
 
-''', """
+''',
+        """
 ,,,------.../////:::;;;<<<<<<<======>>>>>>>???????@@@@@@@
                █▌          ▄█▌      ▐█▄     ▄███▄  ▄███▄
               ▐█ ▐█ ▐█   ▄█▀  ▐████▌  ▀█▄  ▐█   █▌▐█ ▄▄█▌
@@ -535,8 +581,9 @@ class HalfBlock7x7Font(Font):
              █▌     ▀      ▀█▌      ▐█▀           ▐█ ▀▀▀
 ▐█       ▐█ ▐█                                █▌   ▀███▀
 ▀
-""", r"""
-[[[[\\\\\]]]]^^^^^^^_____```{{{{{|||}}}}}~~~~~~~´´´
+""",
+        r"""
+[[[[\\\\\]]]]^^^^^^^_____```{{{{{|||}}}}}~~~~~~~```
 ▐██▌▐█   ▐██▌  ▐█▌       ▐█    █▌▐█ ▐█           █▌
 ▐█   █▌    █▌ ▐█ █▌       █▌  █▌ ▐█  ▐█   ▄▄    ▐█
 ▐█   ▐█    █▌▐█   █▌         ▄█▌ ▐█  ▐█▄ ▐▀▀█▄▄▌
@@ -544,7 +591,8 @@ class HalfBlock7x7Font(Font):
 ▐█    ▐█   █▌                 █▌ ▐█  ▐█
 ▐██▌   █▌▐██▌       █████      █▌▐█ ▐█
 
-""", """
+""",
+        """
 AAAAAAABBBBBBBCCCCCCCDDDDDDDEEEEEEEFFFFFFFGGGGGGGHHHHHHHIIIIJJJJJJJ
  ▄███▄ ▐████▄  ▄███▄ ▐████▄ ▐█████▌▐█████▌ ▄███▄ ▐█   █▌ ██▌     █▌
 ▐█   █▌▐█   █▌▐█     ▐█   █▌▐█     ▐█     ▐█     ▐█   █▌ ▐█      █▌
@@ -553,7 +601,8 @@ AAAAAAABBBBBBBCCCCCCCDDDDDDDEEEEEEEFFFFFFFGGGGGGGHHHHHHHIIIIJJJJJJJ
 ▐█   █▌▐█   █▌▐█     ▐█   █▌▐█     ▐█     ▐█   █▌▐█   █▌ ▐█ ▐█   █▌
 ▐█   █▌▐████▀  ▀███▀ ▐████▀ ▐█████▌▐█      ▀███▀ ▐█   █▌ ██▌ ▀███▀
 
-""", """
+""",
+        """
 KKKKKKKLLLLLLLMMMMMMMMNNNNNNNOOOOOOOPPPPPPPQQQQQQQRRRRRRRSSSSSSS
 ▐█   █▌▐█      ▄█▌▐█▄ ▐██  █▌ ▄███▄ ▐████▄  ▄███▄ ▐████▄  ▄███▄
 ▐█  █▌ ▐█     ▐█ ▐▌ █▌▐██▌ █▌▐█   █▌▐█   █▌▐█   █▌▐█   █▌▐█
@@ -562,7 +611,8 @@ KKKKKKKLLLLLLLMMMMMMMMNNNNNNNOOOOOOOPPPPPPPQQQQQQQRRRRRRRSSSSSSS
 ▐█  █▌ ▐█     ▐█    █▌▐█ ▐██▌▐█   █▌▐█     ▐█ █▌█▌▐█   █▌     █▌
 ▐█   █▌▐█████▌▐█    █▌▐█  ██▌ ▀███▀ ▐█      ▀███▀ ▐█   █▌ ▀███▀
                                                ▀▀
-""", """
+""",
+        """
 TTTTTTTUUUUUUUVVVVVVVWWWWWWWWXXXXXXXYYYYYYYZZZZZZZ
  █████▌▐█   █▌▐█   █▌▐█    █▌▐█   █▌ █▌  █▌▐█████▌
    █▌  ▐█   █▌ █▌ ▐█ ▐█    █▌ ▐█ █▌  ▐█ ▐█     █▌
@@ -571,7 +621,8 @@ TTTTTTTUUUUUUUVVVVVVVWWWWWWWWXXXXXXXYYYYYYYZZZZZZZ
    █▌  ▐█   █▌  ▐█▌  ▐█ ▐▌ █▌ █▌ ▐█    █▌   █▌
    █▌   ▀███▀    █    ▀█▌▐█▀ ▐█   █▌   █▌  ▐█████▌
 
-""", """
+""",
+        """
 aaaaaaabbbbbbbcccccccdddddddeeeeeeefffffggggggghhhhhhhiiijjjj
        ▐█                 █▌         ▄█▌       ▐█      █▌  █▌
        ▐█                 █▌        ▐█         ▐█
@@ -580,7 +631,8 @@ aaaaaaabbbbbbbcccccccdddddddeeeeeeefffffggggggghhhhhhhiiijjjj
 ▐█▀▀▀█▌▐█   █▌▐█     ▐█   █▌▐█▀▀▀   ▐█  ▐█▄▄▄█▌▐█   █▌ █▌  █▌
  ▀████▌▐████▀  ▀███▀  ▀████▌ ▀███▀  ▐█    ▀▀▀█▌▐█   █▌ █▌  █▌
                                          ▀███▀           ▐██
-""", """
+""",
+        """
 kkkkkkkllllmmmmmmmmnnnnnnnooooooopppppppqqqqqqqrrrrrrsssssss
 ▐█      ██
 ▐█      ▐█
@@ -589,7 +641,8 @@ kkkkkkkllllmmmmmmmmnnnnnnnooooooopppppppqqqqqqqrrrrrrsssssss
 ▐█▀▀█▄  ▐█ ▐█ ▐▌ █▌▐█   █▌▐█   █▌▐█   █▌▐█   █▌▐█      ▀▀▀█▌
 ▐█   █▌ ▐█▌▐█    █▌▐█   █▌ ▀███▀ ▐████▀  ▀████▌▐█     ▀███▀
                                  ▐█          █▌
-""", """
+""",
+        """
 tttttuuuuuuuvvvvvvvwwwwwwwwxxxxxxxyyyyyyyzzzzzzz
   █▌
   █▌
@@ -598,7 +651,8 @@ tttttuuuuuuuvvvvvvvwwwwwwwwxxxxxxxyyyyyyyzzzzzzz
   █▌ ▐█   █▌  ███  ▐█ ▐▌ █▌ ▄█▀█▄ ▐█▄▄▄█▌ ▄█▀
   █▌  ▀███▀   ▐█▌   ▀█▌▐█▀ ▐█   █▌  ▀▀▀█▌▐█████▌
                                    ▀███▀
-"""]
+""",
+    )
 
 
 if __name__ == "__main__":
@@ -610,7 +664,7 @@ if __name__ == "__main__":
         u = ""
         if f.utf8_required:
             u = "(U)"
-        print(f"{n:<20} {u:>3} ", end=' ')
+        print(f"{n:<20} {u:>3} ", end=" ")
         chars = f.characters()
         font_chars = frozenset(chars)
         if font_chars == all_ascii:

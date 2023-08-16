@@ -26,9 +26,9 @@ from __future__ import annotations
 import abc
 import signal
 import typing
-from collections.abc import Callable
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable
     from types import FrameType
 
 __all__ = ("ExitMainLoop", "EventLoop")
@@ -39,7 +39,6 @@ class ExitMainLoop(Exception):
     When this exception is raised within a main loop the main loop
     will exit cleanly.
     """
-    pass
 
 
 class EventLoop(abc.ABC):
@@ -48,7 +47,7 @@ class EventLoop(abc.ABC):
     """
 
     @abc.abstractmethod
-    def alarm(self, seconds: float | int, callback: Callable[[], typing.Any]) -> typing.Any:
+    def alarm(self, seconds: float, callback: Callable[[], typing.Any]) -> typing.Any:
         """
         Call callback() a given time from now.  No parameters are
         passed to callback.

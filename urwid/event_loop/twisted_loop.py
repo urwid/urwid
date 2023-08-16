@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import sys
 import typing
-from collections.abc import Callable
 
 from twisted.internet.abstract import FileDescriptor
 from twisted.internet.error import AlreadyCalled, AlreadyCancelled
@@ -36,6 +35,8 @@ from twisted.internet.error import AlreadyCalled, AlreadyCancelled
 from .abstract_loop import EventLoop, ExitMainLoop
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable
+
     from twisted.internet.interfaces import IReactorFDSet
     from typing_extensions import ParamSpec
 
@@ -62,7 +63,8 @@ class TwistedEventLoop(EventLoop):
     """
     Event loop based on Twisted_
     """
-    _idle_emulation_delay = 1.0/256  # a short time (in seconds)
+
+    _idle_emulation_delay = 1.0 / 256  # a short time (in seconds)
 
     def __init__(self, reactor=None, manage_reactor: bool = True) -> None:
         """
@@ -86,6 +88,7 @@ class TwistedEventLoop(EventLoop):
         """
         if reactor is None:
             import twisted.internet.reactor
+
             reactor = twisted.internet.reactor
         self.reactor = reactor
         self._watch_files: dict[int, _TwistedInputDescriptor] = {}
@@ -96,7 +99,7 @@ class TwistedEventLoop(EventLoop):
         self.manage_reactor = manage_reactor
         self._enable_twisted_idle()
 
-    def alarm(self, seconds: float | int, callback:  Callable[[], typing.Any]):
+    def alarm(self, seconds: float, callback: Callable[[], typing.Any]):
         """
         Call callback() a given time from now.  No parameters are
         passed to callback.
@@ -117,11 +120,11 @@ class TwistedEventLoop(EventLoop):
         """
         try:
             handle.cancel()
-            return True
-        except AlreadyCancelled:
+
+        except (AlreadyCancelled, AlreadyCalled):
             return False
-        except AlreadyCalled:
-            return False
+
+        return True
 
     def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> int:
         """
@@ -218,6 +221,7 @@ class TwistedEventLoop(EventLoop):
 
         *f* -- function to be wrapped
         """
+
         def wrapper(*args: _Spec.args, **kwargs: _Spec.kwargs) -> _T | None:
             rval = None
             try:
@@ -233,4 +237,5 @@ class TwistedEventLoop(EventLoop):
             if enable_idle:
                 self._enable_twisted_idle()
             return rval
+
         return wrapper

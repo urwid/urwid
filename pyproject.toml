@@ -58,6 +58,11 @@ skip = ["pp*", "*-musllinux_*"]
 profile = "black"
 line_length = 120
 
+[tool.black]
+line-length = 120
+skip-string-normalization = true
+safe = true
+
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-vvvv --doctest-modules -s --cov=urwid"
@@ -115,3 +120,38 @@ module = [
   "serial.*"
 ]
 ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 120
+show-source = true
+target-version = "py37"
+
+extend-select = [
+  "W",  # also pycodestyle warnings
+  "PYI",  # flake8-pyi
+  "ASYNC",  # flake8-async
+  "FA",  # from __future__ import annotations
+  "SLOT",  # flake8-slots
+  "TCH",  # flake8-type-checking
+  "S",  # flake8-bandit
+  "A",  # flake8-builtins
+  "B", "T10", "EXE",  # flake8-bugbear, flake8-debugger, flake8-executable
+  "ISC",  # flake8-implicit-str-concat
+  "RET", "SIM", "C4",  # flake8-return, flake8-simplify, flake8-comprehensions
+  "ICN", "PGH",  # flake8-import-conventions, pygrep-hooks
+  "Q",  # quotes
+  "FLY",  # Flynt
+  "TRY", "UP", "I", "PL", "PERF", "RUF",  # tryceratops, pyupgrade, isort, pylint + perflint, Ruff-specific
+]
+extend-ignore = [
+  "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR2004",  # refactor rules (too many statements/arguments/branches)
+  "RET504",  # Unnecessary variable assignment before return statement
+  "SIM108",  # Use ternary operator,
+  "TRY003",  #long messages prepare outside, ...
+]
+
+[tool.ruff.isort]
+known-third-party = []
+
+[tool.ruff.pydocstyle]
+convention = "pep257"

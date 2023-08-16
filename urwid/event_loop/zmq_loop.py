@@ -21,25 +21,27 @@
 
 `ZeroMQ <https://zeromq.org>`_ library is required.
 """
+
 from __future__ import annotations
 
-import os
-import time
 import errno
 import heapq
+import os
+import time
 import typing
 from itertools import count
-from collections.abc import Callable
 
 import zmq
 
 from .abstract_loop import EventLoop, ExitMainLoop
 
+if typing.TYPE_CHECKING:
+    from collections.abc import Callable
 
-ZMQAlarmHandle = typing.TypeVar('ZMQAlarmHandle')
-ZMQQueueHandle = typing.TypeVar('ZMQQueueHandle')
-ZMQFileHandle = typing.TypeVar('ZMQFileHandle')
-ZMQIdleHandle = typing.TypeVar('ZMQIdleHandle')
+    ZMQAlarmHandle = typing.TypeVar("ZMQAlarmHandle")
+    ZMQQueueHandle = typing.TypeVar("ZMQQueueHandle")
+    ZMQFileHandle = typing.TypeVar("ZMQFileHandle")
+    ZMQIdleHandle = typing.TypeVar("ZMQIdleHandle")
 
 
 class ZMQEventLoop(EventLoop):
@@ -52,6 +54,7 @@ class ZMQEventLoop(EventLoop):
 
     .. _ZeroMQ: https://zeromq.org/
     """
+
     _alarm_break = count()
 
     def __init__(self):
@@ -62,7 +65,7 @@ class ZMQEventLoop(EventLoop):
         self._idle_handle = 0
         self._idle_callbacks = {}
 
-    def alarm(self, seconds: float | int, callback: Callable[[], typing.Any]) -> ZMQAlarmHandle:
+    def alarm(self, seconds: float, callback: Callable[[], typing.Any]) -> ZMQAlarmHandle:
         """
         Call *callback* a given time from now. No parameters are passed to
         callback. Returns a handle that may be passed to :meth:`remove_alarm`.
@@ -85,12 +88,18 @@ class ZMQEventLoop(EventLoop):
         try:
             self._alarms.remove(handle)
             heapq.heapify(self._alarms)
-            return True
+
         except ValueError:
             return False
 
-    def watch_queue(self, queue: zmq.Socket, callback: Callable[[], typing.Any],
-                    flags: int=zmq.POLLIN) -> ZMQQueueHandle:
+        return True
+
+    def watch_queue(
+        self,
+        queue: zmq.Socket,
+        callback: Callable[[], typing.Any],
+        flags: int = zmq.POLLIN,
+    ) -> ZMQQueueHandle:
         """
         Call *callback* when zmq *queue* has something to read (when *flags* is
         set to ``POLLIN``, the default) or is available to write (when *flags*
@@ -107,13 +116,17 @@ class ZMQEventLoop(EventLoop):
             The condition to monitor on the queue (defaults to ``POLLIN``).
         """
         if queue in self._queue_callbacks:
-            raise ValueError('already watching %r' % queue)
+            raise ValueError(f"already watching {queue!r}")
         self._poller.register(queue, flags)
         self._queue_callbacks[queue] = callback
         return queue
 
-    def watch_file(self, fd: int, callback: Callable[[], typing.Any],
-                   flags: int=zmq.POLLIN) -> ZMQFileHandle:
+    def watch_file(
+        self,
+        fd: int,
+        callback: Callable[[], typing.Any],
+        flags: int = zmq.POLLIN,
+    ) -> ZMQFileHandle:
         """
         Call *callback* when *fd* has some data to read. No parameters are
         passed to the callback. The *flags* are as for :meth:`watch_queue`.
@@ -144,9 +157,11 @@ class ZMQEventLoop(EventLoop):
                 self._poller.unregister(handle)
             finally:
                 self._queue_callbacks.pop(handle, None)
-            return True
+
         except KeyError:
             return False
+
+        return True
 
     def remove_watch_file(self, handle: ZMQFileHandle) -> bool:
         """
@@ -158,9 +173,11 @@ class ZMQEventLoop(EventLoop):
                 self._poller.unregister(handle)
             finally:
                 self._queue_callbacks.pop(handle.fileno(), None)
-            return True
+
         except KeyError:
             return False
+
+        return True
 
     def enter_idle(self, callback: Callable[[], typing.Any]) -> ZMQIdleHandle:
         """
@@ -178,9 +195,10 @@ class ZMQEventLoop(EventLoop):
         """
         try:
             del self._idle_callbacks[handle]
-            return True
         except KeyError:
             return False
+
+        return True
 
     def _entering_idle(self) -> None:
         for callback in list(self._idle_callbacks.values()):
@@ -195,7 +213,7 @@ class ZMQEventLoop(EventLoop):
             while True:
                 try:
                     self._loop()
-                except zmq.error.ZMQError as exc:
+                except zmq.error.ZMQError as exc:  # noqa: PERF203
                     if exc.errno != errno.EINTR:
                         raise
         except ExitMainLoop:
@@ -207,26 +225,25 @@ class ZMQEventLoop(EventLoop):
         """
         if self._alarms or self._did_something:
             if self._alarms:
-                state = 'alarm'
+                state = "alarm"
                 timeout = max(0, self._alarms[0][0] - time.time())
-            if self._did_something and (not self._alarms or
-                                        (self._alarms and timeout > 0)):
-                state = 'idle'
+            if self._did_something and (not self._alarms or (self._alarms and timeout > 0)):
+                state = "idle"
                 timeout = 0
             ready = dict(self._poller.poll(timeout * 1000))
         else:
-            state = 'wait'
+            state = "wait"
             ready = dict(self._poller.poll())
 
         if not ready:
-            if state == 'idle':
+            if state == "idle":
                 self._entering_idle()
                 self._did_something = False
-            elif state == 'alarm':
+            elif state == "alarm":
                 due, tie_break, callback = heapq.heappop(self._alarms)
                 callback()
                 self._did_something = True
 
-        for queue, _ in ready.items():
+        for queue in ready:
             self._queue_callbacks[queue]()
             self._did_something = True
