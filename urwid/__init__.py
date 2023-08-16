@@ -136,8 +136,14 @@ from urwid.widget import (
     Columns,
     ColumnsError,
     WidgetContainerMixin,
+    PopUpLauncher,
+    PopUpTarget,
+    Button,
+    CheckBox,
+    CheckBoxError,
+    RadioButton,
+    SelectableIcon,
 )
-from urwid.wimp import Button, CheckBox, CheckBoxError, PopUpLauncher, PopUpTarget, RadioButton, SelectableIcon
 
 from urwid import raw_display
 from urwid.display_common import (

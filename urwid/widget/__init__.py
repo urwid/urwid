@@ -29,6 +29,7 @@ from .grid_flow import GridFlow, GridFlowError
 from .overlay import Overlay, OverlayError
 from .padding import Padding, PaddingError, calculate_left_right_padding
 from .pile import Pile, PileError
+from .popup import PopUpLauncher, PopUpTarget
 from .solid_fill import SolidFill
 from .text import Text, TextError
 from .widget import (
@@ -46,6 +47,7 @@ from .widget import (
     nocache_widget_render_instance,
 )
 from .widget_decoration import WidgetDecoration, WidgetDisable, WidgetPlaceholder
+from .wimp import Button, CheckBox, CheckBoxError, RadioButton, SelectableIcon
 
 __all__ = (
     "Align",
@@ -123,6 +125,13 @@ __all__ = (
     "Columns",
     "ColumnsError",
     "WidgetContainerMixin",
+    "PopUpLauncher",
+    "PopUpTarget",
+    "Button",
+    "CheckBox",
+    "CheckBoxError",
+    "RadioButton",
+    "SelectableIcon",
 )
 
 # Backward compatibility

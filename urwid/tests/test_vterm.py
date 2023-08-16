@@ -28,8 +28,7 @@ import unittest
 from itertools import dropwhile
 from time import sleep
 
-from urwid import Widget, signals, vterm
-from urwid.decoration import BoxAdapter
+from urwid import Widget, signals, vterm, BoxAdapter
 from urwid.listbox import ListBox
 
 

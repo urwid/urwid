@@ -9,7 +9,6 @@ import urwid.numedit
 
 def load_tests(loader, tests, ignore):
     module_doctests = [
-        urwid.wimp,
         urwid.widget.attr_map,
         urwid.widget.attr_wrap,
         urwid.widget.box_adapter,
@@ -24,10 +23,12 @@ def load_tests(loader, tests, ignore):
         urwid.widget.overlay,
         urwid.widget.padding,
         urwid.widget.pile,
+        urwid.widget.popup,
         urwid.widget.solid_fill,
         urwid.widget.text,
         urwid.widget.widget,
         urwid.widget.widget_decoration,
+        urwid.widget.wimp,
         urwid.display_common,
         urwid.event_loop.main_loop,
         urwid.numedit,

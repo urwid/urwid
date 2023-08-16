@@ -1,3 +1,4 @@
+import sys
 import unittest
 from unittest.mock import Mock
 
@@ -25,6 +26,7 @@ class SiglnalsTest(unittest.TestCase):
         edit.set_edit_text('another text')
         handler.assert_not_called()
 
+    @unittest.skipIf(sys.implementation.name == "pypy", "WeakRef works differently on PyPy")
     def test_weak_del(self):
         emitter = SiglnalsTest.EmClass()
         w1 = Mock(name="w1")
