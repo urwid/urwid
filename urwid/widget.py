@@ -28,15 +28,7 @@ from operator import attrgetter
 
 from urwid import signals, text_layout
 from urwid.canvas import CanvasCache, CompositeCanvas, SolidCanvas, apply_text_layout
-from urwid.command_map import (
-    CURSOR_DOWN,
-    CURSOR_LEFT,
-    CURSOR_MAX_LEFT,
-    CURSOR_MAX_RIGHT,
-    CURSOR_RIGHT,
-    CURSOR_UP,
-    command_map,
-)
+from urwid.command_map import Command, command_map
 from urwid.split_repr import remove_defaults, split_repr
 from urwid.util import MetaSuper, calc_width, decompose_tagmarkup, is_wide_char, move_next_char, move_prev_char
 
@@ -1635,21 +1627,21 @@ class Edit(Text):
             self.insert_text(key)
             return None
 
-        if self._command_map[key] == CURSOR_LEFT:
+        if self._command_map[key] == Command.LEFT:
             if pos == 0:
                 return key
             pos = move_prev_char(self.edit_text, 0, pos)
             self.set_edit_pos(pos)
             return None
 
-        if self._command_map[key] == CURSOR_RIGHT:
+        if self._command_map[key] == Command.RIGHT:
             if pos >= len(self.edit_text):
                 return key
             pos = move_next_char(self.edit_text, pos, len(self.edit_text))
             self.set_edit_pos(pos)
             return None
 
-        if self._command_map[key] in (CURSOR_UP, CURSOR_DOWN):
+        if self._command_map[key] in (Command.UP, Command.DOWN):
             self.highlight = None
 
             x, y = self.get_cursor_coords((maxcol,))
@@ -1660,7 +1652,7 @@ class Edit(Text):
             # if pref_col is None:
             #    pref_col = x
 
-            if self._command_map[key] == CURSOR_UP:
+            if self._command_map[key] == Command.UP:
                 y -= 1
             else:
                 y += 1
@@ -1690,13 +1682,13 @@ class Edit(Text):
                 return None
             return None
 
-        if self._command_map[key] in (CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT):
+        if self._command_map[key] in (Command.MAX_LEFT, Command.MAX_RIGHT):
             self.highlight = None
             self.pref_col_maxcol = None, None
 
             x, y = self.get_cursor_coords((maxcol,))
 
-            if self._command_map[key] == CURSOR_MAX_LEFT:
+            if self._command_map[key] == Command.MAX_LEFT:
                 self.move_cursor_to_coords((maxcol,), Align.LEFT, y)
             else:
                 self.move_cursor_to_coords((maxcol,), Align.RIGHT, y)

@@ -32,7 +32,7 @@ import typing
 import warnings
 
 from urwid import raw_display, signals
-from urwid.command_map import REDRAW_SCREEN, command_map
+from urwid.command_map import Command, command_map
 from urwid.display_common import INPUT_DESCRIPTORS_CHANGED
 from urwid.util import StoppingContext, is_mouse_event
 from urwid.wimp import PopUpTarget
@@ -566,7 +566,7 @@ class MainLoop:
                 raise TypeError(f"{k!r} is not str | tuple[str, int, int, int]")
 
             if k:
-                if command_map[k] == REDRAW_SCREEN:
+                if command_map[k] == Command.REDRAW_SCREEN:
                     self.screen.clear()
                     something_handled = True
                 else:
