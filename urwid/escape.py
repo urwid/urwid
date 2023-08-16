@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid escape sequences common to curses_display and raw_display
 #    Copyright (C) 2004-2011  Ian Ward
 #
@@ -46,11 +44,13 @@ IBMPC_ON = "\x1b[11m"
 IBMPC_OFF = "\x1b[10m"
 
 DEC_TAG = "0"
-DEC_SPECIAL_CHARS = '▮◆▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥π≠£·'
+DEC_SPECIAL_CHARS = "▮◆▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥π≠£·"
 ALT_DEC_SPECIAL_CHARS = "_`abcdefghijklmnopqrstuvwxyz{|}~"
 
 DEC_SPECIAL_CHARMAP = {}
-assert len(DEC_SPECIAL_CHARS) == len(ALT_DEC_SPECIAL_CHARS), repr((DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS))
+if len(DEC_SPECIAL_CHARS) != len(ALT_DEC_SPECIAL_CHARS):
+    raise RuntimeError(repr((DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS)))
+
 for c, alt in zip(DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS):
     DEC_SPECIAL_CHARMAP[ord(c)] = SO + alt + SI
 
@@ -62,80 +62,120 @@ DEC_SPECIAL_RE = re.compile(f"[{DEC_SPECIAL_CHARS}]")
 ## Input sequences
 ###################
 
+
 class MoreInputRequired(Exception):
     pass
 
-def escape_modifier( digit ):
+
+def escape_modifier(digit):
     mode = ord(digit) - ord("1")
-    return "shift "*(mode&1) + "meta "*((mode&2)//2) + "ctrl "*((mode&4)//4)
+    return "shift " * (mode & 1) + "meta " * ((mode & 2) // 2) + "ctrl " * ((mode & 4) // 4)
 
 
 input_sequences = [
-    ('[A','up'),('[B','down'),('[C','right'),('[D','left'),
-    ('[E','5'),('[F','end'),('[G','5'),('[H','home'),
-
-    ('[1~','home'),('[2~','insert'),('[3~','delete'),('[4~','end'),
-    ('[5~','page up'),('[6~','page down'),
-    ('[7~','home'),('[8~','end'),
-
-    ('[[A','f1'),('[[B','f2'),('[[C','f3'),('[[D','f4'),('[[E','f5'),
-
-    ('[11~','f1'),('[12~','f2'),('[13~','f3'),('[14~','f4'),
-    ('[15~','f5'),('[17~','f6'),('[18~','f7'),('[19~','f8'),
-    ('[20~','f9'),('[21~','f10'),('[23~','f11'),('[24~','f12'),
-    ('[25~','f13'),('[26~','f14'),('[28~','f15'),('[29~','f16'),
-    ('[31~','f17'),('[32~','f18'),('[33~','f19'),('[34~','f20'),
-
-    ('OA','up'),('OB','down'),('OC','right'),('OD','left'),
-    ('OH','home'),('OF','end'),
-    ('OP','f1'),('OQ','f2'),('OR','f3'),('OS','f4'),
-    ('Oo','/'),('Oj','*'),('Om','-'),('Ok','+'),
-
-    ('[Z','shift tab'),
-    ('On', '.'),
-
-    ('[200~', 'begin paste'), ('[201~', 'end paste'),
-] + [
-    (prefix + letter, modifier + key)
-    for prefix, modifier in zip('O[', ('meta ', 'shift '))
-    for letter, key in zip('abcd', ('up', 'down', 'right', 'left'))
-] + [
-    (f"[{digit}{symbol}", modifier + key)
-    for modifier, symbol in zip(('shift ', 'meta '), '$^')
-    for digit, key in zip('235678',
-        ('insert', 'delete', 'page up', 'page down', 'home', 'end'))
-] + [
-    (f"O{chr(ord('p') + n)}", str(n)) for n in range(10)
-] + [
-    # modified cursor keys + home, end, 5 -- [#X and [1;#X forms
-    (prefix+digit+letter, escape_modifier(digit) + key)
-    for prefix in ("[", "[1;")
-    for digit in "12345678"
-    for letter,key in zip("ABCDEFGH",
-        ('up','down','right','left','5','end','5','home'))
-] + [
-    # modified F1-F4 keys -- O#X form
-    (f"O{digit}{letter}", escape_modifier(digit) + key)
-    for digit in "12345678"
-    for letter,key in zip("PQRS",('f1','f2','f3','f4'))
-] + [
-    # modified F1-F13 keys -- [XX;#~ form
-    (f"[{str(num)};{digit}~", escape_modifier(digit) + key)
-    for digit in "12345678"
-    for num,key in zip(
-        (3,5,6,11,12,13,14,15,17,18,19,20,21,23,24,25,26,28,29,31,32,33,34),
-        ('delete', 'page up', 'page down',
-        'f1','f2','f3','f4','f5','f6','f7','f8','f9','f10','f11',
-        'f12','f13','f14','f15','f16','f17','f18','f19','f20'))
-] + [
+    ("[A", "up"),
+    ("[B", "down"),
+    ("[C", "right"),
+    ("[D", "left"),
+    ("[E", "5"),
+    ("[F", "end"),
+    ("[G", "5"),
+    ("[H", "home"),
+    ("[1~", "home"),
+    ("[2~", "insert"),
+    ("[3~", "delete"),
+    ("[4~", "end"),
+    ("[5~", "page up"),
+    ("[6~", "page down"),
+    ("[7~", "home"),
+    ("[8~", "end"),
+    ("[[A", "f1"),
+    ("[[B", "f2"),
+    ("[[C", "f3"),
+    ("[[D", "f4"),
+    ("[[E", "f5"),
+    ("[11~", "f1"),
+    ("[12~", "f2"),
+    ("[13~", "f3"),
+    ("[14~", "f4"),
+    ("[15~", "f5"),
+    ("[17~", "f6"),
+    ("[18~", "f7"),
+    ("[19~", "f8"),
+    ("[20~", "f9"),
+    ("[21~", "f10"),
+    ("[23~", "f11"),
+    ("[24~", "f12"),
+    ("[25~", "f13"),
+    ("[26~", "f14"),
+    ("[28~", "f15"),
+    ("[29~", "f16"),
+    ("[31~", "f17"),
+    ("[32~", "f18"),
+    ("[33~", "f19"),
+    ("[34~", "f20"),
+    ("OA", "up"),
+    ("OB", "down"),
+    ("OC", "right"),
+    ("OD", "left"),
+    ("OH", "home"),
+    ("OF", "end"),
+    ("OP", "f1"),
+    ("OQ", "f2"),
+    ("OR", "f3"),
+    ("OS", "f4"),
+    ("Oo", "/"),
+    ("Oj", "*"),
+    ("Om", "-"),
+    ("Ok", "+"),
+    ("[Z", "shift tab"),
+    ("On", "."),
+    ("[200~", "begin paste"),
+    ("[201~", "end paste"),
+    *(
+        (prefix + letter, modifier + key)
+        for prefix, modifier in zip("O[", ("meta ", "shift "))
+        for letter, key in zip("abcd", ("up", "down", "right", "left"))
+    ),
+    *(
+        (f"[{digit}{symbol}", modifier + key)
+        for modifier, symbol in zip(("shift ", "meta "), "$^")
+        for digit, key in zip("235678", ("insert", "delete", "page up", "page down", "home", "end"))
+    ),
+    *((f"O{chr(ord('p') + n)}", str(n)) for n in range(10)),
+    *(
+        # modified cursor keys + home, end, 5 -- [#X and [1;#X forms
+        (prefix + digit + letter, escape_modifier(digit) + key)
+        for prefix in ("[", "[1;")
+        for digit in "12345678"
+        for letter, key in zip("ABCDEFGH", ("up", "down", "right", "left", "5", "end", "5", "home"))
+    ),
+    *(
+        # modified F1-F4 keys -- O#X form
+        (f"O{digit}{letter}", escape_modifier(digit) + key)
+        for digit in "12345678"
+        for letter, key in zip("PQRS", ("f1", "f2", "f3", "f4"))
+    ),
+    *(
+        # modified F1-F13 keys -- [XX;#~ form
+        (f"[{num!s};{digit}~", escape_modifier(digit) + key)
+        for digit in "12345678"
+        for num, key in zip(
+            (3, 5, 6, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 23, 24, 25, 26, 28, 29, 31, 32, 33, 34),
+            (
+                "delete",
+                "page up",
+                "page down",
+                *(f"{idx}" for idx in range(1, 20)),
+            ),
+        )
+    ),
     # mouse reporting (special handling done in KeyqueueTrie)
-    ('[M', 'mouse'),
-
+    ("[M", "mouse"),
     # mouse reporting for SGR 1006
-    ('[<', 'sgrmouse'),
-
+    ("[<", "sgrmouse"),
     # report status response
-    ('[0n', 'status ok')
+    ("[0n", "status ok"),
 ]
 
 
@@ -143,12 +183,13 @@ class KeyqueueTrie:
     def __init__(self, sequences) -> None:
         self.data = {}
         for s, result in sequences:
-            assert not isinstance(result, dict)
+            if isinstance(result, dict):
+                raise TypeError(result)
             self.add(self.data, s, result)
 
     def add(self, root, s, result):
-        assert isinstance(root, MutableMapping), "trie conflict detected"
-        assert len(s) > 0, "trie conflict detected"
+        if not isinstance(root, MutableMapping) or len(s) <= 0:
+            raise RuntimeError("trie conflict detected")
 
         if ord(s[0]) in root:
             return self.add(root[ord(s[0])], s[1:], result)
@@ -157,6 +198,7 @@ class KeyqueueTrie:
             root[ord(s[0])] = d
             return self.add(d, s[1:], result)
         root[ord(s)] = result
+        return None
 
     def get(self, keys, more_available: bool):
         result = self.get_recurse(self.data, keys, more_available)
@@ -168,8 +210,10 @@ class KeyqueueTrie:
         if not isinstance(root, MutableMapping):
             if root == "mouse":
                 return self.read_mouse_info(keys, more_available)
-            elif root == "sgrmouse":
-                return self.read_sgrmouse_info (keys, more_available)
+
+            if root == "sgrmouse":
+                return self.read_sgrmouse_info(keys, more_available)
+
             return (root, keys)
         if not keys:
             # get more keys
@@ -187,17 +231,22 @@ class KeyqueueTrie:
             return None
 
         b = keys[0] - 32
-        x, y = (keys[1] - 33)%256, (keys[2] - 33)%256  # supports 0-255
+        x, y = (keys[1] - 33) % 256, (keys[2] - 33) % 256  # supports 0-255
 
         prefix = ""
-        if b & 4:    prefix = f"{prefix}shift "
-        if b & 8:    prefix = f"{prefix}meta "
-        if b & 16:    prefix = f"{prefix}ctrl "
-        if (b & MOUSE_MULTIPLE_CLICK_MASK)>>9 == 1:    prefix = f"{prefix}double "
-        if (b & MOUSE_MULTIPLE_CLICK_MASK)>>9 == 2:    prefix = f"{prefix}triple "
+        if b & 4:
+            prefix = f"{prefix}shift "
+        if b & 8:
+            prefix = f"{prefix}meta "
+        if b & 16:
+            prefix = f"{prefix}ctrl "
+        if (b & MOUSE_MULTIPLE_CLICK_MASK) >> 9 == 1:
+            prefix = f"{prefix}double "
+        if (b & MOUSE_MULTIPLE_CLICK_MASK) >> 9 == 2:
+            prefix = f"{prefix}triple "
 
         # 0->1, 1->2, 2->3, 64->4, 65->5
-        button = ((b&64)//64*3) + (b & 3) + 1
+        button = ((b & 64) // 64 * 3) + (b & 3) + 1
 
         if b & 3 == 3:
             action = "release"
@@ -211,7 +260,7 @@ class KeyqueueTrie:
         else:
             action = "press"
 
-        return ( (f"{prefix}mouse {action}", button, x, y), keys[3:] )
+        return ((f"{prefix}mouse {action}", button, x, y), keys[3:])
 
     def read_sgrmouse_info(self, keys, more_available: bool):
         # Helpful links:
@@ -223,12 +272,12 @@ class KeyqueueTrie:
                 raise MoreInputRequired()
             return None
 
-        value = ''
+        value = ""
         pos_m = 0
         found_m = False
         for k in keys:
             value = value + chr(k)
-            if (k is ord('M')) or (k is ord('m')):
+            if k in (ord("M"), ord("m")):
                 found_m = True
                 break
             pos_m += 1
@@ -237,7 +286,7 @@ class KeyqueueTrie:
                 raise MoreInputRequired()
             return None
 
-        (b, x, y) = value[:-1].split(';')
+        (b, x, y) = value[:-1].split(";")
 
         # shift, meta, ctrl etc. is not communicated on my machine, so I
         # can't and won't be able to add support for it.
@@ -252,7 +301,7 @@ class KeyqueueTrie:
         x = int(x) - 1
         y = int(y) - 1
 
-        if (value[-1] == 'M'):
+        if value[-1] == "M":
             if int(b) & MOUSE_DRAG_FLAG:
                 action = "drag"
             else:
@@ -260,7 +309,7 @@ class KeyqueueTrie:
         else:
             action = "release"
 
-        return ( (f"mouse {action}", button, x, y), keys[pos_m + 1:] )
+        return ((f"mouse {action}", button, x, y), keys[pos_m + 1 :])
 
     def read_cursor_position(self, keys, more_available: bool):
         """
@@ -272,22 +321,22 @@ class KeyqueueTrie:
             if more_available:
                 raise MoreInputRequired()
             return None
-        if keys[0] != ord('['):
+        if keys[0] != ord("["):
             return None
         # read y value
         y = 0
         i = 1
         for k in keys[i:]:
             i += 1
-            if k == ord(';'):
+            if k == ord(";"):
                 if not y:
                     return None
                 break
-            if k < ord('0') or k > ord('9'):
+            if k < ord("0") or k > ord("9"):
                 return None
-            if not y and k == ord('0'):
+            if not y and k == ord("0"):
                 return None
-            y = y * 10 + k - ord('0')
+            y = y * 10 + k - ord("0")
         if not keys[i:]:
             if more_available:
                 raise MoreInputRequired()
@@ -296,15 +345,15 @@ class KeyqueueTrie:
         x = 0
         for k in keys[i:]:
             i += 1
-            if k == ord('R'):
+            if k == ord("R"):
                 if not x:
                     return None
-                return (("cursor position", x-1, y-1), keys[i:])
-            if k < ord('0') or k > ord('9'):
+                return (("cursor position", x - 1, y - 1), keys[i:])
+            if k < ord("0") or k > ord("9"):
                 return None
-            if not x and k == ord('0'):
+            if not x and k == ord("0"):
                 return None
-            x = x * 10 + k - ord('0')
+            x = x * 10 + k - ord("0")
         if not keys[i:] and more_available:
             raise MoreInputRequired()
         return None
@@ -334,32 +383,50 @@ input_trie = KeyqueueTrie(input_sequences)
 #################################################
 
 _keyconv = {
-    -1:None,
-    8:'backspace',
-    9:'tab',
-    10:'enter',
-    13:'enter',
-    127:'backspace',
+    -1: None,
+    8: "backspace",
+    9: "tab",
+    10: "enter",
+    13: "enter",
+    127: "backspace",
     # curses-only keycodes follow..  (XXX: are these used anymore?)
-    258:'down',
-    259:'up',
-    260:'left',
-    261:'right',
-    262:'home',
-    263:'backspace',
-    265:'f1', 266:'f2', 267:'f3', 268:'f4',
-    269:'f5', 270:'f6', 271:'f7', 272:'f8',
-    273:'f9', 274:'f10', 275:'f11', 276:'f12',
-    277:'shift f1', 278:'shift f2', 279:'shift f3', 280:'shift f4',
-    281:'shift f5', 282:'shift f6', 283:'shift f7', 284:'shift f8',
-    285:'shift f9', 286:'shift f10', 287:'shift f11', 288:'shift f12',
-    330:'delete',
-    331:'insert',
-    338:'page down',
-    339:'page up',
-    343:'enter',    # on numpad
-    350:'5',        # on numpad
-    360:'end',
+    258: "down",
+    259: "up",
+    260: "left",
+    261: "right",
+    262: "home",
+    263: "backspace",
+    265: "f1",
+    266: "f2",
+    267: "f3",
+    268: "f4",
+    269: "f5",
+    270: "f6",
+    271: "f7",
+    272: "f8",
+    273: "f9",
+    274: "f10",
+    275: "f11",
+    276: "f12",
+    277: "shift f1",
+    278: "shift f2",
+    279: "shift f3",
+    280: "shift f4",
+    281: "shift f5",
+    282: "shift f6",
+    283: "shift f7",
+    284: "shift f8",
+    285: "shift f9",
+    286: "shift f10",
+    287: "shift f11",
+    288: "shift f12",
+    330: "delete",
+    331: "insert",
+    338: "page down",
+    339: "page up",
+    343: "enter",  # on numpad
+    350: "5",  # on numpad
+    360: "end",
 }
 
 
@@ -385,38 +452,38 @@ def process_keyqueue(codes: Sequence[int], more_available: bool) -> tuple[list[s
 
     em = str_util.get_byte_encoding()
 
-    if em == 'wide' and code < 256 and within_double_byte(code.to_bytes(1, "little"), 0, 0):
+    if em == "wide" and code < 256 and within_double_byte(code.to_bytes(1, "little"), 0, 0):
         if not codes[1:] and more_available:
             raise MoreInputRequired()
         if codes[1:] and codes[1] < 256:
-            db = chr(code)+chr(codes[1])
+            db = chr(code) + chr(codes[1])
             if within_double_byte(db, 0, 1):
                 return [db], codes[2:]
-    if em == 'utf8' and 127 < code < 256:
-        if code & 0xe0 == 0xc0:  # 2-byte form
+    if em == "utf8" and 127 < code < 256:
+        if code & 0xE0 == 0xC0:  # 2-byte form
             need_more = 1
-        elif code & 0xf0 == 0xe0:  # 3-byte form
+        elif code & 0xF0 == 0xE0:  # 3-byte form
             need_more = 2
-        elif code & 0xf8 == 0xf0:  # 4-byte form
+        elif code & 0xF8 == 0xF0:  # 4-byte form
             need_more = 3
         else:
             return [f"<{code:d}>"], codes[1:]
 
         for i in range(need_more):
-            if len(codes)-1 <= i:
+            if len(codes) - 1 <= i:
                 if more_available:
                     raise MoreInputRequired()
-                else:
-                    return [f"<{code:d}>"], codes[1:]
-            k = codes[i+1]
-            if k > 256 or k & 0xc0 != 0x80:
+
                 return [f"<{code:d}>"], codes[1:]
 
-        s = bytes(codes[:need_more+1])
+            k = codes[i + 1]
+            if k > 256 or k & 0xC0 != 0x80:
+                return [f"<{code:d}>"], codes[1:]
 
-        assert isinstance(s, bytes)
+        s = bytes(codes[: need_more + 1])
+
         try:
-            return [s.decode("utf-8")], codes[need_more+1:]
+            return [s.decode("utf-8")], codes[need_more + 1 :]
         except UnicodeDecodeError:
             return [f"<{code:d}>"], codes[1:]
 
@@ -436,12 +503,12 @@ def process_keyqueue(codes: Sequence[int], more_available: bool) -> tuple[list[s
         # Meta keys -- ESC+Key form
         run, remaining_codes = process_keyqueue(codes[1:], more_available)
         if urwid.util.is_mouse_event(run[0]):
-            return ['esc'] + run, remaining_codes
+            return ["esc", *run], remaining_codes
         if run[0] == "esc" or run[0].find("meta ") >= 0:
-            return ['esc']+run, remaining_codes
-        return [f"meta {run[0]}"]+run[1:], remaining_codes
+            return ["esc", *run], remaining_codes
+        return [f"meta {run[0]}"] + run[1:], remaining_codes
 
-    return ['esc'], codes[1:]
+    return ["esc"], codes[1:]
 
 
 ####################
@@ -459,8 +526,8 @@ NUM_KEYPAD_MODE = f"{ESC}>"
 SWITCH_TO_ALTERNATE_BUFFER = f"{ESC}[?1049h"
 RESTORE_NORMAL_BUFFER = f"{ESC}[?1049l"
 
-#RESET_SCROLL_REGION = ESC+"[;r"
-#RESET = ESC+"c"
+# RESET_SCROLL_REGION = ESC+"[;r"
+# RESET = ESC+"c"
 
 REPORT_STATUS = f"{ESC}[5n"
 REPORT_CURSOR_POSITION = f"{ESC}[6n"
@@ -470,8 +537,11 @@ INSERT_OFF = f"{ESC}[4l"
 
 
 def set_cursor_position(x: int, y: int) -> str:
-    assert isinstance(x, int)
-    assert isinstance(y, int)
+    if not isinstance(x, int):
+        raise TypeError(x)
+    if not isinstance(y, int):
+        raise TypeError(y)
+
     return ESC + f"[{y + 1:d};{x + 1:d}H"
 
 

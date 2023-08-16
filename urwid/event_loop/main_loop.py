@@ -24,12 +24,12 @@
 
 from __future__ import annotations
 
+import contextlib
 import heapq
 import os
 import time
 import typing
 import warnings
-from collections.abc import Callable, Iterable
 
 from urwid import raw_display, signals
 from urwid.command_map import REDRAW_SCREEN, command_map
@@ -41,11 +41,13 @@ from .abstract_loop import ExitMainLoop
 from .select_loop import SelectEventLoop
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
+
     from urwid.display_common import BaseScreen
     from urwid.widget import Widget
 
 
-try:
+try:  # noqa: SIM105
     import fcntl
 except ImportError:
     pass  # windows
@@ -132,13 +134,13 @@ class MainLoop:
         self._unhandled_input = unhandled_input
         self._input_filter = input_filter
 
-        if not hasattr(screen, 'hook_event_loop') and event_loop is not None:
+        if not hasattr(screen, "hook_event_loop") and event_loop is not None:
             raise NotImplementedError(f"screen object passed {screen!r} does not support external event loops")
         if event_loop is None:
             event_loop = SelectEventLoop()
         self.event_loop = event_loop
 
-        if hasattr(self.screen, 'signal_handler_setter'):
+        if hasattr(self.screen, "signal_handler_setter"):
             # Tell the screen what function it must use to set
             # signal handlers
             self.screen.signal_handler_setter = self.event_loop.set_signal_handler
@@ -148,9 +150,9 @@ class MainLoop:
     @property
     def widget(self) -> Widget:
         """
-       Property for the topmost widget used to draw the screen.
-       This must be a box widget.
-       """
+        Property for the topmost widget used to draw the screen.
+        This must be a box widget.
+        """
         return self._widget
 
     @widget.setter
@@ -202,8 +204,10 @@ class MainLoop:
                          object and *user_data*
         :type callback: callable
         """
+
         def cb():
             callback(self, user_data)
+
         return self.event_loop.alarm(sec, cb)
 
     def set_alarm_at(self, tm, callback, user_data=None):
@@ -218,8 +222,10 @@ class MainLoop:
                          object and *user_data*
         :type callback: callable
         """
+
         def cb():
             callback(self, user_data)
+
         return self.event_loop.alarm(tm - time.time(), cb)
 
     def remove_alarm(self, handle):
@@ -306,7 +312,6 @@ class MainLoop:
         """
         return self.event_loop.remove_watch_file(handle)
 
-
     def run(self):
         """
         Start the main loop handling input events and updating the screen. The
@@ -316,10 +321,8 @@ class MainLoop:
         method.  Instead, call :meth:`start` before starting the event loop,
         and :meth:`stop` once it's finished.
         """
-        try:
+        with contextlib.suppress(ExitMainLoop):
             self._run()
-        except ExitMainLoop:
-            pass
 
     def _test_run(self):
         """
@@ -374,13 +377,12 @@ class MainLoop:
         if self.handle_mouse:
             self.screen.set_mouse_tracking()
 
-        if not hasattr(self.screen, 'hook_event_loop'):
+        if not hasattr(self.screen, "hook_event_loop"):
             raise CantUseExternalLoop("Screen {0!r} doesn't support external event loops")
 
-        try:
+        with contextlib.suppress(NameError):
             signals.connect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED, self._reset_input_descriptors)
-        except NameError:
-            pass
+
         # watch our input descriptors
         self._reset_input_descriptors()
         self.idle_handle = self.event_loop.enter_idle(self.entering_idle)
@@ -392,7 +394,7 @@ class MainLoop:
 
         return StoppingContext(self)
 
-    def stop(self):
+    def stop(self) -> None:
         """
         Cleans up any hooks added to the event loop.  Only call this if you're
         managing the event loop yourself, after the loop stops.
@@ -400,22 +402,22 @@ class MainLoop:
 
         self.event_loop.remove_enter_idle(self.idle_handle)
         del self.idle_handle
-        signals.disconnect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED,
-            self._reset_input_descriptors)
+        signals.disconnect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED, self._reset_input_descriptors)
         self.screen.unhook_event_loop(self.event_loop)
 
         self.screen.stop()
 
-    def _reset_input_descriptors(self):
+    def _reset_input_descriptors(self) -> None:
         self.screen.unhook_event_loop(self.event_loop)
         self.screen.hook_event_loop(self.event_loop, self._update)
 
-    def _run(self):
+    def _run(self) -> None:
         try:
             self.start()
         except CantUseExternalLoop:
             try:
-                return self._run_screen_event_loop()
+                self._run_screen_event_loop()
+                return
             finally:
                 self.screen.stop()
 
@@ -426,7 +428,7 @@ class MainLoop:
             raise
         self.stop()
 
-    def _update(self, keys: list[str], raw: list[int]):
+    def _update(self, keys: list[str], raw: list[int]) -> None:
         """
         >>> w = _refl("widget")
         >>> w.selectable_rval = True
@@ -448,7 +450,7 @@ class MainLoop:
 
         if keys:
             self.process_input(keys)
-            if 'window resize' in keys:
+            if "window resize" in keys:
                 self.screen_size = None
 
     def _run_screen_event_loop(self) -> None:
@@ -498,7 +500,7 @@ class MainLoop:
                 else:
                     next_alarm = None
 
-            if 'window resize' in keys:
+            if "window resize" in keys:
                 self.screen_size = None
 
     def _test_run_screen_event_loop(self):
@@ -540,19 +542,25 @@ class MainLoop:
         something_handled = False
 
         for k in keys:
-            if k == 'window resize':
+            if k == "window resize":
                 continue
 
             if isinstance(k, str):
                 if self._topmost_widget.selectable():
-                    k = self._topmost_widget.keypress(self.screen_size, k)
+                    k = self._topmost_widget.keypress(self.screen_size, k)  # noqa: PLW2901
 
             elif isinstance(k, tuple):
                 if is_mouse_event(k):
                     event, button, col, row = k
-                    if hasattr(self._topmost_widget, "mouse_event"):
-                        if self._topmost_widget.mouse_event(self.screen_size, event, button, col, row, focus=True):
-                            k = None
+                    if hasattr(self._topmost_widget, "mouse_event") and self._topmost_widget.mouse_event(
+                        self.screen_size,
+                        event,
+                        button,
+                        col,
+                        row,
+                        focus=True,
+                    ):
+                        k = None  # noqa: PLW2901
 
             else:
                 raise TypeError(f"{k!r} is not str | tuple[str, int, int, int]")
@@ -595,7 +603,7 @@ class MainLoop:
             return self._input_filter(keys, raw)
         return keys
 
-    def unhandled_input(self, input: str | tuple[str, int, int, int]) -> bool:
+    def unhandled_input(self, data: str | tuple[str, int, int, int]) -> bool:
         """
         This function is called with any input that was not handled by the
         widgets, and calls the *unhandled_input* function passed to the
@@ -608,7 +616,7 @@ class MainLoop:
         the input.
         """
         if self._unhandled_input:
-            return self._unhandled_input(input)
+            return self._unhandled_input(data)
         return False
 
     def entering_idle(self):
@@ -636,7 +644,7 @@ class MainLoop:
         self.screen.draw_screen(self.screen_size, canvas)
 
 
-def _refl(name: str, rval=None, exit=False):
+def _refl(name: str, rval=None, loop_exit=False):
     """
     This function is used to test the main loop classes.
 
@@ -652,6 +660,7 @@ def _refl(name: str, rval=None, exit=False):
     42
 
     """
+
     class Reflect:
         def __init__(self, name: str, rval=None):
             self._name = name
@@ -661,26 +670,28 @@ def _refl(name: str, rval=None, exit=False):
             args = ", ".join([repr(a) for a in argl])
             if args and argd:
                 args = f"{args}, "
-            args += ", ".join([f"{k}={repr(v)}" for k, v in argd.items()])
+            args += ", ".join([f"{k}={v!r}" for k, v in argd.items()])
             print(f"{self._name}({args})")
-            if exit:
+            if loop_exit:
                 raise ExitMainLoop()
             return self._rval
 
         def __getattr__(self, attr):
             if attr.endswith("_rval"):
                 raise AttributeError()
-            #print(self._name+"."+attr)
+            # print(self._name+"."+attr)
             if hasattr(self, f"{attr}_rval"):
                 return Reflect(f"{self._name}.{attr}", getattr(self, f"{attr}_rval"))
             return Reflect(f"{self._name}.{attr}")
+
     return Reflect(name)
 
 
 def _test():
     import doctest
+
     doctest.testmod()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     _test()

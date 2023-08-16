@@ -23,16 +23,18 @@
 
 from __future__ import annotations
 
+import contextlib
 import heapq
 import select
 import time
 import typing
-from collections.abc import Callable, Iterator
 from itertools import count
 
 from .abstract_loop import EventLoop, ExitMainLoop
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable, Iterator
+
     from typing_extensions import Literal
 
 __all__ = ("SelectEventLoop",)
@@ -53,9 +55,9 @@ class SelectEventLoop(EventLoop):
 
     def alarm(
         self,
-        seconds: float | int,
-        callback:  Callable[[], typing.Any],
-    ) -> tuple[float, int,  Callable[[], typing.Any]]:
+        seconds: float,
+        callback: Callable[[], typing.Any],
+    ) -> tuple[float, int, Callable[[], typing.Any]]:
         """
         Call callback() a given time from now.  No parameters are
         passed to callback.
@@ -79,9 +81,11 @@ class SelectEventLoop(EventLoop):
         try:
             self._alarms.remove(handle)
             heapq.heapify(self._alarms)
-            return True
+
         except ValueError:
             return False
+
+        return True
 
     def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> int:
         """
@@ -144,10 +148,9 @@ class SelectEventLoop(EventLoop):
         try:
             self._did_something = True
             while True:
-                try:
+                with contextlib.suppress(InterruptedError):
                     self._loop()
-                except InterruptedError:
-                    pass
+
         except ExitMainLoop:
             pass
 
@@ -157,8 +160,8 @@ class SelectEventLoop(EventLoop):
         """
         fds = list(self._watch_files)
         if self._alarms or self._did_something:
-            timeout = 0.
-            tm: float | Literal['idle'] | None = None
+            timeout = 0.0
+            tm: float | Literal["idle"] | None = None
 
             if self._alarms:
                 timeout_ = self._alarms[0][0]
@@ -166,8 +169,8 @@ class SelectEventLoop(EventLoop):
                 timeout = max(timeout, timeout_ - time.time())
 
             if self._did_something and (not self._alarms or (self._alarms and timeout > 0)):
-                timeout = 0.
-                tm = 'idle'
+                timeout = 0.0
+                tm = "idle"
 
             ready, w, err = select.select(fds, [], fds, timeout)
 
@@ -176,7 +179,7 @@ class SelectEventLoop(EventLoop):
             ready, w, err = select.select(fds, [], fds)
 
         if not ready:
-            if tm == 'idle':
+            if tm == "idle":
                 self._entering_idle()
                 self._did_something = False
             elif tm is not None:

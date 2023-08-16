@@ -26,17 +26,19 @@ Tornado library is required.
 
 from __future__ import annotations
 
+import contextlib
 import functools
 import typing
-from collections.abc import Callable
 
 from tornado import ioloop
 
 from .abstract_loop import EventLoop, ExitMainLoop
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable
 
     from typing_extensions import Literal, ParamSpec
+
     _Spec = ParamSpec("_Spec")
     _T = typing.TypeVar("_T")
 
@@ -44,9 +46,9 @@ __all__ = ("TornadoEventLoop",)
 
 
 class TornadoEventLoop(EventLoop):
-    """ This is an Urwid-specific event loop to plug into its MainLoop.
-        It acts as an adaptor for Tornado's IOLoop which does all
-        heavy lifting except idle-callbacks.
+    """This is an Urwid-specific event loop to plug into its MainLoop.
+    It acts as an adaptor for Tornado's IOLoop which does all
+    heavy lifting except idle-callbacks.
     """
 
     def __init__(self, loop: ioloop.IOLoop | None = None) -> None:
@@ -87,14 +89,13 @@ class TornadoEventLoop(EventLoop):
         finally:
             self._idle_asyncio_handle = None
 
-    def alarm(self, seconds: float | int, callback:  Callable[[], typing.Any]):
+    def alarm(self, seconds: float, callback: Callable[[], typing.Any]):
         @self._also_call_idle
         @functools.wraps(callback)
         def wrapped() -> None:
-            try:
+            with contextlib.suppress(KeyError):
                 del self._pending_alarms[handle]
-            except KeyError:
-                pass
+
             self.handle_exit(callback)()
 
         handle = self._loop.add_timeout(self._loop.time() + seconds, wrapped)
@@ -125,9 +126,9 @@ class TornadoEventLoop(EventLoop):
         fd = self._watch_handles.pop(handle, None)
         if fd is None:
             return False
-        else:
-            self._loop.remove_handler(fd)
-            return True
+
+        self._loop.remove_handler(fd)
+        return True
 
     def enter_idle(self, callback: Callable[[], typing.Any]) -> int:
         """
@@ -171,6 +172,7 @@ class TornadoEventLoop(EventLoop):
 
             self._loop.stop()
             return False
+
         return wrapper
 
     def run(self) -> None:

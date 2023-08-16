@@ -29,16 +29,17 @@ from __future__ import annotations
 import functools
 import signal
 import typing
-from collections.abc import Callable
 
 from gi.repository import GLib
 
 from .abstract_loop import EventLoop, ExitMainLoop
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable
     from types import FrameType
 
     from typing_extensions import Literal, ParamSpec
+
     _Spec = ParamSpec("_Spec")
     _T = typing.TypeVar("_T")
 
@@ -67,7 +68,7 @@ class GLibEventLoop(EventLoop):
 
     def alarm(
         self,
-        seconds: float | int,
+        seconds: float,
         callback: Callable[[], typing.Any],
     ) -> tuple[int, Callable[[], typing.Any]]:
         """
@@ -79,13 +80,14 @@ class GLibEventLoop(EventLoop):
         seconds -- floating point time to wait before calling callback
         callback -- function to call from event loop
         """
+
         @self.handle_exit
         def ret_false() -> Literal[False]:
             callback()
             self._enable_glib_idle()
             return False
 
-        fd = GLib.timeout_add(int(seconds*1000), ret_false)
+        fd = GLib.timeout_add(int(seconds * 1000), ret_false)
         self._alarms.append(fd)
         return (fd, callback)
 
@@ -153,9 +155,11 @@ class GLibEventLoop(EventLoop):
         try:
             self._alarms.remove(handle[0])
             GLib.source_remove(handle[0])
-            return True
+
         except ValueError:
             return False
+
+        return True
 
     def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> int:
         """
@@ -167,6 +171,7 @@ class GLibEventLoop(EventLoop):
         fd -- file descriptor to watch for input
         callback -- function to call when input is available
         """
+
         @self.handle_exit
         def io_callback(source, cb_condition) -> Literal[True]:
             callback()
@@ -259,4 +264,5 @@ class GLibEventLoop(EventLoop):
                 if self._loop.is_running():
                     self._loop.quit()
             return False
+
         return wrapper
