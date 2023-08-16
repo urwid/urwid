@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from urwid.canvas import CompositeCanvas, SolidCanvas
 
-from .widget import Sizing, Widget
+from .constants import Sizing
+from .widget import Widget
 
 
 class Divider(Widget):

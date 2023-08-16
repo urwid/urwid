@@ -13,8 +13,8 @@ if typing.TYPE_CHECKING:
 
     from urwid.canvas import TextCanvas
 
+from .constants import Align, WrapMode
 from .text import Text, TextError
-from .widget import Align, WrapMode
 
 
 class EditError(TextError):

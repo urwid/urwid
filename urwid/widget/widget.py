@@ -20,7 +20,6 @@
 
 from __future__ import annotations
 
-import enum
 import functools
 import typing
 import warnings
@@ -32,55 +31,10 @@ from urwid.command_map import command_map
 from urwid.split_repr import split_repr
 from urwid.util import MetaSuper
 
+from .constants import Sizing
+
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
-
-
-# define some names for these constants to avoid misspellings in the source
-# and to document the constant strings we are using
-
-
-class Sizing(str, enum.Enum):
-    """Widget sizing methods."""
-
-    FLOW = "flow"
-    BOX = "box"
-    FIXED = "fixed"
-
-
-class Align(str, enum.Enum):
-    """Text alignment modes"""
-
-    LEFT = "left"
-    RIGHT = "right"
-    CENTER = "center"
-
-
-class VAlign(str, enum.Enum):
-    """Filler alignment"""
-
-    TOP = "top"
-    MIDDLE = "middle"
-    BOTTOM = "bottom"
-
-
-class WrapMode(str, enum.Enum):
-    """Text wrapping modes"""
-
-    SPACE = "space"
-    ANY = "any"
-    CLIP = "clip"
-    ELLIPSIS = "ellipsis"
-
-
-class WHSettings(str, enum.Enum):
-    """Width and Height settings"""
-
-    PACK = "pack"
-    GIVEN = "given"
-    RELATIVE = "relative"
-    WEIGHT = "weight"
-    CLIP = "clip"  # Sizing settings also use clip
 
 
 class WidgetMeta(MetaSuper, signals.MetaSignals):
@@ -853,7 +807,7 @@ class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget"), Widget):
         """
         Change the wrapped widget.  This is meant to be called
         only by subclasses.
-
+        >>> from urwid import Edit, Text
         >>> size = (10,)
         >>> ww = WidgetWrap(Edit("hello? ","hi"))
         >>> ww.render(size).text # ... = b in Python 3

@@ -7,7 +7,8 @@ from urwid.canvas import apply_text_layout
 from urwid.split_repr import remove_defaults
 from urwid.util import calc_width, decompose_tagmarkup
 
-from .widget import Align, Sizing, Widget, WrapMode
+from .constants import Align, Sizing, WrapMode
+from .widget import Widget
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
