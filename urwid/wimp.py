@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid Window-Icon-Menu-Pointer-style widget classes
 #    Copyright (C) 2004-2011  Ian Ward
 #
@@ -23,19 +21,19 @@
 from __future__ import annotations
 
 import typing
-from collections.abc import MutableSequence
 
 from urwid.canvas import CompositeCanvas
-from urwid.command_map import ACTIVATE
+from urwid.command_map import Command
 from urwid.container import Columns, Overlay
 from urwid.decoration import WidgetDecoration
-from urwid.signals import disconnect_signal  # doctests
 from urwid.signals import connect_signal
 from urwid.text_layout import calc_coords
 from urwid.util import is_mouse_press
-from urwid.widget import BOX, FLOW, Text, WidgetWrap, delegate_to_widget_mixin
+from urwid.widget import Sizing, Text, WidgetWrap, delegate_to_widget_mixin
 
 if typing.TYPE_CHECKING:
+    from collections.abc import MutableSequence
+
     from typing_extensions import Literal
 
     from urwid.canvas import Canvas, TextCanvas
@@ -113,24 +111,24 @@ class CheckBoxError(Exception):
 
 class CheckBox(WidgetWrap):
     def sizing(self):
-        return frozenset([FLOW])
+        return frozenset([Sizing.FLOW])
 
-    states = {
+    states: typing.ClassVar[dict[bool | Literal["mixed"], str]] = {
         True: SelectableIcon("[X]", 1),
         False: SelectableIcon("[ ]", 1),
-        'mixed': SelectableIcon("[#]", 1)
+        "mixed": SelectableIcon("[#]", 1),
     }
     reserve_columns = 4
 
     # allow users of this class to listen for change events
     # sent when the state of this widget is modified
     # (this variable is picked up by the MetaSignals metaclass)
-    signals = ["change", 'postchange']
+    signals: typing.ClassVar[list[str]] = ["change", "postchange"]
 
     def __init__(
         self,
         label,
-        state: bool | Literal['mixed'] = False,
+        state: bool | Literal["mixed"] = False,
         has_mixed: bool = False,
         on_state_change=None,
         user_data=None,
@@ -181,19 +179,18 @@ class CheckBox(WidgetWrap):
         # The old way of listening for a change was to pass the callback
         # in to the constructor.  Just convert it to the new way:
         if on_state_change:
-            connect_signal(self, 'change', on_state_change, user_data)
+            connect_signal(self, "change", on_state_change, user_data)
 
         # Initial create expect no callbacks call, create explicit
         super().__init__(
             Columns(
-                [('fixed', self.reserve_columns, self.states[state]), self._label],
+                [(Sizing.FIXED, self.reserve_columns, self.states[state]), self._label],
                 focus_column=0,
             ),
         )
 
-    def _repr_words(self):
-        return super()._repr_words() + [
-            repr(self.label)]
+    def _repr_words(self) -> list[str]:
+        return [*super()._repr_words(), repr(self.label)]
 
     def _repr_attrs(self):
         return dict(super()._repr_attrs(), state=self.state)
@@ -230,15 +227,21 @@ class CheckBox(WidgetWrap):
         flashy normal
         """
         return self._label.text
+
     label = property(get_label)
 
-    def set_state(self, state: bool | Literal['mixed'], do_callback: bool = True) -> None:
+    def set_state(
+        self,
+        state: bool | Literal["mixed"],
+        do_callback: bool = True,
+    ) -> None:
         """
         Set the CheckBox state.
 
         state -- True, False or "mixed"
         do_callback -- False to suppress signal from this change
 
+        >>> from urwid import disconnect_signal
         >>> changes = []
         >>> def callback_a(user_data, cb, state):
         ...     changes.append("A %r %r" % (state, user_data))
@@ -271,16 +274,17 @@ class CheckBox(WidgetWrap):
         # has just been created
         old_state = self._state
         if do_callback:
-            self._emit('change', state)
+            self._emit("change", state)
         self._state = state
         # rebuild the display widget with the new state
-        self._w = Columns([('fixed', self.reserve_columns, self.states[state]), self._label], focus_column=0)
+        self._w = Columns([(Sizing.FIXED, self.reserve_columns, self.states[state]), self._label], focus_column=0)
         if do_callback:
-            self._emit('postchange', old_state)
+            self._emit("postchange", old_state)
 
-    def get_state(self) -> bool | Literal['mixed']:
+    def get_state(self) -> bool | Literal["mixed"]:
         """Return the state of the checkbox."""
         return self._state
+
     state = property(get_state, set_state)
 
     def keypress(self, size: tuple[int], key: str) -> str | None:
@@ -300,10 +304,11 @@ class CheckBox(WidgetWrap):
         >>> cb.state
         False
         """
-        if self._command_map[key] != ACTIVATE:
+        if self._command_map[key] != Command.ACTIVATE:
             return key
 
         self.toggle_state()
+        return None
 
     def toggle_state(self) -> None:
         """
@@ -322,14 +327,14 @@ class CheckBox(WidgetWrap):
         >>> cb.state
         False
         """
-        if self.state == False:
+        if self.state is False:
             self.set_state(True)
-        elif self.state == True:
+        elif self.state is True:
             if self.has_mixed:
-                self.set_state('mixed')
+                self.set_state("mixed")
             else:
                 self.set_state(False)
-        elif self.state == 'mixed':
+        elif self.state == "mixed":
             self.set_state(False)
 
     def mouse_event(self, size: tuple[int], event, button: int, x: int, y: int, focus: bool) -> bool:
@@ -352,17 +357,18 @@ class CheckBox(WidgetWrap):
 
 
 class RadioButton(CheckBox):
-    states = {
+    states: typing.ClassVar[dict[bool | Literal["mixed"], str]] = {
         True: SelectableIcon("(X)", 1),
         False: SelectableIcon("( )", 1),
-        'mixed': SelectableIcon("(#)", 1) }
+        "mixed": SelectableIcon("(#)", 1),
+    }
     reserve_columns = 4
 
     def __init__(
         self,
         group: MutableSequence[CheckBox],
         label,
-        state: bool | Literal['mixed', 'first True'] = "first True",
+        state: bool | Literal["mixed", "first True"] = "first True",
         on_state_change=None,
         user_data=None,
     ) -> None:
@@ -407,7 +413,7 @@ class RadioButton(CheckBox):
         super().__init__(label, state, False, on_state_change, user_data)
         group.append(self)
 
-    def set_state(self, state: bool | Literal['mixed'], do_callback: bool = True) -> None:
+    def set_state(self, state: bool | Literal["mixed"], do_callback: bool = True) -> None:
         """
         Set the RadioButton state.
 
@@ -474,12 +480,12 @@ class RadioButton(CheckBox):
 
 class Button(WidgetWrap):
     def sizing(self):
-        return frozenset([FLOW])
+        return frozenset([Sizing.FLOW])
 
     button_left = Text("<")
     button_right = Text(">")
 
-    signals = ["click"]
+    signals: typing.ClassVar[list[str]] = ["click"]
 
     def __init__(self, label, on_press=None, user_data=None) -> None:
         """
@@ -506,24 +512,26 @@ class Button(WidgetWrap):
         [...'< Cancel      >']
         """
         self._label = SelectableIcon("", 0)
-        cols = Columns([
-            ('fixed', 1, self.button_left),
-            self._label,
-            ('fixed', 1, self.button_right)],
-            dividechars=1)
+        cols = Columns(
+            [
+                (Sizing.FIXED, 1, self.button_left),
+                self._label,
+                (Sizing.FIXED, 1, self.button_right),
+            ],
+            dividechars=1,
+        )
         super().__init__(cols)
 
         # The old way of listening for a change was to pass the callback
         # in to the constructor.  Just convert it to the new way:
         if on_press:
-            connect_signal(self, 'click', on_press, user_data)
+            connect_signal(self, "click", on_press, user_data)
 
         self.set_label(label)
 
-    def _repr_words(self):
+    def _repr_words(self) -> list[str]:
         # include button.label in repr(button)
-        return super()._repr_words() + [
-            repr(self.label)]
+        return [*super()._repr_words(), repr(self.label)]
 
     def set_label(self, label) -> None:
         """
@@ -549,6 +557,7 @@ class Button(WidgetWrap):
         Ok
         """
         return self._label.text
+
     label = property(get_label)
 
     def keypress(self, size: tuple[int], key: str) -> str | None:
@@ -568,10 +577,11 @@ class Button(WidgetWrap):
         >>> clicked_buttons # ... = u in Python 2
         [...'Cancel', ...'Cancel']
         """
-        if self._command_map[key] != ACTIVATE:
+        if self._command_map[key] != Command.ACTIVATE:
             return key
 
-        self._emit('click')
+        self._emit("click")
+        return None
 
     def mouse_event(self, size: tuple[int], event, button: int, x: int, y: int, focus: bool) -> bool:
         """
@@ -593,11 +603,11 @@ class Button(WidgetWrap):
         if button != 1 or not is_mouse_press(event):
             return False
 
-        self._emit('click')
+        self._emit("click")
         return True
 
 
-class PopUpLauncher(delegate_to_widget_mixin('_original_widget'), WidgetDecoration):
+class PopUpLauncher(delegate_to_widget_mixin("_original_widget"), WidgetDecoration):
     def __init__(self, original_widget: Widget) -> None:
         super().__init__(original_widget)
         self._pop_up_widget = None
@@ -639,7 +649,7 @@ class PopUpLauncher(delegate_to_widget_mixin('_original_widget'), WidgetDecorati
 class PopUpTarget(WidgetDecoration):
     # FIXME: this whole class is a terrible hack and must be fixed
     # when layout and rendering are separated
-    _sizing = {BOX}
+    _sizing = frozenset((Sizing.BOX,))
     _selectable = True
 
     def __init__(self, original_widget: Widget) -> None:
@@ -658,15 +668,18 @@ class PopUpTarget(WidgetDecoration):
                 self._current_widget = Overlay(
                     w,
                     self._original_widget,
-                    ('fixed left', left),
+                    ("fixed left", left),
                     overlay_width,
-                    ('fixed top', top),
+                    ("fixed top", top),
                     overlay_height,
                 )
             else:
                 self._current_widget.set_overlay_parameters(
-                    ('fixed left', left), overlay_width,
-                    ('fixed top', top), overlay_height)
+                    ("fixed left", left),
+                    overlay_width,
+                    ("fixed top", top),
+                    overlay_height,
+                )
         else:
             self._pop_up = None
             self._current_widget = self._original_widget
@@ -702,8 +715,9 @@ class PopUpTarget(WidgetDecoration):
 
 def _test():
     import doctest
+
     doctest.testmod()
 
 
-if __name__=='__main__':
+if __name__ == "__main__":
     _test()
