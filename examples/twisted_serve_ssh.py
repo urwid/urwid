@@ -46,7 +46,7 @@ from twisted.conch.manhole_ssh import (
 )
 from twisted.cred.portal import Portal
 from twisted.python.components import Adapter, Componentized
-from zope.interface import Attribute, Interface, implements
+from zope.interface import Attribute, Interface, implementer
 
 import urwid
 from urwid.raw_display import Screen
@@ -84,8 +84,6 @@ class IUrwidMind(Interface):
         """Refresh the UI"""
 
 
-
-
 class UrwidUi:
 
     def __init__(self, urwid_mind):
@@ -112,7 +110,6 @@ class UrwidUi:
         return loop
 
 
-
 class UnhandledKeyHandler:
 
     def __init__(self, mind):
@@ -132,9 +129,8 @@ class UnhandledKeyHandler:
         self.mind.terminal.loseConnection()
 
 
+@implementer(IUrwidMind)
 class UrwidMind(Adapter):
-
-    implements(IUrwidMind)
 
     cred_checkers = []
     ui = None
@@ -158,9 +154,6 @@ class UrwidMind(Adapter):
 
     def draw(self):
         self.ui.loop.draw_screen()
-
-
-
 
 
 class TwistedScreen(Screen):
@@ -189,8 +182,7 @@ class TwistedScreen(Screen):
         self._pal_escape = {}
         self.bright_is_bold = True
         self.register_palette_entry(None, 'black', 'white')
-        urwid.signals.connect_signal(self, urwid.UPDATE_PALETTE_ENTRY,
-            self._on_update_palette_entry)
+        urwid.signals.connect_signal(self, urwid.UPDATE_PALETTE_ENTRY, self._on_update_palette_entry)
         # Don't need to wait for anything to start
         self._started = True
 
@@ -368,14 +360,14 @@ class UrwidTerminalProtocol(TerminalProtocol):
         """
         self.urwid_mind.push(data)
 
-    def _unhandled_input(self, input):
+    def _unhandled_input(self, data):
         # evil
         proceed = True
         if hasattr(self.urwid_toplevel, 'app'):
-            proceed = self.urwid_toplevel.app.unhandled_input(self, input)
+            proceed = self.urwid_toplevel.app.unhandled_input(self, data)
         if not proceed:
             return
-        if input == 'ctrl c':
+        if data == 'ctrl c':
             self.terminal.loseConnection()
 
 
@@ -390,7 +382,7 @@ class UrwidUser(TerminalUser):
     The default implementation doesn't
     """
     def __init__(self, original, avatarId):
-        TerminalUser.__init__(self, original, avatarId)
+        super().__init__(original, avatarId)
         self.avatarId = avatarId
 
 
@@ -406,8 +398,7 @@ class UrwidTerminalSession(TerminalSession):
     def openShell(self, proto):
         """Open a shell.
         """
-        self.chained_protocol = UrwidServerProtocol(
-            UrwidTerminalProtocol, IUrwidMind(self.original))
+        self.chained_protocol = UrwidServerProtocol(UrwidTerminalProtocol, IUrwidMind(self.original))
         TerminalSessionTransport(
             proto, self.chained_protocol,
             IConchUser(self.original),
