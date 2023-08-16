@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid basic widget classes
 #    Copyright (C) 2004-2012  Ian Ward
 #
@@ -22,10 +20,10 @@
 
 from __future__ import annotations
 
+import enum
 import functools
 import typing
 import warnings
-from collections.abc import Callable
 from operator import attrgetter
 
 from urwid import signals, text_layout
@@ -40,10 +38,11 @@ from urwid.command_map import (
     command_map,
 )
 from urwid.split_repr import remove_defaults, split_repr
-from urwid.text_layout import calc_coords, calc_pos, shift_line
 from urwid.util import MetaSuper, calc_width, decompose_tagmarkup, is_wide_char, move_next_char, move_prev_char
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable
+
     from typing_extensions import Literal
 
     from urwid.canvas import TextCanvas
@@ -52,34 +51,73 @@ if typing.TYPE_CHECKING:
 # define some names for these constants to avoid misspellings in the source
 # and to document the constant strings we are using
 
-# Widget sizing methods
 
-FLOW = 'flow'
-BOX = 'box'
-FIXED = 'fixed'
+class Sizing(str, enum.Enum):
+    """Widget sizing methods."""
 
-# Text alignment modes
-LEFT = 'left'
-RIGHT = 'right'
-CENTER = 'center'
+    FLOW = "flow"
+    BOX = "box"
+    FIXED = "fixed"
 
-# Filler alignment
-TOP = 'top'
-MIDDLE = 'middle'
-BOTTOM = 'bottom'
 
-# Text wrapping modes
-SPACE = 'space'
-ANY = 'any'
-CLIP = 'clip'
-ELLIPSIS = 'ellipsis'
+class Align(str, enum.Enum):
+    """Text alignment modes"""
 
-# Width and Height settings
-PACK = 'pack'
-GIVEN = 'given'
-RELATIVE = 'relative'
-RELATIVE_100 = (RELATIVE, 100)
-WEIGHT = 'weight'
+    LEFT = "left"
+    RIGHT = "right"
+    CENTER = "center"
+
+
+class VAlign(str, enum.Enum):
+    """Filler alignment"""
+
+    TOP = "top"
+    MIDDLE = "middle"
+    BOTTOM = "bottom"
+
+
+class WrapMode(str, enum.Enum):
+    """Text wrapping modes"""
+
+    SPACE = "space"
+    ANY = "any"
+    CLIP = "clip"
+    ELLIPSIS = "ellipsis"
+
+
+class WHSettings(str, enum.Enum):
+    """Width and Height settings"""
+
+    PACK = "pack"
+    GIVEN = "given"
+    RELATIVE = "relative"
+    WEIGHT = "weight"
+    CLIP = "clip"  # Sizing settings also use clip
+
+
+# Backward compatibility
+FLOW = Sizing.FLOW
+BOX = Sizing.BOX
+FIXED = Sizing.FIXED
+
+LEFT = Align.LEFT
+RIGHT = Align.RIGHT
+CENTER = Align.CENTER
+
+TOP = VAlign.TOP
+MIDDLE = VAlign.MIDDLE
+BOTTOM = VAlign.BOTTOM
+
+SPACE = WrapMode.SPACE
+ANY = WrapMode.ANY
+CLIP = WrapMode.CLIP
+ELLIPSIS = WrapMode.ELLIPSIS
+
+PACK = WHSettings.PACK
+GIVEN = WHSettings.GIVEN
+RELATIVE = WHSettings.RELATIVE
+RELATIVE_100 = (WHSettings.RELATIVE, 100)
+WEIGHT = WHSettings.WEIGHT
 
 
 class WidgetMeta(MetaSuper, signals.MetaSignals):
@@ -96,6 +134,7 @@ class WidgetMeta(MetaSuper, signals.MetaSignals):
     that the canvas this widget renders is not affected by the focus
     parameter, so it may be ignored when caching.
     """
+
     def __init__(cls, name, bases, d):
         no_cache = d.get("no_cache", [])
 
@@ -115,19 +154,18 @@ class WidgetMeta(MetaSuper, signals.MetaSignals):
         if "ignore_focus" in d:
             del cls.ignore_focus
 
+
 class WidgetError(Exception):
     pass
 
 
 def validate_size(widget, size, canv):
     """
-    Raise a WidgetError if a canv does not match size size.
+    Raise a WidgetError if a canv does not match size.
     """
-    if (size and size[1:] != (0,) and size[0] != canv.cols()) or \
-        (len(size)>1 and size[1] != canv.rows()):
+    if (size and size[1:] != (0,) and size[0] != canv.cols()) or (len(size) > 1 and size[1] != canv.rows()):
         raise WidgetError(
-            f"Widget {widget!r} rendered ({canv.cols():d} x {canv.rows():d}) canvas "
-            f"when passed size {size!r}!"
+            f"Widget {widget!r} rendered ({canv.cols():d} x {canv.rows():d}) canvas when passed size {size!r}!"
         )
 
 
@@ -153,6 +191,7 @@ def cache_widget_render(cls):
         canv.finalize(self, size, focus)
         CanvasCache.store(cls, canv)
         return canv
+
     cached_render.original_fn = fn
     return cached_render
 
@@ -174,6 +213,7 @@ def nocache_widget_render(cls):
         validate_size(self, size, canv)
         canv.finalize(self, size, focus)
         return canv
+
     finalize_render.original_fn = fn
     return finalize_render
 
@@ -193,6 +233,7 @@ def nocache_widget_render_instance(self):
             canv = CompositeCanvas(canv)
         canv.finalize(self, size, focus)
         return canv
+
     finalize_render.original_fn = fn
     return finalize_render
 
@@ -213,6 +254,7 @@ def cache_widget_rows(cls):
             return canv.rows()
 
         return fn(self, size, focus)
+
     return cached_rows
 
 
@@ -451,8 +493,9 @@ class Widget(metaclass=WidgetMeta):
        :returns: ``True`` if the position was set successfully anywhere on
                  *row*, ``False`` otherwise
     """
+
     _selectable = False
-    _sizing = frozenset([FLOW, BOX, FIXED])
+    _sizing = frozenset([Sizing.FLOW, Sizing.BOX, Sizing.FIXED])
     _command_map = command_map
 
     def _invalidate(self) -> None:
@@ -522,7 +565,7 @@ class Widget(metaclass=WidgetMeta):
         """
         return self._sizing
 
-    def pack(self, size: tuple[[]] | tuple[int] | tuple[int, int], focus: bool = False) -> tuple[int, int]:
+    def pack(self, size: tuple[()] | tuple[int] | tuple[int, int], focus: bool = False) -> tuple[int, int]:
         """
         See :meth:`Widget.render` for parameter details.
 
@@ -550,13 +593,16 @@ class Widget(metaclass=WidgetMeta):
         required to display the text wrapped into a target number of rows.
         """
         if not size:
-            if FIXED in self.sizing():
-                raise NotImplementedError('Fixed widgets must override Widget.pack()')
-            raise WidgetError(f'Cannot pack () size, this is not a fixed widget: {self!r}')
-        elif len(size) == 1:
-            if FLOW in self.sizing():
-                return size + (self.rows(size, focus),)
-            raise WidgetError(f'Cannot pack (maxcol,) size, this is not a flow widget: {self!r}')
+            if Sizing.FIXED in self.sizing():
+                raise NotImplementedError("Fixed widgets must override Widget.pack()")
+            raise WidgetError(f"Cannot pack () size, this is not a fixed widget: {self!r}")
+
+        if len(size) == 1:
+            if Sizing.FLOW in self.sizing():
+                return (*size, self.rows(size, focus))
+
+            raise WidgetError(f"Cannot pack (maxcol,) size, this is not a flow widget: {self!r}")
+
         return size
 
     @property
@@ -578,14 +624,18 @@ class Widget(metaclass=WidgetMeta):
         return None
 
     def _not_a_container(self, val=None):
-        raise IndexError(
-            f"No focus_position, {self!r} is not a container widget")
-    focus_position = property(_not_a_container, _not_a_container, doc="""
+        raise IndexError(f"No focus_position, {self!r} is not a container widget")
+
+    focus_position = property(
+        _not_a_container,
+        _not_a_container,
+        doc="""
         Property for reading and setting the focus position for
         container widgets. This default implementation raises
         :exc:`IndexError`, making normal widgets fail the same way
         accessing :attr:`.focus_position` on an empty container widget would.
-        """)
+        """,
+    )
 
     def __repr__(self):
         """
@@ -597,10 +647,10 @@ class Widget(metaclass=WidgetMeta):
     def _repr_words(self):
         words = []
         if self.selectable():
-            words = ["selectable"] + words
-        if self.sizing() and self.sizing() != frozenset([FLOW, BOX, FIXED]):
+            words = ["selectable", *words]
+        if self.sizing() and self.sizing() != frozenset([Sizing.FLOW, Sizing.BOX, Sizing.FIXED]):
             words.append("/".join(sorted(self.sizing())))
-        return words + ["widget"]
+        return [*words, "widget"]
 
     def _repr_attrs(self):
         return {}
@@ -617,7 +667,8 @@ class FlowWidget(Widget):
     Base class of widgets that determine their rows from the number of
     columns available.
     """
-    _sizing = frozenset([FLOW])
+
+    _sizing = frozenset([Sizing.FLOW])
 
     def __init__(self, *args, **kwargs):
         warnings.warn(
@@ -628,6 +679,7 @@ class FlowWidget(Widget):
 
             at the top of your class definition instead.""",
             DeprecationWarning,
+            stacklevel=3,
         )
 
     def rows(self, size: int, focus: bool = False) -> int:
@@ -655,8 +707,9 @@ class BoxWidget(Widget):
     Base class of width and height constrained widgets such as
     the top level widget attached to the display object
     """
+
     _selectable = True
-    _sizing = frozenset([BOX])
+    _sizing = frozenset([Sizing.BOX])
 
     def __init__(self, *args, **kwargs):
         warnings.warn(
@@ -668,6 +721,7 @@ class BoxWidget(Widget):
 
             at the top of your class definition instead.""",
             DeprecationWarning,
+            stacklevel=3,
         )
 
     def render(self, size: tuple[int, int], focus: bool = False):
@@ -698,7 +752,8 @@ class FixedWidget(Widget):
     Base class of widgets that know their width and height and
     cannot be resized
     """
-    _sizing = frozenset([FIXED])
+
+    _sizing = frozenset([Sizing.FIXED])
 
     def __init__(self, *args, **kwargs):
         warnings.warn(
@@ -709,6 +764,7 @@ class FixedWidget(Widget):
 
             at the top of your class definition instead.""",
             DeprecationWarning,
+            stacklevel=3,
         )
 
     def render(self, size, focus=False):
@@ -728,7 +784,8 @@ class Divider(Widget):
     """
     Horizontal divider widget
     """
-    _sizing = frozenset([FLOW])
+
+    _sizing = frozenset([Sizing.FLOW])
 
     ignore_focus = True
 
@@ -761,13 +818,14 @@ class Divider(Widget):
         self.bottom = bottom
 
     def _repr_words(self):
-        return super()._repr_words() + [
-            repr(self.div_char)] * (self.div_char != " ")
+        return super()._repr_words() + [repr(self.div_char)] * (self.div_char != " ")
 
     def _repr_attrs(self):
         attrs = dict(super()._repr_attrs())
-        if self.top: attrs['top'] = self.top
-        if self.bottom: attrs['bottom'] = self.bottom
+        if self.top:
+            attrs["top"] = self.top
+        if self.bottom:
+            attrs["bottom"] = self.bottom
         return attrs
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
@@ -794,8 +852,7 @@ class Divider(Widget):
         [...'xxxxx', ...'     ', ...'     ']
         """
         (maxcol,) = size
-        canv = SolidCanvas(self.div_char, maxcol, 1)
-        canv = CompositeCanvas(canv)
+        canv = CompositeCanvas(SolidCanvas(self.div_char, maxcol, 1))
         if self.top or self.bottom:
             canv.pad_trim_top_bottom(self.top, self.bottom)
         return canv
@@ -805,9 +862,10 @@ class SolidFill(Widget):
     """
     A box widget that fills an area with a single character
     """
+
     _selectable = False
     ignore_focus = True
-    _sizing = frozenset([BOX])
+    _sizing = frozenset([Sizing.BOX])
 
     def __init__(self, fill_char: str = " ") -> None:
         """
@@ -820,8 +878,8 @@ class SolidFill(Widget):
         super().__init__()
         self.fill_char = fill_char
 
-    def _repr_words(self):
-        return super()._repr_words() + [repr(self.fill_char)]
+    def _repr_words(self) -> list[str]:
+        return [*super()._repr_words(), repr(self.fill_char)]
 
     def render(self, size: tuple[int, int], focus: bool = False) -> SolidCanvas:
         """
@@ -844,7 +902,8 @@ class Text(Widget):
     """
     a horizontally resizeable text widget
     """
-    _sizing = frozenset([FLOW])
+
+    _sizing = frozenset([Sizing.FLOW])
 
     ignore_focus = True
     _repr_content_length_max = 140
@@ -852,8 +911,8 @@ class Text(Widget):
     def __init__(
         self,
         markup,
-        align: Literal['left', 'center', 'right'] = LEFT,
-        wrap: Literal['space', 'any', 'clip', 'ellipsis'] = SPACE,
+        align: Literal["left", "center", "right"] | Align = Align.LEFT,
+        wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
         layout=None,
     ) -> None:
         """
@@ -892,23 +951,25 @@ class Text(Widget):
         self.set_text(markup)
         self.set_layout(align, wrap, layout)
 
-    def _repr_words(self):
+    def _repr_words(self) -> list[str]:
         """
-        Show the text in the repr in python3 format (b prefix for byte
-        strings) and truncate if it's too long
+        Show the text in the repr in python3 format (b prefix for byte strings) and truncate if it's too long
         """
         first = super()._repr_words()
         text = self.get_text()[0]
         rest = repr(text)
         if len(rest) > self._repr_content_length_max:
-            rest = (rest[:self._repr_content_length_max * 2 // 3 - 3] +
-                '...' + rest[-self._repr_content_length_max // 3:])
-        return first + [rest]
+            rest = (
+                rest[: self._repr_content_length_max * 2 // 3 - 3] + "..." + rest[-self._repr_content_length_max // 3 :]
+            )
+        return [*first, rest]
 
     def _repr_attrs(self):
-        attrs = dict(super()._repr_attrs(),
+        attrs = dict(
+            super()._repr_attrs(),
             align=self._align_mode,
-            wrap=self._wrap_mode)
+            wrap=self._wrap_mode,
+        )
         return remove_defaults(attrs, Text.__init__)
 
     def _invalidate(self) -> None:
@@ -971,7 +1032,7 @@ class Text(Widget):
         """
         return self.get_text()[1]
 
-    def set_align_mode(self, mode: Literal['left', 'center', 'right']):
+    def set_align_mode(self, mode: Literal["left", "center", "right"] | Align) -> None:
         """
         Set text alignment mode. Supported modes depend on text layout
         object in use but defaults to a :class:`StandardTextLayout` instance
@@ -997,7 +1058,7 @@ class Text(Widget):
         self._align_mode = mode
         self._invalidate()
 
-    def set_wrap_mode(self, mode: Literal['space', 'any', 'clip', 'ellipsis']):
+    def set_wrap_mode(self, mode: Literal["space", "any", "clip", "ellipsis"] | WrapMode) -> None:
         """
         Set text wrapping mode. Supported modes depend on text layout
         object in use but defaults to a :class:`StandardTextLayout` instance
@@ -1027,10 +1088,10 @@ class Text(Widget):
 
     def set_layout(
         self,
-        align: Literal['left', 'center', 'right'],
-        wrap: Literal['space', 'any', 'clip', 'ellipsis'],
+        align: Literal["left", "center", "right"] | Align,
+        wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode,
         layout=None,
-    ):
+    ) -> None:
         """
         Set the text layout object, alignment and wrapping modes at
         the same time.
@@ -1072,7 +1133,7 @@ class Text(Widget):
         """
         (maxcol,) = size
         text, attr = self.get_text()
-        #assert isinstance(text, unicode)
+        # assert isinstance(text, unicode)
         trans = self.get_line_translation(maxcol, (text, attr))
         return apply_text_layout(text, attr, trans, maxcol)
 
@@ -1106,14 +1167,13 @@ class Text(Widget):
             self._update_cache_translation(maxcol, ta)
         return self._cache_translation
 
-    def _update_cache_translation(self,maxcol: int, ta):
+    def _update_cache_translation(self, maxcol: int, ta):
         if ta:
             text, attr = ta
         else:
             text, attr = self.get_text()
         self._cache_maxcol = maxcol
-        self._cache_translation = self.layout.layout(
-            text, maxcol, self._align_mode, self._wrap_mode)
+        self._cache_translation = self.layout.layout(text, maxcol, self._align_mode, self._wrap_mode)
 
     def pack(self, size: tuple[int] | None = None, focus: bool = False) -> tuple[int, int]:
         """
@@ -1138,21 +1198,21 @@ class Text(Widget):
             (maxcol,) = size
             if not hasattr(self.layout, "pack"):
                 return size
-            trans = self.get_line_translation( maxcol, (text,attr))
-            cols = self.layout.pack( maxcol, trans )
+            trans = self.get_line_translation(maxcol, (text, attr))
+            cols = self.layout.pack(maxcol, trans)
             return (cols, len(trans))
 
         i = 0
         cols = 0
         while i < len(text):
-            j = text.find('\n', i)
+            j = text.find("\n", i)
             if j == -1:
                 j = len(text)
             c = calc_width(text, i, j)
-            if c>cols:
+            if c > cols:
                 cols = c
-            i = j+1
-        return (cols, text.count('\n') + 1)
+            i = j + 1
+        return (cols, text.count("\n") + 1)
 
 
 class EditError(TextError):
@@ -1179,10 +1239,11 @@ class Edit(Text):
       handler to guard against this case (for instance, by not changing the
       text if it is signaled for for text that it has already changed once).
     """
+
     _selectable = True
     ignore_focus = False
     # (this variable is picked up by the MetaSignals metaclass)
-    signals = ["change", "postchange"]
+    signals: typing.ClassVar[list[str]] = ["change", "postchange"]
 
     def valid_char(self, ch: str) -> bool:
         """
@@ -1196,16 +1257,16 @@ class Edit(Text):
         return is_wide_char(ch, 0) or (len(ch) == 1 and ord(ch) >= 32)
 
     def __init__(
-            self,
-            caption="",
-            edit_text: str | bytes = "",
-            multiline: bool = False,
-            align: Literal['left', 'center', 'right'] = LEFT,
-            wrap: Literal['space', 'any', 'clip', 'ellipsis'] = SPACE,
-            allow_tab: bool = False,
-            edit_pos: int | None = None,
-            layout=None,
-            mask: str | bytes | None = None,
+        self,
+        caption="",
+        edit_text: str | bytes = "",
+        multiline: bool = False,
+        align: Literal["left", "center", "right"] | Align = Align.LEFT,
+        wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
+        allow_tab: bool = False,
+        edit_pos: int | None = None,
+        layout=None,
+        mask: str | bytes | None = None,
     ) -> None:
         """
         :param caption: markup for caption preceding edit_text, see
@@ -1244,7 +1305,7 @@ class Edit(Text):
         self.allow_tab = allow_tab
         self._edit_pos = 0
         self.set_caption(caption)
-        self._edit_text = ''
+        self._edit_text = ""
         self.set_edit_text(edit_text)
         if edit_pos is None:
             edit_pos = len(edit_text)
@@ -1252,15 +1313,16 @@ class Edit(Text):
         self.set_mask(mask)
         self._shift_view_to_cursor = False
 
-    def _repr_words(self):
-        return super()._repr_words()[:-1] + [
-            repr(self._edit_text)] + [
-            f"caption={self._caption!r}"] * bool(self._caption) + [
-            'multiline'] * (self.multiline is True)
+    def _repr_words(self) -> list[str]:
+        return (
+            super()._repr_words()[:-1]
+            + [repr(self._edit_text)]
+            + [f"caption={self._caption!r}"] * bool(self._caption)
+            + ["multiline"] * (self.multiline is True)
+        )
 
     def _repr_attrs(self):
-        attrs = dict(super()._repr_attrs(),
-            edit_pos=self._edit_pos)
+        attrs = dict(super()._repr_attrs(), edit_pos=self._edit_pos)
         return remove_defaults(attrs, Edit.__init__)
 
     def get_text(self):
@@ -1280,10 +1342,10 @@ class Edit(Text):
 
         if self._mask is None:
             return self._caption + self._edit_text, self._attrib
-        else:
-            return self._caption + (self._mask * len(self._edit_text)), self._attrib
 
-    def set_text(self, markup):
+        return self._caption + (self._mask * len(self._edit_text)), self._attrib
+
+    def set_text(self, markup) -> None:
         """
         Not supported by Edit widget.
 
@@ -1295,12 +1357,11 @@ class Edit(Text):
         # clean this up
 
         # hack to let Text.__init__() work
-        if not hasattr(self, '_text') and markup == "":
+        if not hasattr(self, "_text") and markup == "":
             self._text = None
             return
 
-        raise EditError("set_text() not supported.  Use set_caption()"
-            " or set_edit_text() instead.")
+        raise EditError("set_text() not supported.  Use set_caption() or set_edit_text() instead.")
 
     def get_pref_col(self, size: tuple[int]) -> int:
         """
@@ -1323,7 +1384,7 @@ class Edit(Text):
         3
         >>> e.keypress(size, 'end')
         >>> e.get_pref_col(size)
-        'right'
+        <Align.RIGHT: 'right'>
         >>> e = Edit(u"", u"2\\nwords")
         >>> e.keypress(size, 'left')
         >>> e.keypress(size, 'up')
@@ -1337,10 +1398,10 @@ class Edit(Text):
         pref_col, then_maxcol = self.pref_col_maxcol
         if then_maxcol != maxcol:
             return self.get_cursor_coords((maxcol,))[0]
-        else:
-            return pref_col
 
-    def set_caption(self, caption):
+        return pref_col
+
+    def set_caption(self, caption) -> None:
         """
         Set the caption markup for this widget.
 
@@ -1400,11 +1461,15 @@ class Edit(Text):
         self._edit_pos = pos
         self._invalidate()
 
-    edit_pos = property(lambda self:self._edit_pos, set_edit_pos, doc="""
+    edit_pos = property(
+        lambda self: self._edit_pos,
+        set_edit_pos,
+        doc="""
         Property controlling the edit position for this widget.
-        """)
+        """,
+    )
 
-    def set_mask(self, mask: str | bytes | None):
+    def set_mask(self, mask: str | bytes | None) -> None:
         """
         Set the character for masking text away.
 
@@ -1455,9 +1520,13 @@ class Edit(Text):
         """
         return self._edit_text
 
-    edit_text = property(get_edit_text, set_edit_text, doc="""
+    edit_text = property(
+        get_edit_text,
+        set_edit_text,
+        doc="""
         Property controlling the edit text for this widget.
-        """)
+        """,
+    )
 
     def insert_text(self, text: str | bytes) -> None:
         """
@@ -1494,8 +1563,8 @@ class Edit(Text):
         if tu == cu:
             return text
         if tu:
-            return text.encode('ascii')  # follow python2's implicit conversion
-        return text.decode('ascii')
+            return text.encode("ascii")  # follow python2's implicit conversion
+        return text.decode("ascii")
 
     def insert_text_result(self, text: str | bytes) -> tuple[str | bytes, int]:
         """
@@ -1512,16 +1581,17 @@ class Edit(Text):
         if self.highlight:
             start, stop = self.highlight
             btext, etext = self.edit_text[:start], self.edit_text[stop:]
-            result_text =  btext + etext
+            result_text = btext + etext
             result_pos = start
         else:
             result_text = self.edit_text
             result_pos = self.edit_pos
 
         try:
-            result_text = (result_text[:result_pos] + text + result_text[result_pos:])
-        except:
-            assert 0, repr((self.edit_text, result_text, text))
+            result_text = result_text[:result_pos] + text + result_text[result_pos:]
+        except (IndexError, TypeError) as exc:
+            raise ValueError(repr((self.edit_text, result_text, text))).with_traceback(exc.__traceback__) from exc
+
         result_pos += len(text)
         return (result_text, result_pos)
 
@@ -1545,40 +1615,49 @@ class Edit(Text):
         """
         (maxcol,) = size
 
-        p = self.edit_pos
+        pos = self.edit_pos
         if self.valid_char(key):
             if isinstance(key, str) and not isinstance(self._caption, str):
                 # screen is sending us unicode input, must be using utf-8
                 # encoding because that's all we support, so convert it
                 # to bytes to match our caption's type
-                key = key.encode('utf-8')
+                key = key.encode("utf-8")
             self.insert_text(key)
+            return None
 
-        elif key == "tab" and self.allow_tab:
-            key = " "*(8-(self.edit_pos%8))
+        if key == "tab" and self.allow_tab:
+            key = " " * (8 - (self.edit_pos % 8))
             self.insert_text(key)
+            return None
 
-        elif key == "enter" and self.multiline:
+        if key == "enter" and self.multiline:
             key = "\n"
             self.insert_text(key)
+            return None
 
-        elif self._command_map[key] == CURSOR_LEFT:
-            if p == 0: return key
-            p = move_prev_char(self.edit_text,0,p)
-            self.set_edit_pos(p)
+        if self._command_map[key] == CURSOR_LEFT:
+            if pos == 0:
+                return key
+            pos = move_prev_char(self.edit_text, 0, pos)
+            self.set_edit_pos(pos)
+            return None
 
-        elif self._command_map[key] == CURSOR_RIGHT:
-            if p >= len(self.edit_text): return key
-            p = move_next_char(self.edit_text,p,len(self.edit_text))
-            self.set_edit_pos(p)
+        if self._command_map[key] == CURSOR_RIGHT:
+            if pos >= len(self.edit_text):
+                return key
+            pos = move_next_char(self.edit_text, pos, len(self.edit_text))
+            self.set_edit_pos(pos)
+            return None
 
-        elif self._command_map[key] in (CURSOR_UP, CURSOR_DOWN):
+        if self._command_map[key] in (CURSOR_UP, CURSOR_DOWN):
             self.highlight = None
 
             x, y = self.get_cursor_coords((maxcol,))
             pref_col = self.get_pref_col((maxcol,))
-            assert pref_col is not None
-            #if pref_col is None:
+            if pref_col is None:
+                raise ValueError(pref_col)
+
+            # if pref_col is None:
             #    pref_col = x
 
             if self._command_map[key] == CURSOR_UP:
@@ -1588,41 +1667,50 @@ class Edit(Text):
 
             if not self.move_cursor_to_coords((maxcol,), pref_col, y):
                 return key
+            return None
 
-        elif key == "backspace":
+        if key == "backspace":
             self.pref_col_maxcol = None, None
             if not self._delete_highlighted():
-                if p == 0:
+                if pos == 0:
                     return key
-                p = move_prev_char(self.edit_text, 0, p)
-                self.set_edit_text(self.edit_text[:p] + self.edit_text[self.edit_pos:])
-                self.set_edit_pos(p)
+                pos = move_prev_char(self.edit_text, 0, pos)
+                self.set_edit_text(self.edit_text[:pos] + self.edit_text[self.edit_pos :])
+                self.set_edit_pos(pos)
+                return None
+            return None
 
-        elif key == "delete":
+        if key == "delete":
             self.pref_col_maxcol = None, None
             if not self._delete_highlighted():
-                if p >= len(self.edit_text):
+                if pos >= len(self.edit_text):
                     return key
-                p = move_next_char(self.edit_text,p,len(self.edit_text))
-                self.set_edit_text( self.edit_text[:self.edit_pos] + self.edit_text[p:] )
+                pos = move_next_char(self.edit_text, pos, len(self.edit_text))
+                self.set_edit_text(self.edit_text[: self.edit_pos] + self.edit_text[pos:])
+                return None
+            return None
 
-        elif self._command_map[key] in (CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT):
+        if self._command_map[key] in (CURSOR_MAX_LEFT, CURSOR_MAX_RIGHT):
             self.highlight = None
             self.pref_col_maxcol = None, None
 
             x, y = self.get_cursor_coords((maxcol,))
 
             if self._command_map[key] == CURSOR_MAX_LEFT:
-                self.move_cursor_to_coords((maxcol,), LEFT, y)
+                self.move_cursor_to_coords((maxcol,), Align.LEFT, y)
             else:
-                self.move_cursor_to_coords((maxcol,), RIGHT, y)
-            return
+                self.move_cursor_to_coords((maxcol,), Align.RIGHT, y)
+            return None
 
-        else:
-            # key wasn't handled
-            return key
+        # key wasn't handled
+        return key
 
-    def move_cursor_to_coords(self, size: tuple[int], x: int, y: int) -> bool:
+    def move_cursor_to_coords(
+        self,
+        size: tuple[int],
+        x: int | Literal[Align.LEFT, Align.RIGHT],
+        y: int,
+    ) -> bool:
         """
         Set the cursor position with (x,y) coordinates.
         Returns True if move succeeded, False otherwise.
@@ -1646,7 +1734,7 @@ class Edit(Text):
         if y < top_y or y >= len(trans):
             return False
 
-        pos = calc_pos( self.get_text()[0], trans, x, y )
+        pos = text_layout.calc_pos(self.get_text()[0], trans, x, y)
         e_pos = pos - len(self.caption)
         if e_pos < 0:
             e_pos = 0
@@ -1701,13 +1789,13 @@ class Edit(Text):
         (maxcol,) = size
         self._shift_view_to_cursor = bool(focus)
 
-        canv: TextCanvas | CompositeCanvas = Text.render(self,(maxcol,))
+        canv: TextCanvas | CompositeCanvas = Text.render(self, (maxcol,))
         if focus:
             canv = CompositeCanvas(canv)
             canv.cursor = self.get_cursor_coords((maxcol,))
 
         # .. will need to FIXME if I want highlight to work again
-        #if self.highlight:
+        # if self.highlight:
         #    hstart, hstop = self.highlight_coords()
         #    d.coords['highlight'] = [ hstart, hstop ]
         return canv
@@ -1718,16 +1806,21 @@ class Edit(Text):
             return trans
 
         text, ignore = self.get_text()
-        x, y = calc_coords( text, trans,
-            self.edit_pos + len(self.caption) )
+        x, y = text_layout.calc_coords(text, trans, self.edit_pos + len(self.caption))
         if x < 0:
-            return ( trans[:y]
-                + [shift_line(trans[y],-x)]
-                + trans[y+1:] )
-        elif x >= maxcol:
-            return ( trans[:y]
-                + [shift_line(trans[y],-(x-maxcol+1))]
-                + trans[y+1:] )
+            return [
+                *trans[:y],
+                *[text_layout.shift_line(trans[y], -x)],
+                *trans[y + 1 :],
+            ]
+
+        if x >= maxcol:
+            return [
+                *trans[:y],
+                *[text_layout.shift_line(trans[y], -(x - maxcol + 1))],
+                *trans[y + 1 :],
+            ]
+
         return trans
 
     def get_cursor_coords(self, size: tuple[int]) -> tuple[int, int]:
@@ -1740,7 +1833,7 @@ class Edit(Text):
         (maxcol,) = size
 
         self._shift_view_to_cursor = True
-        return self.position_coords(maxcol,self.edit_pos)
+        return self.position_coords(maxcol, self.edit_pos)
 
     def position_coords(self, maxcol: int, pos) -> tuple[int, int]:
         """
@@ -1749,8 +1842,8 @@ class Edit(Text):
 
         p = pos + len(self.caption)
         trans = self.get_line_translation(maxcol)
-        x,y = calc_coords(self.get_text()[0], trans,p)
-        return x,y
+        x, y = text_layout.calc_coords(self.get_text()[0], trans, p)
+        return x, y
 
 
 class IntEdit(Edit):
@@ -1762,7 +1855,7 @@ class IntEdit(Edit):
         """
         return len(ch) == 1 and ch in "0123456789"
 
-    def __init__(self, caption="", default: int | str = None) -> None:
+    def __init__(self, caption="", default: int | str | None = None) -> None:
         """
         caption -- caption markup
         default -- default edit value
@@ -1790,12 +1883,12 @@ class IntEdit(Edit):
         2
         """
         (maxcol,) = size
-        unhandled = Edit.keypress(self,(maxcol,),key)
+        unhandled = Edit.keypress(self, (maxcol,), key)
 
         if not unhandled:
-        # trim leading zeros
+            # trim leading zeros
             while self.edit_pos > 0 and self.edit_text[:1] == "0":
-                self.set_edit_pos( self.edit_pos - 1)
+                self.set_edit_pos(self.edit_pos - 1)
                 self.set_edit_text(self.edit_text[1:])
 
         return unhandled
@@ -1812,8 +1905,8 @@ class IntEdit(Edit):
         """
         if self.edit_text:
             return int(self.edit_text)
-        else:
-            return 0
+
+        return 0
 
 
 def delegate_to_widget_mixin(attribute_name: str):
@@ -1829,7 +1922,7 @@ def delegate_to_widget_mixin(attribute_name: str):
     get_delegate = attrgetter(attribute_name)
 
     class DelegateToWidgetMixin(Widget):
-        no_cache = ["rows"]  # crufty metaclass work-around
+        no_cache: typing.ClassVar[list[str]] = ["rows"]  # crufty metaclass work-around
 
         def render(self, size, focus: bool = False) -> CompositeCanvas:
             canv = get_delegate(self).render(size, focus=focus)
@@ -1861,8 +1954,8 @@ def delegate_to_widget_mixin(attribute_name: str):
 
         @property
         def mouse_event(
-            self
-        ) -> Callable[[tuple[()] | tuple[int] | tuple[int, int], str, int, int, int, bool], bool | None]:
+            self,
+        ) -> Callable[[tuple[()] | tuple[int] | tuple[int, int], str, int, int, int, bool], bool | None,]:
             return get_delegate(self).mouse_event
 
         @property
@@ -1880,7 +1973,7 @@ class WidgetWrapError(Exception):
     pass
 
 
-class WidgetWrap(delegate_to_widget_mixin('_wrapped_widget'), Widget):
+class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget"), Widget):
     def __init__(self, w: Widget):
         """
         w -- widget to wrap, stored as self._w
@@ -1950,8 +2043,9 @@ class WidgetWrap(delegate_to_widget_mixin('_wrapped_widget'), Widget):
 
 def _test():
     import doctest
+
     doctest.testmod()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     _test()
