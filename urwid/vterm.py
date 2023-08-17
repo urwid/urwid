@@ -75,7 +75,9 @@ KEY_TRANSLATIONS = {
     'end':       f"{ESC}[4~",
     'page up':   f"{ESC}[5~",
     'page down': f"{ESC}[6~",
-
+    'begin paste': f"{ESC}[200~",
+    'end paste': f"{ESC}[201~",
+    
     'f1':        f"{ESC}[[A",
     'f2':        f"{ESC}[[B",
     'f3':        f"{ESC}[[C",
@@ -176,6 +178,7 @@ class TermModes:
     constrain_scrolling: bool = False
     autowrap: bool = True
     visible_cursor: bool = True
+    bracketed_paste: bool = False
 
     # charset stuff
     main_charset: Literal[1, 2] = CHARSET_DEFAULT
@@ -1271,7 +1274,7 @@ class TermCanvas(Canvas):
 
     def set_mode(
         self,
-        mode: Literal[1, 3, 4, 5, 6, 7, 20, 25] | int,
+        mode: Literal[1, 3, 4, 5, 6, 7, 20, 25, 2004] | int,
         flag: bool,
         qmark: bool,
         reset: bool,
@@ -1299,6 +1302,8 @@ class TermCanvas(Canvas):
             elif mode == 25:
                 self.modes.visible_cursor = flag
                 self.set_term_cursor()
+            elif mode == 2004:
+                self.modes.bracketed_paste = flag
         else:
             # ECMA-48
             if mode == 3:
@@ -1731,6 +1736,13 @@ class Terminal(Widget):
         if self.terminated:
             return key
 
+        if key == "begin paste" or key == "end paste":
+            if self.term_modes.bracketed_paste:
+                pass  # passthrough bracketed paste sequences
+            else:  # swallow bracketed paste sequences
+                self.last_key = key
+                return None
+            
         if key == "window resize":
             width, height = size
             self.touch_term(width, height)

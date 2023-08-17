@@ -389,3 +389,21 @@ class TermTest(unittest.TestCase):
     def test_in_listbox(self):
         listbox = ListBox([BoxAdapter(self.term, 80)])
         rendered = listbox.render((80, 24))
+
+    def test_bracketed_paste_mode_on(self):
+        self.write(r'\e[?2004htest')
+        self.expect('test')
+        self.assertTrue(self.term.term_modes.bracketed_paste)
+        self.term.keypress(None, 'begin paste')
+        self.term.keypress(None, 'A')
+        self.term.keypress(None, 'end paste')
+        self.expect(r'test^[[200~A^[[201~')
+
+    def test_bracketed_paste_mode_off(self):
+        self.write(r'\e[?2004ltest')
+        self.expect('test')
+        self.assertFalse(self.term.term_modes.bracketed_paste)
+        self.term.keypress(None, 'begin paste')
+        self.term.keypress(None, 'B')
+        self.term.keypress(None, 'end paste')
+        self.expect(r'testB')
