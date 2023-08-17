@@ -397,6 +397,7 @@ class TermTest(unittest.TestCase):
         self.term.keypress(None, 'begin paste')
         self.term.keypress(None, 'A')
         self.term.keypress(None, 'end paste')
+        sleep(0.1)
         self.expect(r'test^[[200~A^[[201~')
 
     def test_bracketed_paste_mode_off(self):
@@ -406,4 +407,5 @@ class TermTest(unittest.TestCase):
         self.term.keypress(None, 'begin paste')
         self.term.keypress(None, 'B')
         self.term.keypress(None, 'end paste')
+        sleep(0.1)
         self.expect(r'testB')
