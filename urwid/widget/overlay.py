@@ -64,13 +64,17 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         top_w: Widget,
         bottom_w: Widget,
         align: (
-            Literal["left", "center", "right"] | Align | tuple[Literal["relative", "fixed left", "fixed right"], int]
+            Literal["left", "center", "right"]
+            | Align
+            | tuple[Literal["relative", "fixed left", "fixed right", WHSettings.RELATIVE], int]
         ),
-        width: Literal["pack"] | int | tuple[Literal["relative"], int],
+        width: Literal["pack", WHSettings.PACK] | int | tuple[Literal["relative", WHSettings.RELATIVE], int] | None,
         valign: (
-            Literal["top", "middle", "bottom"] | VAlign | tuple[Literal["relative", "fixed top", "fixed bottom"], int]
+            Literal["top", "middle", "bottom"]
+            | VAlign
+            | tuple[Literal["relative", "fixed top", "fixed bottom", WHSettings.RELATIVE], int]
         ),
-        height: Literal["pack"] | int | tuple[Literal["relative"], int],
+        height: Literal["pack", WHSettings.PACK] | int | tuple[Literal["relative", WHSettings.RELATIVE], int] | None,
         min_width: int | None = None,
         min_height: int | None = None,
         left: int = 0,

@@ -31,7 +31,11 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
     def __init__(
         self,
-        widget_list: Iterable[Widget],
+        widget_list: Iterable[
+            Widget
+            | tuple[Literal["pack", WHSettings.PACK], Widget]
+            | tuple[Literal["weight", WHSettings.WEIGHT], int, Widget]
+        ],
         dividechars: int = 0,
         focus_column: int | None = None,
         min_width: int = 1,

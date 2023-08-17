@@ -36,7 +36,7 @@ class Filler(WidgetDecoration):
         valign: (
             Literal["top", "middle", "bottom"] | VAlign | tuple[Literal["relative", WHSettings.RELATIVE], int]
         ) = VAlign.MIDDLE,
-        height: int | Literal["pack"] | tuple[Literal["relative"], int] = WHSettings.PACK,
+        height: int | Literal["pack"] | tuple[Literal["relative"], int] | None = WHSettings.PACK,
         min_height: int | None = None,
         top: int = 0,
         bottom: int = 0,
