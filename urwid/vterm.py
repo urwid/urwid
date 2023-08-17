@@ -48,10 +48,9 @@ except ImportError:
 
 from urwid import event_loop, util
 from urwid.canvas import Canvas
-from urwid.display_common import (_BASIC_COLORS, AttrSpec, RealTerminal,
-                                  _color_desc_256, _color_desc_true)
+from urwid.display_common import _BASIC_COLORS, AttrSpec, RealTerminal, _color_desc_256, _color_desc_true
 from urwid.escape import ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS
-from urwid.widget import BOX, Widget
+from urwid.widget import Sizing, Widget
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
@@ -1462,7 +1461,7 @@ class TermCanvas(Canvas):
 
 class Terminal(Widget):
     _selectable = True
-    _sizing = frozenset([BOX])
+    _sizing = frozenset([Sizing.BOX])
 
     signals = ['closed', 'beep', 'leds', 'title', 'resize']
 
