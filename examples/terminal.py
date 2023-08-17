@@ -61,9 +61,13 @@ def main():
         # resize, don't register the signal handler.
         pass
 
+    # create Screen with bracketed paste mode support enabled
+    bpm_screen = urwid.raw_display.Screen(bracketed_paste_mode=True)
+
     loop = urwid.MainLoop(
         mainframe,
         handle_mouse=False,
+        screen=bpm_screen,
         unhandled_input=handle_key)
 
     term.main_loop = loop

@@ -58,7 +58,7 @@ if typing.TYPE_CHECKING:
 
 
 class Screen(BaseScreen, RealTerminal):
-    def __init__(self, input=sys.stdin, output=sys.stdout):
+    def __init__(self, input=sys.stdin, output=sys.stdout, bracketed_paste_mode=False):
         """Initialize a screen that directly prints escape codes to an output
         terminal.
         """
@@ -89,6 +89,7 @@ class Screen(BaseScreen, RealTerminal):
         self.register_palette_entry( None, 'default','default')
         self._next_timeout = None
         self.signal_handler_setter = signal.signal
+        self.bracketed_paste_mode = bracketed_paste_mode
 
         # Our connections to the world
         self._term_output_file = output
@@ -250,6 +251,9 @@ class Screen(BaseScreen, RealTerminal):
         else:
             self._rows_used = 0
 
+        if (self.bracketed_paste_mode):
+            self.write(escape.ENABLE_BRACKETED_PASTE_MODE)
+            
         fd = self._input_fileno()
         if fd is not None and os.isatty(fd):
             self._old_termios_settings = termios.tcgetattr(fd)
@@ -274,6 +278,9 @@ class Screen(BaseScreen, RealTerminal):
         """
         self.clear()
 
+        if (self.bracketed_paste_mode):
+            self.write(escape.DISABLE_BRACKETED_PASTE_MODE)
+        
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
 
         self.signal_restore()
