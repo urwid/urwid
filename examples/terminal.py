@@ -57,12 +57,17 @@ def main():
     try:
         urwid.connect_signal(term, 'resize', handle_resize)
     except NameError:
-        # if using a version of Urwid vterm that doesn't support
+        # if using a version of Urwid library where vterm doesn't support
         # resize, don't register the signal handler.
         pass
 
-    # create Screen with bracketed paste mode support enabled
-    bpm_screen = urwid.raw_display.Screen(bracketed_paste_mode=True)
+    try:
+        # create Screen with bracketed paste mode support enabled
+        bpm_screen = urwid.raw_display.Screen(bracketed_paste_mode=True)
+    except TypeError:
+        # if using a version of Urwid library that doesn't support
+        # bracketed paste mode, do without it.
+        bpm_screen = urwid.raw_display.Screen()
 
     loop = urwid.MainLoop(
         mainframe,

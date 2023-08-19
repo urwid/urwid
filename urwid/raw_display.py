@@ -61,6 +61,10 @@ class Screen(BaseScreen, RealTerminal):
     def __init__(self, input=sys.stdin, output=sys.stdout, bracketed_paste_mode=False):
         """Initialize a screen that directly prints escape codes to an output
         terminal.
+
+        bracketed_paste_mode -- enable bracketed paste mode in the host terminal.
+            If the host terminal supports it, the application will receive `begin paste`
+            and `end paste` keystrokes when the user pastes text.
         """
         super().__init__()
         self._pal_escape = {}
