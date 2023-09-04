@@ -458,13 +458,11 @@ offs -- offset";
 static int Py_IsWideChar(PyObject *text, Py_ssize_t offs)
 {
     const unsigned char *str;
-    Py_UNICODE *ustr;
     Py_ssize_t ret[2], str_len;
 
     if (PyUnicode_Check(text))  //text_py is unicode string
     {
-        ustr = PyUnicode_AS_UNICODE(text);
-        return (Py_GetWidth((long int)ustr[offs]) == 2);
+        return (Py_GetWidth((long int) PyUnicode_ReadChar(text, offs)) == 2);
     }
 
     if (!PyBytes_Check(text)) {
@@ -621,15 +619,13 @@ static Py_ssize_t Py_CalcWidth(PyObject *text, Py_ssize_t start_offs,
     unsigned char * str;
     Py_ssize_t i, ret[2], str_len;
     int screencols;
-    Py_UNICODE *ustr;
 
     if (PyUnicode_Check(text))  //text_py is unicode string
     {
-        ustr = PyUnicode_AS_UNICODE(text);
         screencols = 0;
  
         for(i=start_offs; i<end_offs; i++) 
-            screencols += Py_GetWidth(ustr[i]);
+            screencols += Py_GetWidth((long int) PyUnicode_ReadChar(text, i));
 
         return screencols;
     }
@@ -698,16 +694,14 @@ static int Py_CalcTextPos(PyObject *text, Py_ssize_t start_offs,
     unsigned char * str;
     Py_ssize_t i, dummy[2], str_len;
     int screencols, width;
-    Py_UNICODE *ustr;
 
     if (PyUnicode_Check(text))  //text_py is unicode string
     {
-        ustr = PyUnicode_AS_UNICODE(text);
         screencols = 0;
  
         for(i=start_offs; i<end_offs; i++)
         {
-            width = Py_GetWidth(ustr[i]);
+            width = Py_GetWidth((long int) PyUnicode_ReadChar(text, i));
             
             if (width+screencols > pref_col)
             {
