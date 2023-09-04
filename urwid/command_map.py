@@ -19,24 +19,41 @@
 
 from __future__ import annotations
 
+import enum
 import typing
+from typing import Iterator
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Self
 
-REDRAW_SCREEN = "redraw screen"
-CURSOR_UP = "cursor up"
-CURSOR_DOWN = "cursor down"
-CURSOR_LEFT = "cursor left"
-CURSOR_RIGHT = "cursor right"
-CURSOR_PAGE_UP = "cursor page up"
-CURSOR_PAGE_DOWN = "cursor page down"
-CURSOR_MAX_LEFT = "cursor max left"
-CURSOR_MAX_RIGHT = "cursor max right"
-ACTIVATE = "activate"
+
+class Command(str, enum.Enum):
+    REDRAW_SCREEN = "redraw screen"
+    UP = "cursor up"
+    DOWN = "cursor down"
+    LEFT = "cursor left"
+    RIGHT = "cursor right"
+    PAGE_UP = "cursor page up"
+    PAGE_DOWN = "cursor page down"
+    MAX_LEFT = "cursor max left"
+    MAX_RIGHT = "cursor max right"
+    ACTIVATE = "activate"
+    MENU = "menu"
 
 
-class CommandMap:
+REDRAW_SCREEN = Command.REDRAW_SCREEN
+CURSOR_UP = Command.UP
+CURSOR_DOWN = Command.DOWN
+CURSOR_LEFT = Command.LEFT
+CURSOR_RIGHT = Command.RIGHT
+CURSOR_PAGE_UP = Command.PAGE_UP
+CURSOR_PAGE_DOWN = Command.PAGE_DOWN
+CURSOR_MAX_LEFT = Command.MAX_LEFT
+CURSOR_MAX_RIGHT = Command.MAX_RIGHT
+ACTIVATE = Command.ACTIVATE
+
+
+class CommandMap(typing.Mapping[str, typing.Union[str, Command, None]]):
     """
     dict-like object for looking up commands from keystrokes
 
@@ -60,23 +77,29 @@ class CommandMap:
         'enter':     'activate',
     """
 
-    _command_defaults: typing.ClassVar[dict[str, str]] = {
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._command)
+
+    def __len__(self) -> int:
+        return len(self._command)
+
+    _command_defaults: typing.ClassVar[dict[str, str | Command]] = {
         "tab": "next selectable",
         "ctrl n": "next selectable",
         "shift tab": "prev selectable",
         "ctrl p": "prev selectable",
-        "ctrl l": REDRAW_SCREEN,
-        "esc": "menu",
-        "up": CURSOR_UP,
-        "down": CURSOR_DOWN,
-        "left": CURSOR_LEFT,
-        "right": CURSOR_RIGHT,
-        "page up": CURSOR_PAGE_UP,
-        "page down": CURSOR_PAGE_DOWN,
-        "home": CURSOR_MAX_LEFT,
-        "end": CURSOR_MAX_RIGHT,
-        " ": ACTIVATE,
-        "enter": ACTIVATE,
+        "ctrl l": Command.REDRAW_SCREEN,
+        "esc": Command.MENU,
+        "up": Command.UP,
+        "down": Command.DOWN,
+        "left": Command.LEFT,
+        "right": Command.RIGHT,
+        "page up": Command.PAGE_UP,
+        "page down": Command.PAGE_DOWN,
+        "home": Command.MAX_LEFT,
+        "end": Command.MAX_RIGHT,
+        " ": Command.ACTIVATE,
+        "enter": Command.ACTIVATE,
     }
 
     def __init__(self) -> None:
@@ -85,16 +108,16 @@ class CommandMap:
     def restore_defaults(self) -> None:
         self._command = dict(self._command_defaults)
 
-    def __getitem__(self, key: str) -> str | None:
+    def __getitem__(self, key: str) -> str | Command | None:
         return self._command.get(key, None)
 
-    def __setitem__(self, key, command: str) -> None:
+    def __setitem__(self, key, command: str | Command) -> None:
         self._command[key] = command
 
     def __delitem__(self, key: str) -> None:
         del self._command[key]
 
-    def clear_command(self, command: str) -> None:
+    def clear_command(self, command: str | Command) -> None:
         dk = [k for k, v in self._command.items() if v == command]
         for k in dk:
             del self._command[k]
@@ -104,7 +127,7 @@ class CommandMap:
         Return a new copy of this CommandMap, likely so we can modify
         it separate from a shared one.
         """
-        c = CommandMap()
+        c = self.__class__()
         c._command = dict(self._command)
         return c
 

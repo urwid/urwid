@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 
 import urwid
-from urwid import graphics
+from urwid.widget import bar_graph
 
 
 class LineBoxTest(unittest.TestCase):
@@ -49,7 +49,7 @@ class LineBoxTest(unittest.TestCase):
 
 class BarGraphTest(unittest.TestCase):
     def bgtest(self, desc, data, top, widths, maxrow, exp ):
-        rval = graphics.calculate_bargraph_display(data,top,widths,maxrow)
+        rval = bar_graph.calculate_bargraph_display(data,top,widths,maxrow)
         assert rval == exp, f"{desc} expected {exp!r}, got {rval!r}"
 
     def test1(self):

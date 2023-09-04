@@ -49,33 +49,7 @@ from urwid.command_map import (
     CommandMap,
     command_map,
 )
-from urwid.container import (
-    Columns,
-    ColumnsError,
-    Frame,
-    FrameError,
-    GridFlow,
-    GridFlowError,
-    Overlay,
-    OverlayError,
-    Pile,
-    PileError,
-    WidgetContainerMixin,
-)
-from urwid.decoration import (
-    AttrMap,
-    AttrMapError,
-    AttrWrap,
-    BoxAdapter,
-    BoxAdapterError,
-    Filler,
-    FillerError,
-    Padding,
-    PaddingError,
-    WidgetDecoration,
-    WidgetDisable,
-    WidgetPlaceholder,
-)
+
 from urwid.font import (
     Font,
     FontRegistry,
@@ -88,16 +62,7 @@ from urwid.font import (
     Thin6x6Font,
     get_all_fonts,
 )
-from urwid.graphics import (
-    BarGraph,
-    BarGraphError,
-    BarGraphMeta,
-    BigText,
-    GraphVScale,
-    LineBox,
-    ProgressBar,
-    scale_bar_values,
-)
+
 from urwid.listbox import ListBox, ListBoxError, ListWalker, ListWalkerError, SimpleFocusListWalker, SimpleListWalker
 from urwid.event_loop import EventLoop, AsyncioEventLoop, ExitMainLoop, MainLoop, SelectEventLoop
 from urwid.monitored_list import MonitoredFocusList, MonitoredList
@@ -122,6 +87,11 @@ from urwid.widget import (
     SPACE,
     TOP,
     WEIGHT,
+    Align,
+    Sizing,
+    VAlign,
+    WHSettings,
+    WrapMode,
     BoxWidget,
     Divider,
     Edit,
@@ -139,8 +109,45 @@ from urwid.widget import (
     WidgetWrapError,
     delegate_to_widget_mixin,
     fixed_size,
+    WidgetPlaceholder,
+    AttrMap,
+    AttrMapError,
+    AttrWrap,
+    BoxAdapter,
+    BoxAdapterError,
+    WidgetDisable,
+    Filler,
+    FillerError,
+    Padding,
+    PaddingError,
+    WidgetDecoration,
+    GridFlow,
+    GridFlowError,
+    Frame,
+    FrameError,
+    Overlay,
+    OverlayError,
+    Pile,
+    PileError,
+    Columns,
+    ColumnsError,
+    WidgetContainerMixin,
+    PopUpLauncher,
+    PopUpTarget,
+    Button,
+    CheckBox,
+    CheckBoxError,
+    RadioButton,
+    SelectableIcon,
+    BigText,
+    LineBox,
+    BarGraph,
+    BarGraphError,
+    BarGraphMeta,
+    GraphVScale,
+    scale_bar_values,
+    ProgressBar,
 )
-from urwid.wimp import Button, CheckBox, CheckBoxError, PopUpLauncher, PopUpTarget, RadioButton, SelectableIcon
 
 from urwid import raw_display
 from urwid.display_common import (

@@ -53,8 +53,8 @@ class CascadingBoxes(urwid.WidgetPlaceholder):
     def open_box(self, box):
         self.original_widget = urwid.Overlay(urwid.LineBox(box),
             self.original_widget,
-            align='center', width=('relative', 80),
-            valign='middle', height=('relative', 80),
+            align='center', width=(urwid.WHSettings.RELATIVE, 80),
+            valign='middle', height=(urwid.WHSettings.RELATIVE, 80),
             min_width=24, min_height=8,
             left=self.box_level * 3,
             right=(self.max_box_levels - self.box_level - 1) * 3,
