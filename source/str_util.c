@@ -21,6 +21,8 @@
 */
 
 #define PY_SSIZE_T_CLEAN
+// Use Limited API for Python 3.7.0 release and newer
+#define Py_LIMITED_API 0x030700f0
 
 #include <Python.h>
 
