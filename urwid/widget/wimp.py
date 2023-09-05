@@ -39,6 +39,7 @@ if typing.TYPE_CHECKING:
     from typing_extensions import Literal, Self
 
     from urwid.canvas import TextCanvas
+    from urwid.text_layout import TextLayout
 
     _T = typing.TypeVar("_T")
 
@@ -53,6 +54,7 @@ class SelectableIcon(Text):
         cursor_position: int = 0,
         align: Literal["left", "center", "right"] | Align = Align.LEFT,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
+        layout: TextLayout | None = None,
     ) -> None:
         """
         :param text: markup for this widget; see :class:`Text` for
@@ -63,12 +65,14 @@ class SelectableIcon(Text):
         :type align: text alignment mode
         :param wrap: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
         :type wrap: text wrapping mode
+        :param layout: defaults to a shared :class:`StandardTextLayout` instance
+        :type layout: text layout instance
 
         This is a text widget that is selectable.  A cursor
         displayed at a fixed location in the text when in focus.
         This widget has no special handling of keyboard or mouse input.
         """
-        super().__init__(text, align=align, wrap=wrap)
+        super().__init__(text, align=align, wrap=wrap, layout=layout)
         self._cursor_position = cursor_position
 
     def render(self, size: tuple[int], focus: bool = False) -> TextCanvas | CompositeCanvas:
@@ -508,6 +512,7 @@ class Button(WidgetWrap):
         *,
         align: Literal["left", "center", "right"] | Align = Align.LEFT,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
+        layout: TextLayout | None = None,
     ) -> None:
         """
         :param label: markup for button label
@@ -518,6 +523,8 @@ class Button(WidgetWrap):
         :type align: label alignment mode
         :param wrap: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
         :type wrap: label wrapping mode
+        :param layout: defaults to a shared :class:`StandardTextLayout` instance
+        :type layout: text layout instance
 
         Signals supported: ``'click'``
 
@@ -542,7 +549,7 @@ class Button(WidgetWrap):
         >>> wrapped_button.render((7,), focus=False).text[0].decode('utf-8')
         '< Lo… >'
         """
-        self._label = SelectableIcon(label, 0, align=align, wrap=wrap)
+        self._label = SelectableIcon(label, 0, align=align, wrap=wrap, layout=layout)
         cols = Columns(
             [
                 (Sizing.FIXED, 1, self.button_left),

@@ -35,7 +35,7 @@ class Text(Widget):
         markup,
         align: Literal["left", "center", "right"] | Align = Align.LEFT,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
-        layout=None,
+        layout: text_layout.TextLayout | None = None,
     ) -> None:
         """
         :param markup: content of text widget, one of:
