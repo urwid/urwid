@@ -34,11 +34,13 @@ from .text import Text
 from .widget import WidgetWrap
 
 if typing.TYPE_CHECKING:
-    from collections.abc import MutableSequence
+    from collections.abc import Callable, MutableSequence
 
-    from typing_extensions import Literal
+    from typing_extensions import Literal, Self
 
     from urwid.canvas import TextCanvas
+
+    _T = typing.TypeVar("_T")
 
 
 class SelectableIcon(Text):
@@ -124,7 +126,7 @@ class CheckBox(WidgetWrap):
     def sizing(self):
         return frozenset([Sizing.FLOW])
 
-    states: typing.ClassVar[dict[bool | Literal["mixed"], str]] = {
+    states: typing.ClassVar[dict[bool | Literal["mixed"], SelectableIcon]] = {
         True: SelectableIcon("[X]", 1),
         False: SelectableIcon("[ ]", 1),
         "mixed": SelectableIcon("[#]", 1),
@@ -141,8 +143,8 @@ class CheckBox(WidgetWrap):
         label,
         state: bool | Literal["mixed"] = False,
         has_mixed: bool = False,
-        on_state_change=None,
-        user_data=None,
+        on_state_change: Callable[[Self, bool, _T], typing.Any] | Callable[[Self, bool], typing.Any] | None = None,
+        user_data: _T | None = None,
         checked_symbol: str | None = None,
     ):
         """
@@ -368,7 +370,7 @@ class CheckBox(WidgetWrap):
 
 
 class RadioButton(CheckBox):
-    states: typing.ClassVar[dict[bool | Literal["mixed"], str]] = {
+    states: typing.ClassVar[dict[bool | Literal["mixed"], SelectableIcon]] = {
         True: SelectableIcon("(X)", 1),
         False: SelectableIcon("( )", 1),
         "mixed": SelectableIcon("(#)", 1),
@@ -380,8 +382,8 @@ class RadioButton(CheckBox):
         group: MutableSequence[CheckBox],
         label,
         state: bool | Literal["mixed", "first True"] = "first True",
-        on_state_change=None,
-        user_data=None,
+        on_state_change: Callable[[Self, bool, _T], typing.Any] | Callable[[Self, bool], typing.Any] | None = None,
+        user_data: _T | None = None,
     ) -> None:
         """
         :param group: list for radio buttons in same group
@@ -498,7 +500,12 @@ class Button(WidgetWrap):
 
     signals: typing.ClassVar[list[str]] = ["click"]
 
-    def __init__(self, label, on_press=None, user_data=None) -> None:
+    def __init__(
+        self,
+        label,
+        on_press: Callable[[Self, _T], typing.Any] | Callable[[Self], typing.Any] | None = None,
+        user_data: _T | None = None,
+    ) -> None:
         """
         :param label: markup for button label
         :param on_press: shorthand for connect_signal()
