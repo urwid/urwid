@@ -505,12 +505,19 @@ class Button(WidgetWrap):
         label,
         on_press: Callable[[Self, _T], typing.Any] | Callable[[Self], typing.Any] | None = None,
         user_data: _T | None = None,
+        *,
+        align: Literal["left", "center", "right"] | Align = Align.LEFT,
+        wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
     ) -> None:
         """
         :param label: markup for button label
         :param on_press: shorthand for connect_signal()
                          function call for a single callback
         :param user_data: user_data for on_press
+        :param align: typically ``'left'``, ``'center'`` or ``'right'``
+        :type align: label alignment mode
+        :param wrap: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
+        :type wrap: label wrapping mode
 
         Signals supported: ``'click'``
 
@@ -527,9 +534,15 @@ class Button(WidgetWrap):
         <Button selectable flow widget 'Ok'>
         >>> b = Button("Cancel")
         >>> b.render((15,), focus=True).text # ... = b in Python 3
-        [...'< Cancel      >']
+        [b'< Cancel      >']
+        >>> aligned_button = Button("Test", align=Align.CENTER)
+        >>> aligned_button.render((10,), focus=True).text
+        [b'<  Test  >']
+        >>> wrapped_button = Button("Long label", wrap=WrapMode.ELLIPSIS)
+        >>> wrapped_button.render((7,), focus=False).text[0].decode('utf-8')
+        '< Lo… >'
         """
-        self._label = SelectableIcon("", 0)
+        self._label = SelectableIcon(label, 0, align=align, wrap=wrap)
         cols = Columns(
             [
                 (Sizing.FIXED, 1, self.button_left),
@@ -544,8 +557,6 @@ class Button(WidgetWrap):
         # in to the constructor.  Just convert it to the new way:
         if on_press:
             connect_signal(self, "click", on_press, user_data)
-
-        self.set_label(label)
 
     def _repr_words(self) -> list[str]:
         # include button.label in repr(button)
@@ -564,7 +575,7 @@ class Button(WidgetWrap):
         """
         self._label.set_text(label)
 
-    def get_label(self):
+    def get_label(self) -> str:
         """
         Return label text.
 
