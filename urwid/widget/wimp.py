@@ -29,7 +29,7 @@ from urwid.text_layout import calc_coords
 from urwid.util import is_mouse_press
 
 from .columns import Columns
-from .constants import Sizing
+from .constants import Align, Sizing, WrapMode
 from .text import Text
 from .widget import WidgetWrap
 
@@ -45,18 +45,28 @@ class SelectableIcon(Text):
     ignore_focus = False
     _selectable = True
 
-    def __init__(self, text, cursor_position=0):
+    def __init__(
+        self,
+        text,
+        cursor_position: int = 0,
+        align: Literal["left", "center", "right"] | Align = Align.LEFT,
+        wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
+    ) -> None:
         """
         :param text: markup for this widget; see :class:`Text` for
                      description of text markup
         :param cursor_position: position the cursor will appear in the
                                 text when this widget is in focus
+        :param align: typically ``'left'``, ``'center'`` or ``'right'``
+        :type align: text alignment mode
+        :param wrap: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
+        :type wrap: text wrapping mode
 
         This is a text widget that is selectable.  A cursor
         displayed at a fixed location in the text when in focus.
         This widget has no special handling of keyboard or mouse input.
         """
-        super().__init__(text)
+        super().__init__(text, align=align, wrap=wrap)
         self._cursor_position = cursor_position
 
     def render(self, size: tuple[int], focus: bool = False) -> TextCanvas | CompositeCanvas:
