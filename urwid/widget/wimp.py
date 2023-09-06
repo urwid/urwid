@@ -29,34 +29,50 @@ from urwid.text_layout import calc_coords
 from urwid.util import is_mouse_press
 
 from .columns import Columns
-from .constants import Sizing
+from .constants import Align, Sizing, WrapMode
 from .text import Text
 from .widget import WidgetWrap
 
 if typing.TYPE_CHECKING:
-    from collections.abc import MutableSequence
+    from collections.abc import Callable, MutableSequence
 
-    from typing_extensions import Literal
+    from typing_extensions import Literal, Self
 
     from urwid.canvas import TextCanvas
+    from urwid.text_layout import TextLayout
+
+    _T = typing.TypeVar("_T")
 
 
 class SelectableIcon(Text):
     ignore_focus = False
     _selectable = True
 
-    def __init__(self, text, cursor_position=0):
+    def __init__(
+        self,
+        text,
+        cursor_position: int = 0,
+        align: Literal["left", "center", "right"] | Align = Align.LEFT,
+        wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
+        layout: TextLayout | None = None,
+    ) -> None:
         """
         :param text: markup for this widget; see :class:`Text` for
                      description of text markup
         :param cursor_position: position the cursor will appear in the
                                 text when this widget is in focus
+        :param align: typically ``'left'``, ``'center'`` or ``'right'``
+        :type align: text alignment mode
+        :param wrap: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
+        :type wrap: text wrapping mode
+        :param layout: defaults to a shared :class:`StandardTextLayout` instance
+        :type layout: text layout instance
 
         This is a text widget that is selectable.  A cursor
         displayed at a fixed location in the text when in focus.
         This widget has no special handling of keyboard or mouse input.
         """
-        super().__init__(text)
+        super().__init__(text, align=align, wrap=wrap, layout=layout)
         self._cursor_position = cursor_position
 
     def render(self, size: tuple[int], focus: bool = False) -> TextCanvas | CompositeCanvas:
@@ -114,7 +130,7 @@ class CheckBox(WidgetWrap):
     def sizing(self):
         return frozenset([Sizing.FLOW])
 
-    states: typing.ClassVar[dict[bool | Literal["mixed"], str]] = {
+    states: typing.ClassVar[dict[bool | Literal["mixed"], SelectableIcon]] = {
         True: SelectableIcon("[X]", 1),
         False: SelectableIcon("[ ]", 1),
         "mixed": SelectableIcon("[#]", 1),
@@ -131,8 +147,8 @@ class CheckBox(WidgetWrap):
         label,
         state: bool | Literal["mixed"] = False,
         has_mixed: bool = False,
-        on_state_change=None,
-        user_data=None,
+        on_state_change: Callable[[Self, bool, _T], typing.Any] | Callable[[Self, bool], typing.Any] | None = None,
+        user_data: _T | None = None,
         checked_symbol: str | None = None,
     ):
         """
@@ -358,7 +374,7 @@ class CheckBox(WidgetWrap):
 
 
 class RadioButton(CheckBox):
-    states: typing.ClassVar[dict[bool | Literal["mixed"], str]] = {
+    states: typing.ClassVar[dict[bool | Literal["mixed"], SelectableIcon]] = {
         True: SelectableIcon("(X)", 1),
         False: SelectableIcon("( )", 1),
         "mixed": SelectableIcon("(#)", 1),
@@ -370,8 +386,8 @@ class RadioButton(CheckBox):
         group: MutableSequence[CheckBox],
         label,
         state: bool | Literal["mixed", "first True"] = "first True",
-        on_state_change=None,
-        user_data=None,
+        on_state_change: Callable[[Self, bool, _T], typing.Any] | Callable[[Self, bool], typing.Any] | None = None,
+        user_data: _T | None = None,
     ) -> None:
         """
         :param group: list for radio buttons in same group
@@ -488,12 +504,27 @@ class Button(WidgetWrap):
 
     signals: typing.ClassVar[list[str]] = ["click"]
 
-    def __init__(self, label, on_press=None, user_data=None) -> None:
+    def __init__(
+        self,
+        label,
+        on_press: Callable[[Self, _T], typing.Any] | Callable[[Self], typing.Any] | None = None,
+        user_data: _T | None = None,
+        *,
+        align: Literal["left", "center", "right"] | Align = Align.LEFT,
+        wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
+        layout: TextLayout | None = None,
+    ) -> None:
         """
         :param label: markup for button label
         :param on_press: shorthand for connect_signal()
                          function call for a single callback
         :param user_data: user_data for on_press
+        :param align: typically ``'left'``, ``'center'`` or ``'right'``
+        :type align: label alignment mode
+        :param wrap: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
+        :type wrap: label wrapping mode
+        :param layout: defaults to a shared :class:`StandardTextLayout` instance
+        :type layout: text layout instance
 
         Signals supported: ``'click'``
 
@@ -510,9 +541,15 @@ class Button(WidgetWrap):
         <Button selectable flow widget 'Ok'>
         >>> b = Button("Cancel")
         >>> b.render((15,), focus=True).text # ... = b in Python 3
-        [...'< Cancel      >']
+        [b'< Cancel      >']
+        >>> aligned_button = Button("Test", align=Align.CENTER)
+        >>> aligned_button.render((10,), focus=True).text
+        [b'<  Test  >']
+        >>> wrapped_button = Button("Long label", wrap=WrapMode.ELLIPSIS)
+        >>> wrapped_button.render((7,), focus=False).text[0].decode('utf-8')
+        '< Lo… >'
         """
-        self._label = SelectableIcon("", 0)
+        self._label = SelectableIcon(label, 0, align=align, wrap=wrap, layout=layout)
         cols = Columns(
             [
                 (Sizing.FIXED, 1, self.button_left),
@@ -527,8 +564,6 @@ class Button(WidgetWrap):
         # in to the constructor.  Just convert it to the new way:
         if on_press:
             connect_signal(self, "click", on_press, user_data)
-
-        self.set_label(label)
 
     def _repr_words(self) -> list[str]:
         # include button.label in repr(button)
@@ -547,7 +582,7 @@ class Button(WidgetWrap):
         """
         self._label.set_text(label)
 
-    def get_label(self):
+    def get_label(self) -> str:
         """
         Return label text.
 
