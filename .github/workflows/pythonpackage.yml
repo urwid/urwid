@@ -23,6 +23,7 @@ jobs:
         uses: actions/setup-python@v4.7.0
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip wheel
@@ -62,6 +63,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
+          cache: 'pip'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -80,6 +82,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
+          cache: 'pip'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -98,6 +101,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
+          cache: 'pip'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -144,6 +148,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
+          name: wheels
 
   build_sdist:
     name: Build source distribution
@@ -159,7 +164,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -U twine build
+        run: pip install -U build
 
       - name: Build sdist
         run:  python -m build -s
@@ -167,6 +172,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           path: dist/*.tar.gz
+          name: wheels
 
   Metadata:
     name: Validate metadata
@@ -178,6 +184,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
+          cache: 'pip'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -185,8 +192,8 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           # unpacks default artifact into dist/
-          # if `name: artifact` is omitted, the action will create extra parent dir
-          name: artifact
+          # if `name: wheels` is omitted, the action will create extra parent dir
+          name: wheels
           path: dist
       - name: Validate metadata
         run: |
@@ -195,7 +202,7 @@ jobs:
   upload_pypi:
     needs: [ build_wheels, build_sdist, Metadata ]
     # upload to PyPI on every tag
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    if: github.event_name == 'push' && github.ref_type == 'tag'
     # alternatively, to publish when a GitHub Release is created, use the following rule:
     # if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-latest
@@ -208,8 +215,8 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           # unpacks default artifact into dist/
-          # if `name: artifact` is omitted, the action will create extra parent dir
-          name: artifact
+          # if `name: wheels` is omitted, the action will create extra parent dir
+          name: wheels
           path: dist
 
       - name: Publish package distributions to PyPI
