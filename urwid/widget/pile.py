@@ -29,7 +29,15 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
     _sizing = frozenset([Sizing.FLOW, Sizing.BOX])
 
-    def __init__(self, widget_list: Iterable[Widget], focus_item: Widget | int | None = None) -> None:
+    def __init__(
+        self,
+        widget_list: Iterable[
+            Widget
+            | tuple[Literal["pack", WHSettings.PACK] | int, Widget]
+            | tuple[Literal["weight", WHSettings.WEIGHT], int, Widget]
+        ],
+        focus_item: Widget | int | None = None,
+    ) -> None:
         """
         :param widget_list: child widgets
         :type widget_list: iterable
