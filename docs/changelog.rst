@@ -5,7 +5,7 @@ Changelog
 Urwid 2.2.0
 ===========
 
-2022-09-21
+2023-09-21
 
 * Python 3.7+ migration, Python < 3.7 support dropped
 
