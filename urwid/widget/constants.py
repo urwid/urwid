@@ -51,8 +51,8 @@ class WHSettings(str, enum.Enum):
     GIVEN = "given"
     RELATIVE = "relative"
     WEIGHT = "weight"
-    CLIP = WrapMode.CLIP  # Used as "given" for widgets with fixed width (with clipping part of it)
-    FLOW = Sizing.FLOW  # Used as pack for flow widgets
+    CLIP = "clip"  # Used as "given" for widgets with fixed width (with clipping part of it)
+    FLOW = "flow"  # Used as pack for flow widgets
 
 
 RELATIVE_100 = (WHSettings.RELATIVE, 100)

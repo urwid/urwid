@@ -81,15 +81,15 @@ class Padding(WidgetDecoration):
         Clipping Mode: (width= ``'clip'``)
         In clipping mode this padding widget will behave as a flow
         widget and self.original_widget will be treated as a fixed
-        widget.  self.original_widget will will be clipped to fit
+        widget.  self.original_widget will be clipped to fit
         the available number of columns.  For example if align is
         ``'left'`` then self.original_widget may be clipped on the right.
 
-        >>> from urwid import Divider, Text
+        >>> from urwid import Divider, Text, BigText, FontRegistry
         >>> size = (7,)
         >>> def pr(w):
         ...     for t in w.render(size).text:
-        ...         print(f"|{t.decode('ascii')}|" )
+        ...         print(f"|{t.decode('utf-8')}|" )
         >>> pr(Padding(Text(u"Head"), ('relative', 20), 'pack'))
         | Head  |
         >>> pr(Padding(Divider(u"-"), left=2, right=1))
@@ -109,6 +109,10 @@ class Padding(WidgetDecoration):
         >>> pr(Padding(Text(u"hi\\nthere"), 'right', 'pack')) # pack text first
         |  hi   |
         |  there|
+        >>> pr(Padding(BigText("1,2,3", FontRegistry['Thin 3x3']()), width="clip"))
+        | ┐  ┌─┐|
+        | │  ┌─┘|
+        | ┴ ,└─ |
         """
         super().__init__(w)
 

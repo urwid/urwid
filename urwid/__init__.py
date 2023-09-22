@@ -57,6 +57,8 @@ from urwid.font import (
     HalfBlock6x5Font,
     HalfBlock7x7Font,
     HalfBlockHeavy6x5Font,
+    Sextant2x2Font,
+    Sextant3x3Font,
     Thin3x3Font,
     Thin4x3Font,
     Thin6x6Font,

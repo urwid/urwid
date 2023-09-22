@@ -129,6 +129,21 @@ class FontRegistry(type):
         """Get font by name if registered."""
         return self.__registered.get(item)
 
+    def __class_getitem__(cls, item: str) -> FontRegistry | None:
+        """Get font by name if registered.
+
+        This method is needed to get access to font from registry class.
+        >>> repr(FontRegistry["a"])
+        'None'
+        >>> font = FontRegistry["Thin 3x3"]()
+        >>> font.height
+        3
+        >>> canvas: TextCanvas = font.render("+")
+        >>> b'\\n'.join(canvas.text).decode('utf-8') == "  \\n ┼\\n  "
+        True
+        """
+        return cls.__registered.get(item)
+
     @property
     def registered(cls) -> Sequence[str]:
         """Registered font names in alphabetical order."""
