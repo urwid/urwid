@@ -136,12 +136,12 @@ class Edit(Text):
 
         Text returned includes the caption and edit_text, possibly masked.
 
-        >>> Edit(u"What? ","oh, nothing.").get_text() # ... = u in Python 2
-        (...'What? oh, nothing.', [])
+        >>> Edit(u"What? ","oh, nothing.").get_text()
+        ('What? oh, nothing.', [])
         >>> Edit(('bright',u"user@host:~$ "),"ls").get_text()
-        (...'user@host:~$ ls', [('bright', 13)])
+        ('user@host:~$ ls', [('bright', 13)])
         >>> Edit(u"password:", u"seekrit", mask=u"*").get_text()
-        (...'password:*******', [])
+        ('password:*******', [])
         """
 
         if self._mask is None:
@@ -584,9 +584,10 @@ class Edit(Text):
         Render edit widget and return canvas.  Include cursor when in
         focus.
 
-        >>> c = Edit("? ","yes").render((10,), focus=True)
-        >>> c.text # ... = b in Python 3
-        [...'? yes     ']
+        >>> edit = Edit("? ","yes")
+        >>> c = edit.render((10,), focus=True)
+        >>> c.text
+        [b'? yes     ']
         >>> c.cursor
         (5, 0)
         """
@@ -604,7 +605,7 @@ class Edit(Text):
         return canv
 
     def get_line_translation(self, maxcol: int, ta=None):
-        trans = Text.get_line_translation(self, maxcol, ta)
+        trans = super().get_line_translation(maxcol, ta)
         if not self._shift_view_to_cursor:
             return trans
 
@@ -652,7 +653,7 @@ class Edit(Text):
 class IntEdit(Edit):
     """Edit widget for integer values"""
 
-    def valid_char(self, ch):
+    def valid_char(self, ch: str) -> bool:
         """
         Return true for decimal digits.
         """
