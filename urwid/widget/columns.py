@@ -33,7 +33,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self,
         widget_list: Iterable[
             Widget
-            | tuple[Literal["pack", WHSettings.PACK], Widget]
+            | tuple[Literal["pack", WHSettings.PACK] | int, Widget]
             | tuple[Literal["weight", WHSettings.WEIGHT], int, Widget]
         ],
         dividechars: int = 0,

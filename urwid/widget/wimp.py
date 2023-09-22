@@ -75,7 +75,7 @@ class SelectableIcon(Text):
         super().__init__(text, align=align, wrap=wrap, layout=layout)
         self._cursor_position = cursor_position
 
-    def render(self, size: tuple[int], focus: bool = False) -> TextCanvas | CompositeCanvas:
+    def render(self, size: tuple[int], focus: bool = False) -> TextCanvas | CompositeCanvas:  # type: ignore[override]
         """
         Render the text content of this widget with a cursor when
         in focus.
@@ -91,7 +91,7 @@ class SelectableIcon(Text):
         >>> si.render((2,), focus=True).cursor
         (0, 1)
         """
-        c = super().render(size, focus)
+        c: TextCanvas | CompositeCanvas = super().render(size, focus)
         if focus:
             # create a new canvas so we can add a cursor
             c = CompositeCanvas(c)
@@ -142,12 +142,66 @@ class CheckBox(WidgetWrap):
     # (this variable is picked up by the MetaSignals metaclass)
     signals: typing.ClassVar[list[str]] = ["change", "postchange"]
 
+    @typing.overload
+    def __init__(
+        self,
+        label,
+        state: bool = False,
+        has_mixed: typing.Literal[False] = False,
+        on_state_change: Callable[[Self, bool, _T], typing.Any] | None = None,
+        user_data: _T = ...,
+        checked_symbol: str | None = ...,
+    ) -> None:
+        ...
+
+    @typing.overload
+    def __init__(
+        self,
+        label,
+        state: bool = False,
+        has_mixed: typing.Literal[False] = False,
+        on_state_change: Callable[[Self, bool], typing.Any] | None = None,
+        user_data: None = None,
+        checked_symbol: str | None = ...,
+    ) -> None:
+        ...
+
+    @typing.overload
+    def __init__(
+        self,
+        label: str,
+        state: typing.Literal["mixed"] | bool = False,
+        has_mixed: typing.Literal[True] = True,
+        on_state_change: Callable[[Self, bool | typing.Literal["mixed"], _T], typing.Any] | None = None,
+        user_data: _T = ...,
+        checked_symbol: str | None = ...,
+    ) -> None:
+        ...
+
+    @typing.overload
+    def __init__(
+        self,
+        label: str,
+        state: typing.Literal["mixed"] | bool = False,
+        has_mixed: typing.Literal[True] = True,
+        on_state_change: Callable[[Self, bool | typing.Literal["mixed"]], typing.Any] | None = None,
+        user_data: None = None,
+        checked_symbol: str | None = ...,
+    ) -> None:
+        ...
+
     def __init__(
         self,
         label,
         state: bool | Literal["mixed"] = False,
-        has_mixed: bool = False,
-        on_state_change: Callable[[Self, bool, _T], typing.Any] | Callable[[Self, bool], typing.Any] | None = None,
+        has_mixed: typing.Literal[False, True] = False,  # MyPy issue: Literal[True, False] is not equal `bool`
+        on_state_change: (
+            Callable[[Self, bool, _T], typing.Any]
+            | Callable[[Self, bool], typing.Any]
+            | Callable[[Self, bool | typing.Literal["mixed"], _T], typing.Any]
+            | Callable[[Self, bool | typing.Literal["mixed"]], typing.Any]
+            | None
+        ) = None,
         user_data: _T | None = None,
         checked_symbol: str | None = None,
     ):
@@ -201,7 +255,7 @@ class CheckBox(WidgetWrap):
         # Initial create expect no callbacks call, create explicit
         super().__init__(
             Columns(
-                [(Sizing.FIXED, self.reserve_columns, self.states[state]), self._label],
+                [(self.reserve_columns, self.states[state]), self._label],
                 focus_column=0,
             ),
         )
@@ -294,7 +348,7 @@ class CheckBox(WidgetWrap):
             self._emit("change", state)
         self._state = state
         # rebuild the display widget with the new state
-        self._w = Columns([(Sizing.FIXED, self.reserve_columns, self.states[state]), self._label], focus_column=0)
+        self._w = Columns([(self.reserve_columns, self.states[state]), self._label], focus_column=0)
         if do_callback:
             self._emit("postchange", old_state)
 
@@ -381,11 +435,33 @@ class RadioButton(CheckBox):
     }
     reserve_columns = 4
 
+    @typing.overload
     def __init__(
         self,
         group: MutableSequence[CheckBox],
         label,
-        state: bool | Literal["mixed", "first True"] = "first True",
+        state: bool | Literal["first True"] = ...,
+        on_state_change: Callable[[Self, bool, _T], typing.Any] | None = None,
+        user_data: _T = ...,
+    ) -> None:
+        ...
+
+    @typing.overload
+    def __init__(
+        self,
+        group: MutableSequence[CheckBox],
+        label,
+        state: bool | Literal["first True"] = ...,
+        on_state_change: Callable[[Self, bool], typing.Any] | None = None,
+        user_data: None = None,
+    ) -> None:
+        ...
+
+    def __init__(
+        self,
+        group: MutableSequence[CheckBox],
+        label,
+        state: bool | Literal["first True"] = "first True",
         on_state_change: Callable[[Self, bool, _T], typing.Any] | Callable[[Self, bool], typing.Any] | None = None,
         user_data: _T | None = None,
     ) -> None:
@@ -427,7 +503,7 @@ class RadioButton(CheckBox):
             state = not group
 
         self.group = group
-        super().__init__(label, state, False, on_state_change, user_data)
+        super().__init__(label, state, False, on_state_change, user_data)  # type: ignore[call-overload]
         group.append(self)
 
     def set_state(self, state: bool | Literal["mixed"], do_callback: bool = True) -> None:
@@ -504,6 +580,32 @@ class Button(WidgetWrap):
 
     signals: typing.ClassVar[list[str]] = ["click"]
 
+    @typing.overload
+    def __init__(
+        self,
+        label,
+        on_press: Callable[[Self, _T], typing.Any] | None = None,
+        user_data: _T = ...,
+        *,
+        align: Literal["left", "center", "right"] | Align = ...,
+        wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = ...,
+        layout: TextLayout | None = ...,
+    ) -> None:
+        ...
+
+    @typing.overload
+    def __init__(
+        self,
+        label,
+        on_press: Callable[[Self], typing.Any] | None = None,
+        user_data: None = None,
+        *,
+        align: Literal["left", "center", "right"] | Align = ...,
+        wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = ...,
+        layout: TextLayout | None = ...,
+    ) -> None:
+        ...
+
     def __init__(
         self,
         label,
@@ -551,11 +653,7 @@ class Button(WidgetWrap):
         """
         self._label = SelectableIcon(label, 0, align=align, wrap=wrap, layout=layout)
         cols = Columns(
-            [
-                (Sizing.FIXED, 1, self.button_left),
-                self._label,
-                (Sizing.FIXED, 1, self.button_right),
-            ],
+            [(1, self.button_left), self._label, (1, self.button_right)],
             dividechars=1,
         )
         super().__init__(cols)
