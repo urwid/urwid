@@ -2,6 +2,24 @@
 Changelog
 ---------
 
+Urwid 2.2.1
+===========
+
+2023-09-22
+
+Bug fixes 🕷
+
+* Fix: deep TextEnum was improperly resolved by @penguinolog in #609
+
+Documentation 🕮
+
+* Documentation: mention correct python versions by @penguinolog in #608
+
+Refactoring 🛠
+
+* Refactoring: use super() calls if possible by @penguinolog in #611
+* Typing: Extend wimp typing annotations by @penguinolog in #604
+
 Urwid 2.2.0
 ===========
 
