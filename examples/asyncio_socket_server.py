@@ -87,7 +87,7 @@ class AsyncScreen(Screen):
         self.writer = writer
         self.encoding = encoding
 
-        Screen.__init__(self, None, None)
+        super().__init__(None, None)
 
     _pending_task = None
 

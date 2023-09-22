@@ -116,7 +116,7 @@ class InputDialogDisplay(DialogDisplay):
         body = urwid.ListBox(urwid.SimpleListWalker([self.edit]))
         body = urwid.AttrWrap(body, 'selectable','focustext')
 
-        DialogDisplay.__init__(self, text, height, width, body)
+        super().__init__(text, height, width, body)
 
         self.frame.focus_position = 'body'
 
@@ -176,7 +176,7 @@ class ListDialogDisplay(DialogDisplay):
 
         lb = urwid.ListBox(urwid.SimpleListWalker(l))
         lb = urwid.AttrWrap( lb, "selectable" )
-        DialogDisplay.__init__(self, text, height, width, lb )
+        super().__init__(text, height, width, lb )
 
         self.frame.focus_position = 'body'
 
@@ -225,7 +225,7 @@ class CheckListDialogDisplay(ListDialogDisplay):
 class MenuItem(urwid.Text):
     """A custom widget for the --menu option"""
     def __init__(self, label):
-        urwid.Text.__init__(self, label)
+        super().__init__(label)
         self.state = False
     def selectable(self):
         return True
@@ -241,9 +241,9 @@ class MenuItem(urwid.Text):
         return False
     def get_state(self):
         return self.state
-    def get_label(self):
-        text, attr = self.get_text()
-        return text
+    def get_label(self) -> str:
+        """Just alias to text."""
+        return self.text
 
 
 def do_checklist(text, height, width, list_height, *items):
