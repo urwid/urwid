@@ -177,7 +177,7 @@ class TwistedScreen(Screen):
         # We will need these later
         self.terminalProtocol = terminalProtocol
         self.terminal = terminalProtocol.terminal
-        Screen.__init__(self)
+        super().__init__()
         self.colors = 16
         self._pal_escape = {}
         self.bright_is_bold = True

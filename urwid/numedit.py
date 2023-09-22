@@ -75,8 +75,7 @@ class NumEdit(Edit):
         >>> e.keypress(size, '1')
         >>> assert e.edit_text == "101"
         """
-        (maxcol,) = size
-        unhandled = Edit.keypress(self, (maxcol,), key)
+        unhandled = super().keypress(size, key)
 
         if not unhandled and self.trimLeadingZeros:
             # trim leading zeros

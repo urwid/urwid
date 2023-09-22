@@ -588,13 +588,12 @@ class Edit(Text):
         >>> c.cursor
         (5, 0)
         """
-        (maxcol,) = size
         self._shift_view_to_cursor = bool(focus)
 
-        canv: TextCanvas | CompositeCanvas = Text.render(self, (maxcol,))
+        canv: TextCanvas | CompositeCanvas = super().render(size)
         if focus:
             canv = CompositeCanvas(canv)
-            canv.cursor = self.get_cursor_coords((maxcol,))
+            canv.cursor = self.get_cursor_coords(size)
 
         # .. will need to FIXME if I want highlight to work again
         # if self.highlight:
@@ -684,8 +683,7 @@ class IntEdit(Edit):
         >>> print(e.edit_text)
         2
         """
-        (maxcol,) = size
-        unhandled = Edit.keypress(self, (maxcol,), key)
+        unhandled = super().keypress(size, key)
 
         if not unhandled:
             # trim leading zeros
