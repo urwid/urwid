@@ -1,0 +1,33 @@
+changelog:
+  exclude:
+    labels:
+      - "CI/CD"
+      - "Maintenance"
+      - "in progress"
+      - "tests"
+    authors:
+      - "dependabot[bot]"
+      - "dependabot"
+  categories:
+    - title: Breaking Changes ⚠
+      labels:
+        - "Breaking"
+    - title: New features 🗹
+      labels:
+        - "Feature"
+    - title: Deprecations ⚡
+      labels:
+        - "Deprecation"
+    - title: Bug fixes 🕷
+      labels:
+        - "bug"
+        - "regression"
+    - title: Documentation 🕮
+      labels:
+        - "docs"
+    - title: Refactoring 🛠
+      labels:
+        - "refactoring"
+    - title: Other Changes
+      labels:
+        - "*"
