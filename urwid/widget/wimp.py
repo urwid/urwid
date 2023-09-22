@@ -82,7 +82,7 @@ class SelectableIcon(Text):
 
         >>> si = SelectableIcon(u"[!]")
         >>> si
-        <SelectableIcon selectable flow widget '[!]'>
+        <SelectableIcon selectable fixed/flow widget '[!]'>
         >>> si.render((4,), focus=True).cursor
         (0, 0)
         >>> si = SelectableIcon("((*))", 2)
