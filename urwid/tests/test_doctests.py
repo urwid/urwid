@@ -38,6 +38,7 @@ def load_tests(loader, tests, ignore):
         urwid.numedit,
         urwid.monitored_list,
         urwid.raw_display,
+        urwid.font,
         'urwid.split_repr',  # override function with same name
         urwid.util,
         urwid.signals,
