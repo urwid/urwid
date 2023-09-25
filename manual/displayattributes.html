@@ -1,18 +1,17 @@
-
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en" data-content_root="../">
   <head>
     <meta charset="utf-8" />
-    <title>Display Attributes &#8212; Urwid 2.1.2</title>
-    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Display Attributes &#8212; Urwid 2.2.2</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=ec8d08c1" />
     
-    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/doctools.js"></script>
-    <script src="../_static/language_data.js"></script>
+    <script src="../_static/documentation_options.js?v=219dea72"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
     <script src="../_static/sidebar.js"></script>
     
@@ -33,8 +32,9 @@
         <li class="right" >
           <a href="encodings.html" title="Encodings Supported"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.2</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Display Attributes</a></li> 
       </ul>
     </div>  
 
@@ -43,8 +43,8 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="display-attributes">
-<span id="id1"></span><h1>Display Attributes<a class="headerlink" href="#display-attributes" title="Permalink to this headline">¶</a></h1>
+  <section id="display-attributes">
+<span id="id1"></span><h1>Display Attributes<a class="headerlink" href="#display-attributes" title="Link to this heading">¶</a></h1>
 <p>Urwid supports a number of common display attributes in monochrome, 16-color,
 88-color, 256-color, and 24-bit (true color) modes.</p>
 <p>You are encouraged to provide support for as many of these modes as you like, while
@@ -59,8 +59,8 @@ where <code class="docutils literal notranslate"><span class="pre">screen</span>
 <p class="admonition-title">See also</p>
 <p><a class="reference internal" href="../reference/display_modules.html#urwid.BaseScreen.register_palette" title="urwid.BaseScreen.register_palette"><code class="xref py py-meth docutils literal notranslate"><span class="pre">register_palette()</span> <span class="pre">reference</span></code></a>,</p>
 </div>
-<div class="section" id="using-display-attributes">
-<span id="id2"></span><h2>Using Display Attributes<a class="headerlink" href="#using-display-attributes" title="Permalink to this headline">¶</a></h2>
+<section id="using-display-attributes">
+<span id="id2"></span><h2>Using Display Attributes<a class="headerlink" href="#using-display-attributes" title="Link to this heading">¶</a></h2>
 <p>Once you have defined a palette you may use the its display attribute names
 anywhere that expects a display attribute.  When no display attribute is defined
 <code class="docutils literal notranslate"><span class="pre">None</span></code> is used as a default display attribute.</p>
@@ -70,8 +70,8 @@ background colors.</p>
 <a class="reference internal" href="../reference/attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrSpec</span></code></a> instance instead of a display attribute name.
 Using <a class="reference internal" href="../reference/attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrSpec</span></code></a> instances in your code may be trickier than using your
 screen’s palette because you must know which mode (number of colors) the screen is in.</p>
-<div class="section" id="text-markup">
-<span id="id3"></span><h3>Text Markup<a class="headerlink" href="#text-markup" title="Permalink to this headline">¶</a></h3>
+<section id="text-markup">
+<span id="id3"></span><h3>Text Markup<a class="headerlink" href="#text-markup" title="Link to this heading">¶</a></h3>
 <p>A <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widget can specify which display attributes each part of the
 text will use with the format defined in <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span> <span class="pre">class</span> <span class="pre">reference</span></code></a>.
 Some examples:</p>
@@ -102,9 +102,9 @@ display attribute <code class="docutils literal notranslate"><span class="pre">'
 <p>When markup is nested only the innermost attribute applies. Here <code class="docutils literal notranslate"><span class="pre">&quot;inside&quot;</span></code>
 has attribute <code class="docutils literal notranslate"><span class="pre">'attr2'</span></code> and all the rest of the text has attribute
 <code class="docutils literal notranslate"><span class="pre">'attr1'</span></code>.</p>
-</div>
-<div class="section" id="assigning-display-attributes-with-attrmap">
-<h3>Assigning Display Attributes with AttrMap<a class="headerlink" href="#assigning-display-attributes-with-attrmap" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="assigning-display-attributes-with-attrmap">
+<h3>Assigning Display Attributes with AttrMap<a class="headerlink" href="#assigning-display-attributes-with-attrmap" title="Link to this heading">¶</a></h3>
 <p>If you want a whole widget to be assigned a display attribute, or if you want to change
 one or more display attributes to other display attributes, you can wrap your widget
 in an <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a> widget.  <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets have no way to specify
@@ -131,17 +131,17 @@ appearing in the default display attribute.</p>
 This can be used to “highlight” one or more widgets to make your interface more
 user friendly.  To use this feature set the <code class="docutils literal notranslate"><span class="pre">focus_map</span></code> parameter when creating the
 <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a> widget.</p>
-</div>
-</div>
-<div class="section" id="foreground-and-background-settings">
-<span id="foreground-background"></span><h2>Foreground and Background Settings<a class="headerlink" href="#foreground-and-background-settings" title="Permalink to this headline">¶</a></h2>
-<table class="colwidths-given docutils align-default">
+</section>
+</section>
+<section id="foreground-and-background-settings">
+<span id="foreground-background"></span><h2>Foreground and Background Settings<a class="headerlink" href="#foreground-and-background-settings" title="Link to this heading">¶</a></h2>
+<table class="docutils align-default">
 <colgroup>
-<col style="width: 32%" />
-<col style="width: 21%" />
-<col style="width: 14%" />
-<col style="width: 14%" />
-<col style="width: 21%" />
+<col style="width: 31.5%" />
+<col style="width: 20.5%" />
+<col style="width: 13.7%" />
+<col style="width: 13.7%" />
+<col style="width: 20.5%" />
 </colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>Supported by Terminal</p></th>
@@ -220,8 +220,8 @@ user friendly.  To use this feature set the <code class="docutils literal notran
 </tr>
 </tbody>
 </table>
-<div class="section" id="standard-foreground-colors">
-<span id="standard-foreground"></span><h3>16 Standard Foreground Colors<a class="headerlink" href="#standard-foreground-colors" title="Permalink to this headline">¶</a></h3>
+<section id="standard-foreground-colors">
+<span id="standard-foreground"></span><h3>16 Standard Foreground Colors<a class="headerlink" href="#standard-foreground-colors" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">'black'</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">'dark</span> <span class="pre">red'</span></code></p></li>
@@ -240,9 +240,9 @@ user friendly.  To use this feature set the <code class="docutils literal notran
 <li><p><code class="docutils literal notranslate"><span class="pre">'light</span> <span class="pre">cyan'</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">'white'</span></code></p></li>
 </ul>
-</div>
-<div class="section" id="standard-background-colors">
-<span id="standard-background"></span><h3>8 Standard Background Colors<a class="headerlink" href="#standard-background-colors" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="standard-background-colors">
+<span id="standard-background"></span><h3>8 Standard Background Colors<a class="headerlink" href="#standard-background-colors" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">'black'</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">'dark</span> <span class="pre">red'</span></code></p></li>
@@ -253,9 +253,9 @@ user friendly.  To use this feature set the <code class="docutils literal notran
 <li><p><code class="docutils literal notranslate"><span class="pre">'dark</span> <span class="pre">cyan'</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">'light</span> <span class="pre">gray'</span></code></p></li>
 </ul>
-</div>
-<div class="section" id="default-foreground-and-background">
-<span id="default-foreground-background"></span><h3>Default Foreground and Background<a class="headerlink" href="#default-foreground-and-background" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="default-foreground-and-background">
+<span id="default-foreground-background"></span><h3>Default Foreground and Background<a class="headerlink" href="#default-foreground-and-background" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">'default'</span></code> (or simply <code class="docutils literal notranslate"><span class="pre">''</span></code>)</p></li>
 </ul>
@@ -265,9 +265,9 @@ terminal’s default color. For terminals with transparent backgrounds
 way to tell what the default colors are, so it is best to use default
 foregrounds and backgrounds together (not with other colors) to ensure good
 contrast.</p>
-</div>
-<div class="section" id="bold-underline-standout">
-<span id="id4"></span><h3>Bold, Underline, Standout<a class="headerlink" href="#bold-underline-standout" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="bold-underline-standout">
+<span id="id4"></span><h3>Bold, Underline, Standout<a class="headerlink" href="#bold-underline-standout" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">'bold'</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">'underline'</span></code></p></li>
@@ -285,9 +285,9 @@ Some terminals also will display bright colors in a bold font even if you don’
 specify bold. To inhibit this you can try setting <code class="docutils literal notranslate"><span class="pre">bright_is_bold=False</span></code> with
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">BaseScreen.set_terminal_properties()</span></code>, but it is not always supported.</p>
 <p><code class="docutils literal notranslate"><span class="pre">'standout'</span></code> is usually displayed as the foreground and background colors reversed.</p>
-</div>
-<div class="section" id="bright-background-colors">
-<span id="bright-background"></span><h3>“Bright” Background Colors<a class="headerlink" href="#bright-background-colors" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="bright-background-colors">
+<span id="bright-background"></span><h3>“Bright” Background Colors<a class="headerlink" href="#bright-background-colors" title="Link to this heading">¶</a></h3>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>Terminal support for bright background colors is spotty, and they generally
@@ -304,9 +304,9 @@ using the high-color versions <code class="docutils literal notranslate"><span c
 <li><p><code class="docutils literal notranslate"><span class="pre">'light</span> <span class="pre">cyan'</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">'white'</span></code></p></li>
 </ul>
-</div>
-<div class="section" id="bit-foreground-and-background-colors">
-<span id="bit-foreground-background"></span><span id="high-colors"></span><h3>24-Bit Foreground and Background Colors<a class="headerlink" href="#bit-foreground-and-background-colors" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="bit-foreground-and-background-colors">
+<span id="bit-foreground-background"></span><span id="high-colors"></span><h3>24-Bit Foreground and Background Colors<a class="headerlink" href="#bit-foreground-and-background-colors" title="Link to this heading">¶</a></h3>
 <p>In 24-bit color mode, any hex color code of the form #rrggbb can be used to
 specify a precise RGB value for foreground and background colors.  Support for
 24-bit color mode varies widely among terminal programs.  Furthermore, terminal
@@ -314,11 +314,11 @@ multiplexers such as tmux and screen can sometimes interfere with the operation
 of 24-bit color mode unless properly configured.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p>The <a class="reference external" href="http://excess.org/urwid/browser/examples/palette_test.py">palette_test.py</a> example program</p>
+<p>The <a class="reference external" href="https://github.com/urwid/urwid/blob/master/examples/palette_test.py">palette_test.py</a> example program</p>
 </div>
-</div>
-<div class="section" id="color-foreground-and-background-colors">
-<span id="id5"></span><h3>256-Color Foreground and Background Colors<a class="headerlink" href="#color-foreground-and-background-colors" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="color-foreground-and-background-colors">
+<span id="id5"></span><h3>256-Color Foreground and Background Colors<a class="headerlink" href="#color-foreground-and-background-colors" title="Link to this heading">¶</a></h3>
 <p>In 256-color mode you have the 16 basic colors, a 6 * 6 * 6 color cube and a gray
 scale with 24 entries (white and black not included).</p>
 <p>The color cube is weighted towards the brighter colors, with RGB points at <code class="docutils literal notranslate"><span class="pre">0</span></code>,
@@ -331,11 +331,11 @@ gray scale entries <code class="docutils literal notranslate"><span class="pre">
 <code class="docutils literal notranslate"><span class="pre">'g100'</span></code> (white from color cube).</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p>The <a class="reference external" href="http://excess.org/urwid/browser/examples/palette_test.py">palette_test.py</a> example program</p>
+<p>The <a class="reference external" href="https://github.com/urwid/urwid/blob/master/examples/palette_test.py">palette_test.py</a> example program</p>
 </div>
-</div>
-<div class="section" id="id7">
-<span id="id8"></span><h3>88-Color Foreground and Background Colors<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="id7">
+<span id="id8"></span><h3>88-Color Foreground and Background Colors<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h3>
 <p>In 88-color mode you have the 16 basic colors, a 4 * 4 * 4 color cube and a gray
 scale with 8 entries (white and black not included).</p>
 <p>The color cube is weighted towards the brighter colors, with RGB points at <code class="docutils literal notranslate"><span class="pre">0</span></code>,
@@ -347,23 +347,23 @@ gray scale entries <code class="docutils literal notranslate"><span class="pre">
 <code class="docutils literal notranslate"><span class="pre">'g100'</span></code> (white from color cube).</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p>The <a class="reference external" href="http://excess.org/urwid/browser/examples/palette_test.py">palette_test.py</a> example program</p>
+<p>The <a class="reference external" href="https://github.com/urwid/urwid/blob/master/examples/palette_test.py">palette_test.py</a> example program</p>
 </div>
-</div>
-<div class="section" id="rgb-palette-setting">
-<span id="id10"></span><h3>RGB Palette Setting<a class="headerlink" href="#rgb-palette-setting" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="rgb-palette-setting">
+<span id="id10"></span><h3>RGB Palette Setting<a class="headerlink" href="#rgb-palette-setting" title="Link to this heading">¶</a></h3>
 <p>A few terminals have the ability to customize the terminal palette’s RGB
 values with <a class="reference internal" href="../reference/display_modules.html#urwid.raw_display.Screen.modify_terminal_palette" title="urwid.raw_display.Screen.modify_terminal_palette"><code class="xref py py-meth docutils literal notranslate"><span class="pre">raw_display.Screen.modify_terminal_palette()</span></code></a>.
 There is no automatic way to tell if this is supported by a user’s
 terminal, so this feature shouldn’t be relied on.</p>
 <p><a class="reference internal" href="../reference/display_modules.html#urwid.raw_display.Screen.reset_default_terminal_palette" title="urwid.raw_display.Screen.reset_default_terminal_palette"><code class="xref py py-meth docutils literal notranslate"><span class="pre">raw_display.Screen.reset_default_terminal_palette()</span></code></a> is used to
 reset the palette in the <code class="docutils literal notranslate"><span class="pre">palette_test.py</span></code> example program when switching modes.</p>
-</div>
-</div>
-<div class="section" id="recommended-combinations">
-<h2>Recommended Combinations<a class="headerlink" href="#recommended-combinations" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="neutral-backgrounds">
-<h3>Neutral Backgrounds<a class="headerlink" href="#neutral-backgrounds" title="Permalink to this headline">¶</a></h3>
+</section>
+</section>
+<section id="recommended-combinations">
+<h2>Recommended Combinations<a class="headerlink" href="#recommended-combinations" title="Link to this heading">¶</a></h2>
+<section id="neutral-backgrounds">
+<h3>Neutral Backgrounds<a class="headerlink" href="#neutral-backgrounds" title="Link to this heading">¶</a></h3>
 <img alt="../_images/safe_combinations1.png" src="../_images/safe_combinations1.png" />
 <p>Choose colors that are fairly neutral with medium contrast for most of
 your application. It is good to use one background as a default for text,
@@ -371,18 +371,19 @@ another for edit boxes and a third for selected edit boxes.</p>
 <p>Foreground colors shown here in bold text will appear as bold text on
 many terminals. Bold fonts are often more difficult to read so those
 foreground colours should be used sparingly.</p>
-</div>
-<div class="section" id="bright-backgrounds">
-<h3>Bright Backgrounds<a class="headerlink" href="#bright-backgrounds" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="bright-backgrounds">
+<h3>Bright Backgrounds<a class="headerlink" href="#bright-backgrounds" title="Link to this heading">¶</a></h3>
 <img alt="../_images/bright_combinations1.png" src="../_images/bright_combinations1.png" />
 <p>Use bright colors to draw attention to small areas with important
 information. They are good for buttons and selected widgets (other than
 edit boxes).</p>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
+            <div class="clearer"></div>
           </div>
         </div>
       </div>
@@ -420,12 +421,16 @@ edit boxes).</p>
 </ul>
 
     </ul>
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="encodings.html"
-                        title="previous chapter">Encodings Supported</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="canvascache.html"
-                        title="next chapter">Canvas Cache</a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="encodings.html"
+                          title="previous chapter">Encodings Supported</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="canvascache.html"
+                          title="next chapter">Canvas Cache</a></p>
+  </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -437,13 +442,17 @@ edit boxes).</p>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
+<div id="sidebarbutton" title="Collapse sidebar">
+<span>«</span>
+</div>
+
       </div>
       <div class="clearer"></div>
     </div>
@@ -459,13 +468,14 @@ edit boxes).</p>
         <li class="right" >
           <a href="encodings.html" title="Encodings Supported"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.2</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Display Attributes</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
     </div>
   </body>
 </html>

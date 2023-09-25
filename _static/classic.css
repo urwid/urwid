@@ -4,7 +4,7 @@
  *
  * Sphinx stylesheet -- classic theme.
  *
- * :copyright: Copyright 2007-2020 by the Sphinx team, see AUTHORS.
+ * :copyright: Copyright 2007-2023 by the Sphinx team, see AUTHORS.
  * :license: BSD, see LICENSE for details.
  *
  */
@@ -28,6 +28,7 @@ body {
 }
 
 div.document {
+    display: flex;
     background-color: #263193;
 }
 
@@ -119,9 +120,36 @@ div.sphinxsidebar input {
 }
 
 
+
+    
+    
+
 /* for collapsible sidebar */
-div#sidebarbutton {
+#sidebarbutton {
+    height: 100%;
     background-color: #263193;
+    margin-left: 0;
+    color: #FFFFFF;
+    border-left: 1px solid #181035;
+    font-size: 1.2em;
+    cursor: pointer;
+    padding-top: 1px;
+    float: right;
+    display: table; /* for vertically centering the <span> */
+}
+
+#sidebarbutton:hover {
+    background-color: #181035;
+}
+
+#sidebarbutton span {
+    display: table-cell;
+    vertical-align: middle;
+}
+
+div.sphinxsidebarwrapper {
+    float: left;
+    margin-right: 0;
 }
 
 
@@ -210,6 +238,8 @@ div.seealso {
     border: 1px solid #ff6;
 }
 
+nav.contents,
+aside.topic,
 div.topic {
     background-color: #eee;
 }
@@ -229,8 +259,8 @@ p.admonition-title:after {
 
 pre {
     padding: 5px;
-    background-color: #eeffcc;
-    color: #333333;
+    background-color: unset;
+    color: unset;
     line-height: 120%;
     border: 1px solid #ac9;
     border-left: none;

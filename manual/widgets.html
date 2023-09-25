@@ -1,18 +1,17 @@
-
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en" data-content_root="../">
   <head>
     <meta charset="utf-8" />
-    <title>Widgets &#8212; Urwid 2.1.2</title>
-    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Widgets &#8212; Urwid 2.2.2</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=ec8d08c1" />
     
-    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/doctools.js"></script>
-    <script src="../_static/language_data.js"></script>
+    <script src="../_static/documentation_options.js?v=219dea72"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
     <script src="../_static/sidebar.js"></script>
     
@@ -33,8 +32,9 @@
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.2</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Widgets</a></li> 
       </ul>
     </div>  
 
@@ -43,10 +43,10 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="widgets">
-<h1>Widgets<a class="headerlink" href="#widgets" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="widget-layout">
-<span id="id1"></span><h2>Widget Layout<a class="headerlink" href="#widget-layout" title="Permalink to this headline">¶</a></h2>
+  <section id="widgets">
+<h1>Widgets<a class="headerlink" href="#widgets" title="Link to this heading">¶</a></h1>
+<section id="widget-layout">
+<span id="id1"></span><h2>Widget Layout<a class="headerlink" href="#widget-layout" title="Link to this heading">¶</a></h2>
 <p>Urwid uses widgets to divide up the available screen space. This makes it easy
 to create a fluid interface that moves and changes with the user’s terminal and
 font size.</p>
@@ -84,9 +84,9 @@ example <em>(b)</em> ‘s focus widget is <em>(e)</em> and <em>(e)</em> ‘s foc
 <li><p><em>(a)</em> has an opportunity to handle the keypress if it was returned from
 <em>(b)</em></p></li>
 </ol>
-</div>
-<div class="section" id="box-flow-and-fixed-widgets">
-<h2>Box, Flow and Fixed Widgets<a class="headerlink" href="#box-flow-and-fixed-widgets" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="box-flow-and-fixed-widgets">
+<h2>Box, Flow and Fixed Widgets<a class="headerlink" href="#box-flow-and-fixed-widgets" title="Link to this heading">¶</a></h2>
 <p>The size of a widget is measured in screen columns and rows. Widgets that are
 given an exact number of screen columns and rows are called box widgets. The
 topmost widget is always a box widget.</p>
@@ -98,12 +98,12 @@ how many screen rows they need.</p>
 <p>Occasionally it is also useful to have a widget that knows how many screen
 columns and rows it requires, regardless of the space available. This is
 called a fixed widget.</p>
-<table class="colwidths-given docutils align-default" id="id6">
-<caption><span class="caption-text">How a Widget’s Size is Determined</span><a class="headerlink" href="#id6" title="Permalink to this table">¶</a></caption>
+<table class="docutils align-default" id="id6">
+<caption><span class="caption-text">How a Widget’s Size is Determined</span><a class="headerlink" href="#id6" title="Link to this table">¶</a></caption>
 <colgroup>
-<col style="width: 20%" />
-<col style="width: 40%" />
-<col style="width: 40%" />
+<col style="width: 20.0%" />
+<col style="width: 40.0%" />
+<col style="width: 40.0%" />
 </colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>sizing mode</p></th>
@@ -133,17 +133,17 @@ called a fixed widget.</p>
 calculate their <code class="xref py py-attr docutils literal notranslate"><span class="pre">maxrow</span></code> based on the <code class="xref py py-attr docutils literal notranslate"><span class="pre">maxcol</span></code> value.</p>
 <p>Fixed widgets expect the value <code class="docutils literal notranslate"><span class="pre">()</span></code> to be passed in to functions that take
 a size because they know their <code class="xref py py-attr docutils literal notranslate"><span class="pre">maxcol</span></code> and <code class="xref py py-attr docutils literal notranslate"><span class="pre">maxrow</span></code> values.</p>
-</div>
-<div class="section" id="included-widgets">
-<span id="basic-grafic-widgets"></span><h2>Included Widgets<a class="headerlink" href="#included-widgets" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="included-widgets">
+<span id="basic-grafic-widgets"></span><h2>Included Widgets<a class="headerlink" href="#included-widgets" title="Link to this heading">¶</a></h2>
 <p><a class="reference internal" href="../reference/widget.html#widget-classes"><span class="std std-ref">Widget class reference</span></a></p>
 <img alt="../_images/urwid_widgets_1.png" src="../_images/urwid_widgets_1.png" />
 <p>Basic and graphic widgets are the content with which users interact. They may
 also be used as part of custom widgets you create.</p>
 <img alt="../_images/urwid_widgets_2.png" src="../_images/urwid_widgets_2.png" />
-</div>
-<div class="section" id="decoration-widgets">
-<span id="id2"></span><h2>Decoration Widgets<a class="headerlink" href="#decoration-widgets" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="decoration-widgets">
+<span id="id2"></span><h2>Decoration Widgets<a class="headerlink" href="#decoration-widgets" title="Link to this heading">¶</a></h2>
 <p>Decoration widgets alter the appearance or position of a single other widget.
 The widget they wrap is available as the
 <code class="xref py py-attr docutils literal notranslate"><span class="pre">original_widget</span></code> property.
@@ -152,9 +152,9 @@ If you might be using more than one decoration widget you may use the
 “most” original_widget.
 <a class="reference internal" href="../reference/widget.html#urwid.Widget.base_widget" title="urwid.Widget.base_widget"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Widget.base_widget</span></code></a> points to <code class="docutils literal notranslate"><span class="pre">self</span></code> on all non-decoration widgets, so
 it is safe to use in any situation.</p>
-</div>
-<div class="section" id="container-widgets">
-<span id="id3"></span><h2>Container Widgets<a class="headerlink" href="#container-widgets" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="container-widgets">
+<span id="id3"></span><h2>Container Widgets<a class="headerlink" href="#container-widgets" title="Link to this heading">¶</a></h2>
 <p>Container widgets divide their available space between their child widgets.
 This is how widget layouts are defined. When handling selectable widgets
 container widgets also keep track of which of their child widgets is in focus.
@@ -263,8 +263,8 @@ certain custom list walkers, and the reason goes back to the original way list
 walker interface was defined.  Note that a custom list walker might also generate
 an unbounded number of positions, so care should be used with this interface and
 <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>.</p>
-<div class="section" id="pile-widgets">
-<h3>Pile Widgets<a class="headerlink" href="#pile-widgets" title="Permalink to this headline">¶</a></h3>
+<section id="pile-widgets">
+<h3>Pile Widgets<a class="headerlink" href="#pile-widgets" title="Link to this heading">¶</a></h3>
 <p><a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pile</span></code></a> widgets are used to combine multiple widgets by
 stacking them vertically. A Pile can manage selectable widgets by keeping track
 of which widget is in focus and it can handle moving the focus between widgets
@@ -273,9 +273,9 @@ used within a <a class="reference internal" href="../reference/widget.html#urwid
 <p>A Pile is selectable only if its focus widget is selectable. If you create a
 Pile containing one Text widget and one Edit widget the Pile will choose the
 Edit widget as its default focus widget.</p>
-</div>
-<div class="section" id="columns-widgets">
-<h3>Columns Widgets<a class="headerlink" href="#columns-widgets" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="columns-widgets">
+<h3>Columns Widgets<a class="headerlink" href="#columns-widgets" title="Link to this heading">¶</a></h3>
 <p><a class="reference internal" href="../reference/widget.html#urwid.Columns" title="urwid.Columns"><code class="xref py py-class docutils literal notranslate"><span class="pre">Columns</span></code></a> widgets may be used to arrange either flow
 widgets or box widgets horizontally into columns. Columns widgets will manage
 selectable widgets by keeping track of which column is in focus and it can
@@ -285,9 +285,9 @@ handle moving the focus between columns when the user presses the <em>LEFT</em> 
 <p>Columns widgets are selectable only if the column in focus is selectable. If a
 focus column is not specified the first selectable widget will be chosen as the
 focus column.</p>
-</div>
-<div class="section" id="gridflow-widgets">
-<h3>GridFlow Widgets<a class="headerlink" href="#gridflow-widgets" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="gridflow-widgets">
+<h3>GridFlow Widgets<a class="headerlink" href="#gridflow-widgets" title="Link to this heading">¶</a></h3>
 <p>The <a class="reference internal" href="../reference/widget.html#urwid.GridFlow" title="urwid.GridFlow"><code class="xref py py-class docutils literal notranslate"><span class="pre">GridFlow</span></code></a> widget is a flow widget designed for use
 with <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal notranslate"><span class="pre">Button</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.CheckBox" title="urwid.CheckBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckBox</span></code></a> and
 <a class="reference internal" href="../reference/widget.html#urwid.RadioButton" title="urwid.RadioButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">RadioButton</span></code></a> widgets. It renders all the widgets it
@@ -297,9 +297,9 @@ bottom.</p>
 display widget that will handle the keyboard input and rendering. When the
 GridFlow widget is resized it regenerates the display widget to accommodate the
 new space.</p>
-</div>
-<div class="section" id="overlay-widgets">
-<h3>Overlay Widgets<a class="headerlink" href="#overlay-widgets" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="overlay-widgets">
+<h3>Overlay Widgets<a class="headerlink" href="#overlay-widgets" title="Link to this heading">¶</a></h3>
 <p>The <a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal notranslate"><span class="pre">Overlay</span></code></a> widget is a box widget that contains two
 other box widgets. The bottom widget is rendered the full size of the Overlay
 widget and the top widget is placed on top, obscuring an area of the bottom
@@ -309,17 +309,17 @@ or pop-up menus.</p>
 keyboard input will be passed to the top widget.</p>
 <p>If you want to use a flow widget for the top widget, first wrap the flow
 widget with a <a class="reference internal" href="../reference/widget.html#urwid.Filler" title="urwid.Filler"><code class="xref py py-class docutils literal notranslate"><span class="pre">Filler</span></code></a> widget.</p>
-</div>
-</div>
-<div class="section" id="listbox-contents">
-<span id="id4"></span><h2>ListBox Contents<a class="headerlink" href="#listbox-contents" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+<section id="listbox-contents">
+<span id="id4"></span><h2>ListBox Contents<a class="headerlink" href="#listbox-contents" title="Link to this heading">¶</a></h2>
 <p><a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> is a box widget that contains flow widgets.
 Its contents are displayed stacked vertically, and the
 <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> allows the user to scroll through its content.
 One of the flow widgets displayed in the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> is its
 focus widget.</p>
-<div class="section" id="listbox-focus-and-scrolling">
-<h3>ListBox Focus and Scrolling<a class="headerlink" href="#listbox-focus-and-scrolling" title="Permalink to this headline">¶</a></h3>
+<section id="listbox-focus-and-scrolling">
+<h3>ListBox Focus and Scrolling<a class="headerlink" href="#listbox-focus-and-scrolling" title="Link to this heading">¶</a></h3>
 <p>The <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> is a box widget that contains flow widgets.
 Its contents are displayed stacked vertically, and the
 <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> allows the user to scroll through its content.
@@ -357,9 +357,9 @@ a selectable widget into view so that the user can see the new focus widget in
 its entirety. This behavior can be used to bring more than a single widget into
 view by using composite widgets to combine a selectable widget with other
 widgets that should be displayed at the same time.</p>
-</div>
-<div class="section" id="dynamic-listbox-with-listwalker">
-<h3>Dynamic ListBox with ListWalker<a class="headerlink" href="#dynamic-listbox-with-listwalker" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="dynamic-listbox-with-listwalker">
+<h3>Dynamic ListBox with ListWalker<a class="headerlink" href="#dynamic-listbox-with-listwalker" title="Link to this heading">¶</a></h3>
 <p>While the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> stores the location of its focus
 widget, it does not directly store the actual focus widget or other contents of
 the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>. The storage of a
@@ -394,23 +394,23 @@ position then you need to remember to increment the focus position in the
 <p>A custom List Walker object may be passed to the
 <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> constructor instead of a plain list of widgets.
 List Walker objects must implement the <a class="reference internal" href="#list-walker-interface"><span class="std std-ref">List Walker Interface</span></a>.</p>
-<p>The <a class="reference external" href="http://excess.org/urwid/browser/examples/fib.py">fib.py</a> example program demonstrates a custom list walker that doesn’t
+<p>The <a class="reference external" href="https://github.com/urwid/urwid/blob/master/examples/fib.py">fib.py</a> example program demonstrates a custom list walker that doesn’t
 store any widgets. It uses a tuple of two successive Fibonacci numbers as its
 position objects and it generates Text widgets to display the numbers on the
 fly. The result is a <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> that can scroll through an
 unending list of widgets.</p>
-<p>The <a class="reference external" href="http://excess.org/urwid/browser/examples/edit.py">edit.py</a> example program demonstrates a custom list walker that loads lines
+<p>The <a class="reference external" href="https://github.com/urwid/urwid/blob/master/examples/edit.py">edit.py</a> example program demonstrates a custom list walker that loads lines
 from a text file only as the user scrolls them into view. This allows even
 huge files to be opened almost instantly.</p>
-<p>The <a class="reference external" href="http://excess.org/urwid/browser/examples/browse.py">browse.py</a> example program demonstrates a custom list walker that uses a
+<p>The <a class="reference external" href="https://github.com/urwid/urwid/blob/master/examples/browse.py">browse.py</a> example program demonstrates a custom list walker that uses a
 tuple of strings as position objects, one for the parent directory and one for
 the file selected. The widgets are cached in a separate class that is accessed
 using a dictionary indexed by parent directory names. This allows the
 directories to be read only as required. The custom list walker also allows
 directories to be hidden from view when they are “collapsed”.</p>
-</div>
-<div class="section" id="setting-the-focus">
-<h3>Setting the Focus<a class="headerlink" href="#setting-the-focus" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="setting-the-focus">
+<h3>Setting the Focus<a class="headerlink" href="#setting-the-focus" title="Link to this heading">¶</a></h3>
 <p>The easiest way to change the current <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> focus is
 to call the <a class="reference internal" href="../reference/widget.html#urwid.ListBox.set_focus" title="urwid.ListBox.set_focus"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ListBox.set_focus()</span></code></a> method. This method doesn’t
 require that you know the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>’s current dimensions
@@ -441,9 +441,9 @@ coming_from is <code class="docutils literal notranslate"><span class="pre">None
 <a class="reference internal" href="../reference/widget.html#urwid.ListBox.set_focus_valign" title="urwid.ListBox.set_focus_valign"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ListBox.set_focus_valign()</span></code></a>.  This method lets you specify
 the <em>top</em>, <em>bottom</em>, <em>middle</em>, a relative position or the exact number of rows
 from the top or bottom of the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>.</p>
-</div>
-<div class="section" id="list-walkers">
-<h3>List Walkers<a class="headerlink" href="#list-walkers" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="list-walkers">
+<h3>List Walkers<a class="headerlink" href="#list-walkers" title="Link to this heading">¶</a></h3>
 <p><a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> does not manage the widgets it displays
 directly, instead it passes that task to a class called a “list walker”. List
 walkers keep track of the widget in focus and provide an opaque position object
@@ -462,97 +462,97 @@ walker classes.</p>
 <p class="admonition-title">See also</p>
 <p><a class="reference internal" href="../reference/list_walkers.html#urwid.ListWalker" title="urwid.ListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListWalker</span> <span class="pre">base</span> <span class="pre">class</span> <span class="pre">reference</span></code></a></p>
 </div>
-</div>
-<div class="section" id="list-walker-interface">
-<span id="id5"></span><h3>List Walker Interface<a class="headerlink" href="#list-walker-interface" title="Permalink to this headline">¶</a></h3>
-<div class="section" id="list-walker-api-version-1">
-<h4>List Walker API Version 1<a class="headerlink" href="#list-walker-api-version-1" title="Permalink to this headline">¶</a></h4>
+</section>
+<section id="list-walker-interface">
+<span id="id5"></span><h3>List Walker Interface<a class="headerlink" href="#list-walker-interface" title="Link to this heading">¶</a></h3>
+<section id="list-walker-api-version-1">
+<h4>List Walker API Version 1<a class="headerlink" href="#list-walker-api-version-1" title="Link to this heading">¶</a></h4>
 <p>This API will remain available and is still the least restrictive option for
 the programmer.  Your class should subclass <a class="reference internal" href="../reference/list_walkers.html#urwid.ListWalker" title="urwid.ListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListWalker</span></code></a>.
 Whenever the focus or content changes you are responsible for
 calling <code class="xref py py-meth docutils literal notranslate"><span class="pre">ListWalker._modified()</span></code>.</p>
-<dl class="method">
-<dt id="MyV1ListWalker.get_focus">
-<code class="sig-prename descclassname">MyV1ListWalker.</code><code class="sig-name descname">get_focus</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#MyV1ListWalker.get_focus" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="MyV1ListWalker.get_focus">
+<span class="sig-prename descclassname"><span class="pre">MyV1ListWalker.</span></span><span class="sig-name descname"><span class="pre">get_focus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#MyV1ListWalker.get_focus" title="Link to this definition">¶</a></dt>
 <dd><p>return a <code class="docutils literal notranslate"><span class="pre">(widget,</span> <span class="pre">position)</span></code> tuple or <code class="docutils literal notranslate"><span class="pre">(None,</span> <span class="pre">None)</span></code> if empty</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="MyV1ListWalker.set_focus">
-<code class="sig-prename descclassname">MyV1ListWalker.</code><code class="sig-name descname">set_focus</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV1ListWalker.set_focus" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="MyV1ListWalker.set_focus">
+<span class="sig-prename descclassname"><span class="pre">MyV1ListWalker.</span></span><span class="sig-name descname"><span class="pre">set_focus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MyV1ListWalker.set_focus" title="Link to this definition">¶</a></dt>
 <dd><p>set the focus and call <code class="docutils literal notranslate"><span class="pre">self._modified()</span></code> or raise an <code class="xref py py-exc docutils literal notranslate"><span class="pre">IndexError</span></code>.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="MyV1ListWalker.get_next">
-<code class="sig-prename descclassname">MyV1ListWalker.</code><code class="sig-name descname">get_next</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV1ListWalker.get_next" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="MyV1ListWalker.get_next">
+<span class="sig-prename descclassname"><span class="pre">MyV1ListWalker.</span></span><span class="sig-name descname"><span class="pre">get_next</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MyV1ListWalker.get_next" title="Link to this definition">¶</a></dt>
 <dd><p>return the <code class="docutils literal notranslate"><span class="pre">(widget,</span> <span class="pre">position)</span></code> tuple below <em>position</em> passed
 or <code class="docutils literal notranslate"><span class="pre">(None,</span> <span class="pre">None)</span></code> if there is none.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="MyV1ListWalker.get_prev">
-<code class="sig-prename descclassname">MyV1ListWalker.</code><code class="sig-name descname">get_prev</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV1ListWalker.get_prev" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="MyV1ListWalker.get_prev">
+<span class="sig-prename descclassname"><span class="pre">MyV1ListWalker.</span></span><span class="sig-name descname"><span class="pre">get_prev</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MyV1ListWalker.get_prev" title="Link to this definition">¶</a></dt>
 <dd><p>return the <code class="docutils literal notranslate"><span class="pre">(widget,</span> <span class="pre">position)</span></code> tuple above <em>position</em> passed
 or <code class="docutils literal notranslate"><span class="pre">(None,</span> <span class="pre">None)</span></code> if there is none.</p>
 </dd></dl>
 
-</div>
-<div class="section" id="list-walker-api-version-2">
-<h4>List Walker API Version 2<a class="headerlink" href="#list-walker-api-version-2" title="Permalink to this headline">¶</a></h4>
+</section>
+<section id="list-walker-api-version-2">
+<h4>List Walker API Version 2<a class="headerlink" href="#list-walker-api-version-2" title="Link to this heading">¶</a></h4>
 <p>This API is an attempt to remove some of the duplicate code that V1 requires for
 many users.  List walker API V1 will be implemented automatically by
 subclassing <code class="xref py py-class docutils literal notranslate"><span class="pre">ListWalker</span></code> and implementing the V2 methods.
 Whenever the focus or content changes you are responsible for
 calling <code class="xref py py-meth docutils literal notranslate"><span class="pre">ListWalker._modified()</span></code>.</p>
-<dl class="method">
-<dt id="MyV2ListWalker.__getitem__">
-<code class="sig-prename descclassname">MyV2ListWalker.</code><code class="sig-name descname">__getitem__</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.__getitem__" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="MyV2ListWalker.__getitem__">
+<span class="sig-prename descclassname"><span class="pre">MyV2ListWalker.</span></span><span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.__getitem__" title="Link to this definition">¶</a></dt>
 <dd><p>return widget at <em>position</em> or raise an <code class="xref py py-exc docutils literal notranslate"><span class="pre">IndexError</span></code> or <code class="xref py py-exc docutils literal notranslate"><span class="pre">KeyError</span></code></p>
 </dd></dl>
 
-<dl class="method">
-<dt id="MyV2ListWalker.next_position">
-<code class="sig-prename descclassname">MyV2ListWalker.</code><code class="sig-name descname">next_position</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.next_position" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="MyV2ListWalker.next_position">
+<span class="sig-prename descclassname"><span class="pre">MyV2ListWalker.</span></span><span class="sig-name descname"><span class="pre">next_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.next_position" title="Link to this definition">¶</a></dt>
 <dd><p>return the position below passed <em>position</em> or raise an <code class="xref py py-exc docutils literal notranslate"><span class="pre">IndexError</span></code> or <code class="xref py py-exc docutils literal notranslate"><span class="pre">KeyError</span></code></p>
 </dd></dl>
 
-<dl class="method">
-<dt id="MyV2ListWalker.prev_position">
-<code class="sig-prename descclassname">MyV2ListWalker.</code><code class="sig-name descname">prev_position</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.prev_position" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="MyV2ListWalker.prev_position">
+<span class="sig-prename descclassname"><span class="pre">MyV2ListWalker.</span></span><span class="sig-name descname"><span class="pre">prev_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.prev_position" title="Link to this definition">¶</a></dt>
 <dd><p>return the position above passed <em>position</em> or raise an <code class="xref py py-exc docutils literal notranslate"><span class="pre">IndexError</span></code> or <code class="xref py py-exc docutils literal notranslate"><span class="pre">KeyError</span></code></p>
 </dd></dl>
 
-<dl class="method">
-<dt id="MyV2ListWalker.set_focus">
-<code class="sig-prename descclassname">MyV2ListWalker.</code><code class="sig-name descname">set_focus</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.set_focus" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="MyV2ListWalker.set_focus">
+<span class="sig-prename descclassname"><span class="pre">MyV2ListWalker.</span></span><span class="sig-name descname"><span class="pre">set_focus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.set_focus" title="Link to this definition">¶</a></dt>
 <dd><p>set the focus and call <code class="docutils literal notranslate"><span class="pre">self._modified()</span></code> or raise an <code class="xref py py-exc docutils literal notranslate"><span class="pre">IndexError</span></code>.</p>
 </dd></dl>
 
-<dl class="attribute">
-<dt id="MyV2ListWalker.focus">
-<code class="sig-prename descclassname">MyV2ListWalker.</code><code class="sig-name descname">focus</code><a class="headerlink" href="#MyV2ListWalker.focus" title="Permalink to this definition">¶</a></dt>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="MyV2ListWalker.focus">
+<span class="sig-prename descclassname"><span class="pre">MyV2ListWalker.</span></span><span class="sig-name descname"><span class="pre">focus</span></span><a class="headerlink" href="#MyV2ListWalker.focus" title="Link to this definition">¶</a></dt>
 <dd><p>attribute or property containing the focus position, or define
 <a class="reference internal" href="#MyV1ListWalker.get_focus" title="MyV1ListWalker.get_focus"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MyV1ListWalker.get_focus()</span></code></a> as above</p>
 </dd></dl>
 
-</div>
-<div class="section" id="list-walker-iteration">
-<h4>List Walker Iteration<a class="headerlink" href="#list-walker-iteration" title="Permalink to this headline">¶</a></h4>
+</section>
+<section id="list-walker-iteration">
+<h4>List Walker Iteration<a class="headerlink" href="#list-walker-iteration" title="Link to this heading">¶</a></h4>
 <p>There is an optional iteration helper method that may be defined in any list walker.
 When this is defined it will be used by <code class="xref py py-meth docutils literal notranslate"><span class="pre">ListBox.__iter__()</span></code> and
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">ListBox.__reversed__()</span></code>:</p>
-<dl class="method">
-<dt id="MyV2ListWalker.positions">
-<code class="sig-prename descclassname">MyV2ListWalker.</code><code class="sig-name descname">positions</code><span class="sig-paren">(</span><em class="sig-param">reverse=False</em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.positions" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="MyV2ListWalker.positions">
+<span class="sig-prename descclassname"><span class="pre">MyV2ListWalker.</span></span><span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.positions" title="Link to this definition">¶</a></dt>
 <dd><p>return a forward or reverse iterable of positions</p>
 </dd></dl>
 
-</div>
-</div>
-</div>
-<div class="section" id="custom-widgets">
-<h2>Custom Widgets<a class="headerlink" href="#custom-widgets" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+</section>
+<section id="custom-widgets">
+<h2>Custom Widgets<a class="headerlink" href="#custom-widgets" title="Link to this heading">¶</a></h2>
 <p>Widgets in Urwid are easiest to create by extending other widgets. If you are
 making a new type of widget that can use other widgets to display its content,
 like a new type of button or control, then you should start by extending
@@ -587,8 +587,8 @@ to address some of the duplicated size handling code in the container widgets
 in a future Urwid release.</p>
 <p>The same holds true for a widget’s focus state, so that too is passed in to
 functions that need it.</p>
-<div class="section" id="modifying-existing-widgets">
-<h3>Modifying Existing Widgets<a class="headerlink" href="#modifying-existing-widgets" title="Permalink to this headline">¶</a></h3>
+<section id="modifying-existing-widgets">
+<h3>Modifying Existing Widgets<a class="headerlink" href="#modifying-existing-widgets" title="Link to this heading">¶</a></h3>
 <p>The easiest way to create a custom widget is to modify an existing widget.
 This can be done by either subclassing the original widget or by wrapping it.
 Subclassing is appropriate when you need to interact at a very low level with
@@ -600,42 +600,31 @@ wrapping is more appropriate.</p>
 widgets. You can create a custom widget simply by creating a subclass of
 WidgetWrap and passing a widget into WidgetWrap’s constructor.</p>
 <p>This is an example of a custom widget that uses WidgetWrap:</p>
-<div class="highlight-default notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
- 2
- 3
- 4
- 5
- 6
- 7
- 8
- 9
-10
-11
-12
-13
-14
-15</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">urwid</span>
-
-<span class="k">class</span> <span class="nc">QuestionnaireItem</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">WidgetWrap</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">unsure</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;Unsure&quot;</span><span class="p">)</span>
-        <span class="n">yes</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;Yes&quot;</span><span class="p">)</span>
-        <span class="n">no</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;No&quot;</span><span class="p">)</span>
-        <span class="n">display_widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">GridFlow</span><span class="p">([</span><span class="n">unsure</span><span class="p">,</span> <span class="n">yes</span><span class="p">,</span> <span class="n">no</span><span class="p">],</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;left&#39;</span><span class="p">)</span>
-        <span class="n">urwid</span><span class="o">.</span><span class="n">WidgetWrap</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">display_widget</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">o</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">o</span><span class="o">.</span><span class="n">get_label</span><span class="p">()</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span><span class="kn">import</span> <span class="nn">urwid</span>
+<span class="linenos"> 4</span>
+<span class="linenos"> 5</span>
+<span class="linenos"> 6</span><span class="k">class</span> <span class="nc">QuestionnaireItem</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">WidgetWrap</span><span class="p">):</span>
+<span class="linenos"> 7</span>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="linenos"> 8</span>        <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos"> 9</span>        <span class="n">unsure</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">,</span> <span class="s2">&quot;Unsure&quot;</span><span class="p">)</span>
+<span class="linenos">10</span>        <span class="n">yes</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">,</span> <span class="s2">&quot;Yes&quot;</span><span class="p">)</span>
+<span class="linenos">11</span>        <span class="n">no</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">,</span> <span class="s2">&quot;No&quot;</span><span class="p">)</span>
+<span class="linenos">12</span>        <span class="n">display_widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">GridFlow</span><span class="p">([</span><span class="n">unsure</span><span class="p">,</span> <span class="n">yes</span><span class="p">,</span> <span class="n">no</span><span class="p">],</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;left&#39;</span><span class="p">)</span>
+<span class="linenos">13</span>        <span class="n">urwid</span><span class="o">.</span><span class="n">WidgetWrap</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">display_widget</span><span class="p">)</span>
+<span class="linenos">14</span>
+<span class="linenos">15</span>    <span class="k">def</span> <span class="nf">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="linenos">16</span>        <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">:</span>
+<span class="linenos">17</span>            <span class="k">if</span> <span class="n">o</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+<span class="linenos">18</span>                <span class="k">return</span> <span class="n">o</span><span class="o">.</span><span class="n">get_label</span><span class="p">()</span>
 </pre></div>
-</td></tr></table></div>
+</div>
 <p>The above code creates a group of RadioButtons and provides a method to
 query the state of the buttons.</p>
-</div>
-<div class="section" id="widgets-from-scratch">
-<h3>Widgets from Scratch<a class="headerlink" href="#widgets-from-scratch" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="widgets-from-scratch">
+<h3>Widgets from Scratch<a class="headerlink" href="#widgets-from-scratch" title="Link to this heading">¶</a></h3>
 <p>Widgets must inherit from <a class="reference internal" href="../reference/widget.html#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a>.
 Box widgets must implement <a class="reference internal" href="../reference/widget.html#urwid.Widget.selectable" title="urwid.Widget.selectable"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.selectable()</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a>
 methods, and flow widgets must implement <a class="reference internal" href="../reference/widget.html#urwid.Widget.selectable" title="urwid.Widget.selectable"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.selectable()</span></code></a>,
@@ -643,51 +632,33 @@ methods, and flow widgets must implement <a class="reference internal" href="../
 <p>The default <a class="reference internal" href="../reference/widget.html#urwid.Widget.sizing" title="urwid.Widget.sizing"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.sizing()</span></code></a> method returns a set of sizing modes supported
 from <code class="docutils literal notranslate"><span class="pre">self._sizing</span></code>, so we define <code class="docutils literal notranslate"><span class="pre">_sizing</span></code> attributes for our flow and
 box widgets below.</p>
-<div class="highlight-default notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
- 2
- 3
- 4
- 5
- 6
- 7
- 8
- 9
-10
-11
-12
-13
-14
-15
-16
-17
-18
-19
-20
-21
-22</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">urwid</span>
-
-<span class="k">class</span> <span class="nc">Pudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
-    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;flow&#39;</span><span class="p">])</span>
-
-    <span class="k">def</span> <span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="k">return</span> <span class="mi">1</span>
-
-    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
-        <span class="n">num_pudding</span> <span class="o">=</span> <span class="n">maxcol</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="s2">&quot;Pudding&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="s2">&quot;Pudding&quot;</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">],</span> <span class="n">maxcol</span><span class="o">=</span><span class="n">maxcol</span><span class="p">)</span>
-
-
-<span class="k">class</span> <span class="nc">BoxPudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
-    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;box&#39;</span><span class="p">])</span>
-
-    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="p">(</span><span class="n">maxcol</span><span class="p">,</span> <span class="n">maxrow</span><span class="p">)</span> <span class="o">=</span> <span class="n">size</span>
-        <span class="n">num_pudding</span> <span class="o">=</span> <span class="n">maxcol</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="s2">&quot;Pudding&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="s2">&quot;Pudding&quot;</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">]</span> <span class="o">*</span> <span class="n">maxrow</span><span class="p">,</span>
-                                <span class="n">maxcol</span><span class="o">=</span><span class="n">maxcol</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span><span class="kn">import</span> <span class="nn">urwid</span>
+<span class="linenos"> 4</span>
+<span class="linenos"> 5</span>
+<span class="linenos"> 6</span><span class="k">class</span> <span class="nc">Pudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
+<span class="linenos"> 7</span>    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;flow&#39;</span><span class="p">])</span>
+<span class="linenos"> 8</span>
+<span class="linenos"> 9</span>    <span class="k">def</span> <span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="linenos">10</span>        <span class="k">return</span> <span class="mi">1</span>
+<span class="linenos">11</span>
+<span class="linenos">12</span>    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="linenos">13</span>        <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
+<span class="linenos">14</span>        <span class="n">num_pudding</span> <span class="o">=</span> <span class="n">maxcol</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="s2">&quot;Pudding&quot;</span><span class="p">)</span>
+<span class="linenos">15</span>        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="s2">&quot;Pudding&quot;</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">],</span> <span class="n">maxcol</span><span class="o">=</span><span class="n">maxcol</span><span class="p">)</span>
+<span class="linenos">16</span>
+<span class="linenos">17</span>
+<span class="linenos">18</span><span class="k">class</span> <span class="nc">BoxPudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
+<span class="linenos">19</span>    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;box&#39;</span><span class="p">])</span>
+<span class="linenos">20</span>
+<span class="linenos">21</span>    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="linenos">22</span>        <span class="p">(</span><span class="n">maxcol</span><span class="p">,</span> <span class="n">maxrow</span><span class="p">)</span> <span class="o">=</span> <span class="n">size</span>
+<span class="linenos">23</span>        <span class="n">num_pudding</span> <span class="o">=</span> <span class="n">maxcol</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="s2">&quot;Pudding&quot;</span><span class="p">)</span>
+<span class="linenos">24</span>        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="s2">&quot;Pudding&quot;</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">]</span> <span class="o">*</span> <span class="n">maxrow</span><span class="p">,</span>
+<span class="linenos">25</span>                                <span class="n">maxcol</span><span class="o">=</span><span class="n">maxcol</span><span class="p">)</span>
 </pre></div>
-</td></tr></table></div>
+</div>
 <p>The above code implements two widget classes. Pudding is a flow widget and
 BoxPudding is a box widget. Pudding will render as much “Pudding” as will fit
 in a single row, and BoxPudding will render as much “Pudding” as will fit into
@@ -702,52 +673,42 @@ display widget that is time consuming to create you should consider caching it
 to reduce its impact on performance.</p>
 <p>It is possible to create a widget that will behave as either a flow widget or
 box widget depending on what is required:</p>
-<div class="highlight-default notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
- 2
- 3
- 4
- 5
- 6
- 7
- 8
- 9
-10
-11
-12
-13
-14
-15
-16
-17</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">urwid</span>
-
-<span class="k">class</span> <span class="nc">MultiPudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
-    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;flow&#39;</span><span class="p">,</span> <span class="s1">&#39;box&#39;</span><span class="p">])</span>
-
-    <span class="k">def</span> <span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="k">return</span> <span class="mi">1</span>
-
-    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">size</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
-            <span class="n">maxrow</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="p">(</span><span class="n">maxcol</span><span class="p">,</span> <span class="n">maxrow</span><span class="p">)</span> <span class="o">=</span> <span class="n">size</span>
-        <span class="n">num_pudding</span> <span class="o">=</span> <span class="n">maxcol</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="s2">&quot;Pudding&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="s2">&quot;Pudding&quot;</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">]</span> <span class="o">*</span> <span class="n">maxrow</span><span class="p">,</span>
-                                <span class="n">maxcol</span><span class="o">=</span><span class="n">maxcol</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span><span class="kn">import</span> <span class="nn">urwid</span>
+<span class="linenos"> 4</span>
+<span class="linenos"> 5</span>
+<span class="linenos"> 6</span><span class="k">class</span> <span class="nc">MultiPudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
+<span class="linenos"> 7</span>    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;flow&#39;</span><span class="p">,</span> <span class="s1">&#39;box&#39;</span><span class="p">])</span>
+<span class="linenos"> 8</span>
+<span class="linenos"> 9</span>    <span class="k">def</span> <span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="linenos">10</span>        <span class="k">return</span> <span class="mi">1</span>
+<span class="linenos">11</span>
+<span class="linenos">12</span>    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="linenos">13</span>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">size</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+<span class="linenos">14</span>            <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
+<span class="linenos">15</span>            <span class="n">maxrow</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="linenos">16</span>        <span class="k">else</span><span class="p">:</span>
+<span class="linenos">17</span>            <span class="p">(</span><span class="n">maxcol</span><span class="p">,</span> <span class="n">maxrow</span><span class="p">)</span> <span class="o">=</span> <span class="n">size</span>
+<span class="linenos">18</span>        <span class="n">num_pudding</span> <span class="o">=</span> <span class="n">maxcol</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="s2">&quot;Pudding&quot;</span><span class="p">)</span>
+<span class="linenos">19</span>        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="s2">&quot;Pudding&quot;</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">]</span> <span class="o">*</span> <span class="n">maxrow</span><span class="p">,</span>
+<span class="linenos">20</span>                                <span class="n">maxcol</span><span class="o">=</span><span class="n">maxcol</span><span class="p">)</span>
 </pre></div>
-</td></tr></table></div>
+</div>
 <p>MultiPudding will work in place of either Pudding or BoxPudding above. The
 number of elements in the size tuple determines whether the containing widget
 is expecting a flow widget or a box widget.</p>
-</div>
-<div class="section" id="selectable-widgets">
-<h3>Selectable Widgets<a class="headerlink" href="#selectable-widgets" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="selectable-widgets">
+<h3>Selectable Widgets<a class="headerlink" href="#selectable-widgets" title="Link to this heading">¶</a></h3>
 <p>Selectable widgets such as Edit and Button widgets allow the user to interact
 with the application. A widget is selectable if its selectable method returns
 True. Selectable widgets must implement the <a class="reference internal" href="../reference/widget.html#urwid.Widget.keypress" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.keypress()</span></code></a> method to
 handle keyboard input.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">urwid</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span> <span class="nn">urwid</span>
+
 
 <span class="k">class</span> <span class="nc">SelectablePudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
     <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;flow&#39;</span><span class="p">])</span>
@@ -794,86 +755,55 @@ keys are returned so that if this widget is in a
 <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> will behave
 as the user expects and change the focus or scroll the
 <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>.</p>
-</div>
-<div class="section" id="widget-displaying-the-cursor">
-<h3>Widget Displaying the Cursor<a class="headerlink" href="#widget-displaying-the-cursor" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="widget-displaying-the-cursor">
+<h3>Widget Displaying the Cursor<a class="headerlink" href="#widget-displaying-the-cursor" title="Link to this heading">¶</a></h3>
 <p>Widgets that display the cursor must implement the
 <a class="reference internal" href="../reference/widget.html#urwid.Widget.get_cursor_coords" title="urwid.Widget.get_cursor_coords"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.get_cursor_coords()</span></code></a> method.
 Similar to the rows method for flow widgets, this method lets other widgets
 make layout decisions without rendering the entire widget. The
 <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> widget in particular uses get_cursor_coords to
 make sure that the cursor is visible within its focus widget.</p>
-<div class="highlight-default notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
- 2
- 3
- 4
- 5
- 6
- 7
- 8
- 9
-10
-11
-12
-13
-14
-15
-16
-17
-18
-19
-20
-21
-22
-23
-24
-25
-26
-27
-28
-29
-30
-31
-32
-33
-34
-35</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">urwid</span>
-
-<span class="k">class</span> <span class="nc">CursorPudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
-    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;flow&#39;</span><span class="p">])</span>
-    <span class="n">_selectable</span> <span class="o">=</span> <span class="kc">True</span>
-
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span> <span class="o">=</span> <span class="mi">0</span>
-
-    <span class="k">def</span> <span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="k">return</span> <span class="mi">1</span>
-
-    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
-        <span class="n">num_pudding</span> <span class="o">=</span> <span class="n">maxcol</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="s2">&quot;Pudding&quot;</span><span class="p">)</span>
-        <span class="n">cursor</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="n">focus</span><span class="p">:</span>
-            <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cursor_coords</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="s2">&quot;Pudding&quot;</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">],</span> <span class="p">[],</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">maxcol</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">get_cursor_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
-        <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
-        <span class="n">col</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span><span class="p">,</span> <span class="n">maxcol</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">col</span><span class="p">,</span> <span class="mi">0</span>
-
-    <span class="k">def</span> <span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-        <span class="p">(</span><span class="n">maxcol</span><span class="p">,</span> <span class="p">)</span> <span class="o">=</span> <span class="n">size</span>
-        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;left&#39;</span><span class="p">:</span>
-            <span class="n">col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span> <span class="o">-</span> <span class="mi">1</span>
-        <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;right&#39;</span><span class="p">:</span>
-            <span class="n">col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span> <span class="o">+</span> <span class="mi">1</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">key</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cursor_x</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">maxcol</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">col</span><span class="p">))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_invalidate</span><span class="p">()</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span><span class="kn">import</span> <span class="nn">urwid</span>
+<span class="linenos"> 4</span>
+<span class="linenos"> 5</span>
+<span class="linenos"> 6</span><span class="k">class</span> <span class="nc">CursorPudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
+<span class="linenos"> 7</span>    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;flow&#39;</span><span class="p">])</span>
+<span class="linenos"> 8</span>    <span class="n">_selectable</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="linenos"> 9</span>
+<span class="linenos">10</span>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="linenos">11</span>        <span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="linenos">12</span>
+<span class="linenos">13</span>    <span class="k">def</span> <span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="linenos">14</span>        <span class="k">return</span> <span class="mi">1</span>
+<span class="linenos">15</span>
+<span class="linenos">16</span>    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="linenos">17</span>        <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
+<span class="linenos">18</span>        <span class="n">num_pudding</span> <span class="o">=</span> <span class="n">maxcol</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="s2">&quot;Pudding&quot;</span><span class="p">)</span>
+<span class="linenos">19</span>        <span class="n">cursor</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="linenos">20</span>        <span class="k">if</span> <span class="n">focus</span><span class="p">:</span>
+<span class="linenos">21</span>            <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cursor_coords</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+<span class="linenos">22</span>        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="s2">&quot;Pudding&quot;</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">],</span> <span class="p">[],</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">maxcol</span><span class="p">)</span>
+<span class="linenos">23</span>
+<span class="linenos">24</span>    <span class="k">def</span> <span class="nf">get_cursor_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+<span class="linenos">25</span>        <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
+<span class="linenos">26</span>        <span class="n">col</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span><span class="p">,</span> <span class="n">maxcol</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+<span class="linenos">27</span>        <span class="k">return</span> <span class="n">col</span><span class="p">,</span> <span class="mi">0</span>
+<span class="linenos">28</span>
+<span class="linenos">29</span>    <span class="k">def</span> <span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="linenos">30</span>        <span class="p">(</span><span class="n">maxcol</span><span class="p">,</span> <span class="p">)</span> <span class="o">=</span> <span class="n">size</span>
+<span class="linenos">31</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;left&#39;</span><span class="p">:</span>
+<span class="linenos">32</span>            <span class="n">col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span> <span class="o">-</span> <span class="mi">1</span>
+<span class="linenos">33</span>        <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;right&#39;</span><span class="p">:</span>
+<span class="linenos">34</span>            <span class="n">col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span> <span class="o">+</span> <span class="mi">1</span>
+<span class="linenos">35</span>        <span class="k">else</span><span class="p">:</span>
+<span class="linenos">36</span>            <span class="k">return</span> <span class="n">key</span>
+<span class="linenos">37</span>        <span class="bp">self</span><span class="o">.</span><span class="n">cursor_x</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">maxcol</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">col</span><span class="p">))</span>
+<span class="linenos">38</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_invalidate</span><span class="p">()</span>
 </pre></div>
-</td></tr></table></div>
+</div>
 <p>CursorPudding will let the user move the cursor through the widget by pressing
 <em>LEFT</em> and <em>RIGHT</em>. The cursor must only be added to the canvas when the widget
 is in focus. The get_cursor_coords method must always return the same cursor
@@ -890,25 +820,19 @@ must return <code class="docutils literal notranslate"><span class="pre">True</s
 placed at any position within the row specified (not only at the exact column
 specified) then this method must move the cursor to that position and return
 <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
-<div class="highlight-default notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
-2
-3
-4
-5
-6
-7</pre></div></td><td class="code"><div class="highlight"><pre><span></span>    <span class="k">def</span> <span class="nf">get_pref_col</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">(</span><span class="n">maxcol</span><span class="p">,)):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor_x</span>
-
-    <span class="k">def</span> <span class="nf">move_cursor_to_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">(</span><span class="n">maxcol</span><span class="p">,),</span> <span class="n">col</span><span class="p">,</span> <span class="n">row</span><span class="p">):</span>
-        <span class="k">assert</span> <span class="n">row</span> <span class="o">==</span> <span class="mi">0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cursor_x</span> <span class="o">=</span> <span class="n">col</span>
-        <span class="k">return</span> <span class="kc">True</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span>    <span class="k">def</span> <span class="nf">get_pref_col</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+<span class="linenos">2</span>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor_x</span>
+<span class="linenos">3</span>
+<span class="linenos">4</span>    <span class="k">def</span> <span class="nf">move_cursor_to_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">row</span><span class="p">):</span>
+<span class="linenos">5</span>        <span class="k">assert</span> <span class="n">row</span> <span class="o">==</span> <span class="mi">0</span>
+<span class="linenos">6</span>        <span class="bp">self</span><span class="o">.</span><span class="n">cursor_x</span> <span class="o">=</span> <span class="n">col</span>
+<span class="linenos">7</span>        <span class="k">return</span> <span class="kc">True</span>
 </pre></div>
-</td></tr></table></div>
 </div>
-</div>
-<div class="section" id="widget-metaclass">
-<h2>Widget Metaclass<a class="headerlink" href="#widget-metaclass" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+<section id="widget-metaclass">
+<h2>Widget Metaclass<a class="headerlink" href="#widget-metaclass" title="Link to this heading">¶</a></h2>
 <p>The <a class="reference internal" href="../reference/widget.html#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> base class has a metaclass defined that
 creates a <code class="docutils literal notranslate"><span class="pre">__super</span></code> attribute for calling your superclass:
 <code class="docutils literal notranslate"><span class="pre">self.__super</span></code> is the same as the usual <code class="docutils literal notranslate"><span class="pre">super(MyClassName,</span> <span class="pre">self)</span></code>.
@@ -923,10 +847,11 @@ defined in superclasses after the class definition.</p>
 <p class="admonition-title">See also</p>
 <p><a class="reference internal" href="../reference/meta.html#urwid.WidgetMeta" title="urwid.WidgetMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span> <span class="pre">metaclass</span> <span class="pre">WidgetMeta</span></code></a></p>
 </div>
-</div>
-</div>
+</section>
+</section>
 
 
+            <div class="clearer"></div>
           </div>
         </div>
       </div>
@@ -954,9 +879,25 @@ defined in superclasses after the class definition.</p>
 <li><a class="reference internal" href="#setting-the-focus">Setting the Focus</a></li>
 <li><a class="reference internal" href="#list-walkers">List Walkers</a></li>
 <li><a class="reference internal" href="#list-walker-interface">List Walker Interface</a><ul>
-<li><a class="reference internal" href="#list-walker-api-version-1">List Walker API Version 1</a></li>
-<li><a class="reference internal" href="#list-walker-api-version-2">List Walker API Version 2</a></li>
-<li><a class="reference internal" href="#list-walker-iteration">List Walker Iteration</a></li>
+<li><a class="reference internal" href="#list-walker-api-version-1">List Walker API Version 1</a><ul>
+<li><a class="reference internal" href="#MyV1ListWalker.get_focus"><code class="docutils literal notranslate"><span class="pre">get_focus()</span></code></a></li>
+<li><a class="reference internal" href="#MyV1ListWalker.set_focus"><code class="docutils literal notranslate"><span class="pre">set_focus()</span></code></a></li>
+<li><a class="reference internal" href="#MyV1ListWalker.get_next"><code class="docutils literal notranslate"><span class="pre">get_next()</span></code></a></li>
+<li><a class="reference internal" href="#MyV1ListWalker.get_prev"><code class="docutils literal notranslate"><span class="pre">get_prev()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#list-walker-api-version-2">List Walker API Version 2</a><ul>
+<li><a class="reference internal" href="#MyV2ListWalker.__getitem__"><code class="docutils literal notranslate"><span class="pre">__getitem__()</span></code></a></li>
+<li><a class="reference internal" href="#MyV2ListWalker.next_position"><code class="docutils literal notranslate"><span class="pre">next_position()</span></code></a></li>
+<li><a class="reference internal" href="#MyV2ListWalker.prev_position"><code class="docutils literal notranslate"><span class="pre">prev_position()</span></code></a></li>
+<li><a class="reference internal" href="#MyV2ListWalker.set_focus"><code class="docutils literal notranslate"><span class="pre">set_focus()</span></code></a></li>
+<li><a class="reference internal" href="#MyV2ListWalker.focus"><code class="docutils literal notranslate"><span class="pre">focus</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#list-walker-iteration">List Walker Iteration</a><ul>
+<li><a class="reference internal" href="#MyV2ListWalker.positions"><code class="docutils literal notranslate"><span class="pre">positions()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -974,12 +915,16 @@ defined in superclasses after the class definition.</p>
 </ul>
 
     </ul>
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="displaymodules.html"
-                        title="previous chapter">Display Modules</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="userinput.html"
-                        title="next chapter">User Input</a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="displaymodules.html"
+                          title="previous chapter">Display Modules</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="userinput.html"
+                          title="next chapter">User Input</a></p>
+  </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -991,13 +936,17 @@ defined in superclasses after the class definition.</p>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
+<div id="sidebarbutton" title="Collapse sidebar">
+<span>«</span>
+</div>
+
       </div>
       <div class="clearer"></div>
     </div>
@@ -1013,13 +962,14 @@ defined in superclasses after the class definition.</p>
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.2</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Widgets</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
     </div>
   </body>
 </html>

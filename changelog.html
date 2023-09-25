@@ -1,18 +1,17 @@
-
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en" data-content_root="./">
   <head>
     <meta charset="utf-8" />
-    <title>Changelog &#8212; Urwid 2.1.2</title>
-    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Changelog &#8212; Urwid 2.2.2</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=ec8d08c1" />
     
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
-    <script src="_static/doctools.js"></script>
-    <script src="_static/language_data.js"></script>
+    <script src="_static/documentation_options.js?v=219dea72"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     
     <script src="_static/sidebar.js"></script>
     
@@ -29,7 +28,8 @@
         <li class="right" >
           <a href="reference/deprecated.html" title="Deprecated Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.1.2</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.2.2</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Changelog</a></li> 
       </ul>
     </div>  
 
@@ -38,10 +38,79 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="changelog">
-<h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="urwid-2-1-2">
-<h2>Urwid 2.1.2<a class="headerlink" href="#urwid-2-1-2" title="Permalink to this headline">¶</a></h2>
+  <section id="changelog">
+<h1>Changelog<a class="headerlink" href="#changelog" title="Link to this heading">¶</a></h1>
+<section id="urwid-2-2-2">
+<h2>Urwid 2.2.2<a class="headerlink" href="#urwid-2-2-2" title="Link to this heading">¶</a></h2>
+<p>2023-09-25</p>
+<p>New features 🗹
+* Feature: Support pack() for CheckBox/RadioButton/Button by &#64;penguinolog in <a class="reference external" href="https://github.com/urwid/urwid/pull/621">https://github.com/urwid/urwid/pull/621</a></p>
+<p>Deprecations ⚡
+* Mark <cite>AttrWrap</cite> as <cite>PendingDeprecation</cite> by &#64;penguinolog in <a class="reference external" href="https://github.com/urwid/urwid/pull/619">https://github.com/urwid/urwid/pull/619</a></p>
+<p>Bug fixes 🕷
+* Fix font in case Font.data is <cite>str</cite> by &#64;penguinolog in <a class="reference external" href="https://github.com/urwid/urwid/pull/618">https://github.com/urwid/urwid/pull/618</a></p>
+<p>Documentation 🕮
+* Enforce examples code-style by &#64;penguinolog in <a class="reference external" href="https://github.com/urwid/urwid/pull/620">https://github.com/urwid/urwid/pull/620</a>
+* Documentation: do not use <cite>FlowWidget</cite> as base class in examples by &#64;penguinolog in <a class="reference external" href="https://github.com/urwid/urwid/pull/623">https://github.com/urwid/urwid/pull/623</a>
+* README: suggest python3-urwid for debian/ubuntu by &#64;chronitis in <a class="reference external" href="https://github.com/urwid/urwid/pull/444">https://github.com/urwid/urwid/pull/444</a></p>
+<p>Refactoring 🛠
+* Packaging: stop tests distribution as part of package by &#64;penguinolog in <a class="reference external" href="https://github.com/urwid/urwid/pull/622">https://github.com/urwid/urwid/pull/622</a></p>
+</section>
+<section id="urwid-2-2-1">
+<h2>Urwid 2.2.1<a class="headerlink" href="#urwid-2-2-1" title="Link to this heading">¶</a></h2>
+<p>2023-09-22</p>
+<p>Bug fixes 🕷</p>
+<ul class="simple">
+<li><p>Fix: deep TextEnum was improperly resolved by &#64;penguinolog in #609</p></li>
+</ul>
+<p>Documentation 🕮</p>
+<ul class="simple">
+<li><p>Documentation: mention correct python versions by &#64;penguinolog in #608</p></li>
+</ul>
+<p>Refactoring 🛠</p>
+<ul class="simple">
+<li><p>Refactoring: use super() calls if possible by &#64;penguinolog in #611</p></li>
+<li><p>Typing: Extend wimp typing annotations by &#64;penguinolog in #604</p></li>
+</ul>
+</section>
+<section id="urwid-2-2-0">
+<h2>Urwid 2.2.0<a class="headerlink" href="#urwid-2-2-0" title="Link to this heading">¶</a></h2>
+<p>2023-09-21</p>
+<ul class="simple">
+<li><p>Python 3.7+ migration, Python &lt; 3.7 support dropped</p></li>
+<li><p>Deprecate legacy property creation</p></li>
+<li><p>Deprecate <cite>__super</cite> hack and use native <cite>super()</cite></p></li>
+<li><p>ZMQ event loop (by Dave Jones)</p></li>
+<li><p>Add two fonts based on Unicode 13 2x3 TRS-80/Teletext mosaic characters (by Ricardo Bánffy)</p></li>
+<li><p>Adds 256 color and truecolor support to vterm (by Daniel Schwarz)</p></li>
+<li><p>Vterm now emits ‘resize’ signal upon terminal resize (by Daniel Schwarz)</p></li>
+<li><p>vterm.py: Adds support for bracketed paste mode (by Daniel Schwarz)</p></li>
+<li><p>Pass SelectableIcon <cite>align</cite> and <cite>wrap</cite> arguments to parent</p></li>
+<li><p>Fix: restore normal screen on ctrl-z (by Andrey Proskurin)</p></li>
+<li><p>Reconnect the ‘modified’ signal after setting a new ListBox.body (by &#64;exquo)</p></li>
+<li><p>Allow signal handling interoperability with raw display (by &#64;AnonymouX47)</p></li>
+<li><p>Fix alternate/normal screen buffer switch for raw display (by &#64;AnonymouX47)</p></li>
+<li><p>Fix text layout for align=”center”, wrap=”clip” when maxcol == line_width - 1 (by &#64;AnonymouX47)</p></li>
+<li><p>Fix assertion failure when string contains SO but not SI (by Martin Cooper)</p></li>
+<li><p>Fix empty markup handling</p></li>
+<li><p>Fix “FloatEdit mangles decimals” (by Daniel Sheffield)</p></li>
+<li><p>vterm: Fixed OSC 0,2 to set widget title properly (decode bytestring) (by Daniel Schwarz)</p></li>
+<li><p>vterm: Fixed a crash bug with DECALN command (by Daniel Schwarz)</p></li>
+<li><p>export <cite>ELLIPSIS</cite> constant</p></li>
+<li><p>add <cite>__len__</cite> to listbox with validation if body <cite>Sized</cite></p></li>
+<li><p>Fix merging attributes while decomposing tag markup (by Martin André)</p></li>
+<li><p>Fix: use trio.lowlevel instead of trio.hazmat with Trio &gt;= 0.15 (by Tamás Nepusz)</p></li>
+<li><p>Fix TypeError in signals module on weak object finalize by GC (by Roman Guchevskij)</p></li>
+<li><p>Include _resize_pipe_rd in fd_list for _wait_for_input_ready for raw_display (by Andreas Klöckner)</p></li>
+<li><p>container: fix duplicate text (by Mike Frysinger)</p></li>
+<li><p>Provide 80x24 fallback for ansi and vt100 (by Kit Rhett Aultman)</p></li>
+<li><p>Use == instead of “is” for equality testing (by &#64;naglis)</p></li>
+<li><p>Split event loop in several modules</p></li>
+<li><p>Split widget and introduce base enums</p></li>
+</ul>
+</section>
+<section id="urwid-2-1-2">
+<h2>Urwid 2.1.2<a class="headerlink" href="#urwid-2-1-2" title="Link to this heading">¶</a></h2>
 <p>2020-09-26</p>
 <blockquote>
 <div><ul class="simple">
@@ -58,9 +127,9 @@ tour.py (by akorb)</p></li>
 <li><p>Use ord2 for python2/3 compatibility (by Ya-Liang Chang (Allen))</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-2-1-1">
-<h2>Urwid 2.1.1<a class="headerlink" href="#urwid-2-1-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-2-1-1">
+<h2>Urwid 2.1.1<a class="headerlink" href="#urwid-2-1-1" title="Link to this heading">¶</a></h2>
 <p>2020-07-26</p>
 <blockquote>
 <div><ul class="simple">
@@ -89,9 +158,9 @@ Hudson-Doyle)</p></li>
 Shadura)</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-2-1-0">
-<h2>Urwid 2.1.0<a class="headerlink" href="#urwid-2-1-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-2-1-0">
+<h2>Urwid 2.1.0<a class="headerlink" href="#urwid-2-1-0" title="Link to this heading">¶</a></h2>
 <p>2019-11-13</p>
 <blockquote>
 <div><ul class="simple">
@@ -141,9 +210,9 @@ Rasmus Bondesson)</p></li>
 <li><p>README: Use SVG build status badge (by Olle Jonsson)</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-2-0-1">
-<h2>Urwid 2.0.1<a class="headerlink" href="#urwid-2-0-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-2-0-1">
+<h2>Urwid 2.0.1<a class="headerlink" href="#urwid-2-0-1" title="Link to this heading">¶</a></h2>
 <p>2018-01-21</p>
 <blockquote>
 <div><ul class="simple">
@@ -151,9 +220,9 @@ Rasmus Bondesson)</p></li>
 (by Andrew Dunai &amp; Adam Sampson)</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-2-0-0">
-<h2>Urwid 2.0.0<a class="headerlink" href="#urwid-2-0-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-2-0-0">
+<h2>Urwid 2.0.0<a class="headerlink" href="#urwid-2-0-0" title="Link to this heading">¶</a></h2>
 <p>2018-01-17</p>
 <blockquote>
 <div><ul class="simple">
@@ -200,9 +269,9 @@ Christian Geier &amp; xndcn)</p></li>
 <li><p>Test coverage is now collected</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-3-1">
-<h2>Urwid 1.3.1<a class="headerlink" href="#urwid-1-3-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-3-1">
+<h2>Urwid 1.3.1<a class="headerlink" href="#urwid-1-3-1" title="Link to this heading">¶</a></h2>
 <p>2015-11-01</p>
 <blockquote>
 <div><ul class="simple">
@@ -217,9 +286,9 @@ now that extra newline was removed (by Jared Winborne)</p></li>
 <li><p>Fix for a resizing bug in raw_display (by Esteban null)</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-3-0">
-<h2>Urwid 1.3.0<a class="headerlink" href="#urwid-1-3-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-3-0">
+<h2>Urwid 1.3.0<a class="headerlink" href="#urwid-1-3-0" title="Link to this heading">¶</a></h2>
 <p>2014-10-17</p>
 <blockquote>
 <div><ul class="simple">
@@ -237,9 +306,9 @@ instead of passing timeout values to MainLoop (by Alex Munroe)</p></li>
 <li><p>SelectableIcon using cursor_position=0 by default instead of 1.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-2-2">
-<h2>Urwid 1.2.2<a class="headerlink" href="#urwid-1-2-2" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-2-2">
+<h2>Urwid 1.2.2<a class="headerlink" href="#urwid-1-2-2" title="Link to this heading">¶</a></h2>
 <p>2014-10-05</p>
 <blockquote>
 <div><ul class="simple">
@@ -249,9 +318,9 @@ instead of passing timeout values to MainLoop (by Alex Munroe)</p></li>
 <li><p>Small changes to enable windows support (by Jeanpierre Devin)</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-2-1">
-<h2>Urwid 1.2.1<a class="headerlink" href="#urwid-1-2-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-2-1">
+<h2>Urwid 1.2.1<a class="headerlink" href="#urwid-1-2-1" title="Link to this heading">¶</a></h2>
 <p>2014-04-04</p>
 <blockquote>
 <div><ul class="simple">
@@ -260,9 +329,9 @@ instead of passing timeout values to MainLoop (by Alex Munroe)</p></li>
 <li><p>Documentation fixes (by Paul Ivanov)</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-2-0">
-<h2>Urwid 1.2.0<a class="headerlink" href="#urwid-1-2-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-2-0">
+<h2>Urwid 1.2.0<a class="headerlink" href="#urwid-1-2-0" title="Link to this heading">¶</a></h2>
 <p>2014-02-09</p>
 <blockquote>
 <div><ul class="simple">
@@ -293,9 +362,9 @@ standout attribute on some terminals</p></li>
 <li><p>Fix for Terminal widget select loop: retry when interrupted</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-1-2">
-<h2>Urwid 1.1.2<a class="headerlink" href="#urwid-1-1-2" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-1-2">
+<h2>Urwid 1.1.2<a class="headerlink" href="#urwid-1-1-2" title="Link to this heading">¶</a></h2>
 <p>2013-12-30</p>
 <blockquote>
 <div><ul class="simple">
@@ -309,9 +378,9 @@ move changelog to docs/changelog.rst</p></li>
 <li><p>Fix for Padding.align and width change not invalidating</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-1-1">
-<h2>Urwid 1.1.1<a class="headerlink" href="#urwid-1-1-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-1-1">
+<h2>Urwid 1.1.1<a class="headerlink" href="#urwid-1-1-1" title="Link to this heading">¶</a></h2>
 <p>2012-11-15</p>
 <blockquote>
 <div><ul class="simple">
@@ -319,9 +388,9 @@ move changelog to docs/changelog.rst</p></li>
 <li><p>Fix for Overlay.get_cursor_coords()</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-1-0">
-<h2>Urwid 1.1.0<a class="headerlink" href="#urwid-1-1-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-1-0">
+<h2>Urwid 1.1.0<a class="headerlink" href="#urwid-1-1-0" title="Link to this heading">¶</a></h2>
 <p>2012-10-23</p>
 <blockquote>
 <div><ul>
@@ -381,9 +450,9 @@ Columns methods when that column is selectable</p></li>
 <li><p>Fix for Terminal widget input handling with Python 3</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-0-3">
-<h2>Urwid 1.0.3<a class="headerlink" href="#urwid-1-0-3" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-0-3">
+<h2>Urwid 1.0.3<a class="headerlink" href="#urwid-1-0-3" title="Link to this heading">¶</a></h2>
 <p>2012-11-15</p>
 <blockquote>
 <div><ul class="simple">
@@ -392,9 +461,9 @@ curses_display)</p></li>
 <li><p>Fix for Overlay.get_cursor_coords()</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-0-2">
-<h2>Urwid 1.0.2<a class="headerlink" href="#urwid-1-0-2" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-0-2">
+<h2>Urwid 1.0.2<a class="headerlink" href="#urwid-1-0-2" title="Link to this heading">¶</a></h2>
 <p>2012-07-13</p>
 <blockquote>
 <div><ul class="simple">
@@ -410,9 +479,9 @@ when moving up or down</p></li>
 <li><p>Fix a number of bugs caused by 0-height widgets in a ListBox</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-0-1">
-<h2>Urwid 1.0.1<a class="headerlink" href="#urwid-1-0-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-0-1">
+<h2>Urwid 1.0.1<a class="headerlink" href="#urwid-1-0-1" title="Link to this heading">¶</a></h2>
 <p>2011-11-28</p>
 <blockquote>
 <div><ul class="simple">
@@ -432,9 +501,9 @@ and gpm events are not properly supported</p></li>
 <li><p>Mark PollingListWalker as deprecated</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-0-0">
-<h2>Urwid 1.0.0<a class="headerlink" href="#urwid-1-0-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-0-0">
+<h2>Urwid 1.0.0<a class="headerlink" href="#urwid-1-0-0" title="Link to this heading">¶</a></h2>
 <p>2011-09-22</p>
 <blockquote>
 <div><ul class="simple">
@@ -492,9 +561,9 @@ set (currently only used by Terminal widget)</p></li>
 characters into a single character column</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-9-2">
-<h2>Urwid 0.9.9.2<a class="headerlink" href="#urwid-0-9-9-2" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-9-2">
+<h2>Urwid 0.9.9.2<a class="headerlink" href="#urwid-0-9-9-2" title="Link to this heading">¶</a></h2>
 <p>2011-07-13</p>
 <blockquote>
 <div><ul class="simple">
@@ -507,9 +576,9 @@ characters into a single character column</p></li>
 to claim support Python 2.3)</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-9-1">
-<h2>Urwid 0.9.9.1<a class="headerlink" href="#urwid-0-9-9-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-9-1">
+<h2>Urwid 0.9.9.1<a class="headerlink" href="#urwid-0-9-9-1" title="Link to this heading">¶</a></h2>
 <p>2010-01-25</p>
 <blockquote>
 <div><ul class="simple">
@@ -522,9 +591,9 @@ Terminal.app</p></li>
 <li><p>Fix for systems with gpm_mev installed but not running gpm</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-9">
-<h2>Urwid 0.9.9<a class="headerlink" href="#urwid-0-9-9" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-9">
+<h2>Urwid 0.9.9<a class="headerlink" href="#urwid-0-9-9" title="Link to this heading">¶</a></h2>
 <p>2009-11-15</p>
 <blockquote>
 <div><ul class="simple">
@@ -568,9 +637,9 @@ the originals to be redirected</p></li>
 <li><p>Fixed a Popen3 deprecation warning</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-8-4">
-<h2>Urwid 0.9.8.4<a class="headerlink" href="#urwid-0-9-8-4" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-8-4">
+<h2>Urwid 0.9.8.4<a class="headerlink" href="#urwid-0-9-8-4" title="Link to this heading">¶</a></h2>
 <p>2009-03-13</p>
 <blockquote>
 <div><ul class="simple">
@@ -590,9 +659,9 @@ Hartstein)</p></li>
 <li><p>Fixed setuptools configuration (by Andreas Klöckner)</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-8-3">
-<h2>Urwid 0.9.8.3<a class="headerlink" href="#urwid-0-9-8-3" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-8-3">
+<h2>Urwid 0.9.8.3<a class="headerlink" href="#urwid-0-9-8-3" title="Link to this heading">¶</a></h2>
 <p>2008-07-14</p>
 <blockquote>
 <div><ul class="simple">
@@ -601,9 +670,9 @@ Hartstein)</p></li>
 <li><p>Fixed a canvas fill_attr() bug (found by Joern Koerner)</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-8-2">
-<h2>Urwid 0.9.8.2<a class="headerlink" href="#urwid-0-9-8-2" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-8-2">
+<h2>Urwid 0.9.8.2<a class="headerlink" href="#urwid-0-9-8-2" title="Link to this heading">¶</a></h2>
 <p>2008-05-19</p>
 <blockquote>
 <div><ul class="simple">
@@ -613,9 +682,9 @@ mouse_event with no callback bug, Filler body bug triggered by the
 tutorial and a LineBox lline parameter typo.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-8-1">
-<h2>Urwid 0.9.8.1<a class="headerlink" href="#urwid-0-9-8-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-8-1">
+<h2>Urwid 0.9.8.1<a class="headerlink" href="#urwid-0-9-8-1" title="Link to this heading">¶</a></h2>
 <p>2007-06-21</p>
 <blockquote>
 <div><ul class="simple">
@@ -623,9 +692,9 @@ tutorial and a LineBox lline parameter typo.</p></li>
 number of problems triggered by very small terminal window sizes.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-8">
-<h2>Urwid 0.9.8<a class="headerlink" href="#urwid-0-9-8" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-8">
+<h2>Urwid 0.9.8<a class="headerlink" href="#urwid-0-9-8" title="Link to this heading">¶</a></h2>
 <p>2007-03-23</p>
 <blockquote>
 <div><ul>
@@ -673,9 +742,9 @@ improve their performance.</p></li>
 <li><p>Compatible with Python &gt;= 2.2. Python 2.1 is no longer supported.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-7-2">
-<h2>Urwid 0.9.7.2<a class="headerlink" href="#urwid-0-9-7-2" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-7-2">
+<h2>Urwid 0.9.7.2<a class="headerlink" href="#urwid-0-9-7-2" title="Link to this heading">¶</a></h2>
 <p>2007-01-03</p>
 <blockquote>
 <div><ul class="simple">
@@ -685,18 +754,18 @@ improve their performance.</p></li>
 screen to be repainted on the next draw_screen() call.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-7-1">
-<h2>Urwid 0.9.7.1<a class="headerlink" href="#urwid-0-9-7-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-7-1">
+<h2>Urwid 0.9.7.1<a class="headerlink" href="#urwid-0-9-7-1" title="Link to this heading">¶</a></h2>
 <p>2006-10-03</p>
 <blockquote>
 <div><ul class="simple">
 <li><p>Fixed bugs in Padding and Overlay widgets introduced in 0.9.7.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-7">
-<h2>Urwid 0.9.7<a class="headerlink" href="#urwid-0-9-7" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-7">
+<h2>Urwid 0.9.7<a class="headerlink" href="#urwid-0-9-7" title="Link to this heading">¶</a></h2>
 <p>2006-10-01</p>
 <blockquote>
 <div><ul>
@@ -729,9 +798,9 @@ contained a newline. This function is not currently used by Urwid.</p></li>
 include focus parameters.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-6">
-<h2>Urwid 0.9.6<a class="headerlink" href="#urwid-0-9-6" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-6">
+<h2>Urwid 0.9.6<a class="headerlink" href="#urwid-0-9-6" title="Link to this heading">¶</a></h2>
 <p>2006-08-22</p>
 <blockquote>
 <div><ul class="simple">
@@ -748,9 +817,9 @@ parameter.</p></li>
 <li><p>Added support for setuptools (improved distutils).</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-5">
-<h2>Urwid 0.9.5<a class="headerlink" href="#urwid-0-9-5" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-5">
+<h2>Urwid 0.9.5<a class="headerlink" href="#urwid-0-9-5" title="Link to this heading">¶</a></h2>
 <p>2006-06-14</p>
 <blockquote>
 <div><ul>
@@ -793,9 +862,9 @@ against libcurses.</p></li>
 <li><p>Fixed a Padding bug when the left or right has no padding.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-4">
-<h2>Urwid 0.9.4<a class="headerlink" href="#urwid-0-9-4" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-4">
+<h2>Urwid 0.9.4<a class="headerlink" href="#urwid-0-9-4" title="Link to this heading">¶</a></h2>
 <p>2006-05-30</p>
 <blockquote>
 <div><ul>
@@ -817,9 +886,9 @@ library to run: <a class="reference external" href="http://excess.org/templayer/
 characters are now replaced with ‘?’ characters when displayed.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-3">
-<h2>Urwid 0.9.3<a class="headerlink" href="#urwid-0-9-3" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-3">
+<h2>Urwid 0.9.3<a class="headerlink" href="#urwid-0-9-3" title="Link to this heading">¶</a></h2>
 <p>2006-05-14</p>
 <blockquote>
 <div><ul>
@@ -841,9 +910,9 @@ another related to wrapped text starting with a space character.</p></li>
 unselectable widgets.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-2">
-<h2>Urwid 0.9.2<a class="headerlink" href="#urwid-0-9-2" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-2">
+<h2>Urwid 0.9.2<a class="headerlink" href="#urwid-0-9-2" title="Link to this heading">¶</a></h2>
 <p>2006-03-18</p>
 <blockquote>
 <div><ul>
@@ -867,9 +936,9 @@ some circumstances.</p></li>
 <li><p>Fixed a bug preventing use of UTF-8 characters with Divider widgets.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-1">
-<h2>Urwid 0.9.1<a class="headerlink" href="#urwid-0-9-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-1">
+<h2>Urwid 0.9.1<a class="headerlink" href="#urwid-0-9-1" title="Link to this heading">¶</a></h2>
 <p>2006-03-06</p>
 <blockquote>
 <div><ul class="simple">
@@ -887,9 +956,9 @@ call signal.signal() from their main thread.</p></li>
 <li><p>Removed some forgotten asserts that broke 8-bit and CJK input.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-0">
-<h2>Urwid 0.9.0<a class="headerlink" href="#urwid-0-9-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-0">
+<h2>Urwid 0.9.0<a class="headerlink" href="#urwid-0-9-0" title="Link to this heading">¶</a></h2>
 <p>2006-02-18</p>
 <blockquote>
 <div><ul>
@@ -911,18 +980,18 @@ text legibility.</p>
 in UTF-8 encoding.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-0-pre3">
-<h2>Urwid 0.9.0-pre3<a class="headerlink" href="#urwid-0-9-0-pre3" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-0-pre3">
+<h2>Urwid 0.9.0-pre3<a class="headerlink" href="#urwid-0-9-0-pre3" title="Link to this heading">¶</a></h2>
 <p>2006-02-13</p>
 <blockquote>
 <div><ul class="simple">
 <li><p>Fixed Canvas attribute padding bug related to -pre1 changes.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-0-pre2">
-<h2>Urwid 0.9.0-pre2<a class="headerlink" href="#urwid-0-9-0-pre2" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-0-pre2">
+<h2>Urwid 0.9.0-pre2<a class="headerlink" href="#urwid-0-9-0-pre2" title="Link to this heading">¶</a></h2>
 <p>2006-02-10</p>
 <blockquote>
 <div><ul class="simple">
@@ -932,9 +1001,9 @@ with a new layout class.</p></li>
 <li><p>Fixed Padding bug related to Canvas -pre1 changes.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-0-pre1">
-<h2>Urwid 0.9.0-pre1<a class="headerlink" href="#urwid-0-9-0-pre1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-0-pre1">
+<h2>Urwid 0.9.0-pre1<a class="headerlink" href="#urwid-0-9-0-pre1" title="Link to this heading">¶</a></h2>
 <p>2006-02-08</p>
 <blockquote>
 <div><ul>
@@ -959,9 +1028,9 @@ found in the original text string.</p></li>
 Their functionality has been replaced by the new layout classes.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-10">
-<h2>Urwid 0.8.10<a class="headerlink" href="#urwid-0-8-10" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-10">
+<h2>Urwid 0.8.10<a class="headerlink" href="#urwid-0-8-10" title="Link to this heading">¶</a></h2>
 <p>2005-11-27</p>
 <blockquote>
 <div><ul class="simple">
@@ -981,9 +1050,9 @@ warnings with python2.1. Fixed Padding.get_pref_col() bug. Fixed
 Overlay splitting CJK characters bug.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-9">
-<h2>Urwid 0.8.9<a class="headerlink" href="#urwid-0-8-9" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-9">
+<h2>Urwid 0.8.9<a class="headerlink" href="#urwid-0-8-9" title="Link to this heading">¶</a></h2>
 <p>2005-10-21</p>
 <blockquote>
 <div><ul class="simple">
@@ -997,9 +1066,9 @@ curses_display.Screen.set_input_timeouts().</p></li>
 <li><p>Fixed a ListBox.set_focus() bug.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-8">
-<h2>Urwid 0.8.8<a class="headerlink" href="#urwid-0-8-8" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-8">
+<h2>Urwid 0.8.8<a class="headerlink" href="#urwid-0-8-8" title="Link to this heading">¶</a></h2>
 <p>2005-06-13</p>
 <blockquote>
 <div><ul>
@@ -1016,9 +1085,9 @@ broader escape code support.</p></li>
 <li><p>Shortened resize timeout on gradual resize to improve responsiveness.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-7">
-<h2>Urwid 0.8.7<a class="headerlink" href="#urwid-0-8-7" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-7">
+<h2>Urwid 0.8.7<a class="headerlink" href="#urwid-0-8-7" title="Link to this heading">¶</a></h2>
 <p>2005-05-21</p>
 <blockquote>
 <div><ul class="simple">
@@ -1041,9 +1110,9 @@ with cygwin’s broken curses implementation.</p></li>
 <li><p>Fixed crash when deleting cells in calc.py example program.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-6">
-<h2>Urwid 0.8.6<a class="headerlink" href="#urwid-0-8-6" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-6">
+<h2>Urwid 0.8.6<a class="headerlink" href="#urwid-0-8-6" title="Link to this heading">¶</a></h2>
 <p>2005-01-03</p>
 <blockquote>
 <div><ul>
@@ -1065,9 +1134,9 @@ that areas with no attributes will change from light grey on black
 widget in focus has no cursor position.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-5">
-<h2>Urwid 0.8.5<a class="headerlink" href="#urwid-0-8-5" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-5">
+<h2>Urwid 0.8.5<a class="headerlink" href="#urwid-0-8-5" title="Link to this heading">¶</a></h2>
 <p>2004-12-15</p>
 <blockquote>
 <div><ul class="simple">
@@ -1080,9 +1149,9 @@ and Frame classes</p></li>
 <li><p>Fixed curses_display bug affecting text with no attributes.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-4">
-<h2>Urwid 0.8.4<a class="headerlink" href="#urwid-0-8-4" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-4">
+<h2>Urwid 0.8.4<a class="headerlink" href="#urwid-0-8-4" title="Link to this heading">¶</a></h2>
 <p>2004-11-20</p>
 <blockquote>
 <div><ul class="simple">
@@ -1095,9 +1164,9 @@ html_fragment.screenshot_collect()</p></li>
 boxes with CJK text.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-3">
-<h2>Urwid 0.8.3<a class="headerlink" href="#urwid-0-8-3" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-3">
+<h2>Urwid 0.8.3<a class="headerlink" href="#urwid-0-8-3" title="Link to this heading">¶</a></h2>
 <p>2004-11-15</p>
 <blockquote>
 <div><ul>
@@ -1113,18 +1182,18 @@ double width characters.</p>
 <li><p>Minor improvements to edit.py example program.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-2">
-<h2>Urwid 0.8.2<a class="headerlink" href="#urwid-0-8-2" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-2">
+<h2>Urwid 0.8.2<a class="headerlink" href="#urwid-0-8-2" title="Link to this heading">¶</a></h2>
 <p>2004-11-08</p>
 <blockquote>
 <div><ul class="simple">
 <li><p>Re-released under GNU Lesser General Public License.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-1">
-<h2>Urwid 0.8.1<a class="headerlink" href="#urwid-0-8-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-1">
+<h2>Urwid 0.8.1<a class="headerlink" href="#urwid-0-8-1" title="Link to this heading">¶</a></h2>
 <p>2004-10-29</p>
 <blockquote>
 <div><ul class="simple">
@@ -1137,19 +1206,20 @@ colour rendering.</p></li>
 <li><p>Fixed an OSX browse.py compatibility issue. Added some OSX keycodes.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-0">
-<h2>Urwid 0.8.0<a class="headerlink" href="#urwid-0-8-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-0">
+<h2>Urwid 0.8.0<a class="headerlink" href="#urwid-0-8-0" title="Link to this heading">¶</a></h2>
 <p>2004-10-17</p>
 <blockquote>
 <div><ul class="simple">
 <li><p>Initial Release</p></li>
 </ul>
 </div></blockquote>
-</div>
-</div>
+</section>
+</section>
 
 
+            <div class="clearer"></div>
           </div>
         </div>
       </div>
@@ -1160,6 +1230,9 @@ colour rendering.</p></li>
             </a></p><h3>Table of contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Changelog</a><ul>
+<li><a class="reference internal" href="#urwid-2-2-2">Urwid 2.2.2</a></li>
+<li><a class="reference internal" href="#urwid-2-2-1">Urwid 2.2.1</a></li>
+<li><a class="reference internal" href="#urwid-2-2-0">Urwid 2.2.0</a></li>
 <li><a class="reference internal" href="#urwid-2-1-2">Urwid 2.1.2</a></li>
 <li><a class="reference internal" href="#urwid-2-1-1">Urwid 2.1.1</a></li>
 <li><a class="reference internal" href="#urwid-2-1-0">Urwid 2.1.0</a></li>
@@ -1214,9 +1287,11 @@ colour rendering.</p></li>
 </ul>
 
 
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="reference/deprecated.html"
-                        title="previous chapter">Deprecated Classes</a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="reference/deprecated.html"
+                          title="previous chapter">Deprecated Classes</a></p>
+  </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -1228,13 +1303,17 @@ colour rendering.</p></li>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
+<div id="sidebarbutton" title="Collapse sidebar">
+<span>«</span>
+</div>
+
       </div>
       <div class="clearer"></div>
     </div>
@@ -1247,12 +1326,13 @@ colour rendering.</p></li>
         <li class="right" >
           <a href="reference/deprecated.html" title="Deprecated Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.1.2</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.2.2</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Changelog</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
     </div>
   </body>
 </html>

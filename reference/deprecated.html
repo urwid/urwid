@@ -1,18 +1,17 @@
-
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en" data-content_root="../">
   <head>
     <meta charset="utf-8" />
-    <title>Deprecated Classes &#8212; Urwid 2.1.2</title>
-    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Deprecated Classes &#8212; Urwid 2.2.2</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=ec8d08c1" />
     
-    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/doctools.js"></script>
-    <script src="../_static/language_data.js"></script>
+    <script src="../_static/documentation_options.js?v=219dea72"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
     <script src="../_static/sidebar.js"></script>
     
@@ -33,8 +32,9 @@
         <li class="right" >
           <a href="meta.html" title="Metaclasses"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.2</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Deprecated Classes</a></li> 
       </ul>
     </div>  
 
@@ -43,11 +43,11 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="deprecated-classes">
-<h1>Deprecated Classes<a class="headerlink" href="#deprecated-classes" title="Permalink to this headline">¶</a></h1>
-<dl class="class">
-<dt id="urwid.FlowWidget">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">FlowWidget</code><a class="headerlink" href="#urwid.FlowWidget" title="Permalink to this definition">¶</a></dt>
+  <section id="deprecated-classes">
+<h1>Deprecated Classes<a class="headerlink" href="#deprecated-classes" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.FlowWidget">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">FlowWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.FlowWidget" title="Link to this definition">¶</a></dt>
 <dd><p>Deprecated.  Inherit from Widget and add:</p>
 <blockquote>
 <div><p>_sizing = frozenset([‘flow’])</p>
@@ -55,23 +55,23 @@
 <p>at the top of your class definition instead.</p>
 <p>Base class of widgets that determine their rows from the number of
 columns available.</p>
-<dl class="method">
-<dt id="urwid.FlowWidget.render">
-<code class="sig-name descname">render</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">focus=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.FlowWidget.render" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.FlowWidget.render">
+<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.FlowWidget.render" title="Link to this definition">¶</a></dt>
 <dd><p>All widgets must implement this function.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.FlowWidget.rows">
-<code class="sig-name descname">rows</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">focus=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.FlowWidget.rows" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.FlowWidget.rows">
+<span class="sig-name descname"><span class="pre">rows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.FlowWidget.rows" title="Link to this definition">¶</a></dt>
 <dd><p>All flow widgets must implement this function.</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="class">
-<dt id="urwid.BoxWidget">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">BoxWidget</code><a class="headerlink" href="#urwid.BoxWidget" title="Permalink to this definition">¶</a></dt>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.BoxWidget">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">BoxWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.BoxWidget" title="Link to this definition">¶</a></dt>
 <dd><p>Deprecated.  Inherit from Widget and add:</p>
 <blockquote>
 <div><p>_sizing = frozenset([‘box’])
@@ -80,17 +80,17 @@ _selectable = True</p>
 <p>at the top of your class definition instead.</p>
 <p>Base class of width and height constrained widgets such as
 the top level widget attached to the display object</p>
-<dl class="method">
-<dt id="urwid.BoxWidget.render">
-<code class="sig-name descname">render</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">focus=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.BoxWidget.render" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.BoxWidget.render">
+<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.BoxWidget.render" title="Link to this definition">¶</a></dt>
 <dd><p>All widgets must implement this function.</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="class">
-<dt id="urwid.FixedWidget">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">FixedWidget</code><a class="headerlink" href="#urwid.FixedWidget" title="Permalink to this definition">¶</a></dt>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.FixedWidget">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">FixedWidget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.FixedWidget" title="Link to this definition">¶</a></dt>
 <dd><p>Deprecated.  Inherit from Widget and add:</p>
 <blockquote>
 <div><p>_sizing = frozenset([‘fixed’])</p>
@@ -98,23 +98,23 @@ the top level widget attached to the display object</p>
 <p>at the top of your class definition instead.</p>
 <p>Base class of widgets that know their width and height and
 cannot be resized</p>
-<dl class="method">
-<dt id="urwid.FixedWidget.pack">
-<code class="sig-name descname">pack</code><span class="sig-paren">(</span><em class="sig-param">size=None</em>, <em class="sig-param">focus=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.FixedWidget.pack" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.FixedWidget.pack">
+<span class="sig-name descname"><span class="pre">pack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.FixedWidget.pack" title="Link to this definition">¶</a></dt>
 <dd><p>All fixed widgets must implement this function.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.FixedWidget.render">
-<code class="sig-name descname">render</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">focus=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.FixedWidget.render" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.FixedWidget.render">
+<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.FixedWidget.render" title="Link to this definition">¶</a></dt>
 <dd><p>All widgets must implement this function.</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="class">
-<dt id="urwid.AttrWrap">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">AttrWrap</code><span class="sig-paren">(</span><em class="sig-param">w</em>, <em class="sig-param">attr</em>, <em class="sig-param">focus_attr=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrWrap" title="Permalink to this definition">¶</a></dt>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.AttrWrap">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">AttrWrap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="widget.html#urwid.Widget" title="urwid.Widget"><span class="pre">Widget</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">attr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus_attr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrWrap" title="Link to this definition">¶</a></dt>
 <dd><p>w – widget to wrap (stored as self.original_widget)
 attr – attribute to apply to w
 focus_attr – attribute to apply when in focus, if None use attr</p>
@@ -122,7 +122,8 @@ focus_attr – attribute to apply when in focus, if None use attr</p>
 will pass all function calls and variable references to the wrapped
 widget.  This class is maintained for backwards compatibility only,
 new code should use AttrMap instead.</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrWrap</span><span class="p">(</span><span class="n">Divider</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;!&quot;</span><span class="p">),</span> <span class="s1">&#39;bright&#39;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">urwid</span> <span class="kn">import</span> <span class="n">Divider</span><span class="p">,</span> <span class="n">Edit</span><span class="p">,</span> <span class="n">Text</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrWrap</span><span class="p">(</span><span class="n">Divider</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;!&quot;</span><span class="p">),</span> <span class="s1">&#39;bright&#39;</span><span class="p">)</span>
 <span class="go">&lt;AttrWrap flow widget &lt;Divider flow widget &#39;!&#39;&gt; attr=&#39;bright&#39;&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">AttrWrap</span><span class="p">(</span><span class="n">Edit</span><span class="p">(),</span> <span class="s1">&#39;notfocus&#39;</span><span class="p">,</span> <span class="s1">&#39;focus&#39;</span><span class="p">)</span>
 <span class="go">&lt;AttrWrap selectable flow widget &lt;Edit selectable flow widget &#39;&#39; edit_pos=0&gt; attr=&#39;notfocus&#39; focus_attr=&#39;focus&#39;&gt;</span>
@@ -134,19 +135,19 @@ new code should use AttrMap instead.</p>
 <span class="go">[(&#39;fgreet&#39;, None, ...&#39;hi   &#39;)]</span>
 </pre></div>
 </div>
-<dl class="method">
-<dt id="urwid.AttrWrap.set_attr">
-<code class="sig-name descname">set_attr</code><span class="sig-paren">(</span><em class="sig-param">attr</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrWrap.set_attr" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.AttrWrap.set_attr">
+<span class="sig-name descname"><span class="pre">set_attr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attr</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrWrap.set_attr" title="Link to this definition">¶</a></dt>
 <dd><p>Set the attribute to apply to the wrapped widget</p>
 <p>&gt;&gt; w = AttrWrap(Divider(“-“), None)
 &gt;&gt; w.set_attr(‘new_attr’)
 &gt;&gt; w
-&lt;AttrWrap flow widget &lt;Divider flow widget ‘-‘&gt; attr=’new_attr’&gt;</p>
+&lt;AttrWrap flow widget &lt;Divider flow widget ‘-’&gt; attr=’new_attr’&gt;</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.AttrWrap.set_focus_attr">
-<code class="sig-name descname">set_focus_attr</code><span class="sig-paren">(</span><em class="sig-param">focus_attr</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrWrap.set_focus_attr" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.AttrWrap.set_focus_attr">
+<span class="sig-name descname"><span class="pre">set_focus_attr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">focus_attr</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrWrap.set_focus_attr" title="Link to this definition">¶</a></dt>
 <dd><p>Set the attribute to apply to the wapped widget when it is in
 focus</p>
 <p>If None this widget will use the attr instead (no change when in
@@ -154,17 +155,17 @@ focus).</p>
 <p>&gt;&gt; w = AttrWrap(Divider(“-“), ‘old’)
 &gt;&gt; w.set_focus_attr(‘new_attr’)
 &gt;&gt; w
-&lt;AttrWrap flow widget &lt;Divider flow widget ‘-‘&gt; attr=’old’ focus_attr=’new_attr’&gt;
+&lt;AttrWrap flow widget &lt;Divider flow widget ‘-’&gt; attr=’old’ focus_attr=’new_attr’&gt;
 &gt;&gt; w.set_focus_attr(None)
 &gt;&gt; w
-&lt;AttrWrap flow widget &lt;Divider flow widget ‘-‘&gt; attr=’old’&gt;</p>
+&lt;AttrWrap flow widget &lt;Divider flow widget ‘-’&gt; attr=’old’&gt;</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.AttrWrap.sizing">
-<code class="sig-name descname">sizing</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrWrap.sizing" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.AttrWrap.sizing">
+<span class="sig-name descname"><span class="pre">sizing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrWrap.sizing" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>A frozenset including one or more of <code class="docutils literal notranslate"><span class="pre">'box'</span></code>, <code class="docutils literal notranslate"><span class="pre">'flow'</span></code> and
 <code class="docutils literal notranslate"><span class="pre">'fixed'</span></code>.  Default implementation returns the value of
 <a class="reference internal" href="widget.html#urwid.Widget._sizing" title="urwid.Widget._sizing"><code class="xref py py-attr docutils literal notranslate"><span class="pre">_sizing</span></code></a>, which for this class includes all three.</p>
@@ -191,11 +192,18 @@ their size parameter, and the <code class="xref py py-meth docutils literal notr
 be defined.</p>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.AttrWrap.w">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">w</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="widget.html#urwid.Widget" title="urwid.Widget"><span class="pre">Widget</span></a></em><a class="headerlink" href="#urwid.AttrWrap.w" title="Link to this definition">¶</a></dt>
+<dd><p>backwards compatibility, widget used to be stored as w</p>
 </dd></dl>
 
-</div>
+</dd></dl>
+
+</section>
 
 
+            <div class="clearer"></div>
           </div>
         </div>
       </div>
@@ -204,14 +212,44 @@ be defined.</p>
             <p class="logo"><a href="../index.html">
               <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
             </a></p><h3>Table of contents</a></h3>
-    <ul><li><a href="index.html">Reference</a></li>
+    <ul><li><a href="index.html">Reference</a></li><ul>
+<li><a class="reference internal" href="#">Deprecated Classes</a><ul>
+<li><a class="reference internal" href="#urwid.FlowWidget"><code class="docutils literal notranslate"><span class="pre">FlowWidget</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.FlowWidget.render"><code class="docutils literal notranslate"><span class="pre">FlowWidget.render()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.FlowWidget.rows"><code class="docutils literal notranslate"><span class="pre">FlowWidget.rows()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#urwid.BoxWidget"><code class="docutils literal notranslate"><span class="pre">BoxWidget</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.BoxWidget.render"><code class="docutils literal notranslate"><span class="pre">BoxWidget.render()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#urwid.FixedWidget"><code class="docutils literal notranslate"><span class="pre">FixedWidget</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.FixedWidget.pack"><code class="docutils literal notranslate"><span class="pre">FixedWidget.pack()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.FixedWidget.render"><code class="docutils literal notranslate"><span class="pre">FixedWidget.render()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#urwid.AttrWrap"><code class="docutils literal notranslate"><span class="pre">AttrWrap</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.AttrWrap.set_attr"><code class="docutils literal notranslate"><span class="pre">AttrWrap.set_attr()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.AttrWrap.set_focus_attr"><code class="docutils literal notranslate"><span class="pre">AttrWrap.set_focus_attr()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.AttrWrap.sizing"><code class="docutils literal notranslate"><span class="pre">AttrWrap.sizing()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.AttrWrap.w"><code class="docutils literal notranslate"><span class="pre">AttrWrap.w</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
     </ul>
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="meta.html"
-                        title="previous chapter">Metaclasses</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="../changelog.html"
-                        title="next chapter">Changelog</a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="meta.html"
+                          title="previous chapter">Metaclasses</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../changelog.html"
+                          title="next chapter">Changelog</a></p>
+  </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -223,13 +261,17 @@ be defined.</p>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
+<div id="sidebarbutton" title="Collapse sidebar">
+<span>«</span>
+</div>
+
       </div>
       <div class="clearer"></div>
     </div>
@@ -245,13 +287,14 @@ be defined.</p>
         <li class="right" >
           <a href="meta.html" title="Metaclasses"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.2</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Deprecated Classes</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
     </div>
   </body>
 </html>

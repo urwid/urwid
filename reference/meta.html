@@ -1,18 +1,17 @@
-
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en" data-content_root="../">
   <head>
     <meta charset="utf-8" />
-    <title>Metaclasses &#8212; Urwid 2.1.2</title>
-    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Metaclasses &#8212; Urwid 2.2.2</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=ec8d08c1" />
     
-    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/doctools.js"></script>
-    <script src="../_static/language_data.js"></script>
+    <script src="../_static/documentation_options.js?v=219dea72"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
     <script src="../_static/sidebar.js"></script>
     
@@ -33,8 +32,9 @@
         <li class="right" >
           <a href="exceptions.html" title="Exceptions"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.2</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Metaclasses</a></li> 
       </ul>
     </div>  
 
@@ -43,11 +43,11 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="metaclasses">
-<h1>Metaclasses<a class="headerlink" href="#metaclasses" title="Permalink to this headline">¶</a></h1>
-<dl class="class">
-<dt id="urwid.WidgetMeta">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">WidgetMeta</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">bases</em>, <em class="sig-param">d</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.WidgetMeta" title="Permalink to this definition">¶</a></dt>
+  <section id="metaclasses">
+<h1>Metaclasses<a class="headerlink" href="#metaclasses" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.WidgetMeta">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">WidgetMeta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bases</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.WidgetMeta" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#urwid.MetaSuper" title="urwid.MetaSuper"><code class="xref py py-class docutils literal notranslate"><span class="pre">MetaSuper</span></code></a>, <a class="reference internal" href="#urwid.MetaSignals" title="urwid.MetaSignals"><code class="xref py py-class docutils literal notranslate"><span class="pre">MetaSignals</span></code></a></p>
 <p>Automatic caching of render and rows methods.</p>
 <p>Class variable <em>no_cache</em> is a list of names of methods to not cache
@@ -58,22 +58,23 @@ that the canvas this widget renders is not affected by the focus
 parameter, so it may be ignored when caching.</p>
 </dd></dl>
 
-<dl class="class">
-<dt id="urwid.MetaSuper">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">MetaSuper</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">bases</em>, <em class="sig-param">d</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MetaSuper" title="Permalink to this definition">¶</a></dt>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.MetaSuper">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">MetaSuper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bases</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MetaSuper" title="Link to this definition">¶</a></dt>
 <dd><p>adding .__super</p>
 </dd></dl>
 
-<dl class="class">
-<dt id="urwid.MetaSignals">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">MetaSignals</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">bases</em>, <em class="sig-param">d</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MetaSignals" title="Permalink to this definition">¶</a></dt>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.MetaSignals">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">MetaSignals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bases</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">type</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MetaSignals" title="Link to this definition">¶</a></dt>
 <dd><p>register the list of signals in the class variable signals,
 including signals in superclasses.</p>
 </dd></dl>
 
-</div>
+</section>
 
 
+            <div class="clearer"></div>
           </div>
         </div>
       </div>
@@ -82,14 +83,26 @@ including signals in superclasses.</p>
             <p class="logo"><a href="../index.html">
               <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
             </a></p><h3>Table of contents</a></h3>
-    <ul><li><a href="index.html">Reference</a></li>
+    <ul><li><a href="index.html">Reference</a></li><ul>
+<li><a class="reference internal" href="#">Metaclasses</a><ul>
+<li><a class="reference internal" href="#urwid.WidgetMeta"><code class="docutils literal notranslate"><span class="pre">WidgetMeta</span></code></a></li>
+<li><a class="reference internal" href="#urwid.MetaSuper"><code class="docutils literal notranslate"><span class="pre">MetaSuper</span></code></a></li>
+<li><a class="reference internal" href="#urwid.MetaSignals"><code class="docutils literal notranslate"><span class="pre">MetaSignals</span></code></a></li>
+</ul>
+</li>
+</ul>
+
     </ul>
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="exceptions.html"
-                        title="previous chapter">Exceptions</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="deprecated.html"
-                        title="next chapter">Deprecated Classes</a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="exceptions.html"
+                          title="previous chapter">Exceptions</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="deprecated.html"
+                          title="next chapter">Deprecated Classes</a></p>
+  </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -101,13 +114,17 @@ including signals in superclasses.</p>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
+<div id="sidebarbutton" title="Collapse sidebar">
+<span>«</span>
+</div>
+
       </div>
       <div class="clearer"></div>
     </div>
@@ -123,13 +140,14 @@ including signals in superclasses.</p>
         <li class="right" >
           <a href="exceptions.html" title="Exceptions"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.2</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Metaclasses</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
     </div>
   </body>
 </html>

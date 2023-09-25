@@ -1,18 +1,17 @@
-
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en" data-content_root="../">
   <head>
     <meta charset="utf-8" />
-    <title>Canvas Cache &#8212; Urwid 2.1.2</title>
-    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Canvas Cache &#8212; Urwid 2.2.2</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=ec8d08c1" />
     
-    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/doctools.js"></script>
-    <script src="../_static/language_data.js"></script>
+    <script src="../_static/documentation_options.js?v=219dea72"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
     <script src="../_static/sidebar.js"></script>
     
@@ -33,8 +32,9 @@
         <li class="right" >
           <a href="displayattributes.html" title="Display Attributes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.2</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Canvas Cache</a></li> 
       </ul>
     </div>  
 
@@ -43,8 +43,8 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="canvas-cache">
-<span id="id1"></span><h1>Canvas Cache<a class="headerlink" href="#canvas-cache" title="Permalink to this headline">¶</a></h1>
+  <section id="canvas-cache">
+<span id="id1"></span><h1>Canvas Cache<a class="headerlink" href="#canvas-cache" title="Link to this heading">¶</a></h1>
 <p>In an Urwid application each time the screen is redrawn typically only part of
 the screen actually needs to be updated. A canvas cache is used to store
 visible, unchanged canvases so that not all of the visible widgets need to be
@@ -57,8 +57,8 @@ that changes to the widget are visible the next time the screen is redrawn.</p>
 <p>Similar metaclass magic is used for flow widgets’ <a class="reference internal" href="../reference/widget.html#urwid.Widget.rows" title="urwid.Widget.rows"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.rows()</span></code></a> method. If a
 canvas for that widget with the same parameters is cached then the rows of that
 canvas are returned instead of calling the widget’s actual <a class="reference internal" href="../reference/widget.html#urwid.Widget.rows" title="urwid.Widget.rows"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.rows()</span></code></a> method.</p>
-<div class="section" id="composite-canvases">
-<h2>Composite Canvases<a class="headerlink" href="#composite-canvases" title="Permalink to this headline">¶</a></h2>
+<section id="composite-canvases">
+<h2>Composite Canvases<a class="headerlink" href="#composite-canvases" title="Link to this heading">¶</a></h2>
 <p>When container and decoration widgets are rendered, they collect the canvases
 returned by their children and arrange them into a composite canvas. Composite
 canvases are nested to form a tree with the topmost widget’s <a class="reference internal" href="../reference/widget.html#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a>
@@ -74,26 +74,27 @@ widgets may be made efficiently. This is important when a user’s input gets
 ahead of the screen updating – Urwid handles all the pending input first then
 updates the screen with the final result, instead of falling further and
 further behind.</p>
-</div>
-<div class="section" id="cache-lifetime">
-<h2>Cache Lifetime<a class="headerlink" href="#cache-lifetime" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="cache-lifetime">
+<h2>Cache Lifetime<a class="headerlink" href="#cache-lifetime" title="Link to this heading">¶</a></h2>
 <p>The canvases “stored” in the canvas cache are actually weak references to the
 canvases. The canvases must have a real reference somewhere for the cache to
 function properly. Urwid’s display modules store the currently displayed
 topmost canvas for this reason. All canvases that are visible on the screen
 will remain in the cache, and others will be garbage collected.</p>
-</div>
-<div class="section" id="future-work">
-<h2>Future Work<a class="headerlink" href="#future-work" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="future-work">
+<h2>Future Work<a class="headerlink" href="#future-work" title="Link to this heading">¶</a></h2>
 <p>An updating method that invalidates regions of the display without redrawing
 parent widgets would be more efficient for the common case of a single change
 on the screen that does not affect the screen layout. Send an email to the
 mailing list if you’re interested in helping with this or other display
 optimizations.</p>
-</div>
-</div>
+</section>
+</section>
 
 
+            <div class="clearer"></div>
           </div>
         </div>
       </div>
@@ -112,12 +113,16 @@ optimizations.</p>
 </ul>
 
     </ul>
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="displayattributes.html"
-                        title="previous chapter">Display Attributes</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="../reference/index.html"
-                        title="next chapter">Urwid Reference</a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="displayattributes.html"
+                          title="previous chapter">Display Attributes</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../reference/index.html"
+                          title="next chapter">Urwid Reference</a></p>
+  </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -129,13 +134,17 @@ optimizations.</p>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
+<div id="sidebarbutton" title="Collapse sidebar">
+<span>«</span>
+</div>
+
       </div>
       <div class="clearer"></div>
     </div>
@@ -151,13 +160,14 @@ optimizations.</p>
         <li class="right" >
           <a href="displayattributes.html" title="Display Attributes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.2</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Canvas Cache</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
     </div>
   </body>
 </html>

@@ -1,18 +1,17 @@
-
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en" data-content_root="../">
   <head>
     <meta charset="utf-8" />
-    <title>Constants &#8212; Urwid 2.1.2</title>
-    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Constants &#8212; Urwid 2.2.2</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=ec8d08c1" />
     
-    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/doctools.js"></script>
-    <script src="../_static/language_data.js"></script>
+    <script src="../_static/documentation_options.js?v=219dea72"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
     <script src="../_static/sidebar.js"></script>
     
@@ -33,8 +32,9 @@
         <li class="right" >
           <a href="command_map.html" title="Command Map"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.2</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Constants</a></li> 
       </ul>
     </div>  
 
@@ -43,8 +43,8 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="constants">
-<h1>Constants<a class="headerlink" href="#constants" title="Permalink to this headline">¶</a></h1>
+  <section id="constants">
+<h1>Constants<a class="headerlink" href="#constants" title="Link to this heading">¶</a></h1>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>These constants may be used, but using the string values themselves in
@@ -52,234 +52,234 @@ your program is equally supported.  These constants are used internally
 by urwid just to avoid possible misspelling, but the example programs
 and tutorials tend to use the string values.</p>
 </div>
-<div class="section" id="widget-sizing-methods">
-<h2>Widget Sizing Methods<a class="headerlink" href="#widget-sizing-methods" title="Permalink to this headline">¶</a></h2>
+<section id="widget-sizing-methods">
+<h2>Widget Sizing Methods<a class="headerlink" href="#widget-sizing-methods" title="Link to this heading">¶</a></h2>
 <p>One or more of these values returned by <a class="reference internal" href="widget.html#urwid.Widget.sizing" title="urwid.Widget.sizing"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.sizing()</span></code></a> to indicate
 supported sizing methods.</p>
-<dl class="data">
-<dt id="urwid.FLOW">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">FLOW</code><em class="property"> = 'flow'</em><a class="headerlink" href="#urwid.FLOW" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.FLOW">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">FLOW</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'flow'</span></em><a class="headerlink" href="#urwid.FLOW" title="Link to this definition">¶</a></dt>
 <dd><p>Widget that is given a number of columns by its parent widget and
 calculates the number of rows it requires for rendering
 e.g. <a class="reference internal" href="widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a></p>
 </dd></dl>
 
-<dl class="data">
-<dt id="urwid.BOX">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">BOX</code><em class="property"> = 'box'</em><a class="headerlink" href="#urwid.BOX" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.BOX">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">BOX</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'box'</span></em><a class="headerlink" href="#urwid.BOX" title="Link to this definition">¶</a></dt>
 <dd><p>Widget that is given a number of columns and rows by its parent
 widget and must render that size
 e.g. <a class="reference internal" href="widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a></p>
 </dd></dl>
 
-<dl class="data">
-<dt id="urwid.FIXED">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">FIXED</code><em class="property"> = 'fixed'</em><a class="headerlink" href="#urwid.FIXED" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.FIXED">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">FIXED</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'fixed'</span></em><a class="headerlink" href="#urwid.FIXED" title="Link to this definition">¶</a></dt>
 <dd><p>Widget that knows the number of columns and rows it requires and will
 only render at that exact size
 e.g. <a class="reference internal" href="widget.html#urwid.BigText" title="urwid.BigText"><code class="xref py py-class docutils literal notranslate"><span class="pre">BigText</span></code></a></p>
 </dd></dl>
 
-</div>
-<div class="section" id="horizontal-alignment">
-<h2>Horizontal Alignment<a class="headerlink" href="#horizontal-alignment" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="horizontal-alignment">
+<h2>Horizontal Alignment<a class="headerlink" href="#horizontal-alignment" title="Link to this heading">¶</a></h2>
 <p>Used to horizontally align text in <a class="reference internal" href="widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets and child widgets
 of <a class="reference internal" href="widget.html#urwid.Padding" title="urwid.Padding"><code class="xref py py-class docutils literal notranslate"><span class="pre">Padding</span></code></a> and <a class="reference internal" href="widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal notranslate"><span class="pre">Overlay</span></code></a>.</p>
-<dl class="data">
-<dt id="urwid.LEFT">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">LEFT</code><em class="property"> = 'left'</em><a class="headerlink" href="#urwid.LEFT" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.LEFT">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">LEFT</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'left'</span></em><a class="headerlink" href="#urwid.LEFT" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="data">
-<dt id="urwid.CENTER">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">CENTER</code><em class="property"> = 'center'</em><a class="headerlink" href="#urwid.CENTER" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.CENTER">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CENTER</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'center'</span></em><a class="headerlink" href="#urwid.CENTER" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="data">
-<dt id="urwid.RIGHT">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">RIGHT</code><em class="property"> = 'right'</em><a class="headerlink" href="#urwid.RIGHT" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.RIGHT">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">RIGHT</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'right'</span></em><a class="headerlink" href="#urwid.RIGHT" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-</div>
-<div class="section" id="veritcal-alignment">
-<h2>Veritcal Alignment<a class="headerlink" href="#veritcal-alignment" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="veritcal-alignment">
+<h2>Veritcal Alignment<a class="headerlink" href="#veritcal-alignment" title="Link to this heading">¶</a></h2>
 <p>Used to vertically align child widgets of <a class="reference internal" href="widget.html#urwid.Filler" title="urwid.Filler"><code class="xref py py-class docutils literal notranslate"><span class="pre">Filler</span></code></a> and
 <a class="reference internal" href="widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal notranslate"><span class="pre">Overlay</span></code></a>.</p>
-<dl class="data">
-<dt id="urwid.TOP">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">TOP</code><em class="property"> = 'top'</em><a class="headerlink" href="#urwid.TOP" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.TOP">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">TOP</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'top'</span></em><a class="headerlink" href="#urwid.TOP" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="data">
-<dt id="urwid.MIDDLE">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">MIDDLE</code><em class="property"> = 'middle'</em><a class="headerlink" href="#urwid.MIDDLE" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.MIDDLE">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">MIDDLE</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'middle'</span></em><a class="headerlink" href="#urwid.MIDDLE" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="data">
-<dt id="urwid.BOTTOM">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">BOTTOM</code><em class="property"> = 'bottom'</em><a class="headerlink" href="#urwid.BOTTOM" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.BOTTOM">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">BOTTOM</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'bottom'</span></em><a class="headerlink" href="#urwid.BOTTOM" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-</div>
-<div class="section" id="width-and-height-settings">
-<h2>Width and Height Settings<a class="headerlink" href="#width-and-height-settings" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="width-and-height-settings">
+<h2>Width and Height Settings<a class="headerlink" href="#width-and-height-settings" title="Link to this heading">¶</a></h2>
 <p>Used to distribute or set widths and heights of child widgets of
 <a class="reference internal" href="widget.html#urwid.Padding" title="urwid.Padding"><code class="xref py py-class docutils literal notranslate"><span class="pre">Padding</span></code></a>, <a class="reference internal" href="widget.html#urwid.Filler" title="urwid.Filler"><code class="xref py py-class docutils literal notranslate"><span class="pre">Filler</span></code></a>, <a class="reference internal" href="widget.html#urwid.Columns" title="urwid.Columns"><code class="xref py py-class docutils literal notranslate"><span class="pre">Columns</span></code></a>,
 <a class="reference internal" href="widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pile</span></code></a> and <a class="reference internal" href="widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal notranslate"><span class="pre">Overlay</span></code></a>.</p>
-<dl class="data">
-<dt id="urwid.PACK">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">PACK</code><em class="property"> = 'pack'</em><a class="headerlink" href="#urwid.PACK" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.PACK">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">PACK</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'pack'</span></em><a class="headerlink" href="#urwid.PACK" title="Link to this definition">¶</a></dt>
 <dd><p>Ask the child widget to calculate the number of columns or rows it needs</p>
 </dd></dl>
 
-<dl class="data">
-<dt id="urwid.GIVEN">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">GIVEN</code><em class="property"> = 'given'</em><a class="headerlink" href="#urwid.GIVEN" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.GIVEN">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">GIVEN</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'given'</span></em><a class="headerlink" href="#urwid.GIVEN" title="Link to this definition">¶</a></dt>
 <dd><p>A set number of columns or rows, e.g. (‘given’, 10) will have exactly
 10 columns or rows given to the child widget</p>
 </dd></dl>
 
-<dl class="data">
-<dt id="urwid.RELATIVE">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">RELATIVE</code><em class="property"> = 'relative'</em><a class="headerlink" href="#urwid.RELATIVE" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.RELATIVE">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">RELATIVE</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'relative'</span></em><a class="headerlink" href="#urwid.RELATIVE" title="Link to this definition">¶</a></dt>
 <dd><p>A percentage of the total space, e.g. (‘relative’, 50) will give half
 of the total columns or rows to the child widget</p>
 </dd></dl>
 
-<dl class="data">
-<dt id="urwid.RELATIVE_100">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">RELATIVE_100</code><em class="property"> = ('relative', 100)</em><a class="headerlink" href="#urwid.RELATIVE_100" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.RELATIVE_100">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">RELATIVE_100</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">('relative',</span> <span class="pre">100)</span></em><a class="headerlink" href="#urwid.RELATIVE_100" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="data">
-<dt id="urwid.WEIGHT">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">WEIGHT</code><em class="property"> = 'weight'</em><a class="headerlink" href="#urwid.WEIGHT" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.WEIGHT">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">WEIGHT</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'weight'</span></em><a class="headerlink" href="#urwid.WEIGHT" title="Link to this definition">¶</a></dt>
 <dd><p>A weight value for distributing columns or rows, e.g. (‘weight’, 3)
 will give 3 times as many columns or rows as another widget in the same
 container with (‘weight’, 1).</p>
 </dd></dl>
 
-</div>
-<div class="section" id="text-wrapping-modes">
-<h2>Text Wrapping Modes<a class="headerlink" href="#text-wrapping-modes" title="Permalink to this headline">¶</a></h2>
-<dl class="data">
-<dt id="urwid.SPACE">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">SPACE</code><em class="property"> = 'space'</em><a class="headerlink" href="#urwid.SPACE" title="Permalink to this definition">¶</a></dt>
+</section>
+<section id="text-wrapping-modes">
+<h2>Text Wrapping Modes<a class="headerlink" href="#text-wrapping-modes" title="Link to this heading">¶</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.SPACE">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">SPACE</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'space'</span></em><a class="headerlink" href="#urwid.SPACE" title="Link to this definition">¶</a></dt>
 <dd><p>wrap text on space characters or at the boundaries of wide characters</p>
 </dd></dl>
 
-<dl class="data">
-<dt id="urwid.ANY">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">ANY</code><em class="property"> = 'any'</em><a class="headerlink" href="#urwid.ANY" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.ANY">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">ANY</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'any'</span></em><a class="headerlink" href="#urwid.ANY" title="Link to this definition">¶</a></dt>
 <dd><p>wrap before any wide or narrow character that would exceed the available
 screen columns</p>
 </dd></dl>
 
-<dl class="data">
-<dt id="urwid.CLIP">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">CLIP</code><em class="property"> = 'clip'</em><a class="headerlink" href="#urwid.CLIP" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.CLIP">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CLIP</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'clip'</span></em><a class="headerlink" href="#urwid.CLIP" title="Link to this definition">¶</a></dt>
 <dd><p>clip before any wide or narrow character that would exceed the available
 screen columns and don’t display the remaining text on the line</p>
 </dd></dl>
 
-<dl class="data">
-<dt id="urwid.ELLIPSIS">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">ELLIPSIS</code><em class="property"> = 'ellipsis'</em><a class="headerlink" href="#urwid.ELLIPSIS" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.ELLIPSIS">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">ELLIPSIS</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'ellipsis'</span></em><a class="headerlink" href="#urwid.ELLIPSIS" title="Link to this definition">¶</a></dt>
 <dd><p>clip if text would exceed the available screen columns, add an ellipsis
 character at the end</p>
 </dd></dl>
 
-</div>
-<div class="section" id="foreground-and-background-colors">
-<h2>Foreground and Background Colors<a class="headerlink" href="#foreground-and-background-colors" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="standard-background-and-foreground-colors">
-<h3>Standard background and foreground colors<a class="headerlink" href="#standard-background-and-foreground-colors" title="Permalink to this headline">¶</a></h3>
-<dl class="data">
-<dt id="urwid.BLACK">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">BLACK</code><em class="property"> = 'black'</em><a class="headerlink" href="#urwid.BLACK" title="Permalink to this definition">¶</a></dt>
+</section>
+<section id="foreground-and-background-colors">
+<h2>Foreground and Background Colors<a class="headerlink" href="#foreground-and-background-colors" title="Link to this heading">¶</a></h2>
+<section id="standard-background-and-foreground-colors">
+<h3>Standard background and foreground colors<a class="headerlink" href="#standard-background-and-foreground-colors" title="Link to this heading">¶</a></h3>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.BLACK">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">BLACK</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'black'</span></em><a class="headerlink" href="#urwid.BLACK" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="data">
-<dt id="urwid.DARK_RED">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">DARK_RED</code><em class="property"> = 'dark red'</em><a class="headerlink" href="#urwid.DARK_RED" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.DARK_RED">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">DARK_RED</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'dark</span> <span class="pre">red'</span></em><a class="headerlink" href="#urwid.DARK_RED" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="data">
-<dt id="urwid.DARK_GREEN">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">DARK_GREEN</code><em class="property"> = 'dark green'</em><a class="headerlink" href="#urwid.DARK_GREEN" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.DARK_GREEN">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">DARK_GREEN</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'dark</span> <span class="pre">green'</span></em><a class="headerlink" href="#urwid.DARK_GREEN" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="data">
-<dt id="urwid.BROWN">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">BROWN</code><em class="property"> = 'brown'</em><a class="headerlink" href="#urwid.BROWN" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.BROWN">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">BROWN</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'brown'</span></em><a class="headerlink" href="#urwid.BROWN" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="data">
-<dt id="urwid.DARK_BLUE">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">DARK_BLUE</code><em class="property"> = 'dark blue'</em><a class="headerlink" href="#urwid.DARK_BLUE" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.DARK_BLUE">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">DARK_BLUE</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'dark</span> <span class="pre">blue'</span></em><a class="headerlink" href="#urwid.DARK_BLUE" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="data">
-<dt id="urwid.DARK_MAGENTA">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">DARK_MAGENTA</code><em class="property"> = 'dark magenta'</em><a class="headerlink" href="#urwid.DARK_MAGENTA" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.DARK_MAGENTA">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">DARK_MAGENTA</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'dark</span> <span class="pre">magenta'</span></em><a class="headerlink" href="#urwid.DARK_MAGENTA" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="data">
-<dt id="urwid.DARK_CYAN">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">DARK_CYAN</code><em class="property"> = 'dark cyan'</em><a class="headerlink" href="#urwid.DARK_CYAN" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.DARK_CYAN">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">DARK_CYAN</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'dark</span> <span class="pre">cyan'</span></em><a class="headerlink" href="#urwid.DARK_CYAN" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="data">
-<dt id="urwid.LIGHT_GRAY">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">LIGHT_GRAY</code><em class="property"> = 'light gray'</em><a class="headerlink" href="#urwid.LIGHT_GRAY" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.LIGHT_GRAY">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">LIGHT_GRAY</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'light</span> <span class="pre">gray'</span></em><a class="headerlink" href="#urwid.LIGHT_GRAY" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-</div>
-<div class="section" id="standard-foreground-colors-not-safe-to-use-as-background">
-<h3>Standard foreground colors (not safe to use as background)<a class="headerlink" href="#standard-foreground-colors-not-safe-to-use-as-background" title="Permalink to this headline">¶</a></h3>
-<dl class="data">
-<dt id="urwid.DARK_GRAY">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">DARK_GRAY</code><em class="property"> = 'dark gray'</em><a class="headerlink" href="#urwid.DARK_GRAY" title="Permalink to this definition">¶</a></dt>
+</section>
+<section id="standard-foreground-colors-not-safe-to-use-as-background">
+<h3>Standard foreground colors (not safe to use as background)<a class="headerlink" href="#standard-foreground-colors-not-safe-to-use-as-background" title="Link to this heading">¶</a></h3>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.DARK_GRAY">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">DARK_GRAY</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'dark</span> <span class="pre">gray'</span></em><a class="headerlink" href="#urwid.DARK_GRAY" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="data">
-<dt id="urwid.LIGHT_RED">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">LIGHT_RED</code><em class="property"> = 'light red'</em><a class="headerlink" href="#urwid.LIGHT_RED" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.LIGHT_RED">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">LIGHT_RED</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'light</span> <span class="pre">red'</span></em><a class="headerlink" href="#urwid.LIGHT_RED" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="data">
-<dt id="urwid.LIGHT_GREEN">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">LIGHT_GREEN</code><em class="property"> = 'light green'</em><a class="headerlink" href="#urwid.LIGHT_GREEN" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.LIGHT_GREEN">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">LIGHT_GREEN</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'light</span> <span class="pre">green'</span></em><a class="headerlink" href="#urwid.LIGHT_GREEN" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="data">
-<dt id="urwid.YELLOW">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">YELLOW</code><em class="property"> = 'yellow'</em><a class="headerlink" href="#urwid.YELLOW" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.YELLOW">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">YELLOW</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'yellow'</span></em><a class="headerlink" href="#urwid.YELLOW" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="data">
-<dt id="urwid.LIGHT_BLUE">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">LIGHT_BLUE</code><em class="property"> = 'light blue'</em><a class="headerlink" href="#urwid.LIGHT_BLUE" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.LIGHT_BLUE">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">LIGHT_BLUE</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'light</span> <span class="pre">blue'</span></em><a class="headerlink" href="#urwid.LIGHT_BLUE" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="data">
-<dt id="urwid.LIGHT_MAGENTA">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">LIGHT_MAGENTA</code><em class="property"> = 'light magenta'</em><a class="headerlink" href="#urwid.LIGHT_MAGENTA" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.LIGHT_MAGENTA">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">LIGHT_MAGENTA</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'light</span> <span class="pre">magenta'</span></em><a class="headerlink" href="#urwid.LIGHT_MAGENTA" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="data">
-<dt id="urwid.LIGHT_CYAN">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">LIGHT_CYAN</code><em class="property"> = 'light cyan'</em><a class="headerlink" href="#urwid.LIGHT_CYAN" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.LIGHT_CYAN">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">LIGHT_CYAN</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'light</span> <span class="pre">cyan'</span></em><a class="headerlink" href="#urwid.LIGHT_CYAN" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="data">
-<dt id="urwid.WHITE">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">WHITE</code><em class="property"> = 'white'</em><a class="headerlink" href="#urwid.WHITE" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.WHITE">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">WHITE</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'white'</span></em><a class="headerlink" href="#urwid.WHITE" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-</div>
-<div class="section" id="user-s-terminal-configuration-default-foreground-or-background">
-<h3>User’s terminal configuration default foreground or background<a class="headerlink" href="#user-s-terminal-configuration-default-foreground-or-background" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="user-s-terminal-configuration-default-foreground-or-background">
+<h3>User’s terminal configuration default foreground or background<a class="headerlink" href="#user-s-terminal-configuration-default-foreground-or-background" title="Link to this heading">¶</a></h3>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>There is no way to tell if the user’s terminal has a light
@@ -287,127 +287,128 @@ or dark color as their default foreground or background, so
 it is highly recommended to use this setting for both foreground
 and background when you do use it.</p>
 </div>
-<dl class="data">
-<dt id="urwid.DEFAULT">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">DEFAULT</code><em class="property"> = 'default'</em><a class="headerlink" href="#urwid.DEFAULT" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.DEFAULT">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">DEFAULT</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'default'</span></em><a class="headerlink" href="#urwid.DEFAULT" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-</div>
-<div class="section" id="and-88-color-foregrounds-and-backgrounds">
-<h3>256 and 88 Color Foregrounds and Backgrounds<a class="headerlink" href="#and-88-color-foregrounds-and-backgrounds" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="and-88-color-foregrounds-and-backgrounds">
+<h3>256 and 88 Color Foregrounds and Backgrounds<a class="headerlink" href="#and-88-color-foregrounds-and-backgrounds" title="Link to this heading">¶</a></h3>
 <p>Constants are not defined for these colors.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference internal" href="../manual/displayattributes.html#high-colors"><span class="std std-ref">24-Bit Foreground and Background Colors</span></a></p>
 </div>
-</div>
-</div>
-<div class="section" id="signal-names">
-<h2>Signal Names<a class="headerlink" href="#signal-names" title="Permalink to this headline">¶</a></h2>
-<dl class="data">
-<dt id="urwid.UPDATE_PALETTE_ENTRY">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">UPDATE_PALETTE_ENTRY</code><em class="property"> = 'update palette entry'</em><a class="headerlink" href="#urwid.UPDATE_PALETTE_ENTRY" title="Permalink to this definition">¶</a></dt>
+</section>
+</section>
+<section id="signal-names">
+<h2>Signal Names<a class="headerlink" href="#signal-names" title="Link to this heading">¶</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.UPDATE_PALETTE_ENTRY">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">UPDATE_PALETTE_ENTRY</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'update</span> <span class="pre">palette</span> <span class="pre">entry'</span></em><a class="headerlink" href="#urwid.UPDATE_PALETTE_ENTRY" title="Link to this definition">¶</a></dt>
 <dd><p>sent by <a class="reference internal" href="display_modules.html#urwid.BaseScreen" title="urwid.BaseScreen"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseScreen</span></code></a> (and subclasses like
 <a class="reference internal" href="display_modules.html#urwid.raw_display.Screen" title="urwid.raw_display.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">raw_display.Screen</span></code></a>) when a palette entry is changed.
 <a class="reference internal" href="main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> handles this signal by redrawing the whole
 screen.</p>
 </dd></dl>
 
-<dl class="data">
-<dt id="urwid.INPUT_DESCRIPTORS_CHANGED">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">INPUT_DESCRIPTORS_CHANGED</code><em class="property"> = 'input descriptors changed'</em><a class="headerlink" href="#urwid.INPUT_DESCRIPTORS_CHANGED" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.INPUT_DESCRIPTORS_CHANGED">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">INPUT_DESCRIPTORS_CHANGED</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'input</span> <span class="pre">descriptors</span> <span class="pre">changed'</span></em><a class="headerlink" href="#urwid.INPUT_DESCRIPTORS_CHANGED" title="Link to this definition">¶</a></dt>
 <dd><p>sent by <a class="reference internal" href="display_modules.html#urwid.BaseScreen" title="urwid.BaseScreen"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseScreen</span></code></a> (and subclasses like
 <a class="reference internal" href="display_modules.html#urwid.raw_display.Screen" title="urwid.raw_display.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">raw_display.Screen</span></code></a>) when the list of input file descriptors
 has changed.  <a class="reference internal" href="main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> handles this signal by updating
 the file descriptors being watched by its event loop.</p>
 </dd></dl>
 
-</div>
-<div class="section" id="command-names">
-<h2>Command Names<a class="headerlink" href="#command-names" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="command-names">
+<h2>Command Names<a class="headerlink" href="#command-names" title="Link to this heading">¶</a></h2>
 <p>Command names are used as values in <a class="reference internal" href="command_map.html#urwid.CommandMap" title="urwid.CommandMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">CommandMap</span></code></a> instances.
 Widgets look up the command associated with keypresses in their
 <a class="reference internal" href="widget.html#urwid.Widget.keypress" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.keypress()</span></code></a> methods.</p>
 <p>You may define any new command names as you wish and look for them in
 your own widget code.  These are the standard ones expected by code
 included in Urwid.</p>
-<dl class="data">
-<dt id="urwid.REDRAW_SCREEN">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">REDRAW_SCREEN</code><em class="property"> = 'redraw screen'</em><a class="headerlink" href="#urwid.REDRAW_SCREEN" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.REDRAW_SCREEN">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">REDRAW_SCREEN</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'redraw</span> <span class="pre">screen'</span></em><a class="headerlink" href="#urwid.REDRAW_SCREEN" title="Link to this definition">¶</a></dt>
 <dd><p>Default associated keypress: ‘ctrl l’</p>
 <p><a class="reference internal" href="main_loop.html#urwid.MainLoop.process_input" title="urwid.MainLoop.process_input"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MainLoop.process_input()</span></code></a> looks for this command to force
 a screen refresh. This is useful in case the screen becomes
 corrupted.</p>
 </dd></dl>
 
-<dl class="data">
-<dt id="urwid.ACTIVATE">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">ACTIVATE</code><em class="property"> = 'activate'</em><a class="headerlink" href="#urwid.ACTIVATE" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.ACTIVATE">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">ACTIVATE</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'activate'</span></em><a class="headerlink" href="#urwid.ACTIVATE" title="Link to this definition">¶</a></dt>
 <dd><p>Default associated keypresses: ‘ ‘ (space), ‘enter’</p>
 <p>Activate a widget such as a <a class="reference internal" href="widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal notranslate"><span class="pre">Button</span></code></a>, <a class="reference internal" href="widget.html#urwid.CheckBox" title="urwid.CheckBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckBox</span></code></a>
 or <a class="reference internal" href="widget.html#urwid.RadioButton" title="urwid.RadioButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">RadioButton</span></code></a>.</p>
 </dd></dl>
 
-<dl class="data">
-<dt id="urwid.CURSOR_UP">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">CURSOR_UP</code><em class="property"> = 'cursor up'</em><a class="headerlink" href="#urwid.CURSOR_UP" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.CURSOR_UP">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CURSOR_UP</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'cursor</span> <span class="pre">up'</span></em><a class="headerlink" href="#urwid.CURSOR_UP" title="Link to this definition">¶</a></dt>
 <dd><p>Default associated keypress: ‘up’</p>
 <p>Move the cursor or selection up one row.</p>
 </dd></dl>
 
-<dl class="data">
-<dt id="urwid.CURSOR_DOWN">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">CURSOR_DOWN</code><em class="property"> = 'cursor down'</em><a class="headerlink" href="#urwid.CURSOR_DOWN" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.CURSOR_DOWN">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CURSOR_DOWN</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'cursor</span> <span class="pre">down'</span></em><a class="headerlink" href="#urwid.CURSOR_DOWN" title="Link to this definition">¶</a></dt>
 <dd><p>Default associated keypress: ‘down’</p>
 <p>Move the cursor or selection down one row.</p>
 </dd></dl>
 
-<dl class="data">
-<dt id="urwid.CURSOR_LEFT">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">CURSOR_LEFT</code><em class="property"> = 'cursor left'</em><a class="headerlink" href="#urwid.CURSOR_LEFT" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.CURSOR_LEFT">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CURSOR_LEFT</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'cursor</span> <span class="pre">left'</span></em><a class="headerlink" href="#urwid.CURSOR_LEFT" title="Link to this definition">¶</a></dt>
 <dd><p>Default associated keypress: ‘left’</p>
 <p>Move the cursor or selection left one column.</p>
 </dd></dl>
 
-<dl class="data">
-<dt id="urwid.CURSOR_RIGHT">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">CURSOR_RIGHT</code><em class="property"> = 'cursor right'</em><a class="headerlink" href="#urwid.CURSOR_RIGHT" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.CURSOR_RIGHT">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CURSOR_RIGHT</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'cursor</span> <span class="pre">right'</span></em><a class="headerlink" href="#urwid.CURSOR_RIGHT" title="Link to this definition">¶</a></dt>
 <dd><p>Default associated keypress: ‘right’</p>
 <p>Move the cursor or selection right one column.</p>
 </dd></dl>
 
-<dl class="data">
-<dt id="urwid.CURSOR_PAGE_UP">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">CURSOR_PAGE_UP</code><em class="property"> = 'cursor page up'</em><a class="headerlink" href="#urwid.CURSOR_PAGE_UP" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.CURSOR_PAGE_UP">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CURSOR_PAGE_UP</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'cursor</span> <span class="pre">page</span> <span class="pre">up'</span></em><a class="headerlink" href="#urwid.CURSOR_PAGE_UP" title="Link to this definition">¶</a></dt>
 <dd><p>Default associated keypress: ‘page up’</p>
 <p>Move the cursor or selection up one page.</p>
 </dd></dl>
 
-<dl class="data">
-<dt id="urwid.CURSOR_PAGE_DOWN">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">CURSOR_PAGE_DOWN</code><em class="property"> = 'cursor page down'</em><a class="headerlink" href="#urwid.CURSOR_PAGE_DOWN" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.CURSOR_PAGE_DOWN">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CURSOR_PAGE_DOWN</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'cursor</span> <span class="pre">page</span> <span class="pre">down'</span></em><a class="headerlink" href="#urwid.CURSOR_PAGE_DOWN" title="Link to this definition">¶</a></dt>
 <dd><p>Default associated keypress: ‘page down’</p>
 <p>Move the cursor or selection down one page.</p>
 </dd></dl>
 
-<dl class="data">
-<dt id="urwid.CURSOR_MAX_LEFT">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">CURSOR_MAX_LEFT</code><em class="property"> = 'cursor max left'</em><a class="headerlink" href="#urwid.CURSOR_MAX_LEFT" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.CURSOR_MAX_LEFT">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CURSOR_MAX_LEFT</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'cursor</span> <span class="pre">max</span> <span class="pre">left'</span></em><a class="headerlink" href="#urwid.CURSOR_MAX_LEFT" title="Link to this definition">¶</a></dt>
 <dd><p>Default associated keypress: ‘home’</p>
 <p>Move the cursor or selection to the leftmost column.</p>
 </dd></dl>
 
-<dl class="data">
-<dt id="urwid.CURSOR_MAX_RIGHT">
-<code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">CURSOR_MAX_RIGHT</code><em class="property"> = 'cursor max right'</em><a class="headerlink" href="#urwid.CURSOR_MAX_RIGHT" title="Permalink to this definition">¶</a></dt>
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.CURSOR_MAX_RIGHT">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CURSOR_MAX_RIGHT</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'cursor</span> <span class="pre">max</span> <span class="pre">right'</span></em><a class="headerlink" href="#urwid.CURSOR_MAX_RIGHT" title="Link to this definition">¶</a></dt>
 <dd><p>Default associated keypress: ‘end’</p>
 <p>Move the cursor or selection to the rightmost column.</p>
 </dd></dl>
 
-</div>
-</div>
+</section>
+</section>
 
 
+            <div class="clearer"></div>
           </div>
         </div>
       </div>
@@ -418,31 +419,102 @@ or <a class="reference internal" href="widget.html#urwid.RadioButton" title="urw
             </a></p><h3>Table of contents</a></h3>
     <ul><li><a href="index.html">Reference</a></li><ul>
 <li><a class="reference internal" href="#">Constants</a><ul>
-<li><a class="reference internal" href="#widget-sizing-methods">Widget Sizing Methods</a></li>
-<li><a class="reference internal" href="#horizontal-alignment">Horizontal Alignment</a></li>
-<li><a class="reference internal" href="#veritcal-alignment">Veritcal Alignment</a></li>
-<li><a class="reference internal" href="#width-and-height-settings">Width and Height Settings</a></li>
-<li><a class="reference internal" href="#text-wrapping-modes">Text Wrapping Modes</a></li>
+<li><a class="reference internal" href="#widget-sizing-methods">Widget Sizing Methods</a><ul>
+<li><a class="reference internal" href="#urwid.FLOW"><code class="docutils literal notranslate"><span class="pre">FLOW</span></code></a></li>
+<li><a class="reference internal" href="#urwid.BOX"><code class="docutils literal notranslate"><span class="pre">BOX</span></code></a></li>
+<li><a class="reference internal" href="#urwid.FIXED"><code class="docutils literal notranslate"><span class="pre">FIXED</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#horizontal-alignment">Horizontal Alignment</a><ul>
+<li><a class="reference internal" href="#urwid.LEFT"><code class="docutils literal notranslate"><span class="pre">LEFT</span></code></a></li>
+<li><a class="reference internal" href="#urwid.CENTER"><code class="docutils literal notranslate"><span class="pre">CENTER</span></code></a></li>
+<li><a class="reference internal" href="#urwid.RIGHT"><code class="docutils literal notranslate"><span class="pre">RIGHT</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#veritcal-alignment">Veritcal Alignment</a><ul>
+<li><a class="reference internal" href="#urwid.TOP"><code class="docutils literal notranslate"><span class="pre">TOP</span></code></a></li>
+<li><a class="reference internal" href="#urwid.MIDDLE"><code class="docutils literal notranslate"><span class="pre">MIDDLE</span></code></a></li>
+<li><a class="reference internal" href="#urwid.BOTTOM"><code class="docutils literal notranslate"><span class="pre">BOTTOM</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#width-and-height-settings">Width and Height Settings</a><ul>
+<li><a class="reference internal" href="#urwid.PACK"><code class="docutils literal notranslate"><span class="pre">PACK</span></code></a></li>
+<li><a class="reference internal" href="#urwid.GIVEN"><code class="docutils literal notranslate"><span class="pre">GIVEN</span></code></a></li>
+<li><a class="reference internal" href="#urwid.RELATIVE"><code class="docutils literal notranslate"><span class="pre">RELATIVE</span></code></a></li>
+<li><a class="reference internal" href="#urwid.RELATIVE_100"><code class="docutils literal notranslate"><span class="pre">RELATIVE_100</span></code></a></li>
+<li><a class="reference internal" href="#urwid.WEIGHT"><code class="docutils literal notranslate"><span class="pre">WEIGHT</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#text-wrapping-modes">Text Wrapping Modes</a><ul>
+<li><a class="reference internal" href="#urwid.SPACE"><code class="docutils literal notranslate"><span class="pre">SPACE</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ANY"><code class="docutils literal notranslate"><span class="pre">ANY</span></code></a></li>
+<li><a class="reference internal" href="#urwid.CLIP"><code class="docutils literal notranslate"><span class="pre">CLIP</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ELLIPSIS"><code class="docutils literal notranslate"><span class="pre">ELLIPSIS</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#foreground-and-background-colors">Foreground and Background Colors</a><ul>
-<li><a class="reference internal" href="#standard-background-and-foreground-colors">Standard background and foreground colors</a></li>
-<li><a class="reference internal" href="#standard-foreground-colors-not-safe-to-use-as-background">Standard foreground colors (not safe to use as background)</a></li>
-<li><a class="reference internal" href="#user-s-terminal-configuration-default-foreground-or-background">User’s terminal configuration default foreground or background</a></li>
+<li><a class="reference internal" href="#standard-background-and-foreground-colors">Standard background and foreground colors</a><ul>
+<li><a class="reference internal" href="#urwid.BLACK"><code class="docutils literal notranslate"><span class="pre">BLACK</span></code></a></li>
+<li><a class="reference internal" href="#urwid.DARK_RED"><code class="docutils literal notranslate"><span class="pre">DARK_RED</span></code></a></li>
+<li><a class="reference internal" href="#urwid.DARK_GREEN"><code class="docutils literal notranslate"><span class="pre">DARK_GREEN</span></code></a></li>
+<li><a class="reference internal" href="#urwid.BROWN"><code class="docutils literal notranslate"><span class="pre">BROWN</span></code></a></li>
+<li><a class="reference internal" href="#urwid.DARK_BLUE"><code class="docutils literal notranslate"><span class="pre">DARK_BLUE</span></code></a></li>
+<li><a class="reference internal" href="#urwid.DARK_MAGENTA"><code class="docutils literal notranslate"><span class="pre">DARK_MAGENTA</span></code></a></li>
+<li><a class="reference internal" href="#urwid.DARK_CYAN"><code class="docutils literal notranslate"><span class="pre">DARK_CYAN</span></code></a></li>
+<li><a class="reference internal" href="#urwid.LIGHT_GRAY"><code class="docutils literal notranslate"><span class="pre">LIGHT_GRAY</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#standard-foreground-colors-not-safe-to-use-as-background">Standard foreground colors (not safe to use as background)</a><ul>
+<li><a class="reference internal" href="#urwid.DARK_GRAY"><code class="docutils literal notranslate"><span class="pre">DARK_GRAY</span></code></a></li>
+<li><a class="reference internal" href="#urwid.LIGHT_RED"><code class="docutils literal notranslate"><span class="pre">LIGHT_RED</span></code></a></li>
+<li><a class="reference internal" href="#urwid.LIGHT_GREEN"><code class="docutils literal notranslate"><span class="pre">LIGHT_GREEN</span></code></a></li>
+<li><a class="reference internal" href="#urwid.YELLOW"><code class="docutils literal notranslate"><span class="pre">YELLOW</span></code></a></li>
+<li><a class="reference internal" href="#urwid.LIGHT_BLUE"><code class="docutils literal notranslate"><span class="pre">LIGHT_BLUE</span></code></a></li>
+<li><a class="reference internal" href="#urwid.LIGHT_MAGENTA"><code class="docutils literal notranslate"><span class="pre">LIGHT_MAGENTA</span></code></a></li>
+<li><a class="reference internal" href="#urwid.LIGHT_CYAN"><code class="docutils literal notranslate"><span class="pre">LIGHT_CYAN</span></code></a></li>
+<li><a class="reference internal" href="#urwid.WHITE"><code class="docutils literal notranslate"><span class="pre">WHITE</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#user-s-terminal-configuration-default-foreground-or-background">User’s terminal configuration default foreground or background</a><ul>
+<li><a class="reference internal" href="#urwid.DEFAULT"><code class="docutils literal notranslate"><span class="pre">DEFAULT</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#and-88-color-foregrounds-and-backgrounds">256 and 88 Color Foregrounds and Backgrounds</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#signal-names">Signal Names</a></li>
-<li><a class="reference internal" href="#command-names">Command Names</a></li>
+<li><a class="reference internal" href="#signal-names">Signal Names</a><ul>
+<li><a class="reference internal" href="#urwid.UPDATE_PALETTE_ENTRY"><code class="docutils literal notranslate"><span class="pre">UPDATE_PALETTE_ENTRY</span></code></a></li>
+<li><a class="reference internal" href="#urwid.INPUT_DESCRIPTORS_CHANGED"><code class="docutils literal notranslate"><span class="pre">INPUT_DESCRIPTORS_CHANGED</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#command-names">Command Names</a><ul>
+<li><a class="reference internal" href="#urwid.REDRAW_SCREEN"><code class="docutils literal notranslate"><span class="pre">REDRAW_SCREEN</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ACTIVATE"><code class="docutils literal notranslate"><span class="pre">ACTIVATE</span></code></a></li>
+<li><a class="reference internal" href="#urwid.CURSOR_UP"><code class="docutils literal notranslate"><span class="pre">CURSOR_UP</span></code></a></li>
+<li><a class="reference internal" href="#urwid.CURSOR_DOWN"><code class="docutils literal notranslate"><span class="pre">CURSOR_DOWN</span></code></a></li>
+<li><a class="reference internal" href="#urwid.CURSOR_LEFT"><code class="docutils literal notranslate"><span class="pre">CURSOR_LEFT</span></code></a></li>
+<li><a class="reference internal" href="#urwid.CURSOR_RIGHT"><code class="docutils literal notranslate"><span class="pre">CURSOR_RIGHT</span></code></a></li>
+<li><a class="reference internal" href="#urwid.CURSOR_PAGE_UP"><code class="docutils literal notranslate"><span class="pre">CURSOR_PAGE_UP</span></code></a></li>
+<li><a class="reference internal" href="#urwid.CURSOR_PAGE_DOWN"><code class="docutils literal notranslate"><span class="pre">CURSOR_PAGE_DOWN</span></code></a></li>
+<li><a class="reference internal" href="#urwid.CURSOR_MAX_LEFT"><code class="docutils literal notranslate"><span class="pre">CURSOR_MAX_LEFT</span></code></a></li>
+<li><a class="reference internal" href="#urwid.CURSOR_MAX_RIGHT"><code class="docutils literal notranslate"><span class="pre">CURSOR_MAX_RIGHT</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
 
     </ul>
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="command_map.html"
-                        title="previous chapter">Command Map</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="exceptions.html"
-                        title="next chapter">Exceptions</a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="command_map.html"
+                          title="previous chapter">Command Map</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="exceptions.html"
+                          title="next chapter">Exceptions</a></p>
+  </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -454,13 +526,17 @@ or <a class="reference internal" href="widget.html#urwid.RadioButton" title="urw
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
+<div id="sidebarbutton" title="Collapse sidebar">
+<span>«</span>
+</div>
+
       </div>
       <div class="clearer"></div>
     </div>
@@ -476,13 +552,14 @@ or <a class="reference internal" href="widget.html#urwid.RadioButton" title="urw
         <li class="right" >
           <a href="command_map.html" title="Command Map"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.2</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Constants</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
     </div>
   </body>
 </html>
