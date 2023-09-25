@@ -76,7 +76,7 @@ Maintainers
 
 `and3rson <//github.com/and3rson>`_,
 `tonycpsu <//github.com/tonycpsu>`_,
-`ulidtko <//github.com/ulidtko>`_
+`ulidtko <//github.com/ulidtko>`_,
 `penguinolog <//github.com/penguinolog>`_
 
 Contributors
