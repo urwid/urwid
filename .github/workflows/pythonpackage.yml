@@ -41,7 +41,7 @@ jobs:
         run: pip install -e .
       - name: Test
         run: |
-          coverage run -m unittest discover -s urwid -v
+          coverage run -m unittest discover -s tests -v
           coverage report
           coverage xml
       - name: Coveralls Parallel

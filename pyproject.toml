@@ -34,6 +34,7 @@ exclude = [
   "docs",
   "examples",
   "test",
+  "tests",
   "bin",
   ".*"
 ]
