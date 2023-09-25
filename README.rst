@@ -224,7 +224,7 @@ Contributors
     :alt: current version on PyPi
     :target: https://pypi.python.org/pypi/urwid
 
-.. |docs| image:: hhttps://github.com/urwid/urwid/actions/workflows/documentation.yml/badge.svg?branch=master
+.. |docs| image:: https://github.com/urwid/urwid/actions/workflows/documentation.yml/badge.svg?branch=master
     :alt: Documentation Status
     :target: https://urwid.org
 
