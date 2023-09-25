@@ -213,6 +213,8 @@ class CheckBox(WidgetWrap):
                                 function call for a single callback
         :param user_data: user_data for on_state_change
 
+        ..note:: `pack` method expect, that `Columns` backend widget is not modified from outside
+
         Signals supported: ``'change'``, ``"postchange"``
 
         Register signal handler with::
@@ -495,6 +497,8 @@ class RadioButton(CheckBox):
                                 function call for a single 'change' callback
         :param user_data: user_data for on_state_change
 
+        ..note:: `pack` method expect, that `Columns` backend widget is not modified from outside
+
         This function will append the new radio button to group.
         "first True" will set to True if group is empty.
 
@@ -650,6 +654,8 @@ class Button(WidgetWrap):
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
         :type layout: text layout instance
 
+        ..note:: `pack` method expect, that `Columns` backend widget is not modified from outside
+
         Signals supported: ``'click'``
 
         Register signal handler with::
@@ -690,6 +696,7 @@ class Button(WidgetWrap):
 
         :param size: size data. Special case: None - get minimal widget size to fit
         :param focus: widget is focused
+
         >>> btn = Button("Some button")
         >>> btn.pack((10,))
         (10, 2)
