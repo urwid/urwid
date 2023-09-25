@@ -39,10 +39,12 @@ jobs:
       - name: Install python dependencies
         run: |
           pip install -U -r test_requirements.txt PyGObject
-          pip install -U sphinx
+          pip install -U sphinx sphinx-github-changelog
       - name: Install main package
         run: pip install -e .
       - name: Build documentation
+        env:
+          SPHINX_GITHUB_CHANGELOG_TOKEN: github.token
         run: sphinx-build docs build/documentation
       - uses: actions/upload-artifact@v3
         with:
