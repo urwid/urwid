@@ -34,71 +34,68 @@ import urwid.web_display
 
 if urwid.web_display.is_web_request():
     Screen = urwid.web_display.Screen
+elif len(sys.argv) > 1 and sys.argv[1][:1] == "r":
+    Screen = urwid.raw_display.Screen
 else:
-    if len(sys.argv)>1 and sys.argv[1][:1] == "r":
-        Screen = urwid.raw_display.Screen
-    else:
-        Screen = urwid.curses_display.Screen
+    Screen = urwid.curses_display.Screen
+
 
 def key_test():
     screen = Screen()
     header = urwid.Text("Values from get_input(). Q exits.")
-    header = urwid.AttrWrap(header,'header')
+    header = urwid.AttrMap(header, "header")
     lw = urwid.SimpleListWalker([])
     listbox = urwid.ListBox(lw)
-    listbox = urwid.AttrWrap(listbox, 'listbox')
+    listbox = urwid.AttrMap(listbox, "listbox")
     top = urwid.Frame(listbox, header)
 
     def input_filter(keys, raw):
-        if 'q' in keys or 'Q' in keys:
+        if "q" in keys or "Q" in keys:
             raise urwid.ExitMainLoop
 
         t = []
-        a = []
         for k in keys:
-            if type(k) == tuple:
+            if isinstance(k, tuple):
                 out = []
                 for v in k:
                     if out:
-                        out += [', ']
-                    out += [('key',repr(v))]
-                t += ["("] + out + [")"]
+                        out += [", "]
+                    out += [("key", repr(v))]
+                t += ["(", *out, ")"]
             else:
-                t += ["'",('key',k),"' "]
+                t += ["'", ("key", k), "' "]
 
-        rawt = urwid.Text(", ".join(["%d"%r for r in raw]))
+        rawt = urwid.Text(", ".join(["%d" % r for r in raw]))
 
         if t:
-            lw.append(
-                urwid.Columns([
-                    ('weight',2,urwid.Text(t)),
-                    rawt])
-                )
-            listbox.set_focus(len(lw)-1,'above')
+            lw.append(urwid.Columns([("weight", 2, urwid.Text(t)), rawt]))
+            listbox.base_widget.set_focus(len(lw) - 1, "above")
         return keys
 
-    loop = urwid.MainLoop(top, [
-        ('header', 'black', 'dark cyan', 'standout'),
-        ('key', 'yellow', 'dark blue', 'bold'),
-        ('listbox', 'light gray', 'black' ),
-        ], screen, input_filter=input_filter)
+    loop = urwid.MainLoop(
+        top,
+        [
+            ("header", "black", "dark cyan", "standout"),
+            ("key", "yellow", "dark blue", "bold"),
+            ("listbox", "light gray", "black"),
+        ],
+        screen,
+        input_filter=input_filter,
+    )
 
     try:
-        old = screen.tty_signal_keys('undefined','undefined',
-            'undefined','undefined','undefined')
+        old = screen.tty_signal_keys("undefined", "undefined", "undefined", "undefined", "undefined")
         loop.run()
     finally:
         screen.tty_signal_keys(*old)
 
 
-
-
 def main():
-    urwid.web_display.set_preferences('Input Test')
+    urwid.web_display.set_preferences("Input Test")
     if urwid.web_display.handle_short_request():
         return
     key_test()
 
 
-if '__main__'==__name__ or urwid.web_display.is_web_request():
+if __name__ == "__main__" or urwid.web_display.is_web_request():
     main()

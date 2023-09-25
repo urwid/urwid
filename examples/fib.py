@@ -37,13 +37,14 @@ class FibonacciWalker(urwid.ListWalker):
 
     positions returned are (value at position-1, value at position) tuples.
     """
+
     def __init__(self):
-        self.focus = (0,1)
+        self.focus = (0, 1)
         self.numeric_layout = NumericLayout()
 
     def _get_at_pos(self, pos):
         """Return a widget and the position passed."""
-        return urwid.Text("%d"%pos[1], layout=self.numeric_layout), pos
+        return urwid.Text("%d" % pos[1], layout=self.numeric_layout), pos
 
     def get_focus(self):
         return self._get_at_pos(self.focus)
@@ -54,37 +55,49 @@ class FibonacciWalker(urwid.ListWalker):
 
     def get_next(self, start_from):
         a, b = start_from
-        focus = b, a+b
+        focus = b, a + b
         return self._get_at_pos(focus)
 
     def get_prev(self, start_from):
         a, b = start_from
-        focus = b-a, a
+        focus = b - a, a
         return self._get_at_pos(focus)
+
 
 def main():
     palette = [
-        ('body','black','dark cyan', 'standout'),
-        ('foot','light gray', 'black'),
-        ('key','light cyan', 'black', 'underline'),
-        ('title', 'white', 'black',),
-        ]
+        ("body", "black", "dark cyan", "standout"),
+        ("foot", "light gray", "black"),
+        ("key", "light cyan", "black", "underline"),
+        (
+            "title",
+            "white",
+            "black",
+        ),
+    ]
 
     footer_text = [
-        ('title', "Fibonacci Set Viewer"), "    ",
-        ('key', "UP"), ", ", ('key', "DOWN"), ", ",
-        ('key', "PAGE UP"), " and ", ('key', "PAGE DOWN"),
+        ("title", "Fibonacci Set Viewer"),
+        "    ",
+        ("key", "UP"),
+        ", ",
+        ("key", "DOWN"),
+        ", ",
+        ("key", "PAGE UP"),
+        " and ",
+        ("key", "PAGE DOWN"),
         " move view  ",
-        ('key', "Q"), " exits",
-        ]
+        ("key", "Q"),
+        " exits",
+    ]
 
-    def exit_on_q(input):
-        if input in ('q', 'Q'):
+    def exit_on_q(key):
+        if key in ("q", "Q"):
             raise urwid.ExitMainLoop()
 
     listbox = urwid.ListBox(FibonacciWalker())
-    footer = urwid.AttrMap(urwid.Text(footer_text), 'foot')
-    view = urwid.Frame(urwid.AttrWrap(listbox, 'body'), footer=footer)
+    footer = urwid.AttrMap(urwid.Text(footer_text), "foot")
+    view = urwid.Frame(urwid.AttrMap(listbox, "body"), footer=footer)
     loop = urwid.MainLoop(view, palette, unhandled_input=exit_on_q)
     loop.run()
 
@@ -93,23 +106,24 @@ class NumericLayout(urwid.TextLayout):
     """
     TextLayout class for bottom-right aligned numbers
     """
-    def layout( self, text, width, align, wrap ):
+
+    def layout(self, text, width, align, wrap):
         """
         Return layout structure for right justified numbers.
         """
         lt = len(text)
-        r = lt % width # remaining segment not full width wide
+        r = lt % width  # remaining segment not full width wide
         if r:
-            linestarts = range( r, lt, width )
+            linestarts = range(r, lt, width)
             return [
                 # right-align the remaining segment on 1st line
-                [(width-r,None),(r, 0, r)]
+                [(width - r, None), (r, 0, r)]
                 # fill the rest of the lines
-                ] + [[(width, x, x+width)] for x in linestarts]
-        else:
-            linestarts = range( 0, lt, width )
-            return [[(width, x, x+width)] for x in linestarts]
+            ] + [[(width, x, x + width)] for x in linestarts]
+
+        linestarts = range(0, lt, width)
+        return [[(width, x, x + width)] for x in linestarts]
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()

@@ -34,6 +34,8 @@ Features:
 
 from __future__ import annotations
 
+import typing
+
 import urwid
 import urwid.raw_display
 import urwid.web_display
@@ -45,26 +47,27 @@ else:
     Screen = urwid.raw_display.Screen
 
 
-def div_or_none(a,b):
+def div_or_none(a, b):
     """Divide a by b.  Return result or None on divide by zero."""
     if b == 0:
         return None
-    return a/b
+    return a / b
+
 
 # operators supported and the functions used to calculate a result
 OPERATORS = {
-    '+': (lambda a, b: a+b),
-    '-': (lambda a, b: a-b),
-    '*': (lambda a, b: a*b),
-    '/': div_or_none,
-    }
+    "+": (lambda a, b: a + b),
+    "-": (lambda a, b: a - b),
+    "*": (lambda a, b: a * b),
+    "/": div_or_none,
+}
 
 # the uppercase versions of keys used to switch columns
-COLUMN_KEYS = list( "?ABCDEF" )
+COLUMN_KEYS = list("?ABCDEF")
 
 # these lists are used to determine when to display errors
-EDIT_KEYS = list(OPERATORS.keys()) + COLUMN_KEYS + ['backspace','delete']
-MOVEMENT_KEYS = ['up','down','left','right','page up','page down']
+EDIT_KEYS = list(OPERATORS.keys()) + COLUMN_KEYS + ["backspace", "delete"]
+MOVEMENT_KEYS = ["up", "down", "left", "right", "page up", "page down"]
 
 # Event text
 E_no_such_column = "Column %s does not exist."
@@ -76,8 +79,11 @@ E_cant_combine = "Cannot combine cells with sub-expressions."
 E_invalid_in_parent_cell = "Cannot enter numbers into parent cell."
 E_invalid_in_help_col = [
     "Help Column is in focus.  Press ",
-    ('key',COLUMN_KEYS[1]),"-",('key',COLUMN_KEYS[-1]),
-    " to select another column."]
+    ("key", COLUMN_KEYS[1]),
+    "-",
+    ("key", COLUMN_KEYS[-1]),
+    " to select another column.",
+]
 
 # Shared layout object
 CALC_LAYOUT = None
@@ -86,33 +92,35 @@ CALC_LAYOUT = None
 class CalcEvent(Exception):
     """Events triggered by user input."""
 
-    attr = 'event'
+    attr = "event"
 
     def __init__(self, message):
         self.message = message
 
     def widget(self):
         """Return a widget containing event information"""
-        text = urwid.Text( self.message, 'center' )
-        return urwid.AttrWrap( text, self.attr )
+        text = urwid.Text(self.message, "center")
+        return urwid.AttrMap(text, self.attr)
+
 
 class ColumnDeleteEvent(CalcEvent):
     """Sent when user wants to delete a column"""
 
-    attr = 'confirm'
+    attr = "confirm"
 
     def __init__(self, letter, from_parent=0):
-        self.message = ["Press ", ('key',"BACKSPACE"),
-            " again to confirm column removal."]
+        self.message = ["Press ", ("key", "BACKSPACE"), " again to confirm column removal."]
         self.letter = letter
+
 
 class UpdateParentEvent(Exception):
     """Sent when parent columns may need to be updated."""
+
     pass
 
 
 class Cell:
-    def __init__(self, op ):
+    def __init__(self, op):
         self.op = op
         self.is_top = op is None
         self.child = None
@@ -132,22 +140,21 @@ class Cell:
             return False
         return True
 
-
     def setup_edit(self):
         """Create the standard edit widget for this cell."""
 
         self.edit = urwid.IntEdit()
         if not self.is_top:
-            self.edit.set_caption( f"{self.op} " )
-        self.edit.set_layout( None, None, CALC_LAYOUT )
+            self.edit.set_caption(f"{self.op} ")
+        self.edit.set_layout(None, None, CALC_LAYOUT)
 
     def get_value(self):
         """Return the numeric value of the cell."""
 
         if self.child is not None:
             return self.child.get_result()
-        else:
-            return int(f"0{self.edit.edit_text}")
+
+        return int(f"0{self.edit.edit_text}")
 
     def get_result(self):
         """Return the numeric result of this cell's operation."""
@@ -161,16 +168,16 @@ class Cell:
     def set_result(self, result):
         """Set the numeric result for this cell."""
 
-        if result == None:
+        if result is None:
             self.result.set_text("")
         else:
-            self.result.set_text( "%d" %result )
+            self.result.set_text("%d" % result)
 
     def become_parent(self, column, letter):
         """Change the edit widget to a parent cell widget."""
 
         self.child = column
-        self.edit = ParentEdit( self.op, letter )
+        self.edit = ParentEdit(self.op, letter)
 
     def remove_child(self):
         """Change the edit widget back to a standard edit widget."""
@@ -178,7 +185,7 @@ class Cell:
         self.child = None
         self.setup_edit()
 
-    def is_empty( self ):
+    def is_empty(self):
         """Return True if the cell is "empty"."""
 
         return self.child is None and self.edit.edit_text == ""
@@ -196,9 +203,9 @@ class ParentEdit(urwid.Edit):
                      function takes no parameters
         """
 
-        urwid.Edit.__init__(self, layout=CALC_LAYOUT)
+        super().__init__(layout=CALC_LAYOUT)
         self.op = op
-        self.set_letter( letter )
+        self.set_letter(letter)
 
     def set_letter(self, letter):
         """Set the letter of the child column for display."""
@@ -214,38 +221,38 @@ class ParentEdit(urwid.Edit):
 
         if key == "backspace":
             raise ColumnDeleteEvent(self.letter, from_parent=True)
-        elif key in list("0123456789"):
+        if key in list("0123456789"):
             raise CalcEvent(E_invalid_in_parent_cell)
-        else:
-            return key
+
+        return key
 
 
 class CellWalker(urwid.ListWalker):
     def __init__(self, content):
         self.content = urwid.MonitoredList(content)
         self.content.modified = self._modified
-        self.focus = (0,0)
+        self.focus = (0, 0)
         # everyone can share the same divider widget
         self.div = urwid.Divider("-")
 
     def get_cell(self, i):
         if i < 0 or i >= len(self.content):
             return None
-        else:
-            return self.content[i]
+
+        return self.content[i]
 
     def _get_at_pos(self, pos):
         i, sub = pos
-        assert sub in (0,1,2)
+        assert sub in (0, 1, 2)  # noqa: S101  # for examples "assert" is acceptable
         if i < 0 or i >= len(self.content):
             return None, None
         if sub == 0:
             edit = self.content[i].edit
-            return urwid.AttrWrap(edit, 'edit', 'editfocus'), pos
-        elif sub == 1:
+            return urwid.AttrMap(edit, "edit", "editfocus"), pos
+        if sub == 1:
             return self.div, pos
-        else:
-            return self.content[i].result, pos
+
+        return self.content[i].result, pos
 
     def get_focus(self):
         return self._get_at_pos(self.focus)
@@ -255,60 +262,57 @@ class CellWalker(urwid.ListWalker):
 
     def get_next(self, start_from):
         i, sub = start_from
-        assert sub in (0,1,2)
+        assert sub in (0, 1, 2)  # noqa: S101  # for examples "assert" is acceptable
         if sub == 0:
-            show_result = self.content[i].show_result(
-                self.get_cell(i+1))
+            show_result = self.content[i].show_result(self.get_cell(i + 1))
             if show_result:
-                return self._get_at_pos( (i, 1) )
-            else:
-                return self._get_at_pos( (i+1, 0) )
-        elif sub == 1:
-            return self._get_at_pos( (i, 2) )
-        else:
-            return self._get_at_pos( (i+1, 0) )
+                return self._get_at_pos((i, 1))
+
+            return self._get_at_pos((i + 1, 0))
+        if sub == 1:
+            return self._get_at_pos((i, 2))
+
+        return self._get_at_pos((i + 1, 0))
 
     def get_prev(self, start_from):
         i, sub = start_from
-        assert sub in (0,1,2)
+        assert sub in (0, 1, 2)  # noqa: S101  # for examples "assert" is acceptable
         if sub == 0:
-            if i == 0: return None, None
-            show_result = self.content[i-1].show_result(
-                self.content[i])
+            if i == 0:
+                return None, None
+            show_result = self.content[i - 1].show_result(self.content[i])
             if show_result:
-                return self._get_at_pos( (i-1, 2) )
-            else:
-                return self._get_at_pos( (i-1, 0) )
-        elif sub == 1:
-            return self._get_at_pos( (i, 0) )
-        else:
-            return self._get_at_pos( (i, 1) )
+                return self._get_at_pos((i - 1, 2))
+
+            return self._get_at_pos((i - 1, 0))
+        if sub == 1:
+            return self._get_at_pos((i, 0))
+
+        return self._get_at_pos((i, 1))
 
 
-class CellColumn( urwid.WidgetWrap ):
+class CellColumn(urwid.WidgetWrap):
     def __init__(self, letter):
         self.walker = CellWalker([Cell(None)])
         self.content = self.walker.content
-        self.listbox = urwid.ListBox( self.walker )
-        self.set_letter( letter )
-        urwid.WidgetWrap.__init__(self, self.frame)
+        self.listbox = urwid.ListBox(self.walker)
+        self.set_letter(letter)
+        super().__init__(self.frame)
 
     def set_letter(self, letter):
         """Set the column header with letter."""
 
         self.letter = letter
-        header = urwid.AttrWrap(
-            urwid.Text( ["Column ",('key',letter)],
-            layout = CALC_LAYOUT), 'colhead' )
-        self.frame = urwid.Frame( self.listbox, header )
+        header = urwid.AttrMap(urwid.Text(["Column ", ("key", letter)], layout=CALC_LAYOUT), "colhead")
+        self.frame = urwid.Frame(self.listbox, header)
 
     def keypress(self, size, key):
-        key = self.frame.keypress( size, key)
+        key = self.frame.keypress(size, key)
         if key is None:
             changed = self.update_results()
             if changed:
                 raise UpdateParentEvent()
-            return
+            return None
 
         f, (i, sub) = self.walker.get_focus()
         if sub != 0:
@@ -319,27 +323,26 @@ class CellColumn( urwid.WidgetWrap ):
             edit = self.walker.get_cell(i).edit
             cursor_pos = edit.edit_pos
             tail = edit.edit_text[cursor_pos:]
-            edit.set_edit_text( edit.edit_text[:cursor_pos] )
+            edit.set_edit_text(edit.edit_text[:cursor_pos])
 
-            new_cell = Cell( key )
-            new_cell.edit.set_edit_text( tail )
-            self.content[i+1:i+1] = [new_cell]
+            new_cell = Cell(key)
+            new_cell.edit.set_edit_text(tail)
+            self.content[i + 1 : i + 1] = [new_cell]
 
             changed = self.update_results()
-            self.move_focus_next( size )
-            self.content[i+1].edit.set_edit_pos(0)
+            self.move_focus_next(size)
+            self.content[i + 1].edit.set_edit_pos(0)
             if changed:
                 raise UpdateParentEvent()
-            return
+            return None
 
-        elif key == 'backspace':
+        if key == "backspace":
             # unhandled backspace, we're at beginning of number
             # append current number to cell above, removing operator
-            above = self.walker.get_cell(i-1)
+            above = self.walker.get_cell(i - 1)
             if above is None:
                 # we're the first cell
-                raise ColumnDeleteEvent( self.letter,
-                    from_parent=False )
+                raise ColumnDeleteEvent(self.letter, from_parent=False)
 
             edit = self.walker.get_cell(i).edit
             # check that we can combine
@@ -352,21 +355,20 @@ class CellColumn( urwid.WidgetWrap ):
             else:
                 # above is normal number cell
                 above_pos = len(above.edit.edit_text)
-                above.edit.set_edit_text( above.edit.edit_text +
-                    edit.edit_text )
+                above.edit.set_edit_text(above.edit.edit_text + edit.edit_text)
 
-            self.move_focus_prev( size )
-            self.content[i-1].edit.set_edit_pos(above_pos)
+            self.move_focus_prev(size)
+            self.content[i - 1].edit.set_edit_pos(above_pos)
             del self.content[i]
             changed = self.update_results()
             if changed:
                 raise UpdateParentEvent()
-            return
+            return None
 
-        elif key == 'delete':
+        if key == "delete":
             # pull text from next cell into current
             cell = self.walker.get_cell(i)
-            below = self.walker.get_cell(i+1)
+            below = self.walker.get_cell(i + 1)
             if cell.child is not None:
                 # this cell is a parent
                 raise CalcEvent(E_cant_combine)
@@ -378,37 +380,34 @@ class CellColumn( urwid.WidgetWrap ):
                 raise CalcEvent(E_cant_combine)
 
             edit = self.walker.get_cell(i).edit
-            edit.set_edit_text( edit.edit_text +
-                below.edit.edit_text )
+            edit.set_edit_text(edit.edit_text + below.edit.edit_text)
 
-            del self.content[i+1]
+            del self.content[i + 1]
             changed = self.update_results()
             if changed:
                 raise UpdateParentEvent()
-            return
+            return None
         return key
-
 
     def move_focus_next(self, size):
         f, (i, sub) = self.walker.get_focus()
-        assert i<len(self.content)-1
+        assert i < len(self.content) - 1  # noqa: S101  # for examples "assert" is acceptable
 
         ni = i
         while ni == i:
-            self.frame.keypress(size, 'down')
+            self.frame.keypress(size, "down")
             nf, (ni, nsub) = self.walker.get_focus()
 
     def move_focus_prev(self, size):
         f, (i, sub) = self.walker.get_focus()
-        assert i>0
+        assert i > 0  # noqa: S101  # for examples "assert" is acceptable
 
         ni = i
         while ni == i:
-            self.frame.keypress(size, 'up')
+            self.frame.keypress(size, "up")
             nf, (ni, nsub) = self.walker.get_focus()
 
-
-    def update_results( self, start_from=None ):
+    def update_results(self, start_from=None):
         """Update column.  Return True if final result changed.
 
         start_from -- Cell to start updating from or None to start from
@@ -419,35 +418,33 @@ class CellColumn( urwid.WidgetWrap ):
             f, (i, sub) = self.walker.get_focus()
         else:
             i = self.content.index(start_from)
-            if i == None: return False
+            if i is None:
+                return False
 
         focus_cell = self.walker.get_cell(i)
 
         if focus_cell.is_top:
             x = focus_cell.get_value()
-            last_op = None
         else:
-            last_cell = self.walker.get_cell(i-1)
+            last_cell = self.walker.get_cell(i - 1)
             x = last_cell.get_result()
 
             if x is not None and focus_cell.op is not None:
-                x = OPERATORS[focus_cell.op]( x,
-                    focus_cell.get_value() )
+                x = OPERATORS[focus_cell.op](x, focus_cell.get_value())
             focus_cell.set_result(x)
 
-        for cell in self.content[i+1:]:
+        for cell in self.content[i + 1 :]:
             if cell.op is None:
                 x = None
             if x is not None:
-                x = OPERATORS[cell.op]( x, cell.get_value() )
+                x = OPERATORS[cell.op](x, cell.get_value())
             if cell.get_result() == x:
                 return False
             cell.set_result(x)
 
         return True
 
-
-    def create_child( self, letter ):
+    def create_child(self, letter):
         """Return (parent cell,child column) or None,None on failure."""
         f, (i, sub) = self.walker.get_focus()
         if sub != 0:
@@ -460,30 +457,29 @@ class CellColumn( urwid.WidgetWrap ):
         if cell.edit.edit_text:
             raise CalcEvent(E_new_col_cell_not_empty)
 
-        child = CellColumn( letter )
-        cell.become_parent( child, letter )
+        child = CellColumn(letter)
+        cell.become_parent(child, letter)
 
         return cell, child
 
-    def is_empty( self ):
+    def is_empty(self):
         """Return True if this column is empty."""
 
-        return len(self.content)==1 and self.content[0].is_empty()
-
+        return len(self.content) == 1 and self.content[0].is_empty()
 
     def get_expression(self):
         """Return the expression as a printable string."""
 
-        l = []
+        lines = []
         for c in self.content:
-            if c.op is not None: # only applies to first cell
-                l.append(c.op)
+            if c.op is not None:  # only applies to first cell
+                lines.append(c.op)
             if c.child is not None:
-                l.append(f"({c.child.get_expression()})")
+                lines.append(f"({c.child.get_expression()})")
             else:
-                l.append("%d"%c.get_value())
+                lines.append(f"{c.get_value():d}")
 
-        return "".join(l)
+        return "".join(lines)
 
     def get_result(self):
         """Return the result of the last cell in the column."""
@@ -493,111 +489,116 @@ class CellColumn( urwid.WidgetWrap ):
 
 class HelpColumn(urwid.Widget):
     _selectable = True
-    _sizing = frozenset([urwid.BOX])
+    _sizing = frozenset((urwid.BOX,))
 
-    help_text = [
-        ('title', "Column Calculator"),
+    help_text = [  # noqa: RUF012  # text layout typing is too complex
+        ("title", "Column Calculator"),
         "",
-        [ "Numbers: ", ('key', "0"), "-", ('key', "9") ],
-        "" ,
-        [ "Operators: ",('key', "+"), ", ", ('key', "-"), ", ",
-            ('key', "*"), " and ", ('key', "/")],
+        ["Numbers: ", ("key", "0"), "-", ("key", "9")],
         "",
-        [ "Editing: ", ('key', "BACKSPACE"), " and ",('key', "DELETE")],
+        ["Operators: ", ("key", "+"), ", ", ("key", "-"), ", ", ("key", "*"), " and ", ("key", "/")],
         "",
-        [ "Movement: ", ('key', "UP"), ", ", ('key', "DOWN"), ", ",
-            ('key', "LEFT"), ", ", ('key', "RIGHT"), ", ",
-            ('key', "PAGE UP"), " and ", ('key', "PAGE DOWN") ],
+        ["Editing: ", ("key", "BACKSPACE"), " and ", ("key", "DELETE")],
         "",
-        [ "Sub-expressions: ", ('key', "("), " and ", ('key', ")") ],
+        [
+            "Movement: ",
+            ("key", "UP"),
+            ", ",
+            ("key", "DOWN"),
+            ", ",
+            ("key", "LEFT"),
+            ", ",
+            ("key", "RIGHT"),
+            ", ",
+            ("key", "PAGE UP"),
+            " and ",
+            ("key", "PAGE DOWN"),
+        ],
         "",
-        [ "Columns: ", ('key', COLUMN_KEYS[0]), " and ",
-            ('key',COLUMN_KEYS[1]), "-",
-            ('key',COLUMN_KEYS[-1]) ],
+        ["Sub-expressions: ", ("key", "("), " and ", ("key", ")")],
         "",
-        [ "Exit: ", ('key', "Q") ],
+        ["Columns: ", ("key", COLUMN_KEYS[0]), " and ", ("key", COLUMN_KEYS[1]), "-", ("key", COLUMN_KEYS[-1])],
+        "",
+        ["Exit: ", ("key", "Q")],
         "",
         "",
-        ["Column Calculator does operations in the order they are ",
+        [
+            "Column Calculator does operations in the order they are ",
             "typed, not by following usual precedence rules.  ",
-            "If you want to calculate ", ('key', "12 - 2 * 3"),
+            "If you want to calculate ",
+            ("key", "12 - 2 * 3"),
             " with the multiplication happening before the ",
             "subtraction you must type ",
-            ('key', "12 - (2 * 3)"), " instead."],
-        ]
+            ("key", "12 - (2 * 3)"),
+            " instead.",
+        ],
+    ]
 
     def __init__(self):
-        self.head = urwid.AttrWrap(
-            urwid.Text(["Help Column ", ('key',"?")],
-                layout = CALC_LAYOUT),
-            'help')
-        self.foot = urwid.AttrWrap(
-            urwid.Text(["[text continues.. press ",
-            ('key',"?"), " then scroll]"]), 'helpnote' )
+        self.head = urwid.AttrMap(urwid.Text(["Help Column ", ("key", "?")], layout=CALC_LAYOUT), "help")
+        self.foot = urwid.AttrMap(urwid.Text(["[text continues.. press ", ("key", "?"), " then scroll]"]), "helpnote")
         self.items = [urwid.Text(x) for x in self.help_text]
         self.listbox = urwid.ListBox(urwid.SimpleListWalker(self.items))
-        self.body = urwid.AttrWrap( self.listbox, 'help' )
-        self.frame = urwid.Frame( self.body, header=self.head)
+        self.body = urwid.AttrMap(self.listbox, "help")
+        self.frame = urwid.Frame(self.body, header=self.head)
 
     def render(self, size, focus=False):
         maxcol, maxrow = size
         head_rows = self.head.rows((maxcol,))
-        if "bottom" in self.listbox.ends_visible(
-            (maxcol, maxrow-head_rows) ):
+        if "bottom" in self.listbox.ends_visible((maxcol, maxrow - head_rows)):
             self.frame.footer = None
         else:
             self.frame.footer = self.foot
 
-        return self.frame.render( (maxcol, maxrow), focus)
+        return self.frame.render((maxcol, maxrow), focus)
 
-    def keypress( self, size, key ):
-        return self.frame.keypress( size, key )
+    def keypress(self, size, key):
+        return self.frame.keypress(size, key)
 
 
 class CalcDisplay:
-    palette = [
-        ('body','white', 'dark blue'),
-        ('edit','yellow', 'dark blue'),
-        ('editfocus','yellow','dark cyan', 'bold'),
-        ('key','dark cyan', 'light gray', ('standout','underline')),
-        ('title', 'white', 'light gray', ('bold','standout')),
-        ('help', 'black', 'light gray', 'standout'),
-        ('helpnote', 'dark green', 'light gray'),
-        ('colhead', 'black', 'light gray', 'standout'),
-        ('event', 'light red', 'black', 'standout'),
-        ('confirm', 'yellow', 'black', 'bold'),
-        ]
+    palette: typing.ClassVar[list[tuple[str, str, str, ...]]] = [
+        ("body", "white", "dark blue"),
+        ("edit", "yellow", "dark blue"),
+        ("editfocus", "yellow", "dark cyan", "bold"),
+        ("key", "dark cyan", "light gray", ("standout", "underline")),
+        ("title", "white", "light gray", ("bold", "standout")),
+        ("help", "black", "light gray", "standout"),
+        ("helpnote", "dark green", "light gray"),
+        ("colhead", "black", "light gray", "standout"),
+        ("event", "light red", "black", "standout"),
+        ("confirm", "yellow", "black", "bold"),
+    ]
 
     def __init__(self):
         self.columns = urwid.Columns([HelpColumn(), CellColumn("A")], 1)
         self.col_list = self.columns.widget_list
         self.columns.focus_position = 1
-        view = urwid.AttrWrap(self.columns, 'body')
-        self.view = urwid.Frame(view) # for showing messages
+        view = urwid.AttrMap(self.columns, "body")
+        self.view = urwid.Frame(view)  # for showing messages
         self.col_link = {}
 
     def main(self):
-        self.loop = urwid.MainLoop(self.view, self.palette, screen=Screen(),
-            input_filter=self.input_filter)
+        self.loop = urwid.MainLoop(self.view, self.palette, screen=Screen(), input_filter=self.input_filter)
         self.loop.run()
 
         # on exit write the formula and the result to the console
         expression, result = self.get_expression_result()
-        print( "Paste this expression into a new Column Calculator session to continue editing:")
-        print( expression)
-        print( "Result:", result)
+        print("Paste this expression into a new Column Calculator session to continue editing:")
+        print(expression)
+        print("Result:", result)
 
-    def input_filter(self, input, raw_input):
-        if 'q' in input or 'Q' in input:
+    def input_filter(self, data, raw_input):
+        if "q" in data or "Q" in data:
             raise urwid.ExitMainLoop()
 
         # handle other keystrokes
-        for k in input:
+        for k in data:
             try:
                 self.wrap_keypress(k)
                 self.event = None
                 self.view.footer = None
-            except CalcEvent as e:
+            except CalcEvent as e:  # noqa: PERF203
                 # display any message
                 self.event = e
                 self.view.footer = e.widget()
@@ -616,23 +617,20 @@ class CalcDisplay:
                 # cannot delete the first column, ignore key
                 return
 
-            if not self.column_empty( e.letter ):
-                # need to get two in a row, so check last event
-                if not isinstance(self.event,ColumnDeleteEvent):
-                    # ask for confirmation
-                    raise e
+            if not self.column_empty(e.letter) and not isinstance(self.event, ColumnDeleteEvent):
+                # need to get two in a row, so check last event ask for confirmation
+                raise
             self.delete_column(e.letter)
 
-        except UpdateParentEvent as e:
+        except UpdateParentEvent:
             self.update_parent_columns()
             return
 
         if key is None:
             return
 
-        if self.columns.focus_position == 0:
-            if key not in ('up','down','page up','page down'):
-                raise CalcEvent(E_invalid_in_help_col)
+        if self.columns.focus_position == 0 and key not in ("up", "down", "page up", "page down"):
+            raise CalcEvent(E_invalid_in_help_col)
 
         if key not in EDIT_KEYS and key not in MOVEMENT_KEYS:
             raise CalcEvent(E_invalid_key % key.upper())
@@ -641,10 +639,10 @@ class CalcDisplay:
         """Handle a keystroke."""
 
         self.loop.process_input([key])
-        
+
         if isinstance(key, tuple):
             # ignore mouse events
-            return
+            return None
 
         if key.upper() in COLUMN_KEYS:
             # column switch
@@ -652,8 +650,8 @@ class CalcDisplay:
             if i >= len(self.columns):
                 raise CalcEvent(E_no_such_column % key.upper())
             self.columns.focus_position = i
-            return
-        elif key == "(":
+            return None
+        if key == "(":
             # open a new column
             if len(self.columns) >= len(COLUMN_KEYS):
                 raise CalcEvent(E_no_more_columns)
@@ -663,43 +661,45 @@ class CalcDisplay:
                 return key
             col = self.columns.contents[i][0]
             new_letter = COLUMN_KEYS[len(self.columns)]
-            parent, child = col.create_child(new_letter )
+            parent, child = col.create_child(new_letter)
             if child is None:
                 # something invalid in focus
                 return key
             self.col_list.append(child)
-            self.set_link( parent, col, child )
-            self.columns.focus_position = len(self.columns)-1
+            self.set_link(parent, col, child)
+            self.columns.focus_position = len(self.columns) - 1
+            return None
 
-        elif key == ")":
+        if key == ")":
             i = self.columns.focus_position
             if i == 0:
                 # makes no sense in help column
                 return key
             col = self.columns.contents[i][0]
-            parent, pcol = self.get_parent( col )
+            parent, pcol = self.get_parent(col)
             if parent is None:
                 # column has no parent
                 raise CalcEvent(E_no_parent_column)
 
-            new_i = self.col_list.index( pcol )
+            new_i = self.col_list.index(pcol)
             self.columns.focus_position = new_i
-        else:
-            return key
+            return None
 
-    def set_link( self, parent, pcol, child ):
+        return key
+
+    def set_link(self, parent, pcol, child):
         """Store the link between a parent cell and child column.
 
         parent -- parent Cell object
         pcol -- CellColumn where parent resides
         child -- child CellColumn object"""
 
-        self.col_link[ child ] = parent, pcol
+        self.col_link[child] = parent, pcol
 
-    def get_parent( self, child ):
+    def get_parent(self, child):
         """Return the parent and parent column for a given column."""
 
-        return self.col_link.get( child, (None,None) )
+        return self.col_link.get(child, (None, None))
 
     def column_empty(self, letter):
         """Return True if the column passed is empty."""
@@ -708,14 +708,13 @@ class CalcDisplay:
         col = self.columns.contents[i][0]
         return col.is_empty()
 
-
     def delete_column(self, letter):
         """Delete the column with the given letter."""
 
         i = COLUMN_KEYS.index(letter)
         col = self.columns.contents[i][0]
 
-        parent, pcol = self.get_parent( col )
+        parent, pcol = self.get_parent(col)
 
         f = self.columns.focus_position
         if f == i:
@@ -731,11 +730,11 @@ class CalcDisplay:
         keep_right_cols = []
         remove_cols = [col]
         for rcol in self.col_list[i:]:
-            parent, pcol = self.get_parent( rcol )
+            parent, pcol = self.get_parent(rcol)
             if pcol in remove_cols:
-                remove_cols.append( rcol )
+                remove_cols.append(rcol)
             else:
-                keep_right_cols.append( rcol )
+                keep_right_cols.append(rcol)
         for rc in remove_cols:
             # remove the links
             del self.col_link[rc]
@@ -746,10 +745,10 @@ class CalcDisplay:
         for j in range(i, len(self.columns)):
             col = self.columns.contents[j][0]
             # fix the column heading
-            col.set_letter( COLUMN_KEYS[j] )
-            parent, pcol = self.get_parent( col )
+            col.set_letter(COLUMN_KEYS[j])
+            parent, pcol = self.get_parent(col)
             # fix the parent cell
-            parent.edit.set_letter( COLUMN_KEYS[j] )
+            parent.edit.set_letter(COLUMN_KEYS[j])
 
     def update_parent_columns(self):
         "Update the parent columns of the current focus column."
@@ -761,7 +760,7 @@ class CalcDisplay:
             if pcol is None:
                 return
 
-            changed = pcol.update_results( start_from = parent )
+            changed = pcol.update_results(start_from=parent)
             if not changed:
                 return
             col = pcol
@@ -778,40 +777,39 @@ class CalcNumLayout(urwid.TextLayout):
     TextLayout class for bottom-right aligned numbers with a space on
     the last line for the cursor.
     """
-    def layout( self, text, width, align, wrap ):
+
+    def layout(self, text, width, align, wrap):
         """
         Return layout structure for calculator number display.
         """
-        lt = len(text) + 1 # extra space for cursor
-        r = (lt) % width # remaining segment not full width wide
-        linestarts = range( r, lt, width )
-        l = []
+        lt = len(text) + 1  # extra space for cursor
+        remaining = lt % width  # remaining segment not full width wide
+        linestarts = range(remaining, lt, width)
+        layout = []
         if linestarts:
-            if r:
+            if remaining:
                 # right-align the remaining segment on 1st line
-                l.append( [(width-r,None),(r, 0, r)] )
+                layout.append([(width - remaining, None), (remaining, 0, remaining)])
             # fill all but the last line
             for x in linestarts[:-1]:
-                l.append( [(width, x, x+width)] )
+                layout.append([(width, x, x + width)])  # noqa: PERF401
             s = linestarts[-1]
             # add the last line with a cursor hint
-            l.append( [(width-1, s, lt-1), (0, lt-1)] )
-        elif lt-1:
+            layout.append([(width - 1, s, lt - 1), (0, lt - 1)])
+        elif lt - 1:
             # all fits on one line, so right align the text
             # with a cursor hint at the end
-            l.append( [(width-lt,None),(lt-1,0,lt-1), (0,lt-1)] )
+            layout.append([(width - lt, None), (lt - 1, 0, lt - 1), (0, lt - 1)])
         else:
             # nothing on the line, right align a cursor hint
-            l.append( [(width-1,None),(0,0)] )
+            layout.append([(width - 1, None), (0, 0)])
 
-        return l
-
-
+        return layout
 
 
 def main():
     """Launch Column Calculator."""
-    global CALC_LAYOUT
+    global CALC_LAYOUT  # noqa: PLW0603
     CALC_LAYOUT = CalcNumLayout()
 
     urwid.web_display.set_preferences("Column Calculator")
@@ -821,5 +819,6 @@ def main():
 
     CalcDisplay().main()
 
-if '__main__'==__name__ or urwid.web_display.is_web_request():
+
+if __name__ == "__main__" or urwid.web_display.is_web_request():
     main()
