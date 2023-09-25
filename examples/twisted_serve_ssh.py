@@ -33,6 +33,8 @@ Licence:   LGPL <http://opensource.org/licenses/lgpl-2.1.php>
 
 from __future__ import annotations
 
+import typing
+
 from twisted.application.internet import TCPServer
 from twisted.application.service import Application
 from twisted.conch.insults.insults import ServerProtocol, TerminalProtocol
@@ -51,31 +53,32 @@ from zope.interface import Attribute, Interface, implementer
 import urwid
 from urwid.raw_display import Screen
 
+if typing.TYPE_CHECKING:
+    from twisted.cred.checkers import ICredentialsChecker
+
 
 class IUrwidUi(Interface):
 
-    """Toplevel urwid widget
-    """
-    toplevel = Attribute('Urwid Toplevel Widget')
-    palette = Attribute('Urwid Palette')
-    screen = Attribute('Urwid Screen')
-    loop = Attribute('Urwid Main Loop')
+    """Toplevel urwid widget"""
+
+    toplevel = Attribute("Urwid Toplevel Widget")
+    palette = Attribute("Urwid Palette")
+    screen = Attribute("Urwid Screen")
+    loop = Attribute("Urwid Main Loop")
 
     def create_urwid_toplevel():
-        """Create a toplevel widget.
-        """
+        """Create a toplevel widget."""
 
     def create_urwid_mainloop():
-        """Create the urwid main loop.
-        """
+        """Create the urwid main loop."""
 
 
 class IUrwidMind(Interface):
-    ui = Attribute('')
-    terminalProtocol = Attribute('')
-    terminal = Attribute('')
-    checkers = Attribute('')
-    avatar = Attribute('The avatar')
+    ui = Attribute("")
+    terminalProtocol = Attribute("")
+    terminal = Attribute("")
+    checkers = Attribute("")
+    avatar = Attribute("The avatar")
 
     def push(data):
         """Push data"""
@@ -85,7 +88,6 @@ class IUrwidMind(Interface):
 
 
 class UrwidUi:
-
     def __init__(self, urwid_mind):
         self.mind = urwid_mind
         self.toplevel = self.create_urwid_toplevel()
@@ -101,29 +103,31 @@ class UrwidUi:
 
     def create_urwid_mainloop(self):
         evl = urwid.TwistedEventLoop(manage_reactor=False)
-        loop = urwid.MainLoop(self.toplevel, screen=self.screen,
-                              event_loop=evl,
-                              unhandled_input=self.mind.unhandled_key,
-                              palette=self.palette)
+        loop = urwid.MainLoop(
+            self.toplevel,
+            screen=self.screen,
+            event_loop=evl,
+            unhandled_input=self.mind.unhandled_key,
+            palette=self.palette,
+        )
         self.screen.loop = loop
         loop.run()
         return loop
 
 
 class UnhandledKeyHandler:
-
     def __init__(self, mind):
         self.mind = mind
 
     def push(self, key):
         if isinstance(key, tuple):
-            pass
-        else:
-            f = getattr(self, f"key_{key.replace(' ', '_')}", None)
-            if f is None:
-                return
-            else:
-                return f(key)
+            return None
+
+        f = getattr(self, f"key_{key.replace(' ', '_')}", None)
+        if f is None:
+            return None
+
+        return f(key)
 
     def key_ctrl_c(self, key):
         self.mind.terminal.loseConnection()
@@ -131,8 +135,7 @@ class UnhandledKeyHandler:
 
 @implementer(IUrwidMind)
 class UrwidMind(Adapter):
-
-    cred_checkers = []
+    cred_checkers: typing.ClassVar[list[ICredentialsChecker]] = []
     ui = None
 
     ui_factory = None
@@ -181,7 +184,7 @@ class TwistedScreen(Screen):
         self.colors = 16
         self._pal_escape = {}
         self.bright_is_bold = True
-        self.register_palette_entry(None, 'black', 'white')
+        self.register_palette_entry(None, "black", "white")
         urwid.signals.connect_signal(self, urwid.UPDATE_PALETTE_ENTRY, self._on_update_palette_entry)
         # Don't need to wait for anything to start
         self._started = True
@@ -189,11 +192,10 @@ class TwistedScreen(Screen):
     # Urwid Screen API
 
     def get_cols_rows(self):
-        """Get the size of the terminal as (cols, rows)
-        """
+        """Get the size of the terminal as (cols, rows)"""
         return self.terminalProtocol.width, self.terminalProtocol.height
 
-    def draw_screen(self, maxres, r ):
+    def draw_screen(self, maxres, r):
         """Render a canvas to the terminal.
 
         The canvas contains all the information required to render the Urwid
@@ -202,15 +204,15 @@ class TwistedScreen(Screen):
         writes it out.
         """
         (maxcol, maxrow) = maxres
-        #self.terminal.eraseDisplay()
+        # self.terminal.eraseDisplay()
         lasta = None
         for i, row in enumerate(r.content()):
             self.terminal.cursorPosition(0, i)
-            for (attr, cs, text) in row:
+            for attr, _cs, text in row:
                 if attr != lasta:
-                    text = f'{self._attr_to_escape(attr)}{text}'
+                    text = f"{self._attr_to_escape(attr)}{text}"  # noqa: PLW2901
                 lasta = attr
-                #if cs or attr:
+                # if cs or attr:
                 #    print(cs, attr)
                 self.write(text)
         cursor = r.get_cursor()
@@ -271,18 +273,16 @@ class TwistedScreen(Screen):
     # Private
     def _on_update_palette_entry(self, name, *attrspecs):
         # copy the attribute to a dictionary containing the escape sequences
-        self._pal_escape[name] = self._attrspec_to_escape(
-           attrspecs[{16:0,1:1,88:2,256:3}[self.colors]])
+        self._pal_escape[name] = self._attrspec_to_escape(attrspecs[{16: 0, 1: 1, 88: 2, 256: 3}[self.colors]])
 
     def _attr_to_escape(self, a):
         if a in self._pal_escape:
             return self._pal_escape[a]
-        elif isinstance(a, urwid.AttrSpec):
+        if isinstance(a, urwid.AttrSpec):
             return self._attrspec_to_escape(a)
         # undefined attributes use default/default
         # TODO: track and report these
-        return self._attrspec_to_escape(
-            urwid.AttrSpec('default','default'))
+        return self._attrspec_to_escape(urwid.AttrSpec("default", "default"))
 
     def _attrspec_to_escape(self, a):
         """
@@ -339,8 +339,7 @@ class UrwidTerminalProtocol(TerminalProtocol):
         self.terminalSize(self.height, self.width)
 
     def terminalSize(self, height, width):
-        """Resize the terminal.
-        """
+        """Resize the terminal."""
         self.width = width
         self.height = height
         self.urwid_mind.ui.loop.screen_size = None
@@ -363,11 +362,11 @@ class UrwidTerminalProtocol(TerminalProtocol):
     def _unhandled_input(self, data):
         # evil
         proceed = True
-        if hasattr(self.urwid_toplevel, 'app'):
+        if hasattr(self.urwid_toplevel, "app"):
             proceed = self.urwid_toplevel.app.unhandled_input(self, data)
         if not proceed:
             return
-        if data == 'ctrl c':
+        if data == "ctrl c":
             self.terminal.loseConnection()
 
 
@@ -381,6 +380,7 @@ class UrwidUser(TerminalUser):
 
     The default implementation doesn't
     """
+
     def __init__(self, original, avatarId):
         super().__init__(original, avatarId)
         self.avatarId = avatarId
@@ -396,17 +396,12 @@ class UrwidTerminalSession(TerminalSession):
     """
 
     def openShell(self, proto):
-        """Open a shell.
-        """
+        """Open a shell."""
         self.chained_protocol = UrwidServerProtocol(UrwidTerminalProtocol, IUrwidMind(self.original))
-        TerminalSessionTransport(
-            proto, self.chained_protocol,
-            IConchUser(self.original),
-            self.height, self.width)
+        TerminalSessionTransport(proto, self.chained_protocol, IConchUser(self.original), self.height, self.width)
 
     def windowChanged(self, dimensions):
-        """Called when the window size has changed.
-        """
+        """Called when the window size has changed."""
         (h, w, x, y) = dimensions
         self.chained_protocol.terminalProtocol.terminalSize(h, w)
 
@@ -415,6 +410,7 @@ class UrwidRealm(TerminalRealm):
     """Custom terminal realm class-configured to use our custom Terminal User
     Terminal Session.
     """
+
     def __init__(self, mind_factory):
         self.mind_factory = mind_factory
 
@@ -431,9 +427,7 @@ class UrwidRealm(TerminalRealm):
     def requestAvatar(self, avatarId, mind, *interfaces):
         for i in interfaces:
             if i is IConchUser:
-                return (IConchUser,
-                        self._getAvatar(avatarId),
-                        lambda: None)
+                return (IConchUser, self._getAvatar(avatarId), lambda: None)
         raise NotImplementedError()
 
 
@@ -447,18 +441,14 @@ def create_server_factory(urwid_mind_factory):
 
 
 def create_service(urwid_mind_factory, port, *args, **kw):
-    """Convenience to create a service for use in tac-ish situations.
-    """
+    """Convenience to create a service for use in tac-ish situations."""
     f = create_server_factory(urwid_mind_factory)
     return TCPServer(port, f, *args, **kw)
 
 
-def create_application(application_name, urwid_mind_factory,
-                       port, *args, **kw):
-    """Convenience to create an application suitable for tac file
-    """
+def create_application(application_name, urwid_mind_factory, port, *args, **kw):
+    """Convenience to create an application suitable for tac file"""
     application = Application(application_name)
     svc = create_service(urwid_mind_factory, 6022)
     svc.setServiceParent(application)
     return application
-
