@@ -33,6 +33,7 @@ edit.py <filename>
 from __future__ import annotations
 
 import sys
+import typing
 
 import urwid
 
@@ -41,7 +42,7 @@ class LineWalker(urwid.ListWalker):
     """ListWalker-compatible class for lazily reading file contents."""
 
     def __init__(self, name):
-        self.file = open(name)
+        self.file = open(name)  # noqa: SIM115  # do not overcomplicate example
         self.lines = []
         self.focus = 0
 
@@ -63,7 +64,7 @@ class LineWalker(urwid.ListWalker):
 
         next_line = self.file.readline()
 
-        if not next_line or next_line[-1:] != '\n':
+        if not next_line or next_line[-1:] != "\n":
             # no newline on last line of file
             self.file = None
         else:
@@ -78,7 +79,6 @@ class LineWalker(urwid.ListWalker):
         self.lines.append(edit)
 
         return next_line
-
 
     def _get_at_pos(self, pos):
         """Return a widget for the line number passed."""
@@ -95,7 +95,7 @@ class LineWalker(urwid.ListWalker):
             # file is closed, so there are no more lines
             return None, None
 
-        assert pos == len(self.lines), "out of order request?"
+        assert pos == len(self.lines), "out of order request?"  # noqa: S101  # "assert" is ok in examples
 
         self.read_next_line()
 
@@ -106,11 +106,11 @@ class LineWalker(urwid.ListWalker):
 
         focus = self.lines[self.focus]
         pos = focus.edit_pos
-        edit = urwid.Edit("",focus.edit_text[pos:], allow_tab=True)
+        edit = urwid.Edit("", focus.edit_text[pos:], allow_tab=True)
         edit.original_text = ""
         focus.set_edit_text(focus.edit_text[:pos])
         edit.set_edit_pos(0)
-        self.lines.insert(self.focus+1, edit)
+        self.lines.insert(self.focus + 1, edit)
 
     def combine_focus_with_prev(self):
         """Combine the focus edit widget with the one above."""
@@ -136,34 +136,36 @@ class LineWalker(urwid.ListWalker):
 
         focus = self.lines[self.focus]
         focus.set_edit_text(focus.edit_text + below.edit_text)
-        del self.lines[self.focus+1]
+        del self.lines[self.focus + 1]
 
 
 class EditDisplay:
-    palette = [
-        ('body','default', 'default'),
-        ('foot','dark cyan', 'dark blue', 'bold'),
-        ('key','light cyan', 'dark blue', 'underline'),
-        ]
+    palette: typing.ClassVar[list[tuple[str, str, str, ...]]] = [
+        ("body", "default", "default"),
+        ("foot", "dark cyan", "dark blue", "bold"),
+        ("key", "light cyan", "dark blue", "underline"),
+    ]
 
-    footer_text = ('foot', [
-        "Text Editor    ",
-        ('key', "F5"), " save  ",
-        ('key', "F8"), " quit",
-        ])
+    footer_text = (
+        "foot",
+        [
+            "Text Editor    ",
+            ("key", "F5"),
+            " save  ",
+            ("key", "F8"),
+            " quit",
+        ],
+    )
 
     def __init__(self, name):
         self.save_name = name
         self.walker = LineWalker(name)
         self.listbox = urwid.ListBox(self.walker)
-        self.footer = urwid.AttrWrap(urwid.Text(self.footer_text),
-            "foot")
-        self.view = urwid.Frame(urwid.AttrWrap(self.listbox, 'body'),
-            footer=self.footer)
+        self.footer = urwid.AttrMap(urwid.Text(self.footer_text), "foot")
+        self.view = urwid.Frame(urwid.AttrMap(self.listbox, "body"), footer=self.footer)
 
     def main(self):
-        self.loop = urwid.MainLoop(self.view, self.palette,
-            unhandled_input=self.unhandled_keypress)
+        self.loop = urwid.MainLoop(self.view, self.palette, unhandled_input=self.unhandled_keypress)
         self.loop.run()
 
     def unhandled_keypress(self, k):
@@ -188,70 +190,69 @@ class EditDisplay:
             w, pos = self.walker.get_focus()
             w, pos = self.walker.get_next(pos)
             if w:
-                self.listbox.set_focus(pos, 'above')
+                self.listbox.set_focus(pos, "above")
                 self.loop.process_input(["home"])
         elif k == "left":
             w, pos = self.walker.get_focus()
             w, pos = self.walker.get_prev(pos)
             if w:
-                self.listbox.set_focus(pos, 'below')
+                self.listbox.set_focus(pos, "below")
                 self.loop.process_input(["end"])
         else:
-            return
+            return None
         return True
-
 
     def save_file(self):
         """Write the file out to disk."""
 
-        l = []
+        lines = []
         walk = self.walker
         for edit in walk.lines:
             # collect the text already stored in edit widgets
             if edit.original_text.expandtabs() == edit.edit_text:
-                l.append(edit.original_text)
+                lines.append(edit.original_text)
             else:
-                l.append(re_tab(edit.edit_text))
+                lines.append(re_tab(edit.edit_text))
 
         # then the rest
         while walk.file is not None:
-            l.append(walk.read_next_line())
+            lines.append(walk.read_next_line())
 
         # write back to disk
-        outfile = open(self.save_name, "w")
+        with open(self.save_name, "w") as outfile:
 
-        prefix = ""
-        for line in l:
-            outfile.write(prefix + line)
-            prefix = "\n"
+            prefix = ""
+            for line in lines:
+                outfile.write(prefix + line)
+                prefix = "\n"
+
 
 def re_tab(s):
     """Return a tabbed string from an expanded one."""
-    l = []
+    line = []
     p = 0
     for i in range(8, len(s), 8):
-        if s[i-2:i] == "  ":
+        if s[i - 2 : i] == "  ":
             # collapse two or more spaces into a tab
-            l.append(f"{s[p:i].rstrip()}\t")
+            line.append(f"{s[p:i].rstrip()}\t")
             p = i
 
     if p == 0:
         return s
-    else:
-        l.append(s[p:])
-        return "".join(l)
 
+    line.append(s[p:])
+    return "".join(line)
 
 
 def main():
     try:
         name = sys.argv[1]
-        assert open(name, "a")
-    except:
+        assert open(name, "a")  # noqa: SIM115,S101  # do not overcomplicate example
+    except (FileNotFoundError, OSError):
         sys.stderr.write(__doc__)
         return
     EditDisplay(name).main()
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()

@@ -33,6 +33,11 @@ class AttrWrap(AttrMap):
         >>> next(aw.render(size, focus=True).content())
         [('fgreet', None, ...'hi   ')]
         """
+        warnings.warn(
+            "AttrWrap is maintained for backwards compatibility only, new code should use AttrMap instead.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         super().__init__(w, attr, focus_attr)
 
     def _repr_attrs(self):
