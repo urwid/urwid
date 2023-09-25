@@ -25,6 +25,8 @@ Urwid example demonstrating use of the BigText widget.
 
 from __future__ import annotations
 
+import typing
+
 import urwid
 import urwid.raw_display
 
@@ -37,38 +39,38 @@ class SwitchingPadding(urwid.Padding):
             self.align = "left"
         else:
             self.align = "right"
-        return urwid.Padding.padding_values(self, size, focus)
+        return super().padding_values(size, focus)
 
 
 class BigTextDisplay:
-    palette = [
-        ('body',         'black',      'light gray', 'standout'),
-        ('header',       'white',      'dark red',   'bold'),
-        ('button normal','light gray', 'dark blue', 'standout'),
-        ('button select','white',      'dark green'),
-        ('button disabled','dark gray','dark blue'),
-        ('edit',         'light gray', 'dark blue'),
-        ('bigtext',      'white',      'black'),
-        ('chars',        'light gray', 'black'),
-        ('exit',         'white',      'dark cyan'),
-        ]
+    palette: typing.ClassVar[list[tuple[str, str, str, ...]]] = [
+        ("body", "black", "light gray", "standout"),
+        ("header", "white", "dark red", "bold"),
+        ("button normal", "light gray", "dark blue", "standout"),
+        ("button select", "white", "dark green"),
+        ("button disabled", "dark gray", "dark blue"),
+        ("edit", "light gray", "dark blue"),
+        ("bigtext", "white", "black"),
+        ("chars", "light gray", "black"),
+        ("exit", "white", "dark cyan"),
+    ]
 
     def create_radio_button(self, g, name, font, fn):
         w = urwid.RadioButton(g, name, False, on_state_change=fn)
         w.font = font
-        w = urwid.AttrWrap(w, 'button normal', 'button select')
+        w = urwid.AttrMap(w, "button normal", "button select")
         return w
 
     def create_disabled_radio_button(self, name):
         w = urwid.Text(f"    {name} (UTF-8 mode required)")
-        w = urwid.AttrWrap(w, 'button disabled')
+        w = urwid.AttrMap(w, "button disabled")
         return w
 
     def create_edit(self, label, text, fn):
         w = urwid.Edit(label, text)
-        urwid.connect_signal(w, 'change', fn)
+        urwid.connect_signal(w, "change", fn)
         fn(w, text)
-        w = urwid.AttrWrap(w, 'edit')
+        w = urwid.AttrMap(w, "edit")
         return w
 
     def set_font_event(self, w, state):
@@ -90,74 +92,70 @@ class BigTextDisplay:
             if font.utf8_required and not utf8:
                 rb = self.create_disabled_radio_button(name)
             else:
-                rb = self.create_radio_button(group, name, font,
-                    self.set_font_event)
+                rb = self.create_radio_button(group, name, font, self.set_font_event)
                 if fontcls == urwid.Thin6x6Font:
                     chosen_font_rb = rb
                     exit_font = font
-            self.font_buttons.append( rb )
+            self.font_buttons.append(rb)
 
         # Create BigText
         self.bigtext = urwid.BigText("", None)
-        bt = SwitchingPadding(self.bigtext, 'left', None)
-        bt = urwid.AttrWrap(bt, 'bigtext')
-        bt = urwid.Filler(bt, 'bottom', None, 7)
+        bt = SwitchingPadding(self.bigtext, "left", None)
+        bt = urwid.AttrMap(bt, "bigtext")
+        bt = urwid.Filler(bt, "bottom", None, 7)
         bt = urwid.BoxAdapter(bt, 7)
 
         # Create chars_avail
         cah = urwid.Text("Characters Available:")
-        self.chars_avail = urwid.Text("", wrap='any')
-        ca = urwid.AttrWrap(self.chars_avail, 'chars')
+        self.chars_avail = urwid.Text("", wrap="any")
+        ca = urwid.AttrMap(self.chars_avail, "chars")
 
-        chosen_font_rb.set_state(True) # causes set_font_event call
+        chosen_font_rb.base_widget.set_state(True)  # causes set_font_event call
 
         # Create Edit widget
-        edit = self.create_edit("", f"Urwid {urwid.__version__}",
-            self.edit_change_event)
+        edit = self.create_edit("", f"Urwid {urwid.__version__}", self.edit_change_event)
 
         # ListBox
         chars = urwid.Pile([cah, ca])
-        fonts = urwid.Pile([urwid.Text("Fonts:")] + self.font_buttons,
-            focus_item=1)
-        col = urwid.Columns([('fixed',16,chars), fonts], 3,
-            focus_column=1)
+        fonts = urwid.Pile([urwid.Text("Fonts:"), *self.font_buttons], focus_item=1)
+        col = urwid.Columns([("fixed", 16, chars), fonts], 3, focus_column=1)
         bt = urwid.Pile([bt, edit], focus_item=1)
-        l = [bt, urwid.Divider(), col]
-        w = urwid.ListBox(urwid.SimpleListWalker(l))
+        lines = [bt, urwid.Divider(), col]
+        w = urwid.ListBox(urwid.SimpleListWalker(lines))
 
         # Frame
-        w = urwid.AttrWrap(w, 'body')
+        w = urwid.AttrMap(w, "body")
         hdr = urwid.Text("Urwid BigText example program - F8 exits.")
-        hdr = urwid.AttrWrap(hdr, 'header')
+        hdr = urwid.AttrMap(hdr, "header")
         w = urwid.Frame(header=hdr, body=w)
 
         # Exit message
-        exit = urwid.BigText(('exit'," Quit? "), exit_font)
-        exit = urwid.Overlay(exit, w, 'center', None, 'middle', None)
-        return w, exit
-
+        exit_w = urwid.BigText(("exit", " Quit? "), exit_font)
+        exit_w = urwid.Overlay(exit_w, w, "center", None, "middle", None)
+        return w, exit_w
 
     def main(self):
         self.view, self.exit_view = self.setup_view()
-        self.loop = urwid.MainLoop(self.view, self.palette,
-            unhandled_input=self.unhandled_input)
+        self.loop = urwid.MainLoop(self.view, self.palette, unhandled_input=self.unhandled_input)
         self.loop.run()
 
     def unhandled_input(self, key):
-        if key == 'f8':
+        if key == "f8":
             self.loop.widget = self.exit_view
             return True
         if self.loop.widget != self.exit_view:
-            return
-        if key in ('y', 'Y'):
+            return None
+        if key in ("y", "Y"):
             raise urwid.ExitMainLoop()
-        if key in ('n', 'N'):
+        if key in ("n", "N"):
             self.loop.widget = self.view
             return True
+        return None
 
 
 def main():
     BigTextDisplay().main()
 
-if '__main__'==__name__:
+
+if __name__ == "__main__":
     main()
