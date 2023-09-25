@@ -220,7 +220,6 @@ class EditDisplay:
 
         # write back to disk
         with open(self.save_name, "w") as outfile:
-
             prefix = ""
             for line in lines:
                 outfile.write(prefix + line)

@@ -31,7 +31,7 @@ import re
 import urwid
 import urwid.raw_display
 
-CHART_TRUE="""
+CHART_TRUE = """
 #e50000#e51000#e52000#e53000#e54000#e55000#e56000#e57000#e58000#e59000\
 #e5a000#e5b100#e5c100#e5d100#e5e100#d9e500#c9e500#b9e500#a9e500#99e500\
 #89e500#79e500#68e500#58e500#48e500#38e500#28e500#18e500#08e500#00e507\
@@ -250,10 +250,8 @@ black_______    dark_gray___    light_gray__    white_______
 
 ATTR_RE = re.compile("(?P<whitespace>[ \n]*)(?P<entry>(?:#[0-9A-Fa-f]{6})|(?:#[0-9A-Fa-f]{3})|(?:[^ \n]+))")
 LONG_ATTR = 7
-SHORT_ATTR = 4 # length of short high-colour descriptions which may
+SHORT_ATTR = 4  # length of short high-colour descriptions which may
 # be packed one after the next
-
-
 
 
 def parse_chart(chart, convert):
@@ -266,9 +264,9 @@ def parse_chart(chart, convert):
     """
     out = []
     for match in re.finditer(ATTR_RE, chart):
-        if match.group('whitespace'):
-            out.append(match.group('whitespace'))
-        entry = match.group('entry')
+        if match.group("whitespace"):
+            out.append(match.group("whitespace"))
+        entry = match.group("entry")
         entry = entry.replace("_", " ")
         while entry:
             if chart == CHART_TRUE and len(entry) == LONG_ATTR:
@@ -280,9 +278,9 @@ def parse_chart(chart, convert):
             # try the first four characters
             if attrtext:
                 entry = entry[elen:].strip()
-            else: # try the whole thing
+            else:  # try the whole thing
                 attrtext = convert(entry.strip())
-                assert attrtext, f"Invalid palette entry: {entry!r}"
+                assert attrtext, f"Invalid palette entry: {entry!r}"  # noqa: S101  # "assert" is ok for examples
                 elen = len(entry)
                 entry = ""
             attr, text = attrtext
@@ -301,13 +299,16 @@ def foreground_chart(chart, background, colors):
     background -- colour to use for background of chart
     colors -- number of colors (88 or 256)
     """
+
     def convert_foreground(entry):
         try:
             attr = urwid.AttrSpec(entry, background, colors)
         except urwid.AttrSpecError:
             return None
         return attr, entry
+
     return parse_chart(chart, convert_foreground)
+
 
 def background_chart(chart, foreground, colors):
     """
@@ -320,30 +321,28 @@ def background_chart(chart, foreground, colors):
     This will remap 8 <= colour < 16 to high-colour versions
     in the hopes of greater compatibility
     """
+
     def convert_background(entry):
         try:
             attr = urwid.AttrSpec(foreground, entry, colors)
         except urwid.AttrSpecError:
             return None
         # fix 8 <= colour < 16
-        if colors > 16 and attr.background_basic and \
-            attr.background_number >= 8:
+        if colors > 16 and attr.background_basic and attr.background_number >= 8:
             # use high-colour with same number
-            entry = 'h%d'%attr.background_number
+            entry = "h%d" % attr.background_number
             attr = urwid.AttrSpec(foreground, entry, colors)
         return attr, entry
+
     return parse_chart(chart, convert_background)
 
 
 def main():
     palette = [
-        ('header', 'black,underline', 'light gray', 'standout,underline',
-            'black,underline', '#88a'),
-        ('panel', 'light gray', 'dark blue', '',
-            '#ffd', '#00a'),
-        ('focus', 'light gray', 'dark cyan', 'standout',
-            '#ff8', '#806'),
-        ]
+        ("header", "black,underline", "light gray", "standout,underline", "black,underline", "#88a"),
+        ("panel", "light gray", "dark blue", "", "#ffd", "#00a"),
+        ("focus", "light gray", "dark cyan", "standout", "#ff8", "#806"),
+    ]
 
     screen = urwid.raw_display.Screen()
     screen.register_palette(palette)
@@ -356,7 +355,7 @@ def main():
 
     def fcs(widget):
         # wrap widgets that can take focus
-        return urwid.AttrMap(widget, None, 'focus')
+        return urwid.AttrMap(widget, None, "focus")
 
     def set_mode(colors, is_foreground_chart):
         # set terminal mode and redraw chart
@@ -368,8 +367,8 @@ def main():
             lb[chart_offset] = urwid.Divider()
         else:
             chart = {16: CHART_16, 88: CHART_88, 256: CHART_256, 2**24: CHART_TRUE}[colors]
-            txt = chart_fn(chart, 'default', colors)
-            lb[chart_offset] = urwid.Text(txt, wrap='clip')
+            txt = chart_fn(chart, "default", colors)
+            lb[chart_offset] = urwid.Text(txt, wrap="clip")
 
     def on_mode_change(rb, state, colors):
         # if this radio button is checked
@@ -380,7 +379,7 @@ def main():
     def mode_rb(text, colors, state=False):
         # mode radio buttons
         rb = urwid.RadioButton(mode_radio_buttons, text, state)
-        urwid.connect_signal(rb, 'change', on_mode_change, colors)
+        urwid.connect_signal(rb, "change", on_mode_change, colors)
         return fcs(rb)
 
     def on_chart_change(rb, state):
@@ -390,41 +389,47 @@ def main():
     def click_exit(button):
         raise urwid.ExitMainLoop()
 
-    lb.extend([
-        urwid.AttrMap(urwid.Text("Urwid Palette Test"), 'header'),
-        urwid.AttrMap(urwid.Columns([
-            urwid.Pile([
-                mode_rb("Monochrome", 1),
-                mode_rb("16-Color", 16, True),
-                mode_rb("88-Color", 88),
-                mode_rb("256-Color", 256),
-                mode_rb("24-bit Color", 2**24),]),
-            urwid.Pile([
-                fcs(urwid.RadioButton(chart_radio_buttons,
-                    "Foreground Colors", True, on_chart_change)),
-                fcs(urwid.RadioButton(chart_radio_buttons,
-                    "Background Colors")),
-                urwid.Divider(),
-                fcs(urwid.Button("Exit", click_exit)),
-                ]),
-            ]),'panel')
-        ])
+    lb.extend(
+        [
+            urwid.AttrMap(urwid.Text("Urwid Palette Test"), "header"),
+            urwid.AttrMap(
+                urwid.Columns(
+                    [
+                        urwid.Pile(
+                            [
+                                mode_rb("Monochrome", 1),
+                                mode_rb("16-Color", 16, True),
+                                mode_rb("88-Color", 88),
+                                mode_rb("256-Color", 256),
+                                mode_rb("24-bit Color", 2**24),
+                            ]
+                        ),
+                        urwid.Pile(
+                            [
+                                fcs(urwid.RadioButton(chart_radio_buttons, "Foreground Colors", True, on_chart_change)),
+                                fcs(urwid.RadioButton(chart_radio_buttons, "Background Colors")),
+                                urwid.Divider(),
+                                fcs(urwid.Button("Exit", click_exit)),
+                            ]
+                        ),
+                    ]
+                ),
+                "panel",
+            ),
+        ]
+    )
 
     chart_offset = len(lb)
-    lb.extend([
-        urwid.Divider() # placeholder for the chart
-        ])
+    lb.extend([urwid.Divider()])  # placeholder for the chart
 
-    set_mode(16, True) # displays the chart
+    set_mode(16, True)  # displays the chart
 
     def unhandled_input(key):
-        if key in ('Q','q','esc'):
+        if key in ("Q", "q", "esc"):
             raise urwid.ExitMainLoop()
 
-    urwid.MainLoop(urwid.ListBox(lb), screen=screen,
-        unhandled_input=unhandled_input).run()
+    urwid.MainLoop(urwid.ListBox(lb), screen=screen, unhandled_input=unhandled_input).run()
+
 
 if __name__ == "__main__":
     main()
-
-
