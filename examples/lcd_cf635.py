@@ -81,13 +81,15 @@ class LCDRadioButton(urwid.RadioButton):
     reserve_columns = 1
 
 
-class LCDProgressBar(urwid.FlowWidget):
+class LCDProgressBar(urwid.Widget):
     """
     The "progress bar" used by the horizontal slider for this device,
     using custom CGRAM characters
     """
 
     segments = "\x00\x01\x02\x03"
+
+    _sizing = frozenset([urwid.Sizing.FLOW])
 
     def __init__(self, data_range, value):
         self.range = data_range
