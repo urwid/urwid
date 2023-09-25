@@ -71,7 +71,7 @@ doctest_optionflags = ["ELLIPSIS", "IGNORE_EXCEPTION_DETAIL"]
 testpaths = ["urwid"]
 
 [tool.coverage.run]
-omit = ["urwid/tests/*", ".tox/*", "setup.py"]
+omit = ["tests/*", ".tox/*", "setup.py"]
 branch = true
 
 [tool.coverage.report]
