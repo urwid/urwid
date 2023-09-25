@@ -2,6 +2,28 @@
 Changelog
 ---------
 
+Urwid 2.2.2
+===========
+
+2023-09-25
+
+New features 🗹
+* Feature: Support pack() for CheckBox/RadioButton/Button by @penguinolog in https://github.com/urwid/urwid/pull/621
+
+Deprecations ⚡
+* Mark `AttrWrap` as `PendingDeprecation` by @penguinolog in https://github.com/urwid/urwid/pull/619
+
+Bug fixes 🕷
+* Fix font in case Font.data is `str` by @penguinolog in https://github.com/urwid/urwid/pull/618
+
+Documentation 🕮
+* Enforce examples code-style by @penguinolog in https://github.com/urwid/urwid/pull/620
+* Documentation: do not use `FlowWidget` as base class in examples by @penguinolog in https://github.com/urwid/urwid/pull/623
+* README: suggest python3-urwid for debian/ubuntu by @chronitis in https://github.com/urwid/urwid/pull/444
+
+Refactoring 🛠
+* Packaging: stop tests distribution as part of package by @penguinolog in https://github.com/urwid/urwid/pull/622
+
 Urwid 2.2.1
 ===========
 

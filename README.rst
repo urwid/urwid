@@ -77,6 +77,7 @@ Maintainers
 `and3rson <//github.com/and3rson>`_,
 `tonycpsu <//github.com/tonycpsu>`_,
 `ulidtko <//github.com/ulidtko>`_
+`penguinolog <//github.com/penguinolog>`_
 
 Contributors
 ------------
@@ -223,14 +224,13 @@ Contributors
     :alt: current version on PyPi
     :target: https://pypi.python.org/pypi/urwid
 
-.. |docs| image:: https://readthedocs.org/projects/urwid/badge/?version=latest
+.. |docs| image:: hhttps://github.com/urwid/urwid/actions/workflows/documentation.yml/badge.svg?branch=master
     :alt: Documentation Status
-    :target: https://urwid.readthedocs.io/en/latest/?badge=latest
+    :target: https://urwid.org
 
 .. |ci| image:: https://github.com/urwid/urwid/actions/workflows/pythonpackage.yml/badge.svg?branch=master
     :target: https://github.com/urwid/urwid/actions
     :alt: CI status
-
 
 .. |coveralls| image:: https://coveralls.io/repos/github/urwid/urwid/badge.svg
     :alt: test coverage
