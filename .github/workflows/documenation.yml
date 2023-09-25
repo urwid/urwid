@@ -18,7 +18,7 @@ on:
       - "urwid/**"
       - "setup.py"
       - "pyproject.toml"
-      - ".github/workflows/**"
+      - ".github/workflows/documentation.yml"
 
 jobs:
   Build:
