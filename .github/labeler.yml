@@ -8,5 +8,7 @@
       - "!.github/workflows/**"
 
 "docs":
-  - all:
+  - any:
       - "docs/**"
+      - "examples/**"
+      - "README.rst"
