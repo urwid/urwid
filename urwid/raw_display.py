@@ -26,7 +26,6 @@ Direct terminal UI implementation
 
 from __future__ import annotations
 
-import io
 import os
 import select
 import signal
@@ -39,7 +38,7 @@ try:
     import termios
     import tty
 except ImportError:
-    pass # windows
+    pass  # windows
 
 from subprocess import PIPE, Popen
 

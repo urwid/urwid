@@ -25,17 +25,18 @@ import os
 import sys
 import typing
 import warnings
-from collections.abc import Iterable, Sequence
 
 try:
     import termios
 except ImportError:
-    pass # windows
+    pass  # windows
 
 from urwid import signals
 from urwid.util import StoppingContext, int_scale
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+
     from typing_extensions import Literal, Self
 
 # for replacing unprintable bytes with '?'

@@ -29,6 +29,7 @@ from urwid.util import calc_text_pos, calc_trim_text, calc_width, is_wide_char, 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
+
 class TextLayout:
     def supports_align_mode(self, align):
         """Return True if align is a supported align mode."""

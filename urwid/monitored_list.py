@@ -24,9 +24,10 @@ from __future__ import annotations
 import functools
 import typing
 import warnings
-from collections.abc import Callable
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable
+
     from typing_extensions import ParamSpec
 
     ArgSpec = ParamSpec("ArgSpec")

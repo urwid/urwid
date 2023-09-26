@@ -33,7 +33,6 @@ Features:
 from __future__ import annotations
 
 import urwid
-from urwid.wimp import SelectableIcon
 
 
 class TreeWidgetError(RuntimeError):
@@ -42,9 +41,10 @@ class TreeWidgetError(RuntimeError):
 
 class TreeWidget(urwid.WidgetWrap):
     """A widget representing something in a nested tree display."""
+
     indent_cols = 3
-    unexpanded_icon = SelectableIcon('+', 0)
-    expanded_icon = SelectableIcon('-', 0)
+    unexpanded_icon = urwid.SelectableIcon("+", 0)
+    expanded_icon = urwid.SelectableIcon("-", 0)
 
     def __init__(self, node):
         self._node = node

@@ -99,7 +99,7 @@ jobs:
           pip install --upgrade isort
       - name: Check imports with isort
         run: |
-          isort --check --diff urwid/event_loop urwid/widget urwid/font.py urwid/escape.py urwid/command_map.py examples
+          isort --check --diff urwid tests examples
 
   Black:
     name: Validate black formatting

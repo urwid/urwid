@@ -24,11 +24,12 @@ from __future__ import annotations
 
 import time
 import typing
-from collections.abc import Iterable, Sequence
 
 from .display_common import BaseScreen
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+
     from typing_extensions import Literal
 
 
