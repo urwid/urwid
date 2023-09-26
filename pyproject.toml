@@ -61,7 +61,6 @@ line_length = 120
 
 [tool.black]
 line-length = 120
-skip-string-normalization = true
 safe = true
 
 [tool.pytest.ini_options]

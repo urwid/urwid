@@ -49,7 +49,7 @@ class TreeWidget(urwid.WidgetWrap):
     def __init__(self, node):
         self._node = node
         self._innerwidget = None
-        self.is_leaf = not hasattr(node, 'get_first_child')
+        self.is_leaf = not hasattr(node, "get_first_child")
         self.expanded = True
         widget = self.get_indented_widget()
         super().__init__(widget)
@@ -63,17 +63,17 @@ class TreeWidget(urwid.WidgetWrap):
     def get_indented_widget(self):
         widget = self.get_inner_widget()
         if not self.is_leaf:
-            widget = urwid.Columns([('fixed', 1,
-                [self.unexpanded_icon, self.expanded_icon][self.expanded]),
-                widget], dividechars=1)
+            widget = urwid.Columns(
+                [("fixed", 1, [self.unexpanded_icon, self.expanded_icon][self.expanded]), widget],
+                dividechars=1,
+            )
         indent_cols = self.get_indent_cols()
-        return urwid.Padding(widget, width=('relative', 100), left=indent_cols)
+        return urwid.Padding(widget, width=("relative", 100), left=indent_cols)
 
     def update_expanded_icon(self):
         """Update display widget text for parent widgets"""
         # icon is first element in columns indented widget
-        self._w.base_widget.widget_list[0] = [
-            self.unexpanded_icon, self.expanded_icon][self.expanded]
+        self._w.base_widget.widget_list[0] = [self.unexpanded_icon, self.expanded_icon][self.expanded]
 
     def get_indent_cols(self):
         return self.indent_cols * self.get_node().get_depth()
@@ -90,7 +90,7 @@ class TreeWidget(urwid.WidgetWrap):
         return self._node
 
     def get_display_text(self):
-        return (f"{self.get_node().get_key()}: {str(self.get_node().get_value())}")
+        return f"{self.get_node().get_key()}: {str(self.get_node().get_value())}"
 
     def next_inorder(self):
         """Return the next TreeWidget depth first from this one."""
@@ -154,7 +154,7 @@ class TreeWidget(urwid.WidgetWrap):
             return key
 
     def mouse_event(self, size, event, button: int, col: int, row: int, focus: bool) -> bool:
-        if self.is_leaf or event != 'mouse press' or button !=1:
+        if self.is_leaf or event != "mouse press" or button != 1:
             return False
 
         if row == 0 and col == self.get_indent_cols():
@@ -201,6 +201,7 @@ class TreeNode:
     *  parent: a TreeNode which contains a pointer back to this object
     *  widget: The widget used to render the object
     """
+
     def __init__(self, value, parent=None, key=None, depth=None):
         self._key = key
         self._parent = parent
@@ -209,7 +210,7 @@ class TreeNode:
         self._widget = None
 
     def get_widget(self, reload=False):
-        """ Return the widget for this node."""
+        """Return the widget for this node."""
         if self._widget is None or reload == True:
             self._widget = self.load_widget()
         return self._widget
@@ -279,6 +280,7 @@ class TreeNode:
 
 class ParentNode(TreeNode):
     """Maintain sort order for TreeNodes."""
+
     def __init__(self, value, parent=None, key=None, depth=None):
         super().__init__(value, parent=parent, key=key, depth=depth)
 
@@ -327,9 +329,10 @@ class ParentNode(TreeNode):
         try:
             return self.get_child_keys().index(key)
         except ValueError:
-            errorstring = f"Can't find key %s in ParentNode %s\nParentNode items: %s"
-            raise TreeWidgetError(errorstring % (key, self.get_key(),
-                                  str(self.get_child_keys())))
+            raise TreeWidgetError(
+                f"Can't find key {key} in ParentNode {self.get_key()}\n"
+                f"ParentNode items: {str(self.get_child_keys())}"
+            )
 
     def next_child(self, key):
         """Return the next child node in index order from the given key."""
@@ -374,7 +377,7 @@ class ParentNode(TreeNode):
 
     def has_children(self):
         """Does this node have any children?"""
-        return len(self.get_child_keys())>0
+        return len(self.get_child_keys()) > 0
 
 
 class TreeWalker(urwid.ListWalker):
@@ -421,9 +424,9 @@ class TreeListBox(urwid.ListBox):
 
     def unhandled_input(self, size: tuple[int, int], input: str) -> str | None:
         """Handle macro-navigation keys"""
-        if input == 'left':
+        if input == "left":
             self.move_focus_to_parent(size)
-        elif input == '-':
+        elif input == "-":
             self.collapse_focus_parent(size)
         else:
             return input
@@ -485,5 +488,4 @@ class TreeListBox(urwid.ListBox):
         if lastwidget:
             lastnode = lastwidget.get_node()
 
-            self.change_focus(size, lastnode, maxrow-1)
-
+            self.change_focus(size, lastnode, maxrow - 1)

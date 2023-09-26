@@ -40,6 +40,7 @@ def _call_modified(fn: Callable[ArgSpec, Ret]) -> Callable[ArgSpec, Ret]:
         rval = fn(self, *args, **kwargs)
         self._modified()
         return rval
+
     return call_modified_wrapper
 
 
@@ -93,7 +94,7 @@ class MonitoredList(list):
     remove = _call_modified(list.remove)
     reverse = _call_modified(list.reverse)
     sort = _call_modified(list.sort)
-    if hasattr(list, 'clear'):
+    if hasattr(list, "clear"):
         clear = _call_modified(list.clear)
 
 
@@ -102,6 +103,7 @@ class MonitoredFocusList(MonitoredList):
     This class can trigger a callback any time its contents are modified,
     before and/or after modification, and any time the focus index is changed.
     """
+
     def __init__(self, *argl, **argd):
         """
         This is a list that tracks one item as the focus item.  If items
@@ -123,7 +125,7 @@ class MonitoredFocusList(MonitoredList):
         >>> ml
         MonitoredFocusList([], focus=None)
         """
-        focus = argd.pop('focus', 0)
+        focus = argd.pop("focus", 0)
 
         super().__init__(*argl, **argd)
 
@@ -178,9 +180,9 @@ class MonitoredFocusList(MonitoredList):
             self._focus = 0
             return
         if index < 0 or index >= len(self):
-            raise IndexError(f'focus index is out of range: {index}')
+            raise IndexError(f"focus index is out of range: {index}")
         if index != int(index):
-            raise IndexError(f'invalid focus index: {index}')
+            raise IndexError(f"invalid focus index: {index}")
         index = int(index)
         if index != self._focus:
             self._focus_changed(index)
@@ -291,7 +293,7 @@ class MonitoredFocusList(MonitoredList):
                 # adjust for removed items
                 focus -= len(list(range(start, min(focus, stop), step)))
 
-        return min(focus, len(self) + num_new_items - num_removed -1)
+        return min(focus, len(self) + num_new_items - num_removed - 1)
 
     # override all the list methods that modify the list
 
@@ -324,7 +326,7 @@ class MonitoredFocusList(MonitoredList):
         if isinstance(y, slice):
             focus = self._adjust_focus_on_contents_modified(y)
         else:
-            focus = self._adjust_focus_on_contents_modified(slice(y, y+1 or None))
+            focus = self._adjust_focus_on_contents_modified(slice(y, y + 1 or None))
         rval = super().__delitem__(y)
         self.focus = focus
         return rval
@@ -361,7 +363,7 @@ class MonitoredFocusList(MonitoredList):
         if isinstance(i, slice):
             focus = self._adjust_focus_on_contents_modified(i, y)
         else:
-            focus = self._adjust_focus_on_contents_modified(slice(i, i+1 or None), [y])
+            focus = self._adjust_focus_on_contents_modified(slice(i, i + 1 or None), [y])
         rval = super().__setitem__(i, y)
         self.focus = focus
         return rval
@@ -382,7 +384,7 @@ class MonitoredFocusList(MonitoredList):
         None
         """
         if n > 0:
-            focus = self._adjust_focus_on_contents_modified(slice(len(self), len(self)), list(self) * (n-1))
+            focus = self._adjust_focus_on_contents_modified(slice(len(self), len(self)), list(self) * (n - 1))
         else:  # all contents are being removed
             focus = self._adjust_focus_on_contents_modified(slice(0, len(self)))
         rval = super().__imul__(n)
@@ -398,8 +400,7 @@ class MonitoredFocusList(MonitoredList):
         >>> ml.append(6)
         range(3, 3, 1) <- [6]
         """
-        focus = self._adjust_focus_on_contents_modified(
-            slice(len(self), len(self)), [item])
+        focus = self._adjust_focus_on_contents_modified(slice(len(self), len(self)), [item])
         rval = super().append(item)
         self.focus = focus
         return rval
@@ -413,8 +414,7 @@ class MonitoredFocusList(MonitoredList):
         >>> ml.extend((6,7,8))
         range(3, 3, 1) <- [6, 7, 8]
         """
-        focus = self._adjust_focus_on_contents_modified(
-            slice(len(self), len(self)), items)
+        focus = self._adjust_focus_on_contents_modified(slice(len(self), len(self)), items)
         rval = super().extend(items)
         self.focus = focus
         return rval
@@ -466,8 +466,7 @@ class MonitoredFocusList(MonitoredList):
         MonitoredFocusList([0, 1, 2, -1], focus=2)
         """
         index = self.index(value)
-        focus = self._adjust_focus_on_contents_modified(slice(index,
-            index+1 or None))
+        focus = self._adjust_focus_on_contents_modified(slice(index, index + 1 or None))
         rval = super().remove(value)
         self.focus = focus
         return rval
@@ -495,7 +494,8 @@ class MonitoredFocusList(MonitoredList):
         self.focus = self.index(value)
         return rval
 
-    if hasattr(list, 'clear'):
+    if hasattr(list, "clear"):
+
         def clear(self):
             focus = self._adjust_focus_on_contents_modified(slice(0, 0))
             rval = super().clear()
@@ -505,9 +505,9 @@ class MonitoredFocusList(MonitoredList):
 
 def _test():
     import doctest
+
     doctest.testmod()
 
 
-if __name__=='__main__':
+if __name__ == "__main__":
     _test()
-

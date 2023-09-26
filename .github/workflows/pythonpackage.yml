@@ -118,7 +118,7 @@ jobs:
           pip install --upgrade black regex
       - name: Check code style with black
         run: |
-          black --check urwid/event_loop urwid/widget urwid/font.py urwid/escape.py urwid/command_map.py examples
+          black --check urwid examples
 
   Ruff:
     name: Check with Ruff

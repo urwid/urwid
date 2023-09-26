@@ -36,10 +36,11 @@ class MetaSignals(type):
     register the list of signals in the class variable signals,
     including signals in superclasses.
     """
+
     def __init__(cls, name: str, bases: tuple[type, ...], d: dict[str, typing.Any]) -> None:
         signals = d.get("signals", [])
         for superclass in cls.__bases__:
-            signals.extend(getattr(superclass, 'signals', []))
+            signals.extend(getattr(superclass, "signals", []))
         signals = list({x: None for x in signals}.keys())
         d["signals"] = signals
         register_signal(cls, signals)
@@ -59,11 +60,12 @@ class Key:
     Minimal class, whose only purpose is to produce objects with a
     unique hash
     """
+
     __slots__ = ()
 
 
 class Signals:
-    _signal_attr = '_urwid_signals'  # attribute to attach to signal senders
+    _signal_attr = "_urwid_signals"  # attribute to attach to signal senders
 
     def __init__(self):
         self._supported = {}
@@ -193,6 +195,7 @@ class Signals:
         # object (via the weakrefs, which keep strong references to
         # their callbacks) from existing.
         obj_weak = weakref.ref(obj)
+
         def weakref_callback(weakref):
             o = obj_weak()
             if o:
