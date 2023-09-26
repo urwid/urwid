@@ -25,7 +25,6 @@ from __future__ import annotations
 import typing
 import warnings
 import weakref
-from collections.abc import Sequence
 
 from urwid.text_layout import LayoutSegment, trim_line
 from urwid.util import (
@@ -40,6 +39,8 @@ from urwid.util import (
 )
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from .widget import Widget
 
 

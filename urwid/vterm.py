@@ -36,7 +36,6 @@ import traceback
 import typing
 import warnings
 from collections import deque
-from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 
 try:
@@ -53,6 +52,8 @@ from urwid.escape import ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS
 from urwid.widget import Sizing, Widget
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Mapping, Sequence
+
     from typing_extensions import Literal
 
 EOF = b''

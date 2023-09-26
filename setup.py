@@ -23,7 +23,6 @@ from __future__ import annotations
 
 from setuptools import Extension, setup
 
-
 setup_d = {
     'name': "urwid",
     'ext_modules': [Extension('urwid.str_util', sources=['source/str_util.c'])],

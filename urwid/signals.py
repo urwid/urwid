@@ -26,7 +26,9 @@ import itertools
 import typing
 import warnings
 import weakref
-from collections.abc import Callable, Collection, Container, Iterable
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Callable, Collection, Container, Iterable
 
 
 class MetaSignals(type):
