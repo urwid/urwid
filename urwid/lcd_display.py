@@ -34,8 +34,7 @@ if typing.TYPE_CHECKING:
 
 
 class LCDScreen(BaseScreen):
-    def set_terminal_properties(self, colors=None, bright_is_bold=None,
-        has_underline=None):
+    def set_terminal_properties(self, colors=None, bright_is_bold=None, has_underline=None):
         pass
 
     def set_mouse_tracking(self, enable=True):
@@ -47,7 +46,7 @@ class LCDScreen(BaseScreen):
     def reset_default_terminal_palette(self, *args):
         pass
 
-    def draw_screen(self, size, r ):
+    def draw_screen(self, size, r):
         pass
 
     def clear(self):
@@ -57,28 +56,44 @@ class LCDScreen(BaseScreen):
         return self.DISPLAY_SIZE
 
 
-
 class CFLCDScreen(LCDScreen):
     """
     Common methods for Crystal Fontz LCD displays
     """
-    KEYS = [None, # no key with code 0
-        'up_press', 'down_press', 'left_press',
-        'right_press', 'enter_press', 'exit_press',
-        'up_release', 'down_release', 'left_release',
-        'right_release', 'enter_release', 'exit_release',
-        'ul_press', 'ur_press', 'll_press', 'lr_press',
-        'ul_release', 'ur_release', 'll_release', 'lr_release']
+
+    KEYS = [
+        None,  # no key with code 0
+        "up_press",
+        "down_press",
+        "left_press",
+        "right_press",
+        "enter_press",
+        "exit_press",
+        "up_release",
+        "down_release",
+        "left_release",
+        "right_release",
+        "enter_release",
+        "exit_release",
+        "ul_press",
+        "ur_press",
+        "ll_press",
+        "lr_press",
+        "ul_release",
+        "ur_release",
+        "ll_release",
+        "lr_release",
+    ]
     CMD_PING = 0
     CMD_VERSION = 1
     CMD_CLEAR = 6
     CMD_CGRAM = 9
-    CMD_CURSOR_POSITION = 11 # data = [col, row]
-    CMD_CURSOR_STYLE = 12 # data = [style (0-4)]
-    CMD_LCD_CONTRAST = 13 # data = [contrast (0-255)]
-    CMD_BACKLIGHT = 14 # data = [power (0-100)]
-    CMD_LCD_DATA = 31 # data = [col, row] + text
-    CMD_GPO = 34 # data = [pin(0-12), value(0-100)]
+    CMD_CURSOR_POSITION = 11  # data = [col, row]
+    CMD_CURSOR_STYLE = 12  # data = [style (0-4)]
+    CMD_LCD_CONTRAST = 13  # data = [contrast (0-255)]
+    CMD_BACKLIGHT = 14  # data = [power (0-100)]
+    CMD_LCD_DATA = 31  # data = [col, row] + text
+    CMD_GPO = 34  # data = [pin(0-12), value(0-100)]
 
     # sent from device
     CMD_KEY_ACTIVITY = 0x80
@@ -103,6 +118,7 @@ class CFLCDScreen(LCDScreen):
         super().__init__()
         self.device_path = device_path
         from serial import Serial
+
         self._device = Serial(device_path, baud, timeout=0)
         self._unprocessed = bytearray()
 
@@ -140,7 +156,7 @@ class CFLCDScreen(LCDScreen):
                 new_crc ^= 0x00840800
         # Return the center 16 bits, making this CRC match the one’s
         # complement that is sent in the packet.
-        return ((~new_crc) >> 8) & 0xffff
+        return ((~new_crc) >> 8) & 0xFFFF
 
     def _send_packet(self, command, data):
         """
@@ -150,7 +166,7 @@ class CFLCDScreen(LCDScreen):
         """
         buf = chr(command) + chr(len(data)) + data
         crc = self.get_crc(buf)
-        buf = buf + chr(crc & 0xff) + chr(crc >> 8)
+        buf = buf + chr(crc & 0xFF) + chr(crc >> 8)
         self._device.write(buf)
 
     def _read_packet(self) -> tuple[int, bytearray] | None:
@@ -201,10 +217,10 @@ class CFLCDScreen(LCDScreen):
 
         data_end = 2 + packet_len
         crc = cls.get_crc(data[:data_end])
-        pcrc = ord(data[data_end: data_end + 1]) + (ord(data[data_end + 1: data_end + 2]) << 8)
+        pcrc = ord(data[data_end : data_end + 1]) + (ord(data[data_end + 1 : data_end + 2]) << 8)
         if crc != pcrc:
             raise cls.InvalidPacket("CRC doesn't match")
-        return command, data[2: data_end], data[data_end + 2:]
+        return command, data[2:data_end], data[data_end + 2 :]
 
 
 class KeyRepeatSimulator:
@@ -215,6 +231,7 @@ class KeyRepeatSimulator:
     If two or more keys are pressed disable repeating until all
     keys are released.
     """
+
     def __init__(self, repeat_delay: float | int, repeat_next: float | int) -> None:
         """
         repeat_delay -- seconds to wait before starting to repeat keys
@@ -246,7 +263,7 @@ class KeyRepeatSimulator:
         if len(self.pressed) != 1 or self.multiple_pressed:
             return None
         for key in self.pressed:
-            return max(0., self.pressed[key] + self.repeat_delay - time.time()), key
+            return max(0.0, self.pressed[key] + self.repeat_delay - time.time()), key
         return None
 
     def sent_event(self) -> None:
@@ -257,7 +274,7 @@ class KeyRepeatSimulator:
         if len(self.pressed) != 1:
             return  # ignore event that shouldn't have been sent
         for key in self.pressed:
-            self.pressed[key] = (time.time() - self.repeat_delay + self.repeat_next)
+            self.pressed[key] = time.time() - self.repeat_delay + self.repeat_next
             return
 
 
@@ -273,6 +290,7 @@ class CF635Screen(CFLCDScreen):
     6 button input
     up, down, left, right, enter (check mark), exit (cross)
     """
+
     DISPLAY_SIZE = (20, 4)
 
     # ① through ⑧ are programmable CGRAM (chars 0-7, repeated at 8-15)
@@ -299,7 +317,8 @@ class CF635Screen(CFLCDScreen):
         "ΓΛΠϒ_ÈÊêçğŞşİι~◊"
         "▇▆▄▃▁ƒ▉▋▌▍▏⑶◽▪↑→"
         "↓←ÁÍÓÚÝáíóúýÔôŮů"
-        r"ČĔŘŠŽčĕřšž[\]{|}")
+        r"ČĔŘŠŽčĕřšž[\]{|}"
+    )
 
     cursor_style = CFLCDScreen.CURSOR_INVERTING_BLINKING_BLOCK
 
@@ -309,7 +328,7 @@ class CF635Screen(CFLCDScreen):
         baud: int = 115200,
         repeat_delay: float = 0.5,
         repeat_next: float = 0.125,
-        key_map: Iterable[str] = ('up', 'down', 'left', 'right', 'enter', 'esc'),
+        key_map: Iterable[str] = ("up", "down", "left", "right", "enter", "esc"),
     ):
         """
         device_path -- eg. '/dev/ttyUSB0'
@@ -375,8 +394,8 @@ class CF635Screen(CFLCDScreen):
                         self.key_repeat.press(key)
                     raw_data_input.append(d0)
 
-            elif command & 0xc0 == 0x40:  # "ACK"
-                if command & 0x3f == self._last_command:
+            elif command & 0xC0 == 0x40:  # "ACK"
+                if command & 0x3F == self._last_command:
                     self._send_next_command()
 
             packet = self._read_packet()
@@ -400,7 +419,7 @@ class CF635Screen(CFLCDScreen):
             return
         command, data = self._command_queue.pop(0)
         self._send_packet(command, data)
-        self._last_command = command # record command for ACK
+        self._last_command = command  # record command for ACK
         self._last_command_time = time.time()
 
     def queue_command(self, command: int, data: str) -> None:
@@ -428,9 +447,11 @@ class CF635Screen(CFLCDScreen):
             sb.append(text)
             y += 1
 
-        if (self._previous_canvas and
-                self._previous_canvas.cursor == canvas.cursor and
-                (not self._update_cursor or not canvas.cursor)):
+        if (
+            self._previous_canvas
+            and self._previous_canvas.cursor == canvas.cursor
+            and (not self._update_cursor or not canvas.cursor)
+        ):
             pass
         elif canvas.cursor is None:
             self.queue_command(self.CMD_CURSOR_STYLE, chr(self.CURSOR_NONE))

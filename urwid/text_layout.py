@@ -39,7 +39,7 @@ class TextLayout:
         """Return True if wrap is a supported wrap mode."""
         return True
 
-    def layout(self, text, width, align, wrap ):
+    def layout(self, text, width, align, wrap):
         """
         Return a layout structure for text.
 
@@ -71,37 +71,37 @@ class CanNotDisplayText(Exception):
 
 
 class StandardTextLayout(TextLayout):
-    def __init__(self):#, tab_stops=(), tab_stop_every=8):
+    def __init__(self):  # , tab_stops=(), tab_stop_every=8):
         pass
-        #"""
-        #tab_stops -- list of screen column indexes for tab stops
-        #tab_stop_every -- repeated interval for following tab stops
-        #"""
-        #assert tab_stop_every is None or type(tab_stop_every)==int
-        #if not tab_stops and tab_stop_every:
+        # """
+        # tab_stops -- list of screen column indexes for tab stops
+        # tab_stop_every -- repeated interval for following tab stops
+        # """
+        # assert tab_stop_every is None or type(tab_stop_every)==int
+        # if not tab_stops and tab_stop_every:
         #    self.tab_stops = (tab_stop_every,)
-        #self.tab_stops = tab_stops
-        #self.tab_stop_every = tab_stop_every
+        # self.tab_stops = tab_stops
+        # self.tab_stop_every = tab_stop_every
 
     def supports_align_mode(self, align: str) -> bool:
         """Return True if align is 'left', 'center' or 'right'."""
-        return align in ('left', 'center', 'right')
+        return align in ("left", "center", "right")
 
     def supports_wrap_mode(self, wrap: str) -> bool:
         """Return True if wrap is 'any', 'space', 'clip' or 'ellipsis'."""
-        return wrap in ('any', 'space', 'clip', 'ellipsis')
+        return wrap in ("any", "space", "clip", "ellipsis")
 
     def layout(
         self,
         text,
         width: int,
-        align: Literal['left', 'center', 'right'],
-        wrap: Literal['any', 'space', 'clip', 'ellipsis'],
+        align: Literal["left", "center", "right"],
+        wrap: Literal["any", "space", "clip", "ellipsis"],
     ):
         """Return a layout structure for text."""
         try:
-            segs = self.calculate_text_segments( text, width, wrap )
-            return self.align_layout( text, width, segs, wrap, align )
+            segs = self.calculate_text_segments(text, width, wrap)
+            return self.align_layout(text, width, segs, wrap, align)
         except CanNotDisplayText:
             return [[]]
 
@@ -125,22 +125,22 @@ class StandardTextLayout(TextLayout):
         text,
         width: int,
         segs,
-        wrap: Literal['any', 'space', 'clip', 'ellipsis'],
-        align: Literal['left', 'center', 'right'],
+        wrap: Literal["any", "space", "clip", "ellipsis"],
+        align: Literal["left", "center", "right"],
     ):
         """Convert the layout segs to an aligned layout."""
         out = []
         for l in segs:
             sc = line_width(l)
-            if sc == width or align=='left':
+            if sc == width or align == "left":
                 out.append(l)
                 continue
 
-            if align == 'right':
-                out.append([(width-sc, None)] + l)
+            if align == "right":
+                out.append([(width - sc, None)] + l)
                 continue
-            assert align == 'center'
-            pad_trim_left = (width-sc+1) // 2
+            assert align == "center"
+            pad_trim_left = (width - sc + 1) // 2
             out.append([(pad_trim_left, None)] + l if pad_trim_left else l)
         return out
 
@@ -148,7 +148,7 @@ class StandardTextLayout(TextLayout):
         self,
         text,
         width: int,
-        wrap: Literal['any', 'space', 'clip', 'ellipsis'],
+        wrap: Literal["any", "space", "clip", "ellipsis"],
     ):
         """
         Calculate the segments of text to display given width screen
@@ -162,12 +162,12 @@ class StandardTextLayout(TextLayout):
         """
         nl, nl_o, sp_o = "\n", "\n", " "
         if isinstance(text, bytes):
-            nl = nl.encode('iso8859-1')  # can only find bytes in python3 bytestrings
+            nl = nl.encode("iso8859-1")  # can only find bytes in python3 bytestrings
             nl_o = ord(nl_o)  # + an item of a bytestring is the ordinal value
             sp_o = ord(sp_o)
         b = []
         p = 0
-        if wrap in ('clip', 'ellipsis'):
+        if wrap in ("clip", "ellipsis"):
             # no wrapping to calculate, so it's easy.
             while p <= len(text):
                 n_cr = text.find(nl, p)
@@ -176,9 +176,9 @@ class StandardTextLayout(TextLayout):
                 sc = calc_width(text, p, n_cr)
 
                 # trim line to max width if needed, add ellipsis if trimmed
-                if wrap == 'ellipsis' and sc > width:
+                if wrap == "ellipsis" and sc > width:
                     trimmed = True
-                    spos, n_end, pad_left, pad_right = calc_trim_text(text, p, n_cr, 0, width-1)
+                    spos, n_end, pad_left, pad_right = calc_trim_text(text, p, n_cr, 0, width - 1)
                     # pad_left should be 0, because the start_col parameter was 0 (no trimming on the left)
                     # similarly spos should not be changed from p
                     assert pad_left == 0
@@ -190,13 +190,13 @@ class StandardTextLayout(TextLayout):
                     pad_right = 0
 
                 l = []
-                if p!=n_end:
+                if p != n_end:
                     l += [(sc, p, n_end)]
                 if trimmed:
-                    l += [(1, n_end, '…'.encode())]
-                l += [(pad_right,n_end)]
+                    l += [(1, n_end, "…".encode())]
+                l += [(pad_right, n_end)]
                 b.append(l)
-                p = n_cr+1
+                p = n_cr + 1
             return b
 
         while p <= len(text):
@@ -217,17 +217,17 @@ class StandardTextLayout(TextLayout):
 
                 p = n_cr + 1
                 continue
-            pos, sc = calc_text_pos( text, p, n_cr, width )
+            pos, sc = calc_text_pos(text, p, n_cr, width)
             if pos == p:  # pathological width=1 double-byte case
                 raise CanNotDisplayText("Wide character will not fit in 1-column width")
-            if wrap == 'any':
+            if wrap == "any":
                 b.append([(sc, p, pos)])
                 p = pos
                 continue
-            assert wrap == 'space'
+            assert wrap == "space"
             if text[pos] == sp_o:
                 # perfect space wrap
-                b.append([(sc, p, pos), (0,pos)])
+                b.append([(sc, p, pos), (0, pos)])
                 # removed character hint
 
                 p = pos + 1
@@ -246,7 +246,7 @@ class StandardTextLayout(TextLayout):
                     if p != prev:
                         l = [(sc, p, prev)] + l
                     b.append(l)
-                    p = prev+1
+                    p = prev + 1
                     break
                 if is_wide_char(text, prev):
                     # wrap after wide char
@@ -270,8 +270,7 @@ class StandardTextLayout(TextLayout):
                         # combine with previous line
                         del b[-1]
                         p = p_off
-                        pos, sc = calc_text_pos(
-                            text, p, n_cr, width )
+                        pos, sc = calc_text_pos(text, p, n_cr, width)
                         b.append([(sc, p, pos)])
                         # check for trailing " " or "\n"
                         p = pos
@@ -285,7 +284,6 @@ class StandardTextLayout(TextLayout):
                 b.append([(sc, p, pos)])
                 p = pos
         return b
-
 
 
 ######################################
@@ -341,20 +339,20 @@ class LayoutSegment:
         if self.text:
             # use text stored in segment (self.text)
             spos, epos, pad_left, pad_right = calc_trim_text(self.text, 0, len(self.text), start, end)
-            return [(end-start, self.offs, b''.ljust(pad_left) + self.text[spos:epos] + b''.ljust(pad_right))]
+            return [(end - start, self.offs, b"".ljust(pad_left) + self.text[spos:epos] + b"".ljust(pad_right))]
         elif self.end:
             # use text passed as parameter (text)
             spos, epos, pad_left, pad_right = calc_trim_text(text, self.offs, self.end, start, end)
             l = []
             if pad_left:
-                l.append((1, spos-1))
-            l.append((end-start-pad_left-pad_right, spos, epos))
+                l.append((1, spos - 1))
+            l.append((end - start - pad_left - pad_right, spos, epos))
             if pad_right:
                 l.append((1, epos))
             return l
         else:
             # simple padding adjustment
-            return [(end-start ,self.offs)]
+            return [(end - start, self.offs)]
 
 
 def line_width(segs):
@@ -385,11 +383,11 @@ def shift_line(segs, amount: int):
         # existing shift
         amount += segs[0][0]
         if amount:
-            return [(amount,None)]+segs[1:]
+            return [(amount, None)] + segs[1:]
         return segs[1:]
 
     if amount:
-        return [(amount,None)]+segs
+        return [(amount, None)] + segs
     return segs
 
 
@@ -410,24 +408,24 @@ def trim_line(segs, text, start: int, end: int):
                 x += sc
                 continue
             s = LayoutSegment(seg)
-            if x+sc >= end:
+            if x + sc >= end:
                 # can all be done at once
-                return s.subseg( text, start, end-x )
-            l += s.subseg( text, start, sc )
+                return s.subseg(text, start, end - x)
+            l += s.subseg(text, start, sc)
             start = 0
             x += sc
             continue
         if x >= end:
             break
-        if x+sc > end:
+        if x + sc > end:
             s = LayoutSegment(seg)
-            l += s.subseg( text, 0, end-x )
+            l += s.subseg(text, 0, end - x)
             break
-        l.append( seg )
+        l.append(seg)
     return l
 
 
-def calc_line_pos(text, line_layout, pref_col: Literal['left', 'right'] | int):
+def calc_line_pos(text, line_layout, pref_col: Literal["left", "right"] | int):
     """
     Calculate the closest linear position to pref_col given a
     line layout structure.  Returns None if no position found.
@@ -436,13 +434,13 @@ def calc_line_pos(text, line_layout, pref_col: Literal['left', 'right'] | int):
     closest_pos = None
     current_sc = 0
 
-    if pref_col == 'left':
+    if pref_col == "left":
         for seg in line_layout:
             s = LayoutSegment(seg)
             if s.offs is not None:
                 return s.offs
         return
-    elif pref_col == 'right':
+    elif pref_col == "right":
         for seg in line_layout:
             s = LayoutSegment(seg)
             if s.offs is not None:
@@ -452,7 +450,7 @@ def calc_line_pos(text, line_layout, pref_col: Literal['left', 'right'] | int):
             return
         if s.end is None:
             return s.offs
-        return calc_text_pos(text, s.offs, s.end, s.sc-1)[0]
+        return calc_text_pos(text, s.offs, s.end, s.sc - 1)[0]
 
     for seg in line_layout:
         s = LayoutSegment(seg)
@@ -465,7 +463,7 @@ def calc_line_pos(text, line_layout, pref_col: Literal['left', 'right'] | int):
                     closest_sc = current_sc + s.sc - 1
                     closest_pos = s
 
-            if closest_sc is None or (abs(pref_col-current_sc) < abs(pref_col-closest_sc)):
+            if closest_sc is None or (abs(pref_col - current_sc) < abs(pref_col - closest_sc)):
                 # this screen column is closer
                 closest_sc = current_sc
                 closest_pos = s.offs
@@ -479,10 +477,10 @@ def calc_line_pos(text, line_layout, pref_col: Literal['left', 'right'] | int):
 
     # return the last positions in the segment "closest_pos"
     s = closest_pos
-    return calc_text_pos( text, s.offs, s.end, s.sc-1)[0]
+    return calc_text_pos(text, s.offs, s.end, s.sc - 1)[0]
 
 
-def calc_pos(text, layout, pref_col: Literal['left', 'right'] | int, row: int) -> int:
+def calc_pos(text, layout, pref_col: Literal["left", "right"] | int, row: int) -> int:
     """
     Calculate the closest linear position to pref_col and row given a
     layout structure.
@@ -495,8 +493,8 @@ def calc_pos(text, layout, pref_col: Literal['left', 'right'] | int, row: int) -
     if pos is not None:
         return pos
 
-    rows_above = list(range(row-1, -1, -1))
-    rows_below = list(range(row+1, len(layout)))
+    rows_above = list(range(row - 1, -1, -1))
+    rows_below = list(range(row + 1, len(layout)))
     while rows_above and rows_below:
         if rows_above:
             r = rows_above.pop(0)
@@ -535,8 +533,8 @@ def calc_coords(text, layout, pos, clamp: int = 1):
                 x += calc_width(text, s.offs, pos)
                 return x, y
             distance = abs(s.offs - pos)
-            if s.end is not None and s.end<pos:
-                distance = pos - (s.end-1)
+            if s.end is not None and s.end < pos:
+                distance = pos - (s.end - 1)
             if closest is None or distance < closest[0]:
                 closest = distance, (x, y)
             x += s.sc

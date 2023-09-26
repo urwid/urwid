@@ -38,8 +38,8 @@ if typing.TYPE_CHECKING:
 # replace control characters with ?'s
 _trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 256)])
 
-_default_foreground = 'black'
-_default_background = 'light gray'
+_default_foreground = "black"
+_default_background = "light gray"
 
 
 class HtmlGeneratorSimulationError(Exception):
@@ -66,7 +66,6 @@ class HtmlGenerator(BaseScreen):
         bright_is_bold: bool | None = None,
         has_underline: bool | None = None,
     ) -> None:
-
         if colors is None:
             colors = self.colors
         if bright_is_bold is None:
@@ -88,7 +87,7 @@ class HtmlGenerator(BaseScreen):
     def reset_default_terminal_palette(self, *args):
         pass
 
-    def draw_screen(self, size, r ):
+    def draw_screen(self, size, r):
         """Create an html fragment from the render object.
         Append it to HtmlGenerator.fragments list.
         """
@@ -114,15 +113,12 @@ class HtmlGenerator(BaseScreen):
                 if isinstance(a, AttrSpec):
                     aspec = a
                 else:
-                    aspec = self._palette[a][
-                        {1: 1, 16: 0, 88:2, 256:3}[self.colors]]
+                    aspec = self._palette[a][{1: 1, 16: 0, 88: 2, 256: 3}[self.colors]]
 
                 if y == cy and col <= cx:
-                    run_width = util.calc_width(run, 0,
-                        len(run))
-                    if col+run_width > cx:
-                        l.append(html_span(run,
-                            aspec, cx-col))
+                    run_width = util.calc_width(run, 0, len(run))
+                    if col + run_width > cx:
+                        l.append(html_span(run, aspec, cx - col))
                     else:
                         l.append(html_span(run, aspec))
                     col += run_width
@@ -132,7 +128,7 @@ class HtmlGenerator(BaseScreen):
             l.append("\n")
 
         # add the fragment to the list
-        self.fragments.append( f"<pre>{''.join(l)}</pre>" )
+        self.fragments.append(f"<pre>{''.join(l)}</pre>")
 
     def clear(self):
         """
@@ -181,26 +177,30 @@ def html_span(s, aspec, cursor: int = -1):
     html_bg = f"#{bg_r:02x}{bg_g:02x}{bg_b:02x}"
     if aspec.standout:
         html_fg, html_bg = html_bg, html_fg
-    extra = (";text-decoration:underline" * aspec.underline + ";font-weight:bold" * aspec.bold)
+    extra = ";text-decoration:underline" * aspec.underline + ";font-weight:bold" * aspec.bold
+
     def html_span(fg, bg, s):
-        if not s: return ""
+        if not s:
+            return ""
         return f'<span style="color:{fg};background:{bg}{extra}">{html_escape(s)}</span>'
 
     if cursor >= 0:
         c_off, _ign = util.calc_text_pos(s, 0, len(s), cursor)
         c2_off = util.move_next_char(s, c_off, len(s))
-        return (html_span(html_fg, html_bg, s[:c_off]) +
-            html_span(html_bg, html_fg, s[c_off:c2_off]) +
-            html_span(html_fg, html_bg, s[c2_off:]))
+        return (
+            html_span(html_fg, html_bg, s[:c_off])
+            + html_span(html_bg, html_fg, s[c_off:c2_off])
+            + html_span(html_fg, html_bg, s[c2_off:])
+        )
     else:
         return html_span(html_fg, html_bg, s)
 
 
 def html_escape(text: str) -> str:
     """Escape text so that it will be displayed safely within HTML"""
-    text = text.replace('&','&amp;')
-    text = text.replace('<','&lt;')
-    text = text.replace('>','&gt;')
+    text = text.replace("&", "&amp;")
+    text = text.replace("<", "&lt;")
+    text = text.replace(">", "&gt;")
     return text
 
 
@@ -234,7 +234,7 @@ def screenshot_init(sizes: list[tuple[int, int]], keys: list[list[str]]) -> None
         [ ["down"]*5, ["a","b","c","window resize"], ["Q"] ] )
     """
     try:
-        for (row, col) in sizes:
+        for row, col in sizes:
             assert isinstance(row, int)
             assert row > 0 and col > 0
     except (AssertionError, ValueError):
@@ -249,8 +249,10 @@ def screenshot_init(sizes: list[tuple[int, int]], keys: list[list[str]]) -> None
         raise Exception("keys must be in the form [ [keyA1, keyA2, ..], [keyB1, ..], ...]")
 
     from . import curses_display
+
     curses_display.Screen = HtmlGenerator
     from . import raw_display
+
     raw_display.Screen = HtmlGenerator
 
     HtmlGenerator.sizes = sizes
@@ -262,5 +264,3 @@ def screenshot_collect():
     l = HtmlGenerator.fragments
     HtmlGenerator.fragments = []
     return l
-
-

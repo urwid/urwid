@@ -60,6 +60,7 @@ class CanvasCache:
     _refs[weakref.ref(canvas)] = (widget, wcls, size, focus)
     _deps[widget} = [dependent_widget, ...]
     """
+
     _widgets = {}
     _refs = {}
     _deps: dict[Widget, list[Widget]] = {}
@@ -80,6 +81,7 @@ class CanvasCache:
 
         assert canvas.widget_info, "Can't store canvas without widget_info"
         widget, size, focus = canvas.widget_info
+
         def walk_depends(canv):
             """
             Collect all child widgets for determining who we
@@ -91,20 +93,20 @@ class CanvasCache:
             for x, y, c, pos in canv.children:
                 if c.widget_info:
                     depends.append(c.widget_info[0])
-                elif hasattr(c, 'children'):
+                elif hasattr(c, "children"):
                     depends.extend(walk_depends(c))
             return depends
 
         # use explicit depends_on if available from the canvas
-        depends_on = getattr(canvas, 'depends_on', None)
-        if depends_on is None and hasattr(canvas, 'children'):
+        depends_on = getattr(canvas, "depends_on", None)
+        if depends_on is None and hasattr(canvas, "children"):
             depends_on = walk_depends(canvas)
         if depends_on:
             for w in depends_on:
                 if w not in cls._widgets:
                     return
             for w in depends_on:
-                cls._deps.setdefault(w,[]).append(widget)
+                cls._deps.setdefault(w, []).append(widget)
 
         ref = weakref.ref(canvas, cls.cleanup)
         cls._refs[ref] = (widget, wcls, size, focus)
@@ -119,7 +121,7 @@ class CanvasCache:
         wcls -- widget class that contains render() function
         size, focus -- render() parameters
         """
-        cls.fetches += 1 # collect stats
+        cls.fetches += 1  # collect stats
 
         sizes = cls._widgets.get(widget, None)
         if not sizes:
@@ -129,7 +131,7 @@ class CanvasCache:
             return None
         canv = ref()
         if canv:
-            cls.hits += 1 # more stats
+            cls.hits += 1  # more stats
         return canv
 
     @classmethod
@@ -197,17 +199,14 @@ class Canvas:
     """
     base class for canvases
     """
+
     cacheable = True
 
     _finalized_error = CanvasError(
-        "This canvas has been finalized. "
-        "Use CompositeCanvas to wrap this canvas if "
-        "you need to make changes."
+        "This canvas has been finalized. Use CompositeCanvas to wrap this canvas if you need to make changes."
     )
     _renamed_error = CanvasError(
-        "The old Canvas class is now called "
-        "TextCanvas. Canvas is now the base class for all canvas "
-        "classes."
+        "The old Canvas class is now called TextCanvas. Canvas is now the base class for all canvas classes."
     )
 
     def __init__(
@@ -266,7 +265,7 @@ class Canvas:
         Return the text content of the canvas as a list of strings,
         one for each row.
         """
-        return [b''.join([text for (attr, cs, text) in row]) for row in self.content()]
+        return [b"".join([text for (attr, cs, text) in row]) for row in self.content()]
 
     def _text_content(self):
         warnings.warn(
@@ -312,6 +311,7 @@ class Canvas:
                 pass
             return
         self.coords["cursor"] = c + (None,)  # data part
+
     cursor = property(get_cursor, set_cursor)
 
     def get_pop_up(self):
@@ -349,7 +349,7 @@ class Canvas:
         """
         d = {}
         for name, (x, y, data) in self.coords.items():
-            d[name] = (x+dx, y+dy, data)
+            d[name] = (x + dx, y + dy, data)
         return d
 
 
@@ -357,6 +357,7 @@ class TextCanvas(Canvas):
     """
     class for storing rendered text and attributes
     """
+
     def __init__(
         self,
         text: Sequence[bytes] | None = None,
@@ -406,18 +407,18 @@ class TextCanvas(Canvas):
             if w > maxcol:
                 raise CanvasError(f"Canvas text is wider than the maxcol specified \n{maxcol!r}\n{widths!r}\n{text!r}")
             if w < maxcol:
-                text[i] += b''.rjust(maxcol - w)
+                text[i] += b"".rjust(maxcol - w)
             a_gap = len(text[i]) - rle_len(attr[i])
             if a_gap < 0:
                 raise CanvasError(f"Attribute extends beyond text \n{text[i]!r}\n{attr[i]!r}")
             if a_gap:
                 rle_append_modify(attr[i], (None, a_gap))
 
-            cs_gap = len(text[i]) - rle_len( cs[i] )
+            cs_gap = len(text[i]) - rle_len(cs[i])
             if cs_gap < 0:
-                raise CanvasError(f"Character Set extends beyond text \n{text[i]!r}\n{cs[i]!r}" )
+                raise CanvasError(f"Character Set extends beyond text \n{text[i]!r}\n{cs[i]!r}")
             if cs_gap:
-                rle_append_modify( cs[i], (None, cs_gap))
+                rle_append_modify(cs[i], (None, cs_gap))
 
         self._attr = attr
         self._cs = cs
@@ -474,24 +475,23 @@ class TextCanvas(Canvas):
 
         if trim_top or rows < maxrow:
             text_attr_cs = zip(
-                self._text[trim_top:trim_top+rows],
-                self._attr[trim_top:trim_top+rows],
-                self._cs[trim_top:trim_top+rows])
+                self._text[trim_top : trim_top + rows],
+                self._attr[trim_top : trim_top + rows],
+                self._cs[trim_top : trim_top + rows],
+            )
         else:
             text_attr_cs = zip(self._text, self._attr, self._cs)
 
         for text, a_row, cs_row in text_attr_cs:
             if trim_left or cols < self._maxcol:
-                text, a_row, cs_row = trim_text_attr_cs(
-                    text, a_row, cs_row, trim_left,
-                    trim_left + cols)
+                text, a_row, cs_row = trim_text_attr_cs(text, a_row, cs_row, trim_left, trim_left + cols)
             attr_cs = rle_product(a_row, cs_row)
             i = 0
             row = []
             for (a, cs), run in attr_cs:
                 if attr_map and a in attr_map:
                     a = attr_map[a]
-                row.append((a, cs, text[i:i+run]))
+                row.append((a, cs, text[i : i + run]))
                 i += run
             yield row
 
@@ -513,6 +513,7 @@ class BlankCanvas(Canvas):
     a canvas with nothing on it, only works as part of a composite canvas
     since it doesn't know its own size
     """
+
     def __init__(self) -> None:
         super().__init__(None)
 
@@ -530,7 +531,7 @@ class BlankCanvas(Canvas):
         def_attr = None
         if attr and None in attr:
             def_attr = attr[None]
-        line = [(def_attr, None, b''.rjust(cols))]
+        line = [(def_attr, None, b"".rjust(cols))]
         for _ in range(rows):
             yield line
 
@@ -551,6 +552,7 @@ class SolidCanvas(Canvas):
     """
     A canvas filled completely with a single character.
     """
+
     def __init__(self, fill_char, cols: int, rows: int) -> None:
         super().__init__()
         end, col = calc_text_pos(fill_char, 0, len(fill_char), 1)
@@ -582,7 +584,7 @@ class SolidCanvas(Canvas):
         if attr and None in attr:
             def_attr = attr[None]
 
-        line = [(def_attr, self._cs, self._text*cols)]
+        line = [(def_attr, self._cs, self._text * cols)]
         for _ in range(rows):
             yield line
 
@@ -591,7 +593,7 @@ class SolidCanvas(Canvas):
         Return the differences between other and this canvas.
         """
         if other is self:
-            return [self.cols()]*self.rows()
+            return [self.cols()] * self.rows()
         return self.content()
 
 
@@ -599,6 +601,7 @@ class CompositeCanvas(Canvas):
     """
     class for storing a combination of canvases
     """
+
     def __init__(self, canv: Canvas = None) -> None:
         """
         canv -- a Canvas object to wrap this CompositeCanvas around.
@@ -669,7 +672,7 @@ class CompositeCanvas(Canvas):
         """
         Return the differences between other and this canvas.
         """
-        if not hasattr(other, 'shards'):
+        if not hasattr(other, "shards"):
             for row in self.content():
                 yield row
             return
@@ -743,9 +746,9 @@ class CompositeCanvas(Canvas):
         if left > 0 or right > 0:
             top_rows, top_cviews = shards[0]
             if left > 0:
-                new_top_cviews = ([(0, 0, left, rows, None, blank_canvas)] + top_cviews)
+                new_top_cviews = [(0, 0, left, rows, None, blank_canvas)] + top_cviews
             else:
-                new_top_cviews = top_cviews[:]  #copy
+                new_top_cviews = top_cviews[:]  # copy
 
             if right > 0:
                 new_top_cviews.append((0, 0, right, rows, None, blank_canvas))
@@ -824,7 +827,7 @@ class CompositeCanvas(Canvas):
         Apply attribute a to all areas of this canvas with default
         attribute currently set to None, leaving other attributes
         intact."""
-        self.fill_attr_apply({None:a})
+        self.fill_attr_apply({None: a})
 
     def fill_attr_apply(self, mapping) -> None:
         """
@@ -844,7 +847,7 @@ class CompositeCanvas(Canvas):
                     new_cviews.append(cv[:4] + (mapping,) + cv[5:])
                 else:
                     combined = dict(mapping)
-                    combined.update([(k, mapping.get(v, v)) for k,v in cv[4].items()])
+                    combined.update([(k, mapping.get(v, v)) for k, v in cv[4].items()])
                     new_cviews.append(cv[:4] + (combined,) + cv[5:])
             shards.append((num_rows, new_cviews))
         self.shards = shards
@@ -925,8 +928,7 @@ def shards_delta(shards, other_shards):
 
 
 def shard_cviews_delta(cviews, other_cviews):
-    """
-    """
+    """ """
     other_cviews_iter = iter(other_cviews)
     other_cv = None
     cols = other_cols = 0
@@ -942,7 +944,7 @@ def shard_cviews_delta(cviews, other_cviews):
             continue
         # top-left-aligned cviews, compare them
         if cv[5] is other_cv[5] and cv[:5] == other_cv[:5]:
-            yield cv[:5]+(None,)+cv[6:]
+            yield cv[:5] + (None,) + cv[6:]
         else:
             yield cv
         other_cols += other_cv[2]
@@ -977,8 +979,7 @@ def shard_body(cviews, shard_tail, create_iter: bool = True, iter_default=None):
             if col_gap < 0:
                 raise CanvasError("cviews overflow gaps in shard_tail!")
             if create_iter and canv:
-                new_iter = canv.content(trim_left, trim_top,
-                    cols, rows, attr_map)
+                new_iter = canv.content(trim_left, trim_top, cols, rows, attr_map)
             else:
                 new_iter = iter_default
             body.append((0, new_iter, cview))
@@ -1041,8 +1042,7 @@ def shards_trim_rows(shards, keep_rows: int):
         new_cviews = []
         for cv in cviews:
             if cv[3] + done_rows > keep_rows:
-                new_cviews.append(cview_trim_rows(cv,
-                    keep_rows - done_rows))
+                new_cviews.append(cview_trim_rows(cv, keep_rows - done_rows))
             else:
                 new_cviews.append(cv)
 
@@ -1083,7 +1083,7 @@ def shards_trim_sides(shards, left: int, cols: int):
             col = next_col
         if not new_cviews:
             prev_num_rows, prev_cviews = new_shards[-1]
-            new_shards[-1] = (prev_num_rows+num_rows, prev_cviews)
+            new_shards[-1] = (prev_num_rows + num_rows, prev_cviews)
         else:
             new_shards.append((num_rows, new_cviews))
     return new_shards
@@ -1100,7 +1100,7 @@ def shards_join(shard_lists):
     new_shards = []
     while True:
         new_cviews = []
-        num_rows = min([r for r,cv in shards_current])
+        num_rows = min([r for r, cv in shards_current])
 
         shards_next = []
         for rows, cviews in shards_current:
@@ -1131,7 +1131,7 @@ def cview_trim_top(cv, trim: int):
 
 
 def cview_trim_left(cv, trim: int):
-    return (cv[0] + trim, cv[1], cv[2] - trim,) + cv[3:]
+    return (cv[0] + trim, cv[1], cv[2] - trim) + cv[3:]
 
 
 def cview_trim_cols(cv, cols: int):
@@ -1170,7 +1170,7 @@ def CanvasCombine(l):
         n += 1
 
     if focus_index:
-        children = [children[focus_index]] + children[:focus_index] + children[focus_index+1:]
+        children = [children[focus_index]] + children[:focus_index] + children[focus_index + 1 :]
 
     combined_canvas.shards = shards
     combined_canvas.children = children
@@ -1184,7 +1184,7 @@ def CanvasOverlay(top_c, bottom_c, left: int, top: int):
     overlayed_canvas = CompositeCanvas(bottom_c)
     overlayed_canvas.overlay(top_c, left, top)
     overlayed_canvas.children = [(left, top, top_c, None), (0, 0, bottom_c, None)]
-    overlayed_canvas.shortcuts = {} # disable background shortcuts
+    overlayed_canvas.shortcuts = {}  # disable background shortcuts
     for shortcut in top_c.shortcuts.keys():
         overlayed_canvas.shortcuts[shortcut] = "fg"
     return overlayed_canvas
@@ -1239,8 +1239,7 @@ def CanvasJoin(l):
         col += canv.cols()
 
     if focus_item:
-        children = [children[focus_item]] + children[:focus_item] + \
-            children[focus_item+1:]
+        children = [children[focus_item]] + children[:focus_item] + children[focus_item + 1 :]
 
     joined_canvas.shards = shards_join(shard_lists)
     joined_canvas.children = children
@@ -1269,18 +1268,18 @@ def apply_text_layout(text, attr, ls, maxcol: int):
         while aw.off <= end_offs:
             if len(attr) <= aw.k:
                 # run out of attributes
-                o.append((None,end_offs-max(start_offs,aw.off)))
+                o.append((None, end_offs - max(start_offs, aw.off)))
                 break
-            at,run = attr[aw.k]
-            if aw.off+run <= start_offs:
+            at, run = attr[aw.k]
+            if aw.off + run <= start_offs:
                 # move forward through attr to find start_offs
                 aw.k += 1
                 aw.off += run
                 continue
-            if end_offs <= aw.off+run:
-                o.append((at, end_offs-max(start_offs,aw.off)))
+            if end_offs <= aw.off + run:
+                o.append((at, end_offs - max(start_offs, aw.off)))
                 break
-            o.append((at, aw.off+run-max(start_offs, aw.off)))
+            o.append((at, aw.off + run - max(start_offs, aw.off)))
             aw.k += 1
             aw.off += run
         return o
@@ -1299,51 +1298,50 @@ def apply_text_layout(text, attr, ls, maxcol: int):
             start_offs and end_offs.
             """
             if start_offs == end_offs:
-                [(at,run)] = arange(start_offs, end_offs)
-                rle_append_modify( linea, ( at, destw ))
+                [(at, run)] = arange(start_offs, end_offs)
+                rle_append_modify(linea, (at, destw))
                 return
-            if destw == end_offs-start_offs:
+            if destw == end_offs - start_offs:
                 for at, run in arange(start_offs, end_offs):
-                    rle_append_modify( linea, ( at, run ))
+                    rle_append_modify(linea, (at, run))
                 return
             # encoded version has different width
             o = start_offs
             for at, run in arange(start_offs, end_offs):
-                if o+run == end_offs:
-                    rle_append_modify( linea, ( at, destw ))
+                if o + run == end_offs:
+                    rle_append_modify(linea, (at, destw))
                     return
-                tseg = text[o:o+run]
-                tseg, cs = apply_target_encoding( tseg )
+                tseg = text[o : o + run]
+                tseg, cs = apply_target_encoding(tseg)
                 segw = rle_len(cs)
 
-                rle_append_modify( linea, ( at, segw ))
+                rle_append_modify(linea, (at, segw))
                 o += run
                 destw -= segw
 
         for seg in line_layout:
-            #if seg is None: assert 0, ls
+            # if seg is None: assert 0, ls
             s = LayoutSegment(seg)
             if s.end:
-                tseg, cs = apply_target_encoding(
-                    text[s.offs:s.end])
+                tseg, cs = apply_target_encoding(text[s.offs : s.end])
                 line.append(tseg)
                 attrrange(s.offs, s.end, rle_len(cs))
-                rle_join_modify( linec, cs )
+                rle_join_modify(linec, cs)
             elif s.text:
-                tseg, cs = apply_target_encoding( s.text )
+                tseg, cs = apply_target_encoding(s.text)
                 line.append(tseg)
-                attrrange( s.offs, s.offs, len(tseg) )
-                rle_join_modify( linec, cs )
+                attrrange(s.offs, s.offs, len(tseg))
+                rle_join_modify(linec, cs)
             elif s.offs:
                 if s.sc:
-                    line.append(b''.rjust(s.sc))
-                    attrrange( s.offs, s.offs, s.sc )
+                    line.append(b"".rjust(s.sc))
+                    attrrange(s.offs, s.offs, s.sc)
             else:
-                line.append(b''.rjust(s.sc))
+                line.append(b"".rjust(s.sc))
                 linea.append((None, s.sc))
                 linec.append((None, s.sc))
 
-        t.append(b''.join(line))
+        t.append(b"".join(line))
         a.append(linea)
         c.append(linec)
 
