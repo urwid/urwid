@@ -23,7 +23,6 @@ Urwid web application display module
 """
 from __future__ import annotations
 
-import contextlib
 import dataclasses
 import glob
 import os
@@ -34,6 +33,7 @@ import socket
 import sys
 import tempfile
 import typing
+from contextlib import suppress
 
 from urwid import util
 
@@ -708,7 +708,7 @@ class Screen:
             return
 
         # XXX which exceptions does this actually raise? EnvironmentError?
-        with contextlib.suppress(Exception):
+        with suppress(Exception):
             self._close_connection()
         signal.signal(signal.SIGTERM, signal.SIG_DFL)
         self._cleanup_pipe()
@@ -743,7 +743,7 @@ class Screen:
         if not self.pipe_name:
             return
         # XXX which exceptions does this actually raise? EnvironmentError?
-        with contextlib.suppress(Exception):
+        with suppress(Exception):
             os.remove(f"{self.pipe_name}.in")
             os.remove(f"{self.pipe_name}.update")
 
@@ -1114,7 +1114,7 @@ def daemonize(errfile):
 
     os.chdir("/")
     for fd in range(0, 20):
-        with contextlib.suppress(OSError):
+        with suppress(OSError):
             os.close(fd)
 
     sys.stdin = open("/dev/null")  # noqa: SIM115

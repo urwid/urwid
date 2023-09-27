@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-import contextlib
 import unittest
 from collections.abc import Generator
+from contextlib import contextmanager
 
 import urwid
 
 
-@contextlib.contextmanager
+@contextmanager
 def encoding(encoding_name: str) -> Generator[None, None, None]:
     old_encoding = 'ascii'  # Default fallback value
     try:

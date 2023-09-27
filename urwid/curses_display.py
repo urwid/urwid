@@ -24,9 +24,9 @@ Curses-based UI implementation
 
 from __future__ import annotations
 
-import contextlib
 import curses
 import typing
+from contextlib import suppress
 
 import _curses
 
@@ -151,7 +151,7 @@ class Screen(BaseScreen, RealTerminal):
         """
         curses.echo()
         self._curs_set(1)
-        with contextlib.suppress(_curses.error):
+        with suppress(_curses.error):
             curses.endwin()
             # don't block original error with curses error
 
@@ -553,7 +553,7 @@ class Screen(BaseScreen, RealTerminal):
         if r.cursor is not None:
             x, y = r.cursor
             self._curs_set(1)
-            with contextlib.suppress(_curses.error):
+            with suppress(_curses.error):
                 self.s.move(y, x)
         else:
             self._curs_set(0)

@@ -34,6 +34,7 @@ import traceback
 import typing
 import warnings
 from collections import deque
+from contextlib import suppress
 from dataclasses import dataclass
 
 try:
@@ -42,8 +43,6 @@ try:
     import termios
 except ImportError:
     pass  # windows
-
-import contextlib
 
 from urwid import event_loop, util
 from urwid.canvas import Canvas
@@ -570,7 +569,7 @@ class TermCanvas(Canvas):
                 if escbuf[i] is None or escbuf[i] == 0:
                     escbuf[i] = default_value
 
-            with contextlib.suppress(ValueError):
+            with suppress(ValueError):
                 cmd(self, escbuf, qmark)
                 # ignore commands that don't match the
                 # unpacked tuples in CSI_COMMANDS.
@@ -1598,7 +1597,7 @@ class Terminal(Widget):
                 if pid == 0:
                     break
                 time.sleep(0.1)
-            with contextlib.suppress(OSError):
+            with suppress(OSError):
                 os.waitpid(self.pid, 0)
 
             os.close(self.master)
