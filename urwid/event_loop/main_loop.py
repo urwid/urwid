@@ -22,12 +22,12 @@
 
 from __future__ import annotations
 
-import contextlib
 import heapq
 import os
 import time
 import typing
 import warnings
+from contextlib import suppress
 
 from urwid import raw_display, signals
 from urwid.command_map import Command, command_map
@@ -319,7 +319,7 @@ class MainLoop:
         method.  Instead, call :meth:`start` before starting the event loop,
         and :meth:`stop` once it's finished.
         """
-        with contextlib.suppress(ExitMainLoop):
+        with suppress(ExitMainLoop):
             self._run()
 
     def _test_run(self):
@@ -378,7 +378,7 @@ class MainLoop:
         if not hasattr(self.screen, "hook_event_loop"):
             raise CantUseExternalLoop("Screen {0!r} doesn't support external event loops")
 
-        with contextlib.suppress(NameError):
+        with suppress(NameError):
             signals.connect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED, self._reset_input_descriptors)
 
         # watch our input descriptors

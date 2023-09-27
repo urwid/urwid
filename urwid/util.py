@@ -21,9 +21,9 @@
 from __future__ import annotations
 
 import codecs
-import contextlib
 import typing
 import warnings
+from contextlib import suppress
 
 from urwid import escape
 
@@ -55,12 +55,12 @@ def detect_encoding() -> str:
     # Use actual `getpreferredencoding` with public API only
     old_loc = locale.setlocale(locale.LC_CTYPE)  # == getlocale, but not mangle data
     try:
-        with contextlib.suppress(locale.Error):
+        with suppress(locale.Error):
             locale.setlocale(locale.LC_CTYPE, "")
         # internally call private `_get_locale_encoding`
         return locale.getpreferredencoding(False)
     finally:
-        with contextlib.suppress(locale.Error):
+        with suppress(locale.Error):
             locale.setlocale(locale.LC_CTYPE, old_loc)
 
 

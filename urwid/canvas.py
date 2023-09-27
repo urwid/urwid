@@ -20,10 +20,10 @@
 
 from __future__ import annotations
 
-import contextlib
 import typing
 import warnings
 import weakref
+from contextlib import suppress
 
 from urwid.text_layout import LayoutSegment, trim_line
 from urwid.util import (
@@ -154,7 +154,7 @@ class CanvasCache:
         """
         try:
             for ref in cls._widgets[widget].values():
-                with contextlib.suppress(KeyError):
+                with suppress(KeyError):
                     del cls._refs[ref]
             del cls._widgets[widget]
         except KeyError:
@@ -162,7 +162,7 @@ class CanvasCache:
         if widget not in cls._deps:
             return
         dependants = cls._deps.get(widget, [])
-        with contextlib.suppress(KeyError):
+        with suppress(KeyError):
             del cls._deps[widget]
         for w in dependants:
             cls.invalidate(w)
@@ -179,7 +179,7 @@ class CanvasCache:
         sizes = cls._widgets.get(widget, None)
         if not sizes:
             return
-        with contextlib.suppress(KeyError):
+        with suppress(KeyError):
             del sizes[(wcls, size, focus)]
         if not sizes:
             try:
@@ -312,7 +312,7 @@ class Canvas:
         if self.widget_info and self.cacheable:
             raise self._finalized_error
         if c is None:
-            with contextlib.suppress(KeyError):
+            with suppress(KeyError):
                 del self.coords["cursor"]
             return
         self.coords["cursor"] = (*c, None)  # data part

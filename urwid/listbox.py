@@ -20,10 +20,10 @@
 
 from __future__ import annotations
 
-import contextlib
 import typing
 import warnings
 from collections.abc import Iterable, Sized
+from contextlib import suppress
 
 from urwid import signals
 from urwid.canvas import CanvasCombine, SolidCanvas
@@ -307,7 +307,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
     @body.setter
     def body(self, body):
-        with contextlib.suppress(AttributeError):
+        with suppress(AttributeError):
             disconnect_signal(self._body, "modified", self._invalidate)
             # _body may be not yet assigned
 
