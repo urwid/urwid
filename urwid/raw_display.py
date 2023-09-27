@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid raw display module
 #    Copyright (C) 2004-2009  Ian Ward
 #
@@ -57,7 +55,12 @@ if typing.TYPE_CHECKING:
 
 
 class Screen(BaseScreen, RealTerminal):
-    def __init__(self, input=sys.stdin, output=sys.stdout, bracketed_paste_mode=False):
+    def __init__(
+        self,
+        input=sys.stdin,  # noqa: A002
+        output=sys.stdout,
+        bracketed_paste_mode=False,
+    ):
         """Initialize a screen that directly prints escape codes to an output
         terminal.
 
@@ -108,11 +111,14 @@ class Screen(BaseScreen, RealTerminal):
         self._prev_sigwinch_handler = None
 
     def _input_fileno(self):
-        """Returns the fileno of the input stream, or None if it doesn't have one.  A stream without a fileno can't participate in whatever."""
+        """Returns the fileno of the input stream, or None if it doesn't have one.
+
+        A stream without a fileno can't participate in whatever.
+        """
         if hasattr(self._term_input_file, "fileno"):
             return self._term_input_file.fileno()
-        else:
-            return None
+
+        return None
 
     def _on_update_palette_entry(self, name, *attrspecs):
         # copy the attribute to a dictionary containing the escape seqences
@@ -229,7 +235,13 @@ class Screen(BaseScreen, RealTerminal):
         if not os.environ.get("TERM", "").lower().startswith("linux"):
             return
 
-        m = Popen(["/usr/bin/mev", "-e", "158"], stdin=PIPE, stdout=PIPE, close_fds=True, encoding="ascii")
+        m = Popen(
+            ["/usr/bin/mev", "-e", "158"],  # noqa: S603
+            stdin=PIPE,
+            stdout=PIPE,
+            close_fds=True,
+            encoding="ascii",
+        )
         fcntl.fcntl(m.stdout.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
         self.gpm_mev = m
 
@@ -301,7 +313,7 @@ class Screen(BaseScreen, RealTerminal):
         self.flush()
 
         if self._old_signal_keys:
-            self.tty_signal_keys(*(self._old_signal_keys + (fd,)))
+            self.tty_signal_keys(*self._old_signal_keys, fd)
 
         super()._stop()
 
@@ -373,7 +385,8 @@ class Screen(BaseScreen, RealTerminal):
         * Mouse button release: ('mouse release', 0, 18, 13),
                                 ('ctrl mouse release', 0, 17, 23)
         """
-        assert self._started
+        if not self._started:
+            raise RuntimeError
 
         self._wait_for_input_ready(self._next_timeout)
         keys, raw = self.parse_input(None, None, self.get_available_raw_input())
@@ -449,7 +462,10 @@ class Screen(BaseScreen, RealTerminal):
         if hasattr(self, "get_input_nonblocking"):
             wrapper = self._make_legacy_input_wrapper(event_loop, callback)
         else:
-            wrapper = lambda: self.parse_input(event_loop, callback, self.get_available_raw_input())
+
+            def wrapper() -> tuple[list[str], typing.Any] | None:
+                return self.parse_input(event_loop, callback, self.get_available_raw_input())
+
         fds = self.get_input_descriptors()
         handles = [event_loop.watch_file(fd, wrapper) for fd in fds]
         self._current_event_loop_handles = handles
@@ -548,9 +564,10 @@ class Screen(BaseScreen, RealTerminal):
 
         if callback:
             callback(processed, processed_codes)
-        else:
-            # For get_input
-            return processed, processed_codes
+            return None
+
+        # For get_input
+        return processed, processed_codes
 
     def _get_keyboard_codes(self):
         codes = []
@@ -596,9 +613,8 @@ class Screen(BaseScreen, RealTerminal):
 
     def _getch(self, timeout: int) -> int:
         ready = self._wait_for_input_ready(timeout)
-        if self.gpm_mev is not None:
-            if self.gpm_mev.stdout.fileno() in ready:
-                self.gpm_event_pending = True
+        if self.gpm_mev is not None and self.gpm_mev.stdout.fileno() in ready:
+            self.gpm_event_pending = True
         fd = self._input_fileno()
         if fd is not None and fd in ready:
             return ord(os.read(fd, 1))
@@ -607,8 +623,8 @@ class Screen(BaseScreen, RealTerminal):
     def _encode_gpm_event(self) -> list[int]:
         self.gpm_event_pending = False
         s = self.gpm_mev.stdout.readline()
-        l = s.split(", ")
-        if len(l) != 6:
+        result = s.split(", ")
+        if len(result) != 6:
             # unexpected output, stop tracking
             self._stop_gpm_tracking()
             signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
@@ -622,8 +638,8 @@ class Screen(BaseScreen, RealTerminal):
 
         # convert to xterm-like escape sequence
 
-        last = next = self.last_bstate
-        l = []
+        last_state = next_state = self.last_bstate
+        result = []
 
         mod = 0
         if m & 1:
@@ -635,29 +651,30 @@ class Screen(BaseScreen, RealTerminal):
 
         def append_button(b):
             b |= mod
-            l.extend([27, ord("["), ord("M"), b + 32, x + 32, y + 32])
+            result.extend([27, ord("["), ord("M"), b + 32, x + 32, y + 32])
 
         def determine_button_release(flag: int) -> None:
-            if b & 4 and last & 1:
+            nonlocal next_state
+            if b & 4 and last_state & 1:
                 append_button(0 + flag)
-                next |= 1
-            if b & 2 and last & 2:
+                next_state |= 1
+            if b & 2 and last_state & 2:
                 append_button(1 + flag)
-                next |= 2
-            if b & 1 and last & 4:
+                next_state |= 2
+            if b & 1 and last_state & 4:
                 append_button(2 + flag)
-                next |= 4
+                next_state |= 4
 
-        if ev == 20 or ev == 36 or ev == 52:  # press
-            if b & 4 and last & 1 == 0:
+        if ev in (20, 36, 52):  # press
+            if b & 4 and last_state & 1 == 0:
                 append_button(0)
-                next |= 1
-            if b & 2 and last & 2 == 0:
+                next_state |= 1
+            if b & 2 and last_state & 2 == 0:
                 append_button(1)
-                next |= 2
-            if b & 1 and last & 4 == 0:
+                next_state |= 2
+            if b & 1 and last_state & 4 == 0:
                 append_button(2)
-                next |= 4
+                next_state |= 4
         elif ev == 146:  # drag
             if b & 4:
                 append_button(0 + escape.MOUSE_DRAG_FLAG)
@@ -666,32 +683,32 @@ class Screen(BaseScreen, RealTerminal):
             elif b & 1:
                 append_button(2 + escape.MOUSE_DRAG_FLAG)
         else:  # release
-            if b & 4 and last & 1:
+            if b & 4 and last_state & 1:
                 append_button(0 + escape.MOUSE_RELEASE_FLAG)
-                next &= ~1
-            if b & 2 and last & 2:
+                next_state &= ~1
+            if b & 2 and last_state & 2:
                 append_button(1 + escape.MOUSE_RELEASE_FLAG)
-                next &= ~2
-            if b & 1 and last & 4:
+                next_state &= ~2
+            if b & 1 and last_state & 4:
                 append_button(2 + escape.MOUSE_RELEASE_FLAG)
-                next &= ~4
+                next_state &= ~4
         if ev == 40:  # double click (release)
-            if b & 4 and last & 1:
+            if b & 4 and last_state & 1:
                 append_button(0 + escape.MOUSE_MULTIPLE_CLICK_FLAG)
-            if b & 2 and last & 2:
+            if b & 2 and last_state & 2:
                 append_button(1 + escape.MOUSE_MULTIPLE_CLICK_FLAG)
-            if b & 1 and last & 4:
+            if b & 1 and last_state & 4:
                 append_button(2 + escape.MOUSE_MULTIPLE_CLICK_FLAG)
         elif ev == 52:
-            if b & 4 and last & 1:
+            if b & 4 and last_state & 1:
                 append_button(0 + escape.MOUSE_MULTIPLE_CLICK_FLAG * 2)
-            if b & 2 and last & 2:
+            if b & 2 and last_state & 2:
                 append_button(1 + escape.MOUSE_MULTIPLE_CLICK_FLAG * 2)
-            if b & 1 and last & 4:
+            if b & 1 and last_state & 4:
                 append_button(2 + escape.MOUSE_MULTIPLE_CLICK_FLAG * 2)
 
-        self.last_bstate = next
-        return l
+        self.last_bstate = next_state
+        return result
 
     def _getch_nodelay(self):
         return self._getch(0)
@@ -734,9 +751,11 @@ class Screen(BaseScreen, RealTerminal):
 
         (maxcol, maxrow) = maxres
 
-        assert self._started
+        if not self._started:
+            raise RuntimeError
 
-        assert maxrow == r.rows()
+        if maxrow != r.rows():
+            raise ValueError(maxrow)
 
         # quick return if nothing has changed
         if self.screen_buf and r is self._screen_buf_canvas:
@@ -793,7 +812,7 @@ class Screen(BaseScreen, RealTerminal):
         def attr_to_escape(a):
             if a in self._pal_escape:
                 return self._pal_escape[a]
-            elif isinstance(a, AttrSpec):
+            if isinstance(a, AttrSpec):
                 return self._attrspec_to_escape(a)
             # undefined attributes use default/default
             # TODO: track and report these
@@ -835,21 +854,23 @@ class Screen(BaseScreen, RealTerminal):
                 a, cs, run = row[-1]
                 if run[-1:] == b" " and self.back_color_erase and not using_standout_or_underline(a):
                     whitespace_at_end = True
-                    row = row[:-1] + [(a, cs, run.rstrip(b" "))]
+                    row = row[:-1] + [(a, cs, run.rstrip(b" "))]  # noqa: PLW2901
                 elif y == maxrow - 1 and maxcol > 1:
-                    row, back, ins = self._last_row(row)
+                    row, back, ins = self._last_row(row)  # noqa: PLW2901
 
             first = True
             lasta = lastcs = None
             for a, cs, run in row:
-                assert isinstance(run, bytes)  # canvases should render with bytes
+                if not isinstance(run, bytes):  # canvases should render with bytes
+                    raise TypeError(run)
                 if cs != "U":
-                    run = run.translate(UNPRINTABLE_TRANS_TABLE)
+                    run = run.translate(UNPRINTABLE_TRANS_TABLE)  # noqa: PLW2901
                 if first or lasta != a:
                     o.append(attr_to_escape(a))
                     lasta = a
                 if first or lastcs != cs:
-                    assert cs in [None, "0", "U"], repr(cs)
+                    if cs not in (None, "0", "U"):
+                        raise ValueError(cs)
                     if lastcs == "U":
                         o.append(escape.IBMPC_OFF)
 
@@ -865,7 +886,8 @@ class Screen(BaseScreen, RealTerminal):
             if ins:
                 (inserta, insertcs, inserttext) = ins
                 ias = attr_to_escape(inserta)
-                assert insertcs in [None, "0", "U"], repr(insertcs)
+                if insertcs not in (None, "0", "U"):
+                    raise ValueError(insertcs)
                 if cs is None:
                     icss = escape.SI
                 elif cs == "U":
@@ -888,10 +910,10 @@ class Screen(BaseScreen, RealTerminal):
             # handle resize before trying to draw screen
             return
         try:
-            for l in o:
-                if isinstance(l, bytes):
-                    l = l.decode("utf-8", "replace")
-                self.write(l)
+            for line in o:
+                if isinstance(line, bytes):
+                    line = line.decode("utf-8", "replace")  # noqa: PLW2901
+                self.write(line)
             self.flush()
         except OSError as e:
             # ignore interrupted syscall
@@ -1042,7 +1064,7 @@ class Screen(BaseScreen, RealTerminal):
         """
         if self.colors == 1:
             return
-        elif self.colors == 2**24:
+        if self.colors == 2**24:
             colors = 256
         else:
             colors = self.colors
@@ -1054,7 +1076,7 @@ class Screen(BaseScreen, RealTerminal):
                 aspec = AttrSpec("h%d" % n, "", colors)
             return aspec.get_rgb_values()[:3]
 
-        entries = [(n,) + rgb_values(n) for n in range(min(colors, 256))]
+        entries = [(n, *rgb_values(n)) for n in range(min(colors, 256))]
         self.modify_terminal_palette(entries)
 
     def modify_terminal_palette(self, entries):
@@ -1079,7 +1101,8 @@ class Screen(BaseScreen, RealTerminal):
 
     # shortcut for creating an AttrSpec with this screen object's
     # number of colors
-    AttrSpec = lambda self, fg, bg: AttrSpec(fg, bg, self.colors)
+    def AttrSpec(self, fg, bg) -> AttrSpec:
+        return AttrSpec(fg, bg, self.colors)
 
 
 def _test():

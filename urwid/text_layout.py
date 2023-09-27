@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid Text Layout classes
 #    Copyright (C) 2004-2011  Ian Ward
 #
@@ -112,9 +110,10 @@ class StandardTextLayout(TextLayout):
         returned by self.layout().
         """
         maxwidth = 0
-        assert layout, f"huh? empty layout?: {layout!r}"
-        for l in layout:
-            lw = line_width(l)
+        if not layout:
+            raise ValueError(f"huh? empty layout?: {layout!r}")
+        for lines in layout:
+            lw = line_width(lines)
             if lw >= maxcol:
                 return maxcol
             maxwidth = max(maxwidth, lw)
@@ -130,18 +129,19 @@ class StandardTextLayout(TextLayout):
     ):
         """Convert the layout segs to an aligned layout."""
         out = []
-        for l in segs:
-            sc = line_width(l)
+        for lines in segs:
+            sc = line_width(lines)
             if sc == width or align == "left":
-                out.append(l)
+                out.append(lines)
                 continue
 
             if align == "right":
-                out.append([(width - sc, None)] + l)
+                out.append([(width - sc, None), *lines])
                 continue
-            assert align == "center"
+            if align != "center":
+                raise ValueError(align)
             pad_trim_left = (width - sc + 1) // 2
-            out.append([(pad_trim_left, None)] + l if pad_trim_left else l)
+            out.append([(pad_trim_left, None), *lines] if pad_trim_left else lines)
         return out
 
     def calculate_text_segments(
@@ -181,21 +181,23 @@ class StandardTextLayout(TextLayout):
                     spos, n_end, pad_left, pad_right = calc_trim_text(text, p, n_cr, 0, width - 1)
                     # pad_left should be 0, because the start_col parameter was 0 (no trimming on the left)
                     # similarly spos should not be changed from p
-                    assert pad_left == 0
-                    assert spos == p
+                    if pad_left != 0:
+                        raise ValueError(pad_left)
+                    if spos != p:
+                        raise ValueError(spos)
                     sc = width - 1 - pad_right
                 else:
                     trimmed = False
                     n_end = n_cr
                     pad_right = 0
 
-                l = []
+                line = []
                 if p != n_end:
-                    l += [(sc, p, n_end)]
+                    line += [(sc, p, n_end)]
                 if trimmed:
-                    l += [(1, n_end, "…".encode())]
-                l += [(pad_right, n_end)]
-                b.append(l)
+                    line += [(1, n_end, "…".encode())]
+                line += [(pad_right, n_end)]
+                b.append(line)
                 p = n_cr + 1
             return b
 
@@ -224,7 +226,8 @@ class StandardTextLayout(TextLayout):
                 b.append([(sc, p, pos)])
                 p = pos
                 continue
-            assert wrap == "space"
+            if wrap != "space":
+                raise ValueError(wrap)
             if text[pos] == sp_o:
                 # perfect space wrap
                 b.append([(sc, p, pos), (0, pos)])
@@ -242,18 +245,18 @@ class StandardTextLayout(TextLayout):
                 prev = move_prev_char(text, p, prev)
                 if text[prev] == sp_o:
                     sc = calc_width(text, p, prev)
-                    l = [(0, prev)]
+                    line = [(0, prev)]
                     if p != prev:
-                        l = [(sc, p, prev)] + l
-                    b.append(l)
+                        line = [(sc, p, prev), *line]
+                    b.append(line)
                     p = prev + 1
                     break
                 if is_wide_char(text, prev):
                     # wrap after wide char
-                    next = move_next_char(text, prev, pos)
-                    sc = calc_width(text, p, next)
-                    b.append([(sc, p, next)])
-                    p = next
+                    next_char = move_next_char(text, prev, pos)
+                    sc = calc_width(text, p, next_char)
+                    b.append([(sc, p, next_char)])
+                    p = next_char
                     break
             else:
                 # unwrap previous line space if possible to
@@ -296,29 +299,38 @@ class LayoutSegment:
     def __init__(self, seg: tuple[int, int, bytes | int] | tuple[int, int | None]) -> None:
         """Create object from line layout segment structure"""
 
-        assert isinstance(seg, tuple), repr(seg)
-        assert len(seg) in (2, 3), repr(seg)
+        if not isinstance(seg, tuple):
+            raise TypeError(seg)
+        if len(seg) not in (2, 3):
+            raise ValueError(seg)
 
         self.sc, self.offs = seg[:2]
 
-        assert isinstance(self.sc, int), repr(self.sc)
+        if not isinstance(self.sc, int):
+            raise TypeError(self.sc)
 
         if len(seg) == 3:
-            assert isinstance(self.offs, int), repr(self.offs)
-            assert self.sc > 0, repr(seg)
+            if not isinstance(self.offs, int):
+                raise TypeError(self.offs)
+            if self.sc <= 0:
+                raise ValueError(seg)
             t = seg[2]
             if isinstance(t, bytes):
                 self.text: bytes | None = t
                 self.end = None
             else:
-                assert isinstance(t, int), repr(t)
+                if not isinstance(t, int):
+                    raise TypeError(t)
                 self.text = None
                 self.end = t
         else:
-            assert len(seg) == 2, repr(seg)
+            if len(seg) != 2:
+                raise ValueError(seg)
             if self.offs is not None:
-                assert self.sc >= 0, repr(seg)
-                assert isinstance(self.offs, int)
+                if self.sc < 0:
+                    raise ValueError(seg)
+                if not isinstance(self.offs, int):
+                    raise TypeError(self.offs)
             self.text = self.end = None
 
     def subseg(self, text, start: int, end: int):
@@ -340,19 +352,18 @@ class LayoutSegment:
             # use text stored in segment (self.text)
             spos, epos, pad_left, pad_right = calc_trim_text(self.text, 0, len(self.text), start, end)
             return [(end - start, self.offs, b"".ljust(pad_left) + self.text[spos:epos] + b"".ljust(pad_right))]
-        elif self.end:
+        if self.end:
             # use text passed as parameter (text)
             spos, epos, pad_left, pad_right = calc_trim_text(text, self.offs, self.end, start, end)
-            l = []
+            lines = []
             if pad_left:
-                l.append((1, spos - 1))
-            l.append((end - start - pad_left - pad_right, spos, epos))
+                lines.append((1, spos - 1))
+            lines.append((end - start - pad_left - pad_right, spos, epos))
             if pad_right:
-                l.append((1, epos))
-            return l
-        else:
-            # simple padding adjustment
-            return [(end - start, self.offs)]
+                lines.append((1, epos))
+            return lines
+
+        return [(end - start, self.offs)]
 
 
 def line_width(segs):
@@ -377,7 +388,8 @@ def shift_line(segs, amount: int):
     segs -- line of a layout structure
     amount -- screen columns to shift right (+ve) or left (-ve)
     """
-    assert isinstance(amount, int), repr(amount)
+    if not isinstance(amount, int):
+        raise TypeError(amount)
 
     if segs and len(segs[0]) == 2 and segs[0][1] is None:
         # existing shift
@@ -387,7 +399,7 @@ def shift_line(segs, amount: int):
         return segs[1:]
 
     if amount:
-        return [(amount, None)] + segs
+        return [(amount, None), *segs]
     return segs
 
 
@@ -398,7 +410,7 @@ def trim_line(segs, text, start: int, end: int):
     start -- starting screen column
     end -- ending screen column
     """
-    l = []
+    result = []
     x = 0
     for seg in segs:
         sc = seg[0]
@@ -411,7 +423,7 @@ def trim_line(segs, text, start: int, end: int):
             if x + sc >= end:
                 # can all be done at once
                 return s.subseg(text, start, end - x)
-            l += s.subseg(text, start, sc)
+            result += s.subseg(text, start, sc)
             start = 0
             x += sc
             continue
@@ -419,10 +431,10 @@ def trim_line(segs, text, start: int, end: int):
             break
         if x + sc > end:
             s = LayoutSegment(seg)
-            l += s.subseg(text, 0, end - x)
+            result += s.subseg(text, 0, end - x)
             break
-        l.append(seg)
-    return l
+        result.append(seg)
+    return result
 
 
 def calc_line_pos(text, line_layout, pref_col: Literal["left", "right"] | int):
@@ -439,15 +451,15 @@ def calc_line_pos(text, line_layout, pref_col: Literal["left", "right"] | int):
             s = LayoutSegment(seg)
             if s.offs is not None:
                 return s.offs
-        return
-    elif pref_col == "right":
+        return None
+    if pref_col == "right":
         for seg in line_layout:
             s = LayoutSegment(seg)
             if s.offs is not None:
                 closest_pos = s
         s = closest_pos
         if s is None:
-            return
+            return None
         if s.end is None:
             return s.offs
         return calc_text_pos(text, s.offs, s.end, s.sc - 1)[0]
@@ -459,7 +471,7 @@ def calc_line_pos(text, line_layout, pref_col: Literal["left", "right"] | int):
                 if current_sc <= pref_col < current_sc + s.sc:
                     # exact match within this segment
                     return calc_text_pos(text, s.offs, s.end, pref_col - current_sc)[0]
-                elif current_sc <= pref_col:
+                if current_sc <= pref_col:
                     closest_sc = current_sc + s.sc - 1
                     closest_pos = s
 

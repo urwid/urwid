@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid curses output wrapper.. the horror..
 #    Copyright (C) 2004-2011  Ian Ward
 #
@@ -26,6 +24,7 @@ Curses-based UI implementation
 
 from __future__ import annotations
 
+import contextlib
 import curses
 import typing
 
@@ -152,10 +151,9 @@ class Screen(BaseScreen, RealTerminal):
         """
         curses.echo()
         self._curs_set(1)
-        try:
+        with contextlib.suppress(_curses.error):
             curses.endwin()
-        except _curses.error:
-            pass  # don't block original error with curses error
+            # don't block original error with curses error
 
         if self._old_signal_keys:
             self.tty_signal_keys(*self._old_signal_keys)
@@ -181,7 +179,7 @@ class Screen(BaseScreen, RealTerminal):
                 curses.init_pair(bg * 8 + 7 - fg, fg, bg)
 
     def _curs_set(self, x):
-        if self.cursor_state == "fixed" or x == self.cursor_state:
+        if self.cursor_state in ("fixed", x):
             return
         try:
             curses.curs_set(x)
@@ -217,9 +215,9 @@ class Screen(BaseScreen, RealTerminal):
 
     def set_input_timeouts(
         self,
-        max_wait: int | float | None = None,
-        complete_wait: int | float = 0.1,
-        resize_wait: int | float = 0.1,
+        max_wait: float | None = None,
+        complete_wait: float = 0.1,
+        resize_wait: float = 0.1,
     ):
         """
         Set the get_input timeout values.  All values have a granularity
@@ -296,7 +294,8 @@ class Screen(BaseScreen, RealTerminal):
         * Mouse button release: ('mouse release', 0, 18, 13),
                               ('ctrl mouse release', 0, 17, 23)
         """
-        assert self._started
+        if not self._started:
+            raise RuntimeError
 
         keys, raw = self._get_input(self.max_tenths)
 
@@ -375,8 +374,8 @@ class Screen(BaseScreen, RealTerminal):
 
     def _encode_mouse_event(self) -> list[int]:
         # convert to escape sequence
-        last = next = self.last_bstate
-        (id, x, y, z, bstate) = curses.getmouse()
+        last_state = next_state = self.last_bstate
+        (_id, x, y, z, bstate) = curses.getmouse()
 
         mod = 0
         if bstate & curses.BUTTON_SHIFT:
@@ -386,36 +385,36 @@ class Screen(BaseScreen, RealTerminal):
         if bstate & curses.BUTTON_CTRL:
             mod |= 16
 
-        l = []
+        result = []
 
         def append_button(b: int) -> None:
             b |= mod
-            l.extend([27, ord("["), ord("M"), b + 32, x + 33, y + 33])
+            result.extend([27, ord("["), ord("M"), b + 32, x + 33, y + 33])
 
-        if bstate & curses.BUTTON1_PRESSED and last & 1 == 0:
+        if bstate & curses.BUTTON1_PRESSED and last_state & 1 == 0:
             append_button(0)
-            next |= 1
-        if bstate & curses.BUTTON2_PRESSED and last & 2 == 0:
+            next_state |= 1
+        if bstate & curses.BUTTON2_PRESSED and last_state & 2 == 0:
             append_button(1)
-            next |= 2
-        if bstate & curses.BUTTON3_PRESSED and last & 4 == 0:
+            next_state |= 2
+        if bstate & curses.BUTTON3_PRESSED and last_state & 4 == 0:
             append_button(2)
-            next |= 4
-        if bstate & curses.BUTTON4_PRESSED and last & 8 == 0:
+            next_state |= 4
+        if bstate & curses.BUTTON4_PRESSED and last_state & 8 == 0:
             append_button(64)
-            next |= 8
-        if bstate & curses.BUTTON1_RELEASED and last & 1:
+            next_state |= 8
+        if bstate & curses.BUTTON1_RELEASED and last_state & 1:
             append_button(0 + escape.MOUSE_RELEASE_FLAG)
-            next &= ~1
-        if bstate & curses.BUTTON2_RELEASED and last & 2:
+            next_state &= ~1
+        if bstate & curses.BUTTON2_RELEASED and last_state & 2:
             append_button(1 + escape.MOUSE_RELEASE_FLAG)
-            next &= ~2
-        if bstate & curses.BUTTON3_RELEASED and last & 4:
+            next_state &= ~2
+        if bstate & curses.BUTTON3_RELEASED and last_state & 4:
             append_button(2 + escape.MOUSE_RELEASE_FLAG)
-            next &= ~4
-        if bstate & curses.BUTTON4_RELEASED and last & 8:
+            next_state &= ~4
+        if bstate & curses.BUTTON4_RELEASED and last_state & 8:
             append_button(64 + escape.MOUSE_RELEASE_FLAG)
-            next &= ~8
+            next_state &= ~8
 
         if bstate & curses.BUTTON1_DOUBLE_CLICKED:
             append_button(0 + escape.MOUSE_MULTIPLE_CLICK_FLAG)
@@ -435,20 +434,20 @@ class Screen(BaseScreen, RealTerminal):
         if bstate & curses.BUTTON4_TRIPLE_CLICKED:
             append_button(64 + escape.MOUSE_MULTIPLE_CLICK_FLAG * 2)
 
-        self.last_bstate = next
-        return l
+        self.last_bstate = next_state
+        return result
 
     def _dbg_instr(self):  # messy input string (intended for debugging)
         curses.echo()
         self.s.nodelay(0)
         curses.halfdelay(100)
-        str = self.s.getstr()
+        string = self.s.getstr()
         curses.noecho()
-        return str
+        return string
 
-    def _dbg_out(self, str) -> None:  # messy output function (intended for debugging)
+    def _dbg_out(self, string) -> None:  # messy output function (intended for debugging)
         self.s.clrtoeol()
-        self.s.addstr(str)
+        self.s.addstr(string)
         self.s.refresh()
         self._curs_set(1)
 
@@ -468,7 +467,7 @@ class Screen(BaseScreen, RealTerminal):
         if a is None:
             self.s.attrset(0)
             return
-        elif not isinstance(a, AttrSpec):
+        if not isinstance(a, AttrSpec):
             p = self._palette.get(a, (AttrSpec("default", "default"),))
             a = p[0]
 
@@ -503,11 +502,13 @@ class Screen(BaseScreen, RealTerminal):
 
     def draw_screen(self, size: tuple[int, int], r):
         """Paint screen with rendered canvas."""
-        assert self._started
+        if not self._started:
+            raise RuntimeError
 
         cols, rows = size
 
-        assert r.rows() == rows, "canvas size and passed size don't match"
+        if r.rows() != rows:
+            raise ValueError("canvas size and passed size don't match")
 
         y = -1
         for row in r.content():
@@ -524,8 +525,9 @@ class Screen(BaseScreen, RealTerminal):
             nr = 0
             for a, cs, seg in row:
                 if cs != "U":
-                    seg = seg.translate(UNPRINTABLE_TRANS_TABLE)
-                    assert isinstance(seg, bytes)
+                    seg = seg.translate(UNPRINTABLE_TRANS_TABLE)  # noqa: PLW2901
+                    if not isinstance(seg, bytes):
+                        raise TypeError(seg)
 
                 if first or lasta != a:
                     self._setattr(a)
@@ -535,15 +537,15 @@ class Screen(BaseScreen, RealTerminal):
                         for i in range(len(seg)):
                             self.s.addch(0x400000 + seg[i])
                     else:
-                        assert cs is None
-                        assert isinstance(seg, bytes)
+                        if cs is not None:
+                            raise ValueError(f"cs not in ('0', 'U' ,'None'): {cs!r}")
+                        if not isinstance(seg, bytes):
+                            raise TypeError(seg)
                         self.s.addstr(seg.decode("utf-8"))
                 except _curses.error:
                     # it's ok to get out of the
                     # screen on the lower right
-                    if y == rows - 1 and nr == len(row) - 1:
-                        pass
-                    else:
+                    if y != rows - 1 or nr != len(row) - 1:
                         # perhaps screen size changed
                         # quietly abort.
                         return
@@ -551,10 +553,8 @@ class Screen(BaseScreen, RealTerminal):
         if r.cursor is not None:
             x, y = r.cursor
             self._curs_set(1)
-            try:
+            with contextlib.suppress(_curses.error):
                 self.s.move(y, x)
-            except _curses.error:
-                pass
         else:
             self._curs_set(0)
             self.s.move(0, 0)
@@ -623,7 +623,7 @@ class _test:
             a = []
             for k in keys:
                 if isinstance(k, str):
-                    k = k.encode("utf-8")
+                    k = k.encode("utf-8")  # noqa: PLW2901
 
                 t += f"'{k}' "
                 a += [(None, 1), ("yellow on dark blue", len(k)), (None, 2)]
@@ -634,5 +634,5 @@ class _test:
             attr = attr[-rows:]
 
 
-if "__main__" == __name__:
+if __name__ == "__main__":
     _test()

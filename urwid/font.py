@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid BigText fonts
 #    Copyright (C) 2004-2006  Ian Ward
 #

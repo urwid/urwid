@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid split_repr helper functions
 #    Copyright (C) 2004-2011  Ian Ward
 #
@@ -115,10 +113,9 @@ def remove_defaults(d, fn):
     ddict = dict(zip(args[len(args) - len(defaults) :], defaults))
 
     for k in list(d.keys()):
-        if k in ddict:
+        if k in ddict and ddict[k] == d[k]:
             # remove values that match their defaults
-            if ddict[k] == d[k]:
-                del d[k]
+            del d[k]
 
     return d
 

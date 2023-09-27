@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid terminal emulation widget
 #    Copyright (C) 2010  aszlig
 #    Copyright (C) 2011  Ian Ward
@@ -44,6 +42,8 @@ try:
     import termios
 except ImportError:
     pass  # windows
+
+import contextlib
 
 from urwid import event_loop, util
 from urwid.canvas import Canvas
@@ -201,7 +201,7 @@ class TermModes:
 class TermCharset:
     __slots__ = ("_g", "_sgr_mapping", "active", "current")
 
-    MAPPING = {
+    MAPPING: typing.ClassVar[dict[str, str | None]] = {
         "default": None,
         "vt100": "0",
         "ibmpc": "U",
@@ -255,11 +255,11 @@ class TermCharset:
             if dec_pos >= 0:
                 self.current = "0"
                 return ALT_DEC_SPECIAL_CHARS[dec_pos].encode("cp437")
-            else:
-                self.current = "U"
-                return char
-        else:
+
+            self.current = "U"
             return char
+
+        return char
 
 
 class TermScroller(list):
@@ -482,7 +482,7 @@ class TermCanvas(Canvas):
 
         if height > self.height:
             # grow
-            for y in range(self.height, height):
+            for _y in range(self.height, height):
                 try:
                     last_line = self.scrollback_buffer.pop()
                 except IndexError:
@@ -498,12 +498,10 @@ class TermCanvas(Canvas):
                 else:
                     last_line = last_line[: self.width]
 
-                y += 1
-
                 self.term.insert(0, last_line)
         elif height < self.height:
             # shrink
-            for y in range(height, self.height):
+            for _y in range(height, self.height):
                 self.scrollback_buffer.append(self.term.pop(0))
 
         self.height = height
@@ -572,12 +570,10 @@ class TermCanvas(Canvas):
                 if escbuf[i] is None or escbuf[i] == 0:
                     escbuf[i] = default_value
 
-            try:
+            with contextlib.suppress(ValueError):
                 cmd(self, escbuf, qmark)
-            except ValueError:
                 # ignore commands that don't match the
                 # unpacked tuples in CSI_COMMANDS.
-                pass
 
     def parse_noncsi(self, char: bytes, mod: bytes = b"") -> None:
         """
@@ -697,20 +693,20 @@ class TermCanvas(Canvas):
                 self.utf8_eat_bytes = self.get_utf8_len(byte)
                 self.utf8_buffer = bytearray([byte])
                 return
-            elif 0x80 <= byte < 0xC0 and self.utf8_eat_bytes is not None:
+            if 0x80 <= byte < 0xC0 and self.utf8_eat_bytes is not None:
                 if self.utf8_eat_bytes > 1:
                     # continue multibyte sequence
                     self.utf8_eat_bytes -= 1
                     self.utf8_buffer.append(byte)
                     return
-                else:
-                    # end multibyte sequence
-                    self.utf8_eat_bytes = None
-                    sequence = (self.utf8_buffer + bytes([byte])).decode("utf-8", "ignore")
-                    if len(sequence) == 0:
-                        # invalid multibyte sequence, stop processing
-                        return
-                    char = sequence.encode(util._target_encoding, "replace")
+
+                # end multibyte sequence
+                self.utf8_eat_bytes = None
+                sequence = (self.utf8_buffer + bytes([byte])).decode("utf-8", "ignore")
+                if len(sequence) == 0:
+                    # invalid multibyte sequence, stop processing
+                    return
+                char = sequence.encode(util._target_encoding, "replace")
             else:
                 self.utf8_eat_bytes = None
                 char = bytes([byte])
@@ -795,7 +791,7 @@ class TermCanvas(Canvas):
                 y = self.scrollregion_end
             elif y < self.scrollregion_start:
                 y = self.scrollregion_start
-        else:
+        else:  # noqa: PLR5501
             if y >= self.height:
                 y = self.height - 1
             elif y < 0:
@@ -817,7 +813,7 @@ class TermCanvas(Canvas):
                 self.scroll(reverse=True)
             else:
                 y -= 1
-        else:
+        else:  # noqa: PLR5501
             if y >= self.height - 1 > self.scrollregion_end:
                 pass
             elif y == self.scrollregion_end:
@@ -1125,7 +1121,7 @@ class TermCanvas(Canvas):
             elif 40 <= attr <= 47:
                 bg = attr - 40
                 colors = max(16, colors)
-            elif attr == 38 or attr == 48:
+            elif attr in (38, 48):
                 if idx + 2 < len(attrs) and attrs[idx + 1] == 5:
                     # 8 bit color specification
                     color = attrs[idx + 2]
@@ -1198,15 +1194,15 @@ class TermCanvas(Canvas):
         bg = _defaulter(bg, colors)
 
         if len(attributes) > 0:
-            fg = ",".join([fg] + list(attributes))
+            fg = ",".join((fg, *list(attributes)))
 
         if fg == "default" and bg == "default":
             return None
-        else:
-            if colors:
-                return AttrSpec(fg, bg, colors=colors)
-            else:
-                return AttrSpec(fg, bg)
+
+        if colors:
+            return AttrSpec(fg, bg, colors=colors)
+
+        return AttrSpec(fg, bg)
 
     def csi_set_attr(self, attrs: Sequence[int]) -> None:
         """
@@ -1275,7 +1271,7 @@ class TermCanvas(Canvas):
 
     def set_mode(
         self,
-        mode: Literal[1, 3, 4, 5, 6, 7, 20, 25, 2004] | int,
+        mode: Literal[1, 3, 4, 5, 6, 7, 20, 25, 2004],
         flag: bool,
         qmark: bool,
         reset: bool,
@@ -1305,7 +1301,7 @@ class TermCanvas(Canvas):
                 self.set_term_cursor()
             elif mode == 2004:
                 self.modes.bracketed_paste = flag
-        else:
+        else:  # noqa: PLR5501
             # ECMA-48
             if mode == 3:
                 self.modes.display_ctrl = flag
@@ -1340,7 +1336,7 @@ class TermCanvas(Canvas):
 
             self.set_term_cursor(0, 0)
 
-    def csi_clear_tabstop(self, mode: Literal[0, 3] | int = 0):
+    def csi_clear_tabstop(self, mode: Literal[0, 3] = 0):
         """
         Clear tabstop at current position or if 'mode' is 3, delete all
         tabstops.
@@ -1358,7 +1354,7 @@ class TermCanvas(Canvas):
         if not qmark:
             self.widget.respond(f"{ESC}[?6c")
 
-    def csi_status_report(self, mode: Literal[5, 6] | int) -> None:
+    def csi_status_report(self, mode: Literal[5, 6]) -> None:
         """
         Report various information about the terminal status.
         Information is queried by 'mode', where possible values are:
@@ -1372,7 +1368,7 @@ class TermCanvas(Canvas):
             x, y = self.term_cursor
             self.widget.respond(ESC + f"[{y + 1:d};{x + 1:d}R")
 
-    def csi_erase_line(self, mode: Literal[0, 1, 2] | int) -> None:
+    def csi_erase_line(self, mode: Literal[0, 1, 2]) -> None:
         """
         Erase current line, modes are:
             0 -> erase from cursor to end of line.
@@ -1388,7 +1384,7 @@ class TermCanvas(Canvas):
         elif mode == 2:
             self.blank_line(y)
 
-    def csi_erase_display(self, mode: Literal[0, 1, 2] | int) -> None:
+    def csi_erase_display(self, mode: Literal[0, 1, 2]) -> None:
         """
         Erase display, modes are:
             0 -> erase from cursor to end of display.
@@ -1402,7 +1398,7 @@ class TermCanvas(Canvas):
         elif mode == 2:
             self.clear(cursor=self.term_cursor)
 
-    def csi_set_keyboard_leds(self, mode: Literal[0, 1, 2, 3] | int = 0) -> None:
+    def csi_set_keyboard_leds(self, mode: Literal[0, 1, 2, 3] = 0) -> None:
         """
         Set keyboard LEDs, modes are:
             0 -> clear all LEDs
@@ -1465,7 +1461,7 @@ class Terminal(Widget):
     _selectable = True
     _sizing = frozenset([Sizing.BOX])
 
-    signals = ["closed", "beep", "leds", "title", "resize"]
+    signals: typing.ClassVar[list[str]] = ["closed", "beep", "leds", "title", "resize"]
 
     def __init__(
         self,
@@ -1569,13 +1565,13 @@ class Terminal(Widget):
                 try:
                     try:
                         self.command()
-                    except:
+                    except BaseException:  # special case
                         sys.stderr.write(traceback.format_exc())
                         sys.stderr.flush()
                 finally:
                     os._exit(0)
             else:
-                os.execvpe(self.command[0], self.command, env)
+                os.execvpe(self.command[0], self.command, env)  # noqa: S606
 
         if self.main_loop is None:
             fcntl.fcntl(self.master, fcntl.F_SETFL, os.O_NONBLOCK)
@@ -1602,10 +1598,8 @@ class Terminal(Widget):
                 if pid == 0:
                     break
                 time.sleep(0.1)
-            try:
+            with contextlib.suppress(OSError):
                 os.waitpid(self.pid, 0)
-            except OSError:
-                pass
 
             os.close(self.master)
 
@@ -1674,9 +1668,8 @@ class Terminal(Widget):
         if has_focus:
             self.old_tios = RealTerminal().tty_signal_keys()
             RealTerminal().tty_signal_keys(*(["undefined"] * 5))
-        else:
-            if hasattr(self, "old_tios"):
-                RealTerminal().tty_signal_keys(*self.old_tios)
+        elif hasattr(self, "old_tios"):
+            RealTerminal().tty_signal_keys(*self.old_tios)
 
     def render(self, size: tuple[int, int], focus: bool = False):
         if not self.terminated:
@@ -1736,7 +1729,7 @@ class Terminal(Widget):
         if self.terminated:
             return key
 
-        if key == "begin paste" or key == "end paste":
+        if key in ("begin paste", "end paste"):
             if self.term_modes.bracketed_paste:
                 pass  # passthrough bracketed paste sequences
             else:  # swallow bracketed paste sequences
@@ -1802,7 +1795,7 @@ class Terminal(Widget):
                 key = chr(ord(key[-1]) - ord("a") + 1)
             else:
                 key = chr(ord(key[-1]) - ord("A") + 1)
-        else:
+        else:  # noqa: PLR5501
             if self.term_modes.keys_decckm and key in KEY_TRANSLATIONS_DECCKM:
                 key = KEY_TRANSLATIONS_DECCKM[key]
             else:

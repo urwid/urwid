@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # Urwid common display code
 #    Copyright (C) 2004-2011  Ian Ward
 #
@@ -26,7 +25,7 @@ import sys
 import typing
 import warnings
 
-try:
+try:  # noqa: SIM105
     import termios
 except ImportError:
     pass  # windows
@@ -123,8 +122,10 @@ _COLOR_VALUES_88 = (
     + [(gr, gr, gr) for gr in _GRAY_STEPS_88]
 )
 
-assert len(_COLOR_VALUES_256) == 256
-assert len(_COLOR_VALUES_88) == 88
+if len(_COLOR_VALUES_256) != 256:
+    raise RuntimeError(_COLOR_VALUES_256)
+if len(_COLOR_VALUES_88) != 88:
+    raise RuntimeError(_COLOR_VALUES_88)
 
 # fmt: off
 _FG_COLOR_MASK =      0x000000ffffff
@@ -227,9 +228,9 @@ def _value_lookup_table(values: Sequence[int], size: int) -> list[int]:
 
 
 _CUBE_256_LOOKUP = _value_lookup_table(_CUBE_STEPS_256, 256)
-_GRAY_256_LOOKUP = _value_lookup_table([0] + _GRAY_STEPS_256 + [0xFF], 256)
+_GRAY_256_LOOKUP = _value_lookup_table([0, *_GRAY_STEPS_256, 255], 256)
 _CUBE_88_LOOKUP = _value_lookup_table(_CUBE_STEPS_88, 256)
-_GRAY_88_LOOKUP = _value_lookup_table([0] + _GRAY_STEPS_88 + [0xFF], 256)
+_GRAY_88_LOOKUP = _value_lookup_table([0, *_GRAY_STEPS_88, 255], 256)
 
 # convert steps to values that will be used by string versions of the colors
 # 1 hex digit for rgb and 0..100 for grayscale
@@ -312,7 +313,8 @@ def _color_desc_256(num: int) -> str:
     'g11'
 
     """
-    assert num >= 0 and num < 256, num
+    if not 0 <= num < 256:
+        raise ValueError(num)
     if num < _CUBE_START:
         return f"h{num:d}"
     if num < _GRAY_START_256:
@@ -345,7 +347,8 @@ def _color_desc_88(num: int) -> str:
     'g45'
 
     """
-    assert 0 < num < 88
+    if not 0 < num < 88:
+        raise ValueError(num)
     if num < _CUBE_START:
         return f"h{num:d}"
     if num < _GRAY_START_88:
@@ -367,7 +370,7 @@ def _parse_color_true(desc: str) -> int | None:
     if len(desc) == 7:
         h = desc[1:]
         return int(h, 16)
-    elif len(desc) == 4:
+    if len(desc) == 4:
         h = f"0x{desc[1]}0{desc[2]}0{desc[3]}"
         return int(h, 16)
     return None
@@ -592,7 +595,7 @@ class AttrSpec:
         self.__set_background(bg)
         if self.colors > colors:
             raise AttrSpecError(
-                f"foreground/background ({fg!r}/{bg!r}) " f"require more colors than have been specified ({colors:d})."
+                f"foreground/background ({fg!r}/{bg!r}) require more colors than have been specified ({colors:d})."
             )
 
     def copy_modified(
@@ -749,7 +752,7 @@ class AttrSpec:
         flags = 0
         # handle comma-separated foreground
         for part in foreground.split(","):
-            part = part.strip()
+            part = part.strip()  # noqa: PLW2901
             if part in _ATTRIBUTES:
                 # parse and store "settings"/attributes in flags
                 if flags & _ATTRIBUTES[part]:
@@ -849,7 +852,8 @@ class AttrSpec:
         if not (self.foreground_basic or self.foreground_high or self.foreground_true):
             vals = (None, None, None)
         elif self.colors == 88:
-            assert self.foreground_number < 88, "Invalid AttrSpec _value"
+            if self.foreground_number >= 88:
+                raise ValueError(f"Invalid AttrSpec _value: {self.foreground_number!r}")
             vals = _COLOR_VALUES_88[self.foreground_number]
         elif self.colors == 2**24:
             h = f"{self.foreground_number:06x}"
@@ -858,20 +862,21 @@ class AttrSpec:
             vals = _COLOR_VALUES_256[self.foreground_number]
 
         if not (self.background_basic or self.background_high or self.background_true):
-            return vals + (None, None, None)
-        elif self.colors == 88:
-            assert self.background_number < 88, "Invalid AttrSpec _value"
+            return (*vals, None, None, None)
+        if self.colors == 88:
+            if self.background_number >= 88:
+                raise ValueError(f"Invalid AttrSpec _value: {self.background_number!r}")
             return vals + _COLOR_VALUES_88[self.background_number]
-        elif self.colors == 2**24:
+        if self.colors == 2**24:
             h = f"{self.background_number:06x}"
             return vals + tuple([int(x, 16) for x in [h[0:2], h[2:4], h[4:6]]])
-        else:
-            return vals + _COLOR_VALUES_256[self.background_number]
 
-    def __eq__(self, other: typing.Any) -> bool:
+        return vals + _COLOR_VALUES_256[self.background_number]
+
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, AttrSpec) and self.__value == other.__value
 
-    def __ne__(self, other: typing.Any) -> bool:
+    def __ne__(self, other: object) -> bool:
         return not self == other
 
 
@@ -884,7 +889,7 @@ class RealTerminal:
     def tty_signal_keys(
         self,
         intr: Literal["undefined"] | int | None = None,
-        quit: Literal["undefined"] | int | None = None,
+        quit: Literal["undefined"] | int | None = None,  # noqa: A002
         start: Literal["undefined"] | int | None = None,
         stop: Literal["undefined"] | int | None = None,
         susp: Literal["undefined"] | int | None = None,
@@ -906,7 +911,7 @@ class RealTerminal:
         if fileno is None:
             fileno = sys.stdin.fileno()
         if not os.isatty(fileno):
-            return
+            return None
 
         tattr = termios.tcgetattr(fileno)
         sattr = tattr[6]
@@ -921,7 +926,7 @@ class RealTerminal:
         if intr == "undefined":
             intr = 0
         if quit == "undefined":
-            quit = 0
+            quit = 0  # noqa: A001
         if start == "undefined":
             start = 0
         if stop == "undefined":
@@ -956,7 +961,7 @@ class BaseScreen(metaclass=signals.MetaSignals):
     Base class for Screen classes (raw_display.Screen, .. etc)
     """
 
-    signals = [UPDATE_PALETTE_ENTRY, INPUT_DESCRIPTORS_CHANGED]
+    signals: typing.ClassVar[list[str]] = [UPDATE_PALETTE_ENTRY, INPUT_DESCRIPTORS_CHANGED]
 
     def __init__(self) -> None:
         super().__init__()
@@ -1005,6 +1010,7 @@ class BaseScreen(metaclass=signals.MetaSignals):
         warnings.warn(
             "run_wrapper is deprecated in favor of calling `start` as a context manager.",
             DeprecationWarning,
+            stacklevel=3,
         )
         with self.start(*args, **kwargs):
             return fn()

@@ -137,7 +137,7 @@ jobs:
           pip install --upgrade ruff
       - name: Lint with ruff
         run: |
-          ruff --format github urwid/event_loop urwid/widget urwid/font.py urwid/escape.py urwid/command_map.py examples
+          ruff --format github urwid examples
 
   build_wheels:
     name: Build wheels on ${{ matrix.os }}

@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid signal dispatching
 #    Copyright (C) 2004-2012  Ian Ward
 #
@@ -172,6 +170,7 @@ class Signals:
             warnings.warn(
                 "Don't use user_arg argument, use user_args instead.",
                 DeprecationWarning,
+                stacklevel=2,
             )
 
         sig_cls = obj.__class__
@@ -247,7 +246,7 @@ class Signals:
         """
         signals = setdefaultattr(obj, self._signal_attr, {})
         if name not in signals:
-            return
+            return None
 
         handlers = signals[name]
 
@@ -259,6 +258,7 @@ class Signals:
         for h in handlers:
             if h[1:] == (callback, user_arg, user_args):
                 return self.disconnect_by_key(obj, name, h[0])
+        return None
 
     def disconnect_by_key(self, obj, name: str, key: Key) -> None:
         """
@@ -297,7 +297,7 @@ class Signals:
         result = False
         signals = getattr(obj, self._signal_attr, {})
         handlers = signals.get(name, [])
-        for key, callback, user_arg, (weak_args, user_args) in handlers:
+        for _key, callback, user_arg, (weak_args, user_args) in handlers:
             result |= self._call_callback(callback, user_arg, weak_args, user_args, args)
         return result
 
