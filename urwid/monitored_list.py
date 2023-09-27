@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid MonitoredList class
 #    Copyright (C) 2004-2011  Ian Ward
 #
@@ -284,7 +282,7 @@ class MonitoredFocusList(MonitoredList):
             if stop <= focus:
                 focus += num_new_items - (stop - start)
 
-        else:
+        else:  # noqa: PLR5501
             if not num_new_items:
                 # extended slice being removed
                 if focus in range(start, stop, step):
@@ -488,7 +486,7 @@ class MonitoredFocusList(MonitoredList):
         MonitoredFocusList([-3, -2, -1, 0, 1, 2, 3], focus=5)
         """
         if not self:
-            return
+            return None
         value = self[self._focus]
         rval = super().sort(**kwargs)
         self.focus = self.index(value)

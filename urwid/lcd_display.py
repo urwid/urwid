@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid LCD display module
 #    Copyright (C) 2010  Ian Ward
 #
@@ -58,10 +56,10 @@ class LCDScreen(BaseScreen):
 
 class CFLCDScreen(LCDScreen):
     """
-    Common methods for Crystal Fontz LCD displays
+    Common methods for Crystal Fonts LCD displays
     """
 
-    KEYS = [
+    KEYS: typing.ClassVar[list[str | None]] = [
         None,  # no key with code 0
         "up_press",
         "down_press",
@@ -131,7 +129,7 @@ class CFLCDScreen(LCDScreen):
         # accumulator ("carry flag analog");
         new_crc = 0x00F32100
         for byte in buf:
-            # Push this byte’s bits through a software
+            # Push this byte's bits through a software
             # implementation of a hardware shift & xor.
             for bit_count in range(8):
                 # Shift the CRC accumulator
@@ -146,7 +144,7 @@ class CFLCDScreen(LCDScreen):
                 if new_crc & 0x00000080:
                     new_crc ^= 0x00840800
         # All the data has been done. Do 16 more bits of 0 data.
-        for bit_count in range(16):
+        for _bit_count in range(16):
             # Shift the CRC accumulator
             new_crc >>= 1
             # If the low bit of the current CRC accumulator was set
@@ -154,7 +152,7 @@ class CFLCDScreen(LCDScreen):
             # 0x00840800.
             if new_crc & 0x00000080:
                 new_crc ^= 0x00840800
-        # Return the center 16 bits, making this CRC match the one’s
+        # Return the center 16 bits, making this CRC match the one's
         # complement that is sent in the packet.
         return ((~new_crc) >> 8) & 0xFFFF
 
@@ -183,12 +181,13 @@ class CFLCDScreen(LCDScreen):
             try:
                 command, data, unprocessed = self._parse_data(self._unprocessed)
                 self._unprocessed = unprocessed
-                return command, data
-            except self.MoreDataRequired:
+            except self.MoreDataRequired:  # noqa: PERF203
                 return None
             except self.InvalidPacket:
                 # throw out a byte and try to parse again
                 self._unprocessed = self._unprocessed[1:]
+            else:
+                return command, data
 
     class InvalidPacket(Exception):
         pass
@@ -232,7 +231,7 @@ class KeyRepeatSimulator:
     keys are released.
     """
 
-    def __init__(self, repeat_delay: float | int, repeat_next: float | int) -> None:
+    def __init__(self, repeat_delay: float, repeat_next: float) -> None:
         """
         repeat_delay -- seconds to wait before starting to repeat keys
         repeat_next -- time between each repeated key
@@ -394,9 +393,8 @@ class CF635Screen(CFLCDScreen):
                         self.key_repeat.press(key)
                     raw_data_input.append(d0)
 
-            elif command & 0xC0 == 0x40:  # "ACK"
-                if command & 0x3F == self._last_command:
-                    self._send_next_command()
+            elif command & 0xC0 == 0x40 and command & 0x3F == self._last_command:  # "ACK"
+                self._send_next_command()
 
             packet = self._read_packet()
 
@@ -429,7 +427,8 @@ class CF635Screen(CFLCDScreen):
             self._send_next_command()
 
     def draw_screen(self, size: tuple[int, int], canvas):
-        assert size == self.DISPLAY_SIZE
+        if size != self.DISPLAY_SIZE:
+            raise ValueError(size)
 
         if self._screen_buf:
             osb = self._screen_buf
@@ -440,7 +439,7 @@ class CF635Screen(CFLCDScreen):
         y = 0
         for row in canvas.content():
             text = []
-            for a, cs, run in row:
+            for _a, _cs, run in row:
                 text.append(run)
             if not osb or osb[y] != text:
                 self.queue_command(self.CMD_LCD_DATA, chr(0) + chr(y) + "".join(text))
@@ -474,8 +473,10 @@ class CF635Screen(CFLCDScreen):
         data -- list of 8, 6-bit integer values top to bottom with MSB
         on the left side of the character.
         """
-        assert 0 <= index <= 7
-        assert len(data) == 8
+        if not 0 <= index <= 7:
+            raise ValueError(index)
+        if len(data) != 8:
+            raise ValueError(data)
         self.queue_command(self.CMD_CGRAM, chr(index) + "".join([chr(x) for x in data]))
 
     def set_cursor_style(self, style: Literal[1, 2, 3, 4]) -> None:
@@ -484,7 +485,8 @@ class CF635Screen(CFLCDScreen):
             CURSOR_BLINKING_BLOCK_UNDERSCORE or
             CURSOR_INVERTING_BLINKING_BLOCK
         """
-        assert 1 <= style <= 4
+        if not 1 <= style <= 4:
+            raise ValueError(style)
         self.cursor_style = style
         self._update_cursor = True
 
@@ -494,14 +496,16 @@ class CF635Screen(CFLCDScreen):
 
         value -- 0 to 100
         """
-        assert 0 <= value <= 100
+        if not 0 <= value <= 100:
+            raise ValueError(value)
         self.queue_command(self.CMD_BACKLIGHT, chr(value))
 
     def set_lcd_contrast(self, value: int) -> None:
         """
         value -- 0 to 255
         """
-        assert 0 <= value <= 255
+        if not 0 <= value <= 255:
+            raise ValueError(value)
         self.queue_command(self.CMD_LCD_CONTRAST, chr(value))
 
     def set_led_pin(self, led: Literal[0, 1, 2, 3], rg: Literal[0, 1], value: int):
@@ -510,7 +514,10 @@ class CF635Screen(CFLCDScreen):
         rg -- 0 for red, 1 for green
         value -- 0 to 100
         """
-        assert 0 <= led <= 3
-        assert rg in (0, 1)
-        assert 0 <= value <= 100
+        if not 0 <= led <= 3:
+            raise ValueError(led)
+        if rg not in (0, 1):
+            raise ValueError(rg)
+        if not 0 <= value <= 100:
+            raise ValueError(value)
         self.queue_command(self.CMD_GPO, chr(12 - 2 * led - rg) + chr(value))

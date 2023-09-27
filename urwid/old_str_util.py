@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid unicode character processing tables
 #    Copyright (C) 2004-2011  Ian Ward
 #
@@ -84,8 +82,7 @@ widths: list[tuple[int, Literal[0, 1, 2]]] = [
 
 def get_width(o: int) -> Literal[0, 1, 2]:
     """Return the screen column width for unicode ordinal o."""
-    global widths
-    if o == 0xE or o == 0xF:
+    if o in (0xE, 0xF):
         return 0
     for num, wid in widths:
         if o <= num:
@@ -170,26 +167,29 @@ def decode_one_uni(text: str, i: int) -> tuple[int, int]:
     return ord(text[i]), i + 1
 
 
-def decode_one_right(text: bytes, pos: int) -> tuple[int, int]:
+def decode_one_right(text: bytes, pos: int) -> tuple[int, int] | None:
     """
     Return (ordinal at pos, next position) for UTF-8 encoded text.
     pos is assumed to be on the trailing byte of a utf-8 sequence.
     """
-    assert isinstance(text, bytes), text
+    if not isinstance(text, bytes):
+        raise TypeError(text)
     error = ord("?"), pos - 1
     p = pos
     while p >= 0:
         if text[p] & 0xC0 != 0x80:
-            o, next = decode_one(text, p)
+            o, _next_pos = decode_one(text, p)
             return o, p - 1
         p -= 1
         if p == p - 4:
             return error
+    return None
 
 
 def set_byte_encoding(enc: Literal["utf8", "narrow", "wide"]):
-    assert enc in ("utf8", "narrow", "wide")
-    global _byte_encoding
+    if enc not in ("utf8", "narrow", "wide"):
+        raise ValueError(enc)
+    global _byte_encoding  # noqa: PLW0603
     _byte_encoding = enc
 
 
@@ -207,7 +207,9 @@ def calc_text_pos(text: str | bytes, start_offs: int, end_offs: int, pref_col: i
 
     Returns (position, actual_col).
     """
-    assert start_offs <= end_offs, repr((start_offs, end_offs))
+    if start_offs > end_offs:
+        raise ValueError((start_offs, end_offs))
+
     utfs = isinstance(text, bytes) and _byte_encoding == "utf8"
     unis = isinstance(text, str)
     if unis or utfs:
@@ -224,14 +226,14 @@ def calc_text_pos(text: str | bytes, start_offs: int, end_offs: int, pref_col: i
             sc += w
         return i, sc
 
-    assert isinstance(text, bytes), repr(text)
+    if not isinstance(text, bytes):
+        raise TypeError(text)
     # "wide" and "narrow"
     i = start_offs + pref_col
     if i >= end_offs:
         return end_offs, end_offs - start_offs
-    if _byte_encoding == "wide":
-        if within_double_byte(text, start_offs, i) == 2:
-            i -= 1
+    if _byte_encoding == "wide" and within_double_byte(text, start_offs, i) == 2:
+        i -= 1
     return i, i - start_offs
 
 
@@ -246,7 +248,8 @@ def calc_width(text: str | bytes, start_offs: int, end_offs: int) -> int:
     to calculate the screen column width of text[start_offs:end_offs]
     """
 
-    assert start_offs <= end_offs, repr((start_offs, end_offs))
+    if start_offs > end_offs:
+        raise ValueError((start_offs, end_offs))
 
     utfs = isinstance(text, bytes) and _byte_encoding == "utf8"
     unis = not isinstance(text, bytes)
@@ -274,7 +277,8 @@ def is_wide_char(text: str | bytes, offs: int) -> bool:
     if isinstance(text, str):
         o = ord(text[offs])
         return get_width(o) == 2
-    assert isinstance(text, bytes)
+    if not isinstance(text, bytes):
+        raise TypeError(text)
     if _byte_encoding == "utf8":
         o, n = decode_one(text, offs)
         return get_width(o) == 2
@@ -287,10 +291,12 @@ def move_prev_char(text: str | bytes, start_offs: int, end_offs: int):
     """
     Return the position of the character before end_offs.
     """
-    assert start_offs < end_offs
+    if start_offs >= end_offs:
+        raise ValueError((start_offs, end_offs))
     if isinstance(text, str):
         return end_offs - 1
-    assert isinstance(text, bytes)
+    if not isinstance(text, bytes):
+        raise TypeError(text)
     if _byte_encoding == "utf8":
         o = end_offs - 1
         while text[o] & 0xC0 == 0x80:
@@ -305,10 +311,12 @@ def move_next_char(text: str | bytes, start_offs: int, end_offs: int) -> int:
     """
     Return the position of the character after start_offs.
     """
-    assert start_offs < end_offs
+    if start_offs >= end_offs:
+        raise ValueError((start_offs, end_offs))
     if isinstance(text, str):
         return start_offs + 1
-    assert isinstance(text, bytes)
+    if not isinstance(text, bytes):
+        raise TypeError(text)
     if _byte_encoding == "utf8":
         o = start_offs + 1
         while o < end_offs and text[o] & 0xC0 == 0x80:
@@ -331,7 +339,8 @@ def within_double_byte(text: bytes, line_start: int, pos: int) -> Literal[0, 1, 
     1 -- pos is on the 1st half of a dbe char
     2 -- pos is on the 2nd half of a dbe char
     """
-    assert isinstance(text, bytes)
+    if not isinstance(text, bytes):
+        raise TypeError(text)
     v = text[pos]
 
     if 0x40 <= v < 0x7F:
@@ -339,9 +348,8 @@ def within_double_byte(text: bytes, line_start: int, pos: int) -> Literal[0, 1, 
         if pos == line_start:
             return 0
 
-        if text[pos - 1] >= 0x81:
-            if within_double_byte(text, line_start, pos - 1) == 1:
-                return 2
+        if text[pos - 1] >= 0x81 and within_double_byte(text, line_start, pos - 1) == 1:
+            return 2
         return 0
 
     if v < 0x80:
@@ -367,33 +375,33 @@ def process_east_asian_width() -> None:
     out = []
     last = None
     for line in sys.stdin.readlines():
-        if line[:1] == "#":
+        if line.startswith("#"):
             continue
-        line = line.strip()
-        hex, rest = line.split(";", 1)
+        line = line.strip()  # noqa: PLW2901
+        hex_val, rest = line.split(";", 1)
         wid, rest = rest.split(" # ", 1)
         word1 = rest.split(" ", 1)[0]
 
-        if "." in hex:
-            hex = hex.split("..")[1]
-        num = int(hex, 16)
+        if "." in hex_val:
+            hex_val = hex_val.split("..")[1]
+        num = int(hex_val, 16)
 
         if word1 in ("COMBINING", "MODIFIER", "<control>"):
-            l = 0
+            last_ = 0
         elif wid in ("W", "F"):
-            l = 2
+            last_ = 2
         else:
-            l = 1
+            last_ = 1
 
         if last is None:
-            out.append((0, l))
-            last = l
+            out.append((0, last_))
+            last = last_
 
-        if last == l:
-            out[-1] = (num, l)
+        if last == last_:
+            out[-1] = (num, last_)
         else:
-            out.append((num, l))
-            last = l
+            out.append((num, last_))
+            last = last_
 
     print("widths = [")
     for o in out[1:]:  # treat control characters same as ascii

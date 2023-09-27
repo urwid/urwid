@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid web (CGI/Asynchronous Javascript) display module
 #    Copyright (C) 2004-2007  Ian Ward
 #
@@ -25,6 +23,8 @@ Urwid web application display module
 """
 from __future__ import annotations
 
+import contextlib
+import dataclasses
 import glob
 import os
 import random
@@ -32,12 +32,15 @@ import select
 import signal
 import socket
 import sys
+import tempfile
 import typing
 
 from urwid import util
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
+
+TEMP_DIR = tempfile.gettempdir()
 
 _js_code = r"""
 // Urwid web (CGI/Asynchronous Javascript) display module
@@ -596,23 +599,24 @@ class Screen:
     def started(self):
         return self._started
 
-    def register_palette(self, l):
+    def register_palette(self, palette):
         """Register a list of palette entries.
 
-        l -- list of (name, foreground, background) or
-             (name, same_as_other_name) palette entries.
+        palette -- list of (name, foreground, background) or
+                   (name, same_as_other_name) palette entries.
 
         calls self.register_palette_entry for each item in l
         """
 
-        for item in l:
+        for item in palette:
             if len(item) in (3, 4):
                 self.register_palette_entry(*item)
                 continue
-            assert len(item) == 2, "Invalid register_palette usage"
+            if len(item) != 2:
+                raise ValueError(f"Invalid register_palette usage: {item!r}")
             name, like_name = item
             if like_name not in self.palette:
-                raise Exception(f"palette entry '{like_name}' doesn't exist")
+                raise KeyError(f"palette entry '{like_name}' doesn't exist")
             self.palette[name] = self.palette[like_name]
 
     def register_palette_entry(self, name, foreground, background, mono=None):
@@ -647,14 +651,13 @@ class Screen:
         web_display.set_preferences(..) must be called before calling
         this function for the preferences to take effect
         """
-        global _prefs
-
         if self._started:
             return util.StoppingContext(self)
 
         client_init = sys.stdin.read(50)
-        assert client_init.startswith("window resize "), client_init
-        ignore1, ignore2, x, y = client_init.split(" ", 3)
+        if not client_init.startswith("window resize "):
+            raise ValueError(client_init)
+        _ignore1, _ignore2, x, y = client_init.split(" ", 3)
         x = int(x)
         y = int(y)
         self._set_screen_size(x, y)
@@ -662,7 +665,8 @@ class Screen:
         self.last_screen_width = 0
 
         self.update_method = os.environ["HTTP_X_URWID_METHOD"]
-        assert self.update_method in ("multipart", "polling")
+        if self.update_method not in ("multipart", "polling"):
+            raise ValueError(self.update_method)
 
         if self.update_method == "polling" and not _prefs.allow_polling:
             sys.stdout.write("Status: 403 Forbidden\r\n\r\n")
@@ -673,7 +677,7 @@ class Screen:
             sys.stdout.write("Status: 503 Sever Busy\r\n\r\n")
             sys.exit(0)
 
-        urwid_id = f"{random.randrange(10 ** 9):09d}{random.randrange(10 ** 9):09d}"
+        urwid_id = f"{random.randrange(10 ** 9):09d}{random.randrange(10 ** 9):09d}"  # noqa: S311
         self.pipe_name = os.path.join(_prefs.pipe_dir, f"urwid{urwid_id}")
         os.mkfifo(f"{self.pipe_name}.in", 0o600)
         signal.signal(signal.SIGTERM, self._cleanup_pipe)
@@ -704,10 +708,8 @@ class Screen:
             return
 
         # XXX which exceptions does this actually raise? EnvironmentError?
-        try:
+        with contextlib.suppress(Exception):
             self._close_connection()
-        except Exception:
-            pass
         signal.signal(signal.SIGTERM, signal.SIG_DFL)
         self._cleanup_pipe()
         self._started = False
@@ -734,18 +736,16 @@ class Screen:
             sock.close()
 
         if self.update_method == "multipart":
-            sys.stdout.write("\r\nZ" "\r\n--ZZ--\r\n")
+            sys.stdout.write("\r\nZ\r\n--ZZ--\r\n")
             sys.stdout.flush()
 
     def _cleanup_pipe(self, *args):
         if not self.pipe_name:
             return
         # XXX which exceptions does this actually raise? EnvironmentError?
-        try:
+        with contextlib.suppress(Exception):
             os.remove(f"{self.pipe_name}.in")
             os.remove(f"{self.pipe_name}.update")
-        except Exception:
-            pass
 
     def _set_screen_size(self, cols, rows):
         """Set the screen size (within max size)."""
@@ -781,7 +781,8 @@ class Screen:
             send("\r\n")
             self.content_head = ""
 
-        assert r.rows() == rows
+        if r.rows() != rows:
+            raise ValueError(rows)
 
         if r.cursor is not None:
             cx, cy = r.cursor
@@ -793,14 +794,14 @@ class Screen:
         y = -1
         for row in r.content():
             y += 1
-            row = list(row)
+            l_row = list(row)
 
-            l = []
+            line = []
 
-            sig = tuple(row)
+            sig = tuple(l_row)
             if y == cy:
-                sig = sig + (cx,)
-            new_screen[sig] = new_screen.get(sig, []) + [y]
+                sig = (*sig, cx)
+            new_screen[sig] = [*new_screen.get(sig, []), y]
             old_line_numbers = self.last_screen.get(sig, None)
             if old_line_numbers is not None:
                 if y in old_line_numbers:
@@ -811,23 +812,23 @@ class Screen:
                 continue
 
             col = 0
-            for a, cs, run in row:
-                run = run.translate(_trans_table)
+            for a, _cs, run in l_row:
+                t_run = run.translate(_trans_table)
                 if a is None:
                     fg, bg, mono = "black", "light gray", None
                 else:
                     fg, bg, mono = self.palette[a]
                 if y == cy and col <= cx:
-                    run_width = util.calc_width(run, 0, len(run))
+                    run_width = util.calc_width(t_run, 0, len(t_run))
                     if col + run_width > cx:
-                        l.append(code_span(run, fg, bg, cx - col))
+                        line.append(code_span(t_run, fg, bg, cx - col))
                     else:
-                        l.append(code_span(run, fg, bg))
+                        line.append(code_span(t_run, fg, bg))
                     col += run_width
                 else:
-                    l.append(code_span(run, fg, bg))
+                    line.append(code_span(t_run, fg, bg))
 
-            send(f"{''.join(l)}\n")
+            send(f"{''.join(line)}\n")
         self.last_screen = new_screen
         self.last_screen_width = cols
 
@@ -869,7 +870,8 @@ class Screen:
         self.server_socket = s
 
     def _handle_alarm(self, sig, frame):
-        assert self.update_method in ("multipart", "polling child")
+        if self.update_method not in ("multipart", "polling child"):
+            raise ValueError(self.update_method)
         if self.update_method == "polling child":
             # send empty update
             try:
@@ -897,7 +899,7 @@ class Screen:
 
     def get_input(self, raw_keys: bool = False) -> list[str] | tuple[list[str], list[int]]:
         """Return pending input as a list."""
-        l = []
+        pending_input = []
         resized = False
 
         try:
@@ -931,13 +933,13 @@ class Screen:
                 self._set_screen_size(x, y)
                 resized = True
             else:
-                l.append(k)
+                pending_input.append(k)
         if resized:
-            l.append("window resize")
+            pending_input.append("window resize")
 
         if raw_keys:
-            return l, []
-        return l
+            return pending_input, []
+        return pending_input
 
 
 def code_span(s, fg, bg, cursor=-1):
@@ -962,8 +964,8 @@ def code_span(s, fg, bg, cursor=-1):
             + s[c2_off:]
             + "\n"
         )
-    else:
-        return f"{code_fg + code_bg + s}\n"
+
+    return f"{code_fg + code_bg + s}\n"
 
 
 def html_escape(text):
@@ -991,8 +993,6 @@ def handle_short_request():
     web_display.set_preferences(..) should be called before calling this
     function for the preferences to take effect
     """
-    global _prefs
-
     if not is_web_request():
         return False
 
@@ -1031,10 +1031,10 @@ def handle_short_request():
             while data:
                 sys.stdout.write(data)
                 data = s.recv(BUF_SZ)
-            return True
         except OSError:
             sys.stdout.write("Status: 404 Not Found\r\n\r\n")
             return True
+        return True
 
     # this is a keyboard input request
     try:
@@ -1052,17 +1052,23 @@ def handle_short_request():
     return True
 
 
+@dataclasses.dataclass
 class _Preferences:
-    app_name = "Unnamed Application"
-    pipe_dir = "/tmp"
-    allow_polling = True
-    max_clients = 20
+    app_name: str = "Unnamed Application"
+    pipe_dir: str = TEMP_DIR
+    allow_polling: bool = True
+    max_clients: int = 20
 
 
 _prefs = _Preferences()
 
 
-def set_preferences(app_name, pipe_dir="/tmp", allow_polling=True, max_clients=20):
+def set_preferences(
+    app_name: str,
+    pipe_dir: str = TEMP_DIR,
+    allow_polling: bool = True,
+    max_clients: int = 20,
+) -> None:
     """
     Set web_display preferences.
 
@@ -1075,7 +1081,6 @@ def set_preferences(app_name, pipe_dir="/tmp", allow_polling=True, max_clients=2
                pool is shared by all urwid applications
                using the same pipe_dir
     """
-    global _prefs
     _prefs.app_name = app_name
     _prefs.pipe_dir = pipe_dir
     _prefs.allow_polling = allow_polling
@@ -1087,7 +1092,8 @@ class ErrorLog:
         self.errfile = errfile
 
     def write(self, err):
-        open(self.errfile, "a").write(err)
+        with open(self.errfile, "a") as f:
+            f.write(err)
 
 
 def daemonize(errfile):
@@ -1108,11 +1114,9 @@ def daemonize(errfile):
 
     os.chdir("/")
     for fd in range(0, 20):
-        try:
+        with contextlib.suppress(OSError):
             os.close(fd)
-        except OSError:
-            pass
 
-    sys.stdin = open("/dev/null")
-    sys.stdout = open("/dev/null", "w")
+    sys.stdin = open("/dev/null")  # noqa: SIM115
+    sys.stdout = open("/dev/null", "w")  # noqa: SIM115
     sys.stderr = ErrorLog(errfile)

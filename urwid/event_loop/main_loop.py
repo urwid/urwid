@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid main loop code
 #    Copyright (C) 2004-2012  Ian Ward
 #    Copyright (C) 2008 Walter Mundt

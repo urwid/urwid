@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid canvas class and functions
 #    Copyright (C) 2004-2011  Ian Ward
 #
@@ -22,6 +20,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import typing
 import warnings
 import weakref
@@ -61,9 +60,22 @@ class CanvasCache:
     _deps[widget} = [dependent_widget, ...]
     """
 
-    _widgets = {}
-    _refs = {}
-    _deps: dict[Widget, list[Widget]] = {}
+    _widgets: typing.ClassVar[
+        dict[
+            Widget,
+            dict[
+                tuple[type[Widget], tuple[int, int] | tuple[int] | tuple[()], bool],
+                weakref.ReferenceType,
+            ],
+        ]
+    ] = {}
+    _refs: typing.ClassVar[
+        dict[
+            weakref.ReferenceType,
+            tuple[type[Widget], tuple[int, int] | tuple[int] | tuple[()], bool],
+        ]
+    ] = {}
+    _deps: typing.ClassVar[dict[Widget, list[Widget]]] = {}
     hits = 0
     fetches = 0
     cleanups = 0
@@ -79,7 +91,8 @@ class CanvasCache:
         if not canvas.cacheable:
             return
 
-        assert canvas.widget_info, "Can't store canvas without widget_info"
+        if not canvas.widget_info:
+            raise TypeError("Can't store canvas without widget_info")
         widget, size, focus = canvas.widget_info
 
         def walk_depends(canv):
@@ -90,7 +103,7 @@ class CanvasCache:
             # FIXME: is this recursion necessary?  The cache
             # invalidating might work with only one level.
             depends = []
-            for x, y, c, pos in canv.children:
+            for _x, _y, c, _pos in canv.children:
                 if c.widget_info:
                     depends.append(c.widget_info[0])
                 elif hasattr(c, "children"):
@@ -141,20 +154,16 @@ class CanvasCache:
         """
         try:
             for ref in cls._widgets[widget].values():
-                try:
+                with contextlib.suppress(KeyError):
                     del cls._refs[ref]
-                except KeyError:
-                    pass
             del cls._widgets[widget]
         except KeyError:
             pass
         if widget not in cls._deps:
             return
         dependants = cls._deps.get(widget, [])
-        try:
+        with contextlib.suppress(KeyError):
             del cls._deps[widget]
-        except KeyError:
-            pass
         for w in dependants:
             cls.invalidate(w)
 
@@ -170,10 +179,8 @@ class CanvasCache:
         sizes = cls._widgets.get(widget, None)
         if not sizes:
             return
-        try:
+        with contextlib.suppress(KeyError):
             del sizes[(wcls, size, focus)]
-        except KeyError:
-            pass
         if not sizes:
             try:
                 del cls._widgets[widget]
@@ -305,19 +312,17 @@ class Canvas:
         if self.widget_info and self.cacheable:
             raise self._finalized_error
         if c is None:
-            try:
+            with contextlib.suppress(KeyError):
                 del self.coords["cursor"]
-            except KeyError:
-                pass
             return
-        self.coords["cursor"] = c + (None,)  # data part
+        self.coords["cursor"] = (*c, None)  # data part
 
     cursor = property(get_cursor, set_cursor)
 
     def get_pop_up(self):
         c = self.coords.get("pop up", None)
         if not c:
-            return
+            return None
         return c
 
     def set_pop_up(self, w: Widget, left: int, top: int, overlay_width: int, overlay_height: int):
@@ -386,7 +391,8 @@ class TextCanvas(Canvas):
                     raise CanvasError("Canvas text must be plain strings encoded in the screen's encoding", repr(text))
                 widths.append(calc_width(t, 0, len(t)))
         else:
-            assert isinstance(maxcol, int)
+            if not isinstance(maxcol, int):
+                raise TypeError(maxcol)
             widths = [maxcol] * len(text)
 
         if maxcol is None:
@@ -429,7 +435,8 @@ class TextCanvas(Canvas):
     def rows(self) -> int:
         """Return the number of rows in this canvas."""
         rows = len(self._text)
-        assert isinstance(rows, int)
+        if not isinstance(rows, int):
+            raise TypeError(rows)
         return rows
 
     def cols(self) -> int:
@@ -468,10 +475,10 @@ class TextCanvas(Canvas):
         if not rows:
             rows = maxrow - trim_top
 
-        assert 0 <= trim_left < maxcol
-        assert cols > 0 and trim_left + cols <= maxcol
-        assert 0 <= trim_top < maxrow
-        assert rows > 0 and trim_top + rows <= maxrow
+        if not ((0 <= trim_left < maxcol) and (cols > 0 and trim_left + cols <= maxcol)):
+            raise ValueError(trim_left)
+        if not ((0 <= trim_top < maxrow) and (rows > 0 and trim_top + rows <= maxrow)):
+            raise ValueError(trim_top)
 
         if trim_top or rows < maxrow:
             text_attr_cs = zip(
@@ -484,13 +491,19 @@ class TextCanvas(Canvas):
 
         for text, a_row, cs_row in text_attr_cs:
             if trim_left or cols < self._maxcol:
-                text, a_row, cs_row = trim_text_attr_cs(text, a_row, cs_row, trim_left, trim_left + cols)
+                text, a_row, cs_row = trim_text_attr_cs(  # noqa: PLW2901
+                    text,
+                    a_row,
+                    cs_row,
+                    trim_left,
+                    trim_left + cols,
+                )
             attr_cs = rle_product(a_row, cs_row)
             i = 0
             row = []
             for (a, cs), run in attr_cs:
                 if attr_map and a in attr_map:
-                    a = attr_map[a]
+                    a = attr_map[a]  # noqa: PLW2901
                 row.append((a, cs, text[i : i + run]))
                 i += run
             yield row
@@ -556,7 +569,8 @@ class SolidCanvas(Canvas):
     def __init__(self, fill_char, cols: int, rows: int) -> None:
         super().__init__()
         end, col = calc_text_pos(fill_char, 0, len(fill_char), 1)
-        assert col == 1, f"Invalid fill_char: {fill_char!r}"
+        if col != 1:
+            raise ValueError(f"Invalid fill_char: {fill_char!r}")
         self._text, cs = apply_target_encoding(fill_char[:end])
         self._cs = cs[0][0]
         self.size = cols, rows
@@ -636,19 +650,19 @@ class CompositeCanvas(Canvas):
 
     def rows(self) -> int:
         for r, cv in self.shards:
-            try:
-                assert isinstance(r, int)
-            except AssertionError:
-                raise AssertionError(r, cv)
-        rows = sum([r for r, cv in self.shards])
-        assert isinstance(rows, int)
+            if not isinstance(r, int):
+                raise TypeError(r, cv)
+        rows = sum(r for r, cv in self.shards)
+        if not isinstance(rows, int):
+            raise TypeError(rows)
         return rows
 
     def cols(self) -> int:
         if not self.shards:
             return 0
         cols = sum([cv[2] for cv in self.shards[0][1]])
-        assert isinstance(cols, int)
+        if not isinstance(cols, int):
+            raise TypeError(cols)
         return cols
 
     def content(self):
@@ -687,7 +701,7 @@ class CompositeCanvas(Canvas):
             for _ in range(num_rows):
                 # if whole shard is unchanged, don't keep
                 # calling shard_body_row
-                if len(row) != 1 or type(row[0]) != int:
+                if len(row) != 1 or not isinstance(row[0], int):
                     row = shard_body_row(sbody)
                 yield row
 
@@ -700,8 +714,10 @@ class CompositeCanvas(Canvas):
         top -- number of lines to remove from top
         count -- number of lines to keep, or None for all the rest
         """
-        assert top >= 0, f"invalid trim amount {top:d}!"
-        assert top < self.rows(), f"cannot trim {top:d} lines from {self.rows():d}!"
+        if top < 0:
+            raise ValueError(f"invalid trim amount {top:d}!")
+        if top >= self.rows():
+            raise ValueError(f"cannot trim {top:d} lines from {self.rows():d}!")
         if self.widget_info:
             raise self._finalized_error
 
@@ -720,8 +736,10 @@ class CompositeCanvas(Canvas):
 
         end -- number of lines to remove from the end
         """
-        assert end > 0, f"invalid trim amount {end:d}!"
-        assert end <= self.rows(), f"cannot trim {end:d} lines from {self.rows():d}!"
+        if end <= 0:
+            raise ValueError(f"invalid trim amount {end:d}!")
+        if end > self.rows():
+            raise ValueError(f"cannot trim {end:d} lines from {self.rows():d}!")
         if self.widget_info:
             raise self._finalized_error
 
@@ -746,7 +764,7 @@ class CompositeCanvas(Canvas):
         if left > 0 or right > 0:
             top_rows, top_cviews = shards[0]
             if left > 0:
-                new_top_cviews = [(0, 0, left, rows, None, blank_canvas)] + top_cviews
+                new_top_cviews = [(0, 0, left, rows, None, blank_canvas), *top_cviews]
             else:
                 new_top_cviews = top_cviews[:]  # copy
 
@@ -772,7 +790,7 @@ class CompositeCanvas(Canvas):
 
         cols = self.cols()
         if top > 0:
-            self.shards = [(top, [(0, 0, cols, top, None, blank_canvas)])] + self.shards
+            self.shards = [(top, [(0, 0, cols, top, None, blank_canvas)]), *self.shards]
             self.coords = self.translate_coords(0, top)
 
         if bottom > 0:
@@ -790,8 +808,10 @@ class CompositeCanvas(Canvas):
         right = self.cols() - left - width
         bottom = self.rows() - top - height
 
-        assert right >= 0, f"top canvas of overlay not the size expected!{repr((other.cols(), left, right, width))}"
-        assert bottom >= 0, f"top canvas of overlay not the size expected!{repr((other.rows(), top, bottom, height))}"
+        if right < 0:
+            raise ValueError(f"top canvas of overlay not the size expected!{(other.cols(), left, right, width)!r}")
+        if bottom < 0:
+            raise ValueError(f"top canvas of overlay not the size expected!{(other.rows(), top, bottom, height)!r}")
 
         shards = self.shards
         top_shards = []
@@ -814,7 +834,7 @@ class CompositeCanvas(Canvas):
         if not self.rows():
             middle_shards = []
         elif left or right:
-            middle_shards = shards_join(left_shards + [other.shards] + right_shards)
+            middle_shards = shards_join((*left_shards, other.shards, *right_shards))
         else:
             middle_shards = other.shards
 
@@ -871,12 +891,12 @@ def shard_body_row(sbody):
     ** MODIFIES sbody by calling next() on its iterators **
     """
     row = []
-    for done_rows, content_iter, cview in sbody:
+    for _done_rows, content_iter, cview in sbody:
         if content_iter:
             row.extend(next(content_iter))
-        else:
+        else:  # noqa: PLR5501
             # need to skip this unchanged canvas
-            if row and type(row[-1]) == int:
+            if row and isinstance(row[-1], int):
                 row[-1] = row[-1] + cview[2]
             else:
                 row.append(cview[2])
@@ -893,7 +913,7 @@ def shard_body_tail(num_rows: int, sbody):
     done_rows = 0
     for done_rows, content_iter, cview in sbody:
         cols, rows = cview[2:4]
-        done_rows += num_rows
+        done_rows += num_rows  # noqa: PLW2901
         if done_rows == rows:
             col_gap += cols
             continue
@@ -975,7 +995,7 @@ def shard_body(cviews, shard_tail, create_iter: bool = True, iter_default=None):
                 break
             (trim_left, trim_top, cols, rows, attr_map, canv) = cview[:6]
             col += cols
-            col_gap -= cols
+            col_gap -= cols  # noqa: PLW2901
             if col_gap < 0:
                 raise CanvasError("cviews overflow gaps in shard_tail!")
             if create_iter and canv:
@@ -998,7 +1018,8 @@ def shards_trim_top(shards, top: int):
     """
     Return shards with top rows removed.
     """
-    assert top > 0
+    if top <= 0:
+        raise ValueError(top)
 
     shard_iter = iter(shards)
     shard_tail = []
@@ -1032,7 +1053,8 @@ def shards_trim_rows(shards, keep_rows: int):
     """
     Return the topmost keep_rows rows from shards.
     """
-    assert keep_rows >= 0, keep_rows
+    if keep_rows < 0:
+        raise ValueError(keep_rows)
 
     new_shards = []
     done_rows = 0
@@ -1059,7 +1081,10 @@ def shards_trim_sides(shards, left: int, cols: int):
     """
     Return shards with starting from column left and cols total width.
     """
-    assert left >= 0 and cols > 0, (left, cols)
+    if left < 0:
+        raise ValueError(left)
+    if cols <= 0:
+        raise ValueError(cols)
     shard_tail = []
     new_shards = []
     right = left + cols
@@ -1068,17 +1093,17 @@ def shards_trim_sides(shards, left: int, cols: int):
         shard_tail = shard_body_tail(num_rows, sbody)
         new_cviews = []
         col = 0
-        for done_rows, content_iter, cv in sbody:
+        for done_rows, _content_iter, cv in sbody:
             cv_cols = cv[2]
             next_col = col + cv_cols
             if done_rows or next_col <= left or col >= right:
                 col = next_col
                 continue
             if col < left:
-                cv = cview_trim_left(cv, left - col)
+                cv = cview_trim_left(cv, left - col)  # noqa: PLW2901
                 col = left
             if next_col > right:
-                cv = cview_trim_cols(cv, right - col)
+                cv = cview_trim_cols(cv, right - col)  # noqa: PLW2901
             new_cviews.append(cv)
             col = next_col
         if not new_cviews:
@@ -1138,19 +1163,17 @@ def cview_trim_cols(cv, cols: int):
     return cv[:2] + (cols,) + cv[3:]
 
 
-def CanvasCombine(l):
+def CanvasCombine(canvas_info):
     """Stack canvases in l vertically and return resulting canvas.
 
-    :param l: list of (canvas, position, focus) tuples:
+    :param canvas_info: list of (canvas, position, focus) tuples:
 
-              position
-                a value that widget.set_focus will accept or None if not
-                allowed
-              focus
-                True if this canvas is the one that would be in focus
-                if the whole widget is in focus
+                        position
+                            a value that widget.set_focus will accept or None if not allowed
+                        focus
+                            True if this canvas is the one that would be in focus if the whole widget is in focus
     """
-    clist = [(CompositeCanvas(c), p, f) for c, p, f in l]
+    clist = [(CompositeCanvas(c), p, f) for c, p, f in canvas_info]
 
     combined_canvas = CompositeCanvas()
     shards = []
@@ -1164,7 +1187,7 @@ def CanvasCombine(l):
         children.append((0, row, canv, pos))
         shards.extend(canv.shards)
         combined_canvas.coords.update(canv.translate_coords(0, row))
-        for shortcut in canv.shortcuts.keys():
+        for shortcut in canv.shortcuts:
             combined_canvas.shortcuts[shortcut] = pos
         row += canv.rows()
         n += 1
@@ -1185,33 +1208,32 @@ def CanvasOverlay(top_c, bottom_c, left: int, top: int):
     overlayed_canvas.overlay(top_c, left, top)
     overlayed_canvas.children = [(left, top, top_c, None), (0, 0, bottom_c, None)]
     overlayed_canvas.shortcuts = {}  # disable background shortcuts
-    for shortcut in top_c.shortcuts.keys():
+    for shortcut in top_c.shortcuts:
         overlayed_canvas.shortcuts[shortcut] = "fg"
     return overlayed_canvas
 
 
-def CanvasJoin(l):
+def CanvasJoin(canvas_info):
     """
     Join canvases in l horizontally. Return result.
 
-    :param l: list of (canvas, position, focus, cols) tuples:
+    :param canvas_info: list of (canvas, position, focus, cols) tuples:
 
-              position
-                value that widget.set_focus will accept or None if not allowed
-              focus
-                True if this canvas is the one that would be in focus if
-                the whole widget is in focus
-              cols
-                is the number of screen columns that this widget will require,
-                if larger than the actual canvas.cols() value then this widget
-                will be padded on the right.
+                        position
+                            value that widget.set_focus will accept or None if not allowed
+                        focus
+                            True if this canvas is the one that would be in focus if the whole widget is in focus
+                        cols
+                            is the number of screen columns that this widget will require,
+                            if larger than the actual canvas.cols() value then this widget
+                            will be padded on the right.
     """
 
     l2 = []
     focus_item = 0
     maxrow = 0
     n = 0
-    for canv, pos, focus, cols in l:
+    for canv, pos, focus, cols in canvas_info:
         rows = canv.rows()
         pad_right = cols - canv.cols()
         if focus:
@@ -1226,17 +1248,17 @@ def CanvasJoin(l):
     joined_canvas = CompositeCanvas()
     col = 0
     for canv, pos, pad_right, rows in l2:
-        canv = CompositeCanvas(canv)
+        composite_canvas = CompositeCanvas(canv)
         if pad_right:
-            canv.pad_trim_left_right(0, pad_right)
+            composite_canvas.pad_trim_left_right(0, pad_right)
         if rows < maxrow:
-            canv.pad_trim_top_bottom(0, maxrow - rows)
-        joined_canvas.coords.update(canv.translate_coords(col, 0))
-        for shortcut in canv.shortcuts.keys():
+            composite_canvas.pad_trim_top_bottom(0, maxrow - rows)
+        joined_canvas.coords.update(composite_canvas.translate_coords(col, 0))
+        for shortcut in composite_canvas.shortcuts:
             joined_canvas.shortcuts[shortcut] = pos
-        shard_lists.append(canv.shards)
-        children.append((col, 0, canv, pos))
-        col += canv.cols()
+        shard_lists.append(composite_canvas.shards)
+        children.append((col, 0, composite_canvas, pos))
+        col += composite_canvas.cols()
 
     if focus_item:
         children = [children[focus_item]] + children[:focus_item] + children[focus_item + 1 :]
@@ -1286,7 +1308,7 @@ def apply_text_layout(text, attr, ls, maxcol: int):
 
     for line_layout in ls:
         # trim the line to fit within maxcol
-        line_layout = trim_line(line_layout, text, 0, maxcol)
+        line_layout = trim_line(line_layout, text, 0, maxcol)  # noqa: PLW2901
 
         line = []
         linea = []
@@ -1299,23 +1321,23 @@ def apply_text_layout(text, attr, ls, maxcol: int):
             """
             if start_offs == end_offs:
                 [(at, run)] = arange(start_offs, end_offs)
-                rle_append_modify(linea, (at, destw))
+                rle_append_modify(linea, (at, destw))  # noqa: B023
                 return
             if destw == end_offs - start_offs:
                 for at, run in arange(start_offs, end_offs):
-                    rle_append_modify(linea, (at, run))
+                    rle_append_modify(linea, (at, run))  # noqa: B023
                 return
             # encoded version has different width
             o = start_offs
             for at, run in arange(start_offs, end_offs):
                 if o + run == end_offs:
-                    rle_append_modify(linea, (at, destw))
+                    rle_append_modify(linea, (at, destw))  # noqa: B023
                     return
                 tseg = text[o : o + run]
                 tseg, cs = apply_target_encoding(tseg)
                 segw = rle_len(cs)
 
-                rle_append_modify(linea, (at, segw))
+                rle_append_modify(linea, (at, segw))  # noqa: B023
                 o += run
                 destw -= segw
 

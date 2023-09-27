@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid __init__.py - all the stuff you're likely to care about
 #
 #    Copyright (C) 2004-2012  Ian Ward

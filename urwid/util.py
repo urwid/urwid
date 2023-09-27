@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Urwid utility functions
 #    Copyright (C) 2004-2011  Ian Ward
 #
@@ -23,6 +21,7 @@
 from __future__ import annotations
 
 import codecs
+import contextlib
 import typing
 import warnings
 
@@ -56,23 +55,19 @@ def detect_encoding() -> str:
     # Use actual `getpreferredencoding` with public API only
     old_loc = locale.setlocale(locale.LC_CTYPE)  # == getlocale, but not mangle data
     try:
-        try:
+        with contextlib.suppress(locale.Error):
             locale.setlocale(locale.LC_CTYPE, "")
-        except locale.Error:
-            pass
         # internally call private `_get_locale_encoding`
         return locale.getpreferredencoding(False)
     finally:
-        try:
+        with contextlib.suppress(locale.Error):
             locale.setlocale(locale.LC_CTYPE, old_loc)
-        except locale.Error:
-            pass
 
 
 if "detected_encoding" not in locals():
     detected_encoding = detect_encoding()
 else:
-    assert 0, "It worked!"
+    raise RuntimeError("Encoding detection broken")
 
 _target_encoding = "ascii"
 _use_dec_special = True
@@ -85,7 +80,7 @@ def set_encoding(encoding):
     """
     encoding = encoding.lower()
 
-    global _target_encoding, _use_dec_special
+    global _target_encoding, _use_dec_special  # noqa: PLW0603
 
     if encoding in ("utf-8", "utf8", "utf"):
         str_util.set_byte_encoding("utf8")
@@ -147,13 +142,15 @@ def apply_target_encoding(s: str | bytes):
         s = s.replace(escape.SI + escape.SO, "")  # remove redundant shifts
         s = codecs.encode(s, _target_encoding, "replace")
 
-    assert isinstance(s, bytes)
+    if not isinstance(s, bytes):
+        raise TypeError(s)
     SO = escape.SO.encode("ascii")
     SI = escape.SI.encode("ascii")
 
     sis = s.split(SO)
 
-    assert isinstance(sis[0], bytes)
+    if not isinstance(sis[0], bytes):
+        raise TypeError(sis[0])
 
     sis0 = sis[0].replace(SI, b"")
     sout = []
@@ -166,12 +163,16 @@ def apply_target_encoding(s: str | bytes):
         return sis0, cout
 
     for sn in sis[1:]:
-        assert isinstance(sn, bytes)
-        assert isinstance(SI, bytes)
+        if not isinstance(sn, bytes):
+            raise TypeError(sn)
+        if not isinstance(SI, bytes):
+            raise TypeError(SI)
+
         sl = sn.split(SI, 1)
         if len(sl) == 1:
             sin = sl[0]
-            assert isinstance(sin, bytes)
+            if not isinstance(sin, bytes):
+                raise TypeError(sin)
             sout.append(sin)
             rle_append_modify(cout, (escape.DEC_TAG, len(sin)))
             continue
@@ -264,8 +265,8 @@ def rle_get_at(rle, pos: int):
 
 
 def rle_subseg(rle, start: int, end: int):
-    """Return a sub segment of an rle list."""
-    l = []
+    """Return a sub segment of a rle list."""
+    sub_segment = []
     x = 0
     for a, run in rle:
         if start:
@@ -274,15 +275,15 @@ def rle_subseg(rle, start: int, end: int):
                 x += run
                 continue
             x += start
-            run -= start
+            run -= start  # noqa: PLW2901
             start = 0
         if x >= end:
             break
         if x + run > end:
-            run = end - x
+            run = end - x  # noqa: PLW2901
         x += run
-        l.append((a, run))
-    return l
+        sub_segment.append((a, run))
+    return sub_segment
 
 
 def rle_len(rle) -> int:
@@ -293,7 +294,8 @@ def rle_len(rle) -> int:
 
     run = 0
     for v in rle:
-        assert isinstance(v, tuple), repr(rle)
+        if not isinstance(v, tuple):
+            raise TypeError(rle)
         a, r = v
         run += r
     return run
@@ -361,10 +363,10 @@ def rle_product(rle1, rle2):
     a1, r1 = rle1[0]
     a2, r2 = rle2[0]
 
-    l = []
+    result = []
     while r1 and r2:
         r = min(r1, r2)
-        rle_append_modify(l, ((a1, a2), r))
+        rle_append_modify(result, ((a1, a2), r))
         r1 -= r
         if r1 == 0 and i1 < len(rle1):
             a1, r1 = rle1[i1]
@@ -373,7 +375,7 @@ def rle_product(rle1, rle2):
         if r2 == 0 and i2 < len(rle2):
             a2, r2 = rle2[i2]
             i2 += 1
-    return l
+    return result
 
 
 def rle_factor(rle):
