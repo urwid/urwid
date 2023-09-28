@@ -144,7 +144,7 @@ __all__ = (
     "GraphVScale",
     "scale_bar_values",
     "ProgressBar",
-    "WidgetContainerListContentsMixin"
+    "WidgetContainerListContentsMixin",
 )
 
 # Backward compatibility
