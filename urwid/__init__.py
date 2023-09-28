@@ -194,6 +194,8 @@ from urwid.widget import (
     scale_bar_values,
 )
 
+from . import event_loop, widget
+
 from urwid.treetools import ParentNode, TreeListBox, TreeNode, TreeWalker, TreeWidget, TreeWidgetError  # isort: skip
 
 # Optional event loops with external dependencies
