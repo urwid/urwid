@@ -38,7 +38,7 @@ sync_example_settled() {
 	echo
 }
 
-# target script is interpreted by python, use it's PID
+# target script is interpreted by python, use its PID
 example_pid="$(pgrep -P $RXVTPID python)"
 
 c=1
