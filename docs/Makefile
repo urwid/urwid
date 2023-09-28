@@ -11,4 +11,4 @@ ${TARGETS}: %1.png: %.py %.py.xdotool ${TOOLS}
 	tools/compile_pngs.sh $<
 
 apt-get-dependencies:
-	sudo apt-get install xvfb rxvt-unicode-256color xdotool
+	sudo apt-get install xvfb rxvt-unicode xdotool
