@@ -6,5 +6,5 @@ import os
 
 import real_browse
 
-os.chdir('/sys')
+os.chdir('/usr/share/doc/python3')
 real_browse.main()
