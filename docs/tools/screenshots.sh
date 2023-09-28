@@ -39,7 +39,7 @@ sync_example_settled() {
 }
 
 # target script is interpreted by python, use it's PID
-example_pid="$(pgrep python)"
+example_pid="$(pgrep -P $RXVTPID python)"
 
 c=1
 while read -r line; do
