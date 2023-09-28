@@ -7,8 +7,8 @@ CLASSNAME=urwid-docs-$(head -c 6 /dev/urandom | base64 | tr -cd '[:alnum:]')
 PYTHON=python
 
 urxvt -bg gray90 -b 0 +sb \
-	-fn 'xft:Monospace:pixelsize=15' \
-	-fb 'xft:Monospace-Bold:pixelsize=15' \
+	-fn 'xft:Monospace:pixelsize=20' \
+	-fb 'xft:Monospace-Bold:pixelsize=20' \
 	-name "$CLASSNAME" \
 	-e "$PYTHON" "$1" &
 RXVTPID=$!
@@ -38,8 +38,8 @@ sync_example_settled() {
 	echo
 }
 
-# urxvt will have an interpreter as one child process; find it
-example_pid="$(ps --no-headers -o pid --ppid $RXVTPID)"
+# target script is interpreted by python, use it's PID
+example_pid="$(pgrep python)"
 
 c=1
 while read -r line; do
