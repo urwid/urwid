@@ -44,7 +44,7 @@ jobs:
         run: pip install -e .
       - name: Build documentation
         env:
-          SPHINX_GITHUB_CHANGELOG_TOKEN: ${{ secrets.URWID_SPHINX_RO_TOKEN }}
+          CHANGELOG_GITHUB_TOKEN: ${{ secrets.URWID_SPHINX_RO_TOKEN }}
         run: sphinx-build docs build/documentation
       - uses: actions/upload-artifact@v3
         with:

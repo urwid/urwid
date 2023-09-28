@@ -34,7 +34,7 @@ extensions = [
     "sphinx_github_changelog",
 ]
 
-sphinx_github_changelog_token = os.environ.get("CHANGELOG_GITHUB_TOKEN")
+changelog_github_token = os.environ.get("CHANGELOG_GITHUB_TOKEN")
 
 
 # Add any paths that contain templates here, relative to this directory.
