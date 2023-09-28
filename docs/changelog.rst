@@ -2,6 +2,11 @@
 Changelog
 ---------
 
+.. changelog::
+    :changelog-url: https://urwid.org/changelog.html
+    :github: https://github.com/urwid/urwid/releases/
+    :pypi: https://pypi.org/project/urwid/
+
 Urwid 2.2.2
 ===========
 
