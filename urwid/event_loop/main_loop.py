@@ -33,7 +33,7 @@ from urwid import raw_display, signals
 from urwid.command_map import Command, command_map
 from urwid.display_common import INPUT_DESCRIPTORS_CHANGED
 from urwid.util import StoppingContext, is_mouse_event
-from urwid.wimp import PopUpTarget
+from urwid.widget import PopUpTarget
 
 from .abstract_loop import ExitMainLoop
 from .select_loop import SelectEventLoop
