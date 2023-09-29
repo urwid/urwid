@@ -12,7 +12,7 @@ It includes many features useful for text console application developers includi
 - Automatic, programmable text alignment and wrapping
 - Simple markup for setting text attributes within blocks of text
 - Powerful list box with programmable content for scrolling all widget types
-- Your choice of event loops: Twisted, Glib, Tornado, asyncio or select-based loop
+- Your choice of event loops: Twisted, Glib, Tornado, asyncio, trio, ZeroMQ or select-based loop
 - Pre-built widgets include edit boxes, buttons, check boxes and radio buttons
 - Display modules include raw, curses, and experimental LCD and web displays
 - Support for UTF-8, simple 8-bit and CJK encodings
@@ -30,6 +30,13 @@ To install using pip
 .. code:: bash
    
    pip install urwid
+
+For advanced functionality extra requirements need to be installed.
+Example for ZeroMQ event loop and LCD display:
+
+.. code:: bash
+
+    pip install urwid[serial,zmq]
 
 Alternatively if you are on Debian or Ubuntu
 

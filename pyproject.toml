@@ -44,6 +44,16 @@ namespaces = false
 #dependencies = {file = ["requirements.txt"]}
 classifiers = {file = ["classifiers.txt"]}
 
+[project.optional-dependencies]
+glib = ["PyGObject"]
+tornado = ["tornado"]
+trio = ["trio"]
+twisted = ["twisted"]
+zmq = ["zmq"]
+# for lcd_display
+serial = ["pyserial"]
+lcd = ["pyserial"]
+
 [tool.distutils.bdist_wheel]
 universal = 0
 
