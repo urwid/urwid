@@ -14,16 +14,21 @@ until [[ $counter -eq 100 ]]; do
     echo "================================================================================"
     tools/compile_pngs.sh examples/*.py
 
+    failed=()
     for r in examples.ref/*.png; do
         n=$(basename $r)
         t=examples/$n
         d=/tmp/diff-$n
         #-- use compare from ImageMagick
         if ! compare $r $t $d; then
-            echo "changes detected, aborting stresstest! see $d"
-            exit 1
+            failed+=($d)
         fi
     done
+    if test ${#failed[@]} -ne 0; then
+        echo "changes detected, aborting stresstest!"
+        echo "see image diffs visualized in ${failed[*]}"
+        exit 1
+    fi
 
     : $((++counter))
 done
