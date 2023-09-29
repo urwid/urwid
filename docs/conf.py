@@ -128,7 +128,7 @@ html_theme_options = {
     'visitedlinkcolor':'#263193',
     'headtextcolor':'#181035',
     'headlinkcolor':'#181035',
-    'collapsiblesidebar': True,
+    'collapsiblesidebar': False,
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
