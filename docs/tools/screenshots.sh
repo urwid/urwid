@@ -8,7 +8,7 @@ PYTHON=python
 
 urxvt -bg gray90 -b 0 +sb \
 	-fn 'xft:DejaVu Sans Mono:pixelsize=20' \
-	-fb 'xft:DejaVu Sans Mono:pixelsize=20' \
+	-fb 'xft:DejaVu Sans Mono:pixelsize=20:style=Bold' \
 	-name "$CLASSNAME" \
 	-e "$PYTHON" "$1" &
 RXVTPID=$!
