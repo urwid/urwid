@@ -31,7 +31,11 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.githubpages',
+    "sphinx_github_changelog",
 ]
+
+sphinx_github_changelog_token = os.environ.get("SPHINX_GITHUB_CHANGELOG_TOKEN")
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['tools/templates']
@@ -124,7 +128,7 @@ html_theme_options = {
     'visitedlinkcolor':'#263193',
     'headtextcolor':'#181035',
     'headlinkcolor':'#181035',
-    'collapsiblesidebar': True,
+    'collapsiblesidebar': False,
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
