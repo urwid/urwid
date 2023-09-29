@@ -7,8 +7,8 @@ CLASSNAME=urwid-docs-$(head -c 6 /dev/urandom | base64 | tr -cd '[:alnum:]')
 PYTHON=python
 
 urxvt -bg gray90 -b 0 +sb \
-	-fn 'xft:Monospace:pixelsize=20' \
-	-fb 'xft:Monospace-Bold:pixelsize=20' \
+	-fn 'xft:DejaVu Sans Mono:pixelsize=20' \
+	-fb 'xft:DejaVu Sans Mono:pixelsize=20' \
 	-name "$CLASSNAME" \
 	-e "$PYTHON" "$1" &
 RXVTPID=$!
