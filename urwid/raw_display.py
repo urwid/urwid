@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import platform
 import select
 import signal
 import struct
@@ -53,6 +54,9 @@ from urwid.display_common import (
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
+
+
+IS_WSL = (sys.platform == "linux") and ("wsl" in platform.platform().lower())
 
 
 class Screen(BaseScreen, RealTerminal):
@@ -324,6 +328,9 @@ class Screen(BaseScreen, RealTerminal):
         You may wish to override this if you're using something other than
         regular files for input and output.
         """
+        if IS_WSL:
+            # Filter out SI/SO under WSL.
+            data.replace(escape.SI, "").replace(escape.SO, "")
         self._term_output_file.write(data)
 
     def flush(self):
