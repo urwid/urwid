@@ -31,9 +31,9 @@ import typing
 import warnings
 from contextlib import suppress
 
-from urwid import raw_display, signals
+from urwid import display, signals
 from urwid.command_map import Command, command_map
-from urwid.display_common import INPUT_DESCRIPTORS_CHANGED
+from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
 from urwid.util import StoppingContext, is_mouse_event
 from urwid.widget import PopUpTarget
 
@@ -45,7 +45,7 @@ if typing.TYPE_CHECKING:
 
     from typing_extensions import Self
 
-    from urwid.display_common import BaseScreen
+    from urwid.display import BaseScreen
     from urwid.widget import Widget
 
     from .abstract_loop import EventLoop
@@ -129,7 +129,7 @@ class MainLoop:
         self.pop_ups = pop_ups  # triggers property setting side-effect
 
         if not screen:
-            screen = raw_display.Screen()
+            screen = display.raw.Screen()
 
         if palette:
             screen.register_palette(palette)

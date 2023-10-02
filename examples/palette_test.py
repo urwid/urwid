@@ -29,7 +29,6 @@ from __future__ import annotations
 import re
 
 import urwid
-import urwid.raw_display
 
 CHART_TRUE = """
 #e50000#e51000#e52000#e53000#e54000#e55000#e56000#e57000#e58000#e59000\
@@ -344,7 +343,7 @@ def main():
         ("focus", "light gray", "dark cyan", "standout", "#ff8", "#806"),
     ]
 
-    screen = urwid.raw_display.Screen()
+    screen = urwid.display.raw.Screen()
     screen.register_palette(palette)
 
     lb = urwid.SimpleListWalker([])

@@ -39,14 +39,13 @@ import string
 import typing
 
 import urwid
-import urwid.raw_display
-import urwid.web_display
+import urwid.display.web
 
 # use appropriate Screen class
-if urwid.web_display.is_web_request():
-    Screen = urwid.web_display.Screen
+if urwid.display.web.is_web_request():
+    Screen = urwid.display.web.Screen
 else:
-    Screen = urwid.raw_display.Screen
+    Screen = urwid.display.raw.Screen
 
 
 def div_or_none(a, b):
@@ -814,13 +813,13 @@ def main():
     global CALC_LAYOUT  # noqa: PLW0603
     CALC_LAYOUT = CalcNumLayout()
 
-    urwid.web_display.set_preferences("Column Calculator")
+    urwid.display.web.set_preferences("Column Calculator")
     # try to handle short web requests quickly
-    if urwid.web_display.handle_short_request():
+    if urwid.display.web.handle_short_request():
         return
 
     CalcDisplay().main()
 
 
-if __name__ == "__main__" or urwid.web_display.is_web_request():
+if __name__ == "__main__" or urwid.display.web.is_web_request():
     main()

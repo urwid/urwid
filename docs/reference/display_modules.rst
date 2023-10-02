@@ -8,28 +8,28 @@ Display Modules
 raw_display
 -----------
 
-.. module:: urwid.raw_display
+.. module:: urwid.display.raw
 
 .. autoclass:: Screen
 
 curses_display
 --------------
 
-.. module:: urwid.curses_display
+.. module:: urwid.display.curses
 
 .. autoclass:: Screen
 
 web_display
 -----------
 
-.. module:: urwid.web_display
+.. module:: urwid.display.web
 
 .. autoclass:: Screen
 
 html_fragment
 -------------
 
-.. module:: urwid.html_fragment
+.. module:: urwid.display.html_fragment
 
 .. autoclass:: HtmlGenerator
 
@@ -40,7 +40,7 @@ html_fragment
 lcd_display
 -----------
 
-.. module:: urwid.lcd_display
+.. module:: urwid.display.lcd
 
 .. autoclass:: LCDScreen
 

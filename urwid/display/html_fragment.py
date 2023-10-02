@@ -27,8 +27,9 @@ from __future__ import annotations
 import typing
 
 from urwid import util
-from urwid.display_common import AttrSpec, BaseScreen
 from urwid.event_loop import ExitMainLoop
+
+from .common import AttrSpec, BaseScreen
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
@@ -238,10 +239,10 @@ def screenshot_init(sizes: list[tuple[int, int]], keys: list[list[str]]) -> None
             if not isinstance(k, str):
                 raise TypeError(f"keys must be list[list[str]]: {k!r}")
 
-    from . import curses_display, raw_display
+    from . import curses, raw
 
-    curses_display.Screen = HtmlGenerator
-    raw_display.Screen = HtmlGenerator
+    curses.Screen = HtmlGenerator
+    raw.Screen = HtmlGenerator
 
     HtmlGenerator.sizes = sizes
     HtmlGenerator.keys = keys

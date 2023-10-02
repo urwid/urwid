@@ -42,9 +42,11 @@ from dataclasses import dataclass
 
 from urwid import event_loop, util
 from urwid.canvas import Canvas
-from urwid.display_common import _BASIC_COLORS, AttrSpec, RealTerminal, _color_desc_256, _color_desc_true
-from urwid.escape import ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS
+from urwid.display import AttrSpec, RealTerminal
+from urwid.display.escape import ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS
 from urwid.widget import Sizing, Widget
+
+from .display.common import _BASIC_COLORS, _color_desc_256, _color_desc_true
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Mapping, Sequence

@@ -29,8 +29,8 @@ import sys
 import typing
 from contextlib import suppress
 
-from urwid import escape
-from urwid.display_common import UNPRINTABLE_TRANS_TABLE, AttrSpec, BaseScreen, RealTerminal
+from . import escape
+from .common import UNPRINTABLE_TRANS_TABLE, AttrSpec, BaseScreen, RealTerminal
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal

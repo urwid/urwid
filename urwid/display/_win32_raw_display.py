@@ -34,10 +34,10 @@ import typing
 from ctypes import byref
 from ctypes.wintypes import DWORD
 
-from urwid import escape, signals
-from urwid.display_common import INPUT_DESCRIPTORS_CHANGED
+from urwid import signals
 
-from . import _raw_display_base, _win32
+from . import _raw_display_base, _win32, escape
+from .common import INPUT_DESCRIPTORS_CHANGED
 
 if typing.TYPE_CHECKING:
     import io

@@ -11,7 +11,7 @@ import weakref
 from datetime import datetime
 
 import urwid
-from urwid.raw_display import Screen
+from urwid.display.raw import Screen
 
 logging.basicConfig()
 

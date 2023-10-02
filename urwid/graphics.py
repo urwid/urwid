@@ -20,7 +20,7 @@
 
 from __future__ import annotations
 
-from urwid.display_common import AttrSpec
+from urwid.display import AttrSpec
 from urwid.widget import (
     BarGraph,
     BarGraphError,

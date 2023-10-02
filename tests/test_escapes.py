@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import unittest
 
-import urwid.escape
+from urwid.display import escape
 
 
 class InputEscapeSequenceParserTest(unittest.TestCase):
@@ -15,35 +15,35 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
     def test_bare_escape(self):
         codes = [27]
         expected = ["esc"]
-        actual, rest = urwid.escape.process_keyqueue(codes, more_available=False)
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
         self.assertListEqual(expected, actual)
         self.assertListEqual([], rest)
 
     def test_meta(self):
         codes = [27, ord("4"), ord("2")]
         expected = ["meta 4"]
-        actual, rest = urwid.escape.process_keyqueue(codes, more_available=False)
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
         self.assertListEqual(expected, actual)
         self.assertListEqual([ord("2")], rest)
 
     def test_shift_arrows(self):
         codes = [27, ord("["), ord("a")]
         expected = ["shift up"]
-        actual, rest = urwid.escape.process_keyqueue(codes, more_available=False)
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
         self.assertListEqual(expected, actual)
         self.assertListEqual([], rest)
 
     def test_ctrl_pgup(self):
         codes = [27, 91, 53, 59, 53, 126]
         expected = ["ctrl page up"]
-        actual, rest = urwid.escape.process_keyqueue(codes, more_available=False)
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
         self.assertListEqual(expected, actual)
         self.assertListEqual([], rest)
 
     def test_esc_meta_1(self):
         codes = [27, 27, 49]
         expected = ["esc", "meta 1"]
-        actual, rest = urwid.escape.process_keyqueue(codes, more_available=False)
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
         self.assertListEqual(expected, actual)
         self.assertListEqual([], rest)
 
@@ -51,17 +51,17 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
         # '[11~' is F1, '[12~' is F2, etc
         codes = [27, ord("["), ord("1")]
 
-        with self.assertRaises(urwid.escape.MoreInputRequired):
-            urwid.escape.process_keyqueue(codes, more_available=True)
+        with self.assertRaises(escape.MoreInputRequired):
+            escape.process_keyqueue(codes, more_available=True)
 
-        actual, rest = urwid.escape.process_keyqueue(codes, more_available=False)
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
         self.assertListEqual(["meta ["], actual)
         self.assertListEqual([ord("1")], rest)
 
     def test_mouse_press(self):
         codes = [27, 91, 77, 32, 41, 48]
         expected = [("mouse press", 1.0, 8, 15)]
-        actual, rest = urwid.escape.process_keyqueue(codes, more_available=False)
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
         self.assertListEqual(expected, actual)
         self.assertListEqual([], rest)
 
@@ -69,13 +69,13 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
         """GH #104: click-Esc & Esc-click crashes urwid apps"""
         codes = [27, 27, 91, 77, 32, 127, 59]
         expected = ["esc", ("mouse press", 1.0, 94, 26)]
-        actual, rest = urwid.escape.process_keyqueue(codes, more_available=False)
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
         self.assertListEqual(expected, actual)
         self.assertListEqual([], rest)
 
         codes = [27, 27, 91, 77, 35, 120, 59]
         expected = ["esc", ("mouse release", 0, 87, 26)]
-        actual, rest = urwid.escape.process_keyqueue(codes, more_available=False)
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
         self.assertListEqual(expected, actual)
         self.assertListEqual([], rest)
 
@@ -83,7 +83,7 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
         """Test for functional keys F1-F4, F5-F12."""
 
         def check_key(expected: str, codes: list[int]) -> None:
-            actual, rest = urwid.escape.process_keyqueue(codes, more_available=False)
+            actual, rest = escape.process_keyqueue(codes, more_available=False)
             self.assertEqual(
                 [expected],
                 actual,
@@ -116,8 +116,8 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
             for num, letter in enumerate(letters, start=1):
                 for mask in masks:
                     codes = [27, *encoded_prefix, ord(mask), ord(letter)]
-                    actual, rest = urwid.escape.process_keyqueue(codes, more_available=False)
-                    expected = urwid.escape.escape_modifier(mask) + f"f{num}"
+                    actual, rest = escape.process_keyqueue(codes, more_available=False)
+                    expected = escape.escape_modifier(mask) + f"f{num}"
                     self.assertEqual(
                         [expected],
                         actual,
@@ -132,8 +132,8 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
             encoded_number = tuple(ord(element) for element in str(number))
             for mask in masks:
                 codes = [27, ord("["), *encoded_number, ord(";"), ord(mask), ord("~")]
-                actual, rest = urwid.escape.process_keyqueue(codes, more_available=False)
-                expected = urwid.escape.escape_modifier(mask) + f"f{num}"
+                actual, rest = escape.process_keyqueue(codes, more_available=False)
+                expected = escape.escape_modifier(mask) + f"f{num}"
                 self.assertEqual(
                     [expected],
                     actual,
@@ -151,7 +151,7 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
             for mod_code, mod in modifiers:
                 key_code = tuple(ord(element) for element in str(code | mod_code))
                 codes = [*prefix, *key_code, ord(";"), *coord, action]
-                actual, rest = urwid.escape.process_keyqueue(codes, more_available=False)
+                actual, rest = escape.process_keyqueue(codes, more_available=False)
                 expected = [(mod + "mouse press", key, x, y)]
                 self.assertEqual(
                     expected,

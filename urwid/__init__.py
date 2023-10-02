@@ -21,9 +21,11 @@
 
 from __future__ import annotations
 
+import importlib
 import sys
+import typing
+import warnings
 
-from urwid import raw_display
 from urwid.canvas import (
     BlankCanvas,
     Canvas,
@@ -50,7 +52,7 @@ from urwid.command_map import (
     CommandMap,
     command_map,
 )
-from urwid.display_common import (
+from urwid.display import (
     BLACK,
     BROWN,
     DARK_BLUE,
@@ -204,7 +206,7 @@ from urwid.widget import (
     scale_bar_values,
 )
 
-from . import event_loop, widget
+from . import display, event_loop, widget
 
 from urwid.treetools import ParentNode, TreeListBox, TreeNode, TreeWalker, TreeWidget, TreeWidgetError  # isort: skip
 
@@ -242,3 +244,46 @@ if sys.platform != "win32":
 
 # Backward compatibility
 VERSION = __version_tuple__
+
+
+# Moved modules handling
+__locals: dict[str, typing.Any] = locals()  # use mutable access for pure lazy loading
+
+# Backward compatible lazy load with deprecation warnings
+_moved_warn: dict[str, str] = {
+    "escape": "urwid.display.escape",
+    "lcd_display": "urwid.display.lcd",
+    "html_fragment": "urwid.display.html_fragment",
+    "web_display": "urwid.display.web",
+}
+# Backward compatible lazy load without any warnings
+# Before DeprecationWarning need to start PendingDeprecationWarning process.
+_moved_no_warn: dict[str, str] = {
+    "display_common": "urwid.display.common",
+    "raw_display": "urwid.display.raw",
+    "curses_display": "urwid.display.curses",
+}
+
+
+def __getattr__(name: str) -> typing.Any:
+    """Get attributes lazy.
+
+    :return: attribute by name
+    :raises AttributeError: attribute is not defined for lazy load
+    """
+    if name in _moved_no_warn:
+        mod = importlib.import_module(_moved_no_warn[name])
+        __locals[name] = mod
+        return mod
+
+    if name in _moved_warn:
+        warnings.warn(
+            f"{name} is moved to {_moved_warn[name]}",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+        mod = importlib.import_module(_moved_warn[name])
+        __locals[name] = mod
+        return mod
+    raise AttributeError(f"{name} not found in {__package__}")

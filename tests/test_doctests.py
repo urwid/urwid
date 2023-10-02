@@ -34,7 +34,8 @@ def load_tests(loader: unittest.TestLoader, tests: unittest.BaseTestSuite, ignor
         urwid.widget.widget,
         urwid.widget.widget_decoration,
         urwid.widget.wimp,
-        urwid.display_common,
+        urwid.display.common,
+        urwid.display.raw,
         urwid.event_loop.main_loop,
         urwid.numedit,
         urwid.monitored_list,
@@ -43,7 +44,11 @@ def load_tests(loader: unittest.TestLoader, tests: unittest.BaseTestSuite, ignor
         "urwid.split_repr",  # override function with same name
         urwid.util,
         urwid.signals,
-    ]
+        ]
+    try:
+        module_doctests.append(urwid.display.curses)
+    except (AttributeError, NameError):
+        pass  # Curses is not loaded
 
     option_flags = doctest.ELLIPSIS | doctest.DONT_ACCEPT_TRUE_FOR_1 | doctest.IGNORE_EXCEPTION_DETAIL
     for m in module_doctests:
@@ -57,7 +62,7 @@ def load_tests(loader: unittest.TestLoader, tests: unittest.BaseTestSuite, ignor
         tests.addTests(doctest.DocTestSuite(curses_display, optionflags=option_flags))
 
     if sys.platform == "win32":
-        tests.addTests(doctest.DocTestSuite("urwid._win32_raw_display", optionflags=option_flags))
+        tests.addTests(doctest.DocTestSuite("urwid.display._win32_raw_display", optionflags=option_flags))
     else:
-        tests.addTests(doctest.DocTestSuite("urwid._posix_raw_display", optionflags=option_flags))
+        tests.addTests(doctest.DocTestSuite("urwid.display._posix_raw_display", optionflags=option_flags))
     return tests

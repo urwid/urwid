@@ -34,8 +34,10 @@ import socket
 import sys
 import typing
 
-from urwid import escape, signals, util
-from urwid.display_common import UNPRINTABLE_TRANS_TABLE, UPDATE_PALETTE_ENTRY, AttrSpec, BaseScreen, RealTerminal
+from urwid import signals, util
+
+from . import escape
+from .common import UNPRINTABLE_TRANS_TABLE, UPDATE_PALETTE_ENTRY, AttrSpec, BaseScreen, RealTerminal
 
 if typing.TYPE_CHECKING:
     import io

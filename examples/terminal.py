@@ -65,11 +65,11 @@ def main():
 
     try:
         # create Screen with bracketed paste mode support enabled
-        bpm_screen = urwid.raw_display.Screen(bracketed_paste_mode=True)
+        bpm_screen = urwid.display.raw.Screen(bracketed_paste_mode=True)
     except TypeError:
         # if using a version of Urwid library that doesn't support
         # bracketed paste mode, do without it.
-        bpm_screen = urwid.raw_display.Screen()
+        bpm_screen = urwid.display.raw.Screen()
 
     loop = urwid.MainLoop(mainframe, handle_mouse=False, screen=bpm_screen, unhandled_input=handle_key)
 
