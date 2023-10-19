@@ -82,8 +82,8 @@ that need to be resolved before this module is recommended for production use.
 
 The tour.py_ and calc.py_ example programs demonstrate use of this module.
 
-.. _tour.py: http://excess.org/urwid/browser/examples/tour.py
-.. _calc.py: http://excess.org/urwid/browser/examples/calc.py
+.. _tour.py: https://github.com/urwid/urwid/blob/master/examples/tour.py
+.. _calc.py: https://github.com/urwid/urwid/blob/master/examples/calc.py
 
 
 Screenshot Display Module ``html_fragment``
@@ -103,7 +103,7 @@ browser's text size.
 
 The `example screenshots`_ are generated with this display module.
 
-.. _`example screenshots`: http://excess.org/urwid/examples.html
+.. _`example screenshots`: http://urwid.org/examples/index.html
 
 
 LCD Display Module ``lcd_display``
@@ -117,7 +117,7 @@ LCD character display devices and a complete implementation of a
 
 The lcd_cf635.py_ example program demonstrates use of this module.
 
-.. _lcd_cf635.py: http://excess.org/urwid/browser/examples/lcd_cf635.py
+.. _lcd_cf635.py: https://github.com/urwid/urwid/blob/master/examples/lcd_cf635.py
 
 .. seealso:: `Urwid on a Crystalfontz 635 LCD <http://excess.org/article/2010/03/urwid-crystalfontz-635-lcd/>`_
 

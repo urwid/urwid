@@ -13,6 +13,16 @@ SelectEventLoop
 
 .. autoclass:: SelectEventLoop
 
+AsyncioEventLoop
+----------------
+
+.. autoclass:: AsyncioEventLoop
+
+TrioEventLoop
+----------------
+
+.. autoclass:: TrioEventLoop
+
 GLibEventLoop
 -------------
 
@@ -28,7 +38,7 @@ TornadoEventLoop
 
 .. autoclass:: TornadoEventLoop
 
-AsyncioEventLoop
-----------------
+ZMQEventLoop
+------------
 
-.. autoclass:: AsyncioEventLoop
+.. autoclass:: ZMQEventLoop

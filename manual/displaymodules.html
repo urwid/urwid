@@ -1,21 +1,19 @@
-
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en" data-content_root="../">
   <head>
     <meta charset="utf-8" />
-    <title>Display Modules &#8212; Urwid 2.1.2</title>
-    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Display Modules &#8212; Urwid 2.2.3</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/doctools.js"></script>
-    <script src="../_static/language_data.js"></script>
+    <script src="../_static/documentation_options.js?v=85e56e6b"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
-    <script src="../_static/sidebar.js"></script>
-    
+    <link rel="canonical" href="https://urwid.org/manual/displaymodules.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Widgets" href="widgets.html" />
@@ -33,8 +31,9 @@
         <li class="right" >
           <a href="mainloop.html" title="Main Loop"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.3</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>
     </div>  
 
@@ -43,8 +42,8 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="display-modules">
-<span id="id1"></span><h1>Display Modules<a class="headerlink" href="#display-modules" title="Permalink to this headline">¶</a></h1>
+  <section id="display-modules">
+<span id="id1"></span><h1>Display Modules<a class="headerlink" href="#display-modules" title="Link to this heading">¶</a></h1>
 <p>Urwid’s display modules provide a layer of abstraction for drawing to the
 screen and reading user input. The display module you choose will depend on
 how you plan to use Urwid.</p>
@@ -61,8 +60,8 @@ how you plan to use Urwid.</p>
 <span class="n">loop</span> <span class="o">=</span> <span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="n">screen</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">raw_display</span><span class="o">.</span><span class="n">Screen</span><span class="p">())</span>
 </pre></div>
 </div>
-<div class="section" id="raw-and-curses-display-modules">
-<h2>Raw and Curses Display Modules<a class="headerlink" href="#raw-and-curses-display-modules" title="Permalink to this headline">¶</a></h2>
+<section id="raw-and-curses-display-modules">
+<h2>Raw and Curses Display Modules<a class="headerlink" href="#raw-and-curses-display-modules" title="Link to this heading">¶</a></h2>
 <p>Urwid has two display modules for displaying to terminals or the console.</p>
 <p>The <a class="reference internal" href="../reference/display_modules.html#urwid.raw_display.Screen" title="urwid.raw_display.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">raw_display.Screen</span></code></a> module is a pure-python display module with no
 external dependencies. It sends and interprets terminal escape sequences
@@ -78,11 +77,6 @@ used by the <a class="reference internal" href="../reference/display_modules.htm
 below.</p>
 <p>This table summarizes the differences between the two modules:</p>
 <table class="docutils align-default">
-<colgroup>
-<col style="width: 55%" />
-<col style="width: 20%" />
-<col style="width: 25%" />
-</colgroup>
 <thead>
 <tr class="row-odd"><th class="head"></th>
 <th class="head"><p>raw_display</p></th>
@@ -96,14 +90,14 @@ below.</p>
 </tr>
 <tr class="row-odd"><td><p>compatible with any terminal</p></td>
 <td><p>no</p></td>
-<td><p>YES <a class="footnote-reference brackets" href="#id5" id="id2">1</a></p></td>
+<td><p>YES <a class="footnote-reference brackets" href="#id5" id="id2" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a></p></td>
 </tr>
 <tr class="row-even"><td><p>UTF-8 support</p></td>
 <td><p>YES</p></td>
-<td><p>YES <a class="footnote-reference brackets" href="#id6" id="id3">2</a></p></td>
+<td><p>YES <a class="footnote-reference brackets" href="#id6" id="id3" role="doc-noteref"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></a></p></td>
 </tr>
 <tr class="row-odd"><td><p>bright foreground without bold</p></td>
-<td><p>YES <a class="footnote-reference brackets" href="#id7" id="id4">3</a></p></td>
+<td><p>YES <a class="footnote-reference brackets" href="#id7" id="id4" role="doc-noteref"><span class="fn-bracket">[</span>3<span class="fn-bracket">]</span></a></p></td>
 <td><p>no</p></td>
 </tr>
 <tr class="row-even"><td><p>88-/256-/24-bit color support</p></td>
@@ -120,31 +114,34 @@ below.</p>
 </tr>
 </tbody>
 </table>
-<dl class="footnote brackets">
-<dt class="label" id="id5"><span class="brackets"><a class="fn-backref" href="#id2">1</a></span></dt>
-<dd><p>if the termcap entry exists and TERM environment variable is set
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id5" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id2">1</a><span class="fn-bracket">]</span></span>
+<p>if the termcap entry exists and TERM environment variable is set
 correctly</p>
-</dd>
-<dt class="label" id="id6"><span class="brackets"><a class="fn-backref" href="#id3">2</a></span></dt>
-<dd><p>if python is linked against the wide version of ncurses</p>
-</dd>
-<dt class="label" id="id7"><span class="brackets"><a class="fn-backref" href="#id4">3</a></span></dt>
-<dd><p>when using xterm or gnome-terminal</p>
-</dd>
-</dl>
-</div>
-<div class="section" id="other-display-modules">
-<h2>Other Display Modules<a class="headerlink" href="#other-display-modules" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="cgi-web-display-module-web-display">
-<h3>CGI Web Display Module <code class="docutils literal notranslate"><span class="pre">web_display</span></code><a class="headerlink" href="#cgi-web-display-module-web-display" title="Permalink to this headline">¶</a></h3>
+</aside>
+<aside class="footnote brackets" id="id6" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id3">2</a><span class="fn-bracket">]</span></span>
+<p>if python is linked against the wide version of ncurses</p>
+</aside>
+<aside class="footnote brackets" id="id7" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id4">3</a><span class="fn-bracket">]</span></span>
+<p>when using xterm or gnome-terminal</p>
+</aside>
+</aside>
+</section>
+<section id="other-display-modules">
+<h2>Other Display Modules<a class="headerlink" href="#other-display-modules" title="Link to this heading">¶</a></h2>
+<section id="cgi-web-display-module-web-display">
+<h3>CGI Web Display Module <code class="docutils literal notranslate"><span class="pre">web_display</span></code><a class="headerlink" href="#cgi-web-display-module-web-display" title="Link to this heading">¶</a></h3>
 <p>The <a class="reference internal" href="../reference/display_modules.html#module-urwid.web_display" title="urwid.web_display"><code class="xref py py-mod docutils literal notranslate"><span class="pre">urwid.web_display</span></code></a> module lets you run your application as a CGI
 script under Apache instead of running it in a terminal.</p>
 <p>This module is a proof of concept. There are security and responsiveness issues
 that need to be resolved before this module is recommended for production use.</p>
-<p>The <a class="reference external" href="http://excess.org/urwid/browser/examples/tour.py">tour.py</a> and <a class="reference external" href="http://excess.org/urwid/browser/examples/calc.py">calc.py</a> example programs demonstrate use of this module.</p>
-</div>
-<div class="section" id="screenshot-display-module-html-fragment">
-<h3>Screenshot Display Module <code class="docutils literal notranslate"><span class="pre">html_fragment</span></code><a class="headerlink" href="#screenshot-display-module-html-fragment" title="Permalink to this headline">¶</a></h3>
+<p>The <a class="reference external" href="https://github.com/urwid/urwid/blob/master/examples/tour.py">tour.py</a> and <a class="reference external" href="https://github.com/urwid/urwid/blob/master/examples/calc.py">calc.py</a> example programs demonstrate use of this module.</p>
+</section>
+<section id="screenshot-display-module-html-fragment">
+<h3>Screenshot Display Module <code class="docutils literal notranslate"><span class="pre">html_fragment</span></code><a class="headerlink" href="#screenshot-display-module-html-fragment" title="Link to this heading">¶</a></h3>
 <p>Screenshots of Urwid interfaces can be rendered in plain HTML. The
 <a class="reference internal" href="../reference/display_modules.html#urwid.html_fragment.HtmlGenerator" title="urwid.html_fragment.HtmlGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">html_fragment.HtmlGenerator</span></code></a> display module lets you do this by simulating user input
 and capturing the screen as fragments of HTML each time
@@ -155,24 +152,24 @@ properly by any browser that uses a monospaced font for text that appears in
 <code class="docutils literal notranslate"><span class="pre">&lt;pre&gt;</span></code> tags. HTML screenshots have text that is searchable and selectable in
 a web browser, and they will shrink and grow when a user changes their
 browser’s text size.</p>
-<p>The <a class="reference external" href="http://excess.org/urwid/examples.html">example screenshots</a> are generated with this display module.</p>
-</div>
-<div class="section" id="lcd-display-module-lcd-display">
-<h3>LCD Display Module <code class="docutils literal notranslate"><span class="pre">lcd_display</span></code><a class="headerlink" href="#lcd-display-module-lcd-display" title="Permalink to this headline">¶</a></h3>
+<p>The <a class="reference external" href="http://urwid.org/examples/index.html">example screenshots</a> are generated with this display module.</p>
+</section>
+<section id="lcd-display-module-lcd-display">
+<h3>LCD Display Module <code class="docutils literal notranslate"><span class="pre">lcd_display</span></code><a class="headerlink" href="#lcd-display-module-lcd-display" title="Link to this heading">¶</a></h3>
 <p>Almost any device that displays characters in a grid can be used as a
 screen.  The <code class="xref py py-mod docutils literal notranslate"><span class="pre">lcd_display</span></code> module has some base classes for simple
 LCD character display devices and a complete implementation of a
 <a class="reference internal" href="../reference/display_modules.html#urwid.lcd_display.CF635Screen" title="urwid.lcd_display.CF635Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">lcd_display.CF635Screen</span></code></a> for Crystal Fontz 635 USB displays with
 6 buttons.</p>
-<p>The <a class="reference external" href="http://excess.org/urwid/browser/examples/lcd_cf635.py">lcd_cf635.py</a> example program demonstrates use of this module.</p>
+<p>The <a class="reference external" href="https://github.com/urwid/urwid/blob/master/examples/lcd_cf635.py">lcd_cf635.py</a> example program demonstrates use of this module.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference external" href="http://excess.org/article/2010/03/urwid-crystalfontz-635-lcd/">Urwid on a Crystalfontz 635 LCD</a></p>
 </div>
-</div>
-</div>
-<div class="section" id="setting-a-palette">
-<span id="id8"></span><h2>Setting a Palette<a class="headerlink" href="#setting-a-palette" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+<section id="setting-a-palette">
+<span id="id8"></span><h2>Setting a Palette<a class="headerlink" href="#setting-a-palette" title="Link to this heading">¶</a></h2>
 <p>The <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> constructor takes a <em>palette</em> parameter that it passes
 to the <a class="reference internal" href="../reference/display_modules.html#urwid.BaseScreen.register_palette" title="urwid.BaseScreen.register_palette"><code class="xref py py-meth docutils literal notranslate"><span class="pre">register_palette()</span></code></a> method of your display module.</p>
 <p>A palette is a list of <a class="reference internal" href="displayattributes.html#display-attributes"><span class="std std-ref">display attribute</span></a> names and foreground
@@ -189,10 +186,11 @@ mode as part of your palette. eg:</p>
 </div>
 <p>The <a class="reference internal" href="displayattributes.html#display-attributes"><span class="std std-ref">Display Attributes</span></a> section of this manual describes all the options
 available.</p>
-</div>
-</div>
+</section>
+</section>
 
 
+            <div class="clearer"></div>
           </div>
         </div>
       </div>
@@ -200,7 +198,7 @@ available.</p>
         <div class="sphinxsidebarwrapper">
             <p class="logo"><a href="../index.html">
               <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
-            </a></p><h3>Table of contents</a></h3>
+            </a></p><h3>Table of contents</h3>
     <ul><li><a href="index.html">Manual</a></li><ul>
 <li><a class="reference internal" href="#">Display Modules</a><ul>
 <li><a class="reference internal" href="#raw-and-curses-display-modules">Raw and Curses Display Modules</a></li>
@@ -216,12 +214,16 @@ available.</p>
 </ul>
 
     </ul>
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="mainloop.html"
-                        title="previous chapter">Main Loop</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="widgets.html"
-                        title="next chapter">Widgets</a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="mainloop.html"
+                          title="previous chapter">Main Loop</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="widgets.html"
+                          title="next chapter">Widgets</a></p>
+  </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -233,12 +235,12 @@ available.</p>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -255,13 +257,14 @@ available.</p>
         <li class="right" >
           <a href="mainloop.html" title="Main Loop"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.3</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
     </div>
   </body>
 </html>

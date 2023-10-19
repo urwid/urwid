@@ -1,21 +1,19 @@
-
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en" data-content_root="../">
   <head>
     <meta charset="utf-8" />
-    <title>List Walker Classes &#8212; Urwid 2.1.2</title>
-    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>List Walker Classes &#8212; Urwid 2.2.3</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/doctools.js"></script>
-    <script src="../_static/language_data.js"></script>
+    <script src="../_static/documentation_options.js?v=85e56e6b"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
-    <script src="../_static/sidebar.js"></script>
-    
+    <link rel="canonical" href="https://urwid.org/reference/list_walkers.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Signal Functions" href="signals.html" />
@@ -33,8 +31,9 @@
         <li class="right" >
           <a href="display_modules.html" title="Display Modules"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.3</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">List Walker Classes</a></li> 
       </ul>
     </div>  
 
@@ -43,32 +42,32 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="list-walker-classes">
-<h1>List Walker Classes<a class="headerlink" href="#list-walker-classes" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="listwalker">
-<h2>ListWalker<a class="headerlink" href="#listwalker" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="urwid.ListWalker">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">ListWalker</code><a class="headerlink" href="#urwid.ListWalker" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
-<dt id="urwid.ListWalker.get_focus">
-<code class="sig-name descname">get_focus</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ListWalker.get_focus" title="Permalink to this definition">¶</a></dt>
+  <section id="list-walker-classes">
+<h1>List Walker Classes<a class="headerlink" href="#list-walker-classes" title="Link to this heading">¶</a></h1>
+<section id="listwalker">
+<h2>ListWalker<a class="headerlink" href="#listwalker" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.ListWalker">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">ListWalker</span></span><a class="headerlink" href="#urwid.ListWalker" title="Link to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="urwid.ListWalker.get_focus">
+<span class="sig-name descname"><span class="pre">get_focus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ListWalker.get_focus" title="Link to this definition">¶</a></dt>
 <dd><p>This default implementation relies on a focus attribute and a
 __getitem__() method defined in a subclass.</p>
 <p>Override and don’t call this method if these are not defined.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.ListWalker.get_next">
-<code class="sig-name descname">get_next</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ListWalker.get_next" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ListWalker.get_next">
+<span class="sig-name descname"><span class="pre">get_next</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ListWalker.get_next" title="Link to this definition">¶</a></dt>
 <dd><p>This default implementation relies on a next_position() method and a
 __getitem__() method defined in a subclass.</p>
 <p>Override and don’t call this method if these are not defined.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.ListWalker.get_prev">
-<code class="sig-name descname">get_prev</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ListWalker.get_prev" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ListWalker.get_prev">
+<span class="sig-name descname"><span class="pre">get_prev</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ListWalker.get_prev" title="Link to this definition">¶</a></dt>
 <dd><p>This default implementation relies on a prev_position() method and a
 __getitem__() method defined in a subclass.</p>
 <p>Override and don’t call this method if these are not defined.</p>
@@ -76,12 +75,12 @@ __getitem__() method defined in a subclass.</p>
 
 </dd></dl>
 
-</div>
-<div class="section" id="list-like-list-walkers">
-<h2>List-like List Walkers<a class="headerlink" href="#list-like-list-walkers" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="urwid.SimpleFocusListWalker">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">SimpleFocusListWalker</code><span class="sig-paren">(</span><em class="sig-param">contents</em>, <em class="sig-param">wrap_around=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleFocusListWalker" title="Permalink to this definition">¶</a></dt>
+</section>
+<section id="list-like-list-walkers">
+<h2>List-like List Walkers<a class="headerlink" href="#list-like-list-walkers" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.SimpleFocusListWalker">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">SimpleFocusListWalker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contents</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrap_around</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleFocusListWalker" title="Link to this definition">¶</a></dt>
 <dd><p>contents – list to copy into this object</p>
 <p>wrap_around – if true, jumps to beginning/end of list on move</p>
 <p>This class inherits <code class="xref py py-class docutils literal notranslate"><span class="pre">MonitoredList</span></code> which means
@@ -92,33 +91,33 @@ this list walker to be updated.</p>
 <p>Also, items added or removed before the widget in focus with
 normal list methods will cause the focus to be updated
 intelligently.</p>
-<dl class="method">
-<dt id="urwid.SimpleFocusListWalker.next_position">
-<code class="sig-name descname">next_position</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleFocusListWalker.next_position" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleFocusListWalker.next_position">
+<span class="sig-name descname"><span class="pre">next_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.SimpleFocusListWalker.next_position" title="Link to this definition">¶</a></dt>
 <dd><p>Return position after start_from.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.SimpleFocusListWalker.positions">
-<code class="sig-name descname">positions</code><span class="sig-paren">(</span><em class="sig-param">reverse=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleFocusListWalker.positions" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleFocusListWalker.positions">
+<span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleFocusListWalker.positions" title="Link to this definition">¶</a></dt>
 <dd><p>Optional method for returning an iterable of positions.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.SimpleFocusListWalker.prev_position">
-<code class="sig-name descname">prev_position</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleFocusListWalker.prev_position" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleFocusListWalker.prev_position">
+<span class="sig-name descname"><span class="pre">prev_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.SimpleFocusListWalker.prev_position" title="Link to this definition">¶</a></dt>
 <dd><p>Return position before start_from.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.SimpleFocusListWalker.set_focus">
-<code class="sig-name descname">set_focus</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleFocusListWalker.set_focus" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleFocusListWalker.set_focus">
+<span class="sig-name descname"><span class="pre">set_focus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.SimpleFocusListWalker.set_focus" title="Link to this definition">¶</a></dt>
 <dd><p>Set focus position.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.SimpleFocusListWalker.set_modified_callback">
-<code class="sig-name descname">set_modified_callback</code><span class="sig-paren">(</span><em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleFocusListWalker.set_modified_callback" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleFocusListWalker.set_modified_callback">
+<span class="sig-name descname"><span class="pre">set_modified_callback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">NoReturn</span></span></span><a class="headerlink" href="#urwid.SimpleFocusListWalker.set_modified_callback" title="Link to this definition">¶</a></dt>
 <dd><p>This function inherited from MonitoredList is not
 implemented in SimpleFocusListWalker.</p>
 <p>Use connect_signal(list_walker, “modified”, …) instead.</p>
@@ -126,9 +125,9 @@ implemented in SimpleFocusListWalker.</p>
 
 </dd></dl>
 
-<dl class="class">
-<dt id="urwid.SimpleListWalker">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">SimpleListWalker</code><span class="sig-paren">(</span><em class="sig-param">contents</em>, <em class="sig-param">wrap_around=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleListWalker" title="Permalink to this definition">¶</a></dt>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.SimpleListWalker">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">SimpleListWalker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contents</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrap_around</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleListWalker" title="Link to this definition">¶</a></dt>
 <dd><p>contents – list to copy into this object</p>
 <p>wrap_around – if true, jumps to beginning/end of list on move</p>
 <p>This class inherits <code class="xref py py-class docutils literal notranslate"><span class="pre">MonitoredList</span></code> which means
@@ -136,40 +135,40 @@ it can be treated as a list.</p>
 <p>Changes made to this object (when it is treated as a list) are
 detected automatically and will cause ListBox objects using
 this list walker to be updated.</p>
-<dl class="method">
-<dt id="urwid.SimpleListWalker.contents">
-<em class="property">property </em><code class="sig-name descname">contents</code><a class="headerlink" href="#urwid.SimpleListWalker.contents" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.SimpleListWalker.contents">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">contents</span></span><a class="headerlink" href="#urwid.SimpleListWalker.contents" title="Link to this definition">¶</a></dt>
 <dd><p>Return self.</p>
 <p>Provides compatibility with old SimpleListWalker class.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.SimpleListWalker.next_position">
-<code class="sig-name descname">next_position</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleListWalker.next_position" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleListWalker.next_position">
+<span class="sig-name descname"><span class="pre">next_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.SimpleListWalker.next_position" title="Link to this definition">¶</a></dt>
 <dd><p>Return position after start_from.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.SimpleListWalker.positions">
-<code class="sig-name descname">positions</code><span class="sig-paren">(</span><em class="sig-param">reverse=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleListWalker.positions" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleListWalker.positions">
+<span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleListWalker.positions" title="Link to this definition">¶</a></dt>
 <dd><p>Optional method for returning an iterable of positions.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.SimpleListWalker.prev_position">
-<code class="sig-name descname">prev_position</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleListWalker.prev_position" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleListWalker.prev_position">
+<span class="sig-name descname"><span class="pre">prev_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.SimpleListWalker.prev_position" title="Link to this definition">¶</a></dt>
 <dd><p>Return position before start_from.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.SimpleListWalker.set_focus">
-<code class="sig-name descname">set_focus</code><span class="sig-paren">(</span><em class="sig-param">position</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleListWalker.set_focus" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleListWalker.set_focus">
+<span class="sig-name descname"><span class="pre">set_focus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.SimpleListWalker.set_focus" title="Link to this definition">¶</a></dt>
 <dd><p>Set focus position.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.SimpleListWalker.set_modified_callback">
-<code class="sig-name descname">set_modified_callback</code><span class="sig-paren">(</span><em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleListWalker.set_modified_callback" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleListWalker.set_modified_callback">
+<span class="sig-name descname"><span class="pre">set_modified_callback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">NoReturn</span></span></span><a class="headerlink" href="#urwid.SimpleListWalker.set_modified_callback" title="Link to this definition">¶</a></dt>
 <dd><p>This function inherited from MonitoredList is not
 implemented in SimpleListWalker.</p>
 <p>Use connect_signal(list_walker, “modified”, …) instead.</p>
@@ -177,34 +176,34 @@ implemented in SimpleListWalker.</p>
 
 </dd></dl>
 
-</div>
-<div class="section" id="treewalker-and-nodes">
-<h2>TreeWalker and Nodes<a class="headerlink" href="#treewalker-and-nodes" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="urwid.TreeWalker">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">TreeWalker</code><span class="sig-paren">(</span><em class="sig-param">start_from</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TreeWalker" title="Permalink to this definition">¶</a></dt>
+</section>
+<section id="treewalker-and-nodes">
+<h2>TreeWalker and Nodes<a class="headerlink" href="#treewalker-and-nodes" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.TreeWalker">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">TreeWalker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_from</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TreeWalker" title="Link to this definition">¶</a></dt>
 <dd><p>ListWalker-compatible class for displaying TreeWidgets</p>
 <p>positions are TreeNodes.</p>
 <p>start_from: TreeNode with the initial focus.</p>
-<dl class="method">
-<dt id="urwid.TreeWalker.get_focus">
-<code class="sig-name descname">get_focus</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TreeWalker.get_focus" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TreeWalker.get_focus">
+<span class="sig-name descname"><span class="pre">get_focus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TreeWalker.get_focus" title="Link to this definition">¶</a></dt>
 <dd><p>This default implementation relies on a focus attribute and a
 __getitem__() method defined in a subclass.</p>
 <p>Override and don’t call this method if these are not defined.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.TreeWalker.get_next">
-<code class="sig-name descname">get_next</code><span class="sig-paren">(</span><em class="sig-param">start_from</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TreeWalker.get_next" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TreeWalker.get_next">
+<span class="sig-name descname"><span class="pre">get_next</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_from</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TreeWalker.get_next" title="Link to this definition">¶</a></dt>
 <dd><p>This default implementation relies on a next_position() method and a
 __getitem__() method defined in a subclass.</p>
 <p>Override and don’t call this method if these are not defined.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.TreeWalker.get_prev">
-<code class="sig-name descname">get_prev</code><span class="sig-paren">(</span><em class="sig-param">start_from</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TreeWalker.get_prev" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TreeWalker.get_prev">
+<span class="sig-name descname"><span class="pre">get_prev</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start_from</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TreeWalker.get_prev" title="Link to this definition">¶</a></dt>
 <dd><p>This default implementation relies on a prev_position() method and a
 __getitem__() method defined in a subclass.</p>
 <p>Override and don’t call this method if these are not defined.</p>
@@ -212,24 +211,24 @@ __getitem__() method defined in a subclass.</p>
 
 </dd></dl>
 
-<dl class="class">
-<dt id="urwid.TreeNode">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">TreeNode</code><span class="sig-paren">(</span><em class="sig-param">value</em>, <em class="sig-param">parent=None</em>, <em class="sig-param">key=None</em>, <em class="sig-param">depth=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TreeNode" title="Permalink to this definition">¶</a></dt>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.TreeNode">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">TreeNode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TreeNode" title="Link to this definition">¶</a></dt>
 <dd><p>Store tree contents and cache TreeWidget objects.
 A TreeNode consists of the following elements:
 *  key: accessor token for parent nodes
 *  value: subclass-specific data
 *  parent: a TreeNode which contains a pointer back to this object
 *  widget: The widget used to render the object</p>
-<dl class="method">
-<dt id="urwid.TreeNode.get_widget">
-<code class="sig-name descname">get_widget</code><span class="sig-paren">(</span><em class="sig-param">reload=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TreeNode.get_widget" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TreeNode.get_widget">
+<span class="sig-name descname"><span class="pre">get_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reload</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TreeNode.get_widget" title="Link to this definition">¶</a></dt>
 <dd><p>Return the widget for this node.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.TreeNode.load_parent">
-<code class="sig-name descname">load_parent</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TreeNode.load_parent" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TreeNode.load_parent">
+<span class="sig-name descname"><span class="pre">load_parent</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TreeNode.load_parent" title="Link to this definition">¶</a></dt>
 <dd><p>Provide TreeNode with a parent for the current node.  This function
 is only required if the tree was instantiated from a child node
 (virtual function)</p>
@@ -237,84 +236,85 @@ is only required if the tree was instantiated from a child node
 
 </dd></dl>
 
-<dl class="class">
-<dt id="urwid.ParentNode">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">ParentNode</code><span class="sig-paren">(</span><em class="sig-param">value</em>, <em class="sig-param">parent=None</em>, <em class="sig-param">key=None</em>, <em class="sig-param">depth=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode" title="Permalink to this definition">¶</a></dt>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.ParentNode">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">ParentNode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode" title="Link to this definition">¶</a></dt>
 <dd><p>Maintain sort order for TreeNodes.</p>
-<dl class="method">
-<dt id="urwid.ParentNode.get_child_keys">
-<code class="sig-name descname">get_child_keys</code><span class="sig-paren">(</span><em class="sig-param">reload=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.get_child_keys" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ParentNode.get_child_keys">
+<span class="sig-name descname"><span class="pre">get_child_keys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reload</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.get_child_keys" title="Link to this definition">¶</a></dt>
 <dd><p>Return a possibly ordered list of child keys</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.ParentNode.get_child_node">
-<code class="sig-name descname">get_child_node</code><span class="sig-paren">(</span><em class="sig-param">key</em>, <em class="sig-param">reload=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.get_child_node" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ParentNode.get_child_node">
+<span class="sig-name descname"><span class="pre">get_child_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reload</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.get_child_node" title="Link to this definition">¶</a></dt>
 <dd><p>Return the child node for a given key.  Create if necessary.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.ParentNode.get_child_widget">
-<code class="sig-name descname">get_child_widget</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.get_child_widget" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ParentNode.get_child_widget">
+<span class="sig-name descname"><span class="pre">get_child_widget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.get_child_widget" title="Link to this definition">¶</a></dt>
 <dd><p>Return the widget for a given key.  Create if necessary.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.ParentNode.get_first_child">
-<code class="sig-name descname">get_first_child</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.get_first_child" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ParentNode.get_first_child">
+<span class="sig-name descname"><span class="pre">get_first_child</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.get_first_child" title="Link to this definition">¶</a></dt>
 <dd><p>Return the first TreeNode in the directory.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.ParentNode.get_last_child">
-<code class="sig-name descname">get_last_child</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.get_last_child" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ParentNode.get_last_child">
+<span class="sig-name descname"><span class="pre">get_last_child</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.get_last_child" title="Link to this definition">¶</a></dt>
 <dd><p>Return the last TreeNode in the directory.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.ParentNode.has_children">
-<code class="sig-name descname">has_children</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.has_children" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ParentNode.has_children">
+<span class="sig-name descname"><span class="pre">has_children</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.has_children" title="Link to this definition">¶</a></dt>
 <dd><p>Does this node have any children?</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.ParentNode.load_child_keys">
-<code class="sig-name descname">load_child_keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.load_child_keys" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ParentNode.load_child_keys">
+<span class="sig-name descname"><span class="pre">load_child_keys</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.load_child_keys" title="Link to this definition">¶</a></dt>
 <dd><p>Provide ParentNode with an ordered list of child keys (virtual
 function)</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.ParentNode.load_child_node">
-<code class="sig-name descname">load_child_node</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.load_child_node" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ParentNode.load_child_node">
+<span class="sig-name descname"><span class="pre">load_child_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.load_child_node" title="Link to this definition">¶</a></dt>
 <dd><p>Load the child node for a given key (virtual function)</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.ParentNode.next_child">
-<code class="sig-name descname">next_child</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.next_child" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ParentNode.next_child">
+<span class="sig-name descname"><span class="pre">next_child</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.next_child" title="Link to this definition">¶</a></dt>
 <dd><p>Return the next child node in index order from the given key.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.ParentNode.prev_child">
-<code class="sig-name descname">prev_child</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.prev_child" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ParentNode.prev_child">
+<span class="sig-name descname"><span class="pre">prev_child</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.prev_child" title="Link to this definition">¶</a></dt>
 <dd><p>Return the previous child node in index order from the given key.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.ParentNode.set_child_node">
-<code class="sig-name descname">set_child_node</code><span class="sig-paren">(</span><em class="sig-param">key</em>, <em class="sig-param">node</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.set_child_node" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ParentNode.set_child_node">
+<span class="sig-name descname"><span class="pre">set_child_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ParentNode.set_child_node" title="Link to this definition">¶</a></dt>
 <dd><p>Set the child node for a given key.  Useful for bottom-up, lazy
 population of a tree.</p>
 </dd></dl>
 
 </dd></dl>
 
-</div>
-</div>
+</section>
+</section>
 
 
+            <div class="clearer"></div>
           </div>
         </div>
       </div>
@@ -322,23 +322,81 @@ population of a tree.</p>
         <div class="sphinxsidebarwrapper">
             <p class="logo"><a href="../index.html">
               <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
-            </a></p><h3>Table of contents</a></h3>
+            </a></p><h3>Table of contents</h3>
     <ul><li><a href="index.html">Reference</a></li><ul>
 <li><a class="reference internal" href="#">List Walker Classes</a><ul>
-<li><a class="reference internal" href="#listwalker">ListWalker</a></li>
-<li><a class="reference internal" href="#list-like-list-walkers">List-like List Walkers</a></li>
-<li><a class="reference internal" href="#treewalker-and-nodes">TreeWalker and Nodes</a></li>
+<li><a class="reference internal" href="#listwalker">ListWalker</a><ul>
+<li><a class="reference internal" href="#urwid.ListWalker"><code class="docutils literal notranslate"><span class="pre">ListWalker</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.ListWalker.get_focus"><code class="docutils literal notranslate"><span class="pre">ListWalker.get_focus()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ListWalker.get_next"><code class="docutils literal notranslate"><span class="pre">ListWalker.get_next()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ListWalker.get_prev"><code class="docutils literal notranslate"><span class="pre">ListWalker.get_prev()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#list-like-list-walkers">List-like List Walkers</a><ul>
+<li><a class="reference internal" href="#urwid.SimpleFocusListWalker"><code class="docutils literal notranslate"><span class="pre">SimpleFocusListWalker</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.SimpleFocusListWalker.next_position"><code class="docutils literal notranslate"><span class="pre">SimpleFocusListWalker.next_position()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.SimpleFocusListWalker.positions"><code class="docutils literal notranslate"><span class="pre">SimpleFocusListWalker.positions()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.SimpleFocusListWalker.prev_position"><code class="docutils literal notranslate"><span class="pre">SimpleFocusListWalker.prev_position()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.SimpleFocusListWalker.set_focus"><code class="docutils literal notranslate"><span class="pre">SimpleFocusListWalker.set_focus()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.SimpleFocusListWalker.set_modified_callback"><code class="docutils literal notranslate"><span class="pre">SimpleFocusListWalker.set_modified_callback()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#urwid.SimpleListWalker"><code class="docutils literal notranslate"><span class="pre">SimpleListWalker</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.SimpleListWalker.contents"><code class="docutils literal notranslate"><span class="pre">SimpleListWalker.contents</span></code></a></li>
+<li><a class="reference internal" href="#urwid.SimpleListWalker.next_position"><code class="docutils literal notranslate"><span class="pre">SimpleListWalker.next_position()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.SimpleListWalker.positions"><code class="docutils literal notranslate"><span class="pre">SimpleListWalker.positions()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.SimpleListWalker.prev_position"><code class="docutils literal notranslate"><span class="pre">SimpleListWalker.prev_position()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.SimpleListWalker.set_focus"><code class="docutils literal notranslate"><span class="pre">SimpleListWalker.set_focus()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.SimpleListWalker.set_modified_callback"><code class="docutils literal notranslate"><span class="pre">SimpleListWalker.set_modified_callback()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#treewalker-and-nodes">TreeWalker and Nodes</a><ul>
+<li><a class="reference internal" href="#urwid.TreeWalker"><code class="docutils literal notranslate"><span class="pre">TreeWalker</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.TreeWalker.get_focus"><code class="docutils literal notranslate"><span class="pre">TreeWalker.get_focus()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TreeWalker.get_next"><code class="docutils literal notranslate"><span class="pre">TreeWalker.get_next()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TreeWalker.get_prev"><code class="docutils literal notranslate"><span class="pre">TreeWalker.get_prev()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#urwid.TreeNode"><code class="docutils literal notranslate"><span class="pre">TreeNode</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.TreeNode.get_widget"><code class="docutils literal notranslate"><span class="pre">TreeNode.get_widget()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TreeNode.load_parent"><code class="docutils literal notranslate"><span class="pre">TreeNode.load_parent()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#urwid.ParentNode"><code class="docutils literal notranslate"><span class="pre">ParentNode</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.ParentNode.get_child_keys"><code class="docutils literal notranslate"><span class="pre">ParentNode.get_child_keys()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ParentNode.get_child_node"><code class="docutils literal notranslate"><span class="pre">ParentNode.get_child_node()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ParentNode.get_child_widget"><code class="docutils literal notranslate"><span class="pre">ParentNode.get_child_widget()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ParentNode.get_first_child"><code class="docutils literal notranslate"><span class="pre">ParentNode.get_first_child()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ParentNode.get_last_child"><code class="docutils literal notranslate"><span class="pre">ParentNode.get_last_child()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ParentNode.has_children"><code class="docutils literal notranslate"><span class="pre">ParentNode.has_children()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ParentNode.load_child_keys"><code class="docutils literal notranslate"><span class="pre">ParentNode.load_child_keys()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ParentNode.load_child_node"><code class="docutils literal notranslate"><span class="pre">ParentNode.load_child_node()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ParentNode.next_child"><code class="docutils literal notranslate"><span class="pre">ParentNode.next_child()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ParentNode.prev_child"><code class="docutils literal notranslate"><span class="pre">ParentNode.prev_child()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ParentNode.set_child_node"><code class="docutils literal notranslate"><span class="pre">ParentNode.set_child_node()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
 
     </ul>
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="display_modules.html"
-                        title="previous chapter">Display Modules</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="signals.html"
-                        title="next chapter">Signal Functions</a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="display_modules.html"
+                          title="previous chapter">Display Modules</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="signals.html"
+                          title="next chapter">Signal Functions</a></p>
+  </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -350,12 +408,12 @@ population of a tree.</p>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -372,13 +430,14 @@ population of a tree.</p>
         <li class="right" >
           <a href="display_modules.html" title="Display Modules"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.3</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">List Walker Classes</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
     </div>
   </body>
 </html>

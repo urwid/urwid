@@ -69,10 +69,10 @@ each key pressed, exiting when the user presses *Q*.
 Display Attributes
 ------------------
 
-.. image:: attr1.png
-.. image:: attr2.png
-.. image:: attr3.png
-.. image:: attr4.png
+.. image:: urwid_attr1.png
+.. image:: urwid_attr2.png
+.. image:: urwid_attr3.png
+.. image:: urwid_attr4.png
 
 This program displays the string ``Hello World`` in the center of the screen.
 It uses different attributes for the text, the space on either side of the text
@@ -81,7 +81,7 @@ and the space above and below the text. It waits for a keypress before exiting.
 The screenshots above show how these widgets react to being resized.
 
 
-.. literalinclude:: attr.py
+.. literalinclude:: urwid_attr.py
    :linenos:
 
 * Display attributes are defined as part of a palette. Valid foreground,
@@ -108,7 +108,7 @@ The screenshots above show how these widgets react to being resized.
   allow you to map any display attribute to any other display attribute, but by default they
   will set the display attribute of everything that does not already have a display attribute.
   In this case the text has an attribute, so only the areas around the text
-  used for alignment will be have the new attribute.
+  used for alignment will have the new attribute.
 
 * A second :class:`AttrMap` widget is created to wrap the
   :class:`Filler` widget with attribute ``'bg'``.
@@ -132,7 +132,7 @@ and will work in any terminal that supports 256-color mode. It will exit when
 .. literalinclude:: highcolors.py
    :linenos:
 
-This palette only defines values for the high color foregroundand
+This palette only defines values for the high color foreground and
 backgrounds, because only the high colors will be used. A real application
 should define values for all the modes in their palette. Valid foreground,
 background and setting values are documented in :ref:`foreground-background`.
@@ -405,6 +405,3 @@ and the widgets that have been created.  The *AdventureGame* class is
 responsible for all the changes that happen through the game and manages
 the topmost widget, but isn't a widget itself.  This is a good pattern to
 follow as your application grows larger.
-
-
-

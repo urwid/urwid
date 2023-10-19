@@ -1,21 +1,19 @@
-
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en" data-content_root="../">
   <head>
     <meta charset="utf-8" />
-    <title>Display Modules &#8212; Urwid 2.1.2</title>
-    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Display Modules &#8212; Urwid 2.2.3</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/doctools.js"></script>
-    <script src="../_static/language_data.js"></script>
+    <script src="../_static/documentation_options.js?v=85e56e6b"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
-    <script src="../_static/sidebar.js"></script>
-    
+    <link rel="canonical" href="https://urwid.org/reference/display_modules.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="List Walker Classes" href="list_walkers.html" />
@@ -33,8 +31,9 @@
         <li class="right" >
           <a href="widget.html" title="Widget Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.3</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>
     </div>  
 
@@ -43,19 +42,18 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="display-modules">
-<h1>Display Modules<a class="headerlink" href="#display-modules" title="Permalink to this headline">¶</a></h1>
-<dl class="class">
-<dt id="urwid.BaseScreen">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.</code><code class="sig-name descname">BaseScreen</code><a class="headerlink" href="#urwid.BaseScreen" title="Permalink to this definition">¶</a></dt>
+  <section id="display-modules">
+<h1>Display Modules<a class="headerlink" href="#display-modules" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.BaseScreen">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">BaseScreen</span></span><a class="headerlink" href="#urwid.BaseScreen" title="Link to this definition">¶</a></dt>
 <dd><p>Base class for Screen classes (raw_display.Screen, .. etc)</p>
-<dl class="method">
-<dt id="urwid.BaseScreen.register_palette">
-<code class="sig-name descname">register_palette</code><span class="sig-paren">(</span><em class="sig-param">palette</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.BaseScreen.register_palette" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.BaseScreen.register_palette">
+<span class="sig-name descname"><span class="pre">register_palette</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">palette</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.BaseScreen.register_palette" title="Link to this definition">¶</a></dt>
 <dd><p>Register a set of palette entries.</p>
 <p>palette – a list of (name, like_other_name) or
-(name, foreground, background, mono, foreground_high,
-background_high) tuples</p>
+(name, foreground, background, mono, foreground_high, background_high) tuples</p>
 <blockquote>
 <div><p>The (name, like_other_name) format will copy the settings
 from the palette entry like_other_name, which must appear
@@ -67,9 +65,9 @@ of the tuple values.</p>
 </div></blockquote>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.BaseScreen.register_palette_entry">
-<code class="sig-name descname">register_palette_entry</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">foreground</em>, <em class="sig-param">background</em>, <em class="sig-param">mono=None</em>, <em class="sig-param">foreground_high=None</em>, <em class="sig-param">background_high=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.BaseScreen.register_palette_entry" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.BaseScreen.register_palette_entry">
+<span class="sig-name descname"><span class="pre">register_palette_entry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">foreground</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mono</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">foreground_high</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_high</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.BaseScreen.register_palette_entry" title="Link to this definition">¶</a></dt>
 <dd><p>Register a single palette entry.</p>
 <p>name – new entry/attribute name</p>
 <p>foreground – a string containing a comma-separated foreground
@@ -122,17 +120,17 @@ may be used</p>
 </div></blockquote>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.BaseScreen.run_wrapper">
-<code class="sig-name descname">run_wrapper</code><span class="sig-paren">(</span><em class="sig-param">fn</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.BaseScreen.run_wrapper" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.BaseScreen.run_wrapper">
+<span class="sig-name descname"><span class="pre">run_wrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.BaseScreen.run_wrapper" title="Link to this definition">¶</a></dt>
 <dd><p>Start the screen, call a function, then stop the screen.  Extra
 arguments are passed to <cite>start</cite>.</p>
 <p>Deprecated in favor of calling <cite>start</cite> as a context manager.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.BaseScreen.start">
-<code class="sig-name descname">start</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.BaseScreen.start" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.BaseScreen.start">
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">StoppingContext</span></span></span><a class="headerlink" href="#urwid.BaseScreen.start" title="Link to this definition">¶</a></dt>
 <dd><p>Set up the screen.  If the screen has already been started, does
 nothing.</p>
 <p>May be used as a context manager, in which case <code class="xref py py-meth docutils literal notranslate"><span class="pre">stop()</span></code> will
@@ -149,51 +147,58 @@ automatically be called at the end of the block:</p>
 
 </dd></dl>
 
-<div class="section" id="module-urwid.raw_display">
-<span id="raw-display"></span><h2>raw_display<a class="headerlink" href="#module-urwid.raw_display" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="urwid.raw_display.Screen">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.raw_display.</code><code class="sig-name descname">Screen</code><span class="sig-paren">(</span><em class="sig-param">input=&lt;_io.TextIOWrapper name='&lt;stdin&gt;' mode='r' encoding='utf-8'&gt;</em>, <em class="sig-param">output=&lt;_io.TextIOWrapper name='&lt;stdout&gt;' mode='w' encoding='utf-8'&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen" title="Permalink to this definition">¶</a></dt>
+<section id="module-urwid.raw_display">
+<span id="raw-display"></span><h2>raw_display<a class="headerlink" href="#module-urwid.raw_display" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.raw_display.Screen">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.raw_display.</span></span><span class="sig-name descname"><span class="pre">Screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input=&lt;_io.TextIOWrapper</span> <span class="pre">name='&lt;stdin&gt;'</span> <span class="pre">mode='r'</span> <span class="pre">encoding='utf-8'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output=&lt;_io.TextIOWrapper</span> <span class="pre">name='&lt;stdout&gt;'</span> <span class="pre">mode='w'</span> <span class="pre">encoding='utf-8'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bracketed_paste_mode=False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen" title="Link to this definition">¶</a></dt>
 <dd><p>Initialize a screen that directly prints escape codes to an output
 terminal.</p>
-<dl class="method">
-<dt id="urwid.raw_display.Screen.clear">
-<code class="sig-name descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.clear" title="Permalink to this definition">¶</a></dt>
+<dl class="simple">
+<dt>bracketed_paste_mode – enable bracketed paste mode in the host terminal.</dt><dd><p>If the host terminal supports it, the application will receive <cite>begin paste</cite>
+and <cite>end paste</cite> keystrokes when the user pastes text.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.raw_display.Screen.clear">
+<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.clear" title="Link to this definition">¶</a></dt>
 <dd><p>Force the screen to be completely repainted on the next
 call to draw_screen().</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.raw_display.Screen.draw_screen">
-<code class="sig-name descname">draw_screen</code><span class="sig-paren">(</span><em class="sig-param">maxres</em>, <em class="sig-param">r</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.draw_screen" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.raw_display.Screen.draw_screen">
+<span class="sig-name descname"><span class="pre">draw_screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">maxres</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.draw_screen" title="Link to this definition">¶</a></dt>
 <dd><p>Paint screen with rendered canvas.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.raw_display.Screen.flush">
-<code class="sig-name descname">flush</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.flush" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.raw_display.Screen.flush">
+<span class="sig-name descname"><span class="pre">flush</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.flush" title="Link to this definition">¶</a></dt>
 <dd><p>Flush the output buffer.</p>
 <p>You may wish to override this if you’re using something other than
 regular files for input and output.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.raw_display.Screen.get_available_raw_input">
-<code class="sig-name descname">get_available_raw_input</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.get_available_raw_input" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.raw_display.Screen.get_available_raw_input">
+<span class="sig-name descname"><span class="pre">get_available_raw_input</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.get_available_raw_input" title="Link to this definition">¶</a></dt>
 <dd><p>Return any currently-available input.  Does not block.</p>
 <p>This method is only used by the default <cite>hook_event_loop</cite>
 implementation; you can safely ignore it if you implement your own.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.raw_display.Screen.get_cols_rows">
-<code class="sig-name descname">get_cols_rows</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.get_cols_rows" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.raw_display.Screen.get_cols_rows">
+<span class="sig-name descname"><span class="pre">get_cols_rows</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.get_cols_rows" title="Link to this definition">¶</a></dt>
 <dd><p>Return the terminal dimensions (num columns, num rows).</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.raw_display.Screen.get_input">
-<code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param">raw_keys=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.get_input" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.raw_display.Screen.get_input">
+<span class="sig-name descname"><span class="pre">get_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">False</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.raw_display.Screen.get_input" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">True</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span></dt>
 <dd><p>Return pending input as a list.</p>
 <p>raw_keys – return raw keycodes as well as translated versions</p>
 <p>This function will immediately return all the input since the
@@ -205,7 +210,7 @@ of keys pressed.  If raw_keys is True this function will return
 a ( keys pressed, raw keycodes ) tuple instead.</p>
 <p>Examples of keys returned:</p>
 <ul class="simple">
-<li><p>ASCII printable characters:  ” “, “a”, “0”, “A”, “-“, “/”</p></li>
+<li><p>ASCII printable characters:  “ “, “a”, “0”, “A”, “-”, “/”</p></li>
 <li><p>ASCII control characters:  “tab”, “enter”</p></li>
 <li><p>Escape sequences:  “up”, “page up”, “home”, “insert”, “f1”</p></li>
 <li><p>Key combinations:  “shift f1”, “meta a”, “ctrl b”</p></li>
@@ -244,9 +249,9 @@ a ( keys pressed, raw keycodes ) tuple instead.</p>
 </ul>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.raw_display.Screen.get_input_descriptors">
-<code class="sig-name descname">get_input_descriptors</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.get_input_descriptors" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.raw_display.Screen.get_input_descriptors">
+<span class="sig-name descname"><span class="pre">get_input_descriptors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.raw_display.Screen.get_input_descriptors" title="Link to this definition">¶</a></dt>
 <dd><p>Return a list of integer file descriptors that should be
 polled in external event loops to check for user input.</p>
 <p>Use this method if you are implementing your own event loop.</p>
@@ -254,18 +259,18 @@ polled in external event loops to check for user input.</p>
 that, you can safely ignore this.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.raw_display.Screen.hook_event_loop">
-<code class="sig-name descname">hook_event_loop</code><span class="sig-paren">(</span><em class="sig-param">event_loop</em>, <em class="sig-param">callback</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.hook_event_loop" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.raw_display.Screen.hook_event_loop">
+<span class="sig-name descname"><span class="pre">hook_event_loop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.hook_event_loop" title="Link to this definition">¶</a></dt>
 <dd><p>Register the given callback with the event loop, to be called with new
 input whenever it’s available.  The callback should be passed a list of
 processed keys and a list of unprocessed keycodes.</p>
 <p>Subclasses may wish to use parse_input to wrap the callback.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.raw_display.Screen.modify_terminal_palette">
-<code class="sig-name descname">modify_terminal_palette</code><span class="sig-paren">(</span><em class="sig-param">entries</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.modify_terminal_palette" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.raw_display.Screen.modify_terminal_palette">
+<span class="sig-name descname"><span class="pre">modify_terminal_palette</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entries</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.modify_terminal_palette" title="Link to this definition">¶</a></dt>
 <dd><p>entries - list of (index, red, green, blue) tuples.</p>
 <p>Attempt to set part of the terminal palette (this does not work
 on all terminals.)  The changes are sent as a single escape
@@ -274,9 +279,9 @@ sequence so they should all take effect at the same time.</p>
 0 &lt;= red, green, blue &lt; 256</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.raw_display.Screen.parse_input">
-<code class="sig-name descname">parse_input</code><span class="sig-paren">(</span><em class="sig-param">event_loop</em>, <em class="sig-param">callback</em>, <em class="sig-param">codes</em>, <em class="sig-param">wait_for_more=True</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.parse_input" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.raw_display.Screen.parse_input">
+<span class="sig-name descname"><span class="pre">parse_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">codes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wait_for_more</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.parse_input" title="Link to this definition">¶</a></dt>
 <dd><p>Read any available input from get_available_raw_input, parses it into
 keys, and calls the given callback.</p>
 <p>The current implementation tries to avoid any assumptions about what
@@ -287,17 +292,17 @@ appropriate, but beware of using bytes, which only iterates as integers
 on Python 3.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.raw_display.Screen.reset_default_terminal_palette">
-<code class="sig-name descname">reset_default_terminal_palette</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.reset_default_terminal_palette" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.raw_display.Screen.reset_default_terminal_palette">
+<span class="sig-name descname"><span class="pre">reset_default_terminal_palette</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.reset_default_terminal_palette" title="Link to this definition">¶</a></dt>
 <dd><p>Attempt to set the terminal palette to default values as taken
 from xterm.  Uses number of colors from current
 set_terminal_properties() screen setting.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.raw_display.Screen.set_input_timeouts">
-<code class="sig-name descname">set_input_timeouts</code><span class="sig-paren">(</span><em class="sig-param">max_wait=None</em>, <em class="sig-param">complete_wait=0.125</em>, <em class="sig-param">resize_wait=0.125</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.set_input_timeouts" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.raw_display.Screen.set_input_timeouts">
+<span class="sig-name descname"><span class="pre">set_input_timeouts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_wait</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">complete_wait</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.125</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resize_wait</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.125</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.set_input_timeouts" title="Link to this definition">¶</a></dt>
 <dd><p>Set the get_input timeout values.  All values are in floating
 point numbers of seconds.</p>
 <dl class="simple">
@@ -313,17 +318,17 @@ window resize operation</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.raw_display.Screen.set_mouse_tracking">
-<code class="sig-name descname">set_mouse_tracking</code><span class="sig-paren">(</span><em class="sig-param">enable=True</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.set_mouse_tracking" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.raw_display.Screen.set_mouse_tracking">
+<span class="sig-name descname"><span class="pre">set_mouse_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.set_mouse_tracking" title="Link to this definition">¶</a></dt>
 <dd><p>Enable (or disable) mouse tracking.</p>
 <p>After calling this function get_input will include mouse
 click events along with keystrokes.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.raw_display.Screen.set_terminal_properties">
-<code class="sig-name descname">set_terminal_properties</code><span class="sig-paren">(</span><em class="sig-param">colors=None</em>, <em class="sig-param">bright_is_bold=None</em>, <em class="sig-param">has_underline=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.set_terminal_properties" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.raw_display.Screen.set_terminal_properties">
+<span class="sig-name descname"><span class="pre">set_terminal_properties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bright_is_bold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_underline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.set_terminal_properties" title="Link to this definition">¶</a></dt>
 <dd><dl class="simple">
 <dt>colors – number of colors terminal supports (1, 16, 88, 256, or 2**24)</dt><dd><p>or None to leave unchanged</p>
 </dd>
@@ -337,33 +342,33 @@ unchanged</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.raw_display.Screen.signal_init">
-<code class="sig-name descname">signal_init</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.signal_init" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.raw_display.Screen.signal_init">
+<span class="sig-name descname"><span class="pre">signal_init</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.signal_init" title="Link to this definition">¶</a></dt>
 <dd><p>Called in the startup of run wrapper to set the SIGWINCH
-and SIGCONT signal handlers.</p>
+and SIGTSTP signal handlers.</p>
 <p>Override this function to call from main thread in threaded
 applications.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.raw_display.Screen.signal_restore">
-<code class="sig-name descname">signal_restore</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.signal_restore" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.raw_display.Screen.signal_restore">
+<span class="sig-name descname"><span class="pre">signal_restore</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.signal_restore" title="Link to this definition">¶</a></dt>
 <dd><p>Called in the finally block of run wrapper to restore the
-SIGWINCH and SIGCONT signal handlers.</p>
+SIGTSTP, SIGCONT and SIGWINCH signal handlers.</p>
 <p>Override this function to call from main thread in threaded
 applications.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.raw_display.Screen.unhook_event_loop">
-<code class="sig-name descname">unhook_event_loop</code><span class="sig-paren">(</span><em class="sig-param">event_loop</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.unhook_event_loop" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.raw_display.Screen.unhook_event_loop">
+<span class="sig-name descname"><span class="pre">unhook_event_loop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_loop</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.unhook_event_loop" title="Link to this definition">¶</a></dt>
 <dd><p>Remove any hooks added by hook_event_loop.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.raw_display.Screen.write">
-<code class="sig-name descname">write</code><span class="sig-paren">(</span><em class="sig-param">data</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.write" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.raw_display.Screen.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.raw_display.Screen.write" title="Link to this definition">¶</a></dt>
 <dd><p>Write some data to the terminal.</p>
 <p>You may wish to override this if you’re using something other than
 regular files for input and output.</p>
@@ -371,34 +376,36 @@ regular files for input and output.</p>
 
 </dd></dl>
 
-</div>
-<div class="section" id="module-urwid.curses_display">
-<span id="curses-display"></span><h2>curses_display<a class="headerlink" href="#module-urwid.curses_display" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="urwid.curses_display.Screen">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.curses_display.</code><code class="sig-name descname">Screen</code><a class="headerlink" href="#urwid.curses_display.Screen" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
-<dt id="urwid.curses_display.Screen.clear">
-<code class="sig-name descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.curses_display.Screen.clear" title="Permalink to this definition">¶</a></dt>
+</section>
+<section id="module-urwid.curses_display">
+<span id="curses-display"></span><h2>curses_display<a class="headerlink" href="#module-urwid.curses_display" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.curses_display.Screen">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.curses_display.</span></span><span class="sig-name descname"><span class="pre">Screen</span></span><a class="headerlink" href="#urwid.curses_display.Screen" title="Link to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="urwid.curses_display.Screen.clear">
+<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.curses_display.Screen.clear" title="Link to this definition">¶</a></dt>
 <dd><p>Force the screen to be completely repainted on the next
 call to draw_screen().</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.curses_display.Screen.draw_screen">
-<code class="sig-name descname">draw_screen</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">r</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.curses_display.Screen.draw_screen" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.curses_display.Screen.draw_screen">
+<span class="sig-name descname"><span class="pre">draw_screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.curses_display.Screen.draw_screen" title="Link to this definition">¶</a></dt>
 <dd><p>Paint screen with rendered canvas.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.curses_display.Screen.get_cols_rows">
-<code class="sig-name descname">get_cols_rows</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.curses_display.Screen.get_cols_rows" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.curses_display.Screen.get_cols_rows">
+<span class="sig-name descname"><span class="pre">get_cols_rows</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.curses_display.Screen.get_cols_rows" title="Link to this definition">¶</a></dt>
 <dd><p>Return the terminal dimensions (num columns, num rows).</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.curses_display.Screen.get_input">
-<code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param">raw_keys=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.curses_display.Screen.get_input" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.curses_display.Screen.get_input">
+<span class="sig-name descname"><span class="pre">get_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">False</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.curses_display.Screen.get_input" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">True</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span></dt>
 <dd><p>Return pending input as a list.</p>
 <p>raw_keys – return raw keycodes as well as translated versions</p>
 <p>This function will immediately return all the input since the
@@ -410,7 +417,7 @@ of keys pressed.  If raw_keys is True this function will return
 a ( keys pressed, raw keycodes ) tuple instead.</p>
 <p>Examples of keys returned:</p>
 <ul class="simple">
-<li><p>ASCII printable characters:  ” “, “a”, “0”, “A”, “-“, “/”</p></li>
+<li><p>ASCII printable characters:  “ “, “a”, “0”, “A”, “-”, “/”</p></li>
 <li><p>ASCII control characters:  “tab”, “enter”</p></li>
 <li><p>Escape sequences:  “up”, “page up”, “home”, “insert”, “f1”</p></li>
 <li><p>Key combinations:  “shift f1”, “meta a”, “ctrl b”</p></li>
@@ -443,9 +450,9 @@ a ( keys pressed, raw keycodes ) tuple instead.</p>
 </ul>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.curses_display.Screen.set_input_timeouts">
-<code class="sig-name descname">set_input_timeouts</code><span class="sig-paren">(</span><em class="sig-param">max_wait=None</em>, <em class="sig-param">complete_wait=0.1</em>, <em class="sig-param">resize_wait=0.1</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.curses_display.Screen.set_input_timeouts" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.curses_display.Screen.set_input_timeouts">
+<span class="sig-name descname"><span class="pre">set_input_timeouts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_wait</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">complete_wait</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resize_wait</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.curses_display.Screen.set_input_timeouts" title="Link to this definition">¶</a></dt>
 <dd><p>Set the get_input timeout values.  All values have a granularity
 of 0.1s, ie. any value between 0.15 and 0.05 will be treated as
 0.1 and any value less than 0.05 will be treated as 0.  The
@@ -463,9 +470,9 @@ window resize operation</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.curses_display.Screen.set_mouse_tracking">
-<code class="sig-name descname">set_mouse_tracking</code><span class="sig-paren">(</span><em class="sig-param">enable=True</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.curses_display.Screen.set_mouse_tracking" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.curses_display.Screen.set_mouse_tracking">
+<span class="sig-name descname"><span class="pre">set_mouse_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.curses_display.Screen.set_mouse_tracking" title="Link to this definition">¶</a></dt>
 <dd><p>Enable mouse tracking.</p>
 <p>After calling this function get_input will include mouse
 click events along with keystrokes.</p>
@@ -473,52 +480,54 @@ click events along with keystrokes.</p>
 
 </dd></dl>
 
-</div>
-<div class="section" id="module-urwid.web_display">
-<span id="web-display"></span><h2>web_display<a class="headerlink" href="#module-urwid.web_display" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="urwid.web_display.Screen">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.web_display.</code><code class="sig-name descname">Screen</code><a class="headerlink" href="#urwid.web_display.Screen" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
-<dt id="urwid.web_display.Screen.clear">
-<code class="sig-name descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.clear" title="Permalink to this definition">¶</a></dt>
+</section>
+<section id="module-urwid.web_display">
+<span id="web-display"></span><h2>web_display<a class="headerlink" href="#module-urwid.web_display" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.web_display.Screen">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.web_display.</span></span><span class="sig-name descname"><span class="pre">Screen</span></span><a class="headerlink" href="#urwid.web_display.Screen" title="Link to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="urwid.web_display.Screen.clear">
+<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.clear" title="Link to this definition">¶</a></dt>
 <dd><p>Force the screen to be completely repainted on the next
 call to draw_screen().</p>
 <p>(does nothing for web_display)</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.web_display.Screen.draw_screen">
-<code class="sig-name descname">draw_screen</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">r</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.draw_screen" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.web_display.Screen.draw_screen">
+<span class="sig-name descname"><span class="pre">draw_screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.draw_screen" title="Link to this definition">¶</a></dt>
 <dd><p>Send a screen update to the client.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.web_display.Screen.get_cols_rows">
-<code class="sig-name descname">get_cols_rows</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.get_cols_rows" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.web_display.Screen.get_cols_rows">
+<span class="sig-name descname"><span class="pre">get_cols_rows</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.get_cols_rows" title="Link to this definition">¶</a></dt>
 <dd><p>Return the screen size.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.web_display.Screen.get_input">
-<code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param">raw_keys=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.get_input" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.web_display.Screen.get_input">
+<span class="sig-name descname"><span class="pre">get_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">False</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.web_display.Screen.get_input" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">True</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span></dt>
 <dd><p>Return pending input as a list.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.web_display.Screen.register_palette">
-<code class="sig-name descname">register_palette</code><span class="sig-paren">(</span><em class="sig-param">l</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.register_palette" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.web_display.Screen.register_palette">
+<span class="sig-name descname"><span class="pre">register_palette</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">palette</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.register_palette" title="Link to this definition">¶</a></dt>
 <dd><p>Register a list of palette entries.</p>
 <dl class="simple">
-<dt>l – list of (name, foreground, background) or</dt><dd><p>(name, same_as_other_name) palette entries.</p>
+<dt>palette – list of (name, foreground, background) or</dt><dd><p>(name, same_as_other_name) palette entries.</p>
 </dd>
 </dl>
 <p>calls self.register_palette_entry for each item in l</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.web_display.Screen.register_palette_entry">
-<code class="sig-name descname">register_palette_entry</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">foreground</em>, <em class="sig-param">background</em>, <em class="sig-param">mono=None</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.register_palette_entry" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.web_display.Screen.register_palette_entry">
+<span class="sig-name descname"><span class="pre">register_palette_entry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">foreground</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mono</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.register_palette_entry" title="Link to this definition">¶</a></dt>
 <dd><p>Register a single palette entry.</p>
 <p>name – new entry/attribute name
 foreground – foreground colour
@@ -527,86 +536,88 @@ mono – monochrome terminal attribute</p>
 <p>See curses_display.register_palette_entry for more info.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.web_display.Screen.run_wrapper">
-<code class="sig-name descname">run_wrapper</code><span class="sig-paren">(</span><em class="sig-param">fn</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.run_wrapper" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.web_display.Screen.run_wrapper">
+<span class="sig-name descname"><span class="pre">run_wrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.run_wrapper" title="Link to this definition">¶</a></dt>
 <dd><p>Run the application main loop, calling start() first
 and stop() on exit.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.web_display.Screen.set_mouse_tracking">
-<code class="sig-name descname">set_mouse_tracking</code><span class="sig-paren">(</span><em class="sig-param">enable=True</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.set_mouse_tracking" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.web_display.Screen.set_mouse_tracking">
+<span class="sig-name descname"><span class="pre">set_mouse_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.set_mouse_tracking" title="Link to this definition">¶</a></dt>
 <dd><p>Not yet implemented</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.web_display.Screen.start">
-<code class="sig-name descname">start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.start" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.web_display.Screen.start">
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.start" title="Link to this definition">¶</a></dt>
 <dd><p>This function reads the initial screen size, generates a
 unique id and handles cleanup when fn exits.</p>
 <p>web_display.set_preferences(..) must be called before calling
 this function for the preferences to take effect</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.web_display.Screen.stop">
-<code class="sig-name descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.stop" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.web_display.Screen.stop">
+<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.stop" title="Link to this definition">¶</a></dt>
 <dd><p>Restore settings and clean up.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.web_display.Screen.tty_signal_keys">
-<code class="sig-name descname">tty_signal_keys</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**vargs</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.tty_signal_keys" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.web_display.Screen.tty_signal_keys">
+<span class="sig-name descname"><span class="pre">tty_signal_keys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">vargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.web_display.Screen.tty_signal_keys" title="Link to this definition">¶</a></dt>
 <dd><p>Do nothing.</p>
 </dd></dl>
 
 </dd></dl>
 
-</div>
-<div class="section" id="module-urwid.html_fragment">
-<span id="html-fragment"></span><h2>html_fragment<a class="headerlink" href="#module-urwid.html_fragment" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="urwid.html_fragment.HtmlGenerator">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.html_fragment.</code><code class="sig-name descname">HtmlGenerator</code><a class="headerlink" href="#urwid.html_fragment.HtmlGenerator" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
-<dt id="urwid.html_fragment.HtmlGenerator.clear">
-<code class="sig-name descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.html_fragment.HtmlGenerator.clear" title="Permalink to this definition">¶</a></dt>
+</section>
+<section id="module-urwid.html_fragment">
+<span id="html-fragment"></span><h2>html_fragment<a class="headerlink" href="#module-urwid.html_fragment" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.html_fragment.HtmlGenerator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.html_fragment.</span></span><span class="sig-name descname"><span class="pre">HtmlGenerator</span></span><a class="headerlink" href="#urwid.html_fragment.HtmlGenerator" title="Link to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="urwid.html_fragment.HtmlGenerator.clear">
+<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.html_fragment.HtmlGenerator.clear" title="Link to this definition">¶</a></dt>
 <dd><p>Force the screen to be completely repainted on the next
 call to draw_screen().</p>
 <p>(does nothing for html_fragment)</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.html_fragment.HtmlGenerator.draw_screen">
-<code class="sig-name descname">draw_screen</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">r</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.html_fragment.HtmlGenerator.draw_screen" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.html_fragment.HtmlGenerator.draw_screen">
+<span class="sig-name descname"><span class="pre">draw_screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.html_fragment.HtmlGenerator.draw_screen" title="Link to this definition">¶</a></dt>
 <dd><p>Create an html fragment from the render object.
 Append it to HtmlGenerator.fragments list.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.html_fragment.HtmlGenerator.get_cols_rows">
-<code class="sig-name descname">get_cols_rows</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.html_fragment.HtmlGenerator.get_cols_rows" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.html_fragment.HtmlGenerator.get_cols_rows">
+<span class="sig-name descname"><span class="pre">get_cols_rows</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.html_fragment.HtmlGenerator.get_cols_rows" title="Link to this definition">¶</a></dt>
 <dd><p>Return the next screen size in HtmlGenerator.sizes.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.html_fragment.HtmlGenerator.get_input">
-<code class="sig-name descname">get_input</code><span class="sig-paren">(</span><em class="sig-param">raw_keys=False</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.html_fragment.HtmlGenerator.get_input" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.html_fragment.HtmlGenerator.get_input">
+<span class="sig-name descname"><span class="pre">get_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">False</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.html_fragment.HtmlGenerator.get_input" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">True</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span></dt>
 <dd><p>Return the next list of keypresses in HtmlGenerator.keys.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.html_fragment.HtmlGenerator.set_mouse_tracking">
-<code class="sig-name descname">set_mouse_tracking</code><span class="sig-paren">(</span><em class="sig-param">enable=True</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.html_fragment.HtmlGenerator.set_mouse_tracking" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.html_fragment.HtmlGenerator.set_mouse_tracking">
+<span class="sig-name descname"><span class="pre">set_mouse_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.html_fragment.HtmlGenerator.set_mouse_tracking" title="Link to this definition">¶</a></dt>
 <dd><p>Not yet implemented</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="function">
-<dt id="urwid.html_fragment.screenshot_init">
-<code class="sig-prename descclassname">urwid.html_fragment.</code><code class="sig-name descname">screenshot_init</code><span class="sig-paren">(</span><em class="sig-param">sizes</em>, <em class="sig-param">keys</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.html_fragment.screenshot_init" title="Permalink to this definition">¶</a></dt>
+<dl class="py function">
+<dt class="sig sig-object py" id="urwid.html_fragment.screenshot_init">
+<span class="sig-prename descclassname"><span class="pre">urwid.html_fragment.</span></span><span class="sig-name descname"><span class="pre">screenshot_init</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sizes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.html_fragment.screenshot_init" title="Link to this definition">¶</a></dt>
 <dd><p>Replace curses_display.Screen and raw_display.Screen class with
 HtmlGenerator.</p>
 <p>Call this function before executing an application that uses
@@ -636,41 +647,41 @@ call get_cols_rows and read a new screen size.</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
-<dt id="urwid.html_fragment.screenshot_collect">
-<code class="sig-prename descclassname">urwid.html_fragment.</code><code class="sig-name descname">screenshot_collect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.html_fragment.screenshot_collect" title="Permalink to this definition">¶</a></dt>
+<dl class="py function">
+<dt class="sig sig-object py" id="urwid.html_fragment.screenshot_collect">
+<span class="sig-prename descclassname"><span class="pre">urwid.html_fragment.</span></span><span class="sig-name descname"><span class="pre">screenshot_collect</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.html_fragment.screenshot_collect" title="Link to this definition">¶</a></dt>
 <dd><p>Return screenshots as a list of HTML fragments.</p>
 </dd></dl>
 
-</div>
-<div class="section" id="module-urwid.lcd_display">
-<span id="lcd-display"></span><h2>lcd_display<a class="headerlink" href="#module-urwid.lcd_display" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="urwid.lcd_display.LCDScreen">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.lcd_display.</code><code class="sig-name descname">LCDScreen</code><a class="headerlink" href="#urwid.lcd_display.LCDScreen" title="Permalink to this definition">¶</a></dt>
+</section>
+<section id="module-urwid.lcd_display">
+<span id="lcd-display"></span><h2>lcd_display<a class="headerlink" href="#module-urwid.lcd_display" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.lcd_display.LCDScreen">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.lcd_display.</span></span><span class="sig-name descname"><span class="pre">LCDScreen</span></span><a class="headerlink" href="#urwid.lcd_display.LCDScreen" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="class">
-<dt id="urwid.lcd_display.CFLCDScreen">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.lcd_display.</code><code class="sig-name descname">CFLCDScreen</code><span class="sig-paren">(</span><em class="sig-param">device_path</em>, <em class="sig-param">baud</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.lcd_display.CFLCDScreen" title="Permalink to this definition">¶</a></dt>
-<dd><p>Common methods for Crystal Fontz LCD displays</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.lcd_display.CFLCDScreen">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.lcd_display.</span></span><span class="sig-name descname"><span class="pre">CFLCDScreen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">baud</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.lcd_display.CFLCDScreen" title="Link to this definition">¶</a></dt>
+<dd><p>Common methods for Crystal Fonts LCD displays</p>
 <p>device_path – eg. ‘/dev/ttyUSB0’
 baud – baud rate</p>
-<dl class="exception">
-<dt id="urwid.lcd_display.CFLCDScreen.InvalidPacket">
-<em class="property">exception </em><code class="sig-name descname">InvalidPacket</code><a class="headerlink" href="#urwid.lcd_display.CFLCDScreen.InvalidPacket" title="Permalink to this definition">¶</a></dt>
+<dl class="py exception">
+<dt class="sig sig-object py" id="urwid.lcd_display.CFLCDScreen.InvalidPacket">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">InvalidPacket</span></span><a class="headerlink" href="#urwid.lcd_display.CFLCDScreen.InvalidPacket" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="exception">
-<dt id="urwid.lcd_display.CFLCDScreen.MoreDataRequired">
-<em class="property">exception </em><code class="sig-name descname">MoreDataRequired</code><a class="headerlink" href="#urwid.lcd_display.CFLCDScreen.MoreDataRequired" title="Permalink to this definition">¶</a></dt>
+<dl class="py exception">
+<dt class="sig sig-object py" id="urwid.lcd_display.CFLCDScreen.MoreDataRequired">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">MoreDataRequired</span></span><a class="headerlink" href="#urwid.lcd_display.CFLCDScreen.MoreDataRequired" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-<dl class="class">
-<dt id="urwid.lcd_display.CF635Screen">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.lcd_display.</code><code class="sig-name descname">CF635Screen</code><span class="sig-paren">(</span><em class="sig-param">device_path, baud=115200, repeat_delay=0.5, repeat_next=0.125, key_map=['up', 'down', 'left', 'right', 'enter', 'esc']</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.lcd_display.CF635Screen" title="Permalink to this definition">¶</a></dt>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.lcd_display.CF635Screen">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.lcd_display.</span></span><span class="sig-name descname"><span class="pre">CF635Screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">baud</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">115200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat_delay</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat_next</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.125</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">('up',</span> <span class="pre">'down',</span> <span class="pre">'left',</span> <span class="pre">'right',</span> <span class="pre">'enter',</span> <span class="pre">'esc')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.lcd_display.CF635Screen" title="Link to this definition">¶</a></dt>
 <dd><p>Crystal Fontz 635 display</p>
 <p>20x4 character display + cursor
 no foreground/background colors or settings supported</p>
@@ -682,16 +693,16 @@ baud – baud rate
 repeat_delay – seconds to wait before starting to repeat keys
 repeat_next – time between each repeated key
 key_map – the keys to send for this device’s buttons</p>
-<dl class="method">
-<dt id="urwid.lcd_display.CF635Screen.get_input_descriptors">
-<code class="sig-name descname">get_input_descriptors</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.lcd_display.CF635Screen.get_input_descriptors" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.lcd_display.CF635Screen.get_input_descriptors">
+<span class="sig-name descname"><span class="pre">get_input_descriptors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.lcd_display.CF635Screen.get_input_descriptors" title="Link to this definition">¶</a></dt>
 <dd><p>return the fd from our serial device so we get called
 on input and responses</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.lcd_display.CF635Screen.get_input_nonblocking">
-<code class="sig-name descname">get_input_nonblocking</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.lcd_display.CF635Screen.get_input_nonblocking" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.lcd_display.CF635Screen.get_input_nonblocking">
+<span class="sig-name descname"><span class="pre">get_input_nonblocking</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.lcd_display.CF635Screen.get_input_nonblocking" title="Link to this definition">¶</a></dt>
 <dd><p>Return a (next_input_timeout, keys_pressed, raw_keycodes)
 tuple.</p>
 <p>The protocol for our device requires waiting for acks between
@@ -703,9 +714,9 @@ any for us.</p>
 not seem to have any correspondence to keys_pressed.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.lcd_display.CF635Screen.program_cgram">
-<code class="sig-name descname">program_cgram</code><span class="sig-paren">(</span><em class="sig-param">index</em>, <em class="sig-param">data</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.lcd_display.CF635Screen.program_cgram" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.lcd_display.CF635Screen.program_cgram">
+<span class="sig-name descname"><span class="pre">program_cgram</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.lcd_display.CF635Screen.program_cgram" title="Link to this definition">¶</a></dt>
 <dd><p>Program character data.  Characters available as chr(0) through
 chr(7), and repeated as chr(8) through chr(15).</p>
 <p>index – 0 to 7 index of character to program</p>
@@ -713,16 +724,16 @@ chr(7), and repeated as chr(8) through chr(15).</p>
 on the left side of the character.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.lcd_display.CF635Screen.set_backlight">
-<code class="sig-name descname">set_backlight</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.lcd_display.CF635Screen.set_backlight" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.lcd_display.CF635Screen.set_backlight">
+<span class="sig-name descname"><span class="pre">set_backlight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.lcd_display.CF635Screen.set_backlight" title="Link to this definition">¶</a></dt>
 <dd><p>Set backlight brightness</p>
 <p>value – 0 to 100</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.lcd_display.CF635Screen.set_cursor_style">
-<code class="sig-name descname">set_cursor_style</code><span class="sig-paren">(</span><em class="sig-param">style</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.lcd_display.CF635Screen.set_cursor_style" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.lcd_display.CF635Screen.set_cursor_style">
+<span class="sig-name descname"><span class="pre">set_cursor_style</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">style</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.lcd_display.CF635Screen.set_cursor_style" title="Link to this definition">¶</a></dt>
 <dd><dl class="simple">
 <dt>style – CURSOR_BLINKING_BLOCK, CURSOR_UNDERSCORE,</dt><dd><p>CURSOR_BLINKING_BLOCK_UNDERSCORE or
 CURSOR_INVERTING_BLINKING_BLOCK</p>
@@ -730,15 +741,15 @@ CURSOR_INVERTING_BLINKING_BLOCK</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.lcd_display.CF635Screen.set_lcd_contrast">
-<code class="sig-name descname">set_lcd_contrast</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.lcd_display.CF635Screen.set_lcd_contrast" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.lcd_display.CF635Screen.set_lcd_contrast">
+<span class="sig-name descname"><span class="pre">set_lcd_contrast</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.lcd_display.CF635Screen.set_lcd_contrast" title="Link to this definition">¶</a></dt>
 <dd><p>value – 0 to 255</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.lcd_display.CF635Screen.set_led_pin">
-<code class="sig-name descname">set_led_pin</code><span class="sig-paren">(</span><em class="sig-param">led</em>, <em class="sig-param">rg</em>, <em class="sig-param">value</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.lcd_display.CF635Screen.set_led_pin" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.lcd_display.CF635Screen.set_led_pin">
+<span class="sig-name descname"><span class="pre">set_led_pin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">led</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.lcd_display.CF635Screen.set_led_pin" title="Link to this definition">¶</a></dt>
 <dd><p>led – 0 to 3
 rg – 0 for red, 1 for green
 value – 0 to 100</p>
@@ -746,36 +757,37 @@ value – 0 to 100</p>
 
 </dd></dl>
 
-<dl class="class">
-<dt id="urwid.lcd_display.KeyRepeatSimulator">
-<em class="property">class </em><code class="sig-prename descclassname">urwid.lcd_display.</code><code class="sig-name descname">KeyRepeatSimulator</code><span class="sig-paren">(</span><em class="sig-param">repeat_delay</em>, <em class="sig-param">repeat_next</em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.lcd_display.KeyRepeatSimulator" title="Permalink to this definition">¶</a></dt>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.lcd_display.KeyRepeatSimulator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.lcd_display.</span></span><span class="sig-name descname"><span class="pre">KeyRepeatSimulator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">repeat_delay</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat_next</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.lcd_display.KeyRepeatSimulator" title="Link to this definition">¶</a></dt>
 <dd><p>Provide simulated repeat key events when given press and
 release events.</p>
 <p>If two or more keys are pressed disable repeating until all
 keys are released.</p>
 <p>repeat_delay – seconds to wait before starting to repeat keys
 repeat_next – time between each repeated key</p>
-<dl class="method">
-<dt id="urwid.lcd_display.KeyRepeatSimulator.next_event">
-<code class="sig-name descname">next_event</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.lcd_display.KeyRepeatSimulator.next_event" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.lcd_display.KeyRepeatSimulator.next_event">
+<span class="sig-name descname"><span class="pre">next_event</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.lcd_display.KeyRepeatSimulator.next_event" title="Link to this definition">¶</a></dt>
 <dd><p>Return (remaining, key) where remaining is the number of seconds
 (float) until the key repeat event should be sent, or None if no
 events are pending.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="urwid.lcd_display.KeyRepeatSimulator.sent_event">
-<code class="sig-name descname">sent_event</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.lcd_display.KeyRepeatSimulator.sent_event" title="Permalink to this definition">¶</a></dt>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.lcd_display.KeyRepeatSimulator.sent_event">
+<span class="sig-name descname"><span class="pre">sent_event</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.lcd_display.KeyRepeatSimulator.sent_event" title="Link to this definition">¶</a></dt>
 <dd><p>Cakk this method when you have sent a key repeat event so the
 timer will be reset for the next event</p>
 </dd></dl>
 
 </dd></dl>
 
-</div>
-</div>
+</section>
+</section>
 
 
+            <div class="clearer"></div>
           </div>
         </div>
       </div>
@@ -783,25 +795,121 @@ timer will be reset for the next event</p>
         <div class="sphinxsidebarwrapper">
             <p class="logo"><a href="../index.html">
               <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
-            </a></p><h3>Table of contents</a></h3>
+            </a></p><h3>Table of contents</h3>
     <ul><li><a href="index.html">Reference</a></li><ul>
 <li><a class="reference internal" href="#">Display Modules</a><ul>
-<li><a class="reference internal" href="#module-urwid.raw_display">raw_display</a></li>
-<li><a class="reference internal" href="#module-urwid.curses_display">curses_display</a></li>
-<li><a class="reference internal" href="#module-urwid.web_display">web_display</a></li>
-<li><a class="reference internal" href="#module-urwid.html_fragment">html_fragment</a></li>
-<li><a class="reference internal" href="#module-urwid.lcd_display">lcd_display</a></li>
+<li><a class="reference internal" href="#urwid.BaseScreen"><code class="docutils literal notranslate"><span class="pre">BaseScreen</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.BaseScreen.register_palette"><code class="docutils literal notranslate"><span class="pre">BaseScreen.register_palette()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.BaseScreen.register_palette_entry"><code class="docutils literal notranslate"><span class="pre">BaseScreen.register_palette_entry()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.BaseScreen.run_wrapper"><code class="docutils literal notranslate"><span class="pre">BaseScreen.run_wrapper()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.BaseScreen.start"><code class="docutils literal notranslate"><span class="pre">BaseScreen.start()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-urwid.raw_display">raw_display</a><ul>
+<li><a class="reference internal" href="#urwid.raw_display.Screen"><code class="docutils literal notranslate"><span class="pre">Screen</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.raw_display.Screen.clear"><code class="docutils literal notranslate"><span class="pre">Screen.clear()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.raw_display.Screen.draw_screen"><code class="docutils literal notranslate"><span class="pre">Screen.draw_screen()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.raw_display.Screen.flush"><code class="docutils literal notranslate"><span class="pre">Screen.flush()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.raw_display.Screen.get_available_raw_input"><code class="docutils literal notranslate"><span class="pre">Screen.get_available_raw_input()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.raw_display.Screen.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">Screen.get_cols_rows()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.raw_display.Screen.get_input"><code class="docutils literal notranslate"><span class="pre">Screen.get_input()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.raw_display.Screen.get_input_descriptors"><code class="docutils literal notranslate"><span class="pre">Screen.get_input_descriptors()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.raw_display.Screen.hook_event_loop"><code class="docutils literal notranslate"><span class="pre">Screen.hook_event_loop()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.raw_display.Screen.modify_terminal_palette"><code class="docutils literal notranslate"><span class="pre">Screen.modify_terminal_palette()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.raw_display.Screen.parse_input"><code class="docutils literal notranslate"><span class="pre">Screen.parse_input()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.raw_display.Screen.reset_default_terminal_palette"><code class="docutils literal notranslate"><span class="pre">Screen.reset_default_terminal_palette()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.raw_display.Screen.set_input_timeouts"><code class="docutils literal notranslate"><span class="pre">Screen.set_input_timeouts()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.raw_display.Screen.set_mouse_tracking"><code class="docutils literal notranslate"><span class="pre">Screen.set_mouse_tracking()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.raw_display.Screen.set_terminal_properties"><code class="docutils literal notranslate"><span class="pre">Screen.set_terminal_properties()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.raw_display.Screen.signal_init"><code class="docutils literal notranslate"><span class="pre">Screen.signal_init()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.raw_display.Screen.signal_restore"><code class="docutils literal notranslate"><span class="pre">Screen.signal_restore()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.raw_display.Screen.unhook_event_loop"><code class="docutils literal notranslate"><span class="pre">Screen.unhook_event_loop()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.raw_display.Screen.write"><code class="docutils literal notranslate"><span class="pre">Screen.write()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-urwid.curses_display">curses_display</a><ul>
+<li><a class="reference internal" href="#urwid.curses_display.Screen"><code class="docutils literal notranslate"><span class="pre">Screen</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.curses_display.Screen.clear"><code class="docutils literal notranslate"><span class="pre">Screen.clear()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.curses_display.Screen.draw_screen"><code class="docutils literal notranslate"><span class="pre">Screen.draw_screen()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.curses_display.Screen.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">Screen.get_cols_rows()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.curses_display.Screen.get_input"><code class="docutils literal notranslate"><span class="pre">Screen.get_input()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.curses_display.Screen.set_input_timeouts"><code class="docutils literal notranslate"><span class="pre">Screen.set_input_timeouts()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.curses_display.Screen.set_mouse_tracking"><code class="docutils literal notranslate"><span class="pre">Screen.set_mouse_tracking()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-urwid.web_display">web_display</a><ul>
+<li><a class="reference internal" href="#urwid.web_display.Screen"><code class="docutils literal notranslate"><span class="pre">Screen</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.web_display.Screen.clear"><code class="docutils literal notranslate"><span class="pre">Screen.clear()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.web_display.Screen.draw_screen"><code class="docutils literal notranslate"><span class="pre">Screen.draw_screen()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.web_display.Screen.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">Screen.get_cols_rows()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.web_display.Screen.get_input"><code class="docutils literal notranslate"><span class="pre">Screen.get_input()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.web_display.Screen.register_palette"><code class="docutils literal notranslate"><span class="pre">Screen.register_palette()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.web_display.Screen.register_palette_entry"><code class="docutils literal notranslate"><span class="pre">Screen.register_palette_entry()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.web_display.Screen.run_wrapper"><code class="docutils literal notranslate"><span class="pre">Screen.run_wrapper()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.web_display.Screen.set_mouse_tracking"><code class="docutils literal notranslate"><span class="pre">Screen.set_mouse_tracking()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.web_display.Screen.start"><code class="docutils literal notranslate"><span class="pre">Screen.start()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.web_display.Screen.stop"><code class="docutils literal notranslate"><span class="pre">Screen.stop()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.web_display.Screen.tty_signal_keys"><code class="docutils literal notranslate"><span class="pre">Screen.tty_signal_keys()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-urwid.html_fragment">html_fragment</a><ul>
+<li><a class="reference internal" href="#urwid.html_fragment.HtmlGenerator"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.html_fragment.HtmlGenerator.clear"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator.clear()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.html_fragment.HtmlGenerator.draw_screen"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator.draw_screen()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.html_fragment.HtmlGenerator.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator.get_cols_rows()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.html_fragment.HtmlGenerator.get_input"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator.get_input()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.html_fragment.HtmlGenerator.set_mouse_tracking"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator.set_mouse_tracking()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#urwid.html_fragment.screenshot_init"><code class="docutils literal notranslate"><span class="pre">screenshot_init()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.html_fragment.screenshot_collect"><code class="docutils literal notranslate"><span class="pre">screenshot_collect()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-urwid.lcd_display">lcd_display</a><ul>
+<li><a class="reference internal" href="#urwid.lcd_display.LCDScreen"><code class="docutils literal notranslate"><span class="pre">LCDScreen</span></code></a></li>
+<li><a class="reference internal" href="#urwid.lcd_display.CFLCDScreen"><code class="docutils literal notranslate"><span class="pre">CFLCDScreen</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.lcd_display.CFLCDScreen.InvalidPacket"><code class="docutils literal notranslate"><span class="pre">CFLCDScreen.InvalidPacket</span></code></a></li>
+<li><a class="reference internal" href="#urwid.lcd_display.CFLCDScreen.MoreDataRequired"><code class="docutils literal notranslate"><span class="pre">CFLCDScreen.MoreDataRequired</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#urwid.lcd_display.CF635Screen"><code class="docutils literal notranslate"><span class="pre">CF635Screen</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.lcd_display.CF635Screen.get_input_descriptors"><code class="docutils literal notranslate"><span class="pre">CF635Screen.get_input_descriptors()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.lcd_display.CF635Screen.get_input_nonblocking"><code class="docutils literal notranslate"><span class="pre">CF635Screen.get_input_nonblocking()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.lcd_display.CF635Screen.program_cgram"><code class="docutils literal notranslate"><span class="pre">CF635Screen.program_cgram()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.lcd_display.CF635Screen.set_backlight"><code class="docutils literal notranslate"><span class="pre">CF635Screen.set_backlight()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.lcd_display.CF635Screen.set_cursor_style"><code class="docutils literal notranslate"><span class="pre">CF635Screen.set_cursor_style()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.lcd_display.CF635Screen.set_lcd_contrast"><code class="docutils literal notranslate"><span class="pre">CF635Screen.set_lcd_contrast()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.lcd_display.CF635Screen.set_led_pin"><code class="docutils literal notranslate"><span class="pre">CF635Screen.set_led_pin()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#urwid.lcd_display.KeyRepeatSimulator"><code class="docutils literal notranslate"><span class="pre">KeyRepeatSimulator</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.lcd_display.KeyRepeatSimulator.next_event"><code class="docutils literal notranslate"><span class="pre">KeyRepeatSimulator.next_event()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.lcd_display.KeyRepeatSimulator.sent_event"><code class="docutils literal notranslate"><span class="pre">KeyRepeatSimulator.sent_event()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
 
     </ul>
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="widget.html"
-                        title="previous chapter">Widget Classes</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="list_walkers.html"
-                        title="next chapter">List Walker Classes</a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="widget.html"
+                          title="previous chapter">Widget Classes</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="list_walkers.html"
+                          title="next chapter">List Walker Classes</a></p>
+  </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -813,12 +921,12 @@ timer will be reset for the next event</p>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -835,13 +943,14 @@ timer will be reset for the next event</p>
         <li class="right" >
           <a href="widget.html" title="Widget Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.3</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
     </div>
   </body>
 </html>

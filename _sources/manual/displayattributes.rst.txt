@@ -307,7 +307,7 @@ of 24-bit color mode unless properly configured.
 .. seealso::
    The palette_test.py_ example program
 
-.. _palette_test.py: http://excess.org/urwid/browser/examples/palette_test.py
+.. _palette_test.py: https://github.com/urwid/urwid/blob/master/examples/palette_test.py
 
 .. _256-foreground-background:
 
@@ -330,7 +330,7 @@ gray scale entries ``'g0'`` (black from color cube) , ``'g3'``, ``'g7'``, ...
 .. seealso::
    The palette_test.py_ example program
 
-.. _palette_test.py: http://excess.org/urwid/browser/examples/palette_test.py
+.. _palette_test.py: https://github.com/urwid/urwid/blob/master/examples/palette_test.py
 
 .. _88-foreground-background:
 
@@ -352,7 +352,7 @@ gray scale entries ``'g0'`` (black from color cube), ``'g19'``, ``'g35'``, ...
 .. seealso::
    The palette_test.py_ example program
 
-.. _palette_test.py: http://excess.org/urwid/browser/examples/palette_test.py
+.. _palette_test.py: https://github.com/urwid/urwid/blob/master/examples/palette_test.py
 
 
 .. _rgb-palette-setting:

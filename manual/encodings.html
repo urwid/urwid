@@ -1,21 +1,19 @@
-
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en" data-content_root="../">
   <head>
     <meta charset="utf-8" />
-    <title>Encodings Supported &#8212; Urwid 2.1.2</title>
-    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Encodings Supported &#8212; Urwid 2.2.3</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-    <script src="../_static/jquery.js"></script>
-    <script src="../_static/underscore.js"></script>
-    <script src="../_static/doctools.js"></script>
-    <script src="../_static/language_data.js"></script>
+    <script src="../_static/documentation_options.js?v=85e56e6b"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
-    <script src="../_static/sidebar.js"></script>
-    
+    <link rel="canonical" href="https://urwid.org/manual/encodings.html" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Display Attributes" href="displayattributes.html" />
@@ -33,8 +31,9 @@
         <li class="right" >
           <a href="textlayout.html" title="Text Layout"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.3</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Encodings Supported</a></li> 
       </ul>
     </div>  
 
@@ -43,8 +42,8 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="encodings-supported">
-<span id="text-encodings"></span><h1>Encodings Supported<a class="headerlink" href="#encodings-supported" title="Permalink to this headline">¶</a></h1>
+  <section id="encodings-supported">
+<span id="text-encodings"></span><h1>Encodings Supported<a class="headerlink" href="#encodings-supported" title="Link to this heading">¶</a></h1>
 <p>Urwid has a single global setting for text encoding that is set on start-up
 based on the configured locale. You may change that setting with the
 <a class="reference internal" href="../reference/global_settings.html#urwid.set_encoding" title="urwid.set_encoding"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_encoding()</span></code></a> method. eg.</p>
@@ -65,8 +64,8 @@ user will see “mojibake” (garbage) on their screen.</p>
 <p>The only time it makes sense to use pass-through mode is if you’re handling an
 encoding that does not round-trip to Unicode properly, or if you’re absolutely
 sure you know what you’re doing.</p>
-<div class="section" id="unicode-support">
-<h2>Unicode Support<a class="headerlink" href="#unicode-support" title="Permalink to this headline">¶</a></h2>
+<section id="unicode-support">
+<h2>Unicode Support<a class="headerlink" href="#unicode-support" title="Link to this heading">¶</a></h2>
 <p>Urwid has a basic understanding of character widths so that the text layout
 code can properly wrap and display most text. There is currently no support for
 right-to-left text.</p>
@@ -82,9 +81,9 @@ graphic characters:</p>
 </div>
 <p>If you use these characters with a non-UTF-8 encoding they will be sent using
 the alternate character set sequences supported by some terminals.</p>
-</div>
-<div class="section" id="pass-through-support">
-<h2>Pass-through Support<a class="headerlink" href="#pass-through-support" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="pass-through-support">
+<h2>Pass-through Support<a class="headerlink" href="#pass-through-support" title="Link to this heading">¶</a></h2>
 <p>Supported encodings for pass-through mode:</p>
 <ul class="simple">
 <li><p>UTF-8 (narrow and wide characters)</p></li>
@@ -104,9 +103,9 @@ bytes are assumed to be 1 column wide characters. For the remaining supported
 encodings any byte with the high-bit set is considered to be half of a 2-column
 wide character.</p>
 <p>The additional plains in EUC are not currently supported.</p>
-</div>
-<div class="section" id="future-work">
-<h2>Future Work<a class="headerlink" href="#future-work" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="future-work">
+<h2>Future Work<a class="headerlink" href="#future-work" title="Link to this heading">¶</a></h2>
 <p>Text encoding should be a per-screen (display module) setting, not a global
 setting. It should be possible to simultaneously support different encodings on
 different screens with Urwid. Making this work involves possibly changing the
@@ -116,10 +115,11 @@ specified along with size and focus.</p>
 display module in development drives a device with a non-standard mapping of
 Unicode code points to 8-bit values, but it should still be possible to use a
 Unicode text to display the characters it supports.</p>
-</div>
-</div>
+</section>
+</section>
 
 
+            <div class="clearer"></div>
           </div>
         </div>
       </div>
@@ -127,7 +127,7 @@ Unicode text to display the characters it supports.</p>
         <div class="sphinxsidebarwrapper">
             <p class="logo"><a href="../index.html">
               <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
-            </a></p><h3>Table of contents</a></h3>
+            </a></p><h3>Table of contents</h3>
     <ul><li><a href="index.html">Manual</a></li><ul>
 <li><a class="reference internal" href="#">Encodings Supported</a><ul>
 <li><a class="reference internal" href="#unicode-support">Unicode Support</a></li>
@@ -138,12 +138,16 @@ Unicode text to display the characters it supports.</p>
 </ul>
 
     </ul>
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="textlayout.html"
-                        title="previous chapter">Text Layout</a></p>
-  <h4>Next topic</h4>
-  <p class="topless"><a href="displayattributes.html"
-                        title="next chapter">Display Attributes</a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="textlayout.html"
+                          title="previous chapter">Text Layout</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="displayattributes.html"
+                          title="next chapter">Display Attributes</a></p>
+  </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -155,12 +159,12 @@ Unicode text to display the characters it supports.</p>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -177,13 +181,14 @@ Unicode text to display the characters it supports.</p>
         <li class="right" >
           <a href="textlayout.html" title="Text Layout"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.1.2</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.2.3</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Encodings Supported</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
     </div>
   </body>
 </html>

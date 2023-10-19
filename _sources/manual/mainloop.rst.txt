@@ -143,9 +143,7 @@ This event loop integrates with Tornado.
 ``AsyncioEventLoop``
 --------------------
 
-This event loop integrates with the asyncio module in Python 3.4,
-the asyncio package available for Python 3.3 or the trollius
-package available for Python 2.
+This event loop integrates with the asyncio module in Python.
 
 ::
 

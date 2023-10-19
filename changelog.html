@@ -1,21 +1,19 @@
-
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en" data-content_root="./">
   <head>
     <meta charset="utf-8" />
-    <title>Changelog &#8212; Urwid 2.1.2</title>
-    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Changelog &#8212; Urwid 2.2.3</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css?v=1f4f2616" />
     
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
-    <script src="_static/doctools.js"></script>
-    <script src="_static/language_data.js"></script>
+    <script src="_static/documentation_options.js?v=85e56e6b"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     
-    <script src="_static/sidebar.js"></script>
-    
+    <link rel="canonical" href="https://urwid.org/changelog.html" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="prev" title="Deprecated Classes" href="reference/deprecated.html" /> 
@@ -29,7 +27,8 @@
         <li class="right" >
           <a href="reference/deprecated.html" title="Deprecated Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.1.2</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Changelog</a></li> 
       </ul>
     </div>  
 
@@ -38,10 +37,207 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="changelog">
-<h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="urwid-2-1-2">
-<h2>Urwid 2.1.2<a class="headerlink" href="#urwid-2-1-2" title="Permalink to this headline">¶</a></h2>
+  <section id="changelog">
+<h1>Changelog<a class="headerlink" href="#changelog" title="Link to this heading">¶</a></h1>
+<section id="release-2-2-3">
+<h2>2.2.3<a class="headerlink" href="#release-2-2-3" title="Link to this heading">¶</a></h2>
+<p><em>Released on 2023-10-19 - <a class="reference external" href="https://github.com/urwid/urwid/releases/tag/2.2.3">GitHub</a> - <a class="reference external" href="https://pypi.org/project/urwid/2.2.3/">PyPI</a></em></p>
+
+<h2>What's Changed</h2>
+<h3>New features 🗹</h3>
+<ul>
+<li>Expose <code>widget</code> and <code>event_loop</code> packages by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1917788050" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/646" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/646/hovercard" href="https://github.com/urwid/urwid/pull/646">#646</a></li>
+<li>Introduce optional dependencies for package by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1918761551" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/650" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/650/hovercard" href="https://github.com/urwid/urwid/pull/650">#650</a></li>
+</ul>
+<h3>Deprecations ⚡</h3>
+<ul>
+<li>Refactoring numedit: PEP8 arguments, allow negative, type casts by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1913095734" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/636" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/636/hovercard" href="https://github.com/urwid/urwid/pull/636">#636</a><br>
+USE PEP8 compliant arguments and deprecate old one<br>
+Allow cast IntEdit to int and FloatEdit to float<br>
+Allow negative values without changing default behavior</li>
+</ul>
+<h3>Bug fixes 🕷</h3>
+<ul>
+<li>Fix import from deprecated internal module by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1917738980" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/645" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/645/hovercard" href="https://github.com/urwid/urwid/pull/645">#645</a></li>
+<li>Fix deprecated <code>_set_focus</code> method usage by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1952155072" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/662" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/662/hovercard" href="https://github.com/urwid/urwid/pull/662">#662</a></li>
+</ul>
+<h3>Documentation 🕮</h3>
+<ul>
+<li>Documentation: Sphinx can build gh-pages ready by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1917211974" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/643" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/643/hovercard" href="https://github.com/urwid/urwid/pull/643">#643</a></li>
+<li>Documentation: generate changelog from GH releases by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1918064952" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/648" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/648/hovercard" href="https://github.com/urwid/urwid/pull/648">#648</a></li>
+<li>Documentation: Use static default text in BigText demo by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1918762845" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/651" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/651/hovercard" href="https://github.com/urwid/urwid/pull/651">#651</a></li>
+<li>Documentation Remove unneeded closing tags in TOC by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1918793292" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/652" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/652/hovercard" href="https://github.com/urwid/urwid/pull/652">#652</a></li>
+<li>Fix tutorial: rename <code>attr</code> to <code>urwid_attr</code> by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1918810394" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/653" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/653/hovercard" href="https://github.com/urwid/urwid/pull/653">#653</a></li>
+<li>Documentation: TrioEventLoop is missed by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1917118401" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/642" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/642/hovercard" href="https://github.com/urwid/urwid/pull/642">#642</a></li>
+</ul>
+<h3>Refactoring 🛠</h3>
+<ul>
+<li>Refactoring: Force automated import sorting for all code by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1913148254" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/637" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/637/hovercard" href="https://github.com/urwid/urwid/pull/637">#637</a></li>
+<li>Refactoring: Force automated black formatting by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1913209940" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/638" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/638/hovercard" href="https://github.com/urwid/urwid/pull/638">#638</a></li>
+<li>Refactoring: Force <code>ruff</code> static checker for project by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1915020588" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/639" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/639/hovercard" href="https://github.com/urwid/urwid/pull/639">#639</a></li>
+<li>Refactor: fixup usage of contextlib.suppress() by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/ulidtko/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/ulidtko">@ulidtko</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1915058466" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/640" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/640/hovercard" href="https://github.com/urwid/urwid/pull/640">#640</a></li>
+</ul>
+<p><strong>Full Changelog</strong>: <a class="commit-link" href="https://github.com/urwid/urwid/compare/2.2.2...2.2.3"><tt>2.2.2...2.2.3</tt></a></p></section>
+<section id="release-2-2-2">
+<h2>2.2.2<a class="headerlink" href="#release-2-2-2" title="Link to this heading">¶</a></h2>
+<p><em>Released on 2023-09-25 - <a class="reference external" href="https://github.com/urwid/urwid/releases/tag/2.2.2">GitHub</a> - <a class="reference external" href="https://pypi.org/project/urwid/2.2.2/">PyPI</a></em></p>
+
+<h2>What's Changed</h2>
+<h3>New features 🗹</h3>
+<ul>
+<li>Feature: Support pack() for CheckBox/RadioButton/Button by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1911049925" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/621" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/621/hovercard" href="https://github.com/urwid/urwid/pull/621">#621</a></li>
+</ul>
+<h3>Deprecations ⚡</h3>
+<ul>
+<li>Mark <code>AttrWrap</code> as <code>PendingDeprecation</code> by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1910976265" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/619" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/619/hovercard" href="https://github.com/urwid/urwid/pull/619">#619</a></li>
+</ul>
+<h3>Bug fixes 🕷</h3>
+<ul>
+<li>Fix font in case Font.data is <code>str</code> by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1910962347" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/618" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/618/hovercard" href="https://github.com/urwid/urwid/pull/618">#618</a></li>
+</ul>
+<h3>Documentation 🕮</h3>
+<ul>
+<li>Enforce examples code-style by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1911012958" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/620" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/620/hovercard" href="https://github.com/urwid/urwid/pull/620">#620</a></li>
+<li>Documentation: do not use <code>FlowWidget</code> as base class in examples by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1911093474" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/623" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/623/hovercard" href="https://github.com/urwid/urwid/pull/623">#623</a></li>
+<li>README: suggest python3-urwid for debian/ubuntu by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/chronitis/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/chronitis">@chronitis</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="759269397" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/444" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/444/hovercard" href="https://github.com/urwid/urwid/pull/444">#444</a></li>
+</ul>
+<h3>Refactoring 🛠</h3>
+<ul>
+<li>Packaging: stop tests distribution as part of package by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1911079760" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/622" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/622/hovercard" href="https://github.com/urwid/urwid/pull/622">#622</a></li>
+</ul>
+<h2>New Contributors</h2>
+<ul>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/chronitis/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/chronitis">@chronitis</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="759269397" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/444" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/444/hovercard" href="https://github.com/urwid/urwid/pull/444">#444</a></li>
+</ul>
+<p><strong>Full Changelog</strong>: <a class="commit-link" href="https://github.com/urwid/urwid/compare/2.2.1...2.2.2"><tt>2.2.1...2.2.2</tt></a></p></section>
+<section id="release-2-2-1">
+<h2>2.2.1<a class="headerlink" href="#release-2-2-1" title="Link to this heading">¶</a></h2>
+<p><em>Released on 2023-09-22 - <a class="reference external" href="https://github.com/urwid/urwid/releases/tag/2.2.1">GitHub</a> - <a class="reference external" href="https://pypi.org/project/urwid/2.2.1/">PyPI</a></em></p>
+
+<h2>What's Changed</h2>
+<h3>Bug fixes 🕷</h3>
+<ul>
+<li>Fix: deep TextEnum was improperly resolved by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1908383555" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/609" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/609/hovercard" href="https://github.com/urwid/urwid/pull/609">#609</a></li>
+</ul>
+<h3>Documentation 🕮</h3>
+<ul>
+<li>Documentation: mention correct python versions by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1908309652" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/608" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/608/hovercard" href="https://github.com/urwid/urwid/pull/608">#608</a></li>
+<li>Documentation: add stripped changelog for 2.2.0 by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1908692513" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/612" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/612/hovercard" href="https://github.com/urwid/urwid/pull/612">#612</a></li>
+</ul>
+<h3>Refactoring 🛠</h3>
+<ul>
+<li>Refactoring: use <code>super()</code> calls if possible by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1908544494" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/611" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/611/hovercard" href="https://github.com/urwid/urwid/pull/611">#611</a></li>
+<li>Typing: Extend wimp typing annotations by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1894695033" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/604" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/604/hovercard" href="https://github.com/urwid/urwid/pull/604">#604</a></li>
+</ul>
+<p><strong>Full Changelog</strong>: <a class="commit-link" href="https://github.com/urwid/urwid/compare/2.2.0...2.2.1"><tt>2.2.0...2.2.1</tt></a></p></section>
+<section id="release-2-2-0">
+<h2>2.2.0<a class="headerlink" href="#release-2-2-0" title="Link to this heading">¶</a></h2>
+<p><em>Released on 2023-09-21 - <a class="reference external" href="https://github.com/urwid/urwid/releases/tag/2.2.0">GitHub</a> - <a class="reference external" href="https://pypi.org/project/urwid/2.2.0/">PyPI</a></em></p>
+<h1>Main changes</h1>
+<h2>Compatibility</h2>
+<ul>
+<li>Fix <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1791646507" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/583" data-hovercard-type="issue" data-hovercard-url="/urwid/urwid/issues/583/hovercard" href="https://github.com/urwid/urwid/issues/583">#583</a>: python 3.12 compatibility by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1879884832" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/598" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/598/hovercard" href="https://github.com/urwid/urwid/pull/598">#598</a></li>
+<li>Python 37+ migration, Python &lt; 3.7 support dropped by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1644232945" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/522" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/522/hovercard" href="https://github.com/urwid/urwid/pull/522">#522</a></li>
+<li>make tests compatible with Python 3.11 by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/dotlambda/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/dotlambda">@dotlambda</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1551351714" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/517" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/517/hovercard" href="https://github.com/urwid/urwid/pull/517">#517</a></li>
+<li>Deprecate legacy property creation by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1662480461" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/533" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/533/hovercard" href="https://github.com/urwid/urwid/pull/533">#533</a></li>
+<li>Deprecate <code>__super</code> hack by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1673368678" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/538" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/538/hovercard" href="https://github.com/urwid/urwid/pull/538">#538</a></li>
+<li>[BREAKING CHANGE] Fixes: <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="49093618" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/90" data-hovercard-type="issue" data-hovercard-url="/urwid/urwid/issues/90/hovercard" href="https://github.com/urwid/urwid/issues/90">#90</a> Remove idle emulation from asyncio event loop by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1674547100" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/541" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/541/hovercard" href="https://github.com/urwid/urwid/pull/541">#541</a></li>
+</ul>
+<h2>New Features</h2>
+<ul>
+<li>ZMQ event loop by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/waveform80/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/waveform80">@waveform80</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="497890057" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/362" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/362/hovercard" href="https://github.com/urwid/urwid/pull/362">#362</a></li>
+<li>Add two fonts based on Unicode 13 2x3 TRS-80/Teletext mosaic characters by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/rbanffy/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/rbanffy">@rbanffy</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="703784669" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/434" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/434/hovercard" href="https://github.com/urwid/urwid/pull/434">#434</a></li>
+<li>Adds 256 color and truecolor support to vterm. Fixes <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="799896275" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/457" data-hovercard-type="issue" data-hovercard-url="/urwid/urwid/issues/457/hovercard" href="https://github.com/urwid/urwid/issues/457">#457</a> by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/danschwarz/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/danschwarz">@danschwarz</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1737328767" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/559" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/559/hovercard" href="https://github.com/urwid/urwid/pull/559">#559</a></li>
+<li>Vterm now emits 'resize' signal upon terminal resize by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/danschwarz/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/danschwarz">@danschwarz</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1801964370" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/584" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/584/hovercard" href="https://github.com/urwid/urwid/pull/584">#584</a></li>
+<li>vterm.py: Adds support for bracketed paste mode. Fixes <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="785295658" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/452" data-hovercard-type="issue" data-hovercard-url="/urwid/urwid/issues/452/hovercard" href="https://github.com/urwid/urwid/issues/452">#452</a> by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/danschwarz/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/danschwarz">@danschwarz</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1854056460" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/594" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/594/hovercard" href="https://github.com/urwid/urwid/pull/594">#594</a></li>
+<li>Pass SelectableIcon <code>align</code> and <code>wrap</code> arguments to parent by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1881500301" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/599" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/599/hovercard" href="https://github.com/urwid/urwid/pull/599">#599</a></li>
+</ul>
+<h2>Fixes</h2>
+<ul>
+<li>fix: restore normal screen on ctrl-z by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/proskur1n/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/proskur1n">@proskur1n</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="873959583" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/477" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/477/hovercard" href="https://github.com/urwid/urwid/pull/477">#477</a></li>
+<li>Reconnect the 'modified' signal after setting a new ListBox.body by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/exquo/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/exquo">@exquo</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="863153794" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/474" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/474/hovercard" href="https://github.com/urwid/urwid/pull/474">#474</a></li>
+<li>Allow signal handling interoperability with raw display by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/AnonymouX47/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/AnonymouX47">@AnonymouX47</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1716453976" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/557" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/557/hovercard" href="https://github.com/urwid/urwid/pull/557">#557</a></li>
+<li>Fix alternate/normal screen buffer switch for raw display by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/AnonymouX47/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/AnonymouX47">@AnonymouX47</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1716415321" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/556" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/556/hovercard" href="https://github.com/urwid/urwid/pull/556">#556</a></li>
+<li>Fix text layout for <code>align="center", wrap="clip"</code> when <code>maxcol</code> == <code>line_width - 1</code> by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/AnonymouX47/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/AnonymouX47">@AnonymouX47</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1679821322" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/543" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/543/hovercard" href="https://github.com/urwid/urwid/pull/543">#543</a></li>
+<li>Fix assertion failure when string contains SO but not SI by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/mfncooper/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/mfncooper">@mfncooper</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1074732351" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/489" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/489/hovercard" href="https://github.com/urwid/urwid/pull/489">#489</a></li>
+<li>Fix empty markup handling by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1664021070" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/536" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/536/hovercard" href="https://github.com/urwid/urwid/pull/536">#536</a></li>
+<li>Resolve <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1147784289" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/499" data-hovercard-type="issue" data-hovercard-url="/urwid/urwid/issues/499/hovercard" href="https://github.com/urwid/urwid/issues/499">#499</a> and add tests by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/djyotta/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/djyotta">@djyotta</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1147794276" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/500" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/500/hovercard" href="https://github.com/urwid/urwid/pull/500">#500</a></li>
+<li>vterm: Fixed OSC 0,2 to set widget title properly (decode bytestring) by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/danschwarz/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/danschwarz">@danschwarz</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1738919647" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/561" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/561/hovercard" href="https://github.com/urwid/urwid/pull/561">#561</a></li>
+<li>vterm: Fixed a crash bug with DECALN command by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/danschwarz/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/danschwarz">@danschwarz</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1738848559" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/560" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/560/hovercard" href="https://github.com/urwid/urwid/pull/560">#560</a></li>
+<li>Fix <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="757987724" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/443" data-hovercard-type="issue" data-hovercard-url="/urwid/urwid/issues/443/hovercard" href="https://github.com/urwid/urwid/issues/443">#443</a> : export ELLIPSIS constant by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1651529192" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/527" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/527/hovercard" href="https://github.com/urwid/urwid/pull/527">#527</a></li>
+<li>Fix: <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="764485359" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/445" data-hovercard-type="issue" data-hovercard-url="/urwid/urwid/issues/445/hovercard" href="https://github.com/urwid/urwid/issues/445">#445</a> - add <code>__len__</code> to listbox with validation if body <code>Sized</code> by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1663965021" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/534" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/534/hovercard" href="https://github.com/urwid/urwid/pull/534">#534</a></li>
+<li>Fix old_str_util.decode_one : support bytes and str as arguments by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1655475092" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/531" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/531/hovercard" href="https://github.com/urwid/urwid/pull/531">#531</a></li>
+<li>Use <code>locale.getpreferredencoding(False)</code> if possible (most systems) F… by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1651734910" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/528" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/528/hovercard" href="https://github.com/urwid/urwid/pull/528">#528</a></li>
+<li>Fix <code>TextCanvas</code> <code>CanvasError("Attribute extends beyond text...")</code> by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1699968971" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/555" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/555/hovercard" href="https://github.com/urwid/urwid/pull/555">#555</a></li>
+<li>Fix merging attributes while decomposing tag markup by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/mandre/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/mandre">@mandre</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1319048354" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/507" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/507/hovercard" href="https://github.com/urwid/urwid/pull/507">#507</a></li>
+<li>fix: use trio.lowlevel instead of trio.hazmat with Trio &gt;= 0.15 by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/ntamas/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/ntamas">@ntamas</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="734567710" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/439" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/439/hovercard" href="https://github.com/urwid/urwid/pull/439">#439</a></li>
+<li>Fix TypeError in signals module on weak object finalize by GC by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/rvtpro/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/rvtpro">@rvtpro</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1206395692" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/503" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/503/hovercard" href="https://github.com/urwid/urwid/pull/503">#503</a></li>
+<li>Include _resize_pipe_rd in fd_list for _wait_for_input_ready for raw_display by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/inducer/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/inducer">@inducer</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="786040114" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/453" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/453/hovercard" href="https://github.com/urwid/urwid/pull/453">#453</a></li>
+<li>container: fix duplicate text by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/vapier/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/vapier">@vapier</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1083975705" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/490" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/490/hovercard" href="https://github.com/urwid/urwid/pull/490">#490</a></li>
+<li>Provide 80x24 fallback for ansi and vt100 by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/roadriverrail/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/roadriverrail">@roadriverrail</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="808932023" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/465" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/465/hovercard" href="https://github.com/urwid/urwid/pull/465">#465</a></li>
+</ul>
+<h2>Refactoring</h2>
+<ul>
+<li>Use == instead of "is" for equality testing by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/naglis/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/naglis">@naglis</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="699796227" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/431" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/431/hovercard" href="https://github.com/urwid/urwid/pull/431">#431</a></li>
+<li>Split event loop in several modules by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1671156190" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/537" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/537/hovercard" href="https://github.com/urwid/urwid/pull/537">#537</a></li>
+<li>Drop some compat for python &lt; 2.6 by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/dlax/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/dlax">@dlax</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="632337203" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/409" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/409/hovercard" href="https://github.com/urwid/urwid/pull/409">#409</a></li>
+<li>Annotate types in simple cases and use isinstance (&amp; protocol) based type checking by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1653704050" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/529" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/529/hovercard" href="https://github.com/urwid/urwid/pull/529">#529</a></li>
+<li>Add type annotations and optimize <code>urwid.font</code> by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1673501475" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/540" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/540/hovercard" href="https://github.com/urwid/urwid/pull/540">#540</a></li>
+<li>Related <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1791646507" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/583" data-hovercard-type="issue" data-hovercard-url="/urwid/urwid/issues/583/hovercard" href="https://github.com/urwid/urwid/issues/583">#583</a>: Cleanup C helper from python2-only code by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1879813913" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/597" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/597/hovercard" href="https://github.com/urwid/urwid/pull/597">#597</a></li>
+<li>Optimize <code>vterm</code>: adopt data types and add annotations. Fix tests by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1690003408" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/547" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/547/hovercard" href="https://github.com/urwid/urwid/pull/547">#547</a></li>
+<li>Split widget and introduce base enums by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1854402266" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/595" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/595/hovercard" href="https://github.com/urwid/urwid/pull/595">#595</a></li>
+</ul>
+<h2>Documentation and examples</h2>
+<ul>
+<li>Use non deprecated template by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/jspricke/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/jspricke">@jspricke</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="675716907" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/424" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/424/hovercard" href="https://github.com/urwid/urwid/pull/424">#424</a></li>
+<li>Mention asyncio event loop compatibility in readme by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/johtso/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/johtso">@johtso</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="807991068" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/463" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/463/hovercard" href="https://github.com/urwid/urwid/pull/463">#463</a></li>
+<li>Fix documentation of TrioEventLoop.run_async() by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/ntamas/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/ntamas">@ntamas</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="734558580" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/438" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/438/hovercard" href="https://github.com/urwid/urwid/pull/438">#438</a></li>
+<li>Fix column label typo in tour example by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/devfull/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/devfull">@devfull</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="857166318" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/473" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/473/hovercard" href="https://github.com/urwid/urwid/pull/473">#473</a></li>
+<li>Update index.rst by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/adbenitez/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/adbenitez">@adbenitez</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1250292989" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/504" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/504/hovercard" href="https://github.com/urwid/urwid/pull/504">#504</a></li>
+<li>fix typo by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/doctorcolossus/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/doctorcolossus">@doctorcolossus</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1091997943" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/493" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/493/hovercard" href="https://github.com/urwid/urwid/pull/493">#493</a></li>
+<li>Update README.rst by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/yhh2021/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/yhh2021">@yhh2021</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="956539742" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/481" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/481/hovercard" href="https://github.com/urwid/urwid/pull/481">#481</a></li>
+<li>docs: fix simple typo, incompatable -&gt; incompatible by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/timgates42/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/timgates42">@timgates42</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="775234823" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/446" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/446/hovercard" href="https://github.com/urwid/urwid/pull/446">#446</a></li>
+<li>Fixed twisted example: use <code>implementer</code> decorator instead of deprecated <code>implements</code>. by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1851371894" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/591" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/591/hovercard" href="https://github.com/urwid/urwid/pull/591">#591</a></li>
+<li>examples/terminal.py can run against older versions of Urwid again by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/danschwarz/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/danschwarz">@danschwarz</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1857450675" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/596" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/596/hovercard" href="https://github.com/urwid/urwid/pull/596">#596</a></li>
+<li>fix: update links to examples by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/geier/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/geier">@geier</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1761419972" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/577" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/577/hovercard" href="https://github.com/urwid/urwid/pull/577">#577</a></li>
+</ul>
+<h2>Other changes</h2>
+<ul>
+<li>Test fixes by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1644565606" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/524" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/524/hovercard" href="https://github.com/urwid/urwid/pull/524">#524</a></li>
+<li>Fix input handling and extra type annotations by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1655382069" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/530" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/530/hovercard" href="https://github.com/urwid/urwid/pull/530">#530</a></li>
+<li>Fix regression: <code>Pile()</code> focus_item can be Widget -&gt; need to set prop… by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1664004880" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/535" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/535/hovercard" href="https://github.com/urwid/urwid/pull/535">#535</a></li>
+<li>Fix incorrect type cast in vterm (<code>apply_mapping</code> should return <code>bytes</code>) by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1682687747" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/545" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/545/hovercard" href="https://github.com/urwid/urwid/pull/545">#545</a></li>
+<li>Return original code to the deprecated getters and setters by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1690744627" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/549" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/549/hovercard" href="https://github.com/urwid/urwid/pull/549">#549</a></li>
+<li>Fix CheckBox default state validation and initialization by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1697421197" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/553" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/553/hovercard" href="https://github.com/urwid/urwid/pull/553">#553</a></li>
+</ul>
+<h2>New Contributors</h2>
+<ul>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/johtso/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/johtso">@johtso</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="807991068" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/463" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/463/hovercard" href="https://github.com/urwid/urwid/pull/463">#463</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/devfull/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/devfull">@devfull</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="857166318" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/473" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/473/hovercard" href="https://github.com/urwid/urwid/pull/473">#473</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/adbenitez/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/adbenitez">@adbenitez</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1250292989" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/504" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/504/hovercard" href="https://github.com/urwid/urwid/pull/504">#504</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/doctorcolossus/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/doctorcolossus">@doctorcolossus</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1091997943" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/493" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/493/hovercard" href="https://github.com/urwid/urwid/pull/493">#493</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/yhh2021/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/yhh2021">@yhh2021</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="956539742" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/481" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/481/hovercard" href="https://github.com/urwid/urwid/pull/481">#481</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/dotlambda/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/dotlambda">@dotlambda</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1551351714" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/517" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/517/hovercard" href="https://github.com/urwid/urwid/pull/517">#517</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/rvtpro/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/rvtpro">@rvtpro</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1206395692" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/503" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/503/hovercard" href="https://github.com/urwid/urwid/pull/503">#503</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/vapier/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/vapier">@vapier</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1083975705" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/490" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/490/hovercard" href="https://github.com/urwid/urwid/pull/490">#490</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/proskur1n/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/proskur1n">@proskur1n</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="873959583" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/477" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/477/hovercard" href="https://github.com/urwid/urwid/pull/477">#477</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/naglis/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/naglis">@naglis</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="699796227" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/431" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/431/hovercard" href="https://github.com/urwid/urwid/pull/431">#431</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/dlax/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/dlax">@dlax</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="632337203" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/409" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/409/hovercard" href="https://github.com/urwid/urwid/pull/409">#409</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/mandre/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/mandre">@mandre</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1319048354" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/507" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/507/hovercard" href="https://github.com/urwid/urwid/pull/507">#507</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/timgates42/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/timgates42">@timgates42</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="775234823" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/446" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/446/hovercard" href="https://github.com/urwid/urwid/pull/446">#446</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/djyotta/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/djyotta">@djyotta</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1147794276" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/500" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/500/hovercard" href="https://github.com/urwid/urwid/pull/500">#500</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1644250324" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/523" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/523/hovercard" href="https://github.com/urwid/urwid/pull/523">#523</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/exquo/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/exquo">@exquo</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="863153794" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/474" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/474/hovercard" href="https://github.com/urwid/urwid/pull/474">#474</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/roadriverrail/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/roadriverrail">@roadriverrail</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="808932023" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/465" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/465/hovercard" href="https://github.com/urwid/urwid/pull/465">#465</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/rbanffy/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/rbanffy">@rbanffy</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="703784669" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/434" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/434/hovercard" href="https://github.com/urwid/urwid/pull/434">#434</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/mfncooper/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/mfncooper">@mfncooper</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1074732351" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/489" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/489/hovercard" href="https://github.com/urwid/urwid/pull/489">#489</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/AnonymouX47/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/AnonymouX47">@AnonymouX47</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1679821322" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/543" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/543/hovercard" href="https://github.com/urwid/urwid/pull/543">#543</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/danschwarz/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/danschwarz">@danschwarz</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1737328767" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/559" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/559/hovercard" href="https://github.com/urwid/urwid/pull/559">#559</a></li>
+<li><a class="user-mention notranslate" data-hovercard-type="organization" data-hovercard-url="/orgs/dependabot/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/dependabot">@dependabot</a> made their first contribution in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1752135397" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/570" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/570/hovercard" href="https://github.com/urwid/urwid/pull/570">#570</a></li>
+</ul>
+<p><strong>Full Changelog</strong>: <a href="https://github.com/urwid/urwid/commits/2.2.0">https://github.com/urwid/urwid/commits/2.2.0</a></p></section>
+<section id="urwid-2-1-2">
+<h2>Urwid 2.1.2<a class="headerlink" href="#urwid-2-1-2" title="Link to this heading">¶</a></h2>
 <p>2020-09-26</p>
 <blockquote>
 <div><ul class="simple">
@@ -58,9 +254,9 @@ tour.py (by akorb)</p></li>
 <li><p>Use ord2 for python2/3 compatibility (by Ya-Liang Chang (Allen))</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-2-1-1">
-<h2>Urwid 2.1.1<a class="headerlink" href="#urwid-2-1-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-2-1-1">
+<h2>Urwid 2.1.1<a class="headerlink" href="#urwid-2-1-1" title="Link to this heading">¶</a></h2>
 <p>2020-07-26</p>
 <blockquote>
 <div><ul class="simple">
@@ -89,9 +285,9 @@ Hudson-Doyle)</p></li>
 Shadura)</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-2-1-0">
-<h2>Urwid 2.1.0<a class="headerlink" href="#urwid-2-1-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-2-1-0">
+<h2>Urwid 2.1.0<a class="headerlink" href="#urwid-2-1-0" title="Link to this heading">¶</a></h2>
 <p>2019-11-13</p>
 <blockquote>
 <div><ul class="simple">
@@ -141,9 +337,9 @@ Rasmus Bondesson)</p></li>
 <li><p>README: Use SVG build status badge (by Olle Jonsson)</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-2-0-1">
-<h2>Urwid 2.0.1<a class="headerlink" href="#urwid-2-0-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-2-0-1">
+<h2>Urwid 2.0.1<a class="headerlink" href="#urwid-2-0-1" title="Link to this heading">¶</a></h2>
 <p>2018-01-21</p>
 <blockquote>
 <div><ul class="simple">
@@ -151,9 +347,9 @@ Rasmus Bondesson)</p></li>
 (by Andrew Dunai &amp; Adam Sampson)</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-2-0-0">
-<h2>Urwid 2.0.0<a class="headerlink" href="#urwid-2-0-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-2-0-0">
+<h2>Urwid 2.0.0<a class="headerlink" href="#urwid-2-0-0" title="Link to this heading">¶</a></h2>
 <p>2018-01-17</p>
 <blockquote>
 <div><ul class="simple">
@@ -200,9 +396,9 @@ Christian Geier &amp; xndcn)</p></li>
 <li><p>Test coverage is now collected</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-3-1">
-<h2>Urwid 1.3.1<a class="headerlink" href="#urwid-1-3-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-3-1">
+<h2>Urwid 1.3.1<a class="headerlink" href="#urwid-1-3-1" title="Link to this heading">¶</a></h2>
 <p>2015-11-01</p>
 <blockquote>
 <div><ul class="simple">
@@ -217,9 +413,9 @@ now that extra newline was removed (by Jared Winborne)</p></li>
 <li><p>Fix for a resizing bug in raw_display (by Esteban null)</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-3-0">
-<h2>Urwid 1.3.0<a class="headerlink" href="#urwid-1-3-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-3-0">
+<h2>Urwid 1.3.0<a class="headerlink" href="#urwid-1-3-0" title="Link to this heading">¶</a></h2>
 <p>2014-10-17</p>
 <blockquote>
 <div><ul class="simple">
@@ -237,9 +433,9 @@ instead of passing timeout values to MainLoop (by Alex Munroe)</p></li>
 <li><p>SelectableIcon using cursor_position=0 by default instead of 1.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-2-2">
-<h2>Urwid 1.2.2<a class="headerlink" href="#urwid-1-2-2" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-2-2">
+<h2>Urwid 1.2.2<a class="headerlink" href="#urwid-1-2-2" title="Link to this heading">¶</a></h2>
 <p>2014-10-05</p>
 <blockquote>
 <div><ul class="simple">
@@ -249,9 +445,9 @@ instead of passing timeout values to MainLoop (by Alex Munroe)</p></li>
 <li><p>Small changes to enable windows support (by Jeanpierre Devin)</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-2-1">
-<h2>Urwid 1.2.1<a class="headerlink" href="#urwid-1-2-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-2-1">
+<h2>Urwid 1.2.1<a class="headerlink" href="#urwid-1-2-1" title="Link to this heading">¶</a></h2>
 <p>2014-04-04</p>
 <blockquote>
 <div><ul class="simple">
@@ -260,9 +456,9 @@ instead of passing timeout values to MainLoop (by Alex Munroe)</p></li>
 <li><p>Documentation fixes (by Paul Ivanov)</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-2-0">
-<h2>Urwid 1.2.0<a class="headerlink" href="#urwid-1-2-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-2-0">
+<h2>Urwid 1.2.0<a class="headerlink" href="#urwid-1-2-0" title="Link to this heading">¶</a></h2>
 <p>2014-02-09</p>
 <blockquote>
 <div><ul class="simple">
@@ -293,9 +489,9 @@ standout attribute on some terminals</p></li>
 <li><p>Fix for Terminal widget select loop: retry when interrupted</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-1-2">
-<h2>Urwid 1.1.2<a class="headerlink" href="#urwid-1-1-2" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-1-2">
+<h2>Urwid 1.1.2<a class="headerlink" href="#urwid-1-1-2" title="Link to this heading">¶</a></h2>
 <p>2013-12-30</p>
 <blockquote>
 <div><ul class="simple">
@@ -309,9 +505,9 @@ move changelog to docs/changelog.rst</p></li>
 <li><p>Fix for Padding.align and width change not invalidating</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-1-1">
-<h2>Urwid 1.1.1<a class="headerlink" href="#urwid-1-1-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-1-1">
+<h2>Urwid 1.1.1<a class="headerlink" href="#urwid-1-1-1" title="Link to this heading">¶</a></h2>
 <p>2012-11-15</p>
 <blockquote>
 <div><ul class="simple">
@@ -319,9 +515,9 @@ move changelog to docs/changelog.rst</p></li>
 <li><p>Fix for Overlay.get_cursor_coords()</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-1-0">
-<h2>Urwid 1.1.0<a class="headerlink" href="#urwid-1-1-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-1-0">
+<h2>Urwid 1.1.0<a class="headerlink" href="#urwid-1-1-0" title="Link to this heading">¶</a></h2>
 <p>2012-10-23</p>
 <blockquote>
 <div><ul>
@@ -381,9 +577,9 @@ Columns methods when that column is selectable</p></li>
 <li><p>Fix for Terminal widget input handling with Python 3</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-0-3">
-<h2>Urwid 1.0.3<a class="headerlink" href="#urwid-1-0-3" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-0-3">
+<h2>Urwid 1.0.3<a class="headerlink" href="#urwid-1-0-3" title="Link to this heading">¶</a></h2>
 <p>2012-11-15</p>
 <blockquote>
 <div><ul class="simple">
@@ -392,9 +588,9 @@ curses_display)</p></li>
 <li><p>Fix for Overlay.get_cursor_coords()</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-0-2">
-<h2>Urwid 1.0.2<a class="headerlink" href="#urwid-1-0-2" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-0-2">
+<h2>Urwid 1.0.2<a class="headerlink" href="#urwid-1-0-2" title="Link to this heading">¶</a></h2>
 <p>2012-07-13</p>
 <blockquote>
 <div><ul class="simple">
@@ -410,9 +606,9 @@ when moving up or down</p></li>
 <li><p>Fix a number of bugs caused by 0-height widgets in a ListBox</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-0-1">
-<h2>Urwid 1.0.1<a class="headerlink" href="#urwid-1-0-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-0-1">
+<h2>Urwid 1.0.1<a class="headerlink" href="#urwid-1-0-1" title="Link to this heading">¶</a></h2>
 <p>2011-11-28</p>
 <blockquote>
 <div><ul class="simple">
@@ -432,9 +628,9 @@ and gpm events are not properly supported</p></li>
 <li><p>Mark PollingListWalker as deprecated</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-1-0-0">
-<h2>Urwid 1.0.0<a class="headerlink" href="#urwid-1-0-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-1-0-0">
+<h2>Urwid 1.0.0<a class="headerlink" href="#urwid-1-0-0" title="Link to this heading">¶</a></h2>
 <p>2011-09-22</p>
 <blockquote>
 <div><ul class="simple">
@@ -492,9 +688,9 @@ set (currently only used by Terminal widget)</p></li>
 characters into a single character column</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-9-2">
-<h2>Urwid 0.9.9.2<a class="headerlink" href="#urwid-0-9-9-2" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-9-2">
+<h2>Urwid 0.9.9.2<a class="headerlink" href="#urwid-0-9-9-2" title="Link to this heading">¶</a></h2>
 <p>2011-07-13</p>
 <blockquote>
 <div><ul class="simple">
@@ -507,9 +703,9 @@ characters into a single character column</p></li>
 to claim support Python 2.3)</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-9-1">
-<h2>Urwid 0.9.9.1<a class="headerlink" href="#urwid-0-9-9-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-9-1">
+<h2>Urwid 0.9.9.1<a class="headerlink" href="#urwid-0-9-9-1" title="Link to this heading">¶</a></h2>
 <p>2010-01-25</p>
 <blockquote>
 <div><ul class="simple">
@@ -522,9 +718,9 @@ Terminal.app</p></li>
 <li><p>Fix for systems with gpm_mev installed but not running gpm</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-9">
-<h2>Urwid 0.9.9<a class="headerlink" href="#urwid-0-9-9" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-9">
+<h2>Urwid 0.9.9<a class="headerlink" href="#urwid-0-9-9" title="Link to this heading">¶</a></h2>
 <p>2009-11-15</p>
 <blockquote>
 <div><ul class="simple">
@@ -568,9 +764,9 @@ the originals to be redirected</p></li>
 <li><p>Fixed a Popen3 deprecation warning</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-8-4">
-<h2>Urwid 0.9.8.4<a class="headerlink" href="#urwid-0-9-8-4" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-8-4">
+<h2>Urwid 0.9.8.4<a class="headerlink" href="#urwid-0-9-8-4" title="Link to this heading">¶</a></h2>
 <p>2009-03-13</p>
 <blockquote>
 <div><ul class="simple">
@@ -590,9 +786,9 @@ Hartstein)</p></li>
 <li><p>Fixed setuptools configuration (by Andreas Klöckner)</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-8-3">
-<h2>Urwid 0.9.8.3<a class="headerlink" href="#urwid-0-9-8-3" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-8-3">
+<h2>Urwid 0.9.8.3<a class="headerlink" href="#urwid-0-9-8-3" title="Link to this heading">¶</a></h2>
 <p>2008-07-14</p>
 <blockquote>
 <div><ul class="simple">
@@ -601,9 +797,9 @@ Hartstein)</p></li>
 <li><p>Fixed a canvas fill_attr() bug (found by Joern Koerner)</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-8-2">
-<h2>Urwid 0.9.8.2<a class="headerlink" href="#urwid-0-9-8-2" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-8-2">
+<h2>Urwid 0.9.8.2<a class="headerlink" href="#urwid-0-9-8-2" title="Link to this heading">¶</a></h2>
 <p>2008-05-19</p>
 <blockquote>
 <div><ul class="simple">
@@ -613,9 +809,9 @@ mouse_event with no callback bug, Filler body bug triggered by the
 tutorial and a LineBox lline parameter typo.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-8-1">
-<h2>Urwid 0.9.8.1<a class="headerlink" href="#urwid-0-9-8-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-8-1">
+<h2>Urwid 0.9.8.1<a class="headerlink" href="#urwid-0-9-8-1" title="Link to this heading">¶</a></h2>
 <p>2007-06-21</p>
 <blockquote>
 <div><ul class="simple">
@@ -623,9 +819,9 @@ tutorial and a LineBox lline parameter typo.</p></li>
 number of problems triggered by very small terminal window sizes.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-8">
-<h2>Urwid 0.9.8<a class="headerlink" href="#urwid-0-9-8" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-8">
+<h2>Urwid 0.9.8<a class="headerlink" href="#urwid-0-9-8" title="Link to this heading">¶</a></h2>
 <p>2007-03-23</p>
 <blockquote>
 <div><ul>
@@ -673,9 +869,9 @@ improve their performance.</p></li>
 <li><p>Compatible with Python &gt;= 2.2. Python 2.1 is no longer supported.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-7-2">
-<h2>Urwid 0.9.7.2<a class="headerlink" href="#urwid-0-9-7-2" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-7-2">
+<h2>Urwid 0.9.7.2<a class="headerlink" href="#urwid-0-9-7-2" title="Link to this heading">¶</a></h2>
 <p>2007-01-03</p>
 <blockquote>
 <div><ul class="simple">
@@ -685,18 +881,18 @@ improve their performance.</p></li>
 screen to be repainted on the next draw_screen() call.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-7-1">
-<h2>Urwid 0.9.7.1<a class="headerlink" href="#urwid-0-9-7-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-7-1">
+<h2>Urwid 0.9.7.1<a class="headerlink" href="#urwid-0-9-7-1" title="Link to this heading">¶</a></h2>
 <p>2006-10-03</p>
 <blockquote>
 <div><ul class="simple">
 <li><p>Fixed bugs in Padding and Overlay widgets introduced in 0.9.7.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-7">
-<h2>Urwid 0.9.7<a class="headerlink" href="#urwid-0-9-7" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-7">
+<h2>Urwid 0.9.7<a class="headerlink" href="#urwid-0-9-7" title="Link to this heading">¶</a></h2>
 <p>2006-10-01</p>
 <blockquote>
 <div><ul>
@@ -729,9 +925,9 @@ contained a newline. This function is not currently used by Urwid.</p></li>
 include focus parameters.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-6">
-<h2>Urwid 0.9.6<a class="headerlink" href="#urwid-0-9-6" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-6">
+<h2>Urwid 0.9.6<a class="headerlink" href="#urwid-0-9-6" title="Link to this heading">¶</a></h2>
 <p>2006-08-22</p>
 <blockquote>
 <div><ul class="simple">
@@ -748,9 +944,9 @@ parameter.</p></li>
 <li><p>Added support for setuptools (improved distutils).</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-5">
-<h2>Urwid 0.9.5<a class="headerlink" href="#urwid-0-9-5" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-5">
+<h2>Urwid 0.9.5<a class="headerlink" href="#urwid-0-9-5" title="Link to this heading">¶</a></h2>
 <p>2006-06-14</p>
 <blockquote>
 <div><ul>
@@ -793,9 +989,9 @@ against libcurses.</p></li>
 <li><p>Fixed a Padding bug when the left or right has no padding.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-4">
-<h2>Urwid 0.9.4<a class="headerlink" href="#urwid-0-9-4" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-4">
+<h2>Urwid 0.9.4<a class="headerlink" href="#urwid-0-9-4" title="Link to this heading">¶</a></h2>
 <p>2006-05-30</p>
 <blockquote>
 <div><ul>
@@ -817,9 +1013,9 @@ library to run: <a class="reference external" href="http://excess.org/templayer/
 characters are now replaced with ‘?’ characters when displayed.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-3">
-<h2>Urwid 0.9.3<a class="headerlink" href="#urwid-0-9-3" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-3">
+<h2>Urwid 0.9.3<a class="headerlink" href="#urwid-0-9-3" title="Link to this heading">¶</a></h2>
 <p>2006-05-14</p>
 <blockquote>
 <div><ul>
@@ -841,9 +1037,9 @@ another related to wrapped text starting with a space character.</p></li>
 unselectable widgets.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-2">
-<h2>Urwid 0.9.2<a class="headerlink" href="#urwid-0-9-2" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-2">
+<h2>Urwid 0.9.2<a class="headerlink" href="#urwid-0-9-2" title="Link to this heading">¶</a></h2>
 <p>2006-03-18</p>
 <blockquote>
 <div><ul>
@@ -867,9 +1063,9 @@ some circumstances.</p></li>
 <li><p>Fixed a bug preventing use of UTF-8 characters with Divider widgets.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-1">
-<h2>Urwid 0.9.1<a class="headerlink" href="#urwid-0-9-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-1">
+<h2>Urwid 0.9.1<a class="headerlink" href="#urwid-0-9-1" title="Link to this heading">¶</a></h2>
 <p>2006-03-06</p>
 <blockquote>
 <div><ul class="simple">
@@ -887,9 +1083,9 @@ call signal.signal() from their main thread.</p></li>
 <li><p>Removed some forgotten asserts that broke 8-bit and CJK input.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-0">
-<h2>Urwid 0.9.0<a class="headerlink" href="#urwid-0-9-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-0">
+<h2>Urwid 0.9.0<a class="headerlink" href="#urwid-0-9-0" title="Link to this heading">¶</a></h2>
 <p>2006-02-18</p>
 <blockquote>
 <div><ul>
@@ -911,18 +1107,18 @@ text legibility.</p>
 in UTF-8 encoding.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-0-pre3">
-<h2>Urwid 0.9.0-pre3<a class="headerlink" href="#urwid-0-9-0-pre3" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-0-pre3">
+<h2>Urwid 0.9.0-pre3<a class="headerlink" href="#urwid-0-9-0-pre3" title="Link to this heading">¶</a></h2>
 <p>2006-02-13</p>
 <blockquote>
 <div><ul class="simple">
 <li><p>Fixed Canvas attribute padding bug related to -pre1 changes.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-0-pre2">
-<h2>Urwid 0.9.0-pre2<a class="headerlink" href="#urwid-0-9-0-pre2" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-0-pre2">
+<h2>Urwid 0.9.0-pre2<a class="headerlink" href="#urwid-0-9-0-pre2" title="Link to this heading">¶</a></h2>
 <p>2006-02-10</p>
 <blockquote>
 <div><ul class="simple">
@@ -932,9 +1128,9 @@ with a new layout class.</p></li>
 <li><p>Fixed Padding bug related to Canvas -pre1 changes.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-9-0-pre1">
-<h2>Urwid 0.9.0-pre1<a class="headerlink" href="#urwid-0-9-0-pre1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-9-0-pre1">
+<h2>Urwid 0.9.0-pre1<a class="headerlink" href="#urwid-0-9-0-pre1" title="Link to this heading">¶</a></h2>
 <p>2006-02-08</p>
 <blockquote>
 <div><ul>
@@ -959,9 +1155,9 @@ found in the original text string.</p></li>
 Their functionality has been replaced by the new layout classes.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-10">
-<h2>Urwid 0.8.10<a class="headerlink" href="#urwid-0-8-10" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-10">
+<h2>Urwid 0.8.10<a class="headerlink" href="#urwid-0-8-10" title="Link to this heading">¶</a></h2>
 <p>2005-11-27</p>
 <blockquote>
 <div><ul class="simple">
@@ -981,9 +1177,9 @@ warnings with python2.1. Fixed Padding.get_pref_col() bug. Fixed
 Overlay splitting CJK characters bug.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-9">
-<h2>Urwid 0.8.9<a class="headerlink" href="#urwid-0-8-9" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-9">
+<h2>Urwid 0.8.9<a class="headerlink" href="#urwid-0-8-9" title="Link to this heading">¶</a></h2>
 <p>2005-10-21</p>
 <blockquote>
 <div><ul class="simple">
@@ -997,9 +1193,9 @@ curses_display.Screen.set_input_timeouts().</p></li>
 <li><p>Fixed a ListBox.set_focus() bug.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-8">
-<h2>Urwid 0.8.8<a class="headerlink" href="#urwid-0-8-8" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-8">
+<h2>Urwid 0.8.8<a class="headerlink" href="#urwid-0-8-8" title="Link to this heading">¶</a></h2>
 <p>2005-06-13</p>
 <blockquote>
 <div><ul>
@@ -1016,9 +1212,9 @@ broader escape code support.</p></li>
 <li><p>Shortened resize timeout on gradual resize to improve responsiveness.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-7">
-<h2>Urwid 0.8.7<a class="headerlink" href="#urwid-0-8-7" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-7">
+<h2>Urwid 0.8.7<a class="headerlink" href="#urwid-0-8-7" title="Link to this heading">¶</a></h2>
 <p>2005-05-21</p>
 <blockquote>
 <div><ul class="simple">
@@ -1041,9 +1237,9 @@ with cygwin’s broken curses implementation.</p></li>
 <li><p>Fixed crash when deleting cells in calc.py example program.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-6">
-<h2>Urwid 0.8.6<a class="headerlink" href="#urwid-0-8-6" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-6">
+<h2>Urwid 0.8.6<a class="headerlink" href="#urwid-0-8-6" title="Link to this heading">¶</a></h2>
 <p>2005-01-03</p>
 <blockquote>
 <div><ul>
@@ -1065,9 +1261,9 @@ that areas with no attributes will change from light grey on black
 widget in focus has no cursor position.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-5">
-<h2>Urwid 0.8.5<a class="headerlink" href="#urwid-0-8-5" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-5">
+<h2>Urwid 0.8.5<a class="headerlink" href="#urwid-0-8-5" title="Link to this heading">¶</a></h2>
 <p>2004-12-15</p>
 <blockquote>
 <div><ul class="simple">
@@ -1080,9 +1276,9 @@ and Frame classes</p></li>
 <li><p>Fixed curses_display bug affecting text with no attributes.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-4">
-<h2>Urwid 0.8.4<a class="headerlink" href="#urwid-0-8-4" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-4">
+<h2>Urwid 0.8.4<a class="headerlink" href="#urwid-0-8-4" title="Link to this heading">¶</a></h2>
 <p>2004-11-20</p>
 <blockquote>
 <div><ul class="simple">
@@ -1095,9 +1291,9 @@ html_fragment.screenshot_collect()</p></li>
 boxes with CJK text.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-3">
-<h2>Urwid 0.8.3<a class="headerlink" href="#urwid-0-8-3" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-3">
+<h2>Urwid 0.8.3<a class="headerlink" href="#urwid-0-8-3" title="Link to this heading">¶</a></h2>
 <p>2004-11-15</p>
 <blockquote>
 <div><ul>
@@ -1113,18 +1309,18 @@ double width characters.</p>
 <li><p>Minor improvements to edit.py example program.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-2">
-<h2>Urwid 0.8.2<a class="headerlink" href="#urwid-0-8-2" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-2">
+<h2>Urwid 0.8.2<a class="headerlink" href="#urwid-0-8-2" title="Link to this heading">¶</a></h2>
 <p>2004-11-08</p>
 <blockquote>
 <div><ul class="simple">
 <li><p>Re-released under GNU Lesser General Public License.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-1">
-<h2>Urwid 0.8.1<a class="headerlink" href="#urwid-0-8-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-1">
+<h2>Urwid 0.8.1<a class="headerlink" href="#urwid-0-8-1" title="Link to this heading">¶</a></h2>
 <p>2004-10-29</p>
 <blockquote>
 <div><ul class="simple">
@@ -1137,19 +1333,20 @@ colour rendering.</p></li>
 <li><p>Fixed an OSX browse.py compatibility issue. Added some OSX keycodes.</p></li>
 </ul>
 </div></blockquote>
-</div>
-<div class="section" id="urwid-0-8-0">
-<h2>Urwid 0.8.0<a class="headerlink" href="#urwid-0-8-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="urwid-0-8-0">
+<h2>Urwid 0.8.0<a class="headerlink" href="#urwid-0-8-0" title="Link to this heading">¶</a></h2>
 <p>2004-10-17</p>
 <blockquote>
 <div><ul class="simple">
 <li><p>Initial Release</p></li>
 </ul>
 </div></blockquote>
-</div>
-</div>
+</section>
+</section>
 
 
+            <div class="clearer"></div>
           </div>
         </div>
       </div>
@@ -1157,9 +1354,13 @@ colour rendering.</p></li>
         <div class="sphinxsidebarwrapper">
             <p class="logo"><a href="index.html">
               <img class="logo" src="_static/urwid-logo.png" alt="Logo"/>
-            </a></p><h3>Table of contents</a></h3>
+            </a></p><h3>Table of contents</h3>
   <ul>
 <li><a class="reference internal" href="#">Changelog</a><ul>
+<li><a class="reference internal" href="#release-2-2-3">2.2.3</a></li>
+<li><a class="reference internal" href="#release-2-2-2">2.2.2</a></li>
+<li><a class="reference internal" href="#release-2-2-1">2.2.1</a></li>
+<li><a class="reference internal" href="#release-2-2-0">2.2.0</a></li>
 <li><a class="reference internal" href="#urwid-2-1-2">Urwid 2.1.2</a></li>
 <li><a class="reference internal" href="#urwid-2-1-1">Urwid 2.1.1</a></li>
 <li><a class="reference internal" href="#urwid-2-1-0">Urwid 2.1.0</a></li>
@@ -1214,9 +1415,11 @@ colour rendering.</p></li>
 </ul>
 
 
-  <h4>Previous topic</h4>
-  <p class="topless"><a href="reference/deprecated.html"
-                        title="previous chapter">Deprecated Classes</a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="reference/deprecated.html"
+                          title="previous chapter">Deprecated Classes</a></p>
+  </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -1228,12 +1431,12 @@ colour rendering.</p></li>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -1247,12 +1450,13 @@ colour rendering.</p></li>
         <li class="right" >
           <a href="reference/deprecated.html" title="Deprecated Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.1.2</a> &#187;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Changelog</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.4.4.
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
     </div>
   </body>
 </html>
