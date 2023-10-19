@@ -497,7 +497,7 @@ class MonitoredFocusList(MonitoredList):
         def clear(self):
             focus = self._adjust_focus_on_contents_modified(slice(0, 0))
             rval = super().clear()
-            self._set_focus(focus)
+            self.focus = focus
             return rval
 
 
