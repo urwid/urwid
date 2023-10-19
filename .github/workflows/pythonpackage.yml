@@ -134,10 +134,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade ruff
+          pip install --upgrade -r ruff-requirements.txt
       - name: Lint with ruff
         run: |
-          ruff --format github urwid examples
+          ruff check --output-format github urwid examples
 
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
