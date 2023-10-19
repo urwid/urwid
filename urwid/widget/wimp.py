@@ -35,6 +35,7 @@ from .widget import WidgetWrap
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, MutableSequence
+    from typing import Iterable
 
     from typing_extensions import Literal, Self
 
@@ -202,7 +203,7 @@ class CheckBox(WidgetWrap):
             | Callable[[Self, bool | typing.Literal["mixed"]], typing.Any]
             | None
         ) = None,
-        user_data: _T | None = None,
+        user_data: Iterable | None = None,
         checked_symbol: str | None = None,
     ):
         """
@@ -252,7 +253,7 @@ class CheckBox(WidgetWrap):
         # The old way of listening for a change was to pass the callback
         # in to the constructor.  Just convert it to the new way:
         if on_state_change:
-            connect_signal(self, "change", on_state_change, user_data)
+            connect_signal(self, "change", on_state_change, user_args=user_data or ())
 
         # Initial create expect no callbacks call, create explicit
         super().__init__(
