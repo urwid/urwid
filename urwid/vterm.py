@@ -543,7 +543,7 @@ class TermCanvas(Canvas):
         qmark = self.escbuf.startswith(b"?")
 
         escbuf = []
-        for arg in self.escbuf[qmark and 1 or 0 :].split(b";"):
+        for arg in self.escbuf[1 if qmark else 0 :].split(b";"):
             try:
                 num = int(arg)
             except ValueError:

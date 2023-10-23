@@ -688,6 +688,6 @@ if __name__ == "__main__":
         if font_chars == all_ascii:
             print("Full ASCII")
         elif font_chars & all_ascii == all_ascii:
-            print(f"Full ASCII + {''.join(font_chars^all_ascii)!r}")
+            print(f"Full ASCII + {''.join(font_chars ^ all_ascii)!r}")
         else:
             print(f"Characters: {chars!r}")
