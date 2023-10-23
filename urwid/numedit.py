@@ -332,7 +332,7 @@ class FloatEdit(NumEdit):
             preserve_significance = preserveSignificance
 
         val = ""
-        if default:
+        if default is not None and default != "":
             if not isinstance(default, (int, str, Decimal)):
                 raise ValueError("default: Only 'str', 'int' or Decimal input allowed")
 
