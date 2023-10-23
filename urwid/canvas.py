@@ -660,7 +660,7 @@ class CompositeCanvas(Canvas):
     def cols(self) -> int:
         if not self.shards:
             return 0
-        cols = sum([cv[2] for cv in self.shards[0][1]])
+        cols = sum(cv[2] for cv in self.shards[0][1])
         if not isinstance(cols, int):
             raise TypeError(cols)
         return cols
@@ -1125,7 +1125,7 @@ def shards_join(shard_lists):
     new_shards = []
     while True:
         new_cviews = []
-        num_rows = min([r for r, cv in shards_current])
+        num_rows = min(r for r, cv in shards_current)
 
         shards_next = []
         for rows, cviews in shards_current:

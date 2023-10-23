@@ -857,7 +857,7 @@ class AttrSpec:
             vals = _COLOR_VALUES_88[self.foreground_number]
         elif self.colors == 2**24:
             h = f"{self.foreground_number:06x}"
-            vals = tuple([int(x, 16) for x in [h[0:2], h[2:4], h[4:6]]])
+            vals = tuple(int(x, 16) for x in [h[0:2], h[2:4], h[4:6]])
         else:
             vals = _COLOR_VALUES_256[self.foreground_number]
 
@@ -869,7 +869,7 @@ class AttrSpec:
             return vals + _COLOR_VALUES_88[self.background_number]
         if self.colors == 2**24:
             h = f"{self.background_number:06x}"
-            return vals + tuple([int(x, 16) for x in [h[0:2], h[2:4], h[4:6]]])
+            return vals + tuple(int(x, 16) for x in [h[0:2], h[2:4], h[4:6]])
 
         return vals + _COLOR_VALUES_256[self.background_number]
 
