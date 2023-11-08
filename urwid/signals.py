@@ -26,7 +26,7 @@ import warnings
 import weakref
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Collection, Container, Iterable
+    from collections.abc import Callable, Collection, Container, Hashable, Iterable
 
 
 class MetaSignals(type):
@@ -68,7 +68,7 @@ class Signals:
     def __init__(self):
         self._supported = {}
 
-    def register(self, sig_cls, signals: Container[str]) -> None:
+    def register(self, sig_cls, signals: Container[Hashable]) -> None:
         """
         :param sig_class: the class of an object that will be sending signals
         :type sig_class: class
@@ -84,7 +84,7 @@ class Signals:
     def connect(
         self,
         obj,
-        name: str,
+        name: Hashable,
         callback: Callable[..., typing.Any],
         user_arg: typing.Any = None,
         *,
@@ -219,7 +219,7 @@ class Signals:
     def disconnect(
         self,
         obj,
-        name: str,
+        name: Hashable,
         callback: Callable[..., typing.Any],
         user_arg: typing.Any = None,
         *,
@@ -260,7 +260,7 @@ class Signals:
                 return self.disconnect_by_key(obj, name, h[0])
         return None
 
-    def disconnect_by_key(self, obj, name: str, key: Key) -> None:
+    def disconnect_by_key(self, obj, name: Hashable, key: Key) -> None:
         """
         :param obj: the object to disconnect the signal from
         :type obj: object
@@ -281,7 +281,7 @@ class Signals:
         handlers = signals.get(name, [])
         handlers[:] = [h for h in handlers if h[0] is not key]
 
-    def emit(self, obj, name: str, *args) -> bool:
+    def emit(self, obj, name: Hashable, *args) -> bool:
         """
         :param obj: the object sending a signal
         :type obj: object
