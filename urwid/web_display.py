@@ -30,6 +30,7 @@ import random
 import select
 import signal
 import socket
+import string
 import sys
 import tempfile
 import typing
@@ -1016,7 +1017,7 @@ def handle_short_request():
         sys.stdout.write("Status: 414 URI Too Long\r\n\r\n")
         return True
     for c in urwid_id:
-        if c not in "0123456789":
+        if c not in string.digits:
             # invald. handle by ignoring
             # assert 0, "invalid chars in id!"
             sys.stdout.write("Status: 403 Forbidden\r\n\r\n")

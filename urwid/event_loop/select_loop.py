@@ -23,6 +23,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import heapq
 import select
 import time
@@ -145,14 +146,11 @@ class SelectEventLoop(EventLoop):
         Start the event loop.  Exit the loop when any callback raises
         an exception.  If ExitMainLoop is raised, exit cleanly.
         """
-        try:
+        with contextlib.suppress(ExitMainLoop):
             self._did_something = True
             while True:
                 with suppress(InterruptedError):
                     self._loop()
-
-        except ExitMainLoop:
-            pass
 
     def _loop(self) -> None:
         """

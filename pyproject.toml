@@ -138,6 +138,7 @@ target-version = "py37"
 ignore-init-module-imports = true
 
 extend-select = [
+  "E",
   "W",  # also pycodestyle warnings
   "PYI",  # flake8-pyi
   "ASYNC",  # flake8-async
@@ -155,7 +156,9 @@ extend-select = [
   "TRY", "UP", "I", "PL", "PERF", "RUF",  # tryceratops, pyupgrade, isort, pylint + perflint, Ruff-specific
 ]
 extend-ignore = [
-  "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR2004",  # refactor rules (too many statements/arguments/branches)
+  "PLR6301", "E203", "PLW3201",
+    # refactor rules (too many statements/arguments/branches)
+  "PLR0904", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR2004",
   "RET504",  # Unnecessary variable assignment before return statement
   "SIM108",  # Use ternary operator,
   "TRY003",  #long messages prepare outside, ...

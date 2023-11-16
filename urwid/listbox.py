@@ -722,7 +722,6 @@ class ListBox(Widget, WidgetContainerMixin):
 
         Return None as a placeholder for future options.
         """
-        return
 
     def _set_focus_valign_complete(self, size: tuple[int, int], focus: bool) -> None:
         """

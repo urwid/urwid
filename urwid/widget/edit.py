@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import string
 import typing
 
 from urwid import text_layout
@@ -655,7 +656,7 @@ class IntEdit(Edit):
         """
         Return true for decimal digits.
         """
-        return len(ch) == 1 and ch in "0123456789"
+        return len(ch) == 1 and ch in string.digits
 
     def __init__(self, caption="", default: int | str | None = None) -> None:
         """
