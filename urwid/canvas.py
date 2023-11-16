@@ -20,6 +20,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import typing
 import warnings
 import weakref
@@ -152,13 +153,12 @@ class CanvasCache:
         """
         Remove all canvases cached for widget.
         """
-        try:
+        with contextlib.suppress(KeyError):
             for ref in cls._widgets[widget].values():
                 with suppress(KeyError):
                     del cls._refs[ref]
             del cls._widgets[widget]
-        except KeyError:
-            pass
+
         if widget not in cls._deps:
             return
         dependants = cls._deps.get(widget, [])
@@ -182,11 +182,9 @@ class CanvasCache:
         with suppress(KeyError):
             del sizes[(wcls, size, focus)]
         if not sizes:
-            try:
+            with contextlib.suppress(KeyError):
                 del cls._widgets[widget]
                 del cls._deps[widget]
-            except KeyError:
-                pass
 
     @classmethod
     def clear(cls):
@@ -1036,9 +1034,8 @@ def shards_trim_top(shards, top: int):
     sbody = shard_body(cviews, shard_tail, False)
     shard_tail = shard_body_tail(num_rows, sbody)
     # trim the top of this shard
-    new_sbody = []
-    for done_rows, content_iter, cv in sbody:
-        new_sbody.append((0, content_iter, cview_trim_top(cv, done_rows + top)))
+    new_sbody = [(0, content_iter, cview_trim_top(cv, done_rows + top)) for done_rows, content_iter, cv in sbody]
+
     sbody = new_sbody
 
     new_shards = [(num_rows - top, [cv for done_rows, content_iter, cv in sbody])]

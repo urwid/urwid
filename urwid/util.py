@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import codecs
+import contextlib
 import typing
 import warnings
 from contextlib import suppress
@@ -113,12 +114,10 @@ def set_encoding(encoding):
 
     # if encoding is valid for conversion from unicode, remember it
     _target_encoding = "ascii"
-    try:
+    with contextlib.suppress(LookupError):
         if encoding:
             "".encode(encoding)
             _target_encoding = encoding
-    except LookupError:
-        pass
 
 
 def get_encoding_mode():

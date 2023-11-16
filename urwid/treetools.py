@@ -220,7 +220,7 @@ class TreeNode:
         return TreeWidget(self)
 
     def get_depth(self):
-        if self._depth is None and self._parent is None:
+        if self._depth is self._parent is None:
             self._depth = 0
         elif self._depth is None:
             self._depth = self._parent.get_depth() + 1

@@ -609,7 +609,7 @@ class TermCanvas(Canvas):
         """
         Parse operating system command.
         """
-        if buf.startswith(b";") or buf.startswith(b"0;") or buf.startswith(b"2;"):
+        if buf.startswith((b";", b"0;", b"2;")):
             # set window title
             self.widget.set_title(buf.decode().partition(";")[2])
 
@@ -702,7 +702,7 @@ class TermCanvas(Canvas):
                 # end multibyte sequence
                 self.utf8_eat_bytes = None
                 sequence = (self.utf8_buffer + bytes([byte])).decode("utf-8", "ignore")
-                if len(sequence) == 0:
+                if not sequence:
                     # invalid multibyte sequence, stop processing
                     return
                 char = sequence.encode(util._target_encoding, "replace")
@@ -1192,10 +1192,10 @@ class TermCanvas(Canvas):
         fg = _defaulter(fg, colors)
         bg = _defaulter(bg, colors)
 
-        if len(attributes) > 0:
+        if attributes:
             fg = ",".join((fg, *list(attributes)))
 
-        if fg == "default" and bg == "default":
+        if fg == bg == "default":
             return None
 
         if colors:
@@ -1740,7 +1740,7 @@ class Terminal(Widget):
             self.touch_term(width, height)
             return None
 
-        if self.last_key == self.escape_sequence and key == self.escape_sequence:
+        if self.last_key == key == self.escape_sequence:
             # escape sequence pressed twice...
             self.last_key = key
             self.keygrab = True

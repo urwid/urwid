@@ -438,9 +438,8 @@ class CF635Screen(CFLCDScreen):
 
         y = 0
         for row in canvas.content():
-            text = []
-            for _a, _cs, run in row:
-                text.append(run)
+            text = [run for _a, _cs, run in row]
+
             if not osb or osb[y] != text:
                 self.queue_command(self.CMD_LCD_DATA, chr(0) + chr(y) + "".join(text))
             sb.append(text)

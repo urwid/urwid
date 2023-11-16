@@ -24,6 +24,7 @@ Direct terminal UI implementation
 
 from __future__ import annotations
 
+import contextlib
 import os
 import select
 import signal
@@ -506,11 +507,9 @@ class Screen(BaseScreen, RealTerminal):
 
         # clean out the pipe used to signal external event loops
         # that a resize has occurred
-        try:
+        with contextlib.suppress(OSError):
             while True:
                 os.read(self._resize_pipe_rd, 1)
-        except OSError:
-            pass
 
         return codes
 
@@ -716,13 +715,11 @@ class Screen(BaseScreen, RealTerminal):
     def get_cols_rows(self):
         """Return the terminal dimensions (num columns, num rows)."""
         y, x = 24, 80
-        try:
+        with contextlib.suppress(OSError):  # Term size could not be determined
             if hasattr(self._term_output_file, "fileno"):
                 buf = fcntl.ioctl(self._term_output_file.fileno(), termios.TIOCGWINSZ, " " * 4)
                 y, x = struct.unpack("hh", buf)
-        except OSError:
-            # Term size could not be determined
-            pass
+
         # Provide some lightweight fallbacks in case the TIOCWINSZ doesn't
         # give sane answers
         if (x <= 0 or y <= 0) and self.term in ("ansi", "vt100"):
@@ -738,12 +735,10 @@ class Screen(BaseScreen, RealTerminal):
             return
 
         while True:
-            try:
+            with contextlib.suppress(OSError):
                 self.write(escape.DESIGNATE_G1_SPECIAL)
                 self.flush()
                 break
-            except OSError:
-                pass
         self._setup_G1_done = True
 
     def draw_screen(self, maxres, r):

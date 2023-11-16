@@ -449,7 +449,7 @@ def _true_to_256(desc: str) -> str | None:
     if not (desc.startswith("#") and len(desc) == 7):
         return None
 
-    c256 = _parse_color_256("#" + "".join(format(int(x, 16) // 16, "x") for x in [desc[1:3], desc[3:5], desc[5:7]]))
+    c256 = _parse_color_256("#" + "".join(format(int(x, 16) // 16, "x") for x in (desc[1:3], desc[3:5], desc[5:7])))
     return _color_desc_256(c256)
 
 
@@ -857,7 +857,7 @@ class AttrSpec:
             vals = _COLOR_VALUES_88[self.foreground_number]
         elif self.colors == 2**24:
             h = f"{self.foreground_number:06x}"
-            vals = tuple(int(x, 16) for x in [h[0:2], h[2:4], h[4:6]])
+            vals = tuple(int(x, 16) for x in (h[0:2], h[2:4], h[4:6]))
         else:
             vals = _COLOR_VALUES_256[self.foreground_number]
 
@@ -869,7 +869,7 @@ class AttrSpec:
             return vals + _COLOR_VALUES_88[self.background_number]
         if self.colors == 2**24:
             h = f"{self.background_number:06x}"
-            return vals + tuple(int(x, 16) for x in [h[0:2], h[2:4], h[4:6]])
+            return vals + tuple(int(x, 16) for x in (h[0:2], h[2:4], h[4:6]))
 
         return vals + _COLOR_VALUES_256[self.background_number]
 
