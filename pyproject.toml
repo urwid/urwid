@@ -3,7 +3,7 @@
 # PEP 508 specifications for PEP 518.
 requires = [
     "setuptools >= 61.0.0",
-    "setuptools_scm[toml]>=6.2",
+    "setuptools_scm[toml]>=7.0",
     "wheel",
 ]
 build-backend="setuptools.build_meta"

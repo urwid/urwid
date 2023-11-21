@@ -152,7 +152,7 @@ class FontRegistry(type):
         """List of (font name, font class) tuples."""
         return list(mcs.__registered.items())
 
-    def __new__(  # noqa: PYI034  # new can not return Self
+    def __new__(
         cls: type[FontRegistry],
         name: str,
         bases: tuple[type, ...],

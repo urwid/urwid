@@ -111,7 +111,8 @@ from urwid.util import (
     supports_unicode,
     within_double_byte,
 )
-from urwid.version import __version__, __version_tuple__
+from urwid.version import version as __version__
+from urwid.version import version_tuple as __version_tuple__
 from urwid.vterm import TermCanvas, TermCharset, Terminal, TermModes, TermScroller
 from urwid.widget import (
     ANY,
