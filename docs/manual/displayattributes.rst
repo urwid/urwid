@@ -27,7 +27,7 @@ where ``screen`` is your screen instance or :attr:`MainLoop.screen`.
 Using Display Attributes
 ========================
 
-Once you have defined a palette you may use the its display attribute names
+Once you have defined a palette you may use its display attribute names
 anywhere that expects a display attribute.  When no display attribute is defined
 ``None`` is used as a default display attribute.
 
