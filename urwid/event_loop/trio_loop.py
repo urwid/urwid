@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import typing
 
+import exceptiongroup
 import trio
 
 from .abstract_loop import EventLoop, ExitMainLoop
@@ -142,8 +143,7 @@ class TrioEventLoop(EventLoop):
 
         emulate_idle_callbacks = _TrioIdleCallbackInstrument(self._idle_callbacks)
 
-        # TODO(Aleksei): trio.MultiError is deprecated in favor of exceptiongroup package usage and `Except *`
-        with trio.MultiError.catch(self._handle_main_loop_exception):
+        with exceptiongroup.catch({BaseException: self._handle_main_loop_exception}):
             trio.run(self._main_task, instruments=[emulate_idle_callbacks])
 
     async def run_async(self):
@@ -165,7 +165,7 @@ class TrioEventLoop(EventLoop):
 
         emulate_idle_callbacks = _TrioIdleCallbackInstrument(self._idle_callbacks)
 
-        with trio.MultiError.catch(self._handle_main_loop_exception):
+        with exceptiongroup.catch({BaseException: self._handle_main_loop_exception}):
             trio.lowlevel.add_instrument(emulate_idle_callbacks)
             try:
                 await self._main_task()
@@ -212,10 +212,13 @@ class TrioEventLoop(EventLoop):
         helper function like this.
         """
         self._idle_callbacks.clear()
+        if isinstance(exc, exceptiongroup.BaseExceptionGroup) and len(exc.exceptions) == 1:
+            exc = exc.exceptions[0]
+
         if isinstance(exc, ExitMainLoop):
             return None
 
-        return exc
+        raise exc
 
     async def _main_task(self):
         """Main Trio task that opens a nursery and then sleeps until the user
