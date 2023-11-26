@@ -47,7 +47,7 @@ classifiers = {file = ["classifiers.txt"]}
 [project.optional-dependencies]
 glib = ["PyGObject"]
 tornado = ["tornado"]
-trio = ["trio", "exceptiongroup"]
+trio = ["trio>=0.22.0", "exceptiongroup"]
 twisted = ["twisted"]
 zmq = ["zmq"]
 # for lcd_display
