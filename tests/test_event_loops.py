@@ -263,6 +263,7 @@ try:
 except ImportError:
     pass
 else:
+    @unittest.skipIf(IS_WINDOWS, "ZMQEventLoop is not supported under windows")
     class ZMQEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         def setUp(self):
             self.evl = urwid.ZMQEventLoop()
