@@ -157,9 +157,10 @@ class SelectEventLoop(EventLoop):
         A single iteration of the event loop
         """
         fds = list(self._watch_files)
+        tm: float | Literal["idle"] | None = None
+
         if self._alarms or self._did_something:
             timeout = 0.0
-            tm: float | Literal["idle"] | None = None
 
             if self._alarms:
                 timeout_ = self._alarms[0][0]
@@ -170,11 +171,15 @@ class SelectEventLoop(EventLoop):
                 timeout = 0.0
                 tm = "idle"
 
-            ready, _w, _err = select.select(fds, [], fds, timeout)
+            if fds:
+                ready, _w, _err = select.select(fds, [], fds, timeout)
+            else:
+                ready = []
 
-        else:
-            tm = None
+        elif fds:
             ready, _w, _err = select.select(fds, [], fds)
+        else:
+            ready = []
 
         if not ready:
             if tm == "idle":

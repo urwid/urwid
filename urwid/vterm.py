@@ -24,11 +24,14 @@ from __future__ import annotations
 import atexit
 import copy
 import errno
+import fcntl
 import os
+import pty
 import select
 import signal
 import struct
 import sys
+import termios
 import time
 import traceback
 import typing
@@ -36,13 +39,6 @@ import warnings
 from collections import deque
 from contextlib import suppress
 from dataclasses import dataclass
-
-try:
-    import fcntl
-    import pty
-    import termios
-except ImportError:
-    pass  # windows
 
 from urwid import event_loop, util
 from urwid.canvas import Canvas

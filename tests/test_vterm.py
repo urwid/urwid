@@ -28,9 +28,10 @@ import unittest
 from itertools import dropwhile
 from time import sleep
 
-from urwid import BoxAdapter, Widget, signals, vterm
-from urwid.listbox import ListBox
+import urwid
 from urwid.util import set_temporary_encoding
+
+IS_WINDOWS = os.name == "nt"
 
 
 class DummyCommand:
@@ -67,11 +68,12 @@ class DummyCommand:
         self.write(self.QUITSTRING)
 
 
+@unittest.skipIf(IS_WINDOWS, "Terminal is not supported under windows")
 class TermTest(unittest.TestCase):
     def setUp(self) -> None:
         self.command = DummyCommand()
 
-        self.term = vterm.Terminal(self.command)
+        self.term = urwid.Terminal(self.command)
         self.resize(80, 24)
 
     def tearDown(self) -> None:
@@ -80,17 +82,17 @@ class TermTest(unittest.TestCase):
     def connect_signal(self, signal: str):
         self._sig_response = None
 
-        def _set_signal_response(widget: Widget, *args, **kwargs) -> None:
+        def _set_signal_response(widget: urwid.Widget, *args, **kwargs) -> None:
             self._sig_response = (args, kwargs)
         self._set_signal_response = _set_signal_response
 
-        signals.connect_signal(self.term, signal, self._set_signal_response)
+        urwid.connect_signal(self.term, signal, self._set_signal_response)
 
     def expect_signal(self, *args, **kwargs):
         self.assertEqual(self._sig_response, (args, kwargs))
 
     def disconnect_signal(self, signal: str) -> None:
-        signals.disconnect_signal(self.term, signal, self._set_signal_response)
+        urwid.disconnect_signal(self.term, signal, self._set_signal_response)
 
     def caught_beep(self, obj):
         self.beeped = True
@@ -393,7 +395,7 @@ class TermTest(unittest.TestCase):
         self.disconnect_signal('leds')
 
     def test_in_listbox(self):
-        listbox = ListBox([BoxAdapter(self.term, 80)])
+        listbox = urwid.ListBox([urwid.BoxAdapter(self.term, 80)])
         rendered = listbox.render((80, 24))
 
     def test_bracketed_paste_mode_on(self):

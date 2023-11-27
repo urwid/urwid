@@ -667,6 +667,7 @@ class Button(WidgetWrap):
 
           urwid.disconnect_signal(button, 'click', callback, user_data)
 
+        >>> from urwid.util import set_temporary_encoding
         >>> Button(u"Ok")
         <Button selectable flow widget 'Ok'>
         >>> b = Button("Cancel")
@@ -676,7 +677,8 @@ class Button(WidgetWrap):
         >>> aligned_button.render((10,), focus=True).text
         [b'<  Test  >']
         >>> wrapped_button = Button("Long label", wrap=WrapMode.ELLIPSIS)
-        >>> wrapped_button.render((7,), focus=False).text[0].decode('utf-8')
+        >>> with set_temporary_encoding("utf-8"):
+        ...     wrapped_button.render((7,), focus=False).text[0].decode('utf-8')
         '< Lo… >'
         """
         self._label = SelectableIcon(label, 0, align=align, wrap=wrap, layout=layout)
