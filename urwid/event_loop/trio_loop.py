@@ -218,7 +218,7 @@ class TrioEventLoop(EventLoop):
         if isinstance(exc, ExitMainLoop):
             return
 
-        raise exc
+        raise exc.with_traceback(exc.__traceback__) from None
 
     async def _main_task(self):
         """Main Trio task that opens a nursery and then sleeps until the user
