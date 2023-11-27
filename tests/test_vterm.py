@@ -28,8 +28,9 @@ import unittest
 from itertools import dropwhile
 from time import sleep
 
-from urwid import BoxAdapter, Widget, signals, vterm
-from urwid.listbox import ListBox
+import urwid
+
+IS_WINDOWS = os.name == "nt"
 
 
 class DummyCommand:
@@ -66,11 +67,12 @@ class DummyCommand:
         self.write(self.QUITSTRING)
 
 
+@unittest.skipIf(IS_WINDOWS, "Terminal is not supported under windows")
 class TermTest(unittest.TestCase):
     def setUp(self) -> None:
         self.command = DummyCommand()
 
-        self.term = vterm.Terminal(self.command)
+        self.term = urwid.Terminal(self.command)
         self.resize(80, 24)
 
     def tearDown(self) -> None:
@@ -79,17 +81,17 @@ class TermTest(unittest.TestCase):
     def connect_signal(self, signal: str):
         self._sig_response = None
 
-        def _set_signal_response(widget: Widget, *args, **kwargs) -> None:
+        def _set_signal_response(widget: urwid.Widget, *args, **kwargs) -> None:
             self._sig_response = (args, kwargs)
         self._set_signal_response = _set_signal_response
 
-        signals.connect_signal(self.term, signal, self._set_signal_response)
+        urwid.connect_signal(self.term, signal, self._set_signal_response)
 
     def expect_signal(self, *args, **kwargs):
         self.assertEqual(self._sig_response, (args, kwargs))
 
     def disconnect_signal(self, signal: str) -> None:
-        signals.disconnect_signal(self.term, signal, self._set_signal_response)
+        urwid.disconnect_signal(self.term, signal, self._set_signal_response)
 
     def caught_beep(self, obj):
         self.beeped = True
@@ -322,22 +324,22 @@ class TermTest(unittest.TestCase):
         self.assertEqual(length, 5)
 
     def test_encoding_unicode(self):
-        vterm.util._target_encoding = 'utf-8'
+        urwid.util._target_encoding = 'utf-8'
         self.write('\\e%G\xe2\x80\x94')
         self.expect('\xe2\x80\x94')
 
     def test_encoding_unicode_ascii(self):
-        vterm.util._target_encoding = 'ascii'
+        urwid.util._target_encoding = 'ascii'
         self.write('\\e%G\xe2\x80\x94')
         self.expect('?')
 
     def test_encoding_wrong_unicode(self):
-        vterm.util._target_encoding = 'utf-8'
+        urwid.util._target_encoding = 'utf-8'
         self.write('\\e%G\xc0\x99')
         self.expect('')
 
     def test_encoding_vt100_graphics(self):
-        vterm.util._target_encoding = 'ascii'
+        urwid.util._target_encoding = 'ascii'
         self.write('\\e)0\\e(0\x0fg\x0eg\\e)Bn\\e)0g\\e)B\\e(B\x0fn')
         self.expect([[
             (None, '0', b'g'), (None, '0', b'g'),
@@ -346,7 +348,7 @@ class TermTest(unittest.TestCase):
         ]], raw=True)
 
     def test_ibmpc_mapping(self):
-        vterm.util._target_encoding = 'ascii'
+        urwid.util._target_encoding = 'ascii'
 
         self.write('\\e[11m\x18\\e[10m\x18')
         self.expect([[(None, 'U', b'\x18')]], raw=True)
@@ -386,7 +388,7 @@ class TermTest(unittest.TestCase):
         self.disconnect_signal('leds')
 
     def test_in_listbox(self):
-        listbox = ListBox([BoxAdapter(self.term, 80)])
+        listbox = urwid.ListBox([urwid.BoxAdapter(self.term, 80)])
         rendered = listbox.render((80, 24))
 
     def test_bracketed_paste_mode_on(self):

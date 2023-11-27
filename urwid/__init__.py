@@ -21,6 +21,8 @@
 
 from __future__ import annotations
 
+import os
+
 from urwid import raw_display
 from urwid.canvas import (
     BlankCanvas,
@@ -113,7 +115,6 @@ from urwid.util import (
 )
 from urwid.version import version as __version__
 from urwid.version import version_tuple as __version_tuple__
-from urwid.vterm import TermCanvas, TermCharset, Terminal, TermModes, TermScroller
 from urwid.widget import (
     ANY,
     BOTTOM,
@@ -225,6 +226,10 @@ try:
     from urwid.event_loop import ZMQEventLoop
 except ImportError:
     pass
+
+# OS Specific
+if os.name != "nt":
+    from urwid.vterm import TermCanvas, TermCharset, Terminal, TermModes, TermScroller
 
 # Backward compatibility
 VERSION = __version_tuple__
