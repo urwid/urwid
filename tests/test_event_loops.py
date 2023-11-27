@@ -8,6 +8,8 @@ import unittest
 
 import urwid
 
+IS_WINDOWS = os.name == "nt"
+
 
 class EventLoopTestMixin:
     def test_event_loop(self):
@@ -140,6 +142,7 @@ try:
 except ImportError:
     pass
 else:
+    @unittest.skipIf(IS_WINDOWS, "TwistedEventLoop is not supported under windows")
     class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         def setUp(self):
             self.evl = urwid.TwistedEventLoop()
