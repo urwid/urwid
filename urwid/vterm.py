@@ -1460,7 +1460,7 @@ class Terminal(Widget):
 
     def __init__(
         self,
-        command: Sequence[str | bytes] | Callable[[], ...] | None,
+        command: Sequence[str | bytes] | Callable[[], typing.Any] | None,
         env: Mapping[str, str] | Iterable[tuple[str, str]] | None = None,
         main_loop: event_loop.EventLoop | None = None,
         escape_sequence: str | None = None,

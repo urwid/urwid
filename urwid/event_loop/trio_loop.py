@@ -203,7 +203,7 @@ class TrioEventLoop(EventLoop):
             await self._sleep(seconds)
             callback()
 
-    def _handle_main_loop_exception(self, exc: BaseException) -> BaseException | None:
+    def _handle_main_loop_exception(self, exc: BaseException) -> None:
         """Handles exceptions raised from the main loop, catching ExitMainLoop
         instead of letting it propagate through.
 
@@ -216,7 +216,7 @@ class TrioEventLoop(EventLoop):
             exc = exc.exceptions[0]
 
         if isinstance(exc, ExitMainLoop):
-            return None
+            return
 
         raise exc
 

@@ -42,6 +42,8 @@ from urwid.widget import (
 )
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable
+
     from typing_extensions import Literal
 
     from urwid.canvas import CompositeCanvas
@@ -140,7 +142,7 @@ class SimpleListWalker(MonitoredList, ListWalker):
             self.focus = max(0, len(self) - 1)
         ListWalker._modified(self)
 
-    def set_modified_callback(self, callback) -> typing.NoReturn:
+    def set_modified_callback(self, callback: Callable[[], typing.Any]) -> typing.NoReturn:
         """
         This function inherited from MonitoredList is not
         implemented in SimpleListWalker.
@@ -210,7 +212,7 @@ class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
         MonitoredFocusList.__init__(self, contents)
         self.wrap_around = wrap_around
 
-    def set_modified_callback(self, callback) -> typing.NoReturn:
+    def set_modified_callback(self, callback: typing.Any) -> typing.NoReturn:
         """
         This function inherited from MonitoredList is not
         implemented in SimpleFocusListWalker.
@@ -738,7 +740,16 @@ class ListBox(Widget, WidgetContainerMixin):
             return
 
         rows = focus_widget.rows((maxcol,), focus)
-        rtop, rbot = calculate_top_bottom_filler(maxrow, vt, va, WHSettings.GIVEN, rows, None, 0, 0)
+        rtop, rbot = calculate_top_bottom_filler(
+            maxrow,
+            vt,
+            va,
+            WHSettings.GIVEN,
+            rows,
+            None,
+            0,
+            0,
+        )
 
         self.shift_focus((maxcol, maxrow), rtop)
 
@@ -1438,7 +1449,14 @@ class ListBox(Widget, WidgetContainerMixin):
             return None
         # bring in only one row if possible
         rows = widget.rows((maxcol,), True)
-        self.change_focus((maxcol, maxrow), pos, -(rows - 1), "below", (self.pref_col, rows - 1), 0)
+        self.change_focus(
+            (maxcol, maxrow),
+            pos,
+            -(rows - 1),
+            "below",
+            (self.pref_col, rows - 1),
+            0,
+        )
         return None
 
     def _keypress_page_down(self, size: tuple[int, int]) -> bool | None:
@@ -1617,7 +1635,14 @@ class ListBox(Widget, WidgetContainerMixin):
             return None
         # bring in only one row if possible
         rows = widget.rows((maxcol,), True)
-        self.change_focus((maxcol, maxrow), pos, maxrow - 1, "above", (self.pref_col, 0), 0)
+        self.change_focus(
+            (maxcol, maxrow),
+            pos,
+            maxrow - 1,
+            "above",
+            (self.pref_col, 0),
+            0,
+        )
         return None
 
     def mouse_event(self, size: tuple[int, int], event, button: int, col: int, row: int, focus: bool) -> bool | None:
