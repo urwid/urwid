@@ -3,3 +3,4 @@ coverage[toml]
 twisted
 trio
 zmq
+exceptiongroups
