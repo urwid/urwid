@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 from .abstract_loop import EventLoop, ExitMainLoop
 from .asyncio_loop import AsyncioEventLoop
 from .main_loop import MainLoop
@@ -37,9 +39,11 @@ try:
 except ImportError:
     pass
 
-try:
-    from .zmq_loop import ZMQEventLoop
+if os.name != "nt":
+    # ZMQEventLoop cause interpreter crash on windows
+    try:
+        from .zmq_loop import ZMQEventLoop
 
-    __all__ += ("ZMQEventLoop",)
-except ImportError:
-    pass
+        __all__ += ("ZMQEventLoop",)
+    except ImportError:
+        pass

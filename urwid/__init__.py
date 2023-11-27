@@ -222,14 +222,15 @@ try:
 except ImportError:
     pass
 
-try:
-    from urwid.event_loop import ZMQEventLoop
-except ImportError:
-    pass
-
 # OS Specific
 if os.name != "nt":
     from urwid.vterm import TermCanvas, TermCharset, Terminal, TermModes, TermScroller
+
+    # ZMQEventLoop cause interpreter crash on windows
+    try:
+        from urwid.event_loop import ZMQEventLoop
+    except ImportError:
+        pass
 
 # Backward compatibility
 VERSION = __version_tuple__
