@@ -24,17 +24,21 @@ import typing
 import warnings
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Collection
 
-    from typing_extensions import ParamSpec
+    from typing_extensions import Concatenate, ParamSpec
 
     ArgSpec = ParamSpec("ArgSpec")
     Ret = typing.TypeVar("Ret")
 
+_T = typing.TypeVar("_T")
 
-def _call_modified(fn: Callable[ArgSpec, Ret]) -> Callable[ArgSpec, Ret]:
+
+def _call_modified(
+    fn: Callable[Concatenate[MonitoredList, ArgSpec], Ret]
+) -> Callable[Concatenate[MonitoredList, ArgSpec], Ret]:
     @functools.wraps(fn)
-    def call_modified_wrapper(self: MonitoredList, *args, **kwargs):
+    def call_modified_wrapper(self: MonitoredList, *args: ArgSpec.args, **kwargs: ArgSpec.kwargs) -> Ret:
         rval = fn(self, *args, **kwargs)
         self._modified()
         return rval
@@ -48,10 +52,10 @@ class MonitoredList(list):
     with the usual list operations append, extend, etc.
     """
 
-    def _modified(self):
+    def _modified(self) -> None:
         pass
 
-    def set_modified_callback(self, callback):
+    def set_modified_callback(self, callback: Callable[[], typing.Any]) -> None:
         """
         Assign a callback function with no parameters that is called any
         time the list is modified.  Callback's return value is ignored.
@@ -72,37 +76,37 @@ class MonitoredList(list):
         >>> ml
         MonitoredList([1, 2, 12, 13])
         """
-        self._modified = callback
+        self._modified = callback  # monkeypatch
 
     def __repr__(self):
         return f"{self.__class__.__name__}({list(self)!r})"
 
-    __add__ = _call_modified(list.__add__)
-    __delitem__ = _call_modified(list.__delitem__)
+    __add__ = _call_modified(list.__add__)  # type: ignore[assignment]  # magic like old __super__
+    __delitem__ = _call_modified(list.__delitem__)  # type: ignore[assignment]  # magic like old __super__
 
-    __iadd__ = _call_modified(list.__iadd__)
-    __imul__ = _call_modified(list.__imul__)
-    __rmul__ = _call_modified(list.__rmul__)
-    __setitem__ = _call_modified(list.__setitem__)
+    __iadd__ = _call_modified(list.__iadd__)  # type: ignore[assignment]  # magic like old __super__
+    __imul__ = _call_modified(list.__imul__)  # type: ignore[assignment]  # magic like old __super__
+    __rmul__ = _call_modified(list.__rmul__)  # type: ignore[assignment]  # magic like old __super__
+    __setitem__ = _call_modified(list.__setitem__)  # type: ignore[assignment]  # magic like old __super__
 
-    append = _call_modified(list.append)
-    extend = _call_modified(list.extend)
-    insert = _call_modified(list.insert)
-    pop = _call_modified(list.pop)
-    remove = _call_modified(list.remove)
-    reverse = _call_modified(list.reverse)
-    sort = _call_modified(list.sort)
+    append = _call_modified(list.append)  # type: ignore[assignment]  # magic like old __super__
+    extend = _call_modified(list.extend)  # type: ignore[assignment]  # magic like old __super__
+    insert = _call_modified(list.insert)  # type: ignore[assignment]  # magic like old __super__
+    pop = _call_modified(list.pop)  # type: ignore[assignment]  # magic like old __super__
+    remove = _call_modified(list.remove)  # type: ignore[assignment]  # magic like old __super__
+    reverse = _call_modified(list.reverse)  # type: ignore[assignment]  # magic like old __super__
+    sort = _call_modified(list.sort)  # type: ignore[assignment]  # magic like old __super__
     if hasattr(list, "clear"):
-        clear = _call_modified(list.clear)
+        clear = _call_modified(list.clear)  # type: ignore[assignment]  # magic like old __super__
 
 
-class MonitoredFocusList(MonitoredList):
+class MonitoredFocusList(MonitoredList, typing.Generic[_T]):
     """
     This class can trigger a callback any time its contents are modified,
     before and/or after modification, and any time the focus index is changed.
     """
 
-    def __init__(self, *argl, **argd):
+    def __init__(self, *args, focus: int = 0, **kwargs) -> None:
         """
         This is a list that tracks one item as the focus item.  If items
         are inserted or removed it will update the focus.
@@ -123,14 +127,13 @@ class MonitoredFocusList(MonitoredList):
         >>> ml
         MonitoredFocusList([], focus=None)
         """
-        focus = argd.pop("focus", 0)
 
-        super().__init__(*argl, **argd)
+        super().__init__(*args, **kwargs)
 
         self._focus = focus
         self._focus_modified = lambda ml, indices, new_items: None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({list(self)!r}, focus={self.focus!r})"
 
     @property
@@ -204,7 +207,7 @@ class MonitoredFocusList(MonitoredList):
         )
         self.focus = index
 
-    def _focus_changed(self, new_focus: int):
+    def _focus_changed(self, new_focus: int) -> None:
         pass
 
     def set_focus_changed_callback(self, callback: Callable[[int], typing.Any]) -> None:
@@ -234,12 +237,12 @@ class MonitoredFocusList(MonitoredList):
         >>> ml
         MonitoredFocusList([12, 13, 14, 2, 3, 10], focus=5)
         """
-        self._focus_changed = callback
+        self._focus_changed = callback  # Monkeypatch
 
-    def _validate_contents_modified(self, indices, new_items):
+    def _validate_contents_modified(self, indices: tuple[int, int, int], new_items: Collection[_T]) -> int | None:
         return None
 
-    def set_validate_contents_modified(self, callback):
+    def set_validate_contents_modified(self, callback: Callable[[tuple[int, int, int], Collection[_T]], int | None]):
         """
         Assign a callback function to handle validating changes to the list.
         This may raise an exception if the change should not be performed.
@@ -255,9 +258,9 @@ class MonitoredFocusList(MonitoredList):
             empty if items are being removed, if step==1 this list may
             contain any number of items
         """
-        self._validate_contents_modified = callback
+        self._validate_contents_modified = callback  # Monkeypatch
 
-    def _adjust_focus_on_contents_modified(self, slc: slice, new_items=()) -> int:
+    def _adjust_focus_on_contents_modified(self, slc: slice, new_items: Collection[_T] = ()) -> int:
         """
         Default behaviour is to move the focus to the item following
         any removed items, unless that item was simply replaced.
@@ -295,7 +298,7 @@ class MonitoredFocusList(MonitoredList):
 
     # override all the list methods that modify the list
 
-    def __delitem__(self, y: int | slice):
+    def __delitem__(self, y: int | slice) -> None:
         """
         >>> ml = MonitoredFocusList([0,1,2,3,4], focus=2)
         >>> del ml[3]; ml
@@ -325,11 +328,18 @@ class MonitoredFocusList(MonitoredList):
             focus = self._adjust_focus_on_contents_modified(y)
         else:
             focus = self._adjust_focus_on_contents_modified(slice(y, y + 1 or None))
-        rval = super().__delitem__(y)
+        super().__delitem__(y)
         self.focus = focus
-        return rval
 
-    def __setitem__(self, i: int | slice, y):
+    @typing.overload
+    def __setitem__(self, i: int, y: _T) -> None:
+        ...
+
+    @typing.overload
+    def __setitem__(self, i: slice, y: Collection[_T]) -> None:
+        ...
+
+    def __setitem__(self, i: int | slice, y: _T | Collection[_T]) -> None:
         """
         >>> def modified(indices, new_items):
         ...     print("range%r <- %r" % (indices, new_items))
@@ -362,9 +372,8 @@ class MonitoredFocusList(MonitoredList):
             focus = self._adjust_focus_on_contents_modified(i, y)
         else:
             focus = self._adjust_focus_on_contents_modified(slice(i, i + 1 or None), [y])
-        rval = super().__setitem__(i, y)
+        super().__setitem__(i, y)
         self.focus = focus
-        return rval
 
     def __imul__(self, n: int):
         """
@@ -389,7 +398,7 @@ class MonitoredFocusList(MonitoredList):
         self.focus = focus
         return rval
 
-    def append(self, item):
+    def append(self, item: _T) -> None:
         """
         >>> def modified(indices, new_items):
         ...     print("range%r <- %r" % (indices, new_items))
@@ -399,11 +408,10 @@ class MonitoredFocusList(MonitoredList):
         range(3, 3, 1) <- [6]
         """
         focus = self._adjust_focus_on_contents_modified(slice(len(self), len(self)), [item])
-        rval = super().append(item)
+        super().append(item)
         self.focus = focus
-        return rval
 
-    def extend(self, items):
+    def extend(self, items: Collection[_T]) -> None:
         """
         >>> def modified(indices, new_items):
         ...     print("range%r <- %r" % (indices, list(new_items)))
@@ -413,11 +421,10 @@ class MonitoredFocusList(MonitoredList):
         range(3, 3, 1) <- [6, 7, 8]
         """
         focus = self._adjust_focus_on_contents_modified(slice(len(self), len(self)), items)
-        rval = super().extend(items)
+        super().extend(items)
         self.focus = focus
-        return rval
 
-    def insert(self, index: int, item):
+    def insert(self, index: int, item: _T) -> None:
         """
         >>> ml = MonitoredFocusList([0,1,2,3], focus=2)
         >>> ml.insert(-1, -1); ml
@@ -428,11 +435,10 @@ class MonitoredFocusList(MonitoredList):
         MonitoredFocusList([-2, 0, 1, -3, 2, -1, 3], focus=4)
         """
         focus = self._adjust_focus_on_contents_modified(slice(index, index), [item])
-        rval = super().insert(index, item)
+        super().insert(index, item)
         self.focus = focus
-        return rval
 
-    def pop(self, index: int = -1):
+    def pop(self, index: int = -1) -> _T:
         """
         >>> ml = MonitoredFocusList([-2,0,1,-3,2,3], focus=4)
         >>> ml.pop(3); ml
@@ -453,7 +459,7 @@ class MonitoredFocusList(MonitoredList):
         self.focus = focus
         return rval
 
-    def remove(self, value):
+    def remove(self, value: _T) -> None:
         """
         >>> ml = MonitoredFocusList([-2,0,1,-3,2,-1,3], focus=4)
         >>> ml.remove(-3); ml
@@ -465,9 +471,8 @@ class MonitoredFocusList(MonitoredList):
         """
         index = self.index(value)
         focus = self._adjust_focus_on_contents_modified(slice(index, index + 1 or None))
-        rval = super().remove(value)
+        super().remove(value)
         self.focus = focus
-        return rval
 
     def reverse(self):
         """
@@ -494,11 +499,10 @@ class MonitoredFocusList(MonitoredList):
 
     if hasattr(list, "clear"):
 
-        def clear(self):
+        def clear(self) -> None:
             focus = self._adjust_focus_on_contents_modified(slice(0, 0))
-            rval = super().clear()
+            super().clear()
             self.focus = focus
-            return rval
 
 
 def _test():

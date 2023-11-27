@@ -87,7 +87,7 @@ def normalize_align(
 
     if isinstance(align, tuple) and len(align) == 2 and align[0] == WHSettings.RELATIVE:
         align_type, align_amount = align
-        return (WHSettings(align_type), align_amount)
+        return (WHSettings.RELATIVE, align_amount)
 
     raise err(
         f"align value {align!r} is not one of 'left', 'center', 'right', ('relative', percentage 0=left 100=right)"
@@ -130,7 +130,7 @@ def simplify_align(
         if not isinstance(align_amount, int):
             raise TypeError(align_amount)
 
-        return (WHSettings(align_type), align_amount)
+        return (WHSettings.RELATIVE, align_amount)
     return Align(align_type)
 
 
@@ -163,7 +163,7 @@ def normalize_valign(
 
     if isinstance(valign, tuple) and len(valign) == 2 and valign[0] == WHSettings.RELATIVE:
         valign_type, valign_amount = valign
-        return (WHSettings(valign_type), valign_amount)
+        return (WHSettings.RELATIVE, valign_amount)
 
     raise err(
         f"valign value {valign!r} is not one of 'top', 'middle', 'bottom', ('relative', percentage 0=left 100=right)"
@@ -205,7 +205,7 @@ def simplify_valign(
     if valign_type == WHSettings.RELATIVE:
         if not isinstance(valign_amount, int):
             raise TypeError(valign_amount)
-        return (WHSettings(valign_type), valign_amount)
+        return (WHSettings.RELATIVE, valign_amount)
     return VAlign(valign_type)
 
 

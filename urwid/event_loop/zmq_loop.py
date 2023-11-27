@@ -40,9 +40,6 @@ if typing.TYPE_CHECKING:
     from collections.abc import Callable
 
     ZMQAlarmHandle = typing.TypeVar("ZMQAlarmHandle")
-    ZMQQueueHandle = typing.TypeVar("ZMQQueueHandle")
-    ZMQFileHandle = typing.TypeVar("ZMQFileHandle")
-    ZMQIdleHandle = typing.TypeVar("ZMQIdleHandle")
 
 
 class ZMQEventLoop(EventLoop):
@@ -100,7 +97,7 @@ class ZMQEventLoop(EventLoop):
         queue: zmq.Socket,
         callback: Callable[[], typing.Any],
         flags: int = zmq.POLLIN,
-    ) -> ZMQQueueHandle:
+    ) -> zmq.Socket:
         """
         Call *callback* when zmq *queue* has something to read (when *flags* is
         set to ``POLLIN``, the default) or is available to write (when *flags*
@@ -127,7 +124,7 @@ class ZMQEventLoop(EventLoop):
         fd: int,
         callback: Callable[[], typing.Any],
         flags: int = zmq.POLLIN,
-    ) -> ZMQFileHandle:
+    ) -> int:
         """
         Call *callback* when *fd* has some data to read. No parameters are
         passed to the callback. The *flags* are as for :meth:`watch_queue`.
@@ -148,7 +145,7 @@ class ZMQEventLoop(EventLoop):
         self._queue_callbacks[fd.fileno()] = callback
         return fd
 
-    def remove_watch_queue(self, handle: ZMQQueueHandle) -> bool:
+    def remove_watch_queue(self, handle: zmq.Socket) -> bool:
         """
         Remove a queue from background polling. Returns ``True`` if the queue
         was being monitored, ``False`` otherwise.
@@ -164,7 +161,7 @@ class ZMQEventLoop(EventLoop):
 
         return True
 
-    def remove_watch_file(self, handle: ZMQFileHandle) -> bool:
+    def remove_watch_file(self, handle: int) -> bool:
         """
         Remove a file from background polling. Returns ``True`` if the file was
         being monitored, ``False`` otherwise.
@@ -180,7 +177,7 @@ class ZMQEventLoop(EventLoop):
 
         return True
 
-    def enter_idle(self, callback: Callable[[], typing.Any]) -> ZMQIdleHandle:
+    def enter_idle(self, callback: Callable[[], typing.Any]) -> int:
         """
         Add a *callback* to be executed when the event loop detects it is idle.
         Returns a handle that may be passed to :meth:`remove_enter_idle`.
@@ -189,7 +186,7 @@ class ZMQEventLoop(EventLoop):
         self._idle_callbacks[self._idle_handle] = callback
         return self._idle_handle
 
-    def remove_enter_idle(self, handle: ZMQIdleHandle) -> bool:
+    def remove_enter_idle(self, handle: int) -> bool:
         """
         Remove an idle callback. Returns ``True`` if *handle* was removed,
         ``False`` otherwise.
