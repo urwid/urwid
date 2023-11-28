@@ -4,6 +4,7 @@ import unittest
 
 import urwid
 from urwid import canvas
+from urwid.util import get_encoding
 
 
 class CanvasCacheTest(unittest.TestCase):
@@ -303,7 +304,7 @@ class CanvasJoinTest(unittest.TestCase):
 
 class CanvasOverlayTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.old_encoding = urwid.util._target_encoding
+        self.old_encoding = get_encoding()
 
     def tearDown(self) -> None:
         urwid.set_encoding(self.old_encoding)

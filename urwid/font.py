@@ -131,14 +131,16 @@ class FontRegistry(type):
         """Get font by name if registered.
 
         This method is needed to get access to font from registry class.
+        >>> from urwid.util import set_temporary_encoding
         >>> repr(FontRegistry["a"])
         'None'
         >>> font = FontRegistry["Thin 3x3"]()
         >>> font.height
         3
-        >>> canvas: TextCanvas = font.render("+")
-        >>> b'\\n'.join(canvas.text).decode('utf-8') == "  \\n ┼\\n  "
-        True
+        >>> with set_temporary_encoding("utf-8"):
+        ...     canvas: TextCanvas = font.render("+")
+        >>> b'\\n'.join(canvas.text).decode('utf-8')
+        '  \\n ┼\\n  '
         """
         return cls.__registered.get(item)
 

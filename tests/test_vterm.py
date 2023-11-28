@@ -30,6 +30,7 @@ from time import sleep
 
 from urwid import BoxAdapter, Widget, signals, vterm
 from urwid.listbox import ListBox
+from urwid.util import set_temporary_encoding
 
 
 class DummyCommand:
@@ -322,43 +323,49 @@ class TermTest(unittest.TestCase):
         self.assertEqual(length, 5)
 
     def test_encoding_unicode(self):
-        vterm.util._target_encoding = 'utf-8'
-        self.write('\\e%G\xe2\x80\x94')
-        self.expect('\xe2\x80\x94')
+        with set_temporary_encoding('utf-8'):
+            self.write('\\e%G\xe2\x80\x94')
+            self.expect('\xe2\x80\x94')
 
     def test_encoding_unicode_ascii(self):
-        vterm.util._target_encoding = 'ascii'
-        self.write('\\e%G\xe2\x80\x94')
-        self.expect('?')
+        with set_temporary_encoding('ascii'):
+            self.write('\\e%G\xe2\x80\x94')
+            self.expect('?')
 
     def test_encoding_wrong_unicode(self):
-        vterm.util._target_encoding = 'utf-8'
-        self.write('\\e%G\xc0\x99')
-        self.expect('')
+        with set_temporary_encoding('utf-8'):
+            self.write('\\e%G\xc0\x99')
+            self.expect('')
 
     def test_encoding_vt100_graphics(self):
-        vterm.util._target_encoding = 'ascii'
-        self.write('\\e)0\\e(0\x0fg\x0eg\\e)Bn\\e)0g\\e)B\\e(B\x0fn')
-        self.expect([[
-            (None, '0', b'g'), (None, '0', b'g'),
-            (None, None, b'n'), (None, '0', b'g'),
-            (None, None, b'n')
-        ]], raw=True)
+        with set_temporary_encoding('ascii'):
+            self.write('\\e)0\\e(0\x0fg\x0eg\\e)Bn\\e)0g\\e)B\\e(B\x0fn')
+            self.expect(
+                [[
+                    (None, '0', b'g'), (None, '0', b'g'),
+                    (None, None, b'n'), (None, '0', b'g'),
+                    (None, None, b'n')
+                    ]],
+                raw=True,
+            )
 
     def test_ibmpc_mapping(self):
-        vterm.util._target_encoding = 'ascii'
+        with set_temporary_encoding('ascii'):
 
-        self.write('\\e[11m\x18\\e[10m\x18')
-        self.expect([[(None, 'U', b'\x18')]], raw=True)
+            self.write('\\e[11m\x18\\e[10m\x18')
+            self.expect([[(None, 'U', b'\x18')]], raw=True)
 
-        self.write('\\ec\\e)U\x0e\x18\x0f\\e[3h\x18\\e[3l\x18')
-        self.expect([[(None, None, b'\x18')]], raw=True)
+            self.write('\\ec\\e)U\x0e\x18\x0f\\e[3h\x18\\e[3l\x18')
+            self.expect([[(None, None, b'\x18')]], raw=True)
 
-        self.write('\\ec\\e[11m\xdb\x18\\e[10m\xdb')
-        self.expect([[
-            (None, 'U', b'\xdb'), (None, 'U', b'\x18'),
-            (None, None, b'\xdb')
-        ]], raw=True)
+            self.write('\\ec\\e[11m\xdb\x18\\e[10m\xdb')
+            self.expect(
+                [[
+                    (None, 'U', b'\xdb'), (None, 'U', b'\x18'),
+                    (None, None, b'\xdb')
+                ]],
+                raw=True,
+            )
 
     def test_set_title(self):
         self._the_title = None
