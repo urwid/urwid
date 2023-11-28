@@ -150,7 +150,7 @@ jobs:
     name: Build wheels on ${{ matrix.os }}
     needs: [ Test, Isort, Black, Ruff ]
     # build only on push: heavy job
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.repository == 'urwid/urwid'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -240,7 +240,7 @@ jobs:
   upload_pypi:
     needs: [ build_wheels, build_sdist, Metadata ]
     # upload to PyPI on every tag
-    if: github.event_name == 'push' && github.ref_type == 'tag'
+    if: github.event_name == 'push' && github.ref_type == 'tag' && github.repository == 'urwid/urwid'
     # alternatively, to publish when a GitHub Release is created, use the following rule:
     # if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-latest
