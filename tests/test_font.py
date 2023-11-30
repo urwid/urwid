@@ -3,11 +3,12 @@ from __future__ import annotations
 import unittest
 
 import urwid
+from urwid.util import get_encoding
 
 
 class TestFontRender(unittest.TestCase):
     def setUp(self) -> None:
-        self.old_encoding = urwid.util._target_encoding
+        self.old_encoding = get_encoding()
         urwid.set_encoding("utf-8")
 
     def tearDown(self) -> None:
@@ -15,8 +16,8 @@ class TestFontRender(unittest.TestCase):
 
     def test_001_basic(self):
         font = urwid.Thin3x3Font()
-        rendered = b'\n'.join(font.render("1").text).decode()
-        expected = ' ┐ \n │ \n ┴ '
+        rendered = b"\n".join(font.render("1").text).decode()
+        expected = " ┐ \n │ \n ┴ "
         self.assertEqual(expected, rendered)
 
     def test_002_non_rect(self):
@@ -25,6 +26,6 @@ class TestFontRender(unittest.TestCase):
         Lines as bytes should be not equal length.
         """
         font = urwid.Thin3x3Font()
-        rendered = b'\n'.join(font.render("2").text).decode()
-        expected = '┌─┐\n┌─┘\n└─ '
+        rendered = b"\n".join(font.render("2").text).decode()
+        expected = "┌─┐\n┌─┘\n└─ "
         self.assertEqual(expected, rendered)

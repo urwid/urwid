@@ -9,7 +9,7 @@ from urwid import util
 
 class CalcWidthTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.old_encoding = urwid.util._target_encoding
+        self.old_encoding = util.get_encoding()
 
     def tearDown(self) -> None:
         urwid.set_encoding(self.old_encoding)
@@ -36,7 +36,7 @@ class CalcWidthTest(unittest.TestCase):
 
 class ConvertDecSpecialTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.old_encoding = urwid.util._target_encoding
+        self.old_encoding = util.get_encoding()
 
     def tearDown(self) -> None:
         urwid.set_encoding(self.old_encoding)
@@ -63,7 +63,7 @@ class ConvertDecSpecialTest(unittest.TestCase):
 
 class WithinDoubleByteTest(unittest.TestCase):
     def setUp(self):
-        self.old_encoding = urwid.util._target_encoding
+        self.old_encoding = util.get_encoding()
         urwid.set_encoding("euc-jp")
 
     def tearDown(self) -> None:
@@ -105,7 +105,7 @@ class WithinDoubleByteTest(unittest.TestCase):
 
 class CalcTextPosTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.old_encoding = urwid.util._target_encoding
+        self.old_encoding = util.get_encoding()
 
     def tearDown(self) -> None:
         urwid.set_encoding(self.old_encoding)

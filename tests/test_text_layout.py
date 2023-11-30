@@ -1,22 +1,10 @@
 from __future__ import annotations
 
 import unittest
-from collections.abc import Generator
-from contextlib import contextmanager
 
 import urwid
 from urwid import text_layout
-
-
-@contextmanager
-def encoding(encoding_name: str) -> Generator[None, None, None]:
-    old_encoding = 'ascii'  # Default fallback value
-    try:
-        old_encoding = urwid.util._target_encoding
-        urwid.set_encoding(encoding_name)
-        yield
-    finally:
-        urwid.set_encoding(old_encoding)
+from urwid.util import get_encoding, set_temporary_encoding
 
 
 class CalcBreaksTest:
@@ -46,7 +34,7 @@ class CalcBreaksCharTest(CalcBreaksTest, unittest.TestCase):
 
 class CalcBreaksDBCharTest(CalcBreaksTest, unittest.TestCase):
     def setUp(self):
-        self.old_encoding = urwid.util._target_encoding
+        self.old_encoding = get_encoding()
         urwid.set_encoding("euc-jp")
 
     def tearDown(self) -> None:
@@ -85,7 +73,7 @@ class CalcBreaksWordTest2(CalcBreaksTest, unittest.TestCase):
 
 class CalcBreaksDBWordTest(CalcBreaksTest, unittest.TestCase):
     def setUp(self):
-        self.old_encoding = urwid.util._target_encoding
+        self.old_encoding = get_encoding()
         urwid.set_encoding("euc-jp")
 
     def tearDown(self) -> None:
@@ -103,7 +91,7 @@ class CalcBreaksDBWordTest(CalcBreaksTest, unittest.TestCase):
 
 class CalcBreaksUTF8Test(CalcBreaksTest, unittest.TestCase):
     def setUp(self) -> None:
-        self.old_encoding = urwid.util._target_encoding
+        self.old_encoding = get_encoding()
         urwid.set_encoding("utf-8")
 
     def tearDown(self) -> None:
@@ -120,13 +108,13 @@ class CalcBreaksUTF8Test(CalcBreaksTest, unittest.TestCase):
 
 class CalcBreaksCantDisplayTest(unittest.TestCase):
     def test(self):
-        with encoding("euc-jp"):
+        with set_temporary_encoding("euc-jp"):
             self.assertRaises(
                 text_layout.CanNotDisplayText,
                 text_layout.default_layout.calculate_text_segments,
                 b'\xA1\xA1', 1, 'space'
             )
-        with encoding("utf-8"):
+        with set_temporary_encoding("utf-8"):
             self.assertRaises(
                 text_layout.CanNotDisplayText,
                 text_layout.default_layout.calculate_text_segments,
@@ -136,7 +124,7 @@ class CalcBreaksCantDisplayTest(unittest.TestCase):
 
 class SubsegTest(unittest.TestCase):
     def setUp(self):
-        self.old_encoding = urwid.util._target_encoding
+        self.old_encoding = get_encoding()
         urwid.set_encoding("euc-jp")
 
     def tearDown(self) -> None:
@@ -185,7 +173,7 @@ class SubsegTest(unittest.TestCase):
 
 class CalcTranslateTest:
     def setUp(self) -> None:
-        self.old_encoding = urwid.util._target_encoding
+        self.old_encoding = get_encoding()
         urwid.set_encoding("utf-8")
 
     def tearDown(self) -> None:
@@ -263,7 +251,7 @@ class CalcTranslateWordTest2(CalcTranslateTest, unittest.TestCase):
 
 class CalcTranslateWordTest3(CalcTranslateTest, unittest.TestCase):
     def setUp(self) -> None:
-        self.old_encoding = urwid.util._target_encoding
+        self.old_encoding = get_encoding()
         urwid.set_encoding('utf-8')
 
     def tearDown(self) -> None:
@@ -349,6 +337,7 @@ class CalcTranslateClipTest2(CalcTranslateTest, unittest.TestCase):
         [(6, 0, 6), (0, 6)],
         [(2, None), (2, 7, 9), (0, 9)],
         [(6, 10, 16), (0, 16)]]
+
 
 class CalcTranslateCantDisplayTest(CalcTranslateTest, unittest.TestCase):
     text = b'Hello\xe9\xa2\x96'

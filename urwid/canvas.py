@@ -31,6 +31,7 @@ from urwid.util import (
     apply_target_encoding,
     calc_text_pos,
     calc_width,
+    get_encoding,
     rle_append_modify,
     rle_join_modify,
     rle_len,
@@ -409,7 +410,13 @@ class TextCanvas(Canvas):
         for i in range(len(text)):
             w = widths[i]
             if w > maxcol:
-                raise CanvasError(f"Canvas text is wider than the maxcol specified \n{maxcol!r}\n{widths!r}\n{text!r}")
+                raise CanvasError(
+                    f"Canvas text is wider than the maxcol specified:\n"
+                    f"maxcol={maxcol!r}\n"
+                    f"widths={widths!r}\n"
+                    f"text={text!r}\n"
+                    f"urwid target encoding={get_encoding()}"
+                )
             if w < maxcol:
                 text[i] += b"".rjust(maxcol - w)
             a_gap = len(text[i]) - rle_len(attr[i])

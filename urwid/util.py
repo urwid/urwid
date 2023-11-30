@@ -29,6 +29,8 @@ from contextlib import suppress
 from urwid import escape
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Generator
+
     from typing_extensions import Self
 
 str_util = escape.str_util
@@ -118,6 +120,25 @@ def set_encoding(encoding):
         if encoding:
             "".encode(encoding)
             _target_encoding = encoding
+
+
+def get_encoding() -> str:
+    """Get target encoding."""
+    return _target_encoding
+
+
+@contextlib.contextmanager
+def set_temporary_encoding(encoding_name: str) -> Generator[None, None, None]:
+    """Internal helper for encoding specific validation in unittests/doctests.
+
+    Not exported globally.
+    """
+    old_encoding = _target_encoding
+    try:
+        set_encoding(encoding_name)
+        yield
+    finally:
+        set_encoding(old_encoding)
 
 
 def get_encoding_mode():

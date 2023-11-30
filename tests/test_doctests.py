@@ -7,7 +7,7 @@ import urwid
 import urwid.numedit
 
 
-def load_tests(loader, tests, ignore):
+def load_tests(loader: unittest.TestLoader, tests: unittest.BaseTestSuite, ignore) -> unittest.BaseTestSuite:
     module_doctests = [
         urwid.widget.attr_map,
         urwid.widget.attr_wrap,
@@ -39,11 +39,10 @@ def load_tests(loader, tests, ignore):
         urwid.monitored_list,
         urwid.raw_display,
         urwid.font,
-        'urwid.split_repr',  # override function with same name
+        "urwid.split_repr",  # override function with same name
         urwid.util,
         urwid.signals,
-        ]
+    ]
     for m in module_doctests:
-        tests.addTests(doctest.DocTestSuite(m,
-            optionflags=doctest.ELLIPSIS | doctest.IGNORE_EXCEPTION_DETAIL))
+        tests.addTests(doctest.DocTestSuite(m, optionflags=doctest.ELLIPSIS | doctest.IGNORE_EXCEPTION_DETAIL))
     return tests

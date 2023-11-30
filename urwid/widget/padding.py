@@ -86,10 +86,12 @@ class Padding(WidgetDecoration):
         ``'left'`` then self.original_widget may be clipped on the right.
 
         >>> from urwid import Divider, Text, BigText, FontRegistry
+        >>> from urwid.util import set_temporary_encoding
         >>> size = (7,)
         >>> def pr(w):
-        ...     for t in w.render(size).text:
-        ...         print(f"|{t.decode('utf-8')}|" )
+        ...     with set_temporary_encoding("utf-8"):
+        ...         for t in w.render(size).text:
+        ...             print(f"|{t.decode('utf-8')}|" )
         >>> pr(Padding(Text(u"Head"), ('relative', 20), 'pack'))
         | Head  |
         >>> pr(Padding(Divider(u"-"), left=2, right=1))
