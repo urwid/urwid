@@ -600,7 +600,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             canv.pad_trim_left_right(0, size[0] - canv.cols())
         return canv
 
-    def get_cursor_coords(self, size):
+    def get_cursor_coords(self, size: tuple[int] | tuple[int, int]) -> tuple[int, int] | None:
         """Return the cursor coordinates from the focus widget."""
         w, (_t, _n, b) = self.contents[self.focus_position]
 
