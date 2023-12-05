@@ -82,11 +82,11 @@ def normalize_align(
     Split align into (align_type, align_amount).  Raise exception err
     if align doesn't match a valid alignment.
     """
-    if align in (Align.LEFT, Align.CENTER, Align.RIGHT):
+    if align in {Align.LEFT, Align.CENTER, Align.RIGHT}:
         return (Align(align), None)
 
     if isinstance(align, tuple) and len(align) == 2 and align[0] == WHSettings.RELATIVE:
-        align_type, align_amount = align
+        _align_type, align_amount = align
         return (WHSettings.RELATIVE, align_amount)
 
     raise err(
@@ -158,11 +158,11 @@ def normalize_valign(
     Split align into (valign_type, valign_amount).  Raise exception err
     if align doesn't match a valid alignment.
     """
-    if valign in (VAlign.TOP, VAlign.MIDDLE, VAlign.BOTTOM):
+    if valign in {VAlign.TOP, VAlign.MIDDLE, VAlign.BOTTOM}:
         return (VAlign(valign), None)
 
     if isinstance(valign, tuple) and len(valign) == 2 and valign[0] == WHSettings.RELATIVE:
-        valign_type, valign_amount = valign
+        _valign_type, valign_amount = valign
         return (WHSettings.RELATIVE, valign_amount)
 
     raise err(
@@ -256,13 +256,13 @@ def normalize_width(
     Split width into (width_type, width_amount).  Raise exception err
     if width doesn't match a valid alignment.
     """
-    if width in (WHSettings.CLIP, WHSettings.PACK):
+    if width in {WHSettings.CLIP, WHSettings.PACK}:
         return (WHSettings(width), None)
 
     if isinstance(width, int):
         return (WHSettings.GIVEN, width)
 
-    if isinstance(width, tuple) and len(width) == 2 and width[0] in (WHSettings.RELATIVE, WHSettings.WEIGHT):
+    if isinstance(width, tuple) and len(width) == 2 and width[0] in {WHSettings.RELATIVE, WHSettings.WEIGHT}:
         width_type, width_amount = width
         return (WHSettings(width_type), width_amount)
 
@@ -320,7 +320,7 @@ def simplify_width(
     Recombine (width_type, width_amount) into an width value.
     Inverse of normalize_width.
     """
-    if width_type in (WHSettings.CLIP, WHSettings.PACK):
+    if width_type in {WHSettings.CLIP, WHSettings.PACK}:
         return WHSettings(width_type)
 
     if not isinstance(width_amount, int):
@@ -385,7 +385,7 @@ def normalize_height(
     if height == WHSettings.PACK:
         return (WHSettings.PACK, None)
 
-    if isinstance(height, tuple) and len(height) == 2 and height[0] in (WHSettings.RELATIVE, WHSettings.WEIGHT):
+    if isinstance(height, tuple) and len(height) == 2 and height[0] in {WHSettings.RELATIVE, WHSettings.WEIGHT}:
         return (WHSettings(height[0]), height[1])
 
     if isinstance(height, int):
@@ -456,7 +456,7 @@ def simplify_height(
     Recombine (height_type, height_amount) into a height value.
     Inverse of normalize_height.
     """
-    if height_type in (WHSettings.FLOW, WHSettings.PACK):
+    if height_type in {WHSettings.FLOW, WHSettings.PACK}:
         return WHSettings(height_type)
 
     if not isinstance(height_amount, int):

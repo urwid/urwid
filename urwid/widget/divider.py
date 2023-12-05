@@ -63,7 +63,7 @@ class Divider(Widget):
         >>> Divider(u'x', 1, 2).rows((10,))
         4
         """
-        (maxcol,) = size
+        (_maxcol,) = size
         return self.top + 1 + self.bottom
 
     def render(self, size: tuple[int], focus: bool = False):

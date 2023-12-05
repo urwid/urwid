@@ -161,7 +161,7 @@ class Edit(Text):
         # clean this up
 
         # hack to let Text.__init__() work
-        if not hasattr(self, "_text") and markup == "":
+        if not hasattr(self, "_text") and markup == "":  # noqa: PLC1901,RUF100
             self._text = None
             return
 
@@ -453,10 +453,10 @@ class Edit(Text):
             self.set_edit_pos(pos)
             return None
 
-        if self._command_map[key] in (Command.UP, Command.DOWN):
+        if self._command_map[key] in {Command.UP, Command.DOWN}:
             self.highlight = None
 
-            x, y = self.get_cursor_coords((maxcol,))
+            _x, y = self.get_cursor_coords((maxcol,))
             pref_col = self.get_pref_col((maxcol,))
             if pref_col is None:
                 raise ValueError(pref_col)
@@ -494,11 +494,11 @@ class Edit(Text):
                 return None
             return None
 
-        if self._command_map[key] in (Command.MAX_LEFT, Command.MAX_RIGHT):
+        if self._command_map[key] in {Command.MAX_LEFT, Command.MAX_RIGHT}:
             self.highlight = None
             self.pref_col_maxcol = None, None
 
-            x, y = self.get_cursor_coords((maxcol,))
+            _x, y = self.get_cursor_coords((maxcol,))
 
             if self._command_map[key] == Command.MAX_LEFT:
                 self.move_cursor_to_coords((maxcol,), Align.LEFT, y)
@@ -534,7 +534,7 @@ class Edit(Text):
         """
         (maxcol,) = size
         trans = self.get_line_translation(maxcol)
-        top_x, top_y = self.position_coords(maxcol, 0)
+        _top_x, top_y = self.position_coords(maxcol, 0)
         if y < top_y or y >= len(trans):
             return False
 
@@ -608,7 +608,7 @@ class Edit(Text):
         if not self._shift_view_to_cursor:
             return trans
 
-        text, ignore = self.get_text()
+        text, _ignore = self.get_text()
         x, y = text_layout.calc_coords(text, trans, self.edit_pos + len(self.caption))
         if x < 0:
             return [

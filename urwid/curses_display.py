@@ -178,8 +178,8 @@ class Screen(BaseScreen, RealTerminal):
 
                 curses.init_pair(bg * 8 + 7 - fg, fg, bg)
 
-    def _curs_set(self, x):
-        if self.cursor_state in ("fixed", x):
+    def _curs_set(self, x: int):
+        if self.cursor_state in {"fixed", x}:
             return
         try:
             curses.curs_set(x)
@@ -375,7 +375,7 @@ class Screen(BaseScreen, RealTerminal):
     def _encode_mouse_event(self) -> list[int]:
         # convert to escape sequence
         last_state = next_state = self.last_bstate
-        (_id, x, y, z, bstate) = curses.getmouse()
+        (_id, x, y, _z, bstate) = curses.getmouse()
 
         mod = 0
         if bstate & curses.BUTTON_SHIFT:
@@ -505,7 +505,7 @@ class Screen(BaseScreen, RealTerminal):
         if not self._started:
             raise RuntimeError
 
-        cols, rows = size
+        _cols, rows = size
 
         if r.rows() != rows:
             raise ValueError("canvas size and passed size don't match")
@@ -533,7 +533,7 @@ class Screen(BaseScreen, RealTerminal):
                     self._setattr(a)
                     lasta = a
                 try:
-                    if cs in ("0", "U"):
+                    if cs in {"0", "U"}:
                         for i in range(len(seg)):
                             self.s.addch(0x400000 + seg[i])
                     else:

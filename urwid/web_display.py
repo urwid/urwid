@@ -39,6 +39,8 @@ from contextlib import suppress
 from urwid import util
 
 if typing.TYPE_CHECKING:
+    import pathlib
+
     from typing_extensions import Literal
 
 TEMP_DIR = tempfile.gettempdir()
@@ -610,7 +612,7 @@ class Screen:
         """
 
         for item in palette:
-            if len(item) in (3, 4):
+            if len(item) in {3, 4}:
                 self.register_palette_entry(*item)
                 continue
             if len(item) != 2:
@@ -666,7 +668,7 @@ class Screen:
         self.last_screen_width = 0
 
         self.update_method = os.environ["HTTP_X_URWID_METHOD"]
-        if self.update_method not in ("multipart", "polling"):
+        if self.update_method not in {"multipart", "polling"}:
             raise ValueError(self.update_method)
 
         if self.update_method == "polling" and not _prefs.allow_polling:
@@ -732,8 +734,8 @@ class Screen:
     def _close_connection(self):
         if self.update_method == "polling child":
             self.server_socket.settimeout(0)
-            sock, addr = self.server_socket.accept()
-            sock.sendall("Z")
+            sock, _addr = self.server_socket.accept()
+            sock.sendall(b"Z")
             sock.close()
 
         if self.update_method == "multipart":
@@ -772,7 +774,7 @@ class Screen:
         elif self.update_method == "polling child":
             signal.alarm(0)
             try:
-                s, addr = self.server_socket.accept()
+                s, _addr = self.server_socket.accept()
             except socket.timeout:
                 sys.exit(0)
             send = s.sendall
@@ -816,9 +818,9 @@ class Screen:
             for a, _cs, run in l_row:
                 t_run = run.translate(_trans_table)
                 if a is None:
-                    fg, bg, mono = "black", "light gray", None
+                    fg, bg, _mono = "black", "light gray", None
                 else:
-                    fg, bg, mono = self.palette[a]
+                    fg, bg, _mono = self.palette[a]
                 if y == cy and col <= cx:
                     run_width = util.calc_width(t_run, 0, len(t_run))
                     if col + run_width > cx:
@@ -871,12 +873,12 @@ class Screen:
         self.server_socket = s
 
     def _handle_alarm(self, sig, frame):
-        if self.update_method not in ("multipart", "polling child"):
+        if self.update_method not in {"multipart", "polling child"}:
             raise ValueError(self.update_method)
         if self.update_method == "polling child":
             # send empty update
             try:
-                s, addr = self.server_socket.accept()
+                s, _addr = self.server_socket.accept()
                 s.close()
             except socket.timeout:
                 sys.exit(0)
@@ -904,7 +906,7 @@ class Screen:
         resized = False
 
         try:
-            iready, oready, eready = select.select([self.input_fd], [], [], 0.5)
+            iready, _oready, _eready = select.select([self.input_fd], [], [], 0.5)
         except OSError as e:
             # return on interruptions
             if e.args[0] == 4:
@@ -928,7 +930,7 @@ class Screen:
 
         for k in keys[:-1]:
             if k.startswith("window resize "):
-                ign1, ign2, x, y = k.split(" ", 3)
+                _ign1, _ign2, x, y = k.split(" ", 3)
                 x = int(x)
                 y = int(y)
                 self._set_screen_size(x, y)
@@ -1089,11 +1091,11 @@ def set_preferences(
 
 
 class ErrorLog:
-    def __init__(self, errfile):
+    def __init__(self, errfile: str | pathlib.PurePath) -> None:
         self.errfile = errfile
 
-    def write(self, err):
-        with open(self.errfile, "a") as f:
+    def write(self, err: str) -> None:
+        with open(self.errfile, "a", encoding="utf-8") as f:
             f.write(err)
 
 
@@ -1118,6 +1120,6 @@ def daemonize(errfile):
         with suppress(OSError):
             os.close(fd)
 
-    sys.stdin = open("/dev/null")  # noqa: SIM115
-    sys.stdout = open("/dev/null", "w")  # noqa: SIM115
+    sys.stdin = open("/dev/null", encoding="utf-8")  # noqa: SIM115
+    sys.stdout = open("/dev/null", "w", encoding="utf-8")  # noqa: SIM115
     sys.stderr = ErrorLog(errfile)

@@ -141,7 +141,7 @@ class TreeWidget(urwid.WidgetWrap):
         if self.is_leaf:
             return key
 
-        if key in ("+", "right"):
+        if key in {"+", "right"}:
             self.expanded = True
             self.update_expanded_icon()
             return None
@@ -436,27 +436,27 @@ class TreeListBox(urwid.ListBox):
     def collapse_focus_parent(self, size: tuple[int, int]) -> None:
         """Collapse parent directory."""
 
-        widget, pos = self.body.get_focus()
+        _widget, pos = self.body.get_focus()
         self.move_focus_to_parent(size)
 
-        pwidget, ppos = self.body.get_focus()
+        _pwidget, ppos = self.body.get_focus()
         if pos != ppos:
             self.keypress(size, "-")
 
     def move_focus_to_parent(self, size: tuple[int, int]) -> None:
         """Move focus to parent of widget in focus."""
 
-        widget, pos = self.body.get_focus()
+        _widget, pos = self.body.get_focus()
 
         parentpos = pos.get_parent()
 
         if parentpos is None:
             return
 
-        middle, top, bottom = self.calculate_visible(size)
+        middle, top, _bottom = self.calculate_visible(size)
 
-        row_offset, focus_widget, focus_pos, focus_rows, cursor = middle
-        trim_top, fill_above = top
+        row_offset, _focus_widget, _focus_pos, _focus_rows, _cursor = middle
+        _trim_top, fill_above = top
 
         for _widget, pos, rows in fill_above:
             row_offset -= rows
@@ -475,15 +475,15 @@ class TreeListBox(urwid.ListBox):
     def focus_home(self, size: tuple[int, int]) -> None:
         """Move focus to very top."""
 
-        widget, pos = self.body.get_focus()
+        _widget, pos = self.body.get_focus()
         rootnode = pos.get_root()
         self.change_focus(size, rootnode)
 
     def focus_end(self, size: tuple[int, int]) -> None:
         """Move focus to far bottom."""
 
-        maxrow, maxcol = size
-        widget, pos = self.body.get_focus()
+        maxrow, _maxcol = size
+        _widget, pos = self.body.get_focus()
         rootnode = pos.get_root()
         rootwidget = rootnode.get_widget()
         lastwidget = rootwidget.last_child()

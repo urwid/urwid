@@ -195,7 +195,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         If self.bar_width is None this implementation will stretch
         the bars across the available space specified by maxcol.
         """
-        (maxcol, maxrow) = size
+        (maxcol, _maxrow) = size
 
         if self.bar_width is not None:
             return [self.bar_width] * min(len(bardata), maxcol // self.bar_width)

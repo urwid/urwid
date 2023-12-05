@@ -112,7 +112,7 @@ class Filler(WidgetDecoration):
         self.valign_type, self.valign_amount = normalize_valign(valign, FillerError)
         self.height_type, self.height_amount = normalize_height(height, FillerError)
 
-        if self.height_type not in (WHSettings.GIVEN, WHSettings.PACK):
+        if self.height_type not in {WHSettings.GIVEN, WHSettings.PACK}:
             self.min_height = min_height
         else:
             self.min_height = None
@@ -208,7 +208,7 @@ class Filler(WidgetDecoration):
         canv = CompositeCanvas(canv)
 
         if maxrow and canv.rows() > maxrow and canv.cursor is not None:
-            cx, cy = canv.cursor
+            _cx, cy = canv.cursor
             if cy >= maxrow:
                 canv.trim(cy - maxrow + 1, maxrow - top - bottom)
         if canv.rows() > maxrow:

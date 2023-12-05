@@ -236,7 +236,7 @@ class ZMQEventLoop(EventLoop):
                 self._entering_idle()
                 self._did_something = False
             elif state == "alarm":
-                due, tie_break, callback = heapq.heappop(self._alarms)
+                _due, _tie_break, callback = heapq.heappop(self._alarms)
                 callback()
                 self._did_something = True
 

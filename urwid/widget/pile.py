@@ -74,7 +74,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             w = original
             if not isinstance(w, tuple):
                 self.contents.append((w, (WHSettings.WEIGHT, 1)))
-            elif w[0] in (Sizing.FLOW, WHSettings.PACK):
+            elif w[0] in {Sizing.FLOW, WHSettings.PACK}:
                 f, w = w
                 self.contents.append((w, (WHSettings.PACK, None)))
             elif len(w) == 2:
@@ -107,8 +107,8 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def _validate_contents_modified(self, slc, new_items):
         for item in new_items:
             try:
-                w, (t, n) = item
-                if t not in (WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT):
+                _w, (t, _n) = item
+                if t not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT}:
                     raise PileError(f"added content invalid: {item!r}")
             except (TypeError, ValueError) as exc:  # noqa: PERF203
                 raise PileError(f"added content invalid: {item!r}").with_traceback(exc.__traceback__) from exc
@@ -237,7 +237,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         if height_type == WHSettings.PACK:
             return (WHSettings.PACK, None)
-        if height_type not in (WHSettings.GIVEN, WHSettings.WEIGHT):
+        if height_type not in {WHSettings.GIVEN, WHSettings.WEIGHT}:
             raise PileError(f"invalid height_type: {height_type!r}")
         return (height_type, height_amount)
 
@@ -406,7 +406,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         Return a size appropriate for passing to self.contents[i][0].render
         """
         maxcol = size[0]
-        w, (f, height) = self.contents[i]
+        _w, (f, height) = self.contents[i]
         if f == WHSettings.GIVEN:
             return (maxcol, height)
 
@@ -508,7 +508,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             return None
 
         i = self.focus_position
-        w, (f, height) = self.contents[i]
+        _w, (f, height) = self.contents[i]
         item_rows = None
         maxcol = size[0]
         if f == WHSettings.GIVEN or (f == WHSettings.WEIGHT and len(size) == 2):
@@ -549,7 +549,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if self.selectable():
             tsize = self.get_item_size(size, i, True, item_rows)
             key = self.focus.keypress(tsize, key)
-            if self._command_map[key] not in ("cursor up", "cursor down"):
+            if self._command_map[key] not in {"cursor up", "cursor down"}:
                 return key
 
         if self._command_map[key] == "cursor up":
