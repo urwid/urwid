@@ -27,7 +27,7 @@ import errno
 import fcntl
 import os
 import pty
-import select
+import selectors
 import signal
 import struct
 import sys
@@ -1689,13 +1689,11 @@ class Terminal(Widget):
         self.main_loop.remove_watch_file(self.master)
 
     def wait_and_feed(self, timeout: float = 1.0) -> None:
-        while True:
-            try:
-                select.select([self.master], [], [], timeout)
-                break
-            except OSError as e:
-                if e.args[0] != 4:
-                    raise
+        with selectors.DefaultSelector() as selector:
+            selector.register(self.master, selectors.EVENT_READ)
+
+            selector.select(timeout)
+
         self.feed()
 
     def feed(self) -> None:
