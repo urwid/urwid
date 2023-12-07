@@ -586,7 +586,7 @@ class TermCanvas(Canvas):
             elif char in b"G8":
                 # 8 is obsolete and only for backwards compatibility
                 self.modes.main_charset = CHARSET_UTF8
-        elif mod in (b"(", b")"):  # define G0/G1
+        elif mod in {b"(", b")"}:  # define G0/G1
             self.set_g01(char, mod)
         elif char == b"M":  # reverse line feed
             self.linefeed(reverse=True)
@@ -647,14 +647,14 @@ class TermCanvas(Canvas):
             self.escbuf = b""
             self.parsestate = 1
             return
-        elif self.parsestate == 0 and char in (b"%", b"#", b"(", b")"):
+        elif self.parsestate == 0 and char in {b"%", b"#", b"(", b")"}:
             # non-CSI sequence
             self.escbuf = char
             self.parsestate = 3
             return
         elif self.parsestate == 3:
             self.parse_noncsi(char, self.escbuf)
-        elif char in (b"c", b"D", b"E", b"H", b"M", b"Z", b"7", b"8", b">", b"="):
+        elif char in {b"c", b"D", b"E", b"H", b"M", b"Z", b"7", b"8", b">", b"="}:
             self.parse_noncsi(char)
 
         self.leave_escape()
@@ -1120,7 +1120,7 @@ class TermCanvas(Canvas):
             elif 40 <= attr <= 47:
                 bg = attr - 40
                 colors = max(16, colors)
-            elif attr in (38, 48):
+            elif attr in {38, 48}:
                 if idx + 2 < len(attrs) and attrs[idx + 1] == 5:
                     # 8 bit color specification
                     color = attrs[idx + 2]
@@ -1148,7 +1148,7 @@ class TermCanvas(Canvas):
             elif attr == 10:
                 self.charset.reset_sgr_ibmpc()
                 self.modes.display_ctrl = False
-            elif attr in (11, 12):
+            elif attr in {11, 12}:
                 self.charset.set_sgr_ibmpc()
                 self.modes.display_ctrl = True
 
@@ -1590,7 +1590,7 @@ class Terminal(Widget):
             for sig in (signal.SIGHUP, signal.SIGCONT, signal.SIGINT, signal.SIGTERM, signal.SIGKILL):
                 try:
                     os.kill(self.pid, sig)
-                    pid, status = os.waitpid(self.pid, os.WNOHANG)
+                    pid, _status = os.waitpid(self.pid, os.WNOHANG)
                 except OSError:
                     break
 
@@ -1728,7 +1728,7 @@ class Terminal(Widget):
         if self.terminated:
             return key
 
-        if key in ("begin paste", "end paste"):
+        if key in {"begin paste", "end paste"}:
             if self.term_modes.bracketed_paste:
                 pass  # passthrough bracketed paste sequences
             else:  # swallow bracketed paste sequences

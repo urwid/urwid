@@ -119,14 +119,14 @@ class Padding(WidgetDecoration):
         super().__init__(w)
 
         # convert obsolete parameters 'fixed left' and 'fixed right':
-        if isinstance(align, tuple) and align[0] in ("fixed left", "fixed right"):
+        if isinstance(align, tuple) and align[0] in {"fixed left", "fixed right"}:
             if align[0] == "fixed left":
                 left = align[1]
                 align = Align.LEFT
             else:
                 right = align[1]
                 align = Align.RIGHT
-        if isinstance(width, tuple) and width[0] in ("fixed left", "fixed right"):
+        if isinstance(width, tuple) and width[0] in {"fixed left", "fixed right"}:
             if width[0] == "fixed left":
                 left = width[1]
             else:
@@ -257,7 +257,7 @@ class Padding(WidgetDecoration):
         Override this method to define custom padding behaviour."""
         maxcol = size[0]
         if self._width_type == WrapMode.CLIP:
-            width, ignore = self._original_widget.pack((), focus=focus)
+            width, _ignore = self._original_widget.pack((), focus=focus)
             return calculate_left_right_padding(
                 maxcol,
                 self._align_type,
@@ -270,7 +270,7 @@ class Padding(WidgetDecoration):
             )
         if self._width_type == WHSettings.PACK:
             maxwidth = max(maxcol - self.left - self.right, self.min_width or 0)
-            (width, ignore) = self._original_widget.pack((maxwidth,), focus=focus)
+            (width, _ignore) = self._original_widget.pack((maxwidth,), focus=focus)
             return calculate_left_right_padding(
                 maxcol,
                 self._align_type,
@@ -297,10 +297,10 @@ class Padding(WidgetDecoration):
         (maxcol,) = size
         left, right = self.padding_values(size, focus)
         if self._width_type == WHSettings.PACK:
-            pcols, prows = self._original_widget.pack((maxcol - left - right,), focus)
+            _pcols, prows = self._original_widget.pack((maxcol - left - right,), focus)
             return prows
         if self._width_type == WrapMode.CLIP:
-            fcols, frows = self._original_widget.pack((), focus)
+            _fcols, frows = self._original_widget.pack((), focus)
             return frows
         return self._original_widget.rows((maxcol - left - right,), focus=focus)
 

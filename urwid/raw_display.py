@@ -605,9 +605,9 @@ class Screen(BaseScreen, RealTerminal):
         while True:
             try:
                 if timeout is None:
-                    ready, w, err = select.select(fd_list, [], fd_list)
+                    ready, _w, _err = select.select(fd_list, [], fd_list)
                 else:
-                    ready, w, err = select.select(fd_list, [], fd_list, timeout)
+                    ready, _w, _err = select.select(fd_list, [], fd_list, timeout)
                 break
             except OSError as e:
                 if e.args[0] != 4:
@@ -635,7 +635,7 @@ class Screen(BaseScreen, RealTerminal):
             self._stop_gpm_tracking()
             signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
             return []
-        ev, x, y, ign, b, m = s.split(",")
+        ev, x, y, _ign, b, m = s.split(",")
         ev = int(ev.split("x")[-1], 16)
         x = int(x.split(" ")[-1])
         y = int(y.lstrip().split(" ")[0])
@@ -671,7 +671,7 @@ class Screen(BaseScreen, RealTerminal):
                 append_button(2 + flag)
                 next_state |= 4
 
-        if ev in (20, 36, 52):  # press
+        if ev in {20, 36, 52}:  # press
             if b & 4 and last_state & 1 == 0:
                 append_button(0)
                 next_state |= 1
@@ -729,7 +729,7 @@ class Screen(BaseScreen, RealTerminal):
 
         # Provide some lightweight fallbacks in case the TIOCWINSZ doesn't
         # give sane answers
-        if (x <= 0 or y <= 0) and self.term in ("ansi", "vt100"):
+        if (x <= 0 or y <= 0) and self.term in {"ansi", "vt100"}:
             y, x = 24, 80
         self.maxrow = y
         return x, y
@@ -871,7 +871,7 @@ class Screen(BaseScreen, RealTerminal):
                     o.append(attr_to_escape(a))
                     lasta = a
                 if first or lastcs != cs:
-                    if cs not in (None, "0", "U"):
+                    if cs not in {None, "0", "U"}:
                         raise ValueError(cs)
                     if lastcs == "U":
                         o.append(escape.IBMPC_OFF)
@@ -888,7 +888,7 @@ class Screen(BaseScreen, RealTerminal):
             if ins:
                 (inserta, insertcs, inserttext) = ins
                 ias = attr_to_escape(inserta)
-                if insertcs not in (None, "0", "U"):
+                if insertcs not in {None, "0", "U"}:
                     raise ValueError(insertcs)
                 if cs is None:
                     icss = escape.SI

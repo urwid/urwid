@@ -276,8 +276,8 @@ class KeyqueueTrie:
         pos_m = 0
         found_m = False
         for k in keys:
-            value = value + chr(k)
-            if k in (ord("M"), ord("m")):
+            value += chr(k)
+            if k in {ord("M"), ord("m")}:
                 found_m = True
                 break
             pos_m += 1

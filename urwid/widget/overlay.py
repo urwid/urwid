@@ -241,7 +241,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         valign_type, valign_amount = normalize_valign(valign, OverlayError)
         height_type, height_amount = normalize_height(height, OverlayError)
 
-        if height_type in (WHSettings.GIVEN, WHSettings.PACK):
+        if height_type in {WHSettings.GIVEN, WHSettings.PACK}:
             min_height = None
 
         # use container API to set the parameters
@@ -431,7 +431,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             # normalize first, this is where errors are raised
             align_type, align_amount = normalize_align(simplify_align(align_type, align_amount), OverlayError)
             width_type, width_amount = normalize_width(simplify_width(width_type, width_amount), OverlayError)
-            valign_type, valign_amoun = normalize_valign(simplify_valign(valign_type, valign_amount), OverlayError)
+            valign_type, valign_amount = normalize_valign(simplify_valign(valign_type, valign_amount), OverlayError)
             height_type, height_amount = normalize_height(simplify_height(height_type, height_amount), OverlayError)
             self.align_type = align_type
             self.align_amount = align_amount

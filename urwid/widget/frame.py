@@ -340,7 +340,7 @@ class Frame(Widget, WidgetContainerMixin):
         :param part: 'header', 'footer' or 'body'
         :type part: str
         """
-        if part not in ("header", "footer", "body"):
+        if part not in {"header", "footer", "body"}:
             raise IndexError(f"Invalid position for Frame: {part}")
         if (part == "header" and self._header is None) or (part == "footer" and self._footer is None):
             raise IndexError(f"This Frame has no {part}")
@@ -461,7 +461,7 @@ class Frame(Widget, WidgetContainerMixin):
         raise KeyError(f"Frame.contents has no key: {key!r}")
 
     def _contents__setitem__(self, key: Literal["header", "footer", "body"], value):
-        if key not in ("body", "header", "footer"):
+        if key not in {"body", "header", "footer"}:
             raise KeyError(f"Frame.contents has no key: {key!r}")
         try:
             value_w, value_options = value
@@ -477,7 +477,7 @@ class Frame(Widget, WidgetContainerMixin):
             self.header = value_w
 
     def _contents__delitem__(self, key: Literal["header", "footer", "body"]):
-        if key not in ("header", "footer"):
+        if key not in {"header", "footer"}:
             raise KeyError(f"Frame.contents can't remove key: {key!r}")
         if (key == "header" and self._header is None) or (key == "footer" and self._footer is None):
             raise KeyError(f"Frame.contents has no key: {key!r}")
@@ -621,7 +621,7 @@ class Frame(Widget, WidgetContainerMixin):
         Focus may be changed on button 1 press.
         """
         (maxcol, maxrow) = size
-        (htrim, ftrim), (hrows, frows) = self.frame_top_bottom((maxcol, maxrow), focus)
+        (htrim, ftrim), (_hrows, _frows) = self.frame_top_bottom((maxcol, maxrow), focus)
 
         if row < htrim:  # within header
             focus = focus and self.focus_part == "header"

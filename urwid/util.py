@@ -76,7 +76,7 @@ _target_encoding = "ascii"
 _use_dec_special = True
 
 
-def set_encoding(encoding):
+def set_encoding(encoding: str) -> None:
     """
     Set the byte encoding to assume when processing strings and the
     encoding to use when converting unicode strings.
@@ -85,11 +85,11 @@ def set_encoding(encoding):
 
     global _target_encoding, _use_dec_special  # noqa: PLW0603
 
-    if encoding in ("utf-8", "utf8", "utf"):
+    if encoding in {"utf-8", "utf8", "utf"}:
         str_util.set_byte_encoding("utf8")
 
         _use_dec_special = False
-    elif encoding in (
+    elif encoding in {
         "euc-jp",  # JISX 0208 only
         "euc-kr",
         "euc-cn",
@@ -98,15 +98,14 @@ def set_encoding(encoding):
         "gbk",
         "big5",
         "cn-gb",
-        "uhc"
+        "uhc",
         # these shouldn't happen, should they?
-        ,
         "eucjp",
         "euckr",
         "euccn",
         "euctw",
         "cncb",
-    ):
+    }:
         str_util.set_byte_encoding("wide")
 
         _use_dec_special = True
@@ -316,7 +315,7 @@ def rle_len(rle) -> int:
     for v in rle:
         if not isinstance(v, tuple):
             raise TypeError(rle)
-        a, r = v
+        _a, r = v
         run += r
     return run
 
@@ -350,7 +349,7 @@ def rle_append_modify(rle, a_r):
     if not rle or rle[-1][0] != a:
         rle.append((a, r))
         return
-    la, lr = rle[-1]
+    _la, lr = rle[-1]
     rle[-1] = (a, lr + r)
 
 

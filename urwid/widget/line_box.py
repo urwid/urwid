@@ -78,13 +78,13 @@ class LineBox(WidgetDecoration, WidgetWrap):
             self.title_widget = Text(self.format_title(title))
 
         if tline:
-            if title_align not in ("left", "center", "right"):
+            if title_align not in {Align.LEFT, Align.CENTER, Align.RIGHT}:
                 raise ValueError('title_align must be one of "left", "right", or "center"')
             if title_align == Align.LEFT:
                 tline_widgets = [("flow", self.title_widget), tline]
             else:
                 tline_widgets = [tline, (Sizing.FLOW, self.title_widget)]
-                if title_align == "center":
+                if title_align == Align.CENTER:
                     tline_widgets.append(tline)
             self.tline_widget = Columns(tline_widgets)
             top = Columns([(Sizing.FIXED, 1, tlcorner), self.tline_widget, (Sizing.FIXED, 1, trcorner)])

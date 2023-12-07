@@ -72,7 +72,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
     ):
         for item in new_items:
             try:
-                w, (t, n) = item
+                _w, (t, _n) = item
                 if t != WHSettings.GIVEN:
                     raise GridFlowError(f"added content invalid {item!r}")
             except (TypeError, ValueError) as exc:  # noqa: PERF203

@@ -158,7 +158,8 @@ extend-select = [
 extend-ignore = [
   "PLR6301", "E203", "PLW3201",
     # refactor rules (too many statements/arguments/branches)
-  "PLR0904", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR2004",
+  "PLR0904", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR0917", "PLR2004",
+  "PLC0415",  # We have a lot of imports outside of top-level
   "RET504",  # Unnecessary variable assignment before return statement
   "SIM108",  # Use ternary operator,
   "TRY003",  #long messages prepare outside, ...

@@ -588,7 +588,7 @@ class AttrSpec:
         >>> AttrSpec('#ddb', '#004', 88)
         AttrSpec('#ccc', '#000', colors=88)
         """
-        if colors not in (1, 16, 88, 256, 2**24):
+        if colors not in {1, 16, 88, 256, 2**24}:
             raise AttrSpecError(f"invalid number of colors ({colors:d}).")
         self.__value = 0 | _HIGH_88_COLOR * (colors == 88) | _HIGH_TRUE_COLOR * (colors == 2**24)
         self.__set_foreground(fg)
@@ -760,7 +760,7 @@ class AttrSpec:
                 flags |= _ATTRIBUTES[part]
                 continue
             # past this point we must be specifying a color
-            if part in ("", "default"):
+            if part in {"", "default"}:
                 scolor = 0
             elif part in _BASIC_COLORS:
                 scolor = _BASIC_COLORS.index(part)
@@ -808,7 +808,7 @@ class AttrSpec:
 
     def __set_background(self, background: str) -> None:
         flags = 0
-        if background in ("", "default"):
+        if background in {"", "default"}:
             color = 0
         elif background in _BASIC_COLORS:
             color = _BASIC_COLORS.index(background)
@@ -1037,7 +1037,7 @@ class BaseScreen(metaclass=signals.MetaSignals):
         """
 
         for item in palette:
-            if len(item) in (3, 4, 6):
+            if len(item) in {3, 4, 6}:
                 self.register_palette_entry(*item)
                 continue
             if len(item) != 2:

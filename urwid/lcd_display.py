@@ -515,7 +515,7 @@ class CF635Screen(CFLCDScreen):
         """
         if not 0 <= led <= 3:
             raise ValueError(led)
-        if rg not in (0, 1):
+        if rg not in {0, 1}:
             raise ValueError(rg)
         if not 0 <= value <= 100:
             raise ValueError(value)

@@ -490,7 +490,7 @@ class MainLoop:
                 sec = next_alarm[0] - time.time()
                 if sec > 0:
                     break
-                tm, tie_break, callback = next_alarm
+                _tm, _tie_break, callback = next_alarm
                 callback()
 
                 if self.event_loop._alarms:

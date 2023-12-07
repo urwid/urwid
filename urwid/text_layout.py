@@ -83,11 +83,11 @@ class StandardTextLayout(TextLayout):
 
     def supports_align_mode(self, align: str) -> bool:
         """Return True if align is 'left', 'center' or 'right'."""
-        return align in ("left", "center", "right")
+        return align in {"left", "center", "right"}
 
     def supports_wrap_mode(self, wrap: str) -> bool:
         """Return True if wrap is 'any', 'space', 'clip' or 'ellipsis'."""
-        return wrap in ("any", "space", "clip", "ellipsis")
+        return wrap in {"any", "space", "clip", "ellipsis"}
 
     def layout(
         self,
@@ -167,7 +167,7 @@ class StandardTextLayout(TextLayout):
             sp_o = ord(sp_o)
         b = []
         p = 0
-        if wrap in ("clip", "ellipsis"):
+        if wrap in {"clip", "ellipsis"}:
             # no wrapping to calculate, so it's easy.
             while p <= len(text):
                 n_cr = text.find(nl, p)
@@ -266,9 +266,9 @@ class StandardTextLayout(TextLayout):
                     if len(b[-1]) == 1:
                         [(h_sc, h_off)] = b[-1]
                         p_sc = 0
-                        p_off = p_end = h_off
+                        p_off = _p_end = h_off
                     else:
-                        [(p_sc, p_off, p_end), (h_sc, h_off)] = b[-1]
+                        [(p_sc, p_off, _p_end), (h_sc, h_off)] = b[-1]
                     if p_sc < width and h_sc == 0 and text[h_off] == sp_o:
                         # combine with previous line
                         del b[-1]
@@ -277,7 +277,7 @@ class StandardTextLayout(TextLayout):
                         b.append([(sc, p, pos)])
                         # check for trailing " " or "\n"
                         p = pos
-                        if p < len(text) and (text[p] in (sp_o, nl_o)):
+                        if p < len(text) and (text[p] in {sp_o, nl_o}):
                             # removed character hint
                             b[-1].append((0, p))
                             p += 1
@@ -301,7 +301,7 @@ class LayoutSegment:
 
         if not isinstance(seg, tuple):
             raise TypeError(seg)
-        if len(seg) not in (2, 3):
+        if len(seg) not in {2, 3}:
             raise ValueError(seg)
 
         self.sc, self.offs = seg[:2]

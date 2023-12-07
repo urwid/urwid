@@ -320,7 +320,7 @@ class FloatEdit(NumEdit):
             )
             self._decimal_separator = decimalSeparator
 
-        if self._decimal_separator not in (".", ","):
+        if self._decimal_separator not in {".", ","}:
             raise ValueError(f"invalid decimal separator: {self._decimal_separator}")
 
         if preserveSignificance is not None:
@@ -332,7 +332,7 @@ class FloatEdit(NumEdit):
             preserve_significance = preserveSignificance
 
         val = ""
-        if default is not None and default != "":
+        if default is not None and default != "":  # noqa: PLC1901,RUF100
             if not isinstance(default, (int, str, Decimal)):
                 raise ValueError("default: Only 'str', 'int' or Decimal input allowed")
 

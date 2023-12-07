@@ -82,7 +82,7 @@ widths: list[tuple[int, Literal[0, 1, 2]]] = [
 
 def get_width(o: int) -> Literal[0, 1, 2]:
     """Return the screen column width for unicode ordinal o."""
-    if o in (0xE, 0xF):
+    if o in {0xE, 0xF}:
         return 0
     for num, wid in widths:
         if o <= num:
@@ -187,7 +187,7 @@ def decode_one_right(text: bytes, pos: int) -> tuple[int, int] | None:
 
 
 def set_byte_encoding(enc: Literal["utf8", "narrow", "wide"]):
-    if enc not in ("utf8", "narrow", "wide"):
+    if enc not in {"utf8", "narrow", "wide"}:
         raise ValueError(enc)
     global _byte_encoding  # noqa: PLW0603
     _byte_encoding = enc
@@ -280,7 +280,7 @@ def is_wide_char(text: str | bytes, offs: int) -> bool:
     if not isinstance(text, bytes):
         raise TypeError(text)
     if _byte_encoding == "utf8":
-        o, n = decode_one(text, offs)
+        o, _n = decode_one(text, offs)
         return get_width(o) == 2
     if _byte_encoding == "wide":
         return within_double_byte(text, offs, offs) == 1
@@ -386,9 +386,9 @@ def process_east_asian_width() -> None:
             hex_val = hex_val.split("..")[1]
         num = int(hex_val, 16)
 
-        if word1 in ("COMBINING", "MODIFIER", "<control>"):
+        if word1 in {"COMBINING", "MODIFIER", "<control>"}:
             last_ = 0
-        elif wid in ("W", "F"):
+        elif wid in {"W", "F"}:
             last_ = 2
         else:
             last_ = 1

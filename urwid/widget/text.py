@@ -291,9 +291,9 @@ class Text(Widget):
 
     def _update_cache_translation(self, maxcol: int, ta):
         if ta:
-            text, attr = ta
+            text, _attr = ta
         else:
-            text, attr = self.get_text()
+            text, _attr = self.get_text()
         self._cache_maxcol = maxcol
         self._cache_translation = self.layout.layout(text, maxcol, self._align_mode, self._wrap_mode)
 

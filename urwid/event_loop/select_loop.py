@@ -170,11 +170,11 @@ class SelectEventLoop(EventLoop):
                 timeout = 0.0
                 tm = "idle"
 
-            ready, w, err = select.select(fds, [], fds, timeout)
+            ready, _w, _err = select.select(fds, [], fds, timeout)
 
         else:
             tm = None
-            ready, w, err = select.select(fds, [], fds)
+            ready, _w, _err = select.select(fds, [], fds)
 
         if not ready:
             if tm == "idle":
@@ -182,7 +182,7 @@ class SelectEventLoop(EventLoop):
                 self._did_something = False
             elif tm is not None:
                 # must have been a timeout
-                tm, tie_break, alarm_callback = heapq.heappop(self._alarms)
+                tm, _tie_break, alarm_callback = heapq.heappop(self._alarms)
                 alarm_callback()
                 self._did_something = True
 

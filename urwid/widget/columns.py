@@ -87,7 +87,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             w = original
             if not isinstance(w, tuple):
                 self.contents.append((w, (WHSettings.WEIGHT, 1, i in box_columns)))
-            elif w[0] in (Sizing.FLOW, WHSettings.PACK):  # 'pack' used to be called 'flow'
+            elif w[0] in {Sizing.FLOW, WHSettings.PACK}:  # 'pack' used to be called 'flow'
                 f = WHSettings.PACK
                 _ignored, w = w
                 self.contents.append((w, (f, None, i in box_columns)))
@@ -125,8 +125,8 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def _validate_contents_modified(self, slc, new_items) -> None:
         for item in new_items:
             try:
-                w, (t, n, b) = item
-                if t not in (WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT):
+                _w, (t, _n, _b) = item
+                if t not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT}:
                     raise ColumnsError(f"added content invalid {item!r}")
             except (TypeError, ValueError) as exc:  # noqa: PERF203
                 raise ColumnsError(f"added content invalid {item!r}").with_traceback(exc.__traceback__) from exc
@@ -307,7 +307,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         if width_type == WHSettings.PACK:
             width_amount = None
-        if width_type not in (WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT):
+        if width_type not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT}:
             raise ColumnsError(f"invalid width_type: {width_type!r}")
         return (WHSettings(width_type), width_amount, box_widget)
 
@@ -527,14 +527,14 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
             widths.append(static_w)
             shared -= static_w + self.dividechars
-            if t not in (WHSettings.GIVEN, WHSettings.PACK):
+            if t not in {WHSettings.GIVEN, WHSettings.PACK}:
                 weighted.append((width, i))
 
         # drop columns on the left until we fit
-        for i, _w in enumerate(widths):
+        for i, width_ in enumerate(widths):
             if shared >= 0:
                 break
-            shared += widths[i] + self.dividechars
+            shared += width_ + self.dividechars
             widths[i] = 0
             if weighted and weighted[0][1] == i:
                 del weighted[0]
@@ -602,7 +602,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
     def get_cursor_coords(self, size):
         """Return the cursor coordinates from the focus widget."""
-        w, (t, n, b) = self.contents[self.focus_position]
+        w, (_t, _n, b) = self.contents[self.focus_position]
 
         if not w.selectable():
             return None
@@ -652,7 +652,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         if best is None:
             return False
-        i, x, end, w, (t, n, b) = best
+        i, x, end, w, (_t, _n, b) = best
         if hasattr(w, "move_cursor_to_coords"):
             if isinstance(col, int):
                 move_x = min(max(0, col - x), end - x - 1)
@@ -711,7 +711,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """Return the pref col from the column in focus."""
         widths = self.column_widths(size)
 
-        w, (t, n, b) = self.contents[self.focus_position]
+        w, (_t, _n, b) = self.contents[self.focus_position]
         if len(widths) <= self.focus_position:
             return 0
         col = None
@@ -765,8 +765,8 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         i = self.focus_position
         mc = widths[i]
-        w, (t, n, b) = self.contents[i]
-        if self._command_map[key] not in ("cursor up", "cursor down", "cursor page up", "cursor page down"):
+        w, (_t, _n, b) = self.contents[i]
+        if self._command_map[key] not in {"cursor up", "cursor down", "cursor page up", "cursor page down"}:
             self.pref_col = None
         if w.selectable():
             if len(size) == 1 and b:
@@ -774,7 +774,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             else:
                 key = w.keypress((mc,) + size[1:], key)
 
-        if self._command_map[key] not in ("cursor left", "cursor right"):
+        if self._command_map[key] not in {"cursor left", "cursor right"}:
             return key
 
         if self._command_map[key] == "cursor left":
