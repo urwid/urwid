@@ -11,7 +11,7 @@ instantiate your own Signals object.
 
 .. automethod:: Signals.connect
 
-.. function:: disconnect_by_key(obj, name, key)
+.. function:: disconnect_signal_by_key(obj, name, key)
 
 .. automethod:: Signals.disconnect_by_key
 

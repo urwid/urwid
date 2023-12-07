@@ -90,7 +90,15 @@ from urwid.font import (
 )
 from urwid.listbox import ListBox, ListBoxError, ListWalker, ListWalkerError, SimpleFocusListWalker, SimpleListWalker
 from urwid.monitored_list import MonitoredFocusList, MonitoredList
-from urwid.signals import MetaSignals, Signals, connect_signal, disconnect_signal, emit_signal, register_signal
+from urwid.signals import (
+    MetaSignals,
+    Signals,
+    connect_signal,
+    disconnect_signal,
+    disconnect_signal_by_key,
+    emit_signal,
+    register_signal,
+)
 from urwid.text_layout import LayoutSegment, StandardTextLayout, TextLayout, default_layout
 from urwid.util import (
     MetaSuper,
