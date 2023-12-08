@@ -20,6 +20,7 @@
 
 from __future__ import annotations
 
+import abc
 import os
 import sys
 import typing
@@ -985,7 +986,11 @@ class ScreenError(Exception):
     pass
 
 
-class BaseScreen(metaclass=signals.MetaSignals):
+class BaseMeta(signals.MetaSignals, abc.ABCMeta):
+    """Base metaclass for abstra"""
+
+
+class BaseScreen(metaclass=BaseMeta):
     """
     Base class for Screen classes (raw_display.Screen, .. etc)
     """
