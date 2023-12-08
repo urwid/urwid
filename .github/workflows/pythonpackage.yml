@@ -32,10 +32,9 @@ jobs:
     strategy:
       max-parallel: 6
       matrix:
-        os: [ "ubuntu-latest" ]
-        # , "macos-latest", "windows-latest"
+        os: [ "ubuntu-latest", "windows-latest" ]
+        # , "macos-latest"
         # enable macOS only if OS specific branch will be added
-        # enable windows after Windows driver will be added
         python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11", "3.12" ]
 
     steps:
@@ -155,7 +154,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ "ubuntu-latest", "macos-latest" ]
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -180,6 +182,7 @@ jobs:
           # emulated ones
           CIBW_ARCHS_LINUX: auto aarch64
           CIBW_ARCHS_MACOS: x86_64 universal2 arm64
+          CIBW_ARCHS_WINDOWS: auto
 
       - uses: actions/upload-artifact@v3
         with:

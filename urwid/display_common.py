@@ -20,15 +20,11 @@
 
 from __future__ import annotations
 
+import abc
 import os
 import sys
 import typing
 import warnings
-
-try:  # noqa: SIM105
-    import termios
-except ImportError:
-    pass  # windows
 
 from urwid import signals
 from urwid.util import StoppingContext, int_scale
@@ -37,6 +33,11 @@ if typing.TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
     from typing_extensions import Literal, Self
+
+IS_WINDOWS = os.name == "nt"
+
+if not IS_WINDOWS:
+    import termios
 
 # for replacing unprintable bytes with '?'
 UNPRINTABLE_TRANS_TABLE = b"?" * 32 + bytes(range(32, 256))
@@ -886,77 +887,110 @@ class RealTerminal:
         self._signal_keys_set = False
         self._old_signal_keys = None
 
-    def tty_signal_keys(
-        self,
-        intr: Literal["undefined"] | int | None = None,
-        quit: Literal["undefined"] | int | None = None,  # noqa: A002
-        start: Literal["undefined"] | int | None = None,
-        stop: Literal["undefined"] | int | None = None,
-        susp: Literal["undefined"] | int | None = None,
-        fileno: int | None = None,
-    ):
-        """
-        Read and/or set the tty's signal character settings.
-        This function returns the current settings as a tuple.
+    if IS_WINDOWS:
 
-        Use the string 'undefined' to unmap keys from their signals.
-        The value None is used when no change is being made.
-        Setting signal keys is done using the integer ascii
-        code for the key, eg.  3 for CTRL+C.
+        def tty_signal_keys(
+            self,
+            intr: Literal["undefined"] | int | None = None,
+            quit: Literal["undefined"] | int | None = None,  # noqa: A002
+            start: Literal["undefined"] | int | None = None,
+            stop: Literal["undefined"] | int | None = None,
+            susp: Literal["undefined"] | int | None = None,
+            fileno: int | None = None,
+        ):
+            """
+            Read and/or set the tty's signal character settings.
+            This function returns the current settings as a tuple.
 
-        If this function is called after start() has been called
-        then the original settings will be restored when stop()
-        is called.
-        """
-        if fileno is None:
-            fileno = sys.stdin.fileno()
-        if not os.isatty(fileno):
-            return None
+            Use the string 'undefined' to unmap keys from their signals.
+            The value None is used when no change is being made.
+            Setting signal keys is done using the integer ascii
+            code for the key, eg.  3 for CTRL+C.
 
-        tattr = termios.tcgetattr(fileno)
-        sattr = tattr[6]
-        skeys = (
-            sattr[termios.VINTR],
-            sattr[termios.VQUIT],
-            sattr[termios.VSTART],
-            sattr[termios.VSTOP],
-            sattr[termios.VSUSP],
-        )
+            If this function is called after start() has been called
+            then the original settings will be restored when stop()
+            is called.
+            """
+            return ()
 
-        if intr == "undefined":
-            intr = 0
-        if quit == "undefined":
-            quit = 0  # noqa: A001
-        if start == "undefined":
-            start = 0
-        if stop == "undefined":
-            stop = 0
-        if susp == "undefined":
-            susp = 0
+    else:
 
-        if intr is not None:
-            tattr[6][termios.VINTR] = intr
-        if quit is not None:
-            tattr[6][termios.VQUIT] = quit
-        if start is not None:
-            tattr[6][termios.VSTART] = start
-        if stop is not None:
-            tattr[6][termios.VSTOP] = stop
-        if susp is not None:
-            tattr[6][termios.VSUSP] = susp
+        def tty_signal_keys(
+            self,
+            intr: Literal["undefined"] | int | None = None,
+            quit: Literal["undefined"] | int | None = None,  # noqa: A002
+            start: Literal["undefined"] | int | None = None,
+            stop: Literal["undefined"] | int | None = None,
+            susp: Literal["undefined"] | int | None = None,
+            fileno: int | None = None,
+        ):
+            """
+            Read and/or set the tty's signal character settings.
+            This function returns the current settings as a tuple.
 
-        if any(item is not None for item in (intr, quit, start, stop, susp)):
-            termios.tcsetattr(fileno, termios.TCSADRAIN, tattr)
-            self._signal_keys_set = True
+            Use the string 'undefined' to unmap keys from their signals.
+            The value None is used when no change is being made.
+            Setting signal keys is done using the integer ascii
+            code for the key, eg.  3 for CTRL+C.
 
-        return skeys
+            If this function is called after start() has been called
+            then the original settings will be restored when stop()
+            is called.
+            """
+
+            if fileno is None:
+                fileno = sys.stdin.fileno()
+            if not os.isatty(fileno):
+                return None
+
+            tattr = termios.tcgetattr(fileno)
+            sattr = tattr[6]
+            skeys = (
+                sattr[termios.VINTR],
+                sattr[termios.VQUIT],
+                sattr[termios.VSTART],
+                sattr[termios.VSTOP],
+                sattr[termios.VSUSP],
+            )
+
+            if intr == "undefined":
+                intr = 0
+            if quit == "undefined":
+                quit = 0  # noqa: A001
+            if start == "undefined":
+                start = 0
+            if stop == "undefined":
+                stop = 0
+            if susp == "undefined":
+                susp = 0
+
+            if intr is not None:
+                tattr[6][termios.VINTR] = intr
+            if quit is not None:
+                tattr[6][termios.VQUIT] = quit
+            if start is not None:
+                tattr[6][termios.VSTART] = start
+            if stop is not None:
+                tattr[6][termios.VSTOP] = stop
+            if susp is not None:
+                tattr[6][termios.VSUSP] = susp
+
+            if any(item is not None for item in (intr, quit, start, stop, susp)):
+                termios.tcsetattr(fileno, termios.TCSADRAIN, tattr)
+                self._signal_keys_set = True
+
+            return skeys
 
 
 class ScreenError(Exception):
     pass
 
 
-class BaseScreen(metaclass=signals.MetaSignals):
+class BaseMeta(signals.MetaSignals, abc.ABCMeta):
+    """Base metaclass for abstra"""
+
+
+class BaseScreen(metaclass=BaseMeta):
     """
     Base class for Screen classes (raw_display.Screen, .. etc)
     """

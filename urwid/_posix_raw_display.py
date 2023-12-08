@@ -1,0 +1,486 @@
+# Urwid raw display module
+#    Copyright (C) 2004-2009  Ian Ward
+#
+#    This library is free software; you can redistribute it and/or
+#    modify it under the terms of the GNU Lesser General Public
+#    License as published by the Free Software Foundation; either
+#    version 2.1 of the License, or (at your option) any later version.
+#
+#    This library is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public
+#    License along with this library; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+# Urwid web site: https://urwid.org/
+
+
+"""
+Direct terminal UI implementation
+"""
+
+from __future__ import annotations
+
+import contextlib
+import fcntl
+import functools
+import os
+import signal
+import struct
+import sys
+import termios
+import tty
+import typing
+from subprocess import PIPE, Popen
+
+from urwid import escape, signals
+from urwid.display_common import INPUT_DESCRIPTORS_CHANGED
+
+from . import _raw_display_base
+
+if typing.TYPE_CHECKING:
+    import io
+    from types import FrameType
+
+    from typing_extensions import Literal
+
+
+class Screen(_raw_display_base.Screen):
+    def __init__(
+        self,
+        input: io.TextIOBase = sys.stdin,  # noqa: A002
+        output: io.TextIOBase = sys.stdout,
+        bracketed_paste_mode=False,
+    ) -> None:
+        """Initialize a screen that directly prints escape codes to an output
+        terminal.
+
+        bracketed_paste_mode -- enable bracketed paste mode in the host terminal.
+            If the host terminal supports it, the application will receive `begin paste`
+            and `end paste` keystrokes when the user pastes text.
+        """
+        super().__init__(input, output)
+        self.gpm_mev: Popen | None = None
+        self.gpm_event_pending: bool = False
+        self.bracketed_paste_mode = bracketed_paste_mode
+
+        # These store the previous signal handlers after setting ours
+        self._prev_sigcont_handler = None
+        self._prev_sigtstp_handler = None
+        self._prev_sigwinch_handler = None
+
+    def _sigwinch_handler(self, signum: int, frame: FrameType | None = None) -> None:
+        """
+        frame -- will always be None when the GLib event loop is being used.
+        """
+        super()._sigwinch_handler(signum, frame)
+
+        if callable(self._prev_sigwinch_handler):
+            self._prev_sigwinch_handler(signum, frame)
+
+    def _sigtstp_handler(self, signum: int, frame: FrameType | None = None) -> None:
+        self.stop()  # Restores the previous signal handlers
+        self._prev_sigcont_handler = self.signal_handler_setter(signal.SIGCONT, self._sigcont_handler)
+        # Handled by the previous handler.
+        # If non-default, it may set its own SIGCONT handler which should hopefully call our own.
+        os.kill(os.getpid(), signal.SIGTSTP)
+
+    def _sigcont_handler(self, signum: int, frame: FrameType | None = None) -> None:
+        """
+        frame -- will always be None when the GLib event loop is being used.
+        """
+        self.signal_restore()
+
+        if callable(self._prev_sigcont_handler):
+            # May set its own SIGTSTP handler which would be stored and replaced in
+            # `signal_init()` (via `start()`).
+            self._prev_sigcont_handler(signum, frame)
+
+        self.start()
+        self._sigwinch_handler(None, None)
+
+    def signal_init(self):
+        """
+        Called in the startup of run wrapper to set the SIGWINCH
+        and SIGTSTP signal handlers.
+
+        Override this function to call from main thread in threaded
+        applications.
+        """
+        self._prev_sigwinch_handler = self.signal_handler_setter(signal.SIGWINCH, self._sigwinch_handler)
+        self._prev_sigtstp_handler = self.signal_handler_setter(signal.SIGTSTP, self._sigtstp_handler)
+
+    def signal_restore(self):
+        """
+        Called in the finally block of run wrapper to restore the
+        SIGTSTP, SIGCONT and SIGWINCH signal handlers.
+
+        Override this function to call from main thread in threaded
+        applications.
+        """
+        self.signal_handler_setter(signal.SIGTSTP, self._prev_sigtstp_handler or signal.SIG_DFL)
+        self.signal_handler_setter(signal.SIGCONT, self._prev_sigcont_handler or signal.SIG_DFL)
+        self.signal_handler_setter(signal.SIGWINCH, self._prev_sigwinch_handler or signal.SIG_DFL)
+
+    def _mouse_tracking(self, enable: bool) -> None:
+        super()._mouse_tracking(enable)
+        if enable:
+            self._start_gpm_tracking()
+        else:
+            self._stop_gpm_tracking()
+
+    def _start_gpm_tracking(self):
+        if not os.path.isfile("/usr/bin/mev"):
+            return
+        if not os.environ.get("TERM", "").lower().startswith("linux"):
+            return
+
+        m = Popen(
+            ["/usr/bin/mev", "-e", "158"],  # noqa: S603
+            stdin=PIPE,
+            stdout=PIPE,
+            close_fds=True,
+            encoding="ascii",
+        )
+        fcntl.fcntl(m.stdout.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
+        self.gpm_mev = m
+
+    def _stop_gpm_tracking(self):
+        if not self.gpm_mev:
+            return
+        os.kill(self.gpm_mev.pid, signal.SIGINT)
+        os.waitpid(self.gpm_mev.pid, 0)
+        self.gpm_mev = None
+
+    def _start(self, alternate_buffer=True):
+        """
+        Initialize the screen and input mode.
+
+        alternate_buffer -- use alternate screen buffer
+        """
+        if alternate_buffer:
+            self.write(escape.SWITCH_TO_ALTERNATE_BUFFER)
+            self._rows_used = None
+        else:
+            self._rows_used = 0
+
+        if self.bracketed_paste_mode:
+            self.write(escape.ENABLE_BRACKETED_PASTE_MODE)
+
+        fd = self._input_fileno()
+        if fd is not None and os.isatty(fd):
+            self._old_termios_settings = termios.tcgetattr(fd)
+            tty.setcbreak(fd)
+
+        self.signal_init()
+        self._alternate_buffer = alternate_buffer
+        self._next_timeout = self.max_wait
+
+        if not self._signal_keys_set:
+            self._old_signal_keys = self.tty_signal_keys(fileno=fd)
+
+        signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
+        # restore mouse tracking to previous state
+        self._mouse_tracking(self._mouse_tracking_enabled)
+
+        return super()._start()
+
+    def _stop(self):
+        """
+        Restore the screen.
+        """
+        self.clear()
+
+        if self.bracketed_paste_mode:
+            self.write(escape.DISABLE_BRACKETED_PASTE_MODE)
+
+        signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
+
+        self.signal_restore()
+
+        fd = self._input_fileno()
+        if fd is not None and os.isatty(fd):
+            termios.tcsetattr(fd, termios.TCSADRAIN, self._old_termios_settings)
+
+        self._stop_mouse_restore_buffer()
+
+        if self._old_signal_keys:
+            self.tty_signal_keys(*self._old_signal_keys, fd)
+
+        super()._stop()
+
+    @typing.overload
+    def get_input(self, raw_keys: Literal[False]) -> list[str]:
+        ...
+
+    @typing.overload
+    def get_input(self, raw_keys: Literal[True]) -> tuple[list[str], list[int]]:
+        ...
+
+    def get_input(self, raw_keys: bool = False) -> list[str] | tuple[list[str], list[int]]:
+        """Return pending input as a list.
+
+        raw_keys -- return raw keycodes as well as translated versions
+
+        This function will immediately return all the input since the
+        last time it was called.  If there is no input pending it will
+        wait before returning an empty list.  The wait time may be
+        configured with the set_input_timeouts function.
+
+        If raw_keys is False (default) this function will return a list
+        of keys pressed.  If raw_keys is True this function will return
+        a ( keys pressed, raw keycodes ) tuple instead.
+
+        Examples of keys returned:
+
+        * ASCII printable characters:  " ", "a", "0", "A", "-", "/"
+        * ASCII control characters:  "tab", "enter"
+        * Escape sequences:  "up", "page up", "home", "insert", "f1"
+        * Key combinations:  "shift f1", "meta a", "ctrl b"
+        * Window events:  "window resize"
+
+        When a narrow encoding is not enabled:
+
+        * "Extended ASCII" characters:  "\\xa1", "\\xb2", "\\xfe"
+
+        When a wide encoding is enabled:
+
+        * Double-byte characters:  "\\xa1\\xea", "\\xb2\\xd4"
+
+        When utf8 encoding is enabled:
+
+        * Unicode characters: u"\\u00a5", u'\\u253c"
+
+        Examples of mouse events returned:
+
+        * Mouse button press: ('mouse press', 1, 15, 13),
+                              ('meta mouse press', 2, 17, 23)
+        * Mouse drag: ('mouse drag', 1, 16, 13),
+                      ('mouse drag', 1, 17, 13),
+                      ('ctrl mouse drag', 1, 18, 13)
+        * Mouse button release: ('mouse release', 0, 18, 13),
+                                ('ctrl mouse release', 0, 17, 23)
+        """
+        if not self._started:
+            raise RuntimeError
+
+        self._wait_for_input_ready(self._next_timeout)
+        keys, raw = self.parse_input(None, None, self.get_available_raw_input())
+
+        # Avoid pegging CPU at 100% when slowly resizing
+        if keys == ["window resize"] and self.prev_input_resize:
+            while True:
+                self._wait_for_input_ready(self.resize_wait)
+                keys, raw2 = self.parse_input(None, None, self.get_available_raw_input())
+                raw += raw2
+                # if not keys:
+                #     keys, raw2 = self._get_input(
+                #         self.resize_wait)
+                #     raw += raw2
+                if keys != ["window resize"]:
+                    break
+            if keys[-1:] != ["window resize"]:
+                keys.append("window resize")
+
+        if keys == ["window resize"]:
+            self.prev_input_resize = 2
+        elif self.prev_input_resize == 2 and not keys:
+            self.prev_input_resize = 1
+        else:
+            self.prev_input_resize = 0
+
+        if raw_keys:
+            return keys, raw
+        return keys
+
+    def get_input_descriptors(self) -> list[int]:
+        """
+        Return a list of integer file descriptors that should be
+        polled in external event loops to check for user input.
+
+        Use this method if you are implementing your own event loop.
+
+        This method is only called by `hook_event_loop`, so if you override
+        that, you can safely ignore this.
+        """
+        if not self._started:
+            return []
+
+        fd_list = [self._resize_pipe_rd]
+        fd = self._input_fileno()
+        if fd is not None:
+            fd_list.append(fd)
+        if self.gpm_mev is not None:
+            fd_list.append(self.gpm_mev.stdout.fileno())
+        return fd_list
+
+    def unhook_event_loop(self, event_loop):
+        """
+        Remove any hooks added by hook_event_loop.
+        """
+        for handle in self._current_event_loop_handles:
+            event_loop.remove_watch_file(handle)
+
+        if self._input_timeout:
+            event_loop.remove_alarm(self._input_timeout)
+            self._input_timeout = None
+
+    def hook_event_loop(self, event_loop, callback):
+        """
+        Register the given callback with the event loop, to be called with new
+        input whenever it's available.  The callback should be passed a list of
+        processed keys and a list of unprocessed keycodes.
+
+        Subclasses may wish to use parse_input to wrap the callback.
+        """
+        if hasattr(self, "get_input_nonblocking"):
+            wrapper = self._make_legacy_input_wrapper(event_loop, callback)
+        else:
+
+            @functools.wraps(callback)
+            def wrapper() -> tuple[list[str], typing.Any] | None:
+                return self.parse_input(event_loop, callback, self.get_available_raw_input())
+
+        fds = self.get_input_descriptors()
+        handles = [event_loop.watch_file(fd, wrapper) for fd in fds]
+        self._current_event_loop_handles = handles
+
+    def _get_input_codes(self) -> list[int]:
+        return super()._get_input_codes() + self._get_gpm_codes()
+
+    def _get_gpm_codes(self):
+        codes = []
+        try:
+            while self.gpm_mev is not None and self.gpm_event_pending:
+                codes.extend(self._encode_gpm_event())
+        except OSError as e:
+            if e.args[0] != 11:
+                raise
+        return codes
+
+    def _getch(self, timeout: int) -> int:
+        ready = self._wait_for_input_ready(timeout)
+        if self.gpm_mev is not None and self.gpm_mev.stdout.fileno() in ready:
+            self.gpm_event_pending = True
+        fd = self._input_fileno()
+        if fd is not None and fd in ready:
+            return ord(os.read(fd, 1))
+        return -1
+
+    def _encode_gpm_event(self) -> list[int]:
+        self.gpm_event_pending = False
+        s = self.gpm_mev.stdout.readline()
+        result = s.split(", ")
+        if len(result) != 6:
+            # unexpected output, stop tracking
+            self._stop_gpm_tracking()
+            signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
+            return []
+        ev, x, y, _ign, b, m = s.split(",")
+        ev = int(ev.split("x")[-1], 16)
+        x = int(x.split(" ")[-1])
+        y = int(y.lstrip().split(" ")[0])
+        b = int(b.split(" ")[-1])
+        m = int(m.split("x")[-1].rstrip(), 16)
+
+        # convert to xterm-like escape sequence
+
+        last_state = next_state = self.last_bstate
+        result = []
+
+        mod = 0
+        if m & 1:
+            mod |= 4  # shift
+        if m & 10:
+            mod |= 8  # alt
+        if m & 4:
+            mod |= 16  # ctrl
+
+        def append_button(b):
+            b |= mod
+            result.extend([27, ord("["), ord("M"), b + 32, x + 32, y + 32])
+
+        def determine_button_release(flag: int) -> None:
+            nonlocal next_state
+            if b & 4 and last_state & 1:
+                append_button(0 + flag)
+                next_state |= 1
+            if b & 2 and last_state & 2:
+                append_button(1 + flag)
+                next_state |= 2
+            if b & 1 and last_state & 4:
+                append_button(2 + flag)
+                next_state |= 4
+
+        if ev in {20, 36, 52}:  # press
+            if b & 4 and last_state & 1 == 0:
+                append_button(0)
+                next_state |= 1
+            if b & 2 and last_state & 2 == 0:
+                append_button(1)
+                next_state |= 2
+            if b & 1 and last_state & 4 == 0:
+                append_button(2)
+                next_state |= 4
+        elif ev == 146:  # drag
+            if b & 4:
+                append_button(0 + escape.MOUSE_DRAG_FLAG)
+            elif b & 2:
+                append_button(1 + escape.MOUSE_DRAG_FLAG)
+            elif b & 1:
+                append_button(2 + escape.MOUSE_DRAG_FLAG)
+        else:  # release
+            if b & 4 and last_state & 1:
+                append_button(0 + escape.MOUSE_RELEASE_FLAG)
+                next_state &= ~1
+            if b & 2 and last_state & 2:
+                append_button(1 + escape.MOUSE_RELEASE_FLAG)
+                next_state &= ~2
+            if b & 1 and last_state & 4:
+                append_button(2 + escape.MOUSE_RELEASE_FLAG)
+                next_state &= ~4
+        if ev == 40:  # double click (release)
+            if b & 4 and last_state & 1:
+                append_button(0 + escape.MOUSE_MULTIPLE_CLICK_FLAG)
+            if b & 2 and last_state & 2:
+                append_button(1 + escape.MOUSE_MULTIPLE_CLICK_FLAG)
+            if b & 1 and last_state & 4:
+                append_button(2 + escape.MOUSE_MULTIPLE_CLICK_FLAG)
+        elif ev == 52:
+            if b & 4 and last_state & 1:
+                append_button(0 + escape.MOUSE_MULTIPLE_CLICK_FLAG * 2)
+            if b & 2 and last_state & 2:
+                append_button(1 + escape.MOUSE_MULTIPLE_CLICK_FLAG * 2)
+            if b & 1 and last_state & 4:
+                append_button(2 + escape.MOUSE_MULTIPLE_CLICK_FLAG * 2)
+
+        self.last_bstate = next_state
+        return result
+
+    def get_cols_rows(self) -> tuple[int, int]:
+        """Return the terminal dimensions (num columns, num rows)."""
+        y, x = super().get_cols_rows()
+        with contextlib.suppress(OSError):  # Term size could not be determined
+            if hasattr(self._term_output_file, "fileno"):
+                buf = fcntl.ioctl(self._term_output_file.fileno(), termios.TIOCGWINSZ, " " * 4)
+                y, x = struct.unpack("hh", buf)
+
+        # Provide some lightweight fallbacks in case the TIOCWINSZ doesn't
+        # give sane answers
+        if (x <= 0 or y <= 0) and self.term in {"ansi", "vt100"}:
+            y, x = 24, 80
+        self.maxrow = y
+        return x, y
+
+
+def _test():
+    import doctest
+
+    doctest.testmod()
+
+
+if __name__ == "__main__":
+    _test()
