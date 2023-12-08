@@ -6,6 +6,7 @@ License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)
 Operating System :: POSIX
 Operating System :: Unix
 Operating System :: MacOS :: MacOS X
+Operating System :: Microsoft :: Windows
 Topic :: Software Development :: Libraries :: Python Modules
 Topic :: Software Development :: Widget Sets
 Programming Language :: Python :: 3
