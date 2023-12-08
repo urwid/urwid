@@ -27,7 +27,7 @@ import dataclasses
 import glob
 import os
 import random
-import select
+import selectors
 import signal
 import socket
 import string
@@ -904,16 +904,10 @@ class Screen:
         """Return pending input as a list."""
         pending_input = []
         resized = False
+        with selectors.DefaultSelector() as selector:
+            selector.register(self.input_fd, selectors.EVENT_READ)
 
-        try:
-            iready, _oready, _eready = select.select([self.input_fd], [], [], 0.5)
-        except OSError as e:
-            # return on interruptions
-            if e.args[0] == 4:
-                if raw_keys:
-                    return [], []
-                return []
-            raise
+            iready = [event.fd for event, _ in selector.select(0.5)]
 
         if not iready:
             if raw_keys:

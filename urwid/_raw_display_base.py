@@ -432,14 +432,8 @@ class Screen(BaseScreen, RealTerminal):
         with selectors.DefaultSelector() as selector:
             for fd in fd_list:
                 selector.register(fd, selectors.EVENT_READ)
-            while True:
-                try:
-                    ready = [event.fd for event, _ in selector.select(timeout)]
-                    break
-                except InterruptedError:
-                    if self._resized:
-                        ready = []
-                        break
+
+            ready = [event.fd for event, _ in selector.select(timeout)]
 
         return ready
 

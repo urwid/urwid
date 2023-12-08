@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import contextlib
 import heapq
-import select
+import selectors
 import time
 import typing
 from contextlib import suppress
@@ -43,7 +43,7 @@ __all__ = ("SelectEventLoop",)
 
 class SelectEventLoop(EventLoop):
     """
-    Event loop based on :func:`select.select`
+    Event loop based on :func:`selectors.DefaultSelector.select`
     """
 
     def __init__(self) -> None:
@@ -156,30 +156,30 @@ class SelectEventLoop(EventLoop):
         """
         A single iteration of the event loop
         """
-        fds = list(self._watch_files)
         tm: float | Literal["idle"] | None = None
 
-        if self._alarms or self._did_something:
-            timeout = 0.0
+        with selectors.DefaultSelector() as selector:
+            for fd, callback in self._watch_files.items():
+                selector.register(fd, selectors.EVENT_READ, callback)
 
-            if self._alarms:
-                timeout_ = self._alarms[0][0]
-                tm = timeout_
-                timeout = max(timeout, timeout_ - time.time())
-
-            if self._did_something and (not self._alarms or (self._alarms and timeout > 0)):
+            if self._alarms or self._did_something:
                 timeout = 0.0
-                tm = "idle"
 
-            if fds:
-                ready, _w, _err = select.select(fds, [], fds, timeout)
+                if self._alarms:
+                    timeout_ = self._alarms[0][0]
+                    tm = timeout_
+                    timeout = max(timeout, timeout_ - time.time())
+
+                if self._did_something and (not self._alarms or (self._alarms and timeout > 0)):
+                    timeout = 0.0
+                    tm = "idle"
+
+                ready = [event for event, _ in selector.select(timeout)]
+
+            elif self._watch_files:
+                ready = [event for event, _ in selector.select()]
             else:
                 ready = []
-
-        elif fds:
-            ready, _w, _err = select.select(fds, [], fds)
-        else:
-            ready = []
 
         if not ready:
             if tm == "idle":
@@ -191,6 +191,6 @@ class SelectEventLoop(EventLoop):
                 alarm_callback()
                 self._did_something = True
 
-        for fd in ready:
-            self._watch_files[fd]()
+        for record in ready:
+            record.data()
             self._did_something = True
