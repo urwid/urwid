@@ -49,6 +49,13 @@ def load_tests(loader: unittest.TestLoader, tests: unittest.BaseTestSuite, ignor
     for m in module_doctests:
         tests.addTests(doctest.DocTestSuite(m, optionflags=option_flags))
 
+    try:
+        from urwid import curses_display
+    except ImportError:
+        pass  # do not run tests
+    else:
+        tests.addTests(doctest.DocTestSuite(curses_display, optionflags=option_flags))
+
     if os.name == "nt":
         tests.addTests(doctest.DocTestSuite("urwid._win32_raw_display", optionflags=option_flags))
     else:

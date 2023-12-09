@@ -4,3 +4,4 @@ twisted
 trio
 zmq
 exceptiongroups
+windows-curses;sys_platform=="win32"

@@ -160,7 +160,10 @@ except ImportError:
     pass
 else:
 
-    @unittest.skipIf(IS_WINDOWS, "Windows is temporary not supported by TornadoEventLoop.")
+    @unittest.skipIf(
+        IS_WINDOWS,
+        "Windows is temporary not supported by TornadoEventLoop due to race conditions.",
+    )
     class TornadoEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         def setUp(self):
             from tornado.ioloop import IOLoop
@@ -176,7 +179,10 @@ except ImportError:
     pass
 else:
 
-    @unittest.skipIf(IS_WINDOWS, "Windows is temporary not supported by TwistedEventLoop.")
+    @unittest.skipIf(
+        IS_WINDOWS,
+        "Windows is temporary not supported by TwistedEventLoop due to race conditions.",
+    )
     class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         def setUp(self):
             self.evl = urwid.TwistedEventLoop()
@@ -283,6 +289,10 @@ except ImportError:
     pass
 else:
 
+    @unittest.skipIf(
+        IS_WINDOWS,
+        "Windows is temporary not supported by TrioEventLoop due to race conditions.",
+    )
     class TrioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         def setUp(self):
             self.evl = urwid.TrioEventLoop()

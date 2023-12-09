@@ -24,6 +24,7 @@ Terminal Escape Sequences for input and display
 
 from __future__ import annotations
 
+import os
 import re
 from collections.abc import MutableMapping, Sequence
 
@@ -35,6 +36,8 @@ except ImportError:
 # NOTE: because of circular imports (urwid.util -> urwid.escape -> urwid.util)
 # from urwid.util import is_mouse_event -- will not work here
 import urwid.util
+
+IS_WINDOWS = os.name == "nt"
 
 within_double_byte = str_util.within_double_byte
 
@@ -428,6 +431,10 @@ _keyconv = {
     350: "5",  # on numpad
     360: "end",
 }
+
+if IS_WINDOWS:
+    _keyconv[351] = "shift tab"
+    _keyconv[358] = "end"
 
 
 def process_keyqueue(codes: Sequence[int], more_available: bool) -> tuple[list[str], Sequence[int]]:

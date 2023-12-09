@@ -25,6 +25,7 @@ Curses-based UI implementation
 from __future__ import annotations
 
 import curses
+import os
 import typing
 from contextlib import suppress
 
@@ -36,7 +37,46 @@ from urwid.display_common import UNPRINTABLE_TRANS_TABLE, AttrSpec, BaseScreen, 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
-KEY_RESIZE = 410  # curses.KEY_RESIZE (sometimes not defined)
+IS_WINDOWS = os.name == "nt"
+
+# curses.KEY_RESIZE (sometimes not defined)
+if IS_WINDOWS:
+    KEY_RESIZE = 546
+
+    COLOR_CORRECTION: dict[int, int] = dict(
+        enumerate(
+            (
+                curses.COLOR_BLACK,
+                curses.COLOR_RED,
+                curses.COLOR_GREEN,
+                curses.COLOR_YELLOW,
+                curses.COLOR_BLUE,
+                curses.COLOR_MAGENTA,
+                curses.COLOR_CYAN,
+                curses.COLOR_WHITE,
+            )
+        )
+    )
+
+    def initscr():
+        import curses
+
+        import _curses
+
+        stdscr = _curses.initscr()
+        for key, value in _curses.__dict__.items():
+            if key[:4] == "ACS_" or key in ("LINES", "COLS"):
+                setattr(curses, key, value)
+
+        return stdscr
+
+    curses.initscr = initscr
+
+else:
+    KEY_RESIZE = 410
+
+    COLOR_CORRECTION = {}
+
 KEY_MOUSE = 409  # curses.KEY_MOUSE
 
 _curses_colours = {
@@ -63,9 +103,7 @@ _curses_colours = {
 class Screen(BaseScreen, RealTerminal):
     def __init__(self):
         super().__init__()
-        self.curses_pairs = [
-            (None, None),  # Can't be sure what pair 0 will default to
-        ]
+        self.curses_pairs = [(None, None)]  # Can't be sure what pair 0 will default to
         self.palette = {}
         self.has_color = False
         self.s = None
@@ -136,14 +174,20 @@ class Screen(BaseScreen, RealTerminal):
                 self.has_default_colors = False
         self._setup_colour_pairs()
         curses.noecho()
-        curses.meta(1)
+        curses.meta(True)
         curses.halfdelay(10)  # use set_input_timeouts to adjust
-        self.s.keypad(0)
+        self.s.keypad(False)
 
         if not self._signal_keys_set:
             self._old_signal_keys = self.tty_signal_keys()
 
         super()._start()
+
+        if IS_WINDOWS:
+            # halfdelay() seems unnecessary and causes everything to slow down a lot.
+            curses.nocbreak()  # exits halfdelay mode
+            # keypad(1) is needed, or we get no special keys (cursor keys, etc.)
+            self.s.keypad(True)
 
     def _stop(self) -> None:
         """
@@ -170,13 +214,16 @@ class Screen(BaseScreen, RealTerminal):
         if not self.has_color:
             return
 
+        if IS_WINDOWS:
+            self.has_default_colors = False
+
         for fg in range(8):
             for bg in range(8):
                 # leave out white on black
                 if fg == curses.COLOR_WHITE and bg == curses.COLOR_BLACK:
                     continue
 
-                curses.init_pair(bg * 8 + 7 - fg, fg, bg)
+                curses.init_pair(bg * 8 + 7 - fg, COLOR_CORRECTION.get(fg, fg), COLOR_CORRECTION.get(bg, bg))
 
     def _curs_set(self, x: int):
         if self.cursor_state in {"fixed", x}:
@@ -194,22 +241,25 @@ class Screen(BaseScreen, RealTerminal):
     def _getch(self, wait_tenths: int | None) -> int:
         if wait_tenths == 0:
             return self._getch_nodelay()
-        if wait_tenths is None:
-            curses.cbreak()
-        else:
-            curses.halfdelay(wait_tenths)
-        self.s.nodelay(0)
+
+        if not IS_WINDOWS:
+            if wait_tenths is None:
+                curses.cbreak()
+            else:
+                curses.halfdelay(wait_tenths)
+
+        self.s.nodelay(False)
         return self.s.getch()
 
     def _getch_nodelay(self) -> int:
-        self.s.nodelay(1)
-        while 1:
-            # this call fails sometimes, but seems to work when I try again
-            try:
-                curses.cbreak()
-                break
-            except _curses.error:
-                pass
+        self.s.nodelay(True)
+
+        if not IS_WINDOWS:
+            while True:
+                # this call fails sometimes, but seems to work when I try again
+                with suppress(_curses.error):
+                    curses.cbreak()
+                    break
 
         return self.s.getch()
 
