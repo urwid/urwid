@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import codecs
 import contextlib
+import sys
 import typing
 import warnings
 from contextlib import suppress
@@ -45,6 +46,16 @@ within_double_byte = str_util.within_double_byte
 
 
 def detect_encoding() -> str:
+    # Windows is a special case:
+    # CMD is Unicode and non-unicode at the same time:
+    # Unicode display support depends on C API usage and partially limited by font settings.
+    # By default, python is distributed in "Unicode" version, and since Python version 3.8 only Unicode.
+    # In case of curses, "windows-curses" is distributed in unicode-only.
+    # Since Windows 10 default console font is already unicode,
+    # in older versions maybe need to set TTF font manually to support more symbols
+    # (this does not affect unicode IO).
+    if sys.platform == "win32" and sys.getdefaultencoding() == "utf-8":
+        return "urf-8"
     # Try to determine if using a supported double-byte encoding
     import locale
 

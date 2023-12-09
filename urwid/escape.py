@@ -24,8 +24,8 @@ Terminal Escape Sequences for input and display
 
 from __future__ import annotations
 
-import os
 import re
+import sys
 from collections.abc import MutableMapping, Sequence
 
 try:
@@ -37,7 +37,7 @@ except ImportError:
 # from urwid.util import is_mouse_event -- will not work here
 import urwid.util
 
-IS_WINDOWS = os.name == "nt"
+IS_WINDOWS = sys.platform == "win32"
 
 within_double_byte = str_util.within_double_byte
 
