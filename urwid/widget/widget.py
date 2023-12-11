@@ -34,7 +34,7 @@ from urwid.util import MetaSuper
 from .constants import Sizing
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import Callable, Hashable
 
 
 class WidgetMeta(MetaSuper, signals.MetaSignals):
@@ -722,33 +722,28 @@ def delegate_to_widget_mixin(attribute_name: str):
         def get_cursor_coords(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> tuple[int, int] | None:
             return get_delegate(self).get_cursor_coords(size)
 
-        def get_pref_col(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> int:
-            return get_delegate(self).get_pref_col(size)
+        @property
+        def get_pref_col(self) -> Callable[[tuple[()] | tuple[int] | tuple[int, int]], int | None]:
+            # TODO(Aleksei):  Get rid of property usage after getting rid of "if getattr"
+            return get_delegate(self).get_pref_col
 
         def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
             return get_delegate(self).keypress(size, key)
 
-        def move_cursor_to_coords(
-            self,
-            size: tuple[()] | tuple[int] | tuple[int, int],
-            col: int,
-            row: int,
-        ) -> bool:
-            return get_delegate(self).move_cursor_to_coords(size, col, row)
+        @property
+        def move_cursor_to_coords(self) -> Callable[[[tuple[()] | tuple[int] | tuple[int, int], int, int]], bool]:
+            # TODO(Aleksei):  Get rid of property usage after getting rid of "if getattr"
+            return get_delegate(self).move_cursor_to_coords
 
         def rows(self, size: tuple[int], focus: bool = False) -> int:
             return get_delegate(self).rows(size, focus=focus)
 
+        @property
         def mouse_event(
             self,
-            size: tuple[()] | tuple[int] | tuple[int, int],
-            event,
-            button: int,
-            col: int,
-            row: int,
-            focus: bool,
-        ) -> bool | None:
-            return get_delegate(self).mouse_event(size, event, button, col, row, focus)
+        ) -> Callable[[tuple[()] | tuple[int] | tuple[int, int], str, int, int, int, bool], bool | None]:
+            # TODO(Aleksei):  Get rid of property usage after getting rid of "if getattr"
+            return get_delegate(self).mouse_event
 
         def sizing(self) -> frozenset[Sizing]:
             return get_delegate(self).sizing()

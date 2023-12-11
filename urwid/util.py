@@ -55,7 +55,7 @@ def detect_encoding() -> str:
     # in older versions maybe need to set TTF font manually to support more symbols
     # (this does not affect unicode IO).
     if sys.platform == "win32" and sys.getdefaultencoding() == "utf-8":
-        return "urf-8"
+        return "utf-8"
     # Try to determine if using a supported double-byte encoding
     import locale
 
