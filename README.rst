@@ -63,6 +63,8 @@ Windows support notes
 
     pip install urwid[curses]
 
+* Window resize is not fully functional without keyboard/mouse input if RawDisplay used.
+* CursesDisplay decode limited scope of modifier keys combinations.
 * Only UTF-8 mode is supported.
 
 
