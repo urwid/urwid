@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import socket
 import sys
 import typing
@@ -12,7 +11,7 @@ import urwid
 if typing.TYPE_CHECKING:
     from types import TracebackType
 
-IS_WINDOWS = os.name == "nt"
+IS_WINDOWS = sys.platform == "win32"
 
 
 class ClosingSocketPair(typing.ContextManager[typing.Tuple[socket.socket, socket.socket]]):

@@ -21,7 +21,7 @@
 
 from __future__ import annotations
 
-import os
+import sys
 
 from urwid import raw_display
 from urwid.canvas import (
@@ -231,7 +231,7 @@ except ImportError:
     pass
 
 # OS Specific
-if os.name != "nt":
+if sys.platform != "win32":
     from urwid.vterm import TermCanvas, TermCharset, Terminal, TermModes, TermScroller
 
     # ZMQEventLoop cause interpreter crash on windows

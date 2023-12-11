@@ -34,7 +34,7 @@ if typing.TYPE_CHECKING:
 
     from typing_extensions import Literal, Self
 
-IS_WINDOWS = os.name == "nt"
+IS_WINDOWS = sys.platform == "win32"
 
 if not IS_WINDOWS:
     import termios

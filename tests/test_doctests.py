@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import doctest
-import os
+import sys
 import unittest
 
 import urwid
@@ -56,7 +56,7 @@ def load_tests(loader: unittest.TestLoader, tests: unittest.BaseTestSuite, ignor
     else:
         tests.addTests(doctest.DocTestSuite(curses_display, optionflags=option_flags))
 
-    if os.name == "nt":
+    if sys.platform == "win32":
         tests.addTests(doctest.DocTestSuite("urwid._win32_raw_display", optionflags=option_flags))
     else:
         tests.addTests(doctest.DocTestSuite("urwid._posix_raw_display", optionflags=option_flags))

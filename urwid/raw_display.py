@@ -24,11 +24,11 @@ Direct terminal UI implementation
 
 from __future__ import annotations
 
-import os
+import sys
 
 __all__ = ("Screen",)
 
-IS_WINDOWS = os.name == "nt"
+IS_WINDOWS = sys.platform == "win32"
 
 if IS_WINDOWS:
     from ._win32_raw_display import Screen

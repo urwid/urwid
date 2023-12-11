@@ -31,7 +31,7 @@ from time import sleep
 import urwid
 from urwid.util import set_temporary_encoding
 
-IS_WINDOWS = os.name == "nt"
+IS_WINDOWS = sys.platform == "win32"
 
 
 class DummyCommand:

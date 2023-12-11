@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import os
+import sys
 
 from .abstract_loop import EventLoop, ExitMainLoop
 from .asyncio_loop import AsyncioEventLoop
@@ -39,7 +39,7 @@ try:
 except ImportError:
     pass
 
-if os.name != "nt":
+if sys.platform != "win32":
     # ZMQEventLoop cause interpreter crash on windows
     try:
         from .zmq_loop import ZMQEventLoop

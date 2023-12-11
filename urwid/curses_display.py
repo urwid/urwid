@@ -25,7 +25,7 @@ Curses-based UI implementation
 from __future__ import annotations
 
 import curses
-import os
+import sys
 import typing
 from contextlib import suppress
 
@@ -37,7 +37,7 @@ from urwid.display_common import UNPRINTABLE_TRANS_TABLE, AttrSpec, BaseScreen, 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
-IS_WINDOWS = os.name == "nt"
+IS_WINDOWS = sys.platform == "win32"
 
 # curses.KEY_RESIZE (sometimes not defined)
 if IS_WINDOWS:
