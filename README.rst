@@ -63,8 +63,7 @@ Windows support notes
 
     pip install urwid[curses]
 
-* For Windows OS default encoding depends on python binary version
-  and normally automatically set to the UTF-8.
+* Only UTF-8 mode is supported.
 
 
 Testing
