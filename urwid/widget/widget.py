@@ -34,7 +34,7 @@ from urwid.util import MetaSuper
 from .constants import Sizing
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Hashable
+    from collections.abc import Hashable
 
 
 class WidgetMeta(MetaSuper, signals.MetaSignals):
@@ -716,43 +716,45 @@ def delegate_to_widget_mixin(attribute_name: str):
             canv = get_delegate(self).render(size, focus=focus)
             return CompositeCanvas(canv)
 
-        @property
-        def selectable(self) -> Callable[[], bool]:
-            return get_delegate(self).selectable
+        def selectable(self) -> bool:
+            return get_delegate(self).selectable()
 
-        @property
-        def get_cursor_coords(self):
-            return get_delegate(self).get_cursor_coords
+        def get_cursor_coords(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> tuple[int, int] | None:
+            return get_delegate(self).get_cursor_coords(size)
 
-        @property
-        def get_pref_col(self):
-            return get_delegate(self).get_pref_col
+        def get_pref_col(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> int:
+            return get_delegate(self).get_pref_col(size)
 
-        @property
-        def keypress(self):
-            return get_delegate(self).keypress
+        def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
+            return get_delegate(self).keypress(size, key)
 
-        @property
-        def move_cursor_to_coords(self):
-            return get_delegate(self).move_cursor_to_coords
+        def move_cursor_to_coords(
+            self,
+            size: tuple[()] | tuple[int] | tuple[int, int],
+            col: int,
+            row: int,
+        ) -> bool:
+            return get_delegate(self).move_cursor_to_coords(size, col, row)
 
-        @property
-        def rows(self):
-            return get_delegate(self).rows
+        def rows(self, size: tuple[int], focus: bool = False) -> int:
+            return get_delegate(self).rows(size, focus=focus)
 
-        @property
         def mouse_event(
             self,
-        ) -> Callable[[tuple[()] | tuple[int] | tuple[int, int], str, int, int, int, bool], bool | None,]:
-            return get_delegate(self).mouse_event
+            size: tuple[()] | tuple[int] | tuple[int, int],
+            event,
+            button: int,
+            col: int,
+            row: int,
+            focus: bool,
+        ) -> bool | None:
+            return get_delegate(self).mouse_event(size, event, button, col, row, focus)
 
-        @property
-        def sizing(self):
-            return get_delegate(self).sizing
+        def sizing(self) -> frozenset[Sizing]:
+            return get_delegate(self).sizing()
 
-        @property
-        def pack(self):
-            return get_delegate(self).pack
+        def pack(self, size: tuple[()] | tuple[int] | tuple[int, int], focus: bool = False) -> tuple[int, int]:
+            return get_delegate(self).pack(size, focus)
 
     return DelegateToWidgetMixin
 
