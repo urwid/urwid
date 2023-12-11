@@ -5,7 +5,9 @@ Urwid
 About
 =====
 
-Urwid is a console user interface library for Python on Linux, OSX, Cygwin or other unix-like OS.
+Urwid is a console user interface library for Python on Linux, OSX, Cygwin or other unix-like OS
+and partially supports Windows OS (see below).
+
 It includes many features useful for text console application developers including:
 
 - Applications resize quickly and smoothly
@@ -43,6 +45,28 @@ Alternatively if you are on Debian or Ubuntu
 .. code:: bash
 
    apt-get install python3-urwid
+
+Windows support notes
+=====================
+
+* Not supported:
+
+1. Terminal widget and all related render API (TermCanvas, TermCharset, TermModes, TermScroller)
+2. Any file descriptors except sockets (Windows OS limitation)
+3. ZMQEventLoop.
+
+* Special requirements:
+
+1. Extra libraries required for curses display support:
+
+.. code-block:: bash
+
+    pip install urwid[curses]
+
+* Window resize is not fully functional without keyboard/mouse input if RawDisplay used.
+* CursesDisplay decode limited scope of modifier keys combinations.
+* Only UTF-8 mode is supported.
+
 
 Testing
 =======
