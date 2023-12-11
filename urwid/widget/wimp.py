@@ -75,7 +75,7 @@ class SelectableIcon(Text):
         super().__init__(text, align=align, wrap=wrap, layout=layout)
         self._cursor_position = cursor_position
 
-    def render(self, size: tuple[int], focus: bool = False) -> TextCanvas | CompositeCanvas:  # type: ignore[override]
+    def render(self, size: tuple[int] | tuple[()], focus: bool = False) -> TextCanvas | CompositeCanvas:  # type: ignore[override]
         """
         Render the text content of this widget with a cursor when
         in focus.
@@ -90,6 +90,11 @@ class SelectableIcon(Text):
         (2, 0)
         >>> si.render((2,), focus=True).cursor
         (0, 1)
+        >>> si.render(()).cursor
+        >>> si.render(()).text
+        [b'((*))']
+        >>> si.render((), focus=True).cursor
+        (2, 0)
         """
         c: TextCanvas | CompositeCanvas = super().render(size, focus)
         if focus:
@@ -98,7 +103,7 @@ class SelectableIcon(Text):
             c.cursor = self.get_cursor_coords(size)
         return c
 
-    def get_cursor_coords(self, size: tuple[int]) -> tuple[int, int] | None:
+    def get_cursor_coords(self, size: tuple[int] | tuple[()]) -> tuple[int, int] | None:
         """
         Return the position of the cursor if visible.  This method
         is required for widgets that display a cursor.
@@ -107,14 +112,17 @@ class SelectableIcon(Text):
             return None
         # find out where the cursor will be displayed based on
         # the text layout
-        (maxcol,) = size
+        if size:
+            (maxcol,) = size
+        else:
+            maxcol, _ = self.pack()
         trans = self.get_line_translation(maxcol)
         x, y = calc_coords(self.text, trans, self._cursor_position)
         if maxcol <= x:
             return None
         return x, y
 
-    def keypress(self, size: tuple[int], key: str) -> str:
+    def keypress(self, size: tuple[int] | tuple[()], key: str) -> str:
         """
         No keys are handled by this widget.  This method is
         required for selectable widgets.

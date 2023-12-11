@@ -242,20 +242,25 @@ class Text(Widget):
     def layout(self):
         return self._layout
 
-    def render(self, size: tuple[int], focus: bool = False) -> TextCanvas:
+    def render(self, size: tuple[int] | tuple[()], focus: bool = False) -> TextCanvas:
         """
         Render contents with wrapping and alignment.  Return canvas.
 
         See :meth:`Widget.render` for parameter details.
 
-        >>> Text(u"important things").render((18,)).text # ... = b in Python 3
-        [...'important things  ']
+        >>> Text(u"important things").render((18,)).text
+        [b'important things  ']
         >>> Text(u"important things").render((11,)).text
-        [...'important  ', ...'things     ']
+        [b'important  ', b'things     ']
+        >>> Text("demo text").render(()).text
+        [b'demo text']
         """
-        (maxcol,) = size
         text, attr = self.get_text()
-        # assert isinstance(text, unicode)
+        if size:
+            (maxcol,) = size
+        else:
+            maxcol, _ = self.pack(focus=focus)
+
         trans = self.get_line_translation(maxcol, (text, attr))
         return apply_text_layout(text, attr, trans, maxcol)
 
@@ -297,14 +302,14 @@ class Text(Widget):
         self._cache_maxcol = maxcol
         self._cache_translation = self.layout.layout(text, maxcol, self._align_mode, self._wrap_mode)
 
-    def pack(self, size: tuple[int] | None = None, focus: bool = False) -> tuple[int, int]:
+    def pack(self, size: tuple[int] | tuple[()] | None = None, focus: bool = False) -> tuple[int, int]:
         """
         Return the number of screen columns and rows required for
         this Text widget to be displayed without wrapping or
         clipping, as a single element tuple.
 
-        :param size: ``None`` for unlimited screen columns or (*maxcol*,) to
-                     specify a maximum column size
+        :param size: ``None`` or ``()`` for unlimited screen columns (like FIXED sizing)
+                     or (*maxcol*,) to specify a maximum column size
         :type size: widget size
 
         >>> Text(u"important things").pack()
@@ -313,10 +318,12 @@ class Text(Widget):
         (9, 2)
         >>> Text(u"important things").pack((8,))
         (8, 2)
+        >>> Text(u"important things").pack(())
+        (16, 1)
         """
         text, attr = self.get_text()
 
-        if size is not None:
+        if size:
             (maxcol,) = size
             if not hasattr(self.layout, "pack"):
                 return size
