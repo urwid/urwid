@@ -328,7 +328,7 @@ class KeyqueueTrie:
         if b & 8:
             prefixes.append("meta ")
         if b & 16:
-            prefixes.append(f"ctrl ")
+            prefixes.append("ctrl ")
         prefix = "".join(prefixes)
 
         wheel_used: typing.Literal[0, 1] = (b & 64) >> 6
