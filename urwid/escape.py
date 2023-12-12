@@ -30,7 +30,7 @@ import typing
 from collections.abc import MutableMapping, Sequence
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterable, Collection
+    from collections.abc import Collection, Iterable
 
 try:
     from urwid import str_util
