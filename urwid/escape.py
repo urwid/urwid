@@ -70,7 +70,7 @@ class MoreInputRequired(Exception):
     pass
 
 
-def escape_modifier(digit):
+def escape_modifier(digit: str) -> str:
     mode = ord(digit) - ord("1")
     return "shift " * (mode & 1) + "meta " * ((mode & 2) // 2) + "ctrl " * ((mode & 4) // 4)
 
@@ -169,10 +169,14 @@ input_sequences = [
                 "delete",
                 "page up",
                 "page down",
-                *(f"{idx}" for idx in range(1, 20)),
+                *(f"f{idx}" for idx in range(1, 20)),
             ),
         )
     ),
+    *((f"[1;{digit}P", escape_modifier(digit) + "f1") for digit in "12345678"),  # F1 is special
+    *((f"[1;{digit}Q", escape_modifier(digit) + "f2") for digit in "12345678"),  # F2 is special
+    *((f"[1;{digit}R", escape_modifier(digit) + "f3") for digit in "12345678"),  # F3 is special
+    *((f"[1;{digit}S", escape_modifier(digit) + "f4") for digit in "12345678"),  # F4 is special
     # mouse reporting (special handling done in KeyqueueTrie)
     ("[M", "mouse"),
     # mouse reporting for SGR 1006
@@ -459,13 +463,22 @@ def process_keyqueue(codes: Sequence[int], more_available: bool) -> tuple[list[s
 
     em = str_util.get_byte_encoding()
 
-    if em == "wide" and code < 256 and within_double_byte(code.to_bytes(1, "little"), 0, 0):
+    if (
+        em == "wide"
+        and code < 256
+        and within_double_byte(
+            code.to_bytes(1, "little"),
+            0,
+            0,
+        )
+    ):
         if not codes[1:] and more_available:
             raise MoreInputRequired()
         if codes[1:] and codes[1] < 256:
             db = chr(code) + chr(codes[1])
             if within_double_byte(db, 0, 1):
                 return [db], codes[2:]
+
     if em == "utf8" and 127 < code < 256:
         if code & 0xE0 == 0xC0:  # 2-byte form
             need_more = 1
@@ -476,14 +489,14 @@ def process_keyqueue(codes: Sequence[int], more_available: bool) -> tuple[list[s
         else:
             return [f"<{code:d}>"], codes[1:]
 
-        for i in range(need_more):
-            if len(codes) - 1 <= i:
+        for i in range(1, need_more + 1):
+            if len(codes) <= i:
                 if more_available:
                     raise MoreInputRequired()
 
                 return [f"<{code:d}>"], codes[1:]
 
-            k = codes[i + 1]
+            k = codes[i]
             if k > 256 or k & 0xC0 != 0x80:
                 return [f"<{code:d}>"], codes[1:]
 
