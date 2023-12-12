@@ -154,10 +154,11 @@ input_sequences = [
         for letter, key in zip("ABCDEFGH", ("up", "down", "right", "left", "5", "end", "5", "home"))
     ),
     *(
-        # modified F1-F4 keys -- O#X form
-        (f"O{digit}{letter}", escape_modifier(digit) + key)
+        # modified F1-F4 keys - O#X form and [1;#X form
+        (prefix + digit + letter, escape_modifier(digit) + f"f{number}")
+        for prefix in ("O", "[1;")
         for digit in "12345678"
-        for letter, key in zip("PQRS", ("f1", "f2", "f3", "f4"))
+        for number, letter in enumerate("PQRS", start=1)
     ),
     *(
         # modified F1-F13 keys -- [XX;#~ form
@@ -173,10 +174,6 @@ input_sequences = [
             ),
         )
     ),
-    *((f"[1;{digit}P", escape_modifier(digit) + "f1") for digit in "12345678"),  # F1 is special
-    *((f"[1;{digit}Q", escape_modifier(digit) + "f2") for digit in "12345678"),  # F2 is special
-    *((f"[1;{digit}R", escape_modifier(digit) + "f3") for digit in "12345678"),  # F3 is special
-    *((f"[1;{digit}S", escape_modifier(digit) + "f4") for digit in "12345678"),  # F4 is special
     # mouse reporting (special handling done in KeyqueueTrie)
     ("[M", "mouse"),
     # mouse reporting for SGR 1006
