@@ -26,7 +26,11 @@ from __future__ import annotations
 
 import re
 import sys
+import typing
 from collections.abc import MutableMapping, Sequence
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Collection, Iterable
 
 try:
     from urwid import str_util
@@ -70,7 +74,7 @@ class MoreInputRequired(Exception):
     pass
 
 
-def escape_modifier(digit):
+def escape_modifier(digit: str) -> str:
     mode = ord(digit) - ord("1")
     return "shift " * (mode & 1) + "meta " * ((mode & 2) // 2) + "ctrl " * ((mode & 4) // 4)
 
@@ -154,10 +158,11 @@ input_sequences = [
         for letter, key in zip("ABCDEFGH", ("up", "down", "right", "left", "5", "end", "5", "home"))
     ),
     *(
-        # modified F1-F4 keys -- O#X form
-        (f"O{digit}{letter}", escape_modifier(digit) + key)
+        # modified F1-F4 keys - O#X form and [1;#X form
+        (prefix + digit + letter, escape_modifier(digit) + f"f{number}")
+        for prefix in ("O", "[1;")
         for digit in "12345678"
-        for letter, key in zip("PQRS", ("f1", "f2", "f3", "f4"))
+        for number, letter in enumerate("PQRS", start=1)
     ),
     *(
         # modified F1-F13 keys -- [XX;#~ form
@@ -169,7 +174,7 @@ input_sequences = [
                 "delete",
                 "page up",
                 "page down",
-                *(f"{idx}" for idx in range(1, 20)),
+                *(f"f{idx}" for idx in range(1, 21)),
             ),
         )
     ),
@@ -183,25 +188,34 @@ input_sequences = [
 
 
 class KeyqueueTrie:
-    def __init__(self, sequences) -> None:
-        self.data = {}
+    __slots__ = ("data",)
+
+    def __init__(self, sequences: Iterable[tuple[str, str]]) -> None:
+        self.data: dict[int, str | dict[int, str | dict[int, str]]] = {}
         for s, result in sequences:
             if isinstance(result, dict):
                 raise TypeError(result)
             self.add(self.data, s, result)
 
-    def add(self, root, s, result):
+    def add(
+        self,
+        root: MutableMapping[int, str | MutableMapping[int, str | MutableMapping[int, str]]],
+        s: str,
+        result: str,
+    ) -> None:
         if not isinstance(root, MutableMapping) or len(s) <= 0:
             raise RuntimeError("trie conflict detected")
 
         if ord(s[0]) in root:
-            return self.add(root[ord(s[0])], s[1:], result)
+            self.add(root[ord(s[0])], s[1:], result)
+            return
         if len(s) > 1:
             d = {}
             root[ord(s[0])] = d
-            return self.add(d, s[1:], result)
+            self.add(d, s[1:], result)
+            return
         root[ord(s)] = result
-        return None
+        return
 
     def get(self, keys, more_available: bool):
         result = self.get_recurse(self.data, keys, more_available)
@@ -209,7 +223,15 @@ class KeyqueueTrie:
             result = self.read_cursor_position(keys, more_available)
         return result
 
-    def get_recurse(self, root, keys, more_available: bool):
+    def get_recurse(
+        self,
+        root: (
+            MutableMapping[int, str | MutableMapping[int, str | MutableMapping[int, str]]]
+            | typing.Literal["mouse", "sgrmouse"]
+        ),
+        keys: Collection[int],
+        more_available: bool,
+    ):
         if not isinstance(root, MutableMapping):
             if root == "mouse":
                 return self.read_mouse_info(keys, more_available)
@@ -227,7 +249,7 @@ class KeyqueueTrie:
             return None
         return self.get_recurse(root[keys[0]], keys[1:], more_available)
 
-    def read_mouse_info(self, keys, more_available: bool):
+    def read_mouse_info(self, keys: Collection[int], more_available: bool):
         if len(keys) < 3:
             if more_available:
                 raise MoreInputRequired()
@@ -236,17 +258,18 @@ class KeyqueueTrie:
         b = keys[0] - 32
         x, y = (keys[1] - 33) % 256, (keys[2] - 33) % 256  # supports 0-255
 
-        prefix = ""
+        prefixes = []
         if b & 4:
-            prefix = f"{prefix}shift "
+            prefixes.append("shift ")
         if b & 8:
-            prefix = f"{prefix}meta "
+            prefixes.append("meta ")
         if b & 16:
-            prefix = f"{prefix}ctrl "
+            prefixes.append("ctrl ")
         if (b & MOUSE_MULTIPLE_CLICK_MASK) >> 9 == 1:
-            prefix = f"{prefix}double "
+            prefixes.append("double ")
         if (b & MOUSE_MULTIPLE_CLICK_MASK) >> 9 == 2:
-            prefix = f"{prefix}triple "
+            prefixes.append("triple ")
+        prefix = "".join(prefixes)
 
         # 0->1, 1->2, 2->3, 64->4, 65->5
         button = ((b & 64) // 64 * 3) + (b & 3) + 1
@@ -265,7 +288,7 @@ class KeyqueueTrie:
 
         return ((f"{prefix}mouse {action}", button, x, y), keys[3:])
 
-    def read_sgrmouse_info(self, keys, more_available: bool):
+    def read_sgrmouse_info(self, keys: Collection[int], more_available: bool):
         # Helpful links:
         # https://stackoverflow.com/questions/5966903/how-to-get-mousemove-and-mouseclick-in-bash
         # http://invisible-island.net/xterm/ctlseqs/ctlseqs.pdf
@@ -289,9 +312,10 @@ class KeyqueueTrie:
                 raise MoreInputRequired()
             return None
 
-        (b, x, y) = value[:-1].split(";")
+        (b, x, y) = (int(val) for val in value[:-1].split(";"))
+        action = value[-1]
 
-        # shift, meta, ctrl etc. is not communicated on my machine, so I
+        # shift, etc. is not communicated on my machine, so I
         # can't and won't be able to add support for it.
         # Double and triple clicks are not supported as well. They can be
         # implemented by using a timer. This timer can check if the last
@@ -300,19 +324,30 @@ class KeyqueueTrie:
         # here will cause an inconsistent behaviour. I do not plan to use
         # that feature, so I won't implement it.
 
-        button = ((int(b) & 64) // 64 * 3) + (int(b) & 3) + 1
-        x = int(x) - 1
-        y = int(y) - 1
+        prefixes = []
+        if b & 8:
+            prefixes.append("meta ")
+        if b & 16:
+            prefixes.append("ctrl ")
+        prefix = "".join(prefixes)
 
-        if value[-1] == "M":
-            if int(b) & MOUSE_DRAG_FLAG:
+        wheel_used: typing.Literal[0, 1] = (b & 64) >> 6
+
+        button = (wheel_used * 3) + (b & 3) + 1
+        x -= 1
+        y -= 1
+
+        if action == "M":
+            if b & MOUSE_DRAG_FLAG:
                 action = "drag"
             else:
                 action = "press"
-        else:
+        elif action == "m":
             action = "release"
+        else:
+            raise ValueError(f"Unknown mouse action: {action!r}")
 
-        return ((f"mouse {action}", button, x, y), keys[pos_m + 1 :])
+        return ((f"{prefix}mouse {action}", button, x, y), keys[pos_m + 1 :])
 
     def read_cursor_position(self, keys, more_available: bool):
         """
@@ -459,13 +494,22 @@ def process_keyqueue(codes: Sequence[int], more_available: bool) -> tuple[list[s
 
     em = str_util.get_byte_encoding()
 
-    if em == "wide" and code < 256 and within_double_byte(code.to_bytes(1, "little"), 0, 0):
+    if (
+        em == "wide"
+        and code < 256
+        and within_double_byte(
+            code.to_bytes(1, "little"),
+            0,
+            0,
+        )
+    ):
         if not codes[1:] and more_available:
             raise MoreInputRequired()
         if codes[1:] and codes[1] < 256:
             db = chr(code) + chr(codes[1])
             if within_double_byte(db, 0, 1):
                 return [db], codes[2:]
+
     if em == "utf8" and 127 < code < 256:
         if code & 0xE0 == 0xC0:  # 2-byte form
             need_more = 1
@@ -476,14 +520,14 @@ def process_keyqueue(codes: Sequence[int], more_available: bool) -> tuple[list[s
         else:
             return [f"<{code:d}>"], codes[1:]
 
-        for i in range(need_more):
-            if len(codes) - 1 <= i:
+        for i in range(1, need_more + 1):
+            if len(codes) <= i:
                 if more_available:
                     raise MoreInputRequired()
 
                 return [f"<{code:d}>"], codes[1:]
 
-            k = codes[i + 1]
+            k = codes[i]
             if k > 256 or k & 0xC0 != 0x80:
                 return [f"<{code:d}>"], codes[1:]
 
