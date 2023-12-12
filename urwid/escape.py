@@ -174,7 +174,7 @@ input_sequences = [
                 "delete",
                 "page up",
                 "page down",
-                *(f"f{idx}" for idx in range(1, 20)),
+                *(f"f{idx}" for idx in range(1, 21)),
             ),
         )
     ),
@@ -264,7 +264,7 @@ class KeyqueueTrie:
         if b & 8:
             prefixes.append("meta ")
         if b & 16:
-            prefixes.append(f"ctrl ")
+            prefixes.append("ctrl ")
         if (b & MOUSE_MULTIPLE_CLICK_MASK) >> 9 == 1:
             prefixes.append("double ")
         if (b & MOUSE_MULTIPLE_CLICK_MASK) >> 9 == 2:
