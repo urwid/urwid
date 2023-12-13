@@ -41,6 +41,7 @@ IS_WINDOWS = sys.platform == "win32"
 
 # curses.KEY_RESIZE (sometimes not defined)
 if IS_WINDOWS:
+    KEY_MOUSE = 539  # under Windows key mouse is different
     KEY_RESIZE = 546
 
     COLOR_CORRECTION: dict[int, int] = dict(
@@ -73,11 +74,10 @@ if IS_WINDOWS:
     curses.initscr = initscr
 
 else:
+    KEY_MOUSE = 409  # curses.KEY_MOUSE
     KEY_RESIZE = 410
 
     COLOR_CORRECTION = {}
-
-KEY_MOUSE = 409  # curses.KEY_MOUSE
 
 _curses_colours = {
     "default": (-1, 0),
@@ -353,16 +353,15 @@ class Screen(BaseScreen, RealTerminal):
         # around a bug with some braindead curses implementations that
         # return "no key" between "window resize" commands
         if keys == ["window resize"] and self.prev_input_resize:
-            while True:
-                keys, raw2 = self._get_input(self.resize_tenths)
-                raw += raw2
-                if not keys:
-                    keys, raw2 = self._get_input(self.resize_tenths)
-                    raw += raw2
-                if keys != ["window resize"]:
+            for _ in range(2):
+                new_keys, new_raw = self._get_input(self.resize_tenths)
+                raw += new_raw
+                if new_keys and new_keys != ["window resize"]:
+                    if "window resize" in new_keys:
+                        keys = new_keys
+                    else:
+                        keys.extend(new_keys)
                     break
-            if keys[-1:] != ["window resize"]:
-                keys.append("window resize")
 
         if keys == ["window resize"]:
             self.prev_input_resize = 2

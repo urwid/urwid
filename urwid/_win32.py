@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 import typing
 from ctypes import POINTER, Structure, Union, windll
 from ctypes.wintypes import BOOL, CHAR, DWORD, HANDLE, LPDWORD, SHORT, UINT, WCHAR, WORD
@@ -116,12 +117,12 @@ class INPUT_RECORD(Structure):
     _fields_: typing.ClassVar[list[tuple[str, type]]] = [("EventType", WORD), ("Event", Event)]
 
 
-class EventType:
-    FOCUS_EVENT = 0x0010
+class EventType(enum.IntFlag):
     KEY_EVENT = 0x0001
-    MENU_EVENT = 0x0008
     MOUSE_EVENT = 0x0002
     WINDOW_BUFFER_SIZE_EVENT = 0x0004
+    MENU_EVENT = 0x0008
+    FOCUS_EVENT = 0x0010
 
 
 # https://docs.microsoft.com/de-de/windows/console/getstdhandle
