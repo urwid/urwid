@@ -34,6 +34,8 @@ if typing.TYPE_CHECKING:
 
     from typing_extensions import Literal, Self
 
+    from urwid import Canvas
+
 IS_WINDOWS = sys.platform == "win32"
 
 if not IS_WINDOWS:
@@ -836,7 +838,7 @@ class AttrSpec:
         )
         return self.background
 
-    def get_rgb_values(self):
+    def get_rgb_values(self) -> tuple[int | None, int | None, int | None, int | None, int | None, int | None]:
         """
         Return (fg_red, fg_green, fg_blue, bg_red, bg_green, bg_blue) color
         components.  Each component is in the range 0-255.  Values are taken
@@ -999,8 +1001,8 @@ class BaseScreen(metaclass=BaseMeta):
 
     def __init__(self) -> None:
         super().__init__()
-        self._palette = {}
-        self._started = False
+        self._palette: dict[str | None, tuple[AttrSpec, AttrSpec, AttrSpec, AttrSpec, AttrSpec]] = {}
+        self._started: bool = False
 
     @property
     def started(self) -> bool:
@@ -1024,7 +1026,7 @@ class BaseScreen(metaclass=BaseMeta):
             self._start(*args, **kwargs)
         return StoppingContext(self)
 
-    def _start(self):
+    def _start(self) -> None:
         pass
 
     def stop(self) -> None:
@@ -1032,7 +1034,7 @@ class BaseScreen(metaclass=BaseMeta):
             self._stop()
         self._started = False
 
-    def _stop(self):
+    def _stop(self) -> None:
         pass
 
     def run_wrapper(self, fn, *args, **kwargs):
@@ -1048,6 +1050,26 @@ class BaseScreen(metaclass=BaseMeta):
         )
         with self.start(*args, **kwargs):
             return fn()
+
+    def set_mouse_tracking(self, enable: bool = True) -> None:
+        pass
+
+    @abc.abstractmethod
+    def draw_screen(self, size: tuple[int, int], r: Canvas) -> None:
+        pass
+
+    def clear(self) -> None:
+        """Clear the screen if possible.
+
+        Force the screen to be completely repainted on the next call to draw_screen().
+        """
+
+    def get_cols_rows(self) -> tuple[int, int]:
+        """Return the terminal dimensions (num columns, num rows).
+
+        Default (fallback) is 80x24.
+        """
+        return 24, 80
 
     def register_palette(
         self,
@@ -1083,7 +1105,7 @@ class BaseScreen(metaclass=BaseMeta):
 
     def register_palette_entry(
         self,
-        name: str,
+        name: str | None,
         foreground: str,
         background: str,
         mono: str | None = None,
@@ -1153,7 +1175,7 @@ class BaseScreen(metaclass=BaseMeta):
             mono = ",".join(mono)
         if mono is None:
             mono = DEFAULT
-        mono = AttrSpec(mono, DEFAULT, 1)
+        mono_spec = AttrSpec(mono, DEFAULT, 1)
 
         if foreground_high is None:
             foreground_high = foreground
@@ -1179,8 +1201,8 @@ class BaseScreen(metaclass=BaseMeta):
         else:
             high_88 = AttrSpec(foreground_high, background_high, 88)
 
-        signals.emit_signal(self, UPDATE_PALETTE_ENTRY, name, basic, mono, high_88, high_256, high_true)
-        self._palette[name] = (basic, mono, high_88, high_256, high_true)
+        signals.emit_signal(self, UPDATE_PALETTE_ENTRY, name, basic, mono_spec, high_88, high_256, high_true)
+        self._palette[name] = (basic, mono_spec, high_88, high_256, high_true)
 
 
 def _test():

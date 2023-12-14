@@ -41,8 +41,14 @@ from .select_loop import SelectEventLoop
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Iterable
 
+    from typing_extensions import Self
+
     from urwid.display_common import BaseScreen
     from urwid.widget import Widget
+
+    from .abstract_loop import EventLoop
+
+    _T = typing.TypeVar("_T")
 
 
 try:  # noqa: SIM105
@@ -108,16 +114,19 @@ class MainLoop:
     def __init__(
         self,
         widget: Widget,
-        palette=(),
+        palette: Iterable[
+            tuple[str, str] | tuple[str, str, str] | tuple[str, str, str, str] | tuple[str, str, str, str, str, str]
+        ] = (),
         screen: BaseScreen | None = None,
         handle_mouse: bool = True,
         input_filter: Callable[[list[str], list[int]], list[str]] | None = None,
         unhandled_input: Callable[[str | tuple[str, int, int, int]], bool] | None = None,
-        event_loop=None,
+        event_loop: EventLoop | None = None,
         pop_ups: bool = False,
     ):
         self._widget = widget
         self.handle_mouse = handle_mouse
+        self._pop_ups = False  # only initialize placeholder
         self.pop_ups = pop_ups  # triggers property setting side-effect
 
         if not screen:
@@ -126,8 +135,8 @@ class MainLoop:
         if palette:
             screen.register_palette(palette)
 
-        self.screen = screen
-        self.screen_size = None
+        self.screen: BaseScreen = screen
+        self.screen_size: tuple[int, int] | None = None
 
         self._unhandled_input = unhandled_input
         self._input_filter = input_filter
@@ -136,7 +145,7 @@ class MainLoop:
             raise NotImplementedError(f"screen object passed {screen!r} does not support external event loops")
         if event_loop is None:
             event_loop = SelectEventLoop()
-        self.event_loop = event_loop
+        self.event_loop: EventLoop = event_loop
 
         if hasattr(self.screen, "signal_handler_setter"):
             # Tell the screen what function it must use to set
@@ -171,11 +180,11 @@ class MainLoop:
         self.widget = widget
 
     @property
-    def pop_ups(self):
+    def pop_ups(self) -> bool:
         return self._pop_ups
 
     @pop_ups.setter
-    def pop_ups(self, pop_ups) -> None:
+    def pop_ups(self, pop_ups: bool) -> None:
         self._pop_ups = pop_ups
         if pop_ups:
             self._topmost_widget = PopUpTarget(self._widget)
@@ -191,7 +200,7 @@ class MainLoop:
         )
         self.pop_ups = pop_ups
 
-    def set_alarm_in(self, sec, callback, user_data=None):
+    def set_alarm_in(self, sec: float, callback: Callable[[Self, _T], typing.Any], user_data: _T = None):
         """
         Schedule an alarm in *sec* seconds that will call *callback* from the
         within the :meth:`run` method.
@@ -208,7 +217,7 @@ class MainLoop:
 
         return self.event_loop.alarm(sec, cb)
 
-    def set_alarm_at(self, tm, callback, user_data=None):
+    def set_alarm_at(self, tm: float, callback: Callable[[Self, _T], typing.Any], user_data: _T = None):
         """
         Schedule an alarm at *tm* time that will call *callback* from the
         within the :meth:`run` function. Returns a handle that may be passed to
@@ -226,14 +235,14 @@ class MainLoop:
 
         return self.event_loop.alarm(tm - time.time(), cb)
 
-    def remove_alarm(self, handle):
+    def remove_alarm(self, handle) -> bool:
         """
         Remove an alarm. Return ``True`` if *handle* was found, ``False``
         otherwise.
         """
         return self.event_loop.remove_alarm(handle)
 
-    def watch_pipe(self, callback):
+    def watch_pipe(self, callback: Callable[[bytes], bool]) -> int:
         """
         Create a pipe for use by a subprocess or thread to trigger a callback
         in the process/thread running the main loop.
@@ -276,7 +285,7 @@ class MainLoop:
         self._watch_pipes[pipe_wr] = (watch_handle, pipe_rd)
         return pipe_wr
 
-    def remove_watch_pipe(self, write_fd):
+    def remove_watch_pipe(self, write_fd: int) -> bool:
         """
         Close the read end of the pipe and remove the watch created by
         :meth:`watch_pipe`. You are responsible for closing the write end of
@@ -294,7 +303,7 @@ class MainLoop:
         os.close(pipe_rd)
         return True
 
-    def watch_file(self, fd, callback):
+    def watch_file(self, fd: int, callback: Callable[[], typing.Any]):
         """
         Call *callback* when *fd* has some data to read. No parameters are
         passed to callback.
@@ -310,7 +319,7 @@ class MainLoop:
         """
         return self.event_loop.remove_watch_file(handle)
 
-    def run(self):
+    def run(self) -> None:
         """
         Start the main loop handling input events and updating the screen. The
         loop will continue until an :exc:`ExitMainLoop` exception is raised.
@@ -351,7 +360,7 @@ class MainLoop:
         screen.draw_screen((20, 10), 'fake canvas')
         """
 
-    def start(self):
+    def start(self) -> StoppingContext:
         """
         Sets up the main loop, hooking into the event loop where necessary.
         Starts the :attr:`screen` if it hasn't already been started.
@@ -471,7 +480,7 @@ class MainLoop:
             raw: list[int] = []
             while not keys:
                 if next_alarm:
-                    sec = max(0, next_alarm[0] - time.time())
+                    sec = max(0.0, next_alarm[0] - time.time())
                     self.screen.set_input_timeouts(sec)
                 else:
                     self.screen.set_input_timeouts(None)
@@ -518,7 +527,7 @@ class MainLoop:
         screen.get_cols_rows()
         widget.render((10, 5), focus=True)
         screen.draw_screen((10, 5), None)
-        screen.set_input_timeouts(0)
+        screen.set_input_timeouts(0.0)
         screen.get_input(True)
         """
 
@@ -617,7 +626,7 @@ class MainLoop:
             return self._unhandled_input(data)
         return False
 
-    def entering_idle(self):
+    def entering_idle(self) -> None:
         """
         This method is called whenever the event loop is about to enter the
         idle state. :meth:`draw_screen` is called here to update the
@@ -626,7 +635,7 @@ class MainLoop:
         if self.screen.started:
             self.draw_screen()
 
-    def draw_screen(self):
+    def draw_screen(self) -> None:
         """
         Render the widgets and paint the screen. This method is called
         automatically from :meth:`entering_idle`.

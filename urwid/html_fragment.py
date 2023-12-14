@@ -33,6 +33,8 @@ from urwid.event_loop import ExitMainLoop
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
+    from urwid import Canvas
+
 # replace control characters with ?'s
 _trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 256)])
 
@@ -75,17 +77,13 @@ class HtmlGenerator(BaseScreen):
         self.bright_is_bold = bright_is_bold
         self.has_underline = has_underline
 
-    def set_mouse_tracking(self, enable=True):
-        """Not yet implemented"""
-        pass
-
     def set_input_timeouts(self, *args):
         pass
 
     def reset_default_terminal_palette(self, *args):
         pass
 
-    def draw_screen(self, size, r):
+    def draw_screen(self, size: tuple[int, int], r: Canvas):
         """Create an html fragment from the render object.
         Append it to HtmlGenerator.fragments list.
         """
@@ -128,15 +126,6 @@ class HtmlGenerator(BaseScreen):
 
         # add the fragment to the list
         self.fragments.append(f"<pre>{''.join(lines)}</pre>")
-
-    def clear(self):
-        """
-        Force the screen to be completely repainted on the next
-        call to draw_screen().
-
-        (does nothing for html_fragment)
-        """
-        pass
 
     def get_cols_rows(self):
         """Return the next screen size in HtmlGenerator.sizes."""
