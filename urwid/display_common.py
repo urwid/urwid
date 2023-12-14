@@ -1069,7 +1069,7 @@ class BaseScreen(metaclass=BaseMeta):
 
         Default (fallback) is 80x24.
         """
-        return 24, 80
+        return 80, 24
 
     def register_palette(
         self,
