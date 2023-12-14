@@ -52,6 +52,7 @@ class Screen(BaseScreen, RealTerminal):
         terminal.
         """
         super().__init__()
+        self._partial_codes: list[int] = []
         self._pal_escape = {}
         self._pal_attrspec = {}
         signals.connect_signal(self, UPDATE_PALETTE_ENTRY, self._on_update_palette_entry)
@@ -84,6 +85,10 @@ class Screen(BaseScreen, RealTerminal):
         # pipe for signalling external event loops about resize events
         self._resize_pipe_rd, self._resize_pipe_wr = socket.socketpair()
         self._resize_pipe_rd.setblocking(False)
+
+    def __del__(self) -> None:
+        self._resize_pipe_rd.close()
+        self._resize_pipe_wr.close()
 
     def _sigwinch_handler(self, signum: int, frame: FrameType | None = None) -> None:
         """
@@ -262,18 +267,16 @@ class Screen(BaseScreen, RealTerminal):
 
         # Avoid pegging CPU at 100% when slowly resizing
         if keys == ["window resize"] and self.prev_input_resize:
-            while True:
+            for _ in range(2):
                 self._wait_for_input_ready(self.resize_wait)
-                keys, raw2 = self.parse_input(None, None, self.get_available_raw_input())
-                raw += raw2
-                # if not keys:
-                #     keys, raw2 = self._get_input(
-                #         self.resize_wait)
-                #     raw += raw2
-                if keys != ["window resize"]:
+                new_keys, new_raw = self.parse_input(None, None, self.get_available_raw_input())
+                raw += new_raw
+                if new_keys and new_keys != ["window resize"]:
+                    if "window resize" in new_keys:
+                        keys = new_keys
+                    else:
+                        keys.extend(new_keys)
                     break
-            if keys[-1:] != ["window resize"]:
-                keys.append("window resize")
 
         if keys == ["window resize"]:
             self.prev_input_resize = 2
@@ -286,7 +289,6 @@ class Screen(BaseScreen, RealTerminal):
             return keys, raw
         return keys
 
-    @abc.abstractmethod
     def get_input_descriptors(self) -> list[int]:
         """
         Return a list of integer file descriptors that should be
@@ -297,6 +299,14 @@ class Screen(BaseScreen, RealTerminal):
         This method is only called by `hook_event_loop`, so if you override
         that, you can safely ignore this.
         """
+        if not self._started:
+            return []
+
+        fd_list = [self._resize_pipe_rd]
+        fd = self._input_fileno()
+        if fd is not None:
+            fd_list.append(fd)
+        return fd_list
 
     _current_event_loop_handles = ()
 
@@ -317,7 +327,6 @@ class Screen(BaseScreen, RealTerminal):
         """
 
     _input_timeout = None
-    _partial_codes = None
 
     def _make_legacy_input_wrapper(self, event_loop, callback):
         """
@@ -341,18 +350,16 @@ class Screen(BaseScreen, RealTerminal):
     def _get_input_codes(self) -> list[int]:
         return self._get_keyboard_codes()
 
-    def get_available_raw_input(self):
+    def get_available_raw_input(self) -> list[int]:
         """
         Return any currently-available input.  Does not block.
 
         This method is only used by the default `hook_event_loop`
         implementation; you can safely ignore it if you implement your own.
         """
-        codes = self._get_input_codes()
-
-        if self._partial_codes:
-            codes = self._partial_codes + codes
-            self._partial_codes = None
+        codes = self._partial_codes or []
+        codes += self._get_input_codes()
+        self._partial_codes = []
 
         # clean out the pipe used to signal external event loops
         # that a resize has occurred
@@ -396,7 +403,7 @@ class Screen(BaseScreen, RealTerminal):
 
             def _parse_incomplete_input():
                 self._input_timeout = None
-                self._partial_codes = None
+                self._partial_codes = []
                 self.parse_input(event_loop, callback, codes, wait_for_more=False)
 
             if event_loop:
@@ -404,7 +411,7 @@ class Screen(BaseScreen, RealTerminal):
 
         else:
             processed_codes = original_codes
-            self._partial_codes = None
+            self._partial_codes = []
 
         if self._resized:
             processed.append("window resize")

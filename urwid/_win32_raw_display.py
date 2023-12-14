@@ -127,26 +127,6 @@ class Screen(_raw_display_base.Screen):
 
         super()._stop()
 
-    def get_input_descriptors(self) -> list[int]:
-        """
-        Return a list of integer file descriptors that should be
-        polled in external event loops to check for user input.
-
-        Use this method if you are implementing your own event loop.
-
-        This method is only called by `hook_event_loop`, so if you override
-        that, you can safely ignore this.
-        """
-        if not self._started:
-            return []
-
-        fd_list = [self._resize_pipe_rd]
-        fd = self._input_fileno()
-        if fd is not None:
-            fd_list.append(fd)
-
-        return fd_list
-
     def unhook_event_loop(self, event_loop):
         """
         Remove any hooks added by hook_event_loop.
@@ -247,7 +227,13 @@ class ReadInputThread(threading.Thread):
                 if inp.EventType == _win32.EventType.KEY_EVENT:
                     if not inp.Event.KeyEvent.bKeyDown:
                         continue
-                    self._input.send(inp.Event.KeyEvent.uChar.AsciiChar)
+
+                    input_data = inp.Event.KeyEvent.uChar.AsciiChar
+                    # On Windows atomic press/release of modifier keys produce phantom input with code NULL
+                    # This input cannot be decoded and should be handled as garbage.
+                    if input_data != b"\x00":
+                        self._input.send(input_data)
+
                 elif inp.EventType == _win32.EventType.WINDOW_BUFFER_SIZE_EVENT:
                     self._resize()
                 else:

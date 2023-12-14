@@ -309,10 +309,7 @@ class Screen(_raw_display_base.Screen):
         if not self._started:
             return []
 
-        fd_list = [self._resize_pipe_rd]
-        fd = self._input_fileno()
-        if fd is not None:
-            fd_list.append(fd)
+        fd_list = super().get_input_descriptors()
         if self.gpm_mev is not None:
             fd_list.append(self.gpm_mev.stdout.fileno())
         return fd_list
