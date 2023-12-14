@@ -29,13 +29,13 @@ import sys
 import typing
 from contextlib import suppress
 
-import _curses
-
 from urwid import escape
 from urwid.display_common import UNPRINTABLE_TRANS_TABLE, AttrSpec, BaseScreen, RealTerminal
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
+
+    from urwid import Canvas
 
 IS_WINDOWS = sys.platform == "win32"
 
@@ -66,7 +66,7 @@ if IS_WINDOWS:
 
         stdscr = _curses.initscr()
         for key, value in _curses.__dict__.items():
-            if key[:4] == "ACS_" or key in ("LINES", "COLS"):
+            if key[:4] == "ACS_" or key in {"LINES", "COLS"}:
                 setattr(curses, key, value)
 
         return stdscr
@@ -108,7 +108,6 @@ class Screen(BaseScreen, RealTerminal):
         self.has_color = False
         self.s = None
         self.cursor_state = None
-        self._keyqueue = []
         self.prev_input_resize = 0
         self.set_input_timeouts()
         self.last_bstate = 0
@@ -170,7 +169,7 @@ class Screen(BaseScreen, RealTerminal):
             try:
                 curses.use_default_colors()
                 self.has_default_colors = True
-            except _curses.error:
+            except curses.error:
                 self.has_default_colors = False
         self._setup_colour_pairs()
         curses.noecho()
@@ -195,7 +194,7 @@ class Screen(BaseScreen, RealTerminal):
         """
         curses.echo()
         self._curs_set(1)
-        with suppress(_curses.error):
+        with suppress(curses.error):
             curses.endwin()
             # don't block original error with curses error
 
@@ -231,7 +230,7 @@ class Screen(BaseScreen, RealTerminal):
         try:
             curses.curs_set(x)
             self.cursor_state = x
-        except _curses.error:
+        except curses.error:
             self.cursor_state = "fixed"
 
     def _clear(self) -> None:
@@ -257,7 +256,7 @@ class Screen(BaseScreen, RealTerminal):
         if not IS_WINDOWS:
             while True:
                 # this call fails sometimes, but seems to work when I try again
-                with suppress(_curses.error):
+                with suppress(curses.error):
                     curses.cbreak()
                     break
 
@@ -549,7 +548,7 @@ class Screen(BaseScreen, RealTerminal):
 
         self.s.attrset(attr)
 
-    def draw_screen(self, size: tuple[int, int], r):
+    def draw_screen(self, size: tuple[int, int], r: Canvas):
         """Paint screen with rendered canvas."""
         if not self._started:
             raise RuntimeError
@@ -564,7 +563,7 @@ class Screen(BaseScreen, RealTerminal):
             y += 1
             try:
                 self.s.move(y, 0)
-            except _curses.error:
+            except curses.error:
                 # terminal shrunk?
                 # move failed so stop rendering.
                 return
@@ -591,7 +590,7 @@ class Screen(BaseScreen, RealTerminal):
                         if not isinstance(seg, bytes):
                             raise TypeError(seg)
                         self.s.addstr(seg.decode("utf-8"))
-                except _curses.error:
+                except curses.error:
                     # it's ok to get out of the
                     # screen on the lower right
                     if y != rows - 1 or nr != len(row) - 1:
@@ -602,7 +601,7 @@ class Screen(BaseScreen, RealTerminal):
         if r.cursor is not None:
             x, y = r.cursor
             self._curs_set(1)
-            with suppress(_curses.error):
+            with suppress(curses.error):
                 self.s.move(y, x)
         else:
             self._curs_set(0)
@@ -613,8 +612,7 @@ class Screen(BaseScreen, RealTerminal):
 
     def clear(self) -> None:
         """
-        Force the screen to be completely repainted on the next
-        call to draw_screen().
+        Force the screen to be completely repainted on the next call to draw_screen().
         """
         self.s.clear()
 

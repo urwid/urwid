@@ -29,7 +29,7 @@ if typing.TYPE_CHECKING:
 SAFE_ASCII_RE = re.compile("^[ -~]*$")
 SAFE_ASCII_BYTES_RE = re.compile(b"^[ -~]*$")
 
-_byte_encoding = None
+_byte_encoding: Literal["utf8", "narrow", "wide"] = "narrow"
 
 # GENERATED DATA
 # generated from
@@ -186,14 +186,14 @@ def decode_one_right(text: bytes, pos: int) -> tuple[int, int] | None:
     return None
 
 
-def set_byte_encoding(enc: Literal["utf8", "narrow", "wide"]):
+def set_byte_encoding(enc: Literal["utf8", "narrow", "wide"]) -> None:
     if enc not in {"utf8", "narrow", "wide"}:
         raise ValueError(enc)
     global _byte_encoding  # noqa: PLW0603
     _byte_encoding = enc
 
 
-def get_byte_encoding():
+def get_byte_encoding() -> Literal["utf8", "narrow", "wide"]:
     return _byte_encoding
 
 

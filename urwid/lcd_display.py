@@ -30,24 +30,17 @@ if typing.TYPE_CHECKING:
 
     from typing_extensions import Literal
 
+    from urwid import Canvas
+
 
 class LCDScreen(BaseScreen):
     def set_terminal_properties(self, colors=None, bright_is_bold=None, has_underline=None):
-        pass
-
-    def set_mouse_tracking(self, enable=True):
         pass
 
     def set_input_timeouts(self, *args):
         pass
 
     def reset_default_terminal_palette(self, *args):
-        pass
-
-    def draw_screen(self, size, r):
-        pass
-
-    def clear(self):
         pass
 
     def get_cols_rows(self):
@@ -426,7 +419,7 @@ class CF635Screen(CFLCDScreen):
         if self._last_command is None:
             self._send_next_command()
 
-    def draw_screen(self, size: tuple[int, int], canvas):
+    def draw_screen(self, size: tuple[int, int], canvas: Canvas):
         if size != self.DISPLAY_SIZE:
             raise ValueError(size)
 

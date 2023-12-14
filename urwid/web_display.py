@@ -43,6 +43,8 @@ if typing.TYPE_CHECKING:
 
     from typing_extensions import Literal
 
+    from urwid import Canvas
+
 TEMP_DIR = tempfile.gettempdir()
 
 _js_code = r"""
@@ -759,7 +761,7 @@ class Screen:
             rows = MAX_ROWS
         self.screen_size = cols, rows
 
-    def draw_screen(self, size, r):
+    def draw_screen(self, size: tuple[int, int], r: Canvas):
         """Send a screen update to the client."""
 
         (cols, rows) = size

@@ -42,6 +42,8 @@ if typing.TYPE_CHECKING:
     import io
     from collections.abc import Callable
 
+    from urwid.event_loop import EventLoop
+
 
 class Screen(_raw_display_base.Screen):
     _term_input_file: socket.socket
@@ -62,7 +64,7 @@ class Screen(_raw_display_base.Screen):
     _dwOriginalOutMode = None
     _dwOriginalInMode = None
 
-    def _start(self, alternate_buffer=True):
+    def _start(self, alternate_buffer: bool = True) -> None:
         """
         Initialize the screen and input mode.
 
@@ -106,7 +108,7 @@ class Screen(_raw_display_base.Screen):
 
         return super()._start()
 
-    def _stop(self):
+    def _stop(self) -> None:
         """
         Restore the screen.
         """
@@ -127,7 +129,7 @@ class Screen(_raw_display_base.Screen):
 
         super()._stop()
 
-    def unhook_event_loop(self, event_loop):
+    def unhook_event_loop(self, event_loop: EventLoop) -> None:
         """
         Remove any hooks added by hook_event_loop.
         """
@@ -146,7 +148,11 @@ class Screen(_raw_display_base.Screen):
             event_loop.remove_alarm(self._input_timeout)
             self._input_timeout = None
 
-    def hook_event_loop(self, event_loop, callback):
+    def hook_event_loop(
+        self,
+        event_loop: EventLoop,
+        callback: Callable[[list[str], list[int]], typing.Any],
+    ) -> None:
         """
         Register the given callback with the event loop, to be called with new
         input whenever it's available.  The callback should be passed a list of

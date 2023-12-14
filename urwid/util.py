@@ -31,8 +31,14 @@ from urwid import escape
 
 if typing.TYPE_CHECKING:
     from collections.abc import Generator
+    from types import TracebackType
 
-    from typing_extensions import Self
+    from typing_extensions import Protocol, Self
+
+    class CanBeStopped(Protocol):
+        def stop(self) -> None:
+            ...
+
 
 str_util = escape.str_util
 
@@ -528,17 +534,24 @@ def int_scale(val: int, val_range: int, out_range: int):
     return num // dem
 
 
-class StoppingContext:
+class StoppingContext(typing.ContextManager["StoppingContext"]):
     """Context manager that calls ``stop`` on a given object on exit.  Used to
     make the ``start`` method on `MainLoop` and `BaseScreen` optionally act as
     context managers.
     """
 
-    def __init__(self, wrapped):
+    __slots__ = ("_wrapped",)
+
+    def __init__(self, wrapped: CanBeStopped) -> None:
         self._wrapped = wrapped
 
     def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, *exc_info):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         self._wrapped.stop()

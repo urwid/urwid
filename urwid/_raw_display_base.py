@@ -37,9 +37,12 @@ from urwid import escape, signals, util
 from urwid.display_common import UNPRINTABLE_TRANS_TABLE, UPDATE_PALETTE_ENTRY, AttrSpec, BaseScreen, RealTerminal
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable
     from types import FrameType
 
     from typing_extensions import Literal
+
+    from urwid import Canvas, EventLoop
 
     class FileLikeObj(typing.Protocol):
         def fileno(self) -> int:
@@ -53,12 +56,11 @@ class Screen(BaseScreen, RealTerminal):
         """
         super().__init__()
         self._partial_codes: list[int] = []
-        self._pal_escape = {}
-        self._pal_attrspec = {}
+        self._pal_escape: dict[str | None, str] = {}
+        self._pal_attrspec: dict[str | None, AttrSpec] = {}
         signals.connect_signal(self, UPDATE_PALETTE_ENTRY, self._on_update_palette_entry)
         self.colors: Literal[1, 16, 88, 256, 16777216] = 16  # FIXME: detect this
         self.has_underline = True  # FIXME: detect this
-        self._keyqueue = []
         self.prev_input_resize = 0
         self.set_input_timeouts()
         self.screen_buf = None
@@ -100,7 +102,7 @@ class Screen(BaseScreen, RealTerminal):
         self._resized = True
         self.screen_buf = None
 
-    def _input_fileno(self):
+    def _input_fileno(self) -> int | None:
         """Returns the fileno of the input stream, or None if it doesn't have one.
 
         A stream without a fileno can't participate in whatever.
@@ -110,9 +112,9 @@ class Screen(BaseScreen, RealTerminal):
 
         return None
 
-    def _on_update_palette_entry(self, name, *attrspecs):
+    def _on_update_palette_entry(self, name: str | None, *attrspecs: AttrSpec):
         # copy the attribute to a dictionary containing the escape seqences
-        a = attrspecs[{16: 0, 1: 1, 88: 2, 256: 3, 2**24: 4}[self.colors]]
+        a: AttrSpec = attrspecs[{16: 0, 1: 1, 88: 2, 256: 3, 2**24: 4}[self.colors]]
         self._pal_attrspec[name] = a
         self._pal_escape[name] = self._attrspec_to_escape(a)
 
@@ -166,7 +168,7 @@ class Screen(BaseScreen, RealTerminal):
             self.write(escape.MOUSE_TRACKING_OFF)
 
     @abc.abstractmethod
-    def _start(self, alternate_buffer=True):
+    def _start(self, alternate_buffer: bool = True) -> None:
         """
         Initialize the screen and input mode.
 
@@ -186,7 +188,7 @@ class Screen(BaseScreen, RealTerminal):
         self.flush()
 
     @abc.abstractmethod
-    def _stop(self):
+    def _stop(self) -> None:
         """
         Restore the screen.
         """
@@ -311,13 +313,17 @@ class Screen(BaseScreen, RealTerminal):
     _current_event_loop_handles = ()
 
     @abc.abstractmethod
-    def unhook_event_loop(self, event_loop):
+    def unhook_event_loop(self, event_loop: EventLoop) -> None:
         """
         Remove any hooks added by hook_event_loop.
         """
 
     @abc.abstractmethod
-    def hook_event_loop(self, event_loop, callback):
+    def hook_event_loop(
+        self,
+        event_loop: EventLoop,
+        callback: Callable[[list[str], list[int]], typing.Any],
+    ) -> None:
         """
         Register the given callback with the event loop, to be called with new
         input whenever it's available.  The callback should be passed a list of
@@ -357,19 +363,45 @@ class Screen(BaseScreen, RealTerminal):
         This method is only used by the default `hook_event_loop`
         implementation; you can safely ignore it if you implement your own.
         """
-        codes = self._partial_codes or []
-        codes += self._get_input_codes()
+        codes = [*self._partial_codes, *self._get_input_codes()]
         self._partial_codes = []
 
         # clean out the pipe used to signal external event loops
         # that a resize has occurred
         with contextlib.suppress(OSError):
             while True:
-                self._resize_pipe_rd.recv(1)
+                # Argument "size" is maximum buffer size to read. Since we're emptying, set it reasonably big.
+                self._resize_pipe_rd.recv(128)
 
         return codes
 
-    def parse_input(self, event_loop, callback, codes, wait_for_more=True):
+    @typing.overload
+    def parse_input(
+        self,
+        event_loop: EventLoop,
+        callback: None,
+        codes: list[int],
+        wait_for_more: bool = ...,
+    ) -> tuple[list[str], list[int]]:
+        ...
+
+    @typing.overload
+    def parse_input(
+        self,
+        event_loop: EventLoop,
+        callback: Callable[[list[str], list[int]], typing.Any],
+        codes: list[int],
+        wait_for_more: bool = ...,
+    ) -> None:
+        ...
+
+    def parse_input(
+        self,
+        event_loop: EventLoop,
+        callback: Callable[[list[str], list[int]], typing.Any] | None,
+        codes: list[int],
+        wait_for_more: bool = True,
+    ) -> tuple[list[str], list[int]] | None:
         """
         Read any available input from get_available_raw_input, parses it into
         keys, and calls the given callback.
@@ -424,7 +456,7 @@ class Screen(BaseScreen, RealTerminal):
         # For get_input
         return processed, processed_codes
 
-    def _get_keyboard_codes(self):
+    def _get_keyboard_codes(self) -> list[int]:
         codes = []
         while True:
             code = self._getch_nodelay()
@@ -448,15 +480,10 @@ class Screen(BaseScreen, RealTerminal):
     def _getch(self, timeout: int) -> int:
         ...
 
-    def _getch_nodelay(self):
+    def _getch_nodelay(self) -> int:
         return self._getch(0)
 
-    def get_cols_rows(self) -> tuple[int, int]:
-        """Return the terminal dimensions (num columns, num rows)."""
-        y, x = 24, 80
-        return x, y
-
-    def _setup_G1(self):
+    def _setup_G1(self) -> None:
         """
         Initialize the G1 character set to graphics mode if required.
         """
@@ -470,10 +497,10 @@ class Screen(BaseScreen, RealTerminal):
                 break
         self._setup_G1_done = True
 
-    def draw_screen(self, maxres, r):
+    def draw_screen(self, size: tuple[int, int], r: Canvas) -> None:
         """Paint screen with rendered canvas."""
 
-        (maxcol, maxrow) = maxres
+        (maxcol, maxrow) = size
 
         if not self._started:
             raise RuntimeError
@@ -493,9 +520,8 @@ class Screen(BaseScreen, RealTerminal):
 
         o = [escape.HIDE_CURSOR, self._attrspec_to_escape(AttrSpec("", ""))]
 
-        def partial_display():
-            # returns True if the screen is in partial display mode
-            # ie. only some rows belong to the display
+        def partial_display() -> bool:
+            # returns True if the screen is in partial display mode ie. only some rows belong to the display
             return self._rows_used is not None
 
         if not partial_display():
@@ -509,31 +535,26 @@ class Screen(BaseScreen, RealTerminal):
         cy = self._cy
         y = -1
 
-        def set_cursor_home():
+        def set_cursor_home() -> str:
             if not partial_display():
                 return escape.set_cursor_position(0, 0)
             return escape.CURSOR_HOME_COL + escape.move_cursor_up(cy)
 
-        def set_cursor_row(y):
-            if not partial_display():
-                return escape.set_cursor_position(0, y)
-            return escape.move_cursor_down(y - cy)
-
-        def set_cursor_position(x, y):
+        def set_cursor_position(x: int, y: int) -> str:
             if not partial_display():
                 return escape.set_cursor_position(x, y)
             if cy > y:
                 return "\b" + escape.CURSOR_HOME_COL + escape.move_cursor_up(cy - y) + escape.move_cursor_right(x)
             return "\b" + escape.CURSOR_HOME_COL + escape.move_cursor_down(y - cy) + escape.move_cursor_right(x)
 
-        def is_blank_row(row):
+        def is_blank_row(row) -> bool:
             if len(row) > 1:
                 return False
             if row[0][2].strip():
                 return False
             return True
 
-        def attr_to_escape(a):
+        def attr_to_escape(a: AttrSpec | str) -> str:
             if a in self._pal_escape:
                 return self._pal_escape[a]
             if isinstance(a, AttrSpec):
@@ -685,15 +706,14 @@ class Screen(BaseScreen, RealTerminal):
         new_row.append((z_attr, z_cs, z_text))
         return new_row, z_col - y_col, (y_attr, y_cs, y_text)
 
-    def clear(self):
+    def clear(self) -> None:
         """
         Force the screen to be completely repainted on the next
         call to draw_screen().
         """
         self.screen_buf = None
-        self.setup_G1 = True
 
-    def _attrspec_to_escape(self, a):
+    def _attrspec_to_escape(self, a: AttrSpec) -> str:
         """
         Convert AttrSpec instance a to an escape sequence for the terminal
 
@@ -749,7 +769,12 @@ class Screen(BaseScreen, RealTerminal):
             bg = "49"
         return f"{escape.ESC}[0;{fg};{st}{bg}m"
 
-    def set_terminal_properties(self, colors=None, bright_is_bold=None, has_underline=None):
+    def set_terminal_properties(
+        self,
+        colors: Literal[1, 16, 88, 256, 16777216] | None = None,
+        bright_is_bold: bool | None = None,
+        has_underline: bool | None = None,
+    ) -> None:
         """
         colors -- number of colors terminal supports (1, 16, 88, 256, or 2**24)
             or None to leave unchanged
@@ -780,7 +805,7 @@ class Screen(BaseScreen, RealTerminal):
         for p, v in self._palette.items():
             self._on_update_palette_entry(p, *v)
 
-    def reset_default_terminal_palette(self):
+    def reset_default_terminal_palette(self) -> None:
         """
         Attempt to set the terminal palette to default values as taken
         from xterm.  Uses number of colors from current
@@ -793,7 +818,7 @@ class Screen(BaseScreen, RealTerminal):
         else:
             colors = self.colors
 
-        def rgb_values(n):
+        def rgb_values(n) -> tuple[int | None, int | None, int | None]:
             if colors == 16:
                 aspec = AttrSpec(f"h{n:d}", "", 256)
             else:
@@ -803,7 +828,7 @@ class Screen(BaseScreen, RealTerminal):
         entries = [(n, *rgb_values(n)) for n in range(min(colors, 256))]
         self.modify_terminal_palette(entries)
 
-    def modify_terminal_palette(self, entries):
+    def modify_terminal_palette(self, entries: list[tuple[int, int | None, int | None, int | None]]):
         """
         entries - list of (index, red, green, blue) tuples.
 
