@@ -27,6 +27,7 @@ from __future__ import annotations
 import contextlib
 import errno
 import heapq
+import logging
 import os
 import time
 import typing
@@ -56,6 +57,8 @@ class ZMQEventLoop(EventLoop):
     _alarm_break = count()
 
     def __init__(self):
+        super().__init__()
+        self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self._did_something = True
         self._alarms = []
         self._poller = zmq.Poller()

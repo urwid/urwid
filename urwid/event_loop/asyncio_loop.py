@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import logging
 import typing
 
 from .abstract_loop import EventLoop, ExitMainLoop
@@ -58,6 +59,8 @@ class AsyncioEventLoop(EventLoop):
     _we_started_event_loop = False
 
     def __init__(self, *, loop: asyncio.AbstractEventLoop | None = None, **kwargs) -> None:
+        super().__init__()
+        self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         if loop:
             self._loop: asyncio.AbstractEventLoop = loop
         else:

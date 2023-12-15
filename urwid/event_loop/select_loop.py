@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import contextlib
 import heapq
+import logging
 import selectors
 import time
 import typing
@@ -47,6 +48,8 @@ class SelectEventLoop(EventLoop):
     """
 
     def __init__(self) -> None:
+        super().__init__()
+        self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self._alarms: list[tuple[float, int, Callable[[], typing.Any]]] = []
         self._watch_files: dict[int, Callable[[], typing.Any]] = {}
         self._idle_handle: int = 0
@@ -174,23 +177,28 @@ class SelectEventLoop(EventLoop):
                     timeout = 0.0
                     tm = "idle"
 
+                self.logger.debug(f"Waiting for input: timeout={timeout!r}")
                 ready = [event for event, _ in selector.select(timeout)]
 
             elif self._watch_files:
+                self.logger.debug("Waiting for input: timeout")
                 ready = [event for event, _ in selector.select()]
             else:
                 ready = []
 
         if not ready:
             if tm == "idle":
+                self.logger.debug("No input, entering IDLE")
                 self._entering_idle()
                 self._did_something = False
             elif tm is not None:
                 # must have been a timeout
                 tm, _tie_break, alarm_callback = heapq.heappop(self._alarms)
+                self.logger.debug(f"No input in timeout, calling scheduled {alarm_callback!r}")
                 alarm_callback()
                 self._did_something = True
 
+        self.logger.debug("Processing input")
         for record in ready:
             record.data()
             self._did_something = True

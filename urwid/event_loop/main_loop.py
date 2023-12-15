@@ -23,7 +23,9 @@
 from __future__ import annotations
 
 import heapq
+import logging
 import os
+import sys
 import time
 import typing
 import warnings
@@ -51,11 +53,7 @@ if typing.TYPE_CHECKING:
     _T = typing.TypeVar("_T")
 
 
-try:  # noqa: SIM105
-    import fcntl
-except ImportError:
-    pass  # windows
-
+IS_WINDOWS = sys.platform == "win32"
 PIPE_BUFFER_READ_SIZE = 4096  # can expect this much on Linux, so try for that
 
 __all__ = ("CantUseExternalLoop", "MainLoop")
@@ -124,6 +122,7 @@ class MainLoop:
         event_loop: EventLoop | None = None,
         pop_ups: bool = False,
     ):
+        self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self._widget = widget
         self.handle_mouse = handle_mouse
         self._pop_ups = False  # only initialize placeholder
@@ -211,6 +210,7 @@ class MainLoop:
                          object and *user_data*
         :type callback: callable
         """
+        self.logger.debug(f"Setting alarm in {sec!r} seconds with callback {callback!r}")
 
         def cb():
             callback(self, user_data)
@@ -229,11 +229,13 @@ class MainLoop:
                          object and *user_data*
         :type callback: callable
         """
+        sec = tm - time.time()
+        self.logger.debug(f"Setting alarm in {sec!r} seconds with callback {callback!r}")
 
         def cb():
             callback(self, user_data)
 
-        return self.event_loop.alarm(tm - time.time(), cb)
+        return self.event_loop.alarm(sec, cb)
 
     def remove_alarm(self, handle) -> bool:
         """
@@ -242,66 +244,70 @@ class MainLoop:
         """
         return self.event_loop.remove_alarm(handle)
 
-    def watch_pipe(self, callback: Callable[[bytes], bool]) -> int:
-        """
-        Create a pipe for use by a subprocess or thread to trigger a callback
-        in the process/thread running the main loop.
+    if not IS_WINDOWS:
 
-        :param callback: function taking one parameter to call from within
-                         the process/thread running the main loop
-        :type callback: callable
+        def watch_pipe(self, callback: Callable[[bytes], bool]) -> int:
+            """
+            Create a pipe for use by a subprocess or thread to trigger a callback
+            in the process/thread running the main loop.
 
-        This method returns a file descriptor attached to the write end of a
-        pipe. The read end of the pipe is added to the list of files
-        :attr:`event_loop` is watching. When data is written to the pipe the
-        callback function will be called and passed a single value containing
-        data read from the pipe.
+            :param callback: function taking one parameter to call from within
+                             the process/thread running the main loop
+            :type callback: callable
 
-        This method may be used any time you want to update widgets from
-        another thread or subprocess.
+            This method returns a file descriptor attached to the write end of a
+            pipe. The read end of the pipe is added to the list of files
+            :attr:`event_loop` is watching. When data is written to the pipe the
+            callback function will be called and passed a single value containing
+            data read from the pipe.
 
-        Data may be written to the returned file descriptor with
-        ``os.write(fd, data)``. Ensure that data is less than 512 bytes (or 4K
-        on Linux) so that the callback will be triggered just once with the
-        complete value of data passed in.
+            This method may be used any time you want to update widgets from
+            another thread or subprocess.
 
-        If the callback returns ``False`` then the watch will be removed from
-        :attr:`event_loop` and the read end of the pipe will be closed. You
-        are responsible for closing the write end of the pipe with
-        ``os.close(fd)``.
-        """
-        pipe_rd, pipe_wr = os.pipe()
-        fcntl.fcntl(pipe_rd, fcntl.F_SETFL, os.O_NONBLOCK)
-        watch_handle = None
+            Data may be written to the returned file descriptor with
+            ``os.write(fd, data)``. Ensure that data is less than 512 bytes (or 4K
+            on Linux) so that the callback will be triggered just once with the
+            complete value of data passed in.
 
-        def cb() -> None:
-            data = os.read(pipe_rd, PIPE_BUFFER_READ_SIZE)
-            rval = callback(data)
-            if rval is False:
-                self.event_loop.remove_watch_file(watch_handle)
-                os.close(pipe_rd)
+            If the callback returns ``False`` then the watch will be removed from
+            :attr:`event_loop` and the read end of the pipe will be closed. You
+            are responsible for closing the write end of the pipe with
+            ``os.close(fd)``.
+            """
+            import fcntl
 
-        watch_handle = self.event_loop.watch_file(pipe_rd, cb)
-        self._watch_pipes[pipe_wr] = (watch_handle, pipe_rd)
-        return pipe_wr
+            pipe_rd, pipe_wr = os.pipe()
+            fcntl.fcntl(pipe_rd, fcntl.F_SETFL, os.O_NONBLOCK)
+            watch_handle = None
 
-    def remove_watch_pipe(self, write_fd: int) -> bool:
-        """
-        Close the read end of the pipe and remove the watch created by
-        :meth:`watch_pipe`. You are responsible for closing the write end of
-        the pipe.
+            def cb() -> None:
+                data = os.read(pipe_rd, PIPE_BUFFER_READ_SIZE)
+                rval = callback(data)
+                if rval is False:
+                    self.event_loop.remove_watch_file(watch_handle)
+                    os.close(pipe_rd)
 
-        Returns ``True`` if the watch pipe exists, ``False`` otherwise
-        """
-        try:
-            watch_handle, pipe_rd = self._watch_pipes.pop(write_fd)
-        except KeyError:
-            return False
+            watch_handle = self.event_loop.watch_file(pipe_rd, cb)
+            self._watch_pipes[pipe_wr] = (watch_handle, pipe_rd)
+            return pipe_wr
 
-        if not self.event_loop.remove_watch_file(watch_handle):
-            return False
-        os.close(pipe_rd)
-        return True
+        def remove_watch_pipe(self, write_fd: int) -> bool:
+            """
+            Close the read end of the pipe and remove the watch created by
+            :meth:`watch_pipe`. You are responsible for closing the write end of
+            the pipe.
+
+            Returns ``True`` if the watch pipe exists, ``False`` otherwise
+            """
+            try:
+                watch_handle, pipe_rd = self._watch_pipes.pop(write_fd)
+            except KeyError:
+                return False
+
+            if not self.event_loop.remove_watch_file(watch_handle):
+                return False
+            os.close(pipe_rd)
+            return True
 
     def watch_file(self, fd: int, callback: Callable[[], typing.Any]):
         """
@@ -310,6 +316,7 @@ class MainLoop:
 
         Returns a handle that may be passed to :meth:`remove_watch_file`.
         """
+        self.logger.debug(f"Setting watch file descriptor {fd!r} with {callback!r}")
         return self.event_loop.watch_file(fd, callback)
 
     def remove_watch_file(self, handle):
@@ -379,13 +386,15 @@ class MainLoop:
         :exc:`ExitMainLoop` (or anything else) is raised.
         """
 
+        self.logger.debug(f"Starting event loop {self.event_loop.__class__.__name__!r} to manage display.")
+
         self.screen.start()
 
         if self.handle_mouse:
             self.screen.set_mouse_tracking()
 
         if not hasattr(self.screen, "hook_event_loop"):
-            raise CantUseExternalLoop("Screen {0!r} doesn't support external event loops")
+            raise CantUseExternalLoop(f"Screen {self.screen!r} doesn't support external event loops")
 
         with suppress(NameError):
             signals.connect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED, self._reset_input_descriptors)
@@ -468,6 +477,8 @@ class MainLoop:
         The alarms stored in the SelectEventLoop in :attr:`event_loop`
         are modified by this method.
         """
+        self.logger.debug(f"Starting screen {self.screen!r} event loop")
+
         next_alarm = None
 
         while True:
@@ -543,6 +554,7 @@ class MainLoop:
         Returns ``True`` if any key was handled by a widget or the
         :meth:`unhandled_input` method.
         """
+        self.logger.debug(f"Processing input: keys={keys!r}")
         if not self.screen_size:
             self.screen_size = self.screen.get_cols_rows()
 
@@ -634,6 +646,8 @@ class MainLoop:
         """
         if self.screen.started:
             self.draw_screen()
+        else:
+            self.logger.debug(f"No redrawing screen: {self.screen!r} is not started.")
 
     def draw_screen(self) -> None:
         """
@@ -646,6 +660,7 @@ class MainLoop:
         """
         if not self.screen_size:
             self.screen_size = self.screen.get_cols_rows()
+            self.logger.debug(f"Screen size recalculated: {self.screen_size!r}")
 
         canvas = self._topmost_widget.render(self.screen_size, focus=True)
         self.screen.draw_screen(self.screen_size, canvas)

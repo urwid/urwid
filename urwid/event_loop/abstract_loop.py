@@ -24,6 +24,7 @@
 from __future__ import annotations
 
 import abc
+import logging
 import signal
 import typing
 
@@ -45,6 +46,11 @@ class EventLoop(abc.ABC):
     """
     Abstract class representing an event loop to be used by :class:`MainLoop`.
     """
+
+    __slots__ = ("logger",)
+
+    def __init__(self) -> None:
+        self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
 
     @abc.abstractmethod
     def alarm(self, seconds: float, callback: Callable[[], typing.Any]) -> typing.Any:

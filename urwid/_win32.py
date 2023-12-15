@@ -81,6 +81,26 @@ class MOUSE_EVENT_RECORD(Structure):
     ]
 
 
+class MouseButtonState(enum.IntFlag):
+    """https://learn.microsoft.com/en-us/windows/console/mouse-event-record-str"""
+
+    FROM_LEFT_1ST_BUTTON_PRESSED = 0x0001
+    RIGHTMOST_BUTTON_PRESSED = 0x0002
+    FROM_LEFT_2ND_BUTTON_PRESSED = 0x0004
+    FROM_LEFT_3RD_BUTTON_PRESSED = 0x0008
+    FROM_LEFT_4TH_BUTTON_PRESSED = 0x0010
+
+
+class MouseEventFlags(enum.IntFlag):
+    """https://learn.microsoft.com/en-us/windows/console/mouse-event-record-str"""
+
+    BUTTON_PRESSED = 0x0000  # Default action, used in examples, but not in official enum
+    MOUSE_MOVED = 0x0001
+    DOUBLE_CLICK = 0x0002
+    MOUSE_WHEELED = 0x0004
+    MOUSE_HWHEELED = 0x0008
+
+
 class WINDOW_BUFFER_SIZE_RECORD(Structure):
     """https://docs.microsoft.com/en-us/windows/console/window-buffer-size-record-str"""
 

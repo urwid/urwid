@@ -108,6 +108,8 @@ exclude_lines = [
 
   # Code for static analysis is never covered:
   "if typing.TYPE_CHECKING:",
+  "@typing.overload",
+  "@overload",
 
   # Fallback code with no installed deps is almost impossible to cover properly
   "except ImportError:",
