@@ -27,6 +27,7 @@ PyGObject library is required.
 from __future__ import annotations
 
 import functools
+import logging
 import signal
 import typing
 
@@ -56,6 +57,8 @@ class GLibEventLoop(EventLoop):
     """
 
     def __init__(self) -> None:
+        super().__init__()
+        self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self._alarms: list[int] = []
         self._watch_files: dict[int, int] = {}
         self._idle_handle: int = 0

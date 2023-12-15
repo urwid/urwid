@@ -25,6 +25,7 @@ Trio library is required.
 
 from __future__ import annotations
 
+import logging
 import typing
 
 import exceptiongroup
@@ -61,6 +62,8 @@ class TrioEventLoop(EventLoop):
 
     def __init__(self):
         """Constructor."""
+        super().__init__()
+        self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
 
         self._idle_handle = 0
         self._idle_callbacks = {}

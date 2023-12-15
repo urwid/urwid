@@ -27,6 +27,7 @@ Tornado library is required.
 from __future__ import annotations
 
 import functools
+import logging
 import typing
 from contextlib import suppress
 
@@ -52,10 +53,12 @@ class TornadoEventLoop(EventLoop):
     """
 
     def __init__(self, loop: ioloop.IOLoop | None = None) -> None:
+        super().__init__()
+        self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         if loop:
             self._loop: ioloop.IOLoop = loop
         else:
-            self._loop = ioloop.IOLoop.current()  # TODO(Aleksei): Switch to the syncio.EventLoop as tornado >= 6.0 !
+            self._loop = ioloop.IOLoop.current()  # TODO(Aleksei): Switch to the asyncio.EventLoop as tornado >= 6.0 !
 
         self._pending_alarms: dict[object, int] = {}
         self._watch_handles: dict[int, int] = {}  # {<watch_handle> : <file_descriptor>}

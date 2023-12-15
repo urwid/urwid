@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import contextlib
 import functools
+import logging
 import socket
 import sys
 import threading
@@ -60,6 +61,7 @@ class Screen(_raw_display_base.Screen):
             input, self._send_input = socket.socketpair()  # noqa: A001
 
         super().__init__(input, output)
+        self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
 
     _dwOriginalOutMode = None
     _dwOriginalInMode = None
@@ -171,7 +173,7 @@ class Screen(_raw_display_base.Screen):
                 return self.parse_input(event_loop, callback, self.get_available_raw_input())
 
         fds = self.get_input_descriptors()
-        handles = [event_loop.watch_file(fd, wrapper) for fd in fds]
+        handles = [event_loop.watch_file(fd if isinstance(fd, int) else fd.fileno(), wrapper) for fd in fds]
         self._current_event_loop_handles = handles
 
     _input_thread: ReadInputThread | None = None
@@ -214,6 +216,7 @@ class ReadInputThread(threading.Thread):
     ) -> None:
         self._input = input_socket
         self._resize = resize
+        self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         super().__init__()
 
     def run(self) -> None:

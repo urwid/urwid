@@ -27,6 +27,7 @@ from __future__ import annotations
 import contextlib
 import fcntl
 import functools
+import logging
 import os
 import signal
 import struct
@@ -43,6 +44,7 @@ from . import _raw_display_base
 
 if typing.TYPE_CHECKING:
     import io
+    import socket
     from collections.abc import Callable
     from types import FrameType
 
@@ -64,6 +66,7 @@ class Screen(_raw_display_base.Screen):
             and `end paste` keystrokes when the user pastes text.
         """
         super().__init__(input, output)
+        self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self.gpm_mev: Popen | None = None
         self.gpm_event_pending: bool = False
         self.bracketed_paste_mode = bracketed_paste_mode
@@ -72,6 +75,14 @@ class Screen(_raw_display_base.Screen):
         self._prev_sigcont_handler = None
         self._prev_sigtstp_handler = None
         self._prev_sigwinch_handler = None
+
+    def __repr__(self) -> str:
+        return (
+            f"<{self.__class__.__name__}("
+            f"input={self._term_input_file}, "
+            f"output={self._term_output_file}, "
+            f"bracketed_paste_mode={self.bracketed_paste_mode})>"
+        )
 
     def _sigwinch_handler(self, signum: int, frame: FrameType | None = None) -> None:
         """
@@ -213,7 +224,7 @@ class Screen(_raw_display_base.Screen):
 
         super()._stop()
 
-    def get_input_descriptors(self) -> list[int]:
+    def get_input_descriptors(self) -> list[socket.socket | io.IOBase | typing.IO | int]:
         """
         Return a list of integer file descriptors that should be
         polled in external event loops to check for user input.
@@ -227,8 +238,8 @@ class Screen(_raw_display_base.Screen):
             return []
 
         fd_list = super().get_input_descriptors()
-        if self.gpm_mev is not None:
-            fd_list.append(self.gpm_mev.stdout.fileno())
+        if self.gpm_mev is not None and self.gpm_mev.stdout is not None:
+            fd_list.append(self.gpm_mev.stdout)
         return fd_list
 
     def unhook_event_loop(self, event_loop: EventLoop) -> None:
@@ -263,7 +274,7 @@ class Screen(_raw_display_base.Screen):
                 return self.parse_input(event_loop, callback, self.get_available_raw_input())
 
         fds = self.get_input_descriptors()
-        handles = [event_loop.watch_file(fd, wrapper) for fd in fds]
+        handles = [event_loop.watch_file(fd if isinstance(fd, int) else fd.fileno(), wrapper) for fd in fds]
         self._current_event_loop_handles = handles
 
     def _get_input_codes(self) -> list[int]:
@@ -371,7 +382,7 @@ class Screen(_raw_display_base.Screen):
         y, x = super().get_cols_rows()
         with contextlib.suppress(OSError):  # Term size could not be determined
             if hasattr(self._term_output_file, "fileno"):
-                buf = fcntl.ioctl(self._term_output_file.fileno(), termios.TIOCGWINSZ, " " * 4)
+                buf = fcntl.ioctl(self._term_output_file.fileno(), termios.TIOCGWINSZ, b" " * 4)
                 y, x = struct.unpack("hh", buf)
 
         # Provide some lightweight fallbacks in case the TIOCWINSZ doesn't

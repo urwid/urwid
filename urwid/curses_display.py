@@ -25,6 +25,7 @@ Curses-based UI implementation
 from __future__ import annotations
 
 import curses
+import logging
 import sys
 import typing
 from contextlib import suppress
@@ -103,6 +104,7 @@ _curses_colours = {
 class Screen(BaseScreen, RealTerminal):
     def __init__(self):
         super().__init__()
+        self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self.curses_pairs = [(None, None)]  # Can't be sure what pair 0 will default to
         self.palette = {}
         self.has_color = False
@@ -550,6 +552,9 @@ class Screen(BaseScreen, RealTerminal):
 
     def draw_screen(self, size: tuple[int, int], r: Canvas):
         """Paint screen with rendered canvas."""
+
+        logger = self.logger.getChild("draw_screen")
+
         if not self._started:
             raise RuntimeError
 
@@ -557,6 +562,8 @@ class Screen(BaseScreen, RealTerminal):
 
         if r.rows() != rows:
             raise ValueError("canvas size and passed size don't match")
+
+        logger.debug(f"Drawing screen with size {size!r}")
 
         y = -1
         for row in r.content():

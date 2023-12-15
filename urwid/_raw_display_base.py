@@ -27,6 +27,7 @@ from __future__ import annotations
 import abc
 import contextlib
 import functools
+import logging
 import os
 import selectors
 import signal
@@ -37,6 +38,7 @@ from urwid import escape, signals, util
 from urwid.display_common import UNPRINTABLE_TRANS_TABLE, UPDATE_PALETTE_ENTRY, AttrSpec, BaseScreen, RealTerminal
 
 if typing.TYPE_CHECKING:
+    import io
     from collections.abc import Callable
     from types import FrameType
 
@@ -44,20 +46,19 @@ if typing.TYPE_CHECKING:
 
     from urwid import Canvas, EventLoop
 
-    class FileLikeObj(typing.Protocol):
-        def fileno(self) -> int:
-            ...
-
 
 class Screen(BaseScreen, RealTerminal):
-    def __init__(self, input: FileLikeObj, output: FileLikeObj):  # noqa: A002
+    def __init__(self, input: io.IOBase, output: io.IOBase):  # noqa: A002
         """Initialize a screen that directly prints escape codes to an output
         terminal.
         """
         super().__init__()
+        self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
+
         self._partial_codes: list[int] = []
         self._pal_escape: dict[str | None, str] = {}
         self._pal_attrspec: dict[str | None, AttrSpec] = {}
+        self._alternate_buffer: bool = False
         signals.connect_signal(self, UPDATE_PALETTE_ENTRY, self._on_update_palette_entry)
         self.colors: Literal[1, 16, 88, 256, 16777216] = 16  # FIXME: detect this
         self.has_underline = True  # FIXME: detect this
@@ -92,15 +93,28 @@ class Screen(BaseScreen, RealTerminal):
         self._resize_pipe_rd.close()
         self._resize_pipe_wr.close()
 
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}(input={self._term_input_file}, output={self._term_output_file})>"
+
     def _sigwinch_handler(self, signum: int, frame: FrameType | None = None) -> None:
         """
         frame -- will always be None when the GLib event loop is being used.
         """
+        logger = self.logger.getChild("signal_handlers")
+
+        logger.debug(f"SIGWINCH handler called with signum={signum!r}, frame={frame!r}")
 
         if not self._resized:
             self._resize_pipe_wr.send(b"R")
+            logger.debug("Sent fake resize input to the pipe")
         self._resized = True
         self.screen_buf = None
+
+    @property
+    def _term_input_io(self) -> io.IOBase | None:
+        if hasattr(self._term_input_file, "fileno"):
+            return self._term_input_file
+        return None
 
     def _input_fileno(self) -> int | None:
         """Returns the fileno of the input stream, or None if it doesn't have one.
@@ -291,7 +305,7 @@ class Screen(BaseScreen, RealTerminal):
             return keys, raw
         return keys
 
-    def get_input_descriptors(self) -> list[int]:
+    def get_input_descriptors(self) -> list[socket.socket | io.IOBase | typing.IO | int]:
         """
         Return a list of integer file descriptors that should be
         polled in external event loops to check for user input.
@@ -305,9 +319,9 @@ class Screen(BaseScreen, RealTerminal):
             return []
 
         fd_list = [self._resize_pipe_rd]
-        fd = self._input_fileno()
-        if fd is not None:
-            fd_list.append(fd)
+        input_io = self._term_input_io
+        if input_io is not None:
+            fd_list.append(input_io)
         return fd_list
 
     _current_event_loop_handles = ()
@@ -414,6 +428,9 @@ class Screen(BaseScreen, RealTerminal):
         appropriate, but beware of using bytes, which only iterates as integers
         on Python 3.
         """
+
+        logger = self.logger.getChild("parse_input")
+
         # Note: event_loop may be None for 100% synchronous support, only used
         # by get_input.  Not documented because you shouldn't be doing it.
         if self._input_timeout and event_loop:
@@ -421,16 +438,16 @@ class Screen(BaseScreen, RealTerminal):
             self._input_timeout = None
 
         original_codes = codes
-        processed = []
+        decoded_codes = []
         try:
             while codes:
                 run, codes = escape.process_keyqueue(codes, wait_for_more)
-                processed.extend(run)
+                decoded_codes.extend(run)
         except escape.MoreInputRequired:
             # Set a timer to wait for the rest of the input; if it goes off
             # without any new input having come in, use the partial input
             k = len(original_codes) - len(codes)
-            processed_codes = original_codes[:k]
+            raw_codes = original_codes[:k]
             self._partial_codes = codes
 
             def _parse_incomplete_input():
@@ -442,19 +459,22 @@ class Screen(BaseScreen, RealTerminal):
                 self._input_timeout = event_loop.alarm(self.complete_wait, _parse_incomplete_input)
 
         else:
-            processed_codes = original_codes
+            raw_codes = original_codes
             self._partial_codes = []
 
+        logger.debug(f"Decoded codes: {decoded_codes!r}, raw codes: {raw_codes!r}")
+
         if self._resized:
-            processed.append("window resize")
+            decoded_codes.append("window resize")
+            logger.debug('Added "window resize" to the codes')
             self._resized = False
 
         if callback:
-            callback(processed, processed_codes)
+            callback(decoded_codes, raw_codes)
             return None
 
         # For get_input
-        return processed, processed_codes
+        return decoded_codes, raw_codes
 
     def _get_keyboard_codes(self) -> list[int]:
         codes = []
@@ -466,15 +486,19 @@ class Screen(BaseScreen, RealTerminal):
         return codes
 
     def _wait_for_input_ready(self, timeout: float | None) -> list[int]:
+        logger = self.logger.getChild("wait_for_input_ready")
         fd_list = self.get_input_descriptors()
 
+        logger.debug(f"Waiting for input: descriptors={fd_list!r}, timeout={timeout!r}")
         with selectors.DefaultSelector() as selector:
             for fd in fd_list:
                 selector.register(fd, selectors.EVENT_READ)
 
-            ready = [event.fd for event, _ in selector.select(timeout)]
+            ready = selector.select(timeout)
 
-        return ready
+        logger.debug(f"Input ready: {ready}")
+
+        return [event.fd for event, _ in ready]
 
     @abc.abstractmethod
     def _getch(self, timeout: int) -> int:
@@ -500,6 +524,8 @@ class Screen(BaseScreen, RealTerminal):
     def draw_screen(self, size: tuple[int, int], r: Canvas) -> None:
         """Paint screen with rendered canvas."""
 
+        logger = self.logger.getChild("draw_screen")
+
         (maxcol, maxrow) = size
 
         if not self._started:
@@ -516,7 +542,10 @@ class Screen(BaseScreen, RealTerminal):
 
         if self._resized:
             # handle resize before trying to draw screen
+            logger.debug("Not drawing screen: screen resized and resize was not handled")
             return
+
+        logger.debug(f"Drawing screen with size {size!r}")
 
         o = [escape.HIDE_CURSOR, self._attrspec_to_escape(AttrSpec("", ""))]
 

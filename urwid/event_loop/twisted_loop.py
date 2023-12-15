@@ -26,6 +26,7 @@ Twisted library is required.
 
 from __future__ import annotations
 
+import logging
 import sys
 import typing
 
@@ -86,6 +87,8 @@ class TwistedEventLoop(EventLoop):
 
         .. _Twisted: https://twisted.org/
         """
+        super().__init__()
+        self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         if reactor is None:
             import twisted.internet.reactor
 
