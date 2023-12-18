@@ -37,6 +37,7 @@ from .abstract_loop import EventLoop, ExitMainLoop
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
+    from concurrent.futures import Executor, Future
     from types import FrameType
 
     from typing_extensions import Literal, ParamSpec
@@ -68,6 +69,25 @@ class GLibEventLoop(EventLoop):
         self._exc: BaseException | None = None
         self._enable_glib_idle()
         self._signal_handlers: dict[int, int] = {}
+
+    def run_in_executor(
+        self,
+        executor: Executor,
+        func: Callable[..., _T],
+        *args: object,
+    ) -> Future[_T]:
+        """Run func in executor.
+
+        :param executor: executor to use for running the function
+        :type executor: concurrent.futures.Executor
+        :param func: function to call
+        :type func: Callable
+        :param args: arguments to function (positional only)
+        :type args: object
+        :return: future object for the function call outcome.
+        :rtype: concurrent.futures.Future
+        """
+        return executor.submit(func, *args)
 
     def alarm(
         self,
