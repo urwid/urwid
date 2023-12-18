@@ -75,6 +75,8 @@ class ClosingSocketPair(typing.ContextManager[typing.Tuple[socket.socket, socket
 
 
 class EventLoopTestMixin:
+    evl: urwid.EventLoop
+
     def test_event_loop(self):
         evl: urwid.EventLoop = self.evl
         out = []
@@ -170,8 +172,6 @@ class EventLoopTestMixin:
 
     def test_run_in_executor(self):
         out: list[str] = []
-        wr: socket.socket
-        rd: socket.socket
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
 
@@ -282,6 +282,7 @@ class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         pass
 
     def test_run(self):
+        from twisted.internet import threads
         evl = self.evl
         out = []
         wr: socket.socket
@@ -310,6 +311,17 @@ class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin):
 
             out.append("remove_watch_file ok")
 
+        def test_threaded():
+            out.append("schedule to thread")
+            threads.deferToThread(func).addCallback(callback)
+
+        def func() -> bool:
+            out.append("future called")
+            return True
+
+        def callback(result: bool) -> None:
+            out.append(f"callback called with future outcome: {result}")
+
         def exit_clean() -> typing.NoReturn:
             out.append("clean exit")
             raise urwid.ExitMainLoop
@@ -325,14 +337,18 @@ class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin):
             _handle = evl.alarm(0.05, say_hello)
             _handle = evl.alarm(0.06, test_remove_alarm)
             _handle = evl.alarm(0.07, test_remove_watch_file)
+            _handle = evl.alarm(0.08, test_threaded)
             self.assertEqual(evl.enter_idle(say_waiting), 1)
             evl.run()
 
-        self.assertTrue("da" in out, out)
-        self.assertTrue("ta" in out, out)
-        self.assertTrue("hello" in out, out)
-        self.assertTrue("remove_alarm ok" in out, out)
-        self.assertTrue("clean exit" in out, out)
+        self.assertIn("da", out)
+        self.assertIn("ta", out)
+        self.assertIn("hello", out)
+        self.assertIn("remove_alarm ok", out)
+        self.assertIn("clean exit", out)
+        self.assertIn("schedule to thread", out)
+        self.assertIn("future called", out)
+        self.assertIn("callback called with future outcome: True", out)
 
     def test_error(self):
         evl = self.evl
