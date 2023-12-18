@@ -59,9 +59,9 @@ Event Loops
 
 Urwid's event loop classes handle waiting for things for the
 :class:`MainLoop`. The different event loops allow you to
-integrate with Twisted_, Glib_, Tornado_, Asyncio_ libraries,
-or use a simple ``select``-based
-loop. Event loop classes abstract the particulars of waiting for input and
+integrate with Asyncio_, Twisted_, Glib_, Tornado_, ZMQ_ libraries,
+or use a simple ``select``-based loop.
+Event loop classes abstract the particulars of waiting for input and
 calling functions as a result of timeouts.
 
 You will typically only have a single event loop in your application, even if
@@ -73,10 +73,11 @@ Using this interface gives you the special handling
 of :exc:`ExitMainLoop` and other exceptions when using Glib_, Twisted_ or
 Tornado_ callbacks.
 
+.. _Asyncio: https://docs.python.org/3/library/asyncio.html
 .. _Twisted: http://twistedmatrix.com/trac/
 .. _Glib: http://developer.gnome.org/glib/stable/
 .. _Tornado: http://www.tornadoweb.org/
-.. _Asyncio: https://docs.python.org/3/library/asyncio.html
+.. _ZMQ: https://pyzmq.readthedocs.io/en/latest/
 
 ``SelectEventLoop``
 -------------------
@@ -93,6 +94,29 @@ created if none is passed to :class:`~urwid.main_loop.MainLoop`.
 
   :class:`SelectEventLoop reference <SelectEventLoop>`
 
+``AsyncioEventLoop``
+--------------------
+
+This event loop integrates with the asyncio module in Python.
+
+::
+
+    import asyncio
+    evl = urwid.AsyncioEventLoop(loop=asyncio.get_event_loop())
+    loop = urwid.MainLoop(widget, event_loop=evl)
+
+.. note::
+
+    In case of multithreading or multiprocessing usage required, do not use executor directly!
+    Use instead method :method:`run_in_executor` of :class:`AsyncioEventLoop`,
+    which forward API of the same method from asyncio Event Loop run_in_executor_.
+
+.. _run_in_executor: https://docs.python.org/3.11/library/asyncio-eventloop.html#asyncio.loop.run_in_executor
+
+.. seealso::
+
+  :class:`AsyncioEventLoop reference <AsyncioEventLoop>`
+
 ``TwistedEventLoop``
 --------------------
 
@@ -105,6 +129,13 @@ application.
 ::
 
     loop = urwid.MainLoop(widget, event_loop=urwid.TwistedEventLoop())
+
+.. note::
+
+    In case of threading usage required, please use twisted deferToThread_ method. It supports callbacks if needed.
+    Executors from `concurrent.futures` are not supported.
+
+.. _deferToThread: https://docs.twisted.org/en/stable/core/howto/threading.html#getting-results
 
 .. seealso::
 
@@ -136,22 +167,26 @@ This event loop integrates with Tornado.
     evl = urwid.TornadoEventLoop(IOLoop())
     loop = urwid.MainLoop(widget, event_loop=evl)
 
+.. note::
+
+    In case of multithreading or multiprocessing usage required, do not use executor directly!
+    Use instead method :method:`run_in_executor` of :class:`TornadoEventLoop`,
+    which forward API of the same method from `tornado.ioloop.IOLoop` (and internally use asyncio run_in_executor_).
+
 .. seealso::
 
   :class:`TornadoEventLoop reference <TornadoEventLoop>`
 
-``AsyncioEventLoop``
---------------------
+``ZMQEventLoop``
+----------------
 
-This event loop integrates with the asyncio module in Python.
+This event loop integrates with 0MQ.
 
 ::
 
-    import asyncio
-    evl = urwid.AsyncioEventLoop(loop=asyncio.get_event_loop())
+    evl = urwid.ZMQEventLoop()
     loop = urwid.MainLoop(widget, event_loop=evl)
 
 .. seealso::
 
-  :class:`AsyncioEventLoop reference <AsyncioEventLoop>`
-
+  :class:`ZMQEventLoop reference <ZMQEventLoop>`

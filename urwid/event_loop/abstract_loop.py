@@ -29,8 +29,15 @@ import signal
 import typing
 
 if typing.TYPE_CHECKING:
+    import asyncio
     from collections.abc import Callable
+    from concurrent.futures import Executor, Future
     from types import FrameType
+
+    from typing_extensions import ParamSpec
+
+    _T = typing.TypeVar("_T")
+    _Spec = ParamSpec("_Spec")
 
 __all__ = ("ExitMainLoop", "EventLoop")
 
@@ -51,6 +58,26 @@ class EventLoop(abc.ABC):
 
     def __init__(self) -> None:
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
+
+    def run_in_executor(
+        self,
+        executor: Executor,
+        func: Callable[_Spec, _T],
+        *args: _Spec.args,
+    ) -> Future[_T] | asyncio.Future[_T]:
+        """Run callable in executor if supported.
+
+        :param executor: Executor to use for running the function
+        :type executor: concurrent.futures.Executor
+        :param func: function to call
+        :type func: Callable
+        :param args: arguments to function (positional only)
+        :type args: object
+        :return: future object for the function call outcome.
+                 (exact future type depends on the event loop type)
+        :rtype: concurrent.futures.Future | asyncio.Future
+        """
+        raise NotImplementedError
 
     @abc.abstractmethod
     def alarm(self, seconds: float, callback: Callable[[], typing.Any]) -> typing.Any:

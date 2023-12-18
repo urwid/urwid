@@ -47,7 +47,7 @@ classifiers = {file = ["classifiers.txt"]}
 [project.optional-dependencies]
 curses = ["windows-curses;sys_platform=='win32'"]
 glib = ["PyGObject"]
-tornado = ["tornado"]
+tornado = ["tornado>=5.0"]
 trio = ["trio>=0.22.0", "exceptiongroup"]
 twisted = ["twisted"]
 zmq = ["zmq"]

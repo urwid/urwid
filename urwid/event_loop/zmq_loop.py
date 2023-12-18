@@ -39,8 +39,13 @@ from .abstract_loop import EventLoop, ExitMainLoop
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
+    from concurrent.futures import Executor, Future
+
+    from typing_extensions import ParamSpec
 
     ZMQAlarmHandle = typing.TypeVar("ZMQAlarmHandle")
+    _T = typing.TypeVar("_T")
+    _Spec = ParamSpec("_Spec")
 
 
 class ZMQEventLoop(EventLoop):
@@ -65,6 +70,28 @@ class ZMQEventLoop(EventLoop):
         self._queue_callbacks = {}
         self._idle_handle = 0
         self._idle_callbacks = {}
+
+    def run_in_executor(
+        self,
+        executor: Executor,
+        func: Callable[_Spec, _T],
+        *args: _Spec.args,
+        **kwargs: _Spec.kwargs,
+    ) -> Future[_T]:
+        """Run callable in executor.
+
+        :param executor: Executor to use for running the function
+        :type executor: concurrent.futures.Executor
+        :param func: function to call
+        :type func: Callable
+        :param args: positional arguments to function
+        :type args: object
+        :param kwargs: keyword arguments to function
+        :type kwargs: object
+        :return: future object for the function call outcome.
+        :rtype: concurrent.futures.Future
+        """
+        return executor.submit(func, *args, **kwargs)
 
     def alarm(self, seconds: float, callback: Callable[[], typing.Any]) -> ZMQAlarmHandle:
         """

@@ -69,7 +69,7 @@ class TrioEventLoop(EventLoop):
         self._idle_callbacks = {}
         self._pending_tasks = []
 
-        self._nursery = None
+        self._nursery: trio.Nursery | None = None
 
         self._sleep = trio.sleep
         self._wait_readable = trio.lowlevel.wait_readable
