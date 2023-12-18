@@ -73,21 +73,24 @@ class GLibEventLoop(EventLoop):
     def run_in_executor(
         self,
         executor: Executor,
-        func: Callable[..., _T],
-        *args: object,
+        func: Callable[_Spec, _T],
+        *args: _Spec.args,
+        **kwargs: _Spec.kwargs,
     ) -> Future[_T]:
-        """Run func in executor.
+        """Run callable in executor.
 
-        :param executor: executor to use for running the function
+        :param executor: Executor to use for running the function
         :type executor: concurrent.futures.Executor
         :param func: function to call
         :type func: Callable
-        :param args: arguments to function (positional only)
+        :param args: positional arguments to function
         :type args: object
+        :param kwargs: keyword arguments to function
+        :type kwargs: object
         :return: future object for the function call outcome.
         :rtype: concurrent.futures.Future
         """
-        return executor.submit(func, *args)
+        return executor.submit(func, *args, **kwargs)
 
     def alarm(
         self,

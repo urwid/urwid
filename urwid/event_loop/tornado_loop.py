@@ -97,12 +97,12 @@ class TornadoEventLoop(EventLoop):
     def run_in_executor(
         self,
         executor: Executor,
-        func: Callable[..., _T],
-        *args: object,
+        func: Callable[_Spec, _T],
+        *args: _Spec.args,
     ) -> asyncio.Future[_T]:
-        """Run func in executor.
+        """Run callable in executor.
 
-        :param executor: executor to use for running the function
+        :param executor: Executor to use for running the function
         :type executor: concurrent.futures.Executor
         :param func: function to call
         :type func: Callable

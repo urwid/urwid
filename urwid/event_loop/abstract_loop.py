@@ -34,7 +34,10 @@ if typing.TYPE_CHECKING:
     from concurrent.futures import Executor, Future
     from types import FrameType
 
+    from typing_extensions import ParamSpec
+
     _T = typing.TypeVar("_T")
+    _Spec = ParamSpec("_Spec")
 
 __all__ = ("ExitMainLoop", "EventLoop")
 
@@ -59,12 +62,12 @@ class EventLoop(abc.ABC):
     def run_in_executor(
         self,
         executor: Executor,
-        func: Callable[..., _T],
-        *args: object,
+        func: Callable[_Spec, _T],
+        *args: _Spec.args,
     ) -> Future[_T] | asyncio.Future[_T]:
-        """Run func in executor if supported.
+        """Run callable in executor if supported.
 
-        :param executor: executor to use for running the function
+        :param executor: Executor to use for running the function
         :type executor: concurrent.futures.Executor
         :param func: function to call
         :type func: Callable

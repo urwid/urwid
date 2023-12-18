@@ -98,14 +98,14 @@ class AsyncioEventLoop(EventLoop):
 
     def run_in_executor(
         self,
-        executor: Executor,
-        func: Callable[..., _T],
-        *args: object,
+        executor: Executor | None,
+        func: Callable[_Spec, _T],
+        *args: _Spec.args,
     ) -> asyncio.Future[_T]:
-        """Run func in executor.
+        """Run callable in executor.
 
-        :param executor: executor to use for running the function
-        :type executor: concurrent.futures.Executor
+        :param executor: Executor to use for running the function. Default asyncio executor is used if None.
+        :type executor: concurrent.futures.Executor | None
         :param func: function to call
         :type func: Callable
         :param args: arguments to function (positional only)
