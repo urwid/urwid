@@ -50,7 +50,7 @@ class AsyncioEventLoop(EventLoop):
 
     .. warning::
         Under Windows, AsyncioEventLoop globally enforces WindowsSelectorEventLoopPolicy
-        if external event loop is not provided.
+        as a side-effect of creating a class instance.
         Original event loop policy is restored in destructor method.
 
     .. note::
