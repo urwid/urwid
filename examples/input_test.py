@@ -25,28 +25,92 @@ Keyboard test application
 
 from __future__ import annotations
 
-import sys
+import argparse
+import logging
 
 import urwid
-import urwid.curses_display
 import urwid.raw_display
 import urwid.web_display
 
+try:
+    import urwid.curses_display
+except ImportError:
+    curses_available = False
+else:
+    curses_available = True
+
 if urwid.web_display.is_web_request():
     Screen = urwid.web_display.Screen
-elif len(sys.argv) > 1 and sys.argv[1][:1] == "r":
-    Screen = urwid.raw_display.Screen
+    loop_cls = urwid.SelectEventLoop
 else:
-    Screen = urwid.curses_display.Screen
+    event_loops: dict[str, type[urwid.EventLoop] | None] = {
+        "none": None,
+        "select": urwid.SelectEventLoop,
+        "asyncio": urwid.AsyncioEventLoop,
+    }
+    if hasattr(urwid, "TornadoEventLoop"):
+        event_loops["tornado"] = urwid.TornadoEventLoop
+    if hasattr(urwid, "GLibEventLoop"):
+        event_loops["glib"] = urwid.GLibEventLoop
+    if hasattr(urwid, "TwistedEventLoop"):
+        event_loops["twisted"] = urwid.TwistedEventLoop
+    if hasattr(urwid, "TrioEventLoop"):
+        event_loops["trio"] = urwid.TrioEventLoop
+    if hasattr(urwid, "ZMQEventLoop"):
+        event_loops["zmq"] = urwid.ZMQEventLoop
+
+    parser = argparse.ArgumentParser(description="Input test")
+    parser.add_argument(
+        "argc",
+        help="Positional arguments ('r' for raw display)",
+        metavar="<arguments>",
+        nargs="*",
+        default=(),
+    )
+    group = parser.add_argument_group("Advanced Options")
+    group.add_argument(
+        "--event-loop",
+        choices=event_loops,
+        default="none",
+        help="Event loop to use ('none' = use the default)",
+    )
+    group.add_argument("--debug-log", action="store_true", help="Enable debug logging")
+
+    args = parser.parse_args()
+
+    if not curses_available or "r" in args.argc:
+        Screen = urwid.raw_display.Screen
+    else:
+        Screen = urwid.curses_display.Screen
+
+    loop_cls = event_loops[args.event_loop]
+
+    if args.debug_log:
+        logging.basicConfig(
+            level=logging.DEBUG,
+            filename="debug.log",
+            format=(
+                "%(levelname)1.1s %(asctime)s | %(threadName)s | %(name)s \n"
+                "\t%(message)s\n"
+                "-------------------------------------------------------------------------------"
+            ),
+            datefmt="%d-%b-%Y %H:%M:%S",
+            force=True,
+        )
+        logging.captureWarnings(True)
 
 
 def key_test():
     screen = Screen()
-    header = urwid.Text("Values from get_input(). Q exits.")
-    header = urwid.AttrMap(header, "header")
+    header = urwid.AttrMap(
+        urwid.Text("Values from get_input(). Q exits."),
+        "header",
+    )
     lw = urwid.SimpleListWalker([])
-    listbox = urwid.ListBox(lw)
-    listbox = urwid.AttrMap(listbox, "listbox")
+    listbox = urwid.AttrMap(
+        urwid.ListBox(lw),
+        "listbox",
+    )
     top = urwid.Frame(listbox, header)
 
     def input_filter(keys, raw):
@@ -65,7 +129,7 @@ def key_test():
             else:
                 t += ["'", ("key", k), "' "]
 
-        rawt = urwid.Text(", ".join(["%d" % r for r in raw]))
+        rawt = urwid.Text(", ".join(f"{r:d}" for r in raw))
 
         if t:
             lw.append(urwid.Columns([("weight", 2, urwid.Text(t)), rawt]))
@@ -81,13 +145,17 @@ def key_test():
         ],
         screen,
         input_filter=input_filter,
+        event_loop=loop_cls() if loop_cls is not None else None,
     )
+
+    old = ()
 
     try:
         old = screen.tty_signal_keys("undefined", "undefined", "undefined", "undefined", "undefined")
         loop.run()
     finally:
-        screen.tty_signal_keys(*old)
+        if old:
+            screen.tty_signal_keys(*old)
 
 
 def main():

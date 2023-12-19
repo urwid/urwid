@@ -640,7 +640,7 @@ class Screen:
             background = "light gray"
         self.palette[name] = (foreground, background, mono)
 
-    def set_mouse_tracking(self, enable=True):
+    def set_mouse_tracking(self, enable: bool = True) -> None:
         """Not yet implemented"""
         pass
 

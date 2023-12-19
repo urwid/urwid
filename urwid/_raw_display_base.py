@@ -96,7 +96,7 @@ class Screen(BaseScreen, RealTerminal):
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}(input={self._term_input_file}, output={self._term_output_file})>"
 
-    def _sigwinch_handler(self, signum: int, frame: FrameType | None = None) -> None:
+    def _sigwinch_handler(self, signum: int = 28, frame: FrameType | None = None) -> None:
         """
         frame -- will always be None when the GLib event loop is being used.
         """
@@ -275,6 +275,7 @@ class Screen(BaseScreen, RealTerminal):
         * Mouse button release: ('mouse release', 0, 18, 13),
                                 ('ctrl mouse release', 0, 17, 23)
         """
+        logger = self.logger.getChild("get_input")
         if not self._started:
             raise RuntimeError
 
@@ -283,6 +284,7 @@ class Screen(BaseScreen, RealTerminal):
 
         # Avoid pegging CPU at 100% when slowly resizing
         if keys == ["window resize"] and self.prev_input_resize:
+            logger.debug('get_input: got "window resize" > 1 times. Enable throttling for resize.')
             for _ in range(2):
                 self._wait_for_input_ready(self.resize_wait)
                 new_keys, new_raw = self.parse_input(None, None, self.get_available_raw_input())
@@ -372,22 +374,37 @@ class Screen(BaseScreen, RealTerminal):
 
     def get_available_raw_input(self) -> list[int]:
         """
-        Return any currently-available input.  Does not block.
+        Return any currently available input. Does not block.
 
         This method is only used by the default `hook_event_loop`
         implementation; you can safely ignore it if you implement your own.
         """
+        logger = self.logger.getChild("get_available_raw_input")
         codes = [*self._partial_codes, *self._get_input_codes()]
         self._partial_codes = []
 
         # clean out the pipe used to signal external event loops
         # that a resize has occurred
-        with contextlib.suppress(OSError):
-            while True:
+        with selectors.DefaultSelector() as selector:
+            selector.register(self._resize_pipe_rd, selectors.EVENT_READ)
+            present_resize_flag = selector.select(0)  # nonblocking
+            while present_resize_flag:
+                logger.debug("Resize signal received. Cleaning socket.")
                 # Argument "size" is maximum buffer size to read. Since we're emptying, set it reasonably big.
                 self._resize_pipe_rd.recv(128)
+                present_resize_flag = selector.select(0)
 
         return codes
+
+    @typing.overload
+    def parse_input(
+        self,
+        event_loop: None,
+        callback: None,
+        codes: list[int],
+        wait_for_more: bool = ...,
+    ) -> tuple[list[str], list[int]]:
+        ...
 
     @typing.overload
     def parse_input(
@@ -411,7 +428,7 @@ class Screen(BaseScreen, RealTerminal):
 
     def parse_input(
         self,
-        event_loop: EventLoop,
+        event_loop: EventLoop | None,
         callback: Callable[[list[str], list[int]], typing.Any] | None,
         codes: list[int],
         wait_for_more: bool = True,

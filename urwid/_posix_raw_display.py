@@ -84,7 +84,7 @@ class Screen(_raw_display_base.Screen):
             f"bracketed_paste_mode={self.bracketed_paste_mode})>"
         )
 
-    def _sigwinch_handler(self, signum: int, frame: FrameType | None = None) -> None:
+    def _sigwinch_handler(self, signum: int = 28, frame: FrameType | None = None) -> None:
         """
         frame -- will always be None when the GLib event loop is being used.
         """
@@ -112,7 +112,7 @@ class Screen(_raw_display_base.Screen):
             self._prev_sigcont_handler(signum, frame)
 
         self.start()
-        self._sigwinch_handler(None, None)
+        self._sigwinch_handler(28, None)
 
     def signal_init(self) -> None:
         """
@@ -271,6 +271,7 @@ class Screen(_raw_display_base.Screen):
 
             @functools.wraps(callback)
             def wrapper() -> tuple[list[str], typing.Any] | None:
+                self.logger.debug('Calling callback for "watch file"')
                 return self.parse_input(event_loop, callback, self.get_available_raw_input())
 
         fds = self.get_input_descriptors()
