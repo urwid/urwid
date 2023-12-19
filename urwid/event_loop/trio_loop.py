@@ -34,7 +34,12 @@ import trio
 from .abstract_loop import EventLoop, ExitMainLoop
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable
+    import io
+    from collections.abc import Awaitable, Callable, Hashable, Mapping
+
+    from typing_extensions import Concatenate, ParamSpec
+
+    _Spec = ParamSpec("_Spec")
 
 __all__ = ("TrioEventLoop",)
 
@@ -44,10 +49,10 @@ class _TrioIdleCallbackInstrument(trio.abc.Instrument):
 
     __slots__ = ("idle_callbacks",)
 
-    def __init__(self, idle_callbacks):
+    def __init__(self, idle_callbacks: Mapping[Hashable, Callable[[], typing.Any]]):
         self.idle_callbacks = idle_callbacks
 
-    def before_io_wait(self, timeout):
+    def before_io_wait(self, timeout: float) -> None:
         if timeout > 0:
             for idle_callback in self.idle_callbacks.values():
                 idle_callback()
@@ -60,30 +65,35 @@ class TrioEventLoop(EventLoop):
     ``trio`` is an async library for Python 3.5 and later.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Constructor."""
         super().__init__()
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
 
         self._idle_handle = 0
-        self._idle_callbacks = {}
-        self._pending_tasks = []
+        self._idle_callbacks: dict[int, Callable[[], typing.Any]] = {}
+        self._pending_tasks: list[tuple[Callable[_Spec, Awaitable], trio.CancelScope, _Spec.args]] = []
 
         self._nursery: trio.Nursery | None = None
 
         self._sleep = trio.sleep
         self._wait_readable = trio.lowlevel.wait_readable
 
-    def alarm(self, seconds: float, callback: Callable[[], typing.Any]):
-        """Calls `callback()` a given time from now.  No parameters are passed
-        to the callback.
+    def alarm(
+        self,
+        seconds: float,
+        callback: Callable[[], typing.Any],
+    ) -> trio.CancelScope:
+        """Calls `callback()` a given time from now.
 
-        Parameters:
-            seconds: time in seconds to wait before calling the callback
-            callback: function to call from the event loop
+        :param seconds: time in seconds to wait before calling the callback
+        :type seconds: float
+        :param callback: function to call from the event loop
+        :type callback: Callable[[], typing.Any]
+        :return: a handle that may be passed to `remove_alarm()`
+        :rtype: trio.CancelScope
 
-        Returns:
-            a handle that may be passed to `remove_alarm()`
+        No parameters are passed to the callback.
         """
         return self._start_task(self._alarm_task, seconds, callback)
 
@@ -97,7 +107,7 @@ class TrioEventLoop(EventLoop):
         self._idle_callbacks[self._idle_handle] = callback
         return self._idle_handle
 
-    def remove_alarm(self, handle):
+    def remove_alarm(self, handle: trio.CancelScope) -> bool:
         """Removes an alarm.
 
         Parameters:
@@ -105,7 +115,7 @@ class TrioEventLoop(EventLoop):
         """
         return self._cancel_scope(handle)
 
-    def remove_enter_idle(self, handle) -> bool:
+    def remove_enter_idle(self, handle: int) -> bool:
         """Removes an idle callback.
 
         Parameters:
@@ -149,7 +159,7 @@ class TrioEventLoop(EventLoop):
         with exceptiongroup.catch({BaseException: self._handle_main_loop_exception}):
             trio.run(self._main_task, instruments=[emulate_idle_callbacks])
 
-    async def run_async(self):
+    async def run_async(self) -> None:
         """Starts the main loop and blocks asynchronously until the main loop
         exits. This allows one to embed an urwid app in a Trio app even if the
         Trio event loop is already running. Example::
@@ -175,7 +185,11 @@ class TrioEventLoop(EventLoop):
             finally:
                 trio.lowlevel.remove_instrument(emulate_idle_callbacks)
 
-    def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> trio.CancelScope:
+    def watch_file(
+        self,
+        fd: int | io.IOBase,
+        callback: Callable[[], typing.Any],
+    ) -> trio.CancelScope:
         """Calls `callback()` when the given file descriptor has some data
         to read. No parameters are passed to the callback.
 
@@ -223,7 +237,7 @@ class TrioEventLoop(EventLoop):
 
         raise exc.with_traceback(exc.__traceback__) from None
 
-    async def _main_task(self):
+    async def _main_task(self) -> None:
         """Main Trio task that opens a nursery and then sleeps until the user
         exits the app by raising ExitMainLoop.
         """
@@ -234,7 +248,7 @@ class TrioEventLoop(EventLoop):
         finally:
             self._nursery = None
 
-    def _schedule_pending_tasks(self):
+    def _schedule_pending_tasks(self) -> None:
         """Schedules all pending asynchronous tasks that were created before
         the nursery to be executed on the nursery soon.
         """
@@ -242,7 +256,11 @@ class TrioEventLoop(EventLoop):
             self._nursery.start_soon(task, scope, *args)
         del self._pending_tasks[:]
 
-    def _start_task(self, task, *args):
+    def _start_task(
+        self,
+        task: Callable[Concatenate[trio.CancelScope, _Spec], Awaitable],
+        *args: _Spec.args,
+    ) -> trio.CancelScope:
         """Starts an asynchronous task in the Trio nursery managed by the
         main loop. If the nursery has not started yet, store a reference to
         the task and the arguments so we can start the task when the nursery
@@ -261,7 +279,12 @@ class TrioEventLoop(EventLoop):
             self._pending_tasks.append((task, scope, args))
         return scope
 
-    async def _watch_task(self, scope, fd, callback):
+    async def _watch_task(
+        self,
+        scope: trio.CancelScope,
+        fd: int | io.IOBase,
+        callback: Callable[[], typing.Any],
+    ) -> None:
         """Asynchronous task that watches the given file descriptor and calls
         the given callback whenever the file descriptor becomes readable.
 
