@@ -69,16 +69,16 @@ class AsyncioEventLoop(EventLoop):
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         if loop:
             self._loop: asyncio.AbstractEventLoop = loop
-            self.__event_loop_policy_altered: bool = False
-            self.__original_event_loop_policy: asyncio.AbstractEventLoopPolicy | None = None
+            self._event_loop_policy_altered: bool = False
+            self._original_event_loop_policy: asyncio.AbstractEventLoopPolicy | None = None
         else:
-            self.__original_event_loop_policy = asyncio.get_event_loop_policy()
-            if IS_WINDOWS and not isinstance(self.__original_event_loop_policy, asyncio.WindowsSelectorEventLoopPolicy):
+            self._original_event_loop_policy = asyncio.get_event_loop_policy()
+            if IS_WINDOWS and not isinstance(self._original_event_loop_policy, asyncio.WindowsSelectorEventLoopPolicy):
                 self.logger.debug("Set WindowsSelectorEventLoopPolicy as asyncio event loop policy")
                 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-                self.__event_loop_policy_altered = True
+                self._event_loop_policy_altered = True
             else:
-                self.__event_loop_policy_altered = False
+                self._event_loop_policy_altered = False
 
             self._loop = asyncio.get_event_loop()
 
@@ -89,8 +89,8 @@ class AsyncioEventLoop(EventLoop):
         self._idle_callbacks: dict[int, Callable[[], typing.Any]] = {}
 
     def __del__(self) -> None:
-        if self.__event_loop_policy_altered:
-            asyncio.set_event_loop_policy(self.__original_event_loop_policy)  # Restore default event loop policy
+        if self._event_loop_policy_altered:
+            asyncio.set_event_loop_policy(self._original_event_loop_policy)  # Restore default event loop policy
 
     def _also_call_idle(self, callback: Callable[_Spec, _T]) -> Callable[_Spec, _T]:
         """
