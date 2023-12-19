@@ -48,6 +48,11 @@ class AsyncioEventLoop(EventLoop):
     """
     Event loop based on the standard library ``asyncio`` module.
 
+    .. warning::
+        Under Windows, AsyncioEventLoop globally enforces WindowsSelectorEventLoopPolicy
+        if external event loop is not provided.
+        Original event loop policy is restored in destructor method.
+
     .. note::
         If you make any changes to the urwid state outside of it
         handling input or responding to alarms (for example, from asyncio.Task
@@ -65,8 +70,10 @@ class AsyncioEventLoop(EventLoop):
         if loop:
             self._loop: asyncio.AbstractEventLoop = loop
             self.__event_loop_policy_altered: bool = False
+            self.__original_event_loop_policy: asyncio.AbstractEventLoopPolicy | None = None
         else:
-            if IS_WINDOWS and not isinstance(asyncio.get_event_loop_policy(), asyncio.WindowsSelectorEventLoopPolicy):
+            self.__original_event_loop_policy = asyncio.get_event_loop_policy()
+            if IS_WINDOWS and not isinstance(self.__original_event_loop_policy, asyncio.WindowsSelectorEventLoopPolicy):
                 self.logger.debug("Set WindowsSelectorEventLoopPolicy as asyncio event loop policy")
                 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
                 self.__event_loop_policy_altered = True
@@ -83,7 +90,7 @@ class AsyncioEventLoop(EventLoop):
 
     def __del__(self) -> None:
         if self.__event_loop_policy_altered:
-            asyncio.set_event_loop_policy(None)  # Restore default event loop policy
+            asyncio.set_event_loop_policy(self.__original_event_loop_policy)  # Restore default event loop policy
 
     def _also_call_idle(self, callback: Callable[_Spec, _T]) -> Callable[_Spec, _T]:
         """
