@@ -26,6 +26,7 @@ from __future__ import annotations
 import asyncio
 import functools
 import logging
+import sys
 import typing
 
 from .abstract_loop import EventLoop, ExitMainLoop
@@ -40,11 +41,17 @@ if typing.TYPE_CHECKING:
     _T = typing.TypeVar("_T")
 
 __all__ = ("AsyncioEventLoop",)
+IS_WINDOWS = sys.platform == "win32"
 
 
 class AsyncioEventLoop(EventLoop):
     """
     Event loop based on the standard library ``asyncio`` module.
+
+    .. warning::
+        Under Windows, AsyncioEventLoop globally enforces WindowsSelectorEventLoopPolicy
+        as a side-effect of creating a class instance.
+        Original event loop policy is restored in destructor method.
 
     .. note::
         If you make any changes to the urwid state outside of it
@@ -57,14 +64,22 @@ class AsyncioEventLoop(EventLoop):
             asyncio.get_event_loop().call_soon(main_loop.draw_screen)
     """
 
-    _we_started_event_loop = False
-
     def __init__(self, *, loop: asyncio.AbstractEventLoop | None = None, **kwargs) -> None:
         super().__init__()
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         if loop:
             self._loop: asyncio.AbstractEventLoop = loop
+            self._event_loop_policy_altered: bool = False
+            self._original_event_loop_policy: asyncio.AbstractEventLoopPolicy | None = None
         else:
+            self._original_event_loop_policy = asyncio.get_event_loop_policy()
+            if IS_WINDOWS and not isinstance(self._original_event_loop_policy, asyncio.WindowsSelectorEventLoopPolicy):
+                self.logger.debug("Set WindowsSelectorEventLoopPolicy as asyncio event loop policy")
+                asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+                self._event_loop_policy_altered = True
+            else:
+                self._event_loop_policy_altered = False
+
             self._loop = asyncio.get_event_loop()
 
         self._exc: BaseException | None = None
@@ -72,6 +87,10 @@ class AsyncioEventLoop(EventLoop):
         self._idle_asyncio_handle: asyncio.TimerHandle | None = None
         self._idle_handle: int = 0
         self._idle_callbacks: dict[int, Callable[[], typing.Any]] = {}
+
+    def __del__(self) -> None:
+        if self._event_loop_policy_altered:
+            asyncio.set_event_loop_policy(self._original_event_loop_policy)  # Restore default event loop policy
 
     def _also_call_idle(self, callback: Callable[_Spec, _T]) -> Callable[_Spec, _T]:
         """
