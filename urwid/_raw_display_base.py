@@ -32,6 +32,7 @@ import os
 import selectors
 import signal
 import socket
+import sys
 import typing
 
 from urwid import escape, signals, util
@@ -45,6 +46,8 @@ if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
     from urwid import Canvas, EventLoop
+
+IS_WINDOWS = sys.platform == "win32"
 
 
 class Screen(BaseScreen, RealTerminal):
@@ -104,7 +107,7 @@ class Screen(BaseScreen, RealTerminal):
 
         logger.debug(f"SIGWINCH handler called with signum={signum!r}, frame={frame!r}")
 
-        if not self._resized:
+        if IS_WINDOWS or not self._resized:
             self._resize_pipe_wr.send(b"R")
             logger.debug("Sent fake resize input to the pipe")
         self._resized = True
