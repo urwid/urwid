@@ -59,16 +59,19 @@ class AsyncioEventLoop(EventLoop):
             asyncio.get_event_loop().call_soon(main_loop.draw_screen)
     """
 
-    _we_started_event_loop = False
-
     def __init__(self, *, loop: asyncio.AbstractEventLoop | None = None, **kwargs) -> None:
         super().__init__()
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         if loop:
             self._loop: asyncio.AbstractEventLoop = loop
+            self.__event_loop_policy_altered: bool = False
         else:
-            if IS_WINDOWS:
+            if IS_WINDOWS and not isinstance(asyncio.get_event_loop_policy(), asyncio.WindowsSelectorEventLoopPolicy):
+                self.logger.debug("Set WindowsSelectorEventLoopPolicy as asyncio event loop policy")
                 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+                self.__event_loop_policy_altered = True
+            else:
+                self.__event_loop_policy_altered = False
 
             self._loop = asyncio.get_event_loop()
 
@@ -77,6 +80,10 @@ class AsyncioEventLoop(EventLoop):
         self._idle_asyncio_handle: asyncio.TimerHandle | None = None
         self._idle_handle: int = 0
         self._idle_callbacks: dict[int, Callable[[], typing.Any]] = {}
+
+    def __del__(self) -> None:
+        if self.__event_loop_policy_altered:
+            asyncio.set_event_loop_policy(None)  # Restore default event loop policy
 
     def _also_call_idle(self, callback: Callable[_Spec, _T]) -> Callable[_Spec, _T]:
         """
