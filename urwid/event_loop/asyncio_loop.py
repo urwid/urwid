@@ -26,6 +26,7 @@ from __future__ import annotations
 import asyncio
 import functools
 import logging
+import sys
 import typing
 
 from .abstract_loop import EventLoop, ExitMainLoop
@@ -40,6 +41,7 @@ if typing.TYPE_CHECKING:
     _T = typing.TypeVar("_T")
 
 __all__ = ("AsyncioEventLoop",)
+IS_WINDOWS = sys.platform == "win32"
 
 
 class AsyncioEventLoop(EventLoop):
@@ -65,6 +67,9 @@ class AsyncioEventLoop(EventLoop):
         if loop:
             self._loop: asyncio.AbstractEventLoop = loop
         else:
+            if IS_WINDOWS:
+                asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
             self._loop = asyncio.get_event_loop()
 
         self._exc: BaseException | None = None

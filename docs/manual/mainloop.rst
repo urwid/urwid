@@ -111,7 +111,15 @@ This event loop integrates with the asyncio module in Python.
     Use instead method :method:`run_in_executor` of :class:`AsyncioEventLoop`,
     which forward API of the same method from asyncio Event Loop run_in_executor_.
 
-.. _run_in_executor: https://docs.python.org/3.11/library/asyncio-eventloop.html#asyncio.loop.run_in_executor
+.. warning::
+
+    For input handling, selectors based logic is used.
+    Under Windows OS only `SelectorEventLoop`_ is supported.
+
+.. note:: `uvloop` event loop is not supported officially.
+
+.. _run_in_executor: https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.run_in_executor
+.. _SelectorEventLoop: https://docs.python.org/3/library/asyncio-eventloop.html?highlight=selectoreventloop#asyncio.SelectorEventLoop
 
 .. seealso::
 
