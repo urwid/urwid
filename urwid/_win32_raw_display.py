@@ -162,7 +162,7 @@ class Screen(_raw_display_base.Screen):
 
         Subclasses may wish to use parse_input to wrap the callback.
         """
-        self._input_thread = ReadInputThread(self._send_input, lambda: self._sigwinch_handler(0))
+        self._input_thread = ReadInputThread(self._send_input, lambda: self._sigwinch_handler(28))
         self._input_thread.start()
         if hasattr(self, "get_input_nonblocking"):
             wrapper = self._make_legacy_input_wrapper(event_loop, callback)
