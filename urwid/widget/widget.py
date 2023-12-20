@@ -719,8 +719,10 @@ def delegate_to_widget_mixin(attribute_name: str):
         def selectable(self) -> bool:
             return get_delegate(self).selectable()
 
-        def get_cursor_coords(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> tuple[int, int] | None:
-            return get_delegate(self).get_cursor_coords(size)
+        @property
+        def get_cursor_coords(self) -> Callable[[tuple[()] | tuple[int] | tuple[int, int]], tuple[int, int] | None]:
+            # TODO(Aleksei):  Get rid of property usage after getting rid of "if getattr"
+            return get_delegate(self).get_cursor_coords
 
         @property
         def get_pref_col(self) -> Callable[[tuple[()] | tuple[int] | tuple[int, int]], int | None]:
