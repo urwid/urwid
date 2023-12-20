@@ -647,8 +647,5 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if is_mouse_press(event) and button == 1 and w.selectable():
             self.focus_position = i
 
-        if not hasattr(w, "mouse_event"):
-            return False
-
         tsize = self.get_item_size(size, i, focus, item_rows)
         return w.mouse_event(tsize, event, button, col, row - wrow, focus)

@@ -359,9 +359,6 @@ class Padding(WidgetDecoration):
         focus: bool,
     ):
         """Send mouse event if position is within self._original_widget."""
-        if not hasattr(self._original_widget, "mouse_event"):
-            return False
-
         left, right = self.padding_values(size, focus)
         maxcol = size[0]
         if x < left or x >= maxcol - right:

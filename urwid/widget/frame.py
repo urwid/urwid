@@ -627,16 +627,14 @@ class Frame(Widget, WidgetContainerMixin):
             focus = focus and self.focus_part == "header"
             if is_mouse_press(event) and button == 1 and self.header.selectable():
                 self.focus_position = "header"
-            if not hasattr(self.header, "mouse_event"):
-                return False
+
             return self.header.mouse_event((maxcol,), event, button, col, row, focus)
 
         if row >= maxrow - ftrim:  # within footer
             focus = focus and self.focus_part == "footer"
             if is_mouse_press(event) and button == 1 and self.footer.selectable():
                 self.focus_position = "footer"
-            if not hasattr(self.footer, "mouse_event"):
-                return False
+
             return self.footer.mouse_event((maxcol,), event, button, col, row - maxrow + ftrim, focus)
 
         # within body
@@ -644,8 +642,6 @@ class Frame(Widget, WidgetContainerMixin):
         if is_mouse_press(event) and button == 1 and self.body.selectable():
             self.focus_position = "body"
 
-        if not hasattr(self.body, "mouse_event"):
-            return False
         return self.body.mouse_event((maxcol, maxrow - htrim - ftrim), event, button, col, row - htrim, focus)
 
     def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:

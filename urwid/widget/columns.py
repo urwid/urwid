@@ -699,9 +699,6 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             if is_mouse_press(event) and button == 1 and w.selectable():
                 self.focus_position = i
 
-            if not hasattr(w, "mouse_event"):
-                return False
-
             if len(size) == 1 and b:
                 return w.mouse_event((end - x, self.rows(size)), event, button, col - x, row, focus)
             return w.mouse_event((end - x,) + size[1:], event, button, col - x, row, focus)
@@ -716,6 +713,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             return 0
         col = None
         cwidth = widths[self.focus_position]
+
         if hasattr(w, "get_pref_col"):
             if len(size) == 1 and b:
                 col = w.get_pref_col((cwidth, self.rows(size)))
@@ -726,6 +724,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 col += sum(widths[: self.focus_position])
         if col is None:
             col = self.pref_col
+
         if col is None and w.selectable():
             col = cwidth // 2
             col += self.focus_position * self.dividechars

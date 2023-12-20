@@ -563,8 +563,6 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
     def mouse_event(self, size: tuple[int, int], event, button: int, col: int, row: int, focus: bool) -> bool | None:
         """Pass event to top_w, ignore if outside of top_w."""
-        if not hasattr(self.top_w, "mouse_event"):
-            return False
 
         left, right, top, bottom = self.calculate_padding_filler(size, focus)
         maxcol, maxrow = size
@@ -572,5 +570,10 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             return False
 
         return self.top_w.mouse_event(
-            self.top_w_size(size, left, right, top, bottom), event, button, col - left, row - top, focus
+            self.top_w_size(size, left, right, top, bottom),
+            event,
+            button,
+            col - left,
+            row - top,
+            focus,
         )

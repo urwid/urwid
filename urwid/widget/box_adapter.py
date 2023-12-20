@@ -111,8 +111,6 @@ class BoxAdapter(WidgetDecoration):
         focus: bool,
     ) -> bool:
         (maxcol,) = size
-        if not hasattr(self._original_widget, "mouse_event"):
-            return False
         return self._original_widget.mouse_event((maxcol, self.height), event, button, col, row, focus)
 
     def render(self, size: tuple[int], focus: bool = False) -> CompositeCanvas:

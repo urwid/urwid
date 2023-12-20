@@ -571,7 +571,7 @@ class MainLoop:
             elif isinstance(k, tuple):
                 if is_mouse_event(k):
                     event, button, col, row = k
-                    if hasattr(self._topmost_widget, "mouse_event") and self._topmost_widget.mouse_event(
+                    if self._topmost_widget.mouse_event(
                         self.screen_size,
                         event,
                         button,

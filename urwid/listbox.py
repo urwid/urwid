@@ -1691,9 +1691,6 @@ class ListBox(Widget, WidgetContainerMixin):
         if is_mouse_press(event) and button == 1 and w.selectable():
             self.change_focus((maxcol, maxrow), w_pos, wrow)
 
-        if not hasattr(w, "mouse_event"):
-            return False
-
         return w.mouse_event((maxcol,), event, button, col, row - wrow, focus)
 
     def ends_visible(self, size: tuple[int, int], focus: bool = False):
