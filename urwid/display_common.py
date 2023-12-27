@@ -37,7 +37,6 @@ if typing.TYPE_CHECKING:
 
     from urwid import Canvas
 
-LOGGER = logging.getLogger(__name__)
 IS_WINDOWS = sys.platform == "win32"
 
 if not IS_WINDOWS:
@@ -1004,7 +1003,7 @@ class BaseScreen(metaclass=BaseMeta):
     def __init__(self) -> None:
         super().__init__()
 
-        self.logger = LOGGER.getChild(self.__class__.__name__)
+        self.logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
 
         self._palette: dict[str | None, tuple[AttrSpec, AttrSpec, AttrSpec, AttrSpec, AttrSpec]] = {}
         self._started: bool = False

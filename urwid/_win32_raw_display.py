@@ -61,7 +61,6 @@ class Screen(_raw_display_base.Screen):
             input, self._send_input = socket.socketpair()  # noqa: A001
 
         super().__init__(input, output)
-        self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
 
     _dwOriginalOutMode = None
     _dwOriginalInMode = None

@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import functools
+import logging
 import typing
 import warnings
 from operator import attrgetter
@@ -288,7 +289,7 @@ class Widget(metaclass=WidgetMeta):
        :param size: See :meth:`Widget.render` for details
        :type size: widget size
        :param key: a single keystroke value; see :ref:`keyboard-input`
-       :type key: bytes or unicode
+       :type key: str
 
        :returns: ``None`` if *key* was handled by this widget or
                  *key* (the same value passed) if *key* was not handled
@@ -414,6 +415,9 @@ class Widget(metaclass=WidgetMeta):
     _selectable = False
     _sizing = frozenset([Sizing.FLOW, Sizing.BOX, Sizing.FIXED])
     _command_map = command_map
+
+    def __init__(self):
+        self.logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
 
     def _invalidate(self) -> None:
         """
@@ -598,6 +602,7 @@ class FlowWidget(Widget):
             DeprecationWarning,
             stacklevel=3,
         )
+        super().__init__()
 
     def rows(self, size: int, focus: bool = False) -> int:
         """
@@ -640,6 +645,7 @@ class BoxWidget(Widget):
             DeprecationWarning,
             stacklevel=3,
         )
+        super().__init__()
 
     def render(self, size: tuple[int, int], focus: bool = False):
         """
@@ -683,6 +689,7 @@ class FixedWidget(Widget):
             DeprecationWarning,
             stacklevel=3,
         )
+        super().__init__()
 
     def render(self, size, focus=False):
         """
