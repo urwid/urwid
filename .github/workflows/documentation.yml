@@ -46,7 +46,7 @@ jobs:
         env:
           SPHINX_GITHUB_CHANGELOG_TOKEN: ${{ secrets.URWID_SPHINX_RO_TOKEN }}
         run: sphinx-build docs build/documentation
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           path: build/documentation
           name: documentation
