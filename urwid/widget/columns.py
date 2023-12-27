@@ -700,6 +700,11 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 self.focus_position = i
 
             if not hasattr(w, "mouse_event"):
+                warnings.warn(
+                    f"{w.__class__.__module__}.{w.__class__.__name__} is not subclass of Widget",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
                 return False
 
             if len(size) == 1 and b:
@@ -716,6 +721,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             return 0
         col = None
         cwidth = widths[self.focus_position]
+
         if hasattr(w, "get_pref_col"):
             if len(size) == 1 and b:
                 col = w.get_pref_col((cwidth, self.rows(size)))
@@ -726,6 +732,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 col += sum(widths[: self.focus_position])
         if col is None:
             col = self.pref_col
+
         if col is None and w.selectable():
             col = cwidth // 2
             col += self.focus_position * self.dividechars

@@ -244,7 +244,7 @@ class Filler(WidgetDecoration):
             y = maxrow - 1
         return x, y + top
 
-    def get_pref_col(self, size: tuple[int, int]) -> int:
+    def get_pref_col(self, size: tuple[int, int]) -> int | None:
         """Return pref_col from self.original_widget if any."""
         (maxcol, maxrow) = size
         if not hasattr(self._original_widget, "get_pref_col"):

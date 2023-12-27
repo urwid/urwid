@@ -198,6 +198,19 @@ class FrameError(Exception):
     pass
 
 
+def _check_widget_subclass(widget: Widget | None) -> None:
+    if widget is None:
+        return
+
+    if not isinstance(widget, Widget):
+        obj_class_path = f"{widget.__class__.__module__}.{widget.__class__.__name__}"
+        warnings.warn(
+            f"{obj_class_path} is not subclass of Widget",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+
+
 class Frame(Widget, WidgetContainerMixin):
     """
     Frame widget is a box widget with optional header and footer
@@ -235,6 +248,9 @@ class Frame(Widget, WidgetContainerMixin):
         self._body = body
         self._footer = footer
         self.focus_part = focus_part
+        _check_widget_subclass(header)
+        _check_widget_subclass(body)
+        _check_widget_subclass(footer)
 
     @property
     def header(self) -> Widget | None:
@@ -242,6 +258,7 @@ class Frame(Widget, WidgetContainerMixin):
 
     @header.setter
     def header(self, header: Widget | None):
+        _check_widget_subclass(header)
         self._header = header
         if header is None and self.focus_part == "header":
             self.focus_part = "body"
@@ -271,6 +288,7 @@ class Frame(Widget, WidgetContainerMixin):
 
     @body.setter
     def body(self, body: Widget) -> None:
+        _check_widget_subclass(body)
         self._body = body
         self._invalidate()
 
@@ -298,6 +316,7 @@ class Frame(Widget, WidgetContainerMixin):
 
     @footer.setter
     def footer(self, footer: Widget | None) -> None:
+        _check_widget_subclass(footer)
         self._footer = footer
         if footer is None and self.focus_part == "footer":
             self.focus_part = "body"

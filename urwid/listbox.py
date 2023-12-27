@@ -1692,6 +1692,11 @@ class ListBox(Widget, WidgetContainerMixin):
             self.change_focus((maxcol, maxrow), w_pos, wrow)
 
         if not hasattr(w, "mouse_event"):
+            warnings.warn(
+                f"{w.__class__.__module__}.{w.__class__.__name__} is not subclass of Widget",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             return False
 
         return w.mouse_event((maxcol,), event, button, col, row - wrow, focus)

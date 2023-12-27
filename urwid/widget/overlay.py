@@ -34,6 +34,16 @@ class OverlayError(Exception):
     pass
 
 
+def _check_widget_subclass(widget: Widget) -> None:
+    if not isinstance(widget, Widget):
+        obj_class_path = f"{widget.__class__.__module__}.{widget.__class__.__name__}"
+        warnings.warn(
+            f"{obj_class_path} is not subclass of Widget",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+
+
 class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     """
     Overlay contains two box widgets and renders one on top of the other
@@ -134,6 +144,9 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self.bottom_w = bottom_w
 
         self.set_overlay_parameters(align, width, valign, height, min_width, min_height, left, right, top, bottom)
+
+        _check_widget_subclass(top_w)
+        _check_widget_subclass(bottom_w)
 
     @staticmethod
     def options(
@@ -572,5 +585,10 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             return False
 
         return self.top_w.mouse_event(
-            self.top_w_size(size, left, right, top, bottom), event, button, col - left, row - top, focus
+            self.top_w_size(size, left, right, top, bottom),
+            event,
+            button,
+            col - left,
+            row - top,
+            focus,
         )
