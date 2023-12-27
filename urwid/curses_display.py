@@ -25,7 +25,6 @@ Curses-based UI implementation
 from __future__ import annotations
 
 import curses
-import logging
 import sys
 import typing
 from contextlib import suppress
@@ -104,7 +103,6 @@ _curses_colours = {
 class Screen(BaseScreen, RealTerminal):
     def __init__(self):
         super().__init__()
-        self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self.curses_pairs = [(None, None)]  # Can't be sure what pair 0 will default to
         self.palette = {}
         self.has_color = False

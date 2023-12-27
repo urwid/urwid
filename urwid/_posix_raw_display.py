@@ -27,7 +27,6 @@ from __future__ import annotations
 import contextlib
 import fcntl
 import functools
-import logging
 import os
 import signal
 import struct
@@ -66,7 +65,6 @@ class Screen(_raw_display_base.Screen):
             and `end paste` keystrokes when the user pastes text.
         """
         super().__init__(input, output)
-        self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self.gpm_mev: Popen | None = None
         self.gpm_event_pending: bool = False
         self.bracketed_paste_mode = bracketed_paste_mode

@@ -27,7 +27,6 @@ from __future__ import annotations
 import abc
 import contextlib
 import functools
-import logging
 import os
 import selectors
 import signal
@@ -56,7 +55,6 @@ class Screen(BaseScreen, RealTerminal):
         terminal.
         """
         super().__init__()
-        self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
 
         self._partial_codes: list[int] = []
         self._pal_escape: dict[str | None, str] = {}
