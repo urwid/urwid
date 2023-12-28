@@ -761,7 +761,7 @@ class FixedWidget(Widget):
         raise NotImplementedError()
 
 
-def delegate_to_widget_mixin(attribute_name: str):
+def delegate_to_widget_mixin(attribute_name: str) -> type[Widget]:
     """
     Return a mixin class that delegates all standard widget methods
     to an attribute given by attribute_name.
@@ -824,7 +824,7 @@ class WidgetWrapError(Exception):
     pass
 
 
-class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget"), Widget):
+class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget")):
     def __init__(self, w: Widget):
         """
         w -- widget to wrap, stored as self._w
