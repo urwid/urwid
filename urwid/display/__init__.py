@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import importlib
+import typing
+
 __all__ = (
     "raw",
     "BLACK",
@@ -27,6 +30,10 @@ __all__ = (
     "BaseScreen",
     "RealTerminal",
     "ScreenError",
+    # Lazy imported
+    "html_fragment",
+    "lcd",
+    "web",
 )
 
 from . import raw
@@ -62,3 +69,29 @@ try:
     __all__ += ("curses",)
 except ImportError:
     pass
+
+# Moved modules handling
+__locals: dict[str, typing.Any] = locals()  # use mutable access for pure lazy loading
+
+# Lazy load modules
+_lazy_load: frozenset[str] = frozenset(
+    (
+        "html_fragment",
+        "lcd",
+        "web",
+    )
+)
+
+
+def __getattr__(name: str) -> typing.Any:
+    """Get attributes lazy.
+
+    :return: attribute by name
+    :raises AttributeError: attribute is not defined for lazy load
+    """
+    if name in _lazy_load:
+        mod = importlib.import_module(f"{__package__}.{name}")
+        __locals[name] = mod
+        return mod
+
+    raise AttributeError(f"{name} not found in {__package__}")

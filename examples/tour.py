@@ -26,7 +26,6 @@ Urwid tour.  Shows many of the standard widget types and features.
 from __future__ import annotations
 
 import urwid
-import urwid.display.web
 
 
 def main():

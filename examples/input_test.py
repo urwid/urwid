@@ -29,7 +29,6 @@ import argparse
 import logging
 
 import urwid
-import urwid.display.web
 
 if urwid.display.web.is_web_request():
     Screen = urwid.display.web.Screen

@@ -39,7 +39,6 @@ import string
 import typing
 
 import urwid
-import urwid.display.web
 
 # use appropriate Screen class
 if urwid.display.web.is_web_request():

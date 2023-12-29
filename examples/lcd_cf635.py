@@ -23,7 +23,7 @@ from __future__ import annotations
 import sys
 import typing
 
-import urwid.display.lcd
+import urwid
 
 CGRAM = """
 ...... ...... ...... ...... ..X... ...... ...... ......
