@@ -312,7 +312,7 @@ def build_menus():
     return build_submenu(menu_structure)
 
 
-screen = urwid.display.lcd_display.CF635Screen(sys.argv[1])
+screen = urwid.display.lcd.CF635Screen(sys.argv[1])
 # set up our font
 program_cgram(screen)
 loop = urwid.MainLoop(build_menus(), screen=screen)

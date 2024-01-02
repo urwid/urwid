@@ -5,28 +5,28 @@ Display Modules
 
 .. autoclass:: BaseScreen
 
-raw_display
+RAW display
 -----------
 
 .. module:: urwid.display.raw
 
 .. autoclass:: Screen
 
-curses_display
+Curses display
 --------------
 
 .. module:: urwid.display.curses
 
 .. autoclass:: Screen
 
-web_display
+WEB display
 -----------
 
 .. module:: urwid.display.web
 
 .. autoclass:: Screen
 
-html_fragment
+HTML fragment
 -------------
 
 .. module:: urwid.display.html_fragment
@@ -37,7 +37,7 @@ html_fragment
 
 .. autofunction:: screenshot_collect
 
-lcd_display
+LCD display
 -----------
 
 .. module:: urwid.display.lcd
