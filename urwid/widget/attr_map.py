@@ -48,7 +48,7 @@ class AttrMap(delegate_to_widget_mixin("_original_widget"), WidgetDecoration):
         [('fgreet', None, ...'hi   ')]
         >>> am2 = AttrMap(Text(('word', u"hi")), {'word':'greeting', None:'bg'})
         >>> am2
-        <AttrMap flow widget <Text flow widget 'hi'> attr_map={'word': 'greeting', None: 'bg'}>
+        <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={'word': 'greeting', None: 'bg'}>
         >>> next(am2.render(size).content())
         [('greeting', None, ...'hi'), ('bg', None, ...'   ')]
         """
@@ -89,7 +89,7 @@ class AttrMap(delegate_to_widget_mixin("_original_widget"), WidgetDecoration):
         >>> w = AttrMap(Text(u"hi"), None)
         >>> w.set_attr_map({'a':'b'})
         >>> w
-        <AttrMap flow widget <Text flow widget 'hi'> attr_map={'a': 'b'}>
+        <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={'a': 'b'}>
         """
         for from_attr, to_attr in attr_map.items():
             if not isinstance(from_attr, Hashable) or not isinstance(to_attr, Hashable):
@@ -124,10 +124,10 @@ class AttrMap(delegate_to_widget_mixin("_original_widget"), WidgetDecoration):
         >>> w = AttrMap(Text(u"hi"), {})
         >>> w.set_focus_map({'a':'b'})
         >>> w
-        <AttrMap flow widget <Text flow widget 'hi'> attr_map={} focus_map={'a': 'b'}>
+        <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={} focus_map={'a': 'b'}>
         >>> w.set_focus_map(None)
         >>> w
-        <AttrMap flow widget <Text flow widget 'hi'> attr_map={}>
+        <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={}>
         """
         if focus_map is not None:
             for from_attr, to_attr in focus_map.items():

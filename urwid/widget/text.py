@@ -25,7 +25,7 @@ class Text(Widget):
     a horizontally resizeable text widget
     """
 
-    _sizing = frozenset([Sizing.FLOW])
+    _sizing = frozenset([Sizing.FLOW, Sizing.FIXED])
 
     ignore_focus = True
     _repr_content_length_max = 140
@@ -59,10 +59,10 @@ class Text(Widget):
         :type layout: text layout instance
 
         >>> Text(u"Hello")
-        <Text flow widget 'Hello'>
+        <Text fixed/flow widget 'Hello'>
         >>> t = Text(('bold', u"stuff"), 'right', 'any')
         >>> t
-        <Text flow widget 'stuff' align='right' wrap='any'>
+        <Text fixed/flow widget 'stuff' align='right' wrap='any'>
         >>> print(t.text)
         stuff
         >>> t.attrib
@@ -227,7 +227,7 @@ class Text(Widget):
         >>> t = Text(u"hi")
         >>> t.set_layout('right', 'clip')
         >>> t
-        <Text flow widget 'hi' align='right' wrap='clip'>
+        <Text fixed/flow widget 'hi' align='right' wrap='clip'>
         """
         if layout is None:
             layout = text_layout.default_layout

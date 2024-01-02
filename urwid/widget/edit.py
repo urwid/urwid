@@ -14,7 +14,7 @@ if typing.TYPE_CHECKING:
 
     from urwid.canvas import TextCanvas
 
-from .constants import Align, WrapMode
+from .constants import Align, Sizing, WrapMode
 from .text import Text, TextError
 
 
@@ -43,6 +43,7 @@ class Edit(Text):
       text if it is signaled for text that it has already changed once).
     """
 
+    _sizing = frozenset([Sizing.FLOW])
     _selectable = True
     ignore_focus = False
     # (this variable is picked up by the MetaSignals metaclass)

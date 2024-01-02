@@ -100,7 +100,7 @@ class Padding(WidgetDecoration):
         |  ***  |
         >>> p=Padding(Text(u"1234"), 'left', 2, None, 1, 1)
         >>> p
-        <Padding flow widget <Text flow widget '1234'> left=1 right=1 width=2>
+        <Padding fixed/flow widget <Text fixed/flow widget '1234'> left=1 right=1 width=2>
         >>> pr(p)   # align against left
         | 12    |
         | 34    |

@@ -26,7 +26,7 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
 
     >>> from urwid import Text
     >>> WidgetDecoration(Text(u"hi"))
-    <WidgetDecoration flow widget <Text flow widget 'hi'>>
+    <WidgetDecoration fixed/flow widget <Text fixed/flow widget 'hi'>>
     """
 
     def __init__(self, original_widget: Widget) -> None:
