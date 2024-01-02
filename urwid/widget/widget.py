@@ -585,7 +585,7 @@ class Widget(metaclass=WidgetMeta):
                 self.logger.debug(f"keypress sent to non selectable widget {self!r}")
             else:
                 warnings.warn(
-                    f"Widget {self.__class__.__name__} not called 'super().__init__()",
+                    f"Widget {self.__class__.__name__} did not call 'super().__init__()",
                     WidgetWarning,
                     stacklevel=3,
                 )
