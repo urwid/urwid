@@ -252,7 +252,6 @@ __locals: dict[str, typing.Any] = locals()  # use mutable access for pure lazy l
 
 # Backward compatible lazy load with deprecation warnings
 _moved_warn: dict[str, str] = {
-    "escape": "urwid.display.escape",
     "lcd_display": "urwid.display.lcd",
     "html_fragment": "urwid.display.html_fragment",
     "web_display": "urwid.display.web",
@@ -263,6 +262,7 @@ _moved_no_warn: dict[str, str] = {
     "display_common": "urwid.display.common",
     "raw_display": "urwid.display.raw",
     "curses_display": "urwid.display.curses",
+    "escape": "urwid.display.escape",
 }
 
 
