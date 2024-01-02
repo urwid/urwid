@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import importlib
 import sys
+import types
 import typing
 import warnings
 
@@ -263,6 +264,52 @@ _moved_no_warn: dict[str, str] = {
     "raw_display": "urwid.display.raw",
     "curses_display": "urwid.display.curses",
 }
+
+
+class _MovedModule(types.ModuleType):
+    """Special class to handle moved modules.
+
+    PEP-0562 handles moved modules attributes, but unfortunately not handle nested modules access
+    like "from xxx.yyy import zzz"
+    """
+
+    __slots__ = ("__moved_from", "__moved_to")
+
+    def __init__(self, moved_from: str, moved_to: str) -> None:
+        super().__init__(moved_from.join(".")[-1])
+        self.__moved_from = moved_from
+        self.__moved_to = moved_to
+
+    def __getattr__(self, name: str) -> typing.Any:
+        real_module = importlib.import_module(self.__moved_to)
+        sys.modules[self.__moved_from] = real_module
+        return getattr(real_module, name)
+
+
+class _MovedModuleWarn(_MovedModule):
+    """Special class to handle moved modules.
+
+    Produce DeprecationWarning messages for imports.
+    """
+
+    __slots__ = ()
+
+    def __getattr__(self, name: str) -> typing.Any:
+        warnings.warn(
+            f"{self.__moved_from} is moved to {self.__moved_to}",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return super().__getattr__(name)
+
+
+for _name, _module in _moved_no_warn.items():
+    _module_path = f"{__name__}.{_name}"
+    sys.modules[_module_path] = _MovedModule(_module_path, _module)
+
+for _name, _module in _moved_warn.items():
+    _module_path = f"{__name__}.{_name}"
+    sys.modules[_module_path] = _MovedModuleWarn(_module_path, _module)
 
 
 def __getattr__(name: str) -> typing.Any:
