@@ -582,7 +582,7 @@ class Widget(metaclass=WidgetMeta):
         """
         if not self.selectable():
             if hasattr(self, "logger"):
-                self.logger.debug(f"Widget {self!r} is not selectable")
+                self.logger.debug(f"keypress sent to non selectable widget {self!r}")
             else:
                 warnings.warn(
                     f"Widget {self.__class__.__name__} not called 'super().__init__()",
