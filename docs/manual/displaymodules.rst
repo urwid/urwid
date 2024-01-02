@@ -17,41 +17,41 @@ Typically you will select a display module by passing it to your
 
 ::
 
-    loop = MainLoop(widget, ..., screen=urwid.curses_display.Screen())
+    loop = MainLoop(widget, ..., screen=urwid.display.curses.Screen())
 
 If you don't specify a display module, the default main loop will use
-:class:`raw_display.Screen` by default
+:class:`display.raw.Screen` by default
 
 ::
 
     # These are the same
     loop = MainLoop(widget, ...)
-    loop = MainLoop(widget, ..., screen=urwid.raw_display.Screen())
+    loop = MainLoop(widget, ..., screen=urwid.display.raw.Screen())
 
 Raw and Curses Display Modules
 ==============================
 
 Urwid has two display modules for displaying to terminals or the console.
 
-The :class:`raw_display.Screen` module is a pure-python display module with no
+The :class:`display.raw.Screen` module is a pure-python display module with no
 external dependencies. It sends and interprets terminal escape sequences
 directly. This is the default display module used by
 :class:`MainLoop`.
 
-The :class:`curses_display.Screen` module uses the curses or ncurses library
+The :class:`display.curses.Screen` module uses the curses or ncurses library
 provided by the operating system. The library does some optimization of screen
 updates and uses termcap to adjust to the user's terminal.
 
 The (n)curses library will disable colors if it detects a monochrome terminal,
 so a separate set of attributes should be given for monochrome mode when
-registering a palette with :class:`curses_display.Screen` High colors will not be
-used by the :class:`curses_display.Screen` module. See :ref:`setting-a-palette`
+registering a palette with :class:`display.curses.Screen` High colors will not be
+used by the :class:`display.curses.Screen` module. See :ref:`setting-a-palette`
 below.
 
 This table summarizes the differences between the two modules:
 
 ============================== =========== ==============
-..                             raw_display curses_display
+..                             raw display curses display
 ============================== =========== ==============
 optimized C code               no          YES
 compatible with any terminal   no          YES [1]_
@@ -71,10 +71,10 @@ external event loop support    YES         no
 Other Display Modules
 =====================
 
-CGI Web Display Module ``web_display``
+CGI Web Display Module ``display.web``
 --------------------------------------
 
-The :mod:`urwid.web_display` module lets you run your application as a CGI
+The :mod:`urwid.display.web` module lets you run your application as a CGI
 script under Apache instead of running it in a terminal.
 
 This module is a proof of concept. There are security and responsiveness issues
@@ -90,9 +90,9 @@ Screenshot Display Module ``html_fragment``
 -------------------------------------------
 
 Screenshots of Urwid interfaces can be rendered in plain HTML. The
-:class:`html_fragment.HtmlGenerator` display module lets you do this by simulating user input
+:class:`display.html_fragment.HtmlGenerator` display module lets you do this by simulating user input
 and capturing the screen as fragments of HTML each time
-:meth:`html_fragment.HtmlGenerator.draw_screen` is
+:meth:`display.html_fragment.HtmlGenerator.draw_screen` is
 called.
 
 These fragments may be included in HTML documents. They will be rendered
@@ -106,13 +106,13 @@ The `example screenshots`_ are generated with this display module.
 .. _`example screenshots`: http://urwid.org/examples/index.html
 
 
-LCD Display Module ``lcd_display``
+LCD Display Module ``display.lcd``
 ----------------------------------
 
 Almost any device that displays characters in a grid can be used as a
-screen.  The :mod:`lcd_display` module has some base classes for simple
+screen.  The :mod:`display.lcd` module has some base classes for simple
 LCD character display devices and a complete implementation of a
-:class:`lcd_display.CF635Screen` for Crystal Fontz 635 USB displays with
+:class:`display.lcd.CF635Screen` for Crystal Fontz 635 USB displays with
 6 buttons.
 
 The lcd_cf635.py_ example program demonstrates use of this module.

@@ -36,10 +36,10 @@ import tty
 import typing
 from subprocess import PIPE, Popen
 
-from urwid import escape, signals
-from urwid.display_common import INPUT_DESCRIPTORS_CHANGED
+from urwid import signals
 
-from . import _raw_display_base
+from . import _raw_display_base, escape
+from .common import INPUT_DESCRIPTORS_CHANGED
 
 if typing.TYPE_CHECKING:
     import io

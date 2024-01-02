@@ -23,7 +23,7 @@ from __future__ import annotations
 import time
 import typing
 
-from .display_common import BaseScreen
+from .common import BaseScreen
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable, Sequence

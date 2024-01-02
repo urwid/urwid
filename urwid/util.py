@@ -27,8 +27,6 @@ import typing
 import warnings
 from contextlib import suppress
 
-from urwid import escape
-
 if typing.TYPE_CHECKING:
     from collections.abc import Generator
     from types import TracebackType
@@ -40,7 +38,10 @@ if typing.TYPE_CHECKING:
             ...
 
 
-str_util = escape.str_util
+try:
+    from urwid import str_util
+except ImportError:
+    from urwid import old_str_util as str_util
 
 # bring str_util functions into our namespace
 calc_text_pos = str_util.calc_text_pos
@@ -170,6 +171,9 @@ def apply_target_encoding(s: str | bytes):
     """
     Return (encoded byte string, character set rle).
     """
+    # Import locally to warranty no circular imports
+    from urwid.display import escape
+
     if _use_dec_special and isinstance(s, str):
         # first convert drawing characters
         s = s.translate(escape.DEC_SPECIAL_CHARMAP)

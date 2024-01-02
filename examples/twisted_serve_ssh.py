@@ -51,7 +51,7 @@ from twisted.python.components import Adapter, Componentized
 from zope.interface import Attribute, Interface, implementer
 
 import urwid
-from urwid.raw_display import Screen
+from urwid.display.raw import Screen
 
 if typing.TYPE_CHECKING:
     from twisted.cred.checkers import ICredentialsChecker

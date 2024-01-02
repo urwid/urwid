@@ -26,8 +26,6 @@ Urwid tour.  Shows many of the standard widget types and features.
 from __future__ import annotations
 
 import urwid
-import urwid.raw_display
-import urwid.web_display
 
 
 def main():
@@ -359,10 +357,10 @@ def main():
     ]
 
     # use appropriate Screen class
-    if urwid.web_display.is_web_request():
-        screen = urwid.web_display.Screen()
+    if urwid.display.web.is_web_request():
+        screen = urwid.display.web.Screen()
     else:
-        screen = urwid.raw_display.Screen()
+        screen = urwid.display.raw.Screen()
 
     def unhandled(key):
         if key == "f8":
@@ -372,13 +370,13 @@ def main():
 
 
 def setup():
-    urwid.web_display.set_preferences("Urwid Tour")
+    urwid.display.web.set_preferences("Urwid Tour")
     # try to handle short web requests quickly
-    if urwid.web_display.handle_short_request():
+    if urwid.display.web.handle_short_request():
         return
 
     main()
 
 
-if __name__ == "__main__" or urwid.web_display.is_web_request():
+if __name__ == "__main__" or urwid.display.web.is_web_request():
     setup()

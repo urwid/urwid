@@ -28,7 +28,7 @@ from __future__ import annotations
 import typing
 
 import urwid
-import urwid.raw_display
+import urwid.display.raw
 
 
 class SwitchingPadding(urwid.Padding):

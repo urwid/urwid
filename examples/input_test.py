@@ -29,18 +29,9 @@ import argparse
 import logging
 
 import urwid
-import urwid.raw_display
-import urwid.web_display
 
-try:
-    import urwid.curses_display
-except ImportError:
-    curses_available = False
-else:
-    curses_available = True
-
-if urwid.web_display.is_web_request():
-    Screen = urwid.web_display.Screen
+if urwid.display.web.is_web_request():
+    Screen = urwid.display.web.Screen
     loop_cls = urwid.SelectEventLoop
 else:
     event_loops: dict[str, type[urwid.EventLoop] | None] = {
@@ -78,10 +69,10 @@ else:
 
     args = parser.parse_args()
 
-    if not curses_available or "r" in args.argc:
-        Screen = urwid.raw_display.Screen
+    if not hasattr(urwid.display, "curses") or "r" in args.argc:
+        Screen = urwid.display.raw.Screen
     else:
-        Screen = urwid.curses_display.Screen
+        Screen = urwid.display.curses.Screen
 
     loop_cls = event_loops[args.event_loop]
 
@@ -159,11 +150,11 @@ def key_test():
 
 
 def main():
-    urwid.web_display.set_preferences("Input Test")
-    if urwid.web_display.handle_short_request():
+    urwid.display.web.set_preferences("Input Test")
+    if urwid.display.web.handle_short_request():
         return
     key_test()
 
 
-if __name__ == "__main__" or urwid.web_display.is_web_request():
+if __name__ == "__main__" or urwid.display.web.is_web_request():
     main()

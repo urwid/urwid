@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from urwid.escape import str_util
+from urwid.display.escape import str_util
 
 
 class DecodeOneTest(unittest.TestCase):
