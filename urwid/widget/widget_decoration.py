@@ -30,6 +30,17 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
     """
 
     def __init__(self, original_widget: Widget) -> None:
+        # TODO(Aleksei): reduce amount of multiple inheritance usage
+        # Special case: subclasses with multiple inheritance causes `super` call wrong way
+        # Call parent __init__ explicit
+        Widget.__init__(self)
+        if not isinstance(original_widget, Widget):
+            obj_class_path = f"{original_widget.__class__.__module__}.{original_widget.__class__.__name__}"
+            warnings.warn(
+                f"{obj_class_path} is not subclass of Widget",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         self._original_widget = original_widget
 
     def _repr_words(self):

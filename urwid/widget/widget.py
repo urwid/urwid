@@ -38,6 +38,9 @@ if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable
 
 
+LOGGER = logging.getLogger(__name__)
+
+
 class WidgetMeta(MetaSuper, signals.MetaSignals):
     """
     Bases: :class:`MetaSuper`, :class:`MetaSignals`
@@ -74,7 +77,11 @@ class WidgetMeta(MetaSuper, signals.MetaSignals):
 
 
 class WidgetError(Exception):
-    pass
+    """Widget specific errors."""
+
+
+class WidgetWarning(Warning):
+    """Widget specific warnings."""
 
 
 def validate_size(widget, size, canv):
@@ -280,12 +287,6 @@ class Widget(metaclass=WidgetMeta):
 
     .. method:: keypress(size, key)
 
-       .. note::
-
-          This method is not implemented in :class:`.Widget` but
-          must be implemented by any selectable widget.
-          See :meth:`.selectable`.
-
        :param size: See :meth:`Widget.render` for details
        :type size: widget size
        :param key: a single keystroke value; see :ref:`keyboard-input`
@@ -310,13 +311,6 @@ class Widget(metaclass=WidgetMeta):
 
 
     .. method:: mouse_event(size, event, button, col, row, focus)
-
-       .. note::
-
-          This method is not implemented in :class:`.Widget` but
-          may be implemented by a subclass.  Not implementing this
-          method is equivalent to having a method that always returns
-          ``False``.
 
        :param size: See :meth:`Widget.render` for details.
        :type size: widget size
@@ -576,6 +570,69 @@ class Widget(metaclass=WidgetMeta):
     def _repr_attrs(self):
         return {}
 
+    def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
+        """Keyboard input handler.
+
+        :param size: See :meth:`Widget.render` for details
+        :type size: tuple[()] | tuple[int] | tuple[int, int]
+        :param key: a single keystroke value; see :ref:`keyboard-input`
+        :type key: str
+        :return: ``None`` if *key* was handled by *key* (the same value passed) if *key* was not handled
+        :rtype: str | None
+        """
+        if not self.selectable():
+            if hasattr(self, "logger"):
+                self.logger.debug(f"keypress sent to non selectable widget {self!r}")
+            else:
+                warnings.warn(
+                    f"Widget {self.__class__.__name__} did not call 'super().__init__()",
+                    WidgetWarning,
+                    stacklevel=3,
+                )
+                LOGGER.debug(f"Widget {self!r} is not selectable")
+        return key
+
+    def mouse_event(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+        event: str,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool | None:
+        """Mouse event handler.
+
+        :param size: See :meth:`Widget.render` for details.
+        :type size: tuple[()] | tuple[int] | tuple[int, int]
+        :param event: Values such as ``'mouse press'``, ``'ctrl mouse press'``,
+                     ``'mouse release'``, ``'meta mouse release'``,
+                     ``'mouse drag'``; see :ref:`mouse-input`
+        :type event: str
+        :param button: 1 through 5 for press events, often 0 for release events
+                      (which button was released is often not known)
+        :type button: int
+        :param col: Column of the event, 0 is the left edge of this widget
+        :type col: int
+        :param row: Row of the event, 0 it the top row of this widget
+        :type row: int
+        :param focus: Set to ``True`` if this widget or one of its children is in focus
+        :type focus: bool
+        :return: ``True`` if the event was handled by this widget, ``False`` otherwise
+        :rtype: bool | None
+        """
+        if not self.selectable():
+            if hasattr(self, "logger"):
+                self.logger.debug(f"Widget {self!r} is not selectable")
+            else:
+                warnings.warn(
+                    f"Widget {self.__class__.__name__} not called 'super().__init__()",
+                    WidgetWarning,
+                    stacklevel=3,
+                )
+                LOGGER.debug(f"Widget {self!r} is not selectable")
+        return False
+
 
 class FlowWidget(Widget):
     """
@@ -704,7 +761,7 @@ class FixedWidget(Widget):
         raise NotImplementedError()
 
 
-def delegate_to_widget_mixin(attribute_name: str):
+def delegate_to_widget_mixin(attribute_name: str) -> type[Widget]:
     """
     Return a mixin class that delegates all standard widget methods
     to an attribute given by attribute_name.
@@ -767,7 +824,7 @@ class WidgetWrapError(Exception):
     pass
 
 
-class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget"), Widget):
+class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget")):
     def __init__(self, w: Widget):
         """
         w -- widget to wrap, stored as self._w
@@ -782,6 +839,14 @@ class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget"), Widget):
         of the wrapped widgets by behaving like a ContainerWidget or
         WidgetDecoration, or it may hide them from outside access.
         """
+        super().__init__()
+        if not isinstance(w, Widget):
+            obj_class_path = f"{w.__class__.__module__}.{w.__class__.__name__}"
+            warnings.warn(
+                f"{obj_class_path} is not subclass of Widget",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         self._wrapped_widget = w
 
     @property

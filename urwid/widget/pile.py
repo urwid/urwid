@@ -648,6 +648,11 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             self.focus_position = i
 
         if not hasattr(w, "mouse_event"):
+            warnings.warn(
+                f"{w.__class__.__module__}.{w.__class__.__name__} is not subclass of Widget",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             return False
 
         tsize = self.get_item_size(size, i, focus, item_rows)
