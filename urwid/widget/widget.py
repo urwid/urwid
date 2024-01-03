@@ -780,8 +780,9 @@ def delegate_to_widget_mixin(attribute_name: str) -> type[Widget]:
             canv = get_delegate(self).render(size, focus=focus)
             return CompositeCanvas(canv)
 
-        def selectable(self) -> bool:
-            return get_delegate(self).selectable()
+        @property
+        def selectable(self) -> Callable[[], bool]:
+            return get_delegate(self).selectable
 
         @property
         def get_cursor_coords(self) -> Callable[[tuple[()] | tuple[int] | tuple[int, int]], tuple[int, int] | None]:
@@ -801,8 +802,9 @@ def delegate_to_widget_mixin(attribute_name: str) -> type[Widget]:
             # TODO(Aleksei):  Get rid of property usage after getting rid of "if getattr"
             return get_delegate(self).move_cursor_to_coords
 
-        def rows(self, size: tuple[int], focus: bool = False) -> int:
-            return get_delegate(self).rows(size, focus=focus)
+        @property
+        def rows(self) -> Callable[[tuple[int], bool], int]:
+            return get_delegate(self).rows
 
         @property
         def mouse_event(
@@ -811,11 +813,13 @@ def delegate_to_widget_mixin(attribute_name: str) -> type[Widget]:
             # TODO(Aleksei):  Get rid of property usage after getting rid of "if getattr"
             return get_delegate(self).mouse_event
 
-        def sizing(self) -> frozenset[Sizing]:
-            return get_delegate(self).sizing()
+        @property
+        def sizing(self) -> Callable[[], frozenset[Sizing]]:
+            return get_delegate(self).sizing
 
-        def pack(self, size: tuple[()] | tuple[int] | tuple[int, int], focus: bool = False) -> tuple[int, int]:
-            return get_delegate(self).pack(size, focus)
+        @property
+        def pack(self) -> Callable[[tuple[()] | tuple[int] | tuple[int, int], bool], tuple[int, int]]:
+            return get_delegate(self).pack
 
     return DelegateToWidgetMixin
 
