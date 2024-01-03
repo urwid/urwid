@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Display Modules &#8212; Urwid 2.3.4</title>
+    <title>Display Modules &#8212; Urwid 2.4.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script src="../_static/documentation_options.js?v=3fb9b4ff"></script>
+    <script src="../_static/documentation_options.js?v=4d935f96"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="mainloop.html" title="Main Loop"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.3.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>
@@ -50,37 +50,37 @@ how you plan to use Urwid.</p>
 <img alt="../_images/display_modules.png" src="../_images/display_modules.png" />
 <p>Typically you will select a display module by passing it to your
 <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> constructor, eg:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">loop</span> <span class="o">=</span> <span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="n">screen</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">curses_display</span><span class="o">.</span><span class="n">Screen</span><span class="p">())</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">loop</span> <span class="o">=</span> <span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="n">screen</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">curses</span><span class="o">.</span><span class="n">Screen</span><span class="p">())</span>
 </pre></div>
 </div>
 <p>If you don’t specify a display module, the default main loop will use
-<a class="reference internal" href="../reference/display_modules.html#urwid.raw_display.Screen" title="urwid.raw_display.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">raw_display.Screen</span></code></a> by default</p>
+<a class="reference internal" href="../reference/display_modules.html#urwid.display.raw.Screen" title="urwid.display.raw.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">display.raw.Screen</span></code></a> by default</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># These are the same</span>
 <span class="n">loop</span> <span class="o">=</span> <span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
-<span class="n">loop</span> <span class="o">=</span> <span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="n">screen</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">raw_display</span><span class="o">.</span><span class="n">Screen</span><span class="p">())</span>
+<span class="n">loop</span> <span class="o">=</span> <span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="o">...</span><span class="p">,</span> <span class="n">screen</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">Screen</span><span class="p">())</span>
 </pre></div>
 </div>
 <section id="raw-and-curses-display-modules">
 <h2>Raw and Curses Display Modules<a class="headerlink" href="#raw-and-curses-display-modules" title="Link to this heading">¶</a></h2>
 <p>Urwid has two display modules for displaying to terminals or the console.</p>
-<p>The <a class="reference internal" href="../reference/display_modules.html#urwid.raw_display.Screen" title="urwid.raw_display.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">raw_display.Screen</span></code></a> module is a pure-python display module with no
+<p>The <a class="reference internal" href="../reference/display_modules.html#urwid.display.raw.Screen" title="urwid.display.raw.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">display.raw.Screen</span></code></a> module is a pure-python display module with no
 external dependencies. It sends and interprets terminal escape sequences
 directly. This is the default display module used by
 <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a>.</p>
-<p>The <a class="reference internal" href="../reference/display_modules.html#urwid.curses_display.Screen" title="urwid.curses_display.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">curses_display.Screen</span></code></a> module uses the curses or ncurses library
+<p>The <a class="reference internal" href="../reference/display_modules.html#urwid.display.curses.Screen" title="urwid.display.curses.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">display.curses.Screen</span></code></a> module uses the curses or ncurses library
 provided by the operating system. The library does some optimization of screen
 updates and uses termcap to adjust to the user’s terminal.</p>
 <p>The (n)curses library will disable colors if it detects a monochrome terminal,
 so a separate set of attributes should be given for monochrome mode when
-registering a palette with <a class="reference internal" href="../reference/display_modules.html#urwid.curses_display.Screen" title="urwid.curses_display.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">curses_display.Screen</span></code></a> High colors will not be
-used by the <a class="reference internal" href="../reference/display_modules.html#urwid.curses_display.Screen" title="urwid.curses_display.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">curses_display.Screen</span></code></a> module. See <a class="reference internal" href="#setting-a-palette"><span class="std std-ref">Setting a Palette</span></a>
+registering a palette with <a class="reference internal" href="../reference/display_modules.html#urwid.display.curses.Screen" title="urwid.display.curses.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">display.curses.Screen</span></code></a> High colors will not be
+used by the <a class="reference internal" href="../reference/display_modules.html#urwid.display.curses.Screen" title="urwid.display.curses.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">display.curses.Screen</span></code></a> module. See <a class="reference internal" href="#setting-a-palette"><span class="std std-ref">Setting a Palette</span></a>
 below.</p>
 <p>This table summarizes the differences between the two modules:</p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"></th>
-<th class="head"><p>raw_display</p></th>
-<th class="head"><p>curses_display</p></th>
+<th class="head"><p>raw display</p></th>
+<th class="head"><p>curses display</p></th>
 </tr>
 </thead>
 <tbody>
@@ -132,9 +132,9 @@ correctly</p>
 </section>
 <section id="other-display-modules">
 <h2>Other Display Modules<a class="headerlink" href="#other-display-modules" title="Link to this heading">¶</a></h2>
-<section id="cgi-web-display-module-web-display">
-<h3>CGI Web Display Module <code class="docutils literal notranslate"><span class="pre">web_display</span></code><a class="headerlink" href="#cgi-web-display-module-web-display" title="Link to this heading">¶</a></h3>
-<p>The <a class="reference internal" href="../reference/display_modules.html#module-urwid.web_display" title="urwid.web_display"><code class="xref py py-mod docutils literal notranslate"><span class="pre">urwid.web_display</span></code></a> module lets you run your application as a CGI
+<section id="cgi-web-display-module-display-web">
+<h3>CGI Web Display Module <code class="docutils literal notranslate"><span class="pre">display.web</span></code><a class="headerlink" href="#cgi-web-display-module-display-web" title="Link to this heading">¶</a></h3>
+<p>The <a class="reference internal" href="../reference/display_modules.html#module-urwid.display.web" title="urwid.display.web"><code class="xref py py-mod docutils literal notranslate"><span class="pre">urwid.display.web</span></code></a> module lets you run your application as a CGI
 script under Apache instead of running it in a terminal.</p>
 <p>This module is a proof of concept. There are security and responsiveness issues
 that need to be resolved before this module is recommended for production use.</p>
@@ -143,9 +143,9 @@ that need to be resolved before this module is recommended for production use.</
 <section id="screenshot-display-module-html-fragment">
 <h3>Screenshot Display Module <code class="docutils literal notranslate"><span class="pre">html_fragment</span></code><a class="headerlink" href="#screenshot-display-module-html-fragment" title="Link to this heading">¶</a></h3>
 <p>Screenshots of Urwid interfaces can be rendered in plain HTML. The
-<a class="reference internal" href="../reference/display_modules.html#urwid.html_fragment.HtmlGenerator" title="urwid.html_fragment.HtmlGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">html_fragment.HtmlGenerator</span></code></a> display module lets you do this by simulating user input
+<a class="reference internal" href="../reference/display_modules.html#urwid.display.html_fragment.HtmlGenerator" title="urwid.display.html_fragment.HtmlGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">display.html_fragment.HtmlGenerator</span></code></a> display module lets you do this by simulating user input
 and capturing the screen as fragments of HTML each time
-<a class="reference internal" href="../reference/display_modules.html#urwid.html_fragment.HtmlGenerator.draw_screen" title="urwid.html_fragment.HtmlGenerator.draw_screen"><code class="xref py py-meth docutils literal notranslate"><span class="pre">html_fragment.HtmlGenerator.draw_screen()</span></code></a> is
+<a class="reference internal" href="../reference/display_modules.html#urwid.display.html_fragment.HtmlGenerator.draw_screen" title="urwid.display.html_fragment.HtmlGenerator.draw_screen"><code class="xref py py-meth docutils literal notranslate"><span class="pre">display.html_fragment.HtmlGenerator.draw_screen()</span></code></a> is
 called.</p>
 <p>These fragments may be included in HTML documents. They will be rendered
 properly by any browser that uses a monospaced font for text that appears in
@@ -154,12 +154,12 @@ a web browser, and they will shrink and grow when a user changes their
 browser’s text size.</p>
 <p>The <a class="reference external" href="http://urwid.org/examples/index.html">example screenshots</a> are generated with this display module.</p>
 </section>
-<section id="lcd-display-module-lcd-display">
-<h3>LCD Display Module <code class="docutils literal notranslate"><span class="pre">lcd_display</span></code><a class="headerlink" href="#lcd-display-module-lcd-display" title="Link to this heading">¶</a></h3>
+<section id="lcd-display-module-display-lcd">
+<h3>LCD Display Module <code class="docutils literal notranslate"><span class="pre">display.lcd</span></code><a class="headerlink" href="#lcd-display-module-display-lcd" title="Link to this heading">¶</a></h3>
 <p>Almost any device that displays characters in a grid can be used as a
-screen.  The <code class="xref py py-mod docutils literal notranslate"><span class="pre">lcd_display</span></code> module has some base classes for simple
+screen.  The <code class="xref py py-mod docutils literal notranslate"><span class="pre">display.lcd</span></code> module has some base classes for simple
 LCD character display devices and a complete implementation of a
-<a class="reference internal" href="../reference/display_modules.html#urwid.lcd_display.CF635Screen" title="urwid.lcd_display.CF635Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">lcd_display.CF635Screen</span></code></a> for Crystal Fontz 635 USB displays with
+<a class="reference internal" href="../reference/display_modules.html#urwid.display.lcd.CF635Screen" title="urwid.display.lcd.CF635Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">display.lcd.CF635Screen</span></code></a> for Crystal Fontz 635 USB displays with
 6 buttons.</p>
 <p>The <a class="reference external" href="https://github.com/urwid/urwid/blob/master/examples/lcd_cf635.py">lcd_cf635.py</a> example program demonstrates use of this module.</p>
 <div class="admonition seealso">
@@ -203,9 +203,9 @@ available.</p>
 <li><a class="reference internal" href="#">Display Modules</a><ul>
 <li><a class="reference internal" href="#raw-and-curses-display-modules">Raw and Curses Display Modules</a></li>
 <li><a class="reference internal" href="#other-display-modules">Other Display Modules</a><ul>
-<li><a class="reference internal" href="#cgi-web-display-module-web-display">CGI Web Display Module <code class="docutils literal notranslate"><span class="pre">web_display</span></code></a></li>
+<li><a class="reference internal" href="#cgi-web-display-module-display-web">CGI Web Display Module <code class="docutils literal notranslate"><span class="pre">display.web</span></code></a></li>
 <li><a class="reference internal" href="#screenshot-display-module-html-fragment">Screenshot Display Module <code class="docutils literal notranslate"><span class="pre">html_fragment</span></code></a></li>
-<li><a class="reference internal" href="#lcd-display-module-lcd-display">LCD Display Module <code class="docutils literal notranslate"><span class="pre">lcd_display</span></code></a></li>
+<li><a class="reference internal" href="#lcd-display-module-display-lcd">LCD Display Module <code class="docutils literal notranslate"><span class="pre">display.lcd</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#setting-a-palette">Setting a Palette</a></li>
@@ -257,7 +257,7 @@ available.</p>
         <li class="right" >
           <a href="mainloop.html" title="Main Loop"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.3.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>

@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>MainLoop and Event Loops &#8212; Urwid 2.3.4</title>
+    <title>MainLoop and Event Loops &#8212; Urwid 2.4.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script src="../_static/documentation_options.js?v=3fb9b4ff"></script>
+    <script src="../_static/documentation_options.js?v=4d935f96"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.3.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">MainLoop and Event Loops</a></li> 
       </ul>
@@ -48,7 +48,7 @@
 <h2>MainLoop<a class="headerlink" href="#mainloop" title="Link to this heading">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.MainLoop">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">MainLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="widget.html#urwid.Widget" title="urwid.Widget"><span class="pre">Widget</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">palette</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">screen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="display_modules.html#urwid.BaseScreen" title="urwid.BaseScreen"><span class="pre">BaseScreen</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">handle_mouse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_filter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unhandled_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_loop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pop_ups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">MainLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="widget.html#urwid.Widget" title="urwid.Widget"><span class="pre">Widget</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">palette</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">screen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="display_modules.html#urwid.BaseScreen" title="urwid.BaseScreen"><span class="pre">BaseScreen</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">handle_mouse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_filter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unhandled_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">EventLoop</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pop_ups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop" title="Link to this definition">¶</a></dt>
 <dd><p>This is the standard main loop implementation for a single interactive
 session.</p>
 <dl class="field-list simple">
@@ -57,7 +57,7 @@ session.</p>
 <li><p><strong>widget</strong> (<em>widget instance</em>) – the topmost widget used for painting the screen, stored as
 <a class="reference internal" href="#urwid.MainLoop.widget" title="urwid.MainLoop.widget"><code class="xref py py-attr docutils literal notranslate"><span class="pre">widget</span></code></a> and may be modified. Must be a box widget.</p></li>
 <li><p><strong>palette</strong> (<em>iterable</em><em> of </em><em>palette entries</em>) – initial palette for screen</p></li>
-<li><p><strong>screen</strong> (<em>display module screen instance</em>) – screen to use, default is a new <a class="reference internal" href="display_modules.html#urwid.raw_display.Screen" title="urwid.raw_display.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">raw_display.Screen</span></code></a>
+<li><p><strong>screen</strong> (<em>display module screen instance</em>) – screen to use, default is a new <code class="xref py py-class docutils literal notranslate"><span class="pre">raw_display.Screen</span></code>
 instance; stored as <a class="reference internal" href="#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><code class="xref py py-attr docutils literal notranslate"><span class="pre">screen</span></code></a></p></li>
 <li><p><strong>handle_mouse</strong> (<em>bool</em>) – <code class="docutils literal notranslate"><span class="pre">True</span></code> to ask <a class="reference internal" href="#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><code class="xref py py-attr docutils literal notranslate"><span class="pre">screen</span></code></a> to process mouse events</p></li>
 <li><p><strong>input_filter</strong> (<em>callable</em>) – a function to filter input before sending it to
@@ -86,7 +86,7 @@ instance to allow any widget to open a pop-up anywhere on the screen</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.MainLoop.draw_screen">
-<span class="sig-name descname"><span class="pre">draw_screen</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.draw_screen" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">draw_screen</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.MainLoop.draw_screen" title="Link to this definition">¶</a></dt>
 <dd><p>Render the widgets and paint the screen. This method is called
 automatically from <a class="reference internal" href="#urwid.MainLoop.entering_idle" title="urwid.MainLoop.entering_idle"><code class="xref py py-meth docutils literal notranslate"><span class="pre">entering_idle()</span></code></a>.</p>
 <p>If you modify the widgets displayed outside of handling input or
@@ -96,7 +96,7 @@ to repaint the screen.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.MainLoop.entering_idle">
-<span class="sig-name descname"><span class="pre">entering_idle</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.entering_idle" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">entering_idle</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.MainLoop.entering_idle" title="Link to this definition">¶</a></dt>
 <dd><p>This method is called whenever the event loop is about to enter the
 idle state. <a class="reference internal" href="#urwid.MainLoop.draw_screen" title="urwid.MainLoop.draw_screen"><code class="xref py py-meth docutils literal notranslate"><span class="pre">draw_screen()</span></code></a> is called here to update the
 screen when anything has changed.</p>
@@ -126,7 +126,7 @@ or get_input_nonblocking() methods.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.MainLoop.remove_alarm">
-<span class="sig-name descname"><span class="pre">remove_alarm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.remove_alarm" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">remove_alarm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.MainLoop.remove_alarm" title="Link to this definition">¶</a></dt>
 <dd><p>Remove an alarm. Return <code class="docutils literal notranslate"><span class="pre">True</span></code> if <em>handle</em> was found, <code class="docutils literal notranslate"><span class="pre">False</span></code>
 otherwise.</p>
 </dd></dl>
@@ -140,7 +140,7 @@ exists, <code class="docutils literal notranslate"><span class="pre">False</span
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.MainLoop.remove_watch_pipe">
-<span class="sig-name descname"><span class="pre">remove_watch_pipe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">write_fd</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.remove_watch_pipe" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">remove_watch_pipe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">write_fd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.MainLoop.remove_watch_pipe" title="Link to this definition">¶</a></dt>
 <dd><p>Close the read end of the pipe and remove the watch created by
 <a class="reference internal" href="#urwid.MainLoop.watch_pipe" title="urwid.MainLoop.watch_pipe"><code class="xref py py-meth docutils literal notranslate"><span class="pre">watch_pipe()</span></code></a>. You are responsible for closing the write end of
 the pipe.</p>
@@ -149,7 +149,7 @@ the pipe.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.MainLoop.run">
-<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.run" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.MainLoop.run" title="Link to this definition">¶</a></dt>
 <dd><p>Start the main loop handling input events and updating the screen. The
 loop will continue until an <a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a> exception is raised.</p>
 <p>If you would prefer to manage the event loop yourself, don’t use this
@@ -159,7 +159,7 @@ and <a class="reference internal" href="#urwid.MainLoop.stop" title="urwid.MainL
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.MainLoop.set_alarm_at">
-<span class="sig-name descname"><span class="pre">set_alarm_at</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.set_alarm_at" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">set_alarm_at</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Self</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_T</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.set_alarm_at" title="Link to this definition">¶</a></dt>
 <dd><p>Schedule an alarm at <em>tm</em> time that will call <em>callback</em> from the
 within the <a class="reference internal" href="#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a> function. Returns a handle that may be passed to
 <a class="reference internal" href="#urwid.MainLoop.remove_alarm" title="urwid.MainLoop.remove_alarm"><code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_alarm()</span></code></a>.</p>
@@ -176,7 +176,7 @@ object and <em>user_data</em></p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.MainLoop.set_alarm_in">
-<span class="sig-name descname"><span class="pre">set_alarm_in</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.set_alarm_in" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">set_alarm_in</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Self</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_T</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.set_alarm_in" title="Link to this definition">¶</a></dt>
 <dd><p>Schedule an alarm in <em>sec</em> seconds that will call <em>callback</em> from the
 within the <a class="reference internal" href="#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a> method.</p>
 <dl class="field-list simple">
@@ -192,7 +192,7 @@ object and <em>user_data</em></p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.MainLoop.start">
-<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.start" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">StoppingContext</span></span></span><a class="headerlink" href="#urwid.MainLoop.start" title="Link to this definition">¶</a></dt>
 <dd><p>Sets up the main loop, hooking into the event loop where necessary.
 Starts the <a class="reference internal" href="#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><code class="xref py py-attr docutils literal notranslate"><span class="pre">screen</span></code></a> if it hasn’t already been started.</p>
 <p>If you want to control starting and stopping the event loop yourself,
@@ -232,7 +232,7 @@ the input.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.MainLoop.watch_file">
-<span class="sig-name descname"><span class="pre">watch_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.watch_file" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">watch_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.watch_file" title="Link to this definition">¶</a></dt>
 <dd><p>Call <em>callback</em> when <em>fd</em> has some data to read. No parameters are
 passed to callback.</p>
 <p>Returns a handle that may be passed to <a class="reference internal" href="#urwid.MainLoop.remove_watch_file" title="urwid.MainLoop.remove_watch_file"><code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_watch_file()</span></code></a>.</p>
@@ -240,7 +240,7 @@ passed to callback.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.MainLoop.watch_pipe">
-<span class="sig-name descname"><span class="pre">watch_pipe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop.watch_pipe" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">watch_pipe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.MainLoop.watch_pipe" title="Link to this definition">¶</a></dt>
 <dd><p>Create a pipe for use by a subprocess or thread to trigger a callback
 in the process/thread running the main loop.</p>
 <dl class="field-list simple">
@@ -281,7 +281,7 @@ This must be a box widget.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.SelectEventLoop">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">SelectEventLoop</span></span><a class="headerlink" href="#urwid.SelectEventLoop" title="Link to this definition">¶</a></dt>
-<dd><p>Event loop based on <code class="xref py py-func docutils literal notranslate"><span class="pre">select.select()</span></code></p>
+<dd><p>Event loop based on <code class="xref py py-func docutils literal notranslate"><span class="pre">selectors.DefaultSelector.select()</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.SelectEventLoop.alarm">
 <span class="sig-name descname"><span class="pre">alarm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.SelectEventLoop.alarm" title="Link to this definition">¶</a></dt>
@@ -328,6 +328,28 @@ an exception.  If ExitMainLoop is raised, exit cleanly.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="urwid.SelectEventLoop.run_in_executor">
+<span class="sig-name descname"><span class="pre">run_in_executor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">executor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Executor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="pre">_Spec</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_Spec.args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_Spec.kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Future</span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.SelectEventLoop.run_in_executor" title="Link to this definition">¶</a></dt>
+<dd><p>Run callable in executor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>executor</strong> (<em>concurrent.futures.Executor</em>) – Executor to use for running the function</p></li>
+<li><p><strong>func</strong> (<em>Callable</em>) – function to call</p></li>
+<li><p><strong>args</strong> (<em>object</em>) – positional arguments to function</p></li>
+<li><p><strong>kwargs</strong> (<em>object</em>) – keyword arguments to function</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>future object for the function call outcome.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>concurrent.futures.Future</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.SelectEventLoop.watch_file">
 <span class="sig-name descname"><span class="pre">watch_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.SelectEventLoop.watch_file" title="Link to this definition">¶</a></dt>
 <dd><p>Call callback() when fd has some data to read.  No parameters
@@ -346,6 +368,12 @@ callback – function to call when input is available</p>
 <dt class="sig sig-object py" id="urwid.AsyncioEventLoop">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">AsyncioEventLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractEventLoop</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AsyncioEventLoop" title="Link to this definition">¶</a></dt>
 <dd><p>Event loop based on the standard library <code class="docutils literal notranslate"><span class="pre">asyncio</span></code> module.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Under Windows, AsyncioEventLoop globally enforces WindowsSelectorEventLoopPolicy
+as a side-effect of creating a class instance.
+Original event loop policy is restored in destructor method.</p>
+</div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>If you make any changes to the urwid state outside of it
@@ -404,6 +432,27 @@ an exception.  If ExitMainLoop is raised, exit cleanly.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="urwid.AsyncioEventLoop.run_in_executor">
+<span class="sig-name descname"><span class="pre">run_in_executor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">executor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Executor</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="pre">_Spec</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_Spec.args</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">asyncio.Future</span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.AsyncioEventLoop.run_in_executor" title="Link to this definition">¶</a></dt>
+<dd><p>Run callable in executor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>executor</strong> (<em>concurrent.futures.Executor</em><em> | </em><em>None</em>) – Executor to use for running the function. Default asyncio executor is used if None.</p></li>
+<li><p><strong>func</strong> (<em>Callable</em>) – function to call</p></li>
+<li><p><strong>args</strong> (<em>object</em>) – arguments to function (positional only)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>future object for the function call outcome.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>asyncio.Future</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.AsyncioEventLoop.watch_file">
 <span class="sig-name descname"><span class="pre">watch_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.AsyncioEventLoop.watch_file" title="Link to this definition">¶</a></dt>
 <dd><p>Call callback() when fd has some data to read.  No parameters
@@ -426,16 +475,23 @@ callback – function to call when input is available</p>
 <p>Constructor.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.TrioEventLoop.alarm">
-<span class="sig-name descname"><span class="pre">alarm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TrioEventLoop.alarm" title="Link to this definition">¶</a></dt>
-<dd><p>Calls <cite>callback()</cite> a given time from now.  No parameters are passed
-to the callback.</p>
-<dl class="simple">
-<dt>Parameters:</dt><dd><p>seconds: time in seconds to wait before calling the callback
-callback: function to call from the event loop</p>
+<span class="sig-name descname"><span class="pre">alarm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">trio.CancelScope</span></span></span><a class="headerlink" href="#urwid.TrioEventLoop.alarm" title="Link to this definition">¶</a></dt>
+<dd><p>Calls <cite>callback()</cite> a given time from now.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>seconds</strong> (<em>float</em>) – time in seconds to wait before calling the callback</p></li>
+<li><p><strong>callback</strong> (<em>Callable</em><em>[</em><em>[</em><em>]</em><em>, </em><em>Any</em><em>]</em>) – function to call from the event loop</p></li>
+</ul>
 </dd>
-<dt>Returns:</dt><dd><p>a handle that may be passed to <cite>remove_alarm()</cite></p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>a handle that may be passed to <cite>remove_alarm()</cite></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>trio.CancelScope</p>
 </dd>
 </dl>
+<p>No parameters are passed to the callback.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -448,7 +504,7 @@ simulate it by repeatedly calling <cite>callback()</cite> with a short delay.</p
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.TrioEventLoop.remove_alarm">
-<span class="sig-name descname"><span class="pre">remove_alarm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TrioEventLoop.remove_alarm" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">remove_alarm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">CancelScope</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.TrioEventLoop.remove_alarm" title="Link to this definition">¶</a></dt>
 <dd><p>Removes an alarm.</p>
 <dl class="simple">
 <dt>Parameters:</dt><dd><p>handle: the handle of the alarm to remove</p>
@@ -458,7 +514,7 @@ simulate it by repeatedly calling <cite>callback()</cite> with a short delay.</p
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.TrioEventLoop.remove_enter_idle">
-<span class="sig-name descname"><span class="pre">remove_enter_idle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.TrioEventLoop.remove_enter_idle" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">remove_enter_idle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.TrioEventLoop.remove_enter_idle" title="Link to this definition">¶</a></dt>
 <dd><p>Removes an idle callback.</p>
 <dl class="simple">
 <dt>Parameters:</dt><dd><p>handle: the handle of the idle callback to remove</p>
@@ -487,7 +543,7 @@ exception. If ExitMainLoop is raised, exits cleanly.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.TrioEventLoop.run_async">
-<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">run_async</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TrioEventLoop.run_async" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">run_async</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TrioEventLoop.run_async" title="Link to this definition">¶</a></dt>
 <dd><p>Starts the main loop and blocks asynchronously until the main loop
 exits. This allows one to embed an urwid app in a Trio app even if the
 Trio event loop is already running. Example:</p>
@@ -507,7 +563,7 @@ Trio event loop is already running. Example:</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.TrioEventLoop.watch_file">
-<span class="sig-name descname"><span class="pre">watch_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">trio.CancelScope</span></span></span><a class="headerlink" href="#urwid.TrioEventLoop.watch_file" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">watch_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">io.IOBase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">trio.CancelScope</span></span></span><a class="headerlink" href="#urwid.TrioEventLoop.watch_file" title="Link to this definition">¶</a></dt>
 <dd><p>Calls <cite>callback()</cite> when the given file descriptor has some data
 to read. No parameters are passed to the callback.</p>
 <dl class="simple">
@@ -584,6 +640,28 @@ an exception.  If ExitMainLoop is raised, exit cleanly.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="urwid.GLibEventLoop.run_in_executor">
+<span class="sig-name descname"><span class="pre">run_in_executor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">executor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Executor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="pre">_Spec</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_Spec.args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_Spec.kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Future</span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.GLibEventLoop.run_in_executor" title="Link to this definition">¶</a></dt>
+<dd><p>Run callable in executor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>executor</strong> (<em>concurrent.futures.Executor</em>) – Executor to use for running the function</p></li>
+<li><p><strong>func</strong> (<em>Callable</em>) – function to call</p></li>
+<li><p><strong>args</strong> (<em>object</em>) – positional arguments to function</p></li>
+<li><p><strong>kwargs</strong> (<em>object</em>) – keyword arguments to function</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>future object for the function call outcome.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>concurrent.futures.Future</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.GLibEventLoop.set_signal_handler">
 <span class="sig-name descname"><span class="pre">set_signal_handler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">signum</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">FrameType</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">signal.Handlers</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.GLibEventLoop.set_signal_handler" title="Link to this definition">¶</a></dt>
 <dd><p>Sets the signal handler for signal signum.</p>
@@ -618,7 +696,7 @@ callback – function to call when input is available</p>
 <h2>TwistedEventLoop<a class="headerlink" href="#twistedeventloop" title="Link to this heading">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.TwistedEventLoop">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">TwistedEventLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reactor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manage_reactor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">TwistedEventLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reactor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ReactorBase</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manage_reactor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop" title="Link to this definition">¶</a></dt>
 <dd><p>Event loop based on <a class="reference external" href="https://twisted.org/">Twisted</a></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -641,7 +719,7 @@ reactor.</p>
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.TwistedEventLoop.alarm">
-<span class="sig-name descname"><span class="pre">alarm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TwistedEventLoop.alarm" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">alarm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DelayedCall</span></span></span><a class="headerlink" href="#urwid.TwistedEventLoop.alarm" title="Link to this definition">¶</a></dt>
 <dd><p>Call callback() a given time from now.  No parameters are
 passed to callback.</p>
 <p>Returns a handle that may be passed to remove_alarm()</p>
@@ -668,14 +746,14 @@ the loop quits.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.TwistedEventLoop.remove_alarm">
-<span class="sig-name descname"><span class="pre">remove_alarm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.TwistedEventLoop.remove_alarm" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">remove_alarm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DelayedCall</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.TwistedEventLoop.remove_alarm" title="Link to this definition">¶</a></dt>
 <dd><p>Remove an alarm.</p>
 <p>Returns True if the alarm exists, False otherwise</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.TwistedEventLoop.remove_enter_idle">
-<span class="sig-name descname"><span class="pre">remove_enter_idle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.TwistedEventLoop.remove_enter_idle" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">remove_enter_idle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.TwistedEventLoop.remove_enter_idle" title="Link to this definition">¶</a></dt>
 <dd><p>Remove an idle callback.</p>
 <p>Returns True if the handle was removed.</p>
 </dd></dl>
@@ -692,6 +770,28 @@ the loop quits.</p>
 <span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TwistedEventLoop.run" title="Link to this definition">¶</a></dt>
 <dd><p>Start the event loop.  Exit the loop when any callback raises
 an exception.  If ExitMainLoop is raised, exit cleanly.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TwistedEventLoop.run_in_executor">
+<span class="sig-name descname"><span class="pre">run_in_executor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">executor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Executor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">object</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Future</span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.TwistedEventLoop.run_in_executor" title="Link to this definition">¶</a></dt>
+<dd><p>Run callable in executor if supported.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>executor</strong> (<em>concurrent.futures.Executor</em>) – Executor to use for running the function</p></li>
+<li><p><strong>func</strong> (<em>Callable</em>) – function to call</p></li>
+<li><p><strong>args</strong> (<em>object</em>) – arguments to function (positional only)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>future object for the function call outcome.
+(exact future type depends on the event loop type)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>concurrent.futures.Future | asyncio.Future</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -762,6 +862,27 @@ callback – function to call from event loop</p>
 <dd><p>Start the event loop.  Exit the loop when any callback raises
 an exception.  If ExitMainLoop is raised, exit cleanly.</p>
 <p>This method has no default implementation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.TornadoEventLoop.run_in_executor">
+<span class="sig-name descname"><span class="pre">run_in_executor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">executor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Executor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="pre">_Spec</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_Spec.args</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">asyncio.Future</span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.TornadoEventLoop.run_in_executor" title="Link to this definition">¶</a></dt>
+<dd><p>Run callable in executor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>executor</strong> (<em>concurrent.futures.Executor</em>) – Executor to use for running the function</p></li>
+<li><p><strong>func</strong> (<em>Callable</em>) – function to call</p></li>
+<li><p><strong>args</strong> (<em>object</em>) – arguments to function (positional only)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>future object for the function call outcome.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>asyncio.Future</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -843,6 +964,28 @@ was being monitored, <code class="docutils literal notranslate"><span class="pre
 <span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.ZMQEventLoop.run" title="Link to this definition">¶</a></dt>
 <dd><p>Start the event loop. Exit the loop when any callback raises an
 exception. If <a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a> is raised, exit cleanly.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ZMQEventLoop.run_in_executor">
+<span class="sig-name descname"><span class="pre">run_in_executor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">executor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Executor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="pre">_Spec</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_Spec.args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_Spec.kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Future</span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.ZMQEventLoop.run_in_executor" title="Link to this definition">¶</a></dt>
+<dd><p>Run callable in executor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>executor</strong> (<em>concurrent.futures.Executor</em>) – Executor to use for running the function</p></li>
+<li><p><strong>func</strong> (<em>Callable</em>) – function to call</p></li>
+<li><p><strong>args</strong> (<em>object</em>) – positional arguments to function</p></li>
+<li><p><strong>kwargs</strong> (<em>object</em>) – keyword arguments to function</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>future object for the function call outcome.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>concurrent.futures.Future</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -929,6 +1072,7 @@ Returns a handle that may be passed to <a class="reference internal" href="#urwi
 <li><a class="reference internal" href="#urwid.SelectEventLoop.remove_enter_idle"><code class="docutils literal notranslate"><span class="pre">SelectEventLoop.remove_enter_idle()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.SelectEventLoop.remove_watch_file"><code class="docutils literal notranslate"><span class="pre">SelectEventLoop.remove_watch_file()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.SelectEventLoop.run"><code class="docutils literal notranslate"><span class="pre">SelectEventLoop.run()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.SelectEventLoop.run_in_executor"><code class="docutils literal notranslate"><span class="pre">SelectEventLoop.run_in_executor()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.SelectEventLoop.watch_file"><code class="docutils literal notranslate"><span class="pre">SelectEventLoop.watch_file()</span></code></a></li>
 </ul>
 </li>
@@ -942,6 +1086,7 @@ Returns a handle that may be passed to <a class="reference internal" href="#urwi
 <li><a class="reference internal" href="#urwid.AsyncioEventLoop.remove_enter_idle"><code class="docutils literal notranslate"><span class="pre">AsyncioEventLoop.remove_enter_idle()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.AsyncioEventLoop.remove_watch_file"><code class="docutils literal notranslate"><span class="pre">AsyncioEventLoop.remove_watch_file()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.AsyncioEventLoop.run"><code class="docutils literal notranslate"><span class="pre">AsyncioEventLoop.run()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.AsyncioEventLoop.run_in_executor"><code class="docutils literal notranslate"><span class="pre">AsyncioEventLoop.run_in_executor()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.AsyncioEventLoop.watch_file"><code class="docutils literal notranslate"><span class="pre">AsyncioEventLoop.watch_file()</span></code></a></li>
 </ul>
 </li>
@@ -970,6 +1115,7 @@ Returns a handle that may be passed to <a class="reference internal" href="#urwi
 <li><a class="reference internal" href="#urwid.GLibEventLoop.remove_enter_idle"><code class="docutils literal notranslate"><span class="pre">GLibEventLoop.remove_enter_idle()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.GLibEventLoop.remove_watch_file"><code class="docutils literal notranslate"><span class="pre">GLibEventLoop.remove_watch_file()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.GLibEventLoop.run"><code class="docutils literal notranslate"><span class="pre">GLibEventLoop.run()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.GLibEventLoop.run_in_executor"><code class="docutils literal notranslate"><span class="pre">GLibEventLoop.run_in_executor()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.GLibEventLoop.set_signal_handler"><code class="docutils literal notranslate"><span class="pre">GLibEventLoop.set_signal_handler()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.GLibEventLoop.watch_file"><code class="docutils literal notranslate"><span class="pre">GLibEventLoop.watch_file()</span></code></a></li>
 </ul>
@@ -985,6 +1131,7 @@ Returns a handle that may be passed to <a class="reference internal" href="#urwi
 <li><a class="reference internal" href="#urwid.TwistedEventLoop.remove_enter_idle"><code class="docutils literal notranslate"><span class="pre">TwistedEventLoop.remove_enter_idle()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.TwistedEventLoop.remove_watch_file"><code class="docutils literal notranslate"><span class="pre">TwistedEventLoop.remove_watch_file()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.TwistedEventLoop.run"><code class="docutils literal notranslate"><span class="pre">TwistedEventLoop.run()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TwistedEventLoop.run_in_executor"><code class="docutils literal notranslate"><span class="pre">TwistedEventLoop.run_in_executor()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.TwistedEventLoop.watch_file"><code class="docutils literal notranslate"><span class="pre">TwistedEventLoop.watch_file()</span></code></a></li>
 </ul>
 </li>
@@ -998,6 +1145,7 @@ Returns a handle that may be passed to <a class="reference internal" href="#urwi
 <li><a class="reference internal" href="#urwid.TornadoEventLoop.remove_enter_idle"><code class="docutils literal notranslate"><span class="pre">TornadoEventLoop.remove_enter_idle()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.TornadoEventLoop.remove_watch_file"><code class="docutils literal notranslate"><span class="pre">TornadoEventLoop.remove_watch_file()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.TornadoEventLoop.run"><code class="docutils literal notranslate"><span class="pre">TornadoEventLoop.run()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TornadoEventLoop.run_in_executor"><code class="docutils literal notranslate"><span class="pre">TornadoEventLoop.run_in_executor()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.TornadoEventLoop.watch_file"><code class="docutils literal notranslate"><span class="pre">TornadoEventLoop.watch_file()</span></code></a></li>
 </ul>
 </li>
@@ -1012,6 +1160,7 @@ Returns a handle that may be passed to <a class="reference internal" href="#urwi
 <li><a class="reference internal" href="#urwid.ZMQEventLoop.remove_watch_file"><code class="docutils literal notranslate"><span class="pre">ZMQEventLoop.remove_watch_file()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ZMQEventLoop.remove_watch_queue"><code class="docutils literal notranslate"><span class="pre">ZMQEventLoop.remove_watch_queue()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ZMQEventLoop.run"><code class="docutils literal notranslate"><span class="pre">ZMQEventLoop.run()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ZMQEventLoop.run_in_executor"><code class="docutils literal notranslate"><span class="pre">ZMQEventLoop.run_in_executor()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ZMQEventLoop.watch_file"><code class="docutils literal notranslate"><span class="pre">ZMQEventLoop.watch_file()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ZMQEventLoop.watch_queue"><code class="docutils literal notranslate"><span class="pre">ZMQEventLoop.watch_queue()</span></code></a></li>
 </ul>
@@ -1066,7 +1215,7 @@ Returns a handle that may be passed to <a class="reference internal" href="#urwi
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.3.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">MainLoop and Event Loops</a></li> 
       </ul>

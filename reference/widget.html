@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widget Classes &#8212; Urwid 2.3.4</title>
+    <title>Widget Classes &#8212; Urwid 2.4.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script src="../_static/documentation_options.js?v=3fb9b4ff"></script>
+    <script src="../_static/documentation_options.js?v=4d935f96"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.3.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>
@@ -159,17 +159,11 @@ parameter.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.Widget.keypress">
 <span class="sig-name descname"><span class="pre">keypress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Widget.keypress" title="Link to this definition">¶</a></dt>
-<dd><div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This method is not implemented in <a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> but
-must be implemented by any selectable widget.
-See <a class="reference internal" href="#urwid.Widget.selectable" title="urwid.Widget.selectable"><code class="xref py py-meth docutils literal notranslate"><span class="pre">selectable()</span></code></a>.</p>
-</div>
-<dl class="field-list simple">
+<dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>size</strong> (<em>widget size</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
-<li><p><strong>key</strong> (<em>bytes</em><em> or </em><em>unicode</em>) – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
+<li><p><strong>key</strong> (<em>str</em>) – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -178,7 +172,7 @@ See <a class="reference internal" href="#urwid.Widget.selectable" title="urwid.W
 by this widget</p>
 </dd>
 </dl>
-<p>Container widgets will typically call the <a class="reference internal" href="#urwid.Widget.keypress" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">keypress()</span></code></a> method on
+<p>Container widgets will typically call the <a class="reference internal" href="#id0" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">keypress()</span></code></a> method on
 whichever of their children is set as the focus.</p>
 <p>The standard widgets use <a class="reference internal" href="#urwid.Widget._command_map" title="urwid.Widget._command_map"><code class="xref py py-attr docutils literal notranslate"><span class="pre">_command_map</span></code></a> to
 determine what action should be performed for a given <em>key</em>. You may
@@ -192,14 +186,7 @@ translating keys, selectively passing along events etc.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.Widget.mouse_event">
 <span class="sig-name descname"><span class="pre">mouse_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">button</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Widget.mouse_event" title="Link to this definition">¶</a></dt>
-<dd><div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This method is not implemented in <a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> but
-may be implemented by a subclass.  Not implementing this
-method is equivalent to having a method that always returns
-<code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
-</div>
-<dl class="field-list simple">
+<dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>size</strong> (<em>widget size</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
@@ -219,7 +206,7 @@ is in focus</p></li>
 otherwise</p>
 </dd>
 </dl>
-<p>Container widgets will typically call the <a class="reference internal" href="#urwid.Widget.mouse_event" title="urwid.Widget.mouse_event"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mouse_event()</span></code></a> method on
+<p>Container widgets will typically call the <a class="reference internal" href="#id2" title="urwid.Widget.mouse_event"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mouse_event()</span></code></a> method on
 whichever of their children is at the position (<em>col</em>, <em>row</em>).</p>
 </dd></dl>
 
@@ -343,6 +330,53 @@ accessing <a class="reference internal" href="#urwid.Widget.focus_position" titl
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">keypress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#id0" title="Link to this definition">¶</a></dt>
+<dd><p>Keyboard input handler.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
+<li><p><strong>key</strong> (<em>str</em>) – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code> if <em>key</em> was handled by <em>key</em> (the same value passed) if <em>key</em> was not handled</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id2">
+<span class="sig-name descname"><span class="pre">mouse_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">button</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#id2" title="Link to this definition">¶</a></dt>
+<dd><p>Mouse event handler.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
+<li><p><strong>event</strong> (<em>str</em>) – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code>, <code class="docutils literal notranslate"><span class="pre">'meta</span> <span class="pre">mouse</span> <span class="pre">release'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">drag'</span></code>; see <a class="reference internal" href="../manual/userinput.html#mouse-input"><span class="std std-ref">Mouse Input</span></a></p></li>
+<li><p><strong>button</strong> (<em>int</em>) – 1 through 5 for press events, often 0 for release events
+(which button was released is often not known)</p></li>
+<li><p><strong>col</strong> (<em>int</em>) – Column of the event, 0 is the left edge of this widget</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – Row of the event, 0 it the top row of this widget</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the event was handled by this widget, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.Widget.pack">
 <span class="sig-name descname"><span class="pre">pack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.Widget.pack" title="Link to this definition">¶</a></dt>
 <dd><p>See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for parameter details.</p>
@@ -385,7 +419,7 @@ interact with, <code class="docutils literal notranslate"><span class="pre">Fals
 Subclasses may leave these is if the are not selectable,
 or if they are always selectable they may
 set the <a class="reference internal" href="#urwid.Widget._selectable" title="urwid.Widget._selectable"><code class="xref py py-attr docutils literal notranslate"><span class="pre">_selectable</span></code></a> class variable to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
-<p>If this method returns <code class="docutils literal notranslate"><span class="pre">True</span></code> then the <a class="reference internal" href="#urwid.Widget.keypress" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">keypress()</span></code></a> method
+<p>If this method returns <code class="docutils literal notranslate"><span class="pre">True</span></code> then the <a class="reference internal" href="#id0" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">keypress()</span></code></a> method
 must be implemented.</p>
 <p>Returning <code class="docutils literal notranslate"><span class="pre">False</span></code> does not guarantee that this widget will never be in
 focus, only that this widget will usually be skipped over when changing
@@ -459,7 +493,7 @@ not part of determining a chain of focus.</p>
 instead, these are not real widgets:</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">urwid</span> <span class="kn">import</span> <span class="n">Text</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">WidgetDecoration</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;hi&quot;</span><span class="p">))</span>
-<span class="go">&lt;WidgetDecoration flow widget &lt;Text flow widget &#39;hi&#39;&gt;&gt;</span>
+<span class="go">&lt;WidgetDecoration fixed/flow widget &lt;Text fixed/flow widget &#39;hi&#39;&gt;&gt;</span>
 </pre></div>
 </div>
 <dl class="py property">
@@ -494,7 +528,7 @@ interact with, <code class="docutils literal notranslate"><span class="pre">Fals
 Subclasses may leave these is if the are not selectable,
 or if they are always selectable they may
 set the <code class="xref py py-attr docutils literal notranslate"><span class="pre">_selectable</span></code> class variable to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
-<p>If this method returns <code class="docutils literal notranslate"><span class="pre">True</span></code> then the <a class="reference internal" href="#urwid.Widget.keypress" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">keypress()</span></code></a> method
+<p>If this method returns <code class="docutils literal notranslate"><span class="pre">True</span></code> then the <a class="reference internal" href="#id0" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">keypress()</span></code></a> method
 must be implemented.</p>
 <p>Returning <code class="docutils literal notranslate"><span class="pre">False</span></code> does not guarantee that this widget will never be in
 focus, only that this widget will usually be skipped over when changing
@@ -615,10 +649,10 @@ of <em>text markup</em> with no display attribute already applied</p>
 </dd>
 </dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Hello&quot;</span><span class="p">)</span>
-<span class="go">&lt;Text flow widget &#39;Hello&#39;&gt;</span>
+<span class="go">&lt;Text fixed/flow widget &#39;Hello&#39;&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Text</span><span class="p">((</span><span class="s1">&#39;bold&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;stuff&quot;</span><span class="p">),</span> <span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="s1">&#39;any&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">t</span>
-<span class="go">&lt;Text flow widget &#39;stuff&#39; align=&#39;right&#39; wrap=&#39;any&#39;&gt;</span>
+<span class="go">&lt;Text fixed/flow widget &#39;stuff&#39; align=&#39;right&#39; wrap=&#39;any&#39;&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
 <span class="go">stuff</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">attrib</span>
@@ -677,14 +711,14 @@ returned from <a class="reference internal" href="#urwid.Text.get_text" title="u
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.Text.pack">
-<span class="sig-name descname"><span class="pre">pack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.Text.pack" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">pack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.Text.pack" title="Link to this definition">¶</a></dt>
 <dd><p>Return the number of screen columns and rows required for
 this Text widget to be displayed without wrapping or
 clipping, as a single element tuple.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>size</strong> (<em>widget size</em>) – <code class="docutils literal notranslate"><span class="pre">None</span></code> for unlimited screen columns or (<em>maxcol</em>,) to
-specify a maximum column size</p>
+<dd class="field-odd"><p><strong>size</strong> (<em>widget size</em>) – <code class="docutils literal notranslate"><span class="pre">None</span></code> or <code class="docutils literal notranslate"><span class="pre">()</span></code> for unlimited screen columns (like FIXED sizing)
+or (<em>maxcol</em>,) to specify a maximum column size</p>
 </dd>
 </dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;important things&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">pack</span><span class="p">()</span>
@@ -693,19 +727,23 @@ specify a maximum column size</p>
 <span class="go">(9, 2)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;important things&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">pack</span><span class="p">((</span><span class="mi">8</span><span class="p">,))</span>
 <span class="go">(8, 2)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;important things&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">pack</span><span class="p">(())</span>
+<span class="go">(16, 1)</span>
 </pre></div>
 </div>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.Text.render">
-<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="canvas.html#urwid.TextCanvas" title="urwid.TextCanvas"><span class="pre">TextCanvas</span></a></span></span><a class="headerlink" href="#urwid.Text.render" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="canvas.html#urwid.TextCanvas" title="urwid.TextCanvas"><span class="pre">TextCanvas</span></a></span></span><a class="headerlink" href="#urwid.Text.render" title="Link to this definition">¶</a></dt>
 <dd><p>Render contents with wrapping and alignment.  Return canvas.</p>
 <p>See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for parameter details.</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;important things&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">18</span><span class="p">,))</span><span class="o">.</span><span class="n">text</span> <span class="c1"># ... = b in Python 3</span>
-<span class="go">[...&#39;important things  &#39;]</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;important things&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">18</span><span class="p">,))</span><span class="o">.</span><span class="n">text</span>
+<span class="go">[b&#39;important things  &#39;]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;important things&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">11</span><span class="p">,))</span><span class="o">.</span><span class="n">text</span>
-<span class="go">[...&#39;important  &#39;, ...&#39;things     &#39;]</span>
+<span class="go">[b&#39;important  &#39;, b&#39;things     &#39;]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Text</span><span class="p">(</span><span class="s2">&quot;demo text&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">render</span><span class="p">(())</span><span class="o">.</span><span class="n">text</span>
+<span class="go">[b&#39;demo text&#39;]</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -765,7 +803,7 @@ the same time.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;hi&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">set_layout</span><span class="p">(</span><span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="s1">&#39;clip&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">t</span>
-<span class="go">&lt;Text flow widget &#39;hi&#39; align=&#39;right&#39; wrap=&#39;clip&#39;&gt;</span>
+<span class="go">&lt;Text fixed/flow widget &#39;hi&#39; align=&#39;right&#39; wrap=&#39;clip&#39;&gt;</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -976,12 +1014,12 @@ column selected is one that the user would expect.</p>
 <dd><p>Returns <code class="docutils literal notranslate"><span class="pre">(text,</span> <span class="pre">display</span> <span class="pre">attributes)</span></code>. See <a class="reference internal" href="#urwid.Text.get_text" title="urwid.Text.get_text"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Text.get_text()</span></code></a>
 for details.</p>
 <p>Text returned includes the caption and edit_text, possibly masked.</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Edit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;What? &quot;</span><span class="p">,</span><span class="s2">&quot;oh, nothing.&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span> <span class="c1"># ... = u in Python 2</span>
-<span class="go">(...&#39;What? oh, nothing.&#39;, [])</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Edit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;What? &quot;</span><span class="p">,</span><span class="s2">&quot;oh, nothing.&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
+<span class="go">(&#39;What? oh, nothing.&#39;, [])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Edit</span><span class="p">((</span><span class="s1">&#39;bright&#39;</span><span class="p">,</span><span class="sa">u</span><span class="s2">&quot;user@host:~$ &quot;</span><span class="p">),</span><span class="s2">&quot;ls&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
-<span class="go">(...&#39;user@host:~$ ls&#39;, [(&#39;bright&#39;, 13)])</span>
+<span class="go">(&#39;user@host:~$ ls&#39;, [(&#39;bright&#39;, 13)])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">Edit</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;password:&quot;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;seekrit&quot;</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="sa">u</span><span class="s2">&quot;*&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get_text</span><span class="p">()</span>
-<span class="go">(...&#39;password:*******&#39;, [])</span>
+<span class="go">(&#39;password:*******&#39;, [])</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -1090,9 +1128,10 @@ Returns True if move succeeded, False otherwise.</p>
 <span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="canvas.html#urwid.TextCanvas" title="urwid.TextCanvas"><span class="pre">TextCanvas</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><span class="pre">CompositeCanvas</span></a></span></span><a class="headerlink" href="#urwid.Edit.render" title="Link to this definition">¶</a></dt>
 <dd><p>Render edit widget and return canvas.  Include cursor when in
 focus.</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">(</span><span class="s2">&quot;? &quot;</span><span class="p">,</span><span class="s2">&quot;yes&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">10</span><span class="p">,),</span> <span class="n">focus</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">text</span> <span class="c1"># ... = b in Python 3</span>
-<span class="go">[...&#39;? yes     &#39;]</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">edit</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">(</span><span class="s2">&quot;? &quot;</span><span class="p">,</span><span class="s2">&quot;yes&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">edit</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">10</span><span class="p">,),</span> <span class="n">focus</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">text</span>
+<span class="go">[b&#39;? yes     &#39;]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">cursor</span>
 <span class="go">(5, 0)</span>
 </pre></div>
@@ -1241,7 +1280,7 @@ default – default edit value</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.IntEdit.valid_char">
-<span class="sig-name descname"><span class="pre">valid_char</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.IntEdit.valid_char" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">valid_char</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.IntEdit.valid_char" title="Link to this definition">¶</a></dt>
 <dd><p>Return true for decimal digits.</p>
 </dd></dl>
 
@@ -1292,7 +1331,8 @@ Unregister signal handlers with:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">urwid</span><span class="o">.</span><span class="n">disconnect_signal</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="s1">&#39;click&#39;</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">user_data</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Button</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Ok&quot;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">urwid.util</span> <span class="kn">import</span> <span class="n">set_temporary_encoding</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Button</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;Ok&quot;</span><span class="p">)</span>
 <span class="go">&lt;Button selectable flow widget &#39;Ok&#39;&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="s2">&quot;Cancel&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">15</span><span class="p">,),</span> <span class="n">focus</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">text</span> <span class="c1"># ... = b in Python 3</span>
@@ -1301,7 +1341,8 @@ Unregister signal handlers with:</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">aligned_button</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">10</span><span class="p">,),</span> <span class="n">focus</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
 <span class="go">[b&#39;&lt;  Test  &gt;&#39;]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">wrapped_button</span> <span class="o">=</span> <span class="n">Button</span><span class="p">(</span><span class="s2">&quot;Long label&quot;</span><span class="p">,</span> <span class="n">wrap</span><span class="o">=</span><span class="n">WrapMode</span><span class="o">.</span><span class="n">ELLIPSIS</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">wrapped_button</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">7</span><span class="p">,),</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">set_temporary_encoding</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">wrapped_button</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">7</span><span class="p">,),</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">text</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
 <span class="go">&#39;&lt; Lo… &gt;&#39;</span>
 </pre></div>
 </div>
@@ -1824,6 +1865,33 @@ WidgetDecoration, or it may hide them from outside access.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="urwid.TreeWidget.mouse_event">
+<span class="sig-name descname"><span class="pre">mouse_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">button</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.TreeWidget.mouse_event" title="Link to this definition">¶</a></dt>
+<dd><p>Mouse event handler.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
+<li><p><strong>event</strong> (<em>str</em>) – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code>, <code class="docutils literal notranslate"><span class="pre">'meta</span> <span class="pre">mouse</span> <span class="pre">release'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">drag'</span></code>; see <a class="reference internal" href="../manual/userinput.html#mouse-input"><span class="std std-ref">Mouse Input</span></a></p></li>
+<li><p><strong>button</strong> (<em>int</em>) – 1 through 5 for press events, often 0 for release events
+(which button was released is often not known)</p></li>
+<li><p><strong>col</strong> (<em>int</em>) – Column of the event, 0 is the left edge of this widget</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – Row of the event, 0 it the top row of this widget</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the event was handled by this widget, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.TreeWidget.next_inorder">
 <span class="sig-name descname"><span class="pre">next_inorder</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TreeWidget.next_inorder" title="Link to this definition">¶</a></dt>
 <dd><p>Return the next TreeWidget depth first from this one.</p>
@@ -2014,26 +2082,26 @@ displayed at a fixed location in the text when in focus.
 This widget has no special handling of keyboard or mouse input.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.SelectableIcon.get_cursor_coords">
-<span class="sig-name descname"><span class="pre">get_cursor_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.SelectableIcon.get_cursor_coords" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_cursor_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.SelectableIcon.get_cursor_coords" title="Link to this definition">¶</a></dt>
 <dd><p>Return the position of the cursor if visible.  This method
 is required for widgets that display a cursor.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.SelectableIcon.keypress">
-<span class="sig-name descname"><span class="pre">keypress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#urwid.SelectableIcon.keypress" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">keypress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#urwid.SelectableIcon.keypress" title="Link to this definition">¶</a></dt>
 <dd><p>No keys are handled by this widget.  This method is
 required for selectable widgets.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.SelectableIcon.render">
-<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="canvas.html#urwid.TextCanvas" title="urwid.TextCanvas"><span class="pre">TextCanvas</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><span class="pre">CompositeCanvas</span></a></span></span><a class="headerlink" href="#urwid.SelectableIcon.render" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="canvas.html#urwid.TextCanvas" title="urwid.TextCanvas"><span class="pre">TextCanvas</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><span class="pre">CompositeCanvas</span></a></span></span><a class="headerlink" href="#urwid.SelectableIcon.render" title="Link to this definition">¶</a></dt>
 <dd><p>Render the text content of this widget with a cursor when
 in focus.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">si</span> <span class="o">=</span> <span class="n">SelectableIcon</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;[!]&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">si</span>
-<span class="go">&lt;SelectableIcon selectable flow widget &#39;[!]&#39;&gt;</span>
+<span class="go">&lt;SelectableIcon selectable fixed/flow widget &#39;[!]&#39;&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">si</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">4</span><span class="p">,),</span> <span class="n">focus</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">cursor</span>
 <span class="go">(0, 0)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">si</span> <span class="o">=</span> <span class="n">SelectableIcon</span><span class="p">(</span><span class="s2">&quot;((*))&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
@@ -2041,6 +2109,11 @@ in focus.</p>
 <span class="go">(2, 0)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">si</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">2</span><span class="p">,),</span> <span class="n">focus</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">cursor</span>
 <span class="go">(0, 1)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">si</span><span class="o">.</span><span class="n">render</span><span class="p">(())</span><span class="o">.</span><span class="n">cursor</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">si</span><span class="o">.</span><span class="n">render</span><span class="p">(())</span><span class="o">.</span><span class="n">text</span>
+<span class="go">[b&#39;((*))&#39;]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">si</span><span class="o">.</span><span class="n">render</span><span class="p">((),</span> <span class="n">focus</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">cursor</span>
+<span class="go">(2, 0)</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -2086,7 +2159,7 @@ if <code class="docutils literal notranslate"><span class="pre">None</span></cod
 <span class="go">[(&#39;fgreet&#39;, None, ...&#39;hi   &#39;)]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">am2</span> <span class="o">=</span> <span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">((</span><span class="s1">&#39;word&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;hi&quot;</span><span class="p">)),</span> <span class="p">{</span><span class="s1">&#39;word&#39;</span><span class="p">:</span><span class="s1">&#39;greeting&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">:</span><span class="s1">&#39;bg&#39;</span><span class="p">})</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">am2</span>
-<span class="go">&lt;AttrMap flow widget &lt;Text flow widget &#39;hi&#39;&gt; attr_map={&#39;word&#39;: &#39;greeting&#39;, None: &#39;bg&#39;}&gt;</span>
+<span class="go">&lt;AttrMap fixed/flow widget &lt;Text fixed/flow widget &#39;hi&#39;&gt; attr_map={&#39;word&#39;: &#39;greeting&#39;, None: &#39;bg&#39;}&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">next</span><span class="p">(</span><span class="n">am2</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">size</span><span class="p">)</span><span class="o">.</span><span class="n">content</span><span class="p">())</span>
 <span class="go">[(&#39;greeting&#39;, None, ...&#39;hi&#39;), (&#39;bg&#39;, None, ...&#39;   &#39;)]</span>
 </pre></div>
@@ -2107,7 +2180,7 @@ constructor does.  You must specify {None: attribute} instead.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span> <span class="o">=</span> <span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;hi&quot;</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span><span class="o">.</span><span class="n">set_attr_map</span><span class="p">({</span><span class="s1">&#39;a&#39;</span><span class="p">:</span><span class="s1">&#39;b&#39;</span><span class="p">})</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span>
-<span class="go">&lt;AttrMap flow widget &lt;Text flow widget &#39;hi&#39;&gt; attr_map={&#39;a&#39;: &#39;b&#39;}&gt;</span>
+<span class="go">&lt;AttrMap fixed/flow widget &lt;Text fixed/flow widget &#39;hi&#39;&gt; attr_map={&#39;a&#39;: &#39;b&#39;}&gt;</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -2125,10 +2198,10 @@ constructor does.  You must specify {None: attribute} instead.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span> <span class="o">=</span> <span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;hi&quot;</span><span class="p">),</span> <span class="p">{})</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span><span class="o">.</span><span class="n">set_focus_map</span><span class="p">({</span><span class="s1">&#39;a&#39;</span><span class="p">:</span><span class="s1">&#39;b&#39;</span><span class="p">})</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span>
-<span class="go">&lt;AttrMap flow widget &lt;Text flow widget &#39;hi&#39;&gt; attr_map={} focus_map={&#39;a&#39;: &#39;b&#39;}&gt;</span>
+<span class="go">&lt;AttrMap fixed/flow widget &lt;Text fixed/flow widget &#39;hi&#39;&gt; attr_map={} focus_map={&#39;a&#39;: &#39;b&#39;}&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span><span class="o">.</span><span class="n">set_focus_map</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span>
-<span class="go">&lt;AttrMap flow widget &lt;Text flow widget &#39;hi&#39;&gt; attr_map={}&gt;</span>
+<span class="go">&lt;AttrMap fixed/flow widget &lt;Text fixed/flow widget &#39;hi&#39;&gt; attr_map={}&gt;</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -2188,7 +2261,7 @@ the available number of columns.  For example if align is
 <span class="go">|  ***  |</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">=</span><span class="n">Padding</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;1234&quot;</span><span class="p">),</span> <span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">p</span>
-<span class="go">&lt;Padding flow widget &lt;Text flow widget &#39;1234&#39;&gt; left=1 right=1 width=2&gt;</span>
+<span class="go">&lt;Padding fixed/flow widget &lt;Text fixed/flow widget &#39;1234&#39;&gt; left=1 right=1 width=2&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pr</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>   <span class="c1"># align against left</span>
 <span class="go">| 12    |</span>
 <span class="go">| 34    |</span>
@@ -2363,7 +2436,7 @@ cannot be satisfied it will also be reduced.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.Filler.get_pref_col">
-<span class="sig-name descname"><span class="pre">get_pref_col</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.Filler.get_pref_col" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_pref_col</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Filler.get_pref_col" title="Link to this definition">¶</a></dt>
 <dd><p>Return pref_col from self.original_widget if any.</p>
 </dd></dl>
 
@@ -2585,6 +2658,53 @@ the pop-up is opened.</p>
 <dt class="sig sig-object py" id="urwid.PopUpTarget">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">PopUpTarget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">original_widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><span class="pre">Widget</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.PopUpTarget" title="Link to this definition">¶</a></dt>
 <dd><dl class="py method">
+<dt class="sig sig-object py" id="urwid.PopUpTarget.keypress">
+<span class="sig-name descname"><span class="pre">keypress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.PopUpTarget.keypress" title="Link to this definition">¶</a></dt>
+<dd><p>Keyboard input handler.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
+<li><p><strong>key</strong> (<em>str</em>) – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code> if <em>key</em> was handled by <em>key</em> (the same value passed) if <em>key</em> was not handled</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.PopUpTarget.mouse_event">
+<span class="sig-name descname"><span class="pre">mouse_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">button</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.PopUpTarget.mouse_event" title="Link to this definition">¶</a></dt>
+<dd><p>Mouse event handler.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
+<li><p><strong>event</strong> (<em>str</em>) – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code>, <code class="docutils literal notranslate"><span class="pre">'meta</span> <span class="pre">mouse</span> <span class="pre">release'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">drag'</span></code>; see <a class="reference internal" href="../manual/userinput.html#mouse-input"><span class="std std-ref">Mouse Input</span></a></p></li>
+<li><p><strong>button</strong> (<em>int</em>) – 1 through 5 for press events, often 0 for release events
+(which button was released is often not known)</p></li>
+<li><p><strong>col</strong> (<em>int</em>) – Column of the event, 0 is the left edge of this widget</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – Row of the event, 0 it the top row of this widget</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the event was handled by this widget, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.PopUpTarget.pack">
 <span class="sig-name descname"><span class="pre">pack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.PopUpTarget.pack" title="Link to this definition">¶</a></dt>
 <dd><p>See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for parameter details.</p>
@@ -2681,7 +2801,7 @@ interact with, <code class="docutils literal notranslate"><span class="pre">Fals
 Subclasses may leave these is if the are not selectable,
 or if they are always selectable they may
 set the <code class="xref py py-attr docutils literal notranslate"><span class="pre">_selectable</span></code> class variable to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
-<p>If this method returns <code class="docutils literal notranslate"><span class="pre">True</span></code> then the <a class="reference internal" href="#urwid.Widget.keypress" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">keypress()</span></code></a> method
+<p>If this method returns <code class="docutils literal notranslate"><span class="pre">True</span></code> then the <a class="reference internal" href="#id0" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">keypress()</span></code></a> method
 must be implemented.</p>
 <p>Returning <code class="docutils literal notranslate"><span class="pre">False</span></code> does not guarantee that this widget will never be in
 focus, only that this widget will usually be skipped over when changing
@@ -2885,7 +3005,7 @@ widgets to be displayed inside the list box</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.ListBox.calculate_visible">
-<span class="sig-name descname"><span class="pre">calculate_visible</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ListBox.calculate_visible" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">calculate_visible</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">_Middle</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">_TopBottom</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">_TopBottom</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.ListBox.calculate_visible" title="Link to this definition">¶</a></dt>
 <dd><p>Returns the widgets that would be displayed in
 the ListBox given the current <em>size</em> and <em>focus</em>.</p>
 <p>see <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for parameter details</p>
@@ -3271,7 +3391,7 @@ Raises <code class="xref py py-exc docutils literal notranslate"><span class="pr
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.Columns.get_cursor_coords">
-<span class="sig-name descname"><span class="pre">get_cursor_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Columns.get_cursor_coords" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_cursor_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Columns.get_cursor_coords" title="Link to this definition">¶</a></dt>
 <dd><p>Return the cursor coordinates from the focus widget.</p>
 </dd></dl>
 
@@ -3716,6 +3836,33 @@ Captures focus changes.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="urwid.GridFlow.mouse_event">
+<span class="sig-name descname"><span class="pre">mouse_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">button</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">True</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.GridFlow.mouse_event" title="Link to this definition">¶</a></dt>
+<dd><p>Mouse event handler.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
+<li><p><strong>event</strong> (<em>str</em>) – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code>, <code class="docutils literal notranslate"><span class="pre">'meta</span> <span class="pre">mouse</span> <span class="pre">release'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">drag'</span></code>; see <a class="reference internal" href="../manual/userinput.html#mouse-input"><span class="std std-ref">Mouse Input</span></a></p></li>
+<li><p><strong>button</strong> (<em>int</em>) – 1 through 5 for press events, often 0 for release events
+(which button was released is often not known)</p></li>
+<li><p><strong>col</strong> (<em>int</em>) – Column of the event, 0 is the left edge of this widget</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – Row of the event, 0 it the top row of this widget</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the event was handled by this widget, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.GridFlow.move_cursor_to_coords">
 <span class="sig-name descname"><span class="pre">move_cursor_to_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GridFlow.move_cursor_to_coords" title="Link to this definition">¶</a></dt>
 <dd><p>Set the widget in focus based on the col + row.</p>
@@ -3799,6 +3946,53 @@ be defined.</p>
 <span class="go">&lt;BoxAdapter flow widget &lt;SolidFill box widget &#39;x&#39;&gt; height=5&gt;</span>
 </pre></div>
 </div>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.BoxAdapter.keypress">
+<span class="sig-name descname"><span class="pre">keypress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.BoxAdapter.keypress" title="Link to this definition">¶</a></dt>
+<dd><p>Keyboard input handler.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
+<li><p><strong>key</strong> (<em>str</em>) – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code> if <em>key</em> was handled by <em>key</em> (the same value passed) if <em>key</em> was not handled</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.BoxAdapter.mouse_event">
+<span class="sig-name descname"><span class="pre">mouse_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">button</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.BoxAdapter.mouse_event" title="Link to this definition">¶</a></dt>
+<dd><p>Mouse event handler.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
+<li><p><strong>event</strong> (<em>str</em>) – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code>, <code class="docutils literal notranslate"><span class="pre">'meta</span> <span class="pre">mouse</span> <span class="pre">release'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">drag'</span></code>; see <a class="reference internal" href="../manual/userinput.html#mouse-input"><span class="std std-ref">Mouse Input</span></a></p></li>
+<li><p><strong>button</strong> (<em>int</em>) – 1 through 5 for press events, often 0 for release events
+(which button was released is often not known)</p></li>
+<li><p><strong>col</strong> (<em>int</em>) – Column of the event, 0 is the left edge of this widget</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – Row of the event, 0 it the top row of this widget</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the event was handled by this widget, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool | None</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.BoxAdapter.rows">
 <span class="sig-name descname"><span class="pre">rows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.BoxAdapter.rows" title="Link to this definition">¶</a></dt>
@@ -4308,6 +4502,26 @@ correctly, make sure the global encoding for urwid is set to
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="urwid.Terminal.keypress">
+<span class="sig-name descname"><span class="pre">keypress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Terminal.keypress" title="Link to this definition">¶</a></dt>
+<dd><p>Keyboard input handler.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
+<li><p><strong>key</strong> (<em>str</em>) – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code> if <em>key</em> was handled by <em>key</em> (the same value passed) if <em>key</em> was not handled</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.Terminal.respond">
 <span class="sig-name descname"><span class="pre">respond</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Terminal.respond" title="Link to this definition">¶</a></dt>
 <dd><p>Respond to the underlying application with ‘string’.</p>
@@ -4349,6 +4563,8 @@ correctly, make sure the global encoding for urwid is set to
 <li><a class="reference internal" href="#urwid.Widget.base_widget"><code class="docutils literal notranslate"><span class="pre">Widget.base_widget</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Widget.focus"><code class="docutils literal notranslate"><span class="pre">Widget.focus</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Widget.focus_position"><code class="docutils literal notranslate"><span class="pre">Widget.focus_position</span></code></a></li>
+<li><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">Widget.keypress()</span></code></a></li>
+<li><a class="reference internal" href="#id2"><code class="docutils literal notranslate"><span class="pre">Widget.mouse_event()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Widget.pack"><code class="docutils literal notranslate"><span class="pre">Widget.pack()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Widget.selectable"><code class="docutils literal notranslate"><span class="pre">Widget.selectable()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Widget.sizing"><code class="docutils literal notranslate"><span class="pre">Widget.sizing()</span></code></a></li>
@@ -4478,6 +4694,7 @@ correctly, make sure the global encoding for urwid is set to
 <li><a class="reference internal" href="#urwid.TreeWidget.first_child"><code class="docutils literal notranslate"><span class="pre">TreeWidget.first_child()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.TreeWidget.keypress"><code class="docutils literal notranslate"><span class="pre">TreeWidget.keypress()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.TreeWidget.last_child"><code class="docutils literal notranslate"><span class="pre">TreeWidget.last_child()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TreeWidget.mouse_event"><code class="docutils literal notranslate"><span class="pre">TreeWidget.mouse_event()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.TreeWidget.next_inorder"><code class="docutils literal notranslate"><span class="pre">TreeWidget.next_inorder()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.TreeWidget.prev_inorder"><code class="docutils literal notranslate"><span class="pre">TreeWidget.prev_inorder()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.TreeWidget.selectable"><code class="docutils literal notranslate"><span class="pre">TreeWidget.selectable()</span></code></a></li>
@@ -4587,6 +4804,8 @@ correctly, make sure the global encoding for urwid is set to
 </li>
 <li><a class="reference internal" href="#popuptarget">PopUpTarget</a><ul>
 <li><a class="reference internal" href="#urwid.PopUpTarget"><code class="docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.PopUpTarget.keypress"><code class="docutils literal notranslate"><span class="pre">PopUpTarget.keypress()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.PopUpTarget.mouse_event"><code class="docutils literal notranslate"><span class="pre">PopUpTarget.mouse_event()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.PopUpTarget.pack"><code class="docutils literal notranslate"><span class="pre">PopUpTarget.pack()</span></code></a></li>
 </ul>
 </li>
@@ -4720,6 +4939,7 @@ correctly, make sure the global encoding for urwid is set to
 <li><a class="reference internal" href="#urwid.GridFlow.get_focus"><code class="docutils literal notranslate"><span class="pre">GridFlow.get_focus()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.GridFlow.get_pref_col"><code class="docutils literal notranslate"><span class="pre">GridFlow.get_pref_col()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.GridFlow.keypress"><code class="docutils literal notranslate"><span class="pre">GridFlow.keypress()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.GridFlow.mouse_event"><code class="docutils literal notranslate"><span class="pre">GridFlow.mouse_event()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.GridFlow.move_cursor_to_coords"><code class="docutils literal notranslate"><span class="pre">GridFlow.move_cursor_to_coords()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.GridFlow.options"><code class="docutils literal notranslate"><span class="pre">GridFlow.options()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.GridFlow.set_focus"><code class="docutils literal notranslate"><span class="pre">GridFlow.set_focus()</span></code></a></li>
@@ -4730,6 +4950,8 @@ correctly, make sure the global encoding for urwid is set to
 </li>
 <li><a class="reference internal" href="#boxadapter">BoxAdapter</a><ul>
 <li><a class="reference internal" href="#urwid.BoxAdapter"><code class="docutils literal notranslate"><span class="pre">BoxAdapter</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.BoxAdapter.keypress"><code class="docutils literal notranslate"><span class="pre">BoxAdapter.keypress()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.BoxAdapter.mouse_event"><code class="docutils literal notranslate"><span class="pre">BoxAdapter.mouse_event()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.BoxAdapter.rows"><code class="docutils literal notranslate"><span class="pre">BoxAdapter.rows()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.BoxAdapter.sizing"><code class="docutils literal notranslate"><span class="pre">BoxAdapter.sizing()</span></code></a></li>
 </ul>
@@ -4803,6 +5025,7 @@ correctly, make sure the global encoding for urwid is set to
 <li><a class="reference internal" href="#urwid.Terminal"><code class="docutils literal notranslate"><span class="pre">Terminal</span></code></a><ul>
 <li><a class="reference internal" href="#urwid.Terminal.change_focus"><code class="docutils literal notranslate"><span class="pre">Terminal.change_focus()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Terminal.get_cursor_coords"><code class="docutils literal notranslate"><span class="pre">Terminal.get_cursor_coords()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Terminal.keypress"><code class="docutils literal notranslate"><span class="pre">Terminal.keypress()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Terminal.respond"><code class="docutils literal notranslate"><span class="pre">Terminal.respond()</span></code></a></li>
 </ul>
 </li>
@@ -4858,7 +5081,7 @@ correctly, make sure the global encoding for urwid is set to
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.3.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>

@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Changelog &#8212; Urwid 2.3.4</title>
+    <title>Changelog &#8212; Urwid 2.4.0</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="_static/classic.css?v=1f4f2616" />
     
-    <script src="_static/documentation_options.js?v=3fb9b4ff"></script>
+    <script src="_static/documentation_options.js?v=4d935f96"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -27,7 +27,7 @@
         <li class="right" >
           <a href="reference/deprecated.html" title="Deprecated Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.3.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.4.0</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Changelog</a></li> 
       </ul>
     </div>  
@@ -39,6 +39,75 @@
             
   <section id="changelog">
 <h1>Changelog<a class="headerlink" href="#changelog" title="Link to this heading">¶</a></h1>
+<section id="release-2-4-0">
+<h2>2.4.0<a class="headerlink" href="#release-2-4-0" title="Link to this heading">¶</a></h2>
+<p><em>Released on 2024-01-03 - <a class="reference external" href="https://github.com/urwid/urwid/releases/tag/2.4.0">GitHub</a> - <a class="reference external" href="https://pypi.org/project/urwid/2.4.0/">PyPI</a></em></p>
+
+<h2>What's Changed</h2>
+<h3>New features 🗹</h3>
+<ul>
+<li>Basic <strong>Windows OS</strong> support in RAW and Curses display.</li>
+<li>
+<ul>
+<li>Fully functional RAW display support. Thanks to <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/mhils/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/mhils">@mhils</a> (initial RAW display)</li>
+</ul>
+</li>
+<li>
+<ul>
+<li>Limited Curses support due to windows-curses limitation (mouse support limited). Thanks to <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/asmith-kepler/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/asmith-kepler">@asmith-kepler</a> (windows-curses monkeypatch)</li>
+</ul>
+</li>
+<li>
+<ul>
+<li>UTF-8 only</li>
+</ul>
+</li>
+<li>
+<ul>
+<li>Force <code>SelectorEventLoop</code> for asyncio under Windows if event loop is not set by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2048417481" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/715" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/715/hovercard" href="https://github.com/urwid/urwid/pull/715">#715</a></li>
+</ul>
+</li>
+<li>Feature: switch from <code>select.select</code> to <code>selectors</code> by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2032393505" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/691" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/691/hovercard" href="https://github.com/urwid/urwid/pull/691">#691</a></li>
+<li>Feature: support FIXED render mode for Text by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1908511153" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/610" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/610/hovercard" href="https://github.com/urwid/urwid/pull/610">#610</a></li>
+<li>Feature: extend functional keys handling with key modifiers by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2037471972" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/705" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/705/hovercard" href="https://github.com/urwid/urwid/pull/705">#705</a></li>
+<li>Add <code>run_in_executor</code> helper to the event loop by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2046249458" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/712" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/712/hovercard" href="https://github.com/urwid/urwid/pull/712">#712</a></li>
+<li>Feature: Add internal logging for behavioral debug by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2043311140" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/708" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/708/hovercard" href="https://github.com/urwid/urwid/pull/708">#708</a></li>
+<li>
+<ul>
+<li>Feature: Use module path + class name for loggers and init once by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2057129323" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/720" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/720/hovercard" href="https://github.com/urwid/urwid/pull/720">#720</a></li>
+</ul>
+</li>
+<li>Feature: Implement <code>keypress</code> and <code>mouse_event</code> default handlers by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2057223442" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/721" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/721/hovercard" href="https://github.com/urwid/urwid/pull/721">#721</a></li>
+<li>
+<ul>
+<li>Not subclassing <code>Widget</code> base class during custom widget implementation will produce <code>DeprecationWarning</code></li>
+</ul>
+</li>
+</ul>
+<h3>Deprecations ⚡</h3>
+<ul>
+<li>Refactor: join display modules in package by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="1921520535" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/655" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/655/hovercard" href="https://github.com/urwid/urwid/pull/655">#655</a></li>
+<li>
+<ul>
+<li>Backward-compatible. Main display modules import will not produce <code>DeprecationWarning</code>.</li>
+</ul>
+</li>
+</ul>
+<h3>Documentation 🕮</h3>
+<ul>
+<li>Fix <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="146849819" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/186" data-hovercard-type="issue" data-hovercard-url="/urwid/urwid/issues/186/hovercard" href="https://github.com/urwid/urwid/issues/186">#186</a> - <code>disconnect_by_key</code> should be exposed and use correct name by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2030159897" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/688" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/688/hovercard" href="https://github.com/urwid/urwid/pull/688">#688</a></li>
+<li>Extend input_test example for better debug capabilities by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2048292500" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/713" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/713/hovercard" href="https://github.com/urwid/urwid/pull/713">#713</a></li>
+<li>
+<ul>
+<li>Support alternative event loops and debug logging.</li>
+</ul>
+</li>
+</ul>
+<h3>Refactoring 🛠</h3>
+<ul>
+<li>Refactoring: remove dead code from Raw display by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2041269390" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/707" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/707/hovercard" href="https://github.com/urwid/urwid/pull/707">#707</a></li>
+</ul>
+<p><strong>Full Changelog</strong>: <a class="commit-link" href="https://github.com/urwid/urwid/compare/2.3.4...2.4.0"><tt>2.3.4...2.4.0</tt></a></p></section>
 <section id="release-2-3-4">
 <h2>2.3.4<a class="headerlink" href="#release-2-3-4" title="Link to this heading">¶</a></h2>
 <p><em>Released on 2023-12-05 - <a class="reference external" href="https://github.com/urwid/urwid/releases/tag/2.3.4">GitHub</a> - <a class="reference external" href="https://pypi.org/project/urwid/2.3.4/">PyPI</a></em></p>
@@ -1393,6 +1462,7 @@ colour rendering.</p></li>
             </a></p><h3>Table of contents</h3>
   <ul>
 <li><a class="reference internal" href="#">Changelog</a><ul>
+<li><a class="reference internal" href="#release-2-4-0">2.4.0</a></li>
 <li><a class="reference internal" href="#release-2-3-4">2.3.4</a></li>
 <li><a class="reference internal" href="#release-2-2-3">2.2.3</a></li>
 <li><a class="reference internal" href="#release-2-2-2">2.2.2</a></li>
@@ -1487,7 +1557,7 @@ colour rendering.</p></li>
         <li class="right" >
           <a href="reference/deprecated.html" title="Deprecated Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.3.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.4.0</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Changelog</a></li> 
       </ul>
     </div>

@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Urwid Reference &#8212; Urwid 2.3.4</title>
+    <title>Urwid Reference &#8212; Urwid 2.4.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script src="../_static/documentation_options.js?v=3fb9b4ff"></script>
+    <script src="../_static/documentation_options.js?v=4d935f96"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="../manual/canvascache.html" title="Canvas Cache"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.3.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.0</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Reference</a></li> 
       </ul>
     </div>  
@@ -78,6 +78,7 @@
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.SelectEventLoop.remove_enter_idle"><code class="docutils literal notranslate"><span class="pre">SelectEventLoop.remove_enter_idle()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.SelectEventLoop.remove_watch_file"><code class="docutils literal notranslate"><span class="pre">SelectEventLoop.remove_watch_file()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.SelectEventLoop.run"><code class="docutils literal notranslate"><span class="pre">SelectEventLoop.run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.SelectEventLoop.run_in_executor"><code class="docutils literal notranslate"><span class="pre">SelectEventLoop.run_in_executor()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.SelectEventLoop.watch_file"><code class="docutils literal notranslate"><span class="pre">SelectEventLoop.watch_file()</span></code></a></li>
 </ul>
 </li>
@@ -91,6 +92,7 @@
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.AsyncioEventLoop.remove_enter_idle"><code class="docutils literal notranslate"><span class="pre">AsyncioEventLoop.remove_enter_idle()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.AsyncioEventLoop.remove_watch_file"><code class="docutils literal notranslate"><span class="pre">AsyncioEventLoop.remove_watch_file()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.AsyncioEventLoop.run"><code class="docutils literal notranslate"><span class="pre">AsyncioEventLoop.run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.AsyncioEventLoop.run_in_executor"><code class="docutils literal notranslate"><span class="pre">AsyncioEventLoop.run_in_executor()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.AsyncioEventLoop.watch_file"><code class="docutils literal notranslate"><span class="pre">AsyncioEventLoop.watch_file()</span></code></a></li>
 </ul>
 </li>
@@ -119,6 +121,7 @@
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.GLibEventLoop.remove_enter_idle"><code class="docutils literal notranslate"><span class="pre">GLibEventLoop.remove_enter_idle()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.GLibEventLoop.remove_watch_file"><code class="docutils literal notranslate"><span class="pre">GLibEventLoop.remove_watch_file()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.GLibEventLoop.run"><code class="docutils literal notranslate"><span class="pre">GLibEventLoop.run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.GLibEventLoop.run_in_executor"><code class="docutils literal notranslate"><span class="pre">GLibEventLoop.run_in_executor()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.GLibEventLoop.set_signal_handler"><code class="docutils literal notranslate"><span class="pre">GLibEventLoop.set_signal_handler()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.GLibEventLoop.watch_file"><code class="docutils literal notranslate"><span class="pre">GLibEventLoop.watch_file()</span></code></a></li>
 </ul>
@@ -134,6 +137,7 @@
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.TwistedEventLoop.remove_enter_idle"><code class="docutils literal notranslate"><span class="pre">TwistedEventLoop.remove_enter_idle()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.TwistedEventLoop.remove_watch_file"><code class="docutils literal notranslate"><span class="pre">TwistedEventLoop.remove_watch_file()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.TwistedEventLoop.run"><code class="docutils literal notranslate"><span class="pre">TwistedEventLoop.run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.TwistedEventLoop.run_in_executor"><code class="docutils literal notranslate"><span class="pre">TwistedEventLoop.run_in_executor()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.TwistedEventLoop.watch_file"><code class="docutils literal notranslate"><span class="pre">TwistedEventLoop.watch_file()</span></code></a></li>
 </ul>
 </li>
@@ -147,6 +151,7 @@
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.TornadoEventLoop.remove_enter_idle"><code class="docutils literal notranslate"><span class="pre">TornadoEventLoop.remove_enter_idle()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.TornadoEventLoop.remove_watch_file"><code class="docutils literal notranslate"><span class="pre">TornadoEventLoop.remove_watch_file()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.TornadoEventLoop.run"><code class="docutils literal notranslate"><span class="pre">TornadoEventLoop.run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.TornadoEventLoop.run_in_executor"><code class="docutils literal notranslate"><span class="pre">TornadoEventLoop.run_in_executor()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.TornadoEventLoop.watch_file"><code class="docutils literal notranslate"><span class="pre">TornadoEventLoop.watch_file()</span></code></a></li>
 </ul>
 </li>
@@ -161,6 +166,7 @@
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.ZMQEventLoop.remove_watch_file"><code class="docutils literal notranslate"><span class="pre">ZMQEventLoop.remove_watch_file()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.ZMQEventLoop.remove_watch_queue"><code class="docutils literal notranslate"><span class="pre">ZMQEventLoop.remove_watch_queue()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.ZMQEventLoop.run"><code class="docutils literal notranslate"><span class="pre">ZMQEventLoop.run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.ZMQEventLoop.run_in_executor"><code class="docutils literal notranslate"><span class="pre">ZMQEventLoop.run_in_executor()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.ZMQEventLoop.watch_file"><code class="docutils literal notranslate"><span class="pre">ZMQEventLoop.watch_file()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.ZMQEventLoop.watch_queue"><code class="docutils literal notranslate"><span class="pre">ZMQEventLoop.watch_queue()</span></code></a></li>
 </ul>
@@ -188,6 +194,8 @@
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Widget.base_widget"><code class="docutils literal notranslate"><span class="pre">Widget.base_widget</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Widget.focus"><code class="docutils literal notranslate"><span class="pre">Widget.focus</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Widget.focus_position"><code class="docutils literal notranslate"><span class="pre">Widget.focus_position</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#id0"><code class="docutils literal notranslate"><span class="pre">Widget.keypress()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#id2"><code class="docutils literal notranslate"><span class="pre">Widget.mouse_event()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Widget.pack"><code class="docutils literal notranslate"><span class="pre">Widget.pack()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Widget.selectable"><code class="docutils literal notranslate"><span class="pre">Widget.selectable()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Widget.sizing"><code class="docutils literal notranslate"><span class="pre">Widget.sizing()</span></code></a></li>
@@ -317,6 +325,7 @@
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TreeWidget.first_child"><code class="docutils literal notranslate"><span class="pre">TreeWidget.first_child()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TreeWidget.keypress"><code class="docutils literal notranslate"><span class="pre">TreeWidget.keypress()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TreeWidget.last_child"><code class="docutils literal notranslate"><span class="pre">TreeWidget.last_child()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TreeWidget.mouse_event"><code class="docutils literal notranslate"><span class="pre">TreeWidget.mouse_event()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TreeWidget.next_inorder"><code class="docutils literal notranslate"><span class="pre">TreeWidget.next_inorder()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TreeWidget.prev_inorder"><code class="docutils literal notranslate"><span class="pre">TreeWidget.prev_inorder()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.TreeWidget.selectable"><code class="docutils literal notranslate"><span class="pre">TreeWidget.selectable()</span></code></a></li>
@@ -426,6 +435,8 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="widget.html#popuptarget">PopUpTarget</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="widget.html#urwid.PopUpTarget"><code class="docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.PopUpTarget.keypress"><code class="docutils literal notranslate"><span class="pre">PopUpTarget.keypress()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.PopUpTarget.mouse_event"><code class="docutils literal notranslate"><span class="pre">PopUpTarget.mouse_event()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.PopUpTarget.pack"><code class="docutils literal notranslate"><span class="pre">PopUpTarget.pack()</span></code></a></li>
 </ul>
 </li>
@@ -559,6 +570,7 @@
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.GridFlow.get_focus"><code class="docutils literal notranslate"><span class="pre">GridFlow.get_focus()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.GridFlow.get_pref_col"><code class="docutils literal notranslate"><span class="pre">GridFlow.get_pref_col()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.GridFlow.keypress"><code class="docutils literal notranslate"><span class="pre">GridFlow.keypress()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.GridFlow.mouse_event"><code class="docutils literal notranslate"><span class="pre">GridFlow.mouse_event()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.GridFlow.move_cursor_to_coords"><code class="docutils literal notranslate"><span class="pre">GridFlow.move_cursor_to_coords()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.GridFlow.options"><code class="docutils literal notranslate"><span class="pre">GridFlow.options()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.GridFlow.set_focus"><code class="docutils literal notranslate"><span class="pre">GridFlow.set_focus()</span></code></a></li>
@@ -569,6 +581,8 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="widget.html#boxadapter">BoxAdapter</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="widget.html#urwid.BoxAdapter"><code class="docutils literal notranslate"><span class="pre">BoxAdapter</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.BoxAdapter.keypress"><code class="docutils literal notranslate"><span class="pre">BoxAdapter.keypress()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.BoxAdapter.mouse_event"><code class="docutils literal notranslate"><span class="pre">BoxAdapter.mouse_event()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.BoxAdapter.rows"><code class="docutils literal notranslate"><span class="pre">BoxAdapter.rows()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.BoxAdapter.sizing"><code class="docutils literal notranslate"><span class="pre">BoxAdapter.sizing()</span></code></a></li>
 </ul>
@@ -642,6 +656,7 @@
 <li class="toctree-l4"><a class="reference internal" href="widget.html#urwid.Terminal"><code class="docutils literal notranslate"><span class="pre">Terminal</span></code></a><ul>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Terminal.change_focus"><code class="docutils literal notranslate"><span class="pre">Terminal.change_focus()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Terminal.get_cursor_coords"><code class="docutils literal notranslate"><span class="pre">Terminal.get_cursor_coords()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Terminal.keypress"><code class="docutils literal notranslate"><span class="pre">Terminal.keypress()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Terminal.respond"><code class="docutils literal notranslate"><span class="pre">Terminal.respond()</span></code></a></li>
 </ul>
 </li>
@@ -653,98 +668,88 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="display_modules.html">Display Modules</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="display_modules.html#urwid.BaseScreen"><code class="docutils literal notranslate"><span class="pre">BaseScreen</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.BaseScreen.clear"><code class="docutils literal notranslate"><span class="pre">BaseScreen.clear()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.BaseScreen.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">BaseScreen.get_cols_rows()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.BaseScreen.register_palette"><code class="docutils literal notranslate"><span class="pre">BaseScreen.register_palette()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.BaseScreen.register_palette_entry"><code class="docutils literal notranslate"><span class="pre">BaseScreen.register_palette_entry()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.BaseScreen.run_wrapper"><code class="docutils literal notranslate"><span class="pre">BaseScreen.run_wrapper()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.BaseScreen.start"><code class="docutils literal notranslate"><span class="pre">BaseScreen.start()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="display_modules.html#module-urwid.raw_display">raw_display</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.raw_display.Screen"><code class="docutils literal notranslate"><span class="pre">Screen</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.raw_display.Screen.clear"><code class="docutils literal notranslate"><span class="pre">Screen.clear()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.raw_display.Screen.draw_screen"><code class="docutils literal notranslate"><span class="pre">Screen.draw_screen()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.raw_display.Screen.flush"><code class="docutils literal notranslate"><span class="pre">Screen.flush()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.raw_display.Screen.get_available_raw_input"><code class="docutils literal notranslate"><span class="pre">Screen.get_available_raw_input()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.raw_display.Screen.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">Screen.get_cols_rows()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.raw_display.Screen.get_input"><code class="docutils literal notranslate"><span class="pre">Screen.get_input()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.raw_display.Screen.get_input_descriptors"><code class="docutils literal notranslate"><span class="pre">Screen.get_input_descriptors()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.raw_display.Screen.hook_event_loop"><code class="docutils literal notranslate"><span class="pre">Screen.hook_event_loop()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.raw_display.Screen.modify_terminal_palette"><code class="docutils literal notranslate"><span class="pre">Screen.modify_terminal_palette()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.raw_display.Screen.parse_input"><code class="docutils literal notranslate"><span class="pre">Screen.parse_input()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.raw_display.Screen.reset_default_terminal_palette"><code class="docutils literal notranslate"><span class="pre">Screen.reset_default_terminal_palette()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.raw_display.Screen.set_input_timeouts"><code class="docutils literal notranslate"><span class="pre">Screen.set_input_timeouts()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.raw_display.Screen.set_mouse_tracking"><code class="docutils literal notranslate"><span class="pre">Screen.set_mouse_tracking()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.raw_display.Screen.set_terminal_properties"><code class="docutils literal notranslate"><span class="pre">Screen.set_terminal_properties()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.raw_display.Screen.signal_init"><code class="docutils literal notranslate"><span class="pre">Screen.signal_init()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.raw_display.Screen.signal_restore"><code class="docutils literal notranslate"><span class="pre">Screen.signal_restore()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.raw_display.Screen.unhook_event_loop"><code class="docutils literal notranslate"><span class="pre">Screen.unhook_event_loop()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.raw_display.Screen.write"><code class="docutils literal notranslate"><span class="pre">Screen.write()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="display_modules.html#module-urwid.display.raw">RAW display</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.display.raw.Screen"><code class="docutils literal notranslate"><span class="pre">Screen</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.raw.Screen.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">Screen.get_cols_rows()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.raw.Screen.get_input_descriptors"><code class="docutils literal notranslate"><span class="pre">Screen.get_input_descriptors()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.raw.Screen.hook_event_loop"><code class="docutils literal notranslate"><span class="pre">Screen.hook_event_loop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.raw.Screen.signal_init"><code class="docutils literal notranslate"><span class="pre">Screen.signal_init()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.raw.Screen.signal_restore"><code class="docutils literal notranslate"><span class="pre">Screen.signal_restore()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.raw.Screen.unhook_event_loop"><code class="docutils literal notranslate"><span class="pre">Screen.unhook_event_loop()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="display_modules.html#module-urwid.curses_display">curses_display</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.curses_display.Screen"><code class="docutils literal notranslate"><span class="pre">Screen</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.curses_display.Screen.clear"><code class="docutils literal notranslate"><span class="pre">Screen.clear()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.curses_display.Screen.draw_screen"><code class="docutils literal notranslate"><span class="pre">Screen.draw_screen()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.curses_display.Screen.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">Screen.get_cols_rows()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.curses_display.Screen.get_input"><code class="docutils literal notranslate"><span class="pre">Screen.get_input()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.curses_display.Screen.set_input_timeouts"><code class="docutils literal notranslate"><span class="pre">Screen.set_input_timeouts()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.curses_display.Screen.set_mouse_tracking"><code class="docutils literal notranslate"><span class="pre">Screen.set_mouse_tracking()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="display_modules.html#module-urwid.display.curses">Curses display</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.display.curses.Screen"><code class="docutils literal notranslate"><span class="pre">Screen</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.curses.Screen.clear"><code class="docutils literal notranslate"><span class="pre">Screen.clear()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.curses.Screen.draw_screen"><code class="docutils literal notranslate"><span class="pre">Screen.draw_screen()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.curses.Screen.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">Screen.get_cols_rows()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.curses.Screen.get_input"><code class="docutils literal notranslate"><span class="pre">Screen.get_input()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.curses.Screen.set_input_timeouts"><code class="docutils literal notranslate"><span class="pre">Screen.set_input_timeouts()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.curses.Screen.set_mouse_tracking"><code class="docutils literal notranslate"><span class="pre">Screen.set_mouse_tracking()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="display_modules.html#module-urwid.web_display">web_display</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.web_display.Screen"><code class="docutils literal notranslate"><span class="pre">Screen</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.web_display.Screen.clear"><code class="docutils literal notranslate"><span class="pre">Screen.clear()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.web_display.Screen.draw_screen"><code class="docutils literal notranslate"><span class="pre">Screen.draw_screen()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.web_display.Screen.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">Screen.get_cols_rows()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.web_display.Screen.get_input"><code class="docutils literal notranslate"><span class="pre">Screen.get_input()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.web_display.Screen.register_palette"><code class="docutils literal notranslate"><span class="pre">Screen.register_palette()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.web_display.Screen.register_palette_entry"><code class="docutils literal notranslate"><span class="pre">Screen.register_palette_entry()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.web_display.Screen.run_wrapper"><code class="docutils literal notranslate"><span class="pre">Screen.run_wrapper()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.web_display.Screen.set_mouse_tracking"><code class="docutils literal notranslate"><span class="pre">Screen.set_mouse_tracking()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.web_display.Screen.start"><code class="docutils literal notranslate"><span class="pre">Screen.start()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.web_display.Screen.stop"><code class="docutils literal notranslate"><span class="pre">Screen.stop()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.web_display.Screen.tty_signal_keys"><code class="docutils literal notranslate"><span class="pre">Screen.tty_signal_keys()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="display_modules.html#module-urwid.display.web">WEB display</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.display.web.Screen"><code class="docutils literal notranslate"><span class="pre">Screen</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.web.Screen.clear"><code class="docutils literal notranslate"><span class="pre">Screen.clear()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.web.Screen.draw_screen"><code class="docutils literal notranslate"><span class="pre">Screen.draw_screen()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.web.Screen.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">Screen.get_cols_rows()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.web.Screen.get_input"><code class="docutils literal notranslate"><span class="pre">Screen.get_input()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.web.Screen.register_palette"><code class="docutils literal notranslate"><span class="pre">Screen.register_palette()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.web.Screen.register_palette_entry"><code class="docutils literal notranslate"><span class="pre">Screen.register_palette_entry()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.web.Screen.set_mouse_tracking"><code class="docutils literal notranslate"><span class="pre">Screen.set_mouse_tracking()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.web.Screen.start"><code class="docutils literal notranslate"><span class="pre">Screen.start()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.web.Screen.stop"><code class="docutils literal notranslate"><span class="pre">Screen.stop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.web.Screen.tty_signal_keys"><code class="docutils literal notranslate"><span class="pre">Screen.tty_signal_keys()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="display_modules.html#module-urwid.html_fragment">html_fragment</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.html_fragment.HtmlGenerator"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.html_fragment.HtmlGenerator.clear"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator.clear()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.html_fragment.HtmlGenerator.draw_screen"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator.draw_screen()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.html_fragment.HtmlGenerator.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator.get_cols_rows()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.html_fragment.HtmlGenerator.get_input"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator.get_input()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.html_fragment.HtmlGenerator.set_mouse_tracking"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator.set_mouse_tracking()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="display_modules.html#module-urwid.display.html_fragment">HTML fragment</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.display.html_fragment.HtmlGenerator"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.html_fragment.HtmlGenerator.draw_screen"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator.draw_screen()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.html_fragment.HtmlGenerator.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator.get_cols_rows()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.html_fragment.HtmlGenerator.get_input"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator.get_input()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.html_fragment.screenshot_init"><code class="docutils literal notranslate"><span class="pre">screenshot_init()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.html_fragment.screenshot_collect"><code class="docutils literal notranslate"><span class="pre">screenshot_collect()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.display.html_fragment.screenshot_init"><code class="docutils literal notranslate"><span class="pre">screenshot_init()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.display.html_fragment.screenshot_collect"><code class="docutils literal notranslate"><span class="pre">screenshot_collect()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="display_modules.html#module-urwid.lcd_display">lcd_display</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.lcd_display.LCDScreen"><code class="docutils literal notranslate"><span class="pre">LCDScreen</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.lcd_display.CFLCDScreen"><code class="docutils literal notranslate"><span class="pre">CFLCDScreen</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.lcd_display.CFLCDScreen.InvalidPacket"><code class="docutils literal notranslate"><span class="pre">CFLCDScreen.InvalidPacket</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.lcd_display.CFLCDScreen.MoreDataRequired"><code class="docutils literal notranslate"><span class="pre">CFLCDScreen.MoreDataRequired</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="display_modules.html#module-urwid.display.lcd">LCD display</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.display.lcd.LCDScreen"><code class="docutils literal notranslate"><span class="pre">LCDScreen</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.lcd.LCDScreen.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">LCDScreen.get_cols_rows()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.lcd_display.CF635Screen"><code class="docutils literal notranslate"><span class="pre">CF635Screen</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.lcd_display.CF635Screen.get_input_descriptors"><code class="docutils literal notranslate"><span class="pre">CF635Screen.get_input_descriptors()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.lcd_display.CF635Screen.get_input_nonblocking"><code class="docutils literal notranslate"><span class="pre">CF635Screen.get_input_nonblocking()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.lcd_display.CF635Screen.program_cgram"><code class="docutils literal notranslate"><span class="pre">CF635Screen.program_cgram()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.lcd_display.CF635Screen.set_backlight"><code class="docutils literal notranslate"><span class="pre">CF635Screen.set_backlight()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.lcd_display.CF635Screen.set_cursor_style"><code class="docutils literal notranslate"><span class="pre">CF635Screen.set_cursor_style()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.lcd_display.CF635Screen.set_lcd_contrast"><code class="docutils literal notranslate"><span class="pre">CF635Screen.set_lcd_contrast()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.lcd_display.CF635Screen.set_led_pin"><code class="docutils literal notranslate"><span class="pre">CF635Screen.set_led_pin()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.display.lcd.CFLCDScreen"><code class="docutils literal notranslate"><span class="pre">CFLCDScreen</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.lcd.CFLCDScreen.InvalidPacket"><code class="docutils literal notranslate"><span class="pre">CFLCDScreen.InvalidPacket</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.lcd.CFLCDScreen.MoreDataRequired"><code class="docutils literal notranslate"><span class="pre">CFLCDScreen.MoreDataRequired</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.lcd_display.KeyRepeatSimulator"><code class="docutils literal notranslate"><span class="pre">KeyRepeatSimulator</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.lcd_display.KeyRepeatSimulator.next_event"><code class="docutils literal notranslate"><span class="pre">KeyRepeatSimulator.next_event()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.lcd_display.KeyRepeatSimulator.sent_event"><code class="docutils literal notranslate"><span class="pre">KeyRepeatSimulator.sent_event()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.display.lcd.CF635Screen"><code class="docutils literal notranslate"><span class="pre">CF635Screen</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.lcd.CF635Screen.get_input_descriptors"><code class="docutils literal notranslate"><span class="pre">CF635Screen.get_input_descriptors()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.lcd.CF635Screen.get_input_nonblocking"><code class="docutils literal notranslate"><span class="pre">CF635Screen.get_input_nonblocking()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.lcd.CF635Screen.program_cgram"><code class="docutils literal notranslate"><span class="pre">CF635Screen.program_cgram()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.lcd.CF635Screen.set_backlight"><code class="docutils literal notranslate"><span class="pre">CF635Screen.set_backlight()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.lcd.CF635Screen.set_cursor_style"><code class="docutils literal notranslate"><span class="pre">CF635Screen.set_cursor_style()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.lcd.CF635Screen.set_lcd_contrast"><code class="docutils literal notranslate"><span class="pre">CF635Screen.set_lcd_contrast()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.lcd.CF635Screen.set_led_pin"><code class="docutils literal notranslate"><span class="pre">CF635Screen.set_led_pin()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="display_modules.html#urwid.display.lcd.KeyRepeatSimulator"><code class="docutils literal notranslate"><span class="pre">KeyRepeatSimulator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.lcd.KeyRepeatSimulator.next_event"><code class="docutils literal notranslate"><span class="pre">KeyRepeatSimulator.next_event()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.lcd.KeyRepeatSimulator.sent_event"><code class="docutils literal notranslate"><span class="pre">KeyRepeatSimulator.sent_event()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -814,7 +819,7 @@
 <li class="toctree-l1"><a class="reference internal" href="signals.html">Signal Functions</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="signals.html#urwid.connect_signal"><code class="docutils literal notranslate"><span class="pre">connect_signal()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="signals.html#urwid.Signals.connect"><code class="docutils literal notranslate"><span class="pre">Signals.connect()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="signals.html#urwid.disconnect_by_key"><code class="docutils literal notranslate"><span class="pre">disconnect_by_key()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="signals.html#urwid.disconnect_signal_by_key"><code class="docutils literal notranslate"><span class="pre">disconnect_signal_by_key()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="signals.html#urwid.Signals.disconnect_by_key"><code class="docutils literal notranslate"><span class="pre">Signals.disconnect_by_key()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="signals.html#urwid.disconnect_signal"><code class="docutils literal notranslate"><span class="pre">disconnect_signal()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="signals.html#urwid.Signals.disconnect"><code class="docutils literal notranslate"><span class="pre">Signals.disconnect()</span></code></a></li>
@@ -1109,7 +1114,7 @@
         <li class="right" >
           <a href="../manual/canvascache.html" title="Canvas Cache"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.3.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.0</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Reference</a></li> 
       </ul>
     </div>

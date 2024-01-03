@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Urwid Tutorial &#8212; Urwid 2.3.4</title>
+    <title>Urwid Tutorial &#8212; Urwid 2.4.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script src="../_static/documentation_options.js?v=3fb9b4ff"></script>
+    <script src="../_static/documentation_options.js?v=4d935f96"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="../examples/index.html" title="Example Programs"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.3.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.0</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Tutorial</a></li> 
       </ul>
     </div>  
@@ -232,9 +232,9 @@ should define values for all the modes in their palette. Valid foreground,
 background and setting values are documented in <a class="reference internal" href="../manual/displayattributes.html#foreground-background"><span class="std std-ref">Foreground and Background Settings</span></a>.</p>
 <ul class="simple">
 <li><p>Behind the scenes our <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> class has created a
-<a class="reference internal" href="../reference/display_modules.html#urwid.raw_display.Screen" title="urwid.raw_display.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">raw_display.Screen</span></code></a> object for drawing the screen. The program
+<code class="xref py py-class docutils literal notranslate"><span class="pre">raw_display.Screen</span></code> object for drawing the screen. The program
 is put into 256-color mode by using the screen object’s
-<a class="reference internal" href="../reference/display_modules.html#urwid.raw_display.Screen.set_terminal_properties" title="urwid.raw_display.Screen.set_terminal_properties"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_terminal_properties()</span></code></a> method.</p></li>
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">set_terminal_properties()</span></code> method.</p></li>
 </ul>
 <p>This example also demonstrates how you can build the widgets to display
 in a top-down order instead of the usual bottom-up order. In some
@@ -299,7 +299,7 @@ child <a class="reference internal" href="../reference/widget.html#urwid.Edit.ke
 <li><p>Note that names containing <em>Q</em> can be entered into the <a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Edit</span></code></a>
 widget without causing the program to exit because <a class="reference internal" href="../reference/widget.html#urwid.Edit.keypress" title="urwid.Edit.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Edit.keypress()</span></code></a>
 indicates that it has handled the key by returning <code class="docutils literal notranslate"><span class="pre">None</span></code>.
-See <a class="reference internal" href="../reference/widget.html#urwid.Widget.keypress" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.keypress()</span></code></a> for more information.</p></li>
+See <a class="reference internal" href="../reference/widget.html#id0" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.keypress()</span></code></a> for more information.</p></li>
 <li><p>When <em>ENTER</em> is pressed the child widget <code class="docutils literal notranslate"><span class="pre">original_widget</span></code> is changed
 to a <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widget.</p></li>
 <li><p><a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets don’t handle any keyboard input so all input
@@ -890,7 +890,7 @@ follow as your application grows larger.</p>
         <li class="right" >
           <a href="../examples/index.html" title="Example Programs"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.3.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.0</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Tutorial</a></li> 
       </ul>
     </div>
