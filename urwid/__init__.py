@@ -273,16 +273,16 @@ class _MovedModule(types.ModuleType):
     like "from xxx.yyy import zzz"
     """
 
-    __slots__ = ("__moved_from", "__moved_to")
+    __slots__ = ("_moved_from", "_moved_to")
 
     def __init__(self, moved_from: str, moved_to: str) -> None:
         super().__init__(moved_from.join(".")[-1])
-        self.__moved_from = moved_from
-        self.__moved_to = moved_to
+        self._moved_from = moved_from
+        self._moved_to = moved_to
 
     def __getattr__(self, name: str) -> typing.Any:
-        real_module = importlib.import_module(self.__moved_to)
-        sys.modules[self.__moved_from] = real_module
+        real_module = importlib.import_module(self._moved_to)
+        sys.modules[self._moved_from] = real_module
         return getattr(real_module, name)
 
 
@@ -296,7 +296,7 @@ class _MovedModuleWarn(_MovedModule):
 
     def __getattr__(self, name: str) -> typing.Any:
         warnings.warn(
-            f"{self.__moved_from} is moved to {self.__moved_to}",
+            f"{self._moved_from} is moved to {self._moved_to}",
             DeprecationWarning,
             stacklevel=2,
         )
