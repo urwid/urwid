@@ -136,7 +136,11 @@ class LineBox(WidgetDecoration, WidgetWrap):
         self.title_widget.set_text(self.format_title(text))
         self.tline_widget._invalidate()
 
-    def pack(self, size=None, focus: bool = False) -> tuple[int, int]:
+    def pack(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int] | None = None,
+        focus: bool = False,
+    ) -> tuple[int, int]:
         """
         Return the number of screen columns and rows required for
         this Linebox widget to be displayed without wrapping or
@@ -146,7 +150,15 @@ class LineBox(WidgetDecoration, WidgetWrap):
                      specify a maximum column size
         :type size: widget size
         """
-        size = list(self._original_widget.pack(size, focus))
-        size[0] += 2
-        size[1] += 2
-        return size
+        size = self._original_widget.pack(size, focus)
+        return size[0] + 2, size[1] + 2
+
+    @property
+    def focus(self) -> Widget | None:
+        """LineBox is partially container.
+
+        While focus position is a bit hacky
+        (formally it's not container and only position 0 available),
+        focus widget is always provided by original widget.
+        """
+        return self._original_widget.focus

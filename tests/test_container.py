@@ -4,7 +4,6 @@ import unittest
 from unittest import mock
 
 import urwid
-from tests.util import SelectableText
 
 
 class FrameTest(unittest.TestCase):
@@ -62,82 +61,6 @@ class FrameTest(unittest.TestCase):
             True, 10, 0)
 
 
-class PileTest(unittest.TestCase):
-    def ktest(self, desc, l, focus_item, key,
-            rkey, rfocus, rpref_col):
-        p = urwid.Pile( l, focus_item )
-        rval = p.keypress( (20,), key )
-        assert rkey == rval, f"{desc} key expected {rkey!r} but got {rval!r}"
-        new_focus = l.index(p.get_focus())
-        assert new_focus == rfocus, "%s focus expected %r but got %r" %(
-            desc, rfocus, new_focus)
-        new_pref = p.get_pref_col((20,))
-        assert new_pref == rpref_col, (
-            f"{desc} pref_col expected {rpref_col!r} but got {new_pref!r}")
-
-    def test_select_change(self):
-        T,S,E = urwid.Text, SelectableText, urwid.Edit
-
-        self.ktest("simple up", [S("")], 0, "up", "up", 0, 0)
-        self.ktest("simple down", [S("")], 0, "down", "down", 0, 0)
-        self.ktest("ignore up", [T(""),S("")], 1, "up", "up", 1, 0)
-        self.ktest("ignore down", [S(""),T("")], 0, "down",
-            "down", 0, 0)
-        self.ktest("step up", [S(""),S("")], 1, "up", None, 0, 0)
-        self.ktest("step down", [S(""),S("")], 0, "down",
-            None, 1, 0)
-        self.ktest("skip step up", [S(""),T(""),S("")], 2, "up",
-            None, 0, 0)
-        self.ktest("skip step down", [S(""),T(""),S("")], 0, "down",
-            None, 2, 0)
-        self.ktest("pad skip step up", [T(""),S(""),T(""),S("")], 3,
-            "up", None, 1, 0)
-        self.ktest("pad skip step down", [S(""),T(""),S(""),T("")], 0,
-            "down", None, 2, 0)
-        self.ktest("padi skip step up", [S(""),T(""),S(""),T(""),S("")],
-            4, "up", None, 2, 0)
-        self.ktest("padi skip step down", [S(""),T(""),S(""),T(""),
-            S("")], 0, "down", None, 2, 0)
-        e = E("","abcd", edit_pos=1)
-        e.keypress((20,),"right") # set a pref_col
-        self.ktest("pref step up", [S(""),T(""),e], 2, "up",
-            None, 0, 2)
-        self.ktest("pref step down", [e,T(""),S("")], 0, "down",
-            None, 2, 2)
-        z = E("","1234")
-        self.ktest("prefx step up", [z,T(""),e], 2, "up",
-            None, 0, 2)
-        assert z.get_pref_col((20,)) == 2
-        z = E("","1234")
-        self.ktest("prefx step down", [e,T(""),z], 0, "down",
-            None, 2, 2)
-        assert z.get_pref_col((20,)) == 2
-
-    def test_init_with_a_generator(self):
-        urwid.Pile(urwid.Text(c) for c in "ABC")
-
-    def test_change_focus_with_mouse(self):
-        p = urwid.Pile([urwid.Edit(), urwid.Edit()])
-        self.assertEqual(p.focus_position, 0)
-        p.mouse_event((10,), 'button press', 1, 1, 1, True)
-        self.assertEqual(p.focus_position, 1)
-
-    def test_zero_weight(self):
-        p = urwid.Pile([
-            urwid.SolidFill('a'),
-            ('weight', 0, urwid.SolidFill('d')),
-            ])
-        p.render((5, 4))
-
-    def test_mouse_event_in_empty_pile(self):
-        p = urwid.Pile([])
-        p.mouse_event((5,), 'button press', 1, 1, 1, False)
-        p.mouse_event((5,), 'button press', 1, 1, 1, True)
-
-    def test_length(self):
-        pile = urwid.Pile(urwid.Text(c) for c in "ABC")
-        self.assertEqual(3, len(pile))
-        self.assertEqual(3, len(pile.contents))
 
 
 class OverlayTest(unittest.TestCase):
@@ -281,64 +204,7 @@ class WidgetSquishTest(unittest.TestCase):
 
 
 class CommonContainerTest(unittest.TestCase):
-    def test_pile(self):
-        t1 = urwid.Text('one')
-        t2 = urwid.Text('two')
-        t3 = urwid.Text('three')
-        sf = urwid.SolidFill('x')
-        p = urwid.Pile([])
-        self.assertEqual(p.focus, None)
-        self.assertRaises(IndexError, lambda: getattr(p, 'focus_position'))
-        self.assertRaises(IndexError, lambda: setattr(p, 'focus_position',
-            None))
-        self.assertRaises(IndexError, lambda: setattr(p, 'focus_position', 0))
-        p.contents = [(t1, ('pack', None)), (t2, ('pack', None)),
-            (sf, ('given', 3)), (t3, ('pack', None))]
-        p.focus_position = 1
-        del p.contents[0]
-        self.assertEqual(p.focus_position, 0)
-        p.contents[0:0] = [(t3, ('pack', None)), (t2, ('pack', None))]
-        p.contents.insert(3, (t1, ('pack', None)))
-        self.assertEqual(p.focus_position, 2)
-        self.assertRaises(urwid.PileError, lambda: p.contents.append(t1))
-        self.assertRaises(urwid.PileError, lambda: p.contents.append((t1, None)))
-        self.assertRaises(urwid.PileError, lambda: p.contents.append((t1, 'given')))
 
-        p = urwid.Pile([t1, t2])
-        self.assertEqual(p.focus, t1)
-        self.assertEqual(p.focus_position, 0)
-        p.focus_position = 1
-        self.assertEqual(p.focus, t2)
-        self.assertEqual(p.focus_position, 1)
-        p.focus_position = 0
-        self.assertRaises(IndexError, lambda: setattr(p, 'focus_position', -1))
-        self.assertRaises(IndexError, lambda: setattr(p, 'focus_position', 2))
-        # old methods:
-        p.set_focus(0)
-        self.assertRaises(IndexError, lambda: p.set_focus(-1))
-        self.assertRaises(IndexError, lambda: p.set_focus(2))
-        p.set_focus(t2)
-        self.assertEqual(p.focus_position, 1)
-        self.assertRaises(ValueError, lambda: p.set_focus('nonexistant'))
-        self.assertEqual(p.widget_list, [t1, t2])
-        self.assertEqual(p.item_types, [('weight', 1), ('weight', 1)])
-        p.widget_list = [t2, t1]
-        self.assertEqual(p.widget_list, [t2, t1])
-        self.assertEqual(p.contents, [(t2, ('weight', 1)), (t1, ('weight', 1))])
-        self.assertEqual(p.focus_position, 1) # focus unchanged
-        p.item_types = [('flow', None), ('weight', 2)]
-        self.assertEqual(p.item_types, [('flow', None), ('weight', 2)])
-        self.assertEqual(p.contents, [(t2, ('pack', None)), (t1, ('weight', 2))])
-        self.assertEqual(p.focus_position, 1) # focus unchanged
-        p.widget_list = [t1]
-        self.assertEqual(len(p.contents), 1)
-        self.assertEqual(p.focus_position, 0)
-        p.widget_list.extend([t2, t1])
-        self.assertEqual(len(p.contents), 3)
-        self.assertEqual(p.item_types, [
-            ('flow', None), ('weight', 1), ('weight', 1)])
-        p.item_types[:] = [('weight', 2)]
-        self.assertEqual(len(p.contents), 1)
 
     def test_list_box(self):
         lb = urwid.ListBox(urwid.SimpleFocusListWalker([]))
