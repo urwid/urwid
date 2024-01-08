@@ -5,7 +5,7 @@ from .attr_wrap import AttrWrap
 from .bar_graph import BarGraph, BarGraphError, BarGraphMeta, GraphVScale, scale_bar_values
 from .big_text import BigText
 from .box_adapter import BoxAdapter, BoxAdapterError
-from .columns import Columns, ColumnsError
+from .columns import Columns, ColumnsError, ColumnsWarning
 from .constants import (
     RELATIVE_100,
     Align,
@@ -43,6 +43,7 @@ from .widget import (
     Widget,
     WidgetError,
     WidgetMeta,
+    WidgetWarning,
     WidgetWrap,
     WidgetWrapError,
     delegate_to_widget_mixin,
@@ -145,6 +146,8 @@ __all__ = (
     "scale_bar_values",
     "ProgressBar",
     "WidgetContainerListContentsMixin",
+    "WidgetWarning",
+    "ColumnsWarning",
 )
 
 # Backward compatibility

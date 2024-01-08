@@ -4,22 +4,26 @@ import typing
 import warnings
 from itertools import chain, repeat
 
-from urwid.canvas import CanvasJoin, CompositeCanvas, SolidCanvas
+from urwid.canvas import Canvas, CanvasJoin, CompositeCanvas, SolidCanvas
 from urwid.monitored_list import MonitoredFocusList, MonitoredList
 from urwid.util import is_mouse_press
 
 from .constants import Align, Sizing, WHSettings
-from .container import WidgetContainerListContentsMixin, WidgetContainerMixin
-from .widget import Widget
+from .container import WidgetContainerListContentsMixin, WidgetContainerMixin, _ContainerElementSizingFlag
+from .widget import Widget, WidgetError, WidgetWarning
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, MutableSequence, Sequence
 
     from typing_extensions import Literal
 
 
-class ColumnsError(Exception):
-    pass
+class ColumnsError(WidgetError):
+    """Columns related errors."""
+
+
+class ColumnsWarning(WidgetWarning):
+    """Columns related warnings."""
 
 
 class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
@@ -27,14 +31,163 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     Widgets arranged horizontally in columns from left to right
     """
 
-    _sizing = frozenset([Sizing.FLOW, Sizing.BOX])
+    def sizing(self) -> frozenset[Sizing]:
+        """Sizing supported by widget.
+
+        :return: Calculated widget sizing
+        :rtype: frozenset[Sizing]
+
+        Due to the nature of container with mutable contents, this method cannot be cached.
+
+        Rules:
+        * WEIGHT BOX -> BOX
+        * GIVEN BOX -> Can be included in FIXED and FLOW depends on the other columns
+        * PACK BOX -> Unsupported
+        * BOX-only widget without `box_columns` disallow FLOW render
+
+        * WEIGHT FLOW -> FLOW
+        * GIVEN FLOW -> FIXED (known width and widget knows its height) + FLOW (historic)
+        * PACK FLOW -> FLOW (widget fit in provided size)
+
+        * WEIGHT FIXED -> Need also FLOW or/and BOX to properly render due to width calculation
+        * GIVEN FIXED -> Unsupported
+        * PACK FIXED -> FIXED (widget knows its size)
+
+        Backward compatibility rules:
+        * GIVEN BOX -> Allow BOX
+
+        FIXED can be only if no BOX and no strict FLOW.
+
+        >>> from urwid import BigText, Edit, SolidFill, Text, Thin3x3Font
+        >>> font = Thin3x3Font()
+
+        # BOX-only widget
+        >>> Columns((SolidFill("#"),))
+        <Columns box widget>
+
+        # BOX-only widget with "get height from max"
+        >>> Columns((SolidFill("#"),), box_columns=(0,))
+        <Columns box widget>
+
+        # FLOW-only
+        >>> Columns((Edit(),))
+        <Columns selectable flow widget>
+
+        # BOX-only enforced by BOX-only widget
+        >>> Columns((Edit(), SolidFill("#")))
+        <Columns selectable box widget>
+
+        # BOX/FLOW allowed by "box_columns"
+        >>> Columns((Edit(), SolidFill("#")), box_columns=(1,))
+        <Columns selectable box/flow widget>
+
+        # Corner case: BOX only
+        >>> Columns((Edit(), SolidFill("#"), SolidFill("#")), box_columns=(1,))
+        <Columns selectable box widget>
+
+        # FLOW/FIXED
+        >>> Columns((Text("T"),))
+        <Columns fixed/flow widget>
+
+        # GIVEN BOX only -> BOX only
+        >>> Columns(((5, SolidFill("#")),), box_columns=(0,))
+        <Columns box widget>
+
+        # No FLOW - BOX only
+        >>> Columns(((5, SolidFill("#")), SolidFill("*")), box_columns=(0, 1))
+        <Columns box widget>
+
+        # We can everything: GIVEN BOX + FLOW/FIXED
+        >>> Columns(((5, SolidFill("#")), (3, Text("T"))), box_columns=(0,))
+        <Columns widget>
+
+        # FIXED only -> FIXED
+        >>> Columns(((WHSettings.PACK, BigText("1", font)),))
+        <Columns fixed widget>
+
+        # Invalid sizing combination -> use fallback settings (and produce warning)
+        >>> Columns(((WHSettings.PACK, SolidFill("#")),))
+        <Columns box/flow widget>
+        """
+        strict_box = False
+        has_flow = False
+
+        block_fixed = False
+        has_fixed = False
+        supported: set[Sizing] = set()
+
+        box_flow_fixed = (
+            _ContainerElementSizingFlag.BOX | _ContainerElementSizingFlag.FLOW | _ContainerElementSizingFlag.FIXED
+        )
+        flow_fixed = _ContainerElementSizingFlag.FLOW | _ContainerElementSizingFlag.FIXED
+        given_box = _ContainerElementSizingFlag.BOX | _ContainerElementSizingFlag.WH_GIVEN
+
+        for widget, (size_kind, _size_weight, is_box) in self.contents:
+            w_sizing = widget.sizing()
+
+            flag = _ContainerElementSizingFlag.NONE
+
+            if size_kind == WHSettings.WEIGHT:
+                flag |= _ContainerElementSizingFlag.WH_WEIGHT
+                if Sizing.BOX in w_sizing:
+                    flag |= _ContainerElementSizingFlag.BOX
+                if Sizing.FLOW in w_sizing:
+                    flag |= _ContainerElementSizingFlag.FLOW
+                if Sizing.FIXED in w_sizing:
+                    flag |= _ContainerElementSizingFlag.FIXED
+
+            elif size_kind == WHSettings.GIVEN:
+                flag |= _ContainerElementSizingFlag.WH_GIVEN
+                if Sizing.BOX in w_sizing:
+                    flag |= _ContainerElementSizingFlag.BOX
+                if Sizing.FLOW in w_sizing:
+                    flag |= _ContainerElementSizingFlag.FIXED
+                    flag |= _ContainerElementSizingFlag.FLOW
+
+            else:
+                flag |= _ContainerElementSizingFlag.WH_PACK
+                if Sizing.FIXED in w_sizing:
+                    flag |= _ContainerElementSizingFlag.FIXED
+                if Sizing.FLOW in w_sizing:
+                    flag |= _ContainerElementSizingFlag.FLOW
+
+            if not flag & box_flow_fixed:
+                warnings.warn(
+                    f"Sizing combination not supported: "
+                    f"{size_kind.name} {'|'.join(w_sizing).upper()} and is_box={is_box}",
+                    ColumnsWarning,
+                    stacklevel=3,
+                )
+                return frozenset((Sizing.BOX, Sizing.FLOW))
+
+            if flag & _ContainerElementSizingFlag.BOX:
+                supported.add(Sizing.BOX)
+            if not (is_box or flag & flow_fixed):
+                strict_box = True
+                break
+
+            if flag & _ContainerElementSizingFlag.FLOW:
+                has_flow = True
+            if flag & _ContainerElementSizingFlag.FIXED:
+                has_fixed = True
+            elif flag & given_box != given_box:
+                block_fixed = True
+
+        if not strict_box:
+            if has_flow:
+                supported.add(Sizing.FLOW)
+
+            if has_fixed and not block_fixed:
+                supported.add(Sizing.FIXED)
+
+        return frozenset(supported)
 
     def __init__(
         self,
         widget_list: Iterable[
             Widget
             | tuple[Literal["pack", WHSettings.PACK] | int, Widget]
-            | tuple[Literal["weight", WHSettings.WEIGHT], int, Widget]
+            | tuple[Literal["weight", "given", WHSettings.WEIGHT, WHSettings.GIVEN], int, Widget]
         ],
         dividechars: int = 0,
         focus_column: int | None = None,
@@ -88,19 +241,14 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             if not isinstance(w, tuple):
                 self.contents.append((w, (WHSettings.WEIGHT, 1, i in box_columns)))
             elif w[0] in {Sizing.FLOW, WHSettings.PACK}:  # 'pack' used to be called 'flow'
-                f = WHSettings.PACK
                 _ignored, w = w
-                self.contents.append((w, (f, None, i in box_columns)))
-            elif len(w) == 2:
-                width, w = w
-                self.contents.append((w, (WHSettings.GIVEN, width, i in box_columns)))
-            elif w[0] == Sizing.FIXED:  # backwards compatibility
-                f = WHSettings.GIVEN
-                _ignored, width, w = w
+                self.contents.append((w, (WHSettings.PACK, None, i in box_columns)))
+            elif len(w) == 2 or w[0] in {Sizing.FIXED, WHSettings.GIVEN}:  # backwards compatibility: FIXED -> GIVEN
+                width, w = w[-2:]
                 self.contents.append((w, (WHSettings.GIVEN, width, i in box_columns)))
             elif w[0] == WHSettings.WEIGHT:
-                f, width, w = w
-                self.contents.append((w, (f, width, i in box_columns)))
+                _ignored, width, w = w
+                self.contents.append((w, (WHSettings.WEIGHT, width, i in box_columns)))
             else:
                 raise ColumnsError(f"initial widget list item invalid: {original!r}")
             if focus_column is None and w.selectable():
@@ -262,7 +410,12 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         )
 
     @property
-    def contents(self):
+    def contents(
+        self,
+    ) -> MutableSequence[
+        Widget,
+        tuple[Literal[WHSettings.PACK], None, bool] | tuple[Literal[WHSettings.GIVEN, WHSettings.WEIGHT], int, bool],
+    ]:
         """
         The contents of this Columns as a list of `(widget, options)` tuples.
         This list may be modified like a normal list and the Columns
@@ -499,11 +652,10 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         Return a list of column widths.
 
-        0 values in the list mean hide corresponding column completely
+        0 values in the list means hide the corresponding column completely
         """
         maxcol = size[0]
-        # FIXME: get rid of this check and recalculate only when
-        # a 'pack' widget has been modified.
+        # FIXME: get rid of this check and recalculate only when a 'pack' widget has been modified.
         if maxcol == self._cache_maxcol and not any(t == WHSettings.PACK for w, (t, n, b) in self.contents):
             return self._cache_column_widths
 
@@ -516,9 +668,15 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             if t == WHSettings.GIVEN:
                 static_w = width
             elif t == WHSettings.PACK:
-                # FIXME: should be able to pack with a different
-                # maxcol value
-                static_w = w.pack((maxcol,), focus and i == self.focus_position)[0]
+                w_sizing = w.sizing()
+                if Sizing.FLOW in w_sizing:
+                    # FIXME: should be able to pack with a different maxcol value
+                    w_size = (maxcol,)
+                elif Sizing.FIXED in w_sizing:
+                    w_size = ()
+                else:
+                    raise ColumnsError(f"Unusual widget sizing {w_sizing} for {t}")
+                static_w = w.pack(w_size, focus and i == self.focus_position)[0]
             else:
                 static_w = self.min_width
 
@@ -541,12 +699,11 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         if shared:
             # divide up the remaining space between weighted cols
-            weighted.sort()
             wtotal = sum(weight for weight, i in weighted)
             grow = shared + len(weighted) * self.min_width
-            for weight, i in weighted:
-                width = int(float(grow) * weight / wtotal + 0.5)
-                width = max(self.min_width, width)
+            for weight, i in sorted(weighted):
+                width = max(int(grow * weight / wtotal + 0.5), self.min_width)
+
                 widths[i] = width
                 grow -= width
                 wtotal -= weight
@@ -555,7 +712,165 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self._cache_column_widths = widths
         return widths
 
-    def render(self, size: tuple[int] | tuple[int, int], focus: bool = False) -> SolidCanvas | CompositeCanvas:
+    def _get_fixed_column_sizes(
+        self,
+        focus: bool = False,
+    ) -> tuple[Sequence[int], Sequence[int], Sequence[tuple[int] | tuple[()]]]:
+        """Get column widths, heights and render size parameters"""
+        widths: dict[int, int] = {}
+        heights: dict[int, int] = {}
+        w_h_args: dict[int, tuple[int, int] | tuple[int] | tuple[()]] = {}
+        box: list[int] = []
+        weighted: dict[int, list[tuple[Widget, int, bool, bool]]] = {}
+        weights: list[int] = []
+        weight_max_sizes: dict[int, int] = {}
+
+        for i, (widget, (size_kind, size_weight, is_box)) in enumerate(self.contents):
+            w_sizing = widget.sizing()
+            focused = focus and i == self.focus_position
+
+            if size_kind == WHSettings.GIVEN:
+                widths[i] = size_weight
+                if is_box:
+                    box.append(i)
+                elif Sizing.FLOW in w_sizing:
+                    heights[i] = widget.rows((size_weight,), focused)
+                    w_h_args[i] = (size_weight,)
+                else:
+                    raise ColumnsError(f"Unsupported combination of {size_kind}, {w_sizing} and box={is_box!r}")
+
+            elif size_kind == WHSettings.PACK and Sizing.FIXED in w_sizing and not is_box:
+                width, height = widget.pack((), focused)
+                widths[i] = width
+                heights[i] = height
+                w_h_args[i] = ()
+
+            elif size_weight <= 0:
+                widths[i] = 0
+                heights[i] = 1
+                if is_box:
+                    box.append(i)
+                else:
+                    w_h_args[i] = (0,)
+
+            elif Sizing.FIXED in w_sizing and (Sizing.FLOW in w_sizing or is_box):
+                width, height = widget.pack()
+                weighted.setdefault(size_weight, []).append((widget, i, is_box, focused))
+                weights.append(size_weight)
+                weight_max_sizes.setdefault(size_weight, width)
+                weight_max_sizes[size_weight] = max(weight_max_sizes[size_weight], width)
+
+            else:
+                raise ColumnsError(f"Unsupported combination of {size_kind}, {w_sizing}, box={is_box!r}")
+
+        if weight_max_sizes:
+            max_weighted_coefficient = max(width / weight for weight, width in weight_max_sizes.items())
+
+            for weight in weight_max_sizes:
+                width = max(int(max_weighted_coefficient * weight + 0.5), self.min_width)
+                for widget, i, is_box, focused in weighted[weight]:
+                    widths[i] = width
+
+                    if not is_box:
+                        heights[i] = widget.rows((width,), focused)
+                        w_h_args[i] = (width,)
+                    else:
+                        box.append(i)
+
+        max_height = max(heights.values())
+        for idx in box:
+            heights[idx] = max_height
+            w_h_args[idx] = (widths[idx], max_height)
+
+        return (
+            tuple(widths[idx] for idx in range(len(widths))),
+            tuple(heights[idx] for idx in range(len(heights))),
+            tuple(w_h_args[idx] for idx in range(len(w_h_args))),
+        )
+
+    def get_column_sizes(
+        self,
+        size: tuple[int, int] | tuple[int] | tuple[()],
+        focus: bool = False,
+    ) -> tuple[Sequence[int], Sequence[int], Sequence[tuple[int, int] | tuple[int] | tuple[()]]]:
+        """Get column widths, heights and render size parameters"""
+        if not size:
+            return self._get_fixed_column_sizes(focus=focus)
+
+        widths = tuple(self.column_widths(size=size, focus=focus))
+        heights: dict[int, int] = {}
+        w_h_args: dict[int, tuple[int, int] | tuple[int] | tuple[()]] = {}
+        box: list[int] = []
+        box_need_height: list[int] = []
+
+        for i, (width, (widget, (size_kind, _size_weight, is_box))) in enumerate(
+            zip(
+                widths,
+                self.contents,
+                strict=False,
+            )
+        ):
+            w_sizing = widget.sizing()
+
+            if size_kind == WHSettings.GIVEN:
+                if is_box:
+                    box.append(i)
+                elif Sizing.FLOW in w_sizing and not is_box:
+                    heights[i] = widget.rows((width,), focus and i == self.focus_position)
+                    w_h_args[i] = (width,)
+                else:
+                    box_need_height.append(i)
+
+            elif size_kind == WHSettings.PACK:
+                if Sizing.FLOW in w_sizing:
+                    heights[i] = widget.rows((width,), focus and i == self.focus_position)
+                    w_h_args[i] = (width,)
+                else:
+                    heights[i] = widget.pack((), focus and i == self.focus_position)[1]
+                    w_h_args[i] = ()
+
+            elif is_box:
+                box.append(i)
+
+            elif Sizing.FLOW in w_sizing:
+                heights[i] = widget.rows((width,), focus and i == self.focus_position)
+                w_h_args[i] = (width,)
+
+            else:
+                box_need_height.append(i)
+
+        if len(size) == 1:
+            if heights:
+                max_height = max(heights.values())
+                if box_need_height:
+                    raise ColumnsError(f'Widgets in columns {box_need_height} are BOX widgets not marked "box_columns"')
+            else:
+                max_height = 1
+        else:
+            max_height = size[1]
+
+        for idx in (*box, *box_need_height):
+            heights[idx] = max_height
+            w_h_args[idx] = (widths[idx], max_height)
+
+        return (
+            widths,
+            tuple(heights[idx] for idx in range(len(heights))),
+            tuple(w_h_args[idx] for idx in range(len(w_h_args))),
+        )
+
+    def pack(self, size: tuple[()] | tuple[int] | tuple[int, int], focus: bool = False) -> tuple[int, int]:
+        """Get packed sized for widget."""
+        if size:
+            return super().pack(size, focus)
+        widths, heights, _ = self.get_column_sizes(size, focus)
+        return (sum(widths) + self.dividechars * max(len(widths) - 1, 0), max(heights))
+
+    def render(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+        focus: bool = False,
+    ) -> SolidCanvas | CompositeCanvas:
         """
         Render columns and return canvas.
 
@@ -563,78 +878,72 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         :param focus: ``True`` if this widget is in focus
         :type focus: bool
         """
-        widths = self.column_widths(size, focus)
+        widths, _, size_args = self.get_column_sizes(size, focus)
 
-        box_maxrow = None
-        if len(size) == 1:
-            box_maxrow = 1
-            # two-pass mode to determine maxrow for box columns
-            for i, (mc, (w, (_t, _n, b))) in enumerate(zip(widths, self.contents)):
-                if b:
-                    continue
-                rows = w.rows((mc,), focus=focus and self.focus_position == i)
-                box_maxrow = max(box_maxrow, rows)
-
-        data = []
-        for i, (mc, (w, (_t, _n, b))) in enumerate(zip(widths, self.contents)):
+        data: list[tuple[Canvas, int, bool, int]] = []
+        for i, (width, w_size, (w, _)) in enumerate(zip(widths, size_args, self.contents, strict=False)):
             # if the widget has a width of 0, hide it
-            if mc <= 0:
+            if width <= 0:
                 continue
 
-            if box_maxrow and b:
-                sub_size = (mc, box_maxrow)
-            else:
-                sub_size = (mc,) + size[1:]
-
-            canv = w.render(sub_size, focus=focus and self.focus_position == i)
-
             if i < len(widths) - 1:
-                mc += self.dividechars  # noqa: PLW2901
-            data.append((canv, i, self.focus_position == i, mc))
+                width += self.dividechars  # noqa: PLW2901
+            data.append(
+                (
+                    w.render(w_size, focus=focus and self.focus_position == i),
+                    i,
+                    self.focus_position == i,
+                    width,
+                )
+            )
 
         if not data:
-            return SolidCanvas(" ", size[0], (size[1:] + (1,))[0])
+            if size:
+                return SolidCanvas(" ", size[0], (size[1:] + (1,))[0])
+            raise ColumnsError("No data to render")
 
-        canv = CanvasJoin(data)
-        if canv.cols() < size[0]:
-            canv.pad_trim_left_right(0, size[0] - canv.cols())
-        return canv
+        canvas = CanvasJoin(data)
+        if size and canvas.cols() < size[0]:
+            canvas.pad_trim_left_right(0, size[0] - canvas.cols())
+        return canvas
 
-    def get_cursor_coords(self, size: tuple[int] | tuple[int, int]) -> tuple[int, int] | None:
+    def get_cursor_coords(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> tuple[int, int] | None:
         """Return the cursor coordinates from the focus widget."""
-        w, (_t, _n, b) = self.contents[self.focus_position]
+        w, _ = self.contents[self.focus_position]
 
         if not w.selectable():
             return None
         if not hasattr(w, "get_cursor_coords"):
             return None
 
-        widths = self.column_widths(size)
+        widths, _, size_args = self.get_column_sizes(size, focus=True)
         if len(widths) <= self.focus_position:
             return None
-        colw = widths[self.focus_position]
 
-        if len(size) == 1 and b:
-            coords = w.get_cursor_coords((colw, self.rows(size)))
-        else:
-            coords = w.get_cursor_coords((colw,) + size[1:])
+        coords = w.get_cursor_coords(size_args[self.focus_position])
         if coords is None:
             return None
+
         x, y = coords
         x += sum(self.dividechars + wc for wc in widths[: self.focus_position] if wc > 0)
         return x, y
 
-    def move_cursor_to_coords(self, size: tuple[int] | tuple[int, int], col: int, row: int) -> bool:
+    def move_cursor_to_coords(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+        col: int | Literal["left", "right"],
+        row: int,
+    ) -> bool:
         """
         Choose a selectable column to focus based on the coords.
 
         see :meth:`Widget.move_cursor_coords` for details
         """
-        widths = self.column_widths(size)
+        widths, _, size_args = self.get_column_sizes(size, focus=True)
 
         best = None
         x = 0
-        for i, (width, (w, options)) in enumerate(zip(widths, self.contents)):
+        for i, (width, (w, options)) in enumerate(zip(widths, self.contents, strict=False)):
             end = x + width
             if w.selectable():
                 if col != Align.RIGHT and (col == Align.LEFT or x > col) and best is None:
@@ -658,10 +967,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 move_x = min(max(0, col - x), end - x - 1)
             else:
                 move_x = col
-            if len(size) == 1 and b:
-                rval = w.move_cursor_to_coords((end - x, self.rows(size)), move_x, row)
-            else:
-                rval = w.move_cursor_to_coords((end - x,) + size[1:], move_x, row)
+            rval = w.move_cursor_to_coords(size_args[i], move_x, row)
             if rval is False:
                 return False
 
@@ -671,7 +977,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
     def mouse_event(
         self,
-        size: tuple[int] | tuple[int, int],
+        size: tuple[()] | tuple[int] | tuple[int, int],
         event,
         button: int,
         col: int,
@@ -682,10 +988,10 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         Send event to appropriate column.
         May change focus on button 1 press.
         """
-        widths = self.column_widths(size)
+        widths, _, size_args = self.get_column_sizes(size, focus=focus)
 
         x = 0
-        for i, (width, (w, (_t, _n, b))) in enumerate(zip(widths, self.contents)):
+        for i, (width, w_size, (w, _)) in enumerate(zip(widths, size_args, self.contents)):
             if col < x:
                 return False
             w = self.contents[i][0]  # noqa: PLW2901
@@ -707,26 +1013,21 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 )
                 return False
 
-            if len(size) == 1 and b:
-                return w.mouse_event((end - x, self.rows(size)), event, button, col - x, row, focus)
-            return w.mouse_event((end - x,) + size[1:], event, button, col - x, row, focus)
+            return w.mouse_event(w_size, event, button, col - x, row, focus)
         return False
 
-    def get_pref_col(self, size: tuple[int] | tuple[int, int]) -> int:
+    def get_pref_col(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> int:
         """Return the pref col from the column in focus."""
-        widths = self.column_widths(size)
+        widths, _, size_args = self.get_column_sizes(size, focus=True)
 
-        w, (_t, _n, b) = self.contents[self.focus_position]
+        w, _ = self.contents[self.focus_position]
         if len(widths) <= self.focus_position:
             return 0
         col = None
         cwidth = widths[self.focus_position]
 
         if hasattr(w, "get_pref_col"):
-            if len(size) == 1 and b:
-                col = w.get_pref_col((cwidth, self.rows(size)))
-            else:
-                col = w.get_pref_col((cwidth,) + size[1:])
+            col = w.get_pref_col(size_args[self.focus_position])
             if isinstance(col, int):
                 col += self.focus_position * self.dividechars
                 col += sum(widths[: self.focus_position])
@@ -755,7 +1056,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             rows = max(rows, w.rows((mc,), focus=focus and self.focus_position == i))
         return rows
 
-    def keypress(self, size: tuple[int] | tuple[int, int], key: str) -> str | None:
+    def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
         """
         Pass keypress to the focus column.
 
@@ -766,20 +1067,16 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if self.focus_position is None:
             return key
 
-        widths = self.column_widths(size)
+        widths, _, size_args = self.get_column_sizes(size, focus=True)
         if self.focus_position >= len(widths):
             return key
 
         i = self.focus_position
-        mc = widths[i]
-        w, (_t, _n, b) = self.contents[i]
+        w, _ = self.contents[i]
         if self._command_map[key] not in {"cursor up", "cursor down", "cursor page up", "cursor page down"}:
             self.pref_col = None
         if w.selectable():
-            if len(size) == 1 and b:
-                key = w.keypress((mc, self.rows(size, True)), key)
-            else:
-                key = w.keypress((mc,) + size[1:], key)
+            key = w.keypress(size_args[i], key)
 
         if self._command_map[key] not in {"cursor left", "cursor right"}:
             return key
