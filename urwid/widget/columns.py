@@ -763,7 +763,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                     w_h_args[i] = (0,)
 
             elif Sizing.FIXED in w_sizing and (Sizing.FLOW in w_sizing or is_box):
-                width, height = widget.pack()
+                width, height = widget.pack((), focused)
                 weighted.setdefault(size_weight, []).append((widget, i, is_box, focused))
                 weights.append(size_weight)
                 weight_max_sizes.setdefault(size_weight, width)
