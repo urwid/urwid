@@ -311,7 +311,10 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self.contents = [
             # need to grow contents list if widgets is longer
             (new, options)
-            for (new, (w, options)) in zip(widgets, chain(self.contents, repeat((None, (WHSettings.WEIGHT, 1, False)))))
+            for (new, (w, options)) in zip(
+                widgets,
+                chain(self.contents, repeat((None, (WHSettings.WEIGHT, 1, False)))),
+            )
         ]
         if focus_position < len(widgets):
             self.focus_position = focus_position
@@ -803,13 +806,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         box: list[int] = []
         box_need_height: list[int] = []
 
-        for i, (width, (widget, (size_kind, _size_weight, is_box))) in enumerate(
-            zip(
-                widths,
-                self.contents,
-                strict=False,
-            )
-        ):
+        for i, (width, (widget, (size_kind, _size_weight, is_box))) in enumerate(zip(widths, self.contents)):
             w_sizing = widget.sizing()
 
             if size_kind == WHSettings.GIVEN:
@@ -881,7 +878,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         widths, _, size_args = self.get_column_sizes(size, focus)
 
         data: list[tuple[Canvas, int, bool, int]] = []
-        for i, (width, w_size, (w, _)) in enumerate(zip(widths, size_args, self.contents, strict=False)):
+        for i, (width, w_size, (w, _)) in enumerate(zip(widths, size_args, self.contents)):
             # if the widget has a width of 0, hide it
             if width <= 0:
                 continue
@@ -943,7 +940,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         best = None
         x = 0
-        for i, (width, (w, options)) in enumerate(zip(widths, self.contents, strict=False)):
+        for i, (width, (w, options)) in enumerate(zip(widths, self.contents)):
             end = x + width
             if w.selectable():
                 if col != Align.RIGHT and (col == Align.LEFT or x > col) and best is None:
