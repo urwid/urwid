@@ -162,9 +162,10 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
             if flag & _ContainerElementSizingFlag.BOX:
                 supported.add(Sizing.BOX)
-            if not (is_box or flag & flow_fixed):
-                strict_box = True
-                break
+
+                if not (is_box or flag & flow_fixed):
+                    strict_box = True
+                    break
 
             if flag & _ContainerElementSizingFlag.FLOW:
                 has_flow = True
