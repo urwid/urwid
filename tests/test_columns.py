@@ -113,11 +113,11 @@ class ColumnsTest(unittest.TestCase):
                 widget = urwid.Columns(((urwid.PACK, box_only),))
                 self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), widget.sizing())
                 self.assertEqual(
-                    "Sizing combination not supported: PACK BOX and is_box=False",
+                    "Sizing combination of widget 0 not supported: PACK BOX and box=False",
                     str(ctx.warnings[0].message),
                 )
 
-    def test_pack_render_fixed(self):
+    def test_pack_render_fixed(self) -> None:
         """Cover weighted FIXED/FLOW widgets pack.
 
         One of the popular use-cases: rows of buttons/radiobuttons/checkboxes in pop-up windows.
@@ -127,7 +127,31 @@ class ColumnsTest(unittest.TestCase):
             dividechars=1,
         )
         self.assertEqual((32, 1), widget.pack(()))
-        self.assertEqual([b'<   OK   > < Cancel > <  Help  >'], widget.render(()).text)
+        self.assertEqual([b"<   OK   > < Cancel > <  Help  >"], widget.render(()).text)
+
+    def test_pack_render_broken_sizing(self) -> None:
+        use_sizing = frozenset((urwid.BOX,))
+
+        class BrokenSizing(urwid.Text):
+            def sizing(self) -> frozenset[urwid.Sizing]:
+                return use_sizing
+
+        with self.assertWarns(urwid.widget.ColumnsWarning) as ctx:
+            widget = urwid.Columns(((urwid.PACK, BrokenSizing("Test")),))
+            self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), widget.sizing())
+            self.assertEqual(
+                "Sizing combination of widget 0 not supported: PACK BOX and box=False",
+                str(ctx.warnings[0].message),
+            )
+
+        with self.assertWarns(urwid.widget.ColumnsWarning) as ctx:
+            canvas = widget.render((10,))
+            self.assertEqual([b"Test      "], canvas.text)
+            self.assertEqual(
+                f"Unusual widget 0 sizing {use_sizing} for {urwid.PACK} (box=False). "
+                f"Assuming wrong sizing and using {urwid.FLOW.upper()} for width calculation",
+                str(ctx.warnings[0].message),
+            )
 
     def assert_column_widths(
         self,

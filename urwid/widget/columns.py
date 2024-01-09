@@ -122,7 +122,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         flow_fixed = _ContainerElementSizingFlag.FLOW | _ContainerElementSizingFlag.FIXED
         given_box = _ContainerElementSizingFlag.BOX | _ContainerElementSizingFlag.WH_GIVEN
 
-        for widget, (size_kind, _size_weight, is_box) in self.contents:
+        for idx, (widget, (size_kind, _size_weight, is_box)) in enumerate(self.contents):
             w_sizing = widget.sizing()
 
             flag = _ContainerElementSizingFlag.NONE
@@ -153,8 +153,8 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
             if not flag & box_flow_fixed:
                 warnings.warn(
-                    f"Sizing combination not supported: "
-                    f"{size_kind.name} {'|'.join(w_sizing).upper()} and is_box={is_box}",
+                    f"Sizing combination of widget {idx} not supported: "
+                    f"{size_kind.name} {'|'.join(w_sizing).upper()} and box={is_box}",
                     ColumnsWarning,
                     stacklevel=3,
                 )
@@ -667,7 +667,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         weighted = []
         shared = maxcol + self.dividechars
 
-        for i, (w, (t, width, _b)) in enumerate(self.contents):
+        for i, (w, (t, width, b)) in enumerate(self.contents):
             if t == WHSettings.GIVEN:
                 static_w = width
             elif t == WHSettings.PACK:
@@ -678,7 +678,13 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 elif Sizing.FIXED in w_sizing:
                     w_size = ()
                 else:
-                    raise ColumnsError(f"Unusual widget sizing {w_sizing} for {t}")
+                    warnings.warn(
+                        f"Unusual widget {i} sizing {w_sizing} for {t} (box={b}). "
+                        f"Assuming wrong sizing and using {Sizing.FLOW.upper()} for width calculation",
+                        ColumnsWarning,
+                        stacklevel=3,
+                    )
+                    w_size = (maxcol,)
                 static_w = w.pack(w_size, focus and i == self.focus_position)[0]
             else:
                 static_w = self.min_width
