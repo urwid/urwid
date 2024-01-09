@@ -133,7 +133,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                     flag |= _ContainerElementSizingFlag.BOX
                 if Sizing.FLOW in w_sizing:
                     flag |= _ContainerElementSizingFlag.FLOW
-                if Sizing.FIXED in w_sizing:
+                if Sizing.FIXED in w_sizing and w_sizing & {Sizing.BOX, Sizing.FLOW}:
                     flag |= _ContainerElementSizingFlag.FIXED
 
             elif size_kind == WHSettings.GIVEN:

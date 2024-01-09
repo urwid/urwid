@@ -117,6 +117,15 @@ class ColumnsTest(unittest.TestCase):
                     str(ctx.warnings[0].message),
                 )
 
+        with self.subTest("Wrong sizing -> fallback to historic hardcoded 2"):
+            with self.assertWarns(urwid.widget.ColumnsWarning) as ctx:
+                widget = urwid.Columns(((urwid.WEIGHT, 1, fixed_only),))
+                self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), widget.sizing())
+                self.assertEqual(
+                    "Sizing combination of widget 0 not supported: WEIGHT FIXED and box=False",
+                    str(ctx.warnings[0].message),
+                )
+
     def test_pack_render_fixed(self) -> None:
         """Cover weighted FIXED/FLOW widgets pack.
 
