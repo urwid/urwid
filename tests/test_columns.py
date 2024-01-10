@@ -126,6 +126,42 @@ class ColumnsTest(unittest.TestCase):
                     str(ctx.warnings[0].message),
                 )
 
+        with self.subTest('BOX not added to "box_columns" but widget handled as FLOW'):
+            widget = urwid.Columns(
+                (
+                    (urwid.WEIGHT, 1, urwid.SolidFill()),
+                    (urwid.FIXED, 10, urwid.Button("OK", align=urwid.CENTER)),
+                    (urwid.WEIGHT, 1, urwid.SolidFill()),
+                    (urwid.FIXED, 10, urwid.Button("Cancel", align=urwid.CENTER)),
+                    (urwid.WEIGHT, 1, urwid.SolidFill()),
+                )
+            )
+            self.assertEqual(frozenset((urwid.BOX,)), widget.sizing())
+
+            cols, rows = 30, 1
+            with self.assertRaises(urwid.WidgetError):
+                widget.pack((cols,))
+            with self.assertWarns(urwid.widget.ColumnsWarning) as ctx:
+                canvas = widget.render((cols,))
+                self.assertEqual(rows, canvas.rows())
+                self.assertEqual(cols, canvas.cols())
+                self.assertEqual([b"   <   OK   >    < Cancel >   "], canvas.text)
+                self.assertEqual(
+                    'Widgets in columns [0, 2, 4] are BOX widgets not marked "box_columns" '
+                    "while FLOW render is requested (size=(30,))",
+                    str(ctx.warnings[0].message),
+                )
+
+            self.assertEqual("OK", widget.focus.label)
+            with self.assertWarns(urwid.widget.ColumnsWarning) as ctx:
+                self.assertIsNone(widget.keypress((cols,), "right"))
+                self.assertEqual(
+                    'Widgets in columns [0, 2, 4] are BOX widgets not marked "box_columns" '
+                    "while FLOW render is requested (size=(30,))",
+                    str(ctx.warnings[0].message),
+                )
+            self.assertEqual("Cancel", widget.focus.label)
+
     def test_pack_render_fixed(self) -> None:
         """Cover weighted FIXED/FLOW widgets pack.
 

@@ -847,7 +847,12 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             if heights:
                 max_height = max(heights.values())
                 if box_need_height:
-                    raise ColumnsError(f'Widgets in columns {box_need_height} are BOX widgets not marked "box_columns"')
+                    warnings.warn(
+                        f'Widgets in columns {box_need_height} are BOX widgets not marked "box_columns" '
+                        f"while FLOW render is requested (size={size!r})",
+                        ColumnsWarning,
+                        stacklevel=3,
+                    )
             else:
                 max_height = 1
         else:
@@ -943,7 +948,10 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         see :meth:`Widget.move_cursor_coords` for details
         """
-        widths, _, size_args = self.get_column_sizes(size, focus=True)
+        try:
+            widths, _, size_args = self.get_column_sizes(size, focus=True)
+        except Exception as exc:
+            raise ValueError(self.contents, size, col, row) from exc
 
         best = None
         x = 0
