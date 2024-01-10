@@ -29,7 +29,7 @@ from urwid.text_layout import calc_coords
 from urwid.util import is_mouse_press
 
 from .columns import Columns
-from .constants import Align, Sizing, WrapMode
+from .constants import Align, WrapMode
 from .text import Text
 from .widget import WidgetWrap
 
@@ -135,9 +135,6 @@ class CheckBoxError(Exception):
 
 
 class CheckBox(WidgetWrap):
-    def sizing(self):
-        return frozenset([Sizing.FLOW])
-
     states: typing.ClassVar[dict[bool | Literal["mixed"], SelectableIcon]] = {
         True: SelectableIcon("[X]", 1),
         False: SelectableIcon("[ ]", 1),
@@ -235,12 +232,12 @@ class CheckBox(WidgetWrap):
           urwid.disconnect_signal(check_box, 'change', callback, user_data)
 
         >>> CheckBox("Confirm")
-        <CheckBox selectable flow widget 'Confirm' state=False>
+        <CheckBox selectable fixed/flow widget 'Confirm' state=False>
         >>> CheckBox("Yogourt", "mixed", True)
-        <CheckBox selectable flow widget 'Yogourt' state='mixed'>
+        <CheckBox selectable fixed/flow widget 'Yogourt' state='mixed'>
         >>> cb = CheckBox("Extra onions", True)
         >>> cb
-        <CheckBox selectable flow widget 'Extra onions' state=True>
+        <CheckBox selectable fixed/flow widget 'Extra onions' state=True>
         >>> cb.render((20,), focus=True).text
         [b'[X] Extra onions    ']
         >>> CheckBox("Test", None)
@@ -307,10 +304,10 @@ class CheckBox(WidgetWrap):
 
         >>> cb = CheckBox(u"foo")
         >>> cb
-        <CheckBox selectable flow widget 'foo' state=False>
+        <CheckBox selectable fixed/flow widget 'foo' state=False>
         >>> cb.set_label(('bright_attr', u"bar"))
         >>> cb
-        <CheckBox selectable flow widget 'bar' state=False>
+        <CheckBox selectable fixed/flow widget 'bar' state=False>
         """
         self._label.set_text(label)
         # no need to call self._invalidate(). WidgetWrap takes care of
@@ -527,9 +524,9 @@ class RadioButton(CheckBox):
         >>> len(bgroup)
         2
         >>> b1
-        <RadioButton selectable flow widget 'Agree' state=True>
+        <RadioButton selectable fixed/flow widget 'Agree' state=True>
         >>> b2
-        <RadioButton selectable flow widget 'Disagree' state=False>
+        <RadioButton selectable fixed/flow widget 'Disagree' state=False>
         >>> b2.render((15,), focus=True).text # ... = b in Python 3
         [...'( ) Disagree   ']
         """
@@ -564,10 +561,10 @@ class RadioButton(CheckBox):
         ...     radio_button.set_label(u"Think Harder!")
         >>> key = connect_signal(b3, 'change', relabel_button)
         >>> b3
-        <RadioButton selectable flow widget 'Unsure' state=False>
+        <RadioButton selectable fixed/flow widget 'Unsure' state=False>
         >>> b3.set_state(True) # this will trigger the callback
         >>> b3
-        <RadioButton selectable flow widget 'Think Harder!' state=True>
+        <RadioButton selectable fixed/flow widget 'Think Harder!' state=True>
         """
         if self._state == state:
             return
@@ -606,9 +603,6 @@ class RadioButton(CheckBox):
 
 
 class Button(WidgetWrap):
-    def sizing(self):
-        return frozenset([Sizing.FLOW])
-
     button_left = Text("<")
     button_right = Text(">")
 
@@ -677,7 +671,7 @@ class Button(WidgetWrap):
 
         >>> from urwid.util import set_temporary_encoding
         >>> Button(u"Ok")
-        <Button selectable flow widget 'Ok'>
+        <Button selectable fixed/flow widget 'Ok'>
         >>> b = Button("Cancel")
         >>> b.render((15,), focus=True).text # ... = b in Python 3
         [b'< Cancel      >']
@@ -733,7 +727,7 @@ class Button(WidgetWrap):
         >>> b = Button("Ok")
         >>> b.set_label(u"Yup yup")
         >>> b
-        <Button selectable flow widget 'Yup yup'>
+        <Button selectable fixed/flow widget 'Yup yup'>
         """
         self._label.set_text(label)
 

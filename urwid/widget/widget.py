@@ -448,7 +448,7 @@ class Widget(metaclass=WidgetMeta):
         """
         return self._selectable
 
-    def sizing(self):
+    def sizing(self) -> frozenset[Sizing]:
         """
         :returns: A frozenset including one or more of ``'box'``, ``'flow'`` and
                   ``'fixed'``.  Default implementation returns the value of

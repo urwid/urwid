@@ -276,15 +276,14 @@ Edit widget as its default focus widget.
 Columns Widgets
 ---------------
 
-:class:`Columns` widgets may be used to arrange either flow
-widgets or box widgets horizontally into columns. Columns widgets will manage
-selectable widgets by keeping track of which column is in focus and it can
-handle moving the focus between columns when the user presses the *LEFT* and
-*RIGHT* keys. Columns widgets also work well when used within a
-:class:`ListBox`.
+:class:`Columns` widgets may be used to arrange either flow widgets,
+box widgets or fixed widgets horizontally into columns.
+Columns widgets will manage selectable widgets by keeping track of which column is in focus and it can
+handle moving the focus between columns when the user presses the *LEFT* and *RIGHT* keys.
+Columns widgets also work well when used within a :class:`ListBox`.
 
-Columns widgets are selectable only if the column in focus is selectable. If a
-focus column is not specified the first selectable widget will be chosen as the
+Columns widgets are selectable only if the column in focus is selectable.
+If a focus column is not specified the first selectable widget will be chosen as the
 focus column.
 
 

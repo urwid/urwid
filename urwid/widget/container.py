@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import enum
 import typing
 import warnings
 
@@ -8,6 +9,16 @@ if typing.TYPE_CHECKING:
     from collections.abc import Iterator
 
     from .widget import Widget
+
+
+class _ContainerElementSizingFlag(enum.IntFlag):
+    NONE = 0
+    BOX = enum.auto()
+    FLOW = enum.auto()
+    FIXED = enum.auto()
+    WH_WEIGHT = enum.auto()
+    WH_PACK = enum.auto()
+    WH_GIVEN = enum.auto()
 
 
 class WidgetContainerMixin:
