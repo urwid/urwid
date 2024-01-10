@@ -262,11 +262,11 @@ an unbounded number of positions, so care should be used with this interface and
 Pile Widgets
 ------------
 
-:class:`Pile` widgets are used to combine multiple widgets by
-stacking them vertically. A Pile can manage selectable widgets by keeping track
+:class:`Pile` widgets are used to combine multiple widgets by stacking them vertically.
+A Pile can manage selectable widgets by keeping track
 of which widget is in focus and it can handle moving the focus between widgets
-when the user presses the *UP* and *DOWN* keys. A Pile will also work well when
-used within a :class:`ListBox`.
+when the user presses the *UP* and *DOWN* keys.
+A Pile will also work well when used within a :class:`ListBox`.
 
 A Pile is selectable only if its focus widget is selectable. If you create a
 Pile containing one Text widget and one Edit widget the Pile will choose the
