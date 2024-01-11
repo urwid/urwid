@@ -9,6 +9,7 @@ class PaddingTest(unittest.TestCase):
     def test_sizing(self) -> None:
         fixed_only = urwid.BigText("3", urwid.HalfBlock5x4Font())
         fixed_flow = urwid.Text("Some text", align=urwid.CENTER)
+        flow_only = urwid.ProgressBar(None, None)
 
         with self.subTest("Fixed only"):
             widget = urwid.Padding(fixed_only)
@@ -74,6 +75,43 @@ class PaddingTest(unittest.TestCase):
             self.assertEqual(
                 ["     Some text"],
                 [line.decode("utf-8") for line in canvas.text],
+            )
+
+        with self.subTest("GIVEN FLOW make FIXED"):
+            widget = urwid.Padding(flow_only, width=5, align=urwid.RIGHT, right=1)
+            self.assertEqual(frozenset((urwid.FIXED, urwid.FLOW)), widget.sizing())
+
+            cols, rows = 6, 1
+            self.assertEqual((cols, rows), widget.pack(()))
+            canvas = widget.render(())
+            self.assertEqual(cols, canvas.cols())
+            self.assertEqual(rows, canvas.rows())
+            self.assertEqual(
+                [" 0 %  "],
+                [line.decode("utf-8") for line in canvas.text],
+            )
+
+        with self.subTest("GIVEN FIXED = error"):
+            widget = urwid.Padding(fixed_only, width=5)
+            with self.assertWarns(urwid.widget.padding.PaddingWarning) as ctx, self.assertRaises(AttributeError):
+                widget.sizing()
+                self.assertEqual(
+                    f"WHSettings.GIVEN expect BOX or FLOW widget to be used, but received {fixed_only}",
+                    str(ctx.warnings[0].message),
+                )
+
+                widget.pack(())
+                self.assertEqual(
+                    f"WHSettings.GIVEN expect BOX or FLOW widget to be used, but received {fixed_only}",
+                    str(ctx.warnings[1].message),
+                )
+
+            with self.assertRaises(ValueError) as err_ctx:
+                widget.render(())
+
+            self.assertEqual(
+                "FixedWidget takes only () for size.passed: (5,)",
+                str(err_ctx.exception),
             )
 
     def test_fixed(self) -> None:
