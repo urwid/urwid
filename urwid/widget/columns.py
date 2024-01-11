@@ -153,8 +153,8 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
             if not flag & box_flow_fixed:
                 warnings.warn(
-                    f"Sizing combination of widget {idx} not supported: "
-                    f"{size_kind.name} {'|'.join(w_sizing).upper()} and box={is_box}",
+                    f"Sizing combination of widget {widget} (position={idx}) not supported: "
+                    f"{size_kind.name} box={is_box}",
                     ColumnsWarning,
                     stacklevel=3,
                 )
@@ -680,7 +680,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                     w_size = ()
                 else:
                     warnings.warn(
-                        f"Unusual widget {i} sizing {w_sizing} for {t} (box={b}). "
+                        f"Unusual widget {w} sizing for {t} (box={b}). "
                         f"Assuming wrong sizing and using {Sizing.FLOW.upper()} for width calculation",
                         ColumnsWarning,
                         stacklevel=3,
@@ -747,7 +747,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                     heights[i] = widget.rows((size_weight,), focused)
                     w_h_args[i] = (size_weight,)
                 else:
-                    raise ColumnsError(f"Unsupported combination of {size_kind}, {w_sizing} and box={is_box!r}")
+                    raise ColumnsError(f"Unsupported combination of {size_kind} box={is_box!r} for {widget}")
 
             elif size_kind == WHSettings.PACK and Sizing.FIXED in w_sizing and not is_box:
                 width, height = widget.pack((), focused)
@@ -771,7 +771,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 weight_max_sizes[size_weight] = max(weight_max_sizes[size_weight], width)
 
             else:
-                raise ColumnsError(f"Unsupported combination of {size_kind}, {w_sizing}, box={is_box!r}")
+                raise ColumnsError(f"Unsupported combination of {size_kind} box={is_box!r} for {widget}")
 
         if weight_max_sizes:
             max_weighted_coefficient = max(width / weight for weight, width in weight_max_sizes.items())
@@ -848,8 +848,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 max_height = max(heights.values())
                 if box_need_height:
                     warnings.warn(
-                        f'Widgets in columns {box_need_height} are BOX widgets not marked "box_columns" '
-                        f"while FLOW render is requested (size={size!r})",
+                        f"Widgets in columns {box_need_height} "
+                        f"({[self.contents[i][0] for i in box_need_height]}) "
+                        f'are BOX widgets not marked "box_columns" while FLOW render is requested (size={size!r})',
                         ColumnsWarning,
                         stacklevel=3,
                     )
