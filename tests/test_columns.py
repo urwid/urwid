@@ -198,7 +198,7 @@ class ColumnsTest(unittest.TestCase):
             canvas = widget.render((10,))
             self.assertEqual([b"Test      "], canvas.text)
             self.assertEqual(
-                f"Unusual widget {element} sizing for WHSettings.PACK (box=False). "
+                f"Unusual widget {element} sizing for {urwid.PACK} (box=False). "
                 f"Assuming wrong sizing and using FLOW for width calculation",
                 str(ctx.warnings[0].message),
             )
