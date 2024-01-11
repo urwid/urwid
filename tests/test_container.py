@@ -61,8 +61,6 @@ class FrameTest(unittest.TestCase):
             True, 10, 0)
 
 
-
-
 class OverlayTest(unittest.TestCase):
     def test_old_params(self):
         o1 = urwid.Overlay(urwid.SolidFill('X'), urwid.SolidFill('O'),
@@ -94,35 +92,6 @@ class OverlayTest(unittest.TestCase):
         )
         self.assertEqual(2, len(ovl))
         self.assertEqual(2, len(ovl.contents))
-
-
-class GridFlowTest(unittest.TestCase):
-    def test_cell_width(self):
-        gf = urwid.GridFlow([], 5, 0, 0, 'left')
-        self.assertEqual(gf.cell_width, 5)
-
-    def test_basics(self):
-        repr(urwid.GridFlow([], 5, 0, 0, 'left')) # should not fail
-
-    def test_v_sep(self):
-        gf = urwid.GridFlow([urwid.Text("test")], 10, 3, 1, "center")
-        self.assertEqual(gf.rows((40,), False), 1)
-
-    def test_keypress_v_sep_0(self):
-        """
-        Ensure proper keypress handling when v_sep is 0.
-        https://github.com/urwid/urwid/issues/387
-        """
-        call_back = mock.Mock()
-        button = urwid.Button("test", call_back)
-        gf = urwid.GridFlow([button], 10, 3, v_sep=0, align="center")
-        self.assertEqual(gf.keypress((20,), "enter"), None)
-        call_back.assert_called_with(button)
-
-    def test_length(self):
-        grid = urwid.GridFlow((urwid.Text(c) for c in "ABC"), 1, 0, 0, 'left')
-        self.assertEqual(3, len(grid))
-        self.assertEqual(3, len(grid.contents))
 
 
 class WidgetSquishTest(unittest.TestCase):
@@ -204,8 +173,6 @@ class WidgetSquishTest(unittest.TestCase):
 
 
 class CommonContainerTest(unittest.TestCase):
-
-
     def test_list_box(self):
         lb = urwid.ListBox(urwid.SimpleFocusListWalker([]))
         self.assertEqual(lb.focus, None)
@@ -225,44 +192,6 @@ class CommonContainerTest(unittest.TestCase):
         lb.focus_position = 0
         self.assertRaises(IndexError, lambda: setattr(lb, 'focus_position', -1))
         self.assertRaises(IndexError, lambda: setattr(lb, 'focus_position', 2))
-
-    def test_grid_flow(self):
-        gf = urwid.GridFlow([], 5, 1, 0, 'left')
-        self.assertEqual(gf.focus, None)
-        self.assertEqual(gf.contents, [])
-        self.assertRaises(IndexError, lambda: getattr(gf, 'focus_position'))
-        self.assertRaises(IndexError, lambda: setattr(gf, 'focus_position',
-            None))
-        self.assertRaises(IndexError, lambda: setattr(gf, 'focus_position', 0))
-        self.assertEqual(gf.options(), ('given', 5))
-        self.assertEqual(gf.options(width_amount=9), ('given', 9))
-        self.assertRaises(urwid.GridFlowError, lambda: gf.options(
-            'pack', None))
-
-        t1 = urwid.Text('one')
-        t2 = urwid.Text('two')
-        gf = urwid.GridFlow([t1, t2], 5, 1, 0, 'left')
-        self.assertEqual(gf.focus, t1)
-        self.assertEqual(gf.focus_position, 0)
-        self.assertEqual(gf.contents, [(t1, ('given', 5)), (t2, ('given', 5))])
-        gf.focus_position = 1
-        self.assertEqual(gf.focus, t2)
-        self.assertEqual(gf.focus_position, 1)
-        gf.contents.insert(0, (t2, ('given', 5)))
-        self.assertEqual(gf.focus_position, 2)
-        self.assertRaises(urwid.GridFlowError, lambda: gf.contents.append(()))
-        self.assertRaises(urwid.GridFlowError, lambda: gf.contents.insert(1,
-            (t1, ('pack', None))))
-        gf.focus_position = 0
-        self.assertRaises(IndexError, lambda: setattr(gf, 'focus_position', -1))
-        self.assertRaises(IndexError, lambda: setattr(gf, 'focus_position', 3))
-        # old methods:
-        gf.set_focus(0)
-        self.assertRaises(IndexError, lambda: gf.set_focus(-1))
-        self.assertRaises(IndexError, lambda: gf.set_focus(3))
-        gf.set_focus(t1)
-        self.assertEqual(gf.focus_position, 1)
-        self.assertRaises(ValueError, lambda: gf.set_focus('nonexistant'))
 
     def test_overlay(self):
         s1 = urwid.SolidFill('1')
