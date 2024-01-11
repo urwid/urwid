@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widgets &#8212; Urwid 2.4.1</title>
+    <title>Widgets &#8212; Urwid 2.4.2</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script src="../_static/documentation_options.js?v=e9ebdb8f"></script>
+    <script src="../_static/documentation_options.js?v=de1351e5"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.2</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widgets</a></li> 
       </ul>
@@ -264,34 +264,32 @@ an unbounded number of positions, so care should be used with this interface and
 <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>.</p>
 <section id="pile-widgets">
 <h3>Pile Widgets<a class="headerlink" href="#pile-widgets" title="Link to this heading">¶</a></h3>
-<p><a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pile</span></code></a> widgets are used to combine multiple widgets by
-stacking them vertically. A Pile can manage selectable widgets by keeping track
+<p><a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pile</span></code></a> widgets are used to combine multiple widgets by stacking them vertically.
+A Pile can manage selectable widgets by keeping track
 of which widget is in focus and it can handle moving the focus between widgets
-when the user presses the <em>UP</em> and <em>DOWN</em> keys. A Pile will also work well when
-used within a <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>.</p>
+when the user presses the <em>UP</em> and <em>DOWN</em> keys.
+A Pile will also work well when used within a <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>.</p>
 <p>A Pile is selectable only if its focus widget is selectable. If you create a
 Pile containing one Text widget and one Edit widget the Pile will choose the
 Edit widget as its default focus widget.</p>
 </section>
 <section id="columns-widgets">
 <h3>Columns Widgets<a class="headerlink" href="#columns-widgets" title="Link to this heading">¶</a></h3>
-<p><a class="reference internal" href="../reference/widget.html#urwid.Columns" title="urwid.Columns"><code class="xref py py-class docutils literal notranslate"><span class="pre">Columns</span></code></a> widgets may be used to arrange either flow
-widgets or box widgets horizontally into columns. Columns widgets will manage
-selectable widgets by keeping track of which column is in focus and it can
-handle moving the focus between columns when the user presses the <em>LEFT</em> and
-<em>RIGHT</em> keys. Columns widgets also work well when used within a
-<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>.</p>
-<p>Columns widgets are selectable only if the column in focus is selectable. If a
-focus column is not specified the first selectable widget will be chosen as the
+<p><a class="reference internal" href="../reference/widget.html#urwid.Columns" title="urwid.Columns"><code class="xref py py-class docutils literal notranslate"><span class="pre">Columns</span></code></a> widgets may be used to arrange either flow widgets,
+box widgets or fixed widgets horizontally into columns.
+Columns widgets will manage selectable widgets by keeping track of which column is in focus and it can
+handle moving the focus between columns when the user presses the <em>LEFT</em> and <em>RIGHT</em> keys.
+Columns widgets also work well when used within a <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>.</p>
+<p>Columns widgets are selectable only if the column in focus is selectable.
+If a focus column is not specified the first selectable widget will be chosen as the
 focus column.</p>
 </section>
 <section id="gridflow-widgets">
 <h3>GridFlow Widgets<a class="headerlink" href="#gridflow-widgets" title="Link to this heading">¶</a></h3>
-<p>The <a class="reference internal" href="../reference/widget.html#urwid.GridFlow" title="urwid.GridFlow"><code class="xref py py-class docutils literal notranslate"><span class="pre">GridFlow</span></code></a> widget is a flow widget designed for use
-with <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal notranslate"><span class="pre">Button</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.CheckBox" title="urwid.CheckBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckBox</span></code></a> and
-<a class="reference internal" href="../reference/widget.html#urwid.RadioButton" title="urwid.RadioButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">RadioButton</span></code></a> widgets. It renders all the widgets it
-contains the same width and it arranges them from left to right and top to
-bottom.</p>
+<p>The <a class="reference internal" href="../reference/widget.html#urwid.GridFlow" title="urwid.GridFlow"><code class="xref py py-class docutils literal notranslate"><span class="pre">GridFlow</span></code></a> widget is a fixed/flow widget designed for use
+with <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal notranslate"><span class="pre">Button</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.CheckBox" title="urwid.CheckBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckBox</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.RadioButton" title="urwid.RadioButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">RadioButton</span></code></a> widgets.
+It renders all the widgets it contains the same width
+and it arranges them from left to right and top to bottom.</p>
 <p>The GridFlow widget uses Pile, Columns, Padding and Divider widgets to build a
 display widget that will handle the keyboard input and rendering. When the
 GridFlow widget is resized it regenerates the display widget to accommodate the
@@ -957,7 +955,7 @@ defined in superclasses after the class definition.</p>
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.2</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widgets</a></li> 
       </ul>

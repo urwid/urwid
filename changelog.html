@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Changelog &#8212; Urwid 2.4.1</title>
+    <title>Changelog &#8212; Urwid 2.4.2</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="_static/classic.css?v=1f4f2616" />
     
-    <script src="_static/documentation_options.js?v=e9ebdb8f"></script>
+    <script src="_static/documentation_options.js?v=de1351e5"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -27,7 +27,7 @@
         <li class="right" >
           <a href="reference/deprecated.html" title="Deprecated Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.4.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.4.2</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Changelog</a></li> 
       </ul>
     </div>  
@@ -39,6 +39,93 @@
             
   <section id="changelog">
 <h1>Changelog<a class="headerlink" href="#changelog" title="Link to this heading">¶</a></h1>
+<section id="release-2-4-2">
+<h2>2.4.2<a class="headerlink" href="#release-2-4-2" title="Link to this heading">¶</a></h2>
+<p><em>Released on 2024-01-11 - <a class="reference external" href="https://github.com/urwid/urwid/releases/tag/2.4.2">GitHub</a> - <a class="reference external" href="https://pypi.org/project/urwid/2.4.2/">PyPI</a></em></p>
+
+<h2>What's Changed</h2>
+<h3>New features 🗹</h3>
+<ul>
+<li>Feature: support FIXED-only widgets and FIXED rendering for Columns by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2071866473" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/731" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/731/hovercard" href="https://github.com/urwid/urwid/pull/731">#731</a></li>
+<li>Feature: Support FIXED-only widgets and FIXED rendering for PILE by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2074139819" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/733" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/733/hovercard" href="https://github.com/urwid/urwid/pull/733">#733</a></li>
+<li>FIX Padding: support FIXED render mode by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2074830149" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/734" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/734/hovercard" href="https://github.com/urwid/urwid/pull/734">#734</a>, <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2075146949" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/735" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/735/hovercard" href="https://github.com/urwid/urwid/pull/735">#735</a>, <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2076713073" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/737" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/737/hovercard" href="https://github.com/urwid/urwid/pull/737">#737</a></li>
+<li>Feature: support FIXED render type for GridFLow by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2076774270" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/738" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/738/hovercard" href="https://github.com/urwid/urwid/pull/738">#738</a></li>
+</ul>
+<p>Now it possible to quick check incomplete widgets prototypes without size counting like:</p>
+<div class="highlight highlight-source-python notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="&gt;&gt;&gt; import urwid
+&gt;&gt;&gt; grid = urwid.GridFlow(
+   ...:             (urwid.Button(tag, align=urwid.CENTER) for tag in (&quot;OK&quot;, &quot;Cancel&quot;, &quot;Help&quot;)),
+   ...:             cell_width=10,
+   ...:             h_sep=1,
+   ...:             v_sep=1,
+   ...:             align=urwid.CENTER,
+   ...:         )
+&gt;&gt;&gt; body = urwid.Pile(
+   ...:             (
+   ...:                 (urwid.Text(&quot;Window content text here and it should not touch line&quot;, align=urwid.CENTER)),
+   ...:                 (urwid.PACK, grid),
+   ...:             )
+   ...:         )
+&gt;&gt;&gt; widget = urwid.LineBox(
+   ...:             urwid.Pile(
+   ...:                 (
+   ...:                     urwid.Text(&quot;Some window&quot;, align=urwid.CENTER),
+   ...:                     urwid.Divider(&quot;─&quot;),
+   ...:                     urwid.Padding(body, width=urwid.PACK, left=1, right=1),
+   ...:                 )
+   ...:             )
+   ...:         )
+&gt;&gt;&gt; print(b&quot;\n&quot;.join(widget.render(()).text).decode(&quot;utf-8&quot;))
+┌───────────────────────────────────────────────────────┐
+│                      Some window                      │
+│───────────────────────────────────────────────────────│
+│ Window content text here and it should not touch line │
+│           &lt;   OK   &gt; &lt; Cancel &gt; &lt;  Help  &gt;            │
+└───────────────────────────────────────────────────────┘
+
+&gt;&gt;&gt; widget.pack(())
+(57, 6)"><pre><span class="pl-c1">&gt;&gt;</span><span class="pl-c1">&gt;</span> <span class="pl-k">import</span> <span class="pl-s1">urwid</span>
+<span class="pl-c1">&gt;&gt;</span><span class="pl-c1">&gt;</span> <span class="pl-s1">grid</span> <span class="pl-c1">=</span> <span class="pl-s1">urwid</span>.<span class="pl-v">GridFlow</span>(
+   ...:             (<span class="pl-s1">urwid</span>.<span class="pl-v">Button</span>(<span class="pl-s1">tag</span>, <span class="pl-s1">align</span><span class="pl-c1">=</span><span class="pl-s1">urwid</span>.<span class="pl-v">CENTER</span>) <span class="pl-k">for</span> <span class="pl-s1">tag</span> <span class="pl-c1">in</span> (<span class="pl-s">"OK"</span>, <span class="pl-s">"Cancel"</span>, <span class="pl-s">"Help"</span>)),
+   ...:             <span class="pl-s1">cell_width</span><span class="pl-c1">=</span><span class="pl-c1">10</span>,
+   ...:             <span class="pl-s1">h_sep</span><span class="pl-c1">=</span><span class="pl-c1">1</span>,
+   ...:             <span class="pl-s1">v_sep</span><span class="pl-c1">=</span><span class="pl-c1">1</span>,
+   ...:             <span class="pl-s1">align</span><span class="pl-c1">=</span><span class="pl-s1">urwid</span>.<span class="pl-v">CENTER</span>,
+   ...:         )
+<span class="pl-c1">&gt;&gt;</span><span class="pl-c1">&gt;</span> <span class="pl-s1">body</span> <span class="pl-c1">=</span> <span class="pl-s1">urwid</span>.<span class="pl-v">Pile</span>(
+   ...:             (
+   ...:                 (<span class="pl-s1">urwid</span>.<span class="pl-v">Text</span>(<span class="pl-s">"Window content text here and it should not touch line"</span>, <span class="pl-s1">align</span><span class="pl-c1">=</span><span class="pl-s1">urwid</span>.<span class="pl-v">CENTER</span>)),
+   ...:                 (<span class="pl-s1">urwid</span>.<span class="pl-v">PACK</span>, <span class="pl-s1">grid</span>),
+   ...:             )
+   ...:         )
+<span class="pl-c1">&gt;&gt;</span><span class="pl-c1">&gt;</span> <span class="pl-s1">widget</span> <span class="pl-c1">=</span> <span class="pl-s1">urwid</span>.<span class="pl-v">LineBox</span>(
+   ...:             <span class="pl-s1">urwid</span>.<span class="pl-v">Pile</span>(
+   ...:                 (
+   ...:                     <span class="pl-s1">urwid</span>.<span class="pl-v">Text</span>(<span class="pl-s">"Some window"</span>, <span class="pl-s1">align</span><span class="pl-c1">=</span><span class="pl-s1">urwid</span>.<span class="pl-v">CENTER</span>),
+   ...:                     <span class="pl-s1">urwid</span>.<span class="pl-v">Divider</span>(<span class="pl-s">"─"</span>),
+   ...:                     <span class="pl-s1">urwid</span>.<span class="pl-v">Padding</span>(<span class="pl-s1">body</span>, <span class="pl-s1">width</span><span class="pl-c1">=</span><span class="pl-s1">urwid</span>.<span class="pl-v">PACK</span>, <span class="pl-s1">left</span><span class="pl-c1">=</span><span class="pl-c1">1</span>, <span class="pl-s1">right</span><span class="pl-c1">=</span><span class="pl-c1">1</span>),
+   ...:                 )
+   ...:             )
+   ...:         )
+<span class="pl-c1">&gt;&gt;</span><span class="pl-c1">&gt;</span> <span class="pl-en">print</span>(<span class="pl-s">b"<span class="pl-cce">\n</span>"</span>.<span class="pl-en">join</span>(<span class="pl-s1">widget</span>.<span class="pl-en">render</span>(()).<span class="pl-s1">text</span>).<span class="pl-en">decode</span>(<span class="pl-s">"utf-8"</span>))
+┌───────────────────────────────────────────────────────┐
+│                      <span class="pl-v">Some</span> <span class="pl-s1">window</span>                      │
+│───────────────────────────────────────────────────────│
+│ <span class="pl-v">Window</span> <span class="pl-s1">content</span> <span class="pl-s1">text</span> <span class="pl-s1">here</span> <span class="pl-c1">and</span> <span class="pl-s1">it</span> <span class="pl-s1">should</span> <span class="pl-c1">not</span> <span class="pl-s1">touch</span> <span class="pl-s1">line</span> │
+│           <span class="pl-c1">&lt;</span>   <span class="pl-v">OK</span>   <span class="pl-c1">&gt;</span> <span class="pl-c1">&lt;</span> <span class="pl-v">Cancel</span> <span class="pl-c1">&gt;</span> <span class="pl-c1">&lt;</span>  <span class="pl-v">Help</span>  <span class="pl-c1">&gt;</span>            │
+└───────────────────────────────────────────────────────┘
+
+<span class="pl-c1">&gt;&gt;</span><span class="pl-c1">&gt;</span> <span class="pl-s1">widget</span>.<span class="pl-en">pack</span>(())
+(<span class="pl-c1">57</span>, <span class="pl-c1">6</span>)</pre></div>
+<h3>Bug fixes 🕷</h3>
+<ul>
+<li>BUG: Columns with GIVEN width == 0 should not count in rows by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2076258035" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/736" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/736/hovercard" href="https://github.com/urwid/urwid/pull/736">#736</a></li>
+</ul>
+<h3>Refactoring 🛠</h3>
+<ul>
+<li>Remove unused deprecated "test_suite" directive from setup.py by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2063967109" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/729" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/729/hovercard" href="https://github.com/urwid/urwid/pull/729">#729</a></li>
+</ul>
+<p><strong>Full Changelog</strong>: <a class="commit-link" href="https://github.com/urwid/urwid/compare/2.4.1...2.4.2"><tt>2.4.1...2.4.2</tt></a></p></section>
 <section id="release-2-4-1">
 <h2>2.4.1<a class="headerlink" href="#release-2-4-1" title="Link to this heading">¶</a></h2>
 <p><em>Released on 2024-01-03 - <a class="reference external" href="https://github.com/urwid/urwid/releases/tag/2.4.1">GitHub</a> - <a class="reference external" href="https://pypi.org/project/urwid/2.4.1/">PyPI</a></em></p>
@@ -1472,6 +1559,7 @@ colour rendering.</p></li>
             </a></p><h3>Table of contents</h3>
   <ul>
 <li><a class="reference internal" href="#">Changelog</a><ul>
+<li><a class="reference internal" href="#release-2-4-2">2.4.2</a></li>
 <li><a class="reference internal" href="#release-2-4-1">2.4.1</a></li>
 <li><a class="reference internal" href="#release-2-4-0">2.4.0</a></li>
 <li><a class="reference internal" href="#release-2-3-4">2.3.4</a></li>
@@ -1568,7 +1656,7 @@ colour rendering.</p></li>
         <li class="right" >
           <a href="reference/deprecated.html" title="Deprecated Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.4.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.4.2</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Changelog</a></li> 
       </ul>
     </div>
