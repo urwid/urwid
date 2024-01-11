@@ -31,7 +31,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
     """
 
     def sizing(self):
-        return frozenset([Sizing.FLOW])
+        return frozenset((Sizing.FLOW, Sizing.FIXED))
 
     def __init__(
         self,
@@ -369,27 +369,36 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             ) from exc
         self.contents.focus = position
 
-    def get_display_widget(self, size: tuple[int]) -> Divider | Pile:
+    def _get_maxcol(self, size: tuple[int] | tuple[()]) -> int:
+        if size:
+            (maxcol,) = size
+        else:
+            maxcol = len(self) * self.cell_width + (len(self) - 1) * self.h_sep
+        return maxcol
+
+    def get_display_widget(self, size: tuple[int] | tuple[()]) -> Divider | Pile:
         """
         Arrange the cells into columns (and possibly a pile) for
         display, input or to calculate rows, and update the display
         widget.
         """
-        (maxcol,) = size
+        maxcol = self._get_maxcol(size)
+
         # use cache if possible
         if self._cache_maxcol == maxcol:
             return self._w
 
         self._cache_maxcol = maxcol
-        self._w = self.generate_display_widget(size)
+        self._w = self.generate_display_widget((maxcol,))
 
         return self._w
 
-    def generate_display_widget(self, size: tuple[int]) -> Divider | Pile:
+    def generate_display_widget(self, size: tuple[int] | tuple[()]) -> Divider | Pile:
         """
         Actually generate display widget (ignoring cache)
         """
-        (maxcol,) = size
+        maxcol = self._get_maxcol(size)
+
         divider = Divider()
         if not self.contents:
             return divider
@@ -472,33 +481,47 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             self._set_focus_from_display_widget()
         return key
 
+    def pack(self, size: tuple[int] | tuple[()], focus: bool = False) -> tuple[int, int]:
+        if size:
+            return super().pack(size, focus)
+        cols = len(self) * self.cell_width + (len(self) - 1) * self.h_sep
+        return cols, self.rows((cols,), focus)
+
     def rows(self, size: tuple[int], focus: bool = False) -> int:
         self.get_display_widget(size)
         return super().rows(size, focus=focus)
 
-    def render(self, size: tuple[int], focus: bool = False):
+    def render(self, size: tuple[int] | tuple[()], focus: bool = False):
         self.get_display_widget(size)
         return super().render(size, focus)
 
-    def get_cursor_coords(self, size: tuple[int]) -> tuple[int, int]:
+    def get_cursor_coords(self, size: tuple[int] | tuple[()]) -> tuple[int, int]:
         """Get cursor from display widget."""
         self.get_display_widget(size)
         return super().get_cursor_coords(size)
 
-    def move_cursor_to_coords(self, size: tuple[int], col: int, row: int):
+    def move_cursor_to_coords(self, size: tuple[int] | tuple[()], col: int, row: int):
         """Set the widget in focus based on the col + row."""
         self.get_display_widget(size)
         rval = super().move_cursor_to_coords(size, col, row)
         self._set_focus_from_display_widget()
         return rval
 
-    def mouse_event(self, size: tuple[int], event, button: int, col: int, row: int, focus: bool) -> Literal[True]:
+    def mouse_event(
+        self,
+        size: tuple[int] | tuple[()],
+        event,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> Literal[True]:
         self.get_display_widget(size)
         super().mouse_event(size, event, button, col, row, focus)
         self._set_focus_from_display_widget()
         return True  # at a minimum we adjusted our focus
 
-    def get_pref_col(self, size: tuple[int]):
+    def get_pref_col(self, size: tuple[int] | tuple[()]):
         """Return pref col from display widget."""
         self.get_display_widget(size)
         return super().get_pref_col(size)

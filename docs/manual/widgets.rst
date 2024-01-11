@@ -290,11 +290,10 @@ focus column.
 GridFlow Widgets
 ----------------
 
-The :class:`GridFlow` widget is a flow widget designed for use
-with :class:`Button`, :class:`CheckBox` and
-:class:`RadioButton` widgets. It renders all the widgets it
-contains the same width and it arranges them from left to right and top to
-bottom.
+The :class:`GridFlow` widget is a fixed/flow widget designed for use
+with :class:`Button`, :class:`CheckBox` and :class:`RadioButton` widgets.
+It renders all the widgets it contains the same width
+and it arranges them from left to right and top to bottom.
 
 The GridFlow widget uses Pile, Columns, Padding and Divider widgets to build a
 display widget that will handle the keyboard input and rendering. When the
