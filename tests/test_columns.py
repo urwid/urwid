@@ -198,6 +198,18 @@ class ColumnsTest(unittest.TestCase):
                 str(ctx.warnings[0].message),
             )
 
+    def test_zero_width_column(self):
+        elem_1 = urwid.BoxAdapter(urwid.SolidFill("#"), 2)
+        elem_2 = urwid.BoxAdapter(urwid.SolidFill("*"), 4)
+
+        widget = urwid.Columns((elem_1, (0, elem_2)))
+        self.assertEqual((3, 2), widget.pack((3,)))
+
+        canvas = widget.render((3,))
+        self.assertEqual(2, canvas.rows())
+        self.assertEqual(3, canvas.cols())
+        self.assertEqual([b"###", b"###"], canvas.text)
+
     def assert_column_widths(
         self,
         expected: Collection[int],
