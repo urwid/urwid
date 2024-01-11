@@ -1063,7 +1063,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         rows = 1
         for i, (mc, (w, (_t, _n, b))) in enumerate(zip(widths, self.contents)):
-            if b:
+            if b or mc <= 0:
                 continue
             rows = max(rows, w.rows((mc,), focus=focus and self.focus_position == i))
         return rows
