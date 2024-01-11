@@ -185,14 +185,18 @@ class Padding(WidgetDecoration):
         return remove_defaults(attrs, Padding.__init__)
 
     @property
-    def align(self) -> Literal["left", "center", "right"] | tuple[Literal["relative"], int]:
+    def align(
+        self,
+    ) -> Literal["left", "center", "right"] | Align | tuple[Literal["relative", WHSettings.RELATIVE], int]:
         """
         Return the padding alignment setting.
         """
         return simplify_align(self._align_type, self._align_amount)
 
     @align.setter
-    def align(self, align: Literal["left", "center", "right"] | tuple[Literal["relative"], int]) -> None:
+    def align(
+        self, align: Literal["left", "center", "right"] | Align | tuple[Literal["relative", WHSettings.RELATIVE], int]
+    ) -> None:
         """
         Set the padding alignment.
         """
@@ -218,14 +222,25 @@ class Padding(WidgetDecoration):
         self.align = align
 
     @property
-    def width(self) -> Literal["clip", "pack"] | int | tuple[Literal["relative"], int]:
+    def width(
+        self,
+    ) -> (
+        Literal["clip", "pack", WHSettings.CLIP, WHSettings.PACK]
+        | int
+        | tuple[Literal["relative", WHSettings.RELATIVE], int]
+    ):
         """
         Return the padding width.
         """
         return simplify_width(self._width_type, self._width_amount)
 
     @width.setter
-    def width(self, width: Literal["clip", "pack"] | int | tuple[Literal["relative"], int]) -> None:
+    def width(
+        self,
+        width: Literal["clip", "pack", WHSettings.CLIP, WHSettings.PACK]
+        | int
+        | tuple[Literal["relative", WHSettings.RELATIVE], int],
+    ) -> None:
         """
         Set the padding width.
         """
@@ -498,7 +513,7 @@ def calculate_left_right_padding(
     maxcol: int,
     align_type: Literal["left", "center", "right"] | Align,
     align_amount: int,
-    width_type: Literal["fixed", "relative", "clip", "given", WHSettings.CLIP, WHSettings.GIVEN],
+    width_type: Literal["fixed", "relative", "clip", "given", WHSettings.RELATIVE, WHSettings.CLIP, WHSettings.GIVEN],
     width_amount: int,
     min_width: int | None,
     left: int,
