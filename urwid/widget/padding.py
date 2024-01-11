@@ -3,7 +3,6 @@ from __future__ import annotations
 import typing
 import warnings
 
-import urwid
 from urwid.canvas import CompositeCanvas, SolidCanvas
 from urwid.split_repr import remove_defaults
 from urwid.util import int_scale
@@ -165,7 +164,7 @@ class Padding(WidgetDecoration):
             if Sizing.FLOW in sizing:
                 sizing.add(Sizing.FIXED)
 
-            elif urwid.BOX not in sizing:
+            elif Sizing.BOX not in sizing:
                 warnings.warn(
                     f"WHSettings.GIVEN expect BOX or FLOW widget to be used, but received {self.original_widget}",
                     PaddingWarning,
@@ -261,7 +260,7 @@ class Padding(WidgetDecoration):
         w_sizing = self.original_widget.sizing()
 
         if self._width_type == WHSettings.GIVEN:
-            if urwid.FLOW not in w_sizing:
+            if Sizing.FLOW not in w_sizing:
                 warnings.warn(
                     f"WHSettings.GIVEN expect FLOW widget to be used for FIXED pack/render, "
                     f"but received {self.original_widget}",
