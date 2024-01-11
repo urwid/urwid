@@ -106,7 +106,7 @@ class Padding(WidgetDecoration):
         |  ***  |
         >>> p=Padding(Text(u"1234"), 'left', 2, None, 1, 1)
         >>> p
-        <Padding flow widget <Text fixed/flow widget '1234'> left=1 right=1 width=2>
+        <Padding fixed/flow widget <Text fixed/flow widget '1234'> left=1 right=1 width=2>
         >>> pr(p)   # align against left
         | 12    |
         | 34    |
@@ -121,13 +121,6 @@ class Padding(WidgetDecoration):
         | ┐  ┌─┐|
         | │  ┌─┘|
         | ┴ ,└─ |
-
-        FIXED mode if supported only if width is PACK
-        >>> p = Padding(Text("Text"), width=WHSettings.PACK, left=1, right=1)
-        >>> p
-        <Padding fixed/flow widget <Text fixed/flow widget 'Text'> left=1 right=1 width=<WHSettings.PACK: 'pack'>>
-        >>> p.render(()).text
-        [b' Text ']
         """
         super().__init__(w)
 
@@ -159,17 +152,14 @@ class Padding(WidgetDecoration):
     def sizing(self) -> frozenset[Sizing]:
         """Widget sizing.
 
-        Riles:
+        Rules:
         * width == CLIP: only FLOW is supported, and wrapped widget should support FIXED
-        * width == PACK: FIXED is supported if supported by target widget
-        * All other cases: FIXED and FLOW are supported if supported by target widget
+        * All other cases: use sizing of target widget
         """
         if self._width_type == WrapMode.CLIP:
             return frozenset((Sizing.FLOW,))
-        supported = {Sizing.BOX, Sizing.FLOW}
-        if self._width_type == WHSettings.PACK:
-            supported.add(Sizing.FIXED)
-        return self.original_widget.sizing() & supported
+
+        return self.original_widget.sizing()
 
     def _repr_attrs(self):
         attrs = dict(
@@ -262,12 +252,16 @@ class Padding(WidgetDecoration):
                 PaddingWarning,
                 stacklevel=3,
             )
-        if self._width_type != WHSettings.PACK:
-            raise PaddingError(f"Requested FIXED pack, but width is not {WHSettings.PACK} ({self._width_type.upper()})")
 
         width, height = self.original_widget.pack(size, focus)
+        expand = self.left + self.right
+        if self._width_type == WHSettings.PACK:
+            return max(width, self.min_width or 1) + expand, height
 
-        return width + self.left + self.right, height
+        if self._width_type == WHSettings.RELATIVE:
+            return max(int(width * 100 / self._width_amount + 0.5), self.min_width or 1) + expand, height
+
+        raise PaddingError(f"Unexpected width type: {self._width_type.upper()})")
 
     def render(
         self,
@@ -339,8 +333,17 @@ class Padding(WidgetDecoration):
                 self.right,
             )
 
+        if size:
+            maxcol = size[0]
+        else:
+            maxcol = (
+                max(self._original_widget.pack((), focus=focus)[0] * 100 // self._width_amount, self.min_width or 1)
+                + self.left
+                + self.right
+            )
+
         return calculate_left_right_padding(
-            size[0],
+            maxcol,
             self._align_type,
             self._align_amount,
             self._width_type,
@@ -508,7 +511,7 @@ def calculate_left_right_padding(
     """
     if width_type == WHSettings.RELATIVE:
         maxwidth = max(maxcol - left - right, 0)
-        width = int_scale(width_amount, 101, maxwidth + 1)
+        width = int(maxwidth * width_amount / 100 + 0.5)
         if min_width is not None:
             width = max(width, min_width)
     else:

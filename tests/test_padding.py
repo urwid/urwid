@@ -6,7 +6,77 @@ import urwid
 
 
 class PaddingTest(unittest.TestCase):
-    def test_fixed(self):
+    def test_sizing(self) -> None:
+        fixed_only = urwid.BigText("3", urwid.HalfBlock5x4Font())
+        fixed_flow = urwid.Text("Some text", align=urwid.CENTER)
+
+        with self.subTest("Fixed only"):
+            widget = urwid.Padding(fixed_only)
+            self.assertEqual(frozenset((urwid.FIXED,)), widget.sizing())
+
+            cols, rows = 5, 4
+            self.assertEqual((cols, rows), widget.pack(()))
+            canvas = widget.render(())
+            self.assertEqual(cols, canvas.cols())
+            self.assertEqual(rows, canvas.rows())
+            self.assertEqual(
+                [
+                    "▄▀▀▄ ",
+                    "  ▄▀ ",
+                    "▄  █ ",
+                    " ▀▀  ",
+                ],
+                [line.decode("utf-8") for line in canvas.text],
+            )
+
+        with self.subTest("Fixed only + relative size & default align"):
+            widget = urwid.Padding(fixed_only, width=(urwid.RELATIVE, 50))
+            self.assertEqual(frozenset((urwid.FIXED,)), widget.sizing())
+
+            cols, rows = 10, 4
+            self.assertEqual((cols, rows), widget.pack(()))
+            canvas = widget.render(())
+            self.assertEqual(cols, canvas.cols())
+            self.assertEqual(rows, canvas.rows())
+            self.assertEqual(
+                [
+                    "▄▀▀▄      ",
+                    "  ▄▀      ",
+                    "▄  █      ",
+                    " ▀▀       ",
+                ],
+                [line.decode("utf-8") for line in canvas.text],
+            )
+
+        with self.subTest("FIXED/FLOW"):
+            widget = urwid.Padding(fixed_flow)
+            self.assertEqual(frozenset((urwid.FIXED, urwid.FLOW)), widget.sizing())
+
+            cols, rows = 9, 1
+            self.assertEqual((cols, rows), widget.pack(()))
+            canvas = widget.render(())
+            self.assertEqual(cols, canvas.cols())
+            self.assertEqual(rows, canvas.rows())
+            self.assertEqual(
+                ["Some text"],
+                [line.decode("utf-8") for line in canvas.text],
+            )
+
+        with self.subTest("FIXED/FLOW + relative size & right align"):
+            widget = urwid.Padding(fixed_flow, width=(urwid.RELATIVE, 65), align=urwid.RIGHT)
+            self.assertEqual(frozenset((urwid.FIXED, urwid.FLOW)), widget.sizing())
+
+            cols, rows = 14, 1
+            self.assertEqual((cols, rows), widget.pack(()))
+            canvas = widget.render(())
+            self.assertEqual(cols, canvas.cols())
+            self.assertEqual(rows, canvas.rows())
+            self.assertEqual(
+                ["     Some text"],
+                [line.decode("utf-8") for line in canvas.text],
+            )
+
+    def test_fixed(self) -> None:
         """Test real-world like scenario with padded contents."""
         col_list = [
             urwid.SolidFill(),
@@ -48,6 +118,10 @@ class PaddingTest(unittest.TestCase):
             ],
             [line.decode("utf-8") for line in canvas.text],
         )
+        # Forward keypress
+        self.assertEqual("OK", body.focus.focus.label)
+        widget.keypress((), "right")
+        self.assertEqual("Cancel", body.focus.focus.label)
 
     def ptest(self, desc, align, width, maxcol, left, right, min_width=None):
         p = urwid.Padding(None, align, width, min_width)
