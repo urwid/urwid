@@ -113,7 +113,7 @@ class ColumnsTest(unittest.TestCase):
                 widget = urwid.Columns(((urwid.PACK, box_only),))
                 self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), widget.sizing())
                 self.assertEqual(
-                    "Sizing combination of widget 0 not supported: PACK BOX and box=False",
+                    f"Sizing combination of widget {box_only} (position=0) not supported: PACK box=False",
                     str(ctx.warnings[0].message),
                 )
 
@@ -122,20 +122,20 @@ class ColumnsTest(unittest.TestCase):
                 widget = urwid.Columns(((urwid.WEIGHT, 1, fixed_only),))
                 self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), widget.sizing())
                 self.assertEqual(
-                    "Sizing combination of widget 0 not supported: WEIGHT FIXED and box=False",
+                    f"Sizing combination of widget {fixed_only} (position=0) not supported: WEIGHT box=False",
                     str(ctx.warnings[0].message),
                 )
 
         with self.subTest('BOX not added to "box_columns" but widget handled as FLOW'):
-            widget = urwid.Columns(
-                (
-                    (urwid.WEIGHT, 1, urwid.SolidFill()),
-                    (urwid.FIXED, 10, urwid.Button("OK", align=urwid.CENTER)),
-                    (urwid.WEIGHT, 1, urwid.SolidFill()),
-                    (urwid.FIXED, 10, urwid.Button("Cancel", align=urwid.CENTER)),
-                    (urwid.WEIGHT, 1, urwid.SolidFill()),
-                )
+            self.maxDiff = None
+            contents = (
+                (urwid.WEIGHT, 1, urwid.SolidFill()),
+                (urwid.FIXED, 10, urwid.Button("OK", align=urwid.CENTER)),
+                (urwid.WEIGHT, 1, urwid.SolidFill()),
+                (urwid.FIXED, 10, urwid.Button("Cancel", align=urwid.CENTER)),
+                (urwid.WEIGHT, 1, urwid.SolidFill()),
             )
+            widget = urwid.Columns(contents)
             self.assertEqual(frozenset((urwid.BOX,)), widget.sizing())
 
             cols, rows = 30, 1
@@ -147,8 +147,10 @@ class ColumnsTest(unittest.TestCase):
                 self.assertEqual(cols, canvas.cols())
                 self.assertEqual([b"   <   OK   >    < Cancel >   "], canvas.text)
                 self.assertEqual(
-                    'Widgets in columns [0, 2, 4] are BOX widgets not marked "box_columns" '
-                    "while FLOW render is requested (size=(30,))",
+                    "Widgets in columns [0, 2, 4] "
+                    f"({[elem[-1] for elem in contents[:6:2]]}) "
+                    f'are BOX widgets not marked "box_columns" '
+                    f"while FLOW render is requested (size=(30,))",
                     str(ctx.warnings[0].message),
                 )
 
@@ -156,8 +158,10 @@ class ColumnsTest(unittest.TestCase):
             with self.assertWarns(urwid.widget.ColumnsWarning) as ctx:
                 self.assertIsNone(widget.keypress((cols,), "right"))
                 self.assertEqual(
-                    'Widgets in columns [0, 2, 4] are BOX widgets not marked "box_columns" '
-                    "while FLOW render is requested (size=(30,))",
+                    "Widgets in columns [0, 2, 4] "
+                    f"({[elem[-1] for elem in contents[:6:2]]}) "
+                    f'are BOX widgets not marked "box_columns" '
+                    f"while FLOW render is requested (size=(30,))",
                     str(ctx.warnings[0].message),
                 )
             self.assertEqual("Cancel", widget.focus.label)
@@ -182,10 +186,11 @@ class ColumnsTest(unittest.TestCase):
                 return use_sizing
 
         with self.assertWarns(urwid.widget.ColumnsWarning) as ctx:
-            widget = urwid.Columns(((urwid.PACK, BrokenSizing("Test")),))
+            element = BrokenSizing("Test")
+            widget = urwid.Columns(((urwid.PACK, element),))
             self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), widget.sizing())
             self.assertEqual(
-                "Sizing combination of widget 0 not supported: PACK BOX and box=False",
+                f"Sizing combination of widget {element} (position=0) not supported: PACK box=False",
                 str(ctx.warnings[0].message),
             )
 
@@ -193,8 +198,8 @@ class ColumnsTest(unittest.TestCase):
             canvas = widget.render((10,))
             self.assertEqual([b"Test      "], canvas.text)
             self.assertEqual(
-                f"Unusual widget 0 sizing {use_sizing} for {urwid.PACK} (box=False). "
-                f"Assuming wrong sizing and using {urwid.FLOW.upper()} for width calculation",
+                f"Unusual widget {element} sizing for {urwid.PACK} (box=False). "
+                f"Assuming wrong sizing and using FLOW for width calculation",
                 str(ctx.warnings[0].message),
             )
 

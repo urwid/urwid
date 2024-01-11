@@ -12,7 +12,6 @@ from .constants import (
     Align,
     Sizing,
     WHSettings,
-    WrapMode,
     normalize_align,
     normalize_width,
     simplify_align,
@@ -141,7 +140,7 @@ class Padding(WidgetDecoration):
 
         # convert old clipping mode width=None to width='clip'
         if width is None:
-            width = WrapMode.CLIP
+            width = WHSettings.CLIP
 
         self.left = left
         self.right = right
@@ -154,12 +153,25 @@ class Padding(WidgetDecoration):
 
         Rules:
         * width == CLIP: only FLOW is supported, and wrapped widget should support FIXED
+        * width == GIVEN: FIXED is supported, and wrapped widget should support FLOW
         * All other cases: use sizing of target widget
         """
-        if self._width_type == WrapMode.CLIP:
+        if self._width_type == WHSettings.CLIP:
             return frozenset((Sizing.FLOW,))
 
-        return self.original_widget.sizing()
+        sizing = set(self.original_widget.sizing())
+        if self._width_type == WHSettings.GIVEN:
+            if Sizing.FLOW in sizing:
+                sizing.add(Sizing.FIXED)
+
+            elif Sizing.BOX not in sizing:
+                warnings.warn(
+                    f"WHSettings.GIVEN expect BOX or FLOW widget to be used, but received {self.original_widget}",
+                    PaddingWarning,
+                    stacklevel=3,
+                )
+
+        return frozenset(sizing)
 
     def _repr_attrs(self):
         attrs = dict(
@@ -173,14 +185,18 @@ class Padding(WidgetDecoration):
         return remove_defaults(attrs, Padding.__init__)
 
     @property
-    def align(self) -> Literal["left", "center", "right"] | tuple[Literal["relative"], int]:
+    def align(
+        self,
+    ) -> Literal["left", "center", "right"] | Align | tuple[Literal["relative", WHSettings.RELATIVE], int]:
         """
         Return the padding alignment setting.
         """
         return simplify_align(self._align_type, self._align_amount)
 
     @align.setter
-    def align(self, align: Literal["left", "center", "right"] | tuple[Literal["relative"], int]) -> None:
+    def align(
+        self, align: Literal["left", "center", "right"] | Align | tuple[Literal["relative", WHSettings.RELATIVE], int]
+    ) -> None:
         """
         Set the padding alignment.
         """
@@ -206,14 +222,25 @@ class Padding(WidgetDecoration):
         self.align = align
 
     @property
-    def width(self) -> Literal["clip", "pack"] | int | tuple[Literal["relative"], int]:
+    def width(
+        self,
+    ) -> (
+        Literal["clip", "pack", WHSettings.CLIP, WHSettings.PACK]
+        | int
+        | tuple[Literal["relative", WHSettings.RELATIVE], int]
+    ):
         """
         Return the padding width.
         """
         return simplify_width(self._width_type, self._width_amount)
 
     @width.setter
-    def width(self, width: Literal["clip", "pack"] | int | tuple[Literal["relative"], int]) -> None:
+    def width(
+        self,
+        width: Literal["clip", "pack", WHSettings.CLIP, WHSettings.PACK]
+        | int
+        | tuple[Literal["relative", WHSettings.RELATIVE], int],
+    ) -> None:
         """
         Set the padding width.
         """
@@ -241,20 +268,34 @@ class Padding(WidgetDecoration):
     def pack(self, size: tuple[()] | tuple[int] | tuple[int, int], focus: bool = False) -> tuple[int, int]:
         if size:
             return super().pack(size, focus)
-        if self._width_type == WrapMode.CLIP:
-            raise PaddingError("WrapMode.CLIP makes Padding FLOW-only widget")
+        if self._width_type == WHSettings.CLIP:
+            raise PaddingError("WHSettings.CLIP makes Padding FLOW-only widget")
 
+        expand = self.left + self.right
         w_sizing = self.original_widget.sizing()
+
+        if self._width_type == WHSettings.GIVEN:
+            if Sizing.FLOW not in w_sizing:
+                warnings.warn(
+                    f"WHSettings.GIVEN expect FLOW widget to be used for FIXED pack/render, "
+                    f"but received {self.original_widget}",
+                    PaddingWarning,
+                    stacklevel=3,
+                )
+
+            return (
+                max(self._width_amount, self.min_width or 1) + expand,
+                self.original_widget.rows((self._width_amount,), focus),
+            )
+
         if Sizing.FIXED not in w_sizing:
             warnings.warn(
-                f"Padded widget should support FIXED sizing for FIXED render, "
-                f"but supported only {'|'.join(w_sizing).upper()}",
+                f"Padded widget should support FIXED sizing for FIXED render, but received {self.original_widget}",
                 PaddingWarning,
                 stacklevel=3,
             )
-
         width, height = self.original_widget.pack(size, focus)
-        expand = self.left + self.right
+
         if self._width_type == WHSettings.PACK:
             return max(width, self.min_width or 1) + expand, height
 
@@ -270,8 +311,10 @@ class Padding(WidgetDecoration):
     ) -> CompositeCanvas:
         left, right = self.padding_values(size, focus)
 
-        if self._width_type == WrapMode.CLIP:
+        if self._width_type == WHSettings.CLIP:
             canv = self._original_widget.render((), focus)
+        elif self._width_type == WHSettings.GIVEN:
+            canv = self._original_widget.render((self._width_amount,) + size[1:], focus)
         elif size:
             canv = self._original_widget.render((size[0] - (left + right),) + size[1:], focus)
         else:
@@ -298,15 +341,15 @@ class Padding(WidgetDecoration):
         """Return the number of columns to pad on the left and right.
 
         Override this method to define custom padding behaviour."""
-        if self._width_type == WrapMode.CLIP:
+        if self._width_type == WHSettings.CLIP:
             width, _ignore = self._original_widget.pack((), focus=focus)
             if not size:
-                raise PaddingError("WrapMode.CLIP makes Padding FLOW-only widget")
+                raise PaddingError("WHSettings.CLIP makes Padding FLOW-only widget")
             return calculate_left_right_padding(
                 size[0],
                 self._align_type,
                 self._align_amount,
-                WrapMode.CLIP,
+                WHSettings.CLIP,
                 width,
                 None,
                 self.left,
@@ -335,6 +378,8 @@ class Padding(WidgetDecoration):
 
         if size:
             maxcol = size[0]
+        elif self._width_type == WHSettings.GIVEN:
+            maxcol = self._width_amount + self.left + self.right
         else:
             maxcol = (
                 max(self._original_widget.pack((), focus=focus)[0] * 100 // self._width_amount, self.min_width or 1)
@@ -360,7 +405,7 @@ class Padding(WidgetDecoration):
         if self._width_type == WHSettings.PACK:
             _pcols, prows = self._original_widget.pack((maxcol - left - right,), focus)
             return prows
-        if self._width_type == WrapMode.CLIP:
+        if self._width_type == WHSettings.CLIP:
             _fcols, frows = self._original_widget.pack((), focus)
             return frows
         return self._original_widget.rows((maxcol - left - right,), focus=focus)
@@ -468,7 +513,7 @@ def calculate_left_right_padding(
     maxcol: int,
     align_type: Literal["left", "center", "right"] | Align,
     align_amount: int,
-    width_type: Literal["fixed", "relative", "clip", "given", WrapMode.CLIP, WHSettings.GIVEN],
+    width_type: Literal["fixed", "relative", "clip", "given", WHSettings.RELATIVE, WHSettings.CLIP, WHSettings.GIVEN],
     width_amount: int,
     min_width: int | None,
     left: int,
@@ -536,7 +581,7 @@ def calculate_left_right_padding(
         left += shift
 
     # only clip if width_type == 'clip'
-    if width_type != WrapMode.CLIP and (left < 0 or right < 0):
+    if width_type != WHSettings.CLIP and (left < 0 or right < 0):
         left = max(left, 0)
         right = max(right, 0)
 
