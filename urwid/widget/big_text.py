@@ -20,6 +20,10 @@ class BigText(Widget):
         markup -- same as Text widget markup
         font -- instance of a Font class
         """
+        super().__init__()
+        self.text: str = ""
+        self.attrib = []
+        self.font: Font = font
         self.set_font(font)
         self.set_text(markup)
 
@@ -44,7 +48,7 @@ class BigText(Widget):
             cols += self.font.char_width(c)
         return cols, rows
 
-    def render(self, size: tuple[()], focus: bool = False) -> CanvasJoin | CompositeCanvas:
+    def render(self, size: tuple[()], focus: bool = False) -> CompositeCanvas:
         fixed_size(size)  # complain if parameter is wrong
         a = None
         ai = ak = 0
@@ -68,6 +72,6 @@ class BigText(Widget):
         if o:
             canv = CanvasJoin(o)
         else:
-            canv = CompositeCanvas(TextCanvas([""] * rows, maxcol=0, check_width=False))
+            canv = CompositeCanvas(TextCanvas([b""] * rows, maxcol=0, check_width=False))
         canv.set_depends([])
         return canv
