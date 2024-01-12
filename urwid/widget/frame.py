@@ -464,8 +464,11 @@ class Frame(Widget, WidgetContainerMixin):
             def __iter__(inner_self) -> Iterator[str]:
                 yield from inner_self.keys()
 
+            def __repr__(inner_self) -> str:
+                return f"<{inner_self.__class__.__name__}({dict(inner_self)}) for {self}>"
+
             def __rich_repr__(inner_self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
-                yield from self.items()
+                yield from inner_self.items()
 
         return FrameContents()
 

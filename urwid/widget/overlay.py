@@ -571,7 +571,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             __setitem__ = self._contents__setitem__
 
             def __repr__(inner_self) -> str:
-                return repr(f"{self.__class__.__name__}({[inner_self[0], inner_self[1]]})")
+                return repr(f"<{inner_self.__class__.__name__}({[inner_self[0], inner_self[1]]})> for {self}")
 
             def __rich_repr__(inner_self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
                 for idx in range(len(inner_self)):
