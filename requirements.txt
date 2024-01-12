@@ -1,1 +1,2 @@
 typing-extensions
+wcwidth
