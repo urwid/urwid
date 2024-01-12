@@ -74,7 +74,7 @@ class CanvasCache:
     _refs: typing.ClassVar[
         dict[
             weakref.ReferenceType,
-            tuple[type[Widget], tuple[int, int] | tuple[int] | tuple[()], bool],
+            tuple[Widget, type[Widget], tuple[int, int] | tuple[int] | tuple[()], bool],
         ]
     ] = {}
     _deps: typing.ClassVar[dict[Widget, list[Widget]]] = {}
@@ -228,8 +228,8 @@ class Canvas:
         if value1 is not None:
             raise self._renamed_error
         self._widget_info = None
-        self.coords = {}
-        self.shortcuts = {}
+        self.coords: dict[str, tuple[int, int, tuple[Widget, int, int]]] = {}
+        self.shortcuts: dict[str, str] = {}
 
     def finalize(
         self,
@@ -298,7 +298,7 @@ class Canvas:
     def rows(self):
         raise NotImplementedError()
 
-    def content_delta(self):
+    def content_delta(self, other: Canvas):
         raise NotImplementedError()
 
     def get_cursor(self) -> tuple[int, int] | None:
@@ -307,7 +307,7 @@ class Canvas:
             return None
         return c[:2]  # trim off data part
 
-    def set_cursor(self, c):
+    def set_cursor(self, c: tuple[int, int] | None) -> None:
         if self.widget_info and self.cacheable:
             raise self._finalized_error
         if c is None:
@@ -318,13 +318,13 @@ class Canvas:
 
     cursor = property(get_cursor, set_cursor)
 
-    def get_pop_up(self):
+    def get_pop_up(self) -> tuple[int, int, tuple[Widget, int, int]] | None:
         c = self.coords.get("pop up", None)
         if not c:
             return None
         return c
 
-    def set_pop_up(self, w: Widget, left: int, top: int, overlay_width: int, overlay_height: int):
+    def set_pop_up(self, w: Widget, left: int, top: int, overlay_width: int, overlay_height: int) -> None:
         """
         This method adds pop-up information to the canvas.  This information
         is intercepted by a PopUpTarget widget higher in the chain to
@@ -347,7 +347,7 @@ class Canvas:
 
         self.coords["pop up"] = (left, top, (w, overlay_width, overlay_height))
 
-    def translate_coords(self, dx: int, dy: int):
+    def translate_coords(self, dx: int, dy: int) -> dict[str, tuple[int, int, tuple[Widget, int, int]]]:
         """
         Return coords shifted by (dx, dy).
         """
@@ -355,6 +355,25 @@ class Canvas:
         for name, (x, y, data) in self.coords.items():
             d[name] = (x + dx, y + dy, data)
         return d
+
+    def __repr__(self) -> str:
+        extra = [""]
+        with contextlib.suppress(BaseException):
+            extra.append(f"cols={self.cols()}")
+
+        with contextlib.suppress(BaseException):
+            extra.append(f"rows={self.rows()}")
+
+        if self.cursor:
+            extra.append(f"cursor={self.cursor}")
+
+        return f"<{self.__class__.__name__} finalized={bool(self.widget_info)}{' '.join(extra)} at 0x{id(self):X}>"
+
+    def __str__(self) -> str:
+        with contextlib.suppress(BaseException):
+            return b"\n".join(self.text).decode(get_encoding())
+
+        return repr(self)
 
 
 class TextCanvas(Canvas):
@@ -387,7 +406,10 @@ class TextCanvas(Canvas):
             widths = []
             for t in text:
                 if not isinstance(t, bytes):
-                    raise CanvasError("Canvas text must be plain strings encoded in the screen's encoding", repr(text))
+                    raise CanvasError(
+                        "Canvas text must be plain strings encoded in the screen's encoding",
+                        repr(text),
+                    )
                 widths.append(calc_width(t, 0, len(t)))
         else:
             if not isinstance(maxcol, int):
@@ -513,7 +535,7 @@ class TextCanvas(Canvas):
                 i += run
             yield row
 
-    def content_delta(self, other):
+    def content_delta(self, other: Canvas):
         """
         Return the differences between other and this canvas.
 
@@ -559,7 +581,7 @@ class BlankCanvas(Canvas):
     def rows(self) -> typing.NoReturn:
         raise NotImplementedError("BlankCanvas doesn't know its own size!")
 
-    def content_delta(self) -> typing.NoReturn:
+    def content_delta(self, other: Canvas) -> typing.NoReturn:
         raise NotImplementedError("BlankCanvas doesn't know its own size!")
 
 
@@ -641,8 +663,8 @@ class CompositeCanvas(Canvas):
         super().__init__()
 
         if canv is None:
-            self.shards = []
-            self.children = []
+            self.shards: list[tuple[int, list[tuple[int, int, int, int, typing.Any, Canvas]]]] = []
+            self.children: list[tuple[int, int, Canvas, typing.Any]] = []
         else:
             if hasattr(canv, "shards"):
                 self.shards = canv.shards
@@ -652,6 +674,21 @@ class CompositeCanvas(Canvas):
             self.coords.update(canv.coords)
             for shortcut in canv.shortcuts:
                 self.shortcuts[shortcut] = "wrap"
+
+    def __repr__(self) -> str:
+        extra = [""]
+        with contextlib.suppress(BaseException):
+            extra.append(f"cols={self.cols()}")
+
+        with contextlib.suppress(BaseException):
+            extra.append(f"rows={self.rows()}")
+
+        if self.cursor:
+            extra.append(f"cursor={self.cursor}")
+        if self.children:
+            extra.append(f"children=({', '.join(repr(canv) for _, _, canv, _ in self.children)})")
+
+        return f"<{self.__class__.__name__} finalized={bool(self.widget_info)}{' '.join(extra)} at 0x{id(self):X}>"
 
     def rows(self) -> int:
         for r, cv in self.shards:
@@ -687,7 +724,7 @@ class CompositeCanvas(Canvas):
             # prepare next shard tail
             shard_tail = shard_body_tail(num_rows, sbody)
 
-    def content_delta(self, other):
+    def content_delta(self, other: Canvas):
         """
         Return the differences between other and this canvas.
         """
@@ -803,7 +840,7 @@ class CompositeCanvas(Canvas):
                 self.shards = self.shards[:]
             self.shards.append((bottom, [(0, 0, cols, bottom, None, blank_canvas)]))
 
-    def overlay(self, other, left: int, top: int) -> None:
+    def overlay(self, other: CompositeCanvas, left: int, top: int) -> None:
         """Overlay other onto this canvas."""
         if self.widget_info:
             raise self._finalized_error
@@ -915,7 +952,7 @@ def shard_body_tail(num_rows: int, sbody):
     """
     shard_tail = []
     col_gap = 0
-    done_rows = 0
+
     for done_rows, content_iter, cview in sbody:
         cols, rows = cview[2:4]
         done_rows += num_rows  # noqa: PLW2901
@@ -1272,7 +1309,7 @@ def CanvasJoin(canvas_info):
     return joined_canvas
 
 
-def apply_text_layout(text, attr, ls, maxcol: int):
+def apply_text_layout(text: bytes, attr, ls, maxcol: int) -> TextCanvas:
     t = []
     a = []
     c = []
