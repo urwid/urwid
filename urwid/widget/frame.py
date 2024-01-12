@@ -12,7 +12,7 @@ from .filler import Filler
 from .widget import Widget
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterator, MutableMapping
 
     from typing_extensions import Literal
 
@@ -411,7 +411,7 @@ class Frame(Widget, WidgetContainerMixin):
         return {"header": self._header, "footer": self._footer, "body": self._body}[self.focus_part]
 
     @property
-    def contents(self):
+    def contents(self) -> MutableMapping[str, tuple[Widget, None]]:
         """
         a dict-like object similar to::
 
@@ -433,8 +433,9 @@ class Frame(Widget, WidgetContainerMixin):
         compatibility.
         """
 
-        class FrameContents:
-            def __len__(inner_self):
+        # noinspection PyMethodParameters
+        class FrameContents(typing.MutableMapping[str, typing.Tuple[Widget, None]]):
+            def __len__(inner_self) -> int:
                 return len(inner_self.keys())
 
             def items(inner_self):
@@ -459,6 +460,12 @@ class Frame(Widget, WidgetContainerMixin):
             __getitem__ = self._contents__getitem__
             __setitem__ = self._contents__setitem__
             __delitem__ = self._contents__delitem__
+
+            def __iter__(inner_self) -> Iterator[str]:
+                yield from inner_self.keys()
+
+            def __rich_repr__(inner_self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
+                yield from self.items()
 
         return FrameContents()
 

@@ -287,6 +287,7 @@ class ListBox(Widget, WidgetContainerMixin):
             widgets to be displayed inside the list box
         :type body: ListWalker
         """
+        super().__init__()
         if getattr(body, "get_focus", None):
             self._body: ListWalker = body
         else:
@@ -1322,9 +1323,8 @@ class ListBox(Widget, WidgetContainerMixin):
         scroll_from_row = topmost_visible = None
 
         # gather potential target widgets
-        t = []
+        t = [(row_offset, focus_widget, focus_pos, focus_rows)]
         # add current focus
-        t.append((row_offset, focus_widget, focus_pos, focus_rows))
         pos = focus_pos
         # include widgets from calculate_visible(..)
         for widget, pos, rows in fill_above:
@@ -1515,9 +1515,8 @@ class ListBox(Widget, WidgetContainerMixin):
         scroll_from_row = bottom_edge = None
 
         # gather potential target widgets
-        t = []
+        t = [(row_offset, focus_widget, focus_pos, focus_rows)]
         # add current focus
-        t.append((row_offset, focus_widget, focus_pos, focus_rows))
         pos = focus_pos
         row_offset += focus_rows
         # include widgets from calculate_visible(..)

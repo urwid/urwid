@@ -92,6 +92,7 @@ class LCDProgressBar(urwid.Widget):
     _sizing = frozenset([urwid.Sizing.FLOW])
 
     def __init__(self, data_range, value):
+        super().__init__()
         self.range = data_range
         self.value = value
 
@@ -212,7 +213,7 @@ def build_menus():
     cursor_option_group = []
 
     def cursor_option(label, style):
-        "a radio button that sets the cursor style"
+        """A radio button that sets the cursor style"""
 
         def on_change(b, state):
             if state:

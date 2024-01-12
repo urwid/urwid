@@ -56,6 +56,7 @@ class PythonLogo(Widget):
         Create canvas containing an ASCII version of the Python
         Logo and store it.
         """
+        super().__init__()
         blu = AttrSpec("light blue", "default")
         yel = AttrSpec("yellow", "default")
         width = 17

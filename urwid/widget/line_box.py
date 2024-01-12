@@ -146,9 +146,10 @@ class LineBox(WidgetDecoration, WidgetWrap):
         this Linebox widget to be displayed without wrapping or
         clipping, as a single element tuple.
 
-        :param size: ``None`` for unlimited screen columns or (*maxcol*,) to
-                     specify a maximum column size
-        :type size: widget size
+        :param size: Widget size correct for the supported sizing
+        :type size: tuple[()] | tuple[int] | tuple[int, int]
+        :param focus: widget is focused on
+        :type focus: bool
         """
         size = self._original_widget.pack(size, focus)
         return size[0] + 2, size[1] + 2

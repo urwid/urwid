@@ -57,7 +57,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         Create a bar graph with the passed display characteristics.
         see set_segment_attributes for a description of the parameters.
         """
-
+        super().__init__()
         self.set_segment_attributes(attlist, hatt, satt)
         self.set_data([], 1, None)
         self.set_bar_width(None)
@@ -584,6 +584,7 @@ class GraphVScale(Widget):
         This widget is a vertical scale for the BarGraph widget that
         can correspond to the BarGraph's horizontal lines
         """
+        super().__init__()
         self.set_scale(labels, top)
 
     def set_scale(self, labels, top):

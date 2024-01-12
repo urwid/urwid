@@ -8,6 +8,7 @@ class CursorPudding(urwid.Widget):
     _selectable = True
 
     def __init__(self):
+        super().__init__()
         self.cursor_col = 0
 
     def rows(self, size, focus=False):

@@ -161,7 +161,7 @@ class GraphView(urwid.WidgetWrap):
                 prog = 1
         else:
             prog = float(o % repeat) / repeat
-        self.animate_progress.set_completion(prog)
+        self.animate_progress.current = prog
         return True
 
     def on_animate_button(self, button):

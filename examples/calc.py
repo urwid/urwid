@@ -326,7 +326,7 @@ class CellColumn(urwid.WidgetWrap):
             edit.set_edit_text(edit.edit_text[:cursor_pos])
 
             new_cell = Cell(key)
-            new_cell.edit.set_edit_text(tail)
+            new_cell.edit.edit_text = tail
             self.content[i + 1 : i + 1] = [new_cell]
 
             changed = self.update_results()
@@ -535,6 +535,7 @@ class HelpColumn(urwid.Widget):
     ]
 
     def __init__(self):
+        super().__init__()
         self.head = urwid.AttrMap(urwid.Text(["Help Column ", ("key", "?")], layout=CALC_LAYOUT), "help")
         self.foot = urwid.AttrMap(urwid.Text(["[text continues.. press ", ("key", "?"), " then scroll]"]), "helpnote")
         self.items = [urwid.Text(x) for x in self.help_text]
@@ -751,7 +752,7 @@ class CalcDisplay:
             parent.edit.set_letter(COLUMN_KEYS[j])
 
     def update_parent_columns(self):
-        "Update the parent columns of the current focus column."
+        """Update the parent columns of the current focus column."""
 
         f = self.columns.focus_position
         col = self.columns.contents[f][0]

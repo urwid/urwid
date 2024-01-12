@@ -311,6 +311,8 @@ class Text(Widget):
         :param size: ``None`` or ``()`` for unlimited screen columns (like FIXED sizing)
                      or (*maxcol*,) to specify a maximum column size
         :type size: widget size
+        :param focus: widget is focused on
+        :type focus: bool
 
         >>> Text(u"important things").pack()
         (16, 1)

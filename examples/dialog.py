@@ -271,7 +271,7 @@ def do_msgbox(text, height, width):
 def do_radiolist(text, height, width, list_height, *items):
     radiolist = []
 
-    def constr(tag, state, radiolist=radiolist):
+    def constr(tag, state, radiolist: list[urwid.RadioButton] = radiolist):
         return urwid.RadioButton(radiolist, tag, state)
 
     d = ListDialogDisplay(text, height, width, constr, items, True)
