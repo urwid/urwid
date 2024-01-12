@@ -209,6 +209,8 @@ class MainLoop:
         :param callback: function to call with two parameters: this main loop
                          object and *user_data*
         :type callback: callable
+        :param user_data: optional user data to pass to the callback
+        :type user_data: object
         """
         self.logger.debug(f"Setting alarm in {sec!r} seconds with callback {callback!r}")
 
@@ -228,6 +230,8 @@ class MainLoop:
         :param callback: function to call with two parameters: this main loop
                          object and *user_data*
         :type callback: callable
+        :param user_data: optional user data to pass to the callback
+        :type user_data: object
         """
         sec = tm - time.time()
         self.logger.debug(f"Setting alarm in {sec!r} seconds with callback {callback!r}")

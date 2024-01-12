@@ -51,6 +51,7 @@ class ProgressBar(Widget):
         ...     cpb2.set_completion(x)
         ...     s = cpb2.render((10, ))
         """
+        super().__init__()
         self.normal = normal
         self.complete = complete
         self._current = current

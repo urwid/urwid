@@ -70,8 +70,8 @@ class Signals:
 
     def register(self, sig_cls, signals: Container[Hashable]) -> None:
         """
-        :param sig_class: the class of an object that will be sending signals
-        :type sig_class: class
+        :param sig_cls: the class of an object that will be sending signals
+        :type sig_cls: class
         :param signals: a list of signals that may be sent, typically each
                         signal is represented by a string
         :type signals: signal names

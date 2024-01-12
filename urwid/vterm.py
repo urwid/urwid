@@ -1448,7 +1448,7 @@ class TermCanvas(Canvas):
             buf = self.scrollback_buffer + self.term
             yield from buf[-(self.height + self.scrolling_up) : -self.scrolling_up]
 
-    def content_delta(self, other):
+    def content_delta(self, other: Canvas):
         if other is self:
             return [self.cols()] * self.rows()
         return self.content()
@@ -1560,6 +1560,7 @@ class Terminal(Widget):
         if self.pid == 0:
             if callable(self.command):
                 try:
+                    # noinspection PyBroadException
                     try:
                         self.command()
                     except BaseException:  # special case

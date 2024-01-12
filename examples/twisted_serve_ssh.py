@@ -24,10 +24,10 @@ TODO:
   think.
 
 Copyright: 2010, Ali Afshar <aafshar@gmail.com>
-License:   MIT <http://www.opensource.org/licenses/mit-license.php>
+License:   MIT <https://www.opensource.org/licenses/mit-license.php>
 
 Portions Copyright: 2010, Ian Ward <ian@excess.org>
-Licence:   LGPL <http://opensource.org/licenses/lgpl-2.1.php>
+Licence:   LGPL <https://opensource.org/licenses/lgpl-2.1.php>
 """
 
 
@@ -412,6 +412,7 @@ class UrwidRealm(TerminalRealm):
     """
 
     def __init__(self, mind_factory):
+        super().__init__()
         self.mind_factory = mind_factory
 
     def _getAvatar(self, avatarId):

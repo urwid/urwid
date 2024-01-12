@@ -74,7 +74,7 @@ class LineWalker(urwid.ListWalker):
         expanded = next_line.expandtabs()
 
         edit = urwid.Edit("", expanded, allow_tab=True)
-        edit.set_edit_pos(0)
+        edit.edit_pos = 0
         edit.original_text = next_line
         self.lines.append(edit)
 
@@ -109,7 +109,7 @@ class LineWalker(urwid.ListWalker):
         edit = urwid.Edit("", focus.edit_text[pos:], allow_tab=True)
         edit.original_text = ""
         focus.set_edit_text(focus.edit_text[:pos])
-        edit.set_edit_pos(0)
+        edit.edit_pos = 0
         self.lines.insert(self.focus + 1, edit)
 
     def combine_focus_with_prev(self):

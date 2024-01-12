@@ -24,7 +24,7 @@ import typing
 import warnings
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Collection
+    from collections.abc import Callable, Collection, Iterator
 
     from typing_extensions import Concatenate, ParamSpec
 
@@ -80,6 +80,11 @@ class MonitoredList(list):
 
     def __repr__(self):
         return f"{self.__class__.__name__}({list(self)!r})"
+
+    # noinspection PyMethodParameters
+    def __rich_repr__(inner_self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
+        for idx in range(len(inner_self)):
+            yield None, inner_self[idx]
 
     __add__ = _call_modified(list.__add__)  # type: ignore[assignment]  # magic like old __super__
     __delitem__ = _call_modified(list.__delitem__)  # type: ignore[assignment]  # magic like old __super__

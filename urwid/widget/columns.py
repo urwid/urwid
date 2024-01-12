@@ -1073,9 +1073,10 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         Pass keypress to the focus column.
 
-        :param size: `(maxcol,)` if :attr:`widget_list` contains flow widgets or
-            `(maxcol, maxrow)` if it contains box widgets.
-        :type size: int, int
+        :param size: Widget size correct for the supported sizing
+        :type size: tuple[()] | tuple[int] | tuple[int, int]
+        :param key: a single keystroke value
+        :type key: str
         """
         if self.focus_position is None:
             return key
