@@ -304,17 +304,17 @@ new space.
 Overlay Widgets
 ---------------
 
-The :class:`Overlay` widget is a box widget that contains two
-other box widgets. The bottom widget is rendered the full size of the Overlay
-widget and the top widget is placed on top, obscuring an area of the bottom
-widget. This widget can be used to create effects such as overlapping "windows"
-or pop-up menus.
+The :class:`Overlay` widget is a box/flow/fixed widget that contains two other widgets.
+The bottom widget is BOX rendered the full size of the Overlay widget
+and the top widget is placed on top, obscuring an area of the bottom widget.
+Widget sizing depends on the top widget sizing and sizing options.
+This widget can be used to create effects such as overlapping "windows" or pop-up menus.
 
-The Overlay widget always treats the top widget as the one in focus. All
-keyboard input will be passed to the top widget.
+The Overlay widget always treats the top widget as the one in focus.
+All keyboard input will be passed to the top widget.
 
-If you want to use a flow widget for the top widget, first wrap the flow
-widget with a :class:`Filler` widget.
+If you want to use a flow widget for the bottom widget,
+first wrap the flow widget with a :class:`Filler` widget.
 
 
 .. _listbox-contents:
