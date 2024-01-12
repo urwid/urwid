@@ -27,6 +27,8 @@ from .padding import calculate_left_right_padding
 from .widget import Widget
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from typing_extensions import Literal
 
 
@@ -44,6 +46,23 @@ def _check_widget_subclass(widget: Widget) -> None:
         )
 
 
+class OverlayOptions(typing.NamedTuple):
+    align: Align
+    align_amount: int | None
+    width_type: WHSettings
+    width_amount: int | None
+    min_width: int | None
+    left: int
+    right: int
+    valign_type: VAlign
+    valign_amount: int | None
+    height_type: WHSettings
+    height_amount: int | None
+    min_height: int | None
+    top: int
+    bottom: int
+
+
 class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     """
     Overlay contains two box widgets and renders one on top of the other
@@ -52,21 +71,21 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     _selectable = True
     _sizing = frozenset([Sizing.BOX])
 
-    _DEFAULT_BOTTOM_OPTIONS = (
-        Align.LEFT,
-        None,
-        WHSettings.RELATIVE,
-        100,
-        None,
-        0,
-        0,
-        VAlign.TOP,
-        None,
-        WHSettings.RELATIVE,
-        100,
-        None,
-        0,
-        0,
+    _DEFAULT_BOTTOM_OPTIONS = OverlayOptions(
+        align=Align.LEFT,
+        align_amount=None,
+        width_type=WHSettings.RELATIVE,
+        width_amount=100,
+        min_width=None,
+        left=0,
+        right=0,
+        valign_type=VAlign.TOP,
+        valign_amount=None,
+        height_type=WHSettings.RELATIVE,
+        height_amount=100,
+        min_height=None,
+        top=0,
+        bottom=0,
     )
 
     def __init__(
@@ -148,6 +167,9 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         _check_widget_subclass(top_w)
         _check_widget_subclass(bottom_w)
 
+    def _repr_words(self) -> list[str]:
+        return [*super()._repr_words(), f"top={self.top_w!r}", f"bottom={self.bottom_w!r}"]
+
     @staticmethod
     def options(
         align_type: Literal["left", "center", "right", "relative"] | Align,
@@ -164,7 +186,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         right: int = 0,
         top: int = 0,
         bottom: int = 0,
-    ):
+    ) -> OverlayOptions:
         """
         Return a new options tuple for use in this Overlay's .contents mapping.
 
@@ -174,17 +196,17 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         See also :meth:`.set_overlay_parameters`
         """
 
-        return (
-            align_type,
+        return OverlayOptions(
+            Align(align_type),
             align_amount,
-            width_type,
+            WHSettings(width_type),
             width_amount,
             min_width,
             left,
             right,
-            valign_type,
+            VAlign(valign_type),
             valign_amount,
-            height_type,
+            WHSettings(height_type),
             height_amount,
             min_height,
             top,
@@ -194,13 +216,17 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def set_overlay_parameters(
         self,
         align: (
-            Literal["left", "center", "right"] | Align | tuple[Literal["relative", "fixed left", "fixed right"], int]
+            Literal["left", "center", "right"]
+            | Align
+            | tuple[Literal["relative", "fixed left", "fixed right", WHSettings.RELATIVE], int]
         ),
-        width: int | None,
+        width: Literal["pack", WHSettings.PACK] | int | tuple[Literal["relative", WHSettings.RELATIVE], int] | None,
         valign: (
-            Literal["top", "middle", "bottom"] | VAlign | tuple[Literal["relative", "fixed top", "fixed bottom"], int]
+            Literal["top", "middle", "bottom"]
+            | VAlign
+            | tuple[Literal["relative", "fixed top", "fixed bottom", WHSettings.RELATIVE], int]
         ),
-        height: int | None,
+        height: Literal["pack", WHSettings.PACK] | int | tuple[Literal["relative", WHSettings.RELATIVE], int] | None,
         min_width: int | None = None,
         min_height: int | None = None,
         left: int = 0,
@@ -218,10 +244,15 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if isinstance(align, tuple):
             if align[0] == "fixed left":
                 left = align[1]
-                align = Align.LEFT
+                normalized_align = Align.LEFT
             elif align[0] == "fixed right":
                 right = align[1]
-                align = Align.RIGHT
+                normalized_align = Align.RIGHT
+            else:
+                normalized_align = align
+        else:
+            normalized_align = Align(align)
+
         if isinstance(width, tuple):
             if width[0] == "fixed left":
                 left = width[1]
@@ -229,13 +260,19 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             elif width[0] == "fixed right":
                 right = width[1]
                 width = RELATIVE_100
+
         if isinstance(valign, tuple):
             if valign[0] == "fixed top":
                 top = valign[1]
-                valign = VAlign.TOP
+                normalized_valign = VAlign.TOP
             elif valign[0] == "fixed bottom":
                 bottom = valign[1]
-                valign = VAlign.BOTTOM
+                normalized_valign = VAlign.BOTTOM
+            else:
+                normalized_valign = valign
+        else:
+            normalized_valign = VAlign(valign)
+
         if isinstance(height, tuple):
             if height[0] == "fixed bottom":
                 bottom = height[1]
@@ -249,9 +286,9 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if height is None:
             height = WHSettings.PACK
 
-        align_type, align_amount = normalize_align(align, OverlayError)
+        align_type, align_amount = normalize_align(normalized_align, OverlayError)
         width_type, width_amount = normalize_width(width, OverlayError)
-        valign_type, valign_amount = normalize_valign(valign, OverlayError)
+        valign_type, valign_amount = normalize_valign(normalized_valign, OverlayError)
         height_type, height_amount = normalize_height(height, OverlayError)
 
         if height_type in {WHSettings.GIVEN, WHSettings.PACK}:
@@ -369,12 +406,24 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         :exc:`OverlayError`.
         """
 
-        class OverlayContents:
-            def __len__(inner_self):
+        # noinspection PyMethodParameters
+        class OverlayContents(typing.Sequence[typing.Tuple[Widget, OverlayOptions]]):
+            def __len__(inner_self) -> int:
                 return 2
 
             __getitem__ = self._contents__getitem__
             __setitem__ = self._contents__setitem__
+
+            def __repr__(inner_self) -> str:
+                return repr([inner_self[0], inner_self[1]])
+
+            def __rich_repr__(inner_self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
+                for idx in range(len(inner_self)):
+                    yield None, inner_self[idx]
+
+            def __iter__(inner_self) -> Iterator[tuple[Widget, OverlayOptions]]:
+                for idx in range(2):
+                    yield inner_self[idx]
 
         return OverlayContents()
 
@@ -385,13 +434,14 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self.contents[0] = new_contents[0]
         self.contents[1] = new_contents[1]
 
-    def _contents__getitem__(self, index: Literal[0, 1]):
+    def _contents__getitem__(self, index: Literal[0, 1]) -> tuple[Widget, OverlayOptions]:
         if index == 0:
             return (self.bottom_w, self._DEFAULT_BOTTOM_OPTIONS)
+
         if index == 1:
             return (
                 self.top_w,
-                (
+                OverlayOptions(
                     self.align_type,
                     self.align_amount,
                     self.width_type,
@@ -410,7 +460,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             )
         raise IndexError(f"Overlay.contents has no position {index!r}")
 
-    def _contents__setitem__(self, index: Literal[0, 1], value):
+    def _contents__setitem__(self, index: Literal[0, 1], value: tuple[Widget, OverlayOptions]) -> None:
         try:
             value_w, value_options = value
         except (ValueError, TypeError) as exc:
@@ -547,7 +597,14 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             )
         return left, right, top, bottom
 
-    def top_w_size(self, size, left, right, top, bottom):
+    def top_w_size(
+        self,
+        size: tuple[int, int],
+        left: int,
+        right: int,
+        top: int,
+        bottom: int,
+    ) -> tuple[()] | tuple[int] | tuple[int, int]:
         """Return the size to pass to top_w."""
         if self.width_type == WHSettings.PACK:
             # top_w is a fixed widget
@@ -574,7 +631,15 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         return CanvasOverlay(top_c, bottom_c, left, top)
 
-    def mouse_event(self, size: tuple[int, int], event, button: int, col: int, row: int, focus: bool) -> bool | None:
+    def mouse_event(
+        self,
+        size: tuple[int, int],
+        event,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool | None:
         """Pass event to top_w, ignore if outside of top_w."""
         if not hasattr(self.top_w, "mouse_event"):
             return False
