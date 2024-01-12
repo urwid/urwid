@@ -1322,9 +1322,8 @@ class ListBox(Widget, WidgetContainerMixin):
         # not used below:
         scroll_from_row = topmost_visible = None
 
-        # gather potential target widgets
+        # gather potential target widgets and add current focus
         t = [(row_offset, focus_widget, focus_pos, focus_rows)]
-        # add current focus
         pos = focus_pos
         # include widgets from calculate_visible(..)
         for widget, pos, rows in fill_above:
@@ -1514,9 +1513,8 @@ class ListBox(Widget, WidgetContainerMixin):
         # not used below:
         scroll_from_row = bottom_edge = None
 
-        # gather potential target widgets
+        # gather potential target widgets and add current focus
         t = [(row_offset, focus_widget, focus_pos, focus_rows)]
-        # add current focus
         pos = focus_pos
         row_offset += focus_rows
         # include widgets from calculate_visible(..)
