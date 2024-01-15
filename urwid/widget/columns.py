@@ -56,7 +56,8 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         Backward compatibility rules:
         * GIVEN BOX -> Allow BOX
 
-        FIXED can be only if no BOX and no strict FLOW.
+        BOX can be only if ALL widgets support BOX.
+        FIXED can be only if no BOX without "box_columns" flag and no strict FLOW.
 
         >>> from urwid import BigText, Edit, SolidFill, Text, Thin3x3Font
         >>> font = Thin3x3Font()
@@ -73,17 +74,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         >>> Columns((Edit(),))
         <Columns selectable flow widget>
 
-        # BOX-only enforced by BOX-only widget
-        >>> Columns((Edit(), SolidFill("#")))
-        <Columns selectable box widget>
-
-        # BOX/FLOW allowed by "box_columns"
+        # FLOW allowed by "box_columns"
         >>> Columns((Edit(), SolidFill("#")), box_columns=(1,))
-        <Columns selectable box/flow widget>
-
-        # Corner case: BOX only
-        >>> Columns((Edit(), SolidFill("#"), SolidFill("#")), box_columns=(1,))
-        <Columns selectable box widget>
+        <Columns selectable flow widget>
 
         # FLOW/FIXED
         >>> Columns((Text("T"),))
@@ -96,10 +89,6 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         # No FLOW - BOX only
         >>> Columns(((5, SolidFill("#")), SolidFill("*")), box_columns=(0, 1))
         <Columns box widget>
-
-        # We can everything: GIVEN BOX + FLOW/FIXED
-        >>> Columns(((5, SolidFill("#")), (3, Text("T"))), box_columns=(0,))
-        <Columns widget>
 
         # FIXED only -> FIXED
         >>> Columns(((WHSettings.PACK, BigText("1", font)),))
@@ -121,6 +110,8 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         )
         flow_fixed = _ContainerElementSizingFlag.FLOW | _ContainerElementSizingFlag.FIXED
         given_box = _ContainerElementSizingFlag.BOX | _ContainerElementSizingFlag.WH_GIVEN
+
+        flags: set[_ContainerElementSizingFlag] = set()
 
         for idx, (widget, (size_kind, _size_weight, is_box)) in enumerate(self.contents):
             w_sizing = widget.sizing()
@@ -160,12 +151,10 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 )
                 return frozenset((Sizing.BOX, Sizing.FLOW))
 
-            if flag & _ContainerElementSizingFlag.BOX:
-                supported.add(Sizing.BOX)
+            flags.add(flag)
 
-                if not (is_box or flag & flow_fixed):
-                    strict_box = True
-                    break
+            if flag & _ContainerElementSizingFlag.BOX and not (is_box or flag & flow_fixed):
+                strict_box = True
 
             if flag & _ContainerElementSizingFlag.FLOW:
                 has_flow = True
@@ -174,12 +163,28 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             elif flag & given_box != given_box:
                 block_fixed = True
 
+        if all(flag & _ContainerElementSizingFlag.BOX for flag in flags):
+            # Only if ALL widgets can be rendered as BOX, widget can be rendered as BOX.
+            # Hacky "BOX" render for FLOW-only is still present,
+            # due to incorrected implementation can be used by downstream
+            supported.add(Sizing.BOX)
+
         if not strict_box:
             if has_flow:
                 supported.add(Sizing.FLOW)
 
             if has_fixed and not block_fixed:
                 supported.add(Sizing.FIXED)
+
+        if not supported:
+            warnings.warn(
+                f"Columns widget contents flags not allow to determine supported render kind:\n"
+                f"{', '.join(sorted(flag.log_string for flag in flags))}\n"
+                f"Using fallback hardcoded BOX|FLOW sizing kind.",
+                ColumnsWarning,
+                stacklevel=3,
+            )
+            return frozenset((Sizing.BOX, Sizing.FLOW))
 
         return frozenset(supported)
 
