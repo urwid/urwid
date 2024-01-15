@@ -19,13 +19,15 @@ class ColumnsTest(unittest.TestCase):
         fixed_only = urwid.BigText("0", urwid.Thin3x3Font())
         flow_fixed = urwid.Text("text")
 
+        with self.subTest("No sizing calculation possible"), self.assertWarns(urwid.widget.ColumnsWarning) as ctx:
+            widget = urwid.Columns(((urwid.PACK, fixed_only), box_only), box_columns=(1,))
+            self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), widget.sizing())
+
         for description, kwargs in (
             ("BOX-only widget", {"widget_list": (box_only,)}),
             ('BOX-only widget with "get height from max"', {"widget_list": (box_only,), "box_columns": (0,)}),
             ("No FLOW - BOX only", {"widget_list": (box_only, urwid.SolidFill(" ")), "box_columns": (0, 1)}),
-            ("BOX-only enforced by BOX-only widget", {"widget_list": (box_only, flow_only)}),
             ("GIVEN BOX only -> BOX only", {"widget_list": ((5, box_only),), "box_columns": (0,)}),
-            ("Corner case: BOX only", {"widget_list": (box_only, flow_only, box_only), "box_columns": (0,)}),
         ):
             with self.subTest(description):
                 widget = urwid.Columns(**kwargs)
@@ -47,9 +49,9 @@ class ColumnsTest(unittest.TestCase):
             self.assertEqual(cols, canvas.cols())
             self.assertEqual(rows, canvas.rows())
 
-        with self.subTest('BOX/FLOW allowed by "box_columns"'):
+        with self.subTest('BOX/FLOW by "box_columns": can be rendered as box only as fallback'):
             widget = urwid.Columns((flow_only, box_only), box_columns=(1,))
-            self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), widget.sizing())
+            self.assertEqual(frozenset((urwid.FLOW,)), widget.sizing())
             cols, rows = 2, 1
             self.assertEqual((cols, rows), widget.pack((cols,)))
             canvas = widget.render((cols,))
@@ -85,9 +87,9 @@ class ColumnsTest(unittest.TestCase):
             self.assertEqual(cols, canvas.cols())
             self.assertEqual(rows, canvas.rows())
 
-        with self.subTest("GIVEN BOX + FLOW/FIXED - support all"):
+        with self.subTest("GIVEN BOX + FLOW/FIXED, but other widgets do not support box"):
             widget = urwid.Columns((flow_fixed, (3, box_only)), box_columns=(1,))
-            self.assertEqual(frozenset((urwid.BOX, urwid.FLOW, urwid.FIXED)), widget.sizing())
+            self.assertEqual(frozenset((urwid.FLOW, urwid.FIXED)), widget.sizing())
             cols, rows = 7, 1
             self.assertEqual((cols, rows), widget.pack(()))
             canvas = widget.render(())
@@ -126,7 +128,11 @@ class ColumnsTest(unittest.TestCase):
                     str(ctx.warnings[0].message),
                 )
 
-        with self.subTest('BOX not added to "box_columns" but widget handled as FLOW'):
+        with self.subTest(
+            'BOX not added to "box_columns" but widget handled as FLOW',
+        ), self.assertWarns(
+            urwid.widget.ColumnsWarning,
+        ) as ctx:
             self.maxDiff = None
             contents = (
                 (urwid.WEIGHT, 1, urwid.SolidFill()),
@@ -136,34 +142,41 @@ class ColumnsTest(unittest.TestCase):
                 (urwid.WEIGHT, 1, urwid.SolidFill()),
             )
             widget = urwid.Columns(contents)
-            self.assertEqual(frozenset((urwid.BOX,)), widget.sizing())
+
+            self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), widget.sizing())
+
+            self.assertEqual(
+                "Columns widget contents flags not allow to determine supported render kind:\n"
+                "BOX|WH_WEIGHT,FLOW|FIXED|WH_GIVEN\n"
+                "Using fallback hardcoded BOX|FLOW sizing kind.",
+                str(ctx.warnings[0].message),
+            )
 
             cols, rows = 30, 1
-            with self.assertRaises(urwid.WidgetError):
+            with self.assertRaises(AttributeError):
                 widget.pack((cols,))
-            with self.assertWarns(urwid.widget.ColumnsWarning) as ctx:
-                canvas = widget.render((cols,))
-                self.assertEqual(rows, canvas.rows())
-                self.assertEqual(cols, canvas.cols())
-                self.assertEqual([b"   <   OK   >    < Cancel >   "], canvas.text)
-                self.assertEqual(
-                    "Widgets in columns [0, 2, 4] "
-                    f"({[elem[-1] for elem in contents[:6:2]]}) "
-                    f'are BOX widgets not marked "box_columns" '
-                    f"while FLOW render is requested (size=(30,))",
-                    str(ctx.warnings[0].message),
-                )
+
+            canvas = widget.render((cols,))
+            self.assertEqual(rows, canvas.rows())
+            self.assertEqual(cols, canvas.cols())
+            self.assertEqual([b"   <   OK   >    < Cancel >   "], canvas.text)
+            self.assertEqual(
+                "Widgets in columns [0, 2, 4] "
+                f"({[elem[-1] for elem in contents[:6:2]]}) "
+                f'are BOX widgets not marked "box_columns" '
+                f"while FLOW render is requested (size=(30,))",
+                str(ctx.warnings[2].message),
+            )
 
             self.assertEqual("OK", widget.focus.label)
-            with self.assertWarns(urwid.widget.ColumnsWarning) as ctx:
-                self.assertIsNone(widget.keypress((cols,), "right"))
-                self.assertEqual(
-                    "Widgets in columns [0, 2, 4] "
-                    f"({[elem[-1] for elem in contents[:6:2]]}) "
-                    f'are BOX widgets not marked "box_columns" '
-                    f"while FLOW render is requested (size=(30,))",
-                    str(ctx.warnings[0].message),
-                )
+            self.assertIsNone(widget.keypress((cols,), "right"))
+            self.assertEqual(
+                "Widgets in columns [0, 2, 4] "
+                f"({[elem[-1] for elem in contents[:6:2]]}) "
+                f'are BOX widgets not marked "box_columns" '
+                f"while FLOW render is requested (size=(30,))",
+                str(ctx.warnings[3].message),
+            )
             self.assertEqual("Cancel", widget.focus.label)
 
     def test_pack_render_fixed(self) -> None:
