@@ -179,7 +179,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if not supported:
             warnings.warn(
                 f"Columns widget contents flags not allow to determine supported render kind:\n"
-                f"{','.join(flag.name for flag in flags)}\n"
+                f"{', '.join(sorted(flag.log_string for flag in flags))}\n"
                 f"Using fallback hardcoded BOX|FLOW sizing kind.",
                 ColumnsWarning,
                 stacklevel=3,

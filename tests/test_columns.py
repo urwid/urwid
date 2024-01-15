@@ -147,7 +147,7 @@ class ColumnsTest(unittest.TestCase):
 
             self.assertEqual(
                 "Columns widget contents flags not allow to determine supported render kind:\n"
-                "BOX|WH_WEIGHT,FLOW|FIXED|WH_GIVEN\n"
+                "BOX WEIGHT, FIXED|FLOW GIVEN\n"
                 "Using fallback hardcoded BOX|FLOW sizing kind.",
                 str(ctx.warnings[0].message),
             )
