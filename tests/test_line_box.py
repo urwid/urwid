@@ -165,3 +165,23 @@ class LineBoxTest(unittest.TestCase):
             self.assertTrue(pressed)
 
         pressed = False
+
+    def test_columns_of_lineboxes(self):
+        # BUG #748
+        # Using PACK: width of widget 1 is 4, width of widget 2 is 5.
+        # With equal weight widget 1 will be rendered also 5.
+        columns = urwid.Columns(
+            [
+                (urwid.PACK, urwid.LineBox(urwid.Text("lol"), rline="", trcorner="", brcorner="")),
+                (urwid.PACK, urwid.LineBox(urwid.Text("wtf"), tlcorner="┬", blcorner="┴")),
+            ]
+        )
+        canvas = columns.render(())
+        self.assertEqual(
+            [
+                "┌───┬───┐",
+                "│lol│wtf│",
+                "└───┴───┘",
+            ],
+            [line.decode("utf-8") for line in canvas.text],
+        )
