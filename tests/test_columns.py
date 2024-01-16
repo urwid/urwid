@@ -228,6 +228,34 @@ class ColumnsTest(unittest.TestCase):
         self.assertEqual(3, canvas.cols())
         self.assertEqual([b"###", b"###"], canvas.text)
 
+    def test_focus_column(self):
+        button_1 = urwid.Button("Selectable")
+        button_2 = urwid.Button("Other selectable")
+        widget_list = [
+            (urwid.PACK, urwid.Text("Non selectable")),
+            (urwid.PACK, button_1),
+            (urwid.PACK, button_2),
+            (urwid.PACK, urwid.Text("The end")),
+        ]
+        with self.subTest("Not provided -> select first selectable"):
+            widget = urwid.Columns(widget_list)
+            self.assertEqual(1, widget.focus_position)
+            widget.keypress((), "left")
+            self.assertEqual(1, widget.focus_position)
+
+        with self.subTest("Exact index"):
+            widget = urwid.Columns(widget_list, focus_column=2)
+            self.assertEqual(2, widget.focus_position)
+            widget.keypress((), "left")
+            self.assertEqual(1, widget.focus_position)
+
+        with self.subTest("Exact widget"):
+            widget = urwid.Columns(widget_list, focus_column=button_2)
+            self.assertEqual(2, widget.focus_position)
+            self.assertEqual(button_2, widget.focus)
+            widget.keypress((), "left")
+            self.assertEqual(1, widget.focus_position)
+
     def assert_column_widths(
         self,
         expected: Collection[int],

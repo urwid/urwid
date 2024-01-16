@@ -196,14 +196,14 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             | tuple[Literal["weight", "given", WHSettings.WEIGHT, WHSettings.GIVEN], int, Widget]
         ],
         dividechars: int = 0,
-        focus_column: int | None = None,
+        focus_column: int | Widget | None = None,
         min_width: int = 1,
         box_columns: Iterable[int] | None = None,
     ):
         """
         :param widget_list: iterable of flow or box widgets
         :param dividechars: number of blank characters between columns
-        :param focus_column: index into widget_list of column in focus,
+        :param focus_column: index into widget_list of column in focus or focused widget instance,
             if ``None`` the first selectable widget will be chosen.
         :param min_width: minimum width for each column which is not
             calling widget.pack() in *widget_list*.
@@ -257,7 +257,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 self.contents.append((w, (WHSettings.WEIGHT, width, i in box_columns)))
             else:
                 raise ColumnsError(f"initial widget list item invalid: {original!r}")
-            if focus_column is None and w.selectable():
+            if focus_column == w or (focus_column is None and w.selectable()):
                 focus_column = i
 
         self.dividechars = dividechars
