@@ -64,6 +64,16 @@ class LineBoxTest(unittest.TestCase):
             [line.decode("utf-8") for line in canvas.text],
         )
 
+        l.set_title("New")
+        self.assertEqual(
+            [
+                "╭── New ──╮",
+                "│Some text│",
+                "╰─────────╯",
+            ],
+            [line.decode("utf-8") for line in l.render(()).text],
+        )
+
     def test_negative(self):
         wrapped = urwid.Text("")
         with self.assertRaises(ValueError) as ctx:
