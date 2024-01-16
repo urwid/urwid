@@ -584,9 +584,10 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 if Sizing.FIXED in w_sizing:
                     widths[idx], heights[idx] = widget.pack((), focused)
                     w_h_args[idx] = ()
-                elif Sizing.FLOW in w_sizing:
+                if Sizing.FLOW in w_sizing:
+                    # re-calculate height at the end
                     flow.append((widget, idx, focused))
-                else:
+                if not w_sizing & {Sizing.FIXED, Sizing.FLOW}:
                     raise PileError(f"Unsupported sizing {w_sizing} for {size_kind.upper()}")
 
             elif size_kind == WHSettings.GIVEN:
@@ -708,7 +709,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         return (tuple(widths), tuple(heights), tuple(w_h_args))
 
-    def pack(self, size: tuple[()] | tuple[int] | tuple[int, int], focus: bool = False) -> tuple[int, int]:
+    def pack(self, size: tuple[()] | tuple[int] | tuple[int, int] = (), focus: bool = False) -> tuple[int, int]:
         """Get packed sized for widget."""
         if size:
             return super().pack(size, focus)

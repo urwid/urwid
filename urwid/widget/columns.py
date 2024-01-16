@@ -874,7 +874,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             tuple(w_h_args[idx] for idx in range(len(w_h_args))),
         )
 
-    def pack(self, size: tuple[()] | tuple[int] | tuple[int, int], focus: bool = False) -> tuple[int, int]:
+    def pack(self, size: tuple[()] | tuple[int] | tuple[int, int] = (), focus: bool = False) -> tuple[int, int]:
         """Get packed sized for widget."""
         if size:
             return super().pack(size, focus)

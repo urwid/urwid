@@ -481,7 +481,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             self._set_focus_from_display_widget()
         return key
 
-    def pack(self, size: tuple[int] | tuple[()], focus: bool = False) -> tuple[int, int]:
+    def pack(self, size: tuple[int] | tuple[()] = (), focus: bool = False) -> tuple[int, int]:
         if size:
             return super().pack(size, focus)
         cols = len(self) * self.cell_width + (len(self) - 1) * self.h_sep

@@ -3,7 +3,7 @@ from __future__ import annotations
 import typing
 
 from .columns import Columns
-from .constants import Align, Sizing
+from .constants import Align, WHSettings
 from .divider import Divider
 from .pile import Pile
 from .solid_fill import SolidFill
@@ -52,22 +52,16 @@ class LineBox(WidgetDecoration, WidgetWrap):
             blcorner: bottom left corner
             brcorner: bottom right corner
 
-        If empty string is specified for one of the lines/corners, then no
-        character will be output there.  This allows for seamless use of
-        adjoining LineBoxes.
+        If empty string is specified for one of the lines/corners, then no character will be output there.
+        If no top/bottom/left/right lines - whole lines will be omitted.
+        This allows for seamless use of adjoining LineBoxes.
         """
 
-        if tline:
-            tline = Divider(tline)
-        if bline:
-            bline = Divider(bline)
-        if lline:
-            lline = SolidFill(lline)
-        if rline:
-            rline = SolidFill(rline)
+        w_lline = SolidFill(lline)
+        w_rline = SolidFill(rline)
 
-        tlcorner, trcorner = Text(tlcorner), Text(trcorner)
-        blcorner, brcorner = Text(blcorner), Text(brcorner)
+        w_tlcorner, w_tline, w_trcorner = Text(tlcorner), Divider(tline), Text(trcorner)
+        w_blcorner, w_bline, w_brcorner = Text(blcorner), Divider(bline), Text(brcorner)
 
         if not tline and title:
             raise ValueError("Cannot have a title when tline is empty string")
@@ -81,34 +75,41 @@ class LineBox(WidgetDecoration, WidgetWrap):
             if title_align not in {Align.LEFT, Align.CENTER, Align.RIGHT}:
                 raise ValueError('title_align must be one of "left", "right", or "center"')
             if title_align == Align.LEFT:
-                tline_widgets = [("flow", self.title_widget), tline]
+                tline_widgets = [(WHSettings.PACK, self.title_widget), w_tline]
             else:
-                tline_widgets = [tline, (Sizing.FLOW, self.title_widget)]
+                tline_widgets = [w_tline, (WHSettings.PACK, self.title_widget)]
                 if title_align == Align.CENTER:
-                    tline_widgets.append(tline)
+                    tline_widgets.append(w_tline)
+
             self.tline_widget = Columns(tline_widgets)
-            top = Columns([(Sizing.FIXED, 1, tlcorner), self.tline_widget, (Sizing.FIXED, 1, trcorner)])
+            top = Columns(
+                (
+                    (int(bool(tlcorner and lline)), w_tlcorner),
+                    self.tline_widget,
+                    (int(bool(trcorner and rline)), w_trcorner),
+                )
+            )
 
         else:
             self.tline_widget = None
             top = None
 
-        middle_widgets = []
-        if lline:
-            middle_widgets.append(("fixed", 1, lline))
-        else:
-            # Note: We need to define a fixed first widget (even if it's 0 width) so that the other
-            # widgets have something to anchor onto
-            middle_widgets.append(("fixed", 0, SolidFill("")))
-        middle_widgets.append(original_widget)
-        focus_col = len(middle_widgets) - 1
-        if rline:
-            middle_widgets.append((Sizing.FIXED, 1, rline))
-
-        middle = Columns(middle_widgets, box_columns=[0, 2], focus_column=focus_col)
+        # Note: We need to define a fixed first widget (even if it's 0 width) so that the other
+        # widgets have something to anchor onto
+        middle = Columns(
+            ((int(bool(lline)), w_lline), original_widget, (int(bool(rline)), w_rline)),
+            box_columns=[0, 2],
+            focus_column=original_widget,
+        )
 
         if bline:
-            bottom = Columns([(Sizing.FIXED, 1, blcorner), bline, (Sizing.FIXED, 1, brcorner)])
+            bottom = Columns(
+                (
+                    (int(bool(blcorner and lline)), w_blcorner),
+                    w_bline,
+                    (int(bool(brcorner and rline)), w_brcorner),
+                )
+            )
         else:
             bottom = None
 
@@ -130,29 +131,11 @@ class LineBox(WidgetDecoration, WidgetWrap):
 
         return ""
 
-    def set_title(self, text):
-        if not self.title_widget:
+    def set_title(self, text: str) -> None:
+        if not self.tline_widget:
             raise ValueError("Cannot set title when tline is unset")
         self.title_widget.set_text(self.format_title(text))
         self.tline_widget._invalidate()
-
-    def pack(
-        self,
-        size: tuple[()] | tuple[int] | tuple[int, int] | None = None,
-        focus: bool = False,
-    ) -> tuple[int, int]:
-        """
-        Return the number of screen columns and rows required for
-        this Linebox widget to be displayed without wrapping or
-        clipping, as a single element tuple.
-
-        :param size: Widget size correct for the supported sizing
-        :type size: tuple[()] | tuple[int] | tuple[int, int]
-        :param focus: widget is focused on
-        :type focus: bool
-        """
-        size = self._original_widget.pack(size, focus)
-        return size[0] + 2, size[1] + 2
 
     @property
     def focus(self) -> Widget | None:

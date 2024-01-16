@@ -227,7 +227,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         return frozenset(sizing)
 
-    def pack(self, size: tuple[()] | tuple[int] | tuple[int, int], focus: bool = False) -> tuple[int, int]:
+    def pack(self, size: tuple[()] | tuple[int] | tuple[int, int] = (), focus: bool = False) -> tuple[int, int]:
         if size:
             return super().pack(size, focus)
 

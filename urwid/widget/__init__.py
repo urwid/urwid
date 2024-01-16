@@ -29,9 +29,9 @@ from .filler import Filler, FillerError, calculate_top_bottom_filler
 from .frame import Frame, FrameError
 from .grid_flow import GridFlow, GridFlowError
 from .line_box import LineBox
-from .overlay import Overlay, OverlayError
+from .overlay import Overlay, OverlayError, OverlayWarning
 from .padding import Padding, PaddingError, calculate_left_right_padding
-from .pile import Pile, PileError
+from .pile import Pile, PileError, PileWarning
 from .popup import PopUpLauncher, PopUpTarget
 from .progress_bar import ProgressBar
 from .solid_fill import SolidFill
@@ -123,12 +123,15 @@ __all__ = (
     "GridFlowError",
     "Overlay",
     "OverlayError",
+    "OverlayWarning",
     "Frame",
     "FrameError",
     "Pile",
     "PileError",
+    "PileWarning",
     "Columns",
     "ColumnsError",
+    "ColumnsWarning",
     "WidgetContainerMixin",
     "PopUpLauncher",
     "PopUpTarget",
@@ -147,7 +150,6 @@ __all__ = (
     "ProgressBar",
     "WidgetContainerListContentsMixin",
     "WidgetWarning",
-    "ColumnsWarning",
 )
 
 # Backward compatibility
