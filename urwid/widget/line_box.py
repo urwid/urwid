@@ -52,9 +52,9 @@ class LineBox(WidgetDecoration, WidgetWrap):
             blcorner: bottom left corner
             brcorner: bottom right corner
 
-        If empty string is specified for one of the lines/corners, then no
-        character will be output there.  This allows for seamless use of
-        adjoining LineBoxes.
+        If empty string is specified for one of the lines/corners, then no character will be output there.
+        If no top/bottom/left/right lines - whole lines will be omitted.
+        This allows for seamless use of adjoining LineBoxes.
         """
 
         w_lline = SolidFill(lline)
@@ -82,7 +82,13 @@ class LineBox(WidgetDecoration, WidgetWrap):
                     tline_widgets.append(w_tline)
 
             self.tline_widget = Columns(tline_widgets)
-            top = Columns(((int(bool(tlcorner)), w_tlcorner), self.tline_widget, (int(bool(trcorner)), w_trcorner)))
+            top = Columns(
+                (
+                    (int(bool(tlcorner and lline)), w_tlcorner),
+                    self.tline_widget,
+                    (int(bool(trcorner and rline)), w_trcorner),
+                )
+            )
 
         else:
             self.tline_widget = None
@@ -97,7 +103,13 @@ class LineBox(WidgetDecoration, WidgetWrap):
         )
 
         if bline:
-            bottom = Columns(((int(bool(blcorner)), w_blcorner), w_bline, (int(bool(brcorner)), w_brcorner)))
+            bottom = Columns(
+                (
+                    (int(bool(blcorner and lline)), w_blcorner),
+                    w_bline,
+                    (int(bool(brcorner and rline)), w_brcorner),
+                )
+            )
         else:
             bottom = None
 

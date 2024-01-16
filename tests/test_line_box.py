@@ -108,7 +108,7 @@ class LineBoxTest(unittest.TestCase):
         pressed = False
 
         with self.subTest("No right side elements -> no side"):
-            l = urwid.LineBox(wrapped, trcorner="", rline="", brcorner="")
+            l = urwid.LineBox(wrapped, rline="")
             cols, rows = 12, 3
             self.assertEqual((cols, rows), l.pack(()))
 
@@ -130,7 +130,7 @@ class LineBoxTest(unittest.TestCase):
         pressed = False
 
         with self.subTest("No left side elements -> no side"):
-            l = urwid.LineBox(wrapped, tlcorner="", lline="", blcorner="")
+            l = urwid.LineBox(wrapped, lline="")
             cols, rows = 12, 3
             self.assertEqual((cols, rows), l.pack(()))
 
