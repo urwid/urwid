@@ -120,7 +120,7 @@ class LineBox(WidgetDecoration, WidgetWrap):
         return ""
 
     def set_title(self, text: str) -> None:
-        if not self.title_widget:
+        if not self.tline_widget:
             raise ValueError("Cannot set title when tline is unset")
         self.title_widget.set_text(self.format_title(text))
         self.tline_widget._invalidate()

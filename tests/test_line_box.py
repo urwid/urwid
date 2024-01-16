@@ -71,6 +71,12 @@ class LineBoxTest(unittest.TestCase):
 
         self.assertEqual("Cannot have a title when tline is empty string", str(ctx.exception))
 
+        l = urwid.LineBox(wrapped, tline="")
+        with self.assertRaises(ValueError) as ctx:
+            l.set_title("Fail")
+
+        self.assertEqual("Cannot set title when tline is unset", str(ctx.exception))
+
     def test_partial_contour(self):
         def mark_pressed(btn: urwid.Button) -> None:
             nonlocal pressed
