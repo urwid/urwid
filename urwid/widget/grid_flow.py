@@ -40,6 +40,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         h_sep: int,
         v_sep: int,
         align: Literal["left", "center", "right"] | Align | tuple[Literal["relative", WHSettings.RELATIVE], int],
+        focus: int | Widget | None = None,
     ):
         """
         :param cells: iterable of flow widgets to display
@@ -49,8 +50,20 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
             (if more than one row is required to display all the cells)
         :param align: horizontal alignment of cells, one of:
             'left', 'center', 'right', ('relative', percentage 0=left 100=right)
+        :param focus: widget index or widget instance to focus on
         """
-        self._contents = MonitoredFocusList([(w, (WHSettings.GIVEN, cell_width)) for w in cells])
+        prepared_contents: list[tuple[Widget, tuple[Literal[WHSettings.GIVEN], int]]] = []
+        focus_position: int = -1
+
+        for idx, widget in enumerate(cells):
+            prepared_contents.append((widget, (WHSettings.GIVEN, cell_width)))
+            if focus_position < 0 and (widget == focus or idx == focus or (focus is None and widget.selectable())):
+                focus_position = idx
+
+        if focus_position < 0:
+            focus_position = 0
+
+        self._contents = MonitoredFocusList(prepared_contents, focus=focus_position)
         self._contents.set_modified_callback(self._invalidate)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
         self._contents.set_validate_contents_modified(self._contents_modified)

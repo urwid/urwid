@@ -4,12 +4,11 @@ import unittest
 from unittest import mock
 
 import urwid
-from urwid import GridFlow
 
 
 class GridFlowTest(unittest.TestCase):
     def test_fixed(self):
-        grid = GridFlow(
+        grid = urwid.GridFlow(
             (urwid.Button(tag, align=urwid.CENTER) for tag in ("OK", "Cancel", "Help")),
             cell_width=10,
             h_sep=1,
@@ -23,7 +22,63 @@ class GridFlowTest(unittest.TestCase):
         canvas = grid.render(())
         self.assertEqual(cols, canvas.cols())
         self.assertEqual(rows, canvas.rows())
-        self.assertEqual([b'<   OK   > < Cancel > <  Help  >'], canvas.text)
+        self.assertEqual([b"<   OK   > < Cancel > <  Help  >"], canvas.text)
+
+    def test_default_focus(self):
+        with self.subTest("Simple"):
+            grid = urwid.GridFlow(
+                (urwid.Button("btn"), urwid.Button("btn")),
+                cell_width=10,
+                h_sep=1,
+                v_sep=1,
+                align=urwid.CENTER,
+            )
+            self.assertTrue(grid.selectable())
+            self.assertEqual(0, grid.focus_position)
+
+        with self.subTest("Simple not selectable"):
+            grid = urwid.GridFlow(
+                (urwid.Text("btn"), urwid.Text("btn")),
+                cell_width=10,
+                h_sep=1,
+                v_sep=1,
+                align=urwid.CENTER,
+            )
+            self.assertFalse(grid.selectable())
+            self.assertEqual(0, grid.focus_position)
+
+        with self.subTest("Explicit index"):
+            grid = urwid.GridFlow(
+                (urwid.Button("btn"), urwid.Button("btn")),
+                cell_width=10,
+                h_sep=1,
+                v_sep=1,
+                align=urwid.CENTER,
+                focus=1,
+            )
+            self.assertEqual(1, grid.focus_position)
+
+        with self.subTest("Explicit widget"):
+            btn2 = urwid.Button("btn 2")
+            grid = urwid.GridFlow(
+                (urwid.Button("btn"), btn2),
+                cell_width=10,
+                h_sep=1,
+                v_sep=1,
+                align=urwid.CENTER,
+                focus=btn2,
+            )
+            self.assertEqual(1, grid.focus_position)
+
+        with self.subTest("Selectable not first"):
+            grid = urwid.GridFlow(
+                (urwid.Text("text"), urwid.Button("btn")),
+                cell_width=10,
+                h_sep=1,
+                v_sep=1,
+                align=urwid.CENTER,
+            )
+            self.assertEqual(1, grid.focus_position)
 
     def test_cell_width(self):
         gf = urwid.GridFlow([], 5, 0, 0, "left")
