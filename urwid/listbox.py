@@ -44,7 +44,7 @@ from urwid.widget import (
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable
 
-    from typing_extensions import Literal
+    from typing_extensions import Literal, Self
 
     from urwid.canvas import CompositeCanvas
 
@@ -280,7 +280,7 @@ class ListBox(Widget, WidgetContainerMixin):
     _selectable = True
     _sizing = frozenset([Sizing.BOX])
 
-    def __init__(self, body: ListWalker):
+    def __init__(self, body: ListWalker) -> None:
         """
         :param body: a ListWalker subclass such as
             :class:`SimpleFocusListWalker` that contains
@@ -314,7 +314,7 @@ class ListBox(Widget, WidgetContainerMixin):
         self.set_focus_valign_pending = None
 
     @property
-    def body(self):
+    def body(self) -> ListWalker:
         """
         a ListWalker subclass such as :class:`SimpleFocusListWalker` that contains
         widgets to be displayed inside the list box
@@ -700,6 +700,19 @@ class ListBox(Widget, WidgetContainerMixin):
         class ListBoxContents:
             __getitem__ = self._contents__getitem__
 
+            __len__ = self.__len__
+
+            def __repr__(inner_self) -> str:
+                return f"<{inner_self.__class__.__name__} for {self!r} at 0x{id(inner_self):X}>"
+
+            def __call__(inner_self) -> Self:
+                warnings.warn(
+                    "ListBox.contents is a property, not a method",
+                    DeprecationWarning,
+                    stacklevel=3,
+                )
+                return inner_self
+
         return ListBoxContents()
 
     def _contents__getitem__(self, key):
@@ -734,7 +747,7 @@ class ListBox(Widget, WidgetContainerMixin):
             You must use the list walker stored as
             :attr:`.body` to perform manipulation and iteration, if supported.
         """
-        return self._contents
+        return self._contents()
 
     def options(self):
         """
