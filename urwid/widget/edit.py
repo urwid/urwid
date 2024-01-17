@@ -126,7 +126,7 @@ class Edit(Text):
             + ["multiline"] * (self.multiline is True)
         )
 
-    def _repr_attrs(self):
+    def _repr_attrs(self) -> dict[str, typing.Any]:
         attrs = dict(super()._repr_attrs(), edit_pos=self._edit_pos)
         return remove_defaults(attrs, Edit.__init__)
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import typing
 from collections.abc import Hashable, Mapping
 
 from urwid.canvas import CompositeCanvas
@@ -66,7 +67,7 @@ class AttrMap(delegate_to_widget_mixin("_original_widget"), WidgetDecoration):
         else:
             self.focus_map = {None: focus_map}
 
-    def _repr_attrs(self):
+    def _repr_attrs(self) -> dict[str, typing.Any]:
         # only include the focus_attr when it takes effect (not None)
         d = dict(super()._repr_attrs(), attr_map=self._attr_map)
         if self._focus_map is not None:

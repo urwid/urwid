@@ -6,13 +6,13 @@ import warnings
 from urwid.canvas import CompositeCanvas
 
 from .constants import Sizing
-from .widget_decoration import WidgetDecoration
+from .widget_decoration import WidgetDecoration, WidgetError
 
 if typing.TYPE_CHECKING:
     from .widget import Widget
 
 
-class BoxAdapterError(Exception):
+class BoxAdapterError(WidgetError):
     pass
 
 
@@ -42,7 +42,7 @@ class BoxAdapter(WidgetDecoration):
 
         self.height = height
 
-    def _repr_attrs(self):
+    def _repr_attrs(self) -> dict[str, typing.Any]:
         return dict(super()._repr_attrs(), height=self.height)
 
     # originally stored as box_widget, keep for compatibility

@@ -31,7 +31,7 @@ from urwid.util import is_mouse_press
 from .columns import Columns
 from .constants import Align, WrapMode
 from .text import Text
-from .widget import WidgetWrap
+from .widget import WidgetError, WidgetWrap
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, MutableSequence
@@ -130,7 +130,7 @@ class SelectableIcon(Text):
         return key
 
 
-class CheckBoxError(Exception):
+class CheckBoxError(WidgetError):
     pass
 
 

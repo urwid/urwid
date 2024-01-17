@@ -9,7 +9,7 @@ from urwid.util import is_mouse_press
 
 from .constants import Sizing
 from .filler import Filler
-from .widget import Widget
+from .widget import Widget, WidgetError
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterator, MutableMapping
@@ -194,7 +194,7 @@ class WidgetContainerListContentsMixin:
         self.focus_position = position
 
 
-class FrameError(Exception):
+class FrameError(WidgetError):
     pass
 
 

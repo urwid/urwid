@@ -30,7 +30,7 @@ from .frame import Frame, FrameError
 from .grid_flow import GridFlow, GridFlowError
 from .line_box import LineBox
 from .overlay import Overlay, OverlayError, OverlayWarning
-from .padding import Padding, PaddingError, calculate_left_right_padding
+from .padding import Padding, PaddingError, PaddingWarning, calculate_left_right_padding
 from .pile import Pile, PileError, PileWarning
 from .popup import PopUpLauncher, PopUpTarget
 from .progress_bar import ProgressBar
@@ -115,6 +115,7 @@ __all__ = (
     "WidgetDisable",
     "Padding",
     "PaddingError",
+    "PaddingWarning",
     "calculate_left_right_padding",
     "Filler",
     "FillerError",
