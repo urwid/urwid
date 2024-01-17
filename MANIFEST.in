@@ -1,3 +1,4 @@
 recursive-include examples *.py *.tac
 recursive-include docs *.rst *.py *.py.xdotool *.png *.html *.sh Makefile
 include COPYING CHANGELOG README.rst
+include urwid/display/_web.js urwid/display/_web.css
