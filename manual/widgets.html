@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widgets &#8212; Urwid 2.4.2</title>
+    <title>Widgets &#8212; Urwid 2.4.3</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script src="../_static/documentation_options.js?v=de1351e5"></script>
+    <script src="../_static/documentation_options.js?v=7a6bd5fc"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.2</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.3</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widgets</a></li> 
       </ul>
@@ -297,15 +297,15 @@ new space.</p>
 </section>
 <section id="overlay-widgets">
 <h3>Overlay Widgets<a class="headerlink" href="#overlay-widgets" title="Link to this heading">¶</a></h3>
-<p>The <a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal notranslate"><span class="pre">Overlay</span></code></a> widget is a box widget that contains two
-other box widgets. The bottom widget is rendered the full size of the Overlay
-widget and the top widget is placed on top, obscuring an area of the bottom
-widget. This widget can be used to create effects such as overlapping “windows”
-or pop-up menus.</p>
-<p>The Overlay widget always treats the top widget as the one in focus. All
-keyboard input will be passed to the top widget.</p>
-<p>If you want to use a flow widget for the top widget, first wrap the flow
-widget with a <a class="reference internal" href="../reference/widget.html#urwid.Filler" title="urwid.Filler"><code class="xref py py-class docutils literal notranslate"><span class="pre">Filler</span></code></a> widget.</p>
+<p>The <a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal notranslate"><span class="pre">Overlay</span></code></a> widget is a box/flow/fixed widget that contains two other widgets.
+The bottom widget is BOX rendered the full size of the Overlay widget
+and the top widget is placed on top, obscuring an area of the bottom widget.
+Widget sizing depends on the top widget sizing and sizing options.
+This widget can be used to create effects such as overlapping “windows” or pop-up menus.</p>
+<p>The Overlay widget always treats the top widget as the one in focus.
+All keyboard input will be passed to the top widget.</p>
+<p>If you want to use a flow widget for the bottom widget,
+first wrap the flow widget with a <a class="reference internal" href="../reference/widget.html#urwid.Filler" title="urwid.Filler"><code class="xref py py-class docutils literal notranslate"><span class="pre">Filler</span></code></a> widget.</p>
 </section>
 </section>
 <section id="listbox-contents">
@@ -712,6 +712,7 @@ handle keyboard input.</p>
     <span class="n">_selectable</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pudding</span> <span class="o">=</span> <span class="s2">&quot;pudding&quot;</span>
 
     <span class="k">def</span> <span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -771,34 +772,35 @@ make sure that the cursor is visible within its focus widget.</p>
 <span class="linenos"> 8</span>    <span class="n">_selectable</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="linenos"> 9</span>
 <span class="linenos">10</span>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="linenos">11</span>        <span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span> <span class="o">=</span> <span class="mi">0</span>
-<span class="linenos">12</span>
-<span class="linenos">13</span>    <span class="k">def</span> <span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-<span class="linenos">14</span>        <span class="k">return</span> <span class="mi">1</span>
-<span class="linenos">15</span>
-<span class="linenos">16</span>    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-<span class="linenos">17</span>        <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
-<span class="linenos">18</span>        <span class="n">num_pudding</span> <span class="o">=</span> <span class="n">maxcol</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="s2">&quot;Pudding&quot;</span><span class="p">)</span>
-<span class="linenos">19</span>        <span class="n">cursor</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="linenos">20</span>        <span class="k">if</span> <span class="n">focus</span><span class="p">:</span>
-<span class="linenos">21</span>            <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cursor_coords</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
-<span class="linenos">22</span>        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="s2">&quot;Pudding&quot;</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">],</span> <span class="p">[],</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">maxcol</span><span class="p">)</span>
-<span class="linenos">23</span>
-<span class="linenos">24</span>    <span class="k">def</span> <span class="nf">get_cursor_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
-<span class="linenos">25</span>        <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
-<span class="linenos">26</span>        <span class="n">col</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span><span class="p">,</span> <span class="n">maxcol</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-<span class="linenos">27</span>        <span class="k">return</span> <span class="n">col</span><span class="p">,</span> <span class="mi">0</span>
-<span class="linenos">28</span>
-<span class="linenos">29</span>    <span class="k">def</span> <span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-<span class="linenos">30</span>        <span class="p">(</span><span class="n">maxcol</span><span class="p">,</span> <span class="p">)</span> <span class="o">=</span> <span class="n">size</span>
-<span class="linenos">31</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;left&#39;</span><span class="p">:</span>
-<span class="linenos">32</span>            <span class="n">col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span> <span class="o">-</span> <span class="mi">1</span>
-<span class="linenos">33</span>        <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;right&#39;</span><span class="p">:</span>
-<span class="linenos">34</span>            <span class="n">col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span> <span class="o">+</span> <span class="mi">1</span>
-<span class="linenos">35</span>        <span class="k">else</span><span class="p">:</span>
-<span class="linenos">36</span>            <span class="k">return</span> <span class="n">key</span>
-<span class="linenos">37</span>        <span class="bp">self</span><span class="o">.</span><span class="n">cursor_x</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">maxcol</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">col</span><span class="p">))</span>
-<span class="linenos">38</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_invalidate</span><span class="p">()</span>
+<span class="linenos">11</span>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+<span class="linenos">12</span>        <span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="linenos">13</span>
+<span class="linenos">14</span>    <span class="k">def</span> <span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="linenos">15</span>        <span class="k">return</span> <span class="mi">1</span>
+<span class="linenos">16</span>
+<span class="linenos">17</span>    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="linenos">18</span>        <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
+<span class="linenos">19</span>        <span class="n">num_pudding</span> <span class="o">=</span> <span class="n">maxcol</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="s2">&quot;Pudding&quot;</span><span class="p">)</span>
+<span class="linenos">20</span>        <span class="n">cursor</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="linenos">21</span>        <span class="k">if</span> <span class="n">focus</span><span class="p">:</span>
+<span class="linenos">22</span>            <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cursor_coords</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+<span class="linenos">23</span>        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="s2">&quot;Pudding&quot;</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">],</span> <span class="p">[],</span> <span class="n">cursor</span><span class="p">,</span> <span class="n">maxcol</span><span class="p">)</span>
+<span class="linenos">24</span>
+<span class="linenos">25</span>    <span class="k">def</span> <span class="nf">get_cursor_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+<span class="linenos">26</span>        <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
+<span class="linenos">27</span>        <span class="n">col</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span><span class="p">,</span> <span class="n">maxcol</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+<span class="linenos">28</span>        <span class="k">return</span> <span class="n">col</span><span class="p">,</span> <span class="mi">0</span>
+<span class="linenos">29</span>
+<span class="linenos">30</span>    <span class="k">def</span> <span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="linenos">31</span>        <span class="p">(</span><span class="n">maxcol</span><span class="p">,</span> <span class="p">)</span> <span class="o">=</span> <span class="n">size</span>
+<span class="linenos">32</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;left&#39;</span><span class="p">:</span>
+<span class="linenos">33</span>            <span class="n">col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span> <span class="o">-</span> <span class="mi">1</span>
+<span class="linenos">34</span>        <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;right&#39;</span><span class="p">:</span>
+<span class="linenos">35</span>            <span class="n">col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span> <span class="o">+</span> <span class="mi">1</span>
+<span class="linenos">36</span>        <span class="k">else</span><span class="p">:</span>
+<span class="linenos">37</span>            <span class="k">return</span> <span class="n">key</span>
+<span class="linenos">38</span>        <span class="bp">self</span><span class="o">.</span><span class="n">cursor_x</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">maxcol</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">col</span><span class="p">))</span>
+<span class="linenos">39</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_invalidate</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>CursorPudding will let the user move the cursor through the widget by pressing
@@ -955,7 +957,7 @@ defined in superclasses after the class definition.</p>
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.2</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.3</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widgets</a></li> 
       </ul>
