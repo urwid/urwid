@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import typing
+
 from urwid.canvas import CompositeCanvas, SolidCanvas
 
 from .constants import Sizing
@@ -46,7 +48,7 @@ class Divider(Widget):
     def _repr_words(self):
         return super()._repr_words() + [repr(self.div_char)] * (self.div_char != " ")
 
-    def _repr_attrs(self):
+    def _repr_attrs(self) -> dict[str, typing.Any]:
         attrs = dict(super()._repr_attrs())
         if self.top:
             attrs["top"] = self.top

@@ -8,7 +8,7 @@ from urwid.split_repr import remove_defaults
 from urwid.util import calc_width, decompose_tagmarkup
 
 from .constants import Align, Sizing, WrapMode
-from .widget import Widget
+from .widget import Widget, WidgetError
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
@@ -16,7 +16,7 @@ if typing.TYPE_CHECKING:
     from urwid.canvas import TextCanvas
 
 
-class TextError(Exception):
+class TextError(WidgetError):
     pass
 
 
@@ -86,7 +86,7 @@ class Text(Widget):
             )
         return [*first, rest]
 
-    def _repr_attrs(self):
+    def _repr_attrs(self) -> dict[str, typing.Any]:
         attrs = dict(
             super()._repr_attrs(),
             align=self._align_mode,

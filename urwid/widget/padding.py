@@ -173,7 +173,7 @@ class Padding(WidgetDecoration):
 
         return frozenset(sizing)
 
-    def _repr_attrs(self):
+    def _repr_attrs(self) -> dict[str, typing.Any]:
         attrs = dict(
             super()._repr_attrs(),
             align=self.align,

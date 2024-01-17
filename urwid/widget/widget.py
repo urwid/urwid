@@ -567,7 +567,7 @@ class Widget(metaclass=WidgetMeta):
             words.append("/".join(sorted(self.sizing())))
         return [*words, "widget"]
 
-    def _repr_attrs(self):
+    def _repr_attrs(self) -> dict[str, typing.Any]:
         return {}
 
     def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:

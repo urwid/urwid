@@ -7,7 +7,7 @@ from urwid.util import get_encoding_mode
 
 from .constants import Sizing
 from .text import Text
-from .widget import Widget, WidgetMeta, nocache_widget_render, nocache_widget_render_instance
+from .widget import Widget, WidgetError, WidgetMeta, nocache_widget_render, nocache_widget_render_instance
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
@@ -40,7 +40,7 @@ def nocache_bargraph_get_data(self, get_data_fn):
     self._get_data = get_data_fn
 
 
-class BarGraphError(Exception):
+class BarGraphError(WidgetError):
     pass
 
 

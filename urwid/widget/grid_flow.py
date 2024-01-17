@@ -11,7 +11,7 @@ from .container import WidgetContainerListContentsMixin, WidgetContainerMixin
 from .divider import Divider
 from .padding import Padding
 from .pile import Pile
-from .widget import Widget, WidgetWrap
+from .widget import Widget, WidgetError, WidgetWrap
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
@@ -19,7 +19,7 @@ if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
 
-class GridFlowError(Exception):
+class GridFlowError(WidgetError):
     pass
 
 
