@@ -173,3 +173,27 @@ class FillerTest(unittest.TestCase):
                 f"Cannot pack (maxcol,) size, this is not a flow widget: {widget!r}",
                 str(ctx.exception),
             )
+
+    def test_render_focused_not_fit(self):
+        """Test that a focused widget will be shown and top trimmed if not enough height."""
+        widget = urwid.Filler(
+            urwid.Pile(
+                (
+                    urwid.Text("First"),
+                    urwid.Text("Second"),
+                    urwid.Text("Third"),
+                    urwid.Button("Selectable"),
+                    urwid.Text("Last"),
+                ),
+            )
+        )
+
+        canvas = widget.render((14, 3), focus=True)
+        self.assertEqual(
+            [
+                b"Second        ",
+                b"Third         ",
+                b"< Selectable >",
+            ],
+            canvas.text,
+        )
