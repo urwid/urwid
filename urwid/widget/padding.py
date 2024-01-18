@@ -476,7 +476,7 @@ class Padding(WidgetDecoration):
         x: int,
         y: int,
         focus: bool,
-    ):
+    ) -> bool | None:
         """Send mouse event if position is within self._original_widget."""
         if not hasattr(self._original_widget, "mouse_event"):
             return False

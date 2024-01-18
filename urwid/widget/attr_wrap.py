@@ -6,6 +6,7 @@ import warnings
 from .attr_map import AttrMap
 
 if typing.TYPE_CHECKING:
+    from .constants import Sizing
     from .widget import Widget
 
 
@@ -135,5 +136,5 @@ class AttrWrap(AttrMap):
         """
         return getattr(self._original_widget, name)
 
-    def sizing(self):
+    def sizing(self) -> frozenset[Sizing]:
         return self._original_widget.sizing()

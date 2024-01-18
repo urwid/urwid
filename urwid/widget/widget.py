@@ -420,14 +420,14 @@ class Widget(metaclass=WidgetMeta):
         """
         CanvasCache.invalidate(self)
 
-    def _emit(self, name: Hashable, *args):
+    def _emit(self, name: Hashable, *args) -> None:
         """
         Convenience function to emit signals with self as first
         argument.
         """
         signals.emit_signal(self, name, self, *args)
 
-    def selectable(self):
+    def selectable(self) -> bool:
         """
         :returns: ``True`` if this is a widget that is designed to take the
                   focus, i.e. it contains something the user might want to

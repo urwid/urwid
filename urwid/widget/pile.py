@@ -13,7 +13,7 @@ from .container import WidgetContainerListContentsMixin, WidgetContainerMixin, _
 from .widget import Widget, WidgetError, WidgetWarning
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterable, MutableSequence, Sequence
+    from collections.abc import Iterable, Sequence
 
     from typing_extensions import Literal
 
@@ -189,7 +189,10 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         self._selectable = False
         super().__init__()
-        self._contents = MonitoredFocusList()
+        self._contents: MonitoredFocusList[
+            Widget,
+            tuple[Literal[WHSettings.PACK], None] | tuple[Literal[WHSettings.GIVEN, WHSettings.WEIGHT], int],
+        ] = MonitoredFocusList()
         self._contents.set_modified_callback(self._contents_modified)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
         self._contents.set_validate_contents_modified(self._validate_contents_modified)
@@ -312,7 +315,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     @property
     def contents(
         self,
-    ) -> MutableSequence[
+    ) -> MonitoredFocusList[
         Widget,
         tuple[Literal[WHSettings.PACK], None] | tuple[Literal[WHSettings.GIVEN, WHSettings.WEIGHT], int],
     ]:
@@ -345,14 +348,23 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         return self._contents
 
     @contents.setter
-    def contents(self, c):
+    def contents(
+        self,
+        c: Sequence[
+            Widget,
+            tuple[Literal[WHSettings.PACK], None] | tuple[Literal[WHSettings.GIVEN, WHSettings.WEIGHT], int],
+        ],
+    ) -> None:
         self._contents[:] = c
 
     @staticmethod
     def options(
-        height_type: Literal["pack", "given", "weight"] = WHSettings.WEIGHT,
+        height_type: Literal["pack", "given", "weight"] | WHSettings = WHSettings.WEIGHT,
         height_amount: int | None = 1,
-    ) -> tuple[Literal["pack"], None] | tuple[Literal["given", "weight"], int]:
+    ) -> (
+        tuple[Literal[WHSettings.PACK], None]
+        | tuple[Literal["given", "weight", WHSettings.GIVEN, WHSettings.WEIGHT], int]
+    ):
         """
         Return a new options tuple for use in a Pile's :attr:`contents` list.
 
