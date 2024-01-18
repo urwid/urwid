@@ -268,10 +268,15 @@ class Canvas:
     @property
     def text(self) -> list[bytes]:
         """
-        Return the text content of the canvas as a list of strings,
-        one for each row.
+        Return the text content of the canvas as a list of strings, one for each row.
         """
         return [b"".join([text for (attr, cs, text) in row]) for row in self.content()]
+
+    @property
+    def decoded_text(self) -> Sequence[str]:
+        """Decoded text content of the canvas as a sequence of strings, one for each row."""
+        encoding = get_encoding()
+        return tuple(line.decode(encoding) for line in self.text)
 
     def _text_content(self):
         warnings.warn(
@@ -371,7 +376,7 @@ class Canvas:
 
     def __str__(self) -> str:
         with contextlib.suppress(BaseException):
-            return b"\n".join(self.text).decode(get_encoding())
+            return "\n".join(self.decoded_text)
 
         return repr(self)
 

@@ -821,22 +821,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         for i, (width, (widget, (size_kind, _size_weight, is_box))) in enumerate(zip(widths, self.contents)):
             w_sizing = widget.sizing()
 
-            if size_kind == WHSettings.GIVEN:
-                if is_box:
-                    box.append(i)
-                elif Sizing.FLOW in w_sizing and not is_box:
-                    heights[i] = widget.rows((width,), focus and i == self.focus_position)
-                    w_h_args[i] = (width,)
-                else:
-                    box_need_height.append(i)
-
-            elif size_kind == WHSettings.PACK:
-                if Sizing.FLOW in w_sizing:
-                    heights[i] = widget.rows((width,), focus and i == self.focus_position)
-                    w_h_args[i] = (width,)
-                else:
-                    heights[i] = widget.pack((), focus and i == self.focus_position)[1]
-                    w_h_args[i] = ()
+            if len(size) == 2 and Sizing.BOX in w_sizing:
+                heights[i] = size[1]
+                w_h_args[i] = (width, size[1])
 
             elif is_box:
                 box.append(i)
@@ -844,6 +831,10 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             elif Sizing.FLOW in w_sizing:
                 heights[i] = widget.rows((width,), focus and i == self.focus_position)
                 w_h_args[i] = (width,)
+
+            elif size_kind == WHSettings.PACK:
+                heights[i] = widget.pack((), focus and i == self.focus_position)[1]
+                w_h_args[i] = ()
 
             else:
                 box_need_height.append(i)

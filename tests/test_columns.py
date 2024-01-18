@@ -708,3 +708,39 @@ class ColumnsTest(unittest.TestCase):
             self.assertEqual(c.column_types, [("flow", None), ("weight", 1), ("weight", 1)])
             c.column_types[:] = [("weight", 2)]
             self.assertEqual(len(c.contents), 1)
+
+    def test_regression_columns_different_height(self):
+        size = (20, 5)
+        box_w = urwid.SolidFill("#")
+        f_f_widget = urwid.Text("Fixed/Flow")
+        box_flow = urwid.LineBox(urwid.Filler(f_f_widget, valign=urwid.TOP))
+        self.assertIn(urwid.BOX, box_w.sizing())
+        self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), box_flow.sizing())
+
+        with self.subTest("BoxFlow weight"):
+            widget = urwid.Columns(((1, box_w), box_flow))
+
+            self.assertEqual(
+                (
+                    "#┌─────────────────┐",
+                    "#│Fixed/Flow       │",
+                    "#│                 │",
+                    "#│                 │",
+                    "#└─────────────────┘",
+                ),
+                widget.render(size, False).decoded_text,
+            )
+
+        with self.subTest("BoxFlow GIVEN"):
+            widget = urwid.Columns((box_w, (12, box_flow)))
+
+            self.assertEqual(
+                (
+                    "########┌──────────┐",
+                    "########│Fixed/Flow│",
+                    "########│          │",
+                    "########│          │",
+                    "########└──────────┘",
+                ),
+                widget.render(size, False).decoded_text,
+            )
