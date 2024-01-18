@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Canvas Classes and Functions &#8212; Urwid 2.4.3</title>
+    <title>Canvas Classes and Functions &#8212; Urwid 2.4.4</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script src="../_static/documentation_options.js?v=7a6bd5fc"></script>
+    <script src="../_static/documentation_options.js?v=b1e24531"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="attrspec.html" title="Raw Display Attributes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.4</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Canvas Classes and Functions</a></li> 
       </ul>
@@ -54,6 +54,12 @@
 <dt>value1, value2, value3 – if not None, raise a helpful error:</dt><dd><p>the old Canvas class is now called TextCanvas.</p>
 </dd>
 </dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.Canvas.decoded_text">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">decoded_text</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#urwid.Canvas.decoded_text" title="Link to this definition">¶</a></dt>
+<dd><p>Decoded text content of the canvas as a sequence of strings, one for each row.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.Canvas.finalize">
 <span class="sig-name descname"><span class="pre">finalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="widget.html#urwid.Widget" title="urwid.Widget"><span class="pre">Widget</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Canvas.finalize" title="Link to this definition">¶</a></dt>
@@ -90,8 +96,7 @@ current canvas.</p>
 <dl class="py property">
 <dt class="sig sig-object py" id="urwid.Canvas.text">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">text</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#urwid.Canvas.text" title="Link to this definition">¶</a></dt>
-<dd><p>Return the text content of the canvas as a list of strings,
-one for each row.</p>
+<dd><p>Return the text content of the canvas as a list of strings, one for each row.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -378,6 +383,7 @@ canvas – rendered canvas with widget_info (widget, size, focus)</p>
 <li><a class="reference internal" href="#">Canvas Classes and Functions</a><ul>
 <li><a class="reference internal" href="#canvas-classes">Canvas Classes</a><ul>
 <li><a class="reference internal" href="#urwid.Canvas"><code class="docutils literal notranslate"><span class="pre">Canvas</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.Canvas.decoded_text"><code class="docutils literal notranslate"><span class="pre">Canvas.decoded_text</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Canvas.finalize"><code class="docutils literal notranslate"><span class="pre">Canvas.finalize()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Canvas.set_pop_up"><code class="docutils literal notranslate"><span class="pre">Canvas.set_pop_up()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Canvas.text"><code class="docutils literal notranslate"><span class="pre">Canvas.text</span></code></a></li>
@@ -479,7 +485,7 @@ canvas – rendered canvas with widget_info (widget, size, focus)</p>
         <li class="right" >
           <a href="attrspec.html" title="Raw Display Attributes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.4</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Canvas Classes and Functions</a></li> 
       </ul>
