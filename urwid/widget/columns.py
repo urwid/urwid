@@ -13,7 +13,7 @@ from .container import WidgetContainerListContentsMixin, WidgetContainerMixin, _
 from .widget import Widget, WidgetError, WidgetWarning
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterable, MutableSequence, Sequence
+    from collections.abc import Iterable, Sequence
 
     from typing_extensions import Literal
 
@@ -235,7 +235,11 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         self._selectable = False
         super().__init__()
-        self._contents = MonitoredFocusList()
+        self._contents: MonitoredFocusList[
+            Widget,
+            tuple[Literal[WHSettings.PACK], None, bool]
+            | tuple[Literal[WHSettings.GIVEN, WHSettings.WEIGHT], int, bool],
+        ] = MonitoredFocusList()
         self._contents.set_modified_callback(self._contents_modified)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
         self._contents.set_validate_contents_modified(self._validate_contents_modified)
@@ -421,7 +425,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     @property
     def contents(
         self,
-    ) -> MutableSequence[
+    ) -> MonitoredFocusList[
         Widget,
         tuple[Literal[WHSettings.PACK], None, bool] | tuple[Literal[WHSettings.GIVEN, WHSettings.WEIGHT], int, bool],
     ]:
@@ -435,7 +439,14 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         return self._contents
 
     @contents.setter
-    def contents(self, c):
+    def contents(
+        self,
+        c: Sequence[
+            Widget,
+            tuple[Literal[WHSettings.PACK], None, bool]
+            | tuple[Literal[WHSettings.GIVEN, WHSettings.WEIGHT], int, bool],
+        ],
+    ) -> None:
         self._contents[:] = c
 
     @staticmethod

@@ -64,8 +64,8 @@ class BoxAdapter(WidgetDecoration):
         )
         self.original_widget = widget
 
-    def sizing(self):
-        return {Sizing.FLOW}
+    def sizing(self) -> frozenset[Sizing]:
+        return frozenset((Sizing.FLOW,))
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
         """
@@ -109,7 +109,7 @@ class BoxAdapter(WidgetDecoration):
         col: int,
         row: int,
         focus: bool,
-    ) -> bool:
+    ) -> bool | None:
         (maxcol,) = size
         if not hasattr(self._original_widget, "mouse_event"):
             return False

@@ -78,7 +78,7 @@ class MonitoredList(list):
         """
         self._modified = callback  # monkeypatch
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({list(self)!r})"
 
     # noinspection PyMethodParameters
@@ -347,7 +347,7 @@ class MonitoredFocusList(MonitoredList, typing.Generic[_T]):
     def __setitem__(self, i: int | slice, y: _T | Collection[_T]) -> None:
         """
         >>> def modified(indices, new_items):
-        ...     print("range%r <- %r" % (indices, new_items))
+        ...     print(f"range{indices!r} <- {new_items!r}" )
         >>> ml = MonitoredFocusList([0,1,2,3], focus=2)
         >>> ml.set_validate_contents_modified(modified)
         >>> ml[0] = 9
@@ -383,7 +383,7 @@ class MonitoredFocusList(MonitoredList, typing.Generic[_T]):
     def __imul__(self, n: int):
         """
         >>> def modified(indices, new_items):
-        ...     print("range%r <- %r" % (indices, list(new_items)))
+        ...     print(f"range{indices!r} <- {list(new_items)!r}" )
         >>> ml = MonitoredFocusList([0,1,2], focus=2)
         >>> ml.set_validate_contents_modified(modified)
         >>> ml *= 3
@@ -406,7 +406,7 @@ class MonitoredFocusList(MonitoredList, typing.Generic[_T]):
     def append(self, item: _T) -> None:
         """
         >>> def modified(indices, new_items):
-        ...     print("range%r <- %r" % (indices, new_items))
+        ...     print(f"range{indices!r} <- {new_items!r}" )
         >>> ml = MonitoredFocusList([0,1,2], focus=2)
         >>> ml.set_validate_contents_modified(modified)
         >>> ml.append(6)
@@ -419,7 +419,7 @@ class MonitoredFocusList(MonitoredList, typing.Generic[_T]):
     def extend(self, items: Collection[_T]) -> None:
         """
         >>> def modified(indices, new_items):
-        ...     print("range%r <- %r" % (indices, list(new_items)))
+        ...     print(f"range{indices!r} <- {list(new_items)!r}" )
         >>> ml = MonitoredFocusList([0,1,2], focus=2)
         >>> ml.set_validate_contents_modified(modified)
         >>> ml.extend((6,7,8))
@@ -479,7 +479,7 @@ class MonitoredFocusList(MonitoredList, typing.Generic[_T]):
         super().remove(value)
         self.focus = focus
 
-    def reverse(self):
+    def reverse(self) -> None:
         """
         >>> ml = MonitoredFocusList([0,1,2,3,4], focus=1)
         >>> ml.reverse(); ml
@@ -489,7 +489,7 @@ class MonitoredFocusList(MonitoredList, typing.Generic[_T]):
         self.focus = max(0, len(self) - self._focus - 1)
         return rval
 
-    def sort(self, **kwargs):
+    def sort(self, **kwargs) -> None:
         """
         >>> ml = MonitoredFocusList([-2,0,1,-3,2,-1,3], focus=4)
         >>> ml.sort(); ml

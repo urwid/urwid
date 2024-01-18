@@ -30,7 +30,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
     bottom.
     """
 
-    def sizing(self):
+    def sizing(self) -> frozenset[Sizing]:
         return frozenset((Sizing.FLOW, Sizing.FIXED))
 
     def __init__(
@@ -41,7 +41,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         v_sep: int,
         align: Literal["left", "center", "right"] | Align | tuple[Literal["relative", WHSettings.RELATIVE], int],
         focus: int | Widget | None = None,
-    ):
+    ) -> None:
         """
         :param cells: iterable of flow widgets to display
         :param cell_width: column width for each cell
@@ -63,7 +63,9 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         if focus_position < 0:
             focus_position = 0
 
-        self._contents = MonitoredFocusList(prepared_contents, focus=focus_position)
+        self._contents: MonitoredFocusList[tuple[Widget, tuple[Literal[WHSettings.GIVEN], int]]] = MonitoredFocusList(
+            prepared_contents, focus=focus_position
+        )
         self._contents.set_modified_callback(self._invalidate)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
         self._contents.set_validate_contents_modified(self._contents_modified)
@@ -82,7 +84,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
 
     def _contents_modified(
         self, slc, new_items: Iterable[tuple[Widget, tuple[Literal["given", WHSettings.GIVEN], int]]]
-    ):
+    ) -> None:
         for item in new_items:
             try:
                 _w, (t, _n) = item
@@ -179,7 +181,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         self.cell_width = width
 
     @property
-    def contents(self):
+    def contents(self) -> MonitoredFocusList[tuple[Widget, tuple[Literal[WHSettings.GIVEN], int]]]:
         """
         The contents of this GridFlow as a list of (widget, options)
         tuples.

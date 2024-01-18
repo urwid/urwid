@@ -52,7 +52,7 @@ class TreeWidget(urwid.WidgetWrap):
         widget = self.get_indented_widget()
         super().__init__(widget)
 
-    def selectable(self):
+    def selectable(self) -> bool:
         """
         Allow selection of non-leaf nodes so children may be (un)expanded
         """

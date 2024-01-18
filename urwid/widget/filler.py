@@ -36,10 +36,9 @@ class Filler(WidgetDecoration):
         valign: (
             Literal["top", "middle", "bottom"] | VAlign | tuple[Literal["relative", WHSettings.RELATIVE], int]
         ) = VAlign.MIDDLE,
-        height: int
-        | Literal["pack", WHSettings.PACK]
-        | tuple[Literal["relative", WHSettings.RELATIVE], int]
-        | None = WHSettings.PACK,
+        height: (
+            int | Literal["pack", WHSettings.PACK] | tuple[Literal["relative", WHSettings.RELATIVE], int] | None
+        ) = WHSettings.PACK,
         min_height: int | None = None,
         top: int = 0,
         bottom: int = 0,
@@ -306,7 +305,7 @@ class Filler(WidgetDecoration):
         col: int,
         row: int,
         focus: bool,
-    ) -> bool:
+    ) -> bool | None:
         """Pass to self.original_widget."""
         maxcol, maxrow = self.pack(size, focus)
         if not hasattr(self._original_widget, "mouse_event"):

@@ -388,7 +388,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         right: int = 0,
         top: int = 0,
         bottom: int = 0,
-    ):
+    ) -> None:
         """
         Adjust the overlay size and position parameters.
 

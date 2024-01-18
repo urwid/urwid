@@ -573,7 +573,6 @@ class CalcDisplay:
 
     def __init__(self):
         self.columns = urwid.Columns([HelpColumn(), CellColumn("A")], 1)
-        self.col_list = self.columns.widget_list
         self.columns.focus_position = 1
         view = urwid.AttrMap(self.columns, "body")
         self.view = urwid.Frame(view)  # for showing messages
@@ -666,7 +665,7 @@ class CalcDisplay:
             if child is None:
                 # something invalid in focus
                 return key
-            self.col_list.append(child)
+            self.columns.contents.append((child, (urwid.WEIGHT, 1, False)))
             self.set_link(parent, col, child)
             self.columns.focus_position = len(self.columns) - 1
             return None
@@ -682,7 +681,7 @@ class CalcDisplay:
                 # column has no parent
                 raise CalcEvent(E_no_parent_column)
 
-            new_i = self.col_list.index(pcol)
+            new_i = next(iter(idx for idx, (w, _) in enumerate(self.columns.contents) if w == pcol))
             self.columns.focus_position = new_i
             return None
 
@@ -720,7 +719,7 @@ class CalcDisplay:
         f = self.columns.focus_position
         if f == i:
             # move focus to the parent column
-            f = self.col_list.index(pcol)
+            f = next(iter(idx for idx, (w, _) in enumerate(self.columns.contents) if w == pcol))
             self.columns.focus_position = f
 
         parent.remove_child()
@@ -730,7 +729,7 @@ class CalcDisplay:
         # delete children of this column
         keep_right_cols = []
         remove_cols = [col]
-        for rcol in self.col_list[i:]:
+        for rcol, _ in self.columns.contents[i:]:
             parent, pcol = self.get_parent(rcol)
             if pcol in remove_cols:
                 remove_cols.append(rcol)
@@ -740,7 +739,7 @@ class CalcDisplay:
             # remove the links
             del self.col_link[rc]
         # keep only the non-children
-        self.col_list[i:] = keep_right_cols
+        self.columns.contents[i:] = [(w, (urwid.WEIGHT, 1, False)) for w in keep_right_cols]
 
         # fix the letter assignments
         for j in range(i, len(self.columns)):

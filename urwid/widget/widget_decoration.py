@@ -10,6 +10,8 @@ from .widget import Widget, WidgetError, WidgetWarning, delegate_to_widget_mixin
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
+    from .constants import Sizing
+
 
 __all__ = ("WidgetDecoration", "WidgetPlaceholder", "WidgetDisable", "WidgetError", "WidgetWarning")
 
@@ -109,7 +111,7 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
     def selectable(self) -> bool:
         return self._original_widget.selectable()
 
-    def sizing(self):
+    def sizing(self) -> frozenset[Sizing]:
         return self._original_widget.sizing()
 
 
@@ -144,7 +146,7 @@ class WidgetDisable(WidgetDecoration):
     def rows(self, size, focus: bool = False) -> int:
         return self._original_widget.rows(size, False)
 
-    def sizing(self):
+    def sizing(self) -> frozenset[Sizing]:
         return self._original_widget.sizing()
 
     def pack(self, size, focus: bool = False) -> tuple[int, int]:
