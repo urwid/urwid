@@ -215,6 +215,9 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             if focus_item is None and w.selectable():
                 focus_item = i
 
+            if not isinstance(w, Widget):
+                warnings.warn(f"{w!r} is not a Widget", PileWarning, stacklevel=3)
+
         if self.contents and focus_item is not None:
             self.focus = focus_item
 
@@ -548,7 +551,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         Return a size appropriate for passing to self.contents[i][0].render
         """
-        w, (f, height) = self.contents[i]
+        _w, (f, height) = self.contents[i]
         if f == WHSettings.PACK:
             if not size:
                 return ()
@@ -684,17 +687,19 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         w_h_args: list[tuple[int, int] | tuple[int] | tuple[()]] = []
 
         for i, (w, (f, height)) in enumerate(self.contents):
-            item_focus = focus and self.focus == w
-            w_sizing = w.sizing()
+            if isinstance(w, Widget):
+                w_sizing = w.sizing()
+            else:
+                warnings.warn(f"{w!r} is not a Widget", PileWarning, stacklevel=3)
+                w_sizing = frozenset((Sizing.FLOW, Sizing.BOX))
 
+            item_focus = focus and self.focus == w
             widths.append(maxcol)
 
             if f == WHSettings.GIVEN:
                 heights.append(height)
                 w_h_args.append((maxcol, height))
             elif f == WHSettings.PACK or len(size) == 1:
-                widths[i] = maxcol
-
                 if Sizing.FLOW in w_sizing:
                     w_h_arg = (maxcol,)
                 elif Sizing.FIXED in w_sizing and f == WHSettings.PACK:
@@ -711,8 +716,6 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 heights.append(w.pack(w_h_arg, item_focus)[1])
                 w_h_args.append(w_h_arg)
             else:
-                widths[i] = maxcol
-
                 if item_rows is None:
                     item_rows = self.get_item_rows(size, focus)
                 rows = item_rows[i]
@@ -742,8 +745,14 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if remaining is None:
             # pile is a flow widget
             for i, (w, (f, height)) in enumerate(self.contents):
+                if isinstance(w, Widget):
+                    w_sizing = w.sizing()
+                else:
+                    warnings.warn(f"{w!r} is not a Widget", PileWarning, stacklevel=3)
+                    w_sizing = frozenset((Sizing.FLOW, Sizing.BOX))
+
                 focused = focus and self.focus == w
-                w_sizing = w.sizing()
+
                 if f == WHSettings.GIVEN:
                     rows_numbers.append(height)
                 elif Sizing.FLOW in w_sizing:

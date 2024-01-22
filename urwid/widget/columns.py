@@ -264,6 +264,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             if focus_column == w or (focus_column is None and w.selectable()):
                 focus_column = i
 
+            if not isinstance(w, Widget):
+                warnings.warn(f"{w!r} is not a Widget", ColumnsWarning, stacklevel=3)
+
         self.dividechars = dividechars
 
         if self.contents and focus_column is not None:
@@ -830,7 +833,12 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         box_need_height: list[int] = []
 
         for i, (width, (widget, (size_kind, _size_weight, is_box))) in enumerate(zip(widths, self.contents)):
-            w_sizing = widget.sizing()
+            if isinstance(widget, Widget):
+                w_sizing = widget.sizing()
+            else:
+                warnings.warn(f"{widget!r} is not Widget.", ColumnsWarning, stacklevel=3)
+                # This branch should be fully deleted later.
+                w_sizing = frozenset((Sizing.FLOW, Sizing.BOX))
 
             if len(size) == 2 and Sizing.BOX in w_sizing:
                 heights[i] = size[1]
@@ -963,17 +971,17 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         best = None
         x = 0
-        for i, (width, (w, options)) in enumerate(zip(widths, self.contents)):
+        for i, (width, (w, _options)) in enumerate(zip(widths, self.contents)):
             end = x + width
             if w.selectable():
                 if col != Align.RIGHT and (col == Align.LEFT or x > col) and best is None:
                     # no other choice
-                    best = i, x, end, w, options
+                    best = i, x, end, w
                     break
                 if col != Align.RIGHT and x > col and col - best[2] < x - col:
                     # choose one on left
                     break
-                best = i, x, end, w, options
+                best = i, x, end, w
                 if col != Align.RIGHT and col < end:
                     # choose this one
                     break
@@ -981,7 +989,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         if best is None:
             return False
-        i, x, end, w, (_t, _n, b) = best
+        i, x, end, w = best
         if hasattr(w, "move_cursor_to_coords"):
             if isinstance(col, int):
                 move_x = min(max(0, col - x), end - x - 1)
