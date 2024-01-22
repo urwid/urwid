@@ -46,7 +46,7 @@ def _call_modified(
     return call_modified_wrapper
 
 
-class MonitoredList(list):
+class MonitoredList(typing.List[_T], typing.Generic[_T]):
     """
     This class can trigger a callback any time its contents are changed
     with the usual list operations append, extend, etc.
@@ -105,7 +105,7 @@ class MonitoredList(list):
         clear = _call_modified(list.clear)  # type: ignore[assignment]  # magic like old __super__
 
 
-class MonitoredFocusList(MonitoredList, typing.Generic[_T]):
+class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
     """
     This class can trigger a callback any time its contents are modified,
     before and/or after modification, and any time the focus index is changed.

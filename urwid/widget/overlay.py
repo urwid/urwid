@@ -425,6 +425,10 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 normalized_valign = VAlign.BOTTOM
             else:
                 normalized_valign = valign
+
+        elif not isinstance(valign, (VAlign, str)):
+            raise OverlayError(f"invalid valign: {valign!r}")
+
         else:
             normalized_valign = VAlign(valign)
 

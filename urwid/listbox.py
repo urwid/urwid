@@ -33,6 +33,7 @@ from urwid.signals import connect_signal, disconnect_signal
 from urwid.util import is_mouse_press
 from urwid.widget import (
     Sizing,
+    VAlign,
     WHSettings,
     Widget,
     WidgetContainerMixin,
@@ -48,6 +49,8 @@ if typing.TYPE_CHECKING:
 
     from urwid.canvas import CompositeCanvas
 
+_T = typing.TypeVar("_T")
+
 
 class ListWalkerError(Exception):
     pass
@@ -56,7 +59,7 @@ class ListWalkerError(Exception):
 class ListWalker(metaclass=signals.MetaSignals):
     signals: typing.ClassVar[list[str]] = ["modified"]
 
-    def _modified(self):
+    def _modified(self) -> None:
         signals.emit_signal(self, "modified")
 
     def get_focus(self):
@@ -99,8 +102,8 @@ class ListWalker(metaclass=signals.MetaSignals):
             return None, None
 
 
-class SimpleListWalker(MonitoredList, ListWalker):
-    def __init__(self, contents: Iterable[typing.Any], wrap_around: bool = False):
+class SimpleListWalker(MonitoredList[_T], ListWalker):
+    def __init__(self, contents: Iterable[_T], wrap_around: bool = False) -> None:
         """
         contents -- list to copy into this object
 
@@ -120,7 +123,7 @@ class SimpleListWalker(MonitoredList, ListWalker):
         self.wrap_around = wrap_around
 
     @property
-    def contents(self):
+    def contents(self) -> Self:
         """
         Return self.
 
@@ -128,7 +131,7 @@ class SimpleListWalker(MonitoredList, ListWalker):
         """
         return self
 
-    def _get_contents(self):
+    def _get_contents(self) -> Self:
         warnings.warn(
             f"Method `{self.__class__.__name__}._get_contents` is deprecated, "
             f"please use property`{self.__class__.__name__}.contents`",
@@ -137,15 +140,14 @@ class SimpleListWalker(MonitoredList, ListWalker):
         )
         return self
 
-    def _modified(self):
+    def _modified(self) -> None:
         if self.focus >= len(self):
             self.focus = max(0, len(self) - 1)
         ListWalker._modified(self)
 
     def set_modified_callback(self, callback: Callable[[], typing.Any]) -> typing.NoReturn:
         """
-        This function inherited from MonitoredList is not
-        implemented in SimpleListWalker.
+        This function inherited from MonitoredList is not implemented in SimpleListWalker.
 
         Use connect_signal(list_walker, "modified", ...) instead.
         """
@@ -180,7 +182,7 @@ class SimpleListWalker(MonitoredList, ListWalker):
             raise IndexError
         return position - 1
 
-    def positions(self, reverse: bool = False):
+    def positions(self, reverse: bool = False) -> Iterable[int]:
         """
         Optional method for returning an iterable of positions.
         """
@@ -189,8 +191,8 @@ class SimpleListWalker(MonitoredList, ListWalker):
         return range(len(self))
 
 
-class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
-    def __init__(self, contents: Iterable[typing.Any], wrap_around: bool = False):
+class SimpleFocusListWalker(ListWalker, MonitoredFocusList[_T]):
+    def __init__(self, contents: Iterable[_T], wrap_around: bool = False) -> None:
         """
         contents -- list to copy into this object
 
@@ -246,7 +248,7 @@ class SimpleFocusListWalker(ListWalker, MonitoredFocusList):
             raise IndexError
         return position - 1
 
-    def positions(self, reverse: bool = False):
+    def positions(self, reverse: bool = False) -> Iterable[int]:
         """
         Optional method for returning an iterable of positions.
         """
@@ -282,9 +284,8 @@ class ListBox(Widget, WidgetContainerMixin):
 
     def __init__(self, body: ListWalker) -> None:
         """
-        :param body: a ListWalker subclass such as
-            :class:`SimpleFocusListWalker` that contains
-            widgets to be displayed inside the list box
+        :param body: a ListWalker subclass such as :class:`SimpleFocusListWalker`
+            that contains widgets to be displayed inside the list box
         :type body: ListWalker
         """
         super().__init__()
@@ -610,14 +611,12 @@ class ListBox(Widget, WidgetContainerMixin):
 
     def set_focus_valign(
         self,
-        valign: Literal["top", "middle", "bottom"] | tuple[Literal["fixed top", "fixed bottom", "relative"], int],
+        valign: Literal["top", "middle", "bottom"] | VAlign | tuple[Literal["relative", WHSettings.RELATIVE], int],
     ):
         """Set the focus widget's display offset and inset.
 
         :param valign: one of:
             'top', 'middle', 'bottom'
-            ('fixed top', rows)
-            ('fixed bottom', rows)
             ('relative', percentage 0=top 100=bottom)
         """
         vt, va = normalize_valign(valign, ListBoxError)
@@ -657,7 +656,7 @@ class ListBox(Widget, WidgetContainerMixin):
         return self._body.get_focus()
 
     @property
-    def focus(self):
+    def focus(self) -> Widget | None:
         """
         the child widget in focus or None when ListBox is empty.
 
@@ -900,7 +899,7 @@ class ListBox(Widget, WidgetContainerMixin):
             self.inset_fraction = (-offset_inset, tgt_rows)
         self._invalidate()
 
-    def update_pref_col_from_focus(self, size: tuple[int, int]):
+    def update_pref_col_from_focus(self, size: tuple[int, int]) -> None:
         """Update self.pref_col from the focus widget."""
         # TODO: should this not be private?
         (maxcol, _maxrow) = size
@@ -1105,7 +1104,7 @@ class ListBox(Widget, WidgetContainerMixin):
                 self.make_cursor_visible((maxcol, maxrow))
                 return None
 
-        def actual_key(unhandled):
+        def actual_key(unhandled) -> str | None:
             if unhandled:
                 return key
             return None
@@ -1133,12 +1132,12 @@ class ListBox(Widget, WidgetContainerMixin):
 
     def _keypress_max_left(self, size: tuple[int, int]) -> bool:
         self.focus_position = next(iter(self.body.positions()))
-        self.set_focus_valign("top")
+        self.set_focus_valign(VAlign.TOP)
         return True
 
     def _keypress_max_right(self, size: tuple[int, int]) -> bool:
         self.focus_position = next(iter(self.body.positions(reverse=True)))
-        self.set_focus_valign("bottom")
+        self.set_focus_valign(VAlign.BOTTOM)
         return True
 
     def _keypress_up(self, size: tuple[int, int]) -> bool | None:
@@ -1672,7 +1671,15 @@ class ListBox(Widget, WidgetContainerMixin):
         )
         return None
 
-    def mouse_event(self, size: tuple[int, int], event, button: int, col: int, row: int, focus: bool) -> bool | None:
+    def mouse_event(
+        self,
+        size: tuple[int, int],
+        event,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool | None:
         """
         Pass the event to the contained widgets.
         May change focus on button 1 press.
@@ -1711,7 +1718,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
         return w.mouse_event((maxcol,), event, button, col, row - wrow, focus)
 
-    def ends_visible(self, size: tuple[int, int], focus: bool = False):
+    def ends_visible(self, size: tuple[int, int], focus: bool = False) -> list[Literal["top", "bottom"]]:
         """
         Return a list that may contain ``'top'`` and/or ``'bottom'``.
 
