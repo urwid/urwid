@@ -1226,8 +1226,8 @@ def CanvasCombine(canvas_info):
     children = []
     row = 0
     focus_index = 0
-    n = 0
-    for canv, pos, focus in clist:
+
+    for n, (canv, pos, focus) in enumerate(clist):
         if focus:
             focus_index = n
         children.append((0, row, canv, pos))
@@ -1236,7 +1236,6 @@ def CanvasCombine(canvas_info):
         for shortcut in canv.shortcuts:
             combined_canvas.shortcuts[shortcut] = pos
         row += canv.rows()
-        n += 1
 
     if focus_index:
         children = [children[focus_index]] + children[:focus_index] + children[focus_index + 1 :]
@@ -1278,8 +1277,8 @@ def CanvasJoin(canvas_info):
     l2 = []
     focus_item = 0
     maxrow = 0
-    n = 0
-    for canv, pos, focus, cols in canvas_info:
+
+    for n, (canv, pos, focus, cols) in enumerate(canvas_info):
         rows = canv.rows()
         pad_right = cols - canv.cols()
         if focus:
@@ -1287,7 +1286,6 @@ def CanvasJoin(canvas_info):
         if rows > maxrow:
             maxrow = rows
         l2.append((canv, pos, pad_right, rows))
-        n += 1
 
     shard_lists = []
     children = []

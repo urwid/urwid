@@ -575,8 +575,8 @@ class Screen(BaseScreen, RealTerminal):
 
             first = True
             lasta = None
-            nr = 0
-            for a, cs, seg in row:
+
+            for nr, (a, cs, seg) in enumerate(row):
                 if cs != "U":
                     seg = seg.translate(UNPRINTABLE_TRANS_TABLE)  # noqa: PLW2901
                     if not isinstance(seg, bytes):
@@ -602,7 +602,7 @@ class Screen(BaseScreen, RealTerminal):
                         # perhaps screen size changed
                         # quietly abort.
                         return
-                nr += 1
+
         if r.cursor is not None:
             x, y = r.cursor
             self._curs_set(1)
