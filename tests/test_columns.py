@@ -191,6 +191,18 @@ class ColumnsTest(unittest.TestCase):
         self.assertEqual((32, 1), widget.pack(()))
         self.assertEqual([b"<   OK   > < Cancel > <  Help  >"], widget.render(()).text)
 
+    def test_render_fixed_consistency(self) -> None:
+        """Widgets supporting FIXED should be rendered with PACK side the same way as not FIXED."""
+        widget = urwid.Columns(((urwid.PACK, urwid.Text("Prefix:")), (urwid.PACK, urwid.Button("Btn"))), dividechars=1)
+
+        cols, _ = widget.pack(())
+
+        self.assertEqual(((7, 7), (1, 1), ((), ())), widget.get_column_sizes(()))
+        self.assertEqual(((7, 7), (1, 1), ((7,), (7,))), widget.get_column_sizes((cols,)))
+
+        self.assertEqual(("Prefix: < Btn >",), widget.render(()).decoded_text)
+        self.assertEqual(("Prefix: < Btn >",), widget.render((cols,)).decoded_text)
+
     def test_pack_render_broken_sizing(self) -> None:
         use_sizing = frozenset((urwid.BOX,))
 

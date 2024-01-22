@@ -4,6 +4,7 @@ import typing
 import warnings
 from itertools import chain, repeat
 
+import urwid
 from urwid.canvas import Canvas, CanvasJoin, CompositeCanvas, SolidCanvas
 from urwid.monitored_list import MonitoredFocusList, MonitoredList
 from urwid.util import is_mouse_press
@@ -691,12 +692,19 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             if t == WHSettings.GIVEN:
                 static_w = width
             elif t == WHSettings.PACK:
-                w_sizing = w.sizing()
-                if Sizing.FLOW in w_sizing:
+                if isinstance(w, Widget):
+                    w_sizing = w.sizing()
+                else:
+                    warnings.warn(f"{w!r} is not a Widget", ColumnsWarning, stacklevel=3)
+                    w_sizing = frozenset((urwid.BOX, urwid.FLOW))
+
+                if Sizing.FIXED in w_sizing:
+                    w_size = ()
+
+                elif Sizing.FLOW in w_sizing:
                     # FIXME: should be able to pack with a different maxcol value
                     w_size = (maxcol,)
-                elif Sizing.FIXED in w_sizing:
-                    w_size = ()
+
                 else:
                     warnings.warn(
                         f"Unusual widget {w} sizing for {t} (box={b}). "
