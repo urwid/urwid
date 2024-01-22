@@ -698,12 +698,17 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                     warnings.warn(f"{w!r} is not a Widget", ColumnsWarning, stacklevel=3)
                     w_sizing = frozenset((urwid.BOX, urwid.FLOW))
 
-                if Sizing.FIXED in w_sizing:
-                    w_size = ()
+                if w_sizing & frozenset((Sizing.FIXED, Sizing.FLOW)):
+                    candidate_size = 0
 
-                elif Sizing.FLOW in w_sizing:
-                    # FIXME: should be able to pack with a different maxcol value
-                    w_size = (maxcol,)
+                    if Sizing.FIXED in w_sizing:
+                        candidate_size = w.pack((), focus and i == self.focus_position)[0]
+
+                    if Sizing.FLOW in w_sizing and (not candidate_size or candidate_size > maxcol):
+                        # FIXME: should be able to pack with a different maxcol value
+                        candidate_size = w.pack((maxcol,), focus and i == self.focus_position)[0]
+
+                    static_w = candidate_size
 
                 else:
                     warnings.warn(
@@ -712,8 +717,8 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                         ColumnsWarning,
                         stacklevel=3,
                     )
-                    w_size = (maxcol,)
-                static_w = w.pack(w_size, focus and i == self.focus_position)[0]
+                    static_w = w.pack((maxcol,), focus and i == self.focus_position)[0]
+
             else:
                 static_w = self.min_width
 
