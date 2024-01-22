@@ -8,7 +8,7 @@ import warnings
 from .constants import Sizing, WHSettings
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterable, Iterator
 
     from .widget import Widget
 
@@ -68,7 +68,7 @@ class WidgetContainerMixin:
         """
         return self.contents[position][0].base_widget
 
-    def get_focus_path(self):
+    def get_focus_path(self) -> list[int | str]:
         """
         Return the .focus_position values starting from this container
         and proceeding along each child widget until reaching a leaf
@@ -84,7 +84,7 @@ class WidgetContainerMixin:
             out.append(p)
             w = w.focus.base_widget
 
-    def set_focus_path(self, positions):
+    def set_focus_path(self, positions: Iterable[int | str]) -> None:
         """
         Set the .focus_position property starting from this container
         widget and proceeding along newly focused child widgets.  Any

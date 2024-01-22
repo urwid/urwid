@@ -283,6 +283,7 @@ class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin):
 
     def test_run(self):
         from twisted.internet import threads
+
         evl = self.evl
         out = []
         wr: socket.socket

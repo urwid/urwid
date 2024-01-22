@@ -44,7 +44,7 @@ def load_tests(loader: unittest.TestLoader, tests: unittest.BaseTestSuite, ignor
         "urwid.split_repr",  # override function with same name
         urwid.util,
         urwid.signals,
-        ]
+    ]
     try:
         module_doctests.append(urwid.display.curses)
     except (AttributeError, NameError):
