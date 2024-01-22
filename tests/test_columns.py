@@ -203,6 +203,20 @@ class ColumnsTest(unittest.TestCase):
         self.assertEqual(("Prefix: < Btn >",), widget.render(()).decoded_text)
         self.assertEqual(("Prefix: < Btn >",), widget.render((cols,)).decoded_text)
 
+    def test_render_pack_item_not_fit(self):
+        items = urwid.Text("123"), urwid.Text("456")
+        widget = urwid.Columns(((urwid.PACK, item) for item in items))
+        # Make width < widget fixed pack
+        width = items[0].pack(())[0] - 1
+        height = items[0].rows((width, ))
+        self.assertEqual((width, height), widget.pack((width,)))
+
+        canvas = widget.render((width,))
+        # Rendered should be not empty
+        self.assertEqual(items[0].render((width,)).decoded_text, canvas.decoded_text)
+        self.assertEqual(width, canvas.cols())
+
+
     def test_pack_render_broken_sizing(self) -> None:
         use_sizing = frozenset((urwid.BOX,))
 
