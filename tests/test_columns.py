@@ -216,6 +216,46 @@ class ColumnsTest(unittest.TestCase):
                 str(ctx.warnings[0].message),
             )
 
+    def test_not_a_widget(self):
+        class NotAWidget:
+            __slots__ = ("name", "symbol")
+
+            def __init__(self, name: str, symbol: bytes) -> None:
+                self.name = name
+                self.symbol = symbol
+
+            def __repr__(self) -> str:
+                return f"{self.__class__.__name__}(name={self.name!r}, symbol={self.symbol!r})"
+
+            def selectable(self) -> bool:
+                return False
+
+            def rows(self, max_col_row: tuple[int], focus: bool = False) -> int:
+                return 1
+
+            def render(self, max_col_row: tuple[int, int] | tuple[int], focus: bool = False) -> urwid.Canvas:
+                maxcol = max_col_row[0]
+                line = self.symbol * maxcol
+                if len(max_col_row) == 1:
+                    return urwid.TextCanvas((line,), maxcol=maxcol)
+                return urwid.TextCanvas((line,) * max_col_row[1], maxcol=maxcol)
+
+        with self.subTest("Box"), self.assertWarns(urwid.widget.ColumnsWarning) as ctx:
+            items = (NotAWidget("First", b"*"), NotAWidget("Second", b"^"))
+            widget = urwid.Columns(items)
+
+            self.assertEqual(("**^^", "**^^"), widget.render((4, 2)).decoded_text)
+            self.assertEqual(f"{items[0]!r} is not a Widget", str(ctx.warnings[0].message))
+            self.assertEqual(f"{items[1]!r} is not a Widget", str(ctx.warnings[1].message))
+
+        with self.subTest("Flow"), self.assertWarns(urwid.widget.ColumnsWarning) as ctx:
+            items = (NotAWidget("First", b"*"), NotAWidget("Second", b"^"))
+            widget = urwid.Columns(items)
+
+            self.assertEqual(("***^^^",), widget.render((6,)).decoded_text)
+            self.assertEqual(f"{items[0]!r} is not a Widget", str(ctx.warnings[0].message))
+            self.assertEqual(f"{items[1]!r} is not a Widget", str(ctx.warnings[1].message))
+
     def test_zero_width_column(self):
         elem_1 = urwid.BoxAdapter(urwid.SolidFill("#"), 2)
         elem_2 = urwid.BoxAdapter(urwid.SolidFill("*"), 4)

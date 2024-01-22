@@ -246,6 +246,51 @@ class PileTest(unittest.TestCase):
         widget.keypress((), "right")
         self.assertEqual("Cancel", widget.focus.focus.label)
 
+    def test_not_a_widget(self):
+        class NotAWidget:
+            __slots__ = ("name", "symbol")
+
+            def __init__(self, name: str, symbol: bytes) -> None:
+                self.name = name
+                self.symbol = symbol
+
+            def __repr__(self) -> str:
+                return f"{self.__class__.__name__}(name={self.name!r}, symbol={self.symbol!r})"
+
+            def selectable(self) -> bool:
+                return False
+
+            def pack(self, max_col_row: tuple[int, int] | tuple[int], focus: bool = False) -> int:
+                if len(max_col_row) == 2:
+                    return max_col_row
+                return max_col_row[0], self.rows(max_col_row)
+
+            def rows(self, max_col_row: tuple[int], focus=False) -> int:
+                return 1
+
+            def render(self, max_col_row: tuple[int, int] | tuple[int], focus: bool = False) -> urwid.Canvas:
+                maxcol = max_col_row[0]
+                line = self.symbol * maxcol
+                if len(max_col_row) == 1:
+                    return urwid.TextCanvas((line,), maxcol=maxcol)
+                return urwid.TextCanvas((line,) * max_col_row[1], maxcol=maxcol)
+
+        with self.subTest("Box"), self.assertWarns(urwid.widget.PileWarning) as ctx:
+            items = (NotAWidget("First", b"*"), NotAWidget("Second", b"^"))
+            widget = urwid.Pile(items)
+
+            self.assertEqual(("****", "^^^^"), widget.render((4, 2)).decoded_text)
+            self.assertEqual(f"{items[0]!r} is not a Widget", str(ctx.warnings[0].message))
+            self.assertEqual(f"{items[1]!r} is not a Widget", str(ctx.warnings[1].message))
+
+        with self.subTest("Flow"), self.assertWarns(urwid.widget.PileWarning) as ctx:
+            items = (NotAWidget("First", b"*"), NotAWidget("Second", b"^"))
+            widget = urwid.Pile(items)
+
+            self.assertEqual(("******", "^^^^^^"), widget.render((6,)).decoded_text)
+            self.assertEqual(f"{items[0]!r} is not a Widget", str(ctx.warnings[0].message))
+            self.assertEqual(f"{items[1]!r} is not a Widget", str(ctx.warnings[1].message))
+
     def ktest(self, desc, contents, focus_item, key, rkey, rfocus, rpref_col):
         p = urwid.Pile(contents, focus_item)
         rval = p.keypress((20,), key)
