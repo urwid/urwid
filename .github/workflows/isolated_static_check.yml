@@ -1,0 +1,67 @@
+name: Isolated Static check
+
+on:
+  pull_request:
+    paths:
+      - "ruff-requirements.txt"
+      - "black-requirements.txt"
+      - "isort-requirements.txt"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  Isort:
+    name: Validate import sorting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade -r isort-requirements.txt
+      - name: Check imports with isort
+        run: |
+          isort --check --diff urwid tests examples
+
+  Black:
+    name: Validate black formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade -r black-requirements.txt
+      - name: Check code style with black
+        run: |
+          black --check urwid examples
+
+  Ruff:
+    name: Check with Ruff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade -r ruff-requirements.txt
+      - name: Lint with ruff
+        run: |
+          ruff check --output-format github urwid examples

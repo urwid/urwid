@@ -429,14 +429,12 @@ class CF635Screen(CFLCDScreen):
             osb = []
         sb = []
 
-        y = 0
-        for row in canvas.content():
+        for y, row in enumerate(canvas.content()):
             text = [run for _a, _cs, run in row]
 
             if not osb or osb[y] != text:
                 self.queue_command(self.CMD_LCD_DATA, chr(0) + chr(y) + "".join(text))
             sb.append(text)
-            y += 1
 
         if (
             self._previous_canvas
