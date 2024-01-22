@@ -97,13 +97,22 @@ class Filler(WidgetDecoration):
                     raise FillerError("fixed bottom height may only be used with fixed top valign")
                 bottom = height[1]
                 height = RELATIVE_100
+
         if isinstance(valign, tuple):
             if valign[0] == "fixed top":
                 top = valign[1]
-                valign = VAlign.TOP
+                normalized_valign = VAlign.TOP
             elif valign[0] == "fixed bottom":
                 bottom = valign[1]
-                valign = VAlign.BOTTOM
+                normalized_valign = VAlign.BOTTOM
+            else:
+                normalized_valign = valign
+
+        elif not isinstance(valign, (VAlign, str)):
+            raise FillerError(f"invalid valign: {valign!r}")
+
+        else:
+            normalized_valign = VAlign(valign)
 
         # convert old flow mode parameter height=None to height='flow'
         if height is None or height == Sizing.FLOW:
@@ -111,7 +120,7 @@ class Filler(WidgetDecoration):
 
         self.top = top
         self.bottom = bottom
-        self.valign_type, self.valign_amount = normalize_valign(valign, FillerError)
+        self.valign_type, self.valign_amount = normalize_valign(normalized_valign, FillerError)
         self.height_type, self.height_amount = normalize_height(height, FillerError)
 
         if self.height_type not in {WHSettings.GIVEN, WHSettings.PACK}:
