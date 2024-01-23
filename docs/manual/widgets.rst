@@ -582,6 +582,10 @@ Scrollable Widgets
 Scrollable widgets can scroll long content which normally not fit into the screen resolution.
 Scrolling is normally supported using keyboard positioning keys and mouse wheel.
 
+Comparing to the :class:`ListBox`,
+:class:`Scrollable` handles fixed and flow widgets directly instead of using list of small widgets.
+And :class:`ScrollBar` provide visual scrollbar with scrolling position information.
+
 .. currentmodule:: Scrollable
 
 :class:`Scrollable` implements special container for making widget scrollable via :class:`ScrollBar` widget.
