@@ -40,7 +40,7 @@ from urwid.util import (
 )
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Iterable, Sequence
 
     from .widget import Widget
 
@@ -1209,7 +1209,7 @@ def cview_trim_cols(cv, cols: int):
     return cv[:2] + (cols,) + cv[3:]
 
 
-def CanvasCombine(canvas_info):
+def CanvasCombine(canvas_info: Iterable[tuple[Canvas, typing.Any, bool]]) -> CompositeCanvas:
     """Stack canvases in l vertically and return resulting canvas.
 
     :param canvas_info: list of (canvas, position, focus) tuples:
@@ -1245,7 +1245,7 @@ def CanvasCombine(canvas_info):
     return combined_canvas
 
 
-def CanvasOverlay(top_c, bottom_c, left: int, top: int):
+def CanvasOverlay(top_c, bottom_c, left: int, top: int) -> CompositeCanvas:
     """
     Overlay canvas top_c onto bottom_c at position (left, top).
     """
@@ -1258,7 +1258,7 @@ def CanvasOverlay(top_c, bottom_c, left: int, top: int):
     return overlayed_canvas
 
 
-def CanvasJoin(canvas_info):
+def CanvasJoin(canvas_info: Iterable[tuple[Canvas, typing.Any, bool, int]]) -> CompositeCanvas:
     """
     Join canvases in l horizontally. Return result.
 

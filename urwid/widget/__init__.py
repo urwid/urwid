@@ -34,6 +34,7 @@ from .padding import Padding, PaddingError, PaddingWarning, calculate_left_right
 from .pile import Pile, PileError, PileWarning
 from .popup import PopUpLauncher, PopUpTarget
 from .progress_bar import ProgressBar
+from .scrollable import Scrollable, ScrollableError, ScrollBar
 from .solid_fill import SolidFill
 from .text import Text, TextError
 from .widget import (
@@ -151,6 +152,9 @@ __all__ = (
     "ProgressBar",
     "WidgetContainerListContentsMixin",
     "WidgetWarning",
+    "Scrollable",
+    "ScrollableError",
+    "ScrollBar",
 )
 
 # Backward compatibility

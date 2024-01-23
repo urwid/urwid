@@ -508,10 +508,9 @@ List Walker Interface
 List Walker API Version 1
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This API will remain available and is still the least restrictive option for
-the programmer.  Your class should subclass :class:`ListWalker`.
-Whenever the focus or content changes you are responsible for
-calling :meth:`ListWalker._modified`.
+This API will remain available and is still the least restrictive option fo the programmer.
+Your class should subclass :class:`ListWalker`.
+Whenever the focus or content changes you are responsible for calling :meth:`ListWalker._modified`.
 
 .. currentmodule:: MyV1ListWalker
 
@@ -578,7 +577,59 @@ When this is defined it will be used by :meth:`ListBox.__iter__` and
 
 .. currentmodule:: urwid
 
+Scrollable Widgets
+==================
+Scrollable widgets can scroll long content which normally not fit into the screen resolution.
+Scrolling is normally supported using keyboard positioning keys and mouse wheel.
 
+Comparing to the :class:`ListBox`,
+:class:`Scrollable` handles fixed and flow widgets directly instead of using list of small widgets.
+
+:class:`ListBox` should be used to scroll between widgets, which can be multiline by itself.
+:class:`Scrollable` should be used to scroll over widget lines.
+
+:class:`ScrollBar` provide visual scrollbar with scrolling position information.
+
+.. currentmodule:: Scrollable
+
+:class:`Scrollable` implements special container for making widget scrollable via :class:`ScrollBar` widget.
+
+Scrollable API
+--------------
+
+Widget pretending to be scrolled via :class:`ScrollBar` should subclass :class:`Widget`
+and implement positioning API:
+
+.. py:method:: get_scrollpos(size=None, focus=False)
+
+    Get scrolling position
+
+    :param size: widget render size. If `size` is not given, the currently rendered number of rows is returned.
+    :type size: tuple[int, int] | None
+    :param focus: widget is focused
+    :type focus: bool
+    :return: the index of the first visible row.
+    :rtype: int
+
+.. py:method:: set_scrollpos(position: SupportsInt)
+
+    Set scrolling position.
+
+    If `position` is positive it is interpreted as lines from the top.
+    If `position` is negative it is interpreted as lines from the bottom.
+
+.. py:method:: rows_max(size=None, focus=False)
+
+    Get the total number of rows `widget` can render.
+
+    :param size: widget render size. If `size` is not given, the currently rendered number of rows is returned.
+    :type size: tuple[int, int] | None
+    :param focus: widget is focused
+    :type focus: bool
+    :return: the number of rows for `size`
+    :rtype: int
+
+.. currentmodule:: urwid
 
 Custom Widgets
 ==============

@@ -284,58 +284,6 @@ class Widget(metaclass=WidgetMeta):
        widget renders the same size regardless of the value of the *focus*
        parameter.
 
-
-    .. method:: keypress(size, key)
-
-       :param size: See :meth:`Widget.render` for details
-       :type size: widget size
-       :param key: a single keystroke value; see :ref:`keyboard-input`
-       :type key: str
-
-       :returns: ``None`` if *key* was handled by this widget or
-                 *key* (the same value passed) if *key* was not handled
-                 by this widget
-
-       Container widgets will typically call the :meth:`keypress` method on
-       whichever of their children is set as the focus.
-
-       The standard widgets use :attr:`_command_map` to
-       determine what action should be performed for a given *key*. You may
-       modify these values to your liking globally, at some level in the
-       widget hierarchy or on individual widgets. See :class:`CommandMap`
-       for the defaults.
-
-       In your own widgets you may use whatever logic you like: filtering or
-       translating keys, selectively passing along events etc.
-
-
-
-    .. method:: mouse_event(size, event, button, col, row, focus)
-
-       :param size: See :meth:`Widget.render` for details.
-       :type size: widget size
-       :param event: Values such as ``'mouse press'``, ``'ctrl mouse press'``,
-                     ``'mouse release'``, ``'meta mouse release'``,
-                     ``'mouse drag'``; see :ref:`mouse-input`
-       :type event: mouse event
-       :param button: 1 through 5 for press events, often 0 for release events
-                      (which button was released is often not known)
-       :type button: int
-       :param col: Column of the event, 0 is the left edge of this widget
-       :type col: int
-       :param row: Row of the event, 0 it the top row of this widget
-       :type row: int
-       :param focus: Set to ``True`` if this widget or one of its children
-                     is in focus
-       :type focus: bool
-
-       :returns: ``True`` if the event was handled by this widget, ``False``
-                 otherwise
-
-       Container widgets will typically call the :meth:`mouse_event` method on
-       whichever of their children is at the position (*col*, *row*).
-
-
     .. method:: get_cursor_coords(size)
 
        .. note::
