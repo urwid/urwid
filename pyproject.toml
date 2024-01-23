@@ -16,7 +16,7 @@ keywords = ["curses", "ui", "widget", "scroll", "listbox", "user interface", "te
 license={text="LGPL-2.1-only"}  # Use SPDX classifier
 readme = {file = "README.rst", content-type = "text/x-rst"}
 authors=[{name="Ian Ward", email="ian@excess.org"}]
-dynamic = ["classifiers", "version"]  # "dependencies",
+dynamic = ["classifiers", "version", "dependencies"]
 
 [project.urls]
 "Homepage" = "https://urwid.org/"
@@ -41,7 +41,7 @@ exclude = [
 namespaces = false
 
 [tool.setuptools.dynamic]
-#dependencies = {file = ["requirements.txt"]}
+dependencies = {file = ["requirements.txt"]}
 classifiers = {file = ["classifiers.txt"]}
 
 [project.optional-dependencies]
