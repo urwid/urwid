@@ -3,7 +3,6 @@ from __future__ import annotations
 import unittest
 
 import urwid
-from urwid.widget import scrollable
 
 LGPL_HEADER = """
 Copyright (C) <year>  <name of author>
@@ -142,7 +141,7 @@ class TestScrollBar(unittest.TestCase):
         reduced_size = (40, 5)
         widget = urwid.widget.ScrollBar(
             urwid.widget.Scrollable(long_content),
-            trough_char=scrollable.Blocks.LITE_SHADE,
+            trough_char=urwid.widget.ScrollBar.Symbols.LITE_SHADE,
         )
 
         self.assertEqual(
@@ -160,15 +159,15 @@ class TestScrollBar(unittest.TestCase):
         """Test with fixed wrapped widget."""
         widget = urwid.widget.ScrollBar(
             urwid.widget.Scrollable(urwid.BigText("1", urwid.HalfBlockHeavy6x5Font())),
-            trough_char=scrollable.Blocks.LITE_SHADE,
-            thumb_char=scrollable.Blocks.DARK_SHADE,
+            trough_char=urwid.widget.ScrollBar.Symbols.LITE_SHADE,
+            thumb_char=urwid.widget.ScrollBar.Symbols.DARK_SHADE,
         )
         reduced_size = (8, 3)
 
         self.assertEqual(
             (
                 " ▐█▌   ▓",
-                " ▀█▌   ░",
+                " ▀█▌   ▓",
                 "  █▌   ░",
             ),
             widget.render(reduced_size).decoded_text,
@@ -179,7 +178,7 @@ class TestScrollBar(unittest.TestCase):
         self.assertEqual(
             (
                 "  █▌   ░",
-                "  █▌   ░",
+                "  █▌   ▓",
                 " ███▌  ▓",
             ),
             widget.render(reduced_size).decoded_text,

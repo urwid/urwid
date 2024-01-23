@@ -27,7 +27,7 @@ import warnings
 from operator import attrgetter
 
 from urwid import signals
-from urwid.canvas import CanvasCache, CompositeCanvas
+from urwid.canvas import Canvas, CanvasCache, CompositeCanvas
 from urwid.command_map import command_map
 from urwid.split_repr import split_repr
 from urwid.util import MetaSuper
@@ -203,58 +203,6 @@ class Widget(metaclass=WidgetMeta):
 
        A shared :class:`CommandMap` instance. May be redefined
        in subclasses or widget instances.
-
-    .. method:: render(size, focus=False)
-
-       .. note::
-
-          This method is not implemented in :class:`.Widget` but
-          must be implemented by any concrete subclass
-
-       :param size: One of the following,
-                    *maxcol* and *maxrow* are integers > 0:
-
-                    (*maxcol*, *maxrow*)
-                      for box sizing -- the parent chooses the exact
-                      size of this widget
-
-                    (*maxcol*,)
-                      for flow sizing -- the parent chooses only the
-                      number of columns for this widget
-
-                    ()
-                      for fixed sizing -- this widget is a fixed size
-                      which can't be adjusted by the parent
-       :type size: widget size
-       :param focus: set to ``True`` if this widget or one of its children
-                     is in focus
-       :type focus: bool
-
-       :returns: A :class:`Canvas` subclass instance containing the
-                 rendered content of this widget
-
-       :class:`Text` widgets return a :class:`TextCanvas` (arbitrary text and
-       display attributes), :class:`SolidFill` widgets return a
-       :class:`SolidCanvas` (a single character repeated across
-       the whole surface) and container widgets return a
-       :class:`CompositeCanvas` (one or more other canvases
-       arranged arbitrarily).
-
-       If *focus* is ``False``, the returned canvas may not have a cursor
-       position set.
-
-       There is some metaclass magic defined in the :class:`Widget`
-       metaclass :class:`WidgetMeta` that causes the
-       result of this method to be cached by :class:`CanvasCache`.
-       Later calls will automatically look up the value in the cache first.
-
-       As a small optimization the class variable :attr:`ignore_focus`
-       may be defined and set to ``True`` if this widget renders the same
-       canvas regardless of the value of the *focus* parameter.
-
-       Any time the content of a widget changes it should call
-       :meth:`_invalidate` to remove any cached canvases, or the widget
-       may render the cached canvas instead of creating a new one.
 
 
     .. method:: rows(size, focus=False)
@@ -580,6 +528,48 @@ class Widget(metaclass=WidgetMeta):
                 )
                 LOGGER.debug(f"Widget {self!r} is not selectable")
         return False
+
+    def render(self, size: tuple[()] | tuple[int] | tuple[int, int], focus: bool = False) -> Canvas:
+        """Render widget and produce canvas
+
+        :param size: One of the following, *maxcol* and *maxrow* are integers > 0:
+
+            (*maxcol*, *maxrow*)
+              for box sizing -- the parent chooses the exact
+              size of this widget
+
+            (*maxcol*,)
+              for flow sizing -- the parent chooses only the
+              number of columns for this widget
+
+            ()
+              for fixed sizing -- this widget is a fixed size
+              which can't be adjusted by the parent
+        :type size: widget size
+        :param focus: set to ``True`` if this widget or one of its children is in focus
+        :type focus: bool
+
+        :returns: A :class:`Canvas` subclass instance containing the rendered content of this widget
+
+        :class:`Text` widgets return a :class:`TextCanvas` (arbitrary text and display attributes),
+        :class:`SolidFill` widgets return a :class:`SolidCanvas` (a single character repeated across the whole surface)
+        and container widgets return a :class:`CompositeCanvas` (one or more other canvases arranged arbitrarily).
+
+        If *focus* is ``False``, the returned canvas may not have a cursor position set.
+
+        There is some metaclass magic defined in the :class:`Widget` metaclass :class:`WidgetMeta`
+        that causes the result of this method to be cached by :class:`CanvasCache`.
+        Later calls will automatically look up the value in the cache first.
+
+        As a small optimization the class variable :attr:`ignore_focus`
+        may be defined and set to ``True`` if this widget renders the same
+        canvas regardless of the value of the *focus* parameter.
+
+        Any time the content of a widget changes it should call
+        :meth:`_invalidate` to remove any cached canvases, or the widget
+        may render the cached canvas instead of creating a new one.
+        """
+        raise NotImplementedError
 
 
 class FlowWidget(Widget):

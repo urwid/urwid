@@ -40,7 +40,7 @@ if typing.TYPE_CHECKING:
     from .widget import Widget
 
 
-__all__ = ["Scrollable", "ScrollBar", "ScrollableError", "Blocks"]
+__all__ = ("ScrollbarSymbols", "ScrollBar", "Scrollable", "ScrollableError")
 
 
 class ScrollableError(WidgetError):
@@ -60,13 +60,27 @@ SCROLLBAR_LEFT = "left"
 SCROLLBAR_RIGHT = "right"
 
 
-class Blocks(str, enum.Enum):
-    """Standard normal width blocks."""
+class ScrollbarSymbols(str, enum.Enum):
+    """Standard symbols suitable for scrollbar."""
 
-    FULL = "█"
-    DARK_SHADE = "▓"
+    # fmt: off
+
+    FULL =         "█"
+    DARK_SHADE =   "▓"
     MEDIUM_SHADE = "▒"
-    LITE_SHADE = "░"
+    LITE_SHADE =   "░"
+
+    DRAWING_NORMAL =        "│"
+    DRAWING_2_DASH_NORMAL = "╎"
+    DRAWING_3_DASH_NORMAL = "┆"
+    DRAWING_4_DASH_NORMAL = "┊"
+
+    DRAWING_THICK =        "┃"
+    DRAWING_2_DASH_THICK = "╏"
+    DRAWING_3_DASH_THICK = "┇"
+    DRAWING_4_DASH_THICK = "┋"
+
+    DRAWING_DOUBLE = "║"
 
 
 @runtime_checkable
@@ -420,6 +434,8 @@ class Scrollable(WidgetDecoration):
 
 
 class ScrollBar(WidgetDecoration):
+    Symbols = ScrollbarSymbols
+
     def sizing(self):
         return frozenset((Sizing.BOX,))
 
@@ -429,7 +445,7 @@ class ScrollBar(WidgetDecoration):
     def __init__(
         self,
         widget: SupportsScroll,
-        thumb_char: str = Blocks.FULL,
+        thumb_char: str = ScrollbarSymbols.FULL,
         trough_char: str = " ",
         side: Literal["left", "right"] = SCROLLBAR_RIGHT,
         width: int = 1,
@@ -484,7 +500,7 @@ class ScrollBar(WidgetDecoration):
 
         # Thumb shrinks/grows according to the ratio of
         # <number of visible lines> / <number of total lines>
-        thumb_weight = min(1, maxrow // max(1, ow_rows_max))
+        thumb_weight = min(1.0, maxrow / max(1, ow_rows_max))
         thumb_height = max(1, round(thumb_weight * maxrow))
 
         # Thumb may only touch top/bottom if the first/last row is visible
