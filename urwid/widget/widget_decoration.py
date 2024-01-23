@@ -13,7 +13,7 @@ if typing.TYPE_CHECKING:
     from .constants import Sizing
 
 
-__all__ = ("WidgetDecoration", "WidgetPlaceholder", "WidgetDisable", "WidgetError", "WidgetWarning")
+__all__ = ("WidgetDecoration", "WidgetDisable", "WidgetError", "WidgetPlaceholder", "WidgetWarning")
 
 
 class WidgetDecoration(Widget):  # "decorator" was already taken
