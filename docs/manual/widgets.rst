@@ -584,7 +584,11 @@ Scrolling is normally supported using keyboard positioning keys and mouse wheel.
 
 Comparing to the :class:`ListBox`,
 :class:`Scrollable` handles fixed and flow widgets directly instead of using list of small widgets.
-And :class:`ScrollBar` provide visual scrollbar with scrolling position information.
+
+:class:`ListBox` should be used to scroll between widgets, which can be multiline by itself.
+:class:`Scrollable` should be used to scroll over widget lines.
+
+:class:`ScrollBar` provide visual scrollbar with scrolling position information.
 
 .. currentmodule:: Scrollable
 
