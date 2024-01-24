@@ -466,3 +466,84 @@ def simplify_height(
         return height_amount
 
     return (WHSettings(height_type), height_amount)
+
+
+class _BoxSymbols(typing.NamedTuple):
+    """Box symbols for drawing.
+
+    Symbols are ordered as in Unicode.
+    """
+
+    HORIZONTAL: str
+    VERTICAL: str
+    TOP_LEFT: str
+    TOP_RIGHT: str
+    BOTTOM_LEFT: str
+    BOTTOM_RIGHT: str
+    # Joints for tables making
+    LEFT_T: str
+    RIGHT_T: str
+    TOP_T: str
+    BOTTOM_T: str
+    CROSS: str
+
+
+class _LightBoxSymbols(typing.NamedTuple):
+    """Box symbols for drawing.
+
+    The Thin version includes extra symbols.
+    Symbols are ordered as in Unicode.
+    """
+
+    # fmt: off
+
+    HORIZONTAL: str =   "─"
+    VERTICAL: str =     "│"
+    TOP_LEFT: str =     "┌"
+    TOP_RIGHT: str =    "┐"
+    BOTTOM_LEFT: str =  "└"
+    BOTTOM_RIGHT: str = "┘"
+    # Joints for tables making
+    LEFT_T: str =   "├"
+    RIGHT_T: str =  "┤"
+    TOP_T: str =    "┬"
+    BOTTOM_T: str = "┴"
+    CROSS: str =    "┼"
+    # Unique for light only
+    TOP_LEFT_ROUNDED: str =     "╭"
+    TOP_RIGHT_ROUNDED: str =    "╮"
+    BOTTOM_RIGHT_ROUNDED: str = "╯"
+    BOTTOM_LEFT_ROUNDED: str =  "╰"
+
+
+class _BoxSymbolsCollection(typing.NamedTuple):
+    """Standard Unicode box symbols for basic tables drawing.
+
+    .. note::
+        Transitions are not included: depends on line types, different kinds of transitions are available.
+        Please check Unicode table for transitions symbols if required.
+    """
+
+    # fmt: off
+
+    LIGHT = _LightBoxSymbols()
+    HEAVY =  _BoxSymbols("━", "┃", "┏", "┓", "┗", "┛", "┣", "┫", "┳", "┻", "╋")
+    DOUBLE = _BoxSymbols("═", "║", "╔", "╗", "╚", "╝", "╠", "╣", "╦", "╩", "╬")
+
+
+BOX_SYMBOLS = _BoxSymbolsCollection()
+
+
+class BAR_SYMBOLS(str, enum.Enum):
+    """Standard Unicode bar symbols excluding empty space.
+
+    Start from space (0), then 1/8 till full block (1/1).
+    Typically used only 8 from this symbol collection depends on use-case:
+    * empty - 7/8 and styles for BG different on both sides (like standard `ProgressBar` and `BarGraph`)
+    * 1/8 - full block and single style for BG on the right side
+    """
+
+    # fmt: off
+
+    HORISONTAL = " ▏▎▍▌▋▊▉█"
+    VERTICAL =   " ▁▂▃▄▅▆▇█"

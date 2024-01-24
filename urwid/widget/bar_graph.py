@@ -5,7 +5,7 @@ import typing
 from urwid.canvas import CanvasCombine, CompositeCanvas, SolidCanvas
 from urwid.util import get_encoding_mode
 
-from .constants import Sizing
+from .constants import BAR_SYMBOLS, Sizing
 from .text import Text
 from .widget import Widget, WidgetError, WidgetMeta, nocache_widget_render, nocache_widget_render_instance
 
@@ -49,7 +49,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
 
     ignore_focus = True
 
-    eighths = " ▁▂▃▄▅▆▇"
+    eighths = BAR_SYMBOLS.VERTICAL[:8]  # Full height is done by style
     hlines = "_⎺⎻─⎼⎽"
 
     def __init__(self, attlist, hatt=None, satt=None):
