@@ -3,7 +3,7 @@ from __future__ import annotations
 import typing
 
 from .columns import Columns
-from .constants import Align, WHSettings
+from .constants import BOX_SYMBOLS, Align, WHSettings
 from .divider import Divider
 from .pile import Pile
 from .solid_fill import SolidFill
@@ -16,20 +16,22 @@ if typing.TYPE_CHECKING:
 
 
 class LineBox(WidgetDecoration, WidgetWrap):
+    Symbols = BOX_SYMBOLS
+
     def __init__(
         self,
         original_widget: Widget,
         title: str = "",
         title_align: Literal["left", "center", "right"] | Align = Align.CENTER,
         title_attr=None,
-        tlcorner: str = "┌",
-        tline: str = "─",
-        lline: str = "│",
-        trcorner: str = "┐",
-        blcorner: str = "└",
-        rline: str = "│",
-        bline: str = "─",
-        brcorner: str = "┘",
+        tlcorner: str = BOX_SYMBOLS.LIGHT.TOP_LEFT,
+        tline: str = BOX_SYMBOLS.LIGHT.HORIZONTAL,
+        lline: str = BOX_SYMBOLS.LIGHT.VERTICAL,
+        trcorner: str = BOX_SYMBOLS.LIGHT.TOP_RIGHT,
+        blcorner: str = BOX_SYMBOLS.LIGHT.BOTTOM_LEFT,
+        rline: str = BOX_SYMBOLS.LIGHT.VERTICAL,
+        bline: str = BOX_SYMBOLS.LIGHT.HORIZONTAL,
+        brcorner: str = BOX_SYMBOLS.LIGHT.BOTTOM_RIGHT,
     ) -> None:
         """
         Draw a line around original_widget.
@@ -55,6 +57,44 @@ class LineBox(WidgetDecoration, WidgetWrap):
         If empty string is specified for one of the lines/corners, then no character will be output there.
         If no top/bottom/left/right lines - whole lines will be omitted.
         This allows for seamless use of adjoining LineBoxes.
+
+        Class attribute `Symbols` can be used as source for standard lines:
+
+        >>> print(LineBox(Text("Some text")).render(()))
+        ┌─────────┐
+        │Some text│
+        └─────────┘
+        >>> print(
+        ...   LineBox(
+        ...     Text("Some text"),
+        ...     tlcorner=LineBox.Symbols.LIGHT.TOP_LEFT_ROUNDED,
+        ...     trcorner=LineBox.Symbols.LIGHT.TOP_RIGHT_ROUNDED,
+        ...     blcorner=LineBox.Symbols.LIGHT.BOTTOM_LEFT_ROUNDED,
+        ...     brcorner=LineBox.Symbols.LIGHT.BOTTOM_RIGHT_ROUNDED,
+        ...   ).render(())
+        ... )
+        ╭─────────╮
+        │Some text│
+        ╰─────────╯
+        >>> print(
+        ...   LineBox(
+        ...     Text("Some text"),
+        ...     tline=LineBox.Symbols.HEAVY.HORIZONTAL,
+        ...     bline=LineBox.Symbols.HEAVY.HORIZONTAL,
+        ...     lline=LineBox.Symbols.HEAVY.VERTICAL,
+        ...     rline=LineBox.Symbols.HEAVY.VERTICAL,
+        ...     tlcorner=LineBox.Symbols.HEAVY.TOP_LEFT,
+        ...     trcorner=LineBox.Symbols.HEAVY.TOP_RIGHT,
+        ...     blcorner=LineBox.Symbols.HEAVY.BOTTOM_LEFT,
+        ...     brcorner=LineBox.Symbols.HEAVY.BOTTOM_RIGHT,
+        ...   ).render(())
+        ... )
+        ┏━━━━━━━━━┓
+        ┃Some text┃
+        ┗━━━━━━━━━┛
+
+        To make Table constructions, some lineboxes need to be drawn without sides
+        and T or CROSS symbols used for corners of cells.
         """
 
         w_lline = SolidFill(lline)

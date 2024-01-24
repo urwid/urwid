@@ -81,7 +81,7 @@ class GraphModel:
         lines = []
         d = self.data[self.current_mode]
         while r:
-            offset = offset % len(d)
+            offset %= len(d)
             segment = d[offset : offset + r]
             r -= len(segment)
             offset += len(segment)
@@ -206,7 +206,7 @@ class GraphView(urwid.WidgetWrap):
 
     def main_shadow(self, w):
         """Wrap a shadow and background around widget w."""
-        bg = urwid.AttrMap(urwid.SolidFill("\u2592"), "screen edge")
+        bg = urwid.AttrMap(urwid.SolidFill("▒"), "screen edge")
         shadow = urwid.AttrMap(urwid.SolidFill(" "), "main shadow")
 
         bg = urwid.Overlay(shadow, bg, ("fixed left", 3), ("fixed right", 1), ("fixed top", 2), ("fixed bottom", 1))

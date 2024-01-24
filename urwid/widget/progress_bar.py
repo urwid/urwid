@@ -3,7 +3,7 @@ from __future__ import annotations
 import typing
 import warnings
 
-from .constants import Align, Sizing, WrapMode
+from .constants import BAR_SYMBOLS, Align, Sizing, WrapMode
 from .text import Text
 from .widget import Widget
 
@@ -14,7 +14,7 @@ if typing.TYPE_CHECKING:
 class ProgressBar(Widget):
     _sizing = frozenset([Sizing.FLOW])
 
-    eighths = " ▏▎▍▌▋▊▉"
+    eighths = BAR_SYMBOLS.HORISONTAL[:8]  # Full width line is made by style
 
     text_align = Align.CENTER
 
@@ -26,9 +26,10 @@ class ProgressBar(Widget):
         :param done: progress amount at 100%
         :param satt: display attribute for smoothed part of bar where the
                      foreground of satt corresponds to the normal part and the
-                     background corresponds to the complete part.  If satt
-                     is ``None`` then no smoothing will be done.
+                     background corresponds to the complete part.
+                     If satt is ``None`` then no smoothing will be done.
 
+        >>> from urwid import LineBox
         >>> pb = ProgressBar('a', 'b')
         >>> pb
         <ProgressBar flow widget>
@@ -50,6 +51,12 @@ class ProgressBar(Widget):
         >>> for x in range(101):
         ...     cpb2.set_completion(x)
         ...     s = cpb2.render((10, ))
+        >>> pb = ProgressBar('a', 'b', satt='c')
+        >>> pb.set_completion(34.56)
+        >>> print(LineBox(pb).render((20,)))
+        ┌──────────────────┐
+        │      ▏34 %       │
+        └──────────────────┘
         """
         super().__init__()
         self.normal = normal
@@ -58,7 +65,7 @@ class ProgressBar(Widget):
         self._done = done
         self.satt = satt
 
-    def set_completion(self, current):
+    def set_completion(self, current: int) -> None:
         """
         current -- current progress
         """
