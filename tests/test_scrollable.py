@@ -30,7 +30,7 @@ class TestScrollable(unittest.TestCase):
         reduced_size = (80, 5)
         content_size = long_content.pack()
 
-        widget = urwid.widget.Scrollable(long_content)
+        widget = urwid.Scrollable(long_content)
         self.assertEqual(frozenset((urwid.BOX,)), widget.sizing())
 
         cropped_content_canvas = urwid.CompositeCanvas(long_content.render((reduced_size[0],)))
@@ -53,10 +53,10 @@ class TestScrollable(unittest.TestCase):
 
     def test_negative(self):
         with self.assertRaises(ValueError):
-            urwid.widget.Scrollable(urwid.SolidFill(" "))
+            urwid.Scrollable(urwid.SolidFill(" "))
 
 
-class TestScrollBar(unittest.TestCase):
+class TestScrollBarScrollable(unittest.TestCase):
     def test_basic(self):
         """Test basic init and scroll.
 
@@ -65,7 +65,7 @@ class TestScrollBar(unittest.TestCase):
 
         long_content = urwid.Text(LGPL_HEADER)
         reduced_size = (40, 5)
-        widget = urwid.widget.ScrollBar(urwid.widget.Scrollable(long_content))
+        widget = urwid.ScrollBar(urwid.Scrollable(long_content))
 
         self.assertEqual(frozenset((urwid.BOX,)), widget.sizing())
 
@@ -139,9 +139,9 @@ class TestScrollBar(unittest.TestCase):
     def test_alt_symbols(self):
         long_content = urwid.Text(LGPL_HEADER)
         reduced_size = (40, 5)
-        widget = urwid.widget.ScrollBar(
-            urwid.widget.Scrollable(long_content),
-            trough_char=urwid.widget.ScrollBar.Symbols.LITE_SHADE,
+        widget = urwid.ScrollBar(
+            urwid.Scrollable(long_content),
+            trough_char=urwid.ScrollBar.Symbols.LITE_SHADE,
         )
 
         self.assertEqual(
@@ -157,10 +157,10 @@ class TestScrollBar(unittest.TestCase):
 
     def test_fixed(self):
         """Test with fixed wrapped widget."""
-        widget = urwid.widget.ScrollBar(
-            urwid.widget.Scrollable(urwid.BigText("1", urwid.HalfBlockHeavy6x5Font())),
-            trough_char=urwid.widget.ScrollBar.Symbols.LITE_SHADE,
-            thumb_char=urwid.widget.ScrollBar.Symbols.DARK_SHADE,
+        widget = urwid.ScrollBar(
+            urwid.Scrollable(urwid.BigText("1", urwid.HalfBlockHeavy6x5Font())),
+            trough_char=urwid.ScrollBar.Symbols.LITE_SHADE,
+            thumb_char=urwid.ScrollBar.Symbols.DARK_SHADE,
         )
         reduced_size = (8, 3)
 
@@ -186,7 +186,8 @@ class TestScrollBar(unittest.TestCase):
 
     def test_negative(self):
         with self.assertRaises(ValueError):
-            urwid.widget.ScrollBar(urwid.Text(" "))
+            urwid.ScrollBar(urwid.Text(" "))
 
         with self.assertRaises(TypeError):
             urwid.widget.ScrollBar(urwid.SolidFill(" "))
+            urwid.ScrollBar(urwid.SolidFill(" "))

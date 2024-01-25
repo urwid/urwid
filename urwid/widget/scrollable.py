@@ -27,7 +27,7 @@ import typing
 
 from typing_extensions import Protocol, runtime_checkable
 
-from .constants import Sizing
+from .constants import BOX_SYMBOLS, SHADE_SYMBOLS, Sizing
 from .widget_decoration import WidgetDecoration, WidgetError
 
 if typing.TYPE_CHECKING:
@@ -61,26 +61,24 @@ SCROLLBAR_RIGHT = "right"
 
 
 class ScrollbarSymbols(str, enum.Enum):
-    """Standard symbols suitable for scrollbar."""
+    """Common symbols suitable for scrollbar."""
 
-    # fmt: off
+    FULL_BLOCK = SHADE_SYMBOLS.FULL_BLOCK
+    DARK_SHADE = SHADE_SYMBOLS.DARK_SHADE
+    MEDIUM_SHADE = SHADE_SYMBOLS.MEDIUM_SHADE
+    LITE_SHADE = SHADE_SYMBOLS.LITE_SHADE
 
-    FULL =         "█"
-    DARK_SHADE =   "▓"
-    MEDIUM_SHADE = "▒"
-    LITE_SHADE =   "░"
+    DRAWING_LIGHT = BOX_SYMBOLS.LIGHT.VERTICAL
+    DRAWING_LIGHT_2_DASH = BOX_SYMBOLS.LIGHT.VERTICAL_2_DASH
+    DRAWING_LIGHT_3_DASH = BOX_SYMBOLS.LIGHT.VERTICAL_3_DASH
+    DRAWING_LIGHT_4_DASH = BOX_SYMBOLS.LIGHT.VERTICAL_4_DASH
 
-    DRAWING_NORMAL =        "│"
-    DRAWING_2_DASH_NORMAL = "╎"
-    DRAWING_3_DASH_NORMAL = "┆"
-    DRAWING_4_DASH_NORMAL = "┊"
+    DRAWING_HEAVY = BOX_SYMBOLS.HEAVY.VERTICAL
+    DRAWING_HEAVY_2_DASH = BOX_SYMBOLS.HEAVY.VERTICAL_2_DASH
+    DRAWING_HEAVY_3_DASH = BOX_SYMBOLS.HEAVY.VERTICAL_3_DASH
+    DRAWING_HEAVY_4_DASH = BOX_SYMBOLS.HEAVY.VERTICAL_4_DASH
 
-    DRAWING_THICK =        "┃"
-    DRAWING_2_DASH_THICK = "╏"
-    DRAWING_3_DASH_THICK = "┇"
-    DRAWING_4_DASH_THICK = "┋"
-
-    DRAWING_DOUBLE = "║"
+    DRAWING_DOUBLE = BOX_SYMBOLS.DOUBLE.VERTICAL
 
 
 @runtime_checkable
@@ -122,10 +120,7 @@ class SupportsScroll(Protocol):
         ...
 
     # Scroll specific methods
-    def get_scrollpos(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
-        ...
-
-    def set_scrollpos(self, position: typing.SupportsInt) -> None:
+    def get_scrollpos(self, size: tuple[int, int], focus: bool = False) -> int:
         ...
 
     def rows_max(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
@@ -445,7 +440,7 @@ class ScrollBar(WidgetDecoration):
     def __init__(
         self,
         widget: SupportsScroll,
-        thumb_char: str = ScrollbarSymbols.FULL,
+        thumb_char: str = ScrollbarSymbols.FULL_BLOCK,
         trough_char: str = " ",
         side: Literal["left", "right"] = SCROLLBAR_RIGHT,
         width: int = 1,

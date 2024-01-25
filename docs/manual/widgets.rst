@@ -317,6 +317,82 @@ If you want to use a flow widget for the bottom widget,
 first wrap the flow widget with a :class:`Filler` widget.
 
 
+Scrollable Widgets
+==================
+Scrollable widgets can scroll long content which normally not fit into the screen resolution.
+Scrolling is normally supported using keyboard positioning keys and mouse wheel.
+
+For scrolling is expected to be used :class:`ScrollBar` which accept any BOX widget supporting scrollable api.
+
+ScrollBar Widget
+----------------
+The :class:`ScrollBar` widget draw optional scrollbar on the right or left side of widget if scrolling is required
+(widget not fit in the desired amount of rows).
+The widget is always rendered BOX and wrapped widget is also should be BOX.
+In case of other widget types, they should be wrapped to support BOX sizing.
+:class:`Scrollable` make any FLOW or FIXED widget compatible with scrollable api.
+
+Keyboard positioning keys and mouse wheel is used for scrolling if not handled by the wrapped widget.
+Scrolling is done on per-line basis.
+
+Scrollable Widget
+-----------------
+The :class:`Scrollable` widget is used to make  any FLOW or FIXED widget compatible with scrollable api by changing
+target widget render and scrolling along full-size / columns defined sized widget.
+
+Keyboard positioning keys and mouse wheel is used for scrolling if not handled by the wrapped widget.
+
+.. note::
+    :class:`Scrollable` do not recognize if selectable wrapped widget part visible or not.
+
+
+Comparing to the :class:`ListBox`,
+:class:`Scrollable` handles fixed and flow widgets directly instead of using list of small widgets.
+:class:`ListBox` should be used to scroll between widgets, which can be multiline by itself.
+
+.. _scrollable-api:
+
+Scrollable API
+--------------
+Widget pretending to be scrolled via :class:`ScrollBar` should subclass :class:`Widget`
+and implement positioning API:
+
+.. currentmodule:: Scrollable
+
+.. py:method:: get_scrollpos(size=None, focus=False)
+
+    Get scrolling position
+
+    :param size: widget render size. If `size` is not given, the currently rendered number of rows is returned.
+    :type size: tuple[int, int] | None
+    :param focus: widget is focused
+    :type focus: bool
+    :return: the index of the first visible row.
+    :rtype: int
+
+.. py:method:: set_scrollpos(position: SupportsInt)
+
+    **Optional** method for setting scrolling position.
+
+    Method is called on mouse wheel scroll if it implemented and mouse event was not handled by widget.
+
+    If `position` is positive it is interpreted as lines from the top.
+    If `position` is negative it is interpreted as lines from the bottom.
+
+.. py:method:: rows_max(size=None, focus=False)
+
+    Get the total number of rows `widget` can render.
+
+    :param size: widget render size. If `size` is not given, the currently rendered number of rows is returned.
+    :type size: tuple[int, int] | None
+    :param focus: widget is focused
+    :type focus: bool
+    :return: the number of rows for `size`
+    :rtype: int
+
+.. currentmodule:: urwid
+
+
 .. _listbox-contents:
 
 ListBox Contents
@@ -574,60 +650,6 @@ When this is defined it will be used by :meth:`ListBox.__iter__` and
 .. method:: positions(reverse=False)
 
    return a forward or reverse iterable of positions
-
-.. currentmodule:: urwid
-
-Scrollable Widgets
-==================
-Scrollable widgets can scroll long content which normally not fit into the screen resolution.
-Scrolling is normally supported using keyboard positioning keys and mouse wheel.
-
-Comparing to the :class:`ListBox`,
-:class:`Scrollable` handles fixed and flow widgets directly instead of using list of small widgets.
-
-:class:`ListBox` should be used to scroll between widgets, which can be multiline by itself.
-:class:`Scrollable` should be used to scroll over widget lines.
-
-:class:`ScrollBar` provide visual scrollbar with scrolling position information.
-
-.. currentmodule:: Scrollable
-
-:class:`Scrollable` implements special container for making widget scrollable via :class:`ScrollBar` widget.
-
-Scrollable API
---------------
-
-Widget pretending to be scrolled via :class:`ScrollBar` should subclass :class:`Widget`
-and implement positioning API:
-
-.. py:method:: get_scrollpos(size=None, focus=False)
-
-    Get scrolling position
-
-    :param size: widget render size. If `size` is not given, the currently rendered number of rows is returned.
-    :type size: tuple[int, int] | None
-    :param focus: widget is focused
-    :type focus: bool
-    :return: the index of the first visible row.
-    :rtype: int
-
-.. py:method:: set_scrollpos(position: SupportsInt)
-
-    Set scrolling position.
-
-    If `position` is positive it is interpreted as lines from the top.
-    If `position` is negative it is interpreted as lines from the bottom.
-
-.. py:method:: rows_max(size=None, focus=False)
-
-    Get the total number of rows `widget` can render.
-
-    :param size: widget render size. If `size` is not given, the currently rendered number of rows is returned.
-    :type size: tuple[int, int] | None
-    :param focus: widget is focused
-    :type focus: bool
-    :return: the number of rows for `size`
-    :rtype: int
 
 .. currentmodule:: urwid
 
