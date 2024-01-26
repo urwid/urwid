@@ -123,7 +123,7 @@ def key_test():
         rawt = urwid.Text(", ".join(f"{r:d}" for r in raw))
 
         if t:
-            lw.append(urwid.Columns([("weight", 2, urwid.Text(t)), rawt]))
+            lw.append(urwid.Columns([(urwid.WEIGHT, 2, urwid.Text(t)), rawt]))
             listbox.base_widget.set_focus(len(lw) - 1, "above")
         return keys
 

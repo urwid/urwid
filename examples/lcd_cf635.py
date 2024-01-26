@@ -151,9 +151,9 @@ class LCDHorizontalSlider(urwid.WidgetWrap):
         self.bar = LCDProgressBar(data_range, value)
         cols = urwid.Columns(
             [
-                ("fixed", 1, urwid.SelectableIcon("\x11")),
+                (1, urwid.SelectableIcon("\x11")),
                 self.bar,
-                ("fixed", 1, urwid.SelectableIcon("\x04")),
+                (1, urwid.SelectableIcon("\x04")),
             ]
         )
         super().__init__(cols)
@@ -182,7 +182,7 @@ class MenuOption(urwid.Button):
         self._label = urwid.Text("")
         self.set_label(label)
 
-        self._w = urwid.Columns([("fixed", 1, urwid.SelectableIcon("\xdf")), self._label])
+        self._w = urwid.Columns([(1, urwid.SelectableIcon("\xdf")), self._label])
 
         urwid.connect_signal(self, "click", lambda option: show_menu(submenu))
 
@@ -228,7 +228,7 @@ def build_menus():
         return urwid.Columns(
             [
                 urwid.Text(label),
-                ("fixed", 10, slider),
+                (10, slider),
             ]
         )
 
@@ -244,9 +244,9 @@ def build_menus():
 
         return urwid.Columns(
             [
-                ("fixed", 2, urwid.Text("%dR" % index)),
+                (2, urwid.Text(f"{index:d}R")),
                 LCDHorizontalSlider(18, 0, exp_scale_led(0)),
-                ("fixed", 2, urwid.Text(" G")),
+                (2, urwid.Text(" G")),
                 LCDHorizontalSlider(18, 0, exp_scale_led(1)),
             ]
         )

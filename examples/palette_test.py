@@ -284,7 +284,7 @@ def parse_chart(chart, convert):
                 entry = ""
             attr, text = attrtext
             if chart == CHART_TRUE:
-                out.append((attr, "\u2584"))
+                out.append((attr, "▄"))
             else:
                 out.append((attr, text.ljust(elen)))
     return out
@@ -329,7 +329,7 @@ def background_chart(chart, foreground, colors):
         # fix 8 <= colour < 16
         if colors > 16 and attr.background_basic and attr.background_number >= 8:
             # use high-colour with same number
-            entry = "h%d" % attr.background_number
+            entry = f"h{attr.background_number:d}"
             attr = urwid.AttrSpec(foreground, entry, colors)
         return attr, entry
 
@@ -367,7 +367,7 @@ def main():
         else:
             chart = {16: CHART_16, 88: CHART_88, 256: CHART_256, 2**24: CHART_TRUE}[colors]
             txt = chart_fn(chart, "default", colors)
-            lb[chart_offset] = urwid.Text(txt, wrap="clip")
+            lb[chart_offset] = urwid.Text(txt, wrap=urwid.CLIP)
 
     def on_mode_change(rb, state, colors):
         # if this radio button is checked

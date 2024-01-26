@@ -45,6 +45,6 @@ class ThingWithAPopUp(urwid.PopUpLauncher):
         return parsed
 
 
-fill = urwid.Filler(urwid.Padding(ThingWithAPopUp(), "center", 15))
+fill = urwid.Filler(urwid.Padding(ThingWithAPopUp(), urwid.CENTER, 15))
 loop = urwid.MainLoop(fill, [("popbg", "white", "dark blue")], pop_ups=True)
 loop.run()

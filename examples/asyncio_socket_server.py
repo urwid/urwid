@@ -42,7 +42,7 @@ def build_widgets():
     clock = urwid.Text("")
     update_clock(weakref.ref(clock))
 
-    return urwid.Filler(urwid.Pile([clock, *inputs]), "top")
+    return urwid.Filler(urwid.Pile([clock, *inputs]), urwid.TOP)
 
 
 def unhandled(key):

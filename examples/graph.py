@@ -260,7 +260,7 @@ class GraphView(urwid.WidgetWrap):
             9,
             2,
             0,
-            "center",
+            urwid.CENTER,
         )
 
         if urwid.get_encoding_mode() == "utf8":
@@ -271,10 +271,10 @@ class GraphView(urwid.WidgetWrap):
         self.animate_progress_wrap = urwid.WidgetWrap(self.animate_progress)
 
         lines = [
-            urwid.Text("Mode", align="center"),
+            urwid.Text("Mode", align=urwid.CENTER),
             *self.mode_buttons,
             urwid.Divider(),
-            urwid.Text("Animation", align="center"),
+            urwid.Text("Animation", align=urwid.CENTER),
             animate_controls,
             self.animate_progress_wrap,
             urwid.Divider(),
@@ -290,7 +290,7 @@ class GraphView(urwid.WidgetWrap):
         self.graph_wrap = urwid.WidgetWrap(self.graph)
         vline = urwid.AttrMap(urwid.SolidFill("\u2502"), "line")
         c = self.graph_controls()
-        w = urwid.Columns([("weight", 2, self.graph_wrap), ("fixed", 1, vline), c], dividechars=1, focus_column=2)
+        w = urwid.Columns([(urwid.WEIGHT, 2, self.graph_wrap), (1, vline), c], dividechars=1, focus_column=2)
         w = urwid.Padding(w, ("fixed left", 1), ("fixed right", 0))
         w = urwid.AttrMap(w, "body")
         w = urwid.LineBox(w)

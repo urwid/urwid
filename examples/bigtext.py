@@ -36,9 +36,9 @@ class SwitchingPadding(urwid.Padding):
         maxcol = size[0]
         width, ignore = self.original_widget.pack(size, focus=focus)
         if maxcol > width:
-            self.align = "left"
+            self.align = urwid.LEFT
         else:
-            self.align = "right"
+            self.align = urwid.RIGHT
         return super().padding_values(size, focus)
 
 
@@ -100,14 +100,14 @@ class BigTextDisplay:
 
         # Create BigText
         self.bigtext = urwid.BigText("", None)
-        bt = SwitchingPadding(self.bigtext, "left", None)
+        bt = SwitchingPadding(self.bigtext, urwid.LEFT, None)
         bt = urwid.AttrMap(bt, "bigtext")
-        bt = urwid.Filler(bt, "bottom", None, 7)
+        bt = urwid.Filler(bt, urwid.BOTTOM, None, 7)
         bt = urwid.BoxAdapter(bt, 7)
 
         # Create chars_avail
         cah = urwid.Text("Characters Available:")
-        self.chars_avail = urwid.Text("", wrap="any")
+        self.chars_avail = urwid.Text("", wrap=urwid.ANY)
         ca = urwid.AttrMap(self.chars_avail, "chars")
 
         chosen_font_rb.base_widget.set_state(True)  # causes set_font_event call
@@ -118,7 +118,7 @@ class BigTextDisplay:
         # ListBox
         chars = urwid.Pile([cah, ca])
         fonts = urwid.Pile([urwid.Text("Fonts:"), *self.font_buttons], focus_item=1)
-        col = urwid.Columns([("fixed", 16, chars), fonts], 3, focus_column=1)
+        col = urwid.Columns([(16, chars), fonts], 3, focus_column=1)
         bt = urwid.Pile([bt, edit], focus_item=1)
         lines = [bt, urwid.Divider(), col]
         w = urwid.ListBox(urwid.SimpleListWalker(lines))
@@ -131,7 +131,7 @@ class BigTextDisplay:
 
         # Exit message
         exit_w = urwid.BigText(("exit", " Quit? "), exit_font)
-        exit_w = urwid.Overlay(exit_w, w, "center", None, "middle", None)
+        exit_w = urwid.Overlay(exit_w, w, urwid.CENTER, None, urwid.MIDDLE, None)
         return w, exit_w
 
     def main(self):
