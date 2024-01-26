@@ -49,15 +49,15 @@ class DialogDisplay:
     def __init__(self, text, height, width, body=None):
         width = int(width)
         if width <= 0:
-            width = ("relative", 80)
+            width = (urwid.RELATIVE, 80)
         height = int(height)
         if height <= 0:
-            height = ("relative", 80)
+            height = (urwid.RELATIVE, 80)
 
         self.body = body
         if body is None:
             # fill space with nothing
-            body = urwid.Filler(urwid.Divider(), "top")
+            body = urwid.Filler(urwid.Divider(), urwid.TOP)
 
         self.frame = urwid.Frame(body, focus_part="footer")
         if text is not None:
@@ -70,12 +70,12 @@ class DialogDisplay:
         w = urwid.AttrMap(w, "body")
 
         # "shadow" effect
-        w = urwid.Columns([w, ("fixed", 2, urwid.AttrMap(urwid.Filler(urwid.Text(("border", "  ")), "top"), "shadow"))])
+        w = urwid.Columns([w, (2, urwid.AttrMap(urwid.Filler(urwid.Text(("border", "  ")), urwid.TOP), "shadow"))])
         w = urwid.Frame(w, footer=urwid.AttrMap(urwid.Text(("border", "  ")), "shadow"))
 
         # outermost border area
-        w = urwid.Padding(w, "center", width)
-        w = urwid.Filler(w, "middle", height)
+        w = urwid.Padding(w, urwid.CENTER, width)
+        w = urwid.Filler(w, urwid.MIDDLE, height)
         w = urwid.AttrMap(w, "border")
 
         self.view = w
@@ -87,7 +87,7 @@ class DialogDisplay:
             b.exitcode = exitcode
             b = urwid.AttrMap(b, "selectable", "focus")
             lines.append(b)
-        self.buttons = urwid.GridFlow(lines, 10, 3, 1, "center")
+        self.buttons = urwid.GridFlow(lines, 10, 3, 1, urwid.CENTER)
         self.frame.footer = urwid.Pile([urwid.Divider(), self.buttons], focus_item=1)
 
     def button_press(self, button):
@@ -162,7 +162,7 @@ class ListDialogDisplay(DialogDisplay):
         for tag, item, default in j:
             w = constr(tag, default == "on")
             self.items.append(w)
-            w = urwid.Columns([("fixed", 12, w), urwid.Text(item)], 2)
+            w = urwid.Columns([(12, w), urwid.Text(item)], 2)
             w = urwid.AttrMap(w, "selectable", "focus")
             lines.append(w)
 
@@ -310,7 +310,7 @@ def show_usage():
 
     sys.stdout.write(
         __doc__
-        + "\n".join(["%-15s %s" % (mode, help_mode) for (mode, help_mode) in modelist])
+        + "\n".join([f"{mode:<15} {help_mode}" for (mode, help_mode) in modelist])
         + """
 
 height and width may be set to 0 to auto-size.

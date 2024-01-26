@@ -108,7 +108,7 @@ This event loop integrates with the asyncio module in Python.
 .. note::
 
     In case of multithreading or multiprocessing usage required, do not use executor directly!
-    Use instead method :method:`run_in_executor` of :class:`AsyncioEventLoop`,
+    Use instead method :meth:`run_in_executor` of :class:`AsyncioEventLoop`,
     which forward API of the same method from asyncio Event Loop run_in_executor_.
 
 .. warning::
@@ -178,7 +178,7 @@ This event loop integrates with Tornado.
 .. note::
 
     In case of multithreading or multiprocessing usage required, do not use executor directly!
-    Use instead method :method:`run_in_executor` of :class:`TornadoEventLoop`,
+    Use instead method :meth:`run_in_executor` of :class:`TornadoEventLoop`,
     which forward API of the same method from `tornado.ioloop.IOLoop` (and internally use asyncio run_in_executor_).
 
 .. seealso::

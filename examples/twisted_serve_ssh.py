@@ -297,26 +297,26 @@ class TwistedScreen(Screen):
         '\\x1b[0;38;5;229;4;48;5;164m'
         """
         if a.foreground_high:
-            fg = "38;5;%d" % a.foreground_number
+            fg = f"38;5;{a.foreground_number:d}"
         elif a.foreground_basic:
             if a.foreground_number > 7:
                 if self.bright_is_bold:
-                    fg = "1;%d" % (a.foreground_number - 8 + 30)
+                    fg = f"1;{a.foreground_number - 8 + 30:d}"
                 else:
-                    fg = "%d" % (a.foreground_number - 8 + 90)
+                    fg = f"{a.foreground_number - 8 + 90:d}"
             else:
-                fg = "%d" % (a.foreground_number + 30)
+                fg = f"{a.foreground_number + 30:d}"
         else:
             fg = "39"
         st = "1;" * a.bold + "4;" * a.underline + "7;" * a.standout
         if a.background_high:
-            bg = "48;5;%d" % a.background_number
+            bg = f"48;5;{a.background_number:d}"
         elif a.background_basic:
             if a.background_number > 7:
                 # this doesn't work on most terminals
-                bg = "%d" % (a.background_number - 8 + 100)
+                bg = f"{a.background_number - 8 + 100:d}"
             else:
-                bg = "%d" % (a.background_number + 40)
+                bg = f"{a.background_number + 40:d}"
         else:
             bg = "49"
         return f"{urwid.escape.ESC}[0;{fg};{st}{bg}m"

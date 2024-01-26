@@ -44,7 +44,7 @@ class FibonacciWalker(urwid.ListWalker):
 
     def _get_at_pos(self, pos):
         """Return a widget and the position passed."""
-        return urwid.Text("%d" % pos[1], layout=self.numeric_layout), pos
+        return urwid.Text(f"{pos[1]:d}", layout=self.numeric_layout), pos
 
     def get_focus(self):
         return self._get_at_pos(self.focus)

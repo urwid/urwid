@@ -11,9 +11,13 @@ import urwid
 factor_me = 362923067964327863989661926737477737673859044111968554257667
 run_me = os.path.join(os.path.dirname(sys.argv[0]), "subproc2.py")
 
-output_widget = urwid.Text("Factors of %d:\n" % factor_me)
+output_widget = urwid.Text(f"Factors of {factor_me:d}:\n")
 edit_widget = urwid.Edit("Type anything or press enter to exit:")
-frame_widget = urwid.Frame(header=edit_widget, body=urwid.Filler(output_widget, valign="bottom"), focus_part="header")
+frame_widget = urwid.Frame(
+    header=edit_widget,
+    body=urwid.Filler(output_widget, valign=urwid.BOTTOM),
+    focus_part="header",
+)
 
 
 def exit_on_enter(key):

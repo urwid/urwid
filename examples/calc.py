@@ -99,7 +99,7 @@ class CalcEvent(Exception):
 
     def widget(self):
         """Return a widget containing event information"""
-        text = urwid.Text(self.message, "center")
+        text = urwid.Text(self.message, urwid.CENTER)
         return urwid.AttrMap(text, self.attr)
 
 
@@ -171,7 +171,7 @@ class Cell:
         if result is None:
             self.result.set_text("")
         else:
-            self.result.set_text("%d" % result)
+            self.result.set_text(f"{result:d}")
 
     def become_parent(self, column, letter):
         """Change the edit widget to a parent cell widget."""

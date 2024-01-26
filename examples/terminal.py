@@ -35,9 +35,9 @@ def main():
     mainframe = urwid.LineBox(
         urwid.Pile(
             [
-                ("weight", 70, term),
-                ("fixed", 1, urwid.Filler(size_widget)),
-                ("fixed", 1, urwid.Filler(urwid.Edit("focus test edit: "))),
+                (urwid.WEIGHT, 70, term),
+                (1, urwid.Filler(size_widget)),
+                (1, urwid.Filler(urwid.Edit("focus test edit: "))),
             ]
         ),
     )

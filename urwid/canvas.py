@@ -40,7 +40,7 @@ from urwid.util import (
 )
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Hashable, Iterable, Sequence
 
     from .widget import Widget
 
@@ -668,7 +668,12 @@ class CompositeCanvas(Canvas):
         super().__init__()
 
         if canv is None:
-            self.shards: list[tuple[int, list[tuple[int, int, int, int, typing.Any, Canvas]]]] = []
+            self.shards: list[
+                tuple[
+                    int,
+                    list[tuple[int, int, int, int, dict[Hashable | None, Hashable] | None, Canvas]],
+                ]
+            ] = []
             self.children: list[tuple[int, int, Canvas, typing.Any]] = []
         else:
             if hasattr(canv, "shards"):
@@ -889,14 +894,14 @@ class CompositeCanvas(Canvas):
 
         self.coords.update(other.translate_coords(left, top))
 
-    def fill_attr(self, a) -> None:
+    def fill_attr(self, a: Hashable) -> None:
         """
-        Apply attribute a to all areas of this canvas with default
-        attribute currently set to None, leaving other attributes
-        intact."""
+        Apply attribute a to all areas of this canvas with default attribute currently set to None,
+        leaving other attributes intact.
+        """
         self.fill_attr_apply({None: a})
 
-    def fill_attr_apply(self, mapping) -> None:
+    def fill_attr_apply(self, mapping: dict[Hashable | None, Hashable]) -> None:
         """
         Apply an attribute-mapping dictionary to the canvas.
 
