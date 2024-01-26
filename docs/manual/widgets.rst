@@ -330,7 +330,10 @@ The :class:`ScrollBar` widget draw optional scrollbar on the right or left side 
 (widget not fit in the desired amount of rows).
 The widget is always rendered BOX and wrapped widget is also should be BOX.
 In case of other widget types, they should be wrapped to support BOX sizing.
-:class:`Scrollable` make any FLOW or FIXED widget compatible with scrollable api.
+
+* :class:`Scrollable` make any FLOW or FIXED widget compatible with scrollable api.
+* :class:`ListBox` can be used with :class:`ScrollBar` directly,
+  all input is always handled by :class:`ListBox` and it's widgets.
 
 Keyboard positioning keys and mouse wheel is used for scrolling if not handled by the wrapped widget.
 Scrolling is done on per-line basis.

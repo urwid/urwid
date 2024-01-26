@@ -145,7 +145,7 @@ class Filler(WidgetDecoration):
             return self.original_widget.rows(size, focus) + self.top + self.bottom
         if self.height_type == WHSettings.GIVEN:
             return self.height_amount + self.top + self.bottom
-        raise FillerError("Method 'rows' not supported for BOX widgets")  # pragma: no-cover
+        raise FillerError("Method 'rows' not supported for BOX widgets")  # pragma: no cover
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
         attrs = dict(

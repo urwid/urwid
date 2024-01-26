@@ -341,7 +341,11 @@ def main():
 
     header = urwid.AttrMap(urwid.Text(text_header), "header")
     listbox = urwid.ListBox(urwid.SimpleListWalker(listbox_content))
-    frame = urwid.Frame(urwid.AttrMap(listbox, "body"), header=header)
+    scrollable = urwid.ScrollBar(
+        listbox,
+        trough_char=urwid.ScrollBar.Symbols.LITE_SHADE,
+    )
+    frame = urwid.Frame(urwid.AttrMap(scrollable, "body"), header=header)
 
     palette = [
         ("body", "black", "light gray", "standout"),
