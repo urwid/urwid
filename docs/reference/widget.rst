@@ -220,9 +220,8 @@ Terminal
 .. autoclass:: Terminal
 
 
-Helper Widget Classes
+Scroll Widget Classes
 ---------------------
-.. currentmodule:: urwid.widget
 
 Scrollable
 ~~~~~~~~~~
