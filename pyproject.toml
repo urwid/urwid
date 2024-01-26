@@ -111,6 +111,12 @@ exclude_lines = [
   "@typing.overload",
   "@overload",
 
+  # Protocols
+  "@runtime_checkable",
+  "@typing.runtime_checkable",
+  "class \\w*\\(Protocol\\):",
+  "class \\w*\\(typing.Protocol\\):",
+
   # Fallback code with no installed deps is almost impossible to cover properly
   "except ImportError:",
 
