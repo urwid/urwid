@@ -25,6 +25,8 @@ import warnings
 from collections.abc import Iterable, Sized
 from contextlib import suppress
 
+from typing_extensions import Protocol, runtime_checkable
+
 from urwid import signals
 from urwid.canvas import CanvasCombine, SolidCanvas
 from urwid.command_map import Command
@@ -50,10 +52,34 @@ if typing.TYPE_CHECKING:
     from urwid.canvas import CompositeCanvas
 
 _T = typing.TypeVar("_T")
+_K = typing.TypeVar("_K")
 
 
 class ListWalkerError(Exception):
     pass
+
+
+@runtime_checkable
+class ScrollSupportingBody(Sized, Protocol):
+    """Protocol for ListWalkers that support Scrolling."""
+
+    def get_focus(self) -> tuple[Widget, _K]:
+        ...
+
+    def set_focus(self, position: _K) -> None:
+        ...
+
+    def __getitem__(self, index: _K) -> _T:
+        ...
+
+    def positions(self, reverse: bool = False) -> Iterable[_K]:
+        ...
+
+    def get_next(self, position: _K) -> tuple[Widget, _K] | tuple[None, None]:
+        ...
+
+    def get_prev(self, position: _K) -> tuple[Widget, _K] | tuple[None, None]:
+        ...
 
 
 class ListWalker(metaclass=signals.MetaSignals):
@@ -326,6 +352,8 @@ class ListBox(Widget, WidgetContainerMixin):
         # variable for delayed valign change used by set_focus_valign
         self.set_focus_valign_pending = None
 
+        # used for scrollable protocol
+        self._rows_max_cached = 0
         self._rendered_size = 0, 0
 
     @property
@@ -514,6 +542,54 @@ class ListBox(Widget, WidgetContainerMixin):
             _TopBottom(trim_top, fill_above),
             _TopBottom(trim_bottom, fill_below),
         )
+
+    def get_scrollpos(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
+        """Current scrolling position."""
+        if not isinstance(self._body, ScrollSupportingBody):
+            raise ListBoxError(f"{self} body do not implement methods required for scrolling protocol")
+
+        if not self._body:
+            return 0
+
+        if size is not None:
+            self._rendered_size = size
+
+        _, focus_pos = self._body.get_focus()
+
+        mid, top, bottom = self.calculate_visible(self._rendered_size, focus)
+
+        start_row = top.trim
+        maxcol = self._rendered_size[0]
+
+        if top.fill:
+            pos = top.fill[-1].position
+        else:
+            pos = mid.focus_pos
+
+        prev, pos = self._body.get_prev(pos)
+        while prev is not None:
+            start_row += prev.rows((maxcol,))
+            prev, pos = self._body.get_prev(pos)
+
+        return start_row
+
+    def rows_max(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
+        """Scrollable protocol for sized iterable and not wrapped around contents."""
+        if not isinstance(self._body, ScrollSupportingBody):
+            raise ListBoxError(f"{self} body do not implement methods required for scrolling protocol")
+
+        if getattr(self._body, "wrap_around", False):
+            raise ListBoxError("Body is wrapped around")
+
+        if size is not None:
+            self._rendered_size = size
+
+        if size or not self._rows_max_cached:
+            self._rows_max_cached = sum(
+                self._body[position].rows((self._rendered_size[0],), focus) for position in self._body.positions()
+            )
+
+        return self._rows_max_cached
 
     def render(self, size: tuple[int, int], focus: bool = False) -> CompositeCanvas | SolidCanvas:
         """
@@ -1720,7 +1796,18 @@ class ListBox(Widget, WidgetContainerMixin):
             )
             return False
 
-        return w.mouse_event((maxcol,), event, button, col, row - wrow, focus)
+        handled = w.mouse_event((maxcol,), event, button, col, row - wrow, focus)
+        if handled:
+            return True
+
+        if is_mouse_press(event):
+            if button == 4:
+                return not self._keypress_up((maxcol, maxrow))
+
+            if button == 5:
+                return not self._keypress_down((maxcol, maxrow))
+
+        return False
 
     def ends_visible(self, size: tuple[int, int], focus: bool = False) -> list[Literal["top", "bottom"]]:
         """
