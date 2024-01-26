@@ -346,7 +346,10 @@ target widget render and scrolling along full-size / columns defined sized widge
 Keyboard positioning keys and mouse wheel is used for scrolling if not handled by the wrapped widget.
 
 .. note::
-    :class:`Scrollable` do not recognize if selectable wrapped widget part visible or not.
+    :class:`Scrollable` do not recognize if selectable wrapped widget part visible or not
+    if wrapped widget do not draw cursor.
+    This means, keyboard input maybe forwarded to the wrapped selectable widget even if it not visible.
+    **Mouse input is not affected by this limitation** due to known column and raw of mouse event.
 
 
 Comparing to the :class:`ListBox`,
