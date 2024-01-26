@@ -185,6 +185,8 @@ from urwid.widget import (
     PopUpTarget,
     ProgressBar,
     RadioButton,
+    Scrollable,
+    ScrollBar,
     SelectableIcon,
     Sizing,
     SolidFill,

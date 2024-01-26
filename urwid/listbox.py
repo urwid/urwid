@@ -262,6 +262,8 @@ class ListBoxError(Exception):
 
 
 class _Middle(typing.NamedTuple):
+    """Named tuple for ListBox internals."""
+
     offset: int
     focus_widget: Widget
     focus_pos: Hashable
@@ -269,20 +271,30 @@ class _Middle(typing.NamedTuple):
     cursor: tuple[int, int] | tuple[int] | None
 
 
+class _FillItem(typing.NamedTuple):
+    """Named tuple for ListBox internals."""
+
+    widget: Widget
+    position: Hashable
+    rows: int
+
+
 class _TopBottom(typing.NamedTuple):
+    """Named tuple for ListBox internals."""
+
     trim: int
-    fill: list[tuple[Widget, Hashable, int]]
+    fill: list[_FillItem]
 
 
 class ListBox(Widget, WidgetContainerMixin):
     """
-    a horizontally stacked list of widgets
+    Vertically stacked list of widgets
     """
 
     _selectable = True
     _sizing = frozenset([Sizing.BOX])
 
-    def __init__(self, body: ListWalker) -> None:
+    def __init__(self, body: ListWalker | Iterable[Widget]) -> None:
         """
         :param body: a ListWalker subclass such as :class:`SimpleFocusListWalker`
             that contains widgets to be displayed inside the list box
@@ -314,6 +326,8 @@ class ListBox(Widget, WidgetContainerMixin):
         # variable for delayed valign change used by set_focus_valign
         self.set_focus_valign_pending = None
 
+        self._rendered_size = 0, 0
+
     @property
     def body(self) -> ListWalker:
         """
@@ -323,7 +337,7 @@ class ListBox(Widget, WidgetContainerMixin):
         return self._body
 
     @body.setter
-    def body(self, body):
+    def body(self, body: Iterable[Widget] | ListWalker) -> None:
         with suppress(AttributeError):
             disconnect_signal(self._body, "modified", self._invalidate)
             # _body may be not yet assigned
@@ -383,12 +397,10 @@ class ListBox(Widget, WidgetContainerMixin):
             *cursor coords* or ``None``)
         *top*
             (*# lines to trim off top*,
-            list of (*widget*, *position*, *rows*) tuples above focus
-            in order from bottom to top)
+            list of (*widget*, *position*, *rows*) tuples above focus in order from bottom to top)
         *bottom*
             (*# lines to trim off bottom*,
-            list of (*widget*, *position*, *rows*) tuples below focus
-            in order from top to bottom)
+            list of (*widget*, *position*, *rows*) tuples below focus in order from top to bottom)
         """
         (maxcol, maxrow) = size
 
@@ -441,7 +453,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
             p_rows = prev.rows((maxcol,))
             if p_rows:  # filter out 0-height widgets
-                fill_above.append((prev, pos, p_rows))
+                fill_above.append(_FillItem(prev, pos, p_rows))
             if p_rows > fill_lines:  # crosses top edge?
                 trim_top = p_rows - fill_lines
                 break
@@ -462,7 +474,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
             n_rows = next_pos.rows((maxcol,))
             if n_rows:  # filter out 0-height widgets
-                fill_below.append((next_pos, pos, n_rows))
+                fill_below.append(_FillItem(next_pos, pos, n_rows))
             if n_rows > fill_lines:  # crosses bottom edge?
                 trim_bottom = n_rows - fill_lines
                 fill_lines -= n_rows
@@ -488,7 +500,7 @@ class ListBox(Widget, WidgetContainerMixin):
                 break
 
             p_rows = prev.rows((maxcol,))
-            fill_above.append((prev, pos, p_rows))
+            fill_above.append(_FillItem(prev, pos, p_rows))
             if p_rows > fill_lines:  # more than required
                 trim_top = p_rows - fill_lines
                 offset_rows += fill_lines
@@ -510,6 +522,8 @@ class ListBox(Widget, WidgetContainerMixin):
         see :meth:`Widget.render` for details
         """
         (maxcol, maxrow) = size
+
+        self._rendered_size = size
 
         middle, top, bottom = self.calculate_visible((maxcol, maxrow), focus=focus)
         if middle is None:
@@ -615,9 +629,7 @@ class ListBox(Widget, WidgetContainerMixin):
     ):
         """Set the focus widget's display offset and inset.
 
-        :param valign: one of:
-            'top', 'middle', 'bottom'
-            ('relative', percentage 0=top 100=bottom)
+        :param valign: one of: 'top', 'middle', 'bottom' ('relative', percentage 0=top 100=bottom)
         """
         vt, va = normalize_valign(valign, ListBoxError)
         self.set_focus_valign_pending = vt, va
@@ -756,10 +768,7 @@ class ListBox(Widget, WidgetContainerMixin):
         """
 
     def _set_focus_valign_complete(self, size: tuple[int, int], focus: bool) -> None:
-        """
-        Finish setting the offset and inset now that we have have a
-        maxcol & maxrow.
-        """
+        """Finish setting the offset and inset now that we have have a maxcol & maxrow."""
         (maxcol, maxrow) = size
         vt, va = self.set_focus_valign_pending
         self.set_focus_valign_pending = None
@@ -784,10 +793,7 @@ class ListBox(Widget, WidgetContainerMixin):
         self.shift_focus((maxcol, maxrow), rtop)
 
     def _set_focus_first_selectable(self, size: tuple[int, int], focus: bool) -> None:
-        """
-        Choose the first visible, selectable widget below the
-        current focus as the focus widget.
-        """
+        """Choose the first visible, selectable widget below the current focus as the focus widget."""
         (maxcol, maxrow) = size
         self.set_focus_valign_pending = None
         self.set_focus_pending = None
@@ -813,9 +819,7 @@ class ListBox(Widget, WidgetContainerMixin):
             new_row_offset += rows
 
     def _set_focus_complete(self, size: tuple[int, int], focus: bool) -> None:
-        """
-        Finish setting the position now that we have maxcol & maxrow.
-        """
+        """Finish setting the position now that we have maxcol & maxrow."""
         (maxcol, maxrow) = size
         self._invalidate()
         if self.set_focus_pending == "first selectable":

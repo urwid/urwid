@@ -468,31 +468,11 @@ def simplify_height(
     return (WHSettings(height_type), height_amount)
 
 
-class _BoxSymbols(typing.NamedTuple):
-    """Box symbols for drawing.
-
-    Symbols are ordered as in Unicode.
-    """
-
-    HORIZONTAL: str
-    VERTICAL: str
-    TOP_LEFT: str
-    TOP_RIGHT: str
-    BOTTOM_LEFT: str
-    BOTTOM_RIGHT: str
-    # Joints for tables making
-    LEFT_T: str
-    RIGHT_T: str
-    TOP_T: str
-    BOTTOM_T: str
-    CROSS: str
-
-
 class _LightBoxSymbols(typing.NamedTuple):
     """Box symbols for drawing.
 
     The Thin version includes extra symbols.
-    Symbols are ordered as in Unicode.
+    Symbols are ordered as in Unicode except dashes.
     """
 
     # fmt: off
@@ -509,11 +489,70 @@ class _LightBoxSymbols(typing.NamedTuple):
     TOP_T: str =    "┬"
     BOTTOM_T: str = "┴"
     CROSS: str =    "┼"
+    # Dashes
+    HORIZONTAL_4_DASHES: str = "┈"
+    HORIZONTAL_3_DASHES: str = "┄"
+    HORIZONTAL_2_DASHES: str = "╌"
+    VERTICAL_2_DASH: str = "╎"
+    VERTICAL_3_DASH: str = "┆"
+    VERTICAL_4_DASH: str = "┊"
     # Unique for light only
     TOP_LEFT_ROUNDED: str =     "╭"
     TOP_RIGHT_ROUNDED: str =    "╮"
     BOTTOM_RIGHT_ROUNDED: str = "╯"
     BOTTOM_LEFT_ROUNDED: str =  "╰"
+
+
+class _HeavyBoxSymbols(typing.NamedTuple):
+    """Box symbols for drawing.
+
+    The Heavy version includes extra symbols.
+    Symbols are ordered as in Unicode except dashes.
+    """
+
+    # fmt: off
+
+    HORIZONTAL: str =   "━"
+    VERTICAL: str =     "┃"
+    TOP_LEFT: str =     "┏"
+    TOP_RIGHT: str =    "┓"
+    BOTTOM_LEFT: str =  "┗"
+    BOTTOM_RIGHT: str = "┛"
+    # Joints for tables making
+    LEFT_T: str =   "┣"
+    RIGHT_T: str =  "┫"
+    TOP_T: str =    "┳"
+    BOTTOM_T: str = "┻"
+    CROSS: str =    "╋"
+    # Dashes
+    HORIZONTAL_4_DASHES: str = "┉"
+    HORIZONTAL_3_DASHES: str = "┅"
+    HORIZONTAL_2_DASHES: str = "╍"
+    VERTICAL_2_DASH: str = "╏"
+    VERTICAL_3_DASH: str = "┇"
+    VERTICAL_4_DASH: str = "┋"
+
+
+class _DoubleBoxSymbols(typing.NamedTuple):
+    """Box symbols for drawing.
+
+    Symbols are ordered as in Unicode.
+    """
+
+    # fmt: off
+
+    HORIZONTAL: str =   "═"
+    VERTICAL: str =     "║"
+    TOP_LEFT: str =     "╔"
+    TOP_RIGHT: str =    "╗"
+    BOTTOM_LEFT: str =  "╚"
+    BOTTOM_RIGHT: str = "╝"
+    # Joints for tables making
+    LEFT_T: str =   "╠"
+    RIGHT_T: str =  "╣"
+    TOP_T: str =    "╦"
+    BOTTOM_T: str = "╩"
+    CROSS: str =    "╬"
 
 
 class _BoxSymbolsCollection(typing.NamedTuple):
@@ -526,9 +565,9 @@ class _BoxSymbolsCollection(typing.NamedTuple):
 
     # fmt: off
 
-    LIGHT = _LightBoxSymbols()
-    HEAVY =  _BoxSymbols("━", "┃", "┏", "┓", "┗", "┛", "┣", "┫", "┳", "┻", "╋")
-    DOUBLE = _BoxSymbols("═", "║", "╔", "╗", "╚", "╝", "╠", "╣", "╦", "╩", "╬")
+    LIGHT: _LightBoxSymbols = _LightBoxSymbols()
+    HEAVY: _HeavyBoxSymbols = _HeavyBoxSymbols()
+    DOUBLE: _DoubleBoxSymbols = _DoubleBoxSymbols()
 
 
 BOX_SYMBOLS = _BoxSymbolsCollection()
@@ -547,3 +586,17 @@ class BAR_SYMBOLS(str, enum.Enum):
 
     HORISONTAL = " ▏▎▍▌▋▊▉█"
     VERTICAL =   " ▁▂▃▄▅▆▇█"
+
+
+class _SHADE_SYMBOLS(typing.NamedTuple):
+    """Standard shade symbols excluding empty space."""
+
+    # fmt: off
+
+    FULL_BLOCK: str =   "█"
+    DARK_SHADE: str =   "▓"
+    MEDIUM_SHADE: str = "▒"
+    LITE_SHADE: str =   "░"
+
+
+SHADE_SYMBOLS = _SHADE_SYMBOLS()

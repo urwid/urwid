@@ -1,17 +1,41 @@
 from __future__ import annotations
 
+import enum
 import typing
 
 from urwid.canvas import CompositeCanvas, SolidCanvas
 
-from .constants import Sizing
+from .constants import BOX_SYMBOLS, SHADE_SYMBOLS, Sizing
 from .widget import Widget
+
+
+class DividerSymbols(str, enum.Enum):
+    """Common symbols for divider widgets."""
+
+    # Lines
+    LIGHT_HL = BOX_SYMBOLS.LIGHT.HORIZONTAL
+    LIGHT_4_DASHES = BOX_SYMBOLS.LIGHT.HORIZONTAL_4_DASHES
+    LIGHT_3_DASHES = BOX_SYMBOLS.LIGHT.HORIZONTAL_3_DASHES
+    LIGHT_2_DASHES = BOX_SYMBOLS.LIGHT.HORIZONTAL_2_DASHES
+    HEAVY_HL = BOX_SYMBOLS.HEAVY.HORIZONTAL
+    HEAVY_4_DASHES = BOX_SYMBOLS.HEAVY.HORIZONTAL_4_DASHES
+    HEAVY_3_DASHES = BOX_SYMBOLS.HEAVY.HORIZONTAL_3_DASHES
+    HEAVY_2_DASHES = BOX_SYMBOLS.HEAVY.HORIZONTAL_2_DASHES
+    DOUBLE_HL = BOX_SYMBOLS.DOUBLE.HORIZONTAL
+
+    # Full block
+    FULL_BLOCK = SHADE_SYMBOLS.FULL_BLOCK
+    DARK_SHADE = SHADE_SYMBOLS.DARK_SHADE
+    MEDIUM_SHADE = SHADE_SYMBOLS.MEDIUM_SHADE
+    LITE_SHADE = SHADE_SYMBOLS.LITE_SHADE
 
 
 class Divider(Widget):
     """
     Horizontal divider widget
     """
+
+    Symbols = DividerSymbols
 
     _sizing = frozenset([Sizing.FLOW])
 
