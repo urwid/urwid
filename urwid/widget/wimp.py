@@ -156,8 +156,7 @@ class CheckBox(WidgetWrap):
         on_state_change: Callable[[Self, bool, _T], typing.Any] | None = None,
         user_data: _T = ...,
         checked_symbol: str | None = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @typing.overload
     def __init__(
@@ -168,8 +167,7 @@ class CheckBox(WidgetWrap):
         on_state_change: Callable[[Self, bool], typing.Any] | None = None,
         user_data: None = None,
         checked_symbol: str | None = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @typing.overload
     def __init__(
@@ -180,8 +178,7 @@ class CheckBox(WidgetWrap):
         on_state_change: Callable[[Self, bool | typing.Literal["mixed"], _T], typing.Any] | None = None,
         user_data: _T = ...,
         checked_symbol: str | None = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @typing.overload
     def __init__(
@@ -192,8 +189,7 @@ class CheckBox(WidgetWrap):
         on_state_change: Callable[[Self, bool | typing.Literal["mixed"]], typing.Any] | None = None,
         user_data: None = None,
         checked_symbol: str | None = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def __init__(
         self,
@@ -469,8 +465,7 @@ class RadioButton(CheckBox):
         state: bool | Literal["first True"] = ...,
         on_state_change: Callable[[Self, bool, _T], typing.Any] | None = None,
         user_data: _T = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @typing.overload
     def __init__(
@@ -480,8 +475,7 @@ class RadioButton(CheckBox):
         state: bool | Literal["first True"] = ...,
         on_state_change: Callable[[Self, bool], typing.Any] | None = None,
         user_data: None = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def __init__(
         self,
@@ -615,8 +609,7 @@ class Button(WidgetWrap):
         align: Literal["left", "center", "right"] | Align = ...,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = ...,
         layout: TextLayout | None = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @typing.overload
     def __init__(
@@ -628,8 +621,7 @@ class Button(WidgetWrap):
         align: Literal["left", "center", "right"] | Align = ...,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = ...,
         layout: TextLayout | None = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def __init__(
         self,

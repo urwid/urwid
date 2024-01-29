@@ -418,12 +418,10 @@ class Screen(BaseScreen):
         return self.screen_size
 
     @typing.overload
-    def get_input(self, raw_keys: Literal[False]) -> list[str]:
-        ...
+    def get_input(self, raw_keys: Literal[False]) -> list[str]: ...
 
     @typing.overload
-    def get_input(self, raw_keys: Literal[True]) -> tuple[list[str], list[int]]:
-        ...
+    def get_input(self, raw_keys: Literal[True]) -> tuple[list[str], list[int]]: ...
 
     def get_input(self, raw_keys: bool = False) -> list[str] | tuple[list[str], list[int]]:
         """Return pending input as a list."""

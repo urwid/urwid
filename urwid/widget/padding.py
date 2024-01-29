@@ -237,9 +237,11 @@ class Padding(WidgetDecoration):
     @width.setter
     def width(
         self,
-        width: Literal["clip", "pack", WHSettings.CLIP, WHSettings.PACK]
-        | int
-        | tuple[Literal["relative", WHSettings.RELATIVE], int],
+        width: (
+            Literal["clip", "pack", WHSettings.CLIP, WHSettings.PACK]
+            | int
+            | tuple[Literal["relative", WHSettings.RELATIVE], int]
+        ),
     ) -> None:
         """
         Set the padding width.
