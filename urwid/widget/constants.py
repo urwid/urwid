@@ -62,16 +62,14 @@ RELATIVE_100 = (WHSettings.RELATIVE, 100)
 def normalize_align(
     align: Literal["left", "center", "right"] | Align,
     err: type[BaseException],
-) -> tuple[Align, None]:
-    ...
+) -> tuple[Align, None]: ...
 
 
 @typing.overload
 def normalize_align(
     align: tuple[Literal["relative", WHSettings.RELATIVE], int],
     err: type[BaseException],
-) -> tuple[Literal[WHSettings.RELATIVE], int]:
-    ...
+) -> tuple[Literal[WHSettings.RELATIVE], int]: ...
 
 
 def normalize_align(
@@ -98,24 +96,21 @@ def normalize_align(
 def simplify_align(
     align_type: Literal["relative", WHSettings.RELATIVE],
     align_amount: int,
-) -> tuple[Literal[WHSettings.RELATIVE], int]:
-    ...
+) -> tuple[Literal[WHSettings.RELATIVE], int]: ...
 
 
 @typing.overload
 def simplify_align(
     align_type: Literal["relative", WHSettings.RELATIVE],
     align_amount: None,
-) -> typing.NoReturn:
-    ...
+) -> typing.NoReturn: ...
 
 
 @typing.overload
 def simplify_align(
     align_type: Literal["left", "center", "right"] | Align,
     align_amount: int | None,
-) -> Align:
-    ...
+) -> Align: ...
 
 
 def simplify_align(
@@ -138,16 +133,14 @@ def simplify_align(
 def normalize_valign(
     valign: Literal["top", "middle", "bottom"] | VAlign,
     err: type[BaseException],
-) -> tuple[VAlign, None]:
-    ...
+) -> tuple[VAlign, None]: ...
 
 
 @typing.overload
 def normalize_valign(
     valign: tuple[Literal["relative", WHSettings.RELATIVE], int],
     err: type[BaseException],
-) -> tuple[Literal[WHSettings.RELATIVE], int]:
-    ...
+) -> tuple[Literal[WHSettings.RELATIVE], int]: ...
 
 
 def normalize_valign(
@@ -174,24 +167,21 @@ def normalize_valign(
 def simplify_valign(
     valign_type: Literal["top", "middle", "bottom"] | VAlign,
     valign_amount: int | None,
-) -> VAlign:
-    ...
+) -> VAlign: ...
 
 
 @typing.overload
 def simplify_valign(
     valign_type: Literal["relative", WHSettings.RELATIVE],
     valign_amount: int,
-) -> tuple[Literal[WHSettings.RELATIVE], int]:
-    ...
+) -> tuple[Literal[WHSettings.RELATIVE], int]: ...
 
 
 @typing.overload
 def simplify_valign(
     valign_type: Literal["relative", WHSettings.RELATIVE],
     valign_amount: None,
-) -> typing.NoReturn:
-    ...
+) -> typing.NoReturn: ...
 
 
 def simplify_valign(
@@ -211,34 +201,30 @@ def simplify_valign(
 
 @typing.overload
 def normalize_width(
-    width: (Literal["clip", "pack", WHSettings.CLIP, WHSettings.PACK]),
+    width: Literal["clip", "pack", WHSettings.CLIP, WHSettings.PACK],
     err: type[BaseException],
-) -> tuple[Literal[WHSettings.CLIP, WHSettings.PACK], None]:
-    ...
+) -> tuple[Literal[WHSettings.CLIP, WHSettings.PACK], None]: ...
 
 
 @typing.overload
 def normalize_width(
     width: int,
     err: type[BaseException],
-) -> tuple[Literal[WHSettings.GIVEN], int]:
-    ...
+) -> tuple[Literal[WHSettings.GIVEN], int]: ...
 
 
 @typing.overload
 def normalize_width(
-    width: (tuple[Literal["relative", WHSettings.RELATIVE], int]),
+    width: tuple[Literal["relative", WHSettings.RELATIVE], int],
     err: type[BaseException],
-) -> tuple[Literal[WHSettings.RELATIVE], int]:
-    ...
+) -> tuple[Literal[WHSettings.RELATIVE], int]: ...
 
 
 @typing.overload
 def normalize_width(
-    width: (tuple[Literal["weight", WHSettings.WEIGHT], int]),
+    width: tuple[Literal["weight", WHSettings.WEIGHT], int],
     err: type[BaseException],
-) -> tuple[Literal[WHSettings.WEIGHT], int]:
-    ...
+) -> tuple[Literal[WHSettings.WEIGHT], int]: ...
 
 
 def normalize_width(
@@ -276,40 +262,35 @@ def normalize_width(
 def simplify_width(
     width_type: Literal["clip", "pack", WHSettings.CLIP, WHSettings.PACK],
     width_amount: int | None,
-) -> Literal[WHSettings.CLIP, WHSettings.PACK]:
-    ...
+) -> Literal[WHSettings.CLIP, WHSettings.PACK]: ...
 
 
 @typing.overload
 def simplify_width(
     width_type: Literal["given", WHSettings.GIVEN],
     width_amount: int,
-) -> int:
-    ...
+) -> int: ...
 
 
 @typing.overload
 def simplify_width(
     width_type: Literal["relative", WHSettings.RELATIVE],
     width_amount: int,
-) -> tuple[Literal[WHSettings.RELATIVE], int]:
-    ...
+) -> tuple[Literal[WHSettings.RELATIVE], int]: ...
 
 
 @typing.overload
 def simplify_width(
     width_type: Literal["weight", WHSettings.WEIGHT],
     width_amount: int,
-) -> tuple[Literal[WHSettings.WEIGHT], int]:
-    ...
+) -> tuple[Literal[WHSettings.WEIGHT], int]: ...
 
 
 @typing.overload
 def simplify_width(
     width_type: Literal["given", "relative", "weight", WHSettings.GIVEN, WHSettings.RELATIVE, WHSettings.WEIGHT],
     width_amount: None,
-) -> typing.NoReturn:
-    ...
+) -> typing.NoReturn: ...
 
 
 def simplify_width(
@@ -334,34 +315,30 @@ def simplify_width(
 
 @typing.overload
 def normalize_height(
-    height: (int),
+    height: int,
     err: type[BaseException],
-) -> tuple[Literal[WHSettings.GIVEN], int]:
-    ...
+) -> tuple[Literal[WHSettings.GIVEN], int]: ...
 
 
 @typing.overload
 def normalize_height(
-    height: (Literal["flow", "pack", Sizing.FLOW, WHSettings.PACK]),
+    height: Literal["flow", "pack", Sizing.FLOW, WHSettings.PACK],
     err: type[BaseException],
-) -> tuple[Literal[Sizing.FLOW, WHSettings.PACK], None]:
-    ...
+) -> tuple[Literal[Sizing.FLOW, WHSettings.PACK], None]: ...
 
 
 @typing.overload
 def normalize_height(
-    height: (tuple[Literal["relative", WHSettings.RELATIVE], int]),
+    height: tuple[Literal["relative", WHSettings.RELATIVE], int],
     err: type[BaseException],
-) -> tuple[Literal[WHSettings.RELATIVE], int]:
-    ...
+) -> tuple[Literal[WHSettings.RELATIVE], int]: ...
 
 
 @typing.overload
 def normalize_height(
-    height: (tuple[Literal["weight", WHSettings.WEIGHT], int]),
+    height: tuple[Literal["weight", WHSettings.WEIGHT], int],
     err: type[BaseException],
-) -> tuple[Literal[WHSettings.WEIGHT], int]:
-    ...
+) -> tuple[Literal[WHSettings.WEIGHT], int]: ...
 
 
 def normalize_height(
@@ -401,40 +378,35 @@ def normalize_height(
 def simplify_height(
     height_type: Literal["flow", "pack", WHSettings.FLOW, WHSettings.PACK],
     height_amount: int | None,
-) -> Literal[WHSettings.FLOW, WHSettings.PACK]:
-    ...
+) -> Literal[WHSettings.FLOW, WHSettings.PACK]: ...
 
 
 @typing.overload
 def simplify_height(
     height_type: Literal["given", WHSettings.GIVEN],
     height_amount: int,
-) -> int:
-    ...
+) -> int: ...
 
 
 @typing.overload
 def simplify_height(
     height_type: Literal["relative", WHSettings.RELATIVE],
     height_amount: int | None,
-) -> tuple[Literal[WHSettings.RELATIVE], int]:
-    ...
+) -> tuple[Literal[WHSettings.RELATIVE], int]: ...
 
 
 @typing.overload
 def simplify_height(
     height_type: Literal["weight", WHSettings.WEIGHT],
     height_amount: int | None,
-) -> tuple[Literal[WHSettings.WEIGHT], int]:
-    ...
+) -> tuple[Literal[WHSettings.WEIGHT], int]: ...
 
 
 @typing.overload
 def simplify_height(
     height_type: Literal["relative", "given", "weight", WHSettings.RELATIVE, WHSettings.GIVEN, WHSettings.WEIGHT],
     height_amount: None,
-) -> typing.NoReturn:
-    ...
+) -> typing.NoReturn: ...
 
 
 def simplify_height(

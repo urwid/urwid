@@ -30,7 +30,6 @@ Portions Copyright: 2010, Ian Ward <ian@excess.org>
 Licence:   LGPL <https://opensource.org/licenses/lgpl-2.1.php>
 """
 
-
 from __future__ import annotations
 
 import typing
@@ -58,7 +57,6 @@ if typing.TYPE_CHECKING:
 
 
 class IUrwidUi(Interface):
-
     """Toplevel urwid widget"""
 
     toplevel = Attribute("Urwid Toplevel Widget")

@@ -4,10 +4,12 @@ import urwid
 
 
 def question():
-    return urwid.Pile([urwid.Edit(('I say', "What is your name?\n"))])
+    return urwid.Pile([urwid.Edit(("I say", "What is your name?\n"))])
+
 
 def answer(name):
-    return urwid.Text(('I say', f"Nice to meet you, {name}\n"))
+    return urwid.Text(("I say", f"Nice to meet you, {name}\n"))
+
 
 class ConversationListBox(urwid.ListBox):
     def __init__(self):
@@ -16,7 +18,7 @@ class ConversationListBox(urwid.ListBox):
 
     def keypress(self, size, key):
         key = super().keypress(size, key)
-        if key != 'enter':
+        if key != "enter":
             return key
         name = self.focus[0].edit_text
         if not name:
@@ -28,5 +30,6 @@ class ConversationListBox(urwid.ListBox):
         self.body.insert(pos + 1, question())
         self.focus_position = pos + 1
 
-palette = [('I say', 'default,bold', 'default'),]
+
+palette = [("I say", "default,bold", "default")]
 urwid.MainLoop(ConversationListBox(), palette).run()

@@ -337,12 +337,10 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         self.focus = focus
 
     @typing.overload
-    def __setitem__(self, i: int, y: _T) -> None:
-        ...
+    def __setitem__(self, i: int, y: _T) -> None: ...
 
     @typing.overload
-    def __setitem__(self, i: slice, y: Collection[_T]) -> None:
-        ...
+    def __setitem__(self, i: slice, y: Collection[_T]) -> None: ...
 
     def __setitem__(self, i: int | slice, y: _T | Collection[_T]) -> None:
         """

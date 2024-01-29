@@ -227,12 +227,10 @@ class Screen(BaseScreen, RealTerminal):
         self._term_output_file.flush()
 
     @typing.overload
-    def get_input(self, raw_keys: Literal[False]) -> list[str]:
-        ...
+    def get_input(self, raw_keys: Literal[False]) -> list[str]: ...
 
     @typing.overload
-    def get_input(self, raw_keys: Literal[True]) -> tuple[list[str], list[int]]:
-        ...
+    def get_input(self, raw_keys: Literal[True]) -> tuple[list[str], list[int]]: ...
 
     def get_input(self, raw_keys: bool = False) -> list[str] | tuple[list[str], list[int]]:
         """Return pending input as a list.
@@ -406,8 +404,7 @@ class Screen(BaseScreen, RealTerminal):
         callback: None,
         codes: list[int],
         wait_for_more: bool = ...,
-    ) -> tuple[list[str], list[int]]:
-        ...
+    ) -> tuple[list[str], list[int]]: ...
 
     @typing.overload
     def parse_input(
@@ -416,8 +413,7 @@ class Screen(BaseScreen, RealTerminal):
         callback: None,
         codes: list[int],
         wait_for_more: bool = ...,
-    ) -> tuple[list[str], list[int]]:
-        ...
+    ) -> tuple[list[str], list[int]]: ...
 
     @typing.overload
     def parse_input(
@@ -426,8 +422,7 @@ class Screen(BaseScreen, RealTerminal):
         callback: Callable[[list[str], list[int]], typing.Any],
         codes: list[int],
         wait_for_more: bool = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def parse_input(
         self,
@@ -521,8 +516,7 @@ class Screen(BaseScreen, RealTerminal):
         return [event.fd for event, _ in ready]
 
     @abc.abstractmethod
-    def _getch(self, timeout: int) -> int:
-        ...
+    def _getch(self, timeout: int) -> int: ...
 
     def _getch_nodelay(self) -> int:
         return self._getch(0)

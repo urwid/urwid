@@ -34,8 +34,7 @@ if typing.TYPE_CHECKING:
     from typing_extensions import Protocol, Self
 
     class CanBeStopped(Protocol):
-        def stop(self) -> None:
-            ...
+        def stop(self) -> None: ...
 
 
 try:

@@ -455,9 +455,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
     @staticmethod
     def options(
-        width_type: (
-            Literal["pack", "given", "weight", WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT]
-        ) = WHSettings.WEIGHT,
+        width_type: Literal[
+            "pack", "given", "weight", WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT
+        ] = WHSettings.WEIGHT,
         width_amount: int | None = 1,
         box_widget: bool = False,
     ) -> tuple[Literal[WHSettings.PACK], None, bool] | tuple[Literal[WHSettings.GIVEN, WHSettings.WEIGHT], int, bool]:
