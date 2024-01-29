@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Main Loop &#8212; Urwid 2.4.6</title>
+    <title>Main Loop &#8212; Urwid 2.5.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script src="../_static/documentation_options.js?v=22624b42"></script>
+    <script src="../_static/documentation_options.js?v=3c4615cf"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="overview.html" title="Library Overview"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.5.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Main Loop</a></li> 
       </ul>
@@ -120,7 +120,7 @@ created if none is passed to <code class="xref py py-class docutils literal notr
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>In case of multithreading or multiprocessing usage required, do not use executor directly!
-Use instead method <a href="#id3"><span class="problematic" id="id4">:method:`run_in_executor`</span></a> of <a class="reference internal" href="../reference/main_loop.html#urwid.AsyncioEventLoop" title="urwid.AsyncioEventLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">AsyncioEventLoop</span></code></a>,
+Use instead method <code class="xref py py-meth docutils literal notranslate"><span class="pre">run_in_executor()</span></code> of <a class="reference internal" href="../reference/main_loop.html#urwid.AsyncioEventLoop" title="urwid.AsyncioEventLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">AsyncioEventLoop</span></code></a>,
 which forward API of the same method from asyncio Event Loop <a class="reference external" href="https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.run_in_executor">run_in_executor</a>.</p>
 </div>
 <div class="admonition warning">
@@ -181,7 +181,7 @@ application on Twisted.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>In case of multithreading or multiprocessing usage required, do not use executor directly!
-Use instead method <a href="#id5"><span class="problematic" id="id6">:method:`run_in_executor`</span></a> of <a class="reference internal" href="../reference/main_loop.html#urwid.TornadoEventLoop" title="urwid.TornadoEventLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">TornadoEventLoop</span></code></a>,
+Use instead method <code class="xref py py-meth docutils literal notranslate"><span class="pre">run_in_executor()</span></code> of <a class="reference internal" href="../reference/main_loop.html#urwid.TornadoEventLoop" title="urwid.TornadoEventLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">TornadoEventLoop</span></code></a>,
 which forward API of the same method from <cite>tornado.ioloop.IOLoop</cite> (and internally use asyncio <a class="reference external" href="https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.run_in_executor">run_in_executor</a>).</p>
 </div>
 <div class="admonition seealso">
@@ -274,7 +274,7 @@ which forward API of the same method from <cite>tornado.ioloop.IOLoop</cite> (an
         <li class="right" >
           <a href="overview.html" title="Library Overview"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.5.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Main Loop</a></li> 
       </ul>

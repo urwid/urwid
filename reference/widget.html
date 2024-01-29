@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widget Classes &#8212; Urwid 2.4.6</title>
+    <title>Widget Classes &#8212; Urwid 2.5.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script src="../_static/documentation_options.js?v=22624b42"></script>
+    <script src="../_static/documentation_options.js?v=3c4615cf"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.5.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>
@@ -73,60 +73,6 @@ in subclasses or widget instances.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="urwid.Widget.render">
-<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Widget.render" title="Link to this definition">¶</a></dt>
-<dd><div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This method is not implemented in <a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> but
-must be implemented by any concrete subclass</p>
-</div>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following,
-<em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
-<dl class="simple">
-<dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
-size of this widget</p>
-</dd>
-<dt>(<em>maxcol</em>,)</dt><dd><p>for flow sizing – the parent chooses only the
-number of columns for this widget</p>
-</dd>
-<dt>()</dt><dd><p>for fixed sizing – this widget is a fixed size
-which can’t be adjusted by the parent</p>
-</dd>
-</dl>
-</p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children
-is in focus</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A <a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">Canvas</span></code></a> subclass instance containing the
-rendered content of this widget</p>
-</dd>
-</dl>
-<p><a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.TextCanvas" title="urwid.TextCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextCanvas</span></code></a> (arbitrary text and
-display attributes), <a class="reference internal" href="#urwid.SolidFill" title="urwid.SolidFill"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidFill</span></code></a> widgets return a
-<a class="reference internal" href="canvas.html#urwid.SolidCanvas" title="urwid.SolidCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidCanvas</span></code></a> (a single character repeated across
-the whole surface) and container widgets return a
-<a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">CompositeCanvas</span></code></a> (one or more other canvases
-arranged arbitrarily).</p>
-<p>If <em>focus</em> is <code class="docutils literal notranslate"><span class="pre">False</span></code>, the returned canvas may not have a cursor
-position set.</p>
-<p>There is some metaclass magic defined in the <a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a>
-metaclass <a class="reference internal" href="meta.html#urwid.WidgetMeta" title="urwid.WidgetMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetMeta</span></code></a> that causes the
-result of this method to be cached by <a class="reference internal" href="canvas.html#urwid.CanvasCache" title="urwid.CanvasCache"><code class="xref py py-class docutils literal notranslate"><span class="pre">CanvasCache</span></code></a>.
-Later calls will automatically look up the value in the cache first.</p>
-<p>As a small optimization the class variable <code class="xref py py-attr docutils literal notranslate"><span class="pre">ignore_focus</span></code>
-may be defined and set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget renders the same
-canvas regardless of the value of the <em>focus</em> parameter.</p>
-<p>Any time the content of a widget changes it should call
-<a class="reference internal" href="#urwid.Widget._invalidate" title="urwid.Widget._invalidate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">_invalidate()</span></code></a> to remove any cached canvases, or the widget
-may render the cached canvas instead of creating a new one.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="urwid.Widget.rows">
 <span class="sig-name descname"><span class="pre">rows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Widget.rows" title="Link to this definition">¶</a></dt>
 <dd><div class="admonition note">
@@ -154,60 +100,6 @@ has been rendered you may not receive calls to this function. The class
 variable <code class="xref py py-attr docutils literal notranslate"><span class="pre">ignore_focus</span></code> may be defined and set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this
 widget renders the same size regardless of the value of the <em>focus</em>
 parameter.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="urwid.Widget.keypress">
-<span class="sig-name descname"><span class="pre">keypress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Widget.keypress" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>widget size</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
-<li><p><strong>key</strong> (<em>str</em>) – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code> if <em>key</em> was handled by this widget or
-<em>key</em> (the same value passed) if <em>key</em> was not handled
-by this widget</p>
-</dd>
-</dl>
-<p>Container widgets will typically call the <a class="reference internal" href="#id0" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">keypress()</span></code></a> method on
-whichever of their children is set as the focus.</p>
-<p>The standard widgets use <a class="reference internal" href="#urwid.Widget._command_map" title="urwid.Widget._command_map"><code class="xref py py-attr docutils literal notranslate"><span class="pre">_command_map</span></code></a> to
-determine what action should be performed for a given <em>key</em>. You may
-modify these values to your liking globally, at some level in the
-widget hierarchy or on individual widgets. See <a class="reference internal" href="command_map.html#urwid.CommandMap" title="urwid.CommandMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">CommandMap</span></code></a>
-for the defaults.</p>
-<p>In your own widgets you may use whatever logic you like: filtering or
-translating keys, selectively passing along events etc.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="urwid.Widget.mouse_event">
-<span class="sig-name descname"><span class="pre">mouse_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">button</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Widget.mouse_event" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>widget size</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
-<li><p><strong>event</strong> (<em>mouse event</em>) – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
-<code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code>, <code class="docutils literal notranslate"><span class="pre">'meta</span> <span class="pre">mouse</span> <span class="pre">release'</span></code>,
-<code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">drag'</span></code>; see <a class="reference internal" href="../manual/userinput.html#mouse-input"><span class="std std-ref">Mouse Input</span></a></p></li>
-<li><p><strong>button</strong> (<em>int</em>) – 1 through 5 for press events, often 0 for release events
-(which button was released is often not known)</p></li>
-<li><p><strong>col</strong> (<em>int</em>) – Column of the event, 0 is the left edge of this widget</p></li>
-<li><p><strong>row</strong> (<em>int</em>) – Row of the event, 0 it the top row of this widget</p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children
-is in focus</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the event was handled by this widget, <code class="docutils literal notranslate"><span class="pre">False</span></code>
-otherwise</p>
-</dd>
-</dl>
-<p>Container widgets will typically call the <a class="reference internal" href="#id2" title="urwid.Widget.mouse_event"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mouse_event()</span></code></a> method on
-whichever of their children is at the position (<em>col</em>, <em>row</em>).</p>
 </dd></dl>
 
 <dl class="py method">
@@ -330,8 +222,8 @@ accessing <a class="reference internal" href="#urwid.Widget.focus_position" titl
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="id0">
-<span class="sig-name descname"><span class="pre">keypress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#id0" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="urwid.Widget.keypress">
+<span class="sig-name descname"><span class="pre">keypress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Widget.keypress" title="Link to this definition">¶</a></dt>
 <dd><p>Keyboard input handler.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -350,8 +242,8 @@ accessing <a class="reference internal" href="#urwid.Widget.focus_position" titl
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="id2">
-<span class="sig-name descname"><span class="pre">mouse_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">button</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#id2" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="urwid.Widget.mouse_event">
+<span class="sig-name descname"><span class="pre">mouse_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">button</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Widget.mouse_event" title="Link to this definition">¶</a></dt>
 <dd><p>Mouse event handler.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -406,6 +298,48 @@ required to display the text wrapped into a target number of rows.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="urwid.Widget.render">
+<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.canvas.Canvas"><span class="pre">Canvas</span></a></span></span><a class="headerlink" href="#urwid.Widget.render" title="Link to this definition">¶</a></dt>
+<dd><p>Render widget and produce canvas</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<dl class="simple">
+<dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
+size of this widget</p>
+</dd>
+<dt>(<em>maxcol</em>,)</dt><dd><p>for flow sizing – the parent chooses only the
+number of columns for this widget</p>
+</dd>
+<dt>()</dt><dd><p>for fixed sizing – this widget is a fixed size
+which can’t be adjusted by the parent</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">Canvas</span></code></a> subclass instance containing the rendered content of this widget</p>
+</dd>
+</dl>
+<p><a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.TextCanvas" title="urwid.TextCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextCanvas</span></code></a> (arbitrary text and display attributes),
+<a class="reference internal" href="#urwid.SolidFill" title="urwid.SolidFill"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidFill</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.SolidCanvas" title="urwid.SolidCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidCanvas</span></code></a> (a single character repeated across the whole surface)
+and container widgets return a <a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">CompositeCanvas</span></code></a> (one or more other canvases arranged arbitrarily).</p>
+<p>If <em>focus</em> is <code class="docutils literal notranslate"><span class="pre">False</span></code>, the returned canvas may not have a cursor position set.</p>
+<p>There is some metaclass magic defined in the <a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> metaclass <a class="reference internal" href="meta.html#urwid.WidgetMeta" title="urwid.WidgetMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetMeta</span></code></a>
+that causes the result of this method to be cached by <a class="reference internal" href="canvas.html#urwid.CanvasCache" title="urwid.CanvasCache"><code class="xref py py-class docutils literal notranslate"><span class="pre">CanvasCache</span></code></a>.
+Later calls will automatically look up the value in the cache first.</p>
+<p>As a small optimization the class variable <code class="xref py py-attr docutils literal notranslate"><span class="pre">ignore_focus</span></code>
+may be defined and set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget renders the same
+canvas regardless of the value of the <em>focus</em> parameter.</p>
+<p>Any time the content of a widget changes it should call
+<a class="reference internal" href="#urwid.Widget._invalidate" title="urwid.Widget._invalidate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">_invalidate()</span></code></a> to remove any cached canvases, or the widget
+may render the cached canvas instead of creating a new one.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.Widget.selectable">
 <span class="sig-name descname"><span class="pre">selectable</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.Widget.selectable" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
@@ -419,7 +353,7 @@ interact with, <code class="docutils literal notranslate"><span class="pre">Fals
 Subclasses may leave these is if the are not selectable,
 or if they are always selectable they may
 set the <a class="reference internal" href="#urwid.Widget._selectable" title="urwid.Widget._selectable"><code class="xref py py-attr docutils literal notranslate"><span class="pre">_selectable</span></code></a> class variable to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
-<p>If this method returns <code class="docutils literal notranslate"><span class="pre">True</span></code> then the <a class="reference internal" href="#id0" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">keypress()</span></code></a> method
+<p>If this method returns <code class="docutils literal notranslate"><span class="pre">True</span></code> then the <a class="reference internal" href="#urwid.Widget.keypress" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">keypress()</span></code></a> method
 must be implemented.</p>
 <p>Returning <code class="docutils literal notranslate"><span class="pre">False</span></code> does not guarantee that this widget will never be in
 focus, only that this widget will usually be skipped over when changing
@@ -528,7 +462,7 @@ interact with, <code class="docutils literal notranslate"><span class="pre">Fals
 Subclasses may leave these is if the are not selectable,
 or if they are always selectable they may
 set the <code class="xref py py-attr docutils literal notranslate"><span class="pre">_selectable</span></code> class variable to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
-<p>If this method returns <code class="docutils literal notranslate"><span class="pre">True</span></code> then the <a class="reference internal" href="#id0" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">keypress()</span></code></a> method
+<p>If this method returns <code class="docutils literal notranslate"><span class="pre">True</span></code> then the <a class="reference internal" href="#urwid.Widget.keypress" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">keypress()</span></code></a> method
 must be implemented.</p>
 <p>Returning <code class="docutils literal notranslate"><span class="pre">False</span></code> does not guarantee that this widget will never be in
 focus, only that this widget will usually be skipped over when changing
@@ -2298,6 +2232,48 @@ required to display the text wrapped into a target number of rows.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="urwid.Padding.render">
+<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.canvas.CompositeCanvas"><span class="pre">CompositeCanvas</span></a></span></span><a class="headerlink" href="#urwid.Padding.render" title="Link to this definition">¶</a></dt>
+<dd><p>Render widget and produce canvas</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<dl class="simple">
+<dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
+size of this widget</p>
+</dd>
+<dt>(<em>maxcol</em>,)</dt><dd><p>for flow sizing – the parent chooses only the
+number of columns for this widget</p>
+</dd>
+<dt>()</dt><dd><p>for fixed sizing – this widget is a fixed size
+which can’t be adjusted by the parent</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">Canvas</span></code></a> subclass instance containing the rendered content of this widget</p>
+</dd>
+</dl>
+<p><a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.TextCanvas" title="urwid.TextCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextCanvas</span></code></a> (arbitrary text and display attributes),
+<a class="reference internal" href="#urwid.SolidFill" title="urwid.SolidFill"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidFill</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.SolidCanvas" title="urwid.SolidCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidCanvas</span></code></a> (a single character repeated across the whole surface)
+and container widgets return a <a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">CompositeCanvas</span></code></a> (one or more other canvases arranged arbitrarily).</p>
+<p>If <em>focus</em> is <code class="docutils literal notranslate"><span class="pre">False</span></code>, the returned canvas may not have a cursor position set.</p>
+<p>There is some metaclass magic defined in the <a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> metaclass <a class="reference internal" href="meta.html#urwid.WidgetMeta" title="urwid.WidgetMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetMeta</span></code></a>
+that causes the result of this method to be cached by <a class="reference internal" href="canvas.html#urwid.CanvasCache" title="urwid.CanvasCache"><code class="xref py py-class docutils literal notranslate"><span class="pre">CanvasCache</span></code></a>.
+Later calls will automatically look up the value in the cache first.</p>
+<p>As a small optimization the class variable <code class="xref py py-attr docutils literal notranslate"><span class="pre">ignore_focus</span></code>
+may be defined and set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget renders the same
+canvas regardless of the value of the <em>focus</em> parameter.</p>
+<p>Any time the content of a widget changes it should call
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">_invalidate()</span></code> to remove any cached canvases, or the widget
+may render the cached canvas instead of creating a new one.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.Padding.rows">
 <span class="sig-name descname"><span class="pre">rows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.Padding.rows" title="Link to this definition">¶</a></dt>
 <dd><p>Return the rows needed for self.original_widget.</p>
@@ -2463,6 +2439,12 @@ Sizing FLOW is supported if: FLOW widget (a height type is PACK) or BOX widget w
 <span class="go">&lt;Divider flow widget &#39;x&#39; bottom=2 top=1&gt;</span>
 </pre></div>
 </div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.Divider.Symbols">
+<span class="sig-name descname"><span class="pre">Symbols</span></span><a class="headerlink" href="#urwid.Divider.Symbols" title="Link to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">DividerSymbols</span></code></p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.Divider.render">
 <span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Divider.render" title="Link to this definition">¶</a></dt>
@@ -2517,6 +2499,43 @@ brcorner: bottom right corner</p>
 <p>If empty string is specified for one of the lines/corners, then no character will be output there.
 If no top/bottom/left/right lines - whole lines will be omitted.
 This allows for seamless use of adjoining LineBoxes.</p>
+<p>Class attribute <cite>Symbols</cite> can be used as source for standard lines:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">LineBox</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="s2">&quot;Some text&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">render</span><span class="p">(()))</span>
+<span class="go">┌─────────┐</span>
+<span class="go">│Some text│</span>
+<span class="go">└─────────┘</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span>
+<span class="gp">... </span>  <span class="n">LineBox</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">Text</span><span class="p">(</span><span class="s2">&quot;Some text&quot;</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">tlcorner</span><span class="o">=</span><span class="n">LineBox</span><span class="o">.</span><span class="n">Symbols</span><span class="o">.</span><span class="n">LIGHT</span><span class="o">.</span><span class="n">TOP_LEFT_ROUNDED</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">trcorner</span><span class="o">=</span><span class="n">LineBox</span><span class="o">.</span><span class="n">Symbols</span><span class="o">.</span><span class="n">LIGHT</span><span class="o">.</span><span class="n">TOP_RIGHT_ROUNDED</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">blcorner</span><span class="o">=</span><span class="n">LineBox</span><span class="o">.</span><span class="n">Symbols</span><span class="o">.</span><span class="n">LIGHT</span><span class="o">.</span><span class="n">BOTTOM_LEFT_ROUNDED</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">brcorner</span><span class="o">=</span><span class="n">LineBox</span><span class="o">.</span><span class="n">Symbols</span><span class="o">.</span><span class="n">LIGHT</span><span class="o">.</span><span class="n">BOTTOM_RIGHT_ROUNDED</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="p">)</span><span class="o">.</span><span class="n">render</span><span class="p">(())</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="go">╭─────────╮</span>
+<span class="go">│Some text│</span>
+<span class="go">╰─────────╯</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span>
+<span class="gp">... </span>  <span class="n">LineBox</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">Text</span><span class="p">(</span><span class="s2">&quot;Some text&quot;</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">tline</span><span class="o">=</span><span class="n">LineBox</span><span class="o">.</span><span class="n">Symbols</span><span class="o">.</span><span class="n">HEAVY</span><span class="o">.</span><span class="n">HORIZONTAL</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">bline</span><span class="o">=</span><span class="n">LineBox</span><span class="o">.</span><span class="n">Symbols</span><span class="o">.</span><span class="n">HEAVY</span><span class="o">.</span><span class="n">HORIZONTAL</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">lline</span><span class="o">=</span><span class="n">LineBox</span><span class="o">.</span><span class="n">Symbols</span><span class="o">.</span><span class="n">HEAVY</span><span class="o">.</span><span class="n">VERTICAL</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">rline</span><span class="o">=</span><span class="n">LineBox</span><span class="o">.</span><span class="n">Symbols</span><span class="o">.</span><span class="n">HEAVY</span><span class="o">.</span><span class="n">VERTICAL</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">tlcorner</span><span class="o">=</span><span class="n">LineBox</span><span class="o">.</span><span class="n">Symbols</span><span class="o">.</span><span class="n">HEAVY</span><span class="o">.</span><span class="n">TOP_LEFT</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">trcorner</span><span class="o">=</span><span class="n">LineBox</span><span class="o">.</span><span class="n">Symbols</span><span class="o">.</span><span class="n">HEAVY</span><span class="o">.</span><span class="n">TOP_RIGHT</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">blcorner</span><span class="o">=</span><span class="n">LineBox</span><span class="o">.</span><span class="n">Symbols</span><span class="o">.</span><span class="n">HEAVY</span><span class="o">.</span><span class="n">BOTTOM_LEFT</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">brcorner</span><span class="o">=</span><span class="n">LineBox</span><span class="o">.</span><span class="n">Symbols</span><span class="o">.</span><span class="n">HEAVY</span><span class="o">.</span><span class="n">BOTTOM_RIGHT</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="p">)</span><span class="o">.</span><span class="n">render</span><span class="p">(())</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="go">┏━━━━━━━━━┓</span>
+<span class="go">┃Some text┃</span>
+<span class="go">┗━━━━━━━━━┛</span>
+</pre></div>
+</div>
+<p>To make Table constructions, some lineboxes need to be drawn without sides
+and T or CROSS symbols used for corners of cells.</p>
 <dl class="py property">
 <dt class="sig sig-object py" id="urwid.LineBox.focus">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">focus</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#urwid.Widget" title="urwid.widget.widget.Widget"><span class="pre">Widget</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#urwid.LineBox.focus" title="Link to this definition">¶</a></dt>
@@ -2578,6 +2597,48 @@ the pop-up is opened.</p>
 <dd><p>Subclass must override this method and have it return a dict, eg:</p>
 <p>{‘left’:0, ‘top’:1, ‘overlay_width’:30, ‘overlay_height’:4}</p>
 <p>This method is called each time this widget is rendered.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.PopUpLauncher.render">
+<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><span class="pre">CompositeCanvas</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><span class="pre">Canvas</span></a></span></span><a class="headerlink" href="#urwid.PopUpLauncher.render" title="Link to this definition">¶</a></dt>
+<dd><p>Render widget and produce canvas</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<dl class="simple">
+<dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
+size of this widget</p>
+</dd>
+<dt>(<em>maxcol</em>,)</dt><dd><p>for flow sizing – the parent chooses only the
+number of columns for this widget</p>
+</dd>
+<dt>()</dt><dd><p>for fixed sizing – this widget is a fixed size
+which can’t be adjusted by the parent</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">Canvas</span></code></a> subclass instance containing the rendered content of this widget</p>
+</dd>
+</dl>
+<p><a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.TextCanvas" title="urwid.TextCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextCanvas</span></code></a> (arbitrary text and display attributes),
+<a class="reference internal" href="#urwid.SolidFill" title="urwid.SolidFill"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidFill</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.SolidCanvas" title="urwid.SolidCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidCanvas</span></code></a> (a single character repeated across the whole surface)
+and container widgets return a <a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">CompositeCanvas</span></code></a> (one or more other canvases arranged arbitrarily).</p>
+<p>If <em>focus</em> is <code class="docutils literal notranslate"><span class="pre">False</span></code>, the returned canvas may not have a cursor position set.</p>
+<p>There is some metaclass magic defined in the <a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> metaclass <a class="reference internal" href="meta.html#urwid.WidgetMeta" title="urwid.WidgetMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetMeta</span></code></a>
+that causes the result of this method to be cached by <a class="reference internal" href="canvas.html#urwid.CanvasCache" title="urwid.CanvasCache"><code class="xref py py-class docutils literal notranslate"><span class="pre">CanvasCache</span></code></a>.
+Later calls will automatically look up the value in the cache first.</p>
+<p>As a small optimization the class variable <code class="xref py py-attr docutils literal notranslate"><span class="pre">ignore_focus</span></code>
+may be defined and set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget renders the same
+canvas regardless of the value of the <em>focus</em> parameter.</p>
+<p>Any time the content of a widget changes it should call
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">_invalidate()</span></code> to remove any cached canvases, or the widget
+may render the cached canvas instead of creating a new one.</p>
 </dd></dl>
 
 </dd></dl>
@@ -2664,6 +2725,48 @@ or call it iteratively to calculate the minimum number of columns
 required to display the text wrapped into a target number of rows.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.PopUpTarget.render">
+<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><span class="pre">Canvas</span></a></span></span><a class="headerlink" href="#urwid.PopUpTarget.render" title="Link to this definition">¶</a></dt>
+<dd><p>Render widget and produce canvas</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<dl class="simple">
+<dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
+size of this widget</p>
+</dd>
+<dt>(<em>maxcol</em>,)</dt><dd><p>for flow sizing – the parent chooses only the
+number of columns for this widget</p>
+</dd>
+<dt>()</dt><dd><p>for fixed sizing – this widget is a fixed size
+which can’t be adjusted by the parent</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">Canvas</span></code></a> subclass instance containing the rendered content of this widget</p>
+</dd>
+</dl>
+<p><a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.TextCanvas" title="urwid.TextCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextCanvas</span></code></a> (arbitrary text and display attributes),
+<a class="reference internal" href="#urwid.SolidFill" title="urwid.SolidFill"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidFill</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.SolidCanvas" title="urwid.SolidCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidCanvas</span></code></a> (a single character repeated across the whole surface)
+and container widgets return a <a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">CompositeCanvas</span></code></a> (one or more other canvases arranged arbitrarily).</p>
+<p>If <em>focus</em> is <code class="docutils literal notranslate"><span class="pre">False</span></code>, the returned canvas may not have a cursor position set.</p>
+<p>There is some metaclass magic defined in the <a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> metaclass <a class="reference internal" href="meta.html#urwid.WidgetMeta" title="urwid.WidgetMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetMeta</span></code></a>
+that causes the result of this method to be cached by <a class="reference internal" href="canvas.html#urwid.CanvasCache" title="urwid.CanvasCache"><code class="xref py py-class docutils literal notranslate"><span class="pre">CanvasCache</span></code></a>.
+Later calls will automatically look up the value in the cache first.</p>
+<p>As a small optimization the class variable <code class="xref py py-attr docutils literal notranslate"><span class="pre">ignore_focus</span></code>
+may be defined and set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget renders the same
+canvas regardless of the value of the <em>focus</em> parameter.</p>
+<p>Any time the content of a widget changes it should call
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">_invalidate()</span></code> to remove any cached canvases, or the widget
+may render the cached canvas instead of creating a new one.</p>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -2719,6 +2822,48 @@ required to display the text wrapped into a target number of rows.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="urwid.WidgetDisable.render">
+<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.canvas.CompositeCanvas"><span class="pre">CompositeCanvas</span></a></span></span><a class="headerlink" href="#urwid.WidgetDisable.render" title="Link to this definition">¶</a></dt>
+<dd><p>Render widget and produce canvas</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<dl class="simple">
+<dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
+size of this widget</p>
+</dd>
+<dt>(<em>maxcol</em>,)</dt><dd><p>for flow sizing – the parent chooses only the
+number of columns for this widget</p>
+</dd>
+<dt>()</dt><dd><p>for fixed sizing – this widget is a fixed size
+which can’t be adjusted by the parent</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">Canvas</span></code></a> subclass instance containing the rendered content of this widget</p>
+</dd>
+</dl>
+<p><a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.TextCanvas" title="urwid.TextCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextCanvas</span></code></a> (arbitrary text and display attributes),
+<a class="reference internal" href="#urwid.SolidFill" title="urwid.SolidFill"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidFill</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.SolidCanvas" title="urwid.SolidCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidCanvas</span></code></a> (a single character repeated across the whole surface)
+and container widgets return a <a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">CompositeCanvas</span></code></a> (one or more other canvases arranged arbitrarily).</p>
+<p>If <em>focus</em> is <code class="docutils literal notranslate"><span class="pre">False</span></code>, the returned canvas may not have a cursor position set.</p>
+<p>There is some metaclass magic defined in the <a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> metaclass <a class="reference internal" href="meta.html#urwid.WidgetMeta" title="urwid.WidgetMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetMeta</span></code></a>
+that causes the result of this method to be cached by <a class="reference internal" href="canvas.html#urwid.CanvasCache" title="urwid.CanvasCache"><code class="xref py py-class docutils literal notranslate"><span class="pre">CanvasCache</span></code></a>.
+Later calls will automatically look up the value in the cache first.</p>
+<p>As a small optimization the class variable <code class="xref py py-attr docutils literal notranslate"><span class="pre">ignore_focus</span></code>
+may be defined and set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget renders the same
+canvas regardless of the value of the <em>focus</em> parameter.</p>
+<p>Any time the content of a widget changes it should call
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">_invalidate()</span></code> to remove any cached canvases, or the widget
+may render the cached canvas instead of creating a new one.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.WidgetDisable.selectable">
 <span class="sig-name descname"><span class="pre">selectable</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">False</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.WidgetDisable.selectable" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
@@ -2732,7 +2877,7 @@ interact with, <code class="docutils literal notranslate"><span class="pre">Fals
 Subclasses may leave these is if the are not selectable,
 or if they are always selectable they may
 set the <code class="xref py py-attr docutils literal notranslate"><span class="pre">_selectable</span></code> class variable to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
-<p>If this method returns <code class="docutils literal notranslate"><span class="pre">True</span></code> then the <a class="reference internal" href="#id0" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">keypress()</span></code></a> method
+<p>If this method returns <code class="docutils literal notranslate"><span class="pre">True</span></code> then the <a class="reference internal" href="#urwid.Widget.keypress" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">keypress()</span></code></a> method
 must be implemented.</p>
 <p>Returning <code class="docutils literal notranslate"><span class="pre">False</span></code> does not guarantee that this widget will never be in
 focus, only that this widget will usually be skipped over when changing
@@ -2911,6 +3056,48 @@ Focus may be changed on button 1 press.</p>
 <p>Return None as a placeholder for future options.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.Frame.render">
+<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.canvas.CompositeCanvas"><span class="pre">CompositeCanvas</span></a></span></span><a class="headerlink" href="#urwid.Frame.render" title="Link to this definition">¶</a></dt>
+<dd><p>Render widget and produce canvas</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<dl class="simple">
+<dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
+size of this widget</p>
+</dd>
+<dt>(<em>maxcol</em>,)</dt><dd><p>for flow sizing – the parent chooses only the
+number of columns for this widget</p>
+</dd>
+<dt>()</dt><dd><p>for fixed sizing – this widget is a fixed size
+which can’t be adjusted by the parent</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">Canvas</span></code></a> subclass instance containing the rendered content of this widget</p>
+</dd>
+</dl>
+<p><a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.TextCanvas" title="urwid.TextCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextCanvas</span></code></a> (arbitrary text and display attributes),
+<a class="reference internal" href="#urwid.SolidFill" title="urwid.SolidFill"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidFill</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.SolidCanvas" title="urwid.SolidCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidCanvas</span></code></a> (a single character repeated across the whole surface)
+and container widgets return a <a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">CompositeCanvas</span></code></a> (one or more other canvases arranged arbitrarily).</p>
+<p>If <em>focus</em> is <code class="docutils literal notranslate"><span class="pre">False</span></code>, the returned canvas may not have a cursor position set.</p>
+<p>There is some metaclass magic defined in the <a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> metaclass <a class="reference internal" href="meta.html#urwid.WidgetMeta" title="urwid.WidgetMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetMeta</span></code></a>
+that causes the result of this method to be cached by <a class="reference internal" href="canvas.html#urwid.CanvasCache" title="urwid.CanvasCache"><code class="xref py py-class docutils literal notranslate"><span class="pre">CanvasCache</span></code></a>.
+Later calls will automatically look up the value in the cache first.</p>
+<p>As a small optimization the class variable <code class="xref py py-attr docutils literal notranslate"><span class="pre">ignore_focus</span></code>
+may be defined and set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget renders the same
+canvas regardless of the value of the <em>focus</em> parameter.</p>
+<p>Any time the content of a widget changes it should call
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">_invalidate()</span></code> to remove any cached canvases, or the widget
+may render the cached canvas instead of creating a new one.</p>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -2918,8 +3105,8 @@ Focus may be changed on button 1 press.</p>
 <h3>ListBox<a class="headerlink" href="#listbox" title="Link to this heading">¶</a></h3>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.ListBox">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">ListBox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">body</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="list_walkers.html#urwid.ListWalker" title="urwid.listbox.ListWalker"><span class="pre">ListWalker</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ListBox" title="Link to this definition">¶</a></dt>
-<dd><p>a horizontally stacked list of widgets</p>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">ListBox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">body</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="list_walkers.html#urwid.ListWalker" title="urwid.listbox.ListWalker"><span class="pre">ListWalker</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#urwid.Widget" title="urwid.widget.widget.Widget"><span class="pre">Widget</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ListBox" title="Link to this definition">¶</a></dt>
+<dd><p>Vertically stacked list of widgets</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>body</strong> (<a class="reference internal" href="list_walkers.html#urwid.ListWalker" title="urwid.ListWalker"><em>ListWalker</em></a>) – a ListWalker subclass such as <a class="reference internal" href="list_walkers.html#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleFocusListWalker</span></code></a>
@@ -2950,12 +3137,10 @@ the ListBox given the current <em>size</em> and <em>focus</em>.</p>
 <em>cursor coords</em> or <code class="docutils literal notranslate"><span class="pre">None</span></code>)</p>
 </dd>
 <dt><em>top</em></dt><dd><p>(<em># lines to trim off top</em>,
-list of (<em>widget</em>, <em>position</em>, <em>rows</em>) tuples above focus
-in order from bottom to top)</p>
+list of (<em>widget</em>, <em>position</em>, <em>rows</em>) tuples above focus in order from bottom to top)</p>
 </dd>
 <dt><em>bottom</em></dt><dd><p>(<em># lines to trim off bottom</em>,
-list of (<em>widget</em>, <em>position</em>, <em>rows</em>) tuples below focus
-in order from top to bottom)</p>
+list of (<em>widget</em>, <em>position</em>, <em>rows</em>) tuples below focus in order from top to bottom)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -3049,6 +3234,12 @@ properties <a class="reference internal" href="#urwid.ListBox.focus" title="urwi
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="urwid.ListBox.get_scrollpos">
+<span class="sig-name descname"><span class="pre">get_scrollpos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.ListBox.get_scrollpos" title="Link to this definition">¶</a></dt>
+<dd><p>Current scrolling position.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.ListBox.keypress">
 <span class="sig-name descname"><span class="pre">keypress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.ListBox.keypress" title="Link to this definition">¶</a></dt>
 <dd><p>Move selection through the list elements scrolling when
@@ -3091,6 +3282,12 @@ May change focus on button 1 press.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="urwid.ListBox.rows_max">
+<span class="sig-name descname"><span class="pre">rows_max</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.ListBox.rows_max" title="Link to this definition">¶</a></dt>
+<dd><p>Scrollable protocol for sized iterable and not wrapped around contents.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.ListBox.set_focus">
 <span class="sig-name descname"><span class="pre">set_focus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coming_from</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'above'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'below'</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.ListBox.set_focus" title="Link to this definition">¶</a></dt>
 <dd><p>Set the focus position and try to keep the old focus in view.</p>
@@ -3111,9 +3308,7 @@ old position is above or below the new position.</p></li>
 <dd><p>Set the focus widget’s display offset and inset.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>valign</strong> – one of:
-‘top’, ‘middle’, ‘bottom’
-(‘relative’, percentage 0=top 100=bottom)</p>
+<dd class="field-odd"><p><strong>valign</strong> – one of: ‘top’, ‘middle’, ‘bottom’ (‘relative’, percentage 0=top 100=bottom)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -3152,7 +3347,7 @@ listbox.</p></li>
 <h3>TreeListBox<a class="headerlink" href="#treelistbox" title="Link to this heading">¶</a></h3>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.TreeListBox">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">TreeListBox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">body</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="list_walkers.html#urwid.ListWalker" title="urwid.listbox.ListWalker"><span class="pre">ListWalker</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TreeListBox" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">TreeListBox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">body</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="list_walkers.html#urwid.ListWalker" title="urwid.listbox.ListWalker"><span class="pre">ListWalker</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#urwid.Widget" title="urwid.widget.widget.Widget"><span class="pre">Widget</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TreeListBox" title="Link to this definition">¶</a></dt>
 <dd><p>A ListBox with special handling for navigation and
 collapsing of TreeWidgets</p>
 <dl class="field-list simple">
@@ -3724,6 +3919,48 @@ May change focus on button 1 press.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="urwid.Pile.render">
+<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="canvas.html#urwid.SolidCanvas" title="urwid.canvas.SolidCanvas"><span class="pre">SolidCanvas</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.canvas.CompositeCanvas"><span class="pre">CompositeCanvas</span></a></span></span><a class="headerlink" href="#urwid.Pile.render" title="Link to this definition">¶</a></dt>
+<dd><p>Render widget and produce canvas</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<dl class="simple">
+<dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
+size of this widget</p>
+</dd>
+<dt>(<em>maxcol</em>,)</dt><dd><p>for flow sizing – the parent chooses only the
+number of columns for this widget</p>
+</dd>
+<dt>()</dt><dd><p>for fixed sizing – this widget is a fixed size
+which can’t be adjusted by the parent</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">Canvas</span></code></a> subclass instance containing the rendered content of this widget</p>
+</dd>
+</dl>
+<p><a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.TextCanvas" title="urwid.TextCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextCanvas</span></code></a> (arbitrary text and display attributes),
+<a class="reference internal" href="#urwid.SolidFill" title="urwid.SolidFill"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidFill</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.SolidCanvas" title="urwid.SolidCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidCanvas</span></code></a> (a single character repeated across the whole surface)
+and container widgets return a <a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">CompositeCanvas</span></code></a> (one or more other canvases arranged arbitrarily).</p>
+<p>If <em>focus</em> is <code class="docutils literal notranslate"><span class="pre">False</span></code>, the returned canvas may not have a cursor position set.</p>
+<p>There is some metaclass magic defined in the <a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> metaclass <a class="reference internal" href="meta.html#urwid.WidgetMeta" title="urwid.WidgetMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetMeta</span></code></a>
+that causes the result of this method to be cached by <a class="reference internal" href="canvas.html#urwid.CanvasCache" title="urwid.CanvasCache"><code class="xref py py-class docutils literal notranslate"><span class="pre">CanvasCache</span></code></a>.
+Later calls will automatically look up the value in the cache first.</p>
+<p>As a small optimization the class variable <code class="xref py py-attr docutils literal notranslate"><span class="pre">ignore_focus</span></code>
+may be defined and set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget renders the same
+canvas regardless of the value of the <em>focus</em> parameter.</p>
+<p>Any time the content of a widget changes it should call
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">_invalidate()</span></code> to remove any cached canvases, or the widget
+may render the cached canvas instead of creating a new one.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.Pile.sizing">
 <span class="sig-name descname"><span class="pre">sizing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">frozenset</span><span class="p"><span class="pre">[</span></span><span class="pre">Sizing</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.Pile.sizing" title="Link to this definition">¶</a></dt>
 <dd><p>Sizing supported by widget.</p>
@@ -3977,6 +4214,48 @@ required to display the text wrapped into a target number of rows.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="urwid.GridFlow.render">
+<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GridFlow.render" title="Link to this definition">¶</a></dt>
+<dd><p>Render widget and produce canvas</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<dl class="simple">
+<dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
+size of this widget</p>
+</dd>
+<dt>(<em>maxcol</em>,)</dt><dd><p>for flow sizing – the parent chooses only the
+number of columns for this widget</p>
+</dd>
+<dt>()</dt><dd><p>for fixed sizing – this widget is a fixed size
+which can’t be adjusted by the parent</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">Canvas</span></code></a> subclass instance containing the rendered content of this widget</p>
+</dd>
+</dl>
+<p><a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.TextCanvas" title="urwid.TextCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextCanvas</span></code></a> (arbitrary text and display attributes),
+<a class="reference internal" href="#urwid.SolidFill" title="urwid.SolidFill"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidFill</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.SolidCanvas" title="urwid.SolidCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidCanvas</span></code></a> (a single character repeated across the whole surface)
+and container widgets return a <a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">CompositeCanvas</span></code></a> (one or more other canvases arranged arbitrarily).</p>
+<p>If <em>focus</em> is <code class="docutils literal notranslate"><span class="pre">False</span></code>, the returned canvas may not have a cursor position set.</p>
+<p>There is some metaclass magic defined in the <a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> metaclass <a class="reference internal" href="meta.html#urwid.WidgetMeta" title="urwid.WidgetMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetMeta</span></code></a>
+that causes the result of this method to be cached by <a class="reference internal" href="canvas.html#urwid.CanvasCache" title="urwid.CanvasCache"><code class="xref py py-class docutils literal notranslate"><span class="pre">CanvasCache</span></code></a>.
+Later calls will automatically look up the value in the cache first.</p>
+<p>As a small optimization the class variable <code class="xref py py-attr docutils literal notranslate"><span class="pre">ignore_focus</span></code>
+may be defined and set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget renders the same
+canvas regardless of the value of the <em>focus</em> parameter.</p>
+<p>Any time the content of a widget changes it should call
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">_invalidate()</span></code> to remove any cached canvases, or the widget
+may render the cached canvas instead of creating a new one.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.GridFlow.set_focus">
 <span class="sig-name descname"><span class="pre">set_focus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.Widget" title="urwid.widget.widget.Widget"><span class="pre">Widget</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.GridFlow.set_focus" title="Link to this definition">¶</a></dt>
 <dd><p>Set the cell in focus, for backwards compatibility.</p>
@@ -4091,6 +4370,48 @@ be defined.</p>
 <dd class="field-odd"><p>bool | None</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.BoxAdapter.render">
+<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.canvas.CompositeCanvas"><span class="pre">CompositeCanvas</span></a></span></span><a class="headerlink" href="#urwid.BoxAdapter.render" title="Link to this definition">¶</a></dt>
+<dd><p>Render widget and produce canvas</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<dl class="simple">
+<dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
+size of this widget</p>
+</dd>
+<dt>(<em>maxcol</em>,)</dt><dd><p>for flow sizing – the parent chooses only the
+number of columns for this widget</p>
+</dd>
+<dt>()</dt><dd><p>for fixed sizing – this widget is a fixed size
+which can’t be adjusted by the parent</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">Canvas</span></code></a> subclass instance containing the rendered content of this widget</p>
+</dd>
+</dl>
+<p><a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.TextCanvas" title="urwid.TextCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextCanvas</span></code></a> (arbitrary text and display attributes),
+<a class="reference internal" href="#urwid.SolidFill" title="urwid.SolidFill"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidFill</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.SolidCanvas" title="urwid.SolidCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidCanvas</span></code></a> (a single character repeated across the whole surface)
+and container widgets return a <a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">CompositeCanvas</span></code></a> (one or more other canvases arranged arbitrarily).</p>
+<p>If <em>focus</em> is <code class="docutils literal notranslate"><span class="pre">False</span></code>, the returned canvas may not have a cursor position set.</p>
+<p>There is some metaclass magic defined in the <a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> metaclass <a class="reference internal" href="meta.html#urwid.WidgetMeta" title="urwid.WidgetMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetMeta</span></code></a>
+that causes the result of this method to be cached by <a class="reference internal" href="canvas.html#urwid.CanvasCache" title="urwid.CanvasCache"><code class="xref py py-class docutils literal notranslate"><span class="pre">CanvasCache</span></code></a>.
+Later calls will automatically look up the value in the cache first.</p>
+<p>As a small optimization the class variable <code class="xref py py-attr docutils literal notranslate"><span class="pre">ignore_focus</span></code>
+may be defined and set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget renders the same
+canvas regardless of the value of the <em>focus</em> parameter.</p>
+<p>Any time the content of a widget changes it should call
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">_invalidate()</span></code> to remove any cached canvases, or the widget
+may render the cached canvas instead of creating a new one.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -4516,12 +4837,13 @@ top – top y position</p>
 <li><p><strong>done</strong> – progress amount at 100%</p></li>
 <li><p><strong>satt</strong> – display attribute for smoothed part of bar where the
 foreground of satt corresponds to the normal part and the
-background corresponds to the complete part.  If satt
-is <code class="docutils literal notranslate"><span class="pre">None</span></code> then no smoothing will be done.</p></li>
+background corresponds to the complete part.
+If satt is <code class="docutils literal notranslate"><span class="pre">None</span></code> then no smoothing will be done.</p></li>
 </ul>
 </dd>
 </dl>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pb</span> <span class="o">=</span> <span class="n">ProgressBar</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">urwid</span> <span class="kn">import</span> <span class="n">LineBox</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pb</span> <span class="o">=</span> <span class="n">ProgressBar</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pb</span>
 <span class="go">&lt;ProgressBar flow widget&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">pb</span><span class="o">.</span><span class="n">get_text</span><span class="p">())</span>
@@ -4542,6 +4864,12 @@ is <code class="docutils literal notranslate"><span class="pre">None</span></cod
 <span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">101</span><span class="p">):</span>
 <span class="gp">... </span>    <span class="n">cpb2</span><span class="o">.</span><span class="n">set_completion</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 <span class="gp">... </span>    <span class="n">s</span> <span class="o">=</span> <span class="n">cpb2</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">10</span><span class="p">,</span> <span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pb</span> <span class="o">=</span> <span class="n">ProgressBar</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">satt</span><span class="o">=</span><span class="s1">&#39;c&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pb</span><span class="o">.</span><span class="n">set_completion</span><span class="p">(</span><span class="mf">34.56</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">LineBox</span><span class="p">(</span><span class="n">pb</span><span class="p">)</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">20</span><span class="p">,)))</span>
+<span class="go">┌──────────────────┐</span>
+<span class="go">│      ▏34 %       │</span>
+<span class="go">└──────────────────┘</span>
 </pre></div>
 </div>
 <dl class="py method">
@@ -4559,7 +4887,7 @@ You can override this method to display custom text.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.ProgressBar.set_completion">
-<span class="sig-name descname"><span class="pre">set_completion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ProgressBar.set_completion" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">set_completion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.ProgressBar.set_completion" title="Link to this definition">¶</a></dt>
 <dd><p>current – current progress</p>
 </dd></dl>
 
@@ -4606,6 +4934,48 @@ You can use <a class="reference internal" href="#urwid.Text.pack" title="urwid.T
 columns and rows required to display a text widget without wrapping,
 or call it iteratively to calculate the minimum number of columns
 required to display the text wrapped into a target number of rows.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.BigText.render">
+<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.canvas.CompositeCanvas"><span class="pre">CompositeCanvas</span></a></span></span><a class="headerlink" href="#urwid.BigText.render" title="Link to this definition">¶</a></dt>
+<dd><p>Render widget and produce canvas</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<dl class="simple">
+<dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
+size of this widget</p>
+</dd>
+<dt>(<em>maxcol</em>,)</dt><dd><p>for flow sizing – the parent chooses only the
+number of columns for this widget</p>
+</dd>
+<dt>()</dt><dd><p>for fixed sizing – this widget is a fixed size
+which can’t be adjusted by the parent</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">Canvas</span></code></a> subclass instance containing the rendered content of this widget</p>
+</dd>
+</dl>
+<p><a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.TextCanvas" title="urwid.TextCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextCanvas</span></code></a> (arbitrary text and display attributes),
+<a class="reference internal" href="#urwid.SolidFill" title="urwid.SolidFill"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidFill</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.SolidCanvas" title="urwid.SolidCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidCanvas</span></code></a> (a single character repeated across the whole surface)
+and container widgets return a <a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">CompositeCanvas</span></code></a> (one or more other canvases arranged arbitrarily).</p>
+<p>If <em>focus</em> is <code class="docutils literal notranslate"><span class="pre">False</span></code>, the returned canvas may not have a cursor position set.</p>
+<p>There is some metaclass magic defined in the <a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> metaclass <a class="reference internal" href="meta.html#urwid.WidgetMeta" title="urwid.WidgetMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetMeta</span></code></a>
+that causes the result of this method to be cached by <a class="reference internal" href="canvas.html#urwid.CanvasCache" title="urwid.CanvasCache"><code class="xref py py-class docutils literal notranslate"><span class="pre">CanvasCache</span></code></a>.
+Later calls will automatically look up the value in the cache first.</p>
+<p>As a small optimization the class variable <code class="xref py py-attr docutils literal notranslate"><span class="pre">ignore_focus</span></code>
+may be defined and set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget renders the same
+canvas regardless of the value of the <em>focus</em> parameter.</p>
+<p>Any time the content of a widget changes it should call
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">_invalidate()</span></code> to remove any cached canvases, or the widget
+may render the cached canvas instead of creating a new one.</p>
 </dd></dl>
 
 </dd></dl>
@@ -4679,9 +5049,429 @@ correctly, make sure the global encoding for urwid is set to
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="urwid.Terminal.render">
+<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Terminal.render" title="Link to this definition">¶</a></dt>
+<dd><p>Render widget and produce canvas</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<dl class="simple">
+<dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
+size of this widget</p>
+</dd>
+<dt>(<em>maxcol</em>,)</dt><dd><p>for flow sizing – the parent chooses only the
+number of columns for this widget</p>
+</dd>
+<dt>()</dt><dd><p>for fixed sizing – this widget is a fixed size
+which can’t be adjusted by the parent</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">Canvas</span></code></a> subclass instance containing the rendered content of this widget</p>
+</dd>
+</dl>
+<p><a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.TextCanvas" title="urwid.TextCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextCanvas</span></code></a> (arbitrary text and display attributes),
+<a class="reference internal" href="#urwid.SolidFill" title="urwid.SolidFill"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidFill</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.SolidCanvas" title="urwid.SolidCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidCanvas</span></code></a> (a single character repeated across the whole surface)
+and container widgets return a <a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">CompositeCanvas</span></code></a> (one or more other canvases arranged arbitrarily).</p>
+<p>If <em>focus</em> is <code class="docutils literal notranslate"><span class="pre">False</span></code>, the returned canvas may not have a cursor position set.</p>
+<p>There is some metaclass magic defined in the <a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> metaclass <a class="reference internal" href="meta.html#urwid.WidgetMeta" title="urwid.WidgetMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetMeta</span></code></a>
+that causes the result of this method to be cached by <a class="reference internal" href="canvas.html#urwid.CanvasCache" title="urwid.CanvasCache"><code class="xref py py-class docutils literal notranslate"><span class="pre">CanvasCache</span></code></a>.
+Later calls will automatically look up the value in the cache first.</p>
+<p>As a small optimization the class variable <code class="xref py py-attr docutils literal notranslate"><span class="pre">ignore_focus</span></code>
+may be defined and set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget renders the same
+canvas regardless of the value of the <em>focus</em> parameter.</p>
+<p>Any time the content of a widget changes it should call
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">_invalidate()</span></code> to remove any cached canvases, or the widget
+may render the cached canvas instead of creating a new one.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.Terminal.respond">
 <span class="sig-name descname"><span class="pre">respond</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Terminal.respond" title="Link to this definition">¶</a></dt>
 <dd><p>Respond to the underlying application with ‘string’.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+<section id="scroll-widget-classes">
+<h2>Scroll Widget Classes<a class="headerlink" href="#scroll-widget-classes" title="Link to this heading">¶</a></h2>
+<section id="scrollable">
+<h3>Scrollable<a class="headerlink" href="#scrollable" title="Link to this heading">¶</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.Scrollable">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">Scrollable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><span class="pre">Widget</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_forward_keypress</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Scrollable" title="Link to this definition">¶</a></dt>
+<dd><p>Box widget that makes a fixed or flow widget vertically scrollable</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Focusable widgets are handled, including switching focus, but possibly not intuitively,
+depending on the arrangement of widgets.</p>
+<p>When switching focus to a widget that is ouside of the visible part of the original widget,
+the canvas scrolls up/down to the focused widget.</p>
+<p>It would be better to scroll until the next focusable widget is in sight first.
+But for that to work we must somehow obtain a list of focusable rows in the original canvas.</p>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.Scrollable.get_scrollpos">
+<span class="sig-name descname"><span class="pre">get_scrollpos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.Scrollable.get_scrollpos" title="Link to this definition">¶</a></dt>
+<dd><p>Current scrolling position.</p>
+<p>Lower limit is 0, upper limit is the maximum number of rows with the given maxcol minus maxrow.</p>
+<dl class="simple">
+<dt>..note::</dt><dd><p>The returned value may be too low or too high if the position has
+changed but the widget wasn’t rendered yet.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.Scrollable.keypress">
+<span class="sig-name descname"><span class="pre">keypress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Scrollable.keypress" title="Link to this definition">¶</a></dt>
+<dd><p>Keyboard input handler.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
+<li><p><strong>key</strong> (<em>str</em>) – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code> if <em>key</em> was handled by <em>key</em> (the same value passed) if <em>key</em> was not handled</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.Scrollable.mouse_event">
+<span class="sig-name descname"><span class="pre">mouse_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">button</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Scrollable.mouse_event" title="Link to this definition">¶</a></dt>
+<dd><p>Mouse event handler.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
+<li><p><strong>event</strong> (<em>str</em>) – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code>, <code class="docutils literal notranslate"><span class="pre">'meta</span> <span class="pre">mouse</span> <span class="pre">release'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">drag'</span></code>; see <a class="reference internal" href="../manual/userinput.html#mouse-input"><span class="std std-ref">Mouse Input</span></a></p></li>
+<li><p><strong>button</strong> (<em>int</em>) – 1 through 5 for press events, often 0 for release events
+(which button was released is often not known)</p></li>
+<li><p><strong>col</strong> (<em>int</em>) – Column of the event, 0 is the left edge of this widget</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – Row of the event, 0 it the top row of this widget</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the event was handled by this widget, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.Scrollable.render">
+<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><span class="pre">CompositeCanvas</span></a></span></span><a class="headerlink" href="#urwid.Scrollable.render" title="Link to this definition">¶</a></dt>
+<dd><p>Render widget and produce canvas</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<dl class="simple">
+<dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
+size of this widget</p>
+</dd>
+<dt>(<em>maxcol</em>,)</dt><dd><p>for flow sizing – the parent chooses only the
+number of columns for this widget</p>
+</dd>
+<dt>()</dt><dd><p>for fixed sizing – this widget is a fixed size
+which can’t be adjusted by the parent</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">Canvas</span></code></a> subclass instance containing the rendered content of this widget</p>
+</dd>
+</dl>
+<p><a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.TextCanvas" title="urwid.TextCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextCanvas</span></code></a> (arbitrary text and display attributes),
+<a class="reference internal" href="#urwid.SolidFill" title="urwid.SolidFill"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidFill</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.SolidCanvas" title="urwid.SolidCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidCanvas</span></code></a> (a single character repeated across the whole surface)
+and container widgets return a <a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">CompositeCanvas</span></code></a> (one or more other canvases arranged arbitrarily).</p>
+<p>If <em>focus</em> is <code class="docutils literal notranslate"><span class="pre">False</span></code>, the returned canvas may not have a cursor position set.</p>
+<p>There is some metaclass magic defined in the <a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> metaclass <a class="reference internal" href="meta.html#urwid.WidgetMeta" title="urwid.WidgetMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetMeta</span></code></a>
+that causes the result of this method to be cached by <a class="reference internal" href="canvas.html#urwid.CanvasCache" title="urwid.CanvasCache"><code class="xref py py-class docutils literal notranslate"><span class="pre">CanvasCache</span></code></a>.
+Later calls will automatically look up the value in the cache first.</p>
+<p>As a small optimization the class variable <code class="xref py py-attr docutils literal notranslate"><span class="pre">ignore_focus</span></code>
+may be defined and set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget renders the same
+canvas regardless of the value of the <em>focus</em> parameter.</p>
+<p>Any time the content of a widget changes it should call
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">_invalidate()</span></code> to remove any cached canvases, or the widget
+may render the cached canvas instead of creating a new one.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.Scrollable.rows_max">
+<span class="sig-name descname"><span class="pre">rows_max</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.Scrollable.rows_max" title="Link to this definition">¶</a></dt>
+<dd><p>Return the number of rows for <cite>size</cite></p>
+<p>If <cite>size</cite> is not given, the currently rendered number of rows is returned.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.Scrollable.selectable">
+<span class="sig-name descname"><span class="pre">selectable</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.Scrollable.selectable" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if this is a widget that is designed to take the
+focus, i.e. it contains something the user might want to
+interact with, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise,</p>
+</dd>
+</dl>
+<p>This default implementation returns <a class="reference internal" href="#urwid.Widget._selectable" title="urwid.Widget._selectable"><code class="xref py py-attr docutils literal notranslate"><span class="pre">_selectable</span></code></a>.
+Subclasses may leave these is if the are not selectable,
+or if they are always selectable they may
+set the <code class="xref py py-attr docutils literal notranslate"><span class="pre">_selectable</span></code> class variable to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+<p>If this method returns <code class="docutils literal notranslate"><span class="pre">True</span></code> then the <a class="reference internal" href="#urwid.Scrollable.keypress" title="urwid.Scrollable.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">keypress()</span></code></a> method
+must be implemented.</p>
+<p>Returning <code class="docutils literal notranslate"><span class="pre">False</span></code> does not guarantee that this widget will never be in
+focus, only that this widget will usually be skipped over when changing
+focus. It is still possible for non selectable widgets to have the focus
+(typically when there are no other selectable widgets visible).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.Scrollable.set_scrollpos">
+<span class="sig-name descname"><span class="pre">set_scrollpos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SupportsInt</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Scrollable.set_scrollpos" title="Link to this definition">¶</a></dt>
+<dd><p>Set scrolling position</p>
+<p>If <cite>position</cite> is positive it is interpreted as lines from the top.
+If <cite>position</cite> is negative it is interpreted as lines from the bottom.</p>
+<p>Values that are too high or too low values are automatically adjusted during rendering.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.Scrollable.sizing">
+<span class="sig-name descname"><span class="pre">sizing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">frozenset</span><span class="p"><span class="pre">[</span></span><span class="pre">Sizing</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.Scrollable.sizing" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A frozenset including one or more of <code class="docutils literal notranslate"><span class="pre">'box'</span></code>, <code class="docutils literal notranslate"><span class="pre">'flow'</span></code> and
+<code class="docutils literal notranslate"><span class="pre">'fixed'</span></code>.  Default implementation returns the value of
+<a class="reference internal" href="#urwid.Widget._sizing" title="urwid.Widget._sizing"><code class="xref py py-attr docutils literal notranslate"><span class="pre">_sizing</span></code></a>, which for this class includes all three.</p>
+</dd>
+</dl>
+<p>The sizing modes returned indicate the modes that may be
+supported by this widget, but is not sufficient to know
+that using that sizing mode will work.  Subclasses should
+make an effort to remove sizing modes they know will not
+work given the state of the widget, but many do not yet
+do this.</p>
+<p>If a sizing mode is missing from the set then the widget
+should fail when used in that mode.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">'flow'</span></code> is among the values returned then the other
+methods in this widget must be able to accept a
+single-element tuple (<em>maxcol</em>,) to their <code class="docutils literal notranslate"><span class="pre">size</span></code>
+parameter, and the <code class="xref py py-meth docutils literal notranslate"><span class="pre">rows()</span></code> method must be defined.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">'box'</span></code> is among the values returned then the other
+methods must be able to accept a two-element tuple
+(<em>maxcol</em>, <em>maxrow</em>) to their size parameter.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">'fixed'</span></code> is among the values returned then the other
+methods must be able to accept an empty tuple () to
+their size parameter, and the <code class="xref py py-meth docutils literal notranslate"><span class="pre">pack()</span></code> method must
+be defined.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="scrollbar">
+<h3>ScrollBar<a class="headerlink" href="#scrollbar" title="Link to this heading">¶</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.ScrollBar">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">ScrollBar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SupportsScroll</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thumb_char</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">ScrollbarSymbols.FULL_BLOCK</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trough_char</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'</span> <span class="pre">'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">side</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'left'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'right'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'right'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ScrollBar" title="Link to this definition">¶</a></dt>
+<dd><p>Box widget that adds a scrollbar to <cite>widget</cite></p>
+<dl class="simple">
+<dt><cite>widget</cite> must be a box widget with the following methods:</dt><dd><ul class="simple">
+<li><p><cite>get_scrollpos</cite> takes the arguments <cite>size</cite> and <cite>focus</cite> and returns the index of the first visible row.</p></li>
+<li><p><cite>set_scrollpos</cite> (optional; needed for mouse click support) takes the index of the first visible row.</p></li>
+<li><p><cite>rows_max</cite> takes <cite>size</cite> and <cite>focus</cite> and returns the total number of rows <cite>widget</cite> can render.</p></li>
+</ul>
+</dd>
+</dl>
+<p><cite>thumb_char</cite> is the character used for the scrollbar handle.
+<cite>trough_char</cite> is used for the space above and below the handle.
+<cite>side</cite> must be ‘left’ or ‘right’.
+<cite>width</cite> specifies the number of columns the scrollbar uses.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.ScrollBar.Symbols">
+<span class="sig-name descname"><span class="pre">Symbols</span></span><a class="headerlink" href="#urwid.ScrollBar.Symbols" title="Link to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">ScrollbarSymbols</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ScrollBar.keypress">
+<span class="sig-name descname"><span class="pre">keypress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.ScrollBar.keypress" title="Link to this definition">¶</a></dt>
+<dd><p>Keyboard input handler.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
+<li><p><strong>key</strong> (<em>str</em>) – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code> if <em>key</em> was handled by <em>key</em> (the same value passed) if <em>key</em> was not handled</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ScrollBar.mouse_event">
+<span class="sig-name descname"><span class="pre">mouse_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">button</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.ScrollBar.mouse_event" title="Link to this definition">¶</a></dt>
+<dd><p>Mouse event handler.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
+<li><p><strong>event</strong> (<em>str</em>) – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code>, <code class="docutils literal notranslate"><span class="pre">'meta</span> <span class="pre">mouse</span> <span class="pre">release'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">drag'</span></code>; see <a class="reference internal" href="../manual/userinput.html#mouse-input"><span class="std std-ref">Mouse Input</span></a></p></li>
+<li><p><strong>button</strong> (<em>int</em>) – 1 through 5 for press events, often 0 for release events
+(which button was released is often not known)</p></li>
+<li><p><strong>col</strong> (<em>int</em>) – Column of the event, 0 is the left edge of this widget</p></li>
+<li><p><strong>row</strong> (<em>int</em>) – Row of the event, 0 it the top row of this widget</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the event was handled by this widget, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ScrollBar.render">
+<span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><span class="pre">CompositeCanvas</span></a></span></span><a class="headerlink" href="#urwid.ScrollBar.render" title="Link to this definition">¶</a></dt>
+<dd><p>Render widget and produce canvas</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<dl class="simple">
+<dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
+size of this widget</p>
+</dd>
+<dt>(<em>maxcol</em>,)</dt><dd><p>for flow sizing – the parent chooses only the
+number of columns for this widget</p>
+</dd>
+<dt>()</dt><dd><p>for fixed sizing – this widget is a fixed size
+which can’t be adjusted by the parent</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">Canvas</span></code></a> subclass instance containing the rendered content of this widget</p>
+</dd>
+</dl>
+<p><a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.TextCanvas" title="urwid.TextCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextCanvas</span></code></a> (arbitrary text and display attributes),
+<a class="reference internal" href="#urwid.SolidFill" title="urwid.SolidFill"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidFill</span></code></a> widgets return a <a class="reference internal" href="canvas.html#urwid.SolidCanvas" title="urwid.SolidCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidCanvas</span></code></a> (a single character repeated across the whole surface)
+and container widgets return a <a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><code class="xref py py-class docutils literal notranslate"><span class="pre">CompositeCanvas</span></code></a> (one or more other canvases arranged arbitrarily).</p>
+<p>If <em>focus</em> is <code class="docutils literal notranslate"><span class="pre">False</span></code>, the returned canvas may not have a cursor position set.</p>
+<p>There is some metaclass magic defined in the <a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> metaclass <a class="reference internal" href="meta.html#urwid.WidgetMeta" title="urwid.WidgetMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetMeta</span></code></a>
+that causes the result of this method to be cached by <a class="reference internal" href="canvas.html#urwid.CanvasCache" title="urwid.CanvasCache"><code class="xref py py-class docutils literal notranslate"><span class="pre">CanvasCache</span></code></a>.
+Later calls will automatically look up the value in the cache first.</p>
+<p>As a small optimization the class variable <code class="xref py py-attr docutils literal notranslate"><span class="pre">ignore_focus</span></code>
+may be defined and set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget renders the same
+canvas regardless of the value of the <em>focus</em> parameter.</p>
+<p>Any time the content of a widget changes it should call
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">_invalidate()</span></code> to remove any cached canvases, or the widget
+may render the cached canvas instead of creating a new one.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.ScrollBar.scrollbar_side">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">scrollbar_side</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'left'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'right'</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#urwid.ScrollBar.scrollbar_side" title="Link to this definition">¶</a></dt>
+<dd><p>Where to display the scrollbar; must be ‘left’ or ‘right’</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.ScrollBar.scrollbar_width">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">scrollbar_width</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#urwid.ScrollBar.scrollbar_width" title="Link to this definition">¶</a></dt>
+<dd><p>Columns the scrollbar uses</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.ScrollBar.scrolling_base_widget">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">scrolling_base_widget</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">SupportsScroll</span></em><a class="headerlink" href="#urwid.ScrollBar.scrolling_base_widget" title="Link to this definition">¶</a></dt>
+<dd><p>Nearest <cite>original_widget</cite> that is compatible with the scrolling API</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ScrollBar.selectable">
+<span class="sig-name descname"><span class="pre">selectable</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ScrollBar.selectable" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if this is a widget that is designed to take the
+focus, i.e. it contains something the user might want to
+interact with, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise,</p>
+</dd>
+</dl>
+<p>This default implementation returns <a class="reference internal" href="#urwid.Widget._selectable" title="urwid.Widget._selectable"><code class="xref py py-attr docutils literal notranslate"><span class="pre">_selectable</span></code></a>.
+Subclasses may leave these is if the are not selectable,
+or if they are always selectable they may
+set the <code class="xref py py-attr docutils literal notranslate"><span class="pre">_selectable</span></code> class variable to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+<p>If this method returns <code class="docutils literal notranslate"><span class="pre">True</span></code> then the <a class="reference internal" href="#urwid.ScrollBar.keypress" title="urwid.ScrollBar.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">keypress()</span></code></a> method
+must be implemented.</p>
+<p>Returning <code class="docutils literal notranslate"><span class="pre">False</span></code> does not guarantee that this widget will never be in
+focus, only that this widget will usually be skipped over when changing
+focus. It is still possible for non selectable widgets to have the focus
+(typically when there are no other selectable widgets visible).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ScrollBar.sizing">
+<span class="sig-name descname"><span class="pre">sizing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ScrollBar.sizing" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A frozenset including one or more of <code class="docutils literal notranslate"><span class="pre">'box'</span></code>, <code class="docutils literal notranslate"><span class="pre">'flow'</span></code> and
+<code class="docutils literal notranslate"><span class="pre">'fixed'</span></code>.  Default implementation returns the value of
+<a class="reference internal" href="#urwid.Widget._sizing" title="urwid.Widget._sizing"><code class="xref py py-attr docutils literal notranslate"><span class="pre">_sizing</span></code></a>, which for this class includes all three.</p>
+</dd>
+</dl>
+<p>The sizing modes returned indicate the modes that may be
+supported by this widget, but is not sufficient to know
+that using that sizing mode will work.  Subclasses should
+make an effort to remove sizing modes they know will not
+work given the state of the widget, but many do not yet
+do this.</p>
+<p>If a sizing mode is missing from the set then the widget
+should fail when used in that mode.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">'flow'</span></code> is among the values returned then the other
+methods in this widget must be able to accept a
+single-element tuple (<em>maxcol</em>,) to their <code class="docutils literal notranslate"><span class="pre">size</span></code>
+parameter, and the <code class="xref py py-meth docutils literal notranslate"><span class="pre">rows()</span></code> method must be defined.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">'box'</span></code> is among the values returned then the other
+methods must be able to accept a two-element tuple
+(<em>maxcol</em>, <em>maxrow</em>) to their size parameter.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">'fixed'</span></code> is among the values returned then the other
+methods must be able to accept an empty tuple () to
+their size parameter, and the <code class="xref py py-meth docutils literal notranslate"><span class="pre">pack()</span></code> method must
+be defined.</p>
 </dd></dl>
 
 </dd></dl>
@@ -4708,10 +5498,7 @@ correctly, make sure the global encoding for urwid is set to
 <li><a class="reference internal" href="#urwid.Widget._selectable"><code class="docutils literal notranslate"><span class="pre">Widget._selectable</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Widget._sizing"><code class="docutils literal notranslate"><span class="pre">Widget._sizing</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Widget._command_map"><code class="docutils literal notranslate"><span class="pre">Widget._command_map</span></code></a></li>
-<li><a class="reference internal" href="#urwid.Widget.render"><code class="docutils literal notranslate"><span class="pre">Widget.render()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Widget.rows"><code class="docutils literal notranslate"><span class="pre">Widget.rows()</span></code></a></li>
-<li><a class="reference internal" href="#urwid.Widget.keypress"><code class="docutils literal notranslate"><span class="pre">Widget.keypress()</span></code></a></li>
-<li><a class="reference internal" href="#urwid.Widget.mouse_event"><code class="docutils literal notranslate"><span class="pre">Widget.mouse_event()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Widget.get_cursor_coords"><code class="docutils literal notranslate"><span class="pre">Widget.get_cursor_coords()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Widget.get_pref_col"><code class="docutils literal notranslate"><span class="pre">Widget.get_pref_col()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Widget.move_cursor_to_coords"><code class="docutils literal notranslate"><span class="pre">Widget.move_cursor_to_coords()</span></code></a></li>
@@ -4720,9 +5507,10 @@ correctly, make sure the global encoding for urwid is set to
 <li><a class="reference internal" href="#urwid.Widget.base_widget"><code class="docutils literal notranslate"><span class="pre">Widget.base_widget</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Widget.focus"><code class="docutils literal notranslate"><span class="pre">Widget.focus</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Widget.focus_position"><code class="docutils literal notranslate"><span class="pre">Widget.focus_position</span></code></a></li>
-<li><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">Widget.keypress()</span></code></a></li>
-<li><a class="reference internal" href="#id2"><code class="docutils literal notranslate"><span class="pre">Widget.mouse_event()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Widget.keypress"><code class="docutils literal notranslate"><span class="pre">Widget.keypress()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Widget.mouse_event"><code class="docutils literal notranslate"><span class="pre">Widget.mouse_event()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Widget.pack"><code class="docutils literal notranslate"><span class="pre">Widget.pack()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Widget.render"><code class="docutils literal notranslate"><span class="pre">Widget.render()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Widget.selectable"><code class="docutils literal notranslate"><span class="pre">Widget.selectable()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Widget.sizing"><code class="docutils literal notranslate"><span class="pre">Widget.sizing()</span></code></a></li>
 </ul>
@@ -4904,6 +5692,7 @@ correctly, make sure the global encoding for urwid is set to
 <li><a class="reference internal" href="#urwid.Padding.move_cursor_to_coords"><code class="docutils literal notranslate"><span class="pre">Padding.move_cursor_to_coords()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Padding.pack"><code class="docutils literal notranslate"><span class="pre">Padding.pack()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Padding.padding_values"><code class="docutils literal notranslate"><span class="pre">Padding.padding_values()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Padding.render"><code class="docutils literal notranslate"><span class="pre">Padding.render()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Padding.rows"><code class="docutils literal notranslate"><span class="pre">Padding.rows()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Padding.sizing"><code class="docutils literal notranslate"><span class="pre">Padding.sizing()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Padding.width"><code class="docutils literal notranslate"><span class="pre">Padding.width</span></code></a></li>
@@ -4931,6 +5720,7 @@ correctly, make sure the global encoding for urwid is set to
 </li>
 <li><a class="reference internal" href="#divider">Divider</a><ul>
 <li><a class="reference internal" href="#urwid.Divider"><code class="docutils literal notranslate"><span class="pre">Divider</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.Divider.Symbols"><code class="docutils literal notranslate"><span class="pre">Divider.Symbols</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Divider.render"><code class="docutils literal notranslate"><span class="pre">Divider.render()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Divider.rows"><code class="docutils literal notranslate"><span class="pre">Divider.rows()</span></code></a></li>
 </ul>
@@ -4955,6 +5745,7 @@ correctly, make sure the global encoding for urwid is set to
 <li><a class="reference internal" href="#urwid.PopUpLauncher"><code class="docutils literal notranslate"><span class="pre">PopUpLauncher</span></code></a><ul>
 <li><a class="reference internal" href="#urwid.PopUpLauncher.create_pop_up"><code class="docutils literal notranslate"><span class="pre">PopUpLauncher.create_pop_up()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.PopUpLauncher.get_pop_up_parameters"><code class="docutils literal notranslate"><span class="pre">PopUpLauncher.get_pop_up_parameters()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.PopUpLauncher.render"><code class="docutils literal notranslate"><span class="pre">PopUpLauncher.render()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -4964,6 +5755,7 @@ correctly, make sure the global encoding for urwid is set to
 <li><a class="reference internal" href="#urwid.PopUpTarget.keypress"><code class="docutils literal notranslate"><span class="pre">PopUpTarget.keypress()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.PopUpTarget.mouse_event"><code class="docutils literal notranslate"><span class="pre">PopUpTarget.mouse_event()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.PopUpTarget.pack"><code class="docutils literal notranslate"><span class="pre">PopUpTarget.pack()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.PopUpTarget.render"><code class="docutils literal notranslate"><span class="pre">PopUpTarget.render()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -4975,6 +5767,7 @@ correctly, make sure the global encoding for urwid is set to
 <li><a class="reference internal" href="#widgetdisable">WidgetDisable</a><ul>
 <li><a class="reference internal" href="#urwid.WidgetDisable"><code class="docutils literal notranslate"><span class="pre">WidgetDisable</span></code></a><ul>
 <li><a class="reference internal" href="#urwid.WidgetDisable.pack"><code class="docutils literal notranslate"><span class="pre">WidgetDisable.pack()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.WidgetDisable.render"><code class="docutils literal notranslate"><span class="pre">WidgetDisable.render()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.WidgetDisable.selectable"><code class="docutils literal notranslate"><span class="pre">WidgetDisable.selectable()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.WidgetDisable.sizing"><code class="docutils literal notranslate"><span class="pre">WidgetDisable.sizing()</span></code></a></li>
 </ul>
@@ -4995,6 +5788,7 @@ correctly, make sure the global encoding for urwid is set to
 <li><a class="reference internal" href="#urwid.Frame.keypress"><code class="docutils literal notranslate"><span class="pre">Frame.keypress()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Frame.mouse_event"><code class="docutils literal notranslate"><span class="pre">Frame.mouse_event()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Frame.options"><code class="docutils literal notranslate"><span class="pre">Frame.options()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Frame.render"><code class="docutils literal notranslate"><span class="pre">Frame.render()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -5011,11 +5805,13 @@ correctly, make sure the global encoding for urwid is set to
 <li><a class="reference internal" href="#urwid.ListBox.get_cursor_coords"><code class="docutils literal notranslate"><span class="pre">ListBox.get_cursor_coords()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ListBox.get_focus"><code class="docutils literal notranslate"><span class="pre">ListBox.get_focus()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ListBox.get_focus_offset_inset"><code class="docutils literal notranslate"><span class="pre">ListBox.get_focus_offset_inset()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ListBox.get_scrollpos"><code class="docutils literal notranslate"><span class="pre">ListBox.get_scrollpos()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ListBox.keypress"><code class="docutils literal notranslate"><span class="pre">ListBox.keypress()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ListBox.make_cursor_visible"><code class="docutils literal notranslate"><span class="pre">ListBox.make_cursor_visible()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ListBox.mouse_event"><code class="docutils literal notranslate"><span class="pre">ListBox.mouse_event()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ListBox.options"><code class="docutils literal notranslate"><span class="pre">ListBox.options()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ListBox.render"><code class="docutils literal notranslate"><span class="pre">ListBox.render()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ListBox.rows_max"><code class="docutils literal notranslate"><span class="pre">ListBox.rows_max()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ListBox.set_focus"><code class="docutils literal notranslate"><span class="pre">ListBox.set_focus()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ListBox.set_focus_valign"><code class="docutils literal notranslate"><span class="pre">ListBox.set_focus_valign()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ListBox.shift_focus"><code class="docutils literal notranslate"><span class="pre">ListBox.shift_focus()</span></code></a></li>
@@ -5083,6 +5879,7 @@ correctly, make sure the global encoding for urwid is set to
 <li><a class="reference internal" href="#urwid.Pile.move_cursor_to_coords"><code class="docutils literal notranslate"><span class="pre">Pile.move_cursor_to_coords()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Pile.options"><code class="docutils literal notranslate"><span class="pre">Pile.options()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Pile.pack"><code class="docutils literal notranslate"><span class="pre">Pile.pack()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Pile.render"><code class="docutils literal notranslate"><span class="pre">Pile.render()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Pile.sizing"><code class="docutils literal notranslate"><span class="pre">Pile.sizing()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Pile.widget_list"><code class="docutils literal notranslate"><span class="pre">Pile.widget_list</span></code></a></li>
 </ul>
@@ -5106,6 +5903,7 @@ correctly, make sure the global encoding for urwid is set to
 <li><a class="reference internal" href="#urwid.GridFlow.move_cursor_to_coords"><code class="docutils literal notranslate"><span class="pre">GridFlow.move_cursor_to_coords()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.GridFlow.options"><code class="docutils literal notranslate"><span class="pre">GridFlow.options()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.GridFlow.pack"><code class="docutils literal notranslate"><span class="pre">GridFlow.pack()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.GridFlow.render"><code class="docutils literal notranslate"><span class="pre">GridFlow.render()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.GridFlow.set_focus"><code class="docutils literal notranslate"><span class="pre">GridFlow.set_focus()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.GridFlow.sizing"><code class="docutils literal notranslate"><span class="pre">GridFlow.sizing()</span></code></a></li>
 </ul>
@@ -5116,6 +5914,7 @@ correctly, make sure the global encoding for urwid is set to
 <li><a class="reference internal" href="#urwid.BoxAdapter"><code class="docutils literal notranslate"><span class="pre">BoxAdapter</span></code></a><ul>
 <li><a class="reference internal" href="#urwid.BoxAdapter.keypress"><code class="docutils literal notranslate"><span class="pre">BoxAdapter.keypress()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.BoxAdapter.mouse_event"><code class="docutils literal notranslate"><span class="pre">BoxAdapter.mouse_event()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.BoxAdapter.render"><code class="docutils literal notranslate"><span class="pre">BoxAdapter.render()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.BoxAdapter.rows"><code class="docutils literal notranslate"><span class="pre">BoxAdapter.rows()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.BoxAdapter.sizing"><code class="docutils literal notranslate"><span class="pre">BoxAdapter.sizing()</span></code></a></li>
 </ul>
@@ -5183,6 +5982,7 @@ correctly, make sure the global encoding for urwid is set to
 <li><a class="reference internal" href="#urwid.BigText"><code class="docutils literal notranslate"><span class="pre">BigText</span></code></a><ul>
 <li><a class="reference internal" href="#urwid.BigText.get_text"><code class="docutils literal notranslate"><span class="pre">BigText.get_text()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.BigText.pack"><code class="docutils literal notranslate"><span class="pre">BigText.pack()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.BigText.render"><code class="docutils literal notranslate"><span class="pre">BigText.render()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#urwid.get_all_fonts"><code class="docutils literal notranslate"><span class="pre">get_all_fonts()</span></code></a></li>
@@ -5193,7 +5993,40 @@ correctly, make sure the global encoding for urwid is set to
 <li><a class="reference internal" href="#urwid.Terminal.change_focus"><code class="docutils literal notranslate"><span class="pre">Terminal.change_focus()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Terminal.get_cursor_coords"><code class="docutils literal notranslate"><span class="pre">Terminal.get_cursor_coords()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Terminal.keypress"><code class="docutils literal notranslate"><span class="pre">Terminal.keypress()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Terminal.render"><code class="docutils literal notranslate"><span class="pre">Terminal.render()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Terminal.respond"><code class="docutils literal notranslate"><span class="pre">Terminal.respond()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#scroll-widget-classes">Scroll Widget Classes</a><ul>
+<li><a class="reference internal" href="#scrollable">Scrollable</a><ul>
+<li><a class="reference internal" href="#urwid.Scrollable"><code class="docutils literal notranslate"><span class="pre">Scrollable</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.Scrollable.get_scrollpos"><code class="docutils literal notranslate"><span class="pre">Scrollable.get_scrollpos()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Scrollable.keypress"><code class="docutils literal notranslate"><span class="pre">Scrollable.keypress()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Scrollable.mouse_event"><code class="docutils literal notranslate"><span class="pre">Scrollable.mouse_event()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Scrollable.render"><code class="docutils literal notranslate"><span class="pre">Scrollable.render()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Scrollable.rows_max"><code class="docutils literal notranslate"><span class="pre">Scrollable.rows_max()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Scrollable.selectable"><code class="docutils literal notranslate"><span class="pre">Scrollable.selectable()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Scrollable.set_scrollpos"><code class="docutils literal notranslate"><span class="pre">Scrollable.set_scrollpos()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Scrollable.sizing"><code class="docutils literal notranslate"><span class="pre">Scrollable.sizing()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#scrollbar">ScrollBar</a><ul>
+<li><a class="reference internal" href="#urwid.ScrollBar"><code class="docutils literal notranslate"><span class="pre">ScrollBar</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.ScrollBar.Symbols"><code class="docutils literal notranslate"><span class="pre">ScrollBar.Symbols</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ScrollBar.keypress"><code class="docutils literal notranslate"><span class="pre">ScrollBar.keypress()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ScrollBar.mouse_event"><code class="docutils literal notranslate"><span class="pre">ScrollBar.mouse_event()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ScrollBar.render"><code class="docutils literal notranslate"><span class="pre">ScrollBar.render()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ScrollBar.scrollbar_side"><code class="docutils literal notranslate"><span class="pre">ScrollBar.scrollbar_side</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ScrollBar.scrollbar_width"><code class="docutils literal notranslate"><span class="pre">ScrollBar.scrollbar_width</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ScrollBar.scrolling_base_widget"><code class="docutils literal notranslate"><span class="pre">ScrollBar.scrolling_base_widget</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ScrollBar.selectable"><code class="docutils literal notranslate"><span class="pre">ScrollBar.selectable()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ScrollBar.sizing"><code class="docutils literal notranslate"><span class="pre">ScrollBar.sizing()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -5248,7 +6081,7 @@ correctly, make sure the global encoding for urwid is set to
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.5.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>

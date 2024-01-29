@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widgets &#8212; Urwid 2.4.6</title>
+    <title>Widgets &#8212; Urwid 2.5.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script src="../_static/documentation_options.js?v=22624b42"></script>
+    <script src="../_static/documentation_options.js?v=3c4615cf"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.5.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widgets</a></li> 
       </ul>
@@ -97,8 +97,8 @@ how many screen rows they need.</p>
 <p>Occasionally it is also useful to have a widget that knows how many screen
 columns and rows it requires, regardless of the space available. This is
 called a fixed widget.</p>
-<table class="docutils align-default" id="id6">
-<caption><span class="caption-text">How a Widget’s Size is Determined</span><a class="headerlink" href="#id6" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id7">
+<caption><span class="caption-text">How a Widget’s Size is Determined</span><a class="headerlink" href="#id7" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 20.0%" />
 <col style="width: 40.0%" />
@@ -308,8 +308,98 @@ All keyboard input will be passed to the top widget.</p>
 first wrap the flow widget with a <a class="reference internal" href="../reference/widget.html#urwid.Filler" title="urwid.Filler"><code class="xref py py-class docutils literal notranslate"><span class="pre">Filler</span></code></a> widget.</p>
 </section>
 </section>
+<section id="scrollable-widgets">
+<h2>Scrollable Widgets<a class="headerlink" href="#scrollable-widgets" title="Link to this heading">¶</a></h2>
+<p>Scrollable widgets can scroll long content which normally not fit into the screen resolution.
+Scrolling is normally supported using keyboard positioning keys and mouse wheel.</p>
+<p>For scrolling is expected to be used <a class="reference internal" href="../reference/widget.html#urwid.ScrollBar" title="urwid.ScrollBar"><code class="xref py py-class docutils literal notranslate"><span class="pre">ScrollBar</span></code></a> which accept any BOX widget supporting scrollable api.</p>
+<section id="scrollbar-widget">
+<h3>ScrollBar Widget<a class="headerlink" href="#scrollbar-widget" title="Link to this heading">¶</a></h3>
+<p>The <a class="reference internal" href="../reference/widget.html#urwid.ScrollBar" title="urwid.ScrollBar"><code class="xref py py-class docutils literal notranslate"><span class="pre">ScrollBar</span></code></a> widget draw optional scrollbar on the right or left side of widget if scrolling is required
+(widget not fit in the desired amount of rows).
+The widget is always rendered BOX and wrapped widget is also should be BOX.
+In case of other widget types, they should be wrapped to support BOX sizing.</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../reference/widget.html#urwid.Scrollable" title="urwid.Scrollable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Scrollable</span></code></a> make any FLOW or FIXED widget compatible with scrollable api.</p></li>
+<li><p><a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> can be used with <a class="reference internal" href="../reference/widget.html#urwid.ScrollBar" title="urwid.ScrollBar"><code class="xref py py-class docutils literal notranslate"><span class="pre">ScrollBar</span></code></a> directly,
+all input is always handled by <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> and it’s widgets.</p></li>
+</ul>
+<p>Keyboard positioning keys and mouse wheel is used for scrolling if not handled by the wrapped widget.
+Scrolling is done on per-line basis.</p>
+</section>
+<section id="scrollable-widget">
+<h3>Scrollable Widget<a class="headerlink" href="#scrollable-widget" title="Link to this heading">¶</a></h3>
+<p>The <a class="reference internal" href="../reference/widget.html#urwid.Scrollable" title="urwid.Scrollable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Scrollable</span></code></a> widget is used to make  any FLOW or FIXED widget compatible with scrollable api by changing
+target widget render and scrolling along full-size / columns defined sized widget.</p>
+<p>Keyboard positioning keys and mouse wheel is used for scrolling if not handled by the wrapped widget.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="../reference/widget.html#urwid.Scrollable" title="urwid.Scrollable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Scrollable</span></code></a> do not recognize if selectable wrapped widget part visible or not
+if wrapped widget do not draw cursor.
+This means, keyboard input maybe forwarded to the wrapped selectable widget even if it not visible.
+<strong>Mouse input is not affected by this limitation</strong> due to known column and raw of mouse event.</p>
+</div>
+<p>Comparing to the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>,
+<a class="reference internal" href="../reference/widget.html#urwid.Scrollable" title="urwid.Scrollable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Scrollable</span></code></a> handles fixed and flow widgets directly instead of using list of small widgets.
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> should be used to scroll between widgets, which can be multiline by itself.</p>
+</section>
+<section id="scrollable-api">
+<span id="id4"></span><h3>Scrollable API<a class="headerlink" href="#scrollable-api" title="Link to this heading">¶</a></h3>
+<p>Widget pretending to be scrolled via <a class="reference internal" href="../reference/widget.html#urwid.ScrollBar" title="urwid.ScrollBar"><code class="xref py py-class docutils literal notranslate"><span class="pre">ScrollBar</span></code></a> should subclass <a class="reference internal" href="../reference/widget.html#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a>
+and implement positioning API:</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="Scrollable.get_scrollpos">
+<span class="sig-prename descclassname"><span class="pre">Scrollable.</span></span><span class="sig-name descname"><span class="pre">get_scrollpos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Scrollable.get_scrollpos" title="Link to this definition">¶</a></dt>
+<dd><p>Get scrolling position</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>] </em><em>| </em><em>None</em>) – widget render size. If <cite>size</cite> is not given, the currently rendered number of rows is returned.</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – widget is focused</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the index of the first visible row.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="Scrollable.set_scrollpos">
+<span class="sig-prename descclassname"><span class="pre">Scrollable.</span></span><span class="sig-name descname"><span class="pre">set_scrollpos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SupportsInt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Scrollable.set_scrollpos" title="Link to this definition">¶</a></dt>
+<dd><p><strong>Optional</strong> method for setting scrolling position.</p>
+<p>Method is called on mouse wheel scroll if it implemented and mouse event was not handled by widget.</p>
+<p>If <cite>position</cite> is positive it is interpreted as lines from the top.
+If <cite>position</cite> is negative it is interpreted as lines from the bottom.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="Scrollable.rows_max">
+<span class="sig-prename descclassname"><span class="pre">Scrollable.</span></span><span class="sig-name descname"><span class="pre">rows_max</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#Scrollable.rows_max" title="Link to this definition">¶</a></dt>
+<dd><p>Get the total number of rows <cite>widget</cite> can render.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>] </em><em>| </em><em>None</em>) – widget render size. If <cite>size</cite> is not given, the currently rendered number of rows is returned.</p></li>
+<li><p><strong>focus</strong> (<em>bool</em>) – widget is focused</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the number of rows for <cite>size</cite></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
 <section id="listbox-contents">
-<span id="id4"></span><h2>ListBox Contents<a class="headerlink" href="#listbox-contents" title="Link to this heading">¶</a></h2>
+<span id="id5"></span><h2>ListBox Contents<a class="headerlink" href="#listbox-contents" title="Link to this heading">¶</a></h2>
 <p><a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> is a box widget that contains flow widgets.
 Its contents are displayed stacked vertically, and the
 <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> allows the user to scroll through its content.
@@ -461,13 +551,12 @@ walker classes.</p>
 </div>
 </section>
 <section id="list-walker-interface">
-<span id="id5"></span><h3>List Walker Interface<a class="headerlink" href="#list-walker-interface" title="Link to this heading">¶</a></h3>
+<span id="id6"></span><h3>List Walker Interface<a class="headerlink" href="#list-walker-interface" title="Link to this heading">¶</a></h3>
 <section id="list-walker-api-version-1">
 <h4>List Walker API Version 1<a class="headerlink" href="#list-walker-api-version-1" title="Link to this heading">¶</a></h4>
-<p>This API will remain available and is still the least restrictive option for
-the programmer.  Your class should subclass <a class="reference internal" href="../reference/list_walkers.html#urwid.ListWalker" title="urwid.ListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListWalker</span></code></a>.
-Whenever the focus or content changes you are responsible for
-calling <code class="xref py py-meth docutils literal notranslate"><span class="pre">ListWalker._modified()</span></code>.</p>
+<p>This API will remain available and is still the least restrictive option fo the programmer.
+Your class should subclass <a class="reference internal" href="../reference/list_walkers.html#urwid.ListWalker" title="urwid.ListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListWalker</span></code></a>.
+Whenever the focus or content changes you are responsible for calling <code class="xref py py-meth docutils literal notranslate"><span class="pre">ListWalker._modified()</span></code>.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="MyV1ListWalker.get_focus">
 <span class="sig-prename descclassname"><span class="pre">MyV1ListWalker.</span></span><span class="sig-name descname"><span class="pre">get_focus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#MyV1ListWalker.get_focus" title="Link to this definition">¶</a></dt>
@@ -608,7 +697,7 @@ WidgetWrap and passing a widget into WidgetWrap’s constructor.</p>
 <span class="linenos"> 9</span>        <span class="n">unsure</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">,</span> <span class="s2">&quot;Unsure&quot;</span><span class="p">)</span>
 <span class="linenos">10</span>        <span class="n">yes</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">,</span> <span class="s2">&quot;Yes&quot;</span><span class="p">)</span>
 <span class="linenos">11</span>        <span class="n">no</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">,</span> <span class="s2">&quot;No&quot;</span><span class="p">)</span>
-<span class="linenos">12</span>        <span class="n">display_widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">GridFlow</span><span class="p">([</span><span class="n">unsure</span><span class="p">,</span> <span class="n">yes</span><span class="p">,</span> <span class="n">no</span><span class="p">],</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;left&#39;</span><span class="p">)</span>
+<span class="linenos">12</span>        <span class="n">display_widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">GridFlow</span><span class="p">([</span><span class="n">unsure</span><span class="p">,</span> <span class="n">yes</span><span class="p">,</span> <span class="n">no</span><span class="p">],</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;left&quot;</span><span class="p">)</span>
 <span class="linenos">13</span>        <span class="n">urwid</span><span class="o">.</span><span class="n">WidgetWrap</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">display_widget</span><span class="p">)</span>
 <span class="linenos">14</span>
 <span class="linenos">15</span>    <span class="k">def</span> <span class="nf">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -635,7 +724,7 @@ box widgets below.</p>
 <span class="linenos"> 4</span>
 <span class="linenos"> 5</span>
 <span class="linenos"> 6</span><span class="k">class</span> <span class="nc">Pudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
-<span class="linenos"> 7</span>    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;flow&#39;</span><span class="p">])</span>
+<span class="linenos"> 7</span>    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s2">&quot;flow&quot;</span><span class="p">])</span>
 <span class="linenos"> 8</span>
 <span class="linenos"> 9</span>    <span class="k">def</span> <span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="linenos">10</span>        <span class="k">return</span> <span class="mi">1</span>
@@ -647,13 +736,12 @@ box widgets below.</p>
 <span class="linenos">16</span>
 <span class="linenos">17</span>
 <span class="linenos">18</span><span class="k">class</span> <span class="nc">BoxPudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
-<span class="linenos">19</span>    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;box&#39;</span><span class="p">])</span>
+<span class="linenos">19</span>    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s2">&quot;box&quot;</span><span class="p">])</span>
 <span class="linenos">20</span>
 <span class="linenos">21</span>    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="linenos">22</span>        <span class="p">(</span><span class="n">maxcol</span><span class="p">,</span> <span class="n">maxrow</span><span class="p">)</span> <span class="o">=</span> <span class="n">size</span>
 <span class="linenos">23</span>        <span class="n">num_pudding</span> <span class="o">=</span> <span class="n">maxcol</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="s2">&quot;Pudding&quot;</span><span class="p">)</span>
-<span class="linenos">24</span>        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="s2">&quot;Pudding&quot;</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">]</span> <span class="o">*</span> <span class="n">maxrow</span><span class="p">,</span>
-<span class="linenos">25</span>                                <span class="n">maxcol</span><span class="o">=</span><span class="n">maxcol</span><span class="p">)</span>
+<span class="linenos">24</span>        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="s2">&quot;Pudding&quot;</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">]</span> <span class="o">*</span> <span class="n">maxrow</span><span class="p">,</span> <span class="n">maxcol</span><span class="o">=</span><span class="n">maxcol</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The above code implements two widget classes. Pudding is a flow widget and
@@ -676,7 +764,7 @@ box widget depending on what is required:</p>
 <span class="linenos"> 4</span>
 <span class="linenos"> 5</span>
 <span class="linenos"> 6</span><span class="k">class</span> <span class="nc">MultiPudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
-<span class="linenos"> 7</span>    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;flow&#39;</span><span class="p">,</span> <span class="s1">&#39;box&#39;</span><span class="p">])</span>
+<span class="linenos"> 7</span>    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s2">&quot;flow&quot;</span><span class="p">,</span> <span class="s2">&quot;box&quot;</span><span class="p">])</span>
 <span class="linenos"> 8</span>
 <span class="linenos"> 9</span>    <span class="k">def</span> <span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="linenos">10</span>        <span class="k">return</span> <span class="mi">1</span>
@@ -688,8 +776,7 @@ box widget depending on what is required:</p>
 <span class="linenos">16</span>        <span class="k">else</span><span class="p">:</span>
 <span class="linenos">17</span>            <span class="p">(</span><span class="n">maxcol</span><span class="p">,</span> <span class="n">maxrow</span><span class="p">)</span> <span class="o">=</span> <span class="n">size</span>
 <span class="linenos">18</span>        <span class="n">num_pudding</span> <span class="o">=</span> <span class="n">maxcol</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="s2">&quot;Pudding&quot;</span><span class="p">)</span>
-<span class="linenos">19</span>        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="s2">&quot;Pudding&quot;</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">]</span> <span class="o">*</span> <span class="n">maxrow</span><span class="p">,</span>
-<span class="linenos">20</span>                                <span class="n">maxcol</span><span class="o">=</span><span class="n">maxcol</span><span class="p">)</span>
+<span class="linenos">19</span>        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="s2">&quot;Pudding&quot;</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">]</span> <span class="o">*</span> <span class="n">maxrow</span><span class="p">,</span> <span class="n">maxcol</span><span class="o">=</span><span class="n">maxcol</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>MultiPudding will work in place of either Pudding or BoxPudding above. The
@@ -700,7 +787,7 @@ is expecting a flow widget or a box widget.</p>
 <h3>Selectable Widgets<a class="headerlink" href="#selectable-widgets" title="Link to this heading">¶</a></h3>
 <p>Selectable widgets such as Edit and Button widgets allow the user to interact
 with the application. A widget is selectable if its selectable method returns
-True. Selectable widgets must implement the <a class="reference internal" href="../reference/widget.html#id0" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.keypress()</span></code></a> method to
+True. Selectable widgets must implement the <a class="reference internal" href="../reference/widget.html#urwid.Widget.keypress" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.keypress()</span></code></a> method to
 handle keyboard input.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 
@@ -708,7 +795,7 @@ handle keyboard input.</p>
 
 
 <span class="k">class</span> <span class="nc">SelectablePudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
-    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;flow&#39;</span><span class="p">])</span>
+    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s2">&quot;flow&quot;</span><span class="p">])</span>
     <span class="n">_selectable</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -724,8 +811,7 @@ handle keyboard input.</p>
         <span class="n">pudding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pudding</span>
         <span class="k">if</span> <span class="n">focus</span><span class="p">:</span>
             <span class="n">pudding</span> <span class="o">=</span> <span class="n">pudding</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="n">pudding</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">],</span>
-            <span class="n">maxcol</span><span class="o">=</span><span class="n">maxcol</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="n">pudding</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">],</span> <span class="n">maxcol</span><span class="o">=</span><span class="n">maxcol</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
@@ -734,7 +820,7 @@ handle keyboard input.</p>
         <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pudding</span><span class="p">:</span>
             <span class="c1"># remove letter from pudding</span>
             <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pudding</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">pudding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pudding</span><span class="p">[:</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pudding</span><span class="p">[</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pudding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pudding</span><span class="p">[:</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pudding</span><span class="p">[</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">pudding</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">pudding</span> <span class="o">=</span> <span class="s2">&quot;pudding&quot;</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_invalidate</span><span class="p">()</span>
@@ -768,7 +854,7 @@ make sure that the cursor is visible within its focus widget.</p>
 <span class="linenos"> 4</span>
 <span class="linenos"> 5</span>
 <span class="linenos"> 6</span><span class="k">class</span> <span class="nc">CursorPudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
-<span class="linenos"> 7</span>    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s1">&#39;flow&#39;</span><span class="p">])</span>
+<span class="linenos"> 7</span>    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s2">&quot;flow&quot;</span><span class="p">])</span>
 <span class="linenos"> 8</span>    <span class="n">_selectable</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="linenos"> 9</span>
 <span class="linenos">10</span>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -792,10 +878,10 @@ make sure that the cursor is visible within its focus widget.</p>
 <span class="linenos">28</span>        <span class="k">return</span> <span class="n">col</span><span class="p">,</span> <span class="mi">0</span>
 <span class="linenos">29</span>
 <span class="linenos">30</span>    <span class="k">def</span> <span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-<span class="linenos">31</span>        <span class="p">(</span><span class="n">maxcol</span><span class="p">,</span> <span class="p">)</span> <span class="o">=</span> <span class="n">size</span>
-<span class="linenos">32</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;left&#39;</span><span class="p">:</span>
+<span class="linenos">31</span>        <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
+<span class="linenos">32</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;left&quot;</span><span class="p">:</span>
 <span class="linenos">33</span>            <span class="n">col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span> <span class="o">-</span> <span class="mi">1</span>
-<span class="linenos">34</span>        <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;right&#39;</span><span class="p">:</span>
+<span class="linenos">34</span>        <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;right&quot;</span><span class="p">:</span>
 <span class="linenos">35</span>            <span class="n">col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span> <span class="o">+</span> <span class="mi">1</span>
 <span class="linenos">36</span>        <span class="k">else</span><span class="p">:</span>
 <span class="linenos">37</span>            <span class="k">return</span> <span class="n">key</span>
@@ -870,6 +956,17 @@ defined in superclasses after the class definition.</p>
 <li><a class="reference internal" href="#columns-widgets">Columns Widgets</a></li>
 <li><a class="reference internal" href="#gridflow-widgets">GridFlow Widgets</a></li>
 <li><a class="reference internal" href="#overlay-widgets">Overlay Widgets</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#scrollable-widgets">Scrollable Widgets</a><ul>
+<li><a class="reference internal" href="#scrollbar-widget">ScrollBar Widget</a></li>
+<li><a class="reference internal" href="#scrollable-widget">Scrollable Widget</a></li>
+<li><a class="reference internal" href="#scrollable-api">Scrollable API</a><ul>
+<li><a class="reference internal" href="#Scrollable.get_scrollpos"><code class="docutils literal notranslate"><span class="pre">get_scrollpos()</span></code></a></li>
+<li><a class="reference internal" href="#Scrollable.set_scrollpos"><code class="docutils literal notranslate"><span class="pre">set_scrollpos()</span></code></a></li>
+<li><a class="reference internal" href="#Scrollable.rows_max"><code class="docutils literal notranslate"><span class="pre">rows_max()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a class="reference internal" href="#listbox-contents">ListBox Contents</a><ul>
@@ -957,7 +1054,7 @@ defined in superclasses after the class definition.</p>
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.5.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widgets</a></li> 
       </ul>

@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Canvas Classes and Functions &#8212; Urwid 2.4.6</title>
+    <title>Canvas Classes and Functions &#8212; Urwid 2.5.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script src="../_static/documentation_options.js?v=22624b42"></script>
+    <script src="../_static/documentation_options.js?v=3c4615cf"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="attrspec.html" title="Raw Display Attributes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.5.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Canvas Classes and Functions</a></li> 
       </ul>
@@ -211,15 +211,14 @@ is a list of (attr, cs, text) tuples.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.CompositeCanvas.fill_attr">
-<span class="sig-name descname"><span class="pre">fill_attr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CompositeCanvas.fill_attr" title="Link to this definition">¶</a></dt>
-<dd><p>Apply attribute a to all areas of this canvas with default
-attribute currently set to None, leaving other attributes
-intact.</p>
+<span class="sig-name descname"><span class="pre">fill_attr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CompositeCanvas.fill_attr" title="Link to this definition">¶</a></dt>
+<dd><p>Apply attribute a to all areas of this canvas with default attribute currently set to None,
+leaving other attributes intact.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.CompositeCanvas.fill_attr_apply">
-<span class="sig-name descname"><span class="pre">fill_attr_apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapping</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CompositeCanvas.fill_attr_apply" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">fill_attr_apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Hashable</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CompositeCanvas.fill_attr_apply" title="Link to this definition">¶</a></dt>
 <dd><p>Apply an attribute-mapping dictionary to the canvas.</p>
 <p>mapping – dictionary of original-attribute:new-attribute items</p>
 </dd></dl>
@@ -274,7 +273,7 @@ count – number of lines to keep, or None for all the rest</p>
 <h2>CompositeCanvas Builders<a class="headerlink" href="#compositecanvas-builders" title="Link to this heading">¶</a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="urwid.CanvasCombine">
-<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CanvasCombine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">canvas_info</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasCombine" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CanvasCombine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">canvas_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#urwid.Canvas" title="urwid.Canvas"><span class="pre">Canvas</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><span class="pre">CompositeCanvas</span></a></span></span><a class="headerlink" href="#urwid.CanvasCombine" title="Link to this definition">¶</a></dt>
 <dd><p>Stack canvases in l vertically and return resulting canvas.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -292,7 +291,7 @@ count – number of lines to keep, or None for all the rest</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="urwid.CanvasJoin">
-<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CanvasJoin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">canvas_info</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasJoin" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CanvasJoin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">canvas_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#urwid.Canvas" title="urwid.Canvas"><span class="pre">Canvas</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><span class="pre">CompositeCanvas</span></a></span></span><a class="headerlink" href="#urwid.CanvasJoin" title="Link to this definition">¶</a></dt>
 <dd><p>Join canvases in l horizontally. Return result.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -314,7 +313,7 @@ will be padded on the right.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="urwid.CanvasOverlay">
-<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CanvasOverlay</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">top_c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bottom_c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">left</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasOverlay" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CanvasOverlay</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">top_c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bottom_c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">left</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#urwid.CompositeCanvas" title="urwid.canvas.CompositeCanvas"><span class="pre">CompositeCanvas</span></a></span></span><a class="headerlink" href="#urwid.CanvasOverlay" title="Link to this definition">¶</a></dt>
 <dd><p>Overlay canvas top_c onto bottom_c at position (left, top).</p>
 </dd></dl>
 
@@ -485,7 +484,7 @@ canvas – rendered canvas with widget_info (widget, size, focus)</p>
         <li class="right" >
           <a href="attrspec.html" title="Raw Display Attributes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.4.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.5.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Canvas Classes and Functions</a></li> 
       </ul>

@@ -219,3 +219,18 @@ Terminal
 
 .. autoclass:: Terminal
 
+
+Scroll Widget Classes
+---------------------
+
+Scrollable
+~~~~~~~~~~
+
+.. autoclass:: Scrollable
+
+ScrollBar
+~~~~~~~~~
+
+.. autoclass:: ScrollBar
+
+.. currentmodule:: urwid
