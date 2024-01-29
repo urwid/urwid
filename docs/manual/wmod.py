@@ -9,7 +9,7 @@ class QuestionnaireItem(urwid.WidgetWrap):
         unsure = urwid.RadioButton(self.options, "Unsure")
         yes = urwid.RadioButton(self.options, "Yes")
         no = urwid.RadioButton(self.options, "No")
-        display_widget = urwid.GridFlow([unsure, yes, no], 15, 3, 1, 'left')
+        display_widget = urwid.GridFlow([unsure, yes, no], 15, 3, 1, "left")
         urwid.WidgetWrap.__init__(self, display_widget)
 
     def get_state(self):

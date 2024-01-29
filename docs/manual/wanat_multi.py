@@ -4,7 +4,7 @@ import urwid
 
 
 class MultiPudding(urwid.Widget):
-    _sizing = frozenset(['flow', 'box'])
+    _sizing = frozenset(["flow", "box"])
 
     def rows(self, size, focus=False):
         return 1
@@ -16,5 +16,4 @@ class MultiPudding(urwid.Widget):
         else:
             (maxcol, maxrow) = size
         num_pudding = maxcol / len("Pudding")
-        return urwid.TextCanvas(["Pudding" * num_pudding] * maxrow,
-                                maxcol=maxcol)
+        return urwid.TextCanvas(["Pudding" * num_pudding] * maxrow, maxcol=maxcol)

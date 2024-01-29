@@ -4,7 +4,7 @@ import urwid
 
 
 class CursorPudding(urwid.Widget):
-    _sizing = frozenset(['flow'])
+    _sizing = frozenset(["flow"])
     _selectable = True
 
     def __init__(self):
@@ -28,10 +28,10 @@ class CursorPudding(urwid.Widget):
         return col, 0
 
     def keypress(self, size, key):
-        (maxcol, ) = size
-        if key == 'left':
+        (maxcol,) = size
+        if key == "left":
             col = self.cursor_col - 1
-        elif key == 'right':
+        elif key == "right":
             col = self.cursor_col + 1
         else:
             return key
