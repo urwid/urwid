@@ -5,6 +5,7 @@ import warnings
 from itertools import chain, repeat
 
 from urwid.canvas import CanvasCombine, CompositeCanvas, SolidCanvas
+from urwid.command_map import Command
 from urwid.monitored_list import MonitoredFocusList, MonitoredList
 from urwid.util import is_mouse_press
 
@@ -860,10 +861,10 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         _widths, heights, size_args = self.get_rows_sizes(size, focus=self.selectable())
         if self.selectable():
             key = self.focus.keypress(size_args[i], key)
-            if self._command_map[key] not in {"cursor up", "cursor down"}:
+            if self._command_map[key] not in {Command.UP, Command.DOWN}:
                 return key
 
-        if self._command_map[key] == "cursor up":
+        if self._command_map[key] == Command.UP:
             candidates = tuple(range(i - 1, -1, -1))  # count backwards to 0
         else:  # self._command_map[key] == 'cursor down'
             candidates = tuple(range(i + 1, len(self.contents)))
@@ -878,7 +879,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 return None
 
             rows = heights[j]
-            if self._command_map[key] == "cursor up":
+            if self._command_map[key] == Command.UP:
                 rowlist = tuple(range(rows - 1, -1, -1))
             else:  # self._command_map[key] == 'cursor down'
                 rowlist = tuple(range(rows))

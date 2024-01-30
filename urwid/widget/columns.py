@@ -6,6 +6,7 @@ from itertools import chain, repeat
 
 import urwid
 from urwid.canvas import Canvas, CanvasJoin, CompositeCanvas, SolidCanvas
+from urwid.command_map import Command
 from urwid.monitored_list import MonitoredFocusList, MonitoredList
 from urwid.util import is_mouse_press
 
@@ -1115,15 +1116,15 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         i = self.focus_position
         w, _ = self.contents[i]
-        if self._command_map[key] not in {"cursor up", "cursor down", "cursor page up", "cursor page down"}:
+        if self._command_map[key] not in {Command.UP, Command.DOWN, Command.PAGE_UP, Command.PAGE_DOWN}:
             self.pref_col = None
         if w.selectable():
             key = w.keypress(size_args[i], key)
 
-        if self._command_map[key] not in {"cursor left", "cursor right"}:
+        if self._command_map[key] not in {Command.LEFT, Command.RIGHT}:
             return key
 
-        if self._command_map[key] == "cursor left":
+        if self._command_map[key] == Command.LEFT:
             candidates = list(range(i - 1, -1, -1))  # count backwards to 0
         else:  # key == 'right'
             candidates = list(range(i + 1, len(self.contents)))
