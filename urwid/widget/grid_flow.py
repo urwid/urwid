@@ -23,7 +23,7 @@ class GridFlowError(WidgetError):
     pass
 
 
-class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixin):
+class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListContentsMixin):
     """
     The GridFlow widget is a flow widget that renders all the widgets it
     contains the same width and it arranges them from left to right and top to
@@ -73,10 +73,8 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
         self.h_sep = h_sep
         self.v_sep = v_sep
         self.align = align
-        self._cache_maxcol = None
-        super().__init__(None)
-        # set self._w to something other than None
-        self.get_display_widget(((h_sep + cell_width) * len(self._contents),))
+        self._cache_maxcol = self._get_maxcol(())
+        super().__init__(self.generate_display_widget((self._cache_maxcol,)))
 
     def _invalidate(self) -> None:
         self._cache_maxcol = None
@@ -525,7 +523,7 @@ class GridFlow(WidgetWrap, WidgetContainerMixin, WidgetContainerListContentsMixi
     def mouse_event(
         self,
         size: tuple[int] | tuple[()],
-        event,
+        event: str,
         button: int,
         col: int,
         row: int,

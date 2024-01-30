@@ -8,22 +8,21 @@ from urwid.canvas import CompositeCanvas
 from .constants import Sizing
 from .widget_decoration import WidgetDecoration, WidgetError
 
-if typing.TYPE_CHECKING:
-    from .widget import Widget
+WrappedWidget = typing.TypeVar("WrappedWidget")
 
 
 class BoxAdapterError(WidgetError):
     pass
 
 
-class BoxAdapter(WidgetDecoration):
+class BoxAdapter(WidgetDecoration[WrappedWidget]):
     """
     Adapter for using a box widget where a flow widget would usually go
     """
 
     no_cache: typing.ClassVar[list[str]] = ["rows"]
 
-    def __init__(self, box_widget, height):
+    def __init__(self, box_widget: WrappedWidget, height: int) -> None:
         """
         Create a flow widget that contains a box widget
 
@@ -47,7 +46,7 @@ class BoxAdapter(WidgetDecoration):
 
     # originally stored as box_widget, keep for compatibility
     @property
-    def box_widget(self) -> Widget:
+    def box_widget(self) -> WrappedWidget:
         warnings.warn(
             "original stored as original_widget, keep for compatibility",
             PendingDeprecationWarning,
@@ -56,7 +55,7 @@ class BoxAdapter(WidgetDecoration):
         return self.original_widget
 
     @box_widget.setter
-    def box_widget(self, widget: Widget):
+    def box_widget(self, widget: WrappedWidget) -> None:
         warnings.warn(
             "original stored as original_widget, keep for compatibility",
             PendingDeprecationWarning,
@@ -104,7 +103,7 @@ class BoxAdapter(WidgetDecoration):
     def mouse_event(
         self,
         size: tuple[int],
-        event,
+        event: str,
         button: int,
         col: int,
         row: int,

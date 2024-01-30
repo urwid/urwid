@@ -5,22 +5,24 @@ from collections.abc import Hashable, Mapping
 
 from urwid.canvas import CompositeCanvas
 
-from .widget import Widget, WidgetError, delegate_to_widget_mixin
+from .widget import WidgetError, delegate_to_widget_mixin
 from .widget_decoration import WidgetDecoration
+
+WrappedWidget = typing.TypeVar("WrappedWidget")
 
 
 class AttrMapError(WidgetError):
     pass
 
 
-class AttrMap(delegate_to_widget_mixin("_original_widget"), WidgetDecoration):
+class AttrMap(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[WrappedWidget]):
     """
     AttrMap is a decoration that maps one set of attributes to another.
     This object will pass all function calls and variable references to the
     wrapped widget.
     """
 
-    def __init__(self, w: Widget, attr_map, focus_map=None) -> None:
+    def __init__(self, w: WrappedWidget, attr_map, focus_map=None) -> None:
         """
         :param w: widget to wrap (stored as self.original_widget)
         :type w: widget

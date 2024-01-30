@@ -134,7 +134,7 @@ class CheckBoxError(WidgetError):
     pass
 
 
-class CheckBox(WidgetWrap):
+class CheckBox(WidgetWrap[Columns]):
     states: typing.ClassVar[dict[bool | Literal["mixed"], SelectableIcon]] = {
         True: SelectableIcon("[X]", 1),
         False: SelectableIcon("[ ]", 1),
@@ -430,7 +430,7 @@ class CheckBox(WidgetWrap):
         elif self.state == "mixed":
             self.set_state(False)
 
-    def mouse_event(self, size: tuple[int], event, button: int, x: int, y: int, focus: bool) -> bool:
+    def mouse_event(self, size: tuple[int], event: str, button: int, x: int, y: int, focus: bool) -> bool:
         """
         Toggle state on button 1 press.
 
@@ -593,7 +593,7 @@ class RadioButton(CheckBox):
         self.set_state(True)
 
 
-class Button(WidgetWrap):
+class Button(WidgetWrap[Columns]):
     button_left = Text("<")
     button_right = Text(">")
 
@@ -754,7 +754,7 @@ class Button(WidgetWrap):
         self._emit("click")
         return None
 
-    def mouse_event(self, size: tuple[int], event, button: int, x: int, y: int, focus: bool) -> bool:
+    def mouse_event(self, size: tuple[int], event: str, button: int, x: int, y: int, focus: bool) -> bool:
         """
         Send 'click' signal on button 1 press.
 

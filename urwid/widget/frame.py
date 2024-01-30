@@ -448,7 +448,15 @@ class Frame(Widget, WidgetContainerMixin):
             return key
         return self.body.keypress((maxcol, remaining), key)
 
-    def mouse_event(self, size: tuple[int, int], event, button: int, col: int, row: int, focus: bool) -> bool | None:
+    def mouse_event(
+        self,
+        size: tuple[int, int],
+        event: str,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool | None:
         """
         Pass mouse event to appropriate part of frame.
         Focus may be changed on button 1 press.

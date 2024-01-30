@@ -550,7 +550,7 @@ class Edit(Text):
         self._invalidate()
         return True
 
-    def mouse_event(self, size: tuple[int], event, button: int, x: int, y: int, focus: bool) -> bool | None:
+    def mouse_event(self, size: tuple[int], event: str, button: int, x: int, y: int, focus: bool) -> bool | None:
         """
         Move the cursor to the location clicked for button 1.
 

@@ -52,7 +52,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
     eighths = BAR_SYMBOLS.VERTICAL[:8]  # Full height is done by style
     hlines = "_⎺⎻─⎼⎽"
 
-    def __init__(self, attlist, hatt=None, satt=None):
+    def __init__(self, attlist, hatt=None, satt=None) -> None:
         """
         Create a bar graph with the passed display characteristics.
         see set_segment_attributes for a description of the parameters.
@@ -134,7 +134,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
                 raise BarGraphError(f"fg ({fg}) not > bg ({bg})")
         self.satt = satt
 
-    def set_data(self, bardata, top, hlines=None):
+    def set_data(self, bardata, top: float, hlines=None) -> None:
         """
         Store bar data, bargraph top and horizontal line positions.
 
@@ -428,7 +428,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         return canv
 
 
-def calculate_bargraph_display(bardata, top, bar_widths, maxrow: int):
+def calculate_bargraph_display(bardata, top: float, bar_widths: list[int], maxrow: int):
     """
     Calculate a rendering of the bar graph described by data, bar_widths
     and height.
@@ -574,7 +574,7 @@ def calculate_bargraph_display(bardata, top, bar_widths, maxrow: int):
 class GraphVScale(Widget):
     _sizing = frozenset([Sizing.BOX])
 
-    def __init__(self, labels, top):
+    def __init__(self, labels, top: float) -> None:
         """
         GraphVScale( [(label1 position, label1 markup),...], top )
         label position -- 0 < position < top for the y position
@@ -587,7 +587,7 @@ class GraphVScale(Widget):
         super().__init__()
         self.set_scale(labels, top)
 
-    def set_scale(self, labels, top):
+    def set_scale(self, labels, top: float) -> None:
         """
         set_scale( [(label1 position, label1 markup),...], top )
         label position -- 0 < position < top for the y position
@@ -610,7 +610,7 @@ class GraphVScale(Widget):
         """
         return False
 
-    def render(self, size: tuple[int, int], focus: bool = False):
+    def render(self, size: tuple[int, int], focus: bool = False) -> SolidCanvas | CompositeCanvas:
         """
         Render GraphVScale.
         """
@@ -641,7 +641,7 @@ class GraphVScale(Widget):
         return c
 
 
-def scale_bar_values(bar, top, maxrow: int):
+def scale_bar_values(bar, top: float, maxrow: int) -> list[int]:
     """
     Return a list of bar values aliased to integer values of maxrow.
     """

@@ -95,7 +95,7 @@ class ProgressBar(Widget):
         )
         self.done = done
 
-    def rows(self, size, focus: bool = False) -> int:
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
         return 1
 
     def get_text(self) -> str:

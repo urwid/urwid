@@ -43,6 +43,9 @@ if typing.TYPE_CHECKING:
 __all__ = ("ScrollbarSymbols", "ScrollBar", "Scrollable", "ScrollableError")
 
 
+WrappedWidget = typing.TypeVar("WrappedWidget")
+
+
 class ScrollableError(WidgetError):
     """Scrollable specific widget errors."""
 
@@ -119,14 +122,14 @@ class SupportsScroll(Protocol):
     def rows_max(self, size: tuple[int, int] | None = None, focus: bool = False) -> int: ...
 
 
-class Scrollable(WidgetDecoration):
+class Scrollable(WidgetDecoration[WrappedWidget]):
     def sizing(self) -> frozenset[Sizing]:
         return frozenset((Sizing.BOX,))
 
     def selectable(self) -> bool:
         return True
 
-    def __init__(self, widget: Widget, force_forward_keypress: bool = False) -> None:
+    def __init__(self, widget: WrappedWidget, force_forward_keypress: bool = False) -> None:
         """Box widget that makes a fixed or flow widget vertically scrollable
 
         .. note::
@@ -420,7 +423,7 @@ class Scrollable(WidgetDecoration):
         return self._rows_max_cached
 
 
-class ScrollBar(WidgetDecoration):
+class ScrollBar(WidgetDecoration[WrappedWidget]):
     Symbols = ScrollbarSymbols
 
     def sizing(self):
@@ -431,7 +434,7 @@ class ScrollBar(WidgetDecoration):
 
     def __init__(
         self,
-        widget: SupportsScroll,
+        widget: WrappedWidget,
         thumb_char: str = ScrollbarSymbols.FULL_BLOCK,
         trough_char: str = " ",
         side: Literal["left", "right"] = SCROLLBAR_RIGHT,
