@@ -1,6 +1,6 @@
 Urwid
 =====
-|pypi| |docs| |ci| |coveralls|
+|pypi| |docs| |gitter| |ci| |coveralls|
 
 About
 =====
@@ -257,6 +257,10 @@ Contributors
 .. |docs| image:: https://github.com/urwid/urwid/actions/workflows/documentation.yml/badge.svg?branch=master
     :alt: Documentation Status
     :target: https://urwid.org
+
+.. |gitter| image:: https://img.shields.io/gitter/room/urwid/community
+   :alt: Gitter
+   :target: https://gitter.im/urwid/community
 
 .. |ci| image:: https://github.com/urwid/urwid/actions/workflows/pythonpackage.yml/badge.svg?branch=master
     :target: https://github.com/urwid/urwid/actions
