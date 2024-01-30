@@ -39,6 +39,8 @@ class Command(str, enum.Enum):
     MAX_RIGHT = "cursor max right"
     ACTIVATE = "activate"
     MENU = "menu"
+    SELECT_NEXT = "next selectable"
+    SELECT_PREVIOUS = "prev selectable"
 
 
 REDRAW_SCREEN = Command.REDRAW_SCREEN
@@ -84,10 +86,10 @@ class CommandMap(typing.Mapping[str, typing.Union[str, Command, None]]):
         return len(self._command)
 
     _command_defaults: typing.ClassVar[dict[str, str | Command]] = {
-        "tab": "next selectable",
-        "ctrl n": "next selectable",
-        "shift tab": "prev selectable",
-        "ctrl p": "prev selectable",
+        "tab": Command.SELECT_NEXT,
+        "ctrl n": Command.SELECT_NEXT,
+        "shift tab": Command.SELECT_PREVIOUS,
+        "ctrl p": Command.SELECT_PREVIOUS,
         "ctrl l": Command.REDRAW_SCREEN,
         "esc": Command.MENU,
         "up": Command.UP,
