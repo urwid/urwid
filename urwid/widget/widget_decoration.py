@@ -15,8 +15,10 @@ if typing.TYPE_CHECKING:
 
 __all__ = ("WidgetDecoration", "WidgetDisable", "WidgetError", "WidgetPlaceholder", "WidgetWarning")
 
+WrappedWidget = typing.TypeVar("WrappedWidget")
 
-class WidgetDecoration(Widget):  # "decorator" was already taken
+
+class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # "decorator" was already taken
     """
     original_widget -- the widget being decorated
 
@@ -34,7 +36,7 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
     <WidgetDecoration fixed/flow widget <Text fixed/flow widget 'hi'>>
     """
 
-    def __init__(self, original_widget: Widget) -> None:
+    def __init__(self, original_widget: WrappedWidget) -> None:
         # TODO(Aleksei): reduce amount of multiple inheritance usage
         # Special case: subclasses with multiple inheritance causes `super` call wrong way
         # Call parent __init__ explicit
@@ -48,19 +50,19 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
             )
         self._original_widget = original_widget
 
-    def _repr_words(self):
+    def _repr_words(self) -> list[str]:
         return [*super()._repr_words(), repr(self._original_widget)]
 
     @property
-    def original_widget(self) -> Widget:
+    def original_widget(self) -> WrappedWidget:
         return self._original_widget
 
     @original_widget.setter
-    def original_widget(self, original_widget: Widget) -> None:
+    def original_widget(self, original_widget: WrappedWidget) -> None:
         self._original_widget = original_widget
         self._invalidate()
 
-    def _get_original_widget(self) -> Widget:
+    def _get_original_widget(self) -> WrappedWidget:
         warnings.warn(
             f"Method `{self.__class__.__name__}._get_original_widget` is deprecated, "
             f"please use property `{self.__class__.__name__}.original_widget`",
@@ -69,7 +71,7 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
         )
         return self.original_widget
 
-    def _set_original_widget(self, original_widget):
+    def _set_original_widget(self, original_widget: WrappedWidget) -> None:
         warnings.warn(
             f"Method `{self.__class__.__name__}._set_original_widget` is deprecated, "
             f"please use property `{self.__class__.__name__}.original_widget`",
@@ -99,7 +101,7 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
             w = w._original_widget
         return w
 
-    def _get_base_widget(self):
+    def _get_base_widget(self) -> Widget:
         warnings.warn(
             f"Method `{self.__class__.__name__}._get_base_widget` is deprecated, "
             f"please use property `{self.__class__.__name__}.base_widget`",
@@ -115,7 +117,7 @@ class WidgetDecoration(Widget):  # "decorator" was already taken
         return self._original_widget.sizing()
 
 
-class WidgetPlaceholder(delegate_to_widget_mixin("_original_widget"), WidgetDecoration):
+class WidgetPlaceholder(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[WrappedWidget]):
     """
     This is a do-nothing decoration widget that can be used for swapping
     between widgets without modifying the container of this widget.
@@ -130,7 +132,7 @@ class WidgetPlaceholder(delegate_to_widget_mixin("_original_widget"), WidgetDeco
     pass
 
 
-class WidgetDisable(WidgetDecoration):
+class WidgetDisable(WidgetDecoration[WrappedWidget]):
     """
     A decoration widget that disables interaction with the widget it
     wraps.  This widget always passes focus=False to the wrapped widget,
@@ -143,7 +145,7 @@ class WidgetDisable(WidgetDecoration):
     def selectable(self) -> Literal[False]:
         return False
 
-    def rows(self, size, focus: bool = False) -> int:
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
         return self._original_widget.rows(size, False)
 
     def sizing(self) -> frozenset[Sizing]:

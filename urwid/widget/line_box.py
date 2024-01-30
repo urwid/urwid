@@ -14,13 +14,15 @@ from .widget_decoration import WidgetDecoration
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
+WrappedWidget = typing.TypeVar("WrappedWidget")
 
-class LineBox(WidgetDecoration, WidgetWrap):
+
+class LineBox(WidgetDecoration[WrappedWidget], WidgetWrap[Pile]):
     Symbols = BOX_SYMBOLS
 
     def __init__(
         self,
-        original_widget: Widget,
+        original_widget: WrappedWidget,
         title: str = "",
         title_align: Literal["left", "center", "right"] | Align = Align.CENTER,
         title_attr=None,

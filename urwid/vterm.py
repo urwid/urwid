@@ -1669,7 +1669,7 @@ class Terminal(Widget):
         elif hasattr(self, "old_tios"):
             RealTerminal().tty_signal_keys(*self.old_tios)
 
-    def render(self, size: tuple[int, int], focus: bool = False):
+    def render(self, size: tuple[int, int], focus: bool = False) -> TermCanvas:
         if not self.terminated:
             self.change_focus(focus)
 

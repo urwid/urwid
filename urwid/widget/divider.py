@@ -69,7 +69,7 @@ class Divider(Widget):
         self.top = top
         self.bottom = bottom
 
-    def _repr_words(self):
+    def _repr_words(self) -> list[str]:
         return super()._repr_words() + [repr(self.div_char)] * (self.div_char != " ")
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
@@ -92,7 +92,7 @@ class Divider(Widget):
         (_maxcol,) = size
         return self.top + 1 + self.bottom
 
-    def render(self, size: tuple[int], focus: bool = False):
+    def render(self, size: tuple[int], focus: bool = False) -> CompositeCanvas:
         """
         Render the divider as a canvas and return it.
 

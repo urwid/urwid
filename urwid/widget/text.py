@@ -294,7 +294,7 @@ class Text(Widget):
             self._update_cache_translation(maxcol, ta)
         return self._cache_translation
 
-    def _update_cache_translation(self, maxcol: int, ta):
+    def _update_cache_translation(self, maxcol: int, ta) -> None:
         if ta:
             text, _attr = ta
         else:

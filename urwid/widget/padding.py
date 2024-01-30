@@ -22,7 +22,8 @@ from .widget_decoration import WidgetDecoration, WidgetError, WidgetWarning
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
-    from .widget import Widget
+
+WrappedWidget = typing.TypeVar("WrappedWidget")
 
 
 class PaddingError(WidgetError):
@@ -33,10 +34,10 @@ class PaddingWarning(WidgetWarning):
     """Padding related warnings."""
 
 
-class Padding(WidgetDecoration):
+class Padding(WidgetDecoration[WrappedWidget]):
     def __init__(
         self,
-        w: Widget,
+        w: WrappedWidget,
         align: (
             Literal["left", "center", "right"] | Align | tuple[Literal["relative", WHSettings.RELATIVE], int]
         ) = Align.LEFT,
@@ -48,7 +49,7 @@ class Padding(WidgetDecoration):
         min_width: int | None = None,
         left: int = 0,
         right: int = 0,
-    ):
+    ) -> None:
         """
         :param w: a box, flow or fixed widget to pad on the left and/or right
             this widget is stored as self.original_widget
@@ -473,7 +474,7 @@ class Padding(WidgetDecoration):
     def mouse_event(
         self,
         size: tuple[()] | tuple[int] | tuple[int, int],
-        event,
+        event: str,
         button: int,
         x: int,
         y: int,

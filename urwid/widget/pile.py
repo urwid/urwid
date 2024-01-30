@@ -935,7 +935,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def mouse_event(
         self,
         size: tuple[()] | tuple[int] | tuple[int, int],
-        event,
+        event: str,
         button: int,
         col: int,
         row: int,

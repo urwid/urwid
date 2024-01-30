@@ -22,17 +22,18 @@ from .widget_decoration import WidgetDecoration, WidgetError
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
-    from .widget import Widget
+
+WrappedWidget = typing.TypeVar("WrappedWidget")
 
 
 class FillerError(WidgetError):
     pass
 
 
-class Filler(WidgetDecoration):
+class Filler(WidgetDecoration[WrappedWidget]):
     def __init__(
         self,
-        body: Widget,
+        body: WrappedWidget,
         valign: (
             Literal["top", "middle", "bottom"] | VAlign | tuple[Literal["relative", WHSettings.RELATIVE], int]
         ) = VAlign.MIDDLE,
@@ -159,7 +160,7 @@ class Filler(WidgetDecoration):
         return remove_defaults(attrs, Filler.__init__)
 
     @property
-    def body(self):
+    def body(self) -> WrappedWidget:
         """backwards compatibility, widget used to be stored as body"""
         warnings.warn(
             "backwards compatibility, widget used to be stored as body",
@@ -169,7 +170,7 @@ class Filler(WidgetDecoration):
         return self.original_widget
 
     @body.setter
-    def body(self, new_body):
+    def body(self, new_body: WrappedWidget) -> None:
         warnings.warn(
             "backwards compatibility, widget used to be stored as body",
             PendingDeprecationWarning,
@@ -177,7 +178,7 @@ class Filler(WidgetDecoration):
         )
         self.original_widget = new_body
 
-    def get_body(self):
+    def get_body(self) -> WrappedWidget:
         """backwards compatibility, widget used to be stored as body"""
         warnings.warn(
             "backwards compatibility, widget used to be stored as body",
@@ -186,7 +187,7 @@ class Filler(WidgetDecoration):
         )
         return self.original_widget
 
-    def set_body(self, new_body):
+    def set_body(self, new_body: WrappedWidget) -> None:
         warnings.warn(
             "backwards compatibility, widget used to be stored as body",
             DeprecationWarning,

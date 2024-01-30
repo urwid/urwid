@@ -37,7 +37,7 @@ from .constants import Sizing
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable
 
-
+WrappedWidget = typing.TypeVar("WrappedWidget")
 LOGGER = logging.getLogger(__name__)
 
 
@@ -172,7 +172,7 @@ def cache_widget_rows(cls):
     fn = cls.rows
 
     @functools.wraps(fn)
-    def cached_rows(self, size, focus=False):
+    def cached_rows(self, size: tuple[int], focus: bool = False) -> int:
         focus = focus and not ignore_focus
         canv = CanvasCache.fetch(self, cls, size, focus)
         if canv:
@@ -455,7 +455,7 @@ class Widget(metaclass=WidgetMeta):
         """
         return split_repr(self)
 
-    def _repr_words(self):
+    def _repr_words(self) -> list[str]:
         words = []
         if self.selectable():
             words = ["selectable", *words]
@@ -766,8 +766,8 @@ class WidgetWrapError(Exception):
     pass
 
 
-class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget")):
-    def __init__(self, w: Widget):
+class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget"), typing.Generic[WrappedWidget]):
+    def __init__(self, w: WrappedWidget) -> None:
         """
         w -- widget to wrap, stored as self._w
 
@@ -792,11 +792,11 @@ class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget")):
         self._wrapped_widget = w
 
     @property
-    def _w(self) -> Widget:
+    def _w(self) -> WrappedWidget:
         return self._wrapped_widget
 
     @_w.setter
-    def _w(self, new_widget: Widget) -> None:
+    def _w(self, new_widget: WrappedWidget) -> None:
         """
         Change the wrapped widget.  This is meant to be called
         only by subclasses.
@@ -816,7 +816,7 @@ class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget")):
         self._wrapped_widget = new_widget
         self._invalidate()
 
-    def _set_w(self, w):
+    def _set_w(self, w: WrappedWidget) -> None:
         """
         Change the wrapped widget.  This is meant to be called
         only by subclasses.

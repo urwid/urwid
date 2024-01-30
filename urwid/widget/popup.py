@@ -34,13 +34,15 @@ if typing.TYPE_CHECKING:
 
     from .widget import Widget
 
+WrappedWidget = typing.TypeVar("WrappedWidget")
 
-class PopUpLauncher(delegate_to_widget_mixin("_original_widget"), WidgetDecoration):
-    def __init__(self, original_widget: Widget) -> None:
+
+class PopUpLauncher(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[WrappedWidget]):
+    def __init__(self, original_widget: [WrappedWidget]) -> None:
         super().__init__(original_widget)
         self._pop_up_widget = None
 
-    def create_pop_up(self):
+    def create_pop_up(self) -> Widget:
         """
         Subclass must override this method and return a widget
         to be used for the pop-up.  This method is called once each time
@@ -74,13 +76,13 @@ class PopUpLauncher(delegate_to_widget_mixin("_original_widget"), WidgetDecorati
         return canv
 
 
-class PopUpTarget(WidgetDecoration):
+class PopUpTarget(WidgetDecoration[WrappedWidget]):
     # FIXME: this whole class is a terrible hack and must be fixed
     # when layout and rendering are separated
     _sizing = frozenset((Sizing.BOX,))
     _selectable = True
 
-    def __init__(self, original_widget: Widget) -> None:
+    def __init__(self, original_widget: WrappedWidget) -> None:
         super().__init__(original_widget)
         self._pop_up = None
         self._current_widget = self._original_widget
@@ -132,7 +134,15 @@ class PopUpTarget(WidgetDecoration):
         self._update_overlay(size, True)
         return self._current_widget.move_cursor_to_coords(size, x, y)
 
-    def mouse_event(self, size: tuple[int, int], event, button: int, x: int, y: int, focus: bool) -> bool | None:
+    def mouse_event(
+        self,
+        size: tuple[int, int],
+        event: str,
+        button: int,
+        x: int,
+        y: int,
+        focus: bool,
+    ) -> bool | None:
         self._update_overlay(size, focus)
         return self._current_widget.mouse_event(size, event, button, x, y, focus)
 
