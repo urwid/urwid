@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from urwid.canvas import SolidCanvas
 
-from .constants import Sizing
+from .constants import SHADE_SYMBOLS, Sizing
 from .widget import Widget
 
 
@@ -14,6 +14,8 @@ class SolidFill(Widget):
     _selectable = False
     ignore_focus = True
     _sizing = frozenset([Sizing.BOX])
+
+    Symbols = SHADE_SYMBOLS
 
     def __init__(self, fill_char: str = " ") -> None:
         """
