@@ -853,7 +853,9 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
     def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
         """Pass the keypress to the widget in focus.
-        Unhandled 'up' and 'down' keys may cause a focus change."""
+
+        Unhandled 'up' and 'down' keys may cause a focus change.
+        """
         if not self.contents:
             return key
 
@@ -941,8 +943,8 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         row: int,
         focus: bool,
     ) -> bool | None:
-        """
-        Pass the event to the contained widget.
+        """Pass the event to the contained widget.
+
         May change focus on button 1 press.
         """
         wrow = 0
