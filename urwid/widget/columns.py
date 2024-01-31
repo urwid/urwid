@@ -796,13 +796,16 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 else:
                     w_h_args[i] = (0,)
 
-            elif Sizing.FIXED in w_sizing and (Sizing.FLOW in w_sizing or is_box):
-                width, height = widget.pack((), focused)
+            elif Sizing.FLOW in w_sizing or is_box:
+                if Sizing.FIXED in w_sizing:
+                    width, height = widget.pack((), focused)
+                else:
+                    width = self.min_width
+
                 weighted.setdefault(size_weight, []).append((widget, i, is_box, focused))
                 weights.append(size_weight)
                 weight_max_sizes.setdefault(size_weight, width)
                 weight_max_sizes[size_weight] = max(weight_max_sizes[size_weight], width)
-
             else:
                 raise ColumnsError(f"Unsupported combination of {size_kind} box={is_box!r} for {widget}")
 
@@ -819,6 +822,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                         w_h_args[i] = (width,)
                     else:
                         box.append(i)
+
+        if not heights:
+            raise ColumnsError(f"No height information for pack {self!r} as FIXED")
 
         max_height = max(heights.values())
         for idx in box:

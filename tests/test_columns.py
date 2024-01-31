@@ -321,6 +321,39 @@ class ColumnsTest(unittest.TestCase):
             widget.keypress((), "left")
             self.assertEqual(1, widget.focus_position)
 
+    def test_pack_not_enough_info(self):
+        """Test special case for not official fixed pack and render support."""
+        widget = urwid.Columns(
+            (
+                (urwid.WEIGHT, 16, urwid.SolidFill(urwid.SolidFill.Symbols.LITE_SHADE)),
+                (10, urwid.Button("First")),
+                urwid.SolidFill(urwid.SolidFill.Symbols.LITE_SHADE),
+                (10, urwid.Button("Second")),
+                (urwid.WEIGHT, 16, urwid.SolidFill(urwid.SolidFill.Symbols.LITE_SHADE)),
+            ),
+            box_columns=(0, 2, 4),
+        )
+        cols, rows = 53, 1
+        self.assertEqual(frozenset((urwid.FLOW,)), widget.sizing())
+        self.assertEqual((cols, rows), widget.pack(()))
+        self.assertEqual(
+            ("░░░░░░░░░░░░░░░░< First  >░< Second >░░░░░░░░░░░░░░░░",),
+            widget.render(()).decoded_text,
+        )
+
+    def test_no_height(self):
+        widget = urwid.Columns(
+            (
+                (urwid.WEIGHT, 16, urwid.SolidFill(urwid.SolidFill.Symbols.LITE_SHADE)),
+                urwid.SolidFill(urwid.SolidFill.Symbols.LITE_SHADE),
+                (urwid.WEIGHT, 16, urwid.SolidFill(urwid.SolidFill.Symbols.LITE_SHADE)),
+            ),
+            box_columns=(0, 1, 2),
+        )
+        self.assertEqual(frozenset((urwid.BOX,)), widget.sizing())
+        with self.assertRaises(urwid.widget.ColumnsError):
+            widget.pack(())
+
     def assert_column_widths(
         self,
         expected: Collection[int],
