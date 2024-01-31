@@ -590,7 +590,7 @@ class Screen(BaseScreen, RealTerminal):
 
         last_attributes = None  # Default = empty
 
-        output = [escape.HIDE_CURSOR, attr_to_escape(last_attributes)]
+        output: list[str] = [escape.HIDE_CURSOR, attr_to_escape(last_attributes)]
 
         def partial_display() -> bool:
             # returns True if the screen is in partial display mode ie. only some rows belong to the display
@@ -672,7 +672,7 @@ class Screen(BaseScreen, RealTerminal):
                         output.append(escape.SO)
                     last_charset_flag = cs
 
-                output.append(run)
+                output.append(run.decode(encoding, "replace"))
                 first = False
 
             if ins:
@@ -682,7 +682,7 @@ class Screen(BaseScreen, RealTerminal):
                     raise ValueError(insertcs)
 
                 if isinstance(inserttext, bytes):
-                    inserttext = inserttext.decode("utf-8")
+                    inserttext = inserttext.decode(encoding)
 
                 output.extend(("\x08" * back, ias))
 
@@ -718,7 +718,7 @@ class Screen(BaseScreen, RealTerminal):
         try:
             for line in output:
                 if isinstance(line, bytes):
-                    line = line.decode("utf-8", "replace")  # noqa: PLW2901
+                    line = line.decode(encoding, "replace")  # noqa: PLW2901
                 self.write(line)
             self.flush()
         except OSError as e:
