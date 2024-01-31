@@ -13,7 +13,14 @@ if typing.TYPE_CHECKING:
     from .constants import Sizing
 
 
-__all__ = ("WidgetDecoration", "WidgetDisable", "WidgetError", "WidgetPlaceholder", "WidgetWarning")
+__all__ = (
+    "WidgetDecoration",
+    "WidgetDisable",
+    "WidgetError",
+    "WidgetPlaceholder",
+    "WidgetWarning",
+    "delegate_to_widget_mixin",
+)
 
 WrappedWidget = typing.TypeVar("WrappedWidget")
 

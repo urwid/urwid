@@ -8,16 +8,17 @@ from .divider import Divider
 from .pile import Pile
 from .solid_fill import SolidFill
 from .text import Text
-from .widget import Widget, WidgetWrap
-from .widget_decoration import WidgetDecoration
+from .widget_decoration import WidgetDecoration, delegate_to_widget_mixin
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
+    from .widget import Widget
+
 WrappedWidget = typing.TypeVar("WrappedWidget")
 
 
-class LineBox(WidgetDecoration[WrappedWidget], WidgetWrap[Pile]):
+class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrapped_widget")):
     Symbols = BOX_SYMBOLS
 
     def __init__(
@@ -157,15 +158,17 @@ class LineBox(WidgetDecoration[WrappedWidget], WidgetWrap[Pile]):
 
         pile_widgets = []
         if top:
-            pile_widgets.append(("flow", top))
+            pile_widgets.append((WHSettings.PACK, top))
         pile_widgets.append(middle)
-        focus_pos = len(pile_widgets) - 1
         if bottom:
-            pile_widgets.append(("flow", bottom))
-        pile = Pile(pile_widgets, focus_item=focus_pos)
+            pile_widgets.append((WHSettings.PACK, bottom))
 
-        WidgetDecoration.__init__(self, original_widget)
-        WidgetWrap.__init__(self, pile)
+        self._wrapped_widget = Pile(pile_widgets, focus_item=middle)
+
+        super().__init__(original_widget)
+
+    def _w(self) -> Pile:
+        return self._wrapped_widget
 
     def format_title(self, text: str) -> str:
         if text:
