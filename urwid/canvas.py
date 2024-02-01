@@ -294,7 +294,7 @@ class Canvas:
         cols: int | None = None,
         rows: int | None = None,
         attr=None,
-    ):
+    ) -> Iterable[list[tuple[object, object, bytes]]]:
         raise NotImplementedError()
 
     def cols(self):
@@ -489,10 +489,10 @@ class TextCanvas(Canvas):
         self,
         trim_left: int = 0,
         trim_top: int = 0,
-        cols: int = 0,
-        rows: int = 0,
-        attr_map=None,
-    ):
+        cols: int | None = 0,
+        rows: int | None = 0,
+        attr=None,
+    ) -> Iterable[tuple[object, object, bytes]]:
         """
         Return the canvas content as a list of rows where each row
         is a list of (attr, cs, text) tuples.
@@ -534,8 +534,8 @@ class TextCanvas(Canvas):
             i = 0
             row = []
             for (a, cs), run in attr_cs:
-                if attr_map and a in attr_map:
-                    a = attr_map[a]  # noqa: PLW2901
+                if attr and a in attr:
+                    a = attr[a]  # noqa: PLW2901
                 row.append((a, cs, text[i : i + run]))
                 i += run
             yield row
@@ -566,10 +566,10 @@ class BlankCanvas(Canvas):
         self,
         trim_left: int = 0,
         trim_top: int = 0,
-        cols: int = 0,
-        rows: int = 0,
+        cols: int | None = 0,
+        rows: int | None = 0,
         attr=None,
-    ):
+    ) -> Iterable[list[tuple[object, object, bytes]]]:
         """
         return (cols, rows) of spaces with default attributes.
         """
@@ -621,7 +621,7 @@ class SolidCanvas(Canvas):
         cols: int | None = None,
         rows: int | None = None,
         attr=None,
-    ):
+    ) -> Iterable[list[tuple[object, object, bytes]]]:
         if cols is None:
             cols = self.size[0]
         if rows is None:
@@ -717,7 +717,14 @@ class CompositeCanvas(Canvas):
             raise TypeError(cols)
         return cols
 
-    def content(self):
+    def content(
+        self,
+        trim_left: int = 0,
+        trim_top: int = 0,
+        cols: int | None = None,
+        rows: int | None = None,
+        attr=None,
+    ) -> Iterable[list[tuple[object, object, bytes]]]:
         """
         Return the canvas content as a list of rows where each row
         is a list of (attr, cs, text) tuples.
