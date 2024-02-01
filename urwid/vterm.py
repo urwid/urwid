@@ -1437,11 +1437,11 @@ class TermCanvas(Canvas):
     def content(
         self,
         trim_left: int = 0,
-        trim_right: int = 0,
+        trim_top: int = 0,
         cols: int | None = None,
         rows: int | None = None,
         attr=None,
-    ):
+    ) -> Iterable[list[tuple[object, object, bytes]]]:
         if self.scrolling_up == 0:
             yield from self.term
         else:

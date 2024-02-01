@@ -603,10 +603,10 @@ class Screen(BaseScreen, RealTerminal):
             if isinstance(a, AttrSpec):
                 return self._attrspec_to_escape(a)
             # undefined attributes use default/default
-            # TODO: track and report these
+            self.logger.debug(f"Undefined attribute: {a!r}")
             return self._attrspec_to_escape(AttrSpec("default", "default"))
 
-        def using_standout_or_underline(a):
+        def using_standout_or_underline(a: AttrSpec | str) -> bool:
             a = self._pal_attrspec.get(a, a)
             return isinstance(a, AttrSpec) and (a.standout or a.underline)
 
