@@ -28,6 +28,7 @@ import abc
 import contextlib
 import functools
 import os
+import platform
 import selectors
 import signal
 import socket
@@ -49,6 +50,7 @@ if typing.TYPE_CHECKING:
     from urwid import Canvas, EventLoop
 
 IS_WINDOWS = sys.platform == "win32"
+IS_WSL = (sys.platform == "linux") and ("wsl" in platform.platform().lower())
 
 
 class Screen(BaseScreen, RealTerminal):
@@ -640,14 +642,17 @@ class Screen(BaseScreen, RealTerminal):
             first = True
             lasta = lastcs = None
             for a, cs, run in row:
-                if not isinstance(run, bytes):  # canvases should render with bytes
+                if not isinstance(run, bytes):  # canvases render with bytes
                     raise TypeError(run)
+
                 if cs != "U":
                     run = run.translate(UNPRINTABLE_TRANS_TABLE)  # noqa: PLW2901
+
                 if first or lasta != a:
                     o.append(attr_to_escape(a))
                     lasta = a
-                if first or lastcs != cs:
+
+                if not (IS_WINDOWS or IS_WSL) and (first or lastcs != cs):
                     if cs not in {None, "0", "U"}:
                         raise ValueError(cs)
                     if lastcs == "U":
@@ -660,23 +665,33 @@ class Screen(BaseScreen, RealTerminal):
                     else:
                         o.append(escape.SO)
                     lastcs = cs
+
                 o.append(run)
                 first = False
+
             if ins:
                 (inserta, insertcs, inserttext) = ins
                 ias = attr_to_escape(inserta)
                 if insertcs not in {None, "0", "U"}:
                     raise ValueError(insertcs)
-                if cs is None:
-                    icss = escape.SI
-                elif cs == "U":
-                    icss = escape.IBMPC_ON
-                else:
-                    icss = escape.SO
-                o += ["\x08" * back, ias, icss, escape.INSERT_ON, inserttext, escape.INSERT_OFF]
 
-                if cs == "U":
+                o.extend(("\x08" * back, ias))
+
+                if not (IS_WINDOWS or IS_WSL):
+                    if cs is None:
+                        icss = escape.SI
+                    elif cs == "U":
+                        icss = escape.IBMPC_ON
+                    else:
+                        icss = escape.SO
+
+                    o.append(icss)
+
+                o += [escape.INSERT_ON, inserttext, escape.INSERT_OFF]
+
+                if not (IS_WINDOWS or IS_WSL) and cs == "U":
                     o.append(escape.IBMPC_OFF)
+
             if whitespace_at_end:
                 o.append(escape.ERASE_IN_LINE_RIGHT)
 
