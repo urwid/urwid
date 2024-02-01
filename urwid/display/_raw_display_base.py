@@ -41,7 +41,7 @@ from .common import UNPRINTABLE_TRANS_TABLE, UPDATE_PALETTE_ENTRY, AttrSpec, Bas
 
 if typing.TYPE_CHECKING:
     import io
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterable
     from types import FrameType
 
     from typing_extensions import Literal
@@ -371,7 +371,7 @@ class Screen(BaseScreen, RealTerminal):
         return wrapper
 
     def _get_input_codes(self) -> list[int]:
-        return self._get_keyboard_codes()
+        return list(self._get_keyboard_codes())
 
     def get_available_raw_input(self) -> list[int]:
         """
@@ -491,15 +491,6 @@ class Screen(BaseScreen, RealTerminal):
         # For get_input
         return decoded_codes, raw_codes
 
-    def _get_keyboard_codes(self) -> list[int]:
-        codes = []
-        while True:
-            code = self._getch_nodelay()
-            if code < 0:
-                break
-            codes.append(code)
-        return codes
-
     def _wait_for_input_ready(self, timeout: float | None) -> list[int]:
         logger = self.logger.getChild("wait_for_input_ready")
         fd_list = self.get_input_descriptors()
@@ -516,10 +507,10 @@ class Screen(BaseScreen, RealTerminal):
         return [event.fd for event, _ in ready]
 
     @abc.abstractmethod
-    def _getch(self, timeout: int) -> int: ...
+    def _read_raw_input(self, timeout: int) -> Iterable[int]: ...
 
-    def _getch_nodelay(self) -> int:
-        return self._getch(0)
+    def _get_keyboard_codes(self) -> Iterable[int]:
+        return self._read_raw_input(0)
 
     def _setup_G1(self) -> None:
         """
