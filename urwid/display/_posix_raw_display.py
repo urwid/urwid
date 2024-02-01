@@ -28,6 +28,7 @@ import contextlib
 import fcntl
 import functools
 import os
+import selectors
 import signal
 import struct
 import sys
@@ -289,14 +290,24 @@ class Screen(_raw_display_base.Screen):
                 raise
         return codes
 
-    def _getch(self, timeout: int) -> int:
+    def _read_raw_input(self, timeout: int) -> bytearray:
         ready = self._wait_for_input_ready(timeout)
         if self.gpm_mev is not None and self.gpm_mev.stdout.fileno() in ready:
             self.gpm_event_pending = True
         fd = self._input_fileno()
-        if fd is not None and fd in ready:
-            return ord(os.read(fd, 1))
-        return -1
+        chars = bytearray()
+
+        if fd is None or fd not in ready:
+            return chars
+
+        with selectors.DefaultSelector() as selector:
+            selector.register(fd, selectors.EVENT_READ)
+            input_ready = selector.select(0)
+            while input_ready:
+                chars.extend(os.read(fd, 1024))
+                input_ready = selector.select(0)
+
+            return chars
 
     def _encode_gpm_event(self) -> list[int]:
         self.gpm_event_pending = False

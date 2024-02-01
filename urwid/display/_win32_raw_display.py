@@ -27,6 +27,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import logging
+import selectors
 import socket
 import sys
 import threading
@@ -177,13 +178,23 @@ class Screen(_raw_display_base.Screen):
 
     _input_thread: ReadInputThread | None = None
 
-    def _getch(self, timeout: int) -> int:
+    def _read_raw_input(self, timeout: int) -> bytearray:
         ready = self._wait_for_input_ready(timeout)
 
         fd = self._input_fileno()
-        if fd is not None and fd in ready:
-            return ord(self._term_input_file.recv(1))
-        return -1
+        chars = bytearray()
+
+        if fd is None or fd not in ready:
+            return chars
+
+        with selectors.DefaultSelector() as selector:
+            selector.register(fd, selectors.EVENT_READ)
+            input_ready = selector.select(0)
+            while input_ready:
+                chars.extend(self._term_input_file.recv(1024))
+                input_ready = selector.select(0)
+
+            return chars
 
     def get_cols_rows(self) -> tuple[int, int]:
         """Return the terminal dimensions (num columns, num rows)."""
