@@ -149,14 +149,11 @@ ignore_missing_imports = true
 
 [tool.ruff]
 line-length = 120
-show-source = true
+output-format = "full"
 target-version = "py37"
-ignore-init-module-imports = true
-
-[tool.ruff.per-file-ignores]
-"__init__.py" = ["F401", "SIM105"]
 
 [tool.ruff.lint]
+ignore-init-module-imports = true
 extend-select = [
   "E",
   "W",  # also pycodestyle warnings
@@ -184,6 +181,10 @@ extend-ignore = [
   "SIM108",  # Use ternary operator,
   "TRY003",  #long messages prepare outside, ...
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "SIM105"]
+
 
 [tool.ruff.lint.isort]
 known-third-party = []

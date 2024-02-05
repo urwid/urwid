@@ -42,6 +42,8 @@ from urwid.util import (
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable, Iterable, Sequence
 
+    from typing_extensions import Literal
+
     from .widget import Widget
 
 
@@ -294,7 +296,7 @@ class Canvas:
         cols: int | None = None,
         rows: int | None = None,
         attr=None,
-    ) -> Iterable[list[tuple[object, object, bytes]]]:
+    ) -> Iterable[list[tuple[object, Literal["0", "U"] | None, bytes]]]:
         raise NotImplementedError()
 
     def cols(self):
@@ -492,7 +494,7 @@ class TextCanvas(Canvas):
         cols: int | None = 0,
         rows: int | None = 0,
         attr=None,
-    ) -> Iterable[tuple[object, object, bytes]]:
+    ) -> Iterable[tuple[object, Literal["0", "U"] | None, bytes]]:
         """
         Return the canvas content as a list of rows where each row
         is a list of (attr, cs, text) tuples.
@@ -560,7 +562,7 @@ class BlankCanvas(Canvas):
     """
 
     def __init__(self) -> None:
-        super().__init__(None)
+        super().__init__()
 
     def content(
         self,
@@ -569,7 +571,7 @@ class BlankCanvas(Canvas):
         cols: int | None = 0,
         rows: int | None = 0,
         attr=None,
-    ) -> Iterable[list[tuple[object, object, bytes]]]:
+    ) -> Iterable[list[tuple[object, Literal["0", "U"] | None, bytes]]]:
         """
         return (cols, rows) of spaces with default attributes.
         """
@@ -621,7 +623,7 @@ class SolidCanvas(Canvas):
         cols: int | None = None,
         rows: int | None = None,
         attr=None,
-    ) -> Iterable[list[tuple[object, object, bytes]]]:
+    ) -> Iterable[list[tuple[object, Literal["0", "U"] | None, bytes]]]:
         if cols is None:
             cols = self.size[0]
         if rows is None:
@@ -724,7 +726,7 @@ class CompositeCanvas(Canvas):
         cols: int | None = None,
         rows: int | None = None,
         attr=None,
-    ) -> Iterable[list[tuple[object, object, bytes]]]:
+    ) -> Iterable[list[tuple[object, Literal["0", "U"] | None, bytes]]]:
         """
         Return the canvas content as a list of rows where each row
         is a list of (attr, cs, text) tuples.
