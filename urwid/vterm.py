@@ -1441,7 +1441,7 @@ class TermCanvas(Canvas):
         cols: int | None = None,
         rows: int | None = None,
         attr=None,
-    ) -> Iterable[list[tuple[object, object, bytes]]]:
+    ) -> Iterable[list[tuple[object, Literal["0", "U"] | None, bytes]]]:
         if self.scrolling_up == 0:
             yield from self.term
         else:

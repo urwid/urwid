@@ -27,6 +27,7 @@ in monochrome, 16 color, 88 color, 256 color, and 24-bit (true) color modes.
 from __future__ import annotations
 
 import re
+import typing
 
 import urwid
 
@@ -352,11 +353,11 @@ def main():
     mode_radio_buttons = []
     chart_radio_buttons = []
 
-    def fcs(widget):
+    def fcs(widget) -> urwid.AttrMap:
         # wrap widgets that can take focus
         return urwid.AttrMap(widget, None, "focus")
 
-    def set_mode(colors, is_foreground_chart):
+    def set_mode(colors: int, is_foreground_chart: bool) -> None:
         # set terminal mode and redraw chart
         screen.set_terminal_properties(colors)
         screen.reset_default_terminal_palette()
@@ -369,23 +370,23 @@ def main():
             txt = chart_fn(chart, "default", colors)
             lb[chart_offset] = urwid.Text(txt, wrap=urwid.CLIP)
 
-    def on_mode_change(rb, state, colors):
+    def on_mode_change(colors: int, rb: urwid.RadioButton, state: bool) -> None:
         # if this radio button is checked
         if state:
             is_foreground_chart = chart_radio_buttons[0].state
             set_mode(colors, is_foreground_chart)
 
-    def mode_rb(text, colors, state=False):
+    def mode_rb(text: str, colors: int, state: bool = False) -> urwid.AttrMap:
         # mode radio buttons
         rb = urwid.RadioButton(mode_radio_buttons, text, state)
-        urwid.connect_signal(rb, "change", on_mode_change, colors)
+        urwid.connect_signal(rb, "change", on_mode_change, user_args=(colors,))
         return fcs(rb)
 
-    def on_chart_change(rb, state):
+    def on_chart_change(rb: urwid.RadioButton, state: bool) -> None:
         # handle foreground check box state change
         set_mode(screen.colors, state)
 
-    def click_exit(button):
+    def click_exit(button) -> typing.NoReturn:
         raise urwid.ExitMainLoop()
 
     lb.extend(
@@ -423,7 +424,7 @@ def main():
 
     set_mode(16, True)  # displays the chart
 
-    def unhandled_input(key):
+    def unhandled_input(key: str | tuple[str, int, int, int]) -> None:
         if key in ("Q", "q", "esc"):
             raise urwid.ExitMainLoop()
 
