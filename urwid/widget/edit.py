@@ -418,8 +418,6 @@ class Edit(Text):
         >>> e.keypress(size, 'shift f1')
         'shift f1'
         """
-        (maxcol,) = size
-
         pos = self.edit_pos
         if self.valid_char(key):
             if isinstance(key, str) and not isinstance(self._caption, str):
@@ -457,8 +455,8 @@ class Edit(Text):
         if self._command_map[key] in {Command.UP, Command.DOWN}:
             self.highlight = None
 
-            _x, y = self.get_cursor_coords((maxcol,))
-            pref_col = self.get_pref_col((maxcol,))
+            _x, y = self.get_cursor_coords(size)
+            pref_col = self.get_pref_col(size)
             if pref_col is None:
                 raise ValueError(pref_col)
 
@@ -470,7 +468,7 @@ class Edit(Text):
             else:
                 y += 1
 
-            if not self.move_cursor_to_coords((maxcol,), pref_col, y):
+            if not self.move_cursor_to_coords(size, pref_col, y):
                 return key
             return None
 
@@ -499,12 +497,12 @@ class Edit(Text):
             self.highlight = None
             self.pref_col_maxcol = None, None
 
-            _x, y = self.get_cursor_coords((maxcol,))
+            _x, y = self.get_cursor_coords(size)
 
             if self._command_map[key] == Command.MAX_LEFT:
-                self.move_cursor_to_coords((maxcol,), Align.LEFT, y)
+                self.move_cursor_to_coords(size, Align.LEFT, y)
             else:
-                self.move_cursor_to_coords((maxcol,), Align.RIGHT, y)
+                self.move_cursor_to_coords(size, Align.RIGHT, y)
             return None
 
         # key wasn't handled
@@ -550,7 +548,15 @@ class Edit(Text):
         self._invalidate()
         return True
 
-    def mouse_event(self, size: tuple[int], event: str, button: int, x: int, y: int, focus: bool) -> bool | None:
+    def mouse_event(
+        self,
+        size: tuple[int],
+        event: str,
+        button: int,
+        x: int,
+        y: int,
+        focus: bool,
+    ) -> bool | None:
         """
         Move the cursor to the location clicked for button 1.
 
@@ -561,9 +567,8 @@ class Edit(Text):
         >>> e.edit_pos
         2
         """
-        (maxcol,) = size
         if button == 1:
-            return self.move_cursor_to_coords((maxcol,), x, y)
+            return self.move_cursor_to_coords(size, x, y)
         return False
 
     def _delete_highlighted(self) -> bool:
@@ -594,7 +599,7 @@ class Edit(Text):
         """
         self._shift_view_to_cursor = bool(focus)
 
-        canv: TextCanvas | CompositeCanvas = super().render(size)
+        canv: TextCanvas | CompositeCanvas = super().render(size, focus)
         if focus:
             canv = CompositeCanvas(canv)
             canv.cursor = self.get_cursor_coords(size)
@@ -640,7 +645,7 @@ class Edit(Text):
         self._shift_view_to_cursor = True
         return self.position_coords(maxcol, self.edit_pos)
 
-    def position_coords(self, maxcol: int, pos) -> tuple[int, int]:
+    def position_coords(self, maxcol: int, pos: int) -> tuple[int, int]:
         """
         Return (*x*, *y*) coordinates for an offset into self.edit_text.
         """
