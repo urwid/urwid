@@ -531,6 +531,38 @@ class Screen(BaseScreen, RealTerminal):
     def draw_screen(self, size: tuple[int, int], r: Canvas) -> None:
         """Paint screen with rendered canvas."""
 
+        def set_cursor_home() -> str:
+            if not partial_display():
+                return escape.set_cursor_position(0, 0)
+            return escape.CURSOR_HOME_COL + escape.move_cursor_up(cy)
+
+        def set_cursor_position(x: int, y: int) -> str:
+            if not partial_display():
+                return escape.set_cursor_position(x, y)
+            if cy > y:
+                return "\b" + escape.CURSOR_HOME_COL + escape.move_cursor_up(cy - y) + escape.move_cursor_right(x)
+            return "\b" + escape.CURSOR_HOME_COL + escape.move_cursor_down(y - cy) + escape.move_cursor_right(x)
+
+        def is_blank_row(row: list[tuple[object, Literal["0", "U"] | None], bytes]) -> bool:
+            if len(row) > 1:
+                return False
+            if row[0][2].strip():
+                return False
+            return True
+
+        def attr_to_escape(a: AttrSpec | str) -> str:
+            if a in self._pal_escape:
+                return self._pal_escape[a]
+            if isinstance(a, AttrSpec):
+                return self._attrspec_to_escape(a)
+            # undefined attributes use default/default
+            self.logger.debug(f"Undefined attribute: {a!r}")
+            return self._attrspec_to_escape(AttrSpec("default", "default"))
+
+        def using_standout_or_underline(a: AttrSpec | str) -> bool:
+            a = self._pal_attrspec.get(a, a)
+            return isinstance(a, AttrSpec) and (a.standout or a.underline)
+
         logger = self.logger.getChild("draw_screen")
 
         (maxcol, maxrow) = size
@@ -554,14 +586,14 @@ class Screen(BaseScreen, RealTerminal):
 
         logger.debug(f"Drawing screen with size {size!r}")
 
-        o = [escape.HIDE_CURSOR, self._attrspec_to_escape(AttrSpec("", ""))]
+        output = [escape.HIDE_CURSOR, self._attrspec_to_escape(AttrSpec("", ""))]
 
         def partial_display() -> bool:
             # returns True if the screen is in partial display mode ie. only some rows belong to the display
             return self._rows_used is not None
 
         if not partial_display():
-            o.append(escape.CURSOR_HOME)
+            output.append(escape.CURSOR_HOME)
 
         if self.screen_buf:
             osb = self.screen_buf
@@ -571,40 +603,8 @@ class Screen(BaseScreen, RealTerminal):
         cy = self._cy
         y = -1
 
-        def set_cursor_home() -> str:
-            if not partial_display():
-                return escape.set_cursor_position(0, 0)
-            return escape.CURSOR_HOME_COL + escape.move_cursor_up(cy)
-
-        def set_cursor_position(x: int, y: int) -> str:
-            if not partial_display():
-                return escape.set_cursor_position(x, y)
-            if cy > y:
-                return "\b" + escape.CURSOR_HOME_COL + escape.move_cursor_up(cy - y) + escape.move_cursor_right(x)
-            return "\b" + escape.CURSOR_HOME_COL + escape.move_cursor_down(y - cy) + escape.move_cursor_right(x)
-
-        def is_blank_row(row) -> bool:
-            if len(row) > 1:
-                return False
-            if row[0][2].strip():
-                return False
-            return True
-
-        def attr_to_escape(a: AttrSpec | str) -> str:
-            if a in self._pal_escape:
-                return self._pal_escape[a]
-            if isinstance(a, AttrSpec):
-                return self._attrspec_to_escape(a)
-            # undefined attributes use default/default
-            self.logger.debug(f"Undefined attribute: {a!r}")
-            return self._attrspec_to_escape(AttrSpec("default", "default"))
-
-        def using_standout_or_underline(a: AttrSpec | str) -> bool:
-            a = self._pal_attrspec.get(a, a)
-            return isinstance(a, AttrSpec) and (a.standout or a.underline)
-
         ins = None
-        o.append(set_cursor_home())
+        output.append(set_cursor_home())
         cy = 0
         for row in r.content():
             y += 1
@@ -624,7 +624,7 @@ class Screen(BaseScreen, RealTerminal):
                 self._rows_used = y
 
             if y or partial_display():
-                o.append(set_cursor_position(0, y))
+                output.append(set_cursor_position(0, y))
             # after updating the line we will be just over the
             # edge, but terminals still treat this as being
             # on the same line
@@ -640,7 +640,7 @@ class Screen(BaseScreen, RealTerminal):
                     row, back, ins = self._last_row(row)  # noqa: PLW2901
 
             first = True
-            lasta = lastcs = None
+            last_attributes = last_charset_flag = None
             for a, cs, run in row:
                 if not isinstance(run, bytes):  # canvases render with bytes
                     raise TypeError(run)
@@ -648,25 +648,25 @@ class Screen(BaseScreen, RealTerminal):
                 if cs != "U":
                     run = run.translate(UNPRINTABLE_TRANS_TABLE)  # noqa: PLW2901
 
-                if first or lasta != a:
-                    o.append(attr_to_escape(a))
-                    lasta = a
+                if first or last_attributes != a:
+                    output.append(attr_to_escape(a))
+                    last_attributes = a
 
-                if not (IS_WINDOWS or IS_WSL) and (first or lastcs != cs):
+                if not (IS_WINDOWS or IS_WSL) and (first or last_charset_flag != cs):
                     if cs not in {None, "0", "U"}:
                         raise ValueError(cs)
-                    if lastcs == "U":
-                        o.append(escape.IBMPC_OFF)
+                    if last_charset_flag == "U":
+                        output.append(escape.IBMPC_OFF)
 
                     if cs is None:
-                        o.append(escape.SI)
+                        output.append(escape.SI)
                     elif cs == "U":
-                        o.append(escape.IBMPC_ON)
+                        output.append(escape.IBMPC_ON)
                     else:
-                        o.append(escape.SO)
-                    lastcs = cs
+                        output.append(escape.SO)
+                    last_charset_flag = cs
 
-                o.append(run)
+                output.append(run)
                 first = False
 
             if ins:
@@ -675,7 +675,7 @@ class Screen(BaseScreen, RealTerminal):
                 if insertcs not in {None, "0", "U"}:
                     raise ValueError(insertcs)
 
-                o.extend(("\x08" * back, ias))
+                output.extend(("\x08" * back, ias))
 
                 if not (IS_WINDOWS or IS_WSL):
                     if cs is None:
@@ -685,26 +685,26 @@ class Screen(BaseScreen, RealTerminal):
                     else:
                         icss = escape.SO
 
-                    o.append(icss)
+                    output.append(icss)
 
-                o += [escape.INSERT_ON, inserttext, escape.INSERT_OFF]
+                output += [escape.INSERT_ON, inserttext, escape.INSERT_OFF]
 
                 if not (IS_WINDOWS or IS_WSL) and cs == "U":
-                    o.append(escape.IBMPC_OFF)
+                    output.append(escape.IBMPC_OFF)
 
             if whitespace_at_end:
-                o.append(escape.ERASE_IN_LINE_RIGHT)
+                output.append(escape.ERASE_IN_LINE_RIGHT)
 
         if r.cursor is not None:
             x, y = r.cursor
-            o += [set_cursor_position(x, y), escape.SHOW_CURSOR]
+            output += [set_cursor_position(x, y), escape.SHOW_CURSOR]
             self._cy = y
 
         if self._resized:
             # handle resize before trying to draw screen
             return
         try:
-            for line in o:
+            for line in output:
                 if isinstance(line, bytes):
                     line = line.decode("utf-8", "replace")  # noqa: PLW2901
                 self.write(line)
