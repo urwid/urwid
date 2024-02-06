@@ -675,6 +675,9 @@ class Screen(BaseScreen, RealTerminal):
                 if insertcs not in {None, "0", "U"}:
                     raise ValueError(insertcs)
 
+                if isinstance(inserttext, bytes):
+                    inserttext = inserttext.decode("utf-8")
+
                 output.extend(("\x08" * back, ias))
 
                 if not (IS_WINDOWS or IS_WSL):
@@ -687,7 +690,10 @@ class Screen(BaseScreen, RealTerminal):
 
                     output.append(icss)
 
-                output += [escape.INSERT_ON, inserttext, escape.INSERT_OFF]
+                if not IS_WINDOWS:
+                    output += [escape.INSERT_ON, inserttext, escape.INSERT_OFF]
+                else:
+                    output += [f"{escape.ESC}[{util.calc_width(inserttext, 0, len(inserttext))}@", inserttext]
 
                 if not (IS_WINDOWS or IS_WSL) and cs == "U":
                     output.append(escape.IBMPC_OFF)
