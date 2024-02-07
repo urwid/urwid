@@ -378,8 +378,8 @@ class TextCanvas(Canvas):
     def __init__(
         self,
         text: Sequence[bytes] | None = None,
-        attr: Hashable | None = None,
-        cs: Literal["0", "U"] | None = None,
+        attr: list[list[tuple[Hashable | None, int]]] | None = None,
+        cs: list[list[tuple[Literal["0", "U"] | None, int]]] | None = None,
         cursor: tuple[int, int] | None = None,
         maxcol: int | None = None,
         check_width: bool = True,
@@ -1246,7 +1246,7 @@ def CanvasCombine(canvas_info: Iterable[tuple[Canvas, typing.Any, bool]]) -> Com
     return combined_canvas
 
 
-def CanvasOverlay(top_c, bottom_c, left: int, top: int) -> CompositeCanvas:
+def CanvasOverlay(top_c: Canvas, bottom_c: Canvas, left: int, top: int) -> CompositeCanvas:
     """
     Overlay canvas top_c onto bottom_c at position (left, top).
     """
@@ -1314,7 +1314,7 @@ def CanvasJoin(canvas_info: Iterable[tuple[Canvas, typing.Any, bool, int]]) -> C
 
 
 def apply_text_layout(
-    text: bytes,
+    text: str | bytes,
     attr: list[tuple[Hashable, int]],
     ls: list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]],
     maxcol: int,
