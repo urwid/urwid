@@ -379,7 +379,7 @@ class LayoutSegment:
                     raise TypeError(self.offs)
             self.text = self.end = None
 
-    def subseg(self, text: bytes, start: int, end: int) -> list[tuple[int, int] | tuple[int, int, int | bytes]]:
+    def subseg(self, text: str | bytes, start: int, end: int) -> list[tuple[int, int] | tuple[int, int, int | bytes]]:
         """
         Return a "sub-segment" list containing segment structures
         that make up a portion of this segment.
@@ -454,7 +454,7 @@ def shift_line(
 
 def trim_line(
     segs: list[tuple[int, int, int | bytes] | tuple[int, int | None]],
-    text: bytes,
+    text: str | bytes,
     start: int,
     end: int,
 ) -> list[tuple[int, int, int | bytes] | tuple[int, int | None]]:

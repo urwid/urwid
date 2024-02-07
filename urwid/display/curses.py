@@ -29,6 +29,8 @@ import sys
 import typing
 from contextlib import suppress
 
+from urwid import util
+
 from . import escape
 from .common import UNPRINTABLE_TRANS_TABLE, AttrSpec, BaseScreen, RealTerminal
 
@@ -592,7 +594,7 @@ class Screen(BaseScreen, RealTerminal):
                             raise ValueError(f"cs not in ('0', 'U' ,'None'): {cs!r}")
                         if not isinstance(seg, bytes):
                             raise TypeError(seg)
-                        self.s.addstr(seg.decode("utf-8"))
+                        self.s.addstr(seg.decode(util.get_encoding()))
                 except curses.error:
                     # it's ok to get out of the
                     # screen on the lower right
@@ -673,7 +675,7 @@ class _test:
             a = []
             for k in keys:
                 if isinstance(k, str):
-                    k = k.encode("utf-8")  # noqa: PLW2901
+                    k = k.encode(util.get_encoding())  # noqa: PLW2901
 
                 t += f"'{k}' "
                 a += [(None, 1), ("yellow on dark blue", len(k)), (None, 2)]

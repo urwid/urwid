@@ -28,7 +28,7 @@ import warnings
 from contextlib import suppress
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Generator, Iterable
     from types import TracebackType
 
     from typing_extensions import Protocol, Self
@@ -234,7 +234,7 @@ set_encoding(detected_encoding)
 ######################################################################
 
 
-def supports_unicode():
+def supports_unicode() -> bool:
     """
     Return True if python is able to convert non-ascii unicode strings
     to the current encoding.
@@ -242,7 +242,13 @@ def supports_unicode():
     return _target_encoding and _target_encoding != "ascii"
 
 
-def calc_trim_text(text, start_offs: int, end_offs: int, start_col: int, end_col: int):
+def calc_trim_text(
+    text: str | bytes,
+    start_offs: int,
+    end_offs: int,
+    start_col: int,
+    end_col: int,
+) -> tuple[int, int, int, int]:
     """
     Calculate the result of trimming text.
     start_offs -- offset into text to treat as screen column 0
@@ -270,7 +276,7 @@ def calc_trim_text(text, start_offs: int, end_offs: int, start_col: int, end_col
     return (spos, pos, pad_left, pad_right)
 
 
-def trim_text_attr_cs(text, attr, cs, start_col: int, end_col: int):
+def trim_text_attr_cs(text: bytes, attr, cs, start_col: int, end_col: int):
     """
     Return ( trimmed text, trimmed attr, trimmed cs ).
     """
@@ -325,7 +331,7 @@ def rle_subseg(rle, start: int, end: int):
     return sub_segment
 
 
-def rle_len(rle) -> int:
+def rle_len(rle: Iterable[tuple[typing.Any, int]]) -> int:
     """
     Return the number of characters covered by a run length
     encoded attribute list.
@@ -358,7 +364,7 @@ def rle_prepend_modify(rle, a_r) -> None:
             rle[0:0] = [(a, r)]
 
 
-def rle_append_modify(rle, a_r):
+def rle_append_modify(rle, a_r) -> None:
     """
     Append (a, r) (unpacked from *a_r*) to the rle list rle.
     Merge with last run when possible.
@@ -373,7 +379,7 @@ def rle_append_modify(rle, a_r):
     rle[-1] = (a, lr + r)
 
 
-def rle_join_modify(rle, rle2):
+def rle_join_modify(rle, rle2) -> None:
     """
     Append attribute list rle2 to rle.
     Merge last run of rle with first run of rle2 when possible.
@@ -516,7 +522,7 @@ class MetaSuper(type):
         setattr(cls, f"_{name}__super", _super)
 
 
-def int_scale(val: int, val_range: int, out_range: int):
+def int_scale(val: int, val_range: int, out_range: int) -> int:
     """
     Scale val in the range [0, val_range-1] to an integer in the range
     [0, out_range-1].  This implementation uses the "round-half-up" rounding
