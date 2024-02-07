@@ -563,6 +563,8 @@ class Screen(BaseScreen, RealTerminal):
             a = self._pal_attrspec.get(a, a)
             return isinstance(a, AttrSpec) and (a.standout or a.underline)
 
+        encoding = util.get_encoding()
+
         logger = self.logger.getChild("draw_screen")
 
         (maxcol, maxrow) = size
@@ -586,7 +588,9 @@ class Screen(BaseScreen, RealTerminal):
 
         logger.debug(f"Drawing screen with size {size!r}")
 
-        output = [escape.HIDE_CURSOR, self._attrspec_to_escape(AttrSpec("", ""))]
+        last_attributes = None  # Default = empty
+
+        output = [escape.HIDE_CURSOR, attr_to_escape(last_attributes)]
 
         def partial_display() -> bool:
             # returns True if the screen is in partial display mode ie. only some rows belong to the display
@@ -606,6 +610,10 @@ class Screen(BaseScreen, RealTerminal):
         ins = None
         output.append(set_cursor_home())
         cy = 0
+
+        first = True
+        last_charset_flag = None
+
         for row in r.content():
             y += 1
             if osb and y < len(osb) and osb[y] == row:
@@ -639,8 +647,6 @@ class Screen(BaseScreen, RealTerminal):
                 elif y == maxrow - 1 and maxcol > 1:
                     row, back, ins = self._last_row(row)  # noqa: PLW2901
 
-            first = True
-            last_attributes = last_charset_flag = None
             for a, cs, run in row:
                 if not isinstance(run, bytes):  # canvases render with bytes
                     raise TypeError(run)
@@ -648,11 +654,11 @@ class Screen(BaseScreen, RealTerminal):
                 if cs != "U":
                     run = run.translate(UNPRINTABLE_TRANS_TABLE)  # noqa: PLW2901
 
-                if first or last_attributes != a:
+                if last_attributes != a:
                     output.append(attr_to_escape(a))
                     last_attributes = a
 
-                if not (IS_WINDOWS or IS_WSL) and (first or last_charset_flag != cs):
+                if encoding != "utf-8" and (first or last_charset_flag != cs):
                     if cs not in {None, "0", "U"}:
                         raise ValueError(cs)
                     if last_charset_flag == "U":
@@ -680,7 +686,7 @@ class Screen(BaseScreen, RealTerminal):
 
                 output.extend(("\x08" * back, ias))
 
-                if not (IS_WINDOWS or IS_WSL):
+                if encoding != "utf-8":
                     if cs is None:
                         icss = escape.SI
                     elif cs == "U":
@@ -695,7 +701,7 @@ class Screen(BaseScreen, RealTerminal):
                 else:
                     output += [f"{escape.ESC}[{util.calc_width(inserttext, 0, len(inserttext))}@", inserttext]
 
-                if not (IS_WINDOWS or IS_WSL) and cs == "U":
+                if encoding != "utf-8" and cs == "U":
                     output.append(escape.IBMPC_OFF)
 
             if whitespace_at_end:
