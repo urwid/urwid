@@ -11,6 +11,8 @@ from .constants import Align, Sizing, WrapMode
 from .widget import Widget, WidgetError
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from typing_extensions import Literal
 
     from urwid.canvas import TextCanvas
@@ -32,7 +34,7 @@ class Text(Widget):
 
     def __init__(
         self,
-        markup,
+        markup: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
         align: Literal["left", "center", "right"] | Align = Align.LEFT,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
         layout: text_layout.TextLayout | None = None,
@@ -98,7 +100,7 @@ class Text(Widget):
         self._cache_maxcol = None
         super()._invalidate()
 
-    def set_text(self, markup):
+    def set_text(self, markup: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]) -> None:
         """
         Set content of text widget.
 
@@ -118,7 +120,7 @@ class Text(Widget):
         self._text, self._attrib = decompose_tagmarkup(markup)
         self._invalidate()
 
-    def get_text(self):
+    def get_text(self) -> tuple[str | bytes, list[tuple[Hashable, int]]]:
         """
         :returns: (*text*, *display attributes*)
 
@@ -139,7 +141,7 @@ class Text(Widget):
         return self._text, self._attrib
 
     @property
-    def text(self) -> str:
+    def text(self) -> str | bytes:
         """
         Read-only property returning the complete bytes/unicode content
         of this widget
@@ -147,7 +149,7 @@ class Text(Widget):
         return self.get_text()[0]
 
     @property
-    def attrib(self):
+    def attrib(self) -> list[tuple[Hashable, int]]:
         """
         Read-only property returning the run-length encoded display
         attributes of this widget
@@ -212,7 +214,7 @@ class Text(Widget):
         self,
         align: Literal["left", "center", "right"] | Align,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode,
-        layout=None,
+        layout: text_layout.TextLayout | None = None,
     ) -> None:
         """
         Set the text layout object, alignment and wrapping modes at
@@ -278,11 +280,14 @@ class Text(Widget):
         (maxcol,) = size
         return len(self.get_line_translation(maxcol))
 
-    def get_line_translation(self, maxcol: int, ta=None):
+    def get_line_translation(
+        self,
+        maxcol: int,
+        ta: tuple[str | bytes, list[tuple[Hashable, int]]] | None = None,
+    ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]:
         """
         Return layout structure used to map self.text to a canvas.
-        This method is used internally, but may be useful for
-        debugging custom layout classes.
+        This method is used internally, but may be useful for debugging custom layout classes.
 
         :param maxcol: columns available for display
         :type maxcol: int
@@ -294,7 +299,11 @@ class Text(Widget):
             self._update_cache_translation(maxcol, ta)
         return self._cache_translation
 
-    def _update_cache_translation(self, maxcol: int, ta) -> None:
+    def _update_cache_translation(
+        self,
+        maxcol: int,
+        ta: tuple[str | bytes, list[tuple[Hashable, int]]] | None,
+    ) -> None:
         if ta:
             text, _attr = ta
         else:

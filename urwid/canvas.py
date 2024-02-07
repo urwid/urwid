@@ -213,22 +213,9 @@ class Canvas:
     _finalized_error = CanvasError(
         "This canvas has been finalized. Use CompositeCanvas to wrap this canvas if you need to make changes."
     )
-    _renamed_error = CanvasError(
-        "The old Canvas class is now called TextCanvas. Canvas is now the base class for all canvas classes."
-    )
 
-    def __init__(
-        self,
-        value1: typing.Any = None,
-        value2: typing.Any = None,
-        value3: typing.Any = None,
-    ) -> None:
-        """
-        value1, value2, value3 -- if not None, raise a helpful error:
-            the old Canvas class is now called TextCanvas.
-        """
-        if value1 is not None:
-            raise self._renamed_error
+    def __init__(self) -> None:
+        """Base Canvas class"""
         self._widget_info = None
         self.coords: dict[str, tuple[int, int, tuple[Widget, int, int]]] = {}
         self.shortcuts: dict[str, str] = {}
@@ -391,8 +378,8 @@ class TextCanvas(Canvas):
     def __init__(
         self,
         text: Sequence[bytes] | None = None,
-        attr=None,
-        cs=None,
+        attr: Hashable | None = None,
+        cs: Literal["0", "U"] | None = None,
         cursor: tuple[int, int] | None = None,
         maxcol: int | None = None,
         check_width: bool = True,
@@ -1326,7 +1313,12 @@ def CanvasJoin(canvas_info: Iterable[tuple[Canvas, typing.Any, bool, int]]) -> C
     return joined_canvas
 
 
-def apply_text_layout(text: bytes, attr, ls, maxcol: int) -> TextCanvas:
+def apply_text_layout(
+    text: bytes,
+    attr: list[tuple[Hashable, int]],
+    ls: list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]],
+    maxcol: int,
+) -> TextCanvas:
     t = []
     a = []
     c = []
@@ -1338,7 +1330,7 @@ def apply_text_layout(text: bytes, attr, ls, maxcol: int) -> TextCanvas:
     aw.k = 0  # counter for moving through elements of a
     aw.off = 0  # current offset into text of attr[ak]
 
-    def arange(start_offs: int, end_offs: int):
+    def arange(start_offs: int, end_offs: int) -> list[tuple[Hashable | None, int]]:
         """Return an attribute list for the range of text specified."""
         if start_offs < aw.off:
             aw.k = 0
