@@ -10,6 +10,8 @@ from urwid.split_repr import remove_defaults
 from urwid.util import decompose_tagmarkup, is_wide_char, move_next_char, move_prev_char
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from typing_extensions import Literal
 
     from urwid.canvas import TextCanvas
@@ -62,15 +64,15 @@ class Edit(Text):
 
     def __init__(
         self,
-        caption="",
-        edit_text: str | bytes = "",
+        caption: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]] = "",
+        edit_text: str = "",
         multiline: bool = False,
         align: Literal["left", "center", "right"] | Align = Align.LEFT,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
         allow_tab: bool = False,
         edit_pos: int | None = None,
-        layout=None,
-        mask: str | bytes | None = None,
+        layout: text_layout.TextLayout = None,
+        mask: str | None = None,
     ) -> None:
         """
         :param caption: markup for caption preceding edit_text, see
@@ -130,7 +132,7 @@ class Edit(Text):
         attrs = dict(super()._repr_attrs(), edit_pos=self._edit_pos)
         return remove_defaults(attrs, Edit.__init__)
 
-    def get_text(self):
+    def get_text(self) -> tuple[str | bytes, list[tuple[Hashable, int]]]:
         """
         Returns ``(text, display attributes)``. See :meth:`Text.get_text`
         for details.
@@ -150,7 +152,7 @@ class Edit(Text):
 
         return self._caption + (self._mask * len(self._edit_text)), self._attrib
 
-    def set_text(self, markup) -> None:
+    def set_text(self, markup: tuple[str, list[tuple[Hashable, int]]]) -> None:
         """
         Not supported by Edit widget.
 
@@ -206,7 +208,7 @@ class Edit(Text):
 
         return pref_col
 
-    def set_caption(self, caption) -> None:
+    def set_caption(self, caption: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]) -> None:
         """
         Set the caption markup for this widget.
 
@@ -274,7 +276,7 @@ class Edit(Text):
         """,
     )
 
-    def set_mask(self, mask: str | bytes | None) -> None:
+    def set_mask(self, mask: str | None) -> None:
         """
         Set the character for masking text away.
 
@@ -285,7 +287,7 @@ class Edit(Text):
         self._mask = mask
         self._invalidate()
 
-    def set_edit_text(self, text: str | bytes) -> None:
+    def set_edit_text(self, text: str) -> None:
         """
         Set the edit text for this widget.
 
@@ -333,7 +335,7 @@ class Edit(Text):
         """,
     )
 
-    def insert_text(self, text: str | bytes) -> None:
+    def insert_text(self, text: str) -> None:
         """
         Insert text at the cursor position and update cursor.
         This method is used by the keypress() method when inserting
@@ -371,7 +373,7 @@ class Edit(Text):
             return text.encode("ascii")  # follow python2's implicit conversion
         return text.decode("ascii")
 
-    def insert_text_result(self, text: str | bytes) -> tuple[str | bytes, int]:
+    def insert_text_result(self, text: str) -> tuple[str | bytes, int]:
         """
         Return result of insert_text(text) without actually performing the
         insertion.  Handy for pre-validation.
@@ -610,7 +612,11 @@ class Edit(Text):
         #    d.coords['highlight'] = [ hstart, hstop ]
         return canv
 
-    def get_line_translation(self, maxcol: int, ta=None):
+    def get_line_translation(
+        self,
+        maxcol: int,
+        ta: tuple[str | bytes, list[tuple[Hashable, int]]] | None = None,
+    ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]:
         trans = super().get_line_translation(maxcol, ta)
         if not self._shift_view_to_cursor:
             return trans
