@@ -38,33 +38,33 @@ class FibonacciWalker(urwid.ListWalker):
     positions returned are (value at position-1, value at position) tuples.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.focus = (0, 1)
         self.numeric_layout = NumericLayout()
 
-    def _get_at_pos(self, pos):
+    def _get_at_pos(self, pos: tuple[int, int]) -> tuple[urwid.Text, tuple[int, int]]:
         """Return a widget and the position passed."""
         return urwid.Text(f"{pos[1]:d}", layout=self.numeric_layout), pos
 
-    def get_focus(self):
+    def get_focus(self) -> tuple[urwid.Text, tuple[int, int]]:
         return self._get_at_pos(self.focus)
 
-    def set_focus(self, focus):
+    def set_focus(self, focus) -> None:
         self.focus = focus
         self._modified()
 
-    def get_next(self, start_from):
+    def get_next(self, start_from) -> tuple[urwid.Text, tuple[int, int]]:
         a, b = start_from
         focus = b, a + b
         return self._get_at_pos(focus)
 
-    def get_prev(self, start_from):
+    def get_prev(self, start_from) -> tuple[urwid.Text, tuple[int, int]]:
         a, b = start_from
         focus = b - a, a
         return self._get_at_pos(focus)
 
 
-def main():
+def main() -> None:
     palette = [
         ("body", "black", "dark cyan", "standout"),
         ("foot", "light gray", "black"),
@@ -91,8 +91,8 @@ def main():
         " exits",
     ]
 
-    def exit_on_q(key):
-        if key in ("q", "Q"):
+    def exit_on_q(key: str | tuple[str, int, int, int]) -> None:
+        if key in {"q", "Q"}:
             raise urwid.ExitMainLoop()
 
     listbox = urwid.ListBox(FibonacciWalker())
@@ -107,7 +107,7 @@ class NumericLayout(urwid.TextLayout):
     TextLayout class for bottom-right aligned numbers
     """
 
-    def layout(self, text, width, align, wrap):
+    def layout(self, text, width: int, align, wrap):
         """
         Return layout structure for right justified numbers.
         """

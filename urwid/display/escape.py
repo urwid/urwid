@@ -66,7 +66,7 @@ DEC_SPECIAL_RE = re.compile(f"[{DEC_SPECIAL_CHARS}]")
 
 
 ###################
-## Input sequences
+# Input sequences
 ###################
 
 
@@ -563,7 +563,7 @@ def process_keyqueue(codes: Sequence[int], more_available: bool) -> tuple[list[s
 
 
 ####################
-## Output sequences
+# Output sequences
 ####################
 
 ESC = "\x1b"

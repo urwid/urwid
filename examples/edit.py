@@ -41,7 +41,7 @@ import urwid
 class LineWalker(urwid.ListWalker):
     """ListWalker-compatible class for lazily reading file contents."""
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         self.file = open(name)  # noqa: SIM115  # do not overcomplicate example
         self.lines = []
         self.focus = 0
@@ -49,17 +49,17 @@ class LineWalker(urwid.ListWalker):
     def get_focus(self):
         return self._get_at_pos(self.focus)
 
-    def set_focus(self, focus):
+    def set_focus(self, focus) -> None:
         self.focus = focus
         self._modified()
 
-    def get_next(self, start_from):
+    def get_next(self, start_from: int) -> tuple[urwid.Edit, int] | tuple[None, None]:
         return self._get_at_pos(start_from + 1)
 
-    def get_prev(self, start_from):
+    def get_prev(self, start_from: int) -> tuple[urwid.Edit, int] | tuple[None, None]:
         return self._get_at_pos(start_from - 1)
 
-    def read_next_line(self):
+    def read_next_line(self) -> str:
         """Read another line from the file."""
 
         next_line = self.file.readline()
@@ -80,7 +80,7 @@ class LineWalker(urwid.ListWalker):
 
         return next_line
 
-    def _get_at_pos(self, pos):
+    def _get_at_pos(self, pos: int) -> tuple[urwid.Edit, int] | tuple[None, None]:
         """Return a widget for the line number passed."""
 
         if pos < 0:
@@ -101,7 +101,7 @@ class LineWalker(urwid.ListWalker):
 
         return self.lines[-1], pos
 
-    def split_focus(self):
+    def split_focus(self) -> None:
         """Divide the focus edit widget at the cursor location."""
 
         focus = self.lines[self.focus]
@@ -112,10 +112,10 @@ class LineWalker(urwid.ListWalker):
         edit.edit_pos = 0
         self.lines.insert(self.focus + 1, edit)
 
-    def combine_focus_with_prev(self):
+    def combine_focus_with_prev(self) -> None:
         """Combine the focus edit widget with the one above."""
 
-        above, ignore = self.get_prev(self.focus)
+        above, _ = self.get_prev(self.focus)
         if above is None:
             # already at the top
             return
@@ -126,10 +126,10 @@ class LineWalker(urwid.ListWalker):
         del self.lines[self.focus]
         self.focus -= 1
 
-    def combine_focus_with_next(self):
+    def combine_focus_with_next(self) -> None:
         """Combine the focus edit widget with the one below."""
 
-        below, ignore = self.get_next(self.focus)
+        below, _ = self.get_next(self.focus)
         if below is None:
             # already at bottom
             return
@@ -157,18 +157,18 @@ class EditDisplay:
         ],
     )
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         self.save_name = name
         self.walker = LineWalker(name)
         self.listbox = urwid.ListBox(self.walker)
         self.footer = urwid.AttrMap(urwid.Text(self.footer_text), "foot")
         self.view = urwid.Frame(urwid.AttrMap(self.listbox, "body"), footer=self.footer)
 
-    def main(self):
+    def main(self) -> None:
         self.loop = urwid.MainLoop(self.view, self.palette, unhandled_input=self.unhandled_keypress)
         self.loop.run()
 
-    def unhandled_keypress(self, k):
+    def unhandled_keypress(self, k: str | tuple[str, int, int, int]) -> bool | None:
         """Last resort for keypresses."""
 
         if k == "f5":
@@ -202,7 +202,7 @@ class EditDisplay:
             return None
         return True
 
-    def save_file(self):
+    def save_file(self) -> None:
         """Write the file out to disk."""
 
         lines = []
@@ -226,7 +226,7 @@ class EditDisplay:
                 prefix = "\n"
 
 
-def re_tab(s):
+def re_tab(s) -> str:
     """Return a tabbed string from an expanded one."""
     line = []
     p = 0
@@ -243,7 +243,7 @@ def re_tab(s):
     return "".join(line)
 
 
-def main():
+def main() -> None:
     try:
         name = sys.argv[1]
         assert open(name, "a")  # noqa: SIM115,S101  # do not overcomplicate example

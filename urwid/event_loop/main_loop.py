@@ -118,7 +118,7 @@ class MainLoop:
         screen: BaseScreen | None = None,
         handle_mouse: bool = True,
         input_filter: Callable[[list[str], list[int]], list[str]] | None = None,
-        unhandled_input: Callable[[str | tuple[str, int, int, int]], bool] | None = None,
+        unhandled_input: Callable[[str | tuple[str, int, int, int]], bool | None] | None = None,
         event_loop: EventLoop | None = None,
         pop_ups: bool = False,
     ):
@@ -626,7 +626,7 @@ class MainLoop:
             return self._input_filter(keys, raw)
         return keys
 
-    def unhandled_input(self, data: str | tuple[str, int, int, int]) -> bool:
+    def unhandled_input(self, data: str | tuple[str, int, int, int]) -> bool | None:
         """
         This function is called with any input that was not handled by the
         widgets, and calls the *unhandled_input* function passed to the

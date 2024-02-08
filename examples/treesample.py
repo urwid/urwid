@@ -37,32 +37,35 @@ import typing
 
 import urwid
 
+if typing.TYPE_CHECKING:
+    from collections.abc import Hashable, Iterable
+
 
 class ExampleTreeWidget(urwid.TreeWidget):
     """Display widget for leaf nodes"""
 
-    def get_display_text(self):
+    def get_display_text(self) -> str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]:
         return self.get_node().get_value()["name"]
 
 
 class ExampleNode(urwid.TreeNode):
     """Data storage object for leaf nodes"""
 
-    def load_widget(self):
+    def load_widget(self) -> ExampleTreeWidget:
         return ExampleTreeWidget(self)
 
 
 class ExampleParentNode(urwid.ParentNode):
     """Data storage object for interior/parent nodes"""
 
-    def load_widget(self):
+    def load_widget(self) -> ExampleTreeWidget:
         return ExampleTreeWidget(self)
 
-    def load_child_keys(self):
+    def load_child_keys(self) -> Iterable[int]:
         data = self.get_value()
         return range(len(data["children"]))
 
-    def load_child_node(self, key):
+    def load_child_node(self, key) -> ExampleParentNode | ExampleNode:
         """Return either an ExampleNode or ExampleParentNode"""
         childdata = self.get_value()["children"][key]
         childdepth = self.get_depth() + 1
@@ -109,24 +112,26 @@ class ExampleTreeBrowser:
         ("key", "Q"),
     ]
 
-    def __init__(self, data=None):
+    def __init__(self, data=None) -> None:
         self.topnode = ExampleParentNode(data)
         self.listbox = urwid.TreeListBox(urwid.TreeWalker(self.topnode))
         self.listbox.offset_rows = 1
         self.header = urwid.Text("")
         self.footer = urwid.AttrMap(urwid.Text(self.footer_text), "foot")
         self.view = urwid.Frame(
-            urwid.AttrMap(self.listbox, "body"), header=urwid.AttrMap(self.header, "head"), footer=self.footer
+            urwid.AttrMap(self.listbox, "body"),
+            header=urwid.AttrMap(self.header, "head"),
+            footer=self.footer,
         )
 
-    def main(self):
+    def main(self) -> None:
         """Run the program."""
 
         self.loop = urwid.MainLoop(self.view, self.palette, unhandled_input=self.unhandled_input)
         self.loop.run()
 
-    def unhandled_input(self, k):
-        if k in ("q", "Q"):
+    def unhandled_input(self, k: str | tuple[str, int, int, int]) -> None:
+        if k in {"q", "Q"}:
             raise urwid.ExitMainLoop()
 
 
@@ -141,7 +146,7 @@ def get_example_tree():
     return retval
 
 
-def main():
+def main() -> None:
     sample = get_example_tree()
     ExampleTreeBrowser(sample).main()
 

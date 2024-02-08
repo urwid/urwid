@@ -40,7 +40,7 @@ if typing.TYPE_CHECKING:
     from .widget import Widget
 
 
-__all__ = ("ScrollbarSymbols", "ScrollBar", "Scrollable", "ScrollableError")
+__all__ = ("ScrollBar", "Scrollable", "ScrollableError", "ScrollbarSymbols")
 
 
 WrappedWidget = typing.TypeVar("WrappedWidget")

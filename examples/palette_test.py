@@ -31,6 +31,9 @@ import typing
 
 import urwid
 
+if typing.TYPE_CHECKING:
+    from typing_extensions import Literal
+
 CHART_TRUE = """
 #e50000#e51000#e52000#e53000#e54000#e55000#e56000#e57000#e58000#e59000\
 #e5a000#e5b100#e5c100#e5d100#e5e100#d9e500#c9e500#b9e500#a9e500#99e500\
@@ -254,7 +257,7 @@ SHORT_ATTR = 4  # length of short high-colour descriptions which may
 # be packed one after the next
 
 
-def parse_chart(chart, convert):
+def parse_chart(chart: str, convert):
     """
     Convert string chart into text markup with the correct attributes.
 
@@ -291,7 +294,7 @@ def parse_chart(chart, convert):
     return out
 
 
-def foreground_chart(chart, background, colors):
+def foreground_chart(chart: str, background, colors: Literal[1, 16, 88, 256, 16777216]):
     """
     Create text markup for a foreground colour chart
 
@@ -310,7 +313,7 @@ def foreground_chart(chart, background, colors):
     return parse_chart(chart, convert_foreground)
 
 
-def background_chart(chart, foreground, colors):
+def background_chart(chart: str, foreground, colors: Literal[1, 16, 88, 256, 16777216]):
     """
     Create text markup for a background colour chart
 
@@ -337,7 +340,7 @@ def background_chart(chart, foreground, colors):
     return parse_chart(chart, convert_background)
 
 
-def main():
+def main() -> None:
     palette = [
         ("header", "black,underline", "light gray", "standout,underline", "black,underline", "#88a"),
         ("panel", "light gray", "dark blue", "", "#ffd", "#00a"),
@@ -366,7 +369,7 @@ def main():
         if colors == 1:
             lb[chart_offset] = urwid.Divider()
         else:
-            chart = {16: CHART_16, 88: CHART_88, 256: CHART_256, 2**24: CHART_TRUE}[colors]
+            chart: str = {16: CHART_16, 88: CHART_88, 256: CHART_256, 2**24: CHART_TRUE}[colors]
             txt = chart_fn(chart, "default", colors)
             lb[chart_offset] = urwid.Text(txt, wrap=urwid.CLIP)
 
@@ -425,7 +428,7 @@ def main():
     set_mode(16, True)  # displays the chart
 
     def unhandled_input(key: str | tuple[str, int, int, int]) -> None:
-        if key in ("Q", "q", "esc"):
+        if key in {"Q", "q", "esc"}:
             raise urwid.ExitMainLoop()
 
     urwid.MainLoop(urwid.ListBox(lb), screen=screen, unhandled_input=unhandled_input).run()

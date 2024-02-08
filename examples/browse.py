@@ -41,30 +41,33 @@ import typing
 
 import urwid
 
+if typing.TYPE_CHECKING:
+    from collections.abc import Hashable
+
 
 class FlagFileWidget(urwid.TreeWidget):
     # apply an attribute to the expand/unexpand icons
     unexpanded_icon = urwid.AttrMap(urwid.TreeWidget.unexpanded_icon, "dirmark")
     expanded_icon = urwid.AttrMap(urwid.TreeWidget.expanded_icon, "dirmark")
 
-    def __init__(self, node):
+    def __init__(self, node: urwid.TreeNode) -> None:
         super().__init__(node)
         # insert an extra AttrWrap for our own use
         self._w = urwid.AttrMap(self._w, None)
         self.flagged = False
         self.update_w()
 
-    def selectable(self):
+    def selectable(self) -> bool:
         return True
 
-    def keypress(self, size, key):
+    def keypress(self, size, key: str) -> str | None:
         """allow subclasses to intercept keystrokes"""
         key = super().keypress(size, key)
         if key:
             key = self.unhandled_keys(size, key)
         return key
 
-    def unhandled_keys(self, size, key):
+    def unhandled_keys(self, size, key: str) -> str | None:
         """
         Override this method to intercept keystrokes in subclasses.
         Default behavior: Toggle flagged on space, ignore other keys.
@@ -76,7 +79,7 @@ class FlagFileWidget(urwid.TreeWidget):
 
         return key
 
-    def update_w(self):
+    def update_w(self) -> None:
         """Update the attributes of self.widget based on self.flagged."""
         if self.flagged:
             self._w.attr = "flagged"
@@ -89,40 +92,40 @@ class FlagFileWidget(urwid.TreeWidget):
 class FileTreeWidget(FlagFileWidget):
     """Widget for individual files."""
 
-    def __init__(self, node):
+    def __init__(self, node: FileNode) -> None:
         super().__init__(node)
         path = node.get_value()
         add_widget(path, self)
 
-    def get_display_text(self):
+    def get_display_text(self) -> str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]:
         return self.get_node().get_key()
 
 
 class EmptyWidget(urwid.TreeWidget):
     """A marker for expanded directories with no contents."""
 
-    def get_display_text(self):
+    def get_display_text(self) -> str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]:
         return ("flag", "(empty directory)")
 
 
 class ErrorWidget(urwid.TreeWidget):
     """A marker for errors reading directories."""
 
-    def get_display_text(self):
+    def get_display_text(self) -> str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]:
         return ("error", "(error/permission denied)")
 
 
 class DirectoryWidget(FlagFileWidget):
     """Widget for a directory."""
 
-    def __init__(self, node):
+    def __init__(self, node: DirectoryNode) -> None:
         super().__init__(node)
         path = node.get_value()
         add_widget(path, self)
         self.expanded = starts_expanded(path)
         self.update_expanded_icon()
 
-    def get_display_text(self):
+    def get_display_text(self) -> str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]:
         node = self.get_node()
         if node.get_depth() == 0:
             return "/"
@@ -133,35 +136,35 @@ class DirectoryWidget(FlagFileWidget):
 class FileNode(urwid.TreeNode):
     """Metadata storage for individual files"""
 
-    def __init__(self, path, parent=None):
+    def __init__(self, path: str, parent: urwid.ParentNode | None = None) -> None:
         depth = path.count(dir_sep())
         key = os.path.basename(path)
         super().__init__(path, key=key, parent=parent, depth=depth)
 
-    def load_parent(self):
-        parentname, myname = os.path.split(self.get_value())
+    def load_parent(self) -> DirectoryNode:
+        parentname, _myname = os.path.split(self.get_value())
         parent = DirectoryNode(parentname)
         parent.set_child_node(self.get_key(), self)
         return parent
 
-    def load_widget(self):
+    def load_widget(self) -> FileTreeWidget:
         return FileTreeWidget(self)
 
 
 class EmptyNode(urwid.TreeNode):
-    def load_widget(self):
+    def load_widget(self) -> EmptyWidget:
         return EmptyWidget(self)
 
 
 class ErrorNode(urwid.TreeNode):
-    def load_widget(self):
+    def load_widget(self) -> ErrorWidget:
         return ErrorWidget(self)
 
 
 class DirectoryNode(urwid.ParentNode):
     """Metadata storage for directories"""
 
-    def __init__(self, path, parent=None):
+    def __init__(self, path: str, parent: urwid.ParentNode | None = None) -> None:
         if path == dir_sep():
             depth = 0
             key = None
@@ -170,8 +173,8 @@ class DirectoryNode(urwid.ParentNode):
             key = os.path.basename(path)
         super().__init__(path, key=key, parent=parent, depth=depth)
 
-    def load_parent(self):
-        parentname, myname = os.path.split(self.get_value())
+    def load_parent(self) -> DirectoryNode:
+        parentname, _myname = os.path.split(self.get_value())
         parent = DirectoryNode(parentname)
         parent.set_child_node(self.get_key(), self)
         return parent
@@ -205,7 +208,7 @@ class DirectoryNode(urwid.ParentNode):
             keys = [None]
         return keys
 
-    def load_child_node(self, key):
+    def load_child_node(self, key) -> EmptyNode | DirectoryNode | FileNode:
         """Return either a FileNode or DirectoryNode"""
         index = self.get_child_index(key)
         if key is None:
@@ -218,7 +221,7 @@ class DirectoryNode(urwid.ParentNode):
         path = os.path.join(self.get_value(), key)
         return FileNode(path, parent=self)
 
-    def load_widget(self):
+    def load_widget(self) -> DirectoryWidget:
         return DirectoryWidget(self)
 
 
@@ -263,7 +266,7 @@ class DirectoryBrowser:
         ("key", "Q"),
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         cwd = os.getcwd()
         store_initial_cwd(cwd)
         self.header = urwid.Text("")
@@ -274,7 +277,7 @@ class DirectoryBrowser:
             urwid.AttrMap(self.listbox, "body"), header=urwid.AttrMap(self.header, "head"), footer=self.footer
         )
 
-    def main(self):
+    def main(self) -> None:
         """Run the program."""
 
         self.loop = urwid.MainLoop(self.view, self.palette, unhandled_input=self.unhandled_input)
@@ -284,9 +287,9 @@ class DirectoryBrowser:
         names = [escape_filename_sh(x) for x in get_flagged_names()]
         print(" ".join(names))
 
-    def unhandled_input(self, k):
+    def unhandled_input(self, k: str | tuple[str, int, int, int]) -> None:
         # update display of focus directory
-        if k in ("q", "Q"):
+        if k in {"q", "Q"}:
             raise urwid.ExitMainLoop()
 
 
@@ -317,14 +320,14 @@ def get_flagged_names() -> list[str]:
 _initial_cwd = []
 
 
-def store_initial_cwd(name: str):
+def store_initial_cwd(name: str) -> None:
     """Store the initial current working directory path components."""
 
     _initial_cwd.clear()
     _initial_cwd.extend(name.split(dir_sep()))
 
 
-def starts_expanded(name):
+def starts_expanded(name: str) -> bool:
     """Return True if directory is a parent of initial cwd."""
 
     if name == "/":
@@ -340,7 +343,7 @@ def starts_expanded(name):
     return True
 
 
-def escape_filename_sh(name):
+def escape_filename_sh(name: str) -> str:
     """Return a hopefully safe shell-escaped version of a filename."""
 
     # check whether we have unprintable characters
@@ -350,14 +353,11 @@ def escape_filename_sh(name):
             return escape_filename_sh_ansic(name)
 
     # all printable characters, so return a double-quoted version
-    name.replace("\\", "\\\\")
-    name.replace('"', '\\"')
-    name.replace("`", "\\`")
-    name.replace("$", "\\$")
+    name = name.replace("\\", "\\\\").replace('"', '\\"').replace("`", "\\`").replace("$", "\\$")
     return f'"{name}"'
 
 
-def escape_filename_sh_ansic(name):
+def escape_filename_sh_ansic(name: str) -> str:
     """Return an ansi-c shell-escaped version of a filename."""
 
     out = []
@@ -387,7 +387,7 @@ def alphabetize(s):
     return L
 
 
-def dir_sep():
+def dir_sep() -> str:
     """Return the separator used in this os."""
     return getattr(os.path, "sep", "/")
 

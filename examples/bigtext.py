@@ -32,9 +32,9 @@ import urwid.display.raw
 
 
 class SwitchingPadding(urwid.Padding):
-    def padding_values(self, size, focus):
+    def padding_values(self, size, focus: bool) -> tuple[int, int]:
         maxcol = size[0]
-        width, ignore = self.original_widget.pack(size, focus=focus)
+        width, _height = self.original_widget.pack(size, focus=focus)
         if maxcol > width:
             self.align = urwid.LEFT
         else:
@@ -139,15 +139,15 @@ class BigTextDisplay:
         self.loop = urwid.MainLoop(self.view, self.palette, unhandled_input=self.unhandled_input)
         self.loop.run()
 
-    def unhandled_input(self, key):
+    def unhandled_input(self, key: str | tuple[str, int, int, int]) -> bool | None:
         if key == "f8":
             self.loop.widget = self.exit_view
             return True
         if self.loop.widget != self.exit_view:
             return None
-        if key in ("y", "Y"):
+        if key in {"y", "Y"}:
             raise urwid.ExitMainLoop()
-        if key in ("n", "N"):
+        if key in {"n", "N"}:
             self.loop.widget = self.view
             return True
         return None

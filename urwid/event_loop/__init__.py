@@ -9,7 +9,13 @@ from .asyncio_loop import AsyncioEventLoop
 from .main_loop import MainLoop
 from .select_loop import SelectEventLoop
 
-__all__ = ("EventLoop", "ExitMainLoop", "AsyncioEventLoop", "MainLoop", "SelectEventLoop")
+__all__ = (
+    "AsyncioEventLoop",
+    "EventLoop",
+    "ExitMainLoop",
+    "MainLoop",
+    "SelectEventLoop",
+)
 
 try:
     from .twisted_loop import TwistedEventLoop

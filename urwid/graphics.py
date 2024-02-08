@@ -37,14 +37,14 @@ from urwid.widget import (
 )
 
 __all__ = (
-    "BigText",
-    "LineBox",
     "BarGraph",
     "BarGraphError",
     "BarGraphMeta",
+    "BigText",
     "GraphVScale",
-    "scale_bar_values",
+    "LineBox",
     "ProgressBar",
+    "scale_bar_values",
 )
 
 
