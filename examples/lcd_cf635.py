@@ -202,7 +202,7 @@ class Menu(urwid.ListBox):
         Go back to the previous menu on cancel button (mapped to esc)
         """
         key = super().keypress(size, key)
-        if key in ("left", "esc") and self.menu_parent:
+        if key in {"left", "esc"} and self.menu_parent:
             show_menu(self.menu_parent)
             return None
 

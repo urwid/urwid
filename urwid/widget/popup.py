@@ -30,9 +30,18 @@ from .widget import delegate_to_widget_mixin
 from .widget_decoration import WidgetDecoration
 
 if typing.TYPE_CHECKING:
+    from typing_extensions import TypedDict
+
     from urwid.canvas import Canvas
 
     from .widget import Widget
+
+    class PopUpParametersModel(TypedDict):
+        left: int
+        top: int
+        overlay_width: int
+        overlay_height: int
+
 
 WrappedWidget = typing.TypeVar("WrappedWidget")
 
@@ -50,7 +59,7 @@ class PopUpLauncher(delegate_to_widget_mixin("_original_widget"), WidgetDecorati
         """
         raise NotImplementedError("Subclass must override this method")
 
-    def get_pop_up_parameters(self):
+    def get_pop_up_parameters(self) -> PopUpParametersModel:
         """
         Subclass must override this method and have it return a dict, eg:
 

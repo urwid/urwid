@@ -370,7 +370,7 @@ def main():
     else:
         screen = urwid.display.raw.Screen()
 
-    def unhandled(key):
+    def unhandled(key: str | tuple[str, int, int, int]) -> None:
         if key == "f8":
             raise urwid.ExitMainLoop()
 

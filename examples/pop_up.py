@@ -26,11 +26,11 @@ class PopUpDialog(urwid.WidgetWrap):
 
 
 class ThingWithAPopUp(urwid.PopUpLauncher):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(urwid.Button("click-me"))
         urwid.connect_signal(self.original_widget, "click", lambda button: self.open_pop_up())
 
-    def create_pop_up(self):
+    def create_pop_up(self) -> PopUpDialog:
         pop_up = PopUpDialog()
         urwid.connect_signal(pop_up, "close", lambda button: self.close_pop_up())
         return pop_up
@@ -40,7 +40,7 @@ class ThingWithAPopUp(urwid.PopUpLauncher):
 
     def keypress(self, key: str, size: tuple[int]) -> str | None:
         parsed = super().keypress(key, size)
-        if parsed in ("q", "Q"):
+        if parsed in {"q", "Q"}:
             raise urwid.ExitMainLoop("Done")
         return parsed
 

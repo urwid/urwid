@@ -6,7 +6,6 @@ import importlib
 import typing
 
 __all__ = (
-    "raw",
     "BLACK",
     "BROWN",
     "DARK_BLUE",
@@ -33,6 +32,7 @@ __all__ = (
     # Lazy imported
     "html_fragment",
     "lcd",
+    "raw",
     "web",
 )
 

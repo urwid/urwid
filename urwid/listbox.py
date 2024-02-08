@@ -548,9 +548,7 @@ class ListBox(Widget, WidgetContainerMixin):
         if size is not None:
             self._rendered_size = size
 
-        _, focus_pos = self._body.get_focus()
-
-        mid, top, bottom = self.calculate_visible(self._rendered_size, focus)
+        mid, top, _bottom = self.calculate_visible(self._rendered_size, focus)
 
         start_row = top.trim
         maxcol = self._rendered_size[0]

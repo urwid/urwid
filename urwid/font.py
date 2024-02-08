@@ -190,7 +190,7 @@ get_all_fonts = FontRegistry.as_list
 class Font(metaclass=FontRegistry):
     """Font base class."""
 
-    __slots__ = ("char", "canvas", "utf8_required")
+    __slots__ = ("canvas", "char", "utf8_required")
 
     height: int
     data: Sequence[str]

@@ -39,7 +39,7 @@ class MetaSignals(type):
         signals = d.get("signals", [])
         for superclass in cls.__bases__:
             signals.extend(getattr(superclass, "signals", []))
-        signals = list({x: None for x in signals}.keys())
+        signals = list(dict.fromkeys(signals).keys())
         d["signals"] = signals
         register_signal(cls, signals)
         super().__init__(name, bases, d)

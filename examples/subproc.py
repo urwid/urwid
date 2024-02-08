@@ -20,7 +20,7 @@ frame_widget = urwid.Frame(
 )
 
 
-def exit_on_enter(key):
+def exit_on_enter(key: str | tuple[str, int, int, int]) -> None:
     if key == "enter":
         raise urwid.ExitMainLoop()
 
@@ -28,8 +28,9 @@ def exit_on_enter(key):
 loop = urwid.MainLoop(frame_widget, unhandled_input=exit_on_enter)
 
 
-def received_output(data):
+def received_output(data: bytes) -> bool:
     output_widget.set_text(output_widget.text + data.decode("utf8"))
+    return True
 
 
 write_fd = loop.watch_pipe(received_output)

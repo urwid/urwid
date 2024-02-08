@@ -39,7 +39,7 @@ if typing.TYPE_CHECKING:
     _T = typing.TypeVar("_T")
     _Spec = ParamSpec("_Spec")
 
-__all__ = ("ExitMainLoop", "EventLoop")
+__all__ = ("EventLoop", "ExitMainLoop")
 
 
 class ExitMainLoop(Exception):
