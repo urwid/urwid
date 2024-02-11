@@ -3,19 +3,23 @@
 # args: scripts to capture
 
 DISPLAYNUM=5
-SCREENSHOTS=`dirname $0`/screenshots.sh
+SCREENSHOTS="$(dirname "$0")"/screenshots.sh
 
 XVFB=$(which Xvfb)
-if [ -n $XVFB ]; then
+if [ -n "$XVFB" ]; then
 	Xvfb :$DISPLAYNUM -screen 0 1024x768x24 &
 	XVFBPID=$!
-	DISPLAY=:$DISPLAYNUM # this still doesn't work
-	trap "kill $XVFBPID" EXIT
+	echo "[ ] launched Xvfb $XVFBPID"
+	until test -S /tmp/.X11-unix/X${DISPLAYNUM}; do sleep 0.1; done; sleep 0.2
+	trap 'echo "[ ] killing Xvfb $XVFBPID"; kill -INT $XVFBPID; wait $XVFBPID' EXIT
+	export DISPLAY=:$DISPLAYNUM
+	export XVFBPID
 fi
 
-for script in $@; do
-	echo "doing $script"
+for script in "$@"; do
 	if [ -f "${script}.xdotool" ]; then
-		"$SCREENSHOTS" "$script" < "${script}.xdotool"
+		echo
+		echo "doing $script"
+		timeout 60 "$SCREENSHOTS" "$script" < "${script}.xdotool"
 	fi
 done

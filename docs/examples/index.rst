@@ -13,7 +13,7 @@ tour.py
 -------
 
 .. image:: tour1.png
-.. image:: tour2.png
+.. image:: tour3.png
 
 Show how many of the standard widgets may be arranged
 on the screen
@@ -57,7 +57,7 @@ Monitor and display results from a subprocess
 palette_test.py
 ---------------
 
-.. image:: palette_test2.png
+.. image:: palette_test3.png
 
 Show available colors in various screen modes
 

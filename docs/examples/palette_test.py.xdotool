@@ -1,2 +1,3 @@
 windowsize --usehints $RXVTWINDOWID 79 34
-key --window $RXVTWINDOWID Down Down Down Return Right Down Return
+key --window $RXVTWINDOWID Down Down Down Return
+key --window $RXVTWINDOWID Right Down Return

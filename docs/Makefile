@@ -8,8 +8,7 @@ TOOLS=tools/compile_pngs.sh tools/screenshots.sh
 all: ${TARGETS}
 
 ${TARGETS}: %1.png: %.py %.py.xdotool ${TOOLS}
-	echo zzz $<
 	tools/compile_pngs.sh $<
 
 apt-get-dependencies:
-	sudo apt-get install xvfb rxvt-unicode-256color xdotool
+	sudo apt-get install xvfb rxvt-unicode xdotool
