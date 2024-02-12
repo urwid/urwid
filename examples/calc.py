@@ -40,6 +40,9 @@ import typing
 
 import urwid
 
+if typing.TYPE_CHECKING:
+    from collections.abc import Hashable
+
 # use appropriate Screen class
 if urwid.display.web.is_web_request():
     Screen = urwid.display.web.Screen
@@ -94,7 +97,7 @@ class CalcEvent(Exception):
 
     attr = "event"
 
-    def __init__(self, message: str) -> None:
+    def __init__(self, message: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]) -> None:
         self.message = message
 
     def widget(self):
@@ -109,14 +112,12 @@ class ColumnDeleteEvent(CalcEvent):
     attr = "confirm"
 
     def __init__(self, letter: str, from_parent=0) -> None:
-        self.message = ["Press ", ("key", "BACKSPACE"), " again to confirm column removal."]
+        super().__init__(["Press ", ("key", "BACKSPACE"), " again to confirm column removal."])
         self.letter = letter
 
 
 class UpdateParentEvent(Exception):
     """Sent when parent columns may need to be updated."""
-
-    pass
 
 
 class Cell:
@@ -260,8 +261,8 @@ class CellWalker(urwid.ListWalker):
     def set_focus(self, focus) -> None:
         self.focus = focus
 
-    def get_next(self, start_from):
-        i, sub = start_from
+    def get_next(self, position):
+        i, sub = position
         assert sub in {0, 1, 2}  # noqa: S101  # for examples "assert" is acceptable
         if sub == 0:
             show_result = self.content[i].show_result(self.get_cell(i + 1))
@@ -274,8 +275,8 @@ class CellWalker(urwid.ListWalker):
 
         return self._get_at_pos((i + 1, 0))
 
-    def get_prev(self, start_from):
-        i, sub = start_from
+    def get_prev(self, position):
+        i, sub = position
         assert sub in {0, 1, 2}  # noqa: S101  # for examples "assert" is acceptable
         if sub == 0:
             if i == 0:
@@ -809,7 +810,7 @@ class CalcNumLayout(urwid.TextLayout):
 
 def main() -> None:
     """Launch Column Calculator."""
-    global CALC_LAYOUT  # noqa: PLW0603
+    global CALC_LAYOUT  # noqa: PLW0603  # pylint: disable=global-statement
     CALC_LAYOUT = CalcNumLayout()
 
     urwid.display.web.set_preferences("Column Calculator")

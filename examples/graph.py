@@ -69,7 +69,7 @@ class GraphModel:
     def get_modes(self):
         return self.modes
 
-    def set_mode(self, m):
+    def set_mode(self, m) -> None:
         self.current_mode = m
 
     def get_data(self, offset, r):
@@ -320,11 +320,10 @@ class GraphController:
         """Allow our view access to the list of modes."""
         return self.model.get_modes()
 
-    def set_mode(self, m):
+    def set_mode(self, m) -> None:
         """Allow our view to set the mode."""
-        rval = self.model.set_mode(m)
+        self.model.set_mode(m)
         self.view.update_graph(True)
-        return rval
 
     def get_data(self, offset, data_range):
         """Provide data to our view for the graph."""

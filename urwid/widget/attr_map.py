@@ -22,7 +22,12 @@ class AttrMap(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[Wra
     wrapped widget.
     """
 
-    def __init__(self, w: WrappedWidget, attr_map, focus_map=None) -> None:
+    def __init__(
+        self,
+        w: WrappedWidget,
+        attr_map: Hashable | Mapping[Hashable | None, Hashable] | None,
+        focus_map: Hashable | Mapping[Hashable | None, Hashable] | None = None,
+    ) -> None:
         """
         :param w: widget to wrap (stored as self.original_widget)
         :type w: widget
@@ -81,7 +86,7 @@ class AttrMap(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[Wra
         # FIXME: a dictionary that detects modifications would be better
         return dict(self._attr_map)
 
-    def set_attr_map(self, attr_map: dict[Hashable | None, Hashable]) -> None:
+    def set_attr_map(self, attr_map: dict[Hashable | None, Hashable] | None) -> None:
         """
         Set the attribute mapping dictionary {from_attr: to_attr, ...}
 
@@ -112,7 +117,7 @@ class AttrMap(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[Wra
             return dict(self._focus_map)
         return None
 
-    def set_focus_map(self, focus_map: dict[Hashable | None, Hashable]) -> None:
+    def set_focus_map(self, focus_map: dict[Hashable | None, Hashable] | None) -> None:
         """
         Set the focus attribute mapping dictionary
         {from_attr: to_attr, ...}

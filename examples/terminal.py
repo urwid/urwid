@@ -66,7 +66,7 @@ def main() -> None:
 
     try:
         # create Screen with bracketed paste mode support enabled
-        bpm_screen = urwid.display.raw.Screen(bracketed_paste_mode=True)
+        bpm_screen = urwid.display.raw.Screen(bracketed_paste_mode=True)  # pylint: disable=unexpected-keyword-arg
     except TypeError:
         # if using a version of Urwid library that doesn't support
         # bracketed paste mode, do without it.

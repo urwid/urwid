@@ -34,7 +34,7 @@ from .text import Text
 from .widget import WidgetError, WidgetWrap
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, MutableSequence
+    from collections.abc import Callable, Hashable, MutableSequence
 
     from typing_extensions import Literal, Self
 
@@ -50,7 +50,7 @@ class SelectableIcon(Text):
 
     def __init__(
         self,
-        text,
+        text: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
         cursor_position: int = 0,
         align: Literal["left", "center", "right"] | Align = Align.LEFT,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
@@ -75,7 +75,11 @@ class SelectableIcon(Text):
         super().__init__(text, align=align, wrap=wrap, layout=layout)
         self._cursor_position = cursor_position
 
-    def render(self, size: tuple[int] | tuple[()], focus: bool = False) -> TextCanvas | CompositeCanvas:  # type: ignore[override]
+    def render(
+        self,
+        size: tuple[int] | tuple[()],
+        focus: bool = False,
+    ) -> TextCanvas | CompositeCanvas:  # type: ignore[override]
         """
         Render the text content of this widget with a cursor when
         in focus.
@@ -150,7 +154,7 @@ class CheckBox(WidgetWrap[Columns]):
     @typing.overload
     def __init__(
         self,
-        label,
+        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
         state: bool = False,
         has_mixed: typing.Literal[False] = False,
         on_state_change: Callable[[Self, bool, _T], typing.Any] | None = None,
@@ -161,7 +165,7 @@ class CheckBox(WidgetWrap[Columns]):
     @typing.overload
     def __init__(
         self,
-        label,
+        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
         state: bool = False,
         has_mixed: typing.Literal[False] = False,
         on_state_change: Callable[[Self, bool], typing.Any] | None = None,
@@ -172,7 +176,7 @@ class CheckBox(WidgetWrap[Columns]):
     @typing.overload
     def __init__(
         self,
-        label: str,
+        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
         state: typing.Literal["mixed"] | bool = False,
         has_mixed: typing.Literal[True] = True,
         on_state_change: Callable[[Self, bool | typing.Literal["mixed"], _T], typing.Any] | None = None,
@@ -183,7 +187,7 @@ class CheckBox(WidgetWrap[Columns]):
     @typing.overload
     def __init__(
         self,
-        label: str,
+        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
         state: typing.Literal["mixed"] | bool = False,
         has_mixed: typing.Literal[True] = True,
         on_state_change: Callable[[Self, bool | typing.Literal["mixed"]], typing.Any] | None = None,
@@ -193,7 +197,7 @@ class CheckBox(WidgetWrap[Columns]):
 
     def __init__(
         self,
-        label,
+        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
         state: bool | Literal["mixed"] = False,
         has_mixed: typing.Literal[False, True] = False,  # MyPy issue: Literal[True, False] is not equal `bool`
         on_state_change: (
@@ -288,7 +292,7 @@ class CheckBox(WidgetWrap[Columns]):
     def _repr_attrs(self):
         return dict(super()._repr_attrs(), state=self.state)
 
-    def set_label(self, label):
+    def set_label(self, label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]):
         """
         Change the check box label.
 
@@ -460,8 +464,8 @@ class RadioButton(CheckBox):
     @typing.overload
     def __init__(
         self,
-        group: MutableSequence[CheckBox],
-        label,
+        group: MutableSequence[RadioButton],
+        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
         state: bool | Literal["first True"] = ...,
         on_state_change: Callable[[Self, bool, _T], typing.Any] | None = None,
         user_data: _T = ...,
@@ -470,8 +474,8 @@ class RadioButton(CheckBox):
     @typing.overload
     def __init__(
         self,
-        group: MutableSequence[CheckBox],
-        label,
+        group: MutableSequence[RadioButton],
+        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
         state: bool | Literal["first True"] = ...,
         on_state_change: Callable[[Self, bool], typing.Any] | None = None,
         user_data: None = None,
@@ -479,8 +483,8 @@ class RadioButton(CheckBox):
 
     def __init__(
         self,
-        group: MutableSequence[CheckBox],
-        label,
+        group: MutableSequence[RadioButton],
+        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
         state: bool | Literal["first True"] = "first True",
         on_state_change: Callable[[Self, bool, _T], typing.Any] | Callable[[Self, bool], typing.Any] | None = None,
         user_data: _T | None = None,
@@ -602,7 +606,7 @@ class Button(WidgetWrap[Columns]):
     @typing.overload
     def __init__(
         self,
-        label,
+        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
         on_press: Callable[[Self, _T], typing.Any] | None = None,
         user_data: _T = ...,
         *,
@@ -614,7 +618,7 @@ class Button(WidgetWrap[Columns]):
     @typing.overload
     def __init__(
         self,
-        label,
+        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
         on_press: Callable[[Self], typing.Any] | None = None,
         user_data: None = None,
         *,
@@ -625,7 +629,7 @@ class Button(WidgetWrap[Columns]):
 
     def __init__(
         self,
-        label,
+        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
         on_press: Callable[[Self, _T], typing.Any] | Callable[[Self], typing.Any] | None = None,
         user_data: _T | None = None,
         *,
@@ -704,7 +708,7 @@ class Button(WidgetWrap[Columns]):
         # include button.label in repr(button)
         return [*super()._repr_words(), repr(self.label)]
 
-    def set_label(self, label) -> None:
+    def set_label(self, label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]) -> None:
         """
         Change the button label.
 

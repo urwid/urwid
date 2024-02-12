@@ -21,8 +21,7 @@ class PopUpDialog(urwid.WidgetWrap):
                 close_button,
             ]
         )
-        fill = urwid.Filler(pile)
-        super().__init__(urwid.AttrMap(fill, "popbg"))
+        super().__init__(urwid.AttrMap(urwid.Filler(pile), "popbg"))
 
 
 class ThingWithAPopUp(urwid.PopUpLauncher):
@@ -38,8 +37,8 @@ class ThingWithAPopUp(urwid.PopUpLauncher):
     def get_pop_up_parameters(self):
         return {"left": 0, "top": 1, "overlay_width": 32, "overlay_height": 7}
 
-    def keypress(self, key: str, size: tuple[int]) -> str | None:
-        parsed = super().keypress(key, size)
+    def keypress(self, size: tuple[int], key: str) -> str | None:
+        parsed = super().keypress(size, key)
         if parsed in {"q", "Q"}:
             raise urwid.ExitMainLoop("Done")
         return parsed

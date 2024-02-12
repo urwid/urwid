@@ -1,7 +1,9 @@
 tornado>=5
-coverage[toml]
 twisted
 trio
 zmq
 exceptiongroups
 windows-curses;sys_platform=="win32"
+pyserial
+# for test run
+coverage[toml]
