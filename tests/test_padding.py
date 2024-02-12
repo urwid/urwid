@@ -161,6 +161,14 @@ class PaddingTest(unittest.TestCase):
         widget.keypress((), "right")
         self.assertEqual("Cancel", body.focus.focus.label)
 
+    def test_insufficient_space(self):
+        width = 10
+        widget = urwid.Padding(urwid.Text("Some text"), width=width)
+        with self.assertWarns(urwid.widget.PaddingWarning) as ctx:
+            canvas = widget.render((width - 1,))
+        self.assertEqual("Some text", str(canvas))
+        self.assertEqual(width - 1, canvas.cols())
+
     def ptest(self, desc, align, width, maxcol, left, right, min_width=None):
         p = urwid.Padding(None, align, width, min_width)
         l, r = p.padding_values((maxcol,), False)
