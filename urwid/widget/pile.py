@@ -790,8 +790,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if wtotal == 0:
             raise PileError("No weighted widgets found for Pile treated as a box widget")
 
-        if remaining < 0:
-            remaining = 0
+        remaining = max(remaining, 0)
 
         for i, (_w, (_f, height)) in enumerate(self.contents):
             li = rows_numbers[i]

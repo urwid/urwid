@@ -258,6 +258,8 @@ class Frame(Widget, WidgetContainerMixin):
 
         # noinspection PyMethodParameters
         class FrameContents(typing.MutableMapping[str, typing.Tuple[Widget, None]]):
+            # pylint: disable=no-self-argument
+
             def __len__(inner_self) -> int:
                 return len(inner_self.keys())
 

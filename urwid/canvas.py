@@ -548,9 +548,6 @@ class BlankCanvas(Canvas):
     since it doesn't know its own size
     """
 
-    def __init__(self) -> None:
-        super().__init__()
-
     def content(
         self,
         trim_left: int = 0,
@@ -942,7 +939,7 @@ def shard_body_row(sbody):
     for _done_rows, content_iter, cview in sbody:
         if content_iter:
             row.extend(next(content_iter))
-        else:  # noqa: PLR5501
+        else:  # noqa: PLR5501  # pylint: disable=else-if-used  # readability
             # need to skip this unchanged canvas
             if row and isinstance(row[-1], int):
                 row[-1] = row[-1] + cview[2]
@@ -972,9 +969,9 @@ def shard_body_tail(num_rows: int, sbody):
 
 def shards_delta(shards, other_shards):
     """
-    Yield shards1 with cviews that are the same as shards2
-    having canv = None.
+    Yield shards1 with cviews that are the same as shards2 having canv = None.
     """
+    # pylint: disable=stop-iteration-return
     other_shards_iter = iter(other_shards)
     other_num_rows = other_cviews = None
     done = other_done = 0
@@ -996,7 +993,7 @@ def shards_delta(shards, other_shards):
 
 
 def shard_cviews_delta(cviews, other_cviews):
-    """ """
+    # pylint: disable=stop-iteration-return
     other_cviews_iter = iter(other_cviews)
     other_cv = None
     cols = other_cols = 0
@@ -1369,8 +1366,9 @@ def apply_text_layout(
             Add attributes based on attributes between
             start_offs and end_offs.
             """
+            # pylint: disable=cell-var-from-loop
             if start_offs == end_offs:
-                [(at, run)] = arange(start_offs, end_offs)
+                [(at, run)] = arange(start_offs, end_offs)  # pylint: disable=unbalanced-tuple-unpacking
                 rle_append_modify(linea, (at, destw))  # noqa: B023
                 return
             if destw == end_offs - start_offs:

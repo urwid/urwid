@@ -60,8 +60,7 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
             if focus_position < 0 and (widget == focus or idx == focus or (focus is None and widget.selectable())):
                 focus_position = idx
 
-        if focus_position < 0:
-            focus_position = 0
+        focus_position = max(focus_position, 0)
 
         self._contents: MonitoredFocusList[tuple[Widget, tuple[Literal[WHSettings.GIVEN], int]]] = MonitoredFocusList(
             prepared_contents, focus=focus_position
@@ -455,7 +454,7 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
             del p.contents[:1]
         else:
             # Ensure p __selectable is updated
-            p._contents_modified()
+            p._contents_modified()  # pylint: disable=protected-access
 
         return p
 

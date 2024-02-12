@@ -236,7 +236,7 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
 
         # Disable cursor display if cursor is outside of visible canvas parts
         if canv.cursor is not None:
-            _curscol, cursrow = canv.cursor
+            _curscol, cursrow = canv.cursor  # pylint: disable=unpacking-non-sequence
             if cursrow >= maxrow or cursrow < 0:
                 canv.cursor = None
 
@@ -586,9 +586,7 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
         if not handled and hasattr(ow, "set_scrollpos"):
             if button == 4:  # scroll wheel up
                 pos = ow.get_scrollpos(ow_size)
-                newpos = pos - 1
-                if newpos < 0:
-                    newpos = 0
+                newpos = max(pos - 1, 0)
                 ow.set_scrollpos(newpos)
                 return True
             if button == 5:  # scroll wheel down

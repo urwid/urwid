@@ -9,15 +9,15 @@ from urwid.command_map import Command
 from urwid.split_repr import remove_defaults
 from urwid.util import decompose_tagmarkup, is_wide_char, move_next_char, move_prev_char
 
+from .constants import Align, Sizing, WrapMode
+from .text import Text, TextError
+
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable
 
     from typing_extensions import Literal
 
     from urwid.canvas import TextCanvas
-
-from .constants import Align, Sizing, WrapMode
-from .text import Text, TextError
 
 
 class EditError(TextError):
@@ -112,7 +112,7 @@ class Edit(Text):
         self._edit_pos = 0
         self._caption, self._attrib = decompose_tagmarkup(caption)
         self._edit_text = ""
-        self.highlight = None
+        self.highlight: tuple[int, int] | None = None
         self.set_edit_text(edit_text)
         if edit_pos is None:
             edit_pos = len(edit_text)
@@ -259,10 +259,7 @@ class Edit(Text):
         >>> e.edit_pos
         4
         """
-        if pos < 0:
-            pos = 0
-        if pos > len(self._edit_text):
-            pos = len(self._edit_text)
+        pos = min(max(pos, 0), len(self._edit_text))
         self.highlight = None
         self.pref_col_maxcol = None, None
         self._edit_pos = pos
@@ -386,7 +383,7 @@ class Edit(Text):
         # if there's highlighted text, it'll get replaced by the new text
         text = self._normalize_to_caption(text)
         if self.highlight:
-            start, stop = self.highlight
+            start, stop = self.highlight  # pylint: disable=unpacking-non-sequence  # already checked
             btext, etext = self.edit_text[:start], self.edit_text[stop:]
             result_text = btext + etext
             result_pos = start
@@ -540,11 +537,7 @@ class Edit(Text):
             return False
 
         pos = text_layout.calc_pos(self.get_text()[0], trans, x, y)
-        e_pos = pos - len(self.caption)
-        if e_pos < 0:
-            e_pos = 0
-        if e_pos > len(self.edit_text):
-            e_pos = len(self.edit_text)
+        e_pos = min(max(pos - len(self.caption), 0), len(self.edit_text))
         self.edit_pos = e_pos
         self.pref_col_maxcol = x, maxcol
         self._invalidate()
@@ -555,8 +548,8 @@ class Edit(Text):
         size: tuple[int],
         event: str,
         button: int,
-        x: int,
-        y: int,
+        col: int,
+        row: int,
         focus: bool,
     ) -> bool | None:
         """
@@ -570,7 +563,7 @@ class Edit(Text):
         2
         """
         if button == 1:
-            return self.move_cursor_to_coords(size, x, y)
+            return self.move_cursor_to_coords(size, col, row)
         return False
 
     def _delete_highlighted(self) -> bool:
@@ -580,7 +573,7 @@ class Edit(Text):
         """
         if not self.highlight:
             return False
-        start, stop = self.highlight
+        start, stop = self.highlight  # pylint: disable=unpacking-non-sequence  # already checked
         btext, etext = self.edit_text[:start], self.edit_text[stop:]
         self.set_edit_text(btext + etext)
         self.edit_pos = start

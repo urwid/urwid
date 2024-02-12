@@ -132,8 +132,8 @@ class TornadoEventLoop(EventLoop):
             del self._pending_alarms[handle]
         except KeyError:
             return False
-        else:
-            return True
+
+        return True
 
     def watch_file(self, fd: int, callback: Callable[[], _T]) -> int:
         @self._also_call_idle

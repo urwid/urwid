@@ -52,7 +52,7 @@ class Screen(_raw_display_base.Screen):
 
     def __init__(
         self,
-        input: socket.socket | None = None,  # noqa: A002
+        input: socket.socket | None = None,  # noqa: A002  # pylint: disable=redefined-builtin
         output: io.TextIOBase = sys.stdout,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output

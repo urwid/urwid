@@ -39,7 +39,7 @@ except ImportError:
 
 # NOTE: because of circular imports (urwid.util -> urwid.escape -> urwid.util)
 # from urwid.util import is_mouse_event -- will not work here
-import urwid.util
+import urwid.util  # isort: skip  # pylint: disable=wrong-import-position
 
 IS_WINDOWS = sys.platform == "win32"
 

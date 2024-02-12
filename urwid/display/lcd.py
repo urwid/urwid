@@ -20,6 +20,7 @@
 
 from __future__ import annotations
 
+import abc
 import time
 import typing
 
@@ -33,7 +34,11 @@ if typing.TYPE_CHECKING:
     from urwid import Canvas
 
 
-class LCDScreen(BaseScreen):
+class LCDScreen(BaseScreen, abc.ABC):
+    """Base class for LCD-based screens."""
+
+    DISPLAY_SIZE: tuple[int, int]
+
     def set_terminal_properties(self, colors=None, bright_is_bold=None, has_underline=None):
         pass
 
@@ -254,8 +259,8 @@ class KeyRepeatSimulator:
         """
         if len(self.pressed) != 1 or self.multiple_pressed:
             return None
-        for key in self.pressed:
-            return max(0.0, self.pressed[key] + self.repeat_delay - time.time()), key
+        for key, val in self.pressed.items():
+            return max(0.0, val + self.repeat_delay - time.time()), key
         return None
 
     def sent_event(self) -> None:

@@ -54,7 +54,7 @@ if typing.TYPE_CHECKING:
 class Screen(_raw_display_base.Screen):
     def __init__(
         self,
-        input: io.TextIOBase = sys.stdin,  # noqa: A002
+        input: io.TextIOBase = sys.stdin,  # noqa: A002  # pylint: disable=redefined-builtin
         output: io.TextIOBase = sys.stdout,
         bracketed_paste_mode=False,
     ) -> None:
@@ -149,7 +149,7 @@ class Screen(_raw_display_base.Screen):
         if not os.environ.get("TERM", "").lower().startswith("linux"):
             return
 
-        m = Popen(
+        m = Popen(  # pylint: disable=consider-using-with
             ["/usr/bin/mev", "-e", "158"],  # noqa: S603
             stdin=PIPE,
             stdout=PIPE,

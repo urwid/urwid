@@ -189,7 +189,7 @@ def decode_one_right(text: bytes, pos: int) -> tuple[int, int] | None:
 def set_byte_encoding(enc: Literal["utf8", "narrow", "wide"]) -> None:
     if enc not in {"utf8", "narrow", "wide"}:
         raise ValueError(enc)
-    global _byte_encoding  # noqa: PLW0603
+    global _byte_encoding  # noqa: PLW0603  # pylint: disable=global-statement
     _byte_encoding = enc
 
 

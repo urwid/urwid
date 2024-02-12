@@ -568,6 +568,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         # noinspection PyMethodParameters
         class OverlayContents(typing.Sequence[typing.Tuple[Widget, OverlayOptions]]):
+            # pylint: disable=no-self-argument
             def __len__(inner_self) -> int:
                 return 2
 
@@ -578,8 +579,8 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 return repr(f"<{inner_self.__class__.__name__}({[inner_self[0], inner_self[1]]})> for {self}")
 
             def __rich_repr__(inner_self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
-                for idx in range(len(inner_self)):
-                    yield None, inner_self[idx]
+                for val in inner_self:
+                    yield None, val
 
             def __iter__(inner_self) -> Iterator[tuple[Widget, OverlayOptions]]:
                 for idx in range(2):

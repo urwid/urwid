@@ -195,7 +195,7 @@ class Signals:
         # their callbacks) from existing.
         obj_weak = weakref.ref(obj)
 
-        def weakref_callback(weakref):
+        def weakref_callback(weakref):  # pylint: disable=redefined-outer-name  # bad, but not changing API
             o = obj_weak()
             if o:
                 self.disconnect_by_key(o, name, key)

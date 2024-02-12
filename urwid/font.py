@@ -119,15 +119,15 @@ class FontRegistry(type):
 
     __registered: typing.ClassVar[dict[str, FontRegistry]] = {}
 
-    def __iter__(self) -> Iterator[str]:
+    def __iter__(cls) -> Iterator[str]:
         """Iterate over registered font names."""
-        return iter(self.__registered)
+        return iter(cls.__registered)
 
-    def __getitem__(self, item: str) -> FontRegistry | None:
+    def __getitem__(cls, item: str) -> FontRegistry | None:
         """Get font by name if registered."""
-        return self.__registered.get(item)
+        return cls.__registered.get(item)
 
-    def __class_getitem__(cls, item: str) -> FontRegistry | None:
+    def __class_getitem__(mcs, item: str) -> FontRegistry | None:
         """Get font by name if registered.
 
         This method is needed to get access to font from registry class.
@@ -142,7 +142,7 @@ class FontRegistry(type):
         >>> b'\\n'.join(canvas.text).decode('utf-8')
         '  \\n ┼\\n  '
         """
-        return cls.__registered.get(item)
+        return mcs.__registered.get(item)
 
     @property
     def registered(cls) -> Sequence[str]:
@@ -155,18 +155,18 @@ class FontRegistry(type):
         return list(mcs.__registered.items())
 
     def __new__(
-        cls: type[FontRegistry],
+        mcs: type[FontRegistry],
         name: str,
         bases: tuple[type, ...],
         namespace: dict[str, typing.Any],
         **kwds: typing.Any,
     ) -> FontRegistry:
         font_name: str = namespace.setdefault("name", kwds.get("font_name", ""))
-        font_class = super().__new__(cls, name, bases, namespace)
+        font_class = super().__new__(mcs, name, bases, namespace)
         if font_name:
-            if font_name not in cls.__registered:
-                cls.__registered[font_name] = font_class
-            if cls.__registered[font_name] != font_class:
+            if font_name not in mcs.__registered:
+                mcs.__registered[font_name] = font_class
+            if mcs.__registered[font_name] != font_class:
                 warnings.warn(
                     f"{font_name!r} is already registered, please override explicit if required or change name",
                     FontRegistryWarning,

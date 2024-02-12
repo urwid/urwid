@@ -423,6 +423,7 @@ class TreeWalker(urwid.ListWalker):
         self.focus = focus
         self._modified()
 
+    # pylint: disable=arguments-renamed  # its bad, but we should not change API
     def get_next(self, start_from) -> tuple[TreeWidget, TreeNode] | tuple[None, None]:
         widget = start_from.get_widget()
         target = widget.next_inorder()
@@ -438,6 +439,8 @@ class TreeWalker(urwid.ListWalker):
             return None, None
 
         return target, target.get_node()
+
+    # pylint: enable=arguments-renamed
 
 
 class TreeListBox(urwid.ListBox):
