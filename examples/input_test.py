@@ -124,7 +124,7 @@ def key_test():
 
         if t:
             lw.append(urwid.Columns([(urwid.WEIGHT, 2, urwid.Text(t)), rawt]))
-            listbox.base_widget.set_focus(len(lw) - 1, "above")
+            listbox.original_widget.set_focus(len(lw) - 1, "above")
         return keys
 
     loop = urwid.MainLoop(

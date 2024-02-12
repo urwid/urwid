@@ -30,6 +30,9 @@ import typing
 import urwid
 import urwid.display.raw
 
+if typing.TYPE_CHECKING:
+    from collections.abc import Callable
+
 
 class SwitchingPadding(urwid.Padding):
     def padding_values(self, size, focus: bool) -> tuple[int, int]:
@@ -55,30 +58,41 @@ class BigTextDisplay:
         ("exit", "white", "dark cyan"),
     ]
 
-    def create_radio_button(self, g, name, font, fn):
+    def create_radio_button(
+        self,
+        g: list[urwid.RadioButton],
+        name: str,
+        font: urwid.Font,
+        fn: Callable[[urwid.RadioButton, bool], typing.Any],
+    ) -> urwid.AttrMap:
         w = urwid.RadioButton(g, name, False, on_state_change=fn)
         w.font = font
         w = urwid.AttrMap(w, "button normal", "button select")
         return w
 
-    def create_disabled_radio_button(self, name):
+    def create_disabled_radio_button(self, name: str) -> urwid.AttrMap:
         w = urwid.Text(f"    {name} (UTF-8 mode required)")
         w = urwid.AttrMap(w, "button disabled")
         return w
 
-    def create_edit(self, label, text, fn):
+    def create_edit(
+        self,
+        label: str,
+        text: str,
+        fn: Callable[[urwid.Edit, str], typing.Any],
+    ) -> urwid.AttrMap:
         w = urwid.Edit(label, text)
         urwid.connect_signal(w, "change", fn)
         fn(w, text)
         w = urwid.AttrMap(w, "edit")
         return w
 
-    def set_font_event(self, w, state):
+    def set_font_event(self, w, state: bool) -> None:
         if state:
             self.bigtext.set_font(w.font)
             self.chars_avail.set_text(w.font.characters())
 
-    def edit_change_event(self, widget, text):
+    def edit_change_event(self, widget, text: str) -> None:
         self.bigtext.set_text(text)
 
     def setup_view(self):
@@ -100,17 +114,25 @@ class BigTextDisplay:
 
         # Create BigText
         self.bigtext = urwid.BigText("", None)
-        bt = SwitchingPadding(self.bigtext, urwid.LEFT, None)
-        bt = urwid.AttrMap(bt, "bigtext")
-        bt = urwid.Filler(bt, urwid.BOTTOM, None, 7)
-        bt = urwid.BoxAdapter(bt, 7)
+        bt = urwid.BoxAdapter(
+            urwid.Filler(
+                urwid.AttrMap(
+                    SwitchingPadding(self.bigtext, urwid.LEFT, None),
+                    "bigtext",
+                ),
+                urwid.BOTTOM,
+                None,
+                7,
+            ),
+            7,
+        )
 
         # Create chars_avail
         cah = urwid.Text("Characters Available:")
         self.chars_avail = urwid.Text("", wrap=urwid.ANY)
         ca = urwid.AttrMap(self.chars_avail, "chars")
 
-        chosen_font_rb.base_widget.set_state(True)  # causes set_font_event call
+        chosen_font_rb.original_widget.set_state(True)  # causes set_font_event call
 
         # Create Edit widget
         edit = self.create_edit("", "Urwid BigText example", self.edit_change_event)

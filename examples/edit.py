@@ -42,9 +42,13 @@ class LineWalker(urwid.ListWalker):
     """ListWalker-compatible class for lazily reading file contents."""
 
     def __init__(self, name: str) -> None:
-        self.file = open(name)  # noqa: SIM115  # do not overcomplicate example
+        # do not overcomplicate example
+        self.file = open(name, encoding="utf-8")  # noqa: SIM115  # pylint: disable=consider-using-with
         self.lines = []
         self.focus = 0
+
+    def __del__(self) -> None:
+        self.file.close()
 
     def get_focus(self):
         return self._get_at_pos(self.focus)
@@ -53,11 +57,11 @@ class LineWalker(urwid.ListWalker):
         self.focus = focus
         self._modified()
 
-    def get_next(self, start_from: int) -> tuple[urwid.Edit, int] | tuple[None, None]:
-        return self._get_at_pos(start_from + 1)
+    def get_next(self, position: int) -> tuple[urwid.Edit, int] | tuple[None, None]:
+        return self._get_at_pos(position + 1)
 
-    def get_prev(self, start_from: int) -> tuple[urwid.Edit, int] | tuple[None, None]:
-        return self._get_at_pos(start_from - 1)
+    def get_prev(self, position: int) -> tuple[urwid.Edit, int] | tuple[None, None]:
+        return self._get_at_pos(position - 1)
 
     def read_next_line(self) -> str:
         """Read another line from the file."""
@@ -219,7 +223,7 @@ class EditDisplay:
             lines.append(walk.read_next_line())
 
         # write back to disk
-        with open(self.save_name, "w") as outfile:
+        with open(self.save_name, "w", encoding="utf-8") as outfile:
             prefix = ""
             for line in lines:
                 outfile.write(prefix + line)
@@ -246,8 +250,9 @@ def re_tab(s) -> str:
 def main() -> None:
     try:
         name = sys.argv[1]
-        assert open(name, "a")  # noqa: SIM115,S101  # do not overcomplicate example
-    except (FileNotFoundError, OSError):
+        # do not overcomplicate example
+        assert open(name, "ab")  # noqa: SIM115,S101  # pylint: disable=consider-using-with
+    except OSError:
         sys.stderr.write(__doc__)
         return
     EditDisplay(name).main()

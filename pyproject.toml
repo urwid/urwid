@@ -271,10 +271,12 @@ exclude-protected = [
   "_source",
   "_make",
   "os._exit",
+  # API
   "_original_widget",
   "_invalidate",
   "_repr_attrs",
   "_repr_words",
+  "_w",
 ]
 
 [tool.pylint.format]

@@ -53,13 +53,13 @@ class FibonacciWalker(urwid.ListWalker):
         self.focus = focus
         self._modified()
 
-    def get_next(self, start_from) -> tuple[urwid.Text, tuple[int, int]]:
-        a, b = start_from
+    def get_next(self, position) -> tuple[urwid.Text, tuple[int, int]]:
+        a, b = position
         focus = b, a + b
         return self._get_at_pos(focus)
 
-    def get_prev(self, start_from) -> tuple[urwid.Text, tuple[int, int]]:
-        a, b = start_from
+    def get_prev(self, position) -> tuple[urwid.Text, tuple[int, int]]:
+        a, b = position
         focus = b - a, a
         return self._get_at_pos(focus)
 

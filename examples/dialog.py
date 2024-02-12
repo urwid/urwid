@@ -133,7 +133,7 @@ class InputDialogDisplay(DialogDisplay):
 
 class TextDialogDisplay(DialogDisplay):
     def __init__(self, file: str, height: int, width: int) -> None:
-        with open(file) as f:
+        with open(file, encoding="utf-8") as f:
             lines = [urwid.Text(line.rstrip()) for line in f]
         # read the whole file (being slow, not lazy this time)
 
@@ -308,7 +308,7 @@ def do_radiolist(
 ) -> ListDialogDisplay:
     radiolist = []
 
-    def constr(
+    def constr(  # pylint: disable=dangerous-default-value
         tag,
         state: bool,
         radiolist: list[urwid.RadioButton] = radiolist,
@@ -332,7 +332,7 @@ def do_yesno(text, height: int, width: int) -> DialogDisplay:
     return d
 
 
-MODES = {
+MODES = {  # pylint: disable=consider-using-namedtuple-or-dataclass  # made before argparse in stdlib
     "--checklist": (do_checklist, "text height width list-height [ tag item status ] ..."),
     "--inputbox": (do_inputbox, "text height width"),
     "--menu": (do_menu, "text height width menu-height [ tag item ] ..."),
