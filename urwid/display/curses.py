@@ -62,7 +62,7 @@ if IS_WINDOWS:
     )
 
     def initscr():
-        import curses
+        import curses  # pylint: disable=redefined-outer-name,reimported  # special case for monkeypatch
 
         import _curses
 
@@ -81,7 +81,7 @@ else:
 
     COLOR_CORRECTION = {}
 
-_curses_colours = {
+_curses_colours = {  # pylint: disable=consider-using-namedtuple-or-dataclass  # historic test/debug data
     "default": (-1, 0),
     "black": (curses.COLOR_BLACK, 0),
     "dark red": (curses.COLOR_RED, 0),
@@ -548,7 +548,7 @@ class Screen(BaseScreen, RealTerminal):
 
         self.s.attrset(attr)
 
-    def draw_screen(self, size: tuple[int, int], r: Canvas):
+    def draw_screen(self, size: tuple[int, int], canvas: Canvas):
         """Paint screen with rendered canvas."""
 
         logger = self.logger.getChild("draw_screen")
@@ -558,13 +558,13 @@ class Screen(BaseScreen, RealTerminal):
 
         _cols, rows = size
 
-        if r.rows() != rows:
+        if canvas.rows() != rows:
             raise ValueError("canvas size and passed size don't match")
 
         logger.debug(f"Drawing screen with size {size!r}")
 
         y = -1
-        for row in r.content():
+        for row in canvas.content():
             y += 1
             try:
                 self.s.move(y, 0)
@@ -587,8 +587,8 @@ class Screen(BaseScreen, RealTerminal):
                     lasta = a
                 try:
                     if cs in {"0", "U"}:
-                        for i in range(len(seg)):
-                            self.s.addch(0x400000 + seg[i])
+                        for segment in seg:
+                            self.s.addch(0x400000 + segment)
                     else:
                         if cs is not None:
                             raise ValueError(f"cs not in ('0', 'U' ,'None'): {cs!r}")
@@ -603,8 +603,8 @@ class Screen(BaseScreen, RealTerminal):
                         # quietly abort.
                         return
 
-        if r.cursor is not None:
-            x, y = r.cursor
+        if canvas.cursor is not None:
+            x, y = canvas.cursor
             self._curs_set(1)
             with suppress(curses.error):
                 self.s.move(y, x)
@@ -613,7 +613,7 @@ class Screen(BaseScreen, RealTerminal):
             self.s.move(0, 0)
 
         self.s.refresh()
-        self.keep_cache_alive_link = r
+        self.keep_cache_alive_link = canvas
 
     def clear(self) -> None:
         """
@@ -666,7 +666,7 @@ class _test:
             r.text = ([t.ljust(cols) for t in text] + [""] * rows)[:rows]
             r.attr = (attr + [[] for _ in range(rows)])[:rows]
             self.ui.draw_screen((cols, rows), r)
-            keys, raw = self.ui.get_input(raw_keys=True)
+            keys, raw = self.ui.get_input(raw_keys=True)  # pylint: disable=unpacking-non-sequence
             if "window resize" in keys:
                 cols, rows = self.ui.get_cols_rows()
             if not keys:

@@ -388,10 +388,9 @@ class LayoutSegment:
         need to be replaced with a space character at either edge
         so two or three segments will be returned.
         """
-        if start < 0:
-            start = 0
-        if end > self.sc:
-            end = self.sc
+        start = max(start, 0)
+        end = min(end, self.sc)
+
         if start >= end:
             return []  # completely gone
         if self.text:
@@ -594,7 +593,7 @@ def calc_coords(
     pos -- integer position into text
     clamp -- ignored right now
     """
-    closest = None
+    closest: tuple[int, tuple[int, int]] | None = None
     y = 0
     for line_layout in layout:
         x = 0
@@ -611,7 +610,7 @@ def calc_coords(
             distance = abs(s.offs - pos)
             if s.end is not None and s.end < pos:
                 distance = pos - (s.end - 1)
-            if closest is None or distance < closest[0]:
+            if closest is None or distance < closest[0]:  # pylint: disable=unsubscriptable-object
                 closest = distance, (x, y)
             x += s.sc
         y += 1

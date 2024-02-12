@@ -25,22 +25,24 @@ __all__ = (
 WrappedWidget = typing.TypeVar("WrappedWidget")
 
 
-class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # "decorator" was already taken
+class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disable=abstract-method
     """
     original_widget -- the widget being decorated
 
-    This is a base class for decoration widgets, widgets
-    that contain one or more widgets and only ever have
-    a single focus.  This type of widget will affect the
-    display or behaviour of the original_widget but it is
-    not part of determining a chain of focus.
+    This is a base class for decoration widgets,
+    widgets that contain one or more widgets and only ever have a single focus.
+    This type of widget will affect the display or behaviour of the original_widget,
+    but it is not part of determining a chain of focus.
 
-    Don't actually do this -- use a WidgetDecoration subclass
-    instead, these are not real widgets:
+    Don't actually do this -- use a WidgetDecoration subclass instead, these are not real widgets:
 
     >>> from urwid import Text
     >>> WidgetDecoration(Text(u"hi"))
     <WidgetDecoration fixed/flow widget <Text fixed/flow widget 'hi'>>
+
+    .. Warning:
+        WidgetDecoration do not implement ``render`` method.
+        Implement it or forward to the widget in the subclass.
     """
 
     def __init__(self, original_widget: WrappedWidget) -> None:
@@ -135,8 +137,6 @@ class WidgetPlaceholder(delegate_to_widget_mixin("_original_widget"), WidgetDeco
     The widget displayed is stored as the self.original_widget property and
     can be changed by assigning a new widget to it.
     """
-
-    pass
 
 
 class WidgetDisable(WidgetDecoration[WrappedWidget]):

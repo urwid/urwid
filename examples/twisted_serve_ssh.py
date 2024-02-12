@@ -193,7 +193,7 @@ class TwistedScreen(Screen):
         """Get the size of the terminal as (cols, rows)"""
         return self.terminalProtocol.width, self.terminalProtocol.height
 
-    def draw_screen(self, maxres, r):
+    def draw_screen(self, maxres, canvas):
         """Render a canvas to the terminal.
 
         The canvas contains all the information required to render the Urwid
@@ -204,7 +204,7 @@ class TwistedScreen(Screen):
         (maxcol, maxrow) = maxres
         # self.terminal.eraseDisplay()
         lasta = None
-        for i, row in enumerate(r.content()):
+        for i, row in enumerate(canvas.content()):
             self.terminal.cursorPosition(0, i)
             for attr, _cs, text in row:
                 if attr != lasta:
@@ -213,7 +213,7 @@ class TwistedScreen(Screen):
                 # if cs or attr:
                 #    print(cs, attr)
                 self.write(text)
-        cursor = r.get_cursor()
+        cursor = canvas.get_cursor()
         if cursor is not None:
             self.terminal.cursorPosition(*cursor)
 

@@ -191,3 +191,101 @@ known-third-party = []
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
+
+[tool.pylint]
+extension-pkg-whitelist = []
+ignore = ["CVS", "_version.py"]
+
+jobs = 0
+py-version = "3.7"
+
+load-plugins = [
+  "pylint.extensions.overlapping_exceptions",
+  "pylint.extensions.check_elif",
+  "pylint.extensions.for_any_all",
+  "pylint.extensions.code_style",
+  "pylint.extensions.redefined_variable_type",
+  "pylint.extensions.dict_init_mutate",
+  "pylint.extensions.typing",
+  "pylint.extensions.dunder",
+]
+
+enable = "all"
+disable = [
+  "locally-disabled",
+  "file-ignored",
+  "suppressed-message",
+  "similarities",
+  "too-many-ancestors",
+  "too-few-public-methods",
+  "too-many-public-methods",
+  "too-many-return-statements",
+  "too-many-branches",
+  "too-many-arguments",
+  "too-many-locals",
+  "too-many-statements",
+  "too-many-instance-attributes",
+  "too-many-lines",
+  "too-many-nested-blocks",
+  "broad-except",
+  "broad-exception-raised",
+  "logging-fstring-interpolation",
+  "logging-format-interpolation",
+  "consider-alternative-union-syntax",
+  "deprecated-typing-alias",
+  "fixme",
+  "invalid-name",
+  "import-outside-toplevel",
+  "cyclic-import",
+  "missing-docstring",
+  "use-implicit-booleaness-not-comparison-to-zero",
+  "unused-argument",
+  "unused-private-member",
+  "arguments-differ",
+  "consider-alternative-union-syntax",
+  "consider-using-assignment-expr",
+  "superfluous-parens",
+  # Magic part
+  "invalid-overridden-method",
+  "attribute-defined-outside-init",  # old bad practice, fixed step-by-step
+  "redefined-variable-type",  # makes not happy typechecking, but super common
+  # too complex union
+  "use-implicit-booleaness-not-comparison-to-string",
+  # iterable modification during iteration
+  "consider-using-enumerate",
+]
+max-line-length = 120
+reports = false
+
+[tool.pylint.basic]
+good-names = [
+  "i", "j", "k", "ex", "Run", "_",
+  "bar",  # we draw bars
+]
+
+[tool.pylint.classes]
+exclude-protected = [
+  "_asdict",
+  "_fields",
+  "_replace",
+  "_source",
+  "_make",
+  "os._exit",
+  "_original_widget",
+  "_invalidate",
+  "_repr_attrs",
+  "_repr_words",
+]
+
+[tool.pylint.format]
+ignore-long-lines = "^(\\s*(# )?<?https?://\\S+>?)|(.+# type: ignore\\[[\\w\\-\\,]+\\])$"
+
+[tool.pylint.dunder]
+good-dunder-names = [
+  "__rich_repr__",
+  # class generation
+  "_contents__getitem__",
+  "_contents__setitem__",
+  "_contents__delitem__",
+]
+

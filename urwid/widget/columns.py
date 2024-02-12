@@ -236,6 +236,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         filling the full height.
         """
         self._selectable = False
+        self._cache_column_widths: list[int] = []
         super().__init__()
         self._contents: MonitoredFocusList[
             Widget,

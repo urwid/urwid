@@ -410,7 +410,7 @@ class Widget(metaclass=WidgetMeta):
 
         if len(size) == 1:
             if Sizing.FLOW in self.sizing():
-                return (*size, self.rows(size, focus))
+                return (*size, self.rows(size, focus))  # pylint: disable=no-member  # can not announce abstract
 
             raise WidgetError(f"Cannot pack (maxcol,) size, this is not a flow widget: {self!r}")
 

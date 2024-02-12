@@ -476,8 +476,8 @@ class Padding(WidgetDecoration[WrappedWidget]):
         size: tuple[()] | tuple[int] | tuple[int, int],
         event: str,
         button: int,
-        x: int,
-        y: int,
+        col: int,
+        row: int,
         focus: bool,
     ) -> bool | None:
         """Send mouse event if position is within self._original_widget."""
@@ -487,13 +487,13 @@ class Padding(WidgetDecoration[WrappedWidget]):
         left, right = self.padding_values(size, focus)
         if size:
             maxcol = size[0]
-            if x < left or x >= maxcol - right:
+            if col < left or col >= maxcol - right:
                 return False
             maxvals = (maxcol - left - right,) + size[1:]
         else:
             maxvals = ()
 
-        return self._original_widget.mouse_event(maxvals, event, button, x - left, y, focus)
+        return self._original_widget.mouse_event(maxvals, event, button, col - left, row, focus)
 
     def get_pref_col(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> int | None:
         """Return the preferred column from self._original_widget, or None."""

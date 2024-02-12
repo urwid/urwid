@@ -475,12 +475,11 @@ class MainLoop:
 
     def _run_screen_event_loop(self) -> None:
         """
-        This method is used when the screen does not support using
-        external event loops.
+        This method is used when the screen does not support using external event loops.
 
-        The alarms stored in the SelectEventLoop in :attr:`event_loop`
-        are modified by this method.
+        The alarms stored in the SelectEventLoop in :attr:`event_loop` are modified by this method.
         """
+        # pylint: disable=protected-access  # special case for alarms handling
         self.logger.debug(f"Starting screen {self.screen!r} event loop")
 
         next_alarm = None

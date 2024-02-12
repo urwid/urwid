@@ -176,11 +176,9 @@ class Screen(BaseScreen):
 
     def set_mouse_tracking(self, enable: bool = True) -> None:
         """Not yet implemented"""
-        pass
 
     def tty_signal_keys(self, *args, **vargs):
         """Do nothing."""
-        pass
 
     def start(self) -> StoppingContext:
         """
@@ -278,13 +276,11 @@ class Screen(BaseScreen):
     def _set_screen_size(self, cols, rows):
         """Set the screen size (within max size)."""
 
-        if cols > MAX_COLS:
-            cols = MAX_COLS
-        if rows > MAX_ROWS:
-            rows = MAX_ROWS
+        cols = min(cols, MAX_COLS)
+        rows = min(rows, MAX_ROWS)
         self.screen_size = cols, rows
 
-    def draw_screen(self, size: tuple[int, int], r: Canvas):
+    def draw_screen(self, size: tuple[int, int], canvas: Canvas):
         """Send a screen update to the client."""
 
         (cols, rows) = size
@@ -309,18 +305,18 @@ class Screen(BaseScreen):
             send("\r\n")
             self.content_head = ""
 
-        if r.rows() != rows:
+        if canvas.rows() != rows:
             raise ValueError(rows)
 
-        if r.cursor is not None:
-            cx, cy = r.cursor
+        if canvas.cursor is not None:
+            cx, cy = canvas.cursor
         else:
             cx = cy = None
 
         new_screen = {}
 
         y = -1
-        for row in r.content():
+        for row in canvas.content():
             y += 1
             l_row = list(row)
 
@@ -336,7 +332,7 @@ class Screen(BaseScreen):
                     old_line = y
                 else:
                     old_line = old_line_numbers[0]
-                send("<%d\n" % old_line)
+                send(f"<{old_line:d}\n")
                 continue
 
             col = 0
@@ -381,7 +377,6 @@ class Screen(BaseScreen):
 
         (does nothing for web_display)
         """
-        pass
 
     def _fork_child(self):
         """
@@ -637,6 +632,6 @@ def daemonize(errfile):
         with suppress(OSError):
             os.close(fd)
 
-    sys.stdin = open("/dev/null", encoding="utf-8")  # noqa: SIM115
-    sys.stdout = open("/dev/null", "w", encoding="utf-8")  # noqa: SIM115
+    sys.stdin = open("/dev/null", encoding="utf-8")  # noqa: SIM115  # pylint: disable=consider-using-with
+    sys.stdout = open("/dev/null", "w", encoding="utf-8")  # noqa: SIM115  # pylint: disable=consider-using-with
     sys.stderr = ErrorLog(errfile)

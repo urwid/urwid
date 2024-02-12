@@ -152,8 +152,7 @@ class AsyncioEventLoop(EventLoop):
 
         Returns True if the alarm exists, False otherwise
         """
-        cancelled = handle.cancelled() if getattr(handle, "cancelled", None) else handle._cancelled
-        existed = not cancelled
+        existed = not handle.cancelled()
         handle.cancel()
         return existed
 

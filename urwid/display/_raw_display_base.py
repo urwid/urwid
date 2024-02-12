@@ -54,7 +54,7 @@ IS_WSL = (sys.platform == "linux") and ("wsl" in platform.platform().lower())
 
 
 class Screen(BaseScreen, RealTerminal):
-    def __init__(self, input: io.IOBase, output: io.IOBase):  # noqa: A002
+    def __init__(self, input: io.IOBase, output: io.IOBase):  # noqa: A002  # pylint: disable=redefined-builtin
         """Initialize a screen that directly prints escape codes to an output
         terminal.
         """
@@ -355,8 +355,7 @@ class Screen(BaseScreen, RealTerminal):
 
     def _make_legacy_input_wrapper(self, event_loop, callback):
         """
-        Support old Screen classes that still have a get_input_nonblocking and
-        expect it to work.
+        Support old Screen classes that still have a get_input_nonblocking and expect it to work.
         """
 
         @functools.wraps(callback)
@@ -364,7 +363,7 @@ class Screen(BaseScreen, RealTerminal):
             if self._input_timeout:
                 event_loop.remove_alarm(self._input_timeout)
                 self._input_timeout = None
-            timeout, keys, raw = self.get_input_nonblocking()
+            timeout, keys, raw = self.get_input_nonblocking()  # pylint: disable=no-member  # should we deprecate?
             if timeout is not None:
                 self._input_timeout = event_loop.alarm(timeout, wrapper)
 
@@ -528,7 +527,7 @@ class Screen(BaseScreen, RealTerminal):
                 break
         self._setup_G1_done = True
 
-    def draw_screen(self, size: tuple[int, int], r: Canvas) -> None:
+    def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
         """Paint screen with rendered canvas."""
 
         def set_cursor_home() -> str:
@@ -572,11 +571,11 @@ class Screen(BaseScreen, RealTerminal):
         if not self._started:
             raise RuntimeError
 
-        if maxrow != r.rows():
+        if maxrow != canvas.rows():
             raise ValueError(maxrow)
 
         # quick return if nothing has changed
-        if self.screen_buf and r is self._screen_buf_canvas:
+        if self.screen_buf and canvas is self._screen_buf_canvas:
             return
 
         self._setup_G1()
@@ -614,7 +613,7 @@ class Screen(BaseScreen, RealTerminal):
         first = True
         last_charset_flag = None
 
-        for row in r.content():
+        for row in canvas.content():
             y += 1
             if osb and y < len(osb) and osb[y] == row:
                 # this row of the screen buffer matches what is
@@ -707,8 +706,8 @@ class Screen(BaseScreen, RealTerminal):
             if whitespace_at_end:
                 output.append(escape.ERASE_IN_LINE_RIGHT)
 
-        if r.cursor is not None:
-            x, y = r.cursor
+        if canvas.cursor is not None:
+            x, y = canvas.cursor
             output += [set_cursor_position(x, y), escape.SHOW_CURSOR]
             self._cy = y
 
@@ -727,7 +726,7 @@ class Screen(BaseScreen, RealTerminal):
                 raise
 
         self.screen_buf = sb
-        self._screen_buf_canvas = r
+        self._screen_buf_canvas = canvas
 
     def _last_row(self, row):
         """On the last row we need to slide the bottom right character

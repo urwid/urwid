@@ -571,8 +571,8 @@ class RadioButton(CheckBox):
         for cb in self.group:
             if cb is self:
                 continue
-            if cb._state:
-                cb.set_state(False)
+            if cb.state:
+                cb.state = False
 
     def toggle_state(self) -> None:
         """

@@ -375,7 +375,7 @@ class TermCanvas(Canvas):
             lines = self.height // 2
 
         if not up:
-            lines = -lines
+            lines = -lines  # pylint: disable=invalid-unary-operand-type  # type already narrowed
 
         maxscroll = len(self.scrollback_buffer)
         self.scrolling_up += lines
@@ -684,7 +684,7 @@ class TermCanvas(Canvas):
 
         byte -- an integer ordinal
         """
-        if self.modes.main_charset == CHARSET_UTF8 or util._target_encoding == "utf8":
+        if self.modes.main_charset == CHARSET_UTF8 or util.get_encoding() == "utf8":
             if byte >= 0xC0:
                 # start multibyte sequence
                 self.utf8_eat_bytes = self.get_utf8_len(byte)
@@ -703,7 +703,7 @@ class TermCanvas(Canvas):
                 if not sequence:
                     # invalid multibyte sequence, stop processing
                     return
-                char = sequence.encode(util._target_encoding, "replace")
+                char = sequence.encode(util.get_encoding(), "replace")
             else:
                 self.utf8_eat_bytes = None
                 char = bytes([byte])
@@ -788,7 +788,7 @@ class TermCanvas(Canvas):
                 y = self.scrollregion_end
             elif y < self.scrollregion_start:
                 y = self.scrollregion_start
-        else:  # noqa: PLR5501
+        else:  # noqa: PLR5501  # pylint: disable=else-if-used  # readability
             if y >= self.height:
                 y = self.height - 1
             elif y < 0:
@@ -810,7 +810,7 @@ class TermCanvas(Canvas):
                 self.scroll(reverse=True)
             else:
                 y -= 1
-        else:  # noqa: PLR5501
+        else:  # noqa: PLR5501  # pylint: disable=else-if-used  # readability
             if y >= self.height - 1 > self.scrollregion_end:
                 pass
             elif y == self.scrollregion_end:
@@ -1217,14 +1217,14 @@ class TermCanvas(Canvas):
                 fg = None
             else:
                 fg = self.attrspec.foreground_number
-                if fg >= 8 and self.attrspec._colors() == 16:
+                if fg >= 8 and self.attrspec.colors == 16:
                     fg -= 8
 
             if "default" in self.attrspec.background:
                 bg = None
             else:
                 bg = self.attrspec.background_number
-                if bg >= 8 and self.attrspec._colors() == 16:
+                if bg >= 8 and self.attrspec.colors == 16:
                     bg -= 8
 
             for attr in ("bold", "underline", "blink", "standout"):
@@ -1233,7 +1233,7 @@ class TermCanvas(Canvas):
 
                 attributes.add(attr)
 
-        attrspec = self.sgi_to_attrspec(attrs, fg, bg, attributes, self.attrspec._colors() if self.attrspec else 1)
+        attrspec = self.sgi_to_attrspec(attrs, fg, bg, attributes, self.attrspec.colors if self.attrspec else 1)
 
         if self.modes.reverse_video:
             self.attrspec = self.reverse_attrspec(attrspec)
@@ -1298,7 +1298,7 @@ class TermCanvas(Canvas):
                 self.set_term_cursor()
             elif mode == 2004:
                 self.modes.bracketed_paste = flag
-        else:  # noqa: PLR5501
+        else:  # noqa: PLR5501  # pylint: disable=else-if-used  # readability
             # ECMA-48
             if mode == 3:
                 self.modes.display_ctrl = flag
@@ -1791,7 +1791,7 @@ class Terminal(Widget):
                 key = chr(ord(key[-1]) - ord("a") + 1)
             else:
                 key = chr(ord(key[-1]) - ord("A") + 1)
-        else:  # noqa: PLR5501
+        else:  # noqa: PLR5501  # pylint: disable=else-if-used  # readability
             if self.term_modes.keys_decckm and key in KEY_TRANSLATIONS_DECCKM:
                 key = KEY_TRANSLATIONS_DECCKM[key]
             else:

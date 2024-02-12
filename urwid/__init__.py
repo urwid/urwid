@@ -211,37 +211,37 @@ from urwid.widget import (
 
 from . import display, event_loop, widget
 
-from urwid.treetools import ParentNode, TreeListBox, TreeNode, TreeWalker, TreeWidget, TreeWidgetError  # isort: skip
+from .treetools import ParentNode, TreeListBox, TreeNode, TreeWalker, TreeWidget, TreeWidgetError  # isort: skip
 
 # Optional event loops with external dependencies
 
 try:
-    from urwid.event_loop import TornadoEventLoop
+    from .event_loop import TornadoEventLoop
 except ImportError:
     pass
 
 try:
-    from urwid.event_loop import GLibEventLoop
+    from .event_loop import GLibEventLoop
 except ImportError:
     pass
 
 try:
-    from urwid.event_loop import TwistedEventLoop
+    from .event_loop import TwistedEventLoop
 except ImportError:
     pass
 
 try:
-    from urwid.event_loop import TrioEventLoop
+    from .event_loop import TrioEventLoop
 except ImportError:
     pass
 
 # OS Specific
 if sys.platform != "win32":
-    from urwid.vterm import TermCanvas, TermCharset, Terminal, TermModes, TermScroller
+    from .vterm import TermCanvas, TermCharset, Terminal, TermModes, TermScroller
 
     # ZMQEventLoop cause interpreter crash on windows
     try:
-        from urwid.event_loop import ZMQEventLoop
+        from .event_loop import ZMQEventLoop
     except ImportError:
         pass
 

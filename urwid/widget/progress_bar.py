@@ -110,6 +110,7 @@ class ProgressBar(Widget):
         """
         Render the progress bar.
         """
+        # pylint: disable=protected-access
         (maxcol,) = size
         txt = Text(self.get_text(), self.text_align, WrapMode.CLIP)
         c = txt.render((maxcol,))

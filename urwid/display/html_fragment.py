@@ -84,7 +84,7 @@ class HtmlGenerator(BaseScreen):
     def reset_default_terminal_palette(self, *args):
         pass
 
-    def draw_screen(self, size: tuple[int, int], r: Canvas):
+    def draw_screen(self, size: tuple[int, int], canvas: Canvas):
         """Create an html fragment from the render object.
         Append it to HtmlGenerator.fragments list.
         """
@@ -93,16 +93,16 @@ class HtmlGenerator(BaseScreen):
 
         _cols, rows = size
 
-        if r.rows() != rows:
+        if canvas.rows() != rows:
             raise ValueError(rows)
 
-        if r.cursor is not None:
-            cx, cy = r.cursor
+        if canvas.cursor is not None:
+            cx, cy = canvas.cursor
         else:
             cx = cy = None
 
         y = -1
-        for row in r.content():
+        for row in canvas.content():
             y += 1
             col = 0
 
@@ -166,21 +166,21 @@ def html_span(s, aspec, cursor: int = -1):
         html_fg, html_bg = html_bg, html_fg
     extra = ";text-decoration:underline" * aspec.underline + ";font-weight:bold" * aspec.bold
 
-    def html_span(fg, bg, s):
+    def _span(fg: str, bg: str, string: str) -> str:
         if not s:
             return ""
-        return f'<span style="color:{fg};background:{bg}{extra}">{html_escape(s)}</span>'
+        return f'<span style="color:{fg};background:{bg}{extra}">{html_escape(string)}</span>'
 
     if cursor >= 0:
         c_off, _ign = util.calc_text_pos(s, 0, len(s), cursor)
         c2_off = util.move_next_char(s, c_off, len(s))
         return (
-            html_span(html_fg, html_bg, s[:c_off])
-            + html_span(html_bg, html_fg, s[c_off:c2_off])
-            + html_span(html_fg, html_bg, s[c2_off:])
+            _span(html_fg, html_bg, s[:c_off])
+            + _span(html_bg, html_fg, s[c_off:c2_off])
+            + _span(html_fg, html_bg, s[c2_off:])
         )
 
-    return html_span(html_fg, html_bg, s)
+    return _span(html_fg, html_bg, s)
 
 
 def html_escape(text: str) -> str:

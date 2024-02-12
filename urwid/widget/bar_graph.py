@@ -23,6 +23,8 @@ class BarGraphMeta(WidgetMeta):
     """
 
     def __init__(cls, name, bases, d):
+        # pylint: disable=protected-access
+
         super().__init__(name, bases, d)
 
         if "get_data" in d:
@@ -37,7 +39,7 @@ def nocache_bargraph_get_data(self, get_data_fn):
     to be polled to get the latest data.
     """
     self.render = nocache_widget_render_instance(self)
-    self._get_data = get_data_fn
+    self._get_data = get_data_fn  # pylint: disable=protected-access
 
 
 class BarGraphError(WidgetError):
@@ -227,7 +229,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         Calculate display data.
         """
         (maxcol, maxrow) = size
-        bardata, top, hlines = self.get_data((maxcol, maxrow))
+        bardata, top, hlines = self.get_data((maxcol, maxrow))  # pylint: disable=no-member  # metaclass defined
         widths = self.calculate_bar_widths((maxcol, maxrow), bardata)
 
         if self.use_smoothed():
@@ -490,8 +492,7 @@ def calculate_bargraph_display(bardata, top: float, bar_widths: list[int], maxro
 
             if s >= maxrow:
                 continue
-            if s < 0:
-                s = 0
+            s = max(s, 0)
             if s < tallest:
                 # add only properly-overlapped bars
                 tallest = s

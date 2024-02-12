@@ -61,6 +61,15 @@ class _TwistedInputDescriptor(FileDescriptor):
     def doRead(self):
         return self.cb()
 
+    def getHost(self):
+        raise NotImplementedError("No network operation expected")
+
+    def getPeer(self):
+        raise NotImplementedError("No network operation expected")
+
+    def writeSomeData(self, data: bytes) -> None:
+        raise NotImplementedError("Reduced functionality: read-only")
+
 
 class TwistedEventLoop(EventLoop):
     """

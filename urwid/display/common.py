@@ -878,7 +878,7 @@ class AttrSpec:
         return vals + _COLOR_VALUES_256[self.background_number]
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, AttrSpec) and self.__value == other.__value
+        return isinstance(other, AttrSpec) and self.__value == other._value
 
     def __ne__(self, other: object) -> bool:
         return not self == other
@@ -895,7 +895,7 @@ class RealTerminal:
         def tty_signal_keys(
             self,
             intr: Literal["undefined"] | int | None = None,
-            quit: Literal["undefined"] | int | None = None,  # noqa: A002
+            quit: Literal["undefined"] | int | None = None,  # noqa: A002  # pylint: disable=redefined-builtin
             start: Literal["undefined"] | int | None = None,
             stop: Literal["undefined"] | int | None = None,
             susp: Literal["undefined"] | int | None = None,
@@ -921,7 +921,7 @@ class RealTerminal:
         def tty_signal_keys(
             self,
             intr: Literal["undefined"] | int | None = None,
-            quit: Literal["undefined"] | int | None = None,  # noqa: A002
+            quit: Literal["undefined"] | int | None = None,  # noqa: A002  # pylint: disable=redefined-builtin
             start: Literal["undefined"] | int | None = None,
             stop: Literal["undefined"] | int | None = None,
             susp: Literal["undefined"] | int | None = None,
@@ -1059,7 +1059,7 @@ class BaseScreen(metaclass=BaseMeta):
         pass
 
     @abc.abstractmethod
-    def draw_screen(self, size: tuple[int, int], r: Canvas) -> None:
+    def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
         pass
 
     def clear(self) -> None:

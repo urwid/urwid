@@ -130,7 +130,7 @@ class CommandMap(typing.Mapping[str, typing.Union[str, Command, None]]):
         it separate from a shared one.
         """
         c = self.__class__()
-        c._command = dict(self._command)
+        c._command = dict(self._command)  # pylint: disable=protected-access
         return c
 
 

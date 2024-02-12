@@ -40,7 +40,7 @@ def _call_modified(
     @functools.wraps(fn)
     def call_modified_wrapper(self: MonitoredList, *args: ArgSpec.args, **kwargs: ArgSpec.kwargs) -> Ret:
         rval = fn(self, *args, **kwargs)
-        self._modified()
+        self._modified()  # pylint: disable=protected-access
         return rval
 
     return call_modified_wrapper
@@ -52,7 +52,7 @@ class MonitoredList(typing.List[_T], typing.Generic[_T]):
     with the usual list operations append, extend, etc.
     """
 
-    def _modified(self) -> None:
+    def _modified(self) -> None:  # pylint: disable=method-hidden  # monkeypatch used
         pass
 
     def set_modified_callback(self, callback: Callable[[], typing.Any]) -> None:
@@ -82,9 +82,9 @@ class MonitoredList(typing.List[_T], typing.Generic[_T]):
         return f"{self.__class__.__name__}({list(self)!r})"
 
     # noinspection PyMethodParameters
-    def __rich_repr__(inner_self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
-        for idx in range(len(inner_self)):
-            yield None, inner_self[idx]
+    def __rich_repr__(self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
+        for item in self:
+            yield None, item
 
     __add__ = _call_modified(list.__add__)  # type: ignore[assignment]  # magic like old __super__
     __delitem__ = _call_modified(list.__delitem__)  # type: ignore[assignment]  # magic like old __super__
@@ -212,7 +212,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         )
         self.focus = index
 
-    def _focus_changed(self, new_focus: int) -> None:
+    def _focus_changed(self, new_focus: int) -> None:  # pylint: disable=method-hidden  # monkeypatch used
         pass
 
     def set_focus_changed_callback(self, callback: Callable[[int], typing.Any]) -> None:
@@ -244,7 +244,11 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         """
         self._focus_changed = callback  # Monkeypatch
 
-    def _validate_contents_modified(self, indices: tuple[int, int, int], new_items: Collection[_T]) -> int | None:
+    def _validate_contents_modified(  # pylint: disable=method-hidden  # monkeypatch used
+        self,
+        indices: tuple[int, int, int],
+        new_items: Collection[_T],
+    ) -> int | None:
         return None
 
     def set_validate_contents_modified(self, callback: Callable[[tuple[int, int, int], Collection[_T]], int | None]):
@@ -290,7 +294,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
             if stop <= focus:
                 focus += num_new_items - (stop - start)
 
-        else:  # noqa: PLR5501
+        else:  # noqa: PLR5501  # pylint: disable=else-if-used  # readability
             if not num_new_items:
                 # extended slice being removed
                 if focus in range(start, stop, step):

@@ -76,7 +76,8 @@ class ScrollSupportingBody(Sized, Protocol):
     def get_prev(self, position: _K) -> tuple[Widget, _K] | tuple[None, None]: ...
 
 
-class ListWalker(metaclass=signals.MetaSignals):
+class ListWalker(metaclass=signals.MetaSignals):  # pylint: disable=no-member, unsubscriptable-object
+    # mixin not named as mixin
     signals: typing.ClassVar[list[str]] = ["modified"]
 
     def _modified(self) -> None:
@@ -481,9 +482,7 @@ class ListBox(Widget, WidgetContainerMixin):
                 break
             fill_lines -= p_rows
 
-        trim_bottom = focus_rows + offset_rows - inset_rows - maxrow
-        if trim_bottom < 0:
-            trim_bottom = 0
+        trim_bottom = max(focus_rows + offset_rows - inset_rows - maxrow, 0)
 
         # 3. collect the widgets below the focus
         pos = focus_pos
@@ -777,6 +776,8 @@ class ListBox(Widget, WidgetContainerMixin):
 
     def _contents(self):
         class ListBoxContents:
+            # pylint: disable=no-self-argument
+
             __getitem__ = self._contents__getitem__
 
             __len__ = self.__len__
