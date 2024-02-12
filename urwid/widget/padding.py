@@ -316,10 +316,17 @@ class Padding(WidgetDecoration[WrappedWidget]):
 
         if self._width_type == WHSettings.CLIP:
             canv = self._original_widget.render((), focus)
+        elif size:
+            maxcol = size[0] - (left + right)
+            if self._width_type == WHSettings.GIVEN and maxcol < self._width_amount:
+                warnings.warn(
+                    f"{self}.render(size={size}, focus={focus}): too narrow size ({maxcol!r} < {self._width_amount!r})",
+                    PaddingWarning,
+                    stacklevel=3,
+                )
+            canv = self._original_widget.render((maxcol,) + size[1:], focus)
         elif self._width_type == WHSettings.GIVEN:
             canv = self._original_widget.render((self._width_amount,) + size[1:], focus)
-        elif size:
-            canv = self._original_widget.render((size[0] - (left + right),) + size[1:], focus)
         else:
             canv = self._original_widget.render((), focus)
 
