@@ -72,6 +72,7 @@ line_length = 120
 
 [tool.black]
 line-length = 120
+extend-exclude = "tests"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -151,6 +152,7 @@ ignore_missing_imports = true
 line-length = 120
 output-format = "full"
 target-version = "py37"
+extend-exclude = ["tests"]
 
 [tool.ruff.lint]
 ignore-init-module-imports = true
@@ -290,4 +292,3 @@ good-dunder-names = [
   "_contents__setitem__",
   "_contents__delitem__",
 ]
-

@@ -43,7 +43,7 @@ jobs:
           pip install --upgrade -r isort-requirements.txt
       - name: Check imports with isort
         run: |
-          isort --check --diff urwid tests examples
+          isort --check --diff .
 
   Black:
     name: Validate black formatting
@@ -61,7 +61,7 @@ jobs:
           pip install --upgrade -r black-requirements.txt
       - name: Check code style with black
         run: |
-          black --check urwid examples
+          black --check .
 
   Ruff:
     name: Check with Ruff
@@ -79,7 +79,7 @@ jobs:
           pip install --upgrade -r ruff-requirements.txt
       - name: Lint with ruff
         run: |
-          ruff check --output-format github urwid examples
+          ruff check --output-format github .
 
   PyLint:
     name: Check with pylint

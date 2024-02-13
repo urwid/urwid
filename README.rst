@@ -1,6 +1,6 @@
 Urwid
 =====
-|pypi| |docs| |gitter| |ci| |coveralls|
+|pypi| |docs| |gitter| |ci| |pre-commit| |coveralls|
 
 About
 =====
@@ -30,7 +30,7 @@ Installation
 To install using pip
 
 .. code:: bash
-   
+
    pip install urwid
 
 For advanced functionality extra requirements need to be installed.
@@ -265,6 +265,10 @@ Contributors
 .. |ci| image:: https://github.com/urwid/urwid/actions/workflows/pythonpackage.yml/badge.svg?branch=master
     :target: https://github.com/urwid/urwid/actions
     :alt: CI status
+
+.. |pre-commit| image:: https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit
+   :target: https://github.com/pre-commit/pre-commit
+   :alt: pre-commit
 
 .. |coveralls| image:: https://coveralls.io/repos/github/urwid/urwid/badge.svg
     :alt: test coverage

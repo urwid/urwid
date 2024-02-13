@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import ast
 import os
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -51,7 +52,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "Urwid"
-copyright = "2014, Ian Ward et al"
+copyright = "2014, Ian Ward et al"  # noqa: A001  # sphinx magic
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -61,13 +62,29 @@ VERSION_MODULE = os.path.abspath(os.path.join(FILE_PATH, "../urwid/version.py"))
 VERSION_VARS = {}
 
 
-def execfile(module, global_vars):
-    with open(module) as f:
-        code = compile(f.read(), "somefile.py", "exec")
-        exec(code, global_vars)
+with open(VERSION_MODULE, encoding="utf-8") as f:
+    parsed = ast.parse(f.read())
+    for node in parsed.body:
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+            # Not variable define
+            continue
 
+        if node.value is None:
+            # Not a proper assign
+            continue
 
-execfile(VERSION_MODULE, VERSION_VARS)
+        try:
+            value = ast.literal_eval(node.value)
+        except ValueError:
+            continue
+
+        if isinstance(node, ast.Assign):
+            VERSION_VARS.update(
+                {tgt.id: value for tgt in node.targets if isinstance(tgt, ast.Name) and isinstance(tgt.ctx, ast.Store)}
+            )
+        else:
+            VERSION_VARS[node.target.id] = value
+
 # The short X.Y version.
 version = ".".join(str(x) for x in VERSION_VARS["__version_tuple__"][:2])
 # The full version, including alpha/beta/rc tags.

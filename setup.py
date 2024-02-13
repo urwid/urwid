@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#
 # Urwid setup.py exports the useful bits
 #    Copyright (C) 2004-2014  Ian Ward
 #
@@ -32,7 +30,7 @@ setup_d = {
 if __name__ == "__main__":
     try:
         setup(**setup_d)
-    except (OSError, SystemExit) as e:
+    except (OSError, SystemExit):
         import sys
 
         if "test" in sys.argv:
