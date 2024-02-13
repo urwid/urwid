@@ -28,7 +28,7 @@ inside = urwid.AttrMap(div, "inside")
 txt = urwid.Text(("banner", " Hello World "), align="center")
 streak = urwid.AttrMap(txt, "streak")
 pile = loop.widget.base_widget  # .base_widget skips the decorations
-for item in [outside, inside, streak, inside, outside]:
+for item in (outside, inside, streak, inside, outside):
     pile.contents.append((item, pile.options()))
 
 loop.run()

@@ -12,11 +12,11 @@ def answer(name):
 
 
 class ConversationListBox(urwid.ListBox):
-    def __init__(self):
+    def __init__(self) -> None:
         body = urwid.SimpleFocusListWalker([question()])
         super().__init__(body)
 
-    def keypress(self, size, key):
+    def keypress(self, size: tuple[int, int], key: str) -> str | None:
         key = super().keypress(size, key)
         if key != "enter":
             return key
@@ -29,6 +29,7 @@ class ConversationListBox(urwid.ListBox):
         # add a new question
         self.body.insert(pos + 1, question())
         self.focus_position = pos + 1
+        return None
 
 
 palette = [("I say", "default,bold", "default")]
