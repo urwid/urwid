@@ -22,15 +22,8 @@ from __future__ import annotations
 
 import typing
 
-from urwid.util import (
-    calc_text_pos,
-    calc_trim_text,
-    calc_width,
-    get_encoding,
-    is_wide_char,
-    move_next_char,
-    move_prev_char,
-)
+from urwid.str_util import calc_text_pos, calc_width, is_wide_char, move_next_char, move_prev_char
+from urwid.util import calc_trim_text, get_encoding
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal

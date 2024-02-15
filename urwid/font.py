@@ -60,7 +60,7 @@ def separate_glyphs(gdata: str, height: int) -> tuple[dict[str, tuple[int, list[
             character = key_line[key_index]
 
         if key_index < len(key_line) and key_line[key_index] == character:
-            end_col += str_util.get_width(ord(character))
+            end_col += str_util.get_char_width(character)
             key_index += 1
             continue
 
@@ -76,7 +76,7 @@ def separate_glyphs(gdata: str, height: int) -> tuple[dict[str, tuple[int, list[
                 if j >= len(line):
                     fill = end_col - start_col - y
                     break
-                y += str_util.get_width(ord(line[j]))
+                y += str_util.get_char_width(line[j])
                 j += 1
             if y + fill != end_col - start_col:
                 raise ValueError(repr((y, fill, end_col)))

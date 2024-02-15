@@ -4,7 +4,7 @@ import locale
 import unittest
 
 import urwid
-from urwid import util
+from urwid import str_util, util
 
 
 class CalcWidthTest(unittest.TestCase):
@@ -16,7 +16,7 @@ class CalcWidthTest(unittest.TestCase):
 
     def wtest(self, desc, s, exp):
         s = s.encode("iso8859-1")
-        result = util.calc_width(s, 0, len(s))
+        result = str_util.calc_width(s, 0, len(s))
         assert result == exp, f"{desc} got:{result!r} expected:{exp!r}"
 
     def test1(self):
@@ -68,7 +68,7 @@ class WithinDoubleByteTest(unittest.TestCase):
         urwid.set_encoding(self.old_encoding)
 
     def wtest(self, s, ls, pos, expected, desc):
-        result = util.within_double_byte(s.encode("iso8859-1"), ls, pos)
+        result = str_util.within_double_byte(s.encode("iso8859-1"), ls, pos)
         assert result == expected, f"{desc} got:{result!r} expected: {expected!r}"
 
     def test1(self):
@@ -112,7 +112,7 @@ class CalcTextPosTest(unittest.TestCase):
     def ctptest(self, text, tests):
         text = text.encode("iso8859-1")
         for s, e, p, expected in tests:
-            got = util.calc_text_pos(text, s, e, p)
+            got = str_util.calc_text_pos(text, s, e, p)
             assert got == expected, f"{s, e, p!r} got:{got!r} expected:{expected!r}"
 
     def test1(self):

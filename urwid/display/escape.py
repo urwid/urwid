@@ -29,13 +29,10 @@ import sys
 import typing
 from collections.abc import MutableMapping, Sequence
 
+from urwid import str_util
+
 if typing.TYPE_CHECKING:
     from collections.abc import Collection, Iterable
-
-try:
-    from urwid import str_util
-except ImportError:
-    from urwid import old_str_util as str_util
 
 # NOTE: because of circular imports (urwid.util -> urwid.escape -> urwid.util)
 # from urwid.util import is_mouse_event -- will not work here

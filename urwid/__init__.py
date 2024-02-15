@@ -104,25 +104,20 @@ from urwid.signals import (
     emit_signal,
     register_signal,
 )
+from urwid.str_util import calc_text_pos, calc_width, is_wide_char, move_next_char, move_prev_char, within_double_byte
 from urwid.text_layout import LayoutSegment, StandardTextLayout, TextLayout, default_layout
 from urwid.util import (
     MetaSuper,
     TagMarkupException,
     apply_target_encoding,
-    calc_text_pos,
     calc_trim_text,
-    calc_width,
     decompose_tagmarkup,
     detected_encoding,
     get_encoding_mode,
     int_scale,
     is_mouse_event,
-    is_wide_char,
-    move_next_char,
-    move_prev_char,
     set_encoding,
     supports_unicode,
-    within_double_byte,
 )
 from urwid.version import version as __version__
 from urwid.version import version_tuple as __version_tuple__
