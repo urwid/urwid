@@ -811,7 +811,7 @@ class CompositeCanvas(Canvas):
             if left > 0:
                 new_top_cviews = [(0, 0, left, rows, None, blank_canvas), *top_cviews]
             else:
-                new_top_cviews = top_cviews[:]  # copy
+                new_top_cviews = top_cviews.copy()
 
             if right > 0:
                 new_top_cviews.append((0, 0, right, rows, None, blank_canvas))
@@ -911,7 +911,7 @@ class CompositeCanvas(Canvas):
                 if cv[4] is None:
                     new_cviews.append(cv[:4] + (mapping,) + cv[5:])
                 else:
-                    combined = dict(mapping)
+                    combined = mapping.copy()
                     combined.update([(k, mapping.get(v, v)) for k, v in cv[4].items()])
                     new_cviews.append(cv[:4] + (combined,) + cv[5:])
             shards.append((num_rows, new_cviews))

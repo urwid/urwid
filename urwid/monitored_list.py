@@ -185,11 +185,11 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         if not self:
             self._focus = 0
             return
+        if not isinstance(index, int):
+            raise TypeError("index must be an integer")
         if index < 0 or index >= len(self):
             raise IndexError(f"focus index is out of range: {index}")
-        if index != int(index):
-            raise IndexError(f"invalid focus index: {index}")
-        index = int(index)
+
         if index != self._focus:
             self._focus_changed(index)
         self._focus = index

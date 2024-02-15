@@ -286,8 +286,7 @@ class MainLoop:
 
             def cb() -> None:
                 data = os.read(pipe_rd, PIPE_BUFFER_READ_SIZE)
-                rval = callback(data)
-                if rval is False:
+                if not callback(data):
                     self.event_loop.remove_watch_file(watch_handle)
                     os.close(pipe_rd)
 

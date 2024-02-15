@@ -149,14 +149,14 @@ class Filler(WidgetDecoration[WrappedWidget]):
         raise FillerError("Method 'rows' not supported for BOX widgets")  # pragma: no cover
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
-        attrs = dict(
-            super()._repr_attrs(),
-            valign=simplify_valign(self.valign_type, self.valign_amount),
-            height=simplify_height(self.height_type, self.height_amount),
-            top=self.top,
-            bottom=self.bottom,
-            min_height=self.min_height,
-        )
+        attrs = {
+            **super()._repr_attrs(),
+            "valign": simplify_valign(self.valign_type, self.valign_amount),
+            "height": simplify_height(self.height_type, self.height_amount),
+            "top": self.top,
+            "bottom": self.bottom,
+            "min_height": self.min_height,
+        }
         return remove_defaults(attrs, Filler.__init__)
 
     @property
@@ -379,8 +379,7 @@ def calculate_top_bottom_filler(
     else:
         height = height_amount
 
-    standard_alignments = {VAlign.TOP: 0, VAlign.MIDDLE: 50, VAlign.BOTTOM: 100}
-    valign = standard_alignments.get(valign_type, valign_amount)
+    valign = {VAlign.TOP: 0, VAlign.MIDDLE: 50, VAlign.BOTTOM: 100}.get(valign_type, valign_amount)
 
     # add the remainder of top/bottom to the filler
     filler = maxrow - height - top - bottom

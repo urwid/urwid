@@ -129,7 +129,7 @@ class Edit(Text):
         )
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
-        attrs = dict(super()._repr_attrs(), edit_pos=self._edit_pos)
+        attrs = {**super()._repr_attrs(), "edit_pos": self._edit_pos}
         return remove_defaults(attrs, Edit.__init__)
 
     def get_text(self) -> tuple[str | bytes, list[tuple[Hashable, int]]]:
@@ -592,7 +592,7 @@ class Edit(Text):
         >>> c.cursor
         (5, 0)
         """
-        self._shift_view_to_cursor = bool(focus)
+        self._shift_view_to_cursor = bool(focus)  # noqa: FURB123,RUF100
 
         canv: TextCanvas | CompositeCanvas = super().render(size, focus)
         if focus:

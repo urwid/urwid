@@ -76,7 +76,7 @@ class AttrMap(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[Wra
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
         # only include the focus_attr when it takes effect (not None)
-        d = dict(super()._repr_attrs(), attr_map=self._attr_map)
+        d = {**super()._repr_attrs(), "attr_map": self._attr_map}
         if self._focus_map is not None:
             d["focus_map"] = self._focus_map
         return d

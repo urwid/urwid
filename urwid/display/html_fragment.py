@@ -24,6 +24,7 @@ HTML PRE-based UI implementation
 
 from __future__ import annotations
 
+import html
 import typing
 
 from urwid import util
@@ -185,10 +186,7 @@ def html_span(s, aspec, cursor: int = -1):
 
 def html_escape(text: str) -> str:
     """Escape text so that it will be displayed safely within HTML"""
-    text = text.replace("&", "&amp;")
-    text = text.replace("<", "&lt;")
-    text = text.replace(">", "&gt;")
-    return text
+    return html.escape(text)
 
 
 def screenshot_init(sizes: list[tuple[int, int]], keys: list[list[str]]) -> None:

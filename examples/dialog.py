@@ -49,7 +49,7 @@ class DialogDisplay:
         ("focustext", "light gray", "dark blue"),
     ]
 
-    def __init__(self, text, height: int, width: int, body=None) -> None:
+    def __init__(self, text, height: int | str, width: int | str, body=None) -> None:
         width = int(width)
         if width <= 0:
             width = (urwid.RELATIVE, 80)
@@ -108,7 +108,7 @@ class DialogDisplay:
 
 
 class InputDialogDisplay(DialogDisplay):
-    def __init__(self, text, height: int, width: int) -> None:
+    def __init__(self, text, height: int | str, width: int | str) -> None:
         self.edit = urwid.Edit()
         body = urwid.ListBox(urwid.SimpleListWalker([self.edit]))
         body = urwid.AttrMap(body, "selectable", "focustext")
@@ -132,7 +132,7 @@ class InputDialogDisplay(DialogDisplay):
 
 
 class TextDialogDisplay(DialogDisplay):
-    def __init__(self, file: str, height: int, width: int) -> None:
+    def __init__(self, file: str, height: int | str, width: int | str) -> None:
         with open(file, encoding="utf-8") as f:
             lines = [urwid.Text(line.rstrip()) for line in f]
         # read the whole file (being slow, not lazy this time)
@@ -153,8 +153,8 @@ class ListDialogDisplay(DialogDisplay):
     def __init__(
         self,
         text,
-        height: int,
-        width: int,
+        height: int | str,
+        width: int | str,
         constr,
         items,
         has_default: bool,

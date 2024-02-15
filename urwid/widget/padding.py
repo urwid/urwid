@@ -175,14 +175,14 @@ class Padding(WidgetDecoration[WrappedWidget]):
         return frozenset(sizing)
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
-        attrs = dict(
-            super()._repr_attrs(),
-            align=self.align,
-            width=self.width,
-            left=self.left,
-            right=self.right,
-            min_width=self.min_width,
-        )
+        attrs = {
+            **super()._repr_attrs(),
+            "align": self.align,
+            "width": self.width,
+            "left": self.left,
+            "right": self.right,
+            "min_width": self.min_width,
+        }
         return remove_defaults(attrs, Padding.__init__)
 
     @property
@@ -572,8 +572,7 @@ def calculate_left_right_padding(
     else:
         width = width_amount
 
-    standard_alignments = {Align.LEFT: 0, Align.CENTER: 50, Align.RIGHT: 100}
-    align = standard_alignments.get(align_type, align_amount)
+    align = {Align.LEFT: 0, Align.CENTER: 50, Align.RIGHT: 100}.get(align_type, align_amount)
 
     # add the remainder of left/right the padding
     padding = maxcol - width - left - right

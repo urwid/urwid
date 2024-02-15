@@ -89,11 +89,11 @@ class Text(Widget):
         return [*first, rest]
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
-        attrs = dict(
-            super()._repr_attrs(),
-            align=self._align_mode,
-            wrap=self._wrap_mode,
-        )
+        attrs = {
+            **super()._repr_attrs(),
+            "align": self._align_mode,
+            "wrap": self._wrap_mode,
+        }
         return remove_defaults(attrs, Text.__init__)
 
     def _invalidate(self) -> None:

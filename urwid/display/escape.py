@@ -203,7 +203,7 @@ class KeyqueueTrie:
         s: str,
         result: str,
     ) -> None:
-        if not isinstance(root, MutableMapping) or len(s) <= 0:
+        if not isinstance(root, MutableMapping) or not s:
             raise RuntimeError("trie conflict detected")
 
         if ord(s[0]) in root:
@@ -215,7 +215,6 @@ class KeyqueueTrie:
             self.add(d, s[1:], result)
             return
         root[ord(s)] = result
-        return
 
     def get(self, keys, more_available: bool):
         result = self.get_recurse(self.data, keys, more_available)
