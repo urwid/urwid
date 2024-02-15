@@ -289,8 +289,8 @@ class CheckBox(WidgetWrap[Columns]):
     def _repr_words(self) -> list[str]:
         return [*super()._repr_words(), repr(self.label)]
 
-    def _repr_attrs(self):
-        return dict(super()._repr_attrs(), state=self.state)
+    def _repr_attrs(self) -> dict[str, typing.Any]:
+        return {**super()._repr_attrs(), "state": self.state}
 
     def set_label(self, label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]):
         """

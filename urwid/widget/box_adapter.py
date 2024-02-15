@@ -42,7 +42,7 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
         self.height = height
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
-        return dict(super()._repr_attrs(), height=self.height)
+        return {**super()._repr_attrs(), "height": self.height}
 
     # originally stored as box_widget, keep for compatibility
     @property

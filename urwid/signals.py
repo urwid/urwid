@@ -180,8 +180,7 @@ class Signals:
         # Just generate an arbitrary (but unique) key
         key = Key()
 
-        signals = setdefaultattr(obj, self._signal_attr, {})
-        handlers = signals.setdefault(name, [])
+        handlers = setdefaultattr(obj, self._signal_attr, {}).setdefault(name, [])
 
         # Remove the signal handler when any of the weakref'd arguments
         # are garbage collected. Note that this means that the handlers
@@ -277,8 +276,7 @@ class Signals:
         If the callback is not connected or already disconnected, this
         function will simply do nothing.
         """
-        signals = setdefaultattr(obj, self._signal_attr, {})
-        handlers = signals.get(name, [])
+        handlers = setdefaultattr(obj, self._signal_attr, {}).get(name, [])
         handlers[:] = [h for h in handlers if h[0] is not key]
 
     def emit(self, obj, name: Hashable, *args) -> bool:
@@ -295,8 +293,7 @@ class Signals:
         This function returns True if any of the callbacks returned True.
         """
         result = False
-        signals = getattr(obj, self._signal_attr, {})
-        handlers = signals.get(name, [])
+        handlers = getattr(obj, self._signal_attr, {}).get(name, [])
         for _key, callback, user_arg, (weak_args, user_args) in handlers:
             result |= self._call_callback(callback, user_arg, weak_args, user_args, args)
         return result

@@ -43,7 +43,7 @@ class AttrWrap(AttrMap):
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
         # only include the focus_attr when it takes effect (not None)
-        d = dict(super()._repr_attrs(), attr=self.attr)
+        d = {**super()._repr_attrs(), "attr": self.attr}
         del d["attr_map"]
         if "focus_map" in d:
             del d["focus_map"]

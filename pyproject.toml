@@ -292,3 +292,19 @@ good-dunder-names = [
   "_contents__setitem__",
   "_contents__delitem__",
 ]
+
+[tool.refurb]
+python_version = "3.7"
+ignore = ["FURB104", "FURB144", "FURB146"]
+
+[[tool.refurb.amend]]
+path = "urwid/__init__.py"
+ignore = ["FURB107"]
+
+[[tool.refurb.amend]]
+path = "urwid/display/__init__.py"
+ignore = ["FURB107"]
+
+[[tool.refurb.amend]]
+path = "urwid/event_loop/__init__.py"
+ignore = ["FURB107"]

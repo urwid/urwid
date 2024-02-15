@@ -705,9 +705,7 @@ class CalcDisplay:
     def column_empty(self, letter) -> bool:
         """Return True if the column passed is empty."""
 
-        i = COLUMN_KEYS.index(letter)
-        col = self.columns.contents[i][0]
-        return col.is_empty()
+        return self.columns.contents[COLUMN_KEYS.index(letter)][0].is_empty()
 
     def delete_column(self, letter) -> None:
         """Delete the column with the given letter."""

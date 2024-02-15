@@ -57,7 +57,7 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
 
         for idx, widget in enumerate(cells):
             prepared_contents.append((widget, (WHSettings.GIVEN, cell_width)))
-            if focus_position < 0 and (widget == focus or idx == focus or (focus is None and widget.selectable())):
+            if focus_position < 0 and (focus in {widget, idx} or (focus is None and widget.selectable())):
                 focus_position = idx
 
         focus_position = max(focus_position, 0)

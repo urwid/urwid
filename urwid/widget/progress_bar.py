@@ -112,8 +112,7 @@ class ProgressBar(Widget):
         """
         # pylint: disable=protected-access
         (maxcol,) = size
-        txt = Text(self.get_text(), self.text_align, WrapMode.CLIP)
-        c = txt.render((maxcol,))
+        c = Text(self.get_text(), self.text_align, WrapMode.CLIP).render((maxcol,))
 
         cf = float(self.current) * maxcol / self.done
         ccol_dirty = int(cf)

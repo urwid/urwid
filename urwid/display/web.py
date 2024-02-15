@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import dataclasses
 import glob
+import html
 import os
 import pathlib
 import random
@@ -319,7 +320,7 @@ class Screen(BaseScreen):
         y = -1
         for row in canvas.content():
             y += 1
-            l_row = list(row)
+            l_row = row.copy()
 
             line = []
 
@@ -486,10 +487,7 @@ def code_span(s, fg, bg, cursor=-1):
 
 def html_escape(text):
     """Escape text so that it will be displayed safely within HTML"""
-    text = text.replace("&", "&amp;")
-    text = text.replace("<", "&lt;")
-    text = text.replace(">", "&gt;")
-    return text
+    return html.escape(text)
 
 
 def is_web_request():

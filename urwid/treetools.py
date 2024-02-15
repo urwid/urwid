@@ -249,9 +249,7 @@ class TreeNode:
         if self.get_depth() == 0:
             return None
 
-        key = self.get_key()
-        parent = self.get_parent()
-        return parent.get_child_index(key)
+        return self.get_parent().get_child_index(self.get_key())
 
     def get_key(self):
         return self._key
@@ -326,8 +324,7 @@ class ParentNode(TreeNode):
     def get_child_widget(self, key) -> TreeWidget:
         """Return the widget for a given key.  Create if necessary."""
 
-        child = self.get_child_node(key)
-        return child.get_widget()
+        return self.get_child_node(key).get_widget()
 
     def get_child_node(self, key, reload: bool = False) -> TreeNode:
         """Return the child node for a given key. Create if necessary."""
@@ -425,16 +422,14 @@ class TreeWalker(urwid.ListWalker):
 
     # pylint: disable=arguments-renamed  # its bad, but we should not change API
     def get_next(self, start_from) -> tuple[TreeWidget, TreeNode] | tuple[None, None]:
-        widget = start_from.get_widget()
-        target = widget.next_inorder()
+        target = start_from.get_widget().next_inorder()
         if target is None:
             return None, None
 
         return target, target.get_node()
 
     def get_prev(self, start_from) -> tuple[TreeWidget, TreeNode] | tuple[None, None]:
-        widget = start_from.get_widget()
-        target = widget.prev_inorder()
+        target = start_from.get_widget().prev_inorder()
         if target is None:
             return None, None
 
@@ -513,9 +508,7 @@ class TreeListBox(urwid.ListBox):
 
         maxrow, _maxcol = size
         _widget, pos = self.body.get_focus()
-        rootnode = pos.get_root()
-        rootwidget = rootnode.get_widget()
-        lastwidget = rootwidget.last_child()
+        lastwidget = pos.get_root().get_widget().last_child()
         if lastwidget:
             lastnode = lastwidget.get_node()
 
