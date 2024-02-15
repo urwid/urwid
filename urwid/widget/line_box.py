@@ -167,6 +167,7 @@ class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrappe
 
         super().__init__(original_widget)
 
+    @property
     def _w(self) -> Pile:
         return self._wrapped_widget
 
