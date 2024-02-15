@@ -167,53 +167,8 @@ jobs:
         with:
           parallel-finished: true
 
-  build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    needs: [ Test, Isort, Black, Ruff, PyLint ]
-    # build only on push: heavy job
-    if: github.event_name == 'push' && github.repository == 'urwid/urwid'
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # need for setuptools_scm
-
-      # Used to host cibuildwheel
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Set up QEMU
-        if: runner.os == 'Linux'
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: all
-
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.5
-        env:
-          # configure cibuildwheel to build native archs ('auto'), and some
-          # emulated ones
-          CIBW_ARCHS_LINUX: auto aarch64
-          CIBW_ARCHS_MACOS: x86_64 universal2 arm64
-          CIBW_ARCHS_WINDOWS: auto
-
-      - uses: actions/upload-artifact@v4
-        with:
-          path: ./wheelhouse/*.whl
-          name: built-${{ matrix.os }}
-          retention-days: 3
-
-  build_sdist:
-    name: Build source distribution
+  build:
+    name: Build distribution
     needs: [ Test, Isort, Black, Ruff, PyLint ]
     runs-on: ubuntu-latest
     steps:
@@ -228,8 +183,8 @@ jobs:
       - name: Install dependencies
         run: pip install -U build
 
-      - name: Build sdist
-        run: python -m build -s
+      - name: Build dist
+        run: python -m build
 
       - uses: actions/upload-artifact@v4
         with:
@@ -240,7 +195,7 @@ jobs:
   Metadata:
     name: Validate metadata
     runs-on: ubuntu-latest
-    needs: [ build_sdist ]
+    needs: [ build ]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -265,7 +220,7 @@ jobs:
           twine check dist/*
 
   upload_pypi:
-    needs: [ build_wheels, build_sdist, Metadata ]
+    needs: [ build, Metadata ]
     # upload to PyPI on every tag
     if: github.event_name == 'push' && github.ref_type == 'tag' && github.repository == 'urwid/urwid'
     # alternatively, to publish when a GitHub Release is created, use the following rule:

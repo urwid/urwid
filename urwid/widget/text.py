@@ -5,7 +5,8 @@ import typing
 from urwid import text_layout
 from urwid.canvas import apply_text_layout
 from urwid.split_repr import remove_defaults
-from urwid.util import calc_width, decompose_tagmarkup
+from urwid.str_util import calc_width
+from urwid.util import decompose_tagmarkup, get_encoding
 
 from .constants import Align, Sizing, WrapMode
 from .widget import Widget, WidgetError
@@ -342,14 +343,12 @@ class Text(Widget):
             cols = self.layout.pack(maxcol, trans)
             return (cols, len(trans))
 
-        i = 0
-        cols = 0
-        while i < len(text):
-            j = text.find("\n", i)
-            if j == -1:
-                j = len(text)
-            c = calc_width(text, i, j)
-            if c > cols:
-                cols = c
-            i = j + 1
-        return (cols, text.count("\n") + 1)
+        if text:
+            if isinstance(text, bytes):
+                text = text.decode(get_encoding())
+
+            return (
+                max(calc_width(line, 0, len(line)) for line in text.splitlines(keepends=False)),
+                text.count("\n") + 1,
+            )
+        return 0, 1

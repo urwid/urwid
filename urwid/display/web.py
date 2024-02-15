@@ -37,7 +37,8 @@ import tempfile
 import typing
 from contextlib import suppress
 
-from urwid.util import StoppingContext, calc_text_pos, calc_width, move_next_char
+from urwid.str_util import calc_text_pos, calc_width, move_next_char
+from urwid.util import StoppingContext
 
 from .common import BaseScreen
 

@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import typing
 
-from urwid import util
+from urwid import str_util
 from urwid.event_loop import ExitMainLoop
 
 from .common import AttrSpec, BaseScreen
@@ -114,7 +114,7 @@ class HtmlGenerator(BaseScreen):
                     aspec = self._palette[a][{1: 1, 16: 0, 88: 2, 256: 3}[self.colors]]
 
                 if y == cy and col <= cx:
-                    run_width = util.calc_width(t_run, 0, len(t_run))
+                    run_width = str_util.calc_width(t_run, 0, len(t_run))
                     if col + run_width > cx:
                         lines.append(html_span(t_run, aspec, cx - col))
                     else:
@@ -172,8 +172,8 @@ def html_span(s, aspec, cursor: int = -1):
         return f'<span style="color:{fg};background:{bg}{extra}">{html_escape(string)}</span>'
 
     if cursor >= 0:
-        c_off, _ign = util.calc_text_pos(s, 0, len(s), cursor)
-        c2_off = util.move_next_char(s, c_off, len(s))
+        c_off, _ign = str_util.calc_text_pos(s, 0, len(s), cursor)
+        c2_off = str_util.move_next_char(s, c_off, len(s))
         return (
             _span(html_fg, html_bg, s[:c_off])
             + _span(html_bg, html_fg, s[c_off:c2_off])

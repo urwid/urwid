@@ -26,11 +26,10 @@ import warnings
 import weakref
 from contextlib import suppress
 
+from urwid.str_util import calc_text_pos, calc_width
 from urwid.text_layout import LayoutSegment, trim_line
 from urwid.util import (
     apply_target_encoding,
-    calc_text_pos,
-    calc_width,
     get_encoding,
     rle_append_modify,
     rle_join_modify,

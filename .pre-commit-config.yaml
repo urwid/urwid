@@ -32,7 +32,7 @@ repos:
         args: [ --fix, --exit-non-zero-on-fix ]
 
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.34.0
+    rev: v1.35.0
     hooks:
       - id: yamllint
 

@@ -27,6 +27,8 @@ import typing
 import warnings
 from contextlib import suppress
 
+from urwid import str_util
+
 if typing.TYPE_CHECKING:
     from collections.abc import Generator, Iterable
     from types import TracebackType
@@ -37,18 +39,15 @@ if typing.TYPE_CHECKING:
         def stop(self) -> None: ...
 
 
-try:
-    from urwid import str_util
-except ImportError:
-    from urwid import old_str_util as str_util
-
-# bring str_util functions into our namespace
-calc_text_pos = str_util.calc_text_pos
-calc_width = str_util.calc_width
-is_wide_char = str_util.is_wide_char
-move_next_char = str_util.move_next_char
-move_prev_char = str_util.move_prev_char
-within_double_byte = str_util.within_double_byte
+def __getattr__(name: str) -> typing.Any:
+    if hasattr(str_util, name):
+        warnings.warn(
+            f"Do not import {name!r} from {__package__}.{__name__}, import it from 'urwid'.",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        return getattr(str_util, name)
+    raise AttributeError(f"{name} is not defined in {__package__}.{__name__}")
 
 
 def detect_encoding() -> str:
@@ -265,12 +264,12 @@ def calc_trim_text(
     spos = start_offs
     pad_left = pad_right = 0
     if start_col > 0:
-        spos, sc = calc_text_pos(text, spos, end_offs, start_col)
+        spos, sc = str_util.calc_text_pos(text, spos, end_offs, start_col)
         if sc < start_col:
             pad_left = 1
-            spos, sc = calc_text_pos(text, start_offs, end_offs, start_col + 1)
+            spos, sc = str_util.calc_text_pos(text, start_offs, end_offs, start_col + 1)
     run = end_col - start_col - pad_left
-    pos, sc = calc_text_pos(text, spos, end_offs, run)
+    pos, sc = str_util.calc_text_pos(text, spos, end_offs, run)
     if sc < run:
         pad_right = 1
     return (spos, pos, pad_left, pad_right)

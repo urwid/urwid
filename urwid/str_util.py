@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import re
 import typing
+import warnings
 
 import wcwidth
 
@@ -35,12 +36,16 @@ SAFE_ASCII_BYTES_RE = re.compile(b"^[ -~]*$")
 _byte_encoding: Literal["utf8", "narrow", "wide"] = "narrow"
 
 
-def get_width(o: int) -> Literal[0, 1, 2]:
-    """Return the screen column width for unicode ordinal o."""
-    width = wcwidth.wcwidth(chr(o), UNICODE_VERSION)
+def get_char_width(char: str) -> Literal[0, 1, 2]:
+    width = wcwidth.wcwidth(char, UNICODE_VERSION)
     if width < 0:
         return 0
     return width
+
+
+def get_width(o: int) -> Literal[0, 1, 2]:
+    """Return the screen column width for unicode ordinal o."""
+    return get_char_width(chr(o))
 
 
 def decode_one(text: bytes | str, pos: int) -> tuple[int, int]:
@@ -71,7 +76,7 @@ def decode_one(text: bytes | str, pos: int) -> tuple[int, int]:
             if lt > 3:
                 b4 = text[pos + 3]
     except Exception as e:
-        raise ValueError(f"{e}: {text=!r}, {pos=!r}, {lt=}").with_traceback(e.__traceback__) from e
+        raise ValueError(f"{e}: text={text!r}, pos={pos!r}, lt={lt!r}").with_traceback(e.__traceback__) from e
 
     if not b1 & 0x80:
         return b1, pos + 1
@@ -150,6 +155,33 @@ def get_byte_encoding() -> Literal["utf8", "narrow", "wide"]:
     return _byte_encoding
 
 
+def calc_string_text_pos(text: str, start_offs: int, end_offs: int, pref_col: int) -> tuple[int, int]:
+    """
+    Calculate the closest position to the screen column pref_col in text
+    where start_offs is the offset into text assumed to be screen column 0
+    and end_offs is the end of the range to search.
+
+    :param text: string
+    :param start_offs: starting text position
+    :param end_offs: ending text position
+    :param pref_col: target column
+    :returns: (position, actual_col)
+
+    ..note:: this method is a simplified version of `wcwidth.wcswidth` and ideally should be in wcwidth package.
+    """
+    if start_offs > end_offs:
+        raise ValueError((start_offs, end_offs))
+
+    cols = 0
+    for idx in range(start_offs, end_offs):
+        width = get_char_width(text[idx])
+        if width + cols > pref_col:
+            return idx, cols
+        cols += width
+
+    return end_offs, cols
+
+
 def calc_text_pos(text: str | bytes, start_offs: int, end_offs: int, pref_col: int) -> tuple[int, int]:
     """
     Calculate the closest position to the screen column pref_col in text
@@ -163,15 +195,17 @@ def calc_text_pos(text: str | bytes, start_offs: int, end_offs: int, pref_col: i
     if start_offs > end_offs:
         raise ValueError((start_offs, end_offs))
 
-    utfs = isinstance(text, bytes) and _byte_encoding == "utf8"
-    unis = isinstance(text, str)
-    if unis or utfs:
-        decode = [decode_one, decode_one_uni][unis]
+    if isinstance(text, str):
+        return calc_string_text_pos(text, start_offs, end_offs, pref_col)
+
+    if not isinstance(text, bytes):
+        raise TypeError(text)
+
+    if _byte_encoding == "utf8":
         i = start_offs
         sc = 0
-        n = 1  # number to advance by
         while i < end_offs:
-            o, n = decode(text, i)
+            o, n = decode_one(text, i)
             w = get_width(o)
             if w + sc > pref_col:
                 return i, sc
@@ -179,8 +213,6 @@ def calc_text_pos(text: str | bytes, start_offs: int, end_offs: int, pref_col: i
             sc += w
         return i, sc
 
-    if not isinstance(text, bytes):
-        raise TypeError(text)
     # "wide" and "narrow"
     i = start_offs + pref_col
     if i >= end_offs:
@@ -204,17 +236,25 @@ def calc_width(text: str | bytes, start_offs: int, end_offs: int) -> int:
     if start_offs > end_offs:
         raise ValueError((start_offs, end_offs))
 
-    utfs = isinstance(text, bytes) and _byte_encoding == "utf8"
-    unis = not isinstance(text, bytes)
-    if (unis and not SAFE_ASCII_RE.match(text)) or (utfs and not SAFE_ASCII_BYTES_RE.match(text)):
-        decode = [decode_one, decode_one_uni][unis]
+    if isinstance(text, str):
+        return sum(get_char_width(char) for char in text[start_offs:end_offs])
+
+    if _byte_encoding == "utf8":
+        try:
+            return sum(get_char_width(char) for char in text[start_offs:end_offs].decode("utf-8"))
+        except UnicodeDecodeError as exc:
+            warnings.warn(
+                "`calc_width` with text encoded to bytes can produce incorrect results"
+                f"due to possible offset in the middle of character: {exc}",
+                UnicodeWarning,
+                stacklevel=2,
+            )
+
         i = start_offs
         sc = 0
-        n = 1  # number to advance by
         while i < end_offs:
-            o, n = decode(text, i)
+            o, i = decode_one(text, i)
             w = get_width(o)
-            i = n
             sc += w
         return sc
     # "wide", "narrow" or all printable ASCII, just return the character count
@@ -228,8 +268,7 @@ def is_wide_char(text: str | bytes, offs: int) -> bool:
     text may be unicode or a byte string in the target _byte_encoding
     """
     if isinstance(text, str):
-        o = ord(text[offs])
-        return get_width(o) == 2
+        return get_char_width(text[offs]) == 2
     if not isinstance(text, bytes):
         raise TypeError(text)
     if _byte_encoding == "utf8":
@@ -240,7 +279,7 @@ def is_wide_char(text: str | bytes, offs: int) -> bool:
     return False
 
 
-def move_prev_char(text: str | bytes, start_offs: int, end_offs: int):
+def move_prev_char(text: str | bytes, start_offs: int, end_offs: int) -> int:
     """
     Return the position of the character before end_offs.
     """
@@ -317,50 +356,3 @@ def within_double_byte(text: bytes, line_start: int, pos: int) -> Literal[0, 1, 
     if (pos - i) & 1:
         return 1
     return 2
-
-
-# TABLE GENERATION CODE
-
-
-def process_east_asian_width() -> None:
-    import sys
-
-    out = []
-    last = None
-    for line in sys.stdin.readlines():
-        if line.startswith("#"):
-            continue
-        line = line.strip()  # noqa: PLW2901
-        hex_val, rest = line.split(";", 1)
-        wid, rest = rest.split(" # ", 1)
-        word1 = rest.split(" ", 1)[0]
-
-        if "." in hex_val:
-            hex_val = hex_val.split("..")[1]
-        num = int(hex_val, 16)
-
-        if word1 in {"COMBINING", "MODIFIER", "<control>"}:
-            last_ = 0
-        elif wid in {"W", "F"}:
-            last_ = 2
-        else:
-            last_ = 1
-
-        if last is None:
-            out.append((0, last_))
-            last = last_
-
-        if last == last_:
-            out[-1] = (num, last_)
-        else:
-            out.append((num, last_))
-            last = last_
-
-    print("widths = [")
-    for o in out[1:]:  # treat control characters same as ascii
-        print(f"\t{o!r},")
-    print("]")
-
-
-if __name__ == "__main__":
-    process_east_asian_width()
