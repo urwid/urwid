@@ -163,9 +163,7 @@ class StandardTextLayout(TextLayout):
         """Calculate text segments for cases of text trimmed (wrap is clip or ellipsis)."""
         segments = []
 
-        nl = "\n"
-        if isinstance(text, bytes):
-            nl = nl.encode("iso8859-1")
+        nl = "\n" if isinstance(text, str) else b"\n"
 
         idx = 0
 
@@ -222,7 +220,7 @@ class StandardTextLayout(TextLayout):
 
         nl, nl_o, sp_o = "\n", "\n", " "
         if isinstance(text, bytes):
-            nl = nl.encode("iso8859-1")  # can only find bytes in python3 bytestrings
+            nl = b"\n"  # can only find bytes in python3 bytestrings
             nl_o = ord(nl_o)  # + an item of a bytestring is the ordinal value
             sp_o = ord(sp_o)
         segments = []

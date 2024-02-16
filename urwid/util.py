@@ -33,7 +33,7 @@ if typing.TYPE_CHECKING:
     from collections.abc import Generator, Iterable
     from types import TracebackType
 
-    from typing_extensions import Protocol, Self
+    from typing_extensions import Literal, Protocol, Self
 
     class CanBeStopped(Protocol):
         def stop(self) -> None: ...
@@ -156,7 +156,7 @@ def set_temporary_encoding(encoding_name: str) -> Generator[None, None, None]:
         set_encoding(old_encoding)
 
 
-def get_encoding_mode():
+def get_encoding_mode() -> Literal["wide", "narrow", "utf8"]:
     """
     Get the mode Urwid is using when processing text strings.
     Returns 'narrow' for 8-bit encodings, 'wide' for CJK encodings
@@ -165,7 +165,7 @@ def get_encoding_mode():
     return str_util.get_byte_encoding()
 
 
-def apply_target_encoding(s: str | bytes):
+def apply_target_encoding(s: str | bytes) -> tuple[bytes, list[tuple[Literal["U", "0"] | None, int]]]:
     """
     Return (encoded byte string, character set rle).
     """
@@ -187,9 +187,6 @@ def apply_target_encoding(s: str | bytes):
 
     sis = s.split(SO)
 
-    if not isinstance(sis[0], bytes):
-        raise TypeError(sis[0])
-
     sis0 = sis[0].replace(SI, b"")
     sout = []
     cout = []
@@ -201,24 +198,19 @@ def apply_target_encoding(s: str | bytes):
         return sis0, cout
 
     for sn in sis[1:]:
-        if not isinstance(sn, bytes):
-            raise TypeError(sn)
-        if not isinstance(SI, bytes):
-            raise TypeError(SI)
-
         sl = sn.split(SI, 1)
         if len(sl) == 1:
             sin = sl[0]
-            if not isinstance(sin, bytes):
-                raise TypeError(sin)
             sout.append(sin)
             rle_append_modify(cout, (escape.DEC_TAG, len(sin)))
             continue
+
         sin, son = sl
         son = son.replace(SI, b"")
         if sin:
             sout.append(sin)
             rle_append_modify(cout, (escape.DEC_TAG, len(sin)))
+
         if son:
             sout.append(son)
             rle_append_modify(cout, (None, len(son)))

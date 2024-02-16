@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import contextlib
+import dataclasses
 import typing
 import warnings
 import weakref
@@ -84,7 +85,7 @@ class CanvasCache:
     cleanups = 0
 
     @classmethod
-    def store(cls, wcls, canvas):
+    def store(cls, wcls, canvas: Canvas) -> None:
         """
         Store a weakref to canvas in the cache.
 
@@ -103,8 +104,7 @@ class CanvasCache:
             Collect all child widgets for determining who we
             depend on.
             """
-            # FIXME: is this recursion necessary?  The cache
-            # invalidating might work with only one level.
+            # FIXME: is this recursion necessary?  The cache invalidating might work with only one level.
             depends = []
             for _x, _y, c, _pos in canv.children:
                 if c.widget_info:
@@ -129,7 +129,7 @@ class CanvasCache:
         cls._widgets.setdefault(widget, {})[(wcls, size, focus)] = ref
 
     @classmethod
-    def fetch(cls, widget, wcls, size, focus):
+    def fetch(cls, widget, wcls, size, focus) -> Canvas | None:
         """
         Return the cached canvas or None.
 
@@ -170,7 +170,7 @@ class CanvasCache:
             cls.invalidate(w)
 
     @classmethod
-    def cleanup(cls, ref):
+    def cleanup(cls, ref: weakref.ReferenceType) -> None:
         cls.cleanups += 1  # collect stats
 
         w = cls._refs.get(ref, None)
@@ -189,7 +189,7 @@ class CanvasCache:
                 del cls._deps[widget]
 
     @classmethod
-    def clear(cls):
+    def clear(cls) -> None:
         """
         Empty the cache.
         """
@@ -285,10 +285,10 @@ class Canvas:
     ) -> Iterable[list[tuple[object, Literal["0", "U"] | None, bytes]]]:
         raise NotImplementedError()
 
-    def cols(self):
+    def cols(self) -> int:
         raise NotImplementedError()
 
-    def rows(self):
+    def rows(self) -> int:
         raise NotImplementedError()
 
     def content_delta(self, other: Canvas):
@@ -454,10 +454,7 @@ class TextCanvas(Canvas):
 
     def rows(self) -> int:
         """Return the number of rows in this canvas."""
-        rows = len(self._text)
-        if not isinstance(rows, int):
-            raise TypeError(rows)
-        return rows
+        return len(self._text)
 
     def cols(self) -> int:
         """Return the screen column width of this canvas."""
@@ -583,7 +580,7 @@ class SolidCanvas(Canvas):
     A canvas filled completely with a single character.
     """
 
-    def __init__(self, fill_char, cols: int, rows: int) -> None:
+    def __init__(self, fill_char: str, cols: int, rows: int) -> None:
         super().__init__()
         end, col = calc_text_pos(fill_char, 0, len(fill_char), 1)
         if col != 1:
@@ -689,10 +686,8 @@ class CompositeCanvas(Canvas):
         for r, cv in self.shards:
             if not isinstance(r, int):
                 raise TypeError(r, cv)
-        rows = sum(r for r, cv in self.shards)
-        if not isinstance(rows, int):
-            raise TypeError(rows)
-        return rows
+
+        return sum(r for r, cv in self.shards)
 
     def cols(self) -> int:
         if not self.shards:
@@ -916,7 +911,7 @@ class CompositeCanvas(Canvas):
             shards.append((num_rows, new_cviews))
         self.shards = shards
 
-    def set_depends(self, widget_list):
+    def set_depends(self, widget_list: Sequence[Widget]) -> None:
         """
         Explicitly specify the list of widgets that this canvas
         depends on.  If any of these widgets change this canvas
@@ -1309,47 +1304,48 @@ def CanvasJoin(canvas_info: Iterable[tuple[Canvas, typing.Any, bool, int]]) -> C
     return joined_canvas
 
 
+@dataclasses.dataclass
+class _AttrWalk:
+    counter: int = 0  # counter for moving through elements of a
+    offset: int = 0  # current offset into text of attr[ak]
+
+
 def apply_text_layout(
     text: str | bytes,
     attr: list[tuple[Hashable, int]],
     ls: list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]],
     maxcol: int,
 ) -> TextCanvas:
-    t = []
-    a = []
-    c = []
+    t: list[bytes] = []
+    a: list[list[tuple[Hashable | None, int]]] = []
+    c: list[list[tuple[Literal["0", "U"] | None, int]]] = []
 
-    class AttrWalk:
-        pass
-
-    aw = AttrWalk
-    aw.k = 0  # counter for moving through elements of a
-    aw.off = 0  # current offset into text of attr[ak]
+    aw = _AttrWalk()
 
     def arange(start_offs: int, end_offs: int) -> list[tuple[Hashable | None, int]]:
         """Return an attribute list for the range of text specified."""
-        if start_offs < aw.off:
-            aw.k = 0
-            aw.off = 0
+        if start_offs < aw.offset:
+            aw.counter = 0
+            aw.offset = 0
         o = []
         # the loop should run at least once, the '=' part ensures that
-        while aw.off <= end_offs:
-            if len(attr) <= aw.k:
+        while aw.offset <= end_offs:
+            if len(attr) <= aw.counter:
                 # run out of attributes
-                o.append((None, end_offs - max(start_offs, aw.off)))
+                o.append((None, end_offs - max(start_offs, aw.offset)))
                 break
-            at, run = attr[aw.k]
-            if aw.off + run <= start_offs:
+            at, run = attr[aw.counter]
+            if aw.offset + run <= start_offs:
                 # move forward through attr to find start_offs
-                aw.k += 1
-                aw.off += run
+                aw.counter += 1
+                aw.offset += run
                 continue
-            if end_offs <= aw.off + run:
-                o.append((at, end_offs - max(start_offs, aw.off)))
+            if end_offs <= aw.offset + run:
+                o.append((at, end_offs - max(start_offs, aw.offset)))
                 break
-            o.append((at, aw.off + run - max(start_offs, aw.off)))
-            aw.k += 1
-            aw.off += run
+            o.append((at, aw.offset + run - max(start_offs, aw.offset)))
+            aw.counter += 1
+            aw.offset += run
         return o
 
     for line_layout in ls:
