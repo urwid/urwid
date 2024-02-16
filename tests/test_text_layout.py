@@ -387,3 +387,18 @@ class Pos2CoordsTest(unittest.TestCase):
             for pos, a in zip(self.pos_list, answer):
                 r = text_layout.calc_coords(self.text, t, pos)
                 self.assertEqual(a, r, f"{t!r} got: {r!r} expected: {a!r}")
+
+
+class TestEllipsis(unittest.TestCase):
+    def test_ellipsis_encoding_support(self):
+        widget = urwid.Text("Test label", wrap=urwid.WrapMode.ELLIPSIS)
+
+        with self.subTest("Unicode"), set_temporary_encoding("utf-8"):
+            widget._invalidate()
+            canvas = widget.render((5,))
+            self.assertEqual("Test…", str(canvas))
+
+        with self.subTest("ascii"), set_temporary_encoding("ascii"):
+            widget._invalidate()
+            canvas = widget.render((5,))
+            self.assertEqual("Te...", str(canvas))
