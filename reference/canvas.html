@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Canvas Classes and Functions &#8212; Urwid 2.5.3</title>
+    <title>Canvas Classes and Functions &#8212; Urwid 2.6.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script src="../_static/documentation_options.js?v=0bbe9fa5"></script>
+    <script src="../_static/documentation_options.js?v=ae39cb24"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="attrspec.html" title="Raw Display Attributes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.5.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Canvas Classes and Functions</a></li> 
       </ul>
@@ -170,7 +170,7 @@ since it doesn’t know its own size</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.SolidCanvas">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">SolidCanvas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fill_char</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SolidCanvas" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">SolidCanvas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fill_char</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SolidCanvas" title="Link to this definition">¶</a></dt>
 <dd><p>A canvas filled completely with a single character.</p>
 <p>Base Canvas class</p>
 <dl class="py method">
@@ -236,7 +236,7 @@ values &lt; 0 indicate screen columns to trim</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.CompositeCanvas.set_depends">
-<span class="sig-name descname"><span class="pre">set_depends</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget_list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas.set_depends" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">set_depends</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="widget.html#urwid.Widget" title="urwid.Widget"><span class="pre">Widget</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CompositeCanvas.set_depends" title="Link to this definition">¶</a></dt>
 <dd><p>Explicitly specify the list of widgets that this canvas
 depends on.  If any of these widgets change this canvas
 will have to be updated.</p>
@@ -327,13 +327,13 @@ _refs[weakref.ref(canvas)] = (widget, wcls, size, focus)
 _deps[widget} = [dependent_widget, …]</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.CanvasCache.clear">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasCache.clear" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CanvasCache.clear" title="Link to this definition">¶</a></dt>
 <dd><p>Empty the cache.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.CanvasCache.fetch">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fetch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wcls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasCache.fetch" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fetch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wcls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#urwid.Canvas" title="urwid.canvas.Canvas"><span class="pre">Canvas</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CanvasCache.fetch" title="Link to this definition">¶</a></dt>
 <dd><p>Return the cached canvas or None.</p>
 <p>widget – widget object requested
 wcls – widget class that contains render() function
@@ -348,7 +348,7 @@ size, focus – render() parameters</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.CanvasCache.store">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">store</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wcls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canvas</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CanvasCache.store" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">store</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wcls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canvas</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.Canvas" title="urwid.canvas.Canvas"><span class="pre">Canvas</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CanvasCache.store" title="Link to this definition">¶</a></dt>
 <dd><p>Store a weakref to canvas in the cache.</p>
 <p>wcls – widget class that contains render() function
 canvas – rendered canvas with widget_info (widget, size, focus)</p>
@@ -475,7 +475,7 @@ canvas – rendered canvas with widget_info (widget, size, focus)</p>
         <li class="right" >
           <a href="attrspec.html" title="Raw Display Attributes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.5.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Canvas Classes and Functions</a></li> 
       </ul>
