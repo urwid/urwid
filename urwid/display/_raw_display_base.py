@@ -602,7 +602,7 @@ class Screen(BaseScreen, RealTerminal):
             osb = self.screen_buf
         else:
             osb = []
-        sb = []
+        sb: list[list[tuple[object, Literal["0", "U"] | None, bytes]]] = []
         cy = self._cy
         y = -1
 
@@ -728,7 +728,11 @@ class Screen(BaseScreen, RealTerminal):
         self.screen_buf = sb
         self._screen_buf_canvas = canvas
 
-    def _last_row(self, row):
+    def _last_row(self, row: list[tuple[object, Literal["0", "U"] | None, bytes]]) -> tuple[
+        list[tuple[object, Literal["0", "U"] | None, bytes]],
+        int,
+        tuple[object, Literal["0", "U"] | None, bytes],
+    ]:
         """On the last row we need to slide the bottom right character
         into place. Calculate the new line, attr and an insert sequence
         to do that.
