@@ -491,10 +491,10 @@ class TreeListBox(urwid.ListBox):
         self.change_focus(size, pos.get_parent())
 
     def _keypress_max_left(self, size: tuple[int, int]) -> None:
-        return self.focus_home(size)
+        self.focus_home(size)
 
     def _keypress_max_right(self, size: tuple[int, int]) -> None:
-        return self.focus_end(size)
+        self.focus_end(size)
 
     def focus_home(self, size: tuple[int, int]) -> None:
         """Move focus to very top."""
