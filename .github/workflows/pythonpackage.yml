@@ -192,6 +192,12 @@ jobs:
           name: built-sdist
           retention-days: 3
 
+      - uses: actions/upload-artifact@v4
+        with:
+          path: dist/*.whl
+          name: built-bdist
+          retention-days: 3
+
   Metadata:
     name: Validate metadata
     runs-on: ubuntu-latest
