@@ -1203,15 +1203,13 @@ class ListBox(Widget, WidgetContainerMixin):
 
         return key
 
-    def _keypress_max_left(self, size: tuple[int, int]) -> bool:
+    def _keypress_max_left(self, size: tuple[int, int]) -> None:
         self.focus_position = next(iter(self.body.positions()))
         self.set_focus_valign(VAlign.TOP)
-        return True
 
-    def _keypress_max_right(self, size: tuple[int, int]) -> bool:
+    def _keypress_max_right(self, size: tuple[int, int]) -> None:
         self.focus_position = next(iter(self.body.positions(reverse=True)))
         self.set_focus_valign(VAlign.BOTTOM)
-        return True
 
     def _keypress_up(self, size: tuple[int, int]) -> bool | None:
         (maxcol, maxrow) = size
