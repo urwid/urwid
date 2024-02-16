@@ -402,3 +402,13 @@ class TestEllipsis(unittest.TestCase):
             widget._invalidate()
             canvas = widget.render((5,))
             self.assertEqual("Te...", str(canvas))
+
+        with self.subTest("ascii not fit"), set_temporary_encoding("ascii"):
+            widget._invalidate()
+            canvas = widget.render((3,))
+            self.assertEqual("T..", str(canvas))
+
+        with self.subTest("ascii nothing fit"), set_temporary_encoding("ascii"):
+            widget._invalidate()
+            canvas = widget.render((1,))
+            self.assertEqual("T", str(canvas))

@@ -33,18 +33,18 @@ if typing.TYPE_CHECKING:
 
 
 @functools.lru_cache(maxsize=4)
-def get_ellipsis_char(encoding: str) -> bytes:
+def get_ellipsis_string(encoding: str) -> str:
     """Get ellipsis character for given encoding."""
     try:
-        return "…".encode(encoding)
+        return "…".encode(encoding).decode(encoding)
     except UnicodeEncodeError:
-        return b"..."
+        return "..."
 
 
 @functools.lru_cache(maxsize=4)
-def get_ellipsis_width(encoding: str) -> int:
+def _get_width(string) -> int:
     """Get ellipsis character width for given encoding."""
-    return sum(get_char_width(char) for char in get_ellipsis_char(get_encoding()).decode(get_encoding()))
+    return sum(get_char_width(char) for char in string)
 
 
 class TextLayout:
@@ -182,8 +182,14 @@ class StandardTextLayout(TextLayout):
         segments = []
 
         nl = "\n" if isinstance(text, str) else b"\n"
-        ellipsis_char = get_ellipsis_char(get_encoding())
-        width_ellipsis = get_ellipsis_width(get_encoding())
+        encoding = get_encoding()
+        ellipsis_string = get_ellipsis_string(encoding)
+        ellipsis_width = _get_width(ellipsis_string)
+        while width - 1 < ellipsis_width and ellipsis_string:
+            ellipsis_string = ellipsis_string[:-1]
+            ellipsis_width = _get_width(ellipsis_string)
+
+        ellipsis_char = ellipsis_string.encode(encoding)
 
         idx = 0
 
@@ -194,10 +200,10 @@ class StandardTextLayout(TextLayout):
             screen_columns = calc_width(text, idx, nl_pos)
 
             # trim line to max width if needed, add ellipsis if trimmed
-            if wrap == "ellipsis" and screen_columns > width:
+            if wrap == "ellipsis" and screen_columns > width and ellipsis_width:
                 trimmed = True
 
-                start_off, end_off, pad_left, pad_right = calc_trim_text(text, idx, nl_pos, 0, width - width_ellipsis)
+                start_off, end_off, pad_left, pad_right = calc_trim_text(text, idx, nl_pos, 0, width - ellipsis_width)
                 # pad_left should be 0, because the start_col parameter was 0 (no trimming on the left)
                 # similarly spos should not be changed from p
                 if pad_left != 0:
@@ -215,7 +221,7 @@ class StandardTextLayout(TextLayout):
             if idx != end_off:
                 line += [(screen_columns, idx, end_off)]
             if trimmed:
-                line += [(1, end_off, ellipsis_char)]
+                line += [(ellipsis_width, end_off, ellipsis_char)]
             line += [(pad_right, end_off)]
             segments.append(line)
             idx = nl_pos + 1
