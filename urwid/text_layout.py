@@ -20,21 +20,39 @@
 
 from __future__ import annotations
 
+import functools
 import typing
 
-from urwid.str_util import calc_text_pos, calc_width, is_wide_char, move_next_char, move_prev_char
+from urwid.str_util import calc_text_pos, calc_width, get_char_width, is_wide_char, move_next_char, move_prev_char
 from urwid.util import calc_trim_text, get_encoding
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
+    from urwid.widget import Align, WrapMode
+
+
+@functools.lru_cache(maxsize=4)
+def get_ellipsis_char(encoding: str) -> bytes:
+    """Get ellipsis character for given encoding."""
+    try:
+        return "…".encode(encoding)
+    except UnicodeEncodeError:
+        return b"..."
+
+
+@functools.lru_cache(maxsize=4)
+def get_ellipsis_width(encoding: str) -> int:
+    """Get ellipsis character width for given encoding."""
+    return sum(get_char_width(char) for char in get_ellipsis_char(get_encoding()).decode(get_encoding()))
+
 
 class TextLayout:
-    def supports_align_mode(self, align) -> bool:
+    def supports_align_mode(self, align: Literal["left", "center", "right"] | Align) -> bool:
         """Return True if align is a supported align mode."""
         return True
 
-    def supports_wrap_mode(self, wrap) -> bool:
+    def supports_wrap_mode(self, wrap: Literal["any", "space", "clip", "ellipsis"] | WrapMode) -> bool:
         """Return True if wrap is a supported wrap mode."""
         return True
 
@@ -42,8 +60,8 @@ class TextLayout:
         self,
         text: str | bytes,
         width: int,
-        align: Literal["left", "center", "right"],
-        wrap: Literal["any", "space", "clip", "ellipsis"],
+        align: Literal["left", "center", "right"] | Align,
+        wrap: Literal["any", "space", "clip", "ellipsis"] | WrapMode,
     ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]:
         """
         Return a layout structure for text.
@@ -88,11 +106,11 @@ class StandardTextLayout(TextLayout):
         # self.tab_stops = tab_stops
         # self.tab_stop_every = tab_stop_every
 
-    def supports_align_mode(self, align: str) -> bool:
+    def supports_align_mode(self, align: Literal["left", "center", "right"] | Align) -> bool:
         """Return True if align is 'left', 'center' or 'right'."""
         return align in {"left", "center", "right"}
 
-    def supports_wrap_mode(self, wrap: str) -> bool:
+    def supports_wrap_mode(self, wrap: Literal["any", "space", "clip", "ellipsis"] | WrapMode) -> bool:
         """Return True if wrap is 'any', 'space', 'clip' or 'ellipsis'."""
         return wrap in {"any", "space", "clip", "ellipsis"}
 
@@ -100,8 +118,8 @@ class StandardTextLayout(TextLayout):
         self,
         text: str | bytes,
         width: int,
-        align: Literal["left", "center", "right"],
-        wrap: Literal["any", "space", "clip", "ellipsis"],
+        align: Literal["left", "center", "right"] | Align,
+        wrap: Literal["any", "space", "clip", "ellipsis"] | WrapMode,
     ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]:
         """Return a layout structure for text."""
         try:
@@ -134,10 +152,10 @@ class StandardTextLayout(TextLayout):
         text: str | bytes,
         width: int,
         segs: list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]],
-        wrap: Literal["any", "space", "clip", "ellipsis"],
-        align: Literal["left", "center", "right"],
+        wrap: Literal["any", "space", "clip", "ellipsis"] | WrapMode,
+        align: Literal["left", "center", "right"] | Align,
     ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]:
-        """Convert the layout segs to an aligned layout."""
+        """Convert the layout segments to an aligned layout."""
         out = []
         for lines in segs:
             sc = line_width(lines)
@@ -158,12 +176,14 @@ class StandardTextLayout(TextLayout):
         self,
         text: str | bytes,
         width: int,
-        wrap: Literal["any", "space", "clip", "ellipsis"],
+        wrap: Literal["any", "space", "clip", "ellipsis"] | WrapMode,
     ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]:
-        """Calculate text segments for cases of text trimmed (wrap is clip or ellipsis)."""
+        """Calculate text segments for cases of a text trimmed (wrap is clip or ellipsis)."""
         segments = []
 
         nl = "\n" if isinstance(text, str) else b"\n"
+        ellipsis_char = get_ellipsis_char(get_encoding())
+        width_ellipsis = get_ellipsis_width(get_encoding())
 
         idx = 0
 
@@ -176,7 +196,8 @@ class StandardTextLayout(TextLayout):
             # trim line to max width if needed, add ellipsis if trimmed
             if wrap == "ellipsis" and screen_columns > width:
                 trimmed = True
-                start_off, end_off, pad_left, pad_right = calc_trim_text(text, idx, nl_pos, 0, width - 1)
+
+                start_off, end_off, pad_left, pad_right = calc_trim_text(text, idx, nl_pos, 0, width - width_ellipsis)
                 # pad_left should be 0, because the start_col parameter was 0 (no trimming on the left)
                 # similarly spos should not be changed from p
                 if pad_left != 0:
@@ -194,7 +215,7 @@ class StandardTextLayout(TextLayout):
             if idx != end_off:
                 line += [(screen_columns, idx, end_off)]
             if trimmed:
-                line += [(1, end_off, "…".encode(get_encoding()))]
+                line += [(1, end_off, ellipsis_char)]
             line += [(pad_right, end_off)]
             segments.append(line)
             idx = nl_pos + 1
@@ -204,7 +225,7 @@ class StandardTextLayout(TextLayout):
         self,
         text: str | bytes,
         width: int,
-        wrap: Literal["any", "space", "clip", "ellipsis"],
+        wrap: Literal["any", "space", "clip", "ellipsis"] | WrapMode,
     ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]:
         """
         Calculate the segments of text to display given width screen columns to display them.
