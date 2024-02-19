@@ -548,7 +548,7 @@ class Screen(BaseScreen, RealTerminal):
 
         self.s.attrset(attr)
 
-    def draw_screen(self, size: tuple[int, int], canvas: Canvas):
+    def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
         """Paint screen with rendered canvas."""
 
         logger = self.logger.getChild("draw_screen")

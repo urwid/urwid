@@ -39,7 +39,12 @@ class LCDScreen(BaseScreen, abc.ABC):
 
     DISPLAY_SIZE: tuple[int, int]
 
-    def set_terminal_properties(self, colors=None, bright_is_bold=None, has_underline=None):
+    def set_terminal_properties(
+        self,
+        colors: Literal[1, 16, 88, 256, 16777216] | None = None,
+        bright_is_bold: bool | None = None,
+        has_underline: bool | None = None,
+    ) -> None:
         pass
 
     def set_input_timeouts(self, *args):
@@ -106,7 +111,7 @@ class CFLCDScreen(LCDScreen):
     colors = 1
     has_underline = False
 
-    def __init__(self, device_path: str, baud: int):
+    def __init__(self, device_path: str, baud: int) -> None:
         """
         device_path -- eg. '/dev/ttyUSB0'
         baud -- baud rate
@@ -119,7 +124,7 @@ class CFLCDScreen(LCDScreen):
         self._unprocessed = bytearray()
 
     @classmethod
-    def get_crc(cls, buf: bytearray) -> int:
+    def get_crc(cls, buf: Iterable[int]) -> bytes:
         # This seed makes the output of this shift based algorithm match
         # the table based algorithm. The center 16 bits of the 32-bit
         # "newCRC" are used for the CRC. The MSB of the lower byte is used
@@ -152,17 +157,17 @@ class CFLCDScreen(LCDScreen):
                 new_crc ^= 0x00840800
         # Return the center 16 bits, making this CRC match the one's
         # complement that is sent in the packet.
-        return ((~new_crc) >> 8) & 0xFFFF
+        return (((~new_crc) >> 8) & 0xFFFF).to_bytes(2, "little")
 
-    def _send_packet(self, command, data):
+    def _send_packet(self, command: int, data: bytes) -> None:
         """
         low-level packet sending.
         Following the protocol requires waiting for ack packet between
         sending each packet to the device.
         """
-        buf = chr(command) + chr(len(data)) + data
-        crc = self.get_crc(buf)
-        buf = buf + chr(crc & 0xFF) + chr(crc >> 8)
+        buf = bytearray([command, len(data)])
+        buf.extend(data)
+        buf.extend(self.get_crc(buf))
         self._device.write(buf)
 
     def _read_packet(self) -> tuple[int, bytearray] | None:
@@ -214,7 +219,7 @@ class CFLCDScreen(LCDScreen):
 
         data_end = 2 + packet_len
         crc = cls.get_crc(data[:data_end])
-        pcrc = ord(data[data_end : data_end + 1]) + (ord(data[data_end + 1 : data_end + 2]) << 8)
+        pcrc = data[data_end : data_end + 2]
         if crc != pcrc:
             raise cls.InvalidPacket("CRC doesn't match")
         return command, data[2:data_end], data[data_end + 2 :]
@@ -343,12 +348,12 @@ class CF635Screen(CFLCDScreen):
 
         self._last_command = None
         self._last_command_time = 0
-        self._command_queue = []
+        self._command_queue: list[tuple[int, bytearray]] = []
         self._screen_buf = None
         self._previous_canvas = None
         self._update_cursor = False
 
-    def get_input_descriptors(self):
+    def get_input_descriptors(self) -> list[int]:
         """
         return the fd from our serial device so we get called
         on input and responses
@@ -418,13 +423,13 @@ class CF635Screen(CFLCDScreen):
         self._last_command = command  # record command for ACK
         self._last_command_time = time.time()
 
-    def queue_command(self, command: int, data: str) -> None:
+    def queue_command(self, command: int, data: bytearray) -> None:
         self._command_queue.append((command, data))
         # not waiting? send away!
         if self._last_command is None:
             self._send_next_command()
 
-    def draw_screen(self, size: tuple[int, int], canvas: Canvas):
+    def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
         if size != self.DISPLAY_SIZE:
             raise ValueError(size)
 
@@ -438,7 +443,10 @@ class CF635Screen(CFLCDScreen):
             text = [run for _a, _cs, run in row]
 
             if not osb or osb[y] != text:
-                self.queue_command(self.CMD_LCD_DATA, chr(0) + chr(y) + "".join(text))
+                data = bytearray([0, y])
+                for elem in text:
+                    data.extend(elem)
+                self.queue_command(self.CMD_LCD_DATA, data)
             sb.append(text)
 
         if (
@@ -448,11 +456,11 @@ class CF635Screen(CFLCDScreen):
         ):
             pass
         elif canvas.cursor is None:
-            self.queue_command(self.CMD_CURSOR_STYLE, chr(self.CURSOR_NONE))
+            self.queue_command(self.CMD_CURSOR_STYLE, bytearray([self.CURSOR_NONE]))
         else:
             x, y = canvas.cursor
-            self.queue_command(self.CMD_CURSOR_POSITION, chr(x) + chr(y))
-            self.queue_command(self.CMD_CURSOR_STYLE, chr(self.cursor_style))
+            self.queue_command(self.CMD_CURSOR_POSITION, bytearray([x, y]))
+            self.queue_command(self.CMD_CURSOR_STYLE, bytearray([self.cursor_style]))
 
         self._update_cursor = False
         self._screen_buf = sb
@@ -460,19 +468,19 @@ class CF635Screen(CFLCDScreen):
 
     def program_cgram(self, index: int, data: Sequence[int]) -> None:
         """
-        Program character data.  Characters available as chr(0) through
-        chr(7), and repeated as chr(8) through chr(15).
+        Program character data.
+
+        Characters available as chr(0) through chr(7), and repeated as chr(8) through chr(15).
 
         index -- 0 to 7 index of character to program
 
-        data -- list of 8, 6-bit integer values top to bottom with MSB
-        on the left side of the character.
+        data -- list of 8, 6-bit integer values top to bottom with MSB on the left side of the character.
         """
         if not 0 <= index <= 7:
             raise ValueError(index)
         if len(data) != 8:
             raise ValueError(data)
-        self.queue_command(self.CMD_CGRAM, chr(index) + "".join([chr(x) for x in data]))
+        self.queue_command(self.CMD_CGRAM, bytearray([index]) + bytearray(data))
 
     def set_cursor_style(self, style: Literal[1, 2, 3, 4]) -> None:
         """
@@ -493,7 +501,7 @@ class CF635Screen(CFLCDScreen):
         """
         if not 0 <= value <= 100:
             raise ValueError(value)
-        self.queue_command(self.CMD_BACKLIGHT, chr(value))
+        self.queue_command(self.CMD_BACKLIGHT, bytearray([value]))
 
     def set_lcd_contrast(self, value: int) -> None:
         """
@@ -501,9 +509,9 @@ class CF635Screen(CFLCDScreen):
         """
         if not 0 <= value <= 255:
             raise ValueError(value)
-        self.queue_command(self.CMD_LCD_CONTRAST, chr(value))
+        self.queue_command(self.CMD_LCD_CONTRAST, bytearray([value]))
 
-    def set_led_pin(self, led: Literal[0, 1, 2, 3], rg: Literal[0, 1], value: int):
+    def set_led_pin(self, led: Literal[0, 1, 2, 3], rg: Literal[0, 1], value: int) -> None:
         """
         led -- 0 to 3
         rg -- 0 for red, 1 for green
@@ -515,4 +523,4 @@ class CF635Screen(CFLCDScreen):
             raise ValueError(rg)
         if not 0 <= value <= 100:
             raise ValueError(value)
-        self.queue_command(self.CMD_GPO, chr(12 - 2 * led - rg) + chr(value))
+        self.queue_command(self.CMD_GPO, bytearray([12 - 2 * led - rg, value]))

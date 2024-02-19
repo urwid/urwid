@@ -39,7 +39,7 @@ import typing
 from contextlib import suppress
 
 from urwid.str_util import calc_text_pos, calc_width, move_next_char
-from urwid.util import StoppingContext
+from urwid.util import StoppingContext, get_encoding
 
 from .common import BaseScreen
 
@@ -122,17 +122,17 @@ Status: <span id="status">Set up</span>
 
 
 class Screen(BaseScreen):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.palette = {}
         self.has_color = True
         self._started = False
 
     @property
-    def started(self):
+    def started(self) -> bool:
         return self._started
 
-    def register_palette(self, palette):
+    def register_palette(self, palette) -> None:
         """Register a list of palette entries.
 
         palette -- list of (name, foreground, background) or
@@ -239,7 +239,7 @@ class Screen(BaseScreen):
 
         return StoppingContext(self)
 
-    def stop(self):
+    def stop(self) -> None:
         """
         Restore settings and clean up.
         """
@@ -253,10 +253,10 @@ class Screen(BaseScreen):
         self._cleanup_pipe()
         self._started = False
 
-    def set_input_timeouts(self, *args):
+    def set_input_timeouts(self, *args: typing.Any) -> None:
         pass
 
-    def _close_connection(self):
+    def _close_connection(self) -> None:
         if self.update_method == "polling child":
             self.server_socket.settimeout(0)
             sock, _addr = self.server_socket.accept()
@@ -267,7 +267,7 @@ class Screen(BaseScreen):
             sys.stdout.write("\r\nZ\r\n--ZZ--\r\n")
             sys.stdout.flush()
 
-    def _cleanup_pipe(self, *args):
+    def _cleanup_pipe(self, *args) -> None:
         if not self.pipe_name:
             return
         # XXX which exceptions does this actually raise? EnvironmentError?
@@ -275,14 +275,14 @@ class Screen(BaseScreen):
             os.remove(f"{self.pipe_name}.in")
             os.remove(f"{self.pipe_name}.update")
 
-    def _set_screen_size(self, cols, rows):
+    def _set_screen_size(self, cols: int, rows: int) -> None:
         """Set the screen size (within max size)."""
 
         cols = min(cols, MAX_COLS)
         rows = min(rows, MAX_ROWS)
         self.screen_size = cols, rows
 
-    def draw_screen(self, size: tuple[int, int], canvas: Canvas):
+    def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
         """Send a screen update to the client."""
 
         (cols, rows) = size
@@ -320,7 +320,7 @@ class Screen(BaseScreen):
         y = -1
         for row in canvas.content():
             y += 1
-            l_row = row.copy()
+            l_row = tuple((attr_, line.decode(get_encoding())) for attr_, _, line in row)
 
             line = []
 
@@ -338,7 +338,7 @@ class Screen(BaseScreen):
                 continue
 
             col = 0
-            for a, _cs, run in l_row:
+            for a, run in l_row:
                 t_run = run.translate(_trans_table)
                 if a is None:
                     fg, bg, _mono = "black", "light gray", None
@@ -372,7 +372,7 @@ class Screen(BaseScreen):
 
         signal.alarm(ALARM_DELAY)
 
-    def clear(self):
+    def clear(self) -> None:
         """
         Force the screen to be completely repainted on the next
         call to draw_screen().
@@ -380,7 +380,7 @@ class Screen(BaseScreen):
         (does nothing for web_display)
         """
 
-    def _fork_child(self):
+    def _fork_child(self) -> None:
         """
         Fork a child to run CGI disconnected for polling update method.
         Force parent process to exit.
@@ -394,7 +394,7 @@ class Screen(BaseScreen):
         s.settimeout(POLL_CONNECT)
         self.server_socket = s
 
-    def _handle_alarm(self, sig, frame):
+    def _handle_alarm(self, sig, frame) -> None:
         if self.update_method not in {"multipart", "polling child"}:
             raise ValueError(self.update_method)
         if self.update_method == "polling child":
@@ -410,7 +410,7 @@ class Screen(BaseScreen):
             sys.stdout.flush()
         signal.alarm(ALARM_DELAY)
 
-    def get_cols_rows(self):
+    def get_cols_rows(self) -> tuple[int, int]:
         """Return the screen size."""
         return self.screen_size
 
@@ -434,7 +434,7 @@ class Screen(BaseScreen):
                 return [], []
             return []
 
-        keydata = os.read(self.input_fd, MAX_READ)
+        keydata = os.read(self.input_fd, MAX_READ).decode(get_encoding())
         os.close(self.input_fd)
         self.input_fd = os.open(f"{self.pipe_name}.in", os.O_NONBLOCK | os.O_RDONLY)
         # sys.stderr.write( repr((keydata,self.input_tail))+"\n" )
@@ -459,7 +459,7 @@ class Screen(BaseScreen):
         return pending_input
 
 
-def code_span(s, fg, bg, cursor=-1):
+def code_span(s, fg, bg, cursor=-1) -> str:
     code_fg = _code_colours[fg]
     code_bg = _code_colours[bg]
 
@@ -485,19 +485,14 @@ def code_span(s, fg, bg, cursor=-1):
     return f"{code_fg + code_bg + s}\n"
 
 
-def html_escape(text):
-    """Escape text so that it will be displayed safely within HTML"""
-    return html.escape(text)
-
-
-def is_web_request():
+def is_web_request() -> bool:
     """
     Return True if this is a CGI web request.
     """
     return "REQUEST_METHOD" in os.environ
 
 
-def handle_short_request():
+def handle_short_request() -> bool:
     """
     Handle short requests such as passing keystrokes to the application
     or sending the initial html page.  If returns True, then this
@@ -512,7 +507,7 @@ def handle_short_request():
 
     if os.environ["REQUEST_METHOD"] == "GET":
         # Initial request, send the HTML and javascript.
-        sys.stdout.write("Content-type: text/html\r\n\r\n" + html_escape(_prefs.app_name).join(_html_page))
+        sys.stdout.write("Content-type: text/html\r\n\r\n" + html.escape(_prefs.app_name).join(_html_page))
         return True
 
     if os.environ["REQUEST_METHOD"] != "POST":
@@ -610,7 +605,7 @@ class ErrorLog:
             f.write(err)
 
 
-def daemonize(errfile):
+def daemonize(errfile: str) -> None:
     """
     Detach process and become a daemon.
     """

@@ -189,11 +189,11 @@ class TwistedScreen(Screen):
 
     # Urwid Screen API
 
-    def get_cols_rows(self):
+    def get_cols_rows(self) -> tuple[int, int]:
         """Get the size of the terminal as (cols, rows)"""
         return self.terminalProtocol.width, self.terminalProtocol.height
 
-    def draw_screen(self, maxres, canvas):
+    def draw_screen(self, size: tuple[int, int], canvas: urwid.Canvas) -> None:
         """Render a canvas to the terminal.
 
         The canvas contains all the information required to render the Urwid
@@ -201,7 +201,7 @@ class TwistedScreen(Screen):
         tuples. This very simple implementation iterates each row and simply
         writes it out.
         """
-        (maxcol, maxrow) = maxres
+        (maxcol, maxrow) = size
         # self.terminal.eraseDisplay()
         lasta = None
         for i, row in enumerate(canvas.content()):
