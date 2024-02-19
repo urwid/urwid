@@ -25,6 +25,11 @@ import typing
 
 import urwid
 
+if typing.TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from typing_extensions import Literal
+
 CGRAM = """
 ...... ...... ...... ...... ..X... ...... ...... ......
 XXXXXX XXXXXX XXXXXX XXXXXX X.XX.. .XXXXX ..XXX. .....X
@@ -37,7 +42,7 @@ XXXXXX XXXXXX XXXXXX XXXXXX X.XX.. .XXXXX ..XXX. ..X...
 """
 
 
-def program_cgram(screen):
+def program_cgram(screen_inst: urwid.display.lcd.CF635Screen) -> None:
     """
     Load the character data
     """
@@ -52,7 +57,7 @@ def program_cgram(screen):
             cbuf[num].append(accum)
 
     for num, cdata in enumerate(cbuf):
-        screen.program_cgram(num, cdata)
+        screen_inst.program_cgram(num, cdata)
 
 
 class LCDCheckBox(urwid.CheckBox):
@@ -91,12 +96,12 @@ class LCDProgressBar(urwid.Widget):
 
     _sizing = frozenset([urwid.Sizing.FLOW])
 
-    def __init__(self, data_range, value):
+    def __init__(self, data_range, value) -> None:
         super().__init__()
         self.range = data_range
         self.value = value
 
-    def rows(self, size, focus=False):
+    def rows(self, size, focus=False) -> int:
         return 1
 
     def render(self, size, focus=False):
@@ -142,7 +147,7 @@ class LCDProgressBar(urwid.Widget):
         return maxcol * (len(self.segments) - 1)
 
 
-class LCDHorizontalSlider(urwid.WidgetWrap):
+class LCDHorizontalSlider(urwid.WidgetWrap[urwid.Columns]):
     """
     A slider control using custom CGRAM characters
     """
@@ -159,7 +164,7 @@ class LCDHorizontalSlider(urwid.WidgetWrap):
         super().__init__(cols)
         self.callback = callback
 
-    def keypress(self, size, key):
+    def keypress(self, size, key: str):
         # move the slider based on which arrow is focused
         if key == "enter":
             # use the correct size for adjusting the bar
@@ -186,7 +191,7 @@ class MenuOption(urwid.Button):
 
         urwid.connect_signal(self, "click", lambda option: show_menu(submenu))
 
-    def keypress(self, size, key):
+    def keypress(self, size, key: str):
         if key == "right":
             key = "enter"
         return super().keypress(size, key)
@@ -197,7 +202,7 @@ class Menu(urwid.ListBox):
         self.menu_parent = None
         super().__init__(urwid.SimpleListWalker(widgets))
 
-    def keypress(self, size, key):
+    def keypress(self, size, key: str):
         """
         Go back to the previous menu on cancel button (mapped to esc)
         """
@@ -212,7 +217,7 @@ class Menu(urwid.ListBox):
 def build_menus():
     cursor_option_group = []
 
-    def cursor_option(label, style):
+    def cursor_option(label: str, style: Literal[1, 2, 3, 4]) -> LCDRadioButton:
         """A radio button that sets the cursor style"""
 
         def on_change(b, state):
@@ -223,7 +228,7 @@ def build_menus():
         urwid.connect_signal(b, "change", on_change)
         return b
 
-    def display_setting(label, data_range, fn):
+    def display_setting(label: str, data_range: int, fn: Callable[[int], None]) -> urwid.Columns:
         slider = LCDHorizontalSlider(data_range, data_range / 2, fn)
         return urwid.Columns(
             [
@@ -232,14 +237,16 @@ def build_menus():
             ]
         )
 
-    def led_custom(index):
-        def exp_scale_led(rg):
+    def led_custom(index: Literal[0, 1, 2, 3]) -> urwid.Columns:
+        def exp_scale_led(rg: Literal[0, 1]) -> Callable[[int], None]:
             """
             apply an exponential transformation to values sent so
             that apparent brightness increases in a natural way.
             """
             return lambda value: screen.set_led_pin(
-                index, rg, [0, 1, 2, 3, 4, 5, 6, 8, 11, 14, 18, 23, 29, 38, 48, 61, 79, 100][value]
+                index,
+                rg,
+                [0, 1, 2, 3, 4, 5, 6, 8, 11, 14, 18, 23, 29, 38, 48, 61, 79, 100][value],
             )
 
         return urwid.Columns(

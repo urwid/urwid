@@ -29,6 +29,7 @@ import typing
 
 from urwid import str_util
 from urwid.event_loop import ExitMainLoop
+from urwid.util import get_encoding
 
 from .common import AttrSpec, BaseScreen
 
@@ -38,7 +39,7 @@ if typing.TYPE_CHECKING:
     from urwid import Canvas
 
 # replace control characters with ?'s
-_trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 256)])
+_trans_table = "?" * 32 + "".join(chr(x) for x in range(32, 256))
 
 _default_foreground = "black"
 _default_background = "light gray"
@@ -55,7 +56,7 @@ class HtmlGenerator(BaseScreen):
     keys: typing.ClassVar[list[list[str] | tuple[list[str], list[int]]]] = []
     started = True
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.colors = 16
         self.bright_is_bold = False  # ignored
@@ -79,13 +80,13 @@ class HtmlGenerator(BaseScreen):
         self.bright_is_bold = bright_is_bold
         self.has_underline = has_underline
 
-    def set_input_timeouts(self, *args):
+    def set_input_timeouts(self, *args: typing.Any) -> None:
         pass
 
-    def reset_default_terminal_palette(self, *args):
+    def reset_default_terminal_palette(self, *args: typing.Any) -> None:
         pass
 
-    def draw_screen(self, size: tuple[int, int], canvas: Canvas):
+    def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
         """Create an html fragment from the render object.
         Append it to HtmlGenerator.fragments list.
         """
@@ -102,13 +103,11 @@ class HtmlGenerator(BaseScreen):
         else:
             cx = cy = None
 
-        y = -1
-        for row in canvas.content():
-            y += 1
+        for y, row in enumerate(canvas.content()):
             col = 0
 
             for a, _cs, run in row:
-                t_run = run.decode().translate(_trans_table)
+                t_run = run.decode(get_encoding()).translate(_trans_table)
                 if isinstance(a, AttrSpec):
                     aspec = a
                 else:
@@ -154,7 +153,7 @@ _default_aspec = AttrSpec(_default_foreground, _default_background)
 (_d_fg_r, _d_fg_g, _d_fg_b, _d_bg_r, _d_bg_g, _d_bg_b) = _default_aspec.get_rgb_values()
 
 
-def html_span(s, aspec, cursor: int = -1):
+def html_span(s: str, aspec: AttrSpec, cursor: int = -1) -> str:
     fg_r, fg_g, fg_b, bg_r, bg_g, bg_b = aspec.get_rgb_values()
     # use real colours instead of default fg/bg
     if fg_r is None:
@@ -170,7 +169,7 @@ def html_span(s, aspec, cursor: int = -1):
     def _span(fg: str, bg: str, string: str) -> str:
         if not s:
             return ""
-        return f'<span style="color:{fg};background:{bg}{extra}">{html_escape(string)}</span>'
+        return f'<span style="color:{fg};background:{bg}{extra}">{html.escape(string)}</span>'
 
     if cursor >= 0:
         c_off, _ign = str_util.calc_text_pos(s, 0, len(s), cursor)
@@ -182,11 +181,6 @@ def html_span(s, aspec, cursor: int = -1):
         )
 
     return _span(html_fg, html_bg, s)
-
-
-def html_escape(text: str) -> str:
-    """Escape text so that it will be displayed safely within HTML"""
-    return html.escape(text)
 
 
 def screenshot_init(sizes: list[tuple[int, int]], keys: list[list[str]]) -> None:
@@ -244,8 +238,7 @@ def screenshot_init(sizes: list[tuple[int, int]], keys: list[list[str]]) -> None
     HtmlGenerator.keys = keys
 
 
-def screenshot_collect():
+def screenshot_collect() -> list[str]:
     """Return screenshots as a list of HTML fragments."""
-    fragments = HtmlGenerator.fragments
-    HtmlGenerator.fragments = []
+    fragments, HtmlGenerator.fragments = HtmlGenerator.fragments, []
     return fragments
