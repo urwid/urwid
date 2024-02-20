@@ -6,6 +6,8 @@ import warnings
 from .attr_map import AttrMap
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from .constants import Sizing
     from .widget import Widget
 
@@ -86,10 +88,10 @@ class AttrWrap(AttrMap):
         )
         self.original_widget = new_widget
 
-    def get_attr(self):
+    def get_attr(self) -> Hashable:
         return self.attr_map[None]
 
-    def set_attr(self, attr):
+    def set_attr(self, attr: Hashable) -> None:
         """
         Set the attribute to apply to the wrapped widget
 
@@ -102,13 +104,13 @@ class AttrWrap(AttrMap):
 
     attr = property(get_attr, set_attr)
 
-    def get_focus_attr(self):
+    def get_focus_attr(self) -> Hashable | None:
         focus_map = self.focus_map
         if focus_map:
             return focus_map[None]
         return None
 
-    def set_focus_attr(self, focus_attr):
+    def set_focus_attr(self, focus_attr: Hashable) -> None:
         """
         Set the attribute to apply to the wapped widget when it is in
         focus

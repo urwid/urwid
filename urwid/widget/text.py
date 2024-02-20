@@ -338,7 +338,8 @@ class Text(Widget):
         if size:
             (maxcol,) = size
             if not hasattr(self.layout, "pack"):
-                return size
+                return maxcol, self.rows(size, focus)
+
             trans = self.get_line_translation(maxcol, (text, attr))
             cols = self.layout.pack(maxcol, trans)
             return (cols, len(trans))

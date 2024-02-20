@@ -23,7 +23,7 @@ class _ContainerElementSizingFlag(enum.IntFlag):
     WH_GIVEN = enum.auto()
 
     @property
-    def reverse_flag(self) -> tuple[frozenset(Sizing), WHSettings | None]:
+    def reverse_flag(self) -> tuple[frozenset[Sizing], WHSettings | None]:
         """Get flag in public API format."""
         sizing: set[Sizing] = set()
 

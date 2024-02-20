@@ -29,7 +29,12 @@ Features:
 
 from __future__ import annotations
 
+import typing
+
 import urwid
+
+if typing.TYPE_CHECKING:
+    from typing_extensions import Literal
 
 
 class FibonacciWalker(urwid.ListWalker):
@@ -107,22 +112,25 @@ class NumericLayout(urwid.TextLayout):
     TextLayout class for bottom-right aligned numbers
     """
 
-    def layout(self, text, width: int, align, wrap):
+    def layout(
+        self,
+        text: str | bytes,
+        width: int,
+        align: Literal["left", "center", "right"] | urwid.Align,
+        wrap: Literal["any", "space", "clip", "ellipsis"] | urwid.WrapMode,
+    ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]:
         """
         Return layout structure for right justified numbers.
         """
         lt = len(text)
         r = lt % width  # remaining segment not full width wide
         if r:
-            linestarts = range(r, lt, width)
             return [
-                # right-align the remaining segment on 1st line
-                [(width - r, None), (r, 0, r)]
-                # fill the rest of the lines
-            ] + [[(width, x, x + width)] for x in linestarts]
+                [(width - r, None), (r, 0, r)],  # right-align the remaining segment on 1st line
+                *([(width, x, x + width)] for x in range(r, lt, width)),  # fill the rest of the lines
+            ]
 
-        linestarts = range(0, lt, width)
-        return [[(width, x, x + width)] for x in linestarts]
+        return [[(width, x, x + width)] for x in range(0, lt, width)]
 
 
 if __name__ == "__main__":

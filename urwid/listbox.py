@@ -775,6 +775,7 @@ class ListBox(Widget, WidgetContainerMixin):
     )
 
     def _contents(self):
+        # noinspection PyMethodParameters
         class ListBoxContents:
             # pylint: disable=no-self-argument
 
