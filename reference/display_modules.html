@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Display Modules &#8212; Urwid 2.6.0</title>
+    <title>Display Modules &#8212; Urwid 2.6.2</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script src="../_static/documentation_options.js?v=ae39cb24"></script>
+    <script src="../_static/documentation_options.js?v=3db9c557"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="widget.html" title="Widget Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.2</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>
@@ -238,7 +238,7 @@ applications.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.curses.Screen.draw_screen">
-<span class="sig-name descname"><span class="pre">draw_screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canvas</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><span class="pre">Canvas</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.curses.Screen.draw_screen" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">draw_screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canvas</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><span class="pre">Canvas</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.curses.Screen.draw_screen" title="Link to this definition">¶</a></dt>
 <dd><p>Paint screen with rendered canvas.</p>
 </dd></dl>
 
@@ -335,7 +335,7 @@ click events along with keystrokes.</p>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.display.web.</span></span><span class="sig-name descname"><span class="pre">Screen</span></span><a class="headerlink" href="#urwid.display.web.Screen" title="Link to this definition">¶</a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.web.Screen.clear">
-<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.web.Screen.clear" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.web.Screen.clear" title="Link to this definition">¶</a></dt>
 <dd><p>Force the screen to be completely repainted on the next
 call to draw_screen().</p>
 <p>(does nothing for web_display)</p>
@@ -343,13 +343,13 @@ call to draw_screen().</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.web.Screen.draw_screen">
-<span class="sig-name descname"><span class="pre">draw_screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canvas</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><span class="pre">Canvas</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.web.Screen.draw_screen" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">draw_screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canvas</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><span class="pre">Canvas</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.web.Screen.draw_screen" title="Link to this definition">¶</a></dt>
 <dd><p>Send a screen update to the client.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.web.Screen.get_cols_rows">
-<span class="sig-name descname"><span class="pre">get_cols_rows</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.web.Screen.get_cols_rows" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_cols_rows</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.display.web.Screen.get_cols_rows" title="Link to this definition">¶</a></dt>
 <dd><p>Return the screen size.</p>
 </dd></dl>
 
@@ -363,7 +363,7 @@ call to draw_screen().</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.web.Screen.register_palette">
-<span class="sig-name descname"><span class="pre">register_palette</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">palette</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.web.Screen.register_palette" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">register_palette</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">palette</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.web.Screen.register_palette" title="Link to this definition">¶</a></dt>
 <dd><p>Register a list of palette entries.</p>
 <dl class="simple">
 <dt>palette – list of (name, foreground, background) or</dt><dd><p>(name, same_as_other_name) palette entries.</p>
@@ -400,7 +400,7 @@ this function for the preferences to take effect</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.web.Screen.stop">
-<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.web.Screen.stop" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.web.Screen.stop" title="Link to this definition">¶</a></dt>
 <dd><p>Restore settings and clean up.</p>
 </dd></dl>
 
@@ -420,7 +420,7 @@ this function for the preferences to take effect</p>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.display.html_fragment.</span></span><span class="sig-name descname"><span class="pre">HtmlGenerator</span></span><a class="headerlink" href="#urwid.display.html_fragment.HtmlGenerator" title="Link to this definition">¶</a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.html_fragment.HtmlGenerator.draw_screen">
-<span class="sig-name descname"><span class="pre">draw_screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canvas</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><span class="pre">Canvas</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.html_fragment.HtmlGenerator.draw_screen" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">draw_screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canvas</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><span class="pre">Canvas</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.html_fragment.HtmlGenerator.draw_screen" title="Link to this definition">¶</a></dt>
 <dd><p>Create an html fragment from the render object.
 Append it to HtmlGenerator.fragments list.</p>
 </dd></dl>
@@ -475,7 +475,7 @@ call get_cols_rows and read a new screen size.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="urwid.display.html_fragment.screenshot_collect">
-<span class="sig-prename descclassname"><span class="pre">urwid.display.html_fragment.</span></span><span class="sig-name descname"><span class="pre">screenshot_collect</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.html_fragment.screenshot_collect" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">urwid.display.html_fragment.</span></span><span class="sig-name descname"><span class="pre">screenshot_collect</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.display.html_fragment.screenshot_collect" title="Link to this definition">¶</a></dt>
 <dd><p>Return screenshots as a list of HTML fragments.</p>
 </dd></dl>
 
@@ -529,7 +529,7 @@ repeat_next – time between each repeated key
 key_map – the keys to send for this device’s buttons</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.lcd.CF635Screen.get_input_descriptors">
-<span class="sig-name descname"><span class="pre">get_input_descriptors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.lcd.CF635Screen.get_input_descriptors" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_input_descriptors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.display.lcd.CF635Screen.get_input_descriptors" title="Link to this definition">¶</a></dt>
 <dd><p>return the fd from our serial device so we get called
 on input and responses</p>
 </dd></dl>
@@ -551,11 +551,10 @@ not seem to have any correspondence to keys_pressed.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.lcd.CF635Screen.program_cgram">
 <span class="sig-name descname"><span class="pre">program_cgram</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.lcd.CF635Screen.program_cgram" title="Link to this definition">¶</a></dt>
-<dd><p>Program character data.  Characters available as chr(0) through
-chr(7), and repeated as chr(8) through chr(15).</p>
+<dd><p>Program character data.</p>
+<p>Characters available as chr(0) through chr(7), and repeated as chr(8) through chr(15).</p>
 <p>index – 0 to 7 index of character to program</p>
-<p>data – list of 8, 6-bit integer values top to bottom with MSB
-on the left side of the character.</p>
+<p>data – list of 8, 6-bit integer values top to bottom with MSB on the left side of the character.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -583,7 +582,7 @@ CURSOR_INVERTING_BLINKING_BLOCK</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.lcd.CF635Screen.set_led_pin">
-<span class="sig-name descname"><span class="pre">set_led_pin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">led</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.lcd.CF635Screen.set_led_pin" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">set_led_pin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">led</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.lcd.CF635Screen.set_led_pin" title="Link to this definition">¶</a></dt>
 <dd><p>led – 0 to 3
 rg – 0 for red, 1 for green
 value – 0 to 100</p>
@@ -767,7 +766,7 @@ timer will be reset for the next event</p>
         <li class="right" >
           <a href="widget.html" title="Widget Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.2</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>
