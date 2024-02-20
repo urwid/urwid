@@ -408,6 +408,14 @@ class PileTest(unittest.TestCase):
             self.assertRaises(urwid.PileError, lambda: p.contents.append(t1))
             self.assertRaises(urwid.PileError, lambda: p.contents.append((t1, None)))
             self.assertRaises(urwid.PileError, lambda: p.contents.append((t1, "given")))
+            self.assertRaises(urwid.PileError, lambda: p.contents.append((t1, ("given",))))
+            # Incorrect kind
+            self.assertRaises(urwid.PileError, lambda: p.contents.append((t1, ("what", 0))))
+            # incorrect size type
+            self.assertRaises(urwid.PileError, lambda: p.contents.append((t1, ("given", ()))))
+            # incorrect size
+            self.assertRaises(urwid.PileError, lambda: p.contents.append((t1, ("given", -1))))
+
 
     def test_focus_position(self):
         t1 = urwid.Text("one")

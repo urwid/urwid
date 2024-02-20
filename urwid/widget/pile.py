@@ -225,21 +225,28 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self.pref_col = 0
 
     def _contents_modified(self) -> None:
-        """
-        Recalculate whether this widget should be selectable whenever the
-        contents has been changed.
-        """
+        """Recalculate whether this widget should be selectable whenever the contents has been changed."""
         self._selectable = any(w.selectable() for w, o in self.contents)
         self._invalidate()
 
-    def _validate_contents_modified(self, slc, new_items):
-        for item in new_items:
-            try:
-                _w, (t, _n) = item
-                if t not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT}:
-                    raise PileError(f"added content invalid: {item!r}")
-            except (TypeError, ValueError) as exc:  # noqa: PERF203
-                raise PileError(f"added content invalid: {item!r}").with_traceback(exc.__traceback__) from exc
+    def _validate_contents_modified(self, slc, new_items) -> None:
+        invalid_items: list[tuple[Widget, tuple[typing.Any, typing.Any]]] = []
+        try:
+            for item in new_items:
+                _w, (t, n) = item
+                if any(
+                    (
+                        t not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT},
+                        (n is not None and (not isinstance(n, int) or n < 0)),
+                    )
+                ):
+                    invalid_items.append(item)
+
+        except (TypeError, ValueError) as exc:
+            raise PileError(f"added content invalid: {exc}").with_traceback(exc.__traceback__) from exc
+
+        if invalid_items:
+            raise PileError(f"added content invalid: {invalid_items!r}")
 
     @property
     def widget_list(self):

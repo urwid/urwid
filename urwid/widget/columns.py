@@ -287,13 +287,23 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self._invalidate()
 
     def _validate_contents_modified(self, slc, new_items) -> None:
-        for item in new_items:
-            try:
-                _w, (t, _n, _b) = item
-                if t not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT}:
-                    raise ColumnsError(f"added content invalid {item!r}")
-            except (TypeError, ValueError) as exc:  # noqa: PERF203
-                raise ColumnsError(f"added content invalid {item!r}").with_traceback(exc.__traceback__) from exc
+        invalid_items: list[tuple[Widget, tuple[typing.Any, typing.Any, typing.Any]]] = []
+        try:
+            for item in new_items:
+                _w, (t, n, b) = item
+                if any(
+                    (
+                        t not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT},
+                        (n is not None and (not isinstance(n, int) or n < 0)),
+                        not isinstance(b, bool),
+                    )
+                ):
+                    invalid_items.append(item)
+        except (TypeError, ValueError) as exc:
+            raise ColumnsError(f"added content invalid {exc}").with_traceback(exc.__traceback__) from exc
+
+        if invalid_items:
+            raise ColumnsError(f"added content invalid: {invalid_items!r}")
 
     @property
     def widget_list(self) -> MonitoredList:
