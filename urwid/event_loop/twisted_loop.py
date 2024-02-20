@@ -118,6 +118,7 @@ class TwistedEventLoop(EventLoop):
         executor: Executor,
         func: Callable[..., _T],
         *args: object,
+        **kwargs: object,
     ) -> Future[_T]:
         raise NotImplementedError(
             "Twisted implement it's own ThreadPool executor. Please use native API for call:\n"

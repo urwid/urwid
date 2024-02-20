@@ -26,6 +26,7 @@ Tornado library is required.
 
 from __future__ import annotations
 
+import asyncio
 import functools
 import logging
 import typing
@@ -36,7 +37,6 @@ from tornado import ioloop
 from .abstract_loop import EventLoop, ExitMainLoop
 
 if typing.TYPE_CHECKING:
-    import asyncio
     from collections.abc import Callable
     from concurrent.futures import Executor
 
@@ -60,7 +60,12 @@ class TornadoEventLoop(EventLoop):
         if loop:
             self._loop: ioloop.IOLoop = loop
         else:
-            self._loop = ioloop.IOLoop.current()  # TODO(Aleksei): Switch to the asyncio.EventLoop as tornado >= 6.0 !
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                asyncio.set_event_loop(asyncio.new_event_loop())
+
+            self._loop = ioloop.IOLoop.current()
 
         self._pending_alarms: dict[object, int] = {}
         self._watch_handles: dict[int, int] = {}  # {<watch_handle> : <file_descriptor>}
@@ -99,6 +104,7 @@ class TornadoEventLoop(EventLoop):
         executor: Executor,
         func: Callable[_Spec, _T],
         *args: _Spec.args,
+        **kwargs: _Spec.kwargs,
     ) -> asyncio.Future[_T]:
         """Run callable in executor.
 
@@ -108,10 +114,12 @@ class TornadoEventLoop(EventLoop):
         :type func: Callable
         :param args: arguments to function (positional only)
         :type args: object
+        :param kwargs: keyword arguments to function (keyword only)
+        :type kwargs: object
         :return: future object for the function call outcome.
         :rtype: asyncio.Future
         """
-        return self._loop.run_in_executor(executor, func, *args)
+        return self._loop.run_in_executor(executor, functools.partial(func, *args, **kwargs))
 
     def alarm(self, seconds: float, callback: Callable[[], typing.Any]):
         @self._also_call_idle

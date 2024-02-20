@@ -64,6 +64,7 @@ class EventLoop(abc.ABC):
         executor: Executor,
         func: Callable[_Spec, _T],
         *args: _Spec.args,
+        **kwargs: _Spec.kwargs,
     ) -> Future[_T] | asyncio.Future[_T]:
         """Run callable in executor if supported.
 
@@ -73,6 +74,8 @@ class EventLoop(abc.ABC):
         :type func: Callable
         :param args: arguments to function (positional only)
         :type args: object
+        :param kwargs: keyword arguments to function (keyword only)
+        :type kwargs: object
         :return: future object for the function call outcome.
                  (exact future type depends on the event loop type)
         :rtype: concurrent.futures.Future | asyncio.Future
