@@ -236,7 +236,8 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
 
         # Disable cursor display if cursor is outside of visible canvas parts
         if canv.cursor is not None:
-            _curscol, cursrow = canv.cursor  # pylint: disable=unpacking-non-sequence
+            # Pylint check acts here a bit weird.
+            _curscol, cursrow = canv.cursor  # pylint: disable=unpacking-non-sequence,useless-suppression
             if cursrow >= maxrow or cursrow < 0:
                 canv.cursor = None
 

@@ -57,7 +57,7 @@ class LCDScreen(BaseScreen, abc.ABC):
         return self.DISPLAY_SIZE
 
 
-class CFLCDScreen(LCDScreen):
+class CFLCDScreen(LCDScreen, abc.ABC):
     """
     Common methods for Crystal Fonts LCD displays
     """

@@ -6,7 +6,7 @@ import warnings
 from urwid.canvas import CanvasCombine, CompositeCanvas
 from urwid.util import is_mouse_press
 
-from .constants import Sizing
+from .constants import Sizing, VAlign
 from .container import WidgetContainerMixin
 from .filler import Filler
 from .widget import Widget, WidgetError
@@ -80,7 +80,7 @@ class Frame(Widget, WidgetContainerMixin):
         return self._header
 
     @header.setter
-    def header(self, header: Widget | None):
+    def header(self, header: Widget | None) -> None:
         _check_widget_subclass(header)
         self._header = header
         if header is None and self.focus_part == "header":
@@ -260,6 +260,8 @@ class Frame(Widget, WidgetContainerMixin):
         class FrameContents(typing.MutableMapping[str, typing.Tuple[Widget, None]]):
             # pylint: disable=no-self-argument
 
+            __slots__ = ()
+
             def __len__(inner_self) -> int:
                 return len(inner_self.keys())
 
@@ -295,7 +297,7 @@ class Frame(Widget, WidgetContainerMixin):
             return (self._footer, None)
         raise KeyError(f"Frame.contents has no key: {key!r}")
 
-    def _contents__setitem__(self, key: Literal["header", "footer", "body"], value):
+    def _contents__setitem__(self, key: Literal["header", "footer", "body"], value) -> None:
         if key not in {"body", "header", "footer"}:
             raise KeyError(f"Frame.contents has no key: {key!r}")
         try:
@@ -311,7 +313,7 @@ class Frame(Widget, WidgetContainerMixin):
         else:
             self.header = value_w
 
-    def _contents__delitem__(self, key: Literal["header", "footer", "body"]):
+    def _contents__delitem__(self, key: Literal["header", "footer", "body"]) -> None:
         if key not in {"header", "footer"}:
             raise KeyError(f"Frame.contents can't remove key: {key!r}")
         if (key == "header" and self._header is None) or (key == "footer" and self._footer is None):
@@ -397,7 +399,7 @@ class Frame(Widget, WidgetContainerMixin):
 
         head = None
         if htrim and htrim < hrows:
-            head = Filler(self.header, "top").render((maxcol, htrim), focus and self.focus_part == "header")
+            head = Filler(self.header, VAlign.TOP).render((maxcol, htrim), focus and self.focus_part == "header")
         elif htrim:
             head = self.header.render((maxcol,), focus and self.focus_part == "header")
             if head.rows() != hrows:
@@ -413,7 +415,7 @@ class Frame(Widget, WidgetContainerMixin):
 
         foot = None
         if ftrim and ftrim < frows:
-            foot = Filler(self.footer, "bottom").render((maxcol, ftrim), focus and self.focus_part == "footer")
+            foot = Filler(self.footer, VAlign.BOTTOM).render((maxcol, ftrim), focus and self.focus_part == "footer")
         elif ftrim:
             foot = self.footer.render((maxcol,), focus and self.focus_part == "footer")
             if foot.rows() != frows:
@@ -518,7 +520,7 @@ class Frame(Widget, WidgetContainerMixin):
         x, y = coords
         return x, y + row_adjust
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Literal["header", "body", "footer"]]:
         """
         Return an iterator over the positions in this Frame top to bottom.
         """
@@ -528,7 +530,7 @@ class Frame(Widget, WidgetContainerMixin):
         if self._footer:
             yield "footer"
 
-    def __reversed__(self):
+    def __reversed__(self) -> Iterator[Literal["footer", "body", "header"]]:
         """
         Return an iterator over the positions in this Frame bottom to top.
         """

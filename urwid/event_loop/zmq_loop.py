@@ -38,6 +38,7 @@ import zmq
 from .abstract_loop import EventLoop, ExitMainLoop
 
 if typing.TYPE_CHECKING:
+    import io
     from collections.abc import Callable
     from concurrent.futures import Executor, Future
 
@@ -151,10 +152,10 @@ class ZMQEventLoop(EventLoop):
 
     def watch_file(
         self,
-        fd: int,
+        fd: int | io.TextIOWrapper,
         callback: Callable[[], typing.Any],
         flags: int = zmq.POLLIN,
-    ) -> int:
+    ) -> io.TextIOWrapper:
         """
         Call *callback* when *fd* has some data to read. No parameters are
         passed to the callback. The *flags* are as for :meth:`watch_queue`.
@@ -191,7 +192,7 @@ class ZMQEventLoop(EventLoop):
 
         return True
 
-    def remove_watch_file(self, handle: int) -> bool:
+    def remove_watch_file(self, handle: io.TextIOWrapper) -> bool:
         """
         Remove a file from background polling. Returns ``True`` if the file was
         being monitored, ``False`` otherwise.
