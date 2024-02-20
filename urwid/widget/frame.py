@@ -53,7 +53,7 @@ class Frame(Widget, WidgetContainerMixin):
         body: Widget,
         header: Widget | None = None,
         footer: Widget | None = None,
-        focus_part: Literal["header", "footer", "body"] = "body",
+        focus_part: Literal["header", "footer", "body"] | Widget = "body",
     ):
         """
         :param body: a box widget for the body of the frame
@@ -63,14 +63,24 @@ class Frame(Widget, WidgetContainerMixin):
         :param footer: a flow widget for below the body (or None)
         :type footer: Widget
         :param focus_part:  'header', 'footer' or 'body'
-        :type focus_part: str
+        :type focus_part: str | Widget
         """
         super().__init__()
 
         self._header = header
         self._body = body
         self._footer = footer
-        self.focus_part = focus_part
+        if focus_part in {"header", "footer", "body"}:
+            self.focus_part = focus_part
+        elif focus_part == header:
+            self.focus_part = "header"
+        elif focus_part == footer:
+            self.focus_part = "footer"
+        elif focus_part == body:
+            self.focus_part = "body"
+        else:
+            raise ValueError(f"Invalid focus part {focus_part!r}")
+
         _check_widget_subclass(header)
         _check_widget_subclass(body)
         _check_widget_subclass(footer)
