@@ -120,6 +120,7 @@ class AsyncioEventLoop(EventLoop):
         executor: Executor | None,
         func: Callable[_Spec, _T],
         *args: _Spec.args,
+        **kwargs: _Spec.kwargs,
     ) -> asyncio.Future[_T]:
         """Run callable in executor.
 
@@ -129,10 +130,12 @@ class AsyncioEventLoop(EventLoop):
         :type func: Callable
         :param args: arguments to function (positional only)
         :type args: object
+        :param kwargs: keyword arguments to function (keyword only)
+        :type kwargs: object
         :return: future object for the function call outcome.
         :rtype: asyncio.Future
         """
-        return self._loop.run_in_executor(executor, func, *args)
+        return self._loop.run_in_executor(executor, functools.partial(func, *args, **kwargs))
 
     def alarm(self, seconds: float, callback: Callable[[], typing.Any]) -> asyncio.TimerHandle:
         """

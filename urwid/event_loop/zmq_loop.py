@@ -68,9 +68,9 @@ class ZMQEventLoop(EventLoop):
         self._did_something = True
         self._alarms = []
         self._poller = zmq.Poller()
-        self._queue_callbacks = {}
+        self._queue_callbacks: dict[int, Callable[[], typing.Any]] = {}
         self._idle_handle = 0
-        self._idle_callbacks = {}
+        self._idle_callbacks: dict[int, Callable[[], typing.Any]] = {}
 
     def run_in_executor(
         self,
@@ -251,6 +251,7 @@ class ZMQEventLoop(EventLoop):
         A single iteration of the event loop.
         """
         if self._alarms or self._did_something:
+            timeout = 0
             if self._alarms:
                 state = "alarm"
                 timeout = max(0, self._alarms[0][0] - time.time())
