@@ -49,7 +49,7 @@ if typing.TYPE_CHECKING:
 
     from typing_extensions import Literal, Self
 
-    from urwid.canvas import CompositeCanvas
+    from urwid.canvas import Canvas, CompositeCanvas
 
 _T = typing.TypeVar("_T")
 _K = typing.TypeVar("_K")
@@ -600,7 +600,7 @@ class ListBox(Widget, WidgetContainerMixin):
         trim_top, fill_above = top
         trim_bottom, fill_below = bottom
 
-        combinelist = []
+        combinelist: list[tuple[Canvas, int, bool]] = []
         rows = 0
         fill_above.reverse()  # fill_above is in bottom-up order
         for widget, w_pos, w_rows in fill_above:
@@ -655,16 +655,34 @@ class ListBox(Widget, WidgetContainerMixin):
 
         if rows > maxrow:
             raise ListBoxError(
-                f"Listbox contents too long!  Probably urwid's fault (please report): {top, middle, bottom!r}"
+                f"Listbox contents too long!\nRender top={top!r}, middle={middle!r}, bottom={bottom!r}\n"
             )
 
         if rows < maxrow:
+            if trim_bottom != 0:
+                raise ListBoxError(
+                    f"Listbox contents too short!\n"
+                    f"Render top={top!r}, middle={middle!r}, bottom={bottom!r}\n"
+                    f"Trim bottom={trim_bottom!r}"
+                )
+
             bottom_pos = focus_pos
             if fill_below:
                 bottom_pos = fill_below[-1][1]
-            if trim_bottom != 0 or self._body.get_next(bottom_pos) != (None, None):
+
+            rendered_positions = frozenset(idx for _, idx, _ in combinelist)
+            next_pos = bottom_pos + 1
+            candidates = tuple(
+                widget
+                for idx, widget in enumerate(self.contents[next_pos:][0], start=next_pos)
+                if (idx not in rendered_positions) and widget.rows((maxcol,), False)
+            )
+
+            if candidates:
                 raise ListBoxError(
-                    f"Listbox contents too short!  Probably urwid's fault (please report): {top, middle, bottom!r}"
+                    f"Listbox contents too short!\n"
+                    f"Render top={top!r}, middle={middle!r}, bottom={bottom!r}\n"
+                    f"Not rendered not empty: {candidates!r}"
                 )
             final_canvas.pad_trim_top_bottom(0, maxrow - rows)
 

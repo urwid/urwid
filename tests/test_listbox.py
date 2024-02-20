@@ -848,3 +848,18 @@ class TestListWalkerFromIterable(unittest.TestCase):
     def test_02_simple_focus_list_walker(self):
         walker = urwid.SimpleFocusListWalker(str(num) for num in range(5))
         self.assertEqual(5, len(walker))
+
+
+class TestSkipRender(unittest.TestCase):
+    def test_empty_containers(self):
+        listbox = urwid.ListBox([
+            urwid.Text("hi"),
+            urwid.Pile([]),
+            urwid.Pile([]),
+            urwid.Pile([]),
+            urwid.Pile([]),
+            urwid.Pile([]),
+            urwid.Pile([]),
+        ])
+        canvas = listbox.render((3, 3))
+        self.assertEqual(('hi ', '   ', '   '), canvas.decoded_text)
