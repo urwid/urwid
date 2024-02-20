@@ -746,6 +746,15 @@ class ColumnsTest(unittest.TestCase):
             self.assertRaises(urwid.ColumnsError, lambda: c.contents.append(t1))
             self.assertRaises(urwid.ColumnsError, lambda: c.contents.append((t1, None)))
             self.assertRaises(urwid.ColumnsError, lambda: c.contents.append((t1, "given")))
+            self.assertRaises(urwid.ColumnsError, lambda: c.contents.append((t1, ("given", None))))
+            # Incorrect kind
+            self.assertRaises(urwid.ColumnsError, lambda: c.contents.append((t1, ("what", 1, False))))
+            # Incorrect box field
+            self.assertRaises(urwid.ColumnsError, lambda: c.contents.append((t1, ("given", 1, None))))
+            # Incorrect size type
+            self.assertRaises(urwid.ColumnsError, lambda: c.contents.append((t1, ("given", (), False))))
+            # Incorrect size
+            self.assertRaises(urwid.ColumnsError, lambda: c.contents.append((t1, ("given", -1, False))))
 
     def test_focus_position(self):
         t1 = urwid.Text("one")
