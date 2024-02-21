@@ -190,8 +190,7 @@ class Widget(metaclass=WidgetMeta):
     .. attribute:: _selectable
        :annotation: = False
 
-       The default :meth:`.selectable` method returns this
-       value.
+       The default :meth:`.selectable` method returns this value.
 
     .. attribute:: _sizing
        :annotation: = frozenset(['flow', 'box', 'fixed'])
@@ -201,8 +200,7 @@ class Widget(metaclass=WidgetMeta):
     .. attribute:: _command_map
        :annotation: = urwid.command_map
 
-       A shared :class:`CommandMap` instance. May be redefined
-       in subclasses or widget instances.
+       A shared :class:`CommandMap` instance. May be redefined in subclasses or widget instances.
 
 
     .. method:: rows(size, focus=False)
@@ -214,8 +212,7 @@ class Widget(metaclass=WidgetMeta):
 
        See :meth:`Widget.render` for parameter details.
 
-       :returns: The number of rows required for this widget given a number
-                 of columns in *size*
+       :returns: The number of rows required for this widget given a number of columns in *size*
 
        This is the method flow widgets use to communicate their size to other
        widgets without having to render a canvas. This should be a quick
@@ -250,20 +247,17 @@ class Widget(metaclass=WidgetMeta):
        if no cursor is displayed.
 
        The :class:`ListBox` widget
-       uses this method to make sure a cursor in the focus widget is not
-       scrolled out of view.  It is a separate method to avoid having to render
-       the whole widget while calculating layout.
+       uses this method to make sure a cursor in the focus widget is not scrolled out of view.
+       It is a separate method to avoid having to render the whole widget while calculating layout.
 
-       Container widgets will typically call the :meth:`.get_cursor_coords`
-       method on their focus widget.
+       Container widgets will typically call the :meth:`.get_cursor_coords` method on their focus widget.
 
 
     .. method:: get_pref_col(size)
 
        .. note::
 
-          This method is not implemented in :class:`.Widget` but
-          may be implemented by a subclass.
+          This method is not implemented in :class:`.Widget` but may be implemented by a subclass.
 
        :param size: See :meth:`Widget.render` for details.
        :type size: widget size
@@ -286,9 +280,8 @@ class Widget(metaclass=WidgetMeta):
 
        .. note::
 
-          This method is not implemented in :class:`.Widget` but
-          may be implemented by a subclass.  Not implementing this
-          method is equivalent to having a method that always returns
+          This method is not implemented in :class:`.Widget` but may be implemented by a subclass.
+          Not implementing this method is equivalent to having a method that always returns
           ``False``.
 
        :param size: See :meth:`Widget.render` for details.
@@ -298,8 +291,7 @@ class Widget(metaclass=WidgetMeta):
        :param row: new row for the cursor, 0 it the top row of this widget
        :type row: int
 
-       :returns: ``True`` if the position was set successfully anywhere on
-                 *row*, ``False`` otherwise
+       :returns: ``True`` if the position was set successfully anywhere on *row*, ``False`` otherwise
     """
 
     _selectable = False
@@ -310,17 +302,11 @@ class Widget(metaclass=WidgetMeta):
         self.logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
 
     def _invalidate(self) -> None:
-        """
-        Mark cached canvases rendered by this widget as dirty so that
-        they will not be used again.
-        """
+        """Mark cached canvases rendered by this widget as dirty so that they will not be used again."""
         CanvasCache.invalidate(self)
 
     def _emit(self, name: Hashable, *args) -> None:
-        """
-        Convenience function to emit signals with self as first
-        argument.
-        """
+        """Convenience function to emit signals with self as first argument."""
         signals.emit_signal(self, name, self, *args)
 
     def selectable(self) -> bool:
@@ -418,19 +404,18 @@ class Widget(metaclass=WidgetMeta):
 
     @property
     def base_widget(self) -> Widget:
-        """
-        Read-only property that steps through decoration widgets
-        and returns the one at the base.  This default implementation
-        returns self.
+        """Read-only property that steps through decoration widgets and returns the one at the base.
+
+        This default implementation returns self.
         """
         return self
 
     @property
     def focus(self) -> Widget | None:
         """
-        Read-only property returning the child widget in focus for
-        container widgets.  This default implementation
-        always returns ``None``, indicating that this widget has no children.
+        Read-only property returning the child widget in focus for container widgets.
+
+        This default implementation always returns ``None``, indicating that this widget has no children.
         """
         return None
 
@@ -449,9 +434,9 @@ class Widget(metaclass=WidgetMeta):
     )
 
     def __repr__(self):
-        """
-        A friendly __repr__ for widgets, designed to be extended
-        by subclasses with _repr_words and _repr_attr methods.
+        """A friendly __repr__ for widgets.
+
+        Designed to be extended by subclasses with _repr_words and _repr_attr methods.
         """
         return split_repr(self)
 
