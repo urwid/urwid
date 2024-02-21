@@ -671,19 +671,29 @@ class ListBox(Widget, WidgetContainerMixin):
                 bottom_pos = fill_below[-1][1]
 
             rendered_positions = frozenset(idx for _, idx, _ in combinelist)
-            next_pos = bottom_pos + 1
-            candidates = tuple(
-                widget
-                for idx, widget in enumerate(self.contents[next_pos:][0], start=next_pos)
-                if (idx not in rendered_positions) and widget.rows((maxcol,), False)
-            )
-
-            if candidates:
-                raise ListBoxError(
-                    f"Listbox contents too short!\n"
-                    f"Render top={top!r}, middle={middle!r}, bottom={bottom!r}\n"
-                    f"Not rendered not empty: {candidates!r}"
+            widget, next_pos = self._body.get_next(bottom_pos)
+            while all(
+                (
+                    widget is not None,
+                    next_pos is not None,
+                    next_pos not in rendered_positions,
                 )
+            ):
+                if widget.rows((maxcol,), False):
+                    raise ListBoxError(
+                        f"Listbox contents too short!\n"
+                        f"Render top={top!r}, middle={middle!r}, bottom={bottom!r}\n"
+                        f"Not rendered not empty widgets available (first is {widget!r} with position {next_pos!r})"
+                    )
+
+                widget, next_next_pos = self._body.get_next(next_pos)
+                if next_pos == next_next_pos:
+                    raise ListBoxError(
+                        f"Next position after {next_pos!r} is invalid (points to itself)\n"
+                        f"Looks like bug with {self._body!r}"
+                    )
+                next_pos = next_next_pos
+
             final_canvas.pad_trim_top_bottom(0, maxrow - rows)
 
         return final_canvas

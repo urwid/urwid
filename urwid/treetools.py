@@ -35,14 +35,14 @@ import typing
 import urwid
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import Hashable, Sequence
 
 
 class TreeWidgetError(RuntimeError):
     pass
 
 
-class TreeWidget(urwid.WidgetWrap):
+class TreeWidget(urwid.WidgetWrap[urwid.Padding]):
     """A widget representing something in a nested tree display."""
 
     indent_cols = 3
@@ -51,7 +51,7 @@ class TreeWidget(urwid.WidgetWrap):
 
     def __init__(self, node: TreeNode) -> None:
         self._node = node
-        self._innerwidget = None
+        self._innerwidget: urwid.Text | None = None
         self.is_leaf = not hasattr(node, "get_first_child")
         self.expanded = True
         widget = self.get_indented_widget()
@@ -63,25 +63,25 @@ class TreeWidget(urwid.WidgetWrap):
         """
         return not self.is_leaf
 
-    def get_indented_widget(self) -> urwid.Widget:
+    def get_indented_widget(self) -> urwid.Padding:
         widget = self.get_inner_widget()
         if not self.is_leaf:
             widget = urwid.Columns(
-                [("fixed", 1, [self.unexpanded_icon, self.expanded_icon][self.expanded]), widget],
+                [(1, [self.unexpanded_icon, self.expanded_icon][self.expanded]), widget],
                 dividechars=1,
             )
         indent_cols = self.get_indent_cols()
-        return urwid.Padding(widget, width=("relative", 100), left=indent_cols)
+        return urwid.Padding(widget, width=(urwid.RELATIVE, 100), left=indent_cols)
 
     def update_expanded_icon(self) -> None:
         """Update display widget text for parent widgets"""
         # icon is first element in columns indented widget
         self._w.base_widget.widget_list[0] = [self.unexpanded_icon, self.expanded_icon][self.expanded]
 
-    def get_indent_cols(self):
+    def get_indent_cols(self) -> int:
         return self.indent_cols * self.get_node().get_depth()
 
-    def get_inner_widget(self):
+    def get_inner_widget(self) -> urwid.Text:
         if self._innerwidget is None:
             self._innerwidget = self.load_inner_widget()
         return self._innerwidget
@@ -89,7 +89,7 @@ class TreeWidget(urwid.WidgetWrap):
     def load_inner_widget(self) -> urwid.Widget:
         return urwid.Text(self.get_display_text())
 
-    def get_node(self):
+    def get_node(self) -> TreeNode:
         return self._node
 
     def get_display_text(self) -> str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]:
@@ -98,50 +98,50 @@ class TreeWidget(urwid.WidgetWrap):
     def next_inorder(self) -> TreeWidget | None:
         """Return the next TreeWidget depth first from this one."""
         # first check if there's a child widget
-        firstchild = self.first_child()
-        if firstchild is not None:
-            return firstchild
+        first_child = self.first_child()
+        if first_child is not None:
+            return first_child
 
         # now we need to hunt for the next sibling
-        thisnode = self.get_node()
-        nextnode = thisnode.next_sibling()
-        depth = thisnode.get_depth()
-        while nextnode is None and depth > 0:
+        this_node = self.get_node()
+        next_node = this_node.next_sibling()
+        depth = this_node.get_depth()
+        while next_node is None and depth > 0:
             # keep going up the tree until we find an ancestor next sibling
-            thisnode = thisnode.get_parent()
-            nextnode = thisnode.next_sibling()
+            this_node = this_node.get_parent()
+            next_node = this_node.next_sibling()
             depth -= 1
-            if depth != thisnode.get_depth():
+            if depth != this_node.get_depth():
                 raise ValueError(depth)
-        if nextnode is None:
+        if next_node is None:
             # we're at the end of the tree
             return None
 
-        return nextnode.get_widget()
+        return next_node.get_widget()
 
     def prev_inorder(self) -> TreeWidget | None:
         """Return the previous TreeWidget depth first from this one."""
-        thisnode = self._node
-        prevnode = thisnode.prev_sibling()
-        if prevnode is not None:
+        this_node = self._node
+        prev_node = this_node.prev_sibling()
+        if prev_node is not None:
             # we need to find the last child of the previous widget if its
             # expanded
-            prevwidget = prevnode.get_widget()
-            lastchild = prevwidget.last_child()
-            if lastchild is None:
-                return prevwidget
+            prev_widget = prev_node.get_widget()
+            last_child = prev_widget.last_child()
+            if last_child is None:
+                return prev_widget
 
-            return lastchild
+            return last_child
 
         # need to hunt for the parent
-        depth = thisnode.get_depth()
-        if prevnode is None and depth == 0:
+        depth = this_node.get_depth()
+        if prev_node is None and depth == 0:
             return None
-        if prevnode is None:
-            prevnode = thisnode.get_parent()
-        return prevnode.get_widget()
+        if prev_node is None:
+            prev_node = this_node.get_parent()
+        return prev_node.get_widget()
 
-    def keypress(self, size, key: str) -> str | None:
+    def keypress(self, size: tuple[int] | tuple[()], key: str) -> str | None:
         """Handle expand & collapse requests (non-leaf nodes)"""
         if self.is_leaf:
             return key
@@ -161,7 +161,7 @@ class TreeWidget(urwid.WidgetWrap):
 
     def mouse_event(
         self,
-        size,
+        size: tuple[int] | tuple[()],
         event: str,
         button: int,
         col: int,
@@ -184,8 +184,8 @@ class TreeWidget(urwid.WidgetWrap):
             return None
 
         if self._node.has_children():
-            firstnode = self._node.get_first_child()
-            return firstnode.get_widget()
+            first_node = self._node.get_first_child()
+            return first_node.get_widget()
 
         return None
 
@@ -195,15 +195,15 @@ class TreeWidget(urwid.WidgetWrap):
             return None
 
         if self._node.has_children():
-            lastchild = self._node.get_last_child().get_widget()
+            last_child = self._node.get_last_child().get_widget()
         else:
             return None
         # recursively search down for the last descendant
-        lastdescendant = lastchild.last_child()
-        if lastdescendant is None:
-            return lastchild
+        last_descendant = last_child.last_child()
+        if last_descendant is None:
+            return last_child
 
-        return lastdescendant
+        return last_descendant
 
 
 class TreeNode:
@@ -218,9 +218,9 @@ class TreeNode:
 
     def __init__(
         self,
-        value,
+        value: typing.Any,
         parent: ParentNode | None = None,
-        key=None,
+        key: Hashable | None = None,
         depth: int | None = None,
     ) -> None:
         self._key = key
@@ -245,19 +245,19 @@ class TreeNode:
             self._depth = self._parent.get_depth() + 1
         return self._depth
 
-    def get_index(self):
+    def get_index(self) -> int | None:
         if self.get_depth() == 0:
             return None
 
         return self.get_parent().get_child_index(self.get_key())
 
-    def get_key(self):
+    def get_key(self) -> Hashable | None:
         return self._key
 
-    def set_key(self, key) -> None:
+    def set_key(self, key: Hashable | None) -> None:
         self._key = key
 
-    def change_key(self, key) -> None:
+    def change_key(self, key: Hashable | None) -> None:
         self.get_parent().change_child_key(self._key, key)
 
     def get_parent(self) -> ParentNode:
@@ -301,23 +301,23 @@ class ParentNode(TreeNode):
 
     def __init__(
         self,
-        value,
+        value: typing.Any,
         parent: ParentNode | None = None,
-        key=None,
+        key: Hashable = None,
         depth: int | None = None,
     ) -> None:
         super().__init__(value, parent=parent, key=key, depth=depth)
 
-        self._child_keys = None
-        self._children = {}
+        self._child_keys: Sequence[Hashable] | None = None
+        self._children: dict[Hashable, TreeNode] = {}
 
-    def get_child_keys(self, reload: bool = False):
+    def get_child_keys(self, reload: bool = False) -> Sequence[Hashable]:
         """Return a possibly ordered list of child keys"""
         if self._child_keys is None or reload:
             self._child_keys = self.load_child_keys()
         return self._child_keys
 
-    def load_child_keys(self):
+    def load_child_keys(self) -> Sequence[Hashable]:
         """Provide ParentNode with an ordered list of child keys (virtual function)"""
         raise TreeWidgetError("virtual function.  Implement in subclass")
 
@@ -332,24 +332,24 @@ class ParentNode(TreeNode):
             self._children[key] = self.load_child_node(key)
         return self._children[key]
 
-    def load_child_node(self, key) -> TreeNode:
+    def load_child_node(self, key: Hashable) -> TreeNode:
         """Load the child node for a given key (virtual function)"""
         raise TreeWidgetError("virtual function.  Implement in subclass")
 
-    def set_child_node(self, key, node: TreeNode) -> None:
+    def set_child_node(self, key: Hashable, node: TreeNode) -> None:
         """Set the child node for a given key.
 
         Useful for bottom-up, lazy population of a tree.
         """
         self._children[key] = node
 
-    def change_child_key(self, oldkey, newkey) -> None:
+    def change_child_key(self, oldkey: Hashable, newkey: Hashable) -> None:
         if newkey in self._children:
             raise TreeWidgetError(f"{newkey} is already in use")
         self._children[newkey] = self._children.pop(oldkey)
         self._children[newkey].set_key(newkey)
 
-    def get_child_index(self, key):
+    def get_child_index(self, key: Hashable) -> int:
         try:
             return self.get_child_keys().index(key)
         except ValueError as exc:
@@ -357,7 +357,7 @@ class ParentNode(TreeNode):
                 f"Can't find key {key} in ParentNode {self.get_key()}\nParentNode items: {self.get_child_keys()!s}"
             ).with_traceback(exc.__traceback__) from exc
 
-    def next_child(self, key) -> TreeNode | None:
+    def next_child(self, key: Hashable) -> TreeNode | None:
         """Return the next child node in index order from the given key."""
 
         index = self.get_child_index(key)
@@ -373,7 +373,7 @@ class ParentNode(TreeNode):
 
         return None
 
-    def prev_child(self, key) -> TreeNode | None:
+    def prev_child(self, key: Hashable) -> TreeNode | None:
         """Return the previous child node in index order from the given key."""
         index = self.get_child_index(key)
         if index is None:
