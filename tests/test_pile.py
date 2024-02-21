@@ -405,6 +405,9 @@ class PileTest(unittest.TestCase):
             p.contents[0:0] = [(t3, ("pack", None)), (t2, ("pack", None))]
             p.contents.insert(3, (t1, ("pack", None)))
             self.assertEqual(p.focus_position, 2)
+
+        with self.subTest("Contents change validation"):
+            p.contents.clear()
             self.assertRaises(urwid.PileError, lambda: p.contents.append(t1))
             self.assertRaises(urwid.PileError, lambda: p.contents.append((t1, None)))
             self.assertRaises(urwid.PileError, lambda: p.contents.append((t1, "given")))
@@ -415,7 +418,10 @@ class PileTest(unittest.TestCase):
             self.assertRaises(urwid.PileError, lambda: p.contents.append((t1, ("given", ()))))
             # incorrect size
             self.assertRaises(urwid.PileError, lambda: p.contents.append((t1, ("given", -1))))
-
+            # Float and int weight accepted
+            p.contents.append((t1, ("weight", 1)))
+            p.contents.append((t2, ("weight", 0.5)))
+            self.assertEqual(("one", "two"), p.render((3,)).decoded_text)
 
     def test_focus_position(self):
         t1 = urwid.Text("one")

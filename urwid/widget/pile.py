@@ -159,7 +159,8 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         widget_list: Iterable[
             Widget
             | tuple[Literal["pack", WHSettings.PACK] | int, Widget]
-            | tuple[Literal["weight", "given", WHSettings.WEIGHT, WHSettings.GIVEN], int, Widget]
+            | tuple[Literal["given", WHSettings.GIVEN], int, Widget]
+            | tuple[Literal["weight", WHSettings.WEIGHT], int | float, Widget]
         ],
         focus_item: Widget | int | None = None,
     ) -> None:
@@ -173,15 +174,13 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         *widget_list* may also contain tuples such as:
 
         (*given_height*, *widget*)
-            always treat *widget* as a box widget and give it *given_height* rows,
-            where given_height is an int
+            always treat *widget* as a box widget and give it *given_height* rows, where given_height is an int
         (``'pack'``, *widget*)
-            allow *widget* to calculate its own height by calling its :meth:`rows`
-            method, ie. treat it as a flow widget.
+            allow *widget* to calculate its own height by calling its :meth:`rows` method,
+            i.e. treat it as a flow widget.
         (``'weight'``, *weight*, *widget*)
             if the pile is treated as a box widget then treat widget as a box
-            widget with a height based on its relative weight value, otherwise
-            treat the same as (``'pack'``, *widget*).
+            widget with a height based on its relative weight value, otherwise treat the same as (``'pack'``, *widget*).
 
         Widgets not in a tuple are the same as (``'weight'``, ``1``, *widget*)`
 
@@ -192,7 +191,9 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         super().__init__()
         self._contents: MonitoredFocusList[
             Widget,
-            tuple[Literal[WHSettings.PACK], None] | tuple[Literal[WHSettings.GIVEN, WHSettings.WEIGHT], int],
+            tuple[Literal[WHSettings.PACK], None]
+            | tuple[Literal[WHSettings.GIVEN], int]
+            | tuple[Literal[WHSettings.WEIGHT], int | float],
         ] = MonitoredFocusList()
         self._contents.set_modified_callback(self._contents_modified)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
@@ -237,7 +238,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 if any(
                     (
                         t not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT},
-                        (n is not None and (not isinstance(n, int) or n < 0)),
+                        (n is not None and (not isinstance(n, (int, float)) or n < 0)),
                     )
                 ):
                     invalid_items.append(item)
@@ -328,7 +329,9 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self,
     ) -> MonitoredFocusList[
         Widget,
-        tuple[Literal[WHSettings.PACK], None] | tuple[Literal[WHSettings.GIVEN, WHSettings.WEIGHT], int],
+        tuple[Literal[WHSettings.PACK], None]
+        | tuple[Literal[WHSettings.GIVEN], int]
+        | tuple[Literal[WHSettings.WEIGHT], int | float],
     ]:
         """
         The contents of this Pile as a list of (widget, options) tuples.
@@ -363,7 +366,9 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self,
         c: Sequence[
             Widget,
-            tuple[Literal[WHSettings.PACK], None] | tuple[Literal[WHSettings.GIVEN, WHSettings.WEIGHT], int],
+            tuple[Literal[WHSettings.PACK], None]
+            | tuple[Literal[WHSettings.GIVEN], int]
+            | tuple[Literal[WHSettings.WEIGHT], int | float],
         ],
     ) -> None:
         self._contents[:] = c
@@ -371,10 +376,11 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     @staticmethod
     def options(
         height_type: Literal["pack", "given", "weight"] | WHSettings = WHSettings.WEIGHT,
-        height_amount: int | None = 1,
+        height_amount: int | float | None = 1,  # noqa: PYI041  # provide explicit for IDEs
     ) -> (
         tuple[Literal[WHSettings.PACK], None]
-        | tuple[Literal["given", "weight", WHSettings.GIVEN, WHSettings.WEIGHT], int]
+        | tuple[Literal[WHSettings.GIVEN], int]
+        | tuple[Literal[WHSettings.WEIGHT], int | float]
     ):
         """
         Return a new options tuple for use in a Pile's :attr:`contents` list.
@@ -386,9 +392,9 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         if height_type == WHSettings.PACK:
             return (WHSettings.PACK, None)
-        if height_type not in {WHSettings.GIVEN, WHSettings.WEIGHT}:
-            raise PileError(f"invalid height_type: {height_type!r}")
-        return (height_type, height_amount)
+        if height_type in {WHSettings.GIVEN, WHSettings.WEIGHT} and height_amount is not None:
+            return (height_type, height_amount)
+        raise PileError(f"invalid combination: height_type={height_type!r}, height_amount={height_amount!r}")
 
     @property
     def focus(self) -> Widget | None:

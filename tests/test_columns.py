@@ -743,6 +743,10 @@ class ColumnsTest(unittest.TestCase):
             c.contents[0:0] = [(t3, ("given", 10, False)), (t2, ("weight", 1, False))]
             c.contents.insert(3, (t1, ("pack", None, False)))
             self.assertEqual(c.focus_position, 2)
+
+        with self.subTest("Contents change validation"):
+            c.contents.clear()
+
             self.assertRaises(urwid.ColumnsError, lambda: c.contents.append(t1))
             self.assertRaises(urwid.ColumnsError, lambda: c.contents.append((t1, None)))
             self.assertRaises(urwid.ColumnsError, lambda: c.contents.append((t1, "given")))
@@ -755,6 +759,10 @@ class ColumnsTest(unittest.TestCase):
             self.assertRaises(urwid.ColumnsError, lambda: c.contents.append((t1, ("given", (), False))))
             # Incorrect size
             self.assertRaises(urwid.ColumnsError, lambda: c.contents.append((t1, ("given", -1, False))))
+            # Float and int weight accepted
+            c.contents.append((t1, ("weight", 1, False)))
+            c.contents.append((t2, ("weight", 0.5, False)))
+            self.assertEqual(("one   two",), c.render(()).decoded_text)
 
     def test_focus_position(self):
         t1 = urwid.Text("one")

@@ -195,7 +195,8 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         widget_list: Iterable[
             Widget
             | tuple[Literal["pack", WHSettings.PACK] | int, Widget]
-            | tuple[Literal["weight", "given", WHSettings.WEIGHT, WHSettings.GIVEN], int, Widget]
+            | tuple[Literal["given", WHSettings.GIVEN], int, Widget]
+            | tuple[Literal["weight", WHSettings.WEIGHT], int | float, Widget]
         ],
         dividechars: int = 0,
         focus_column: int | Widget | None = None,
@@ -216,13 +217,11 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         *widget_list* may also contain tuples such as:
 
         (*given_width*, *widget*)
-            make this column *given_width* screen columns wide, where *given_width*
-            is an int
+            make this column *given_width* screen columns wide, where *given_width* is an int
         (``'pack'``, *widget*)
             call :meth:`pack() <Widget.pack>` to calculate the width of this column
         (``'weight'``, *weight*, *widget*)
-            give this column a relative *weight* (number) to calculate its width from the
-            screen columns remaining
+            give this column a relative *weight* (number) to calculate its width from th screen columns remaining
 
         Widgets not in a tuple are the same as (``'weight'``, ``1``, *widget*)
 
@@ -241,7 +240,8 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self._contents: MonitoredFocusList[
             Widget,
             tuple[Literal[WHSettings.PACK], None, bool]
-            | tuple[Literal[WHSettings.GIVEN, WHSettings.WEIGHT], int, bool],
+            | tuple[Literal[WHSettings.GIVEN], int, bool]
+            | tuple[Literal[WHSettings.WEIGHT], int | float, bool],
         ] = MonitoredFocusList()
         self._contents.set_modified_callback(self._contents_modified)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
@@ -294,7 +294,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 if any(
                     (
                         t not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT},
-                        (n is not None and (not isinstance(n, int) or n < 0)),
+                        (n is not None and (not isinstance(n, (int, float)) or n < 0)),
                         not isinstance(b, bool),
                     )
                 ):
@@ -443,7 +443,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self,
     ) -> MonitoredFocusList[
         Widget,
-        tuple[Literal[WHSettings.PACK], None, bool] | tuple[Literal[WHSettings.GIVEN, WHSettings.WEIGHT], int, bool],
+        tuple[Literal[WHSettings.PACK], None, bool]
+        | tuple[Literal[WHSettings.GIVEN], int, bool]
+        | tuple[Literal[WHSettings.WEIGHT], int | float, bool],
     ]:
         """
         The contents of this Columns as a list of `(widget, options)` tuples.
@@ -460,7 +462,8 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         c: Sequence[
             Widget,
             tuple[Literal[WHSettings.PACK], None, bool]
-            | tuple[Literal[WHSettings.GIVEN, WHSettings.WEIGHT], int, bool],
+            | tuple[Literal[WHSettings.GIVEN], int, bool]
+            | tuple[Literal[WHSettings.WEIGHT], int | float, bool],
         ],
     ) -> None:
         self._contents[:] = c
@@ -470,9 +473,13 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         width_type: Literal[
             "pack", "given", "weight", WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT
         ] = WHSettings.WEIGHT,
-        width_amount: int | None = 1,
+        width_amount: int | float | None = 1,  # noqa: PYI041  # provide explicit for IDEs
         box_widget: bool = False,
-    ) -> tuple[Literal[WHSettings.PACK], None, bool] | tuple[Literal[WHSettings.GIVEN, WHSettings.WEIGHT], int, bool]:
+    ) -> (
+        tuple[Literal[WHSettings.PACK], None, bool]
+        | tuple[Literal[WHSettings.GIVEN], int, bool]
+        | tuple[Literal[WHSettings.WEIGHT], int | float, bool]
+    ):
         """
         Return a new options tuple for use in a Pile's .contents list.
 
@@ -495,10 +502,10 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         :type box_widget: bool
         """
         if width_type == WHSettings.PACK:
-            width_amount = None
-        if width_type not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT}:
-            raise ColumnsError(f"invalid width_type: {width_type!r}")
-        return (WHSettings(width_type), width_amount, box_widget)
+            return (WHSettings.PACK, None, box_widget)
+        if width_type in {WHSettings.GIVEN, WHSettings.WEIGHT} and width_amount is not None:
+            return (WHSettings(width_type), width_amount, box_widget)
+        raise ColumnsError(f"invalid combination: width_type={width_type!r}, width_amount={width_amount!r}")
 
     def _invalidate(self) -> None:
         self._cache_maxcol = None
