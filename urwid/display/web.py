@@ -324,7 +324,7 @@ class Screen(BaseScreen):
 
             line = []
 
-            sig = tuple(l_row)
+            sig = l_row
             if y == cy:
                 sig = (*sig, cx)
             new_screen[sig] = [*new_screen.get(sig, []), y]
