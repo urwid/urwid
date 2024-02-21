@@ -222,21 +222,23 @@ def normalize_width(
 
 @typing.overload
 def normalize_width(
-    width: tuple[Literal["weight", WHSettings.WEIGHT], int],
+    width: tuple[Literal["weight", WHSettings.WEIGHT], int | float],
     err: type[BaseException],
-) -> tuple[Literal[WHSettings.WEIGHT], int]: ...
+) -> tuple[Literal[WHSettings.WEIGHT], int | float]: ...
 
 
 def normalize_width(
     width: (
         Literal["clip", "pack", WHSettings.CLIP, WHSettings.PACK]
         | int
-        | tuple[Literal["relative", "weight", WHSettings.RELATIVE, WHSettings.WEIGHT], int]
+        | tuple[Literal["relative", WHSettings.RELATIVE], int]
+        | tuple[Literal["weight", WHSettings.WEIGHT], int | float]
     ),
     err: type[BaseException],
 ) -> (
     tuple[Literal[WHSettings.CLIP, WHSettings.PACK], None]
-    | tuple[Literal[WHSettings.GIVEN, WHSettings.RELATIVE, WHSettings.WEIGHT], int]
+    | tuple[Literal[WHSettings.GIVEN, WHSettings.RELATIVE], int]
+    | tuple[Literal[WHSettings.WEIGHT], int | float]
 ):
     """
     Split width into (width_type, width_amount).  Raise exception err
@@ -282,8 +284,8 @@ def simplify_width(
 @typing.overload
 def simplify_width(
     width_type: Literal["weight", WHSettings.WEIGHT],
-    width_amount: int,
-) -> tuple[Literal[WHSettings.WEIGHT], int]: ...
+    width_amount: int | float,  # noqa: PYI041  # provide explicit for IDEs
+) -> tuple[Literal[WHSettings.WEIGHT], int | float]: ...
 
 
 @typing.overload
@@ -295,8 +297,13 @@ def simplify_width(
 
 def simplify_width(
     width_type: Literal["clip", "pack", "given", "relative", "weight"] | WHSettings,
-    width_amount: int | None,
-) -> Literal[WHSettings.CLIP, WHSettings.PACK] | int | tuple[Literal[WHSettings.RELATIVE, WHSettings.WEIGHT], int]:
+    width_amount: int | float | None,  # noqa: PYI041  # provide explicit for IDEs
+) -> (
+    Literal[WHSettings.CLIP, WHSettings.PACK]
+    | int
+    | tuple[Literal[WHSettings.RELATIVE], int]
+    | tuple[Literal[WHSettings.WEIGHT], int | float]
+):
     """
     Recombine (width_type, width_amount) into an width value.
     Inverse of normalize_width.
@@ -336,21 +343,23 @@ def normalize_height(
 
 @typing.overload
 def normalize_height(
-    height: tuple[Literal["weight", WHSettings.WEIGHT], int],
+    height: tuple[Literal["weight", WHSettings.WEIGHT], int | float],
     err: type[BaseException],
-) -> tuple[Literal[WHSettings.WEIGHT], int]: ...
+) -> tuple[Literal[WHSettings.WEIGHT], int | float]: ...
 
 
 def normalize_height(
     height: (
         int
         | Literal["flow", "pack", Sizing.FLOW, WHSettings.PACK]
-        | tuple[Literal["relative", "weight", WHSettings.RELATIVE, WHSettings.WEIGHT], int]
+        | tuple[Literal["relative", WHSettings.RELATIVE], int]
+        | tuple[Literal["weight", WHSettings.WEIGHT], int | float]
     ),
     err: type[BaseException],
 ) -> (
     tuple[Literal[Sizing.FLOW, WHSettings.PACK], None]
-    | tuple[Literal[WHSettings.RELATIVE, WHSettings.GIVEN, WHSettings.WEIGHT], int]
+    | tuple[Literal[WHSettings.RELATIVE, WHSettings.GIVEN], int]
+    | tuple[Literal[WHSettings.WEIGHT], int | float]
 ):
     """
     Split height into (height_type, height_amount).  Raise exception err
@@ -398,8 +407,8 @@ def simplify_height(
 @typing.overload
 def simplify_height(
     height_type: Literal["weight", WHSettings.WEIGHT],
-    height_amount: int | None,
-) -> tuple[Literal[WHSettings.WEIGHT], int]: ...
+    height_amount: int | float | None,  # noqa: PYI041  # provide explicit for IDEs
+) -> tuple[Literal[WHSettings.WEIGHT], int | float]: ...
 
 
 @typing.overload
@@ -422,8 +431,13 @@ def simplify_height(
         WHSettings.GIVEN,
         WHSettings.WEIGHT,
     ],
-    height_amount: int | None,
-) -> int | Literal[WHSettings.FLOW, WHSettings.PACK] | tuple[Literal[WHSettings.RELATIVE, WHSettings.WEIGHT], int]:
+    height_amount: int | float | None,  # noqa: PYI041  # provide explicit for IDEs
+) -> (
+    int
+    | Literal[WHSettings.FLOW, WHSettings.PACK]
+    | tuple[Literal[WHSettings.RELATIVE], int]
+    | tuple[Literal[WHSettings.WEIGHT], int | float]
+):
     """
     Recombine (height_type, height_amount) into a height value.
     Inverse of normalize_height.
