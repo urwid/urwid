@@ -22,8 +22,10 @@ from .widget_decoration import WidgetDecoration, WidgetError, WidgetWarning
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
+    from .widget import Widget
 
-WrappedWidget = typing.TypeVar("WrappedWidget")
+
+WrappedWidget_co = typing.TypeVar("WrappedWidget_co", bound="Widget", covariant=True)
 
 
 class PaddingError(WidgetError):
@@ -34,10 +36,10 @@ class PaddingWarning(WidgetWarning):
     """Padding related warnings."""
 
 
-class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
+class Padding(WidgetDecoration[WrappedWidget_co], typing.Generic[WrappedWidget_co]):
     def __init__(
         self,
-        w: WrappedWidget,
+        w: WrappedWidget_co,
         align: (
             Literal["left", "center", "right"] | Align | tuple[Literal["relative", WHSettings.RELATIVE], int]
         ) = Align.LEFT,

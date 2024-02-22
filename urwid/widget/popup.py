@@ -43,11 +43,11 @@ if typing.TYPE_CHECKING:
         overlay_height: int
 
 
-WrappedWidget = typing.TypeVar("WrappedWidget")
+WrappedWidget_co = typing.TypeVar("WrappedWidget_co", bound="Widget", covariant=True)
 
 
-class PopUpLauncher(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[WrappedWidget]):
-    def __init__(self, original_widget: [WrappedWidget]) -> None:
+class PopUpLauncher(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[WrappedWidget_co]):
+    def __init__(self, original_widget: [WrappedWidget_co]) -> None:
         super().__init__(original_widget)
         self._pop_up_widget = None
 
@@ -85,13 +85,13 @@ class PopUpLauncher(delegate_to_widget_mixin("_original_widget"), WidgetDecorati
         return canv
 
 
-class PopUpTarget(WidgetDecoration[WrappedWidget]):
+class PopUpTarget(WidgetDecoration[WrappedWidget_co]):
     # FIXME: this whole class is a terrible hack and must be fixed
     # when layout and rendering are separated
     _sizing = frozenset((Sizing.BOX,))
     _selectable = True
 
-    def __init__(self, original_widget: WrappedWidget) -> None:
+    def __init__(self, original_widget: WrappedWidget_co) -> None:
         super().__init__(original_widget)
         self._pop_up = None
         self._current_widget = self._original_widget

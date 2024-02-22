@@ -98,7 +98,10 @@ class BigTextDisplay:
     def edit_change_event(self, widget, text: str) -> None:
         self.bigtext.set_text(text)
 
-    def setup_view(self) -> tuple[urwid.Frame, urwid.Overlay[urwid.BigText, urwid.Frame]]:
+    def setup_view(self) -> tuple[
+        urwid.Frame[urwid.AttrMap[urwid.ListBox], urwid.AttrMap[urwid.Text], None],
+        urwid.Overlay[urwid.BigText, urwid.Frame[urwid.AttrMap[urwid.ListBox], urwid.AttrMap[urwid.Text], None]],
+    ]:
         fonts = urwid.get_all_fonts()
         # setup mode radio buttons
         self.font_buttons = []
@@ -146,12 +149,13 @@ class BigTextDisplay:
         col = urwid.Columns([(16, chars), fonts], 3, focus_column=1)
         bt = urwid.Pile([bt, edit], focus_item=1)
         lines = [bt, urwid.Divider(), col]
-        w = urwid.ListBox(urwid.SimpleListWalker(lines))
+        listbox = urwid.ListBox(urwid.SimpleListWalker(lines))
 
         # Frame
-        w = urwid.AttrMap(w, "body")
-        hdr = urwid.AttrMap(urwid.Text("Urwid BigText example program - F8 exits."), "header")
-        w = urwid.Frame(header=hdr, body=w)
+        w = urwid.Frame(
+            body=urwid.AttrMap(listbox, "body"),
+            header=urwid.AttrMap(urwid.Text("Urwid BigText example program - F8 exits."), "header"),
+        )
 
         # Exit message
         exit_w = urwid.Overlay(
