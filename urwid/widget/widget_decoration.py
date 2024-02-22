@@ -22,10 +22,10 @@ __all__ = (
     "delegate_to_widget_mixin",
 )
 
-WrappedWidget = typing.TypeVar("WrappedWidget")
+WrappedWidget_co = typing.TypeVar("WrappedWidget_co", bound=Widget, covariant=True)
 
 
-class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disable=abstract-method
+class WidgetDecoration(Widget, typing.Generic[WrappedWidget_co]):  # pylint: disable=abstract-method
     """
     original_widget -- the widget being decorated
 
@@ -45,7 +45,7 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
         Implement it or forward to the widget in the subclass.
     """
 
-    def __init__(self, original_widget: WrappedWidget) -> None:
+    def __init__(self, original_widget: WrappedWidget_co) -> None:
         # TODO(Aleksei): reduce amount of multiple inheritance usage
         # Special case: subclasses with multiple inheritance causes `super` call wrong way
         # Call parent __init__ explicit
@@ -63,15 +63,15 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
         return [*super()._repr_words(), repr(self._original_widget)]
 
     @property
-    def original_widget(self) -> WrappedWidget:
+    def original_widget(self) -> WrappedWidget_co:
         return self._original_widget
 
     @original_widget.setter
-    def original_widget(self, original_widget: WrappedWidget) -> None:
+    def original_widget(self, original_widget: WrappedWidget_co) -> None:
         self._original_widget = original_widget
         self._invalidate()
 
-    def _get_original_widget(self) -> WrappedWidget:
+    def _get_original_widget(self) -> WrappedWidget_co:
         warnings.warn(
             f"Method `{self.__class__.__name__}._get_original_widget` is deprecated, "
             f"please use property `{self.__class__.__name__}.original_widget`",
@@ -80,7 +80,7 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
         )
         return self.original_widget
 
-    def _set_original_widget(self, original_widget: WrappedWidget) -> None:
+    def _set_original_widget(self, original_widget: WrappedWidget_co) -> None:
         warnings.warn(
             f"Method `{self.__class__.__name__}._set_original_widget` is deprecated, "
             f"please use property `{self.__class__.__name__}.original_widget`",
@@ -126,7 +126,7 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
         return self._original_widget.sizing()
 
 
-class WidgetPlaceholder(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[WrappedWidget]):
+class WidgetPlaceholder(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[WrappedWidget_co]):
     """
     This is a do-nothing decoration widget that can be used for swapping
     between widgets without modifying the container of this widget.
@@ -139,7 +139,7 @@ class WidgetPlaceholder(delegate_to_widget_mixin("_original_widget"), WidgetDeco
     """
 
 
-class WidgetDisable(WidgetDecoration[WrappedWidget]):
+class WidgetDisable(WidgetDecoration[WrappedWidget_co]):
     """
     A decoration widget that disables interaction with the widget it
     wraps.  This widget always passes focus=False to the wrapped widget,

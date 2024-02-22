@@ -37,7 +37,7 @@ from .constants import Sizing
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable
 
-WrappedWidget = typing.TypeVar("WrappedWidget")
+WrappedWidget_co = typing.TypeVar("WrappedWidget_co", bound="Widget", covariant=True)
 LOGGER = logging.getLogger(__name__)
 
 
@@ -751,8 +751,8 @@ class WidgetWrapError(Exception):
     pass
 
 
-class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget"), typing.Generic[WrappedWidget]):
-    def __init__(self, w: WrappedWidget) -> None:
+class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget"), typing.Generic[WrappedWidget_co]):
+    def __init__(self, w: WrappedWidget_co) -> None:
         """
         w -- widget to wrap, stored as self._w
 
@@ -777,11 +777,11 @@ class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget"), typing.Generic[Wra
         self._wrapped_widget = w
 
     @property
-    def _w(self) -> WrappedWidget:
+    def _w(self) -> WrappedWidget_co:
         return self._wrapped_widget
 
     @_w.setter
-    def _w(self, new_widget: WrappedWidget) -> None:
+    def _w(self, new_widget: WrappedWidget_co) -> None:
         """
         Change the wrapped widget.  This is meant to be called
         only by subclasses.
@@ -801,7 +801,7 @@ class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget"), typing.Generic[Wra
         self._wrapped_widget = new_widget
         self._invalidate()
 
-    def _set_w(self, w: WrappedWidget) -> None:
+    def _set_w(self, w: WrappedWidget_co) -> None:
         """
         Change the wrapped widget.  This is meant to be called
         only by subclasses.

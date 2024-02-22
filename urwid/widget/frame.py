@@ -17,6 +17,11 @@ if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
 
+BodyWidget_co = typing.TypeVar("BodyWidget_co", bound=Widget, covariant=True)
+HeaderWidget_co = typing.TypeVar("HeaderWidget_co", Widget, None, covariant=True)
+FooterWidget_co = typing.TypeVar("FooterWidget_co", Widget, None, covariant=True)
+
+
 class FrameError(WidgetError):
     pass
 
@@ -34,15 +39,14 @@ def _check_widget_subclass(widget: Widget | None) -> None:
         )
 
 
-class Frame(Widget, WidgetContainerMixin):
+class Frame(Widget, WidgetContainerMixin, typing.Generic[BodyWidget_co, HeaderWidget_co, FooterWidget_co]):
     """
     Frame widget is a box widget with optional header and footer
     flow widgets placed above and below the box widget.
 
     .. note:: The main difference between a Frame and a :class:`Pile` widget
         defined as: `Pile([('pack', header), body, ('pack', footer)])` is that
-        the Frame will not automatically change focus up and down in response to
-        keystrokes.
+        the Frame will not automatically change focus up and down in response to keystrokes.
     """
 
     _selectable = True
@@ -50,9 +54,9 @@ class Frame(Widget, WidgetContainerMixin):
 
     def __init__(
         self,
-        body: Widget,
-        header: Widget | None = None,
-        footer: Widget | None = None,
+        body: BodyWidget_co,
+        header: HeaderWidget_co = None,
+        footer: FooterWidget_co = None,
         focus_part: Literal["header", "footer", "body"] | Widget = "body",
     ):
         """
@@ -86,18 +90,18 @@ class Frame(Widget, WidgetContainerMixin):
         _check_widget_subclass(footer)
 
     @property
-    def header(self) -> Widget | None:
+    def header(self) -> HeaderWidget_co:
         return self._header
 
     @header.setter
-    def header(self, header: Widget | None) -> None:
+    def header(self, header: HeaderWidget_co) -> None:
         _check_widget_subclass(header)
         self._header = header
         if header is None and self.focus_part == "header":
             self.focus_part = "body"
         self._invalidate()
 
-    def get_header(self) -> Widget | None:
+    def get_header(self) -> HeaderWidget_co:
         warnings.warn(
             f"method `{self.__class__.__name__}.get_header` is deprecated, "
             f"standard property `{self.__class__.__name__}.header` should be used instead",
@@ -106,7 +110,7 @@ class Frame(Widget, WidgetContainerMixin):
         )
         return self.header
 
-    def set_header(self, header: Widget | None):
+    def set_header(self, header: HeaderWidget_co) -> None:
         warnings.warn(
             f"method `{self.__class__.__name__}.set_header` is deprecated, "
             f"standard property `{self.__class__.__name__}.header` should be used instead",
@@ -116,16 +120,16 @@ class Frame(Widget, WidgetContainerMixin):
         self.header = header
 
     @property
-    def body(self) -> Widget:
+    def body(self) -> BodyWidget_co:
         return self._body
 
     @body.setter
-    def body(self, body: Widget) -> None:
+    def body(self, body: BodyWidget_co) -> None:
         _check_widget_subclass(body)
         self._body = body
         self._invalidate()
 
-    def get_body(self) -> Widget:
+    def get_body(self) -> BodyWidget_co:
         warnings.warn(
             f"method `{self.__class__.__name__}.get_body` is deprecated, "
             f"standard property {self.__class__.__name__}.body should be used instead",
@@ -134,7 +138,7 @@ class Frame(Widget, WidgetContainerMixin):
         )
         return self.body
 
-    def set_body(self, body: Widget) -> None:
+    def set_body(self, body: BodyWidget_co) -> None:
         warnings.warn(
             f"method `{self.__class__.__name__}.set_body` is deprecated, "
             f"standard property `{self.__class__.__name__}.body` should be used instead",
@@ -144,18 +148,18 @@ class Frame(Widget, WidgetContainerMixin):
         self.body = body
 
     @property
-    def footer(self) -> Widget | None:
+    def footer(self) -> FooterWidget_co:
         return self._footer
 
     @footer.setter
-    def footer(self, footer: Widget | None) -> None:
+    def footer(self, footer: FooterWidget_co) -> None:
         _check_widget_subclass(footer)
         self._footer = footer
         if footer is None and self.focus_part == "footer":
             self.focus_part = "body"
         self._invalidate()
 
-    def get_footer(self) -> Widget | None:
+    def get_footer(self) -> FooterWidget_co:
         warnings.warn(
             f"method `{self.__class__.__name__}.get_footer` is deprecated, "
             f"standard property `{self.__class__.__name__}.footer` should be used instead",
@@ -164,7 +168,7 @@ class Frame(Widget, WidgetContainerMixin):
         )
         return self.footer
 
-    def set_footer(self, footer: Widget | None) -> None:
+    def set_footer(self, footer: FooterWidget_co) -> None:
         warnings.warn(
             f"method `{self.__class__.__name__}.set_footer` is deprecated, "
             f"standard property `{self.__class__.__name__}.footer` should be used instead",
@@ -228,13 +232,13 @@ class Frame(Widget, WidgetContainerMixin):
         self.focus_position = part
 
     @property
-    def focus(self) -> Widget:
+    def focus(self) -> BodyWidget_co | HeaderWidget_co | FooterWidget_co:
         """
         child :class:`Widget` in focus: the body, header or footer widget.
         This is a read-only property."""
         return {"header": self._header, "footer": self._footer, "body": self._body}[self.focus_part]
 
-    def _get_focus(self) -> Widget:
+    def _get_focus(self) -> BodyWidget_co | HeaderWidget_co | FooterWidget_co:
         warnings.warn(
             f"method `{self.__class__.__name__}._get_focus` is deprecated, "
             f"please use `{self.__class__.__name__}.focus` property",
@@ -244,7 +248,12 @@ class Frame(Widget, WidgetContainerMixin):
         return {"header": self._header, "footer": self._footer, "body": self._body}[self.focus_part]
 
     @property
-    def contents(self) -> MutableMapping[Literal["header", "footer", "body"], tuple[Widget, None]]:
+    def contents(
+        self,
+    ) -> MutableMapping[
+        Literal["header", "footer", "body"],
+        tuple[BodyWidget_co | HeaderWidget_co | FooterWidget_co, None],
+    ]:
         """
         a dict-like object similar to::
 
@@ -267,7 +276,12 @@ class Frame(Widget, WidgetContainerMixin):
         """
 
         # noinspection PyMethodParameters
-        class FrameContents(typing.MutableMapping[str, typing.Tuple[Widget, None]]):
+        class FrameContents(
+            typing.MutableMapping[
+                str,
+                typing.Tuple[typing.Union[BodyWidget_co, HeaderWidget_co, FooterWidget_co], None],
+            ]
+        ):
             # pylint: disable=no-self-argument
 
             __slots__ = ()
@@ -298,7 +312,18 @@ class Frame(Widget, WidgetContainerMixin):
             keys.append("footer")
         return keys
 
-    def _contents__getitem__(self, key: Literal["header", "footer", "body"]):
+    @typing.overload
+    def _contents__getitem__(self, key: Literal["body"]) -> tuple[BodyWidget_co, None]: ...
+
+    @typing.overload
+    def _contents__getitem__(self, key: Literal["header"]) -> tuple[HeaderWidget_co, None]: ...
+
+    @typing.overload
+    def _contents__getitem__(self, key: Literal["footer"]) -> tuple[FooterWidget_co, None]: ...
+
+    def _contents__getitem__(
+        self, key: Literal["body", "header", "footer"]
+    ) -> tuple[BodyWidget_co | HeaderWidget_co | FooterWidget_co, None]:
         if key == "body":
             return (self._body, None)
         if key == "header" and self._header:
@@ -307,7 +332,20 @@ class Frame(Widget, WidgetContainerMixin):
             return (self._footer, None)
         raise KeyError(f"Frame.contents has no key: {key!r}")
 
-    def _contents__setitem__(self, key: Literal["header", "footer", "body"], value) -> None:
+    @typing.overload
+    def _contents__setitem__(self, key: Literal["body"], value: tuple[BodyWidget_co, None]) -> None: ...
+
+    @typing.overload
+    def _contents__setitem__(self, key: Literal["header"], value: tuple[HeaderWidget_co, None]) -> None: ...
+
+    @typing.overload
+    def _contents__setitem__(self, key: Literal["footer"], value: tuple[FooterWidget_co, None]) -> None: ...
+
+    def _contents__setitem__(
+        self,
+        key: Literal["body", "header", "footer"],
+        value: tuple[BodyWidget_co | HeaderWidget_co | FooterWidget_co, None],
+    ) -> None:
         if key not in {"body", "header", "footer"}:
             raise KeyError(f"Frame.contents has no key: {key!r}")
         try:
@@ -323,7 +361,7 @@ class Frame(Widget, WidgetContainerMixin):
         else:
             self.header = value_w
 
-    def _contents__delitem__(self, key: Literal["header", "footer", "body"]) -> None:
+    def _contents__delitem__(self, key: Literal["header", "footer"]) -> None:
         if key not in {"header", "footer"}:
             raise KeyError(f"Frame.contents can't remove key: {key!r}")
         if (key == "header" and self._header is None) or (key == "footer" and self._footer is None):

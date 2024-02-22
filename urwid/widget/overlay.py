@@ -32,8 +32,8 @@ if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
 
-TopWidget = typing.TypeVar("TopWidget", bound=Widget)
-BottomWidget = typing.TypeVar("BottomWidget", bound=Widget)
+TopWidget_co = typing.TypeVar("TopWidget_co", bound=Widget, covariant=True)
+BottomWidget_co = typing.TypeVar("BottomWidget_co", bound=Widget, covariant=True)
 
 
 class OverlayError(WidgetError):
@@ -71,7 +71,9 @@ class OverlayOptions(typing.NamedTuple):
     bottom: int
 
 
-class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, typing.Generic[TopWidget, BottomWidget]):
+class Overlay(
+    Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, typing.Generic[TopWidget_co, BottomWidget_co]
+):
     """
     Overlay contains two box widgets and renders one on top of the other
     """
@@ -97,8 +99,8 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
 
     def __init__(
         self,
-        top_w: TopWidget,
-        bottom_w: BottomWidget,
+        top_w: TopWidget_co,
+        bottom_w: BottomWidget_co,
         align: (
             Literal["left", "center", "right"]
             | Align
@@ -491,7 +493,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
         )
 
     @property
-    def focus(self) -> TopWidget:
+    def focus(self) -> TopWidget_co:
         """
         Read-only property returning the child widget in focus for
         container widgets.  This default implementation
@@ -499,7 +501,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
         """
         return self.top_w
 
-    def _get_focus(self) -> TopWidget:
+    def _get_focus(self) -> TopWidget_co:
         warnings.warn(
             f"method `{self.__class__.__name__}._get_focus` is deprecated, "
             f"please use `{self.__class__.__name__}.focus` property",
@@ -574,7 +576,9 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
         """
 
         # noinspection PyMethodParameters
-        class OverlayContents(typing.Sequence[typing.Tuple[typing.Union[TopWidget, BottomWidget], OverlayOptions]]):
+        class OverlayContents(
+            typing.Sequence[typing.Tuple[typing.Union[TopWidget_co, BottomWidget_co], OverlayOptions]]
+        ):
             # pylint: disable=no-self-argument
             def __len__(inner_self) -> int:
                 return 2
@@ -605,7 +609,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
     def _contents__getitem__(
         self,
         index: Literal[0, 1],
-    ) -> tuple[TopWidget | BottomWidget, OverlayOptions]:
+    ) -> tuple[TopWidget_co | BottomWidget_co, OverlayOptions]:
         if index == 0:
             return (self.bottom_w, self._DEFAULT_BOTTOM_OPTIONS)
 
@@ -634,7 +638,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
     def _contents__setitem__(
         self,
         index: Literal[0, 1],
-        value: tuple[TopWidget | BottomWidget, OverlayOptions],
+        value: tuple[TopWidget_co | BottomWidget_co, OverlayOptions],
     ) -> None:
         try:
             value_w, value_options = value
