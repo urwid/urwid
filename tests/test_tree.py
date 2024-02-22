@@ -68,35 +68,90 @@ class TestTree(unittest.TestCase):
 
         widget = urwid.TreeListBox(urwid.TreeWalker(root))
         size = (15, 5)
-        self.assertEqual(
-            (
-                "- /: root      ",
-                "   1: child_1  ",
-                "   2: child_2  ",
-                "   3: child_3  ",
-                "               ",
-            ),
-            widget.render(size).decoded_text,
+        expanded = (
+            "- /: root      ",
+            "   1: child_1  ",
+            "   2: child_2  ",
+            "   3: child_3  ",
+            "               ",
         )
+        collapsed = (
+            "+ /: root      ",
+            *(" " * size[0] for _ in range(size[1] - 1)),
+        )
+        self.assertEqual(expanded, widget.render(size).decoded_text)
+        widget.keypress(size, "-")
+        self.assertEqual(collapsed, widget.render(size).decoded_text)
+        widget.keypress(size, "+")
+        self.assertEqual(expanded, widget.render(size).decoded_text)
+        widget.keypress(size, "down")
+        self.assertIs(root, widget.focus_position)
+        widget.keypress(size, "-")
+        self.assertEqual(collapsed, widget.render(size).decoded_text)
+        widget.keypress(size, "right")
+        self.assertEqual(expanded, widget.render(size).decoded_text)
+
+    def test_nested_behavior(self):
+        root = SelfRegisteringParent(
+            "root",
+            key="/",
+            children=(
+                SelfRegisteringParent(
+                    f"nested_{idx}",
+                    key=f"{idx}/",
+                    children=(SelfRegisteringChild(f"child_{idx}{cidx}", key=str(cidx)) for cidx in range(1, 4)),
+                )
+                for idx in range(1, 4)
+            ),
+        )
+        widget = urwid.TreeListBox(urwid.TreeWalker(root))
+        size = (18, 13)
+        expanded = (
+            "- /: root         ",
+            "   - 1/: nested_1 ",
+            "      1: child_11 ",
+            "      2: child_12 ",
+            "      3: child_13 ",
+            "   - 2/: nested_2 ",
+            "      1: child_21 ",
+            "      2: child_22 ",
+            "      3: child_23 ",
+            "   - 3/: nested_3 ",
+            "      1: child_31 ",
+            "      2: child_32 ",
+            "      3: child_33 ",
+        )
+        collapsed = (
+            "+ /: root         ",
+            *(" " * size[0] for _ in range(size[1] - 1)),
+        )
+        self.assertEqual(expanded, widget.render(size).decoded_text)
+        widget.keypress(size, "-")
+        self.assertEqual(collapsed, widget.render(size).decoded_text)
+        widget.keypress(size, "+")
+        self.assertEqual(expanded, widget.render(size).decoded_text)
+        widget.keypress(size, "down")
         widget.keypress(size, "-")
         self.assertEqual(
             (
-                "+ /: root      ",
-                "               ",
-                "               ",
-                "               ",
-                "               ",
+                "- /: root         ",
+                "   + 1/: nested_1 ",
+                "   - 2/: nested_2 ",
+                "      1: child_21 ",
+                "      2: child_22 ",
+                "      3: child_23 ",
+                "   - 3/: nested_3 ",
+                "      1: child_31 ",
+                "      2: child_32 ",
+                "      3: child_33 ",
+                "                  ",
+                "                  ",
+                "                  ",
             ),
             widget.render(size).decoded_text,
         )
-        widget.keypress(size, "+")
-        self.assertEqual(
-            (
-                "- /: root      ",
-                "   1: child_1  ",
-                "   2: child_2  ",
-                "   3: child_3  ",
-                "               ",
-            ),
-            widget.render(size).decoded_text,
-        )
+        widget.keypress(size, "right")
+        self.assertEqual(expanded, widget.render(size).decoded_text)
+        widget.keypress(size, "left")
+        widget.keypress(size, "-")
+        self.assertEqual(collapsed, widget.render(size).decoded_text)
