@@ -30,10 +30,11 @@ from typing_extensions import Protocol, runtime_checkable
 from urwid import signals
 from urwid.canvas import CanvasCombine, SolidCanvas
 from urwid.command_map import Command
-from urwid.monitored_list import MonitoredFocusList, MonitoredList
 from urwid.signals import connect_signal, disconnect_signal
 from urwid.util import is_mouse_press
 from urwid.widget import (
+    MonitoredFocusList,
+    MonitoredList,
     Sizing,
     VAlign,
     WHSettings,

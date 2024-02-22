@@ -34,11 +34,11 @@ def load_tests(loader: unittest.TestLoader, tests: unittest.BaseTestSuite, ignor
         urwid.widget.widget,
         urwid.widget.widget_decoration,
         urwid.widget.wimp,
+        urwid.widget.monitored_list,
         urwid.display.common,
         urwid.display.raw,
         urwid.event_loop.main_loop,
         urwid.numedit,
-        urwid.monitored_list,
         urwid.raw_display,
         urwid.font,
         "urwid.split_repr",  # override function with same name

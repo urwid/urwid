@@ -29,6 +29,7 @@ from .filler import Filler, FillerError, calculate_top_bottom_filler
 from .frame import Frame, FrameError
 from .grid_flow import GridFlow, GridFlowError
 from .line_box import LineBox
+from .monitored_list import MonitoredFocusList, MonitoredList
 from .overlay import Overlay, OverlayError, OverlayWarning
 from .padding import Padding, PaddingError, PaddingWarning, calculate_left_right_padding
 from .pile import Pile, PileError, PileWarning
@@ -58,6 +59,8 @@ from .wimp import Button, CheckBox, CheckBoxError, RadioButton, SelectableIcon
 __all__ = (
     "ANY",
     "BOTTOM",
+    "MonitoredList",
+    "MonitoredFocusList",
     "BOX",
     "CENTER",
     "CLIP",
