@@ -32,6 +32,10 @@ if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
 
+TopWidget = typing.TypeVar("TopWidget", bound=Widget)
+BottomWidget = typing.TypeVar("BottomWidget", bound=Widget)
+
+
 class OverlayError(WidgetError):
     """Overlay specific errors."""
 
@@ -67,7 +71,7 @@ class OverlayOptions(typing.NamedTuple):
     bottom: int
 
 
-class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
+class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, typing.Generic[TopWidget, BottomWidget]):
     """
     Overlay contains two box widgets and renders one on top of the other
     """
@@ -93,8 +97,8 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
     def __init__(
         self,
-        top_w: Widget,
-        bottom_w: Widget,
+        top_w: TopWidget,
+        bottom_w: BottomWidget,
         align: (
             Literal["left", "center", "right"]
             | Align
@@ -481,10 +485,13 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
         """Pass keypress to top_w."""
         real_size = self.pack(size, True)
-        return self.top_w.keypress(self.top_w_size(real_size, *self.calculate_padding_filler(real_size, True)), key)
+        return self.top_w.keypress(
+            self.top_w_size(real_size, *self.calculate_padding_filler(real_size, True)),
+            key,
+        )
 
     @property
-    def focus(self) -> Widget:
+    def focus(self) -> TopWidget:
         """
         Read-only property returning the child widget in focus for
         container widgets.  This default implementation
@@ -492,7 +499,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         return self.top_w
 
-    def _get_focus(self) -> Widget:
+    def _get_focus(self) -> TopWidget:
         warnings.warn(
             f"method `{self.__class__.__name__}._get_focus` is deprecated, "
             f"please use `{self.__class__.__name__}.focus` property",
@@ -567,7 +574,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
 
         # noinspection PyMethodParameters
-        class OverlayContents(typing.Sequence[typing.Tuple[Widget, OverlayOptions]]):
+        class OverlayContents(typing.Sequence[typing.Tuple[typing.Union[TopWidget, BottomWidget], OverlayOptions]]):
             # pylint: disable=no-self-argument
             def __len__(inner_self) -> int:
                 return 2
@@ -595,7 +602,10 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self.contents[0] = new_contents[0]
         self.contents[1] = new_contents[1]
 
-    def _contents__getitem__(self, index: Literal[0, 1]) -> tuple[Widget, OverlayOptions]:
+    def _contents__getitem__(
+        self,
+        index: Literal[0, 1],
+    ) -> tuple[TopWidget | BottomWidget, OverlayOptions]:
         if index == 0:
             return (self.bottom_w, self._DEFAULT_BOTTOM_OPTIONS)
 
@@ -621,7 +631,11 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             )
         raise IndexError(f"Overlay.contents has no position {index!r}")
 
-    def _contents__setitem__(self, index: Literal[0, 1], value: tuple[Widget, OverlayOptions]) -> None:
+    def _contents__setitem__(
+        self,
+        index: Literal[0, 1],
+        value: tuple[TopWidget | BottomWidget, OverlayOptions],
+    ) -> None:
         try:
             value_w, value_options = value
         except (ValueError, TypeError) as exc:

@@ -42,7 +42,7 @@ class TreeWidgetError(RuntimeError):
     pass
 
 
-class TreeWidget(urwid.WidgetWrap[urwid.Padding]):
+class TreeWidget(urwid.WidgetWrap[urwid.Padding[typing.Union[urwid.Text, urwid.Columns]]]):
     """A widget representing something in a nested tree display."""
 
     indent_cols = 3
@@ -63,7 +63,7 @@ class TreeWidget(urwid.WidgetWrap[urwid.Padding]):
         """
         return not self.is_leaf
 
-    def get_indented_widget(self) -> urwid.Padding:
+    def get_indented_widget(self) -> urwid.Padding[urwid.Text | urwid.Columns]:
         widget = self.get_inner_widget()
         if not self.is_leaf:
             widget = urwid.Columns(
@@ -76,7 +76,8 @@ class TreeWidget(urwid.WidgetWrap[urwid.Padding]):
     def update_expanded_icon(self) -> None:
         """Update display widget text for parent widgets"""
         # icon is first element in columns indented widget
-        self._w.base_widget.widget_list[0] = [self.unexpanded_icon, self.expanded_icon][self.expanded]
+        icon = [self.unexpanded_icon, self.expanded_icon][self.expanded]
+        self._w.original_widget.contents[0] = (icon, (urwid.GIVEN, 1, False))
 
     def get_indent_cols(self) -> int:
         return self.indent_cols * self.get_node().get_depth()
