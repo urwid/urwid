@@ -32,26 +32,34 @@ from __future__ import annotations
 
 import typing
 
-import urwid
+from .columns import Columns
+from .constants import WHSettings
+from .listbox import ListBox, ListWalker
+from .padding import Padding
+from .text import Text
+from .widget import Widget, WidgetWrap
+from .wimp import SelectableIcon
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable, Sequence
+
+__all__ = ("TreeWidgetError", "TreeWidget", "TreeNode", "ParentNode", "TreeWalker", "TreeListBox")
 
 
 class TreeWidgetError(RuntimeError):
     pass
 
 
-class TreeWidget(urwid.WidgetWrap[urwid.Padding[typing.Union[urwid.Text, urwid.Columns]]]):
+class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]]):
     """A widget representing something in a nested tree display."""
 
     indent_cols = 3
-    unexpanded_icon = urwid.SelectableIcon("+", 0)
-    expanded_icon = urwid.SelectableIcon("-", 0)
+    unexpanded_icon = SelectableIcon("+", 0)
+    expanded_icon = SelectableIcon("-", 0)
 
     def __init__(self, node: TreeNode) -> None:
         self._node = node
-        self._innerwidget: urwid.Text | None = None
+        self._innerwidget: Text | None = None
         self.is_leaf = not hasattr(node, "get_first_child")
         self.expanded = True
         widget = self.get_indented_widget()
@@ -63,32 +71,32 @@ class TreeWidget(urwid.WidgetWrap[urwid.Padding[typing.Union[urwid.Text, urwid.C
         """
         return not self.is_leaf
 
-    def get_indented_widget(self) -> urwid.Padding[urwid.Text | urwid.Columns]:
+    def get_indented_widget(self) -> Padding[Text | Columns]:
         widget = self.get_inner_widget()
         if not self.is_leaf:
-            widget = urwid.Columns(
+            widget = Columns(
                 [(1, [self.unexpanded_icon, self.expanded_icon][self.expanded]), widget],
                 dividechars=1,
             )
         indent_cols = self.get_indent_cols()
-        return urwid.Padding(widget, width=(urwid.RELATIVE, 100), left=indent_cols)
+        return Padding(widget, width=(WHSettings.RELATIVE, 100), left=indent_cols)
 
     def update_expanded_icon(self) -> None:
         """Update display widget text for parent widgets"""
         # icon is first element in columns indented widget
         icon = [self.unexpanded_icon, self.expanded_icon][self.expanded]
-        self._w.original_widget.contents[0] = (icon, (urwid.GIVEN, 1, False))
+        self._w.original_widget.contents[0] = (icon, (WHSettings.GIVEN, 1, False))
 
     def get_indent_cols(self) -> int:
         return self.indent_cols * self.get_node().get_depth()
 
-    def get_inner_widget(self) -> urwid.Text:
+    def get_inner_widget(self) -> Text:
         if self._innerwidget is None:
             self._innerwidget = self.load_inner_widget()
         return self._innerwidget
 
-    def load_inner_widget(self) -> urwid.Widget:
-        return urwid.Text(self.get_display_text())
+    def load_inner_widget(self) -> Widget:
+        return Text(self.get_display_text())
 
     def get_node(self) -> TreeNode:
         return self._node
@@ -404,7 +412,7 @@ class ParentNode(TreeNode):
         return len(self.get_child_keys()) > 0
 
 
-class TreeWalker(urwid.ListWalker):
+class TreeWalker(ListWalker):
     """ListWalker-compatible class for displaying TreeWidgets
 
     positions are TreeNodes."""
@@ -439,7 +447,7 @@ class TreeWalker(urwid.ListWalker):
     # pylint: enable=arguments-renamed
 
 
-class TreeListBox(urwid.ListBox):
+class TreeListBox(ListBox):
     """A ListBox with special handling for navigation and
     collapsing of TreeWidgets"""
 

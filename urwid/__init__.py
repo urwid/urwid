@@ -53,32 +53,6 @@ from urwid.command_map import (
     CommandMap,
     command_map,
 )
-from urwid.display import (
-    BLACK,
-    BROWN,
-    DARK_BLUE,
-    DARK_CYAN,
-    DARK_GRAY,
-    DARK_GREEN,
-    DARK_MAGENTA,
-    DARK_RED,
-    DEFAULT,
-    LIGHT_BLUE,
-    LIGHT_CYAN,
-    LIGHT_GRAY,
-    LIGHT_GREEN,
-    LIGHT_MAGENTA,
-    LIGHT_RED,
-    UPDATE_PALETTE_ENTRY,
-    WHITE,
-    YELLOW,
-    AttrSpec,
-    AttrSpecError,
-    BaseScreen,
-    RealTerminal,
-    ScreenError,
-)
-from urwid.event_loop import AsyncioEventLoop, EventLoop, ExitMainLoop, MainLoop, SelectEventLoop
 from urwid.font import (
     Font,
     FontRegistry,
@@ -93,7 +67,6 @@ from urwid.font import (
     Thin6x6Font,
     get_all_fonts,
 )
-from urwid.listbox import ListBox, ListBoxError, ListWalker, ListWalkerError, SimpleFocusListWalker, SimpleListWalker
 from urwid.signals import (
     MetaSignals,
     Signals,
@@ -120,7 +93,35 @@ from urwid.util import (
 )
 from urwid.version import version as __version__
 from urwid.version import version_tuple as __version_tuple__
-from urwid.widget import (
+
+from . import display, event_loop, widget
+from .display import (
+    BLACK,
+    BROWN,
+    DARK_BLUE,
+    DARK_CYAN,
+    DARK_GRAY,
+    DARK_GREEN,
+    DARK_MAGENTA,
+    DARK_RED,
+    DEFAULT,
+    LIGHT_BLUE,
+    LIGHT_CYAN,
+    LIGHT_GRAY,
+    LIGHT_GREEN,
+    LIGHT_MAGENTA,
+    LIGHT_RED,
+    UPDATE_PALETTE_ENTRY,
+    WHITE,
+    YELLOW,
+    AttrSpec,
+    AttrSpecError,
+    BaseScreen,
+    RealTerminal,
+    ScreenError,
+)
+from .event_loop import AsyncioEventLoop, EventLoop, ExitMainLoop, MainLoop, SelectEventLoop
+from .widget import (
     ANY,
     BOTTOM,
     BOX,
@@ -169,12 +170,17 @@ from urwid.widget import (
     GridFlowError,
     IntEdit,
     LineBox,
+    ListBox,
+    ListBoxError,
+    ListWalker,
+    ListWalkerError,
     MonitoredFocusList,
     MonitoredList,
     Overlay,
     OverlayError,
     Padding,
     PaddingError,
+    ParentNode,
     Pile,
     PileError,
     PopUpLauncher,
@@ -184,10 +190,17 @@ from urwid.widget import (
     Scrollable,
     ScrollBar,
     SelectableIcon,
+    SimpleFocusListWalker,
+    SimpleListWalker,
     Sizing,
     SolidFill,
     Text,
     TextError,
+    TreeListBox,
+    TreeNode,
+    TreeWalker,
+    TreeWidget,
+    TreeWidgetError,
     VAlign,
     WHSettings,
     Widget,
@@ -204,10 +217,6 @@ from urwid.widget import (
     fixed_size,
     scale_bar_values,
 )
-
-from . import display, event_loop, widget
-
-from .treetools import ParentNode, TreeListBox, TreeNode, TreeWalker, TreeWidget, TreeWidgetError  # isort: skip
 
 # Optional event loops with external dependencies
 
@@ -254,6 +263,8 @@ _moved_warn: dict[str, str] = {
     "html_fragment": "urwid.display.html_fragment",
     "web_display": "urwid.display.web",
     "monitored_list": "urwid.widget.monitored_list",
+    "listbox": "urwid.widget.listbox",
+    "treetools": "urwid.widget.treetools",
 }
 # Backward compatible lazy load without any warnings
 # Before DeprecationWarning need to start PendingDeprecationWarning process.
