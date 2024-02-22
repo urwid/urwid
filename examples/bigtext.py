@@ -34,7 +34,10 @@ if typing.TYPE_CHECKING:
     from collections.abc import Callable
 
 
-class SwitchingPadding(urwid.Padding):
+_Wrapped = typing.TypeVar("_Wrapped")
+
+
+class SwitchingPadding(urwid.Padding[_Wrapped]):
     def padding_values(self, size, focus: bool) -> tuple[int, int]:
         maxcol = size[0]
         width, _height = self.original_widget.pack(size, focus=focus)
@@ -95,7 +98,7 @@ class BigTextDisplay:
     def edit_change_event(self, widget, text: str) -> None:
         self.bigtext.set_text(text)
 
-    def setup_view(self):
+    def setup_view(self) -> tuple[urwid.Frame, urwid.Overlay[urwid.BigText, urwid.Frame]]:
         fonts = urwid.get_all_fonts()
         # setup mode radio buttons
         self.font_buttons = []
@@ -147,13 +150,18 @@ class BigTextDisplay:
 
         # Frame
         w = urwid.AttrMap(w, "body")
-        hdr = urwid.Text("Urwid BigText example program - F8 exits.")
-        hdr = urwid.AttrMap(hdr, "header")
+        hdr = urwid.AttrMap(urwid.Text("Urwid BigText example program - F8 exits."), "header")
         w = urwid.Frame(header=hdr, body=w)
 
         # Exit message
-        exit_w = urwid.BigText(("exit", " Quit? "), exit_font)
-        exit_w = urwid.Overlay(exit_w, w, urwid.CENTER, None, urwid.MIDDLE, None)
+        exit_w = urwid.Overlay(
+            urwid.BigText(("exit", " Quit? "), exit_font),
+            w,
+            urwid.CENTER,
+            None,
+            urwid.MIDDLE,
+            None,
+        )
         return w, exit_w
 
     def main(self):

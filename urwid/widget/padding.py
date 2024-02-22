@@ -34,7 +34,7 @@ class PaddingWarning(WidgetWarning):
     """Padding related warnings."""
 
 
-class Padding(WidgetDecoration[WrappedWidget]):
+class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
     def __init__(
         self,
         w: WrappedWidget,
