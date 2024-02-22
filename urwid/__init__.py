@@ -94,7 +94,6 @@ from urwid.font import (
     get_all_fonts,
 )
 from urwid.listbox import ListBox, ListBoxError, ListWalker, ListWalkerError, SimpleFocusListWalker, SimpleListWalker
-from urwid.monitored_list import MonitoredFocusList, MonitoredList
 from urwid.signals import (
     MetaSignals,
     Signals,
@@ -170,6 +169,8 @@ from urwid.widget import (
     GridFlowError,
     IntEdit,
     LineBox,
+    MonitoredFocusList,
+    MonitoredList,
     Overlay,
     OverlayError,
     Padding,
@@ -252,6 +253,7 @@ _moved_warn: dict[str, str] = {
     "lcd_display": "urwid.display.lcd",
     "html_fragment": "urwid.display.html_fragment",
     "web_display": "urwid.display.web",
+    "monitored_list": "urwid.widget.monitored_list",
 }
 # Backward compatible lazy load without any warnings
 # Before DeprecationWarning need to start PendingDeprecationWarning process.
