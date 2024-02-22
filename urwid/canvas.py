@@ -580,7 +580,7 @@ class SolidCanvas(Canvas):
     A canvas filled completely with a single character.
     """
 
-    def __init__(self, fill_char: str, cols: int, rows: int) -> None:
+    def __init__(self, fill_char: str | bytes, cols: int, rows: int) -> None:
         super().__init__()
         end, col = calc_text_pos(fill_char, 0, len(fill_char), 1)
         if col != 1:

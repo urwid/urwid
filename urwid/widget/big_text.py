@@ -9,6 +9,8 @@ from .constants import Sizing
 from .widget import Widget, fixed_size
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from urwid import Font
 
 
@@ -50,7 +52,7 @@ class BigText(Widget):
 
     def render(self, size: tuple[()], focus: bool = False) -> CompositeCanvas:
         fixed_size(size)  # complain if parameter is wrong
-        a = None
+        a: Hashable | None = None
         ai = ak = 0
         o = []
         rows = self.font.height
@@ -64,7 +66,7 @@ class BigText(Widget):
             if not width:
                 # ignore invalid characters
                 continue
-            c = self.font.render(ch)
+            c: TextCanvas | CompositeCanvas = self.font.render(ch)
             if a is not None:
                 c = CompositeCanvas(c)
                 c.fill_attr(a)

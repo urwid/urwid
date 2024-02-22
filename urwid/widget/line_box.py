@@ -15,15 +15,15 @@ if typing.TYPE_CHECKING:
 
     from .widget import Widget
 
-WrappedWidget_co = typing.TypeVar("WrappedWidget_co", bound="Widget", covariant=True)
+WrappedWidget = typing.TypeVar("WrappedWidget")
 
 
-class LineBox(WidgetDecoration[WrappedWidget_co], delegate_to_widget_mixin("_wrapped_widget")):
+class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrapped_widget")):
     Symbols = BOX_SYMBOLS
 
     def __init__(
         self,
-        original_widget: WrappedWidget_co,
+        original_widget: WrappedWidget,
         title: str = "",
         title_align: Literal["left", "center", "right"] | Align = Align.CENTER,
         title_attr=None,

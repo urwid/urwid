@@ -238,10 +238,12 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self._cache_column_widths: list[int] = []
         super().__init__()
         self._contents: MonitoredFocusList[
-            Widget,
-            tuple[Literal[WHSettings.PACK], None, bool]
-            | tuple[Literal[WHSettings.GIVEN], int, bool]
-            | tuple[Literal[WHSettings.WEIGHT], int | float, bool],
+            tuple[
+                Widget,
+                tuple[Literal[WHSettings.PACK], None, bool]
+                | tuple[Literal[WHSettings.GIVEN], int, bool]
+                | tuple[Literal[WHSettings.WEIGHT], int | float, bool],
+            ],
         ] = MonitoredFocusList()
         self._contents.set_modified_callback(self._contents_modified)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
@@ -442,10 +444,12 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def contents(
         self,
     ) -> MonitoredFocusList[
-        Widget,
-        tuple[Literal[WHSettings.PACK], None, bool]
-        | tuple[Literal[WHSettings.GIVEN], int, bool]
-        | tuple[Literal[WHSettings.WEIGHT], int | float, bool],
+        tuple[
+            Widget,
+            tuple[Literal[WHSettings.PACK], None, bool]
+            | tuple[Literal[WHSettings.GIVEN], int, bool]
+            | tuple[Literal[WHSettings.WEIGHT], int | float, bool],
+        ],
     ]:
         """
         The contents of this Columns as a list of `(widget, options)` tuples.
