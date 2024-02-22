@@ -636,10 +636,10 @@ class GraphVScale(Widget):
         if not combinelist:
             return SolidCanvas(" ", size[0], size[1])
 
-        c = CanvasCombine(combinelist)
+        canvas = CanvasCombine(combinelist)
         if maxrow - rows:
-            c.pad_trim_top_bottom(0, maxrow - rows)
-        return c
+            canvas.pad_trim_top_bottom(0, maxrow - rows)
+        return canvas
 
 
 def scale_bar_values(bar, top: float, maxrow: int) -> list[int]:

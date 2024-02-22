@@ -8,24 +8,21 @@ from urwid.canvas import CompositeCanvas
 from .constants import Sizing
 from .widget_decoration import WidgetDecoration, WidgetError
 
-if typing.TYPE_CHECKING:
-    from .widget import Widget
-
-WrappedWidget_co = typing.TypeVar("WrappedWidget_co", bound="Widget", covariant=True)
+WrappedWidget = typing.TypeVar("WrappedWidget")
 
 
 class BoxAdapterError(WidgetError):
     pass
 
 
-class BoxAdapter(WidgetDecoration[WrappedWidget_co]):
+class BoxAdapter(WidgetDecoration[WrappedWidget]):
     """
     Adapter for using a box widget where a flow widget would usually go
     """
 
     no_cache: typing.ClassVar[list[str]] = ["rows"]
 
-    def __init__(self, box_widget: WrappedWidget_co, height: int) -> None:
+    def __init__(self, box_widget: WrappedWidget, height: int) -> None:
         """
         Create a flow widget that contains a box widget
 
@@ -49,7 +46,7 @@ class BoxAdapter(WidgetDecoration[WrappedWidget_co]):
 
     # originally stored as box_widget, keep for compatibility
     @property
-    def box_widget(self) -> WrappedWidget_co:
+    def box_widget(self) -> WrappedWidget:
         warnings.warn(
             "original stored as original_widget, keep for compatibility",
             PendingDeprecationWarning,
@@ -58,7 +55,7 @@ class BoxAdapter(WidgetDecoration[WrappedWidget_co]):
         return self.original_widget
 
     @box_widget.setter
-    def box_widget(self, widget: WrappedWidget_co) -> None:
+    def box_widget(self, widget: WrappedWidget) -> None:
         warnings.warn(
             "original stored as original_widget, keep for compatibility",
             PendingDeprecationWarning,

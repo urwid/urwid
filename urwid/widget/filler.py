@@ -22,20 +22,17 @@ from .widget_decoration import WidgetDecoration, WidgetError
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
-    from .widget import Widget
-
-
-WrappedWidget_co = typing.TypeVar("WrappedWidget_co", bound="Widget", covariant=True)
+WrappedWidget = typing.TypeVar("WrappedWidget")
 
 
 class FillerError(WidgetError):
     pass
 
 
-class Filler(WidgetDecoration[WrappedWidget_co]):
+class Filler(WidgetDecoration[WrappedWidget]):
     def __init__(
         self,
-        body: WrappedWidget_co,
+        body: WrappedWidget,
         valign: (
             Literal["top", "middle", "bottom"] | VAlign | tuple[Literal["relative", WHSettings.RELATIVE], int]
         ) = VAlign.MIDDLE,
@@ -162,7 +159,7 @@ class Filler(WidgetDecoration[WrappedWidget_co]):
         return remove_defaults(attrs, Filler.__init__)
 
     @property
-    def body(self) -> WrappedWidget_co:
+    def body(self) -> WrappedWidget:
         """backwards compatibility, widget used to be stored as body"""
         warnings.warn(
             "backwards compatibility, widget used to be stored as body",
@@ -172,7 +169,7 @@ class Filler(WidgetDecoration[WrappedWidget_co]):
         return self.original_widget
 
     @body.setter
-    def body(self, new_body: WrappedWidget_co) -> None:
+    def body(self, new_body: WrappedWidget) -> None:
         warnings.warn(
             "backwards compatibility, widget used to be stored as body",
             PendingDeprecationWarning,
@@ -180,7 +177,7 @@ class Filler(WidgetDecoration[WrappedWidget_co]):
         )
         self.original_widget = new_body
 
-    def get_body(self) -> WrappedWidget_co:
+    def get_body(self) -> WrappedWidget:
         """backwards compatibility, widget used to be stored as body"""
         warnings.warn(
             "backwards compatibility, widget used to be stored as body",
@@ -189,7 +186,7 @@ class Filler(WidgetDecoration[WrappedWidget_co]):
         )
         return self.original_widget
 
-    def set_body(self, new_body: WrappedWidget_co) -> None:
+    def set_body(self, new_body: WrappedWidget) -> None:
         warnings.warn(
             "backwards compatibility, widget used to be stored as body",
             DeprecationWarning,

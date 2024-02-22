@@ -72,7 +72,7 @@ class Text(Widget):
         [('bold', 5)]
         """
         super().__init__()
-        self._cache_maxcol = None
+        self._cache_maxcol: int | None = None
         self.set_text(markup)
         self.set_layout(align, wrap, layout)
 
