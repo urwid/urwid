@@ -65,7 +65,7 @@ class Key:
 class Signals:
     _signal_attr = "_urwid_signals"  # attribute to attach to signal senders
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._supported = {}
 
     def register(self, sig_cls, signals: Container[Hashable]) -> None:

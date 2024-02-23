@@ -75,9 +75,9 @@ class SelectableIcon(Text):
         super().__init__(text, align=align, wrap=wrap, layout=layout)
         self._cursor_position = cursor_position
 
-    def render(
+    def render(  # type: ignore[override]
         self,
-        size: tuple[int] | tuple[()],
+        size: tuple[int] | tuple[()],  # type: ignore[override]
         focus: bool = False,
     ) -> TextCanvas | CompositeCanvas:  # type: ignore[override]
         """
@@ -126,7 +126,11 @@ class SelectableIcon(Text):
             return None
         return x, y
 
-    def keypress(self, size: tuple[int] | tuple[()], key: str) -> str:
+    def keypress(
+        self,
+        size: tuple[int] | tuple[()],  # type: ignore[override]
+        key: str,
+    ) -> str:
         """
         No keys are handled by this widget.  This method is
         required for selectable widgets.
@@ -721,7 +725,7 @@ class Button(WidgetWrap[Columns]):
         """
         self._label.set_text(label)
 
-    def get_label(self) -> str:
+    def get_label(self) -> str | bytes:
         """
         Return label text.
 

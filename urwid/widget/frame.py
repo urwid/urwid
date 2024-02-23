@@ -438,7 +438,11 @@ class Frame(Widget, WidgetContainerMixin, typing.Generic[BodyWidget, HeaderWidge
 
         return (hrows, frows), (hrows, frows)
 
-    def render(self, size: tuple[int, int], focus: bool = False) -> CompositeCanvas:
+    def render(
+        self,
+        size: tuple[int, int],  # type: ignore[override]
+        focus: bool = False,
+    ) -> CompositeCanvas:
         (maxcol, maxrow) = size
         (htrim, ftrim), (hrows, frows) = self.frame_top_bottom((maxcol, maxrow), focus)
 
@@ -474,7 +478,11 @@ class Frame(Widget, WidgetContainerMixin, typing.Generic[BodyWidget, HeaderWidge
 
         return CanvasCombine(combinelist)
 
-    def keypress(self, size: tuple[int, int], key: str) -> str | None:
+    def keypress(
+        self,
+        size: tuple[int, int],  # type: ignore[override]
+        key: str,
+    ) -> str | None:
         """Pass keypress to widget in focus."""
         (maxcol, maxrow) = size
 
@@ -502,7 +510,7 @@ class Frame(Widget, WidgetContainerMixin, typing.Generic[BodyWidget, HeaderWidge
 
     def mouse_event(
         self,
-        size: tuple[int, int],
+        size: tuple[int, int],  # type: ignore[override]
         event: str,
         button: int,
         col: int,

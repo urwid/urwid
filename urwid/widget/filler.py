@@ -230,7 +230,11 @@ class Filler(WidgetDecoration[WrappedWidget]):
             self.bottom,
         )
 
-    def render(self, size: tuple[int, int] | tuple[int], focus: bool = False) -> CompositeCanvas:
+    def render(
+        self,
+        size: tuple[int, int] | tuple[int],  # type: ignore[override]
+        focus: bool = False,
+    ) -> CompositeCanvas:
         """Render self.original_widget with space above and/or below."""
         maxcol, maxrow = self.pack(size, focus)
         top, bottom = self.filler_values(size, focus)
@@ -251,7 +255,11 @@ class Filler(WidgetDecoration[WrappedWidget]):
         canv.pad_trim_top_bottom(top, bottom)
         return canv
 
-    def keypress(self, size: tuple[int, int] | tuple[()], key: str) -> str | None:
+    def keypress(
+        self,
+        size: tuple[int, int] | tuple[()],  # type: ignore[override]
+        key: str,
+    ) -> str | None:
         """Pass keypress to self.original_widget."""
         maxcol, maxrow = self.pack(size, True)
         if self.height_type == WHSettings.PACK:
@@ -308,7 +316,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
 
     def mouse_event(
         self,
-        size: tuple[int, int] | tuple[int],
+        size: tuple[int, int] | tuple[int],  # type: ignore[override]
         event,
         button: int,
         col: int,

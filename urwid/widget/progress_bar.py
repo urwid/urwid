@@ -106,7 +106,11 @@ class ProgressBar(Widget):
         percent = min(100, max(0, int(self.current * 100 / self.done)))
         return f"{percent!s} %"
 
-    def render(self, size: tuple[int], focus: bool = False) -> TextCanvas:
+    def render(
+        self,
+        size: tuple[int],  # type: ignore[override]
+        focus: bool = False,
+    ) -> TextCanvas:
         """
         Render the progress bar.
         """

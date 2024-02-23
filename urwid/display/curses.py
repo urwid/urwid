@@ -103,7 +103,7 @@ _curses_colours = {  # pylint: disable=consider-using-namedtuple-or-dataclass  #
 
 
 class Screen(BaseScreen, RealTerminal):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.curses_pairs = [(None, None)]  # Can't be sure what pair 0 will default to
         self.palette = {}

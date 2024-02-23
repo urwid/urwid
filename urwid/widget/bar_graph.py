@@ -611,7 +611,11 @@ class GraphVScale(Widget):
         """
         return False
 
-    def render(self, size: tuple[int, int], focus: bool = False) -> SolidCanvas | CompositeCanvas:
+    def render(
+        self,
+        size: tuple[int, int],
+        focus: bool = False,
+    ) -> SolidCanvas | CompositeCanvas:
         """
         Render GraphVScale.
         """

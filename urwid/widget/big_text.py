@@ -43,14 +43,22 @@ class BigText(Widget):
         self.font = font
         self._invalidate()
 
-    def pack(self, size: tuple[()] | None = None, focus: bool = False) -> tuple[int, int]:
+    def pack(
+        self,
+        size: tuple[()] | None = (),  # type: ignore[override]
+        focus: bool = False,
+    ) -> tuple[int, int]:
         rows = self.font.height
         cols = 0
         for c in self.text:
             cols += self.font.char_width(c)
         return cols, rows
 
-    def render(self, size: tuple[()], focus: bool = False) -> CompositeCanvas:
+    def render(
+        self,
+        size: tuple[()],  # type: ignore[override]
+        focus: bool = False,
+    ) -> CompositeCanvas:
         fixed_size(size)  # complain if parameter is wrong
         a: Hashable | None = None
         ai = ak = 0

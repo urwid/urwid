@@ -97,11 +97,11 @@ class WidgetContainerMixin:
 
         positions -- sequence of positions
         """
-        w = self
+        w: Widget = self
         for p in positions:
             if p != w.focus_position:
                 w.focus_position = p  # modifies w.focus
-            w = w.focus.base_widget
+            w = w.focus.base_widget  # type: ignore[assignment]
 
     def get_focus_widgets(self) -> list[Widget]:
         """

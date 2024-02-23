@@ -90,7 +90,11 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
             return None
         return self._original_widget.get_pref_col((maxcol, self.height))
 
-    def keypress(self, size: tuple[int], key: str) -> str | None:
+    def keypress(
+        self,
+        size: tuple[int],  # type: ignore[override]
+        key: str,
+    ) -> str | None:
         (maxcol,) = size
         return self._original_widget.keypress((maxcol, self.height), key)
 
@@ -102,7 +106,7 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
 
     def mouse_event(
         self,
-        size: tuple[int],
+        size: tuple[int],  # type: ignore[override]
         event: str,
         button: int,
         col: int,
@@ -114,7 +118,11 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
             return False
         return self._original_widget.mouse_event((maxcol, self.height), event, button, col, row, focus)
 
-    def render(self, size: tuple[int], focus: bool = False) -> CompositeCanvas:
+    def render(
+        self,
+        size: tuple[int],  # type: ignore[override]
+        focus: bool = False,
+    ) -> CompositeCanvas:
         (maxcol,) = size
         canv = CompositeCanvas(self._original_widget.render((maxcol, self.height), focus))
         return canv

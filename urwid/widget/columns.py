@@ -926,7 +926,11 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             tuple(w_h_args[idx] for idx in range(len(w_h_args))),
         )
 
-    def pack(self, size: tuple[()] | tuple[int] | tuple[int, int] = (), focus: bool = False) -> tuple[int, int]:
+    def pack(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int] = (),
+        focus: bool = False,
+    ) -> tuple[int, int]:
         """Get packed sized for widget."""
         if size:
             return super().pack(size, focus)
@@ -1126,7 +1130,11 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             rows = max(rows, w.rows((mc,), focus=focus and self.focus_position == i))
         return rows
 
-    def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
+    def keypress(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+        key: str,
+    ) -> str | None:
         """
         Pass keypress to the focus column.
 

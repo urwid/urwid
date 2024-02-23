@@ -721,7 +721,7 @@ class TermCanvas(Canvas):
         x, y = self.term_cursor
 
         if isinstance(char, int):
-            char = chr(char)
+            char = char.to_bytes(1, "little")
 
         dc = self.modes.display_ctrl
 
@@ -986,14 +986,14 @@ class TermCanvas(Canvas):
             chars = 1
 
         if char is None:
-            char = self.empty_char()
+            char_spec = self.empty_char()
         else:
-            char = (self.attrspec, self.charset.current, char)
+            char_spec = (self.attrspec, self.charset.current, char)
 
         x, y = position
 
         while chars > 0:
-            self.term[y].insert(x, char)
+            self.term[y].insert(x, char_spec)
             self.term[y].pop()
             chars -= 1
 
@@ -1187,19 +1187,19 @@ class TermCanvas(Canvas):
                 return _color_desc_256(color)
             return _BASIC_COLORS[color]
 
-        fg = _defaulter(fg, colors)
-        bg = _defaulter(bg, colors)
+        decoded_fg = _defaulter(fg, colors)
+        decoded_bg = _defaulter(bg, colors)
 
         if attributes:
-            fg = ",".join((fg, *list(attributes)))
+            decoded_fg = ",".join((decoded_fg, *list(attributes)))
 
-        if fg == bg == "default":
+        if decoded_fg == decoded_bg == "default":
             return None
 
         if colors:
-            return AttrSpec(fg, bg, colors=colors)
+            return AttrSpec(decoded_fg, decoded_bg, colors=colors)
 
-        return AttrSpec(fg, bg)
+        return AttrSpec(decoded_fg, decoded_bg)
 
     def csi_set_attr(self, attrs: Sequence[int]) -> None:
         """

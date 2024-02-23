@@ -576,7 +576,11 @@ class ListBox(Widget, WidgetContainerMixin):
 
         return self._rows_max_cached
 
-    def render(self, size: tuple[int, int], focus: bool = False) -> CompositeCanvas | SolidCanvas:
+    def render(
+        self,
+        size: tuple[int, int],  # type: ignore[override]
+        focus: bool = False,
+    ) -> CompositeCanvas | SolidCanvas:
         """
         Render ListBox and return canvas.
 
@@ -1174,7 +1178,11 @@ class ListBox(Widget, WidgetContainerMixin):
             self.shift_focus((maxcol, maxrow), maxrow - cy - 1)
             return
 
-    def keypress(self, size: tuple[int, int], key: str) -> str | None:
+    def keypress(
+        self,
+        size: tuple[int, int],  # type: ignore[override]
+        key: str,
+    ) -> str | None:
         """Move selection through the list elements scrolling when
         necessary. Keystrokes are first passed to widget in focus
         in case that widget can handle them.
@@ -1769,7 +1777,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
     def mouse_event(
         self,
-        size: tuple[int, int],
+        size: tuple[int, int],  # type: ignore[override]
         event,
         button: int,
         col: int,

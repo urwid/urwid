@@ -92,7 +92,11 @@ class Divider(Widget):
         (_maxcol,) = size
         return self.top + 1 + self.bottom
 
-    def render(self, size: tuple[int], focus: bool = False) -> CompositeCanvas:
+    def render(
+        self,
+        size: tuple[int],  # type: ignore[override]
+        focus: bool = False,
+    ) -> CompositeCanvas:
         """
         Render the divider as a canvas and return it.
 
