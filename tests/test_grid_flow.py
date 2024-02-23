@@ -84,6 +84,59 @@ class GridFlowTest(unittest.TestCase):
         gf = urwid.GridFlow([], 5, 0, 0, "left")
         self.assertEqual(gf.cell_width, 5)
 
+    def test_not_fit(self):
+        """Test scenario with maxcol < cell_width (special case, warning will be produced)."""
+        widget = urwid.GridFlow(
+            [urwid.Button("first"), urwid.Button("second")],
+            5,
+            0,
+            0,
+            "left",
+        )
+        size = (3,)
+        with self.assertWarns(urwid.widget.GridFlowWarning):
+            canvas = widget.render(size)
+
+        self.assertEqual(
+            ("< f", "  i", "  r", "  s", "  t", "< s", "  e", "  c", "  o", "  n", "  d"),
+            canvas.decoded_text,
+        )
+
+    def test_multiline(self):
+        """Test widgets fit only with multiple lines"""
+        widget = urwid.GridFlow(
+            [urwid.Button("first"), urwid.Button("second")],
+            10,
+            0,
+            0,
+            "left",
+        )
+        size = (10,)
+        canvas = widget.render(size)
+        self.assertEqual(
+            ("< first  >", "< second >"),
+            canvas.decoded_text,
+        )
+
+    def test_multiline_2(self):
+        """Test widgets fit only with multiple lines"""
+        widget = urwid.GridFlow(
+            [urwid.Button("first"), urwid.Button("second"), urwid.Button("third"), urwid.Button("forth")],
+            10,
+            0,
+            0,
+            "left",
+        )
+        size = (20,)
+        canvas = widget.render(size)
+        self.assertEqual(
+            (
+                "< first  >< second >",
+                "< third  >< forth  >",
+            ),
+            canvas.decoded_text,
+        )
+
     def test_basics(self):
         repr(urwid.GridFlow([], 5, 0, 0, "left"))  # should not fail
 

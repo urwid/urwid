@@ -27,7 +27,7 @@ from .divider import Divider
 from .edit import Edit, EditError, IntEdit
 from .filler import Filler, FillerError, calculate_top_bottom_filler
 from .frame import Frame, FrameError
-from .grid_flow import GridFlow, GridFlowError
+from .grid_flow import GridFlow, GridFlowError, GridFlowWarning
 from .line_box import LineBox
 from .listbox import ListBox, ListBoxError, ListWalker, ListWalkerError, SimpleFocusListWalker, SimpleListWalker
 from .monitored_list import MonitoredFocusList, MonitoredList
@@ -72,6 +72,7 @@ __all__ = (
     "GIVEN",
     "LEFT",
     "MIDDLE",
+    "GridFlowWarning",
     "PACK",
     "RELATIVE",
     "RELATIVE_100",

@@ -31,7 +31,11 @@ class SolidFill(Widget):
     def _repr_words(self) -> list[str]:
         return [*super()._repr_words(), repr(self.fill_char)]
 
-    def render(self, size: tuple[int, int], focus: bool = False) -> SolidCanvas:
+    def render(
+        self,
+        size: tuple[int, int],  # type: ignore[override]
+        focus: bool = False,
+    ) -> SolidCanvas:
         """
         Render the Fill as a canvas and return it.
 

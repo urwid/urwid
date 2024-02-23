@@ -267,7 +267,11 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         )
         self.width = width
 
-    def pack(self, size: tuple[()] | tuple[int] | tuple[int, int] = (), focus: bool = False) -> tuple[int, int]:
+    def pack(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int] = (),
+        focus: bool = False,
+    ) -> tuple[int, int]:
         if size:
             return super().pack(size, focus)
         if self._width_type == WHSettings.CLIP:

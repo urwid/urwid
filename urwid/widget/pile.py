@@ -715,7 +715,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 w_h_args.append((maxcol, height))
             elif f == WHSettings.PACK or len(size) == 1:
                 if Sizing.FLOW in w_sizing:
-                    w_h_arg = (maxcol,)
+                    w_h_arg: tuple[int] | tuple[()] = (maxcol,)
                 elif Sizing.FIXED in w_sizing and f == WHSettings.PACK:
                     w_h_arg = ()
                 else:

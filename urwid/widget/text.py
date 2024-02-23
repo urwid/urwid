@@ -245,7 +245,11 @@ class Text(Widget):
     def layout(self):
         return self._layout
 
-    def render(self, size: tuple[int] | tuple[()], focus: bool = False) -> TextCanvas:
+    def render(
+        self,
+        size: tuple[int] | tuple[()],  # type: ignore[override]
+        focus: bool = False,
+    ) -> TextCanvas:
         """
         Render contents with wrapping and alignment.  Return canvas.
 
@@ -312,7 +316,11 @@ class Text(Widget):
         self._cache_maxcol = maxcol
         self._cache_translation = self.layout.layout(text, maxcol, self._align_mode, self._wrap_mode)
 
-    def pack(self, size: tuple[int] | tuple[()] | None = None, focus: bool = False) -> tuple[int, int]:
+    def pack(
+        self,
+        size: tuple[()] | tuple[int] | None = None,  # type: ignore[override]
+        focus: bool = False,
+    ) -> tuple[int, int]:
         """
         Return the number of screen columns and rows required for
         this Text widget to be displayed without wrapping or

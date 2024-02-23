@@ -37,7 +37,7 @@ from .constants import WHSettings
 from .listbox import ListBox, ListWalker
 from .padding import Padding
 from .text import Text
-from .widget import Widget, WidgetWrap
+from .widget import WidgetWrap
 from .wimp import SelectableIcon
 
 if typing.TYPE_CHECKING:
@@ -95,7 +95,7 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]]):
             self._innerwidget = self.load_inner_widget()
         return self._innerwidget
 
-    def load_inner_widget(self) -> Widget:
+    def load_inner_widget(self) -> Text:
         return Text(self.get_display_text())
 
     def get_node(self) -> TreeNode:
@@ -150,7 +150,11 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]]):
             prev_node = this_node.get_parent()
         return prev_node.get_widget()
 
-    def keypress(self, size: tuple[int] | tuple[()], key: str) -> str | None:
+    def keypress(
+        self,
+        size: tuple[int] | tuple[()],
+        key: str,
+    ) -> str | None:
         """Handle expand & collapse requests (non-leaf nodes)"""
         if self.is_leaf:
             return key
@@ -236,7 +240,7 @@ class TreeNode:
         self._parent = parent
         self._value = value
         self._depth = depth
-        self._widget = None
+        self._widget: TreeWidget | None = None
 
     def get_widget(self, reload: bool = False) -> TreeWidget:
         """Return the widget for this node."""
@@ -451,8 +455,12 @@ class TreeListBox(ListBox):
     """A ListBox with special handling for navigation and
     collapsing of TreeWidgets"""
 
-    def keypress(self, size: tuple[int, int], key: str) -> str | None:
-        key = super().keypress(size, key)
+    def keypress(
+        self,
+        size: tuple[int, int],  # type: ignore[override]
+        key: str,
+    ) -> str | None:
+        key: str | None = super().keypress(size, key)
         return self.unhandled_input(size, key)
 
     def unhandled_input(self, size: tuple[int, int], data: str) -> str | None:

@@ -94,7 +94,7 @@ class CanNotDisplayText(Exception):
 
 
 class StandardTextLayout(TextLayout):
-    def __init__(self):  # , tab_stops=(), tab_stop_every=8):
+    def __init__(self) -> None:  # , tab_stops=(), tab_stop_every=8):
         pass
         # """
         # tab_stops -- list of screen column indexes for tab stops
@@ -181,7 +181,7 @@ class StandardTextLayout(TextLayout):
         """Calculate text segments for cases of a text trimmed (wrap is clip or ellipsis)."""
         segments = []
 
-        nl = "\n" if isinstance(text, str) else b"\n"
+        nl: str | bytes = "\n" if isinstance(text, str) else b"\n"
         encoding = get_encoding()
         ellipsis_string = get_ellipsis_string(encoding)
         ellipsis_width = _get_width(ellipsis_string)
@@ -508,7 +508,11 @@ def trim_line(
     return result
 
 
-def calc_line_pos(text: str | bytes, line_layout, pref_col: Literal["left", "right"] | int):
+def calc_line_pos(
+    text: str | bytes,
+    line_layout,
+    pref_col: Literal["left", "right", Align.LEFT, Align.RIGHT] | int,
+):
     """
     Calculate the closest linear position to pref_col given a
     line layout structure.  Returns None if no position found.
@@ -566,7 +570,7 @@ def calc_line_pos(text: str | bytes, line_layout, pref_col: Literal["left", "rig
 def calc_pos(
     text: str | bytes,
     layout: list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]],
-    pref_col: Literal["left", "right"] | int,
+    pref_col: Literal["left", "right", Align.LEFT, Align.RIGHT] | int,
     row: int,
 ) -> int:
     """

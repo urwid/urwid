@@ -43,7 +43,6 @@ from . import _raw_display_base, escape
 from .common import INPUT_DESCRIPTORS_CHANGED
 
 if typing.TYPE_CHECKING:
-    import io
     import socket
     from collections.abc import Callable
     from types import FrameType
@@ -54,8 +53,8 @@ if typing.TYPE_CHECKING:
 class Screen(_raw_display_base.Screen):
     def __init__(
         self,
-        input: io.TextIOBase = sys.stdin,  # noqa: A002  # pylint: disable=redefined-builtin
-        output: io.TextIOBase = sys.stdout,
+        input: typing.TextIO = sys.stdin,  # noqa: A002  # pylint: disable=redefined-builtin
+        output: typing.TextIO = sys.stdout,
         bracketed_paste_mode=False,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output
@@ -223,7 +222,7 @@ class Screen(_raw_display_base.Screen):
 
         super()._stop()
 
-    def get_input_descriptors(self) -> list[socket.socket | io.IOBase | typing.IO | int]:
+    def get_input_descriptors(self) -> list[socket.socket | typing.IO | int]:
         """
         Return a list of integer file descriptors that should be
         polled in external event loops to check for user input.

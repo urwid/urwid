@@ -231,7 +231,11 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
 
         return frozenset(sizing)
 
-    def pack(self, size: tuple[()] | tuple[int] | tuple[int, int] = (), focus: bool = False) -> tuple[int, int]:
+    def pack(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int] = (),
+        focus: bool = False,
+    ) -> tuple[int, int]:
         if size:
             return super().pack(size, focus)
 
@@ -482,7 +486,11 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
         """Return selectable from top_w."""
         return self.top_w.selectable()
 
-    def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
+    def keypress(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+        key: str,
+    ) -> str | None:
         """Pass keypress to top_w."""
         real_size = self.pack(size, True)
         return self.top_w.keypress(
@@ -689,7 +697,10 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
             raise IndexError(f"Overlay.contents has no position {index!r}")
         self._invalidate()
 
-    def get_cursor_coords(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> tuple[int, int] | None:
+    def get_cursor_coords(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+    ) -> tuple[int, int] | None:
         """Return cursor coords from top_w, if any."""
         if not hasattr(self.top_w, "get_cursor_coords"):
             return None

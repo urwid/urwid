@@ -562,36 +562,41 @@ class MainLoop:
 
         something_handled = False
 
-        for k in keys:
-            if k == "window resize":
+        for key in keys:
+            if key == "window resize":
                 continue
 
-            if isinstance(k, str):
+            if isinstance(key, str):
                 if self._topmost_widget.selectable():
-                    k = self._topmost_widget.keypress(self.screen_size, k)  # noqa: PLW2901
+                    handled_key = self._topmost_widget.keypress(self.screen_size, key)
+                    if not handled_key:
+                        something_handled = True
+                        continue
 
-            elif isinstance(k, tuple):
-                if is_mouse_event(k):
-                    event, button, col, row = k
-                    if hasattr(self._topmost_widget, "mouse_event") and self._topmost_widget.mouse_event(
-                        self.screen_size,
-                        event,
-                        button,
-                        col,
-                        row,
-                        focus=True,
-                    ):
-                        k = None  # noqa: PLW2901
+                    key = handled_key  # noqa: PLW2901
+
+            elif is_mouse_event(key):
+                event, button, col, row = key
+                if hasattr(self._topmost_widget, "mouse_event") and self._topmost_widget.mouse_event(
+                    self.screen_size,
+                    event,
+                    button,
+                    col,
+                    row,
+                    focus=True,
+                ):
+                    something_handled = True
+                    continue
 
             else:
-                raise TypeError(f"{k!r} is not str | tuple[str, int, int, int]")
+                raise TypeError(f"{key!r} is not str | tuple[str, int, int, int]")
 
-            if k:
-                if command_map[k] == Command.REDRAW_SCREEN:
+            if key:
+                if command_map[key] == Command.REDRAW_SCREEN:
                     self.screen.clear()
                     something_handled = True
                 else:
-                    something_handled |= bool(self.unhandled_input(k))
+                    something_handled |= bool(self.unhandled_input(key))
             else:
                 something_handled = True
 

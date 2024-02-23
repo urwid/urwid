@@ -10,7 +10,7 @@ from .divider import Divider
 from .monitored_list import MonitoredFocusList, MonitoredList
 from .padding import Padding
 from .pile import Pile
-from .widget import Widget, WidgetError, WidgetWrap
+from .widget import Widget, WidgetError, WidgetWarning, WidgetWrap
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
@@ -19,7 +19,11 @@ if typing.TYPE_CHECKING:
 
 
 class GridFlowError(WidgetError):
-    pass
+    """GridFlow specific error."""
+
+
+class GridFlowWarning(WidgetWarning):
+    """GridFlow specific warning."""
 
 
 class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListContentsMixin):
@@ -383,6 +387,12 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
     def _get_maxcol(self, size: tuple[int] | tuple[()]) -> int:
         if size:
             (maxcol,) = size
+            if maxcol < self.cell_width:
+                warnings.warn(
+                    f"Size is smaller than cell width ({maxcol!r} < {self.cell_width!r})",
+                    GridFlowWarning,
+                    stacklevel=3,
+                )
         else:
             maxcol = len(self) * self.cell_width + (len(self) - 1) * self.h_sep
         return maxcol
@@ -434,18 +444,15 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
                 pad.first_position = i
                 p.contents.append((pad, p.options()))
 
-            c.contents.append((w, c.options(WHSettings.GIVEN, width_amount)))
+            # Use width == maxcol in case of maxcol < width amount
+            # Columns will use empty widget in case of GIVEN width > maxcol
+            c.contents.append((w, c.options(WHSettings.GIVEN, width_amount if width_amount <= maxcol else maxcol)))
             if (i == self.focus_position) or (not column_focused and w.selectable()):
                 c.focus_position = len(c.contents) - 1
                 column_focused = True
             if i == self.focus_position:
                 p.focus_position = len(p.contents) - 1
             used_space = sum(x[1][1] for x in c.contents) + self.h_sep * len(c.contents)
-            if width_amount > maxcol:
-                # special case: display is too narrow for the given
-                # width so we remove the Columns for better behaviour
-                # FIXME: determine why this is necessary
-                pad.original_widget = w
             pad.width = used_space - self.h_sep
 
         if self.v_sep:
@@ -481,7 +488,11 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
         # pad.first_position was set by generate_display_widget() above
         self.focus_position = pile_focus.first_position + col_focus_position
 
-    def keypress(self, size: tuple[int], key: str) -> str | None:
+    def keypress(
+        self,
+        size: tuple[int],  # type: ignore[override]
+        key: str,
+    ) -> str | None:
         """
         Pass keypress to display widget for handling.
         Captures focus changes.
@@ -492,7 +503,11 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
             self._set_focus_from_display_widget()
         return key
 
-    def pack(self, size: tuple[int] | tuple[()] = (), focus: bool = False) -> tuple[int, int]:
+    def pack(
+        self,
+        size: tuple[int] | tuple[()] = (),  # type: ignore[override]
+        focus: bool = False,
+    ) -> tuple[int, int]:
         if size:
             return super().pack(size, focus)
         cols = len(self) * self.cell_width + (len(self) - 1) * self.h_sep
@@ -502,7 +517,11 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
         self.get_display_widget(size)
         return super().rows(size, focus=focus)
 
-    def render(self, size: tuple[int] | tuple[()], focus: bool = False):
+    def render(
+        self,
+        size: tuple[int] | tuple[()],  # type: ignore[override]
+        focus: bool = False,
+    ):
         self.get_display_widget(size)
         return super().render(size, focus)
 
@@ -520,7 +539,7 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
 
     def mouse_event(
         self,
-        size: tuple[int] | tuple[()],
+        size: tuple[int] | tuple[()],  # type: ignore[override]
         event: str,
         button: int,
         col: int,

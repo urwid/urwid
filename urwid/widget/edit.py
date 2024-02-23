@@ -153,7 +153,7 @@ class Edit(Text):
 
         return self._caption + (self._mask * len(self._edit_text)), self._attrib
 
-    def set_text(self, markup: tuple[str, list[tuple[Hashable, int]]]) -> None:
+    def set_text(self, markup: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]) -> None:
         """
         Not supported by Edit widget.
 
@@ -359,10 +359,7 @@ class Edit(Text):
         self.highlight = None
 
     def _normalize_to_caption(self, text: str | bytes) -> str | bytes:
-        """
-        Return text converted to the same type as self.caption
-        (bytes or unicode)
-        """
+        """Return text converted to the same type as self.caption (bytes or unicode)"""
         tu = isinstance(text, str)
         cu = isinstance(self._caption, str)
         if tu == cu:
@@ -400,7 +397,11 @@ class Edit(Text):
         result_pos += len(text)
         return (result_text, result_pos)
 
-    def keypress(self, size: tuple[int], key: str) -> str | None:
+    def keypress(
+        self,
+        size: tuple[int],  # type: ignore[override]
+        key: str,
+    ) -> str | None:
         """
         Handle editing keystrokes, return others.
 
@@ -421,9 +422,6 @@ class Edit(Text):
         pos = self.edit_pos
         if self.valid_char(key):
             if isinstance(key, str) and not isinstance(self._caption, str):
-                # screen is sending us unicode input, must be using utf-8
-                # encoding because that's all we support, so convert it
-                # to bytes to match our caption's type
                 key = key.encode("utf-8")
             self.insert_text(key)
             return None
@@ -546,7 +544,7 @@ class Edit(Text):
 
     def mouse_event(
         self,
-        size: tuple[int],
+        size: tuple[int],  # type: ignore[override]
         event: str,
         button: int,
         col: int,
@@ -581,7 +579,11 @@ class Edit(Text):
         self.highlight = None
         return True
 
-    def render(self, size: tuple[int], focus: bool = False) -> TextCanvas | CompositeCanvas:
+    def render(
+        self,
+        size: tuple[int],  # type: ignore[override]
+        focus: bool = False,
+    ) -> TextCanvas | CompositeCanvas:
         """
         Render edit widget and return canvas.  Include cursor when in
         focus.
@@ -679,7 +681,11 @@ class IntEdit(Edit):
             val = ""
         super().__init__(caption, val)
 
-    def keypress(self, size: tuple[int], key: str) -> str | None:
+    def keypress(
+        self,
+        size: tuple[int],  # type: ignore[override]
+        key: str,
+    ) -> str | None:
         """
         Handle editing keystrokes.  Remove leading zeros.
 

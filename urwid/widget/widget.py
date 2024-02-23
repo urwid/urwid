@@ -298,7 +298,7 @@ class Widget(metaclass=WidgetMeta):
     _sizing = frozenset([Sizing.FLOW, Sizing.BOX, Sizing.FIXED])
     _command_map = command_map
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
 
     def _invalidate(self) -> None:
@@ -451,7 +451,11 @@ class Widget(metaclass=WidgetMeta):
     def _repr_attrs(self) -> dict[str, typing.Any]:
         return {}
 
-    def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
+    def keypress(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+        key: str,
+    ) -> str | None:
         """Keyboard input handler.
 
         :param size: See :meth:`Widget.render` for details
@@ -514,7 +518,11 @@ class Widget(metaclass=WidgetMeta):
                 LOGGER.debug(f"Widget {self!r} is not selectable")
         return False
 
-    def render(self, size: tuple[()] | tuple[int] | tuple[int, int], focus: bool = False) -> Canvas:
+    def render(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+        focus: bool = False,
+    ) -> Canvas:
         """Render widget and produce canvas
 
         :param size: One of the following, *maxcol* and *maxrow* are integers > 0:
@@ -590,7 +598,7 @@ class FlowWidget(Widget):
         """
         raise NotImplementedError()
 
-    def render(self, size: tuple[int], focus: bool = False):
+    def render(self, size: tuple[int], focus: bool = False) -> Canvas:  # type: ignore[override]
         """
         All widgets must implement this function.
         """
@@ -627,14 +635,14 @@ class BoxWidget(Widget):
         )
         super().__init__()
 
-    def render(self, size: tuple[int, int], focus: bool = False):
+    def render(self, size: tuple[int, int], focus: bool = False) -> Canvas:  # type: ignore[override]
         """
         All widgets must implement this function.
         """
         raise NotImplementedError()
 
 
-def fixed_size(size):
+def fixed_size(size: tuple[()]) -> None:
     """
     raise ValueError if size != ().
 
@@ -671,13 +679,13 @@ class FixedWidget(Widget):
         )
         super().__init__()
 
-    def render(self, size, focus=False):
+    def render(self, size: tuple[()], focus: bool = False) -> Canvas:  # type: ignore[override]
         """
         All widgets must implement this function.
         """
         raise NotImplementedError()
 
-    def pack(self, size=None, focus=False):
+    def pack(self, size: tuple[()] = (), focus: bool = False) -> tuple[int, int]:  # type: ignore[override]
         """
         All fixed widgets must implement this function.
         """

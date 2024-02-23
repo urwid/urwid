@@ -20,28 +20,28 @@ __all__ = (
 try:
     from .twisted_loop import TwistedEventLoop
 
-    __all__ += ("TwistedEventLoop",)
+    __all__ += ("TwistedEventLoop",)  # type: ignore[assignment]
 except ImportError:
     pass
 
 try:
     from .tornado_loop import TornadoEventLoop
 
-    __all__ += ("TornadoEventLoop",)
+    __all__ += ("TornadoEventLoop",)  # type: ignore[assignment]
 except ImportError:
     pass
 
 try:
     from .glib_loop import GLibEventLoop
 
-    __all__ += ("GLibEventLoop",)
+    __all__ += ("GLibEventLoop",)  # type: ignore[assignment]
 except ImportError:
     pass
 
 try:
     from .trio_loop import TrioEventLoop
 
-    __all__ += ("TrioEventLoop",)
+    __all__ += ("TrioEventLoop",)  # type: ignore[assignment]
 except ImportError:
     pass
 
@@ -50,6 +50,6 @@ if sys.platform != "win32":
     try:
         from .zmq_loop import ZMQEventLoop
 
-        __all__ += ("ZMQEventLoop",)
+        __all__ += ("ZMQEventLoop",)  # type: ignore[assignment]
     except ImportError:
         pass

@@ -43,7 +43,7 @@ if typing.TYPE_CHECKING:
 __all__ = ("ScrollBar", "Scrollable", "ScrollableError", "ScrollbarSymbols")
 
 
-WrappedWidget = typing.TypeVar("WrappedWidget")
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="SupportsScroll")
 
 
 class ScrollableError(WidgetError):
@@ -153,7 +153,11 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
         self.force_forward_keypress = force_forward_keypress
         super().__init__(widget)
 
-    def render(self, size: tuple[int, int], focus: bool = False) -> CompositeCanvas:
+    def render(
+        self,
+        size: tuple[int, int],  # type: ignore[override]
+        focus: bool = False,
+    ) -> CompositeCanvas:
         from urwid import canvas
 
         maxcol, maxrow = size
@@ -270,7 +274,11 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
 
         return canv
 
-    def keypress(self, size: tuple[int, int], key: str) -> str | None:
+    def keypress(
+        self,
+        size: tuple[int, int],  # type: ignore[override]
+        key: str,
+    ) -> str | None:
         from urwid.command_map import Command
 
         # Maybe offer key to original widget
@@ -311,7 +319,7 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
 
     def mouse_event(
         self,
-        size: tuple[int, int],
+        size: tuple[int, int],  # type: ignore[override]
         event: str,
         button: int,
         col: int,
@@ -375,7 +383,10 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
             elif cursrow >= self._trim_top + maxrow:
                 self._trim_top = max(0, cursrow - maxrow + 1)
 
-    def _get_original_widget_size(self, size: tuple[int, int]) -> tuple[int] | tuple[()]:
+    def _get_original_widget_size(
+        self,
+        size: tuple[int, int],  # type: ignore[override]
+    ) -> tuple[int] | tuple[()]:
         ow = self._original_widget
         sizing = ow.sizing()
         if Sizing.FLOW in sizing:
@@ -465,7 +476,11 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
         self.scrollbar_width = max(1, width)
         self._original_widget_size = (0, 0)
 
-    def render(self, size: tuple[int, int], focus: bool = False) -> CompositeCanvas:
+    def render(
+        self,
+        size: tuple[int, int],  # type: ignore[override]
+        focus: bool = False,
+    ) -> Canvas:
         from urwid import canvas
 
         maxcol, maxrow = size
@@ -566,12 +581,16 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
 
         raise ScrollableError(f"Not compatible to be wrapped by ScrollBar: {w!r}")
 
-    def keypress(self, size: tuple[int, int], key: str) -> str | None:
+    def keypress(
+        self,
+        size: tuple[int, int],  # type: ignore[override]
+        key: str,
+    ) -> str | None:
         return self._original_widget.keypress(self._original_widget_size, key)
 
     def mouse_event(
         self,
-        size: tuple[int, int],
+        size: tuple[int, int],  # type: ignore[override]
         event: str,
         button: int,
         col: int,
@@ -580,7 +599,7 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
     ) -> bool | None:
         ow = self._original_widget
         ow_size = self._original_widget_size
-        handled = False
+        handled: bool | None = False
         if hasattr(ow, "mouse_event"):
             handled = ow.mouse_event(ow_size, event, button, col, row, focus)
 

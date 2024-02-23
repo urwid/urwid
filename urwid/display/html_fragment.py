@@ -53,7 +53,7 @@ class HtmlGenerator(BaseScreen):
     # class variables
     fragments: typing.ClassVar[list[str]] = []
     sizes: typing.ClassVar[list[tuple[int, int]]] = []
-    keys: typing.ClassVar[list[list[str] | tuple[list[str], list[int]]]] = []
+    keys: typing.ClassVar[list[list[str]]] = []
     started = True
 
     def __init__(self) -> None:

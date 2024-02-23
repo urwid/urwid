@@ -62,11 +62,11 @@ class ZMQEventLoop(EventLoop):
 
     _alarm_break = count()
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self._did_something = True
-        self._alarms = []
+        self._alarms: list[tuple[float, int, Callable[[], typing.Any]]] = []
         self._poller = zmq.Poller()
         self._queue_callbacks: dict[int, Callable[[], typing.Any]] = {}
         self._idle_handle = 0

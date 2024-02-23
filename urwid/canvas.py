@@ -216,7 +216,7 @@ class Canvas:
     def __init__(self) -> None:
         """Base Canvas class"""
         self._widget_info = None
-        self.coords: dict[str, tuple[int, int, tuple[Widget, int, int]]] = {}
+        self.coords: dict[str, tuple[int, int, tuple[Widget, int, int]] | tuple[int, int, None]] = {}
         self.shortcuts: dict[str, str] = {}
 
     def finalize(

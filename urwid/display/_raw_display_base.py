@@ -41,7 +41,6 @@ from . import escape
 from .common import UNPRINTABLE_TRANS_TABLE, UPDATE_PALETTE_ENTRY, AttrSpec, BaseScreen, RealTerminal
 
 if typing.TYPE_CHECKING:
-    import io
     from collections.abc import Callable, Iterable
     from types import FrameType
 
@@ -54,7 +53,7 @@ IS_WSL = (sys.platform == "linux") and ("wsl" in platform.platform().lower())
 
 
 class Screen(BaseScreen, RealTerminal):
-    def __init__(self, input: io.IOBase, output: io.IOBase):  # noqa: A002  # pylint: disable=redefined-builtin
+    def __init__(self, input: typing.IO, output: typing.IO) -> None:  # noqa: A002  # pylint: disable=redefined-builtin
         """Initialize a screen that directly prints escape codes to an output
         terminal.
         """
@@ -116,7 +115,7 @@ class Screen(BaseScreen, RealTerminal):
         self.screen_buf = None
 
     @property
-    def _term_input_io(self) -> io.IOBase | None:
+    def _term_input_io(self) -> typing.IO | None:
         if hasattr(self._term_input_file, "fileno"):
             return self._term_input_file
         return None
@@ -310,7 +309,7 @@ class Screen(BaseScreen, RealTerminal):
             return keys, raw
         return keys
 
-    def get_input_descriptors(self) -> list[socket.socket | io.IOBase | typing.IO | int]:
+    def get_input_descriptors(self) -> list[socket.socket | typing.IO | int]:
         """
         Return a list of integer file descriptors that should be
         polled in external event loops to check for user input.
@@ -323,7 +322,7 @@ class Screen(BaseScreen, RealTerminal):
         if not self._started:
             return []
 
-        fd_list = [self._resize_pipe_rd]
+        fd_list: list[socket.socket | typing.IO | int] = [self._resize_pipe_rd]
         input_io = self._term_input_io
         if input_io is not None:
             fd_list.append(input_io)
