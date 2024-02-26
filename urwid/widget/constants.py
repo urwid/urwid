@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import enum
 import typing
 
@@ -454,91 +455,51 @@ def simplify_height(
     return (WHSettings(height_type), height_amount)
 
 
-class _LightBoxSymbols(typing.NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class _BoxSymbols:
+    """Box symbols for drawing."""
+
+    HORIZONTAL: str
+    VERTICAL: str
+    TOP_LEFT: str
+    TOP_RIGHT: str
+    BOTTOM_LEFT: str
+    BOTTOM_RIGHT: str
+    # Joints for tables making
+    LEFT_T: str
+    RIGHT_T: str
+    TOP_T: str
+    BOTTOM_T: str
+    CROSS: str
+
+
+@dataclasses.dataclass(frozen=True)
+class _BoxSymbolsWithDashes(_BoxSymbols):
+    """Box symbols for drawing.
+
+    Extra dashes symbols.
+    """
+
+    HORIZONTAL_4_DASHES: str
+    HORIZONTAL_3_DASHES: str
+    HORIZONTAL_2_DASHES: str
+    VERTICAL_2_DASH: str
+    VERTICAL_3_DASH: str
+    VERTICAL_4_DASH: str
+
+
+@dataclasses.dataclass(frozen=True)
+class _LightBoxSymbols(_BoxSymbolsWithDashes):
     """Box symbols for drawing.
 
     The Thin version includes extra symbols.
     Symbols are ordered as in Unicode except dashes.
     """
 
-    # fmt: off
-
-    HORIZONTAL: str =   "─"
-    VERTICAL: str =     "│"
-    TOP_LEFT: str =     "┌"
-    TOP_RIGHT: str =    "┐"
-    BOTTOM_LEFT: str =  "└"
-    BOTTOM_RIGHT: str = "┘"
-    # Joints for tables making
-    LEFT_T: str =   "├"
-    RIGHT_T: str =  "┤"
-    TOP_T: str =    "┬"
-    BOTTOM_T: str = "┴"
-    CROSS: str =    "┼"
-    # Dashes
-    HORIZONTAL_4_DASHES: str = "┈"
-    HORIZONTAL_3_DASHES: str = "┄"
-    HORIZONTAL_2_DASHES: str = "╌"
-    VERTICAL_2_DASH: str = "╎"
-    VERTICAL_3_DASH: str = "┆"
-    VERTICAL_4_DASH: str = "┊"
-    # Unique for light only
-    TOP_LEFT_ROUNDED: str =     "╭"
-    TOP_RIGHT_ROUNDED: str =    "╮"
-    BOTTOM_RIGHT_ROUNDED: str = "╯"
-    BOTTOM_LEFT_ROUNDED: str =  "╰"
-
-
-class _HeavyBoxSymbols(typing.NamedTuple):
-    """Box symbols for drawing.
-
-    The Heavy version includes extra symbols.
-    Symbols are ordered as in Unicode except dashes.
-    """
-
-    # fmt: off
-
-    HORIZONTAL: str =   "━"
-    VERTICAL: str =     "┃"
-    TOP_LEFT: str =     "┏"
-    TOP_RIGHT: str =    "┓"
-    BOTTOM_LEFT: str =  "┗"
-    BOTTOM_RIGHT: str = "┛"
-    # Joints for tables making
-    LEFT_T: str =   "┣"
-    RIGHT_T: str =  "┫"
-    TOP_T: str =    "┳"
-    BOTTOM_T: str = "┻"
-    CROSS: str =    "╋"
-    # Dashes
-    HORIZONTAL_4_DASHES: str = "┉"
-    HORIZONTAL_3_DASHES: str = "┅"
-    HORIZONTAL_2_DASHES: str = "╍"
-    VERTICAL_2_DASH: str = "╏"
-    VERTICAL_3_DASH: str = "┇"
-    VERTICAL_4_DASH: str = "┋"
-
-
-class _DoubleBoxSymbols(typing.NamedTuple):
-    """Box symbols for drawing.
-
-    Symbols are ordered as in Unicode.
-    """
-
-    # fmt: off
-
-    HORIZONTAL: str =   "═"
-    VERTICAL: str =     "║"
-    TOP_LEFT: str =     "╔"
-    TOP_RIGHT: str =    "╗"
-    BOTTOM_LEFT: str =  "╚"
-    BOTTOM_RIGHT: str = "╝"
-    # Joints for tables making
-    LEFT_T: str =   "╠"
-    RIGHT_T: str =  "╣"
-    TOP_T: str =    "╦"
-    BOTTOM_T: str = "╩"
-    CROSS: str =    "╬"
+    TOP_LEFT_ROUNDED: str
+    TOP_RIGHT_ROUNDED: str
+    BOTTOM_LEFT_ROUNDED: str
+    BOTTOM_RIGHT_ROUNDED: str
 
 
 class _BoxSymbolsCollection(typing.NamedTuple):
@@ -551,9 +512,15 @@ class _BoxSymbolsCollection(typing.NamedTuple):
 
     # fmt: off
 
-    LIGHT: _LightBoxSymbols = _LightBoxSymbols()
-    HEAVY: _HeavyBoxSymbols = _HeavyBoxSymbols()
-    DOUBLE: _DoubleBoxSymbols = _DoubleBoxSymbols()
+    LIGHT: _LightBoxSymbols = _LightBoxSymbols(
+        "─", "│", "┌", "┐", "└", "┘", "├", "┤", "┬", "┴", "┼", "┈", "┄", "╌", "╎", "┆", "┊", "╭", "╮", "╰", "╯"
+    )
+    HEAVY: _BoxSymbolsWithDashes = _BoxSymbolsWithDashes(
+        "━", "┃", "┏", "┓", "┗", "┛", "┣", "┫", "┳", "┻", "╋", "┉", "┅", "╍", "╏", "┇", "┋"
+    )
+    DOUBLE: _BoxSymbols = _BoxSymbols(
+        "═", "║", "╔", "╗", "╚", "╝", "╠", "╣", "╦", "╩", "╬"
+    )
 
 
 BOX_SYMBOLS = _BoxSymbolsCollection()
