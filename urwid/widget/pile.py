@@ -58,36 +58,42 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         # BOX-only widget
         >>> Pile((SolidFill("#"),))
-        <Pile box widget>
+        <Pile box widget with 1 item>
 
         # GIVEN BOX -> BOX/FLOW
         >>> Pile(((10, SolidFill("#")),))
-        <Pile box/flow widget>
+        <Pile box/flow widget with 1 item>
 
         # FLOW-only
         >>> Pile((ProgressBar(None, None),))
-        <Pile flow widget>
+        <Pile flow widget with 1 item>
 
         # FIXED -> FIXED
         >>> Pile(((WHSettings.PACK, BigText("0", font)),))
-        <Pile fixed widget>
+        <Pile fixed widget with 1 item>
 
         # FLOW/FIXED -> FLOW/FIXED
         >>> Pile(((WHSettings.PACK, Text("text")),))
-        <Pile fixed/flow widget>
+        <Pile fixed/flow widget with 1 item>
 
         # FLOW + FIXED widgets -> FLOW/FIXED
         >>> Pile((ProgressBar(None, None), (WHSettings.PACK, BigText("0", font))))
-        <Pile fixed/flow widget>
+        <Pile fixed/flow widget with 2 items>
 
         # GIVEN BOX + FIXED widgets -> BOX/FLOW/FIXED (GIVEN BOX allows overriding its height & allows any width)
         >>> Pile(((10, SolidFill("#")), (WHSettings.PACK, BigText("0", font))))
-        <Pile widget>
+        <Pile widget with 2 items>
 
         # Invalid sizing combination -> use fallback settings (and produce warning)
         >>> Pile(((WHSettings.WEIGHT, 1, BigText("0", font)),))
-        <Pile box/flow widget>
+        <Pile box/flow widget with 1 item>
+
+        # Special case: empty pile widget sizing is impossible to calculate
+        >>> Pile(())
+        <Pile box/flow widget without contents>
         """
+        if not self.contents:
+            return frozenset((Sizing.BOX, Sizing.FLOW))
         strict_box = False
         has_flow = False
 
@@ -224,6 +230,13 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             self.focus = focus_item
 
         self.pref_col = 0
+
+    def _repr_words(self) -> list[str]:
+        if len(self.contents) > 1:
+            return [*super()._repr_words(), f"with {len(self.contents)} items"]
+        if self.contents:
+            return [*super()._repr_words(), "with 1 item"]
+        return [*super()._repr_words(), "without contents"]
 
     def _contents_modified(self) -> None:
         """Recalculate whether this widget should be selectable whenever the contents has been changed."""

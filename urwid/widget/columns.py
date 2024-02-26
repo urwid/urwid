@@ -66,40 +66,47 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         # BOX-only widget
         >>> Columns((SolidFill("#"),))
-        <Columns box widget>
+        <Columns box widget with 1 item>
 
         # BOX-only widget with "get height from max"
         >>> Columns((SolidFill("#"),), box_columns=(0,))
-        <Columns box widget>
+        <Columns box widget with 1 item>
 
         # FLOW-only
         >>> Columns((Edit(),))
-        <Columns selectable flow widget>
+        <Columns selectable flow widget with 1 item>
 
         # FLOW allowed by "box_columns"
         >>> Columns((Edit(), SolidFill("#")), box_columns=(1,))
-        <Columns selectable flow widget>
+        <Columns selectable flow widget with 2 items>
 
         # FLOW/FIXED
         >>> Columns((Text("T"),))
-        <Columns fixed/flow widget>
+        <Columns fixed/flow widget with 1 item>
 
         # GIVEN BOX only -> BOX only
         >>> Columns(((5, SolidFill("#")),), box_columns=(0,))
-        <Columns box widget>
+        <Columns box widget with 1 item>
 
         # No FLOW - BOX only
         >>> Columns(((5, SolidFill("#")), SolidFill("*")), box_columns=(0, 1))
-        <Columns box widget>
+        <Columns box widget with 2 items>
 
         # FIXED only -> FIXED
         >>> Columns(((WHSettings.PACK, BigText("1", font)),))
-        <Columns fixed widget>
+        <Columns fixed widget with 1 item>
 
         # Invalid sizing combination -> use fallback settings (and produce warning)
         >>> Columns(((WHSettings.PACK, SolidFill("#")),))
-        <Columns box/flow widget>
+        <Columns box/flow widget with 1 item>
+
+        # Special case: empty columns widget sizing is impossible to calculate
+        >>> Columns(())
+        <Columns box/flow widget without contents>
         """
+        if not self.contents:
+            return frozenset((urwid.BOX, urwid.FLOW))
+
         strict_box = False
         has_flow = False
 
@@ -279,6 +286,13 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self.pref_col = None
         self.min_width = min_width
         self._cache_maxcol = None
+
+    def _repr_words(self) -> list[str]:
+        if len(self.contents) > 1:
+            return [*super()._repr_words(), f"with {len(self.contents)} items"]
+        if self.contents:
+            return [*super()._repr_words(), "with 1 item"]
+        return [*super()._repr_words(), "without contents"]
 
     def _contents_modified(self) -> None:
         """
