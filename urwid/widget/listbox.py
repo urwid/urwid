@@ -1881,8 +1881,7 @@ class ListBox(Widget, WidgetContainerMixin):
         """
         positions_fn = getattr(self._body, "positions", None)
         if positions_fn:
-            for pos in positions_fn():
-                yield pos
+            yield from positions_fn()
             return
 
         focus_widget, focus_pos = self._body.get_focus()
@@ -1913,8 +1912,7 @@ class ListBox(Widget, WidgetContainerMixin):
         """
         positions_fn = getattr(self._body, "positions", None)
         if positions_fn:
-            for pos in positions_fn(reverse=True):
-                yield pos
+            yield from positions_fn(reverse=True)
             return
 
         focus_widget, focus_pos = self._body.get_focus()

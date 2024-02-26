@@ -344,7 +344,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 chain(self.contents, repeat((None, (WHSettings.WEIGHT, 1, False)))),
             )
         ]
-        if focus_position < len(widgets):
+        if focus_position < len(widgets):  # pylint: disable=consider-using-max-builtin  # pylint bug
             self.focus_position = focus_position
 
     @property
@@ -385,7 +385,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             (w, ({Sizing.FIXED: WHSettings.GIVEN, Sizing.FLOW: WHSettings.PACK}.get(new_t, new_t), new_n, b))
             for ((new_t, new_n), (w, (t, n, b))) in zip(column_types, self.contents)
         ]
-        if focus_position < len(column_types):
+        if focus_position < len(column_types):  # pylint: disable=consider-using-max-builtin  # pylint bug
             self.focus_position = focus_position
 
     @property

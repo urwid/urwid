@@ -726,8 +726,7 @@ class CompositeCanvas(Canvas):
         Return the differences between other and this canvas.
         """
         if not hasattr(other, "shards"):
-            for row in self.content():
-                yield row
+            yield from self.content()
             return
 
         shard_tail = []
@@ -1275,8 +1274,7 @@ def CanvasJoin(canvas_info: Iterable[tuple[Canvas, typing.Any, bool, int]]) -> C
         pad_right = cols - canv.cols()
         if focus:
             focus_item = n
-        if rows > maxrow:
-            maxrow = rows
+        maxrow = max(maxrow, rows)
         l2.append((canv, pos, pad_right, rows))
 
     shard_lists = []
