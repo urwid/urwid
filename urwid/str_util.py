@@ -29,7 +29,6 @@ import wcwidth
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
-UNICODE_VERSION = "15.1.0"  # Use explicit version
 SAFE_ASCII_RE = re.compile("^[ -~]*$")
 SAFE_ASCII_BYTES_RE = re.compile(b"^[ -~]*$")
 
@@ -37,7 +36,7 @@ _byte_encoding: Literal["utf8", "narrow", "wide"] = "narrow"
 
 
 def get_char_width(char: str) -> Literal[0, 1, 2]:
-    width = wcwidth.wcwidth(char, UNICODE_VERSION)
+    width = wcwidth.wcwidth(char)
     if width < 0:
         return 0
     return width

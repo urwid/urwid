@@ -308,8 +308,8 @@ class Edit(Text):
         self._emit("change", text)
         old_text = self._edit_text
         self._edit_text = text
-        if self.edit_pos > len(text):
-            self.edit_pos = len(text)
+        self.edit_pos = min(self.edit_pos, len(text))
+
         self._emit("postchange", old_text)
         self._invalidate()
 
