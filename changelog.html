@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Changelog &#8212; Urwid 2.6.4</title>
+    <title>Changelog &#8212; Urwid 2.6.5</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="_static/classic.css?v=1f4f2616" />
     
-    <script src="_static/documentation_options.js?v=5248d183"></script>
+    <script src="_static/documentation_options.js?v=f630559a"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -27,7 +27,7 @@
         <li class="right" >
           <a href="reference/deprecated.html" title="Deprecated Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.6.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.6.5</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Changelog</a></li> 
       </ul>
     </div>  
@@ -39,6 +39,28 @@
             
   <section id="changelog">
 <h1>Changelog<a class="headerlink" href="#changelog" title="Link to this heading">¶</a></h1>
+<section id="release-2-6-5">
+<h2>2.6.5<a class="headerlink" href="#release-2-6-5" title="Link to this heading">¶</a></h2>
+<p><em>Released on 2024-02-26 - <a class="reference external" href="https://github.com/urwid/urwid/releases/tag/2.6.5">GitHub</a> - <a class="reference external" href="https://pypi.org/project/urwid/2.6.5/">PyPI</a></em></p>
+
+<h2>What's Changed</h2>
+<h3>Bug fixes 🕷</h3>
+<ul>
+<li>Allow <code>wcwidth</code> to select unicode version by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2153438506" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/840" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/840/hovercard" href="https://github.com/urwid/urwid/pull/840">#840</a></li>
+<li><code>TreeWidget</code>: do not use deprecated API in <code>update_expanded_icon</code> by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2148842828" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/832" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/832/hovercard" href="https://github.com/urwid/urwid/pull/832">#832</a></li>
+</ul>
+<h3>Refactoring 🛠</h3>
+<ul>
+<li>Refactoring: move <code>monitored_list</code> module to the <code>widgets</code> package by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2148867544" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/833" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/833/hovercard" href="https://github.com/urwid/urwid/pull/833">#833</a></li>
+<li>Refactoring: move <code>listbox</code> &amp; <code>treetools</code> modules to the <code>widgets</code> by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2149043489" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/834" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/834/hovercard" href="https://github.com/urwid/urwid/pull/834">#834</a></li>
+<li>Use dataclass for symbols constants by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2153462768" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/842" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/842/hovercard" href="https://github.com/urwid/urwid/pull/842">#842</a></li>
+<li>Special case: in case of <code>Columns</code>/<code>Pile</code> empty - use fallback sizing by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2154343324" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/843" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/843/hovercard" href="https://github.com/urwid/urwid/pull/843">#843</a></li>
+</ul>
+<h3>Other Changes</h3>
+<ul>
+<li>Tests: Extend Tree tests: basic keys + nested behavior by <a class="user-mention notranslate" data-hovercard-type="user" data-hovercard-url="/users/penguinolog/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="https://github.com/penguinolog">@penguinolog</a> in <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="2148672706" data-permission-text="Title is private" data-url="https://github.com/urwid/urwid/issues/831" data-hovercard-type="pull_request" data-hovercard-url="/urwid/urwid/pull/831/hovercard" href="https://github.com/urwid/urwid/pull/831">#831</a></li>
+</ul>
+<p><strong>Full Changelog</strong>: <a class="commit-link" href="https://github.com/urwid/urwid/compare/2.6.4...2.6.5"><tt>2.6.4...2.6.5</tt></a></p></section>
 <section id="release-2-6-4">
 <h2>2.6.4<a class="headerlink" href="#release-2-6-4" title="Link to this heading">¶</a></h2>
 <p><em>Released on 2024-02-21 - <a class="reference external" href="https://github.com/urwid/urwid/releases/tag/2.6.4">GitHub</a> - <a class="reference external" href="https://pypi.org/project/urwid/2.6.4/">PyPI</a></em></p>
@@ -1782,6 +1804,7 @@ colour rendering.</p></li>
             </a></p><h3>Table of contents</h3>
   <ul>
 <li><a class="reference internal" href="#">Changelog</a><ul>
+<li><a class="reference internal" href="#release-2-6-5">2.6.5</a></li>
 <li><a class="reference internal" href="#release-2-6-4">2.6.4</a></li>
 <li><a class="reference internal" href="#release-2-6-3">2.6.3</a></li>
 <li><a class="reference internal" href="#release-2-6-2">2.6.2</a></li>
@@ -1893,7 +1916,7 @@ colour rendering.</p></li>
         <li class="right" >
           <a href="reference/deprecated.html" title="Deprecated Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.6.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Urwid 2.6.5</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Changelog</a></li> 
       </ul>
     </div>
