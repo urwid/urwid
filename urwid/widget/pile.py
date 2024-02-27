@@ -6,6 +6,7 @@ from itertools import chain, repeat
 
 from urwid.canvas import CanvasCombine, CompositeCanvas, SolidCanvas
 from urwid.command_map import Command
+from urwid.split_repr import remove_defaults
 from urwid.util import is_mouse_press
 
 from .constants import Sizing, WHSettings
@@ -14,7 +15,7 @@ from .monitored_list import MonitoredFocusList, MonitoredList
 from .widget import Widget, WidgetError, WidgetWarning
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Iterable, Iterator, Sequence
 
     from typing_extensions import Literal
 
@@ -58,39 +59,39 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         # BOX-only widget
         >>> Pile((SolidFill("#"),))
-        <Pile box widget with 1 item>
+        <Pile box widget (1 item)>
 
         # GIVEN BOX -> BOX/FLOW
         >>> Pile(((10, SolidFill("#")),))
-        <Pile box/flow widget with 1 item>
+        <Pile box/flow widget (1 item)>
 
         # FLOW-only
         >>> Pile((ProgressBar(None, None),))
-        <Pile flow widget with 1 item>
+        <Pile flow widget (1 item)>
 
         # FIXED -> FIXED
         >>> Pile(((WHSettings.PACK, BigText("0", font)),))
-        <Pile fixed widget with 1 item>
+        <Pile fixed widget (1 item)>
 
         # FLOW/FIXED -> FLOW/FIXED
         >>> Pile(((WHSettings.PACK, Text("text")),))
-        <Pile fixed/flow widget with 1 item>
+        <Pile fixed/flow widget (1 item)>
 
         # FLOW + FIXED widgets -> FLOW/FIXED
         >>> Pile((ProgressBar(None, None), (WHSettings.PACK, BigText("0", font))))
-        <Pile fixed/flow widget with 2 items>
+        <Pile fixed/flow widget (2 items) focus_item=0>
 
         # GIVEN BOX + FIXED widgets -> BOX/FLOW/FIXED (GIVEN BOX allows overriding its height & allows any width)
         >>> Pile(((10, SolidFill("#")), (WHSettings.PACK, BigText("0", font))))
-        <Pile widget with 2 items>
+        <Pile widget (2 items) focus_item=0>
 
         # Invalid sizing combination -> use fallback settings (and produce warning)
         >>> Pile(((WHSettings.WEIGHT, 1, BigText("0", font)),))
-        <Pile box/flow widget with 1 item>
+        <Pile box/flow widget (1 item)>
 
         # Special case: empty pile widget sizing is impossible to calculate
         >>> Pile(())
-        <Pile box/flow widget without contents>
+        <Pile box/flow widget ()>
         """
         if not self.contents:
             return frozenset((Sizing.BOX, Sizing.FLOW))
@@ -233,10 +234,40 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
     def _repr_words(self) -> list[str]:
         if len(self.contents) > 1:
-            return [*super()._repr_words(), f"with {len(self.contents)} items"]
-        if self.contents:
-            return [*super()._repr_words(), "with 1 item"]
-        return [*super()._repr_words(), "without contents"]
+            contents_string = f"({len(self.contents)} items)"
+        elif self.contents:
+            contents_string = "(1 item)"
+        else:
+            contents_string = "()"
+        return [*super()._repr_words(), contents_string]
+
+    def _repr_attrs(self) -> dict[str, typing.Any]:
+        attrs = {**super()._repr_attrs(), "focus_item": self.focus_position if len(self._contents) > 1 else None}
+        return remove_defaults(attrs, Pile.__init__)
+
+    def __rich_repr__(self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
+        widget_list: list[
+            Widget
+            | tuple[Literal[WHSettings.PACK] | int, Widget]
+            | tuple[Literal[WHSettings.WEIGHT], int | float, Widget]
+        ] = []
+
+        for w_instance, (sizing, amount) in self._contents:
+            if sizing == WHSettings.GIVEN:
+                widget_list.append((amount, w_instance))
+            elif sizing == WHSettings.PACK:
+                widget_list.append((WHSettings.PACK, w_instance))
+            elif sizing == WHSettings.WEIGHT:
+                if amount == 1:
+                    widget_list.append(w_instance)
+                else:
+                    widget_list.append((WHSettings.WEIGHT, amount, w_instance))
+
+        yield "widget_list", widget_list
+        yield "focus_item", self.focus_position if self._contents else None
+
+    def __len__(self) -> int:
+        return len(self._contents)
 
     def _contents_modified(self) -> None:
         """Recalculate whether this widget should be selectable whenever the contents has been changed."""

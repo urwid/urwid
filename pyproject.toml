@@ -90,6 +90,10 @@ exclude_lines = [
 
   # Don't complain about missing debug-only code:
   "def __repr__",
+  "def __rich_repr__",
+  # own repr construct magic
+  "def _repr_words",
+  "def _repr_attrs",
 
   # Don't complain if tests don't hit defensive assertion code:
   "raise NotImplementedError",

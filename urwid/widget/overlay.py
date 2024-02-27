@@ -4,6 +4,7 @@ import typing
 import warnings
 
 from urwid.canvas import CanvasOverlay, CompositeCanvas
+from urwid.split_repr import remove_defaults
 
 from .constants import (
     RELATIVE_100,
@@ -330,8 +331,67 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
             f"min_height={self.min_height!r}"
         )
 
-    def _repr_words(self) -> list[str]:
-        return [*super()._repr_words(), f"top={self.top_w!r}", f"bottom={self.bottom_w!r}"]
+    def _repr_attrs(self) -> dict[str, typing.Any]:
+        attrs = {
+            **super()._repr_attrs(),
+            "top_w": self.top_w,
+            "bottom_w": self.bottom_w,
+            "align": self.align,
+            "width": self.width,
+            "valign": self.valign,
+            "height": self.height,
+            "min_width": self.min_width,
+            "min_height": self.min_height,
+            "left": self.left,
+            "right": self.right,
+            "top": self.top,
+            "bottom": self.bottom,
+        }
+        return remove_defaults(attrs, Overlay.__init__)
+
+    def __rich_repr__(self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
+        yield "top", self.top_w
+        yield "bottom", self.bottom_w
+        yield "align", self.align
+        yield "width", self.width
+        yield "valign", self.valign
+        yield "height", self.height
+        yield "min_width", self.min_width
+        yield "min_height", self.min_height
+        yield "left", self.left
+        yield "right", self.right
+        yield "top", self.top
+        yield "bottom", self.bottom
+
+    @property
+    def align(self) -> Align | tuple[Literal[WHSettings.RELATIVE], int]:
+        return simplify_align(self.align_type, self.align_amount)
+
+    @property
+    def width(
+        self,
+    ) -> (
+        Literal[WHSettings.CLIP, WHSettings.PACK]
+        | int
+        | tuple[Literal[WHSettings.RELATIVE], int]
+        | tuple[Literal[WHSettings.WEIGHT], int | float]
+    ):
+        return simplify_width(self.width_type, self.width_amount)
+
+    @property
+    def valign(self) -> VAlign | tuple[Literal[WHSettings.RELATIVE], int]:
+        return simplify_valign(self.valign_type, self.valign_amount)
+
+    @property
+    def height(
+        self,
+    ) -> (
+        int
+        | Literal[WHSettings.FLOW, WHSettings.PACK]
+        | tuple[Literal[WHSettings.RELATIVE], int]
+        | tuple[Literal[WHSettings.WEIGHT], int | float]
+    ):
+        return simplify_height(self.height_type, self.height_amount)
 
     @staticmethod
     def options(

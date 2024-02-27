@@ -20,6 +20,8 @@ from .constants import (
 from .widget_decoration import WidgetDecoration, WidgetError, WidgetWarning
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from typing_extensions import Literal
 
 WrappedWidget = typing.TypeVar("WrappedWidget")
@@ -183,6 +185,14 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
             "min_width": self.min_width,
         }
         return remove_defaults(attrs, Padding.__init__)
+
+    def __rich_repr__(self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
+        yield "w", self.original_widget
+        yield "align", self.align
+        yield "width", self.width
+        yield "min_width", self.min_width
+        yield "left", self.left
+        yield "right", self.right
 
     @property
     def align(
