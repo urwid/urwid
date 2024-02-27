@@ -80,12 +80,39 @@ class ColumnsTest(unittest.TestCase):
 
         with self.subTest("FIXED only"):
             widget = urwid.Columns(((urwid.PACK, fixed_only),))
-            self.assertEqual(frozenset((urwid.FIXED,)), widget.sizing())
+            self.assertEqual(frozenset((urwid.FLOW, urwid.FIXED)), widget.sizing())
             cols, rows = 3, 3
             self.assertEqual((cols, rows), widget.pack(()))
             canvas = widget.render(())
             self.assertEqual(cols, canvas.cols())
             self.assertEqual(rows, canvas.rows())
+
+        with self.subTest("FIXED only use FLOW methods - drop & replace by solid"):
+            widget = urwid.Columns(((urwid.PACK, fixed_only),))
+            self.assertEqual(frozenset((urwid.FLOW, urwid.FIXED)), widget.sizing())
+            cols, rows = 2, 1
+            self.assertEqual((cols, rows), widget.pack((cols,)))
+            canvas = widget.render((cols,))
+            self.assertEqual(cols, canvas.cols())
+            self.assertEqual(rows, canvas.rows())
+            self.assertEqual("  ", str(canvas))
+
+        with self.subTest("FIXED only use FLOW methods - add empty space"):
+            widget = urwid.Columns(((urwid.PACK, fixed_only),))
+            self.assertEqual(frozenset((urwid.FLOW, urwid.FIXED)), widget.sizing())
+            cols, rows = 5, 3
+            self.assertEqual((cols, rows), widget.pack((cols,)))
+            canvas = widget.render((cols,))
+            self.assertEqual(cols, canvas.cols())
+            self.assertEqual(rows, canvas.rows())
+            self.assertEqual(
+                (
+                    "┌─┐  ",
+                    "│ │  ",
+                    "└─┘  ",
+                ),
+                canvas.decoded_text,
+            )
 
         with self.subTest("GIVEN BOX + FLOW/FIXED, but other widgets do not support box"):
             widget = urwid.Columns((flow_fixed, (3, box_only)), box_columns=(1,))
@@ -153,8 +180,7 @@ class ColumnsTest(unittest.TestCase):
             )
 
             cols, rows = 30, 1
-            with self.assertRaises(AttributeError):
-                widget.pack((cols,))
+            self.assertEqual((cols, rows), widget.pack((cols,)))
 
             canvas = widget.render((cols,))
             self.assertEqual(rows, canvas.rows())
@@ -240,6 +266,59 @@ class ColumnsTest(unittest.TestCase):
                 f"Assuming wrong sizing and using FLOW for width calculation",
                 str(ctx.warnings[0].message),
             )
+
+    def test_pack_render_skip_widget(self):
+        widget = urwid.Columns(((0, urwid.Text("Ignore\nme")), (urwid.Text("Count"))))
+        cols, rows = 5, 1
+        self.assertEqual((cols, rows), widget.pack(()))
+        self.assertEqual((cols, rows), widget.pack((cols,)))
+        self.assertEqual("Count", str(widget.render(())))
+        self.assertEqual("Count", str(widget.render((cols,))))
+
+    def test_pack_flow_with_fixed_item(self):
+        widget = urwid.Columns(
+            (
+                (urwid.PACK, urwid.BigText("3", urwid.Thin3x3Font())),
+                (urwid.Text("Multi\nline\ntext\n???")),
+            ),
+            dividechars=1,
+        )
+        with self.subTest("Skip"):
+            self.assertEqual(3, widget.rows((3,)))
+            self.assertEqual((3, 3), widget.pack((3,)))
+            self.assertEqual(
+                (
+                    "┌─┐",
+                    " ─┤",
+                    "└─┘",
+                ),
+                widget.render((3,)).decoded_text,
+            )
+        with self.subTest("Fit all"):
+            self.assertEqual(4, widget.rows((9,)))
+            self.assertEqual((9, 4), widget.pack((9,)))
+            self.assertEqual(
+                (
+                    "┌─┐ Multi",
+                    " ─┤ line ",
+                    "└─┘ text ",
+                    "    ???  ",
+                ),
+                widget.render((9,)).decoded_text,
+            )
+        with self.subTest("Use SolidCanvas instead"):
+            self.assertEqual(1, widget.rows((2,)))
+            self.assertEqual((2, 1), widget.pack((2,)))
+            self.assertEqual(("  ",), widget.render((2,)).decoded_text)
+
+    def test_pack_render_empty_widget(self):
+        widget = urwid.Columns(())
+        self.assertEqual(frozenset((urwid.FLOW, urwid.BOX)), widget.sizing())
+        cols, rows = 10, 1
+        self.assertEqual((cols, rows), widget.pack((cols,)))
+        canvas = widget.render((cols,))
+        self.assertEqual(rows, canvas.rows())
+        self.assertEqual(("          ",), canvas.decoded_text)
 
     def test_not_a_widget(self):
         class NotAWidget:
