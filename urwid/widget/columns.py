@@ -93,9 +93,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         >>> Columns(((5, SolidFill("#")), SolidFill("*")), box_columns=(0, 1))
         <Columns box widget (2 items) focus_column=0>
 
-        # FIXED only -> FIXED
+        # FIXED only -> FIXED (and FLOW via drop/expand)
         >>> Columns(((WHSettings.PACK, BigText("1", font)),))
-        <Columns fixed widget (1 item)>
+        <Columns fixed/flow widget (1 item)>
 
         # Invalid sizing combination -> use fallback settings (and produce warning)
         >>> Columns(((WHSettings.PACK, SolidFill("#")),))
@@ -184,6 +184,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 supported.add(Sizing.FLOW)
 
             if has_fixed and not block_fixed:
+                supported.add(Sizing.FLOW)
                 supported.add(Sizing.FIXED)
 
         if not supported:
@@ -945,11 +946,17 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 box.append(i)
 
             elif Sizing.FLOW in w_sizing:
-                heights[i] = widget.rows((width,), focus and i == self.focus_position)
+                if width > 0:
+                    heights[i] = widget.rows((width,), focus and i == self.focus_position)
+                else:
+                    heights[i] = 0
                 w_h_args[i] = (width,)
 
             elif size_kind == WHSettings.PACK:
-                heights[i] = widget.pack((), focus and i == self.focus_position)[1]
+                if width > 0:
+                    heights[i] = widget.pack((), focus and i == self.focus_position)[1]
+                else:
+                    heights[i] = 0
                 w_h_args[i] = ()
 
             else:
@@ -1176,14 +1183,10 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         see :meth:`Widget.rows` for details
         """
-        widths = self.column_widths(size, focus)
-
-        rows = 1
-        for i, (mc, (w, (_t, _n, b))) in enumerate(zip(widths, self.contents)):
-            if b or mc <= 0:
-                continue
-            rows = max(rows, w.rows((mc,), focus=focus and self.focus_position == i))
-        return rows
+        _, heights, _ = self.get_column_sizes(size, focus)
+        if heights:
+            return max(1, *heights)
+        return 1
 
     def keypress(
         self,
