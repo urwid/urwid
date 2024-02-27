@@ -4,6 +4,7 @@ import typing
 import warnings
 
 from urwid.canvas import CanvasCombine, CompositeCanvas
+from urwid.split_repr import remove_defaults
 from urwid.util import is_mouse_press
 
 from .constants import Sizing, VAlign
@@ -88,6 +89,22 @@ class Frame(Widget, WidgetContainerMixin, typing.Generic[BodyWidget, HeaderWidge
         _check_widget_subclass(header)
         _check_widget_subclass(body)
         _check_widget_subclass(footer)
+
+    def _repr_attrs(self) -> dict[str, typing.Any]:
+        attrs = {
+            **super()._repr_attrs(),
+            "body": self._body,
+            "header": self._header,
+            "footer": self._footer,
+            "focus_part": self.focus_part,
+        }
+        return remove_defaults(attrs, Frame.__init__)
+
+    def __rich_repr__(self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
+        yield "body", self._body
+        yield "header", self._header
+        yield "footer", self._footer
+        yield "focus_part", self.focus_part
 
     @property
     def header(self) -> HeaderWidget:

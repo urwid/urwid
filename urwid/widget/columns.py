@@ -7,6 +7,7 @@ from itertools import chain, repeat
 import urwid
 from urwid.canvas import Canvas, CanvasJoin, CompositeCanvas, SolidCanvas
 from urwid.command_map import Command
+from urwid.split_repr import remove_defaults
 from urwid.util import is_mouse_press
 
 from .constants import Align, Sizing, WHSettings
@@ -15,7 +16,7 @@ from .monitored_list import MonitoredFocusList, MonitoredList
 from .widget import Widget, WidgetError, WidgetWarning
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Iterable, Iterator, Sequence
 
     from typing_extensions import Literal
 
@@ -66,43 +67,43 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         # BOX-only widget
         >>> Columns((SolidFill("#"),))
-        <Columns box widget with 1 item>
+        <Columns box widget (1 item)>
 
         # BOX-only widget with "get height from max"
         >>> Columns((SolidFill("#"),), box_columns=(0,))
-        <Columns box widget with 1 item>
+        <Columns box widget (1 item)>
 
         # FLOW-only
         >>> Columns((Edit(),))
-        <Columns selectable flow widget with 1 item>
+        <Columns selectable flow widget (1 item)>
 
         # FLOW allowed by "box_columns"
         >>> Columns((Edit(), SolidFill("#")), box_columns=(1,))
-        <Columns selectable flow widget with 2 items>
+        <Columns selectable flow widget (2 items) focus_column=0>
 
         # FLOW/FIXED
         >>> Columns((Text("T"),))
-        <Columns fixed/flow widget with 1 item>
+        <Columns fixed/flow widget (1 item)>
 
         # GIVEN BOX only -> BOX only
         >>> Columns(((5, SolidFill("#")),), box_columns=(0,))
-        <Columns box widget with 1 item>
+        <Columns box widget (1 item)>
 
         # No FLOW - BOX only
         >>> Columns(((5, SolidFill("#")), SolidFill("*")), box_columns=(0, 1))
-        <Columns box widget with 2 items>
+        <Columns box widget (2 items) focus_column=0>
 
         # FIXED only -> FIXED
         >>> Columns(((WHSettings.PACK, BigText("1", font)),))
-        <Columns fixed widget with 1 item>
+        <Columns fixed widget (1 item)>
 
         # Invalid sizing combination -> use fallback settings (and produce warning)
         >>> Columns(((WHSettings.PACK, SolidFill("#")),))
-        <Columns box/flow widget with 1 item>
+        <Columns box/flow widget (1 item)>
 
         # Special case: empty columns widget sizing is impossible to calculate
         >>> Columns(())
-        <Columns box/flow widget without contents>
+        <Columns box/flow widget ()>
         """
         if not self.contents:
             return frozenset((urwid.BOX, urwid.FLOW))
@@ -289,10 +290,50 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
     def _repr_words(self) -> list[str]:
         if len(self.contents) > 1:
-            return [*super()._repr_words(), f"with {len(self.contents)} items"]
-        if self.contents:
-            return [*super()._repr_words(), "with 1 item"]
-        return [*super()._repr_words(), "without contents"]
+            contents_string = f"({len(self.contents)} items)"
+        elif self.contents:
+            contents_string = "(1 item)"
+        else:
+            contents_string = "()"
+        return [*super()._repr_words(), contents_string]
+
+    def _repr_attrs(self) -> dict[str, typing.Any]:
+        attrs = {
+            **super()._repr_attrs(),
+            "dividechars": self.dividechars,
+            "focus_column": self.focus_position if len(self._contents) > 1 else None,
+            "min_width": self.min_width,
+        }
+        return remove_defaults(attrs, Columns.__init__)
+
+    def __rich_repr__(self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
+        widget_list: list[
+            Widget
+            | tuple[Literal[WHSettings.PACK] | int, Widget]
+            | tuple[Literal[WHSettings.WEIGHT], int | float, Widget]
+        ] = []
+        box_columns: list[int] = []
+        for idx, (w_instance, (sizing, amount, is_box)) in enumerate(self._contents):
+            if sizing == WHSettings.GIVEN:
+                widget_list.append((amount, w_instance))
+            elif sizing == WHSettings.PACK:
+                widget_list.append((WHSettings.PACK, w_instance))
+            elif amount == 1:
+                widget_list.append(w_instance)
+            else:
+                widget_list.append((WHSettings.WEIGHT, amount, w_instance))
+
+            if is_box:
+                box_columns.append(idx)
+
+        yield "widget_list", widget_list
+        yield "dividechars", self.dividechars
+        yield "focus_column", self.focus_position if self._contents else None
+        yield "min_width", self.min_width
+        yield "box_columns", box_columns
+
+    def __len__(self) -> int:
+        return len(self._contents)
 
     def _contents_modified(self) -> None:
         """

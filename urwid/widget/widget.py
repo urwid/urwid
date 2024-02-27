@@ -391,7 +391,7 @@ class Widget(metaclass=WidgetMeta):
         """
         if not size:
             if Sizing.FIXED in self.sizing():
-                raise NotImplementedError("Fixed widgets must override Widget.pack()")
+                raise NotImplementedError(f"{self!r} must override Widget.pack()")
             raise WidgetError(f"Cannot pack () size, this is not a fixed widget: {self!r}")
 
         if len(size) == 1:

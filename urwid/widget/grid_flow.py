@@ -3,6 +3,8 @@ from __future__ import annotations
 import typing
 import warnings
 
+from urwid.split_repr import remove_defaults
+
 from .columns import Columns
 from .constants import Align, Sizing, WHSettings
 from .container import WidgetContainerListContentsMixin, WidgetContainerMixin
@@ -13,7 +15,7 @@ from .pile import Pile
 from .widget import Widget, WidgetError, WidgetWarning, WidgetWrap
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Iterable, Iterator, Sequence
 
     from typing_extensions import Literal
 
@@ -77,6 +79,37 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
         self.align = align
         self._cache_maxcol = self._get_maxcol(())
         super().__init__(self.generate_display_widget((self._cache_maxcol,)))
+
+    def _repr_words(self) -> list[str]:
+        if len(self.contents) > 1:
+            contents_string = f"({len(self.contents)} items)"
+        elif self.contents:
+            contents_string = "(1 item)"
+        else:
+            contents_string = "()"
+        return [*super()._repr_words(), contents_string]
+
+    def _repr_attrs(self) -> dict[str, typing.Any]:
+        attrs = {
+            **super()._repr_attrs(),
+            "cell_width": self.cell_width,
+            "h_sep": self.h_sep,
+            "v_sep": self.v_sep,
+            "align": self.align,
+            "focus": self.focus_position if len(self._contents) > 1 else None,
+        }
+        return remove_defaults(attrs, GridFlow.__init__)
+
+    def __rich_repr__(self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
+        yield "cells", [widget for widget, _ in self.contents]
+        yield "cell_width", self.cell_width
+        yield "h_sep", self.h_sep
+        yield "v_sep", self.v_sep
+        yield "align", self.align
+        yield "focus", self.focus_position
+
+    def __len__(self) -> int:
+        return len(self._contents)
 
     def _invalidate(self) -> None:
         self._cache_maxcol = None
