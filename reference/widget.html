@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widget Classes &#8212; Urwid 2.6.5</title>
+    <title>Widget Classes &#8212; Urwid 2.6.6</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script src="../_static/documentation_options.js?v=f630559a"></script>
+    <script src="../_static/documentation_options.js?v=c1c8dff0"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.5</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.6</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>
@@ -3692,34 +3692,34 @@ FIXED can be only if no BOX without “box_columns” flag and no strict FLOW.</
 </div>
 <p># BOX-only widget
 &gt;&gt;&gt; Columns((SolidFill(“#”),))
-&lt;Columns box widget with 1 item&gt;</p>
+&lt;Columns box widget (1 item)&gt;</p>
 <p># BOX-only widget with “get height from max”
 &gt;&gt;&gt; Columns((SolidFill(“#”),), box_columns=(0,))
-&lt;Columns box widget with 1 item&gt;</p>
+&lt;Columns box widget (1 item)&gt;</p>
 <p># FLOW-only
 &gt;&gt;&gt; Columns((Edit(),))
-&lt;Columns selectable flow widget with 1 item&gt;</p>
+&lt;Columns selectable flow widget (1 item)&gt;</p>
 <p># FLOW allowed by “box_columns”
 &gt;&gt;&gt; Columns((Edit(), SolidFill(“#”)), box_columns=(1,))
-&lt;Columns selectable flow widget with 2 items&gt;</p>
+&lt;Columns selectable flow widget (2 items) focus_column=0&gt;</p>
 <p># FLOW/FIXED
 &gt;&gt;&gt; Columns((Text(“T”),))
-&lt;Columns fixed/flow widget with 1 item&gt;</p>
+&lt;Columns fixed/flow widget (1 item)&gt;</p>
 <p># GIVEN BOX only -&gt; BOX only
 &gt;&gt;&gt; Columns(((5, SolidFill(“#”)),), box_columns=(0,))
-&lt;Columns box widget with 1 item&gt;</p>
+&lt;Columns box widget (1 item)&gt;</p>
 <p># No FLOW - BOX only
 &gt;&gt;&gt; Columns(((5, SolidFill(“#”)), SolidFill(“*”)), box_columns=(0, 1))
-&lt;Columns box widget with 2 items&gt;</p>
-<p># FIXED only -&gt; FIXED
+&lt;Columns box widget (2 items) focus_column=0&gt;</p>
+<p># FIXED only -&gt; FIXED (and FLOW via drop/expand)
 &gt;&gt;&gt; Columns(((WHSettings.PACK, BigText(“1”, font)),))
-&lt;Columns fixed widget with 1 item&gt;</p>
+&lt;Columns fixed/flow widget (1 item)&gt;</p>
 <p># Invalid sizing combination -&gt; use fallback settings (and produce warning)
 &gt;&gt;&gt; Columns(((WHSettings.PACK, SolidFill(“#”)),))
-&lt;Columns box/flow widget with 1 item&gt;</p>
+&lt;Columns box/flow widget (1 item)&gt;</p>
 <p># Special case: empty columns widget sizing is impossible to calculate
 &gt;&gt;&gt; Columns(())
-&lt;Columns box/flow widget without contents&gt;</p>
+&lt;Columns box/flow widget ()&gt;</p>
 </dd></dl>
 
 <dl class="py property">
@@ -3973,31 +3973,31 @@ may render the cached canvas instead of creating a new one.</p>
 </div>
 <p># BOX-only widget
 &gt;&gt;&gt; Pile((SolidFill(“#”),))
-&lt;Pile box widget with 1 item&gt;</p>
+&lt;Pile box widget (1 item)&gt;</p>
 <p># GIVEN BOX -&gt; BOX/FLOW
 &gt;&gt;&gt; Pile(((10, SolidFill(“#”)),))
-&lt;Pile box/flow widget with 1 item&gt;</p>
+&lt;Pile box/flow widget (1 item)&gt;</p>
 <p># FLOW-only
 &gt;&gt;&gt; Pile((ProgressBar(None, None),))
-&lt;Pile flow widget with 1 item&gt;</p>
+&lt;Pile flow widget (1 item)&gt;</p>
 <p># FIXED -&gt; FIXED
 &gt;&gt;&gt; Pile(((WHSettings.PACK, BigText(“0”, font)),))
-&lt;Pile fixed widget with 1 item&gt;</p>
+&lt;Pile fixed widget (1 item)&gt;</p>
 <p># FLOW/FIXED -&gt; FLOW/FIXED
 &gt;&gt;&gt; Pile(((WHSettings.PACK, Text(“text”)),))
-&lt;Pile fixed/flow widget with 1 item&gt;</p>
+&lt;Pile fixed/flow widget (1 item)&gt;</p>
 <p># FLOW + FIXED widgets -&gt; FLOW/FIXED
 &gt;&gt;&gt; Pile((ProgressBar(None, None), (WHSettings.PACK, BigText(“0”, font))))
-&lt;Pile fixed/flow widget with 2 items&gt;</p>
+&lt;Pile fixed/flow widget (2 items) focus_item=0&gt;</p>
 <p># GIVEN BOX + FIXED widgets -&gt; BOX/FLOW/FIXED (GIVEN BOX allows overriding its height &amp; allows any width)
 &gt;&gt;&gt; Pile(((10, SolidFill(“#”)), (WHSettings.PACK, BigText(“0”, font))))
-&lt;Pile widget with 2 items&gt;</p>
+&lt;Pile widget (2 items) focus_item=0&gt;</p>
 <p># Invalid sizing combination -&gt; use fallback settings (and produce warning)
 &gt;&gt;&gt; Pile(((WHSettings.WEIGHT, 1, BigText(“0”, font)),))
-&lt;Pile box/flow widget with 1 item&gt;</p>
+&lt;Pile box/flow widget (1 item)&gt;</p>
 <p># Special case: empty pile widget sizing is impossible to calculate
 &gt;&gt;&gt; Pile(())
-&lt;Pile box/flow widget without contents&gt;</p>
+&lt;Pile box/flow widget ()&gt;</p>
 </dd></dl>
 
 <dl class="py property">
@@ -6066,7 +6066,7 @@ be defined.</p>
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.5</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.6</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>
