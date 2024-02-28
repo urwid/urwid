@@ -116,7 +116,9 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
         super()._invalidate()
 
     def _contents_modified(
-        self, slc, new_items: Iterable[tuple[Widget, tuple[Literal["given", WHSettings.GIVEN], int]]]
+        self,
+        _slc: tuple[int, int, int],
+        new_items: Iterable[tuple[Widget, tuple[Literal["given", WHSettings.GIVEN], int]]],
     ) -> None:
         for item in new_items:
             try:
@@ -291,7 +293,7 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
             return None
         return self.contents[self.focus_position][0]
 
-    def _get_focus(self) -> Widget:
+    def _get_focus(self) -> Widget | None:
         warnings.warn(
             f"method `{self.__class__.__name__}._get_focus` is deprecated, "
             f"please use `{self.__class__.__name__}.focus` property",
@@ -479,7 +481,7 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
 
             # Use width == maxcol in case of maxcol < width amount
             # Columns will use empty widget in case of GIVEN width > maxcol
-            c.contents.append((w, c.options(WHSettings.GIVEN, width_amount if width_amount <= maxcol else maxcol)))
+            c.contents.append((w, c.options(WHSettings.GIVEN, min(width_amount, maxcol))))
             if (i == self.focus_position) or (not column_focused and w.selectable()):
                 c.focus_position = len(c.contents) - 1
                 column_focused = True
