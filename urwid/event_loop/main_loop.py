@@ -190,7 +190,7 @@ class MainLoop:
         else:
             self._topmost_widget = self._widget
 
-    def _set_pop_ups(self, pop_ups) -> None:
+    def _set_pop_ups(self, pop_ups: bool) -> None:
         warnings.warn(
             f"method `{self.__class__.__name__}._set_pop_ups` is deprecated, "
             f"please use `{self.__class__.__name__}.pop_ups` property",
@@ -214,7 +214,7 @@ class MainLoop:
         """
         self.logger.debug(f"Setting alarm in {sec!r} seconds with callback {callback!r}")
 
-        def cb():
+        def cb() -> None:
             callback(self, user_data)
 
         return self.event_loop.alarm(sec, cb)
@@ -236,7 +236,7 @@ class MainLoop:
         sec = tm - time.time()
         self.logger.debug(f"Setting alarm in {sec!r} seconds with callback {callback!r}")
 
-        def cb():
+        def cb() -> None:
             callback(self, user_data)
 
         return self.event_loop.alarm(sec, cb)
@@ -250,33 +250,28 @@ class MainLoop:
 
     if not IS_WINDOWS:
 
-        def watch_pipe(self, callback: Callable[[bytes], bool]) -> int:
+        def watch_pipe(self, callback: Callable[[bytes], bool | None]) -> int:
             """
             Create a pipe for use by a subprocess or thread to trigger a callback
             in the process/thread running the main loop.
 
-            :param callback: function taking one parameter to call from within
-                             the process/thread running the main loop
+            :param callback: function taking one parameter to call from within the process/thread running the main loop
             :type callback: callable
 
-            This method returns a file descriptor attached to the write end of a
-            pipe. The read end of the pipe is added to the list of files
-            :attr:`event_loop` is watching. When data is written to the pipe the
-            callback function will be called and passed a single value containing
-            data read from the pipe.
+            This method returns a file descriptor attached to the write end of a pipe.
+            The read end of the pipe is added to the list of files :attr:`event_loop` is watching.
+            When data is written to the pipe the callback function will be called
+            and passed a single value containing data read from the pipe.
 
-            This method may be used any time you want to update widgets from
-            another thread or subprocess.
+            This method may be used any time you want to update widgets from another thread or subprocess.
 
-            Data may be written to the returned file descriptor with
-            ``os.write(fd, data)``. Ensure that data is less than 512 bytes (or 4K
-            on Linux) so that the callback will be triggered just once with the
-            complete value of data passed in.
+            Data may be written to the returned file descriptor with ``os.write(fd, data)``.
+            Ensure that data is less than 512 bytes (or 4K on Linux)
+            so that the callback will be triggered just once with the complete value of data passed in.
 
-            If the callback returns ``False`` then the watch will be removed from
-            :attr:`event_loop` and the read end of the pipe will be closed. You
-            are responsible for closing the write end of the pipe with
-            ``os.close(fd)``.
+            If the callback returns ``False`` then the watch will be removed from :attr:`event_loop`
+            and the read end of the pipe will be closed.
+            You are responsible for closing the write end of the pipe with ``os.close(fd)``.
             """
             import fcntl
 
@@ -286,7 +281,7 @@ class MainLoop:
 
             def cb() -> None:
                 data = os.read(pipe_rd, PIPE_BUFFER_READ_SIZE)
-                if not callback(data):
+                if callback(data) is False:
                     self.event_loop.remove_watch_file(watch_handle)
                     os.close(pipe_rd)
 
@@ -296,9 +291,9 @@ class MainLoop:
 
         def remove_watch_pipe(self, write_fd: int) -> bool:
             """
-            Close the read end of the pipe and remove the watch created by
-            :meth:`watch_pipe`. You are responsible for closing the write end of
-            the pipe.
+            Close the read end of the pipe and remove the watch created by :meth:`watch_pipe`.
+
+            ..note:: You are responsible for closing the write end of the pipe.
 
             Returns ``True`` if the watch pipe exists, ``False`` otherwise
             """
