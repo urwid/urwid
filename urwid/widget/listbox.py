@@ -344,6 +344,13 @@ class ListBox(Widget, WidgetContainerMixin):
         # used for scrollable protocol
         self._rows_max_cached = 0
         self._rendered_size = 0, 0
+        if not hasattr(self, "_size_cache"):
+            self._size_cache: dict | None = None
+
+    def _clear_cache(self):
+        """Clear the cached size calculations."""
+        if self._size_cache is not None:
+            self._size_cache.clear()
 
     @property
     def body(self) -> ListWalker:
@@ -357,6 +364,7 @@ class ListBox(Widget, WidgetContainerMixin):
     def body(self, body: Iterable[Widget] | ListWalker) -> None:
         with suppress(AttributeError):
             signals.disconnect_signal(self._body, "modified", self._invalidate)
+            signals.disconnect_signal(self._body, "modified", self._clear_cache)
             # _body may be not yet assigned
 
         if getattr(body, "get_focus", None):
@@ -365,11 +373,14 @@ class ListBox(Widget, WidgetContainerMixin):
             self._body = SimpleListWalker(body)
         try:
             signals.connect_signal(self._body, "modified", self._invalidate)
+            signals.connect_signal(self._body, "modified", self._clear_cache)
+            self._size_cache = {}
         except NameError:
             # our list walker has no modified signal so we must not
             # cache our canvases because we don't know when our
             # content has changed
             self.render = nocache_widget_render_instance(self)
+            self._size_cache = None
         self._invalidate()
 
     def _get_body(self):
@@ -568,11 +579,15 @@ class ListBox(Widget, WidgetContainerMixin):
 
         if size is not None:
             self._rendered_size = size
+            if self._size_cache and size in self._size_cache:
+                return self._size_cache[size]
 
         if size or not self._rows_max_cached:
             self._rows_max_cached = sum(
                 self._body[position].rows((self._rendered_size[0],), focus) for position in self._body.positions()
             )
+            if size and self._size_cache is not None:
+                self._size_cache[size] = self._rows_max_cached
 
         return self._rows_max_cached
 
