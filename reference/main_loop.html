@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>MainLoop and Event Loops &#8212; Urwid 2.6.6</title>
+    <title>MainLoop and Event Loops &#8212; Urwid 2.6.7</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script src="../_static/documentation_options.js?v=c1c8dff0"></script>
+    <script src="../_static/documentation_options.js?v=65b05be9"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.7</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">MainLoop and Event Loops</a></li> 
       </ul>
@@ -141,9 +141,8 @@ exists, <code class="docutils literal notranslate"><span class="pre">False</span
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.MainLoop.remove_watch_pipe">
 <span class="sig-name descname"><span class="pre">remove_watch_pipe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">write_fd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.MainLoop.remove_watch_pipe" title="Link to this definition">¶</a></dt>
-<dd><p>Close the read end of the pipe and remove the watch created by
-<a class="reference internal" href="#urwid.MainLoop.watch_pipe" title="urwid.MainLoop.watch_pipe"><code class="xref py py-meth docutils literal notranslate"><span class="pre">watch_pipe()</span></code></a>. You are responsible for closing the write end of
-the pipe.</p>
+<dd><p>Close the read end of the pipe and remove the watch created by <a class="reference internal" href="#urwid.MainLoop.watch_pipe" title="urwid.MainLoop.watch_pipe"><code class="xref py py-meth docutils literal notranslate"><span class="pre">watch_pipe()</span></code></a>.</p>
+<p>..note:: You are responsible for closing the write end of the pipe.</p>
 <p>Returns <code class="docutils literal notranslate"><span class="pre">True</span></code> if the watch pipe exists, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise</p>
 </dd></dl>
 
@@ -242,30 +241,25 @@ passed to callback.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.MainLoop.watch_pipe">
-<span class="sig-name descname"><span class="pre">watch_pipe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.MainLoop.watch_pipe" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">watch_pipe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.MainLoop.watch_pipe" title="Link to this definition">¶</a></dt>
 <dd><p>Create a pipe for use by a subprocess or thread to trigger a callback
 in the process/thread running the main loop.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>callback</strong> (<em>callable</em>) – function taking one parameter to call from within
-the process/thread running the main loop</p>
+<dd class="field-odd"><p><strong>callback</strong> (<em>callable</em>) – function taking one parameter to call from within the process/thread running the main loop</p>
 </dd>
 </dl>
-<p>This method returns a file descriptor attached to the write end of a
-pipe. The read end of the pipe is added to the list of files
-<a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a> is watching. When data is written to the pipe the
-callback function will be called and passed a single value containing
-data read from the pipe.</p>
-<p>This method may be used any time you want to update widgets from
-another thread or subprocess.</p>
-<p>Data may be written to the returned file descriptor with
-<code class="docutils literal notranslate"><span class="pre">os.write(fd,</span> <span class="pre">data)</span></code>. Ensure that data is less than 512 bytes (or 4K
-on Linux) so that the callback will be triggered just once with the
-complete value of data passed in.</p>
-<p>If the callback returns <code class="docutils literal notranslate"><span class="pre">False</span></code> then the watch will be removed from
-<a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a> and the read end of the pipe will be closed. You
-are responsible for closing the write end of the pipe with
-<code class="docutils literal notranslate"><span class="pre">os.close(fd)</span></code>.</p>
+<p>This method returns a file descriptor attached to the write end of a pipe.
+The read end of the pipe is added to the list of files <a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a> is watching.
+When data is written to the pipe the callback function will be called
+and passed a single value containing data read from the pipe.</p>
+<p>This method may be used any time you want to update widgets from another thread or subprocess.</p>
+<p>Data may be written to the returned file descriptor with <code class="docutils literal notranslate"><span class="pre">os.write(fd,</span> <span class="pre">data)</span></code>.
+Ensure that data is less than 512 bytes (or 4K on Linux)
+so that the callback will be triggered just once with the complete value of data passed in.</p>
+<p>If the callback returns <code class="docutils literal notranslate"><span class="pre">False</span></code> then the watch will be removed from <a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a>
+and the read end of the pipe will be closed.
+You are responsible for closing the write end of the pipe with <code class="docutils literal notranslate"><span class="pre">os.close(fd)</span></code>.</p>
 </dd></dl>
 
 <dl class="py property">
@@ -1220,7 +1214,7 @@ Returns a handle that may be passed to <a class="reference internal" href="#urwi
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.7</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">MainLoop and Event Loops</a></li> 
       </ul>
