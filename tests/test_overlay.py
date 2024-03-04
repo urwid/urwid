@@ -279,6 +279,35 @@ class OverlayTest(unittest.TestCase):
                     [line.decode("utf-8") for line in canvas.text],
                 )
 
+    def test_relative(self):
+        ovl = urwid.Overlay(
+            urwid.Text("aaa"),
+            urwid.SolidFill(urwid.SolidFill.Symbols.LITE_SHADE),
+            width=urwid.PACK,
+            height=urwid.PACK,
+            align=(urwid.RELATIVE, 30),
+            valign=(urwid.RELATIVE, 70),
+        )
+        self.assertEqual(
+            ovl.contents[1][1],
+            (urwid.RELATIVE, 30, urwid.PACK, None, None, 0, 0, urwid.RELATIVE, 70, urwid.PACK, None, None, 0, 0),
+        )
+        self.assertEqual(
+            (
+                "░░░░░░░░░░░░░░░░░░░░",
+                "░░░░░░░░░░░░░░░░░░░░",
+                "░░░░░░░░░░░░░░░░░░░░",
+                "░░░░░░░░░░░░░░░░░░░░",
+                "░░░░░░░░░░░░░░░░░░░░",
+                "░░░░░░░░░░░░░░░░░░░░",
+                "░░░░░aaa░░░░░░░░░░░░",
+                "░░░░░░░░░░░░░░░░░░░░",
+                "░░░░░░░░░░░░░░░░░░░░",
+                "░░░░░░░░░░░░░░░░░░░░",
+            ),
+            ovl.render((20, 10)).decoded_text,
+        )
+
     def test_old_params(self):
         o1 = urwid.Overlay(
             urwid.SolidFill("X"),
