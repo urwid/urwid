@@ -28,7 +28,7 @@ from .padding import calculate_left_right_padding
 from .widget import Widget, WidgetError, WidgetWarning
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterator, MutableSequence, Sequence
 
     from typing_extensions import Literal
 
@@ -56,14 +56,14 @@ def _check_widget_subclass(widget: Widget) -> None:
 
 
 class OverlayOptions(typing.NamedTuple):
-    align: Align
+    align: Align | Literal[WHSettings.RELATIVE]
     align_amount: int | None
     width_type: WHSettings
     width_amount: int | None
     min_width: int | None
     left: int
     right: int
-    valign_type: VAlign
+    valign_type: VAlign | Literal[WHSettings.RELATIVE]
     valign_amount: int | None
     height_type: WHSettings
     height_amount: int | None
@@ -73,8 +73,10 @@ class OverlayOptions(typing.NamedTuple):
 
 
 class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, typing.Generic[TopWidget, BottomWidget]):
-    """
-    Overlay contains two box widgets and renders one on top of the other
+    """Overlay contains two widgets and renders one on top of the other.
+
+    Top widget can be Box, Flow or Fixed.
+    Bottom widget should be Box.
     """
 
     _selectable = True
@@ -120,43 +122,43 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
         bottom: int = 0,
     ) -> None:
         """
-        :param top_w: a flow, box or fixed widget to overlay "on top"
+        :param top_w: a flow, box or fixed widget to overlay "on top".
         :type top_w: Widget
-        :param bottom_w: a box widget to appear "below" previous widget
+        :param bottom_w: a box widget to appear "below" previous widget.
         :type bottom_w: Widget
         :param align: alignment, one of ``'left'``, ``'center'``, ``'right'`` or
             (``'relative'``, *percentage* 0=left 100=right)
-        :type align: str
+        :type align: Literal["left", "center", "right"] | tuple[Literal["relative"], int]
         :param width: width type, one of:
-
             ``'pack'``
               if *top_w* is a fixed widget
             *given width*
               integer number of columns wide
             (``'relative'``, *percentage of total width*)
               make *top_w* width related to container width
-
+        :type width: Literal["pack"] | int | tuple[Literal["relative"], int]
         :param valign: alignment mode, one of ``'top'``, ``'middle'``, ``'bottom'`` or
             (``'relative'``, *percentage* 0=top 100=bottom)
+        :type valign: Literal["top", "middle", "bottom"] | tuple[Literal["relative"], int]
         :param height: one of:
-
             ``'pack'``
               if *top_w* is a flow or fixed widget
             *given height*
               integer number of rows high
             (``'relative'``, *percentage of total height*)
               make *top_w* height related to container height
-        :param min_width: the minimum number of columns for *top_w* when width is not fixed
+        :type height: Literal["pack"] | int | tuple[Literal["relative"], int]
+        :param min_width: the minimum number of columns for *top_w* when width is not fixed.
         :type min_width: int
-        :param min_height: minimum number of rows for *top_w* when height is not fixed
+        :param min_height: minimum number of rows for *top_w* when height is not fixed.
         :type min_height: int
-        :param left: a fixed number of columns to add on the left
+        :param left: a fixed number of columns to add on the left.
         :type left: int
-        :param right: a fixed number of columns to add on the right
+        :param right: a fixed number of columns to add on the right.
         :type right: int
-        :param top: a fixed number of rows to add on the top
+        :param top: a fixed number of rows to add on the top.
         :type top: int
-        :param bottom: a fixed number of rows to add on the bottom
+        :param bottom: a fixed number of rows to add on the bottom.
         :type bottom: int
 
         Overlay widgets behave similarly to :class:`Padding` and :class:`Filler`
@@ -395,11 +397,11 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
 
     @staticmethod
     def options(
-        align_type: Literal["left", "center", "right", "relative"] | Align,
+        align_type: Literal["left", "center", "right", "relative", WHSettings.RELATIVE] | Align,
         align_amount: int | None,
         width_type: Literal["clip", "pack", "relative", "given"] | WHSettings,
         width_amount: int | None,
-        valign_type: Literal["top", "middle", "bottom", "relative"] | VAlign,
+        valign_type: Literal["top", "middle", "bottom", "relative", WHSettings.RELATIVE] | VAlign,
         valign_amount: int | None,
         height_type: Literal["flow", "pack", "relative", "given"] | WHSettings,
         height_amount: int | None,
@@ -418,16 +420,29 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
         but is not necessarily the easiest way to change the overlay parameters.
         See also :meth:`.set_overlay_parameters`
         """
+        if align_type in {Align.LEFT, Align.CENTER, Align.RIGHT}:
+            align = Align(align_type)
+        elif align_type == WHSettings.RELATIVE:
+            align = WHSettings.RELATIVE
+        else:
+            raise ValueError(f"Unknown alignment type {align_type!r}")
+
+        if valign_type in {VAlign.TOP, VAlign.MIDDLE, VAlign.BOTTOM}:
+            valign = VAlign(valign_type)
+        elif valign_type == WHSettings.RELATIVE:
+            valign = WHSettings.RELATIVE
+        else:
+            raise ValueError(f"Unknown vertical alignment type {valign_type!r}")
 
         return OverlayOptions(
-            Align(align_type),
+            align,
             align_amount,
             WHSettings(width_type),
             width_amount,
             min_width,
             left,
             right,
-            VAlign(valign_type),
+            valign,
             valign_amount,
             WHSettings(height_type),
             height_amount,
@@ -618,7 +633,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
             raise IndexError(f"Overlay widget focus_position currently must always be set to 1, not {position}")
 
     @property
-    def contents(self):
+    def contents(self) -> MutableSequence[tuple[TopWidget | BottomWidget, OverlayOptions]]:
         """
         a list-like object similar to::
 
@@ -642,13 +657,27 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
         """
 
         # noinspection PyMethodParameters
-        class OverlayContents(typing.Sequence[typing.Tuple[typing.Union[TopWidget, BottomWidget], OverlayOptions]]):
+        class OverlayContents(
+            typing.MutableSequence[
+                typing.Tuple[
+                    typing.Union[TopWidget, BottomWidget],
+                    OverlayOptions,
+                ]
+            ]
+        ):
+
             # pylint: disable=no-self-argument
             def __len__(inner_self) -> int:
                 return 2
 
             __getitem__ = self._contents__getitem__
             __setitem__ = self._contents__setitem__
+
+            def __delitem__(self, index: int | slice) -> typing.NoReturn:
+                raise TypeError("OverlayContents is fixed-sized sequence")
+
+            def insert(self, index: int | slice, value: typing.Any) -> typing.NoReturn:
+                raise TypeError("OverlayContents is fixed-sized sequence")
 
             def __repr__(inner_self) -> str:
                 return repr(f"<{inner_self.__class__.__name__}({[inner_self[0], inner_self[1]]})> for {self}")
@@ -664,7 +693,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
         return OverlayContents()
 
     @contents.setter
-    def contents(self, new_contents):
+    def contents(self, new_contents: Sequence[tuple[width, OverlayOptions]]) -> None:
         if len(new_contents) != 2:
             raise ValueError("Contents length for overlay should be only 2")
         self.contents[0] = new_contents[0]
