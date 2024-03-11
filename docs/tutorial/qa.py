@@ -4,7 +4,7 @@ import urwid
 
 
 def exit_on_q(key: str) -> None:
-    if key in ("q", "Q"):
+    if key in {"q", "Q"}:
         raise urwid.ExitMainLoop()
 
 

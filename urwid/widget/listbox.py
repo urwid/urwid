@@ -43,7 +43,7 @@ if typing.TYPE_CHECKING:
 
     from urwid.canvas import Canvas, CompositeCanvas
 
-__all__ = ("ListWalkerError", "ListWalker", "SimpleListWalker", "SimpleFocusListWalker", "ListBoxError", "ListBox")
+__all__ = ("ListBox", "ListBoxError", "ListWalker", "ListWalkerError", "SimpleFocusListWalker", "SimpleListWalker")
 
 _T = typing.TypeVar("_T")
 _K = typing.TypeVar("_K")
