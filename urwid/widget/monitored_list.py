@@ -31,7 +31,7 @@ if typing.TYPE_CHECKING:
     ArgSpec = ParamSpec("ArgSpec")
     Ret = typing.TypeVar("Ret")
 
-__all__ = ("MonitoredList", "MonitoredFocusList")
+__all__ = ("MonitoredFocusList", "MonitoredList")
 
 _T = typing.TypeVar("_T")
 

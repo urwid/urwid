@@ -201,7 +201,7 @@ class TwistedScreen(Screen):
         tuples. This very simple implementation iterates each row and simply
         writes it out.
         """
-        (maxcol, maxrow) = size
+        (_maxcol, _maxrow) = size
         # self.terminal.eraseDisplay()
         lasta = None
         for i, row in enumerate(canvas.content()):
@@ -400,7 +400,7 @@ class UrwidTerminalSession(TerminalSession):
 
     def windowChanged(self, dimensions):
         """Called when the window size has changed."""
-        (h, w, x, y) = dimensions
+        (h, w, _x, _y) = dimensions
         self.chained_protocol.terminalProtocol.terminalSize(h, w)
 
 

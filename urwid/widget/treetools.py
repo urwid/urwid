@@ -43,7 +43,7 @@ from .wimp import SelectableIcon
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable, Sequence
 
-__all__ = ("TreeWidgetError", "TreeWidget", "TreeNode", "ParentNode", "TreeWalker", "TreeListBox")
+__all__ = ("ParentNode", "TreeListBox", "TreeNode", "TreeWalker", "TreeWidget", "TreeWidgetError")
 
 
 class TreeWidgetError(RuntimeError):

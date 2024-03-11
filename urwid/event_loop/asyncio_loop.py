@@ -222,9 +222,10 @@ class AsyncioEventLoop(EventLoop):
             loop.default_exception_handler(context)
 
     def run(self) -> None:
-        """
-        Start the event loop.  Exit the loop when any callback raises
-        an exception.  If ExitMainLoop is raised, exit cleanly.
+        """Start the event loop.
+
+        Exit the loop when any callback raises an exception.
+        If ExitMainLoop is raised, exit cleanly.
         """
         self._loop.set_exception_handler(self._exception_handler)
         self._loop.run_forever()

@@ -160,9 +160,10 @@ class TrioEventLoop(EventLoop):
             trio.run(self._main_task, instruments=[emulate_idle_callbacks])
 
     async def run_async(self) -> None:
-        """Starts the main loop and blocks asynchronously until the main loop
-        exits. This allows one to embed an urwid app in a Trio app even if the
-        Trio event loop is already running. Example::
+        """Starts the main loop and blocks asynchronously until the main loop exits.
+
+        This allows one to embed an urwid app in a Trio app even if the Trio event loop is already running.
+        Example::
 
             with trio.open_nursery() as nursery:
                 event_loop = urwid.TrioEventLoop()

@@ -178,7 +178,7 @@ extend-select = [
   "TRY", "UP", "I", "PL", "PERF", "RUF",  # tryceratops, pyupgrade, isort, pylint + perflint, Ruff-specific
 ]
 extend-ignore = [
-  "PLR6301", "E203", "PLW3201",
+  "PLR6301", "E203",
     # refactor rules (too many statements/arguments/branches)
   "PLR0904", "PLR0911", "PLR0912", "PLR0913", "PLR0914", "PLR0915", "PLR0917", "PLR2004",
   "PLC0415",  # We have a lot of imports outside of top-level
@@ -196,6 +196,15 @@ known-third-party = []
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
+
+[tool.ruff.lint.pylint]
+allow-dunder-method-names = [
+  "__rich_repr__",
+  # class generation
+  "_contents__getitem__",
+  "_contents__setitem__",
+  "_contents__delitem__",
+]
 
 [tool.pylint]
 extension-pkg-whitelist = []
@@ -236,8 +245,6 @@ disable = [
   "broad-exception-raised",
   "logging-fstring-interpolation",
   "logging-format-interpolation",
-  "consider-alternative-union-syntax",
-  "deprecated-typing-alias",
   "fixme",
   "invalid-name",
   "import-outside-toplevel",
@@ -247,7 +254,6 @@ disable = [
   "unused-argument",
   "unused-private-member",
   "arguments-differ",
-  "consider-alternative-union-syntax",
   "consider-using-assignment-expr",
   "superfluous-parens",
   # Magic part
