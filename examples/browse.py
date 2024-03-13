@@ -274,7 +274,7 @@ class DirectoryBrowser:
         self.listbox.offset_rows = 1
         self.footer = urwid.AttrMap(urwid.Text(self.footer_text), "foot")
         self.view = urwid.Frame(
-            urwid.AttrMap(self.listbox, "body"),
+            urwid.AttrMap(urwid.ScrollBar(self.listbox), "body"),
             header=urwid.AttrMap(self.header, "head"),
             footer=self.footer,
         )

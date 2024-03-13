@@ -496,8 +496,8 @@ class TreeListBox(ListBox):
 
         middle, top, _bottom = self.calculate_visible(size)
 
-        row_offset, _focus_widget, _focus_pos, _focus_rows, _cursor = middle
-        _trim_top, fill_above = top
+        row_offset, _focus_widget, _focus_pos, _focus_rows, _cursor = middle  # pylint: disable=unpacking-non-sequence
+        _trim_top, fill_above = top  # pylint: disable=unpacking-non-sequence
 
         for _widget, pos, rows in fill_above:
             row_offset -= rows

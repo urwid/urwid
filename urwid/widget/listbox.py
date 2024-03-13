@@ -43,7 +43,18 @@ if typing.TYPE_CHECKING:
 
     from urwid.canvas import Canvas, CompositeCanvas
 
-__all__ = ("ListBox", "ListBoxError", "ListWalker", "ListWalkerError", "SimpleFocusListWalker", "SimpleListWalker")
+__all__ = (
+    "ListBox",
+    "ListBoxError",
+    "ListWalker",
+    "ListWalkerError",
+    "SimpleFocusListWalker",
+    "SimpleListWalker",
+    "VisibleInfo",
+    "VisibleInfoFillItem",
+    "VisibleInfoMiddle",
+    "VisibleInfoTopBottom",
+)
 
 _T = typing.TypeVar("_T")
 _K = typing.TypeVar("_K")
@@ -54,16 +65,12 @@ class ListWalkerError(Exception):
 
 
 @runtime_checkable
-class ScrollSupportingBody(Sized, Protocol):
-    """Protocol for ListWalkers that support Scrolling."""
+class ScrollSupportingBody(Protocol):
+    """Protocol for ListWalkers."""
 
     def get_focus(self) -> tuple[Widget, _K]: ...
 
     def set_focus(self, position: _K) -> None: ...
-
-    def __getitem__(self, index: _K) -> _T: ...
-
-    def positions(self, reverse: bool = False) -> Iterable[_K]: ...
 
     def get_next(self, position: _K) -> tuple[Widget, _K] | tuple[None, None]: ...
 
@@ -276,7 +283,7 @@ class ListBoxError(Exception):
     pass
 
 
-class _Middle(typing.NamedTuple):
+class VisibleInfoMiddle(typing.NamedTuple):
     """Named tuple for ListBox internals."""
 
     offset: int
@@ -286,7 +293,7 @@ class _Middle(typing.NamedTuple):
     cursor: tuple[int, int] | tuple[int] | None
 
 
-class _FillItem(typing.NamedTuple):
+class VisibleInfoFillItem(typing.NamedTuple):
     """Named tuple for ListBox internals."""
 
     widget: Widget
@@ -294,11 +301,45 @@ class _FillItem(typing.NamedTuple):
     rows: int
 
 
-class _TopBottom(typing.NamedTuple):
+class VisibleInfoTopBottom(typing.NamedTuple):
     """Named tuple for ListBox internals."""
 
     trim: int
-    fill: list[_FillItem]
+    fill: list[VisibleInfoFillItem]
+
+    @classmethod
+    def from_raw_data(
+        cls,
+        trim: int,
+        fill: Iterable[tuple[Widget, Hashable, int]],
+    ) -> Self:
+        """Construct from not typed data.
+
+        Useful for overridden cases."""
+        return cls(trim=trim, fill=[VisibleInfoFillItem(*item) for item in fill])  # pragma: no cover
+
+
+class VisibleInfo(typing.NamedTuple):
+    middle: VisibleInfoMiddle
+    top: VisibleInfoTopBottom
+    bottom: VisibleInfoTopBottom
+
+    @classmethod
+    def from_raw_data(
+        cls,
+        middle: tuple[int, Widget, Hashable, int, tuple[int, int] | tuple[int] | None],
+        top: tuple[int, Iterable[tuple[Widget, Hashable, int]]],
+        bottom: tuple[int, Iterable[tuple[Widget, Hashable, int]]],
+    ) -> Self:
+        """Construct from not typed data.
+
+        Useful for overridden cases.
+        """
+        return cls(  # pragma: no cover
+            middle=VisibleInfoMiddle(*middle),
+            top=VisibleInfoTopBottom.from_raw_data(*top),
+            bottom=VisibleInfoTopBottom.from_raw_data(*bottom),
+        )
 
 
 class ListBox(Widget, WidgetContainerMixin):
@@ -399,7 +440,7 @@ class ListBox(Widget, WidgetContainerMixin):
         self,
         size: tuple[int, int],
         focus: bool = False,
-    ) -> tuple[_Middle, _TopBottom, _TopBottom] | tuple[None, None, None]:
+    ) -> VisibleInfo | tuple[None, None, None]:
         """
         Returns the widgets that would be displayed in
         the ListBox given the current *size* and *focus*.
@@ -470,7 +511,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
             p_rows = prev.rows((maxcol,))
             if p_rows:  # filter out 0-height widgets
-                fill_above.append(_FillItem(prev, pos, p_rows))
+                fill_above.append(VisibleInfoFillItem(prev, pos, p_rows))
             if p_rows > fill_lines:  # crosses top edge?
                 trim_top = p_rows - fill_lines
                 break
@@ -489,7 +530,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
             n_rows = next_pos.rows((maxcol,))
             if n_rows:  # filter out 0-height widgets
-                fill_below.append(_FillItem(next_pos, pos, n_rows))
+                fill_below.append(VisibleInfoFillItem(next_pos, pos, n_rows))
             if n_rows > fill_lines:  # crosses bottom edge?
                 trim_bottom = n_rows - fill_lines
                 fill_lines -= n_rows
@@ -515,7 +556,7 @@ class ListBox(Widget, WidgetContainerMixin):
                 break
 
             p_rows = prev.rows((maxcol,))
-            fill_above.append(_FillItem(prev, pos, p_rows))
+            fill_above.append(VisibleInfoFillItem(prev, pos, p_rows))
             if p_rows > fill_lines:  # more than required
                 trim_top = p_rows - fill_lines
                 offset_rows += fill_lines
@@ -524,16 +565,30 @@ class ListBox(Widget, WidgetContainerMixin):
             offset_rows += p_rows
 
         # 5. return the interesting bits
-        return (
-            _Middle(offset_rows - inset_rows, focus_widget, focus_pos, focus_rows, cursor),
-            _TopBottom(trim_top, fill_above),
-            _TopBottom(trim_bottom, fill_below),
+        return VisibleInfo(
+            VisibleInfoMiddle(offset_rows - inset_rows, focus_widget, focus_pos, focus_rows, cursor),
+            VisibleInfoTopBottom(trim_top, fill_above),
+            VisibleInfoTopBottom(trim_bottom, fill_below),
         )
+
+    def _check_support_scrolling(self) -> None:
+        from .treetools import TreeWalker
+
+        if not isinstance(self._body, ScrollSupportingBody):
+            raise ListBoxError(f"{self} body do not implement methods required for scrolling protocol")
+
+        if not isinstance(self._body, (Sized, TreeWalker)):
+            raise ListBoxError(
+                f"{self} body is not a Sized and not a TreeWalker."
+                f"Scroll is not allowed due to risk of infinite cycle of widgets load."
+            )
+
+        if getattr(self._body, "wrap_around", False):
+            raise ListBoxError("Body is wrapped around. Scroll position calculation is undefined.")
 
     def get_scrollpos(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
         """Current scrolling position."""
-        if not isinstance(self._body, ScrollSupportingBody):
-            raise ListBoxError(f"{self} body do not implement methods required for scrolling protocol")
+        self._check_support_scrolling()
 
         if not self._body:
             return 0
@@ -560,21 +615,64 @@ class ListBox(Widget, WidgetContainerMixin):
 
     def rows_max(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
         """Scrollable protocol for sized iterable and not wrapped around contents."""
-        if not isinstance(self._body, ScrollSupportingBody):
-            raise ListBoxError(f"{self} body do not implement methods required for scrolling protocol")
-
-        if getattr(self._body, "wrap_around", False):
-            raise ListBoxError("Body is wrapped around")
+        self._check_support_scrolling()
 
         if size is not None:
             self._rendered_size = size
 
         if size or not self._rows_max_cached:
-            self._rows_max_cached = sum(
-                self._body[position].rows((self._rendered_size[0],), focus) for position in self._body.positions()
-            )
+            cols = self._rendered_size[0]
+            rows = 0
+
+            focused_w, idx = self.body.get_focus()
+            rows += focused_w.rows((cols,), focus)
+
+            prev, pos = self._body.get_prev(idx)
+            while prev is not None:
+                rows += prev.rows((cols,), False)
+                prev, pos = self._body.get_prev(pos)
+
+            next_, pos = self.body.get_next(idx)
+            while next_ is not None:
+                rows += next_.rows((cols,), True)
+                next_, pos = self._body.get_next(pos)
+
+            self._rows_max_cached = rows
 
         return self._rows_max_cached
+
+    def require_relative_scroll(self, size: tuple[int, int], focus: bool = False) -> bool:
+        """Widget require relative scroll due to performance limitations of real lines count calculation."""
+        return isinstance(self._body, Sized) and (size[1] * 3 < len(self))
+
+    def get_first_visible_pos(self, size: tuple[int, int], focus: bool = False) -> int:
+        self._check_support_scrolling()
+
+        if not self._body:
+            return 0
+
+        _mid, top, _bottom = self.calculate_visible(size, focus)
+        if top.fill:
+            first_pos = top.fill[-1].position
+        else:
+            first_pos = self.focus_position
+
+        over = 0
+        _widget, first_pos = self.body.get_prev(first_pos)
+        while first_pos is not None:
+            over += 1
+            _widget, first_pos = self.body.get_prev(first_pos)
+
+        return over
+
+    def get_visible_amount(self, size: tuple[int, int], focus: bool = False) -> int:
+        self._check_support_scrolling()
+
+        if not self._body:
+            return 1
+
+        _mid, top, bottom = self.calculate_visible(size, focus)
+        return 1 + len(top.fill) + len(bottom.fill)
 
     def render(
         self,
@@ -594,9 +692,9 @@ class ListBox(Widget, WidgetContainerMixin):
         if middle is None:
             return SolidCanvas(" ", maxcol, maxrow)
 
-        _ignore, focus_widget, focus_pos, focus_rows, cursor = middle
-        trim_top, fill_above = top
-        trim_bottom, fill_below = bottom
+        _ignore, focus_widget, focus_pos, focus_rows, cursor = middle  # pylint: disable=unpacking-non-sequence
+        trim_top, fill_above = top  # pylint: disable=unpacking-non-sequence
+        trim_bottom, fill_below = bottom  # pylint: disable=unpacking-non-sequence
 
         combinelist: list[tuple[Canvas, int, bool]] = []
         rows = 0
@@ -706,7 +804,7 @@ class ListBox(Widget, WidgetContainerMixin):
         if middle is None:
             return None
 
-        offset_inset, _ignore1, _ignore2, _ignore3, cursor = middle
+        offset_inset, _ignore1, _ignore2, _ignore3, cursor = middle  # pylint: disable=unpacking-non-sequence
         if not cursor:
             return None
 
@@ -897,9 +995,9 @@ class ListBox(Widget, WidgetContainerMixin):
         if middle is None:
             return
 
-        row_offset, focus_widget, _focus_pos, focus_rows, _cursor = middle
-        _trim_top, _fill_above = top
-        trim_bottom, fill_below = bottom
+        row_offset, focus_widget, _focus_pos, focus_rows, _cursor = middle  # pylint: disable=unpacking-non-sequence
+        _trim_top, _fill_above = top  # pylint: disable=unpacking-non-sequence
+        trim_bottom, fill_below = bottom  # pylint: disable=unpacking-non-sequence
 
         if focus_widget.selectable():
             return
@@ -935,9 +1033,9 @@ class ListBox(Widget, WidgetContainerMixin):
         self._body.set_focus(focus_pos)
 
         middle, top, bottom = self.calculate_visible((maxcol, maxrow), focus)
-        focus_offset, _focus_widget, focus_pos, focus_rows, _cursor = middle
-        _trim_top, fill_above = top
-        _trim_bottom, fill_below = bottom
+        focus_offset, _focus_widget, focus_pos, focus_rows, _cursor = middle  # pylint: disable=unpacking-non-sequence
+        _trim_top, fill_above = top  # pylint: disable=unpacking-non-sequence
+        _trim_bottom, fill_below = bottom  # pylint: disable=unpacking-non-sequence
 
         offset = focus_offset
         for _widget, pos, rows in fill_above:
@@ -1251,8 +1349,8 @@ class ListBox(Widget, WidgetContainerMixin):
         if middle is None:
             return True
 
-        focus_row_offset, focus_widget, focus_pos, _ignore, cursor = middle
-        _trim_top, fill_above = top
+        focus_row_offset, focus_widget, focus_pos, _ignore, cursor = middle  # pylint: disable=unpacking-non-sequence
+        _trim_top, fill_above = top  # pylint: disable=unpacking-non-sequence
 
         row_offset = focus_row_offset
 
@@ -1324,8 +1422,8 @@ class ListBox(Widget, WidgetContainerMixin):
         if middle is None:
             return True
 
-        focus_row_offset, focus_widget, focus_pos, focus_rows, cursor = middle
-        _trim_bottom, fill_below = bottom
+        focus_row_offset, focus_widget, focus_pos, focus_rows, cursor = middle  # pylint: disable=unpacking-non-sequence
+        _trim_bottom, fill_below = bottom  # pylint: disable=unpacking-non-sequence
 
         row_offset = focus_row_offset + focus_rows
         rows = focus_rows
@@ -1363,9 +1461,6 @@ class ListBox(Widget, WidgetContainerMixin):
             if widget is None:
                 self.shift_focus((maxcol, maxrow), row_offset - rows)
                 return None
-            # FIXME: catch this bug in testcase
-            # self.change_focus((maxcol,maxrow), pos,
-            #    row_offset+rows, 'above')
             self.change_focus((maxcol, maxrow), pos, row_offset - rows, "above")
             return None
 
@@ -1406,8 +1501,8 @@ class ListBox(Widget, WidgetContainerMixin):
         if middle is None:
             return True
 
-        row_offset, focus_widget, focus_pos, focus_rows, cursor = middle
-        _trim_top, fill_above = top
+        row_offset, focus_widget, focus_pos, focus_rows, cursor = middle  # pylint: disable=unpacking-non-sequence
+        _trim_top, fill_above = top  # pylint: disable=unpacking-non-sequence
 
         # topmost_visible is row_offset rows above top row of
         # focus (+ve) or -row_offset rows below top row of focus (-ve)
@@ -1516,7 +1611,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
             # find out where that actually puts us
             middle, top, _bottom = self.calculate_visible((maxcol, maxrow), True)
-            act_row_offset, _ign1, _ign2, _ign3, _ign4 = middle
+            act_row_offset, _ign1, _ign2, _ign3, _ign4 = middle  # pylint: disable=unpacking-non-sequence
 
             # discard chosen widget if it will reduce scroll amount
             # because of a fixed cursor (absolute last resort)
@@ -1566,7 +1661,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
         # final check for pathological case where we may fall short
         middle, top, _bottom = self.calculate_visible((maxcol, maxrow), True)
-        act_row_offset, _ign1, pos, _ign2, _ign3 = middle
+        act_row_offset, _ign1, pos, _ign2, _ign3 = middle  # pylint: disable=unpacking-non-sequence
         if act_row_offset >= row_offset:
             # no problem
             return None
@@ -1598,8 +1693,8 @@ class ListBox(Widget, WidgetContainerMixin):
         if middle is None:
             return True
 
-        row_offset, focus_widget, focus_pos, focus_rows, cursor = middle
-        _trim_bottom, fill_below = bottom
+        row_offset, focus_widget, focus_pos, focus_rows, cursor = middle  # pylint: disable=unpacking-non-sequence
+        _trim_bottom, fill_below = bottom  # pylint: disable=unpacking-non-sequence
 
         # bottom_edge is maxrow-focus_pos rows below top row of focus
         bottom_edge = maxrow - row_offset
@@ -1704,7 +1799,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
             # find out where that actually puts us
             middle, _top, bottom = self.calculate_visible((maxcol, maxrow), True)
-            act_row_offset, _ign1, _ign2, _ign3, _ign4 = middle
+            act_row_offset, _ign1, _ign2, _ign3, _ign4 = middle  # pylint: disable=unpacking-non-sequence
 
             # discard chosen widget if it will reduce scroll amount
             # because of a fixed cursor (absolute last resort)
@@ -1750,7 +1845,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
         # final check for pathological case where we may fall short
         middle, _top, bottom = self.calculate_visible((maxcol, maxrow), True)
-        act_row_offset, _ign1, pos, _ign2, _ign3 = middle
+        act_row_offset, _ign1, pos, _ign2, _ign3 = middle  # pylint: disable=unpacking-non-sequence
         if act_row_offset <= row_offset:
             # no problem
             return None
@@ -1795,9 +1890,9 @@ class ListBox(Widget, WidgetContainerMixin):
         if middle is None:
             return False
 
-        _ignore, focus_widget, focus_pos, focus_rows, _cursor = middle
-        trim_top, fill_above = top
-        _ignore, fill_below = bottom
+        _ignore, focus_widget, focus_pos, focus_rows, _cursor = middle  # pylint: disable=unpacking-non-sequence
+        trim_top, fill_above = top  # pylint: disable=unpacking-non-sequence
+        _ignore, fill_below = bottom  # pylint: disable=unpacking-non-sequence
 
         fill_above.reverse()  # fill_above is in bottom-up order
         w_list = [*fill_above, (focus_widget, focus_pos, focus_rows), *fill_below]
@@ -1850,11 +1945,11 @@ class ListBox(Widget, WidgetContainerMixin):
         middle, top, bottom = self.calculate_visible((maxcol, maxrow), focus=focus)
         if middle is None:  # empty listbox
             return ["top", "bottom"]
-        trim_top, above = top
-        trim_bottom, below = bottom
+        trim_top, above = top  # pylint: disable=unpacking-non-sequence
+        trim_bottom, below = bottom  # pylint: disable=unpacking-non-sequence
 
         if trim_bottom == 0:
-            row_offset, _w, pos, rows, _c = middle
+            row_offset, _w, pos, rows, _c = middle  # pylint: disable=unpacking-non-sequence
             row_offset += rows
             for _w, pos, rows in below:  # noqa: B007  # magic with scope
                 row_offset += rows
@@ -1862,7 +1957,7 @@ class ListBox(Widget, WidgetContainerMixin):
                 result.append("bottom")
 
         if trim_top == 0:
-            row_offset, _w, pos, _rows, _c = middle
+            row_offset, _w, pos, _rows, _c = middle  # pylint: disable=unpacking-non-sequence
             for _w, pos, rows in above:  # noqa: B007  # magic with scope
                 row_offset -= rows
             if self._body.get_prev(pos) == (None, None):

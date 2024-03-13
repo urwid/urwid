@@ -85,10 +85,10 @@ class ScrollbarSymbols(str, enum.Enum):
 
 
 @runtime_checkable
-class SupportsScroll(Protocol):
-    """Protocol for scroll supporting widget.
+class WidgetProto(Protocol):
+    """Protocol for widget.
 
-    Due to protocol can not inherit non-protocol bases, require also several obligatory Widget methods.
+    Due to protocol cannot inherit non-protocol bases, define several obligatory Widget methods.
     """
 
     # Base widget methods (from Widget)
@@ -116,10 +116,27 @@ class SupportsScroll(Protocol):
 
     def render(self, size: tuple[int, int], focus: bool = False) -> Canvas: ...
 
-    # Scroll specific methods
+
+@runtime_checkable
+class SupportsScroll(WidgetProto, Protocol):
+    """Scroll specific methods."""
+
     def get_scrollpos(self, size: tuple[int, int], focus: bool = False) -> int: ...
 
     def rows_max(self, size: tuple[int, int] | None = None, focus: bool = False) -> int: ...
+
+
+@runtime_checkable
+class SupportsRelativeScroll(WidgetProto, Protocol):
+    """Relative scroll-specific methods."""
+
+    def __len__(self) -> int: ...
+
+    def require_relative_scroll(self, size: tuple[int, int], focus: bool = False) -> bool: ...
+
+    def get_first_visible_pos(self, size: tuple[int, int], focus: bool = False) -> int: ...
+
+    def get_visible_amount(self, size: tuple[int, int], focus: bool = False) -> int: ...
 
 
 class Scrollable(WidgetDecoration[WrappedWidget]):
@@ -286,7 +303,7 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
             ow = self._original_widget
             ow_size = self._get_original_widget_size(size)
 
-            # Remember previous cursor position if possible
+            # Remember the previous cursor position if possible
             if hasattr(ow, "get_cursor_coords"):
                 self._old_cursor_coords = ow.get_cursor_coords(ow_size)
 
@@ -294,7 +311,7 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
             if key is None:
                 return None
 
-        # Handle up/down, page up/down, etc
+        # Handle up/down, page up/down, etc.
         command_map = self._command_map
         if command_map[key] == Command.UP:
             self._scroll_action = SCROLL_LINE_UP
@@ -438,10 +455,10 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
 class ScrollBar(WidgetDecoration[WrappedWidget]):
     Symbols = ScrollbarSymbols
 
-    def sizing(self):
+    def sizing(self) -> frozenset[Sizing]:
         return frozenset((Sizing.BOX,))
 
-    def selectable(self):
+    def selectable(self) -> bool:
         return True
 
     def __init__(
@@ -483,30 +500,46 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
     ) -> Canvas:
         from urwid import canvas
 
+        def render_no_scrollbar() -> Canvas:
+            self._original_widget_size = size
+            return ow.render(size, focus)
+
+        def render_for_scrollbar() -> Canvas:
+            self._original_widget_size = ow_size
+            return ow.render(ow_size, focus)
+
         maxcol, maxrow = size
 
-        sb_width = self._scrollbar_width
-        ow_size = (max(0, maxcol - sb_width), maxrow)
+        ow_size = (max(0, maxcol - self._scrollbar_width), maxrow)
         sb_width = maxcol - ow_size[0]
 
         ow = self._original_widget
         ow_base = self.scrolling_base_widget
-        ow_rows_max = ow_base.rows_max(size, focus)
-        if ow_rows_max <= maxrow:
-            # Canvas fits without scrolling - no scrollbar needed
-            self._original_widget_size = size
-            return ow.render(size, focus)
-        ow_rows_max = ow_base.rows_max(ow_size, focus)
 
-        ow_canv = ow.render(ow_size, focus)
-        self._original_widget_size = ow_size
+        if isinstance(ow, SupportsRelativeScroll) and ow.require_relative_scroll(size, focus):
+            if len(ow) == ow.get_visible_amount(size, focus):
+                # Canvas fits without scrolling - no scrollbar needed
+                return render_no_scrollbar()
 
-        pos = ow_base.get_scrollpos(ow_size, focus)
-        posmax = ow_rows_max - maxrow
+            ow_canv = render_for_scrollbar()
+            visible_amount = ow.get_visible_amount(ow_size, focus)
+            pos = ow_base.get_first_visible_pos(ow_size, focus)
+            posmax = len(ow) - visible_amount
+            thumb_weight = min(1.0, visible_amount / max(1, len(ow)))
 
-        # Thumb shrinks/grows according to the ratio of
-        # <number of visible lines> / <number of total lines>
-        thumb_weight = min(1.0, maxrow / max(1, ow_rows_max))
+        else:
+            ow_rows_max = ow_base.rows_max(size, focus)
+            if ow_rows_max <= maxrow:
+                # Canvas fits without scrolling - no scrollbar needed
+                return render_no_scrollbar()
+
+            ow_canv = render_for_scrollbar()
+            ow_rows_max = ow_base.rows_max(ow_size, focus)
+            pos = ow_base.get_scrollpos(ow_size, focus)
+            posmax = ow_rows_max - maxrow
+            thumb_weight = min(1.0, maxrow / max(1, ow_rows_max))
+
+        # Thumb shrinks/grows according to the ratio of <number of visible lines> / <number of total lines>
         thumb_height = max(1, round(thumb_weight * maxrow))
 
         # Thumb may only touch top/bottom if the first/last row is visible
@@ -564,7 +597,7 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
         self._invalidate()
 
     @property
-    def scrolling_base_widget(self) -> SupportsScroll:
+    def scrolling_base_widget(self) -> SupportsScroll | SupportsRelativeScroll:
         """Nearest `original_widget` that is compatible with the scrolling API"""
 
         def orig_iter(w: Widget) -> Iterator[Widget]:
