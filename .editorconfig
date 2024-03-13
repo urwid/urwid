@@ -1,0 +1,22 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{py,pyi,pyx,pxd}]
+indent_size = 4
+max_line_length = 120
+
+[*.{yml,yaml,json,ini,toml}]
+indent_size = 2
+max_line_length = 120
+
+[*.{rst,md}]
+indent_size = 2
+
+[{Makefile,Makefile.in}]
+indent_style = tab
