@@ -43,7 +43,18 @@ if typing.TYPE_CHECKING:
 
     from urwid.canvas import Canvas, CompositeCanvas
 
-__all__ = ("ListBox", "ListBoxError", "ListWalker", "ListWalkerError", "SimpleFocusListWalker", "SimpleListWalker")
+__all__ = (
+    "ListBox",
+    "ListBoxError",
+    "ListWalker",
+    "ListWalkerError",
+    "SimpleFocusListWalker",
+    "SimpleListWalker",
+    "VisibleInfo",
+    "VisibleInfoFillItem",
+    "VisibleInfoMiddle",
+    "VisibleInfoTopBottom",
+)
 
 _T = typing.TypeVar("_T")
 _K = typing.TypeVar("_K")
@@ -276,7 +287,7 @@ class ListBoxError(Exception):
     pass
 
 
-class _Middle(typing.NamedTuple):
+class VisibleInfoMiddle(typing.NamedTuple):
     """Named tuple for ListBox internals."""
 
     offset: int
@@ -286,7 +297,7 @@ class _Middle(typing.NamedTuple):
     cursor: tuple[int, int] | tuple[int] | None
 
 
-class _FillItem(typing.NamedTuple):
+class VisibleInfoFillItem(typing.NamedTuple):
     """Named tuple for ListBox internals."""
 
     widget: Widget
@@ -294,17 +305,45 @@ class _FillItem(typing.NamedTuple):
     rows: int
 
 
-class _TopBottom(typing.NamedTuple):
+class VisibleInfoTopBottom(typing.NamedTuple):
     """Named tuple for ListBox internals."""
 
     trim: int
-    fill: list[_FillItem]
+    fill: list[VisibleInfoFillItem]
+
+    @classmethod
+    def from_raw_data(
+        cls,
+        trim: int,
+        fill: Iterable[tuple[Widget, Hashable, int]],
+    ) -> Self:
+        """Construct from not typed data.
+
+        Useful for overridden cases."""
+        return cls(trim=trim, fill=[VisibleInfoFillItem(*item) for item in fill])  # pragma: no cover
 
 
-class _VisibleArea(typing.NamedTuple):
-    middle: _Middle
-    top: _TopBottom
-    bottom: _TopBottom
+class VisibleInfo(typing.NamedTuple):
+    middle: VisibleInfoMiddle
+    top: VisibleInfoTopBottom
+    bottom: VisibleInfoTopBottom
+
+    @classmethod
+    def from_raw_data(
+        cls,
+        middle: tuple[int, Widget, Hashable, int, tuple[int, int] | tuple[int] | None],
+        top: tuple[int, Iterable[tuple[Widget, Hashable, int]]],
+        bottom: tuple[int, Iterable[tuple[Widget, Hashable, int]]],
+    ) -> Self:
+        """Construct from not typed data.
+
+        Useful for overridden cases.
+        """
+        return cls(  # pragma: no cover
+            middle=VisibleInfoMiddle(*middle),
+            top=VisibleInfoTopBottom.from_raw_data(*top),
+            bottom=VisibleInfoTopBottom.from_raw_data(*bottom),
+        )
 
 
 class ListBox(Widget, WidgetContainerMixin):
@@ -405,7 +444,7 @@ class ListBox(Widget, WidgetContainerMixin):
         self,
         size: tuple[int, int],
         focus: bool = False,
-    ) -> _VisibleArea | tuple[None, None, None]:
+    ) -> VisibleInfo | tuple[None, None, None]:
         """
         Returns the widgets that would be displayed in
         the ListBox given the current *size* and *focus*.
@@ -476,7 +515,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
             p_rows = prev.rows((maxcol,))
             if p_rows:  # filter out 0-height widgets
-                fill_above.append(_FillItem(prev, pos, p_rows))
+                fill_above.append(VisibleInfoFillItem(prev, pos, p_rows))
             if p_rows > fill_lines:  # crosses top edge?
                 trim_top = p_rows - fill_lines
                 break
@@ -495,7 +534,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
             n_rows = next_pos.rows((maxcol,))
             if n_rows:  # filter out 0-height widgets
-                fill_below.append(_FillItem(next_pos, pos, n_rows))
+                fill_below.append(VisibleInfoFillItem(next_pos, pos, n_rows))
             if n_rows > fill_lines:  # crosses bottom edge?
                 trim_bottom = n_rows - fill_lines
                 fill_lines -= n_rows
@@ -521,7 +560,7 @@ class ListBox(Widget, WidgetContainerMixin):
                 break
 
             p_rows = prev.rows((maxcol,))
-            fill_above.append(_FillItem(prev, pos, p_rows))
+            fill_above.append(VisibleInfoFillItem(prev, pos, p_rows))
             if p_rows > fill_lines:  # more than required
                 trim_top = p_rows - fill_lines
                 offset_rows += fill_lines
@@ -530,10 +569,10 @@ class ListBox(Widget, WidgetContainerMixin):
             offset_rows += p_rows
 
         # 5. return the interesting bits
-        return _VisibleArea(
-            _Middle(offset_rows - inset_rows, focus_widget, focus_pos, focus_rows, cursor),
-            _TopBottom(trim_top, fill_above),
-            _TopBottom(trim_bottom, fill_below),
+        return VisibleInfo(
+            VisibleInfoMiddle(offset_rows - inset_rows, focus_widget, focus_pos, focus_rows, cursor),
+            VisibleInfoTopBottom(trim_top, fill_above),
+            VisibleInfoTopBottom(trim_bottom, fill_below),
         )
 
     def get_scrollpos(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
