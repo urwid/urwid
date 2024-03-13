@@ -310,17 +310,15 @@ class KeyqueueTrie:
 
         (b, x, y) = (int(val) for val in value[:-1].split(";"))
         action = value[-1]
-
-        # shift, etc. is not communicated on my machine, so I
-        # can't and won't be able to add support for it.
-        # Double and triple clicks are not supported as well. They can be
-        # implemented by using a timer. This timer can check if the last
-        # registered click is below a certain threshold. This threshold
-        # is normally set in the operating system itself, so setting one
-        # here will cause an inconsistent behaviour. I do not plan to use
-        # that feature, so I won't implement it.
+        # Double and triple clicks are not supported.
+        # They can be implemented by using a timer.
+        # This timer can check if the last registered click is below a certain threshold.
+        # This threshold is normally set in the operating system itself,
+        # so setting one here will cause an inconsistent behaviour.
 
         prefixes = []
+        if b & 4:
+            prefixes.append("shift ")
         if b & 8:
             prefixes.append("meta ")
         if b & 16:
