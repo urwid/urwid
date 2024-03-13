@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widget Classes &#8212; Urwid 2.6.8</title>
+    <title>Widget Classes &#8212; Urwid 2.6.9</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script src="../_static/documentation_options.js?v=8daaf82b"></script>
+    <script src="../_static/documentation_options.js?v=29d27c32"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.8</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.9</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>
@@ -3105,7 +3105,7 @@ widgets to be displayed inside the list box</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.ListBox.calculate_visible">
-<span class="sig-name descname"><span class="pre">calculate_visible</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">_Middle</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">_TopBottom</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">_TopBottom</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.ListBox.calculate_visible" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">calculate_visible</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">VisibleInfo</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.ListBox.calculate_visible" title="Link to this definition">¶</a></dt>
 <dd><p>Returns the widgets that would be displayed in
 the ListBox given the current <em>size</em> and <em>focus</em>.</p>
 <p>see <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for parameter details</p>
@@ -3262,6 +3262,12 @@ May change focus on button 1 press.</p>
 <span class="sig-name descname"><span class="pre">render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="canvas.html#urwid.CompositeCanvas" title="urwid.CompositeCanvas"><span class="pre">CompositeCanvas</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="canvas.html#urwid.SolidCanvas" title="urwid.SolidCanvas"><span class="pre">SolidCanvas</span></a></span></span><a class="headerlink" href="#urwid.ListBox.render" title="Link to this definition">¶</a></dt>
 <dd><p>Render ListBox and return canvas.</p>
 <p>see <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ListBox.require_relative_scroll">
+<span class="sig-name descname"><span class="pre">require_relative_scroll</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.ListBox.require_relative_scroll" title="Link to this definition">¶</a></dt>
+<dd><p>Widget require relative scroll due to performance limitations of real lines count calculation.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -5408,13 +5414,13 @@ may render the cached canvas instead of creating a new one.</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="urwid.ScrollBar.scrolling_base_widget">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">scrolling_base_widget</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">SupportsScroll</span></em><a class="headerlink" href="#urwid.ScrollBar.scrolling_base_widget" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">scrolling_base_widget</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">SupportsScroll</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">SupportsRelativeScroll</span></em><a class="headerlink" href="#urwid.ScrollBar.scrolling_base_widget" title="Link to this definition">¶</a></dt>
 <dd><p>Nearest <cite>original_widget</cite> that is compatible with the scrolling API</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.ScrollBar.selectable">
-<span class="sig-name descname"><span class="pre">selectable</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ScrollBar.selectable" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">selectable</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.ScrollBar.selectable" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if this is a widget that is designed to take the
@@ -5436,7 +5442,7 @@ focus. It is still possible for non selectable widgets to have the focus
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.ScrollBar.sizing">
-<span class="sig-name descname"><span class="pre">sizing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ScrollBar.sizing" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">sizing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">frozenset</span><span class="p"><span class="pre">[</span></span><span class="pre">Sizing</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.ScrollBar.sizing" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>A frozenset including one or more of <code class="docutils literal notranslate"><span class="pre">'box'</span></code>, <code class="docutils literal notranslate"><span class="pre">'flow'</span></code> and
@@ -5802,6 +5808,7 @@ be defined.</p>
 <li><a class="reference internal" href="#urwid.ListBox.mouse_event"><code class="docutils literal notranslate"><span class="pre">ListBox.mouse_event()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ListBox.options"><code class="docutils literal notranslate"><span class="pre">ListBox.options()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ListBox.render"><code class="docutils literal notranslate"><span class="pre">ListBox.render()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ListBox.require_relative_scroll"><code class="docutils literal notranslate"><span class="pre">ListBox.require_relative_scroll()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ListBox.rows_max"><code class="docutils literal notranslate"><span class="pre">ListBox.rows_max()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ListBox.set_focus"><code class="docutils literal notranslate"><span class="pre">ListBox.set_focus()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ListBox.set_focus_valign"><code class="docutils literal notranslate"><span class="pre">ListBox.set_focus_valign()</span></code></a></li>
@@ -6072,7 +6079,7 @@ be defined.</p>
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.8</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.9</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>

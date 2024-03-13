@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Urwid Tutorial &#8212; Urwid 2.6.8</title>
+    <title>Urwid Tutorial &#8212; Urwid 2.6.9</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script src="../_static/documentation_options.js?v=8daaf82b"></script>
+    <script src="../_static/documentation_options.js?v=29d27c32"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="../examples/index.html" title="Example Programs"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.8</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.9</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Tutorial</a></li> 
       </ul>
     </div>  
@@ -93,7 +93,7 @@ each key pressed, exiting when the user presses <em>Q</em>.</p>
 <span class="linenos"> 4</span>
 <span class="linenos"> 5</span>
 <span class="linenos"> 6</span><span class="k">def</span> <span class="nf">show_or_exit</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">):</span>
+<span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">}:</span>
 <span class="linenos"> 8</span>        <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 <span class="linenos"> 9</span>    <span class="n">txt</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
 <span class="linenos">10</span>
@@ -132,7 +132,7 @@ and the space above and below the text. It waits for a keypress before exiting.<
 <span class="linenos"> 4</span>
 <span class="linenos"> 5</span>
 <span class="linenos"> 6</span><span class="k">def</span> <span class="nf">exit_on_q</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">):</span>
+<span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">}:</span>
 <span class="linenos"> 8</span>        <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 <span class="linenos"> 9</span>
 <span class="linenos">10</span>
@@ -201,7 +201,7 @@ and will work in any terminal that supports 256-color mode. It will exit when
 <span class="linenos"> 4</span>
 <span class="linenos"> 5</span>
 <span class="linenos"> 6</span><span class="k">def</span> <span class="nf">exit_on_q</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
-<span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">):</span>
+<span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">}:</span>
 <span class="linenos"> 8</span>        <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 <span class="linenos"> 9</span>
 <span class="linenos">10</span>
@@ -273,7 +273,7 @@ for the new child widgets.</p></li>
 <span class="linenos"> 4</span>
 <span class="linenos"> 5</span>
 <span class="linenos"> 6</span><span class="k">def</span> <span class="nf">exit_on_q</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">):</span>
+<span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">}:</span>
 <span class="linenos"> 8</span>        <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 <span class="linenos"> 9</span>
 <span class="linenos">10</span>
@@ -1033,7 +1033,7 @@ follow as your application grows larger.</p>
         <li class="right" >
           <a href="../examples/index.html" title="Example Programs"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.8</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.9</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Tutorial</a></li> 
       </ul>
     </div>

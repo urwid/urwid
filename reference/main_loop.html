@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>MainLoop and Event Loops &#8212; Urwid 2.6.8</title>
+    <title>MainLoop and Event Loops &#8212; Urwid 2.6.9</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
     
-    <script src="../_static/documentation_options.js?v=8daaf82b"></script>
+    <script src="../_static/documentation_options.js?v=29d27c32"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.8</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.9</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">MainLoop and Event Loops</a></li> 
       </ul>
@@ -423,8 +423,9 @@ callback – function to call from event loop</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.AsyncioEventLoop.run">
 <span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.AsyncioEventLoop.run" title="Link to this definition">¶</a></dt>
-<dd><p>Start the event loop.  Exit the loop when any callback raises
-an exception.  If ExitMainLoop is raised, exit cleanly.</p>
+<dd><p>Start the event loop.</p>
+<p>Exit the loop when any callback raises an exception.
+If ExitMainLoop is raised, exit cleanly.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -541,9 +542,9 @@ exception. If ExitMainLoop is raised, exits cleanly.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.TrioEventLoop.run_async">
 <em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">run_async</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TrioEventLoop.run_async" title="Link to this definition">¶</a></dt>
-<dd><p>Starts the main loop and blocks asynchronously until the main loop
-exits. This allows one to embed an urwid app in a Trio app even if the
-Trio event loop is already running. Example:</p>
+<dd><p>Starts the main loop and blocks asynchronously until the main loop exits.</p>
+<p>This allows one to embed an urwid app in a Trio app even if the Trio event loop is already running.
+Example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">trio</span><span class="o">.</span><span class="n">open_nursery</span><span class="p">()</span> <span class="k">as</span> <span class="n">nursery</span><span class="p">:</span>
     <span class="n">event_loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TrioEventLoop</span><span class="p">()</span>
 
@@ -1214,7 +1215,7 @@ Returns a handle that may be passed to <a class="reference internal" href="#urwi
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.8</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.9</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">MainLoop and Event Loops</a></li> 
       </ul>
