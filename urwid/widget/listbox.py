@@ -65,16 +65,12 @@ class ListWalkerError(Exception):
 
 
 @runtime_checkable
-class ScrollSupportingBody(Sized, Protocol):
-    """Protocol for ListWalkers that support Scrolling."""
+class ScrollSupportingBody(Protocol):
+    """Protocol for ListWalkers."""
 
     def get_focus(self) -> tuple[Widget, _K]: ...
 
     def set_focus(self, position: _K) -> None: ...
-
-    def __getitem__(self, index: _K) -> _T: ...
-
-    def positions(self, reverse: bool = False) -> Iterable[_K]: ...
 
     def get_next(self, position: _K) -> tuple[Widget, _K] | tuple[None, None]: ...
 
@@ -575,10 +571,24 @@ class ListBox(Widget, WidgetContainerMixin):
             VisibleInfoTopBottom(trim_bottom, fill_below),
         )
 
-    def get_scrollpos(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
-        """Current scrolling position."""
+    def _check_support_scrolling(self) -> None:
+        from .treetools import TreeWalker
+
         if not isinstance(self._body, ScrollSupportingBody):
             raise ListBoxError(f"{self} body do not implement methods required for scrolling protocol")
+
+        if not isinstance(self._body, (Sized, TreeWalker)):
+            raise ListBoxError(
+                f"{self} body is not a Sized and not a TreeWalker."
+                f"Scroll is not allowed due to risk of infinite cycle of widgets load."
+            )
+
+        if getattr(self._body, "wrap_around", False):
+            raise ListBoxError("Body is wrapped around. Scroll position calculation is undefined.")
+
+    def get_scrollpos(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
+        """Current scrolling position."""
+        self._check_support_scrolling()
 
         if not self._body:
             return 0
@@ -605,29 +615,38 @@ class ListBox(Widget, WidgetContainerMixin):
 
     def rows_max(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
         """Scrollable protocol for sized iterable and not wrapped around contents."""
-        if not isinstance(self._body, ScrollSupportingBody):
-            raise ListBoxError(f"{self} body do not implement methods required for scrolling protocol")
-
-        if getattr(self._body, "wrap_around", False):
-            raise ListBoxError("Body is wrapped around")
+        self._check_support_scrolling()
 
         if size is not None:
             self._rendered_size = size
 
         if size or not self._rows_max_cached:
-            self._rows_max_cached = sum(
-                self._body[position].rows((self._rendered_size[0],), focus) for position in self._body.positions()
-            )
+            cols = self._rendered_size[0]
+            rows = 0
+
+            focused_w, idx = self.body.get_focus()
+            rows += focused_w.rows((cols,), focus)
+
+            prev, pos = self._body.get_prev(idx)
+            while prev is not None:
+                rows += prev.rows((cols,), False)
+                prev, pos = self._body.get_prev(pos)
+
+            next_, pos = self.body.get_next(idx)
+            while next_ is not None:
+                rows += next_.rows((cols,), True)
+                next_, pos = self._body.get_next(pos)
+
+            self._rows_max_cached = rows
 
         return self._rows_max_cached
 
     def require_relative_scroll(self, size: tuple[int, int], focus: bool = False) -> bool:
         """Widget require relative scroll due to performance limitations of real lines count calculation."""
-        return size[1] * 3 < len(self)
+        return isinstance(self._body, Sized) and (size[1] * 3 < len(self))
 
     def get_first_visible_pos(self, size: tuple[int, int], focus: bool = False) -> int:
-        if not isinstance(self._body, ScrollSupportingBody):
-            raise ListBoxError(f"{self} body do not implement methods required for scrolling protocol")
+        self._check_support_scrolling()
 
         if not self._body:
             return 0
@@ -647,11 +666,7 @@ class ListBox(Widget, WidgetContainerMixin):
         return over
 
     def get_visible_amount(self, size: tuple[int, int], focus: bool = False) -> int:
-        if not isinstance(self._body, ScrollSupportingBody):
-            raise ListBoxError(f"{self} body do not implement methods required for scrolling protocol")
-
-        if getattr(self._body, "wrap_around", False):
-            raise ListBoxError("Body is wrapped around")
+        self._check_support_scrolling()
 
         if not self._body:
             return 1
