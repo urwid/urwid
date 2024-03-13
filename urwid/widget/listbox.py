@@ -77,6 +77,18 @@ class ScrollSupportingBody(Protocol):
     def get_prev(self, position: _K) -> tuple[Widget, _K] | tuple[None, None]: ...
 
 
+@runtime_checkable
+class EstimatedSized(Protocol):
+    """Widget can estimate it's size.
+
+    PEP 424 defines API for memory-efficiency.
+    For the ListBox it's a sign of the limited body length.
+    The main use-case is lazy-load, where real length calculation is expensive.
+    """
+
+    def __length_hint__(self) -> int: ...
+
+
 class ListWalker(metaclass=signals.MetaSignals):  # pylint: disable=no-member, unsubscriptable-object
     # mixin not named as mixin
     signals: typing.ClassVar[list[str]] = ["modified"]
@@ -577,9 +589,9 @@ class ListBox(Widget, WidgetContainerMixin):
         if not isinstance(self._body, ScrollSupportingBody):
             raise ListBoxError(f"{self} body do not implement methods required for scrolling protocol")
 
-        if not isinstance(self._body, (Sized, TreeWalker)):
+        if not isinstance(self._body, (Sized, EstimatedSized, TreeWalker)):
             raise ListBoxError(
-                f"{self} body is not a Sized and not a TreeWalker."
+                f"{self} body is not a Sized, can not estimate it's size and not a TreeWalker."
                 f"Scroll is not allowed due to risk of infinite cycle of widgets load."
             )
 
