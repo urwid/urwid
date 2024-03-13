@@ -2,9 +2,9 @@
 # Minimum requirements for the build system to execute.
 # PEP 508 specifications for PEP 518.
 requires = [
-    "setuptools >= 61.0.0",
-    "setuptools_scm[toml]>=7.0",
-    "wheel",
+  "setuptools >= 61.0.0",
+  "setuptools_scm[toml]>=7.0",
+  "wheel",
 ]
 build-backend="setuptools.build_meta"
 
@@ -179,7 +179,7 @@ extend-select = [
 ]
 extend-ignore = [
   "PLR6301", "E203",
-    # refactor rules (too many statements/arguments/branches)
+  # refactor rules (too many statements/arguments/branches)
   "PLR0904", "PLR0911", "PLR0912", "PLR0913", "PLR0914", "PLR0915", "PLR0917", "PLR2004",
   "PLC0415",  # We have a lot of imports outside of top-level
   "RET504",  # Unnecessary variable assignment before return statement
