@@ -192,9 +192,28 @@ class TestScrollBarScrollable(unittest.TestCase):
         with self.assertRaises(TypeError):
             urwid.ScrollBar(urwid.SolidFill(" "))
 
+    def test_no_scrollbar(self):
+        """If widget fit without scroll - no scrollbar needed"""
+        widget = urwid.ScrollBar(
+            urwid.Scrollable(urwid.BigText("1", urwid.HalfBlockHeavy6x5Font())),
+            trough_char=urwid.ScrollBar.Symbols.LITE_SHADE,
+            thumb_char=urwid.ScrollBar.Symbols.DARK_SHADE,
+        )
+        reduced_size = (8, 5)
+        self.assertEqual(
+            (
+                " ▐█▌    ",
+                " ▀█▌    ",
+                "  █▌    ",
+                "  █▌    ",
+                " ███▌   ",
+            ),
+            widget.render(reduced_size).decoded_text,
+        )
+
 
 class TestScrollBarListBox(unittest.TestCase):
-    def test_non_selectable(self):
+    def test_relative_non_selectable(self):
         widget = urwid.ScrollBar(
             urwid.ListBox(urwid.SimpleListWalker(urwid.Text(line) for line in LGPL_HEADER.splitlines()))
         )
@@ -245,13 +264,15 @@ class TestScrollBarListBox(unittest.TestCase):
 
         widget.keypress(reduced_size, "end")
 
+        # Here we have ListBox issue: "end" really scroll not to the "dead end"
+        # in case of the bottom focus position is multiline
         self.assertEqual(
             (
+                "GNU Lesser General Public               ",
                 "License along with this library; if     ",
                 "not, write to the Free Software         ",
                 "Foundation, Inc., 51 Franklin Street,   ",
-                "Fifth Floor, Boston, MA  02110-1301     ",
-                "USA                                    █",
+                "Fifth Floor, Boston, MA  02110-1301    █",
             ),
             widget.render(reduced_size).decoded_text,
         )
