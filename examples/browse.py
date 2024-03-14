@@ -379,9 +379,9 @@ def escape_filename_sh_ansic(name: str) -> str:
 SPLIT_RE = re.compile(r"[a-zA-Z]+|\d+")
 
 
-def alphabetize(s):
+def alphabetize(s: str) -> list[str]:
     L = []
-    for isdigit, group in itertools.groupby(SPLIT_RE.findall(s), key=lambda x: x.isdigit()):
+    for isdigit, group in itertools.groupby(SPLIT_RE.findall(s), key=str.isdigit):
         if isdigit:
             L.extend(("", int(n)) for n in group)
         else:

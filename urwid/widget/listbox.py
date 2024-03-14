@@ -20,6 +20,7 @@
 
 from __future__ import annotations
 
+import operator
 import typing
 import warnings
 from collections.abc import Iterable, Sized
@@ -443,10 +444,17 @@ class ListBox(Widget, WidgetContainerMixin):
         )
         self.body = body
 
-    def __len__(self) -> int:
+    @property
+    def __len__(self) -> Callable[[], int]:
         if isinstance(self._body, Sized):
-            return len(self._body)
+            return self._body.__len__
         raise AttributeError(f"{self._body.__class__.__name__} is not Sized")
+
+    @property
+    def __length_hint__(self) -> Callable[[], int]:  # pylint: disable=invalid-length-hint-returned
+        if isinstance(self._body, (Sized, EstimatedSized)):
+            return lambda: operator.length_hint(self._body)
+        raise AttributeError(f'{self._body.__class__.__name__} is not Sized and do not implement "__length_hint__"')
 
     def calculate_visible(
         self,
@@ -655,7 +663,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
     def require_relative_scroll(self, size: tuple[int, int], focus: bool = False) -> bool:
         """Widget require relative scroll due to performance limitations of real lines count calculation."""
-        return isinstance(self._body, Sized) and (size[1] * 3 < len(self))
+        return isinstance(self._body, (Sized, EstimatedSized)) and (size[1] * 3 < operator.length_hint(self.body))
 
     def get_first_visible_pos(self, size: tuple[int, int], focus: bool = False) -> int:
         self._check_support_scrolling()

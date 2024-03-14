@@ -130,8 +130,6 @@ class SupportsScroll(WidgetProto, Protocol):
 class SupportsRelativeScroll(WidgetProto, Protocol):
     """Relative scroll-specific methods."""
 
-    def __len__(self) -> int: ...
-
     def require_relative_scroll(self, size: tuple[int, int], focus: bool = False) -> bool: ...
 
     def get_first_visible_pos(self, size: tuple[int, int], focus: bool = False) -> int: ...
@@ -516,18 +514,32 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
         ow = self._original_widget
         ow_base = self.scrolling_base_widget
 
-        if isinstance(ow, SupportsRelativeScroll) and ow.require_relative_scroll(size, focus):
-            if len(ow) == ow.get_visible_amount(size, focus):
-                # Canvas fits without scrolling - no scrollbar needed
-                return render_no_scrollbar()
+        # Use hasattr instead of protocol: hasattr will return False in case of getattr raise AttributeError
+        # Use __length_hint__ first since it's less resource intensive
+        use_relative = (
+            isinstance(ow_base, SupportsRelativeScroll)
+            and any(hasattr(ow_base, attrib) for attrib in ("__length_hint__", "__len__"))
+            and ow_base.require_relative_scroll(size, focus)
+        )
 
+        if use_relative:
+            # `operator.length_hint` is Protocol (Spec) over class based and can end false-negative on the instance
+            # use length_hint-like approach with safe `AttributeError` handling
+            ow_len = getattr(ow_base, "__len__", getattr(ow_base, "__length_hint__", lambda: 0))()
             ow_canv = render_for_scrollbar()
-            visible_amount = ow.get_visible_amount(ow_size, focus)
+            visible_amount = ow_base.get_visible_amount(ow_size, focus)
             pos = ow_base.get_first_visible_pos(ow_size, focus)
-            posmax = len(ow) - visible_amount
-            thumb_weight = min(1.0, visible_amount / max(1, len(ow)))
 
-        else:
+            # in the case of estimated length, it can be smaller than real widget length
+            ow_len = max(ow_len, visible_amount, pos)
+            posmax = ow_len - visible_amount
+            thumb_weight = min(1.0, visible_amount / max(1, ow_len))
+
+            if ow_len == visible_amount:
+                # Corner case: formally all contents indexes should be visible, but this does not mean all rows
+                use_relative = False
+
+        if not use_relative:
             ow_rows_max = ow_base.rows_max(size, focus)
             if ow_rows_max <= maxrow:
                 # Canvas fits without scrolling - no scrollbar needed
