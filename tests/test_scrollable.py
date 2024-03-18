@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import string
+import typing
 import unittest
 
 import urwid
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Iterable
 
 LGPL_HEADER = """
 Copyright (C) <year>  <name of author>
@@ -264,15 +268,13 @@ class TestScrollBarListBox(unittest.TestCase):
 
         widget.keypress(reduced_size, "end")
 
-        # Here we have ListBox issue: "end" really scroll not to the "dead end"
-        # in case of the bottom focus position is multiline
         self.assertEqual(
             (
-                "GNU Lesser General Public               ",
                 "License along with this library; if     ",
                 "not, write to the Free Software         ",
                 "Foundation, Inc., 51 Franklin Street,   ",
-                "Fifth Floor, Boston, MA  02110-1301    █",
+                "Fifth Floor, Boston, MA  02110-1301     ",
+                "USA                                    █",
             ),
             widget.render(reduced_size).decoded_text,
         )
@@ -344,3 +346,54 @@ class TestScrollBarListBox(unittest.TestCase):
         widget.keypress(reduced_size, "down")
 
         self.assertEqual(pos_1_down_rendered, widget.render(reduced_size).decoded_text)
+
+    def test_hinted_len(self):
+        class HintedWalker(urwid.ListWalker):
+            def __init__(self, items: Iterable[str]) -> None:
+                self.items: tuple[str] = tuple(items)
+                self.focus = 0
+                self.requested_numbers: set[int] = set()
+
+            def __length_hint__(self) -> int:
+                return len(self.items)
+
+            def __getitem__(self, item: int) -> urwid.Text:
+                self.requested_numbers.add(item)
+                return urwid.Text(self.items[item])
+
+            def set_focus(self, item: int) -> None:
+                self.focus = item
+
+            def next_position(self, position: int) -> int:
+                if position + 1 < len(self.items):
+                    return position + 1
+                raise IndexError
+
+            def prev_position(self, position: int) -> int:
+                if position - 1 >= 0:
+                    return position - 1
+                raise IndexError
+
+        widget = urwid.ScrollBar(urwid.ListBox(HintedWalker((f"Line {idx:02}") for idx in range(1, 51))))
+        size = (10, 10)
+        widget.original_widget.focus_position = 19
+        self.assertEqual(
+            (
+                "Line 16   ",
+                "Line 17   ",
+                "Line 18   ",
+                "Line 19  █",
+                "Line 20  █",
+                "Line 21   ",
+                "Line 22   ",
+                "Line 23   ",
+                "Line 24   ",
+                "Line 25   ",
+            ),
+            widget.render(size).decoded_text,
+        )
+        self.assertNotIn(
+            30,
+            widget.original_widget.body.requested_numbers,
+            "Requested index out of range [0, last shown]. This means not relative scroll bar built.",
+        )
