@@ -14,13 +14,13 @@ RXVTWINDOWID=$(xdotool search --sync --classname "$CLASSNAME")
 export RXVTWINDOWID
 image=${1%.py}
 
-c=1
+counter=1
 while read -r line; do
 	# the echo trick is needed to expand RXVTWINDOWID variable
 	echo $line | xdotool -
 	echo "sending $line"
-	import -window "$RXVTWINDOWID" "${image}$c.png"
-	(( c++ ))
+	import -window "$RXVTWINDOWID" "${image}$counter.png"
+	(( counter++ ))
 done
 
 kill $RXVTPID
