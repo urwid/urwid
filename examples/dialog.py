@@ -68,8 +68,8 @@ class DialogDisplay:
         w = self.frame
 
         # pad area around listbox
-        w = urwid.Padding(w, ("fixed left", 2), ("fixed right", 2))
-        w = urwid.Filler(w, ("fixed top", 1), ("fixed bottom", 1))
+        w = urwid.Padding(w, urwid.LEFT, left=2, right=2)
+        w = urwid.Filler(w, urwid.TOP, urwid.RELATIVE_100, top=1, bottom=1)
         w = urwid.AttrMap(w, "body")
 
         # "shadow" effect

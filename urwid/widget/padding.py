@@ -40,12 +40,14 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         self,
         w: WrappedWidget,
         align: (
-            Literal["left", "center", "right"] | Align | tuple[Literal["relative", WHSettings.RELATIVE], int]
+            Literal["left", "center", "right"]
+            | Align
+            | tuple[Literal["relative", WHSettings.RELATIVE, "fixed left", "fixed right"], int]
         ) = Align.LEFT,
         width: (
             int
             | Literal["pack", "clip", WHSettings.PACK, WHSettings.CLIP]
-            | tuple[Literal["relative", WHSettings.RELATIVE], int]
+            | tuple[Literal["relative", WHSettings.RELATIVE, "fixed left", "fixed right"], int]
         ) = RELATIVE_100,
         min_width: int | None = None,
         left: int = 0,

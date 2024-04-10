@@ -24,7 +24,7 @@ import typing
 
 from urwid.canvas import CompositeCanvas
 
-from .constants import Sizing
+from .constants import Align, Sizing, VAlign
 from .overlay import Overlay
 from .widget import delegate_to_widget_mixin
 from .widget_decoration import WidgetDecoration
@@ -86,8 +86,7 @@ class PopUpLauncher(delegate_to_widget_mixin("_original_widget"), WidgetDecorati
 
 
 class PopUpTarget(WidgetDecoration[WrappedWidget]):
-    # FIXME: this whole class is a terrible hack and must be fixed
-    # when layout and rendering are separated
+    # FIXME: this whole class is a terrible hack and must be fixed when layout and rendering are separated
     _sizing = frozenset((Sizing.BOX,))
     _selectable = True
 
@@ -105,19 +104,23 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
             if self._pop_up != w:
                 self._pop_up = w
                 self._current_widget = Overlay(
-                    w,
-                    self._original_widget,
-                    ("fixed left", left),
-                    overlay_width,
-                    ("fixed top", top),
-                    overlay_height,
+                    top_w=w,
+                    bottom_w=self._original_widget,
+                    align=Align.LEFT,
+                    width=overlay_width,
+                    valign=VAlign.TOP,
+                    height=overlay_height,
+                    left=left,
+                    top=top,
                 )
             else:
                 self._current_widget.set_overlay_parameters(
-                    ("fixed left", left),
-                    overlay_width,
-                    ("fixed top", top),
-                    overlay_height,
+                    align=Align.LEFT,
+                    width=overlay_width,
+                    valign=VAlign.TOP,
+                    height=overlay_height,
+                    left=left,
+                    top=top,
                 )
         else:
             self._pop_up = None
