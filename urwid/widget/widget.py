@@ -592,7 +592,7 @@ class FlowWidget(Widget):
         )
         super().__init__()
 
-    def rows(self, size: int, focus: bool = False) -> int:
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
         """
         All flow widgets must implement this function.
         """
