@@ -24,9 +24,9 @@ import typing
 import warnings
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Collection, Iterator
+    from collections.abc import Callable, Collection, Iterable, Iterator
 
-    from typing_extensions import Concatenate, ParamSpec
+    from typing_extensions import Concatenate, ParamSpec, Self
 
     ArgSpec = ParamSpec("ArgSpec")
     Ret = typing.TypeVar("Ret")
@@ -88,23 +88,69 @@ class MonitoredList(typing.List[_T], typing.Generic[_T]):
         for item in self:
             yield None, item
 
-    __add__ = _call_modified(list.__add__)  # type: ignore[assignment]  # magic like old __super__
-    __delitem__ = _call_modified(list.__delitem__)  # type: ignore[assignment]  # magic like old __super__
+    @_call_modified
+    def __add__(self, __value: list[_T]) -> Self:
+        return super().__add__(__value)
 
-    __iadd__ = _call_modified(list.__iadd__)  # type: ignore[assignment]  # magic like old __super__
-    __imul__ = _call_modified(list.__imul__)  # type: ignore[assignment]  # magic like old __super__
-    __rmul__ = _call_modified(list.__rmul__)  # type: ignore[assignment]  # magic like old __super__
-    __setitem__ = _call_modified(list.__setitem__)  # type: ignore[assignment]  # magic like old __super__
+    @_call_modified
+    def __delitem__(self, __key: typing.SupportsIndex | slice) -> None:
+        super().__delitem__(__key)
 
-    append = _call_modified(list.append)  # type: ignore[assignment]  # magic like old __super__
-    extend = _call_modified(list.extend)  # type: ignore[assignment]  # magic like old __super__
-    insert = _call_modified(list.insert)  # type: ignore[assignment]  # magic like old __super__
-    pop = _call_modified(list.pop)  # type: ignore[assignment]  # magic like old __super__
-    remove = _call_modified(list.remove)  # type: ignore[assignment]  # magic like old __super__
-    reverse = _call_modified(list.reverse)  # type: ignore[assignment]  # magic like old __super__
-    sort = _call_modified(list.sort)  # type: ignore[assignment]  # magic like old __super__
-    if hasattr(list, "clear"):
-        clear = _call_modified(list.clear)  # type: ignore[assignment]  # magic like old __super__
+    @_call_modified
+    def __iadd__(self, __value: Iterable[_T]) -> Self:
+        return super().__iadd__(__value)
+
+    @_call_modified
+    def __rmul__(self, __value: typing.SupportsIndex) -> Self:
+        return super().__rmul__(__value)
+
+    @_call_modified
+    def __imul__(self, __value: typing.SupportsIndex) -> Self:
+        return super().__imul__(__value)
+
+    @typing.overload
+    @_call_modified
+    def __setitem__(self, __key: typing.SupportsIndex, __value: _T) -> None: ...
+
+    @typing.overload
+    @_call_modified
+    def __setitem__(self, __key: slice, __value: Iterable[_T]) -> None: ...
+
+    @_call_modified
+    def __setitem__(self, __key: typing.SupportsIndex | slice, __value: _T | Iterable[_T]) -> None:
+        super().__setitem__(__key, __value)
+
+    @_call_modified
+    def append(self, __object: _T) -> None:
+        super().append(__object)
+
+    @_call_modified
+    def extend(self, __iterable: Iterable[_T]) -> None:
+        super().extend(__iterable)
+
+    @_call_modified
+    def pop(self, __index: typing.SupportsIndex = -1) -> _T:
+        return super().pop(__index)
+
+    @_call_modified
+    def insert(self, __index: typing.SupportsIndex, __object: _T) -> None:
+        super().insert(__index, __object)
+
+    @_call_modified
+    def remove(self, __value: _T) -> None:
+        super().remove(__value)
+
+    @_call_modified
+    def reverse(self) -> None:
+        super().reverse()
+
+    @_call_modified
+    def sort(self, *, key: Callable[[_T], typing.Any] | None = None, reverse: bool = False) -> None:
+        super().sort(key=key, reverse=reverse)
+
+    @_call_modified
+    def clear(self) -> None:
+        super().clear()
 
 
 class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):

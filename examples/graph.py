@@ -209,8 +209,30 @@ class GraphView(urwid.WidgetWrap):
         bg = urwid.AttrMap(urwid.SolidFill("▒"), "screen edge")
         shadow = urwid.AttrMap(urwid.SolidFill(" "), "main shadow")
 
-        bg = urwid.Overlay(shadow, bg, ("fixed left", 3), ("fixed right", 1), ("fixed top", 2), ("fixed bottom", 1))
-        w = urwid.Overlay(w, bg, ("fixed left", 2), ("fixed right", 3), ("fixed top", 1), ("fixed bottom", 2))
+        bg = urwid.Overlay(
+            shadow,
+            bg,
+            align=urwid.LEFT,
+            width=urwid.RELATIVE_100,
+            valign=urwid.TOP,
+            height=urwid.RELATIVE_100,
+            left=3,
+            right=1,
+            top=2,
+            bottom=1,
+        )
+        w = urwid.Overlay(
+            w,
+            bg,
+            align=urwid.LEFT,
+            width=urwid.RELATIVE_100,
+            valign=urwid.TOP,
+            height=urwid.RELATIVE_100,
+            left=2,
+            right=3,
+            top=1,
+            bottom=2,
+        )
         return w
 
     def bar_graph(self, smooth=False):
@@ -288,10 +310,10 @@ class GraphView(urwid.WidgetWrap):
     def main_window(self):
         self.graph = self.bar_graph()
         self.graph_wrap = urwid.WidgetWrap(self.graph)
-        vline = urwid.AttrMap(urwid.SolidFill("\u2502"), "line")
+        vline = urwid.AttrMap(urwid.SolidFill("│"), "line")
         c = self.graph_controls()
         w = urwid.Columns([(urwid.WEIGHT, 2, self.graph_wrap), (1, vline), c], dividechars=1, focus_column=2)
-        w = urwid.Padding(w, ("fixed left", 1), ("fixed right", 0))
+        w = urwid.Padding(w, urwid.LEFT, left=1)
         w = urwid.AttrMap(w, "body")
         w = urwid.LineBox(w)
         w = urwid.AttrMap(w, "line")
