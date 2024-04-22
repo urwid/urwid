@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>MainLoop and Event Loops &#8212; Urwid 2.6.10</title>
+    <title>MainLoop and Event Loops &#8212; Urwid 2.6.11</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=1f4f2616" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=90fbb3e5" />
     
-    <script src="../_static/documentation_options.js?v=235c4503"></script>
-    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/documentation_options.js?v=8724c11a"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
     <link rel="canonical" href="https://urwid.org/reference/main_loop.html" />
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.10</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.11</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">MainLoop and Event Loops</a></li> 
       </ul>
@@ -990,7 +990,7 @@ exception. If <a class="reference internal" href="exceptions.html#urwid.ExitMain
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.ZMQEventLoop.watch_file">
-<span class="sig-name descname"><span class="pre">watch_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">io.TextIOWrapper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flags</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">PollEvent.POLLIN</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">io.TextIOWrapper</span></span></span><a class="headerlink" href="#urwid.ZMQEventLoop.watch_file" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">watch_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">fd:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">io.TextIOWrapper,</span> <span class="pre">callback:</span> <span class="pre">Callable[[],</span> <span class="pre">typing.Any],</span> <span class="pre">flags:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">&lt;PollEvent.POLLIN:</span> <span class="pre">1&gt;</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">io.TextIOWrapper</span></span></span><a class="headerlink" href="#urwid.ZMQEventLoop.watch_file" title="Link to this definition">¶</a></dt>
 <dd><p>Call <em>callback</em> when <em>fd</em> has some data to read. No parameters are
 passed to the callback. The <em>flags</em> are as for <a class="reference internal" href="#urwid.ZMQEventLoop.watch_queue" title="urwid.ZMQEventLoop.watch_queue"><code class="xref py py-meth docutils literal notranslate"><span class="pre">watch_queue()</span></code></a>.
 Returns a handle that may be passed to <a class="reference internal" href="#urwid.ZMQEventLoop.remove_watch_file" title="urwid.ZMQEventLoop.remove_watch_file"><code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_watch_file()</span></code></a>.</p>
@@ -1007,7 +1007,7 @@ Returns a handle that may be passed to <a class="reference internal" href="#urwi
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.ZMQEventLoop.watch_queue">
-<span class="sig-name descname"><span class="pre">watch_queue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queue</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">zmq.Socket</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flags</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">PollEvent.POLLIN</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">zmq.Socket</span></span></span><a class="headerlink" href="#urwid.ZMQEventLoop.watch_queue" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">watch_queue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">queue:</span> <span class="pre">zmq.Socket,</span> <span class="pre">callback:</span> <span class="pre">Callable[[],</span> <span class="pre">typing.Any],</span> <span class="pre">flags:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">&lt;PollEvent.POLLIN:</span> <span class="pre">1&gt;</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">zmq.Socket</span></span></span><a class="headerlink" href="#urwid.ZMQEventLoop.watch_queue" title="Link to this definition">¶</a></dt>
 <dd><p>Call <em>callback</em> when zmq <em>queue</em> has something to read (when <em>flags</em> is
 set to <code class="docutils literal notranslate"><span class="pre">POLLIN</span></code>, the default) or is available to write (when <em>flags</em>
 is set to <code class="docutils literal notranslate"><span class="pre">POLLOUT</span></code>). No parameters are passed to the callback.
@@ -1189,7 +1189,7 @@ Returns a handle that may be passed to <a class="reference internal" href="#urwi
             rel="nofollow">Show Source</a></li>
     </ul>
    </div>
-<div id="searchbox" style="display: none" role="search">
+<search id="searchbox" style="display: none" role="search">
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
@@ -1197,7 +1197,7 @@ Returns a handle that may be passed to <a class="reference internal" href="#urwi
       <input type="submit" value="Go" />
     </form>
     </div>
-</div>
+</search>
 <script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
@@ -1215,14 +1215,14 @@ Returns a handle that may be passed to <a class="reference internal" href="#urwi
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.10</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.11</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">MainLoop and Event Loops</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.2.6.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.3.7.
     </div>
   </body>
 </html>
