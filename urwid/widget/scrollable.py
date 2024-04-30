@@ -138,7 +138,7 @@ class SupportsRelativeScroll(WidgetProto, Protocol):
 
 
 def orig_iter(w: Widget) -> Iterator[Widget]:
-    visited = set(w)
+    visited = set((w,))
     yield w
     while hasattr(w, "original_widget"):
         w = w.original_widget
