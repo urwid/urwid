@@ -481,7 +481,14 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
         """
         if Sizing.BOX not in widget.sizing():
             raise ValueError(f"Not a box widget: {widget!r}")
-        if not isinstance(widget, SupportsScroll):
+
+        def orig_iter(w: Widget) -> Iterator[Widget]:
+            yield w
+            while hasattr(w, "original_widget"):
+                w = w.original_widget
+                yield w
+
+        if not any(isinstance(w, SupportsScroll) for w in orig_iter(widget)):
             raise TypeError(f"Not a scrollable widget: {widget!r}")
 
         super().__init__(widget)
