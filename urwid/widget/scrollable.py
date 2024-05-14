@@ -137,6 +137,17 @@ class SupportsRelativeScroll(WidgetProto, Protocol):
     def get_visible_amount(self, size: tuple[int, int], focus: bool = False) -> int: ...
 
 
+def orig_iter(w: Widget) -> Iterator[Widget]:
+    visited = {w}
+    yield w
+    while hasattr(w, "original_widget"):
+        w = w.original_widget
+        if w in visited:
+            break
+        visited.add(w)
+        yield w
+
+
 class Scrollable(WidgetDecoration[WrappedWidget]):
     def sizing(self) -> frozenset[Sizing]:
         return frozenset((Sizing.BOX,))
@@ -481,7 +492,8 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
         """
         if Sizing.BOX not in widget.sizing():
             raise ValueError(f"Not a box widget: {widget!r}")
-        if not isinstance(widget, SupportsScroll):
+
+        if not any(isinstance(w, SupportsScroll) for w in orig_iter(widget)):
             raise TypeError(f"Not a scrollable widget: {widget!r}")
 
         super().__init__(widget)
@@ -611,12 +623,6 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
     @property
     def scrolling_base_widget(self) -> SupportsScroll | SupportsRelativeScroll:
         """Nearest `original_widget` that is compatible with the scrolling API"""
-
-        def orig_iter(w: Widget) -> Iterator[Widget]:
-            while hasattr(w, "original_widget"):
-                w = w.original_widget
-                yield w
-            yield w
 
         w = self
 
