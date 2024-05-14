@@ -935,7 +935,7 @@ def shard_body_row(sbody):
         else:  # noqa: PLR5501  # pylint: disable=else-if-used  # readability
             # need to skip this unchanged canvas
             if row and isinstance(row[-1], int):
-                row[-1] = row[-1] + cview[2]
+                row[-1] += cview[2]
             else:
                 row.append(cview[2])
 

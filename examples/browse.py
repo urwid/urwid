@@ -346,10 +346,7 @@ def starts_expanded(name: str) -> bool:
     if len(path_elements) > len(_initial_cwd):
         return False
 
-    if path_elements != _initial_cwd[: len(path_elements)]:
-        return False
-
-    return True
+    return path_elements == _initial_cwd[: len(path_elements)]
 
 
 def escape_filename_sh(name: str) -> str:

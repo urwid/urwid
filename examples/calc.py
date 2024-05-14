@@ -137,9 +137,7 @@ class Cell:
             return False
         if next_cell is None:
             return True
-        if self.op == next_cell.op == "+":
-            return False
-        return True
+        return not (self.op == next_cell.op == "+")
 
     def setup_edit(self) -> None:
         """Create the standard edit widget for this cell."""

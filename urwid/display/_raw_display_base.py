@@ -544,9 +544,7 @@ class Screen(BaseScreen, RealTerminal):
         def is_blank_row(row: list[tuple[object, Literal["0", "U"] | None], bytes]) -> bool:
             if len(row) > 1:
                 return False
-            if row[0][2].strip():
-                return False
-            return True
+            return not row[0][2].strip()
 
         def attr_to_escape(a: AttrSpec | str | None) -> str:
             if a in self._pal_escape:

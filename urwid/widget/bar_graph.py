@@ -380,7 +380,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
                 row_combine_last(count, row)
                 y_count -= count  # noqa: PLW2901
                 r += count
-                r = r % 8
+                r %= 8
                 if not y_count:
                     continue
             if r != 0:
@@ -508,7 +508,7 @@ def calculate_bargraph_display(bardata, top: float, bar_widths: list[int], maxro
 
     for r in rows:
         if r is None:
-            y_count = y_count + 1
+            y_count += 1
             continue
         if y_count:
             rowsets.append((y_count, last))
