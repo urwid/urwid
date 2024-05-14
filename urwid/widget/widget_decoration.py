@@ -105,7 +105,7 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
         >>> wd3.base_widget is t
         True
         """
-        visited = set((self,))
+        visited = {self}
         w = self
         while hasattr(w, "_original_widget"):
             w = w._original_widget
