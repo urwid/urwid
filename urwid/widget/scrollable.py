@@ -564,10 +564,10 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
             thumb_weight = min(1.0, maxrow / max(1, ow_rows_max))
 
         # Thumb shrinks/grows according to the ratio of <number of visible lines> / <number of total lines>
-        thumb_height = max(1, round(thumb_weight * maxrow))
+        thumb_height = max(1, round(thumb_weight * maxrow))  # pylint: disable=possibly-used-before-assignment
 
         # Thumb may only touch top/bottom if the first/last row is visible
-        top_weight = float(pos) / max(1, posmax)
+        top_weight = float(pos) / max(1, posmax)  # pylint: disable=possibly-used-before-assignment
         top_height = int((maxrow - thumb_height) * top_weight)
         if top_height == 0 and top_weight > 0:
             top_height = 1
@@ -591,7 +591,10 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
             ),
         )
 
-        combinelist = [(ow_canv, None, True, ow_size[0]), (sb_canv, None, False, sb_width)]
+        combinelist = [
+            (ow_canv, None, True, ow_size[0]),  # pylint: disable=possibly-used-before-assignment
+            (sb_canv, None, False, sb_width),
+        ]
 
         if self._scrollbar_side != SCROLLBAR_LEFT:
             return canvas.CanvasJoin(combinelist)

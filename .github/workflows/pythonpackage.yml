@@ -103,7 +103,7 @@ jobs:
       - name: Install package for test
         run: pip install -e .
       - name: Lint with pylint
-        run: pylint urwid
+        run: pylint --output-format=github urwid
 
   Test:
     needs: [ Isort, Black, Ruff, PyLint ]

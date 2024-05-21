@@ -250,17 +250,17 @@ class ZMQEventLoop(EventLoop):
         """
         A single iteration of the event loop.
         """
+        state = "wait"  # default state not expecting any action
         if self._alarms or self._did_something:
             timeout = 0
             if self._alarms:
                 state = "alarm"
-                timeout = max(0, self._alarms[0][0] - time.time())
+                timeout = max(0.0, self._alarms[0][0] - time.time())
             if self._did_something and (not self._alarms or (self._alarms and timeout > 0)):
                 state = "idle"
                 timeout = 0
             ready = dict(self._poller.poll(timeout * 1000))
         else:
-            state = "wait"
             ready = dict(self._poller.poll())
 
         if not ready:

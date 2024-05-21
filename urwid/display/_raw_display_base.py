@@ -682,7 +682,7 @@ class Screen(BaseScreen, RealTerminal):
                 if isinstance(inserttext, bytes):
                     inserttext = inserttext.decode(encoding)
 
-                output.extend(("\x08" * back, ias))
+                output.extend(("\x08" * back, ias))  # pylint: disable=used-before-assignment  # defined in `if row`
 
                 if encoding != "utf-8":
                     if cs is None:
