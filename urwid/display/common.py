@@ -39,9 +39,6 @@ if typing.TYPE_CHECKING:
 
 IS_WINDOWS = sys.platform == "win32"
 
-if not IS_WINDOWS:
-    import termios
-
 # for replacing unprintable bytes with '?'
 UNPRINTABLE_TRANS_TABLE = b"?" * 32 + bytes(range(32, 256))
 
@@ -940,6 +937,8 @@ class RealTerminal:
             then the original settings will be restored when stop()
             is called.
             """
+
+            import termios
 
             if fileno is None:
                 fileno = sys.stdin.fileno()
