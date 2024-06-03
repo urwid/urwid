@@ -158,7 +158,6 @@ target-version = "py37"
 extend-exclude = ["tests"]
 
 [tool.ruff.lint]
-ignore-init-module-imports = true
 extend-select = [
   "E",
   "W",  # also pycodestyle warnings
