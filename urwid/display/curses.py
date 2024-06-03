@@ -62,7 +62,7 @@ if IS_WINDOWS:
     )
 
     def initscr():
-        import curses  # pylint: disable=redefined-outer-name,reimported  # special case for monkeypatch
+        import curses  # noqa: I001  # pylint: disable=redefined-outer-name,reimported  # special case for monkeypatch
 
         import _curses
 
