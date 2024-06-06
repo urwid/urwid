@@ -2,7 +2,7 @@ tornado>=5
 twisted
 trio
 zmq
-exceptiongroups
+exceptiongroups;python_version<'3.11'
 windows-curses;sys_platform=="win32"
 pyserial
 # for test run
