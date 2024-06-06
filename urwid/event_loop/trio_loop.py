@@ -34,7 +34,7 @@ import trio
 from .abstract_loop import EventLoop, ExitMainLoop
 
 if sys.version_info < (3, 11):
-    from exceptiongroup import BaseExceptionGroup
+    from exceptiongroup import BaseExceptionGroup  # pylint: disable=redefined-builtin  # backport
 
 if typing.TYPE_CHECKING:
     import io
