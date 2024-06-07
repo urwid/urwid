@@ -26,12 +26,15 @@ Trio library is required.
 from __future__ import annotations
 
 import logging
+import sys
 import typing
 
-import exceptiongroup
 import trio
 
 from .abstract_loop import EventLoop, ExitMainLoop
+
+if sys.version_info < (3, 11):
+    from exceptiongroup import BaseExceptionGroup  # pylint: disable=redefined-builtin  # backport
 
 if typing.TYPE_CHECKING:
     import io
@@ -156,8 +159,10 @@ class TrioEventLoop(EventLoop):
 
         emulate_idle_callbacks = _TrioIdleCallbackInstrument(self._idle_callbacks)
 
-        with exceptiongroup.catch({BaseException: self._handle_main_loop_exception}):
+        try:
             trio.run(self._main_task, instruments=[emulate_idle_callbacks])
+        except BaseException as exc:
+            self._handle_main_loop_exception(exc)
 
     async def run_async(self) -> None:
         """Starts the main loop and blocks asynchronously until the main loop exits.
@@ -179,12 +184,14 @@ class TrioEventLoop(EventLoop):
 
         emulate_idle_callbacks = _TrioIdleCallbackInstrument(self._idle_callbacks)
 
-        with exceptiongroup.catch({BaseException: self._handle_main_loop_exception}):
+        try:
             trio.lowlevel.add_instrument(emulate_idle_callbacks)
             try:
                 await self._main_task()
             finally:
                 trio.lowlevel.remove_instrument(emulate_idle_callbacks)
+        except BaseException as exc:
+            self._handle_main_loop_exception(exc)
 
     def watch_file(
         self,
@@ -225,12 +232,11 @@ class TrioEventLoop(EventLoop):
         """Handles exceptions raised from the main loop, catching ExitMainLoop
         instead of letting it propagate through.
 
-        Note that since Trio may collect multiple exceptions from tasks into a
-        Trio MultiError, we cannot simply use a try..catch clause, we need a
-        helper function like this.
+        Note that since Trio may collect multiple exceptions from tasks into an ExceptionGroup,
+        we cannot simply use a try..catch clause, we need a helper function like this.
         """
         self._idle_callbacks.clear()
-        if isinstance(exc, exceptiongroup.BaseExceptionGroup) and len(exc.exceptions) == 1:
+        if isinstance(exc, BaseExceptionGroup) and len(exc.exceptions) == 1:
             exc = exc.exceptions[0]
 
         if isinstance(exc, ExitMainLoop):
