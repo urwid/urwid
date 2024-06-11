@@ -30,13 +30,18 @@ class GridFlowWarning(WidgetWarning):
 
 class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListContentsMixin):
     """
-    The GridFlow widget is a flow widget that renders all the widgets it
-    contains the same width and it arranges them from left to right and top to
-    bottom.
+    The GridFlow widget is a flow widget that renders all the widgets it contains the same width,
+    and it arranges them from left to right and top to bottom.
     """
 
     def sizing(self) -> frozenset[Sizing]:
-        return frozenset((Sizing.FLOW, Sizing.FIXED))
+        """Widget sizing.
+
+        ..note:: Empty widget sizing is limited to the FLOW due to no data for width.
+        """
+        if self:
+            return frozenset((Sizing.FLOW, Sizing.FIXED))
+        return frozenset((Sizing.FLOW,))
 
     def __init__(
         self,
@@ -422,14 +427,16 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
     def _get_maxcol(self, size: tuple[int] | tuple[()]) -> int:
         if size:
             (maxcol,) = size
-            if maxcol < self.cell_width:
+            if self and maxcol < self.cell_width:
                 warnings.warn(
                     f"Size is smaller than cell width ({maxcol!r} < {self.cell_width!r})",
                     GridFlowWarning,
                     stacklevel=3,
                 )
-        else:
+        elif self:
             maxcol = len(self) * self.cell_width + (len(self) - 1) * self.h_sep
+        else:
+            maxcol = 0
         return maxcol
 
     def get_display_widget(self, size: tuple[int] | tuple[()]) -> Divider | Pile:
@@ -525,7 +532,7 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
 
     def keypress(
         self,
-        size: tuple[int],  # type: ignore[override]
+        size: tuple[int] | tuple[()],  # type: ignore[override]
         key: str,
     ) -> str | None:
         """
@@ -545,7 +552,10 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
     ) -> tuple[int, int]:
         if size:
             return super().pack(size, focus)
-        cols = len(self) * self.cell_width + (len(self) - 1) * self.h_sep
+        if self:
+            cols = len(self) * self.cell_width + (len(self) - 1) * self.h_sep
+        else:
+            cols = 0
         return cols, self.rows((cols,), focus)
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:

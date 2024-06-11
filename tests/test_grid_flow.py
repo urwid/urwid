@@ -204,3 +204,27 @@ class GridFlowTest(unittest.TestCase):
         gf.set_focus(t1)
         self.assertEqual(gf.focus_position, 0)
         self.assertRaises(ValueError, lambda: gf.set_focus("nonexistant"))
+
+    def test_empty(self):
+        """Test behaviour of empty widget."""
+        grid = urwid.GridFlow(
+            (),
+            cell_width=10,
+            h_sep=1,
+            v_sep=1,
+            align=urwid.CENTER,
+        )
+        self.assertEqual(frozenset((urwid.FLOW,)), grid.sizing(), "Empty grid can not be handled as FIXED")
+        rows = 1
+        with self.subTest("Flow"):
+            maxcol = 1
+            self.assertEqual((maxcol, rows), grid.pack((maxcol,)))
+            rendered = grid.render((maxcol,))
+            self.assertEqual(maxcol, rendered.cols())
+            self.assertEqual(rows, rendered.rows())
+
+        with self.subTest("Fixed"):
+            maxcol = 0
+            self.assertEqual((maxcol, rows), grid.pack(()))
+            with self.assertRaises(ValueError):
+                grid.render(())
