@@ -668,4 +668,4 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
                 ow.set_scrollpos(pos + 1)
                 return True
 
-        return False
+        return handled
