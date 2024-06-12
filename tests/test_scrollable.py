@@ -133,11 +133,11 @@ class TestScrollBarScrollable(unittest.TestCase):
 
         self.assertEqual(top_position_rendered, widget.render(reduced_size).decoded_text)
 
-        widget.mouse_event(reduced_size, "mouse press", 5, 1, 1, False)
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 5, 1, 1, False))
 
         self.assertEqual(pos_1_down_rendered, widget.render(reduced_size).decoded_text)
 
-        widget.mouse_event(reduced_size, "mouse press", 4, 1, 1, False)
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 4, 1, 1, False))
 
         self.assertEqual(top_position_rendered, widget.render(reduced_size).decoded_text)
 
@@ -283,11 +283,11 @@ class TestScrollBarListBox(unittest.TestCase):
 
         self.assertEqual(top_position_rendered, widget.render(reduced_size).decoded_text)
 
-        widget.mouse_event(reduced_size, "mouse press", 5, 1, 1, False)
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 5, 1, 1, False))
 
         self.assertEqual(pos_1_down_rendered, widget.render(reduced_size).decoded_text)
 
-        widget.mouse_event(reduced_size, "mouse press", 4, 1, 1, False)
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 4, 1, 1, False))
 
         self.assertEqual(top_position_rendered, widget.render(reduced_size).decoded_text)
 
@@ -401,11 +401,11 @@ class TestScrollBarAttrMap(unittest.TestCase):
 
         self.assertEqual(top_position_rendered, widget.render(reduced_size).decoded_text)
 
-        widget.mouse_event(reduced_size, "mouse press", 5, 1, 1, False)
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 5, 1, 1, False))
 
         self.assertEqual(pos_1_down_rendered, widget.render(reduced_size).decoded_text)
 
-        widget.mouse_event(reduced_size, "mouse press", 4, 1, 1, False)
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 4, 1, 1, False))
 
         self.assertEqual(top_position_rendered, widget.render(reduced_size).decoded_text)
 
@@ -479,11 +479,11 @@ class TestScrollBarListBoxAttrMap(unittest.TestCase):
 
         self.assertEqual(top_position_rendered, widget.render(reduced_size).decoded_text)
 
-        widget.mouse_event(reduced_size, "mouse press", 5, 1, 1, False)
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 5, 1, 1, False))
 
         self.assertEqual(pos_1_down_rendered, widget.render(reduced_size).decoded_text)
 
-        widget.mouse_event(reduced_size, "mouse press", 4, 1, 1, False)
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 4, 1, 1, False))
 
         self.assertEqual(top_position_rendered, widget.render(reduced_size).decoded_text)
 
@@ -518,11 +518,11 @@ class TestScrollBarListBoxAttrMap(unittest.TestCase):
 
         self.assertEqual(top_position_rendered, widget.render(reduced_size).decoded_text)
 
-        widget.mouse_event(reduced_size, "mouse press", 5, 1, 1, False)
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 5, 1, 1, False))
 
         self.assertEqual(pos_1_down_rendered, widget.render(reduced_size).decoded_text)
 
-        widget.mouse_event(reduced_size, "mouse press", 4, 1, 1, False)
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 4, 1, 1, False))
 
         self.assertEqual(top_position_rendered, widget.render(reduced_size).decoded_text)
 
