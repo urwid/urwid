@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widget Classes &#8212; Urwid 2.6.13</title>
+    <title>Widget Classes &#8212; Urwid 2.6.14</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=90fbb3e5" />
     
-    <script src="../_static/documentation_options.js?v=14a4cf69"></script>
+    <script src="../_static/documentation_options.js?v=df2d5fa4"></script>
     <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.13</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.14</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>
@@ -4025,9 +4025,8 @@ standard container property <a class="reference internal" href="#urwid.Pile.cont
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.GridFlow">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">GridFlow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cells</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><span class="pre">Widget</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_sep</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v_sep</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">align</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'left'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'center'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'right'</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Align</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'relative'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">WHSettings.RELATIVE</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><span class="pre">Widget</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GridFlow" title="Link to this definition">¶</a></dt>
-<dd><p>The GridFlow widget is a flow widget that renders all the widgets it
-contains the same width and it arranges them from left to right and top to
-bottom.</p>
+<dd><p>The GridFlow widget is a flow widget that renders all the widgets it contains the same width,
+and it arranges them from left to right and top to bottom.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -4129,7 +4128,7 @@ standard container property <a class="reference internal" href="#urwid.GridFlow.
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.GridFlow.keypress">
-<span class="sig-name descname"><span class="pre">keypress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.GridFlow.keypress" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">keypress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.GridFlow.keypress" title="Link to this definition">¶</a></dt>
 <dd><p>Pass keypress to display widget for handling.
 Captures focus changes.</p>
 </dd></dl>
@@ -4265,32 +4264,8 @@ standard container property <a class="reference internal" href="#urwid.GridFlow.
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.GridFlow.sizing">
 <span class="sig-name descname"><span class="pre">sizing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">frozenset</span><span class="p"><span class="pre">[</span></span><span class="pre">Sizing</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.GridFlow.sizing" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>A frozenset including one or more of <code class="docutils literal notranslate"><span class="pre">'box'</span></code>, <code class="docutils literal notranslate"><span class="pre">'flow'</span></code> and
-<code class="docutils literal notranslate"><span class="pre">'fixed'</span></code>.  Default implementation returns the value of
-<a class="reference internal" href="#urwid.Widget._sizing" title="urwid.Widget._sizing"><code class="xref py py-attr docutils literal notranslate"><span class="pre">_sizing</span></code></a>, which for this class includes all three.</p>
-</dd>
-</dl>
-<p>The sizing modes returned indicate the modes that may be
-supported by this widget, but is not sufficient to know
-that using that sizing mode will work.  Subclasses should
-make an effort to remove sizing modes they know will not
-work given the state of the widget, but many do not yet
-do this.</p>
-<p>If a sizing mode is missing from the set then the widget
-should fail when used in that mode.</p>
-<p>If <code class="docutils literal notranslate"><span class="pre">'flow'</span></code> is among the values returned then the other
-methods in this widget must be able to accept a
-single-element tuple (<em>maxcol</em>,) to their <code class="docutils literal notranslate"><span class="pre">size</span></code>
-parameter, and the <code class="xref py py-meth docutils literal notranslate"><span class="pre">rows()</span></code> method must be defined.</p>
-<p>If <code class="docutils literal notranslate"><span class="pre">'box'</span></code> is among the values returned then the other
-methods must be able to accept a two-element tuple
-(<em>maxcol</em>, <em>maxrow</em>) to their size parameter.</p>
-<p>If <code class="docutils literal notranslate"><span class="pre">'fixed'</span></code> is among the values returned then the other
-methods must be able to accept an empty tuple () to
-their size parameter, and the <a class="reference internal" href="#urwid.GridFlow.pack" title="urwid.GridFlow.pack"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pack()</span></code></a> method must
-be defined.</p>
+<dd><p>Widget sizing.</p>
+<p>..note:: Empty widget sizing is limited to the FLOW due to no data for width.</p>
 </dd></dl>
 
 </dd></dl>
@@ -6079,7 +6054,7 @@ be defined.</p>
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.13</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.14</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>
