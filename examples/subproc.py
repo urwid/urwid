@@ -34,8 +34,8 @@ def received_output(data: bytes) -> bool:
 
 
 write_fd = loop.watch_pipe(received_output)
-with subprocess.Popen(
-    ["python", "-u", run_me, str(factor_me)],  # noqa: S603,S607  # Example can be insecure
+with subprocess.Popen(  # noqa: S603
+    ["python", "-u", run_me, str(factor_me)],  # noqa: S607  # Example can be insecure
     stdout=write_fd,
     close_fds=True,
 ) as proc:

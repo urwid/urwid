@@ -148,8 +148,8 @@ class Screen(_raw_display_base.Screen):
         if not os.environ.get("TERM", "").lower().startswith("linux"):
             return
 
-        m = Popen(  # pylint: disable=consider-using-with
-            ["/usr/bin/mev", "-e", "158"],  # noqa: S603
+        m = Popen(  # noqa: S603  # pylint: disable=consider-using-with
+            ["/usr/bin/mev", "-e", "158"],
             stdin=PIPE,
             stdout=PIPE,
             close_fds=True,
