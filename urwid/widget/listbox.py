@@ -645,17 +645,18 @@ class ListBox(Widget, WidgetContainerMixin):
             rows = 0
 
             focused_w, idx = self.body.get_focus()
-            rows += focused_w.rows((cols,), focus)
+            if focused_w:
+                rows += focused_w.rows((cols,), focus)
 
-            prev, pos = self._body.get_prev(idx)
-            while prev is not None:
-                rows += prev.rows((cols,), False)
-                prev, pos = self._body.get_prev(pos)
+                prev, pos = self._body.get_prev(idx)
+                while prev is not None:
+                    rows += prev.rows((cols,), False)
+                    prev, pos = self._body.get_prev(pos)
 
-            next_, pos = self.body.get_next(idx)
-            while next_ is not None:
-                rows += next_.rows((cols,), True)
-                next_, pos = self._body.get_next(pos)
+                next_, pos = self.body.get_next(idx)
+                while next_ is not None:
+                    rows += next_.rows((cols,), True)
+                    next_, pos = self._body.get_next(pos)
 
             self._rows_max_cached = rows
 
