@@ -291,6 +291,21 @@ class TestScrollBarListBox(unittest.TestCase):
 
         self.assertEqual(top_position_rendered, widget.render(reduced_size).decoded_text)
 
+    def test_empty(self):
+        """Empty widget should be correctly rendered."""
+        widget = urwid.ScrollBar(urwid.ListBox(urwid.SimpleListWalker(())))
+        reduced_size = (10, 5)
+        self.assertEqual(
+            (
+                "          ",
+                "          ",
+                "          ",
+                "          ",
+                "          ",
+            ),
+            widget.render(reduced_size).decoded_text,
+        )
+
 
 def trivial_AttrMap(widget):
     return urwid.AttrMap(widget, {})
