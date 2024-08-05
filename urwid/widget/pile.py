@@ -325,7 +325,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 chain(self.contents, repeat((None, (WHSettings.WEIGHT, 1)))),
             )
         ]
-        if focus_position < len(widgets):  # pylint: disable=consider-using-max-builtin  # pylint bug
+        if focus_position < len(widgets):
             self.focus_position = focus_position
 
     @property
@@ -365,7 +365,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             (w, ({Sizing.FIXED: WHSettings.GIVEN, Sizing.FLOW: WHSettings.PACK}.get(new_t, new_t), new_height))
             for ((new_t, new_height), (w, options)) in zip(item_types, self.contents)
         ]
-        if focus_position < len(item_types):  # pylint: disable=consider-using-max-builtin  # pylint bug
+        if focus_position < len(item_types):
             self.focus_position = focus_position
 
     @property
