@@ -166,7 +166,7 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
         )
         focus_position = self.focus_position
         self.contents = [(new, (WHSettings.GIVEN, self._cell_width)) for new in widgets]
-        if focus_position < len(widgets):  # pylint: disable=consider-using-max-builtin  # pylint bug
+        if focus_position < len(widgets):
             self.focus_position = focus_position
 
     def _get_cells(self):

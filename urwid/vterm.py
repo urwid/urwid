@@ -375,7 +375,7 @@ class TermCanvas(Canvas):
             lines = self.height // 2
 
         if not up:
-            lines = -lines  # pylint: disable=invalid-unary-operand-type  # type already narrowed
+            lines = -lines
 
         maxscroll = len(self.scrollback_buffer)
         self.scrolling_up += lines
