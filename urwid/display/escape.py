@@ -85,6 +85,8 @@ input_sequences = [
     ("[F", "end"),
     ("[G", "5"),
     ("[H", "home"),
+    ("[I", "focus in"),
+    ("[O", "focus out"),
     ("[1~", "home"),
     ("[2~", "insert"),
     ("[3~", "delete"),
@@ -573,6 +575,9 @@ RESTORE_NORMAL_BUFFER = f"{ESC}[?1049l"
 
 ENABLE_BRACKETED_PASTE_MODE = f"{ESC}[?2004h"
 DISABLE_BRACKETED_PASTE_MODE = f"{ESC}[?2004l"
+
+ENABLE_FOCUS_REPORTING = f"{ESC}[?1004h"
+DISABLE_FOCUS_REPORTING = f"{ESC}[?1004l"
 
 # RESET_SCROLL_REGION = ESC+"[;r"
 # RESET = ESC+"c"
