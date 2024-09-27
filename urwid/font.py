@@ -192,9 +192,9 @@ class Font(metaclass=FontRegistry):
 
     __slots__ = ("canvas", "char", "utf8_required")
 
-    height: int
-    data: Sequence[str]
-    name: str
+    height: int  # pylint: disable=declare-non-slot
+    data: Sequence[str]  # pylint: disable=declare-non-slot
+    name: str  # pylint: disable=declare-non-slot
 
     def __init__(self) -> None:
         if not self.height:
