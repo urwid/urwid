@@ -211,11 +211,11 @@ class Screen(_raw_display_base.Screen):
 
         self.signal_restore()
 
+        self._stop_mouse_restore_buffer()
+
         fd = self._input_fileno()
         if fd is not None and os.isatty(fd):
-            termios.tcsetattr(fd, termios.TCSADRAIN, self._old_termios_settings)
-
-        self._stop_mouse_restore_buffer()
+            termios.tcsetattr(fd, termios.TCSAFLUSH, self._old_termios_settings)
 
         if self._old_signal_keys:
             self.tty_signal_keys(*self._old_signal_keys, fd)
