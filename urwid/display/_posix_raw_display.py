@@ -56,6 +56,7 @@ class Screen(_raw_display_base.Screen):
         input: typing.TextIO = sys.stdin,  # noqa: A002  # pylint: disable=redefined-builtin
         output: typing.TextIO = sys.stdout,
         bracketed_paste_mode=False,
+        focus_reporting=False,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output
         terminal.
@@ -63,11 +64,15 @@ class Screen(_raw_display_base.Screen):
         bracketed_paste_mode -- enable bracketed paste mode in the host terminal.
             If the host terminal supports it, the application will receive `begin paste`
             and `end paste` keystrokes when the user pastes text.
+        focus_reporting -- enable focus reporting in the host terminal.
+            If the host terminal supports it, the application will receive `focus in`
+            and `focus out` keystrokes when the application gains and loses focus.
         """
         super().__init__(input, output)
         self.gpm_mev: Popen | None = None
         self.gpm_event_pending: bool = False
         self.bracketed_paste_mode = bracketed_paste_mode
+        self.focus_reporting = focus_reporting
 
         # These store the previous signal handlers after setting ours
         self._prev_sigcont_handler = None
@@ -79,7 +84,8 @@ class Screen(_raw_display_base.Screen):
             f"<{self.__class__.__name__}("
             f"input={self._term_input_file}, "
             f"output={self._term_output_file}, "
-            f"bracketed_paste_mode={self.bracketed_paste_mode})>"
+            f"bracketed_paste_mode={self.bracketed_paste_mode}, "
+            f"focus_reporting={self.focus_reporting})>"
         )
 
     def _sigwinch_handler(self, signum: int = 28, frame: FrameType | None = None) -> None:
@@ -180,6 +186,9 @@ class Screen(_raw_display_base.Screen):
         if self.bracketed_paste_mode:
             self.write(escape.ENABLE_BRACKETED_PASTE_MODE)
 
+        if self.focus_reporting:
+            self.write(escape.ENABLE_FOCUS_REPORTING)
+
         fd = self._input_fileno()
         if fd is not None and os.isatty(fd):
             self._old_termios_settings = termios.tcgetattr(fd)
@@ -206,6 +215,9 @@ class Screen(_raw_display_base.Screen):
 
         if self.bracketed_paste_mode:
             self.write(escape.DISABLE_BRACKETED_PASTE_MODE)
+
+        if self.focus_reporting:
+            self.write(escape.DISABLE_FOCUS_REPORTING)
 
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
 
