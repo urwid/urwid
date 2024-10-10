@@ -1118,6 +1118,12 @@ class TermCanvas(Canvas):
             elif 40 <= attr <= 47:
                 bg = attr - 40
                 colors = max(16, colors)
+            elif 90 <= attr <= 97:
+                fg = attr - 90 + 8
+                colors = max(16, colors)
+            elif 100 <= attr <= 107:
+                bg = attr - 100 + 8
+                colors = max(16, colors)
             elif attr in {38, 48}:
                 if idx + 2 < len(attrs) and attrs[idx + 1] == 5:
                     # 8 bit color specification
