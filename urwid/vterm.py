@@ -109,7 +109,8 @@ class CSIAlias(typing.NamedTuple):
 class CSICommand(typing.NamedTuple):
     num_args: int
     default: int
-    callback: Callable[[TermCanvas, list[int], bool], typing.Any]  # return value ignored
+    callback: Callable[[TermCanvas, list[int], bool],
+                       typing.Any]  # return value ignored
 
 
 CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
@@ -137,7 +138,8 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"X": CSICommand(
         1,
         1,
-        lambda s, number, q: s.erase(s.term_cursor, (s.term_cursor[0] + number[0] - 1, s.term_cursor[1])),
+        lambda s, number, q: s.erase(
+            s.term_cursor, (s.term_cursor[0] + number[0] - 1, s.term_cursor[1])),
     ),
     b"a": CSIAlias("alias", b"C"),
     b"c": CSICommand(0, 0, lambda s, none, q: s.csi_get_device_attributes(q)),
@@ -303,7 +305,8 @@ class TermCanvas(Canvas):
         self.modes: TermModes = widget.term_modes
         self.has_focus = False
 
-        self.scrollback_buffer: deque[list[tuple[AttrSpec | None, str | None, bytes]]] = deque(maxlen=10000)
+        self.scrollback_buffer: deque[list[tuple[AttrSpec |
+                                                 None, str | None, bytes]]] = deque(maxlen=10000)
         self.scrolling_up = 0
 
         self.utf8_eat_bytes: int | None = None
@@ -312,7 +315,8 @@ class TermCanvas(Canvas):
 
         self.coords["cursor"] = (0, 0, None)
 
-        self.term_cursor: tuple[int, int] = (0, 0)  # do not allow to shoot in the leg at `set_term_cursor`
+        # do not allow to shoot in the leg at `set_term_cursor`
+        self.term_cursor: tuple[int, int] = (0, 0)
 
         self.within_escape = False
         self.parsestate = 0
@@ -541,7 +545,7 @@ class TermCanvas(Canvas):
         qmark = self.escbuf.startswith(b"?")
 
         escbuf = []
-        for arg in self.escbuf[1 if qmark else 0 :].split(b";"):
+        for arg in self.escbuf[1 if qmark else 0:].split(b";"):
             try:
                 num = int(arg)
             except ValueError:
@@ -552,7 +556,8 @@ class TermCanvas(Canvas):
         cmd_ = CSI_COMMANDS[char]
         if cmd_ is not None:
             if isinstance(cmd_, CSIAlias):
-                csi_cmd: CSICommand = CSI_COMMANDS[cmd_.alias]  # type: ignore[assignment]
+                # type: ignore[assignment]
+                csi_cmd: CSICommand = CSI_COMMANDS[cmd_.alias]
             elif isinstance(cmd_, CSICommand):
                 csi_cmd = cmd_
             elif cmd_[0] == "alias":  # fallback, hard deprecated
@@ -699,7 +704,8 @@ class TermCanvas(Canvas):
 
                 # end multibyte sequence
                 self.utf8_eat_bytes = None
-                sequence = (self.utf8_buffer + bytes([byte])).decode("utf-8", "ignore")
+                sequence = (self.utf8_buffer +
+                            bytes([byte])).decode("utf-8", "ignore")
                 if not sequence:
                     # invalid multibyte sequence, stop processing
                     return
@@ -910,7 +916,8 @@ class TermCanvas(Canvas):
     def save_cursor(self, with_attrs: bool = False) -> None:
         self.saved_cursor = tuple(self.term_cursor)
         if with_attrs:
-            self.saved_attrs = (copy.copy(self.attrspec), copy.copy(self.charset))
+            self.saved_attrs = (copy.copy(self.attrspec),
+                                copy.copy(self.charset))
 
     def restore_cursor(self, with_attrs: bool = False) -> None:
         if self.saved_cursor is None:
@@ -920,7 +927,8 @@ class TermCanvas(Canvas):
         self.set_term_cursor(x, y)
 
         if with_attrs and self.saved_attrs is not None:
-            self.attrspec, self.charset = (copy.copy(self.saved_attrs[0]), copy.copy(self.saved_attrs[1]))
+            self.attrspec, self.charset = (
+                copy.copy(self.saved_attrs[0]), copy.copy(self.saved_attrs[1]))
 
     def tab(self, tabstop: int = 8) -> None:
         """
@@ -1118,6 +1126,12 @@ class TermCanvas(Canvas):
             elif 40 <= attr <= 47:
                 bg = attr - 40
                 colors = max(16, colors)
+            elif 90 <= attr <= 97:
+                fg = attr - 90 + 8
+                colors = max(16, colors)
+            elif 100 <= attr <= 107:
+                bg = attr - 100 + 8
+                colors = max(16, colors)
             elif attr in {38, 48}:
                 if idx + 2 < len(attrs) and attrs[idx + 1] == 5:
                     # 8 bit color specification
@@ -1130,7 +1144,8 @@ class TermCanvas(Canvas):
                     idx += 2
                 elif idx + 4 < len(attrs) and attrs[idx + 1] == 2:
                     # 24 bit color specification
-                    color = (attrs[idx + 2] << 16) + (attrs[idx + 3] << 8) + attrs[idx + 4]
+                    color = (attrs[idx + 2] << 16) + \
+                        (attrs[idx + 3] << 8) + attrs[idx + 4]
                     colors = 2**24
                     if attr == 38:
                         fg = color
@@ -1233,7 +1248,8 @@ class TermCanvas(Canvas):
 
                 attributes.add(attr)
 
-        attrspec = self.sgi_to_attrspec(attrs, fg, bg, attributes, self.attrspec.colors if self.attrspec else 1)
+        attrspec = self.sgi_to_attrspec(
+            attrs, fg, bg, attributes, self.attrspec.colors if self.attrspec else 1)
 
         if self.modes.reverse_video:
             self.attrspec = self.reverse_attrspec(attrspec)
@@ -1328,8 +1344,10 @@ class TermCanvas(Canvas):
             bottom = self.height
 
         if top < bottom <= self.height:
-            self.scrollregion_start = self.constrain_coords(0, top - 1, ignore_scrolling=True)[1]
-            self.scrollregion_end = self.constrain_coords(0, bottom - 1, ignore_scrolling=True)[1]
+            self.scrollregion_start = self.constrain_coords(
+                0, top - 1, ignore_scrolling=True)[1]
+            self.scrollregion_end = self.constrain_coords(
+                0, bottom - 1, ignore_scrolling=True)[1]
 
             self.set_term_cursor(0, 0)
 
@@ -1446,7 +1464,7 @@ class TermCanvas(Canvas):
             yield from self.term
         else:
             buf = self.scrollback_buffer + self.term
-            yield from buf[-(self.height + self.scrolling_up) : -self.scrolling_up]
+            yield from buf[-(self.height + self.scrolling_up): -self.scrolling_up]
 
     def content_delta(self, other: Canvas):
         if other is self:
@@ -1458,7 +1476,8 @@ class Terminal(Widget):
     _selectable = True
     _sizing = frozenset([Sizing.BOX])
 
-    signals: typing.ClassVar[list[str]] = ["closed", "beep", "leds", "title", "resize"]
+    signals: typing.ClassVar[list[str]] = [
+        "closed", "beep", "leds", "title", "resize"]
 
     def __init__(
         self,
