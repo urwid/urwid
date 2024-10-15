@@ -246,11 +246,12 @@ class ReadInputThread(threading.Thread):
                     if not inp.Event.KeyEvent.bKeyDown:
                         continue
 
-                    input_data = inp.Event.KeyEvent.uChar.AsciiChar
-                    # On Windows atomic press/release of modifier keys produce phantom input with code NULL
+                    input_data = inp.Event.KeyEvent.uChar.UnicodeChar
+                    # On Windows atomic press/release of modifier keys produce phantom input with code NULL.
                     # This input cannot be decoded and should be handled as garbage.
-                    if input_data != b"\x00":
-                        self._input.send(input_data)
+                    input_bytes = input_data.encode("utf-8")
+                    if input_bytes != b"\x00":
+                        self._input.send(input_bytes)
 
                 elif inp.EventType == _win32.EventType.WINDOW_BUFFER_SIZE_EVENT:
                     self._resize()
