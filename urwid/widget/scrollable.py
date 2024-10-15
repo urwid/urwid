@@ -537,7 +537,7 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
         if use_relative:
             # `operator.length_hint` is Protocol (Spec) over class based and can end false-negative on the instance
             # use length_hint-like approach with safe `AttributeError` handling
-            ow_len = getattr(ow_base, "__len__", getattr(ow_base, "__length_hint__", lambda: 0))()
+            ow_len = getattr(ow_base, "__len__", getattr(ow_base, "__length_hint__", int))()
             ow_canv = render_for_scrollbar()
             visible_amount = ow_base.get_visible_amount(ow_size, focus)
             pos = ow_base.get_first_visible_pos(ow_size, focus)
