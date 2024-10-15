@@ -410,7 +410,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
                     if len(bar_type) == 3:
                         # vertical eighths
                         fg, bg, k = bar_type
-                        a = self.satt[(fg, bg)]
+                        a = self.satt[fg, bg]
                         t = self.eighths[k] * width
                     else:
                         # horizontal lines

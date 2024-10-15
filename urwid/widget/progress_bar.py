@@ -8,6 +8,8 @@ from .text import Text
 from .widget import Widget
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from urwid.canvas import TextCanvas
 
 
@@ -18,7 +20,14 @@ class ProgressBar(Widget):
 
     text_align = Align.CENTER
 
-    def __init__(self, normal, complete, current: int = 0, done: int = 100, satt=None):
+    def __init__(
+        self,
+        normal: Hashable | None,
+        complete: Hashable | None,
+        current: int = 0,
+        done: int = 100,
+        satt: Hashable | None = None,
+    ) -> None:
         """
         :param normal: display attribute for incomplete part of progress bar
         :param complete: display attribute for complete part of progress bar
