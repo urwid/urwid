@@ -32,7 +32,7 @@ from collections.abc import MutableMapping, Sequence
 from urwid import str_util
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Collection, Iterable
+    from collections.abc import Iterable
 
 # NOTE: because of circular imports (urwid.util -> urwid.escape -> urwid.util)
 # from urwid.util import is_mouse_event -- will not work here
@@ -227,7 +227,7 @@ class KeyqueueTrie:
             MutableMapping[int, str | MutableMapping[int, str | MutableMapping[int, str]]]
             | typing.Literal["mouse", "sgrmouse"]
         ),
-        keys: Collection[int],
+        keys: Sequence[int],
         more_available: bool,
     ):
         if not isinstance(root, MutableMapping):
@@ -247,7 +247,7 @@ class KeyqueueTrie:
             return None
         return self.get_recurse(root[keys[0]], keys[1:], more_available)
 
-    def read_mouse_info(self, keys: Collection[int], more_available: bool):
+    def read_mouse_info(self, keys: Sequence[int], more_available: bool):
         if len(keys) < 3:
             if more_available:
                 raise MoreInputRequired()
@@ -286,7 +286,7 @@ class KeyqueueTrie:
 
         return ((f"{prefix}mouse {action}", button, x, y), keys[3:])
 
-    def read_sgrmouse_info(self, keys: Collection[int], more_available: bool):
+    def read_sgrmouse_info(self, keys: Sequence[int], more_available: bool):
         # Helpful links:
         # https://stackoverflow.com/questions/5966903/how-to-get-mousemove-and-mouseclick-in-bash
         # http://invisible-island.net/xterm/ctlseqs/ctlseqs.pdf

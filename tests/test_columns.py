@@ -231,7 +231,7 @@ class ColumnsTest(unittest.TestCase):
 
     def test_render_pack_item_not_fit(self):
         items = urwid.Text("123"), urwid.Text("456")
-        widget = urwid.Columns(((urwid.PACK, item) for item in items))
+        widget = urwid.Columns((urwid.PACK, item) for item in items)
         # Make width < widget fixed pack
         width = items[0].pack(())[0] - 1
         height = items[0].rows((width,))

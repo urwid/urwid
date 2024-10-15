@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import typing
 import unittest
-from typing import Collection
 
 import urwid
 from urwid import TreeNode
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable, Iterable
+    from collections.abc import Collection, Hashable, Iterable
 
 
 class SelfRegisteringParent(urwid.ParentNode):
