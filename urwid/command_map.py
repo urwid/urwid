@@ -21,9 +21,10 @@ from __future__ import annotations
 
 import enum
 import typing
-from typing import Iterator
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from typing_extensions import Self
 
 
