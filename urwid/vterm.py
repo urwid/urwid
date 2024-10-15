@@ -1118,6 +1118,8 @@ class TermCanvas(Canvas):
             elif 40 <= attr <= 47:
                 bg = attr - 40
                 colors = max(16, colors)
+            # AIXTERM bright color spec
+            # https://en.wikipedia.org/wiki/ANSI_escape_code
             elif 90 <= attr <= 97:
                 fg = attr - 90 + 8
                 colors = max(16, colors)
