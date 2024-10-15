@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import typing
 import warnings
+from collections.abc import MutableMapping
 
 from urwid.canvas import CanvasCombine, CompositeCanvas
 from urwid.split_repr import remove_defaults
@@ -13,7 +14,7 @@ from .filler import Filler
 from .widget import Widget, WidgetError
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterator, MutableMapping
+    from collections.abc import Iterator
 
     from typing_extensions import Literal
 
@@ -294,9 +295,9 @@ class Frame(Widget, WidgetContainerMixin, typing.Generic[BodyWidget, HeaderWidge
 
         # noinspection PyMethodParameters
         class FrameContents(
-            typing.MutableMapping[
+            MutableMapping[
                 str,
-                typing.Tuple[typing.Union[BodyWidget, HeaderWidget, FooterWidget], None],
+                tuple[typing.Union[BodyWidget, HeaderWidget, FooterWidget], None],
             ]
         ):
             # pylint: disable=no-self-argument

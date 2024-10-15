@@ -155,11 +155,10 @@ class ColumnsTest(unittest.TestCase):
                     str(ctx.warnings[0].message),
                 )
 
-        with self.subTest(
-            'BOX not added to "box_columns" but widget handled as FLOW',
-        ), self.assertWarns(
-            urwid.widget.ColumnsWarning,
-        ) as ctx:
+        with (
+            self.subTest('BOX not added to "box_columns" but widget handled as FLOW'),
+            self.assertWarns(urwid.widget.ColumnsWarning) as ctx,
+        ):
             self.maxDiff = None
             contents = (
                 (urwid.WEIGHT, 1, urwid.SolidFill()),

@@ -218,10 +218,9 @@ class CFLCDScreen(LCDScreen, abc.ABC):
             raise cls.MoreDataRequired
 
         data_end = 2 + packet_len
-        crc = cls.get_crc(data[:data_end])
-        pcrc = data[data_end : data_end + 2]
-        if crc != pcrc:
-            raise cls.InvalidPacket("CRC doesn't match")
+        if (crc := cls.get_crc(data[:data_end])) != (packet_crc := data[data_end : data_end + 2]):
+            raise cls.InvalidPacket(f"CRC doesn't match ({crc=}, {packet_crc=})")
+
         return command, data[2:data_end], data[data_end + 2 :]
 
 
@@ -401,8 +400,7 @@ class CF635Screen(CFLCDScreen):
 
             packet = self._read_packet()
 
-        next_repeat = self.key_repeat.next_event()
-        if next_repeat:
+        if next_repeat := self.key_repeat.next_event():
             timeout, key = next_repeat
             if not timeout:
                 data_input.append(key)

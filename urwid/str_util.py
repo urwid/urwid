@@ -29,17 +29,17 @@ import wcwidth
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
-SAFE_ASCII_RE = re.compile("^[ -~]*$")
-SAFE_ASCII_BYTES_RE = re.compile(b"^[ -~]*$")
+SAFE_ASCII_RE = re.compile(r"^[ -~]*$")
+SAFE_ASCII_BYTES_RE = re.compile(rb"^[ -~]*$")
 
 _byte_encoding: Literal["utf8", "narrow", "wide"] = "narrow"
 
 
 def get_char_width(char: str) -> Literal[0, 1, 2]:
-    width = wcwidth.wcwidth(char)
-    if width < 0:
-        return 0
-    return width
+    if (width := wcwidth.wcwidth(char)) >= 0:
+        return width
+
+    return 0
 
 
 def get_width(o: int) -> Literal[0, 1, 2]:
@@ -86,10 +86,9 @@ def decode_one(text: bytes | str, pos: int) -> tuple[int, int]:
     if b1 & 0xE0 == 0xC0:
         if b2 & 0xC0 != 0x80:
             return error
-        o = ((b1 & 0x1F) << 6) | (b2 & 0x3F)
-        if o < 0x80:
-            return error
-        return o, pos + 2
+        if (o := ((b1 & 0x1F) << 6) | (b2 & 0x3F)) >= 0x80:
+            return o, pos + 2
+        return error
     if lt < 3:
         return error
     if b1 & 0xF0 == 0xE0:
@@ -97,10 +96,9 @@ def decode_one(text: bytes | str, pos: int) -> tuple[int, int]:
             return error
         if b3 & 0xC0 != 0x80:
             return error
-        o = ((b1 & 0x0F) << 12) | ((b2 & 0x3F) << 6) | (b3 & 0x3F)
-        if o < 0x800:
-            return error
-        return o, pos + 3
+        if (o := ((b1 & 0x0F) << 12) | ((b2 & 0x3F) << 6) | (b3 & 0x3F)) >= 0x800:
+            return o, pos + 3
+        return error
     if lt < 4:
         return error
     if b1 & 0xF8 == 0xF0:
@@ -110,10 +108,9 @@ def decode_one(text: bytes | str, pos: int) -> tuple[int, int]:
             return error
         if b4 & 0xC0 != 0x80:
             return error
-        o = ((b1 & 0x07) << 18) | ((b2 & 0x3F) << 12) | ((b3 & 0x3F) << 6) | (b4 & 0x3F)
-        if o < 0x10000:
-            return error
-        return o, pos + 4
+        if (o := ((b1 & 0x07) << 18) | ((b2 & 0x3F) << 12) | ((b3 & 0x3F) << 6) | (b4 & 0x3F)) >= 0x10000:
+            return o, pos + 4
+        return error
     return error
 
 

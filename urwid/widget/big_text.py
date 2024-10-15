@@ -70,15 +70,17 @@ class BigText(Widget):
                 a, ak = attrib[ai]
                 ai += 1
             ak -= 1
-            width = self.font.char_width(ch)
-            if not width:
+
+            if width := self.font.char_width(ch):
+                c: TextCanvas | CompositeCanvas = self.font.render(ch)
+                if a is not None:
+                    c = CompositeCanvas(c)
+                    c.fill_attr(a)
+                o.append((c, None, False, width))
+
+            else:
                 # ignore invalid characters
                 continue
-            c: TextCanvas | CompositeCanvas = self.font.render(ch)
-            if a is not None:
-                c = CompositeCanvas(c)
-                c.fill_attr(a)
-            o.append((c, None, False, width))
         if o:
             canv = CanvasJoin(o)
         else:

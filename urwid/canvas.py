@@ -295,10 +295,10 @@ class Canvas:
         raise NotImplementedError()
 
     def get_cursor(self) -> tuple[int, int] | None:
-        c = self.coords.get("cursor", None)
-        if not c:
-            return None
-        return c[:2]  # trim off data part
+        if c := self.coords.get("cursor", None):
+            return c[:2]  # trim off data part
+
+        return None
 
     def set_cursor(self, c: tuple[int, int] | None) -> None:
         if self.widget_info and self.cacheable:
@@ -312,10 +312,10 @@ class Canvas:
     cursor = property(get_cursor, set_cursor)
 
     def get_pop_up(self) -> tuple[int, int, tuple[Widget, int, int]] | None:
-        c = self.coords.get("pop up", None)
-        if not c:
-            return None
-        return c
+        if c := self.coords.get("pop up", None):
+            return c
+
+        return None
 
     def set_pop_up(self, w: Widget, left: int, top: int, overlay_width: int, overlay_height: int) -> None:
         """
@@ -833,7 +833,7 @@ class CompositeCanvas(Canvas):
 
         if bottom > 0:
             if orig_shards is self.shards:
-                self.shards = self.shards[:]
+                self.shards = self.shards.copy()
             self.shards.append((bottom, [(0, 0, cols, bottom, None, blank_canvas)]))
 
     def overlay(self, other: CompositeCanvas, left: int, top: int) -> None:

@@ -328,8 +328,8 @@ class Screen(BaseScreen):
             if y == cy:
                 sig = (*sig, cx)
             new_screen[sig] = [*new_screen.get(sig, []), y]
-            old_line_numbers = self.last_screen.get(sig, None)
-            if old_line_numbers is not None:
+
+            if (old_line_numbers := self.last_screen.get(sig, None)) is not None:
                 if y in old_line_numbers:
                     old_line = y
                 else:
@@ -609,16 +609,14 @@ def daemonize(errfile: str) -> None:
     """
     Detach process and become a daemon.
     """
-    pid = os.fork()
-    if pid:
+    if os.fork():
         os._exit(0)
 
     os.setsid()
     signal.signal(signal.SIGHUP, signal.SIG_IGN)
     os.umask(0)
 
-    pid = os.fork()
-    if pid:
+    if os.fork():
         os._exit(0)
 
     os.chdir("/")
