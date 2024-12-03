@@ -565,83 +565,6 @@ class Widget(metaclass=WidgetMeta):
         raise NotImplementedError
 
 
-class FlowWidget(Widget):
-    """
-    Deprecated.  Inherit from Widget and add:
-
-        _sizing = frozenset(['flow'])
-
-    at the top of your class definition instead.
-
-    Base class of widgets that determine their rows from the number of
-    columns available.
-    """
-
-    _sizing = frozenset([Sizing.FLOW])
-
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            """
-            FlowWidget is deprecated. Inherit from Widget and add:
-
-                _sizing = frozenset(['flow'])
-
-            at the top of your class definition instead.""",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        super().__init__()
-
-    def rows(self, size: tuple[int], focus: bool = False) -> int:
-        """
-        All flow widgets must implement this function.
-        """
-        raise NotImplementedError()
-
-    def render(self, size: tuple[int], focus: bool = False) -> Canvas:  # type: ignore[override]
-        """
-        All widgets must implement this function.
-        """
-        raise NotImplementedError()
-
-
-class BoxWidget(Widget):
-    """
-    Deprecated.  Inherit from Widget and add:
-
-        _sizing = frozenset(['box'])
-        _selectable = True
-
-    at the top of your class definition instead.
-
-    Base class of width and height constrained widgets such as
-    the top level widget attached to the display object
-    """
-
-    _selectable = True
-    _sizing = frozenset([Sizing.BOX])
-
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            """
-            BoxWidget is deprecated. Inherit from Widget and add:
-
-                _sizing = frozenset(['box'])
-                _selectable = True
-
-            at the top of your class definition instead.""",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        super().__init__()
-
-    def render(self, size: tuple[int, int], focus: bool = False) -> Canvas:  # type: ignore[override]
-        """
-        All widgets must implement this function.
-        """
-        raise NotImplementedError()
-
-
 def fixed_size(size: tuple[()]) -> None:
     """
     raise ValueError if size != ().
@@ -650,46 +573,6 @@ def fixed_size(size: tuple[()]) -> None:
     """
     if size != ():
         raise ValueError(f"FixedWidget takes only () for size.passed: {size!r}")
-
-
-class FixedWidget(Widget):
-    """
-    Deprecated.  Inherit from Widget and add:
-
-        _sizing = frozenset(['fixed'])
-
-    at the top of your class definition instead.
-
-    Base class of widgets that know their width and height and
-    cannot be resized
-    """
-
-    _sizing = frozenset([Sizing.FIXED])
-
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            """
-            FixedWidget is deprecated. Inherit from Widget and add:
-
-                _sizing = frozenset(['fixed'])
-
-            at the top of your class definition instead.""",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        super().__init__()
-
-    def render(self, size: tuple[()], focus: bool = False) -> Canvas:  # type: ignore[override]
-        """
-        All widgets must implement this function.
-        """
-        raise NotImplementedError()
-
-    def pack(self, size: tuple[()] = (), focus: bool = False) -> tuple[int, int]:  # type: ignore[override]
-        """
-        All fixed widgets must implement this function.
-        """
-        raise NotImplementedError()
 
 
 def delegate_to_widget_mixin(attribute_name: str) -> type[Widget]:
