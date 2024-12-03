@@ -26,8 +26,6 @@ import warnings
 from collections.abc import Iterable, Sized
 from contextlib import suppress
 
-from typing_extensions import Protocol, runtime_checkable
-
 from urwid import signals
 from urwid.canvas import CanvasCombine, SolidCanvas
 
@@ -65,8 +63,8 @@ class ListWalkerError(Exception):
     pass
 
 
-@runtime_checkable
-class ScrollSupportingBody(Protocol):
+@typing.runtime_checkable
+class ScrollSupportingBody(typing.Protocol):
     """Protocol for ListWalkers."""
 
     def get_focus(self) -> tuple[Widget, _K]: ...
@@ -78,8 +76,8 @@ class ScrollSupportingBody(Protocol):
     def get_prev(self, position: _K) -> tuple[Widget, _K] | tuple[None, None]: ...
 
 
-@runtime_checkable
-class EstimatedSized(Protocol):
+@typing.runtime_checkable
+class EstimatedSized(typing.Protocol):
     """Widget can estimate it's size.
 
     PEP 424 defines API for memory-efficiency.
@@ -1938,8 +1936,7 @@ class ListBox(Widget, WidgetContainerMixin):
             )
             return False
 
-        handled = w.mouse_event((maxcol,), event, button, col, row - wrow, focus)
-        if handled:
+        if w.mouse_event((maxcol,), event, button, col, row - wrow, focus):
             return True
 
         if is_mouse_press(event):
@@ -1995,8 +1992,8 @@ class ListBox(Widget, WidgetContainerMixin):
         the focus up to the top.  This is the best we can do with
         a minimal list walker implementation.
         """
-        positions_fn = getattr(self._body, "positions", None)
-        if positions_fn:
+
+        if positions_fn := getattr(self._body, "positions", None):
             yield from positions_fn()
             return
 
@@ -2026,8 +2023,8 @@ class ListBox(Widget, WidgetContainerMixin):
         reverse of what `__iter__()` produces, but this is the best we can
         do with a minimal list walker implementation.
         """
-        positions_fn = getattr(self._body, "positions", None)
-        if positions_fn:
+
+        if positions_fn := getattr(self._body, "positions", None):
             yield from positions_fn(reverse=True)
             return
 

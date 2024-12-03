@@ -581,8 +581,7 @@ def calc_pos(
     if row < 0 or row >= len(layout):
         raise ValueError("calculate_pos: out of layout row range")
 
-    pos = calc_line_pos(text, layout[row], pref_col)
-    if pos is not None:
+    if (pos := calc_line_pos(text, layout[row], pref_col)) is not None:
         return pos
 
     rows_above = list(range(row - 1, -1, -1))
@@ -590,14 +589,14 @@ def calc_pos(
     while rows_above and rows_below:
         if rows_above:
             r = rows_above.pop(0)
-            pos = calc_line_pos(text, layout[r], pref_col)
-            if pos is not None:
+            if (pos := calc_line_pos(text, layout[r], pref_col)) is not None:
                 return pos
+
         if rows_below:
             r = rows_below.pop(0)
-            pos = calc_line_pos(text, layout[r], pref_col)
-            if pos is not None:
+            if (pos := calc_line_pos(text, layout[r], pref_col)) is not None:
                 return pos
+
     return 0
 
 

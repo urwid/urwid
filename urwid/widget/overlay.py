@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import typing
 import warnings
+from collections.abc import MutableSequence
 
 from urwid.canvas import CanvasOverlay, CompositeCanvas
 from urwid.split_repr import remove_defaults
@@ -28,7 +29,7 @@ from .padding import calculate_left_right_padding
 from .widget import Widget, WidgetError, WidgetWarning
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterator, MutableSequence, Sequence
+    from collections.abc import Iterator, Sequence
 
     from typing_extensions import Literal
 
@@ -658,8 +659,8 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
 
         # noinspection PyMethodParameters
         class OverlayContents(
-            typing.MutableSequence[
-                typing.Tuple[
+            MutableSequence[
+                tuple[
                     typing.Union[TopWidget, BottomWidget],
                     OverlayOptions,
                 ]

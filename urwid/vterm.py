@@ -248,8 +248,7 @@ class TermCharset:
 
     def apply_mapping(self, char: bytes) -> bytes:
         if self._sgr_mapping or self._g[self.active] == "ibmpc":
-            dec_pos = DEC_SPECIAL_CHARS.find(char.decode("cp437"))
-            if dec_pos >= 0:
+            if (dec_pos := DEC_SPECIAL_CHARS.find(char.decode("cp437"))) >= 0:
                 self.current = "0"
                 return ALT_DEC_SPECIAL_CHARS[dec_pos].encode("cp437")
 
@@ -489,8 +488,7 @@ class TermCanvas(Canvas):
                     continue
 
                 # adjust x axis of scrollback buffer to the current width
-                padding = self.width - len(last_line)
-                if padding > 0:
+                if (padding := self.width - len(last_line)) > 0:
                     last_line += [self.empty_char()] * padding
                 else:
                     last_line = last_line[: self.width]
@@ -549,8 +547,7 @@ class TermCanvas(Canvas):
 
             escbuf.append(num)
 
-        cmd_ = CSI_COMMANDS[char]
-        if cmd_ is not None:
+        if (cmd_ := CSI_COMMANDS[char]) is not None:
             if isinstance(cmd_, CSIAlias):
                 csi_cmd: CSICommand = CSI_COMMANDS[cmd_.alias]  # type: ignore[assignment]
             elif isinstance(cmd_, CSICommand):
@@ -699,11 +696,13 @@ class TermCanvas(Canvas):
 
                 # end multibyte sequence
                 self.utf8_eat_bytes = None
-                sequence = (self.utf8_buffer + bytes([byte])).decode("utf-8", "ignore")
-                if not sequence:
+
+                if sequence := (self.utf8_buffer + bytes([byte])).decode("utf-8", "ignore"):
+                    char = sequence.encode(util.get_encoding(), "replace")
+
+                else:
                     # invalid multibyte sequence, stop processing
                     return
-                char = sequence.encode(util.get_encoding(), "replace")
             else:
                 self.utf8_eat_bytes = None
                 char = bytes([byte])

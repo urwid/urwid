@@ -261,7 +261,7 @@ class TrioEventLoop(EventLoop):
         """
         for task, scope, args in self._pending_tasks:
             self._nursery.start_soon(task, scope, *args)
-        del self._pending_tasks[:]
+        self._pending_tasks.clear()
 
     def _start_task(
         self,

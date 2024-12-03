@@ -16,7 +16,7 @@ if typing.TYPE_CHECKING:
 IS_WINDOWS = sys.platform == "win32"
 
 
-class ClosingTemporaryFilesPair(typing.ContextManager[typing.Tuple[typing.TextIO, typing.TextIO]]):
+class ClosingTemporaryFilesPair(typing.ContextManager[tuple[typing.TextIO, typing.TextIO]]):
     """File pair context manager that closes temporary files on exit.
 
     Since `sys.stdout` is TextIO, tests have to use compatible api for the proper behavior imitation.
@@ -90,17 +90,22 @@ class TestMainLoop(unittest.TestCase):
                 evt.clear()
                 os.write(fd, b"false")
 
-        with ClosingTemporaryFilesPair() as (
-            rd_r,
-            wr_r,
-        ), ClosingTemporaryFilesPair() as (
-            rd_w,
-            wr_w,
-        ), concurrent.futures.ThreadPoolExecutor(
-            max_workers=1,
-        ) as executor, unittest.mock.patch(
-            "subprocess.Popen",  # we want to be sure that nothing outside is called
-            autospec=True,
+        with (
+            ClosingTemporaryFilesPair() as (
+                rd_r,
+                wr_r,
+            ),
+            ClosingTemporaryFilesPair() as (
+                rd_w,
+                wr_w,
+            ),
+            concurrent.futures.ThreadPoolExecutor(
+                max_workers=1,
+            ) as executor,
+            unittest.mock.patch(
+                "subprocess.Popen",  # we want to be sure that nothing outside is called
+                autospec=True,
+            ),
         ):
             evl = urwid.MainLoop(
                 urwid.SolidFill(),
