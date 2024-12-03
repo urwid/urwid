@@ -215,15 +215,6 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         self._align_type, self._align_amount = normalize_align(align, PaddingError)
         self._invalidate()
 
-    def _get_align(self) -> Literal["left", "center", "right"] | tuple[Literal["relative"], int]:
-        warnings.warn(
-            f"Method `{self.__class__.__name__}._get_align` is deprecated, "
-            f"please use property `{self.__class__.__name__}.align`",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.align
-
     def _set_align(self, align: Literal["left", "center", "right"] | tuple[Literal["relative"], int]) -> None:
         warnings.warn(
             f"Method `{self.__class__.__name__}._set_align` is deprecated, "
@@ -260,15 +251,6 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         """
         self._width_type, self._width_amount = normalize_width(width, PaddingError)
         self._invalidate()
-
-    def _get_width(self) -> Literal["clip", "pack"] | int | tuple[Literal["relative"], int]:
-        warnings.warn(
-            f"Method `{self.__class__.__name__}._get_width` is deprecated, "
-            f"please use property `{self.__class__.__name__}.width`",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.width
 
     def _set_width(self, width: Literal["clip", "pack"] | int | tuple[Literal["relative"], int]) -> None:
         warnings.warn(

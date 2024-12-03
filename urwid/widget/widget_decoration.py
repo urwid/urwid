@@ -71,15 +71,6 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
         self._original_widget = original_widget
         self._invalidate()
 
-    def _get_original_widget(self) -> WrappedWidget:
-        warnings.warn(
-            f"Method `{self.__class__.__name__}._get_original_widget` is deprecated, "
-            f"please use property `{self.__class__.__name__}.original_widget`",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.original_widget
-
     def _set_original_widget(self, original_widget: WrappedWidget) -> None:
         warnings.warn(
             f"Method `{self.__class__.__name__}._set_original_widget` is deprecated, "
@@ -92,8 +83,9 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
     @property
     def base_widget(self) -> Widget:
         """
-        Return the widget without decorations.  If there is only one
-        Decoration then this is the same as original_widget.
+        Return the widget without decorations.
+
+        If there is only one Decoration, then this is the same as original_widget.
 
         >>> from urwid import Text
         >>> t = Text('hello')
@@ -113,15 +105,6 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
                 break
             visited.add(w)
         return w
-
-    def _get_base_widget(self) -> Widget:
-        warnings.warn(
-            f"Method `{self.__class__.__name__}._get_base_widget` is deprecated, "
-            f"please use property `{self.__class__.__name__}.base_widget`",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.base_widget
 
     def selectable(self) -> bool:
         return self._original_widget.selectable()
