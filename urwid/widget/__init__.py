@@ -41,9 +41,6 @@ from .solid_fill import SolidFill
 from .text import Text, TextError
 from .treetools import ParentNode, TreeListBox, TreeNode, TreeWalker, TreeWidget, TreeWidgetError
 from .widget import (
-    BoxWidget,
-    FixedWidget,
-    FlowWidget,
     Widget,
     WidgetError,
     WidgetMeta,
@@ -87,7 +84,6 @@ __all__ = (
     "BigText",
     "BoxAdapter",
     "BoxAdapterError",
-    "BoxWidget",
     "Button",
     "CheckBox",
     "CheckBoxError",
@@ -99,8 +95,6 @@ __all__ = (
     "EditError",
     "Filler",
     "FillerError",
-    "FixedWidget",
-    "FlowWidget",
     "Frame",
     "FrameError",
     "GraphVScale",
