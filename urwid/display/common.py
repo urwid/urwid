@@ -704,15 +704,6 @@ class AttrSpec:
             return 16
         return 1
 
-    def _colors(self) -> int:
-        warnings.warn(
-            f"Method `{self.__class__.__name__}._colors` is deprecated, "
-            f"please use property `{self.__class__.__name__}.colors`",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.colors
-
     def __repr__(self) -> str:
         """
         Return an executable python representation of the AttrSpec
@@ -785,15 +776,6 @@ class AttrSpec:
             color = 0
         self.__value = (self.__value & ~_FG_MASK) | color | flags
 
-    def _foreground(self) -> str:
-        warnings.warn(
-            f"Method `{self.__class__.__name__}._foreground` is deprecated, "
-            f"please use property `{self.__class__.__name__}.foreground`",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.foreground
-
     @property
     def background(self) -> str:
         """Return the background color."""
@@ -826,15 +808,6 @@ class AttrSpec:
         if color is None:
             raise AttrSpecError(f"Unrecognised color specification in background ({background!r})")
         self.__value = (self.__value & ~_BG_MASK) | (color << _BG_SHIFT) | flags
-
-    def _background(self) -> str:
-        warnings.warn(
-            f"Method `{self.__class__.__name__}._background` is deprecated, "
-            f"please use property `{self.__class__.__name__}.background`",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.background
 
     def get_rgb_values(self) -> tuple[int | None, int | None, int | None, int | None, int | None, int | None]:
         """
