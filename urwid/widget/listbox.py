@@ -166,15 +166,6 @@ class SimpleListWalker(MonitoredList[_T], ListWalker):
         """
         return self
 
-    def _get_contents(self) -> Self:
-        warnings.warn(
-            f"Method `{self.__class__.__name__}._get_contents` is deprecated, "
-            f"please use property`{self.__class__.__name__}.contents`",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        return self
-
     def _modified(self) -> None:
         if self.focus >= len(self):
             self.focus = max(0, len(self) - 1)
@@ -425,15 +416,6 @@ class ListBox(Widget, WidgetContainerMixin):
             # content has changed
             self.render = nocache_widget_render_instance(self)
         self._invalidate()
-
-    def _get_body(self):
-        warnings.warn(
-            f"Method `{self.__class__.__name__}._get_body` is deprecated, "
-            f"please use property `{self.__class__.__name__}.body`",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        return self.body
 
     def _set_body(self, body):
         warnings.warn(
@@ -887,15 +869,6 @@ class ListBox(Widget, WidgetContainerMixin):
         Return the widget in focus according to our :obj:`list walker <ListWalker>`.
         """
         return self._body.get_focus()[0]
-
-    def _get_focus(self) -> Widget:
-        warnings.warn(
-            f"method `{self.__class__.__name__}._get_focus` is deprecated, "
-            f"please use `{self.__class__.__name__}.focus` property",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        return self.focus
 
     def _get_focus_position(self):
         """

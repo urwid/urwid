@@ -255,15 +255,6 @@ class Frame(Widget, WidgetContainerMixin, typing.Generic[BodyWidget, HeaderWidge
         This is a read-only property."""
         return {"header": self._header, "footer": self._footer, "body": self._body}[self.focus_part]
 
-    def _get_focus(self) -> BodyWidget | HeaderWidget | FooterWidget:
-        warnings.warn(
-            f"method `{self.__class__.__name__}._get_focus` is deprecated, "
-            f"please use `{self.__class__.__name__}.focus` property",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        return {"header": self._header, "footer": self._footer, "body": self._body}[self.focus_part]
-
     @property
     def contents(
         self,
@@ -387,15 +378,6 @@ class Frame(Widget, WidgetContainerMixin, typing.Generic[BodyWidget, HeaderWidge
             self.header = None
         else:
             self.footer = None
-
-    def _contents(self):
-        warnings.warn(
-            f"method `{self.__class__.__name__}._contents` is deprecated, "
-            f"please use property `{self.__class__.__name__}.contents`",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        return self.contents
 
     def options(self) -> None:
         """

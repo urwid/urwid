@@ -582,15 +582,6 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
         """
         return self.top_w
 
-    def _get_focus(self) -> TopWidget:
-        warnings.warn(
-            f"method `{self.__class__.__name__}._get_focus` is deprecated, "
-            f"please use `{self.__class__.__name__}.focus` property",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        return self.top_w
-
     @property
     def focus_position(self) -> Literal[1]:
         """
@@ -607,15 +598,6 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
         """
         if position != 1:
             raise IndexError(f"Overlay widget focus_position currently must always be set to 1, not {position}")
-
-    def _get_focus_position(self) -> int | None:
-        warnings.warn(
-            f"method `{self.__class__.__name__}._get_focus_position` is deprecated, "
-            f"please use `{self.__class__.__name__}.focus_position` property",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        return 1
 
     def _set_focus_position(self, position: int) -> None:
         """
