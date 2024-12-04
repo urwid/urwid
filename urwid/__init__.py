@@ -239,7 +239,7 @@ except ImportError:
 
 # OS Specific
 if sys.platform != "win32":
-    from .vterm import TermCanvas, TermCharset, Terminal, TermModes, TermScroller
+    from .vterm import TermCanvas, TermCharset, Terminal, TermModes
 
     # ZMQEventLoop cause interpreter crash on windows
     try:
