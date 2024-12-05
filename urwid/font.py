@@ -29,7 +29,7 @@ from urwid.display.escape import SAFE_ASCII_DEC_SPECIAL_RE
 from urwid.util import apply_target_encoding, str_util
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, Sequence
+    from collections.abc import Iterator, Sequence
 
     from typing_extensions import Literal
 
@@ -206,12 +206,10 @@ class Font(metaclass=FontRegistry):
         self.canvas: dict[str, TextCanvas] = {}
         self.utf8_required = False
         if isinstance(self.data, str):
-            self.add_glyphs(self._to_text(self.data))
+            self.add_glyphs(self.data)
 
         else:
-            data: Iterable[str] = (self._to_text(block) for block in self.data)
-
-            for gdata in data:
+            for gdata in self.data:
                 self.add_glyphs(gdata)
 
     def __repr__(self) -> str:
@@ -223,22 +221,19 @@ class Font(metaclass=FontRegistry):
 
     @staticmethod
     def _to_text(
-        obj: str | bytes,
+        obj: str,
         encoding: str = "utf-8",
         errors: Literal["strict", "ignore", "replace"] = "strict",
     ) -> str:
+        warnings.warn(
+            "_to_text is deprecated: only text fonts are supported",
+            DeprecationWarning,
+            stacklevel=3,
+        )
         if isinstance(obj, str):
             return obj
 
-        if isinstance(obj, bytes):
-            warnings.warn(
-                "Bytes based fonts are deprecated, please switch to the text one",
-                DeprecationWarning,
-                stacklevel=3,
-            )
-            return obj.decode(encoding, errors)
-
-        raise TypeError(f"{obj!r} is not str|bytes")
+        raise TypeError(f"{obj!r} is not str")
 
     def add_glyphs(self, gdata: str) -> None:
         d, utf8_required = separate_glyphs(gdata, self.height)
