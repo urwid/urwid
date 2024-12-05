@@ -638,17 +638,6 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             return None
         return self.contents[self.focus_position][0]
 
-    def _get_focus(self) -> Widget:
-        warnings.warn(
-            f"method `{self.__class__.__name__}._get_focus` is deprecated, "
-            f"please use `{self.__class__.__name__}.focus` property",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        if not self.contents:
-            return None
-        return self.contents[self.focus_position][0]
-
     def get_focus(self):
         """
         Return the widget in focus, for backwards compatibility.
@@ -691,17 +680,6 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 exc.__traceback__
             ) from exc
         self.contents.focus = position
-
-    def _get_focus_position(self) -> int | None:
-        warnings.warn(
-            f"method `{self.__class__.__name__}._get_focus_position` is deprecated, "
-            f"please use `{self.__class__.__name__}.focus_position` property",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        if not self.contents:
-            raise IndexError("No focus_position, Columns is empty")
-        return self.contents.focus
 
     def _set_focus_position(self, position: int) -> None:
         """

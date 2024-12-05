@@ -130,15 +130,6 @@ class WidgetContainerMixin:
         always returns ``None``, indicating that this widget has no children.
         """
 
-    def _get_focus(self) -> Widget:
-        warnings.warn(
-            f"method `{self.__class__.__name__}._get_focus` is deprecated, "
-            f"please use `{self.__class__.__name__}.focus` property",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        return self.focus
-
 
 class WidgetContainerListContentsMixin:
     """
@@ -172,15 +163,6 @@ class WidgetContainerListContentsMixin:
     def contents(self, new_contents: list[tuple[Widget, typing.Any]]) -> None:
         """The contents of container as a list of (widget, options)"""
 
-    def _get_contents(self) -> list[tuple[Widget, typing.Any]]:
-        warnings.warn(
-            f"method `{self.__class__.__name__}._get_contents` is deprecated, "
-            f"please use `{self.__class__.__name__}.contents` property",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.contents
-
     def _set_contents(self, c: list[tuple[Widget, typing.Any]]) -> None:
         warnings.warn(
             f"method `{self.__class__.__name__}._set_contents` is deprecated, "
@@ -202,15 +184,6 @@ class WidgetContainerListContentsMixin:
         """
         index of child widget in focus.
         """
-
-    def _get_focus_position(self) -> int | None:
-        warnings.warn(
-            f"method `{self.__class__.__name__}._get_focus_position` is deprecated, "
-            f"please use `{self.__class__.__name__}.focus_position` property",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        return self.focus_position
 
     def _set_focus_position(self, position: int) -> None:
         """
