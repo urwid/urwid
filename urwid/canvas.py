@@ -23,7 +23,6 @@ from __future__ import annotations
 import contextlib
 import dataclasses
 import typing
-import warnings
 import weakref
 from contextlib import suppress
 
@@ -244,15 +243,6 @@ class Canvas:
     def widget_info(self):
         return self._widget_info
 
-    def _get_widget_info(self):
-        warnings.warn(
-            f"Method `{self.__class__.__name__}._get_widget_info` is deprecated, "
-            f"please use property `{self.__class__.__name__}.widget_info`",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.widget_info
-
     @property
     def text(self) -> list[bytes]:
         """
@@ -265,15 +255,6 @@ class Canvas:
         """Decoded text content of the canvas as a sequence of strings, one for each row."""
         encoding = get_encoding()
         return tuple(line.decode(encoding) for line in self.text)
-
-    def _text_content(self):
-        warnings.warn(
-            f"Method `{self.__class__.__name__}._text_content` is deprecated, "
-            f"please use property `{self.__class__.__name__}.text`",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.text
 
     def content(
         self,
