@@ -323,8 +323,8 @@ class Screen(BaseScreen, RealTerminal):
             return []
 
         fd_list: list[socket.socket | typing.IO | int] = [self._resize_pipe_rd]
-        input_io = self._term_input_io
-        if input_io is not None:
+
+        if (input_io := self._term_input_io) is not None:
             fd_list.append(input_io)
         return fd_list
 

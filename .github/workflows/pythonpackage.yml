@@ -114,7 +114,7 @@ jobs:
         os: [ "ubuntu-latest", "windows-latest" ]
         # , "macos-latest"
         # enable macOS only if OS specific branch will be added
-        python-version: [ "3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13" ]
+        python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13" ]
         exclude:
           # Not supported by external requirements
           - os: "windows-latest"

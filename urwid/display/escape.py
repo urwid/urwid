@@ -216,10 +216,10 @@ class KeyqueueTrie:
         root[ord(s)] = result
 
     def get(self, keys, more_available: bool):
-        result = self.get_recurse(self.data, keys, more_available)
-        if not result:
-            result = self.read_cursor_position(keys, more_available)
-        return result
+        if result := self.get_recurse(self.data, keys, more_available):
+            return result
+
+        return self.read_cursor_position(keys, more_available)
 
     def get_recurse(
         self,
@@ -540,9 +540,7 @@ def process_keyqueue(codes: Sequence[int], more_available: bool) -> tuple[list[s
     if code != 27:
         return [f"<{code:d}>"], codes[1:]
 
-    result = input_trie.get(codes[1:], more_available)
-
-    if result is not None:
+    if (result := input_trie.get(codes[1:], more_available)) is not None:
         result, remaining_codes = result
         return [result], remaining_codes
 

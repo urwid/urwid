@@ -850,8 +850,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         remaining = max(remaining, 0)
 
         for i, (_w, (_f, height)) in enumerate(self.contents):
-            li = rows_numbers[i]
-            if li is None:
+            if rows_numbers[i] is None:
                 rows = int(float(remaining) * height / wtotal + 0.5)
                 rows_numbers[i] = rows
                 remaining -= rows
@@ -894,15 +893,14 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         i = self.focus_position
         _widths, heights, size_args = self.get_rows_sizes(size, focus=True)
-        coords = self.focus.get_cursor_coords(size_args[i])
+        if (coords := self.focus.get_cursor_coords(size_args[i])) is not None:
+            x, y = coords
+            if i > 0:
+                y += sum(heights[:i])
 
-        if coords is None:
-            return None
-        x, y = coords
-        if i > 0:
-            for r in heights[:i]:
-                y += r
-        return x, y
+            return x, y
+
+        return None
 
     def rows(self, size: tuple[int] | tuple[int, int], focus: bool = False) -> int:
         return sum(self.get_item_rows(size, focus))
@@ -955,8 +953,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if not hasattr(self.focus, "get_pref_col"):
             return
 
-        pref_col = self.focus.get_pref_col(w_size)
-        if pref_col is not None:
+        if (pref_col := self.focus.get_pref_col(w_size)) is not None:
             self.pref_col = pref_col
 
     def move_cursor_to_coords(
@@ -982,10 +979,8 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if not w.selectable():
             return False
 
-        if hasattr(w, "move_cursor_to_coords"):
-            rval = w.move_cursor_to_coords(w_size, col, row - wrow)
-            if rval is False:
-                return False
+        if hasattr(w, "move_cursor_to_coords") and w.move_cursor_to_coords(w_size, col, row - wrow) is False:
+            return False
 
         self.focus_position = i
         return True

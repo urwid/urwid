@@ -48,7 +48,7 @@ def _call_modified(
     return call_modified_wrapper
 
 
-class MonitoredList(typing.List[_T], typing.Generic[_T]):
+class MonitoredList(list[_T], typing.Generic[_T]):
     """
     This class can trigger a callback any time its contents are changed
     with the usual list operations append, extend, etc.

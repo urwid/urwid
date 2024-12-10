@@ -92,8 +92,8 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
     @property
     def base_widget(self) -> Widget:
         """
-        Return the widget without decorations.  If there is only one
-        Decoration then this is the same as original_widget.
+        Return the widget without decorations.
+        If there is only one Decoration then this is the same as original_widget.
 
         >>> from urwid import Text
         >>> t = Text('hello')
@@ -107,10 +107,7 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
         """
         visited = {self}
         w = self
-        while hasattr(w, "_original_widget"):
-            w = w._original_widget
-            if w in visited:
-                break
+        while (w := getattr(w, "_original_widget", w)) not in visited:
             visited.add(w)
         return w
 

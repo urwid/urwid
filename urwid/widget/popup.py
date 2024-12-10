@@ -98,8 +98,8 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
     def _update_overlay(self, size: tuple[int, int], focus: bool) -> None:
         canv = self._original_widget.render(size, focus=focus)
         self._cache_original_canvas = canv  # imperfect performance hack
-        pop_up = canv.get_pop_up()
-        if pop_up:
+
+        if pop_up := canv.get_pop_up():
             left, top, (w, overlay_width, overlay_height) = pop_up
             if self._pop_up != w:
                 self._pop_up = w

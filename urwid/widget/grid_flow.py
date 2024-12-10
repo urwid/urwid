@@ -540,10 +540,12 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
         Captures focus changes.
         """
         self.get_display_widget(size)
-        key = super().keypress(size, key)
-        if key is None:
-            self._set_focus_from_display_widget()
-        return key
+
+        if (key := super().keypress(size, key)) is not None:
+            return key
+
+        self._set_focus_from_display_widget()
+        return None
 
     def pack(
         self,
