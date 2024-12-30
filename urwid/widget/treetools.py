@@ -107,8 +107,8 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]]):
     def next_inorder(self) -> TreeWidget | None:
         """Return the next TreeWidget depth first from this one."""
         # first check if there's a child widget
-        first_child = self.first_child()
-        if first_child is not None:
+
+        if (first_child := self.first_child()) is not None:
             return first_child
 
         # now we need to hunt for the next sibling
@@ -131,24 +131,21 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]]):
     def prev_inorder(self) -> TreeWidget | None:
         """Return the previous TreeWidget depth first from this one."""
         this_node = self._node
-        prev_node = this_node.prev_sibling()
-        if prev_node is not None:
+
+        if (prev_node := this_node.prev_sibling()) is not None:
             # we need to find the last child of the previous widget if its
             # expanded
             prev_widget = prev_node.get_widget()
-            last_child = prev_widget.last_child()
-            if last_child is None:
-                return prev_widget
+            if (last_child := prev_widget.last_child()) is not None:
+                return last_child
 
-            return last_child
+            return prev_widget
 
         # need to hunt for the parent
-        depth = this_node.get_depth()
-        if prev_node is None and depth == 0:
+        if this_node.get_depth() == 0:
             return None
-        if prev_node is None:
-            prev_node = this_node.get_parent()
-        return prev_node.get_widget()
+
+        return this_node.get_parent().get_widget()
 
     def keypress(
         self,
@@ -212,11 +209,10 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]]):
         else:
             return None
         # recursively search down for the last descendant
-        last_descendant = last_child.last_child()
-        if last_descendant is None:
-            return last_child
+        if (last_descendant := last_child.last_child()) is not None:
+            return last_descendant
 
-        return last_descendant
+        return last_child
 
 
 class TreeNode:
@@ -372,32 +368,18 @@ class ParentNode(TreeNode):
 
     def next_child(self, key: Hashable) -> TreeNode | None:
         """Return the next child node in index order from the given key."""
-
-        index = self.get_child_index(key)
-        # the given node may have just been deleted
-        if index is None:
-            return None
-        index += 1
-
-        child_keys = self.get_child_keys()
-        if index < len(child_keys):
+        if (index := self.get_child_index(key)) is not None and (index + 1) < len(child_keys := self.get_child_keys()):
             # get the next item at same level
-            return self.get_child_node(child_keys[index])
+            return self.get_child_node(child_keys[index + 1])
 
+        # the given node may have just been deleted
         return None
 
     def prev_child(self, key: Hashable) -> TreeNode | None:
         """Return the previous child node in index order from the given key."""
-        index = self.get_child_index(key)
-        if index is None:
-            return None
-
-        child_keys = self.get_child_keys()
-        index -= 1
-
-        if index >= 0:
-            # get the previous item at same level
-            return self.get_child_node(child_keys[index])
+        if (index := self.get_child_index(key)) is not None and index >= 1:
+            # get the previous item at the same level
+            return self.get_child_node(self.get_child_keys()[index - 1])
 
         return None
 
@@ -435,18 +417,16 @@ class TreeWalker(ListWalker):
 
     # pylint: disable=arguments-renamed  # its bad, but we should not change API
     def get_next(self, start_from) -> tuple[TreeWidget, TreeNode] | tuple[None, None]:
-        target = start_from.get_widget().next_inorder()
-        if target is None:
-            return None, None
+        if (target := start_from.get_widget().next_inorder()) is not None:
+            return target, target.get_node()
 
-        return target, target.get_node()
+        return None, None
 
     def get_prev(self, start_from) -> tuple[TreeWidget, TreeNode] | tuple[None, None]:
-        target = start_from.get_widget().prev_inorder()
-        if target is None:
-            return None, None
+        if (target := start_from.get_widget().prev_inorder()) is not None:
+            return target, target.get_node()
 
-        return target, target.get_node()
+        return None, None
 
     # pylint: enable=arguments-renamed
 
@@ -525,8 +505,8 @@ class TreeListBox(ListBox):
 
         maxrow, _maxcol = size
         _widget, pos = self.body.get_focus()
-        lastwidget = pos.get_root().get_widget().last_child()
-        if lastwidget:
+
+        if lastwidget := pos.get_root().get_widget().last_child():
             lastnode = lastwidget.get_node()
 
             self.change_focus(size, lastnode, maxrow - 1)

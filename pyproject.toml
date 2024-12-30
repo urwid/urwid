@@ -11,7 +11,7 @@ build-backend="setuptools.build_meta"
 [project]
 name = "urwid"
 description = "A full-featured console (xterm et al.) user interface library"
-requires-python = ">=3.7.0"
+requires-python = ">=3.9.0"
 keywords = ["curses", "ui", "widget", "scroll", "listbox", "user interface", "text layout", "console", "ncurses"]
 license={text="LGPL-2.1-only"}  # Use SPDX classifier
 readme = {file = "README.rst", content-type = "text/x-rst"}
@@ -154,7 +154,7 @@ ignore_missing_imports = true
 [tool.ruff]
 line-length = 120
 output-format = "full"
-target-version = "py37"
+target-version = "py39"
 extend-exclude = ["tests"]
 
 [tool.ruff.lint]
@@ -165,7 +165,7 @@ extend-select = [
   "ASYNC",  # flake8-async
   "FA",  # from __future__ import annotations
   "SLOT",  # flake8-slots
-  "TCH",  # flake8-type-checking
+  "TC",  # flake8-type-checking
   "S",  # flake8-bandit
   "A",  # flake8-builtins
   "B", "T10", "EXE",  # flake8-bugbear, flake8-debugger, flake8-executable
@@ -180,10 +180,11 @@ extend-ignore = [
   "PLR6301", "E203",
   # refactor rules (too many statements/arguments/branches)
   "PLR0904", "PLR0911", "PLR0912", "PLR0913", "PLR0914", "PLR0915", "PLR0917", "PLR2004",
-  "PLC0415",  # We have a lot of imports outside of top-level
-  "RET504",  # Unnecessary variable assignment before return statement
+  "PLC0415",  # We have a lot of imports outside top-level
+  "RET504",  # Unnecessary variable assignment before a return statement
   "SIM108",  # Use ternary operator,
-  "TRY003",  #long messages prepare outside, ...
+  "TRY003",  # long messages prepare outside, ...
+  "PYI063",  # MonitoredList is a list subclass, this expected to change
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -207,10 +208,10 @@ allow-dunder-method-names = [
 
 [tool.pylint]
 extension-pkg-whitelist = []
-ignore = ["CVS", "_version.py"]
+ignore = ["CVS", "version.py"]
 
 jobs = 0
-py-version = "3.7"
+py-version = "3.9"
 
 load-plugins = [
   "pylint.extensions.overlapping_exceptions",
@@ -303,7 +304,7 @@ good-dunder-names = [
 ]
 
 [tool.refurb]
-python_version = "3.7"
+python_version = "3.9"
 ignore = ["FURB104", "FURB144", "FURB146"]
 
 [[tool.refurb.amend]]

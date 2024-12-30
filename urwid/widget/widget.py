@@ -105,8 +105,8 @@ def cache_widget_render(cls):
     @functools.wraps(fn)
     def cached_render(self, size, focus=False):
         focus = focus and not ignore_focus
-        canv = CanvasCache.fetch(self, cls, size, focus)
-        if canv:
+
+        if canv := CanvasCache.fetch(self, cls, size, focus):
             return canv
 
         canv = fn(self, size, focus=focus)
@@ -174,8 +174,8 @@ def cache_widget_rows(cls):
     @functools.wraps(fn)
     def cached_rows(self, size: tuple[int], focus: bool = False) -> int:
         focus = focus and not ignore_focus
-        canv = CanvasCache.fetch(self, cls, size, focus)
-        if canv:
+
+        if canv := CanvasCache.fetch(self, cls, size, focus):
             return canv.rows()
 
         return fn(self, size, focus)
@@ -571,7 +571,7 @@ def fixed_size(size: tuple[()]) -> None:
 
     Used by FixedWidgets to test size parameter.
     """
-    if size != ():
+    if size:
         raise ValueError(f"FixedWidget takes only () for size.passed: {size!r}")
 
 

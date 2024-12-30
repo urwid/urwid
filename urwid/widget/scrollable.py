@@ -25,8 +25,6 @@ import contextlib
 import enum
 import typing
 
-from typing_extensions import Protocol, runtime_checkable
-
 from .constants import BOX_SYMBOLS, SHADE_SYMBOLS, Sizing
 from .widget_decoration import WidgetDecoration, WidgetError
 
@@ -84,8 +82,8 @@ class ScrollbarSymbols(str, enum.Enum):
     DRAWING_DOUBLE = BOX_SYMBOLS.DOUBLE.VERTICAL
 
 
-@runtime_checkable
-class WidgetProto(Protocol):
+@typing.runtime_checkable
+class WidgetProto(typing.Protocol):
     """Protocol for widget.
 
     Due to protocol cannot inherit non-protocol bases, define several obligatory Widget methods.
@@ -117,8 +115,8 @@ class WidgetProto(Protocol):
     def render(self, size: tuple[int, int], focus: bool = False) -> Canvas: ...
 
 
-@runtime_checkable
-class SupportsScroll(WidgetProto, Protocol):
+@typing.runtime_checkable
+class SupportsScroll(WidgetProto, typing.Protocol):
     """Scroll specific methods."""
 
     def get_scrollpos(self, size: tuple[int, int], focus: bool = False) -> int: ...
@@ -126,8 +124,8 @@ class SupportsScroll(WidgetProto, Protocol):
     def rows_max(self, size: tuple[int, int] | None = None, focus: bool = False) -> int: ...
 
 
-@runtime_checkable
-class SupportsRelativeScroll(WidgetProto, Protocol):
+@typing.runtime_checkable
+class SupportsRelativeScroll(WidgetProto, typing.Protocol):
     """Relative scroll-specific methods."""
 
     def require_relative_scroll(self, size: tuple[int, int], focus: bool = False) -> bool: ...
@@ -140,10 +138,7 @@ class SupportsRelativeScroll(WidgetProto, Protocol):
 def orig_iter(w: Widget) -> Iterator[Widget]:
     visited = {w}
     yield w
-    while hasattr(w, "original_widget"):
-        w = w.original_widget
-        if w in visited:
-            break
+    while (w := getattr(w, "original_widget", w)) not in visited:
         visited.add(w)
         yield w
 
@@ -194,8 +189,8 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
             first_visible = False
             for pwi, (w, _o) in enumerate(ow.contents):
                 wcanv = w.render((maxcol,))
-                wh = wcanv.rows()
-                if wh:
+
+                if wh := wcanv.rows():
                     ch += wh
 
                 if not last_hidden and ch >= self._trim_top:
@@ -235,17 +230,13 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
         canv = canvas.CompositeCanvas(canv_full)
         canv_cols, canv_rows = canv.cols(), canv.rows()
 
-        if canv_cols <= maxcol:
-            pad_width = maxcol - canv_cols
-            if pad_width > 0:
-                # Canvas is narrower than available horizontal space
-                canv.pad_trim_left_right(0, pad_width)
+        if canv_cols <= maxcol and (pad_width := maxcol - canv_cols) > 0:
+            # Canvas is narrower than available horizontal space
+            canv.pad_trim_left_right(0, pad_width)
 
-        if canv_rows <= maxrow:
-            fill_height = maxrow - canv_rows
-            if fill_height > 0:
-                # Canvas is lower than available vertical space
-                canv.pad_trim_top_bottom(0, fill_height)
+        if canv_rows <= maxrow and (fill_height := maxrow - canv_rows) > 0:
+            # Canvas is lower than available vertical space
+            canv.pad_trim_top_bottom(0, fill_height)
 
         if canv_cols <= maxcol and canv_rows <= maxrow:
             # Canvas is small enough to fit without trimming
@@ -552,16 +543,17 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
                 use_relative = False
 
         if not use_relative:
-            ow_rows_max = ow_base.rows_max(size, focus)
-            if ow_rows_max <= maxrow:
+            if ow_base.rows_max(size, focus) > maxrow:
+                ow_canv = render_for_scrollbar()
+                # re-calculate using wrapped size
+                ow_rows_max = ow_base.rows_max(ow_size, focus)
+                pos = ow_base.get_scrollpos(ow_size, focus)
+                posmax = ow_rows_max - maxrow
+                thumb_weight = min(1.0, maxrow / max(1, ow_rows_max))
+
+            else:
                 # Canvas fits without scrolling - no scrollbar needed
                 return render_no_scrollbar()
-
-            ow_canv = render_for_scrollbar()
-            ow_rows_max = ow_base.rows_max(ow_size, focus)
-            pos = ow_base.get_scrollpos(ow_size, focus)
-            posmax = ow_rows_max - maxrow
-            thumb_weight = min(1.0, maxrow / max(1, ow_rows_max))
 
         # Thumb shrinks/grows according to the ratio of <number of visible lines> / <number of total lines>
         thumb_height = max(1, round(thumb_weight * maxrow))  # pylint: disable=possibly-used-before-assignment

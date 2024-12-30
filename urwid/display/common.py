@@ -361,19 +361,21 @@ def _color_desc_88(num: int) -> str:
 
 
 def _parse_color_true(desc: str) -> int | None:
-    c = _parse_color_256(desc)
-    if c is not None:
+    if (c := _parse_color_256(desc)) is not None:
         (r, g, b) = _COLOR_VALUES_256[c]
         return (r << 16) + (g << 8) + b
 
     if not desc.startswith("#"):
         return None
+
     if len(desc) == 7:
         h = desc[1:]
         return int(h, 16)
+
     if len(desc) == 4:
         h = f"0x{desc[1]}0{desc[2]}0{desc[3]}"
         return int(h, 16)
+
     return None
 
 
@@ -409,16 +411,16 @@ def _parse_color_256(desc: str) -> int | None:
 
         if desc.startswith("#") and len(desc) == 4:
             # color-cube coordinates
-            rgb = int(desc[1:], 16)
-            if rgb < 0:
-                return None
-            b, rgb = rgb % 16, rgb // 16
-            g, r = rgb % 16, rgb // 16
-            # find the closest rgb values
-            r = _CUBE_256_LOOKUP_16[r]
-            g = _CUBE_256_LOOKUP_16[g]
-            b = _CUBE_256_LOOKUP_16[b]
-            return _CUBE_START + (r * _CUBE_SIZE_256 + g) * _CUBE_SIZE_256 + b
+            if (rgb := int(desc[1:], 16)) >= 0:
+                b, rgb = rgb % 16, rgb // 16
+                g, r = rgb % 16, rgb // 16
+                # find the closest rgb values
+                r = _CUBE_256_LOOKUP_16[r]
+                g = _CUBE_256_LOOKUP_16[g]
+                b = _CUBE_256_LOOKUP_16[b]
+                return _CUBE_START + (r * _CUBE_SIZE_256 + g) * _CUBE_SIZE_256 + b
+
+            return None
 
         # Only remaining possibility is gray value
         if desc.startswith("g#"):
@@ -489,16 +491,16 @@ def _parse_color_88(desc: str) -> int | None:
 
         if desc.startswith("#") and len(desc) == 4:
             # color-cube coordinates
-            rgb = int(desc[1:], 16)
-            if rgb < 0:
-                return None
-            b, rgb = rgb % 16, rgb // 16
-            g, r = rgb % 16, rgb // 16
-            # find the closest rgb values
-            r = _CUBE_88_LOOKUP_16[r]
-            g = _CUBE_88_LOOKUP_16[g]
-            b = _CUBE_88_LOOKUP_16[b]
-            return _CUBE_START + (r * _CUBE_SIZE_88 + g) * _CUBE_SIZE_88 + b
+            if (rgb := int(desc[1:], 16)) >= 0:
+                b, rgb = rgb % 16, rgb // 16
+                g, r = rgb % 16, rgb // 16
+                # find the closest rgb values
+                r = _CUBE_88_LOOKUP_16[r]
+                g = _CUBE_88_LOOKUP_16[g]
+                b = _CUBE_88_LOOKUP_16[b]
+                return _CUBE_START + (r * _CUBE_SIZE_88 + g) * _CUBE_SIZE_88 + b
+
+            return None
 
         # Only remaining possibility is gray value
         if desc.startswith("g#"):

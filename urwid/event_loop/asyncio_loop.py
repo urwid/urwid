@@ -205,8 +205,7 @@ class AsyncioEventLoop(EventLoop):
         return True
 
     def _exception_handler(self, loop: asyncio.AbstractEventLoop, context):
-        exc = context.get("exception")
-        if exc:
+        if exc := context.get("exception"):
             loop.stop()
 
             if self._idle_asyncio_handle:

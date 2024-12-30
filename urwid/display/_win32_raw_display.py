@@ -94,11 +94,10 @@ class Screen(_raw_display_base.Screen):
             self._dwOriginalInMode.value | _win32.ENABLE_WINDOW_INPUT | _win32.ENABLE_VIRTUAL_TERMINAL_INPUT
         )
 
-        ok = _win32.SetConsoleMode(handle_out, dword_out_mode)
-        if not ok:
+        if not (ok := _win32.SetConsoleMode(handle_out, dword_out_mode)):
             raise RuntimeError(f"ConsoleMode set failed for output. Err: {ok!r}")
-        ok = _win32.SetConsoleMode(handle_in, dword_in_mode)
-        if not ok:
+
+        if not (ok := _win32.SetConsoleMode(handle_in, dword_in_mode)):
             raise RuntimeError(f"ConsoleMode set failed for input. Err: {ok!r}")
         self._alternate_buffer = alternate_buffer
         self._next_timeout = self.max_wait
@@ -121,11 +120,11 @@ class Screen(_raw_display_base.Screen):
 
         handle_out = _win32.GetStdHandle(_win32.STD_OUTPUT_HANDLE)
         handle_in = _win32.GetStdHandle(_win32.STD_INPUT_HANDLE)
-        ok = _win32.SetConsoleMode(handle_out, self._dwOriginalOutMode)
-        if not ok:
+
+        if not (ok := _win32.SetConsoleMode(handle_out, self._dwOriginalOutMode)):
             raise RuntimeError(f"ConsoleMode set failed for output. Err: {ok!r}")
-        ok = _win32.SetConsoleMode(handle_in, self._dwOriginalInMode)
-        if not ok:
+
+        if not (ok := _win32.SetConsoleMode(handle_in, self._dwOriginalInMode)):
             raise RuntimeError(f"ConsoleMode set failed for input. Err: {ok!r}")
 
         super()._stop()
@@ -188,10 +187,9 @@ class Screen(_raw_display_base.Screen):
 
         with selectors.DefaultSelector() as selector:
             selector.register(fd, selectors.EVENT_READ)
-            input_ready = selector.select(0)
-            while input_ready:
+
+            while selector.select(0):
                 chars.extend(self._term_input_file.recv(1024))
-                input_ready = selector.select(0)
 
             return chars
 
@@ -204,8 +202,8 @@ class Screen(_raw_display_base.Screen):
                     raise RuntimeError("Unexpected terminal output file")
                 handle = _win32.GetStdHandle(_win32.STD_OUTPUT_HANDLE)
                 info = _win32.CONSOLE_SCREEN_BUFFER_INFO()
-                ok = _win32.GetConsoleScreenBufferInfo(handle, byref(info))
-                if ok:
+
+                if _win32.GetConsoleScreenBufferInfo(handle, byref(info)):
                     # Fallback will be used in case of term size could not be determined
                     y, x = info.dwSize.Y, info.dwSize.X
 

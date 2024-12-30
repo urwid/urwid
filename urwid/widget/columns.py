@@ -1053,13 +1053,12 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if len(widths) <= self.focus_position:
             return None
 
-        coords = w.get_cursor_coords(size_args[self.focus_position])
-        if coords is None:
-            return None
+        if (coords := w.get_cursor_coords(size_args[self.focus_position])) is not None:
+            x, y = coords
+            x += sum(self.dividechars + wc for wc in widths[: self.focus_position] if wc > 0)
+            return x, y
 
-        x, y = coords
-        x += sum(self.dividechars + wc for wc in widths[: self.focus_position] if wc > 0)
-        return x, y
+        return None
 
     def move_cursor_to_coords(
         self,
@@ -1103,8 +1102,8 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 move_x = min(max(0, col - x), end - x - 1)
             else:
                 move_x = col
-            rval = w.move_cursor_to_coords(size_args[i], move_x, row)
-            if rval is False:
+
+            if w.move_cursor_to_coords(size_args[i], move_x, row) is False:
                 return False
 
         self.focus_position = i

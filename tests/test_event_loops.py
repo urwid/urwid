@@ -51,7 +51,7 @@ else:
 IS_WINDOWS = sys.platform == "win32"
 
 
-class ClosingSocketPair(typing.ContextManager[typing.Tuple[socket.socket, socket.socket]]):
+class ClosingSocketPair(typing.ContextManager[tuple[socket.socket, socket.socket]]):
     __slots__ = ("rd_s", "wr_s")
 
     def __init__(self) -> None:
