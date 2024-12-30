@@ -7,7 +7,7 @@ import urwid
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable
 
-choices = "Chapman Cleese Gilliam Idle Jones Palin".split()
+choices = ["Chapman", "Cleese", "Gilliam", "Idle", "Jones", "Palin"]
 
 
 def menu(title: str, choices_: Iterable[str]) -> urwid.ListBox:

@@ -155,12 +155,11 @@ class TornadoEventLoop(EventLoop):
         return handle
 
     def remove_watch_file(self, handle: int) -> bool:
-        fd = self._watch_handles.pop(handle, None)
-        if fd is None:
-            return False
+        if (fd := self._watch_handles.pop(handle, None)) is not None:
+            self._loop.remove_handler(fd)
+            return True
 
-        self._loop.remove_handler(fd)
-        return True
+        return False
 
     def enter_idle(self, callback: Callable[[], typing.Any]) -> int:
         """

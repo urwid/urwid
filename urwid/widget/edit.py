@@ -698,15 +698,15 @@ class IntEdit(Edit):
         >>> print(e.edit_text)
         2
         """
-        unhandled = super().keypress(size, key)
+        if unhandled := super().keypress(size, key):
+            return unhandled
 
-        if not unhandled:
-            # trim leading zeros
-            while self.edit_pos > 0 and self.edit_text[:1] == "0":
-                self.set_edit_pos(self.edit_pos - 1)
-                self.set_edit_text(self.edit_text[1:])
+        # trim leading zeros
+        while self.edit_pos > 0 and self.edit_text[:1] == "0":
+            self.set_edit_pos(self.edit_pos - 1)
+            self.set_edit_text(self.edit_text[1:])
 
-        return unhandled
+        return None
 
     def value(self) -> int:
         """

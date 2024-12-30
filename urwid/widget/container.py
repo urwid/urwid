@@ -115,11 +115,10 @@ class WidgetContainerMixin:
         """
         out = []
         w = self
-        while True:
-            w = w.base_widget.focus
-            if w is None:
-                return out
+        while (w := w.base_widget.focus) is not None:
             out.append(w)
+
+        return out
 
     @property
     @abc.abstractmethod

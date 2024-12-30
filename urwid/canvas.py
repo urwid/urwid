@@ -23,7 +23,6 @@ from __future__ import annotations
 import contextlib
 import dataclasses
 import typing
-import warnings
 import weakref
 from contextlib import suppress
 
@@ -244,15 +243,6 @@ class Canvas:
     def widget_info(self):
         return self._widget_info
 
-    def _get_widget_info(self):
-        warnings.warn(
-            f"Method `{self.__class__.__name__}._get_widget_info` is deprecated, "
-            f"please use property `{self.__class__.__name__}.widget_info`",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.widget_info
-
     @property
     def text(self) -> list[bytes]:
         """
@@ -265,15 +255,6 @@ class Canvas:
         """Decoded text content of the canvas as a sequence of strings, one for each row."""
         encoding = get_encoding()
         return tuple(line.decode(encoding) for line in self.text)
-
-    def _text_content(self):
-        warnings.warn(
-            f"Method `{self.__class__.__name__}._text_content` is deprecated, "
-            f"please use property `{self.__class__.__name__}.text`",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.text
 
     def content(
         self,
@@ -295,10 +276,10 @@ class Canvas:
         raise NotImplementedError()
 
     def get_cursor(self) -> tuple[int, int] | None:
-        c = self.coords.get("cursor", None)
-        if not c:
-            return None
-        return c[:2]  # trim off data part
+        if c := self.coords.get("cursor", None):
+            return c[:2]  # trim off data part
+
+        return None
 
     def set_cursor(self, c: tuple[int, int] | None) -> None:
         if self.widget_info and self.cacheable:
@@ -312,10 +293,10 @@ class Canvas:
     cursor = property(get_cursor, set_cursor)
 
     def get_pop_up(self) -> tuple[int, int, tuple[Widget, int, int]] | None:
-        c = self.coords.get("pop up", None)
-        if not c:
-            return None
-        return c
+        if c := self.coords.get("pop up", None):
+            return c
+
+        return None
 
     def set_pop_up(self, w: Widget, left: int, top: int, overlay_width: int, overlay_height: int) -> None:
         """
@@ -833,7 +814,7 @@ class CompositeCanvas(Canvas):
 
         if bottom > 0:
             if orig_shards is self.shards:
-                self.shards = self.shards[:]
+                self.shards = self.shards.copy()
             self.shards.append((bottom, [(0, 0, cols, bottom, None, blank_canvas)]))
 
     def overlay(self, other: CompositeCanvas, left: int, top: int) -> None:

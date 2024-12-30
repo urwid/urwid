@@ -99,10 +99,7 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
         """
         visited = {self}
         w = self
-        while hasattr(w, "_original_widget"):
-            w = w._original_widget
-            if w in visited:
-                break
+        while (w := getattr(w, "_original_widget", w)) not in visited:
             visited.add(w)
         return w
 

@@ -269,12 +269,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
             ]
 
         # reverse the hlines to match screen ordering
-        rhl = []
-        for h in hlines:
-            rh = float(top - h) * maxrow / top - shiftr
-            if rh < 0:
-                continue
-            rhl.append(rh)
+        rhl = [rh for h in hlines if (rh := float(top - h) * maxrow / top - shiftr) >= 0]
 
         # build a list of rows that will have hlines
         hrows = []

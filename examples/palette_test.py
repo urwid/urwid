@@ -251,7 +251,7 @@ yellow_   light_red   light_magenta   light_blue   light_cyan   light_green
 black_______    dark_gray___    light_gray__    white_______
 """
 
-ATTR_RE = re.compile("(?P<whitespace>[ \n]*)(?P<entry>(?:#[0-9A-Fa-f]{6})|(?:#[0-9A-Fa-f]{3})|(?:[^ \n]+))")
+ATTR_RE = re.compile(r"(?P<whitespace>[ \n]*)(?P<entry>(?:#[0-9A-Fa-f]{6})|(?:#[0-9A-Fa-f]{3})|(?:[^ \n]+))")
 LONG_ATTR = 7
 SHORT_ATTR = 4  # length of short high-colour descriptions which may
 # be packed one after the next

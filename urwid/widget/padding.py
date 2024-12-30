@@ -438,12 +438,11 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         else:
             maxvals = ()
 
-        coords = self._original_widget.get_cursor_coords(maxvals)
-        if coords is None:
-            return None
+        if (coords := self._original_widget.get_cursor_coords(maxvals)) is not None:
+            x, y = coords
+            return x + left, y
 
-        x, y = coords
-        return x + left, y
+        return None
 
     def move_cursor_to_coords(
         self,

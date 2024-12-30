@@ -522,7 +522,7 @@ def int_scale(val: int, val_range: int, out_range: int) -> int:
     return num // dem
 
 
-class StoppingContext(typing.ContextManager["StoppingContext"]):
+class StoppingContext(contextlib.AbstractContextManager["StoppingContext"]):
     """Context manager that calls ``stop`` on a given object on exit.  Used to
     make the ``start`` method on `MainLoop` and `BaseScreen` optionally act as
     context managers.
