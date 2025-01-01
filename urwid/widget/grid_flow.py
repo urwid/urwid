@@ -169,15 +169,6 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
         if focus_position < len(widgets):
             self.focus_position = focus_position
 
-    def _get_cells(self):
-        warnings.warn(
-            "only for backwards compatibility."
-            "You should use the new standard container property `contents` to modify GridFlow",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        return self.cells
-
     def _set_cells(self, widgets: Sequence[Widget]):
         warnings.warn(
             "only for backwards compatibility."
@@ -201,15 +192,6 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
         self.contents = [(w, (WHSettings.GIVEN, width)) for (w, options) in self.contents]
         self.focus_position = focus_position
         self._cell_width = width
-
-    def _get_cell_width(self) -> int:
-        warnings.warn(
-            f"Method `{self.__class__.__name__}._get_cell_width` is deprecated, "
-            f"please use property `{self.__class__.__name__}.cell_width`",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        return self.cell_width
 
     def _set_cell_width(self, width: int) -> None:
         warnings.warn(
@@ -298,17 +280,6 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
             return None
         return self.contents[self.focus_position][0]
 
-    def _get_focus(self) -> Widget | None:
-        warnings.warn(
-            f"method `{self.__class__.__name__}._get_focus` is deprecated, "
-            f"please use `{self.__class__.__name__}.focus` property",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        if not self.contents:
-            return None
-        return self.contents[self.focus_position][0]
-
     def get_focus(self):
         """
         Return the widget in focus, for backwards compatibility.
@@ -391,17 +362,6 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
                 exc.__traceback__
             ) from exc
         self.contents.focus = position
-
-    def _get_focus_position(self) -> int | None:
-        warnings.warn(
-            f"method `{self.__class__.__name__}._get_focus_position` is deprecated, "
-            f"please use `{self.__class__.__name__}.focus_position` property",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        if not self.contents:
-            raise IndexError("No focus_position, GridFlow is empty")
-        return self.contents.focus
 
     def _set_focus_position(self, position: int) -> None:
         """
