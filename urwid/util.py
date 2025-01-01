@@ -496,6 +496,7 @@ class MetaSuper(type):
     """Deprecated metaclass.
 
     Present only for code compatibility, all logic has been removed.
+    Please move to the last position in the class bases to allow future changes.
     """
 
     __slots__ = ()
