@@ -415,15 +415,6 @@ class ListBox(Widget, WidgetContainerMixin):
             self.render = nocache_widget_render_instance(self)
         self._invalidate()
 
-    def _set_body(self, body):
-        warnings.warn(
-            f"Method `{self.__class__.__name__}._set_body` is deprecated, "
-            f"please use property `{self.__class__.__name__}.body`",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        self.body = body
-
     @property
     def __len__(self) -> Callable[[], int]:
         if isinstance(self._body, Sized):

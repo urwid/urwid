@@ -600,21 +600,6 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
         if position != 1:
             raise IndexError(f"Overlay widget focus_position currently must always be set to 1, not {position}")
 
-    def _set_focus_position(self, position: int) -> None:
-        """
-        Set the widget in focus.
-
-        position -- index of child widget to be made focus
-        """
-        warnings.warn(
-            f"method `{self.__class__.__name__}._set_focus_position` is deprecated, "
-            f"please use `{self.__class__.__name__}.focus_position` property",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        if position != 1:
-            raise IndexError(f"Overlay widget focus_position currently must always be set to 1, not {position}")
-
     @property
     def contents(self) -> MutableSequence[tuple[TopWidget | BottomWidget, OverlayOptions]]:
         """

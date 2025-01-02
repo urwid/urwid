@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 import enum
 import typing
-import warnings
 
 from .constants import Sizing, WHSettings
 
@@ -162,15 +161,6 @@ class WidgetContainerListContentsMixin:
     def contents(self, new_contents: list[tuple[Widget, typing.Any]]) -> None:
         """The contents of container as a list of (widget, options)"""
 
-    def _set_contents(self, c: list[tuple[Widget, typing.Any]]) -> None:
-        warnings.warn(
-            f"method `{self.__class__.__name__}._set_contents` is deprecated, "
-            f"please use `{self.__class__.__name__}.contents` property",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.contents = c
-
     @property
     @abc.abstractmethod
     def focus_position(self) -> int | None:
@@ -183,17 +173,3 @@ class WidgetContainerListContentsMixin:
         """
         index of child widget in focus.
         """
-
-    def _set_focus_position(self, position: int) -> None:
-        """
-        Set the widget in focus.
-
-        position -- index of child widget to be made focus
-        """
-        warnings.warn(
-            f"method `{self.__class__.__name__}._set_focus_position` is deprecated, "
-            f"please use `{self.__class__.__name__}.focus_position` property",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        self.focus_position = position

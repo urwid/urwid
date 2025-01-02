@@ -169,15 +169,6 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
         if focus_position < len(widgets):
             self.focus_position = focus_position
 
-    def _set_cells(self, widgets: Sequence[Widget]):
-        warnings.warn(
-            "only for backwards compatibility."
-            "You should use the new standard container property `contents` to modify GridFlow",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        self.cells = widgets
-
     @property
     def cell_width(self) -> int:
         """
@@ -192,15 +183,6 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
         self.contents = [(w, (WHSettings.GIVEN, width)) for (w, options) in self.contents]
         self.focus_position = focus_position
         self._cell_width = width
-
-    def _set_cell_width(self, width: int) -> None:
-        warnings.warn(
-            f"Method `{self.__class__.__name__}._set_cell_width` is deprecated, "
-            f"please use property `{self.__class__.__name__}.cell_width`",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        self.cell_width = width
 
     @property
     def contents(self) -> MonitoredFocusList[tuple[Widget, tuple[Literal[WHSettings.GIVEN], int]]]:
@@ -323,20 +305,6 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
                 return
         raise ValueError(f"Widget not found in GridFlow contents: {cell!r}")
 
-    def _set_focus_cell(self, cell: Widget) -> None:
-        warnings.warn(
-            "only for backwards compatibility."
-            "You may also use the new standard container property"
-            "`focus` to get the focus and `focus_position` to get/set the cell in focus by index",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        for i, (w, _options) in enumerate(self.contents):
-            if cell == w:
-                self.focus_position = i
-                return
-        raise ValueError(f"Widget not found in GridFlow contents: {cell!r}")
-
     @property
     def focus_position(self) -> int | None:
         """
@@ -354,27 +322,6 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
 
         position -- index of child widget to be made focus
         """
-        try:
-            if position < 0 or position >= len(self.contents):
-                raise IndexError(f"No GridFlow child widget at position {position}")
-        except TypeError as exc:
-            raise IndexError(f"No GridFlow child widget at position {position}").with_traceback(
-                exc.__traceback__
-            ) from exc
-        self.contents.focus = position
-
-    def _set_focus_position(self, position: int) -> None:
-        """
-        Set the widget in focus.
-
-        position -- index of child widget to be made focus
-        """
-        warnings.warn(
-            f"method `{self.__class__.__name__}._set_focus_position` is deprecated, "
-            f"please use `{self.__class__.__name__}.focus_position` property",
-            DeprecationWarning,
-            stacklevel=3,
-        )
         try:
             if position < 0 or position >= len(self.contents):
                 raise IndexError(f"No GridFlow child widget at position {position}")
