@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import typing
-import warnings
 
 from .constants import BAR_SYMBOLS, Align, Sizing, WrapMode
 from .text import Text
@@ -94,15 +93,6 @@ class ProgressBar(Widget):
         """
         self._done = done
         self._invalidate()
-
-    def _set_done(self, done):
-        warnings.warn(
-            f"Method `{self.__class__.__name__}._set_done` is deprecated, "
-            f"please use property `{self.__class__.__name__}.done`",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.done = done
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
         return 1
