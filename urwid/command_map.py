@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import enum
 import typing
-from collections.abc import Mapping
+from collections.abc import MutableMapping
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterator
@@ -57,7 +57,7 @@ CURSOR_MAX_RIGHT = Command.MAX_RIGHT
 ACTIVATE = Command.ACTIVATE
 
 
-class CommandMap(Mapping[str, typing.Union[str, Command, None]]):
+class CommandMap(MutableMapping[str, typing.Union[str, Command, None]]):
     """
     dict-like object for looking up commands from keystrokes
 
