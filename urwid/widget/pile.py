@@ -546,25 +546,6 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             raise IndexError(f"No Pile child widget at position {position}").with_traceback(exc.__traceback__) from exc
         self.contents.focus = position
 
-    def _set_focus_position(self, position: int) -> None:
-        """
-        Set the widget in focus.
-
-        position -- index of child widget to be made focus
-        """
-        warnings.warn(
-            f"method `{self.__class__.__name__}._set_focus_position` is deprecated, "
-            f"please use `{self.__class__.__name__}.focus_position` property",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        try:
-            if position < 0 or position >= len(self.contents):
-                raise IndexError(f"No Pile child widget at position {position}")
-        except TypeError as exc:
-            raise IndexError(f"No Pile child widget at position {position}").with_traceback(exc.__traceback__) from exc
-        self.contents.focus = position
-
     def get_pref_col(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> int | None:
         """Return the preferred column for the cursor, or None."""
         if not self.selectable():
