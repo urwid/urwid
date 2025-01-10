@@ -135,8 +135,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
             if not flag & box_flow_fixed:
                 warnings.warn(
-                    f"Sizing combination of widget {idx} not supported: "
-                    f"{size_kind.name} {'|'.join(w_sizing).upper()}",
+                    f"Sizing combination of widget {idx} not supported: {size_kind.name} {'|'.join(w_sizing).upper()}",
                     PileWarning,
                     stacklevel=3,
                 )

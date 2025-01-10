@@ -74,7 +74,7 @@ jobs:
       - name: Install Ubuntu dependencies
         run: |
           sudo apt-get -qq update
-          sudo apt-get install -y python3-gi gobject-introspection libgirepository1.0-dev
+          sudo apt-get install -y python3-gi gobject-introspection libgirepository1.0-dev python3-gi-cairo
       - name: Set up Python
         uses: actions/setup-python@v5
         with:

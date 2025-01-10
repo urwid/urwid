@@ -98,7 +98,9 @@ class BigTextDisplay:
     def edit_change_event(self, widget, text: str) -> None:
         self.bigtext.set_text(text)
 
-    def setup_view(self) -> tuple[
+    def setup_view(
+        self,
+    ) -> tuple[
         urwid.Frame[urwid.AttrMap[urwid.ListBox], urwid.AttrMap[urwid.Text], None],
         urwid.Overlay[urwid.BigText, urwid.Frame[urwid.AttrMap[urwid.ListBox], urwid.AttrMap[urwid.Text], None]],
     ]:

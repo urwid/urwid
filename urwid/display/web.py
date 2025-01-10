@@ -21,6 +21,7 @@
 """
 Urwid web application display module
 """
+
 from __future__ import annotations
 
 import dataclasses
@@ -216,7 +217,7 @@ class Screen(BaseScreen):
             sys.stdout.write("Status: 503 Sever Busy\r\n\r\n")
             sys.exit(0)
 
-        urwid_id = f"{random.randrange(10 ** 9):09d}{random.randrange(10 ** 9):09d}"  # noqa: S311
+        urwid_id = f"{random.randrange(10**9):09d}{random.randrange(10**9):09d}"  # noqa: S311
         self.pipe_name = os.path.join(_prefs.pipe_dir, f"urwid{urwid_id}")
         os.mkfifo(f"{self.pipe_name}.in", 0o600)
         signal.signal(signal.SIGTERM, self._cleanup_pipe)
@@ -224,11 +225,7 @@ class Screen(BaseScreen):
         self.input_fd = os.open(f"{self.pipe_name}.in", os.O_NONBLOCK | os.O_RDONLY)
         self.input_tail = ""
         self.content_head = (
-            "Content-type: "
-            "multipart/x-mixed-replace;boundary=ZZ\r\n"
-            "X-Urwid-ID: " + urwid_id + "\r\n"
-            "\r\n\r\n"
-            "--ZZ\r\n"
+            f"Content-type: multipart/x-mixed-replace;boundary=ZZ\r\nX-Urwid-ID: {urwid_id}\r\n\r\n\r\n--ZZ\r\n"
         )
         if self.update_method == "polling":
             self.content_head = f"Content-type: text/plain\r\nX-Urwid-ID: {urwid_id}\r\n\r\n\r\n"
