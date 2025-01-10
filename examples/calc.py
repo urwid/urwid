@@ -31,7 +31,6 @@ Features:
 - outputs commands that may be used to recreate expression on exit
 """
 
-
 from __future__ import annotations
 
 import operator

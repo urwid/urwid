@@ -37,7 +37,7 @@ _T = typing.TypeVar("_T")
 
 
 def _call_modified(
-    fn: Callable[Concatenate[MonitoredList, ArgSpec], Ret]
+    fn: Callable[Concatenate[MonitoredList, ArgSpec], Ret],
 ) -> Callable[Concatenate[MonitoredList, ArgSpec], Ret]:
     @functools.wraps(fn)
     def call_modified_wrapper(self: MonitoredList, *args: ArgSpec.args, **kwargs: ArgSpec.kwargs) -> Ret:

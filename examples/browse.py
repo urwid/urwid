@@ -31,7 +31,6 @@ Features:
 - outputs a quoted list of files and directories "selected" on exit
 """
 
-
 from __future__ import annotations
 
 import itertools

@@ -633,7 +633,6 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
                 ]
             ]
         ):
-
             # pylint: disable=no-self-argument
             def __len__(inner_self) -> int:
                 return 2

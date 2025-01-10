@@ -47,8 +47,7 @@ class AttrWrap(AttrMap):
         # only include the focus_attr when it takes effect (not None)
         d = {**super()._repr_attrs(), "attr": self.attr}
         del d["attr_map"]
-        if "focus_map" in d:
-            del d["focus_map"]
+        d.pop("focus_map", None)
         if self.focus_attr is not None:
             d["focus_attr"] = self.focus_attr
         return d

@@ -27,7 +27,6 @@ Features:
 - custom list walker for displaying widgets in a tree fashion
 """
 
-
 from __future__ import annotations
 
 import typing

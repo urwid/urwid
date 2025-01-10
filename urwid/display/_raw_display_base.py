@@ -727,7 +727,10 @@ class Screen(BaseScreen, RealTerminal):
         self.screen_buf = sb
         self._screen_buf_canvas = canvas
 
-    def _last_row(self, row: list[tuple[object, Literal["0", "U"] | None, bytes]]) -> tuple[
+    def _last_row(
+        self,
+        row: list[tuple[object, Literal["0", "U"] | None, bytes]],
+    ) -> tuple[
         list[tuple[object, Literal["0", "U"] | None, bytes]],
         int,
         tuple[object, Literal["0", "U"] | None, bytes],

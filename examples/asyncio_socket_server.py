@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-"""Demo of using urwid with Python asyncio.
-"""
+"""Demo of using urwid with Python asyncio."""
 
 from __future__ import annotations
 
