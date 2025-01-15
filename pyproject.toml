@@ -189,6 +189,7 @@ extend-ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "SIM105"]
+"urwid/display/curses.py" = ["A005"]
 
 
 [tool.ruff.lint.isort]
