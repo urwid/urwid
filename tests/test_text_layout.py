@@ -38,7 +38,7 @@ class CalcBreaksTest(unittest.TestCase):
         with urwid.util.set_temporary_encoding("euc-jp"):
             self.validate(
                 mode="any",
-                text=b"abfgh\xA1\xA1j\xA1\xA1xskhtrvs\naltjhgsdf\xA1\xA1jahtshgf",
+                text=b"abfgh\xa1\xa1j\xa1\xa1xskhtrvs\naltjhgsdf\xa1\xa1jahtshgf",
                 do=[
                     (10, [10, 18, 28, 38]),
                     (6, [5, 11, 17, 18, 25, 31, 37, 38]),
@@ -72,7 +72,7 @@ class CalcBreaksTest(unittest.TestCase):
         with urwid.util.set_temporary_encoding("euc-jp"):
             self.validate(
                 mode="space",
-                text=b"hel\xA1\xA1 world\nout-\xA1\xA1tre blah",
+                text=b"hel\xa1\xa1 world\nout-\xa1\xa1tre blah",
                 # tests
                 do=[
                     (10, [5, 11, 21, 26]),
@@ -101,7 +101,7 @@ class CalcBreaksCantDisplayTest(unittest.TestCase):
             self.assertRaises(
                 text_layout.CanNotDisplayText,
                 text_layout.default_layout.calculate_text_segments,
-                b"\xA1\xA1",
+                b"\xa1\xa1",
                 1,
                 "space",
             )
@@ -137,11 +137,11 @@ class SubsegTest(unittest.TestCase):
     def test2_text(self):
         self.st((10, 0, b"1234567890"), b"", 0, 8, [(8, 0, b"12345678")])
         self.st((10, 0, b"1234567890"), b"", 2, 10, [(8, 0, b"34567890")])
-        self.st((10, 0, b"12\xA1\xA156\xA1\xA190"), b"", 2, 8, [(6, 0, b"\xA1\xA156\xA1\xA1")])
-        self.st((10, 0, b"12\xA1\xA156\xA1\xA190"), b"", 3, 8, [(5, 0, b" 56\xA1\xA1")])
-        self.st((10, 0, b"12\xA1\xA156\xA1\xA190"), b"", 2, 7, [(5, 0, b"\xA1\xA156 ")])
-        self.st((10, 0, b"12\xA1\xA156\xA1\xA190"), b"", 3, 7, [(4, 0, b" 56 ")])
-        self.st((10, 0, b"12\xA1\xA156\xA1\xA190"), b"", 0, 20, [(10, 0, b"12\xA1\xA156\xA1\xA190")])
+        self.st((10, 0, b"12\xa1\xa156\xa1\xa190"), b"", 2, 8, [(6, 0, b"\xa1\xa156\xa1\xa1")])
+        self.st((10, 0, b"12\xa1\xa156\xa1\xa190"), b"", 3, 8, [(5, 0, b" 56\xa1\xa1")])
+        self.st((10, 0, b"12\xa1\xa156\xa1\xa190"), b"", 2, 7, [(5, 0, b"\xa1\xa156 ")])
+        self.st((10, 0, b"12\xa1\xa156\xa1\xa190"), b"", 3, 7, [(4, 0, b" 56 ")])
+        self.st((10, 0, b"12\xa1\xa156\xa1\xa190"), b"", 0, 20, [(10, 0, b"12\xa1\xa156\xa1\xa190")])
 
     def test3_range(self):
         t = b"1234567890"
@@ -150,7 +150,7 @@ class SubsegTest(unittest.TestCase):
         self.st((6, 2, 8), t, 1, 6, [(5, 3, 8)])
         self.st((6, 2, 8), t, 0, 5, [(5, 2, 7)])
         self.st((6, 2, 8), t, 1, 5, [(4, 3, 7)])
-        t = b"12\xA1\xA156\xA1\xA190"
+        t = b"12\xa1\xa156\xa1\xa190"
         self.st((10, 0, 10), t, 0, 8, [(8, 0, 8)])
         self.st((10, 0, 10), t, 2, 10, [(8, 2, 10)])
         self.st((6, 2, 8), t, 1, 6, [(1, 3), (4, 4, 8)])
