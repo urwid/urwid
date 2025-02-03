@@ -41,7 +41,7 @@ WrappedWidget = typing.TypeVar("WrappedWidget")
 LOGGER = logging.getLogger(__name__)
 
 
-class WidgetMeta(MetaSuper, signals.MetaSignals):
+class WidgetMeta(signals.MetaSignals, MetaSuper):
     """
     Bases: :class:`MetaSuper`, :class:`MetaSignals`
 
