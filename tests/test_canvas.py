@@ -589,37 +589,37 @@ class CanvasOverlayTest(unittest.TestCase):
         urwid.set_encoding("euc-jp")
         self.cotest(
             "db0",
-            "\xA1\xA1\xA1\xA1\xA1\xA1",
+            "\xa1\xa1\xa1\xa1\xa1\xa1",
             [],
             "HI",
             [],
             2,
             2,
-            [[(None, None, b"\xA1\xA1"), (None, None, b"HI"), (None, None, b"\xA1\xA1")]],
+            [[(None, None, b"\xa1\xa1"), (None, None, b"HI"), (None, None, b"\xa1\xa1")]],
         )
         self.cotest(
             "db1",
-            "\xA1\xA1\xA1\xA1\xA1\xA1",
+            "\xa1\xa1\xa1\xa1\xa1\xa1",
             [],
             "OHI",
             [],
             1,
             2,
-            [[(None, None, b" "), (None, None, b"OHI"), (None, None, b"\xA1\xA1")]],
+            [[(None, None, b" "), (None, None, b"OHI"), (None, None, b"\xa1\xa1")]],
         )
         self.cotest(
             "db2",
-            "\xA1\xA1\xA1\xA1\xA1\xA1",
+            "\xa1\xa1\xa1\xa1\xa1\xa1",
             [],
             "OHI",
             [],
             2,
             1,
-            [[(None, None, b"\xA1\xA1"), (None, None, b"OHI"), (None, None, b" ")]],
+            [[(None, None, b"\xa1\xa1"), (None, None, b"OHI"), (None, None, b" ")]],
         )
         self.cotest(
             "db3",
-            "\xA1\xA1\xA1\xA1\xA1\xA1",
+            "\xa1\xa1\xa1\xa1\xa1\xa1",
             [],
             "OHIO",
             [],

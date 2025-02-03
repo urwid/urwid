@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-""" Tests covering escape sequences processing """
+"""Tests covering escape sequences processing"""
 
 from __future__ import annotations
 

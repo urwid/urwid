@@ -30,8 +30,8 @@ class CalcWidthTest(unittest.TestCase):
     def test2(self):
         util.set_encoding("euc-jp")
         self.wtest("narrow", "hello", 5)
-        self.wtest("wide", "\xA1\xA1\xA1\xA1", 4)
-        self.wtest("invalid", "\xA1", 1)
+        self.wtest("wide", "\xa1\xa1\xa1\xa1", 4)
+        self.wtest("invalid", "\xa1", 1)
 
 
 class ConvertDecSpecialTest(unittest.TestCase):
@@ -73,33 +73,33 @@ class WithinDoubleByteTest(unittest.TestCase):
 
     def test1(self):
         self.wtest("mnopqr", 0, 2, 0, "simple no high bytes")
-        self.wtest("mn\xA1\xA1qr", 0, 2, 1, "simple 1st half")
-        self.wtest("mn\xA1\xA1qr", 0, 3, 2, "simple 2nd half")
-        self.wtest("m\xA1\xA1\xA1\xA1r", 0, 3, 1, "subsequent 1st half")
-        self.wtest("m\xA1\xA1\xA1\xA1r", 0, 4, 2, "subsequent 2nd half")
-        self.wtest("mn\xA1@qr", 0, 3, 2, "simple 2nd half lo")
-        self.wtest("mn\xA1\xA1@r", 0, 4, 0, "subsequent not 2nd half lo")
-        self.wtest("m\xA1\xA1\xA1@r", 0, 4, 2, "subsequent 2nd half lo")
+        self.wtest("mn\xa1\xa1qr", 0, 2, 1, "simple 1st half")
+        self.wtest("mn\xa1\xa1qr", 0, 3, 2, "simple 2nd half")
+        self.wtest("m\xa1\xa1\xa1\xa1r", 0, 3, 1, "subsequent 1st half")
+        self.wtest("m\xa1\xa1\xa1\xa1r", 0, 4, 2, "subsequent 2nd half")
+        self.wtest("mn\xa1@qr", 0, 3, 2, "simple 2nd half lo")
+        self.wtest("mn\xa1\xa1@r", 0, 4, 0, "subsequent not 2nd half lo")
+        self.wtest("m\xa1\xa1\xa1@r", 0, 4, 2, "subsequent 2nd half lo")
 
     def test2(self):
-        self.wtest("\xA1\xA1qr", 0, 0, 1, "begin 1st half")
-        self.wtest("\xA1\xA1qr", 0, 1, 2, "begin 2nd half")
-        self.wtest("\xA1@qr", 0, 1, 2, "begin 2nd half lo")
-        self.wtest("\xA1\xA1\xA1\xA1r", 0, 2, 1, "begin subs. 1st half")
-        self.wtest("\xA1\xA1\xA1\xA1r", 0, 3, 2, "begin subs. 2nd half")
-        self.wtest("\xA1\xA1\xA1@r", 0, 3, 2, "begin subs. 2nd half lo")
-        self.wtest("\xA1@\xA1@r", 0, 3, 2, "begin subs. 2nd half lo lo")
-        self.wtest("@\xA1\xA1@r", 0, 3, 0, "begin subs. not 2nd half lo")
+        self.wtest("\xa1\xa1qr", 0, 0, 1, "begin 1st half")
+        self.wtest("\xa1\xa1qr", 0, 1, 2, "begin 2nd half")
+        self.wtest("\xa1@qr", 0, 1, 2, "begin 2nd half lo")
+        self.wtest("\xa1\xa1\xa1\xa1r", 0, 2, 1, "begin subs. 1st half")
+        self.wtest("\xa1\xa1\xa1\xa1r", 0, 3, 2, "begin subs. 2nd half")
+        self.wtest("\xa1\xa1\xa1@r", 0, 3, 2, "begin subs. 2nd half lo")
+        self.wtest("\xa1@\xa1@r", 0, 3, 2, "begin subs. 2nd half lo lo")
+        self.wtest("@\xa1\xa1@r", 0, 3, 0, "begin subs. not 2nd half lo")
 
     def test3(self):
-        self.wtest("abc \xA1\xA1qr", 4, 4, 1, "newline 1st half")
-        self.wtest("abc \xA1\xA1qr", 4, 5, 2, "newline 2nd half")
-        self.wtest("abc \xA1@qr", 4, 5, 2, "newline 2nd half lo")
-        self.wtest("abc \xA1\xA1\xA1\xA1r", 4, 6, 1, "newl subs. 1st half")
-        self.wtest("abc \xA1\xA1\xA1\xA1r", 4, 7, 2, "newl subs. 2nd half")
-        self.wtest("abc \xA1\xA1\xA1@r", 4, 7, 2, "newl subs. 2nd half lo")
-        self.wtest("abc \xA1@\xA1@r", 4, 7, 2, "newl subs. 2nd half lo lo")
-        self.wtest("abc @\xA1\xA1@r", 4, 7, 0, "newl subs. not 2nd half lo")
+        self.wtest("abc \xa1\xa1qr", 4, 4, 1, "newline 1st half")
+        self.wtest("abc \xa1\xa1qr", 4, 5, 2, "newline 2nd half")
+        self.wtest("abc \xa1@qr", 4, 5, 2, "newline 2nd half lo")
+        self.wtest("abc \xa1\xa1\xa1\xa1r", 4, 6, 1, "newl subs. 1st half")
+        self.wtest("abc \xa1\xa1\xa1\xa1r", 4, 7, 2, "newl subs. 2nd half")
+        self.wtest("abc \xa1\xa1\xa1@r", 4, 7, 2, "newl subs. 2nd half lo")
+        self.wtest("abc \xa1@\xa1@r", 4, 7, 2, "newl subs. 2nd half lo lo")
+        self.wtest("abc @\xa1\xa1@r", 4, 7, 0, "newl subs. not 2nd half lo")
 
 
 class CalcTextPosTest(unittest.TestCase):
@@ -130,7 +130,7 @@ class CalcTextPosTest(unittest.TestCase):
 
     def test2_wide(self):
         util.set_encoding("euc-jp")
-        text = "hel\xA1\xA1 world out there"
+        text = "hel\xa1\xa1 world out there"
         tests = [
             (0, 21, 0, (0, 0)),
             (0, 21, 4, (3, 3)),
