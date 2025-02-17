@@ -12,39 +12,45 @@ if typing.TYPE_CHECKING:
     from .widget import Widget
 
 
-class _ContainerElementSizingFlag(enum.IntFlag):
-    NONE = 0
-    BOX = enum.auto()
-    FLOW = enum.auto()
-    FIXED = enum.auto()
-    WH_WEIGHT = enum.auto()
-    WH_PACK = enum.auto()
-    WH_GIVEN = enum.auto()
+# Ideally, we would like to use an IntFlag coupled with enum.auto().
+# However, doing many bitwise operations (which happens when nesting too many
+# widgets ...) on IntFlag is orders of magnitude slower than doing the same
+# operations on IntEnum.
+class _ContainerElementSizingFlag(enum.IntEnum):
+    # fmt: off
+    NONE      = 0b000000
+    BOX       = 0b000001
+    FLOW      = 0b000010
+    FIXED     = 0b000100
+    WH_WEIGHT = 0b001000
+    WH_PACK   = 0b010000
+    WH_GIVEN  = 0b100000
+    # fmt: on
 
-    @property
-    def reverse_flag(self) -> tuple[frozenset[Sizing], WHSettings | None]:
+    @staticmethod
+    def reverse_flag(bitfield: int) -> tuple[frozenset[Sizing], WHSettings | None]:
         """Get flag in public API format."""
         sizing: set[Sizing] = set()
 
-        if self & self.BOX:
+        if bitfield & _ContainerElementSizingFlag.BOX:
             sizing.add(Sizing.BOX)
-        if self & self.FLOW:
+        if bitfield & _ContainerElementSizingFlag.FLOW:
             sizing.add(Sizing.FLOW)
-        if self & self.FIXED:
+        if bitfield & _ContainerElementSizingFlag.FIXED:
             sizing.add(Sizing.FIXED)
 
-        if self & self.WH_WEIGHT:
+        if bitfield & _ContainerElementSizingFlag.WH_WEIGHT:
             return frozenset(sizing), WHSettings.WEIGHT
-        if self & self.WH_PACK:
+        if bitfield & _ContainerElementSizingFlag.WH_PACK:
             return frozenset(sizing), WHSettings.PACK
-        if self & self.WH_GIVEN:
+        if bitfield & _ContainerElementSizingFlag.WH_GIVEN:
             return frozenset(sizing), WHSettings.GIVEN
         return frozenset(sizing), None
 
-    @property
-    def log_string(self) -> str:
+    @staticmethod
+    def log_string(bitfield: int) -> str:
         """Get desctiprion in public API format."""
-        sizing, render = self.reverse_flag
+        sizing, render = _ContainerElementSizingFlag.reverse_flag(bitfield)
         render_string = f" {render.upper()}" if render else ""
         return "|".join(sorted(mode.upper() for mode in sizing)) + render_string
 
