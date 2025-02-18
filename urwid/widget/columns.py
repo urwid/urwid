@@ -121,7 +121,8 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         flow_fixed = _ContainerElementSizingFlag.FLOW | _ContainerElementSizingFlag.FIXED
         given_box = _ContainerElementSizingFlag.BOX | _ContainerElementSizingFlag.WH_GIVEN
 
-        flags: set[_ContainerElementSizingFlag] = set()
+        # This is a set of _ContainerElementSizingFlag ORed together.
+        flags: set[int] = set()
 
         for idx, (widget, (size_kind, _size_weight, is_box)) in enumerate(self.contents):
             w_sizing = widget.sizing()
@@ -190,7 +191,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if not supported:
             warnings.warn(
                 f"Columns widget contents flags not allow to determine supported render kind:\n"
-                f"{', '.join(sorted(flag.log_string for flag in flags))}\n"
+                f"{', '.join(sorted(_ContainerElementSizingFlag.log_string(flag) for flag in flags))}\n"
                 f"Using fallback hardcoded BOX|FLOW sizing kind.",
                 ColumnsWarning,
                 stacklevel=3,
