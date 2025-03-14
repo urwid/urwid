@@ -201,3 +201,29 @@ class LineBoxTest(unittest.TestCase):
             ],
             [line.decode("utf-8") for line in canvas.text],
         )
+
+    def test_replace_widget(self):
+        old_widget = urwid.Text("some text")
+        lb_widget = urwid.LineBox(old_widget)
+        canvas = lb_widget.render(())
+        self.assertEqual(
+            [
+                "┌─────────┐",
+                "│some text│",
+                "└─────────┘",
+            ],
+            [line.decode("utf-8") for line in canvas.text],
+        )
+        self.assertIs(old_widget, lb_widget.original_widget)
+        new_widget = urwid.widget.Button("now it's a button")
+        lb_widget.original_widget = new_widget
+        canvas = lb_widget.render(())
+        self.assertEqual(
+            [
+                "┌─────────────────────┐",
+                "│< now it's a button >│",
+                "└─────────────────────┘",
+            ],
+            [line.decode("utf-8") for line in canvas.text],
+        )
+        self.assertIs(new_widget, lb_widget.original_widget)

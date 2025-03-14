@@ -124,7 +124,7 @@ class Screen(BaseScreen, RealTerminal):
         After calling this function get_input will include mouse
         click events along with keystrokes.
         """
-        enable = bool(enable)  # noqa: FURB123,RUF100
+        enable = bool(enable)
         if enable == self._mouse_tracking_enabled:
             return
 
