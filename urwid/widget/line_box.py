@@ -172,13 +172,13 @@ class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrappe
         return super().original_widget
 
     @original_widget.setter
-    def original_widget(self, widget: WrappedWidget) -> None:
+    def original_widget(self, original_widget: WrappedWidget) -> None:
         v_index = int(bool(self.tline_widget))  # we care only about top
         h_index = 1  # constant
         middle: Columns = typing.cast("Columns", self._wrapped_widget[v_index])
         _old_widget, options = middle.contents[h_index]
-        middle.contents[h_index] = (widget, options)
-        WidgetDecoration.original_widget.fset(self, widget)
+        middle.contents[h_index] = (original_widget, options)
+        WidgetDecoration.original_widget.fset(self, original_widget)
 
     @property
     def _w(self) -> Pile:
