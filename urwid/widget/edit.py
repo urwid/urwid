@@ -595,7 +595,7 @@ class Edit(Text):
         >>> c.cursor
         (5, 0)
         """
-        self._shift_view_to_cursor = bool(focus)  # noqa: FURB123,RUF100
+        self._shift_view_to_cursor = bool(focus)
 
         canv: TextCanvas | CompositeCanvas = super().render(size, focus)
         if focus:
