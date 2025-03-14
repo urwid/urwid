@@ -56,8 +56,8 @@ class AttrWrap(AttrMap):
     def w(self) -> Widget:
         """backwards compatibility, widget used to be stored as w"""
         warnings.warn(
-            "backwards compatibility, widget used to be stored as original_widget",
-            PendingDeprecationWarning,
+            "backwards compatibility, widget used to be stored as original_widget. API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         return self.original_widget
@@ -65,15 +65,15 @@ class AttrWrap(AttrMap):
     @w.setter
     def w(self, new_widget: Widget) -> None:
         warnings.warn(
-            "backwards compatibility, widget used to be stored as original_widget",
-            PendingDeprecationWarning,
+            "backwards compatibility, widget used to be stored as original_widget. API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         self.original_widget = new_widget
 
     def get_w(self):
         warnings.warn(
-            "backwards compatibility, widget used to be stored as original_widget",
+            "backwards compatibility, widget used to be stored as original_widget. API will be removed in version 4.0.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -81,7 +81,7 @@ class AttrWrap(AttrMap):
 
     def set_w(self, new_widget: Widget) -> None:
         warnings.warn(
-            "backwards compatibility, widget used to be stored as original_widget",
+            "backwards compatibility, widget used to be stored as original_widget. API will be removed in version 4.0.",
             DeprecationWarning,
             stacklevel=2,
         )

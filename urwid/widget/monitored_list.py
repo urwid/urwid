@@ -245,7 +245,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
     def _get_focus(self) -> int | None:
         warnings.warn(
             f"method `{self.__class__.__name__}._get_focus` is deprecated, "
-            f"please use `{self.__class__.__name__}.focus` property",
+            f"please use `{self.__class__.__name__}.focus` property."
+            "API will be removed in version 4.0.",
             DeprecationWarning,
             stacklevel=3,
         )
@@ -254,7 +255,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
     def _set_focus(self, index: int) -> None:
         warnings.warn(
             f"method `{self.__class__.__name__}._set_focus` is deprecated, "
-            f"please use `{self.__class__.__name__}.focus` property",
+            f"please use `{self.__class__.__name__}.focus` property."
+            "API will be removed in version 4.0.",
             DeprecationWarning,
             stacklevel=3,
         )

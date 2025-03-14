@@ -844,8 +844,9 @@ class ListBox(Widget, WidgetContainerMixin):
         warnings.warn(
             "only for backwards compatibility."
             "You may also use the new standard container property `focus` to get the focus "
-            "and property `focus_position` to read these values.",
-            PendingDeprecationWarning,
+            "and property `focus_position` to read these values."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         return self._body.get_focus()

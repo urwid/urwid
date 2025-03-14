@@ -172,7 +172,8 @@ class MainLoop:
     def _set_widget(self, widget: Widget) -> None:
         warnings.warn(
             f"method `{self.__class__.__name__}._set_widget` is deprecated, "
-            f"please use `{self.__class__.__name__}.widget` property",
+            f"please use `{self.__class__.__name__}.widget` property."
+            "API will be removed in version 4.0.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -193,7 +194,8 @@ class MainLoop:
     def _set_pop_ups(self, pop_ups: bool) -> None:
         warnings.warn(
             f"method `{self.__class__.__name__}._set_pop_ups` is deprecated, "
-            f"please use `{self.__class__.__name__}.pop_ups` property",
+            f"please use `{self.__class__.__name__}.pop_ups` property."
+            "API will be removed in version 4.0.",
             DeprecationWarning,
             stacklevel=2,
         )

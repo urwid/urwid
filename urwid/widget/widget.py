@@ -710,7 +710,7 @@ class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget"), typing.Generic[Wra
         False
         """
         warnings.warn(
-            "_set_w is deprecated. Please use 'WidgetWrap._w' property directly",
+            "_set_w is deprecated. Please use 'WidgetWrap._w' property directly. API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
         )

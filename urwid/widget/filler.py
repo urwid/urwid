@@ -162,8 +162,8 @@ class Filler(WidgetDecoration[WrappedWidget]):
     def body(self) -> WrappedWidget:
         """backwards compatibility, widget used to be stored as body"""
         warnings.warn(
-            "backwards compatibility, widget used to be stored as body",
-            PendingDeprecationWarning,
+            "backwards compatibility, widget used to be stored as body. API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         return self.original_widget
@@ -171,8 +171,8 @@ class Filler(WidgetDecoration[WrappedWidget]):
     @body.setter
     def body(self, new_body: WrappedWidget) -> None:
         warnings.warn(
-            "backwards compatibility, widget used to be stored as body",
-            PendingDeprecationWarning,
+            "backwards compatibility, widget used to be stored as body. API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         self.original_widget = new_body
@@ -180,7 +180,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
     def get_body(self) -> WrappedWidget:
         """backwards compatibility, widget used to be stored as body"""
         warnings.warn(
-            "backwards compatibility, widget used to be stored as body",
+            "backwards compatibility, widget used to be stored as body. API will be removed in version 4.0.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -188,7 +188,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
 
     def set_body(self, new_body: WrappedWidget) -> None:
         warnings.warn(
-            "backwards compatibility, widget used to be stored as body",
+            "backwards compatibility, widget used to be stored as body. API will be removed in version 4.0.",
             DeprecationWarning,
             stacklevel=2,
         )
