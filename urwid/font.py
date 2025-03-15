@@ -226,7 +226,7 @@ class Font(metaclass=FontRegistry):
         errors: Literal["strict", "ignore", "replace"] = "strict",
     ) -> str:
         warnings.warn(
-            "_to_text is deprecated: only text fonts are supported",
+            "_to_text is deprecated: only text fonts are supported. API will be removed in version 4.0.",
             DeprecationWarning,
             stacklevel=3,
         )

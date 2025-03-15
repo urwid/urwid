@@ -373,8 +373,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             standard container property :attr:`contents`.
         """
         warnings.warn(
-            "only for backwards compatibility. You should use the new standard container `contents`",
-            PendingDeprecationWarning,
+            "only for backwards compatibility. You should use the new standard container `contents`."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         ml = MonitoredList(w for w, t in self.contents)
@@ -388,8 +389,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     @widget_list.setter
     def widget_list(self, widgets):
         warnings.warn(
-            "only for backwards compatibility. You should use the new standard container `contents`",
-            PendingDeprecationWarning,
+            "only for backwards compatibility. You should use the new standard container `contents`."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         focus_position = self.focus_position
@@ -413,8 +415,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         warnings.warn(
             "for backwards compatibility only."
-            "You should use the new standard container property .contents to modify Pile contents.",
-            PendingDeprecationWarning,
+            "You should use the new standard container property .contents to modify Pile contents."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         ml = MonitoredList(
@@ -433,8 +436,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def column_types(self, column_types):
         warnings.warn(
             "for backwards compatibility only."
-            "You should use the new standard container property .contents to modify Pile contents.",
-            PendingDeprecationWarning,
+            "You should use the new standard container property .contents to modify Pile contents."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         focus_position = self.focus_position
@@ -455,8 +459,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             standard container property :attr:`contents`.
         """
         warnings.warn(
-            "only for backwards compatibility.You should use the new standard container property `contents`",
-            PendingDeprecationWarning,
+            "only for backwards compatibility.You should use the new standard container property `contents`."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         ml = MonitoredList(i for i, (w, (t, n, b)) in enumerate(self.contents) if b)
@@ -470,8 +475,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     @box_columns.setter
     def box_columns(self, box_columns):
         warnings.warn(
-            "only for backwards compatibility.You should use the new standard container property `contents`",
-            PendingDeprecationWarning,
+            "only for backwards compatibility.You should use the new standard container property `contents`."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         box_columns = set(box_columns)
@@ -483,7 +489,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         .. deprecated:: 1.0 Read values from :attr:`contents` instead.
         """
         warnings.warn(
-            ".has_flow_type is deprecated, read values from .contents instead.",
+            ".has_flow_type is deprecated, read values from .contents instead. API will be removed in version 4.0.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -492,7 +498,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     @has_flow_type.setter
     def has_flow_type(self, value):
         warnings.warn(
-            ".has_flow_type is deprecated, read values from .contents instead.",
+            ".has_flow_type is deprecated, read values from .contents instead. API will be removed in version 4.0.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -583,8 +589,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             standard container property :attr:`focus_position` to set the focus.
         """
         warnings.warn(
-            "only for backwards compatibility.You may also use the new standard container property `focus_position`",
-            PendingDeprecationWarning,
+            "only for backwards compatibility.You may also use the new standard container property `focus_position`."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         self.focus_position = num
@@ -597,8 +604,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             standard container property :attr:`focus_position` to get the focus.
         """
         warnings.warn(
-            "only for backwards compatibility.You may also use the new standard container property `focus_position`",
-            PendingDeprecationWarning,
+            "only for backwards compatibility.You may also use the new standard container property `focus_position`."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         return self.focus_position
@@ -613,8 +621,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         :param item: widget or integer index"""
         warnings.warn(
             "only for backwards compatibility."
-            "You may also use the new standard container property `focus_position` to get the focus.",
-            PendingDeprecationWarning,
+            "You may also use the new standard container property `focus_position` to get the focus."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         if isinstance(item, int):
@@ -648,8 +657,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         warnings.warn(
             "only for backwards compatibility."
-            "You may also use the new standard container property `focus` to get the focus.",
-            PendingDeprecationWarning,
+            "You may also use the new standard container property `focus` to get the focus."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         if not self.contents:
@@ -693,8 +703,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         warnings.warn(
             "only for backwards compatibility."
-            "You may also use the new standard container property `focus_position` to get the focus.",
-            PendingDeprecationWarning,
+            "You may also use the new standard container property `focus_position` to get the focus."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         return self.focus_position
@@ -703,8 +714,9 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def focus_col(self, new_position) -> None:
         warnings.warn(
             "only for backwards compatibility."
-            "You may also use the new standard container property `focus_position` to get the focus.",
-            PendingDeprecationWarning,
+            "You may also use the new standard container property `focus_position` to get the focus."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         self.focus_position = new_position

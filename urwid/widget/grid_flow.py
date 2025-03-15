@@ -144,8 +144,9 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
         """
         warnings.warn(
             "only for backwards compatibility."
-            "You should use the new standard container property `contents` to modify GridFlow",
-            PendingDeprecationWarning,
+            "You should use the new standard container property `contents` to modify GridFlow."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         ml = MonitoredList(w for w, t in self.contents)
@@ -160,8 +161,9 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
     def cells(self, widgets: Sequence[Widget]):
         warnings.warn(
             "only for backwards compatibility."
-            "You should use the new standard container property `contents` to modify GridFlow",
-            PendingDeprecationWarning,
+            "You should use the new standard container property `contents` to modify GridFlow."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         focus_position = self.focus_position
@@ -234,8 +236,9 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
         """
         warnings.warn(
             "only for backwards compatibility."
-            "You may also use the new standard container property `focus_position` to set the focus.",
-            PendingDeprecationWarning,
+            "You may also use the new standard container property `focus_position` to set the focus."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         if isinstance(cell, int):
@@ -271,8 +274,9 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
         """
         warnings.warn(
             "only for backwards compatibility."
-            "You may also use the new standard container property `focus` to get the focus.",
-            PendingDeprecationWarning,
+            "You may also use the new standard container property `focus` to get the focus."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         if not self.contents:
@@ -284,8 +288,9 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
         warnings.warn(
             "only for backwards compatibility."
             "You may also use the new standard container property"
-            "`focus` to get the focus and `focus_position` to get/set the cell in focus by index",
-            PendingDeprecationWarning,
+            "`focus` to get the focus and `focus_position` to get/set the cell in focus by index."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         return self.focus
@@ -295,8 +300,9 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
         warnings.warn(
             "only for backwards compatibility."
             "You may also use the new standard container property"
-            "`focus` to get the focus and `focus_position` to get/set the cell in focus by index",
-            PendingDeprecationWarning,
+            "`focus` to get the focus and `focus_position` to get/set the cell in focus by index."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         for i, (w, _options) in enumerate(self.contents):

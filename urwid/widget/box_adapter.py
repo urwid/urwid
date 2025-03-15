@@ -48,8 +48,8 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
     @property
     def box_widget(self) -> WrappedWidget:
         warnings.warn(
-            "original stored as original_widget, keep for compatibility",
-            PendingDeprecationWarning,
+            "original stored as original_widget, keep for compatibility. API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         return self.original_widget
@@ -57,8 +57,8 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
     @box_widget.setter
     def box_widget(self, widget: WrappedWidget) -> None:
         warnings.warn(
-            "original stored as original_widget, keep for compatibility",
-            PendingDeprecationWarning,
+            "original stored as original_widget, keep for compatibility. API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         self.original_widget = widget

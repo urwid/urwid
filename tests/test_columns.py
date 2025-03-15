@@ -775,9 +775,9 @@ class ColumnsTest(unittest.TestCase):
 
     def test_old_attributes(self):
         c = urwid.Columns([urwid.Text("a"), urwid.SolidFill("x")], box_columns=[1])
-        with self.assertWarns(PendingDeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             self.assertEqual(c.box_columns, [1])
-        with self.assertWarns(PendingDeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             c.box_columns = []
 
         self.assertEqual(c.box_columns, [])

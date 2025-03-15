@@ -301,8 +301,9 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             standard container property :attr:`contents`.
         """
         warnings.warn(
-            "only for backwards compatibility. You should use the new standard container property `contents`",
-            PendingDeprecationWarning,
+            "only for backwards compatibility. You should use the new standard container property `contents`."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         ml = MonitoredList(w for w, t in self.contents)
@@ -336,8 +337,9 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             standard container property :attr:`contents`.
         """
         warnings.warn(
-            "only for backwards compatibility. You should use the new standard container property `contents`",
-            PendingDeprecationWarning,
+            "only for backwards compatibility. You should use the new standard container property `contents`."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         ml = MonitoredList(
@@ -355,8 +357,9 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     @item_types.setter
     def item_types(self, item_types):
         warnings.warn(
-            "only for backwards compatibility. You should use the new standard container property `contents`",
-            PendingDeprecationWarning,
+            "only for backwards compatibility. You should use the new standard container property `contents`."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         focus_position = self.focus_position
@@ -475,8 +478,9 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         warnings.warn(
             "for backwards compatibility."
-            "You may also use the new standard container property .focus to get the child widget in focus.",
-            PendingDeprecationWarning,
+            "You may also use the new standard container property .focus to get the child widget in focus."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         if not self.contents:
@@ -486,8 +490,9 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def set_focus(self, item: Widget | int) -> None:
         warnings.warn(
             "for backwards compatibility."
-            "You may also use the new standard container property .focus to get the child widget in focus.",
-            PendingDeprecationWarning,
+            "You may also use the new standard container property .focus to get the child widget in focus."
+            "API will be removed in version 5.0.",
+            DeprecationWarning,
             stacklevel=2,
         )
         if isinstance(item, int):
@@ -504,7 +509,8 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         warnings.warn(
             "only for backwards compatibility."
             "You should use the new standard container properties "
-            "`focus` and `focus_position` to get the child widget in focus or modify the focus position.",
+            "`focus` and `focus_position` to get the child widget in focus or modify the focus position."
+            "API will be removed in version 4.0.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -515,7 +521,8 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         warnings.warn(
             "only for backwards compatibility."
             "You should use the new standard container properties "
-            "`focus` and `focus_position` to get the child widget in focus or modify the focus position.",
+            "`focus` and `focus_position` to get the child widget in focus or modify the focus position."
+            "API will be removed in version 4.0.",
             DeprecationWarning,
             stacklevel=2,
         )
