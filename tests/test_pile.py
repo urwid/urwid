@@ -472,3 +472,116 @@ class PileTest(unittest.TestCase):
             self.assertEqual(p.item_types, [("flow", None), ("weight", 1), ("weight", 1)])
             p.item_types[:] = [("weight", 2)]
             self.assertEqual(len(p.contents), 1)
+
+    def test_focused_not_fit(self):
+        """Pile not fit in size and focused widget is out of default display window"""
+        widget = urwid.Pile(
+            (
+                (urwid.PACK, urwid.Text("top 0")),
+                (urwid.PACK, urwid.Text("top 1")),
+                urwid.ListBox((urwid.CheckBox("cb 0"),)),
+                (urwid.PACK, urwid.Text("btm -2")),
+                (urwid.PACK, urwid.Text("btm -1")),
+            )
+        )
+
+        with self.subTest("Fit selectable only"):
+            canvas = widget.render((8, 1), True)
+            self.assertEqual(("[ ] cb 0",), canvas.decoded_text)
+
+        with self.subTest("Fit selectable and some items"):
+            canvas = widget.render((8, 2), True)
+            self.assertEqual(
+                (
+                    "top 1   ",
+                    "[ ] cb 0",
+                ),
+                canvas.decoded_text,
+            )
+
+        with self.subTest("Fit selectable and symmetric items"):
+            canvas = widget.render((8, 3), True)
+            self.assertEqual(
+                (
+                    "top 1   ",
+                    "[ ] cb 0",
+                    "btm -2  ",
+                ),
+                canvas.decoded_text,
+            )
+
+        with self.subTest("Not symmetric top"):
+            canvas = urwid.Pile(
+                (
+                    (urwid.PACK, urwid.Text("top 0")),
+                    (urwid.PACK, urwid.Text("top 1")),
+                    urwid.ListBox((urwid.CheckBox("cb 0"),)),
+                    (urwid.PACK, urwid.Text("btm -1")),
+                )
+            ).render((8, 3), True)
+            self.assertEqual(
+                (
+                    "top 1   ",
+                    "[ ] cb 0",
+                    "btm -1  ",
+                ),
+                canvas.decoded_text,
+            )
+
+        with self.subTest("Not symmetric bottom"):
+            canvas = urwid.Pile(
+                (
+                    (urwid.PACK, urwid.Text("top 0")),
+                    urwid.ListBox((urwid.CheckBox("cb 0"),)),
+                    (urwid.PACK, urwid.Text("btm -2")),
+                    (urwid.PACK, urwid.Text("btm -1")),
+                )
+            ).render((8, 3), True)
+            self.assertEqual(
+                (
+                    "top 0   ",
+                    "[ ] cb 0",
+                    "btm -2  ",
+                ),
+                canvas.decoded_text,
+            )
+
+        with self.subTest("Non-linear sizes should not break rendering"):
+            canvas = urwid.Pile(
+                (
+                    (urwid.PACK, urwid.Text("multi\nline")),
+                    (urwid.PACK, urwid.Text("top 1")),
+                    urwid.ListBox((urwid.CheckBox("cb 0"),)),
+                    (urwid.PACK, urwid.Text("also\nlines")),
+                )
+            ).render((8, 3), True)
+            self.assertEqual(
+                (
+                    "top 1   ",
+                    "[ ] cb 0",
+                    "        ",
+                ),
+                canvas.decoded_text,
+            )
+
+        with self.subTest("In multiple weighted need to choose correct to show"):
+            canvas = urwid.Pile(
+                (
+                    (urwid.PACK, urwid.Text("top 0")),
+                    urwid.ListBox((urwid.CheckBox("cb 0"),)),
+                    (urwid.PACK, urwid.Text("top 1")),
+                    urwid.ListBox((urwid.CheckBox("cb 1"),)),
+                    (urwid.PACK, urwid.Text("btm -2")),
+                    urwid.ListBox((urwid.CheckBox("cb 1"),)),
+                    (urwid.PACK, urwid.Text("btm -1")),
+                ),
+                focus_item=3,
+            ).render((8, 3), True)
+            self.assertEqual(
+                (
+                    "top 1   ",
+                    "[ ] cb 1",
+                    "btm -2  ",
+                ),
+                canvas.decoded_text,
+            )
