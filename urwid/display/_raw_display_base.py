@@ -641,7 +641,7 @@ class Screen(BaseScreen, RealTerminal):
                 a, cs, run = row[-1]
                 if run[-1:] == b" " and self.back_color_erase and not using_standout_or_underline(a):
                     whitespace_at_end = True
-                    row = row[:-1] + [(a, cs, run.rstrip(b" "))]  # noqa: PLW2901
+                    row = [*row[:-1], (a, cs, run.rstrip(b" "))]  # noqa: PLW2901
                 elif y == maxrow - 1 and maxcol > 1:
                     row, back, ins = self._last_row(row)  # noqa: PLW2901
 

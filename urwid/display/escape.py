@@ -551,7 +551,7 @@ def process_keyqueue(codes: Sequence[int], more_available: bool) -> tuple[list[s
             return ["esc", *run], remaining_codes
         if run[0] == "esc" or run[0].find("meta ") >= 0:
             return ["esc", *run], remaining_codes
-        return [f"meta {run[0]}"] + run[1:], remaining_codes
+        return [f"meta {run[0]}", *run[1:]], remaining_codes
 
     return ["esc"], codes[1:]
 

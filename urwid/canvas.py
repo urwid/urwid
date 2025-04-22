@@ -789,7 +789,7 @@ class CompositeCanvas(Canvas):
 
             if right > 0:
                 new_top_cviews.append((0, 0, right, rows, None, blank_canvas))
-            shards = [(top_rows, new_top_cviews)] + shards[1:]
+            shards = [(top_rows, new_top_cviews), *shards[1:]]
 
         self.coords = self.translate_coords(left, 0)
         self.shards = shards
@@ -883,11 +883,11 @@ class CompositeCanvas(Canvas):
             for cv in original_cviews:
                 # cv[4] == attr_map
                 if cv[4] is None:
-                    new_cviews.append(cv[:4] + (mapping,) + cv[5:])
+                    new_cviews.append((*cv[:4], mapping, *cv[5:]))
                 else:
                     combined = mapping.copy()
                     combined.update([(k, mapping.get(v, v)) for k, v in cv[4].items()])
-                    new_cviews.append(cv[:4] + (combined,) + cv[5:])
+                    new_cviews.append((*cv[:4], combined, *cv[5:]))
             shards.append((num_rows, new_cviews))
         self.shards = shards
 
@@ -983,7 +983,7 @@ def shard_cviews_delta(cviews, other_cviews):
             continue
         # top-left-aligned cviews, compare them
         if cv[5] is other_cv[5] and cv[:5] == other_cv[:5]:
-            yield cv[:5] + (None,) + cv[6:]
+            yield (*cv[:5], None, *cv[6:])
         else:
             yield cv
         other_cols += other_cv[2]
@@ -1166,7 +1166,7 @@ def shards_join(shard_lists):
 
 
 def cview_trim_rows(cv, rows: int):
-    return cv[:3] + (rows,) + cv[4:]
+    return (*cv[:3], rows, *cv[4:])
 
 
 def cview_trim_top(cv, trim: int):
@@ -1174,11 +1174,11 @@ def cview_trim_top(cv, trim: int):
 
 
 def cview_trim_left(cv, trim: int):
-    return (cv[0] + trim, cv[1], cv[2] - trim) + cv[3:]
+    return (cv[0] + trim, cv[1], cv[2] - trim, *cv[3:])
 
 
 def cview_trim_cols(cv, cols: int):
-    return cv[:2] + (cols,) + cv[3:]
+    return (*cv[:2], cols, *cv[3:])
 
 
 def CanvasCombine(canvas_info: Iterable[tuple[Canvas, typing.Any, bool]]) -> CompositeCanvas:
@@ -1210,7 +1210,7 @@ def CanvasCombine(canvas_info: Iterable[tuple[Canvas, typing.Any, bool]]) -> Com
         row += canv.rows()
 
     if focus_index:
-        children = [children[focus_index]] + children[:focus_index] + children[focus_index + 1 :]
+        children = [children[focus_index], *children[:focus_index], *children[focus_index + 1 :]]
 
     combined_canvas.shards = shards
     combined_canvas.children = children
@@ -1276,7 +1276,7 @@ def CanvasJoin(canvas_info: Iterable[tuple[Canvas, typing.Any, bool, int]]) -> C
         col += composite_canvas.cols()
 
     if focus_item:
-        children = [children[focus_item]] + children[:focus_item] + children[focus_item + 1 :]
+        children = [children[focus_item], *children[:focus_item], *children[focus_item + 1 :]]
 
     joined_canvas.shards = shards_join(shard_lists)
     joined_canvas.children = children
