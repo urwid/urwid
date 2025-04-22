@@ -1237,7 +1237,7 @@ class TermCanvas(Canvas):
             for x in range(self.width):
                 char = self.term[y][x]
                 attrs = self.reverse_attrspec(char[0], undo=undo)
-                self.term[y][x] = (attrs,) + char[1:]
+                self.term[y][x] = (attrs, *char[1:])
 
     def set_mode(
         self,

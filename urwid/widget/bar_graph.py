@@ -557,7 +557,7 @@ def calculate_bargraph_display(bardata, top: float, bar_widths: list[int], maxro
             la, ln = last[i]
 
         if i < len(last):
-            o += [(la, ln)] + last[i + 1 :]
+            o += [(la, ln), *last[i + 1 :]]
         last = o
         y_count += 1
 

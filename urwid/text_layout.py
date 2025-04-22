@@ -461,7 +461,7 @@ def shift_line(
         # existing shift
         amount += segs[0][0]
         if amount:
-            return [(amount, None)] + segs[1:]
+            return [(amount, None), *segs[1:]]
         return segs[1:]
 
     if amount:
