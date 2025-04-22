@@ -1002,7 +1002,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         if not data:
             if size:
-                return SolidCanvas(" ", size[0], (size[1:] + (1,))[0])
+                return SolidCanvas(" ", size[0], (*size[1:], 1)[0])
             raise ColumnsError("No data to render")
 
         canvas = CanvasJoin(data)
@@ -1145,7 +1145,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             col += sum(widths[: self.focus_position])
         return col
 
-    def rows(self, size: tuple[int] | tuple[int, int], focus: bool = False) -> int:
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
         """
         Return the number of rows required by the columns.
         This only makes sense if :attr:`widget_list` contains flow widgets.

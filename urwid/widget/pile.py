@@ -574,6 +574,12 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         """
         Return a size appropriate for passing to self.contents[i][0].render
         """
+        warnings.warn(
+            "get_item_size is going to be deprecated and can be removed soon."
+            "This method is not used by the urwid codebase and `get_rows_sizes` is used for the similar purposes.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         _w, (f, height) = self.contents[i]
         if f == WHSettings.PACK:
             if not size:
@@ -602,6 +608,10 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self,
         focus: bool = False,
     ) -> tuple[Sequence[int], Sequence[int], Sequence[tuple[int] | tuple[()]]]:
+        """Get rows widths, heights and render size parameters
+
+        Fixed case expect widget sizes calculation with several cycles for unknown height cases.
+        """
         if not self.contents:
             return (), (), ()
 
@@ -693,21 +703,24 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             tuple(w_h_args[idx] for idx in range(len(w_h_args))),
         )
 
-    def get_rows_sizes(
+    def _get_flow_rows_sizes(
         self,
-        size: tuple[int, int] | tuple[int] | tuple[()],
+        size: tuple[int],
         focus: bool = False,
-    ) -> tuple[Sequence[int], Sequence[int], Sequence[tuple[int, int] | tuple[int] | tuple[()]]]:
-        """Get rows widths, heights and render size parameters"""
-        if not size:
-            return self._get_fixed_rows_sizes(focus=focus)
+    ) -> tuple[Sequence[int], Sequence[int], Sequence[tuple[int] | tuple[()]]]:
+        """Get rows widths, heights and render size parameters
 
+        Flow case is the simplest one: minimum cycles in the logic and no widgets manipulation.
+        Here we can make some shortcuts
+        """
         maxcol = size[0]
-        item_rows = None
+        if not self.contents:
+            return (maxcol,), (0,), ()
 
-        widths: list[int] = []
+        widths: Sequence[int] = (maxcol,) * len(self.contents)
         heights: list[int] = []
         w_h_args: list[tuple[int, int] | tuple[int] | tuple[()]] = []
+        focus_position = self.focus_position
 
         for i, (w, (f, height)) in enumerate(self.contents):
             if isinstance(w, Widget):
@@ -716,12 +729,65 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 warnings.warn(f"{w!r} is not a Widget", PileWarning, stacklevel=3)
                 w_sizing = frozenset((Sizing.FLOW, Sizing.BOX))
 
-            item_focus = focus and self.focus == w
-            widths.append(maxcol)
+            focused = focus and i == focus_position
 
             if f == WHSettings.GIVEN:
                 heights.append(height)
                 w_h_args.append((maxcol, height))
+            elif Sizing.FLOW in w_sizing:
+                heights.append(w.rows((maxcol,), focus=focused))
+                w_h_args.append((maxcol,))
+            elif Sizing.FIXED in w_sizing and f == WHSettings.PACK:
+                heights.append(w.pack((), focused)[1])
+                w_h_args.append(())
+            else:
+                warnings.warn(
+                    f"Unusual widget {i} sizing {w_sizing} for {f.upper()}). "
+                    f"Assuming wrong sizing and using {Sizing.FLOW.upper()} for height calculation",
+                    PileWarning,
+                    stacklevel=3,
+                )
+                heights.append(w.rows((maxcol,), focus=focused))
+                w_h_args.append((maxcol,))
+
+        return (widths, tuple(heights), tuple(w_h_args))
+
+    def get_rows_sizes(
+        self,
+        size: tuple[int, int] | tuple[int] | tuple[()],
+        focus: bool = False,
+    ) -> tuple[Sequence[int], Sequence[int], Sequence[tuple[int, int] | tuple[int] | tuple[()]]]:
+        """Get rows widths, heights and render size parameters"""
+        if not size:
+            return self._get_fixed_rows_sizes(focus=focus)
+        if len(size) == 1:
+            return self._get_flow_rows_sizes(size, focus=focus)
+
+        maxcol, maxrow = size
+        if not self.contents:
+            return (maxcol,), (maxrow,), ()
+
+        remaining: int = maxrow
+
+        widths: Sequence[int] = (maxcol,) * len(self.contents)
+        heights: dict[int, int] = {}
+        weighted: dict[int, int] = {}
+        w_h_args: dict[int, tuple[int, int] | tuple[int] | tuple[()]] = {}
+        focus_position = self.focus_position
+
+        for i, (w, (f, height)) in enumerate(self.contents):
+            if isinstance(w, Widget):
+                w_sizing = w.sizing()
+            else:
+                warnings.warn(f"{w!r} is not a Widget", PileWarning, stacklevel=3)
+                w_sizing = frozenset((Sizing.FLOW, Sizing.BOX))
+
+            focused = focus and i == focus_position
+
+            if f == WHSettings.GIVEN:
+                heights[i] = height
+                w_h_args[i] = (maxcol, height)
+                remaining -= height
             elif f == WHSettings.PACK or len(size) == 1:
                 if Sizing.FLOW in w_sizing:
                     w_h_arg: tuple[int] | tuple[()] = (maxcol,)
@@ -736,16 +802,72 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                     )
                     w_h_arg = (maxcol,)
 
-                heights.append(w.pack(w_h_arg, item_focus)[1])
-                w_h_args.append(w_h_arg)
+                item_height = w.pack(w_h_arg, focused)[1]
+                heights[i] = item_height
+                w_h_args[i] = w_h_arg
+                remaining -= item_height
+            elif height:
+                weighted[i] = height
             else:
-                if item_rows is None:
-                    item_rows = self.get_item_rows(size, focus)
-                rows = item_rows[i]
-                heights.append(rows)
-                w_h_args.append((maxcol, rows))
+                heights[i] = 0
+                w_h_args[i] = (maxcol, 0)  # zero-weighted items treated as ('given', 0)
 
-        return (tuple(widths), tuple(heights), tuple(w_h_args))
+        sum_weight = sum(weighted.values())
+        if remaining <= 0 and focus_position in weighted:
+            # We need to hide some widgets: focused part will be not displayed by default
+            # At this place we have to operate also negative "remaining" to be sure that widget really fit
+            before = []
+            after = []
+            for idx, height in heights.items():
+                if height:
+                    if idx < focus_position:
+                        before.append(idx)
+                    else:
+                        after.append(idx)
+
+            # Try to move to the center
+            offset = len(before) - len(after)
+            if not offset:
+                indexes = (element for pair in zip(after[::-1], before) for element in pair)
+            elif offset > 0:
+                indexes = (
+                    *before[:offset],
+                    *(element for pair in zip(after[::-1], before[offset:]) for element in pair),
+                )
+            else:
+                indexes = (
+                    *after[-1 : offset - 1 : -1],
+                    *(element for pair in zip(after[offset - 1 :: -1], before) for element in pair),
+                )
+
+            for idx in indexes:
+                height, heights[idx] = heights[idx], 0
+                remaining += height
+                if remaining > 0:
+                    break
+
+        remaining = max(remaining, 0)
+
+        for idx in sorted(weighted, key=lambda idx: (idx != focus_position, idx)):
+            # We have to sort weighted items way that focused widget will gain render priority
+            if remaining == 0:
+                rows = 0
+            else:
+                rows = int(float(remaining) * weighted[idx] / sum_weight + 0.5)
+                if not rows and idx == focus_position:
+                    # Special case: we have to force as minimum 1 row for focused widget to prevent broken behaviour
+                    rows = 1
+                remaining -= rows
+                sum_weight -= weighted[idx]
+
+            heights[idx] = rows
+            w_h_args[idx] = (maxcol, rows)
+
+        return (
+            widths,
+            tuple(heights[idx] for idx in range(len(heights))),
+            tuple(w_h_args[idx] for idx in range(len(w_h_args))),
+        )
 
     def pack(self, size: tuple[()] | tuple[int] | tuple[int, int] = (), focus: bool = False) -> tuple[int, int]:
         """Get packed sized for widget."""
@@ -754,73 +876,12 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         widths, heights, _ = self.get_rows_sizes(size, focus)
         return (max(widths), sum(heights))
 
-    def get_item_rows(self, size: tuple[()] | tuple[int] | tuple[int, int], focus: bool) -> list[int]:
+    def get_item_rows(self, size: tuple[int] | tuple[int, int], focus: bool) -> list[int]:
+        """A list of the number of rows used by each widget in self.contents.
+
+        This method is a normally used only by `get_item_size` for the BOX case..
         """
-        Return a list of the number of rows used by each widget in self.contents
-        """
-        remaining = None
-        maxcol = size[0]
-        if len(size) == 2:
-            remaining = size[1]
-
-        rows_numbers = []
-
-        if remaining is None:
-            # pile is a flow widget
-            for i, (w, (f, height)) in enumerate(self.contents):
-                if isinstance(w, Widget):
-                    w_sizing = w.sizing()
-                else:
-                    warnings.warn(f"{w!r} is not a Widget", PileWarning, stacklevel=3)
-                    w_sizing = frozenset((Sizing.FLOW, Sizing.BOX))
-
-                focused = focus and self.focus == w
-
-                if f == WHSettings.GIVEN:
-                    rows_numbers.append(height)
-                elif Sizing.FLOW in w_sizing:
-                    rows_numbers.append(w.rows((maxcol,), focus=focused))
-                elif Sizing.FIXED in w_sizing and f == WHSettings.PACK:
-                    rows_numbers.append(w.pack((), focused)[0])
-                else:
-                    warnings.warn(
-                        f"Unusual widget {i} sizing {w_sizing} for {f.upper()}). "
-                        f"Assuming wrong sizing and using {Sizing.FLOW.upper()} for height calculation",
-                        PileWarning,
-                        stacklevel=3,
-                    )
-                    rows_numbers.append(w.rows((maxcol,), focus=focused))
-            return rows_numbers
-
-        # pile is a box widget
-        # do an extra pass to calculate rows for each widget
-        wtotal = 0
-        for w, (f, height) in self.contents:
-            if f == WHSettings.PACK:
-                rows = w.rows((maxcol,), focus=focus and self.focus == w)
-                rows_numbers.append(rows)
-                remaining -= rows
-            elif f == WHSettings.GIVEN:
-                rows_numbers.append(height)
-                remaining -= height
-            elif height:
-                rows_numbers.append(None)
-                wtotal += height
-            else:
-                rows_numbers.append(0)  # zero-weighted items treated as ('given', 0)
-
-        if wtotal == 0:
-            raise PileError("No weighted widgets found for Pile treated as a box widget")
-
-        remaining = max(remaining, 0)
-
-        for i, (_w, (_f, height)) in enumerate(self.contents):
-            if rows_numbers[i] is None:
-                rows = int(float(remaining) * height / wtotal + 0.5)
-                rows_numbers[i] = rows
-                remaining -= rows
-                wtotal -= height
-        return rows_numbers
+        return list(self.get_rows_sizes(size, focus)[1])
 
     def render(
         self,
@@ -840,7 +901,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
                 combinelist.append((canv, i, item_focus))
 
         if not combinelist:
-            return SolidCanvas(" ", size[0], (size[1:] + (0,))[0])
+            return SolidCanvas(" ", size[0], (*size[1:], 0)[0])
 
         out = CanvasCombine(combinelist)
         if len(size) == 2 and size[1] != out.rows():
@@ -867,8 +928,8 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         return None
 
-    def rows(self, size: tuple[int] | tuple[int, int], focus: bool = False) -> int:
-        return sum(self.get_item_rows(size, focus))
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
+        return sum(self.get_rows_sizes(size, focus)[1])
 
     def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
         """Pass the keypress to the widget in focus.
