@@ -249,6 +249,14 @@ class Screen(_raw_display_base.Screen):
 
         fd_list = super().get_input_descriptors()
         if self.gpm_mev is not None and self.gpm_mev.stdout is not None:
+            if self.gpm_mev.stdout.closed:
+                if (return_code := self.gpm_mev.returncode) is not None:
+                    # process is closed, remove leftovers to allow `__del__` on the `Popen` instance
+                    self.gpm_mev = None
+                    raise RuntimeError(f"gpm_mev process is closed with returncode: {return_code}")
+
+                raise RuntimeError("gpm_mev.stdout is closed while process is still running")
+
             fd_list.append(self.gpm_mev.stdout)
         return fd_list
 
