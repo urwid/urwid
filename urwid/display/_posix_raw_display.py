@@ -25,6 +25,7 @@ Direct terminal UI implementation
 from __future__ import annotations
 
 import contextlib
+import errno
 import fcntl
 import functools
 import os
@@ -323,6 +324,14 @@ class Screen(_raw_display_base.Screen):
             selector.register(fd, selectors.EVENT_READ)
             input_ready = selector.select(0)
             while input_ready:
+                try:
+                    os.fstat(fd)
+                except OSError as e:
+                    if e.errno == errno.EBADF:
+                        raise RuntimeError(f"Unexpectedly closed file descriptor {fd!r}: {e}").with_traceback(
+                            e.__traceback__
+                        ) from e
+                    raise
                 chars.extend(os.read(fd, 1024))
                 input_ready = selector.select(0)
 
