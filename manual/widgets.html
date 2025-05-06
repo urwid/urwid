@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widgets &#8212; Urwid 2.6.14</title>
-    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=90fbb3e5" />
+    <title>Widgets &#8212; Urwid 3.0.0</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     
-    <script src="../_static/documentation_options.js?v=df2d5fa4"></script>
-    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/documentation_options.js?v=acc74ff5"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
     <link rel="canonical" href="https://urwid.org/manual/widgets.html" />
@@ -19,7 +19,7 @@
     <link rel="next" title="User Input" href="userinput.html" />
     <link rel="prev" title="Display Modules" href="displaymodules.html" /> 
   </head><body>
-    <div class="related" role="navigation" aria-label="related navigation">
+    <div class="related" role="navigation" aria-label="Related">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.14</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 3.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widgets</a></li> 
       </ul>
@@ -686,13 +686,13 @@ wrapping is more appropriate.</p>
 widgets. You can create a custom widget simply by creating a subclass of
 WidgetWrap and passing a widget into WidgetWrap’s constructor.</p>
 <p>This is an example of a custom widget that uses WidgetWrap:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 <span class="linenos"> 2</span>
-<span class="linenos"> 3</span><span class="kn">import</span> <span class="nn">urwid</span>
+<span class="linenos"> 3</span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
 <span class="linenos"> 4</span>
 <span class="linenos"> 5</span>
-<span class="linenos"> 6</span><span class="k">class</span> <span class="nc">QuestionnaireItem</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">WidgetWrap</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">GridFlow</span><span class="p">]):</span>
-<span class="linenos"> 7</span>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 6</span><span class="k">class</span><span class="w"> </span><span class="nc">QuestionnaireItem</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">WidgetWrap</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">GridFlow</span><span class="p">]):</span>
+<span class="linenos"> 7</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos"> 8</span>        <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
 <span class="linenos"> 9</span>        <span class="n">unsure</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">,</span> <span class="s2">&quot;Unsure&quot;</span><span class="p">)</span>
 <span class="linenos">10</span>        <span class="n">yes</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">,</span> <span class="s2">&quot;Yes&quot;</span><span class="p">)</span>
@@ -700,7 +700,7 @@ WidgetWrap and passing a widget into WidgetWrap’s constructor.</p>
 <span class="linenos">12</span>        <span class="n">display_widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">GridFlow</span><span class="p">([</span><span class="n">unsure</span><span class="p">,</span> <span class="n">yes</span><span class="p">,</span> <span class="n">no</span><span class="p">],</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;left&quot;</span><span class="p">)</span>
 <span class="linenos">13</span>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">display_widget</span><span class="p">)</span>
 <span class="linenos">14</span>
-<span class="linenos">15</span>    <span class="k">def</span> <span class="nf">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="linenos">15</span>    <span class="k">def</span><span class="w"> </span><span class="nf">get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="linenos">16</span>        <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">label</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="k">if</span> <span class="n">o</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -716,27 +716,27 @@ methods, and flow widgets must implement <a class="reference internal" href="../
 <p>The default <a class="reference internal" href="../reference/widget.html#urwid.Widget.sizing" title="urwid.Widget.sizing"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.sizing()</span></code></a> method returns a set of sizing modes supported
 from <code class="docutils literal notranslate"><span class="pre">self._sizing</span></code>, so we define <code class="docutils literal notranslate"><span class="pre">_sizing</span></code> attributes for our flow and
 box widgets below.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 <span class="linenos"> 2</span>
-<span class="linenos"> 3</span><span class="kn">import</span> <span class="nn">urwid</span>
+<span class="linenos"> 3</span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
 <span class="linenos"> 4</span>
 <span class="linenos"> 5</span>
-<span class="linenos"> 6</span><span class="k">class</span> <span class="nc">Pudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
+<span class="linenos"> 6</span><span class="k">class</span><span class="w"> </span><span class="nc">Pudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
 <span class="linenos"> 7</span>    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="n">urwid</span><span class="o">.</span><span class="n">FLOW</span><span class="p">,))</span>
 <span class="linenos"> 8</span>
-<span class="linenos"> 9</span>    <span class="k">def</span> <span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">focus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="linenos"> 9</span>    <span class="k">def</span><span class="w"> </span><span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">focus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="linenos">10</span>        <span class="k">return</span> <span class="mi">1</span>
 <span class="linenos">11</span>
-<span class="linenos">12</span>    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">focus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">:</span>
+<span class="linenos">12</span>    <span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">focus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">:</span>
 <span class="linenos">13</span>        <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
 <span class="linenos">14</span>        <span class="n">num_pudding</span> <span class="o">=</span> <span class="n">maxcol</span> <span class="o">//</span> <span class="nb">len</span><span class="p">(</span><span class="s2">&quot;Pudding&quot;</span><span class="p">)</span>
 <span class="linenos">15</span>        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="sa">b</span><span class="s2">&quot;Pudding&quot;</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">],</span> <span class="n">maxcol</span><span class="o">=</span><span class="n">maxcol</span><span class="p">)</span>
 <span class="linenos">16</span>
 <span class="linenos">17</span>
-<span class="linenos">18</span><span class="k">class</span> <span class="nc">BoxPudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
+<span class="linenos">18</span><span class="k">class</span><span class="w"> </span><span class="nc">BoxPudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
 <span class="linenos">19</span>    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="n">urwid</span><span class="o">.</span><span class="n">BOX</span><span class="p">,))</span>
 <span class="linenos">20</span>
-<span class="linenos">21</span>    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">focus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">:</span>
+<span class="linenos">21</span>    <span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">focus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">:</span>
 <span class="linenos">22</span>        <span class="p">(</span><span class="n">maxcol</span><span class="p">,</span> <span class="n">maxrow</span><span class="p">)</span> <span class="o">=</span> <span class="n">size</span>
 <span class="linenos">23</span>        <span class="n">num_pudding</span> <span class="o">=</span> <span class="n">maxcol</span> <span class="o">//</span> <span class="nb">len</span><span class="p">(</span><span class="s2">&quot;Pudding&quot;</span><span class="p">)</span>
 <span class="linenos">24</span>        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="sa">b</span><span class="s2">&quot;Pudding&quot;</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">]</span> <span class="o">*</span> <span class="n">maxrow</span><span class="p">,</span> <span class="n">maxcol</span><span class="o">=</span><span class="n">maxcol</span><span class="p">)</span>
@@ -756,18 +756,18 @@ display widget that is time consuming to create you should consider caching it
 to reduce its impact on performance.</p>
 <p>It is possible to create a widget that will behave as either a flow widget or
 box widget depending on what is required:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 <span class="linenos"> 2</span>
-<span class="linenos"> 3</span><span class="kn">import</span> <span class="nn">urwid</span>
+<span class="linenos"> 3</span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
 <span class="linenos"> 4</span>
 <span class="linenos"> 5</span>
-<span class="linenos"> 6</span><span class="k">class</span> <span class="nc">MultiPudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
+<span class="linenos"> 6</span><span class="k">class</span><span class="w"> </span><span class="nc">MultiPudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
 <span class="linenos"> 7</span>    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="n">urwid</span><span class="o">.</span><span class="n">FLOW</span><span class="p">,</span> <span class="n">urwid</span><span class="o">.</span><span class="n">BOX</span><span class="p">))</span>
 <span class="linenos"> 8</span>
-<span class="linenos"> 9</span>    <span class="k">def</span> <span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">focus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="linenos"> 9</span>    <span class="k">def</span><span class="w"> </span><span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">focus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="linenos">10</span>        <span class="k">return</span> <span class="mi">1</span>
 <span class="linenos">11</span>
-<span class="linenos">12</span>    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">focus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">:</span>
+<span class="linenos">12</span>    <span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">focus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">:</span>
 <span class="linenos">13</span>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">size</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
 <span class="linenos">14</span>            <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
 <span class="linenos">15</span>            <span class="n">maxrow</span> <span class="o">=</span> <span class="mi">1</span>
@@ -787,23 +787,23 @@ is expecting a flow widget or a box widget.</p>
 with the application. A widget is selectable if its selectable method returns
 True. Selectable widgets must implement the <a class="reference internal" href="../reference/widget.html#urwid.Widget.keypress" title="urwid.Widget.keypress"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.keypress()</span></code></a> method to
 handle keyboard input.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">urwid</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
 
 
-<span class="k">class</span> <span class="nc">SelectablePudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SelectablePudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
     <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">((</span><span class="n">urwid</span><span class="o">.</span><span class="n">FLOW</span><span class="p">,))</span>
     <span class="n">_selectable</span> <span class="o">=</span> <span class="kc">True</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pudding</span> <span class="o">=</span> <span class="s2">&quot;pudding&quot;</span>
 
-    <span class="k">def</span> <span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">focus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">focus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="mi">1</span>
 
-    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">focus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">focus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">:</span>
         <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
         <span class="n">num_pudding</span> <span class="o">=</span> <span class="n">maxcol</span> <span class="o">//</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pudding</span><span class="p">)</span>
         <span class="n">pudding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pudding</span>
@@ -811,7 +811,7 @@ handle keyboard input.</p>
             <span class="n">pudding</span> <span class="o">=</span> <span class="n">pudding</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="n">pudding</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">],</span> <span class="n">maxcol</span><span class="o">=</span><span class="n">maxcol</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">key</span>
 
@@ -847,23 +847,23 @@ Similar to the rows method for flow widgets, this method lets other widgets
 make layout decisions without rendering the entire widget. The
 <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> widget in particular uses get_cursor_coords to
 make sure that the cursor is visible within its focus widget.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 <span class="linenos"> 2</span>
-<span class="linenos"> 3</span><span class="kn">import</span> <span class="nn">urwid</span>
+<span class="linenos"> 3</span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
 <span class="linenos"> 4</span>
 <span class="linenos"> 5</span>
-<span class="linenos"> 6</span><span class="k">class</span> <span class="nc">CursorPudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
+<span class="linenos"> 6</span><span class="k">class</span><span class="w"> </span><span class="nc">CursorPudding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">):</span>
 <span class="linenos"> 7</span>    <span class="n">_sizing</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s2">&quot;flow&quot;</span><span class="p">])</span>
 <span class="linenos"> 8</span>    <span class="n">_selectable</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="linenos"> 9</span>
-<span class="linenos">10</span>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="linenos">10</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="linenos">11</span>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 <span class="linenos">12</span>        <span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="linenos">13</span>
-<span class="linenos">14</span>    <span class="k">def</span> <span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">focus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="linenos">14</span>    <span class="k">def</span><span class="w"> </span><span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">focus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="linenos">15</span>        <span class="k">return</span> <span class="mi">1</span>
 <span class="linenos">16</span>
-<span class="linenos">17</span>    <span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">focus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">:</span>
+<span class="linenos">17</span>    <span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">focus</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">:</span>
 <span class="linenos">18</span>        <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
 <span class="linenos">19</span>        <span class="n">num_pudding</span> <span class="o">=</span> <span class="n">maxcol</span> <span class="o">//</span> <span class="nb">len</span><span class="p">(</span><span class="s2">&quot;Pudding&quot;</span><span class="p">)</span>
 <span class="linenos">20</span>        <span class="n">cursor</span> <span class="o">=</span> <span class="kc">None</span>
@@ -871,12 +871,12 @@ make sure that the cursor is visible within its focus widget.</p>
 <span class="linenos">22</span>            <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cursor_coords</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
 <span class="linenos">23</span>        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TextCanvas</span><span class="p">([</span><span class="sa">b</span><span class="s2">&quot;Pudding&quot;</span> <span class="o">*</span> <span class="n">num_pudding</span><span class="p">],</span> <span class="p">[],</span> <span class="n">cursor</span><span class="o">=</span><span class="n">cursor</span><span class="p">,</span> <span class="n">maxcol</span><span class="o">=</span><span class="n">maxcol</span><span class="p">)</span>
 <span class="linenos">24</span>
-<span class="linenos">25</span>    <span class="k">def</span> <span class="nf">get_cursor_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="linenos">25</span>    <span class="k">def</span><span class="w"> </span><span class="nf">get_cursor_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="linenos">26</span>        <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
 <span class="linenos">27</span>        <span class="n">col</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span><span class="p">,</span> <span class="n">maxcol</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
 <span class="linenos">28</span>        <span class="k">return</span> <span class="n">col</span><span class="p">,</span> <span class="mi">0</span>
 <span class="linenos">29</span>
-<span class="linenos">30</span>    <span class="k">def</span> <span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">30</span>    <span class="k">def</span><span class="w"> </span><span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos">31</span>        <span class="p">(</span><span class="n">maxcol</span><span class="p">,)</span> <span class="o">=</span> <span class="n">size</span>
 <span class="linenos">32</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;left&quot;</span><span class="p">:</span>
 <span class="linenos">33</span>            <span class="n">col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor_col</span> <span class="o">-</span> <span class="mi">1</span>
@@ -905,10 +905,10 @@ must return <code class="docutils literal notranslate"><span class="pre">True</s
 placed at any position within the row specified (not only at the exact column
 specified) then this method must move the cursor to that position and return
 <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span>    <span class="k">def</span> <span class="nf">get_pref_col</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span>    <span class="k">def</span><span class="w"> </span><span class="nf">get_pref_col</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="linenos">2</span>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor_x</span>
 <span class="linenos">3</span>
-<span class="linenos">4</span>    <span class="k">def</span> <span class="nf">move_cursor_to_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">col</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">row</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="linenos">4</span>    <span class="k">def</span><span class="w"> </span><span class="nf">move_cursor_to_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">col</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">row</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="linenos">5</span>        <span class="k">assert</span> <span class="n">row</span> <span class="o">==</span> <span class="mi">0</span>  <span class="c1"># noqa: S101  # in examples we can use `assert`</span>
 <span class="linenos">6</span>        <span class="bp">self</span><span class="o">.</span><span class="n">cursor_x</span> <span class="o">=</span> <span class="n">col</span>
 <span class="linenos">7</span>        <span class="k">return</span> <span class="kc">True</span>
@@ -940,10 +940,10 @@ defined in superclasses after the class definition.</p>
           </div>
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
         <div class="sphinxsidebarwrapper">
             <p class="logo"><a href="../index.html">
-              <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
+              <img class="logo" src="../_static/urwid-logo.png" alt="Logo of Urwid"/>
             </a></p><h3>Table of contents</h3>
     <ul><li><a href="index.html">Manual</a></li><ul>
 <li><a class="reference internal" href="#">Widgets</a><ul>
@@ -1042,7 +1042,7 @@ defined in superclasses after the class definition.</p>
       </div>
       <div class="clearer"></div>
     </div>
-    <div class="related" role="navigation" aria-label="related navigation">
+    <div class="related" role="navigation" aria-label="Related">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -1054,14 +1054,14 @@ defined in superclasses after the class definition.</p>
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.14</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 3.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widgets</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.3.7.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
     </div>
   </body>
 </html>

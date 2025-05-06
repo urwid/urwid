@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Main Loop &#8212; Urwid 2.6.14</title>
-    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=90fbb3e5" />
+    <title>Main Loop &#8212; Urwid 3.0.0</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     
-    <script src="../_static/documentation_options.js?v=df2d5fa4"></script>
-    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/documentation_options.js?v=acc74ff5"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     
     <link rel="canonical" href="https://urwid.org/manual/mainloop.html" />
@@ -19,7 +19,7 @@
     <link rel="next" title="Display Modules" href="displaymodules.html" />
     <link rel="prev" title="Library Overview" href="overview.html" /> 
   </head><body>
-    <div class="related" role="navigation" aria-label="related navigation">
+    <div class="related" role="navigation" aria-label="Related">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="overview.html" title="Library Overview"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.14</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 3.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Main Loop</a></li> 
       </ul>
@@ -112,7 +112,7 @@ created if none is passed to <code class="xref py py-class docutils literal notr
 <section id="asyncioeventloop">
 <h3><code class="docutils literal notranslate"><span class="pre">AsyncioEventLoop</span></code><a class="headerlink" href="#asyncioeventloop" title="Link to this heading">¶</a></h3>
 <p>This event loop integrates with the asyncio module in Python.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">asyncio</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 <span class="n">evl</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AsyncioEventLoop</span><span class="p">(</span><span class="n">loop</span><span class="o">=</span><span class="n">asyncio</span><span class="o">.</span><span class="n">get_event_loop</span><span class="p">())</span>
 <span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">event_loop</span><span class="o">=</span><span class="n">evl</span><span class="p">)</span>
 </pre></div>
@@ -173,7 +173,7 @@ application on Twisted.</p>
 <section id="tornadoeventloop">
 <h3><code class="docutils literal notranslate"><span class="pre">TornadoEventLoop</span></code><a class="headerlink" href="#tornadoeventloop" title="Link to this heading">¶</a></h3>
 <p>This event loop integrates with Tornado.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">tornado.ioloop</span> <span class="kn">import</span> <span class="n">IOLoop</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tornado.ioloop</span><span class="w"> </span><span class="kn">import</span> <span class="n">IOLoop</span>
 <span class="n">evl</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TornadoEventLoop</span><span class="p">(</span><span class="n">IOLoop</span><span class="p">())</span>
 <span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">event_loop</span><span class="o">=</span><span class="n">evl</span><span class="p">)</span>
 </pre></div>
@@ -209,10 +209,10 @@ which forward API of the same method from <cite>tornado.ioloop.IOLoop</cite> (an
           </div>
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
         <div class="sphinxsidebarwrapper">
             <p class="logo"><a href="../index.html">
-              <img class="logo" src="../_static/urwid-logo.png" alt="Logo"/>
+              <img class="logo" src="../_static/urwid-logo.png" alt="Logo of Urwid"/>
             </a></p><h3>Table of contents</h3>
     <ul><li><a href="index.html">Manual</a></li><ul>
 <li><a class="reference internal" href="#">Main Loop</a><ul>
@@ -262,7 +262,7 @@ which forward API of the same method from <cite>tornado.ioloop.IOLoop</cite> (an
       </div>
       <div class="clearer"></div>
     </div>
-    <div class="related" role="navigation" aria-label="related navigation">
+    <div class="related" role="navigation" aria-label="Related">
       <h3>Navigation</h3>
       <ul>
         <li class="right" style="margin-right: 10px">
@@ -274,14 +274,14 @@ which forward API of the same method from <cite>tornado.ioloop.IOLoop</cite> (an
         <li class="right" >
           <a href="overview.html" title="Library Overview"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 2.6.14</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 3.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Main Loop</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.3.7.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
     </div>
   </body>
 </html>
