@@ -32,11 +32,7 @@ extensions = [
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
     "sphinx.ext.githubpages",
-    "sphinx_github_changelog",
 ]
-
-sphinx_github_changelog_token = os.environ.get("SPHINX_GITHUB_CHANGELOG_TOKEN")
-
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["tools/templates"]
