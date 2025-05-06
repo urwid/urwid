@@ -2,10 +2,47 @@
 Changelog
 ---------
 
-.. changelog::
-    :changelog-url: https://urwid.org/changelog.html
-    :github: https://github.com/urwid/urwid/releases/
-    :pypi: https://pypi.org/project/urwid/
+Urwid 3.0.0
+===========
+
+2025-05-06
+
+Breaking Changes ⚠
+++++++++++++++++++
+* Drop deprecated `__super` property by @penguinolog in https://github.com/urwid/urwid/pull/956
+* Drop deprecated `FlowWidget`, `BoxWidget` and `FixedWidget` widgets by @penguinolog in https://github.com/urwid/urwid/pull/955
+* Remove deprecated protected getter methods from the `Canvas` and `AttrSpec` by @penguinolog in https://github.com/urwid/urwid/pull/958
+* Remove support for the `bytes` based fonts by @penguinolog in https://github.com/urwid/urwid/pull/961
+* Remove deprecated `TermScroller` by @penguinolog in https://github.com/urwid/urwid/pull/960
+* Remove deprecated protected getter methods from the decoration widgets by @penguinolog in https://github.com/urwid/urwid/pull/959
+* Remove deprecated protected getter methods from the container widgets by @penguinolog in https://github.com/urwid/urwid/pull/957
+* Remove deprecated protected setters in the decoration widgets by @penguinolog in https://github.com/urwid/urwid/pull/968
+* Remove deprecated protected methods from the container widgets by @penguinolog in https://github.com/urwid/urwid/pull/970
+* Remove deprecated protected method `_set_done` from the `ProgressBar` by @penguinolog in https://github.com/urwid/urwid/pull/971
+
+New features 🗹
++++++++++++++++
+* API Extension: make `CommandMap` `MutableMapping` by @penguinolog in https://github.com/urwid/urwid/pull/969
+* Make sizing computation much faster for nested containers by @ogayot in https://github.com/urwid/urwid/pull/991
+* `MetaSignals` subclass `ABCMeta` by @penguinolog in https://github.com/urwid/urwid/pull/962
+
+Deprecations ⚡
++++++++++++++++
+* `MetaSuper` should be the last base for classes by @penguinolog in https://github.com/urwid/urwid/pull/972
+* Announce deprecated API removal versions by @penguinolog in https://github.com/urwid/urwid/pull/999
+
+Bug fixes 🕷
+++++++++++++
+* Fix handling of WEIGHT selectable items in the `Pile` by @penguinolog in https://github.com/urwid/urwid/pull/1006
+
+Refactoring 🛠
+++++++++++++++
+* Refactoring: micro optimizations of iterable items reconstruction by @penguinolog in https://github.com/urwid/urwid/pull/1009
+
+New Contributors
+++++++++++++++++
+* @ogayot made their first contribution in https://github.com/urwid/urwid/pull/991
+
 Urwid 2.6.16
 ============
 
