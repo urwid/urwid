@@ -16,7 +16,6 @@ on:
       - "docs/**"
       - "README.rst"
       - "urwid/**"
-      - "setup.py"
       - "pyproject.toml"
       - ".github/workflows/documentation.yml"
 

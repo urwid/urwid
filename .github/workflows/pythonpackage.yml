@@ -12,7 +12,6 @@ on:
     paths:
       - "urwid/**"
       - "source/**"
-      - "setup.py"
       - "pyproject.toml"
       - "MANIFEST.in"
       - "README.rst"
@@ -116,10 +115,6 @@ jobs:
         # , "macos-latest"
         # enable macOS only if OS specific branch will be added
         python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13" ]
-        exclude:
-          # Not supported by external requirements
-          - os: "windows-latest"
-            python-version: "3.13"
 
     steps:
       - uses: actions/checkout@v4
