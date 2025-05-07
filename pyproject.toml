@@ -45,10 +45,10 @@ dependencies = {file = ["requirements.txt"]}
 classifiers = {file = ["classifiers.txt"]}
 
 [project.optional-dependencies]
-curses = ["windows-curses;sys_platform=='win32'"]
+curses = ["windows-curses; sys_platform == 'win32'"]
 glib = ["PyGObject"]
 tornado = ["tornado>=5.0"]
-trio = ["trio>=0.22.0", "exceptiongroup"]
+trio = ["trio>=0.24.0", "exceptiongroup; python_version < '3.11'"]
 twisted = ["twisted"]
 zmq = ["zmq"]
 # for lcd_display
