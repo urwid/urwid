@@ -1170,7 +1170,7 @@ def cview_trim_rows(cv, rows: int):
 
 
 def cview_trim_top(cv, trim: int):
-    return (cv[0], trim + cv[1], cv[2], cv[3] - trim) + cv[4:]
+    return (cv[0], trim + cv[1], cv[2], cv[3] - trim, *cv[4:])
 
 
 def cview_trim_left(cv, trim: int):
