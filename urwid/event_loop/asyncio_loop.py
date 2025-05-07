@@ -41,7 +41,6 @@ if typing.TYPE_CHECKING:
     _T = typing.TypeVar("_T")
 
 __all__ = ("AsyncioEventLoop",)
-IS_WINDOWS = sys.platform == "win32"
 
 
 class AsyncioEventLoop(EventLoop):
@@ -67,20 +66,37 @@ class AsyncioEventLoop(EventLoop):
     def __init__(self, *, loop: asyncio.AbstractEventLoop | None = None, **kwargs) -> None:
         super().__init__()
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
-        if loop:
-            self._loop: asyncio.AbstractEventLoop = loop
+
+        if sys.version_info[:2] < (3, 11):
             self._event_loop_policy_altered: bool = False
             self._original_event_loop_policy: asyncio.AbstractEventLoopPolicy | None = None
-        else:
-            self._original_event_loop_policy = asyncio.get_event_loop_policy()
-            if IS_WINDOWS and not isinstance(self._original_event_loop_policy, asyncio.WindowsSelectorEventLoopPolicy):
-                self.logger.debug("Set WindowsSelectorEventLoopPolicy as asyncio event loop policy")
-                asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-                self._event_loop_policy_altered = True
-            else:
-                self._event_loop_policy_altered = False
 
-            self._loop = asyncio.get_event_loop()
+            if loop:
+                self._loop: asyncio.AbstractEventLoop = loop
+            else:
+                self._original_event_loop_policy = asyncio.get_event_loop_policy()
+                if sys.platform == "win32" and not isinstance(
+                    self._original_event_loop_policy, asyncio.WindowsSelectorEventLoopPolicy
+                ):
+                    self.logger.debug("Set WindowsSelectorEventLoopPolicy as asyncio event loop policy")
+                    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+                    self._event_loop_policy_altered = True
+                else:
+                    self._event_loop_policy_altered = False
+
+                self._loop = asyncio.get_event_loop()
+
+        else:
+            self._runner: asyncio.Runner | None = None
+
+            if loop:
+                self._loop: asyncio.AbstractEventLoop = loop
+            else:
+                try:
+                    self._loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    self._runner = asyncio.Runner(loop_factory=asyncio.SelectorEventLoop)
+                    self._loop = self._runner.get_loop()
 
         self._exc: BaseException | None = None
 
@@ -89,8 +105,11 @@ class AsyncioEventLoop(EventLoop):
         self._idle_callbacks: dict[int, Callable[[], typing.Any]] = {}
 
     def __del__(self) -> None:
-        if self._event_loop_policy_altered:
-            asyncio.set_event_loop_policy(self._original_event_loop_policy)  # Restore default event loop policy
+        if sys.version_info[:2] < (3, 11):
+            if self._event_loop_policy_altered:
+                asyncio.set_event_loop_policy(self._original_event_loop_policy)  # Restore default event loop policy
+        elif self._runner is not None:
+            self._runner.close()
 
     def _also_call_idle(self, callback: Callable[_Spec, _T]) -> Callable[_Spec, _T]:
         """

@@ -213,7 +213,17 @@ class SelectEventLoopTest(unittest.TestCase, EventLoopTestMixin):
 @unittest.skipIf(IS_WINDOWS, "Windows is temporary not supported by AsyncioEventLoop.")
 class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
     def setUp(self):
-        self.evl = urwid.AsyncioEventLoop()
+        if sys.version_info[:2] < (3, 11):
+            self.loop = asyncio.get_event_loop_policy().get_event_loop()
+            self.evl_runner = None
+        else:
+            self.evl_runner = asyncio.Runner(loop_factory=asyncio.SelectorEventLoop)
+            self.loop = self.evl_runner.get_loop()
+        self.evl = urwid.AsyncioEventLoop(loop=self.loop)
+
+    def tearDown(self):
+        if self.evl_runner is not None:
+            self.evl_runner.close()
 
     _expected_idle_handle = None
 
@@ -233,7 +243,7 @@ class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
             result = 1 / 0  # Simulate error in coroutine
             return result
 
-        asyncio.ensure_future(error_coro(), loop=asyncio.get_event_loop_policy().get_event_loop())
+        asyncio.ensure_future(error_coro(), loop=self.loop)
         self.assertRaises(ZeroDivisionError, evl.run)
 
 
