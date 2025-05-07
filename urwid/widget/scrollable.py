@@ -562,7 +562,7 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
         top_weight = float(pos) / max(1, posmax)  # pylint: disable=possibly-used-before-assignment
         top_height = int((maxrow - thumb_height) * top_weight)
         if top_height == 0 and top_weight > 0:
-            top_height = 1
+            top_height = min(1, maxrow - thumb_height)
 
         # Bottom part is remaining space
         bottom_height = maxrow - thumb_height - top_height

@@ -306,6 +306,24 @@ class TestScrollBarListBox(unittest.TestCase):
             widget.render(reduced_size).decoded_text,
         )
 
+    def test_minimal_height(self):
+        """If we have only 1 line render height and thumb position in the middle - do not render top."""
+        widget = urwid.ScrollBar(
+            urwid.ListBox(
+                (
+                    urwid.CheckBox("A"),
+                    urwid.CheckBox("B"),
+                    urwid.CheckBox("C"),
+                )
+            )
+        )
+        reduced_size = (7, 1)
+        self.assertEqual(("[ ] A █",), widget.render(reduced_size).decoded_text)
+        widget.keypress(reduced_size, "down")
+        self.assertEqual(("[ ] B █",), widget.render(reduced_size).decoded_text)
+        widget.keypress(reduced_size, "down")
+        self.assertEqual(("[ ] C █",), widget.render(reduced_size).decoded_text)
+
 
 def trivial_AttrMap(widget):
     return urwid.AttrMap(widget, {})
