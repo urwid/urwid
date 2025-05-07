@@ -2,6 +2,19 @@
 Changelog
 ---------
 
+Urwid 3.0.1
+===========
+
+2025-05-07
+
+Bug fixes 🕷
+++++++++++++
+* Packaging: drop setup.py and adjust requirements by @penguinolog in https://github.com/urwid/urwid/pull/1018
+  Not updated `setup.py` lead to wrong metadata and mark of release 3.0.0 as Python 3.7 compatible.
+  Since urwid is distribluted in the pre-packaged format (wheel),
+  missing `setup.py` will not affect old toolchain users except special cases (manually enforced sdist usage).
+* Python 3.14 compatibility: adjust `AsyncioEventLoop` by @penguinolog in https://github.com/urwid/urwid/pull/1019
+
 Urwid 3.0.0
 ===========
 
