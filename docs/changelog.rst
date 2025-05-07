@@ -2,6 +2,15 @@
 Changelog
 ---------
 
+Urwid 3.0.2
+===========
+
+2025-05-07
+
+Bug fixes 🕷
+++++++++++++
+* Bugfix: Corner case: Scrollbar render for only 1 row height by @penguinolog in https://github.com/urwid/urwid/pull/1021
+
 Urwid 3.0.1
 ===========
 
