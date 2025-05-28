@@ -403,8 +403,8 @@ class Screen(_raw_display_base.Screen):
         y, x = super().get_cols_rows()
         with contextlib.suppress(OSError):  # Term size could not be determined
             if hasattr(self._term_output_file, "fileno"):
-                buf = fcntl.ioctl(self._term_output_file.fileno(), termios.TIOCGWINSZ, b" " * 4)
-                y, x = struct.unpack("hh", buf)
+                buf = fcntl.ioctl(self._term_output_file.fileno(), termios.TIOCGWINSZ, b" " * 8)
+                y, x, _, _ = struct.unpack("hhhh", buf)
 
         # Provide some lightweight fallbacks in case the TIOCWINSZ doesn't
         # give sane answers
