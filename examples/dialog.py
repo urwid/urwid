@@ -86,7 +86,7 @@ class DialogDisplay:
     def add_buttons(self, buttons) -> None:
         lines = []
         for name, exitcode in buttons:
-            b = urwid.Button(name, self.button_press)
+            b = urwid.Button(name, self.button_press, align=urwid.CENTER)
             b.exitcode = exitcode
             b = urwid.AttrMap(b, "selectable", "focus")
             lines.append(b)
