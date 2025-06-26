@@ -6,6 +6,11 @@
     "ghcr.io/devcontainers/features/github-cli": {}
   },
   "customizations": {
+    "jetbrains": {
+      "settings": {
+        "com.intellij:app:Vcs-Log-App-Settings.show_changes_from_parents": true
+      }
+    },
     // Configure properties specific to VS Code.
     "vscode": {
       // Set *default* container specific settings.json values on container create.
