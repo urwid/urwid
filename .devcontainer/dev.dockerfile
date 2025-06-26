@@ -1,8 +1,15 @@
-FROM python:3.12
+FROM ubuntu:24.04
 RUN apt-get update -y \
     && apt-get upgrade -y \
-    && apt-get install -y python3-gi gobject-introspection libgirepository1.0-dev \
+    && apt-get install -y \
+      python3-dev \
+      python3-pip \
+      python3-virtualenv \
+      python3-gi \
+      python3-gi-cairo \
+      gobject-introspection \
+      libgirepository-2.0-dev \
+      libcairo2-dev \
     && apt-get clean
 RUN mkdir -p ~/.virtualenvs \
-    && pip3 install virtualenv \
-    && /usr/local/bin/virtualenv -p /usr/local/bin/python3 --download ~/.virtualenvs/urwid
+    && virtualenv --download ~/.virtualenvs/urwid
