@@ -596,7 +596,7 @@ class Screen(BaseScreen, RealTerminal):
                             raise TypeError(seg)
                         self.s.addstr(seg.decode(util.get_encoding()))
                 except curses.error:
-                    # it's ok to get out of the
+                    # it's OK to get out of the
                     # screen on the lower right
                     if y != rows - 1 or nr != len(row) - 1:
                         # perhaps screen size changed

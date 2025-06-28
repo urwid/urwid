@@ -125,8 +125,8 @@ class CFLCDScreen(LCDScreen, abc.ABC):
 
     @classmethod
     def get_crc(cls, buf: Iterable[int]) -> bytes:
-        # This seed makes the output of this shift based algorithm match
-        # the table based algorithm. The center 16 bits of the 32-bit
+        # This seed makes the output of this shift-based algorithm match
+        # the table-based algorithm. The center 16 bits of the 32-bit
         # "newCRC" are used for the CRC. The MSB of the lower byte is used
         # to see what bit was shifted out of the center 16 bit CRC
         # accumulator ("carry flag analog");
@@ -229,7 +229,7 @@ class KeyRepeatSimulator:
     Provide simulated repeat key events when given press and
     release events.
 
-    If two or more keys are pressed disable repeating until all
+    If two or more keys are pressed, disable repeating until all
     keys are released.
     """
 
@@ -286,7 +286,7 @@ class CF635Screen(CFLCDScreen):
     20x4 character display + cursor
     no foreground/background colors or settings supported
 
-    see CGROM for list of close unicode matches to characters available
+    see CGROM for a list of close Unicode matches to characters available
 
     6 button input
     up, down, left, right, enter (check mark), exit (cross)

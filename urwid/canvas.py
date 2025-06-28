@@ -84,7 +84,7 @@ class CanvasCache:
     cleanups = 0
 
     @classmethod
-    def store(cls, wcls, canvas: Canvas) -> None:
+    def store(cls, wcls: type[Widget], canvas: Canvas) -> None:
         """
         Store a weakref to canvas in the cache.
 
@@ -98,7 +98,7 @@ class CanvasCache:
             raise TypeError("Can't store canvas without widget_info")
         widget, size, focus = canvas.widget_info
 
-        def walk_depends(canv):
+        def walk_depends(canv: Canvas) -> list[Widget]:
             """
             Collect all child widgets for determining who we
             depend on.
@@ -128,7 +128,7 @@ class CanvasCache:
         cls._widgets.setdefault(widget, {})[wcls, size, focus] = ref
 
     @classmethod
-    def fetch(cls, widget, wcls, size, focus) -> Canvas | None:
+    def fetch(cls, widget: Widget, wcls: type[Widget], size, focus: bool) -> Canvas | None:
         """
         Return the cached canvas or None.
 
@@ -150,7 +150,7 @@ class CanvasCache:
         return canv
 
     @classmethod
-    def invalidate(cls, widget):
+    def invalidate(cls, widget: Widget) -> None:
         """
         Remove all canvases cached for widget.
         """
@@ -214,7 +214,7 @@ class Canvas:
 
     def __init__(self) -> None:
         """Base Canvas class"""
-        self._widget_info = None
+        self._widget_info: tuple[Widget, tuple[[]] | tuple[int] | tuple[int, int], bool] | None = None
         self.coords: dict[str, tuple[int, int, tuple[Widget, int, int]] | tuple[int, int, None]] = {}
         self.shortcuts: dict[str, str] = {}
 
@@ -240,7 +240,7 @@ class Canvas:
         self._widget_info = widget, size, focus
 
     @property
-    def widget_info(self):
+    def widget_info(self) -> tuple[Widget, tuple[[]] | tuple[int] | tuple[int, int], bool] | None:
         return self._widget_info
 
     @property

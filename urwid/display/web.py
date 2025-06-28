@@ -456,7 +456,7 @@ class Screen(BaseScreen):
         return pending_input
 
 
-def code_span(s, fg, bg, cursor=-1) -> str:
+def code_span(s: str, fg: str, bg: str, cursor: int = -1) -> str:
     code_fg = _code_colours[fg]
     code_bg = _code_colours[bg]
 
@@ -492,8 +492,8 @@ def is_web_request() -> bool:
 def handle_short_request() -> bool:
     """
     Handle short requests such as passing keystrokes to the application
-    or sending the initial html page.  If returns True, then this
-    function recognised and handled a short request, and the calling
+    or sending the initial HTML page.  If returns True, then this
+    function recognized and handled a short request, and the calling
     script should immediately exit.
 
     web_display.set_preferences(..) should be called before calling this

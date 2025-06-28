@@ -265,7 +265,7 @@ class TwistedScreen(Screen):
         self.loop.draw_screen()
 
     # Convenience
-    def write(self, data):
+    def write(self, data: str) -> None:
         self.terminal.write(data)
 
     # Private

@@ -9,7 +9,7 @@ class MultiPudding(urwid.Widget):
     def rows(self, size: tuple[int], focus: bool = False) -> int:
         return 1
 
-    def render(self, size: tuple[int], focus: bool = False) -> urwid.TextCanvas:
+    def render(self, size: tuple[int] | tuple[int, int], focus: bool = False) -> urwid.TextCanvas:
         if len(size) == 1:
             (maxcol,) = size
             maxrow = 1

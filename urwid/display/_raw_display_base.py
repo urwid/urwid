@@ -211,7 +211,7 @@ class Screen(BaseScreen, RealTerminal):
         Restore the screen.
         """
 
-    def write(self, data):
+    def write(self, data: str) -> None:
         """Write some data to the terminal.
 
         You may wish to override this if you're using something other than
@@ -219,7 +219,7 @@ class Screen(BaseScreen, RealTerminal):
         """
         self._term_output_file.write(data)
 
-    def flush(self):
+    def flush(self) -> None:
         """Flush the output buffer.
 
         You may wish to override this if you're using something other than
@@ -352,7 +352,11 @@ class Screen(BaseScreen, RealTerminal):
 
     _input_timeout = None
 
-    def _make_legacy_input_wrapper(self, event_loop, callback):
+    def _make_legacy_input_wrapper(
+        self,
+        event_loop: EventLoop,
+        callback: Callable[[list[str], list[int]], typing.Any],
+    ) -> Callable[[], None]:
         """
         Support old Screen classes that still have a get_input_nonblocking and expect it to work.
         """
@@ -873,9 +877,8 @@ class Screen(BaseScreen, RealTerminal):
 
     def reset_default_terminal_palette(self) -> None:
         """
-        Attempt to set the terminal palette to default values as taken
-        from xterm.  Uses number of colors from current
-        set_terminal_properties() screen setting.
+        Attempt to set the terminal palette to default values as taken from xterm.
+        Uses a number of colors from the current set_terminal_properties() screen setting.
         """
         if self.colors == 1:
             return
@@ -898,9 +901,8 @@ class Screen(BaseScreen, RealTerminal):
         """
         entries - list of (index, red, green, blue) tuples.
 
-        Attempt to set part of the terminal palette (this does not work
-        on all terminals.)  The changes are sent as a single escape
-        sequence so they should all take effect at the same time.
+        Attempt to set part of the terminal palette (this does not work on all terminals.)
+        The changes are sent as a single escape sequence so they should all take effect at the same time.
 
         0 <= index < 256 (some terminals will only have 16 or 88 colors)
         0 <= red, green, blue < 256

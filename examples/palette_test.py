@@ -283,7 +283,7 @@ def parse_chart(chart: str, convert):
                 entry = entry[elen:].strip()
             else:  # try the whole thing
                 attrtext = convert(entry.strip())
-                assert attrtext, f"Invalid palette entry: {entry!r}"  # noqa: S101  # "assert" is ok for examples
+                assert attrtext, f"Invalid palette entry: {entry!r}"  # noqa: S101  # "assert" is OK for examples
                 elen = len(entry)
                 entry = ""
             attr, text = attrtext

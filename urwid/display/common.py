@@ -768,7 +768,7 @@ class AttrSpec:
             else:
                 scolor = _parse_color_256(_true_to_256(part) or part)
                 flags |= _FG_HIGH_COLOR
-            # _parse_color_*() return None for unrecognised colors
+            # _parse_color_*() return None for unrecognized colors
             if scolor is None:
                 raise AttrSpecError(f"Unrecognised color specification {part!r} in foreground ({foreground!r})")
             if color is not None:
@@ -1011,7 +1011,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
     def _stop(self) -> None:
         pass
 
-    def run_wrapper(self, fn, *args, **kwargs):
+    def run_wrapper(self, fn, *args, **kwargs) -> None:
         """Start the screen, call a function, then stop the screen.  Extra
         arguments are passed to `start`.
 
