@@ -175,7 +175,7 @@ class Screen(_raw_display_base.Screen):
         """
         Initialize the screen and input mode.
 
-        alternate_buffer -- use alternate screen buffer
+        alternate_buffer -- use an alternate screen buffer
         """
         if alternate_buffer:
             self.write(escape.SWITCH_TO_ALTERNATE_BUFFER)

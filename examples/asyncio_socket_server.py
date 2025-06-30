@@ -91,13 +91,13 @@ class AsyncScreen(Screen):
 
     _pending_task = None
 
-    def write(self, data):
+    def write(self, data: str) -> None:
         self.writer.write(data.encode(self.encoding))
 
-    def flush(self):
+    def flush(self) -> None:
         pass
 
-    def hook_event_loop(self, event_loop, callback):
+    def hook_event_loop(self, event_loop: urwid.AsyncioEventLoop, callback) -> None:
         # Wait on the reader's read coro, and when there's data to read, call
         # the callback and then wait again
         def pump_reader(fut=None):
@@ -126,14 +126,14 @@ class AsyncScreen(Screen):
 
         pump_reader()
 
-    def unhook_event_loop(self, event_loop):
+    def unhook_event_loop(self, event_loop) -> None:
         if self._pending_task:
             self._pending_task.cancel()
             del self._pending_task
 
 
 class UrwidProtocol(asyncio.Protocol):
-    def connection_made(self, transport):
+    def connection_made(self, transport) -> None:
         print("Got a client!")
         self.transport = transport
 
@@ -155,10 +155,10 @@ class UrwidProtocol(asyncio.Protocol):
 
         self.urwid_loop.start()
 
-    def data_received(self, data):
+    def data_received(self, data: bytes) -> None:
         self.reader.feed_data(data)
 
-    def connection_lost(self, exc):
+    def connection_lost(self, exc: Exception | None) -> None:
         print("Lost a client...")
         self.reader.feed_eof()
         self.urwid_loop.stop()

@@ -247,7 +247,11 @@ class KeyqueueTrie:
             return None
         return self.get_recurse(root[keys[0]], keys[1:], more_available)
 
-    def read_mouse_info(self, keys: Sequence[int], more_available: bool):
+    def read_mouse_info(
+        self,
+        keys: Sequence[int],
+        more_available: bool,
+    ) -> tuple[tuple[str, int, int, int], Sequence[int]] | None:
         if len(keys) < 3:
             if more_available:
                 raise MoreInputRequired()
@@ -286,7 +290,11 @@ class KeyqueueTrie:
 
         return ((f"{prefix}mouse {action}", button, x, y), keys[3:])
 
-    def read_sgrmouse_info(self, keys: Sequence[int], more_available: bool):
+    def read_sgrmouse_info(
+        self,
+        keys: Sequence[int],
+        more_available: bool,
+    ) -> tuple[tuple[str, int, int, int], Sequence[int]] | None:
         # Helpful links:
         # https://stackoverflow.com/questions/5966903/how-to-get-mousemove-and-mouseclick-in-bash
         # http://invisible-island.net/xterm/ctlseqs/ctlseqs.pdf
@@ -345,7 +353,11 @@ class KeyqueueTrie:
 
         return ((f"{prefix}mouse {action}", button, x, y), keys[pos_m + 1 :])
 
-    def read_cursor_position(self, keys, more_available: bool):
+    def read_cursor_position(
+        self,
+        keys: Sequence[int],
+        more_available: bool,
+    ) -> tuple[tuple[str, int, int], Sequence[int]] | None:
         """
         Interpret cursor position information being sent by the
         user's terminal.  Returned as ('cursor position', x, y)

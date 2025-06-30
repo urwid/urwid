@@ -168,7 +168,7 @@ class LCDHorizontalSlider(urwid.WidgetWrap[urwid.Columns]):
         # move the slider based on which arrow is focused
         if key == "enter":
             # use the correct size for adjusting the bar
-            self.bar.move_position((self._w.column_widths(size)[1],), self._w.get_focus_column() != 0)
+            self.bar.move_position((self._w.column_widths(size)[1],), self._w.focus_position != 0)
             self.callback(self.bar.value)
             return None
 

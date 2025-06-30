@@ -99,7 +99,7 @@ class LineWalker(urwid.ListWalker):
             # file is closed, so there are no more lines
             return None, None
 
-        assert pos == len(self.lines), "out of order request?"  # noqa: S101  # "assert" is ok in examples
+        assert pos == len(self.lines), "out of order request?"  # noqa: S101  # "assert" is OK in examples
 
         self.read_next_line()
 
