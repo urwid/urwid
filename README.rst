@@ -49,6 +49,8 @@ Alternatively if you are on Debian or Ubuntu
 Windows support notes
 =====================
 
+Windows support is limited to the Windows 10+ due to ANSI support requirement.
+
 * Not supported:
 
 1. Terminal widget and all related render API (TermCanvas, TermCharset, TermModes, TermScroller)
