@@ -1017,6 +1017,9 @@ class ListBox(Widget, WidgetContainerMixin):
         self._body.set_focus(focus_pos)
 
         middle, top, bottom = self.calculate_visible((maxcol, maxrow), focus)
+        if middle is None:
+            return None
+
         focus_offset, _focus_widget, focus_pos, focus_rows, _cursor = middle  # pylint: disable=unpacking-non-sequence
         _trim_top, fill_above = top  # pylint: disable=unpacking-non-sequence
         _trim_bottom, fill_below = bottom  # pylint: disable=unpacking-non-sequence
