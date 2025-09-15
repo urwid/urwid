@@ -2,6 +2,30 @@
 Changelog
 ---------
 
+Urwid 3.0.3
+===========
+
+2025-09-15
+
+Bug fixes 🕷
+++++++++++++
+* Python 3.14: fix buffer overflow on terminal size request by @meeuw in https://github.com/urwid/urwid/pull/1027
+* Add guard against empty list on focus complete. by @gryf in https://github.com/urwid/urwid/pull/1047
+
+Documentation 🕮
+++++++++++++++++
+* Add extra code type annotations by @penguinolog in https://github.com/urwid/urwid/pull/1037
+* Mark Windows support limitation: win10+ only by @penguinolog in https://github.com/urwid/urwid/pull/1038
+
+Other Changes
++++++++++++++
+* Maintenance: fix devcontainer to support actual requirements without pinning by @penguinolog in https://github.com/urwid/urwid/pull/1035
+
+New Contributors
+++++++++++++++++
+* @meeuw made their first contribution in https://github.com/urwid/urwid/pull/1027
+* @gryf made their first contribution in https://github.com/urwid/urwid/pull/1047
+
 Urwid 3.0.2
 ===========
 
