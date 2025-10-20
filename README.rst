@@ -19,7 +19,7 @@ It includes many features useful for text console application developers includi
 - Display modules include raw, curses, and experimental LCD and web displays
 - Support for UTF-8, simple 8-bit and CJK encodings
 - 24-bit (true color), 256 color, and 88 color mode support
-- Compatible with Python 3.7+ and PyPy
+- Compatible with Python 3.9+ and PyPy
 
 Home Page:
   http://urwid.org/
@@ -92,6 +92,7 @@ Supported Python versions
 - 3.11
 - 3.12
 - 3.13
+- 3.14
 - pypy3
 
 Authors
