@@ -2,7 +2,7 @@
 # Minimum requirements for the build system to execute.
 # PEP 508 specifications for PEP 518.
 requires = [
-  "setuptools >= 61.0.0",
+  "setuptools >= 77.0.0",
   "setuptools_scm[toml]>=7.0",
   "wheel",
 ]
@@ -13,7 +13,8 @@ name = "urwid"
 description = "A full-featured console (xterm et al.) user interface library"
 requires-python = ">=3.9.0"
 keywords = ["curses", "ui", "widget", "scroll", "listbox", "user interface", "text layout", "console", "ncurses"]
-license={text="LGPL-2.1-only"}  # Use SPDX classifier
+license="LGPL-2.1-only"  # Use SPDX classifier
+license-files=["COPYING"]
 readme = {file = "README.rst", content-type = "text/x-rst"}
 authors=[{name="Ian Ward", email="ian@excess.org"}]
 dynamic = ["classifiers", "version", "dependencies"]
