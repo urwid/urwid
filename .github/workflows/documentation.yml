@@ -44,7 +44,7 @@ jobs:
         run: pip install -e .
       - name: Build documentation
         run: sphinx-build docs build/documentation
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           path: build/documentation
           name: documentation
