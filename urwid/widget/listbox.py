@@ -1197,7 +1197,7 @@ class ListBox(Widget, WidgetContainerMixin):
             # start from closest edge and move inwards
             (pref_col,) = cursor_coords
             if coming_from == "above":
-                attempt_rows = range(0, tgt_rows)
+                attempt_rows = range(tgt_rows)
             else:
                 if coming_from != "below":
                     raise ValueError("must specify coming_from ('above' or 'below') if cursor row is not specified")

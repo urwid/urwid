@@ -100,27 +100,27 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         >>> def pr(w):
         ...     with set_temporary_encoding("utf-8"):
         ...         for t in w.render(size).text:
-        ...             print(f"|{t.decode('utf-8')}|" )
-        >>> pr(Padding(Text(u"Head"), ('relative', 20), 'pack'))
+        ...             print(f"|{t.decode('utf-8')}|")
+        >>> pr(Padding(Text("Head"), ("relative", 20), "pack"))
         | Head  |
-        >>> pr(Padding(Divider(u"-"), left=2, right=1))
+        >>> pr(Padding(Divider("-"), left=2, right=1))
         |  ---- |
-        >>> pr(Padding(Divider(u"*"), 'center', 3))
+        >>> pr(Padding(Divider("*"), "center", 3))
         |  ***  |
-        >>> p=Padding(Text(u"1234"), 'left', 2, None, 1, 1)
+        >>> p = Padding(Text("1234"), "left", 2, None, 1, 1)
         >>> p
         <Padding fixed/flow widget <Text fixed/flow widget '1234'> left=1 right=1 width=2>
-        >>> pr(p)   # align against left
+        >>> pr(p)  # align against left
         | 12    |
         | 34    |
-        >>> p.align = 'right'
-        >>> pr(p)   # align against right
+        >>> p.align = "right"
+        >>> pr(p)  # align against right
         |    12 |
         |    34 |
-        >>> pr(Padding(Text(u"hi\\nthere"), 'right', 'pack')) # pack text first
+        >>> pr(Padding(Text("hi\\nthere"), "right", "pack"))  # pack text first
         |  hi   |
         |  there|
-        >>> pr(Padding(BigText("1,2,3", FontRegistry['Thin 3x3']()), width="clip"))
+        >>> pr(Padding(BigText("1,2,3", FontRegistry["Thin 3x3"]()), width="clip"))
         | ┐  ┌─┐|
         | │  ┌─┘|
         | ┴ ,└─ |
@@ -521,25 +521,25 @@ def calculate_left_right_padding(
     right -- a fixed number of columns to pad on the right
 
     >>> clrp = calculate_left_right_padding
-    >>> clrp(15, 'left', 0, 'given', 10, None, 2, 0)
+    >>> clrp(15, "left", 0, "given", 10, None, 2, 0)
     (2, 3)
-    >>> clrp(15, 'relative', 0, 'given', 10, None, 2, 0)
+    >>> clrp(15, "relative", 0, "given", 10, None, 2, 0)
     (2, 3)
-    >>> clrp(15, 'relative', 100, 'given', 10, None, 2, 0)
+    >>> clrp(15, "relative", 100, "given", 10, None, 2, 0)
     (5, 0)
-    >>> clrp(15, 'center', 0, 'given', 4, None, 2, 0)
+    >>> clrp(15, "center", 0, "given", 4, None, 2, 0)
     (6, 5)
-    >>> clrp(15, 'left', 0, 'clip', 18, None, 0, 0)
+    >>> clrp(15, "left", 0, "clip", 18, None, 0, 0)
     (0, -3)
-    >>> clrp(15, 'right', 0, 'clip', 18, None, 0, -1)
+    >>> clrp(15, "right", 0, "clip", 18, None, 0, -1)
     (-2, -1)
-    >>> clrp(15, 'center', 0, 'given', 18, None, 2, 0)
+    >>> clrp(15, "center", 0, "given", 18, None, 2, 0)
     (0, 0)
-    >>> clrp(20, 'left', 0, 'relative', 60, None, 0, 0)
+    >>> clrp(20, "left", 0, "relative", 60, None, 0, 0)
     (0, 8)
-    >>> clrp(20, 'relative', 30, 'relative', 60, None, 0, 0)
+    >>> clrp(20, "relative", 30, "relative", 60, None, 0, 0)
     (2, 6)
-    >>> clrp(20, 'relative', 30, 'relative', 60, 14, 0, 0)
+    >>> clrp(20, "relative", 30, "relative", 60, 14, 0, 0)
     (2, 4)
     """
     if width_type == WHSettings.RELATIVE:

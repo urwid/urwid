@@ -678,12 +678,12 @@ class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget"), typing.Generic[Wra
         only by subclasses.
 
         >>> size = (10,)
-        >>> ww = WidgetWrap(Edit("hello? ","hi"))
-        >>> ww.render(size).text # ... = b in Python 3
+        >>> ww = WidgetWrap(Edit("hello? ", "hi"))
+        >>> ww.render(size).text  # ... = b in Python 3
         [...'hello? hi ']
         >>> ww.selectable()
         True
-        >>> ww._w = Text("goodbye") # calls _set_w()
+        >>> ww._w = Text("goodbye")  # calls _set_w()
         >>> ww.render(size).text
         [...'goodbye   ']
         >>> ww.selectable()
@@ -698,12 +698,12 @@ class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget"), typing.Generic[Wra
         only by subclasses.
         >>> from urwid import Edit, Text
         >>> size = (10,)
-        >>> ww = WidgetWrap(Edit("hello? ","hi"))
-        >>> ww.render(size).text # ... = b in Python 3
+        >>> ww = WidgetWrap(Edit("hello? ", "hi"))
+        >>> ww.render(size).text  # ... = b in Python 3
         [...'hello? hi ']
         >>> ww.selectable()
         True
-        >>> ww._w = Text("goodbye") # calls _set_w()
+        >>> ww._w = Text("goodbye")  # calls _set_w()
         >>> ww.render(size).text
         [...'goodbye   ']
         >>> ww.selectable()

@@ -389,13 +389,13 @@ def _parse_color_256(desc: str) -> int | None:
 
     Returns None if desc is invalid.
 
-    >>> _parse_color_256('h142')
+    >>> _parse_color_256("h142")
     142
-    >>> _parse_color_256('#f00')
+    >>> _parse_color_256("#f00")
     196
-    >>> _parse_color_256('g100')
+    >>> _parse_color_256("g100")
     231
-    >>> _parse_color_256('g#80')
+    >>> _parse_color_256("g#80")
     244
     """
     if len(desc) > 4:
@@ -425,7 +425,7 @@ def _parse_color_256(desc: str) -> int | None:
         # Only remaining possibility is gray value
         if desc.startswith("g#"):
             # hex value 00..ff
-            gray = int(desc[2:], 16)
+            gray = int(desc[2:], 16)  # noqa: FURB166
             if gray < 0 or gray > 255:
                 return None
             gray = _GRAY_256_LOOKUP[gray]
@@ -466,14 +466,14 @@ def _parse_color_88(desc: str) -> int | None:
 
     Returns None if desc is invalid.
 
-    >>> _parse_color_88('h142')
-    >>> _parse_color_88('h42')
+    >>> _parse_color_88("h142")
+    >>> _parse_color_88("h42")
     42
-    >>> _parse_color_88('#f00')
+    >>> _parse_color_88("#f00")
     64
-    >>> _parse_color_88('g100')
+    >>> _parse_color_88("g100")
     79
-    >>> _parse_color_88('g#80')
+    >>> _parse_color_88("g#80")
     83
     """
     if len(desc) == 7:
@@ -505,7 +505,7 @@ def _parse_color_88(desc: str) -> int | None:
         # Only remaining possibility is gray value
         if desc.startswith("g#"):
             # hex value 00..ff
-            gray = int(desc[2:], 16)
+            gray = int(desc[2:], 16)  # noqa: FURB166
             if gray < 0 or gray > 255:
                 return None
             gray = _GRAY_88_LOOKUP[gray]
@@ -582,13 +582,13 @@ class AttrSpec:
                    values are only usable with 88, 256, or 2**24 colors.  With
                    1 color only the foreground settings may be used.
 
-        >>> AttrSpec('dark red', 'light gray', 16)
+        >>> AttrSpec("dark red", "light gray", 16)
         AttrSpec('dark red', 'light gray')
-        >>> AttrSpec('yellow, underline, bold', 'dark blue')
+        >>> AttrSpec("yellow, underline, bold", "dark blue")
         AttrSpec('yellow,bold,underline', 'dark blue')
-        >>> AttrSpec('#ddb', '#004', 256) # closest colors will be found
+        >>> AttrSpec("#ddb", "#004", 256)  # closest colors will be found
         AttrSpec('#dda', '#006')
-        >>> AttrSpec('#ddb', '#004', 88)
+        >>> AttrSpec("#ddb", "#004", 88)
         AttrSpec('#ccc', '#000', colors=88)
         """
         if colors not in {1, 16, 88, 256, 2**24}:
@@ -820,9 +820,9 @@ class AttrSpec:
         If the foreground or background is 'default' then all their compenents
         will be returned as None.
 
-        >>> AttrSpec('yellow', '#ccf', colors=88).get_rgb_values()
+        >>> AttrSpec("yellow", "#ccf", colors=88).get_rgb_values()
         (255, 255, 0, 205, 205, 255)
-        >>> AttrSpec('default', 'g92').get_rgb_values()
+        >>> AttrSpec("default", "g92").get_rgb_values()
         (None, None, None, 238, 238, 238)
         """
         if not (self.foreground_basic or self.foreground_high or self.foreground_true):

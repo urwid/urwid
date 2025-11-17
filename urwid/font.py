@@ -139,7 +139,7 @@ class FontRegistry(type):
         3
         >>> with set_temporary_encoding("utf-8"):
         ...     canvas: TextCanvas = font.render("+")
-        >>> b'\\n'.join(canvas.text).decode('utf-8')
+        >>> b"\\n".join(canvas.text).decode("utf-8")
         '  \\n ┼\\n  '
         """
         return mcs.__registered.get(item)

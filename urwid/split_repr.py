@@ -32,15 +32,18 @@ def split_repr(self):
 
     >>> class Foo(object):
     ...     __repr__ = split_repr
+    ...
     ...     def _repr_words(self):
     ...         return ["words", "here"]
+    ...
     ...     def _repr_attrs(self):
-    ...         return {'attrs': "appear too"}
+    ...         return {"attrs": "appear too"}
     >>> Foo()
     <Foo words here attrs='appear too'>
     >>> class Bar(Foo):
     ...     def _repr_words(self):
     ...         return Foo._repr_words(self) + ["too"]
+    ...
     ...     def _repr_attrs(self):
     ...         return dict(Foo._repr_attrs(self), barttr=42)
     >>> Bar()
@@ -62,9 +65,9 @@ def normalize_repr(v):
     """
     Return dictionary repr sorted by keys, leave others unchanged
 
-    >>> normalize_repr({1:2,3:4,5:6,7:8})
+    >>> normalize_repr({1: 2, 3: 4, 5: 6, 7: 8})
     '{1: 2, 3: 4, 5: 6, 7: 8}'
-    >>> normalize_repr('foo')
+    >>> normalize_repr("foo")
     "'foo'"
     """
     if isinstance(v, dict):
@@ -88,9 +91,12 @@ def remove_defaults(d, fn):
     >>> class Foo(object):
     ...     def __init__(self, a=1, b=2):
     ...         self.values = a, b
+    ...
     ...     __repr__ = split_repr
+    ...
     ...     def _repr_words(self):
     ...         return ["object"]
+    ...
     ...     def _repr_attrs(self):
     ...         d = dict(a=self.values[0], b=self.values[1])
     ...         return remove_defaults(d, Foo.__init__)

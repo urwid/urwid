@@ -2,9 +2,9 @@
 # Minimum requirements for the build system to execute.
 # PEP 508 specifications for PEP 518.
 requires = [
-  "setuptools >= 77.0.0",
-  "setuptools_scm[toml]>=7.0",
+  "setuptools >= 80.8.0",
   "wheel",
+  "setuptools_scm[toml]>=8.1.0",
 ]
 build-backend="setuptools.build_meta"
 
@@ -13,7 +13,7 @@ name = "urwid"
 description = "A full-featured console (xterm et al.) user interface library"
 requires-python = ">=3.9.0"
 keywords = ["curses", "ui", "widget", "scroll", "listbox", "user interface", "text layout", "console", "ncurses"]
-license="LGPL-2.1-only"  # Use SPDX classifier
+license = "LGPL-2.1-only"  # Use SPDX classifier
 license-files=["COPYING"]
 readme = {file = "README.rst", content-type = "text/x-rst"}
 authors=[{name="Ian Ward", email="ian@excess.org"}]
@@ -162,6 +162,7 @@ extend-exclude = ["tests"]
 extend-select = [
   "E",
   "W",  # also pycodestyle warnings
+  "F",  # pyflakes
   "PYI",  # flake8-pyi
   "ASYNC",  # flake8-async
   "FA",  # from __future__ import annotations
@@ -175,9 +176,12 @@ extend-select = [
   "ICN", "PGH",  # flake8-import-conventions, pygrep-hooks
   "Q",  # quotes
   "FLY",  # Flynt
+  "FURB",  # Refurb
+  "PIE",  # flake8-pie,
   "TRY", "UP", "I", "PL", "PERF", "RUF",  # tryceratops, pyupgrade, isort, pylint + perflint, Ruff-specific
 ]
 extend-ignore = [
+  "E221", "E222",  # handled by formatter
   "PLR6301", "E203",
   # refactor rules (too many statements/arguments/branches)
   "PLR0904", "PLR0911", "PLR0912", "PLR0913", "PLR0914", "PLR0915", "PLR0917", "PLR2004",
@@ -207,6 +211,9 @@ allow-dunder-method-names = [
   "_contents__setitem__",
   "_contents__delitem__",
 ]
+
+[tool.ruff.format]
+docstring-code-format = true
 
 [tool.pylint]
 extension-pkg-whitelist = []

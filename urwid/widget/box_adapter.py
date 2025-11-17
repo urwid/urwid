@@ -32,7 +32,7 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
         :type height: int
 
         >>> from urwid import SolidFill
-        >>> BoxAdapter(SolidFill(u"x"), 5) # 5-rows of x's
+        >>> BoxAdapter(SolidFill("x"), 5)  # 5-rows of x's
         <BoxAdapter flow widget <SolidFill box widget 'x'> height=5>
         """
         if hasattr(box_widget, "sizing") and Sizing.BOX not in box_widget.sizing():
@@ -71,7 +71,7 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
         Return the predetermined height (behave like a flow widget)
 
         >>> from urwid import SolidFill
-        >>> BoxAdapter(SolidFill(u"x"), 5).rows((20,))
+        >>> BoxAdapter(SolidFill("x"), 5).rows((20,))
         5
         """
         return self.height

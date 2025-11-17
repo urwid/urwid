@@ -38,7 +38,7 @@ class ProgressBar(Widget):
                      If satt is ``None`` then no smoothing will be done.
 
         >>> from urwid import LineBox
-        >>> pb = ProgressBar('a', 'b')
+        >>> pb = ProgressBar("a", "b")
         >>> pb
         <ProgressBar flow widget>
         >>> print(pb.get_text())
@@ -48,18 +48,18 @@ class ProgressBar(Widget):
         34 %
         >>> class CustomProgressBar(ProgressBar):
         ...     def get_text(self):
-        ...         return u'Foobar'
-        >>> cpb = CustomProgressBar('a', 'b')
+        ...         return "Foobar"
+        >>> cpb = CustomProgressBar("a", "b")
         >>> print(cpb.get_text())
         Foobar
         >>> for x in range(101):
         ...     cpb.set_completion(x)
-        ...     s = cpb.render((10, ))
-        >>> cpb2 = CustomProgressBar('a', 'b', satt='c')
+        ...     s = cpb.render((10,))
+        >>> cpb2 = CustomProgressBar("a", "b", satt="c")
         >>> for x in range(101):
         ...     cpb2.set_completion(x)
-        ...     s = cpb2.render((10, ))
-        >>> pb = ProgressBar('a', 'b', satt='c')
+        ...     s = cpb2.render((10,))
+        >>> pb = ProgressBar("a", "b", satt="c")
         >>> pb.set_completion(34.56)
         >>> print(LineBox(pb).render((20,)))
         ┌──────────────────┐

@@ -99,11 +99,11 @@ class Edit(Text):
 
         >>> Edit()
         <Edit selectable flow widget '' edit_pos=0>
-        >>> Edit(u"Y/n? ", u"yes")
+        >>> Edit("Y/n? ", "yes")
         <Edit selectable flow widget 'yes' caption='Y/n? ' edit_pos=3>
-        >>> Edit(u"Name ", u"Smith", edit_pos=1)
+        >>> Edit("Name ", "Smith", edit_pos=1)
         <Edit selectable flow widget 'Smith' caption='Name ' edit_pos=1>
-        >>> Edit(u"", u"3.14", align='right')
+        >>> Edit("", "3.14", align="right")
         <Edit selectable flow widget '3.14' align='right' edit_pos=4>
         """
 
@@ -140,11 +140,11 @@ class Edit(Text):
 
         Text returned includes the caption and edit_text, possibly masked.
 
-        >>> Edit(u"What? ","oh, nothing.").get_text()
+        >>> Edit("What? ", "oh, nothing.").get_text()
         ('What? oh, nothing.', [])
-        >>> Edit(('bright',u"user@host:~$ "),"ls").get_text()
+        >>> Edit(("bright", "user@host:~$ "), "ls").get_text()
         ('user@host:~$ ls', [('bright', 13)])
-        >>> Edit(u"password:", u"seekrit", mask=u"*").get_text()
+        >>> Edit("password:", "seekrit", mask="*").get_text()
         ('password:*******', [])
         """
 
@@ -184,21 +184,21 @@ class Edit(Text):
         >>> size = (10,)
         >>> Edit().get_pref_col(size)
         0
-        >>> e = Edit(u"", u"word")
+        >>> e = Edit("", "word")
         >>> e.get_pref_col(size)
         4
-        >>> e.keypress(size, 'left')
+        >>> e.keypress(size, "left")
         >>> e.get_pref_col(size)
         3
-        >>> e.keypress(size, 'end')
+        >>> e.keypress(size, "end")
         >>> e.get_pref_col(size)
         <Align.RIGHT: 'right'>
-        >>> e = Edit(u"", u"2\\nwords")
-        >>> e.keypress(size, 'left')
-        >>> e.keypress(size, 'up')
+        >>> e = Edit("", "2\\nwords")
+        >>> e.keypress(size, "left")
+        >>> e.keypress(size, "up")
         >>> e.get_pref_col(size)
         4
-        >>> e.keypress(size, 'left')
+        >>> e.keypress(size, "left")
         >>> e.get_pref_col(size)
         0
         """
@@ -220,7 +220,7 @@ class Edit(Text):
         >>> e.set_caption("cap1")
         >>> print(e.caption)
         cap1
-        >>> e.set_caption(('bold', "cap2"))
+        >>> e.set_caption(("bold", "cap2"))
         >>> print(e.caption)
         cap2
         >>> e.attrib
@@ -247,7 +247,7 @@ class Edit(Text):
         :param pos: cursor position
         :type pos: int
 
-        >>> e = Edit(u"", u"word")
+        >>> e = Edit("", "word")
         >>> e.edit_pos
         4
         >>> e.set_edit_pos(2)
@@ -294,12 +294,12 @@ class Edit(Text):
         :type text: bytes or unicode
 
         >>> e = Edit()
-        >>> e.set_edit_text(u"yes")
+        >>> e.set_edit_text("yes")
         >>> print(e.edit_text)
         yes
         >>> e
         <Edit selectable flow widget 'yes' edit_pos=0>
-        >>> e.edit_text = u"no"  # Urwid 0.9.9 or later
+        >>> e.edit_text = "no"  # Urwid 0.9.9 or later
         >>> print(e.edit_text)
         no
         """
@@ -317,7 +317,7 @@ class Edit(Text):
         """
         Return the edit text for this widget.
 
-        >>> e = Edit(u"What? ", u"oh, nothing.")
+        >>> e = Edit("What? ", "oh, nothing.")
         >>> print(e.get_edit_text())
         oh, nothing.
         >>> print(e.edit_text)
@@ -343,12 +343,12 @@ class Edit(Text):
                      must match the text in the caption
         :type text: bytes or unicode
 
-        >>> e = Edit(u"", u"42")
-        >>> e.insert_text(u".5")
+        >>> e = Edit("", "42")
+        >>> e.insert_text(".5")
         >>> e
         <Edit selectable flow widget '42.5' edit_pos=4>
         >>> e.set_edit_pos(2)
-        >>> e.insert_text(u"a")
+        >>> e.insert_text("a")
         >>> print(e.edit_text)
         42a.5
         """
@@ -381,7 +381,7 @@ class Edit(Text):
         # if there's highlighted text, it'll get replaced by the new text
         text = self._normalize_to_caption(text)
         if self.highlight:
-            start, stop = self.highlight  # pylint: disable=unpacking-non-sequence  # already checked
+            start, stop = self.highlight
             btext, etext = self.edit_text[:start], self.edit_text[stop:]
             result_text = btext + etext
             result_pos = start
@@ -406,17 +406,17 @@ class Edit(Text):
         Handle editing keystrokes, return others.
 
         >>> e, size = Edit(), (20,)
-        >>> e.keypress(size, 'x')
-        >>> e.keypress(size, 'left')
-        >>> e.keypress(size, '1')
+        >>> e.keypress(size, "x")
+        >>> e.keypress(size, "left")
+        >>> e.keypress(size, "1")
         >>> print(e.edit_text)
         1x
-        >>> e.keypress(size, 'backspace')
-        >>> e.keypress(size, 'end')
-        >>> e.keypress(size, '2')
+        >>> e.keypress(size, "backspace")
+        >>> e.keypress(size, "end")
+        >>> e.keypress(size, "2")
         >>> print(e.edit_text)
         x2
-        >>> e.keypress(size, 'shift f1')
+        >>> e.keypress(size, "shift f1")
         'shift f1'
         """
         pos = self.edit_pos
@@ -517,7 +517,7 @@ class Edit(Text):
         Returns True if move succeeded, False otherwise.
 
         >>> size = (10,)
-        >>> e = Edit("","edit\\ntext")
+        >>> e = Edit("", "edit\\ntext")
         >>> e.move_cursor_to_coords(size, 5, 0)
         True
         >>> e.edit_pos
@@ -555,8 +555,8 @@ class Edit(Text):
         Move the cursor to the location clicked for button 1.
 
         >>> size = (20,)
-        >>> e = Edit("","words here")
-        >>> e.mouse_event(size, 'mouse press', 1, 2, 0, True)
+        >>> e = Edit("", "words here")
+        >>> e.mouse_event(size, "mouse press", 1, 2, 0, True)
         True
         >>> e.edit_pos
         2
@@ -572,7 +572,7 @@ class Edit(Text):
         """
         if not self.highlight:
             return False
-        start, stop = self.highlight  # pylint: disable=unpacking-non-sequence  # already checked
+        start, stop = self.highlight
         btext, etext = self.edit_text[:start], self.edit_text[stop:]
         self.set_edit_text(btext + etext)
         self.edit_pos = start
@@ -588,7 +588,7 @@ class Edit(Text):
         Render edit widget and return canvas.  Include cursor when in
         focus.
 
-        >>> edit = Edit("? ","yes")
+        >>> edit = Edit("? ", "yes")
         >>> c = edit.render((10,), focus=True)
         >>> c.text
         [b'? yes     ']
@@ -639,7 +639,7 @@ class Edit(Text):
         """
         Return the (*x*, *y*) coordinates of cursor within widget.
 
-        >>> Edit("? ","yes").get_cursor_coords((10,))
+        >>> Edit("? ", "yes").get_cursor_coords((10,))
         (5, 0)
         """
         (maxcol,) = size
@@ -672,7 +672,7 @@ class IntEdit(Edit):
         caption -- caption markup
         default -- default edit value
 
-        >>> IntEdit(u"", 42)
+        >>> IntEdit("", 42)
         <IntEdit selectable flow widget '42' edit_pos=2>
         """
         if default is not None:
@@ -689,12 +689,12 @@ class IntEdit(Edit):
         """
         Handle editing keystrokes.  Remove leading zeros.
 
-        >>> e, size = IntEdit(u"", 5002), (10,)
-        >>> e.keypress(size, 'home')
-        >>> e.keypress(size, 'delete')
+        >>> e, size = IntEdit("", 5002), (10,)
+        >>> e.keypress(size, "home")
+        >>> e.keypress(size, "delete")
         >>> print(e.edit_text)
         002
-        >>> e.keypress(size, 'end')
+        >>> e.keypress(size, "end")
         >>> print(e.edit_text)
         2
         """
@@ -713,8 +713,8 @@ class IntEdit(Edit):
         Return the numeric value of self.edit_text.
 
         >>> e, size = IntEdit(), (10,)
-        >>> e.keypress(size, '5')
-        >>> e.keypress(size, '1')
+        >>> e.keypress(size, "5")
+        >>> e.keypress(size, "1")
         >>> e.value() == 51
         True
         """

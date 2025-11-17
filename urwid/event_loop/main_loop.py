@@ -340,7 +340,7 @@ class MainLoop:
 
     def _test_run(self):
         """
-        >>> w = _refl("widget")   # _refl prints out function calls
+        >>> w = _refl("widget")  # _refl prints out function calls
         >>> w.render_rval = "fake canvas"  # *_rval is used for return values
         >>> scr = _refl("screen")
         >>> scr.get_input_descriptors_rval = [42]
@@ -351,7 +351,7 @@ class MainLoop:
         >>> evl.enter_idle_rval = 1
         >>> evl.watch_file_rval = 2
         >>> ml = MainLoop(w, [], scr, event_loop=evl)
-        >>> ml.run()    # doctest:+ELLIPSIS
+        >>> ml.run()  # doctest:+ELLIPSIS
         screen.start()
         screen.set_mouse_tracking()
         screen.unhook_event_loop(...)
@@ -361,7 +361,7 @@ class MainLoop:
         event_loop.remove_enter_idle(1)
         screen.unhook_event_loop(...)
         screen.stop()
-        >>> ml.draw_screen()    # doctest:+ELLIPSIS
+        >>> ml.draw_screen()  # doctest:+ELLIPSIS
         screen.get_cols_rows()
         widget.render((20, 10), focus=True)
         screen.draw_screen((20, 10), 'fake canvas')
@@ -454,7 +454,7 @@ class MainLoop:
         >>> evl = _refl("event_loop")
         >>> ml = MainLoop(w, [], scr, event_loop=evl)
         >>> ml._input_timeout = "old timeout"
-        >>> ml._update(['y'], [121])    # doctest:+ELLIPSIS
+        >>> ml._update(["y"], [121])  # doctest:+ELLIPSIS
         screen.get_cols_rows()
         widget.selectable()
         widget.keypress((15, 5), 'y')
@@ -599,7 +599,7 @@ class MainLoop:
         >>> scr = _refl("screen")
         >>> scr.get_cols_rows_rval = (10, 5)
         >>> ml = MainLoop(w, [], scr)
-        >>> ml.process_input(['enter', ('mouse drag', 1, 14, 20)])
+        >>> ml.process_input(["enter", ("mouse drag", 1, 14, 20)])
         screen.get_cols_rows()
         widget.selectable()
         widget.keypress((10, 5), 'enter')

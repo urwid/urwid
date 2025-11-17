@@ -361,21 +361,21 @@ def calculate_top_bottom_filler(
     bottom -- a fixed number of rows to fill on the bottom
 
     >>> ctbf = calculate_top_bottom_filler
-    >>> ctbf(15, 'top', 0, 'given', 10, None, 2, 0)
+    >>> ctbf(15, "top", 0, "given", 10, None, 2, 0)
     (2, 3)
-    >>> ctbf(15, 'relative', 0, 'given', 10, None, 2, 0)
+    >>> ctbf(15, "relative", 0, "given", 10, None, 2, 0)
     (2, 3)
-    >>> ctbf(15, 'relative', 100, 'given', 10, None, 2, 0)
+    >>> ctbf(15, "relative", 100, "given", 10, None, 2, 0)
     (5, 0)
-    >>> ctbf(15, 'middle', 0, 'given', 4, None, 2, 0)
+    >>> ctbf(15, "middle", 0, "given", 4, None, 2, 0)
     (6, 5)
-    >>> ctbf(15, 'middle', 0, 'given', 18, None, 2, 0)
+    >>> ctbf(15, "middle", 0, "given", 18, None, 2, 0)
     (0, 0)
-    >>> ctbf(20, 'top', 0, 'relative', 60, None, 0, 0)
+    >>> ctbf(20, "top", 0, "relative", 60, None, 0, 0)
     (0, 8)
-    >>> ctbf(20, 'relative', 30, 'relative', 60, None, 0, 0)
+    >>> ctbf(20, "relative", 30, "relative", 60, None, 0, 0)
     (2, 6)
-    >>> ctbf(20, 'relative', 30, 'relative', 60, 14, 0, 0)
+    >>> ctbf(20, "relative", 30, "relative", 60, 14, 0, 0)
     (2, 4)
     """
     if height_type == WHSettings.RELATIVE:
