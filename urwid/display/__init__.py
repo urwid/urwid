@@ -2,8 +2,39 @@
 
 from __future__ import annotations
 
-import importlib
+import importlib.util
+import sys
 import typing
+
+from . import raw
+from .common import (
+    BLACK,
+    BROWN,
+    DARK_BLUE,
+    DARK_CYAN,
+    DARK_GRAY,
+    DARK_GREEN,
+    DARK_MAGENTA,
+    DARK_RED,
+    DEFAULT,
+    LIGHT_BLUE,
+    LIGHT_CYAN,
+    LIGHT_GRAY,
+    LIGHT_GREEN,
+    LIGHT_MAGENTA,
+    LIGHT_RED,
+    UPDATE_PALETTE_ENTRY,
+    WHITE,
+    YELLOW,
+    AttrSpec,
+    AttrSpecError,
+    BaseScreen,
+    RealTerminal,
+    ScreenError,
+)
+
+if typing.TYPE_CHECKING:
+    import types
 
 __all__ = (
     "BLACK",
@@ -36,33 +67,6 @@ __all__ = (
     "web",
 )
 
-from . import raw
-from .common import (
-    BLACK,
-    BROWN,
-    DARK_BLUE,
-    DARK_CYAN,
-    DARK_GRAY,
-    DARK_GREEN,
-    DARK_MAGENTA,
-    DARK_RED,
-    DEFAULT,
-    LIGHT_BLUE,
-    LIGHT_CYAN,
-    LIGHT_GRAY,
-    LIGHT_GREEN,
-    LIGHT_MAGENTA,
-    LIGHT_RED,
-    UPDATE_PALETTE_ENTRY,
-    WHITE,
-    YELLOW,
-    AttrSpec,
-    AttrSpecError,
-    BaseScreen,
-    RealTerminal,
-    ScreenError,
-)
-
 try:
     from . import curses
 
@@ -70,28 +74,29 @@ try:
 except ImportError:
     pass
 
-# Moved modules handling
-__locals: dict[str, typing.Any] = locals()  # use mutable access for pure lazy loading
 
-# Lazy load modules
-_lazy_load: frozenset[str] = frozenset(
-    (
-        "html_fragment",
-        "lcd",
-        "web",
-    )
-)
+def lazy_import(name: str, package: str | None = None) -> types.ModuleType:
+    """Lazy import implementation from Python documentation.
 
-
-def __getattr__(name: str) -> typing.Any:
-    """Get attributes lazy.
-
-    :return: attribute by name
-    :raises AttributeError: attribute is not defined for lazy load
+    Useful for cases where no warnings expected for moved modules.
     """
-    if name in _lazy_load:
-        mod = importlib.import_module(f"{__package__}.{name}")
-        __locals[name] = mod
-        return mod
+    spec = importlib.util.find_spec(name, package)
+    if not spec:
+        raise ImportError(f"No module named {name!r}")
+    if not spec.loader:
+        raise ImportError(f"Module named {name!r} is invalid")
 
-    raise AttributeError(f"{name} not found in {__package__}")
+    loader = importlib.util.LazyLoader(spec.loader)
+    spec.loader = loader
+    module = importlib.util.module_from_spec(spec)
+    if not package:
+        sys.modules[name] = module
+    else:
+        sys.modules[f"{package.rstrip('.')}.{name.lstrip('.')}"] = module
+    loader.exec_module(module)
+    return module
+
+
+html_fragment = lazy_import(".html_fragment", __package__)
+lcd = lazy_import(".lcd", __package__)
+web = lazy_import(".web", __package__)

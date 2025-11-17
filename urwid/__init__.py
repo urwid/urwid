@@ -21,7 +21,7 @@
 
 from __future__ import annotations
 
-import importlib
+import importlib.util
 import sys
 import types
 import typing
@@ -265,12 +265,28 @@ _moved_warn: dict[str, str] = {
 }
 # Backward compatible lazy load without any warnings
 # Before DeprecationWarning need to start PendingDeprecationWarning process.
-_moved_no_warn: dict[str, str] = {
-    "display_common": "urwid.display.common",
-    "raw_display": "urwid.display.raw",
-    "curses_display": "urwid.display.curses",
-    "escape": "urwid.display.escape",
-}
+
+
+def lazy_import(name: str, package: str | None = None) -> types.ModuleType:
+    """Lazy import implementation from Python documentation.
+
+    Useful for cases where no warnings expected for moved modules.
+    """
+    spec = importlib.util.find_spec(name, package)
+    if not spec:
+        raise ImportError(f"No module named {name!r}")
+    if not spec.loader:
+        raise ImportError(f"Module named {name!r} is invalid")
+
+    loader = importlib.util.LazyLoader(spec.loader)
+    spec.loader = loader
+    module = importlib.util.module_from_spec(spec)
+    if not package:
+        sys.modules[name] = module
+    else:
+        sys.modules[f"{package.rstrip('.')}.{name.lstrip('.')}"] = module
+    loader.exec_module(module)
+    return module
 
 
 class _MovedModule(types.ModuleType):
@@ -293,6 +309,12 @@ class _MovedModule(types.ModuleType):
         return getattr(real_module, name)
 
 
+display_common = lazy_import("urwid.display.common")
+raw_display = lazy_import("urwid.display.raw")
+curses_display = lazy_import("urwid.display.curses")
+escape = lazy_import("urwid.display.escape")
+
+
 class _MovedModuleWarn(_MovedModule):
     """Special class to handle moved modules.
 
@@ -310,10 +332,6 @@ class _MovedModuleWarn(_MovedModule):
         return super().__getattr__(name)
 
 
-for _name, _module in _moved_no_warn.items():
-    _module_path = f"{__name__}.{_name}"
-    sys.modules[_module_path] = _MovedModule(_module_path, _module)
-
 for _name, _module in _moved_warn.items():
     _module_path = f"{__name__}.{_name}"
     sys.modules[_module_path] = _MovedModuleWarn(_module_path, _module)
@@ -325,11 +343,6 @@ def __getattr__(name: str) -> typing.Any:
     :return: attribute by name
     :raises AttributeError: attribute is not defined for lazy load
     """
-    if name in _moved_no_warn:
-        mod = importlib.import_module(_moved_no_warn[name])
-        __locals[name] = mod
-        return mod
-
     if name in _moved_warn:
         warnings.warn(
             f"{name} is moved to {_moved_warn[name]}",
