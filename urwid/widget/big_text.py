@@ -78,9 +78,6 @@ class BigText(Widget):
                     c.fill_attr(a)
                 o.append((c, None, False, width))
 
-            else:
-                # ignore invalid characters
-                continue
         if o:
             canv = CanvasJoin(o)
         else:

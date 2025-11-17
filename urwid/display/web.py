@@ -617,7 +617,7 @@ def daemonize(errfile: str) -> None:
         os._exit(0)
 
     os.chdir("/")
-    for fd in range(0, 20):
+    for fd in range(20):
         with suppress(OSError):
             os.close(fd)
 

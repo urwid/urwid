@@ -26,8 +26,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  Isort:
-    name: Validate import sorting
+  Ruff-format:
+    name: Validate formatting
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -39,28 +39,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade -r isort-requirements.txt
-      - name: Check imports with isort
+          pip install --upgrade -r ruff-requirements.txt
+      - name: Check code style with ruff
         run: |
-          isort --check --diff .
-
-  Black:
-    name: Validate black formatting
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.x'
-          cache: 'pip'
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install --upgrade -r black-requirements.txt
-      - name: Check code style with black
-        run: |
-          black --check .
+          ruff format --check .
 
   Ruff:
     name: Check with Ruff
@@ -106,7 +88,7 @@ jobs:
         run: pylint --output-format=github urwid
 
   Test:
-    needs: [ Isort, Black, Ruff, PyLint ]
+    needs: [ Ruff-format, Ruff, PyLint ]
     runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 6
@@ -114,7 +96,7 @@ jobs:
         os: [ "ubuntu-latest", "windows-latest" ]
         # , "macos-latest"
         # enable macOS only if OS specific branch will be added
-        python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13" ]
+        python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13", "3.14" ]
 
     steps:
       - uses: actions/checkout@v5
@@ -170,7 +152,7 @@ jobs:
 
   build:
     name: Build distribution
-    needs: [ Test, Isort, Black, Ruff, PyLint ]
+    needs: [ Test, Ruff-format, Ruff, PyLint ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

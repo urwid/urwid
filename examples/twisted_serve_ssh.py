@@ -289,9 +289,9 @@ class TwistedScreen(Screen):
         >>> s = Screen()
         >>> s.set_terminal_properties(colors=256)
         >>> a2e = s._attrspec_to_escape
-        >>> a2e(s.AttrSpec('brown', 'dark green'))
+        >>> a2e(s.AttrSpec("brown", "dark green"))
         '\\x1b[0;33;42m'
-        >>> a2e(s.AttrSpec('#fea,underline', '#d0d'))
+        >>> a2e(s.AttrSpec("#fea,underline", "#d0d"))
         '\\x1b[0;38;5;229;4;48;5;164m'
         """
         if a.foreground_high:

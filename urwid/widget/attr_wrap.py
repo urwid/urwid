@@ -25,12 +25,12 @@ class AttrWrap(AttrMap):
         new code should use AttrMap instead.
 
         >>> from urwid import Divider, Edit, Text
-        >>> AttrWrap(Divider(u"!"), 'bright')
+        >>> AttrWrap(Divider("!"), "bright")
         <AttrWrap flow widget <Divider flow widget '!'> attr='bright'>
-        >>> AttrWrap(Edit(), 'notfocus', 'focus')
+        >>> AttrWrap(Edit(), "notfocus", "focus")
         <AttrWrap selectable flow widget <Edit selectable flow widget '' edit_pos=0> attr='notfocus' focus_attr='focus'>
         >>> size = (5,)
-        >>> aw = AttrWrap(Text(u"hi"), 'greeting', 'fgreet')
+        >>> aw = AttrWrap(Text("hi"), "greeting", "fgreet")
         >>> next(aw.render(size, focus=False).content())
         [('greeting', None, ...'hi   ')]
         >>> next(aw.render(size, focus=True).content())

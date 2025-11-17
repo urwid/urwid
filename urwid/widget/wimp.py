@@ -84,7 +84,7 @@ class SelectableIcon(Text):
         Render the text content of this widget with a cursor when
         in focus.
 
-        >>> si = SelectableIcon(u"[!]")
+        >>> si = SelectableIcon("[!]")
         >>> si
         <SelectableIcon selectable fixed/flow widget '[!]'>
         >>> si.render((4,), focus=True).cursor
@@ -228,12 +228,12 @@ class CheckBox(WidgetWrap[Columns]):
 
         Register signal handler with::
 
-          urwid.connect_signal(check_box, 'change', callback, user_data)
+          urwid.connect_signal(check_box, "change", callback, user_data)
 
         where callback is callback(check_box, new_state [,user_data])
         Unregister signal handlers with::
 
-          urwid.disconnect_signal(check_box, 'change', callback, user_data)
+          urwid.disconnect_signal(check_box, "change", callback, user_data)
 
         >>> CheckBox("Confirm")
         <CheckBox selectable fixed/flow widget 'Confirm' state=False>
@@ -303,10 +303,10 @@ class CheckBox(WidgetWrap[Columns]):
         label -- markup for label.  See Text widget for description
         of text markup.
 
-        >>> cb = CheckBox(u"foo")
+        >>> cb = CheckBox("foo")
         >>> cb
         <CheckBox selectable fixed/flow widget 'foo' state=False>
-        >>> cb.set_label(('bright_attr', u"bar"))
+        >>> cb.set_label(("bright_attr", "bar"))
         >>> cb
         <CheckBox selectable fixed/flow widget 'bar' state=False>
         """
@@ -318,12 +318,12 @@ class CheckBox(WidgetWrap[Columns]):
         """
         Return label text.
 
-        >>> cb = CheckBox(u"Seriously")
+        >>> cb = CheckBox("Seriously")
         >>> print(cb.get_label())
         Seriously
         >>> print(cb.label)
         Seriously
-        >>> cb.set_label([('bright_attr', u"flashy"), u" normal"])
+        >>> cb.set_label([("bright_attr", "flashy"), " normal"])
         >>> print(cb.label)  #  only text is returned
         flashy normal
         """
@@ -348,20 +348,20 @@ class CheckBox(WidgetWrap[Columns]):
         ...     changes.append("A %r %r" % (state, user_data))
         >>> def callback_b(cb, state):
         ...     changes.append("B %r" % state)
-        >>> cb = CheckBox('test', False, False)
-        >>> key1 = connect_signal(cb, 'change', callback_a, user_args=("user_a",))
-        >>> key2 = connect_signal(cb, 'change', callback_b)
-        >>> cb.set_state(True) # both callbacks will be triggered
+        >>> cb = CheckBox("test", False, False)
+        >>> key1 = connect_signal(cb, "change", callback_a, user_args=("user_a",))
+        >>> key2 = connect_signal(cb, "change", callback_b)
+        >>> cb.set_state(True)  # both callbacks will be triggered
         >>> cb.state
         True
-        >>> disconnect_signal(cb, 'change', callback_a, user_args=("user_a",))
+        >>> disconnect_signal(cb, "change", callback_a, user_args=("user_a",))
         >>> cb.state = False
         >>> cb.state
         False
         >>> cb.set_state(True)
         >>> cb.state
         True
-        >>> cb.set_state(False, False) # don't send signal
+        >>> cb.set_state(False, False)  # don't send signal
         >>> changes
         ["A True 'user_a'", 'B True', 'B False', 'B True']
         """
@@ -392,16 +392,16 @@ class CheckBox(WidgetWrap[Columns]):
         """
         Toggle state on 'activate' command.
 
-        >>> assert CheckBox._command_map[' '] == 'activate'
-        >>> assert CheckBox._command_map['enter'] == 'activate'
+        >>> assert CheckBox._command_map[" "] == "activate"
+        >>> assert CheckBox._command_map["enter"] == "activate"
         >>> size = (10,)
-        >>> cb = CheckBox('press me')
+        >>> cb = CheckBox("press me")
         >>> cb.state
         False
-        >>> cb.keypress(size, ' ')
+        >>> cb.keypress(size, " ")
         >>> cb.state
         True
-        >>> cb.keypress(size, ' ')
+        >>> cb.keypress(size, " ")
         >>> cb.state
         False
         """
@@ -446,7 +446,7 @@ class CheckBox(WidgetWrap[Columns]):
         >>> cb = CheckBox("clickme")
         >>> cb.state
         False
-        >>> cb.mouse_event(size, 'mouse press', 1, 2, 0, True)
+        >>> cb.mouse_event(size, "mouse press", 1, 2, 0, True)
         True
         >>> cb.state
         True
@@ -510,23 +510,23 @@ class RadioButton(CheckBox):
 
         Register signal handler with::
 
-          urwid.connect_signal(radio_button, 'change', callback, user_data)
+          urwid.connect_signal(radio_button, "change", callback, user_data)
 
         where callback is callback(radio_button, new_state [,user_data])
         Unregister signal handlers with::
 
-          urwid.disconnect_signal(radio_button, 'change', callback, user_data)
+          urwid.disconnect_signal(radio_button, "change", callback, user_data)
 
-        >>> bgroup = [] # button group
-        >>> b1 = RadioButton(bgroup, u"Agree")
-        >>> b2 = RadioButton(bgroup, u"Disagree")
+        >>> bgroup = []  # button group
+        >>> b1 = RadioButton(bgroup, "Agree")
+        >>> b2 = RadioButton(bgroup, "Disagree")
         >>> len(bgroup)
         2
         >>> b1
         <RadioButton selectable fixed/flow widget 'Agree' state=True>
         >>> b2
         <RadioButton selectable fixed/flow widget 'Disagree' state=False>
-        >>> b2.render((15,), focus=True).text # ... = b in Python 3
+        >>> b2.render((15,), focus=True).text  # ... = b in Python 3
         [...'( ) Disagree   ']
         """
         if state == "first True":
@@ -547,21 +547,21 @@ class RadioButton(CheckBox):
         If state is True all other radio buttons in the same button
         group will be set to False.
 
-        >>> bgroup = [] # button group
-        >>> b1 = RadioButton(bgroup, u"Agree")
-        >>> b2 = RadioButton(bgroup, u"Disagree")
-        >>> b3 = RadioButton(bgroup, u"Unsure")
+        >>> bgroup = []  # button group
+        >>> b1 = RadioButton(bgroup, "Agree")
+        >>> b2 = RadioButton(bgroup, "Disagree")
+        >>> b3 = RadioButton(bgroup, "Unsure")
         >>> b1.state, b2.state, b3.state
         (True, False, False)
         >>> b2.set_state(True)
         >>> b1.state, b2.state, b3.state
         (False, True, False)
         >>> def relabel_button(radio_button, new_state):
-        ...     radio_button.set_label(u"Think Harder!")
-        >>> key = connect_signal(b3, 'change', relabel_button)
+        ...     radio_button.set_label("Think Harder!")
+        >>> key = connect_signal(b3, "change", relabel_button)
         >>> b3
         <RadioButton selectable fixed/flow widget 'Unsure' state=False>
-        >>> b3.set_state(True) # this will trigger the callback
+        >>> b3.set_state(True)  # this will trigger the callback
         >>> b3
         <RadioButton selectable fixed/flow widget 'Think Harder!' state=True>
         """
@@ -586,7 +586,7 @@ class RadioButton(CheckBox):
         """
         Set state to True.
 
-        >>> bgroup = [] # button group
+        >>> bgroup = []  # button group
         >>> b1 = RadioButton(bgroup, "Agree")
         >>> b2 = RadioButton(bgroup, "Disagree")
         >>> b1.state, b2.state
@@ -659,25 +659,25 @@ class Button(WidgetWrap[Columns]):
 
         Register signal handler with::
 
-          urwid.connect_signal(button, 'click', callback, user_data)
+          urwid.connect_signal(button, "click", callback, user_data)
 
         where callback is callback(button [,user_data])
         Unregister signal handlers with::
 
-          urwid.disconnect_signal(button, 'click', callback, user_data)
+          urwid.disconnect_signal(button, "click", callback, user_data)
 
         >>> from urwid.util import set_temporary_encoding
-        >>> Button(u"Ok")
+        >>> Button("Ok")
         <Button selectable fixed/flow widget 'Ok'>
         >>> b = Button("Cancel")
-        >>> b.render((15,), focus=True).text # ... = b in Python 3
+        >>> b.render((15,), focus=True).text  # ... = b in Python 3
         [b'< Cancel      >']
         >>> aligned_button = Button("Test", align=Align.CENTER)
         >>> aligned_button.render((10,), focus=True).text
         [b'<  Test  >']
         >>> wrapped_button = Button("Long label", wrap=WrapMode.ELLIPSIS)
         >>> with set_temporary_encoding("utf-8"):
-        ...     wrapped_button.render((7,), focus=False).text[0].decode('utf-8')
+        ...     wrapped_button.render((7,), focus=False).text[0].decode("utf-8")
         '< Lo… >'
         """
         self._label = SelectableIcon(label, 0, align=align, wrap=wrap, layout=layout)
@@ -719,7 +719,7 @@ class Button(WidgetWrap[Columns]):
         label -- markup for button label
 
         >>> b = Button("Ok")
-        >>> b.set_label(u"Yup yup")
+        >>> b.set_label("Yup yup")
         >>> b
         <Button selectable fixed/flow widget 'Yup yup'>
         """
@@ -729,7 +729,7 @@ class Button(WidgetWrap[Columns]):
         """
         Return label text.
 
-        >>> b = Button(u"Ok")
+        >>> b = Button("Ok")
         >>> print(b.get_label())
         Ok
         >>> print(b.label)
@@ -743,17 +743,17 @@ class Button(WidgetWrap[Columns]):
         """
         Send 'click' signal on 'activate' command.
 
-        >>> assert Button._command_map[' '] == 'activate'
-        >>> assert Button._command_map['enter'] == 'activate'
+        >>> assert Button._command_map[" "] == "activate"
+        >>> assert Button._command_map["enter"] == "activate"
         >>> size = (15,)
-        >>> b = Button(u"Cancel")
+        >>> b = Button("Cancel")
         >>> clicked_buttons = []
         >>> def handle_click(button):
         ...     clicked_buttons.append(button.label)
-        >>> key = connect_signal(b, 'click', handle_click)
-        >>> b.keypress(size, 'enter')
-        >>> b.keypress(size, ' ')
-        >>> clicked_buttons # ... = u in Python 2
+        >>> key = connect_signal(b, "click", handle_click)
+        >>> b.keypress(size, "enter")
+        >>> b.keypress(size, " ")
+        >>> clicked_buttons  # ... = u in Python 2
         [...'Cancel', ...'Cancel']
         """
         if self._command_map[key] != Command.ACTIVATE:
@@ -767,16 +767,16 @@ class Button(WidgetWrap[Columns]):
         Send 'click' signal on button 1 press.
 
         >>> size = (15,)
-        >>> b = Button(u"Ok")
+        >>> b = Button("Ok")
         >>> clicked_buttons = []
         >>> def handle_click(button):
         ...     clicked_buttons.append(button.label)
-        >>> key = connect_signal(b, 'click', handle_click)
-        >>> b.mouse_event(size, 'mouse press', 1, 4, 0, True)
+        >>> key = connect_signal(b, "click", handle_click)
+        >>> b.mouse_event(size, "mouse press", 1, 4, 0, True)
         True
-        >>> b.mouse_event(size, 'mouse press', 2, 4, 0, True) # ignored
+        >>> b.mouse_event(size, "mouse press", 2, 4, 0, True)  # ignored
         False
-        >>> clicked_buttons # ... = u in Python 2
+        >>> clicked_buttons  # ... = u in Python 2
         [...'Ok']
         """
         if button != 1 or not is_mouse_press(event):

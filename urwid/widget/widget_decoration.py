@@ -37,7 +37,7 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
     Don't actually do this -- use a WidgetDecoration subclass instead, these are not real widgets:
 
     >>> from urwid import Text
-    >>> WidgetDecoration(Text(u"hi"))
+    >>> WidgetDecoration(Text("hi"))
     <WidgetDecoration fixed/flow widget <Text fixed/flow widget 'hi'>>
 
     .. Warning:
@@ -79,7 +79,7 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
         If there is only one Decoration, then this is the same as original_widget.
 
         >>> from urwid import Text
-        >>> t = Text('hello')
+        >>> t = Text("hello")
         >>> wd1 = WidgetDecoration(t)
         >>> wd2 = WidgetDecoration(wd1)
         >>> wd3 = WidgetDecoration(wd2)

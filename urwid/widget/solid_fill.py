@@ -22,7 +22,7 @@ class SolidFill(Widget):
         :param fill_char: character to fill area with
         :type fill_char: bytes or unicode
 
-        >>> SolidFill(u'8')
+        >>> SolidFill("8")
         <SolidFill box widget '8'>
         """
         super().__init__()
@@ -39,9 +39,9 @@ class SolidFill(Widget):
         """
         Render the Fill as a canvas and return it.
 
-        >>> SolidFill().render((4,2)).text # ... = b in Python 3
+        >>> SolidFill().render((4, 2)).text  # ... = b in Python 3
         [...'    ', ...'    ']
-        >>> SolidFill('#').render((5,3)).text
+        >>> SolidFill("#").render((5, 3)).text
         [...'#####', ...'#####', ...'#####']
         """
         maxcol, maxrow = size

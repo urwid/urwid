@@ -275,9 +275,9 @@ class Frame(Widget, WidgetContainerMixin, typing.Generic[BodyWidget, HeaderWidge
         a dict-like object similar to::
 
             {
-                'body': (body_widget, None),
-                'header': (header_widget, None),  # if frame has a header
-                'footer': (footer_widget, None) # if frame has a footer
+                "body": (body_widget, None),
+                "header": (header_widget, None),  # if frame has a header
+                "footer": (footer_widget, None),  # if frame has a footer
             }
 
         This object may be used to read or update the contents of the Frame.

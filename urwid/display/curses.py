@@ -563,9 +563,7 @@ class Screen(BaseScreen, RealTerminal):
 
         logger.debug(f"Drawing screen with size {size!r}")
 
-        y = -1
-        for row in canvas.content():
-            y += 1
+        for y, row in enumerate(canvas.content()):
             try:
                 self.s.move(y, 0)
             except curses.error:

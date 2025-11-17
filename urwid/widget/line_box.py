@@ -68,29 +68,29 @@ class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrappe
         │Some text│
         └─────────┘
         >>> print(
-        ...   LineBox(
-        ...     Text("Some text"),
-        ...     tlcorner=LineBox.Symbols.LIGHT.TOP_LEFT_ROUNDED,
-        ...     trcorner=LineBox.Symbols.LIGHT.TOP_RIGHT_ROUNDED,
-        ...     blcorner=LineBox.Symbols.LIGHT.BOTTOM_LEFT_ROUNDED,
-        ...     brcorner=LineBox.Symbols.LIGHT.BOTTOM_RIGHT_ROUNDED,
-        ...   ).render(())
+        ...     LineBox(
+        ...         Text("Some text"),
+        ...         tlcorner=LineBox.Symbols.LIGHT.TOP_LEFT_ROUNDED,
+        ...         trcorner=LineBox.Symbols.LIGHT.TOP_RIGHT_ROUNDED,
+        ...         blcorner=LineBox.Symbols.LIGHT.BOTTOM_LEFT_ROUNDED,
+        ...         brcorner=LineBox.Symbols.LIGHT.BOTTOM_RIGHT_ROUNDED,
+        ...     ).render(())
         ... )
         ╭─────────╮
         │Some text│
         ╰─────────╯
         >>> print(
-        ...   LineBox(
-        ...     Text("Some text"),
-        ...     tline=LineBox.Symbols.HEAVY.HORIZONTAL,
-        ...     bline=LineBox.Symbols.HEAVY.HORIZONTAL,
-        ...     lline=LineBox.Symbols.HEAVY.VERTICAL,
-        ...     rline=LineBox.Symbols.HEAVY.VERTICAL,
-        ...     tlcorner=LineBox.Symbols.HEAVY.TOP_LEFT,
-        ...     trcorner=LineBox.Symbols.HEAVY.TOP_RIGHT,
-        ...     blcorner=LineBox.Symbols.HEAVY.BOTTOM_LEFT,
-        ...     brcorner=LineBox.Symbols.HEAVY.BOTTOM_RIGHT,
-        ...   ).render(())
+        ...     LineBox(
+        ...         Text("Some text"),
+        ...         tline=LineBox.Symbols.HEAVY.HORIZONTAL,
+        ...         bline=LineBox.Symbols.HEAVY.HORIZONTAL,
+        ...         lline=LineBox.Symbols.HEAVY.VERTICAL,
+        ...         rline=LineBox.Symbols.HEAVY.VERTICAL,
+        ...         tlcorner=LineBox.Symbols.HEAVY.TOP_LEFT,
+        ...         trcorner=LineBox.Symbols.HEAVY.TOP_RIGHT,
+        ...         blcorner=LineBox.Symbols.HEAVY.BOTTOM_LEFT,
+        ...         brcorner=LineBox.Symbols.HEAVY.BOTTOM_RIGHT,
+        ...     ).render(())
         ... )
         ┏━━━━━━━━━┓
         ┃Some text┃
@@ -178,7 +178,7 @@ class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrappe
         middle: Columns = typing.cast("Columns", self._wrapped_widget[v_index])
         _old_widget, options = middle.contents[h_index]
         middle.contents[h_index] = (original_widget, options)
-        WidgetDecoration.original_widget.fset(self, original_widget)
+        WidgetDecoration.original_widget.fset(self, original_widget)  # pylint: disable=no-member
 
     @property
     def _w(self) -> Pile:

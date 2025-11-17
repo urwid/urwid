@@ -42,19 +42,19 @@ class AttrMap(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[Wra
         :type focus_map: display attribute or dict
 
         >>> from urwid import Divider, Edit, Text
-        >>> AttrMap(Divider(u"!"), 'bright')
+        >>> AttrMap(Divider("!"), "bright")
         <AttrMap flow widget <Divider flow widget '!'> attr_map={None: 'bright'}>
-        >>> AttrMap(Edit(), 'notfocus', 'focus').attr_map
+        >>> AttrMap(Edit(), "notfocus", "focus").attr_map
         {None: 'notfocus'}
-        >>> AttrMap(Edit(), 'notfocus', 'focus').focus_map
+        >>> AttrMap(Edit(), "notfocus", "focus").focus_map
         {None: 'focus'}
         >>> size = (5,)
-        >>> am = AttrMap(Text(u"hi"), 'greeting', 'fgreet')
-        >>> next(am.render(size, focus=False).content()) # ... = b in Python 3
+        >>> am = AttrMap(Text("hi"), "greeting", "fgreet")
+        >>> next(am.render(size, focus=False).content())  # ... = b in Python 3
         [('greeting', None, ...'hi   ')]
         >>> next(am.render(size, focus=True).content())
         [('fgreet', None, ...'hi   ')]
-        >>> am2 = AttrMap(Text(('word', u"hi")), {'word':'greeting', None:'bg'})
+        >>> am2 = AttrMap(Text(("word", "hi")), {"word": "greeting", None: "bg"})
         >>> am2
         <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={'word': 'greeting', None: 'bg'}>
         >>> next(am2.render(size).content())
@@ -94,8 +94,8 @@ class AttrMap(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[Wra
         constructor does.  You must specify {None: attribute} instead.
 
         >>> from urwid import Text
-        >>> w = AttrMap(Text(u"hi"), None)
-        >>> w.set_attr_map({'a':'b'})
+        >>> w = AttrMap(Text("hi"), None)
+        >>> w.set_attr_map({"a": "b"})
         >>> w
         <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={'a': 'b'}>
         """
@@ -129,8 +129,8 @@ class AttrMap(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[Wra
         constructor does.  You must specify {None: attribute} instead.
 
         >>> from urwid import Text
-        >>> w = AttrMap(Text(u"hi"), {})
-        >>> w.set_focus_map({'a':'b'})
+        >>> w = AttrMap(Text("hi"), {})
+        >>> w.set_focus_map({"a": "b"})
         >>> w
         <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={} focus_map={'a': 'b'}>
         >>> w.set_focus_map(None)

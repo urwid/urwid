@@ -59,9 +59,9 @@ class Divider(Widget):
 
         >>> Divider()
         <Divider flow widget>
-        >>> Divider(u'-')
+        >>> Divider("-")
         <Divider flow widget '-'>
-        >>> Divider(u'x', 1, 2)
+        >>> Divider("x", 1, 2)
         <Divider flow widget 'x' bottom=2 top=1>
         """
         super().__init__()
@@ -86,7 +86,7 @@ class Divider(Widget):
 
         >>> Divider().rows((10,))
         1
-        >>> Divider(u'x', 1, 2).rows((10,))
+        >>> Divider("x", 1, 2).rows((10,))
         4
         """
         (_maxcol,) = size
@@ -100,11 +100,11 @@ class Divider(Widget):
         """
         Render the divider as a canvas and return it.
 
-        >>> Divider().render((10,)).text # ... = b in Python 3
+        >>> Divider().render((10,)).text  # ... = b in Python 3
         [...'          ']
-        >>> Divider(u'-', top=1).render((10,)).text
+        >>> Divider("-", top=1).render((10,)).text
         [...'          ', ...'----------']
-        >>> Divider(u'x', bottom=2).render((5,)).text
+        >>> Divider("x", bottom=2).render((5,)).text
         [...'xxxxx', ...'     ', ...'     ']
         """
         (maxcol,) = size

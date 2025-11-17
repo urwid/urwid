@@ -510,7 +510,7 @@ def int_scale(val: int, val_range: int, out_range: int) -> int:
 
     >>> "%x" % int_scale(0x7, 0x10, 0x10000)
     '7777'
-    >>> "%x" % int_scale(0x5f, 0x100, 0x10)
+    >>> "%x" % int_scale(0x5F, 0x100, 0x10)
     '6'
     >>> int_scale(2, 6, 101)
     40

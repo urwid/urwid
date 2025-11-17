@@ -63,7 +63,7 @@ class MonitoredList(list[_T], typing.Generic[_T]):
         time the list is modified.  Callback's return value is ignored.
 
         >>> import sys
-        >>> ml = MonitoredList([1,2,3])
+        >>> ml = MonitoredList([1, 2, 3])
         >>> ml.set_modified_callback(lambda: sys.stdout.write("modified\\n"))
         >>> ml
         MonitoredList([1, 2, 3])
@@ -167,7 +167,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         >>> ml = MonitoredFocusList([10, 11, 12, 13, 14], focus=3)
         >>> ml
         MonitoredFocusList([10, 11, 12, 13, 14], focus=3)
-        >>> del(ml[1])
+        >>> del ml[1]
         >>> ml
         MonitoredFocusList([10, 12, 13, 14], focus=2)
         >>> ml[:2] = [50, 51, 52, 53]
@@ -199,7 +199,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         Return the index of the item "in focus" or None if
         the list is empty.
 
-        >>> MonitoredFocusList([1,2,3], focus=2).focus
+        >>> MonitoredFocusList([1, 2, 3], focus=2).focus
         2
         >>> MonitoredFocusList().focus
         """
@@ -221,9 +221,11 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         instance with set_focus_changed_callback().
 
         >>> ml = MonitoredFocusList([9, 10, 11])
-        >>> ml.focus = 2; ml.focus
+        >>> ml.focus = 2
+        ... ml.focus
         2
-        >>> ml.focus = 0; ml.focus
+        >>> ml.focus = 0
+        ... ml.focus
         0
         >>> ml.focus = -2
         Traceback (most recent call last):
@@ -274,7 +276,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         new_focus -- new focus index
 
         >>> import sys
-        >>> ml = MonitoredFocusList([1,2,3], focus=1)
+        >>> ml = MonitoredFocusList([1, 2, 3], focus=1)
         >>> ml.set_focus_changed_callback(lambda f: sys.stdout.write("focus: %d\\n" % (f,)))
         >>> ml
         MonitoredFocusList([1, 2, 3], focus=1)
@@ -359,28 +361,38 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
 
     def __delitem__(self, y: int | slice) -> None:
         """
-        >>> ml = MonitoredFocusList([0,1,2,3,4], focus=2)
-        >>> del ml[3]; ml
+        >>> ml = MonitoredFocusList([0, 1, 2, 3, 4], focus=2)
+        >>> del ml[3]
+        ... ml
         MonitoredFocusList([0, 1, 2, 4], focus=2)
-        >>> del ml[-1]; ml
+        >>> del ml[-1]
+        ... ml
         MonitoredFocusList([0, 1, 2], focus=2)
-        >>> del ml[0]; ml
+        >>> del ml[0]
+        ... ml
         MonitoredFocusList([1, 2], focus=1)
-        >>> del ml[1]; ml
+        >>> del ml[1]
+        ... ml
         MonitoredFocusList([1], focus=0)
-        >>> del ml[0]; ml
+        >>> del ml[0]
+        ... ml
         MonitoredFocusList([], focus=None)
-        >>> ml = MonitoredFocusList([5,4,6,4,5,4,6,4,5], focus=4)
-        >>> del ml[1::2]; ml
+        >>> ml = MonitoredFocusList([5, 4, 6, 4, 5, 4, 6, 4, 5], focus=4)
+        >>> del ml[1::2]
+        ... ml
         MonitoredFocusList([5, 6, 5, 6, 5], focus=2)
-        >>> del ml[::2]; ml
+        >>> del ml[::2]
+        ... ml
         MonitoredFocusList([6, 6], focus=1)
-        >>> ml = MonitoredFocusList([0,1,2,3,4,6,7], focus=2)
-        >>> del ml[-2:]; ml
+        >>> ml = MonitoredFocusList([0, 1, 2, 3, 4, 6, 7], focus=2)
+        >>> del ml[-2:]
+        ... ml
         MonitoredFocusList([0, 1, 2, 3, 4], focus=2)
-        >>> del ml[-4:-2]; ml
+        >>> del ml[-4:-2]
+        ... ml
         MonitoredFocusList([0, 3, 4], focus=1)
-        >>> del ml[:]; ml
+        >>> del ml[:]
+        ... ml
         MonitoredFocusList([], focus=None)
         """
         if isinstance(y, slice):
@@ -399,8 +411,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
     def __setitem__(self, i: int | slice, y: _T | Collection[_T]) -> None:
         """
         >>> def modified(indices, new_items):
-        ...     print(f"range{indices!r} <- {new_items!r}" )
-        >>> ml = MonitoredFocusList([0,1,2,3], focus=2)
+        ...     print(f"range{indices!r} <- {new_items!r}")
+        >>> ml = MonitoredFocusList([0, 1, 2, 3], focus=2)
         >>> ml.set_validate_contents_modified(modified)
         >>> ml[0] = 9
         range(0, 1, 1) <- [9]
@@ -435,8 +447,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
     def __imul__(self, n: int):
         """
         >>> def modified(indices, new_items):
-        ...     print(f"range{indices!r} <- {list(new_items)!r}" )
-        >>> ml = MonitoredFocusList([0,1,2], focus=2)
+        ...     print(f"range{indices!r} <- {list(new_items)!r}")
+        >>> ml = MonitoredFocusList([0, 1, 2], focus=2)
         >>> ml.set_validate_contents_modified(modified)
         >>> ml *= 3
         range(3, 3, 1) <- [0, 1, 2, 0, 1, 2]
@@ -458,8 +470,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
     def append(self, item: _T) -> None:
         """
         >>> def modified(indices, new_items):
-        ...     print(f"range{indices!r} <- {new_items!r}" )
-        >>> ml = MonitoredFocusList([0,1,2], focus=2)
+        ...     print(f"range{indices!r} <- {new_items!r}")
+        >>> ml = MonitoredFocusList([0, 1, 2], focus=2)
         >>> ml.set_validate_contents_modified(modified)
         >>> ml.append(6)
         range(3, 3, 1) <- [6]
@@ -471,10 +483,10 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
     def extend(self, items: Collection[_T]) -> None:
         """
         >>> def modified(indices, new_items):
-        ...     print(f"range{indices!r} <- {list(new_items)!r}" )
-        >>> ml = MonitoredFocusList([0,1,2], focus=2)
+        ...     print(f"range{indices!r} <- {list(new_items)!r}")
+        >>> ml = MonitoredFocusList([0, 1, 2], focus=2)
         >>> ml.set_validate_contents_modified(modified)
-        >>> ml.extend((6,7,8))
+        >>> ml.extend((6, 7, 8))
         range(3, 3, 1) <- [6, 7, 8]
         """
         focus = self._adjust_focus_on_contents_modified(slice(len(self), len(self)), items)
@@ -483,12 +495,15 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
 
     def insert(self, index: int, item: _T) -> None:
         """
-        >>> ml = MonitoredFocusList([0,1,2,3], focus=2)
-        >>> ml.insert(-1, -1); ml
+        >>> ml = MonitoredFocusList([0, 1, 2, 3], focus=2)
+        >>> ml.insert(-1, -1)
+        ... ml
         MonitoredFocusList([0, 1, 2, -1, 3], focus=2)
-        >>> ml.insert(0, -2); ml
+        >>> ml.insert(0, -2)
+        ... ml
         MonitoredFocusList([-2, 0, 1, 2, -1, 3], focus=3)
-        >>> ml.insert(3, -3); ml
+        >>> ml.insert(3, -3)
+        ... ml
         MonitoredFocusList([-2, 0, 1, -3, 2, -1, 3], focus=4)
         """
         focus = self._adjust_focus_on_contents_modified(slice(index, index), [item])
@@ -497,17 +512,21 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
 
     def pop(self, index: int = -1) -> _T:
         """
-        >>> ml = MonitoredFocusList([-2,0,1,-3,2,3], focus=4)
-        >>> ml.pop(3); ml
+        >>> ml = MonitoredFocusList([-2, 0, 1, -3, 2, 3], focus=4)
+        >>> ml.pop(3)
+        ... ml
         -3
         MonitoredFocusList([-2, 0, 1, 2, 3], focus=3)
-        >>> ml.pop(0); ml
+        >>> ml.pop(0)
+        ... ml
         -2
         MonitoredFocusList([0, 1, 2, 3], focus=2)
-        >>> ml.pop(-1); ml
+        >>> ml.pop(-1)
+        ... ml
         3
         MonitoredFocusList([0, 1, 2], focus=2)
-        >>> ml.pop(2); ml
+        >>> ml.pop(2)
+        ... ml
         2
         MonitoredFocusList([0, 1], focus=1)
         """
@@ -518,12 +537,15 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
 
     def remove(self, value: _T) -> None:
         """
-        >>> ml = MonitoredFocusList([-2,0,1,-3,2,-1,3], focus=4)
-        >>> ml.remove(-3); ml
+        >>> ml = MonitoredFocusList([-2, 0, 1, -3, 2, -1, 3], focus=4)
+        >>> ml.remove(-3)
+        ... ml
         MonitoredFocusList([-2, 0, 1, 2, -1, 3], focus=3)
-        >>> ml.remove(-2); ml
+        >>> ml.remove(-2)
+        ... ml
         MonitoredFocusList([0, 1, 2, -1, 3], focus=2)
-        >>> ml.remove(3); ml
+        >>> ml.remove(3)
+        ... ml
         MonitoredFocusList([0, 1, 2, -1], focus=2)
         """
         index = self.index(value)
@@ -533,8 +555,9 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
 
     def reverse(self) -> None:
         """
-        >>> ml = MonitoredFocusList([0,1,2,3,4], focus=1)
-        >>> ml.reverse(); ml
+        >>> ml = MonitoredFocusList([0, 1, 2, 3, 4], focus=1)
+        >>> ml.reverse()
+        ... ml
         MonitoredFocusList([4, 3, 2, 1, 0], focus=3)
         """
         rval = super().reverse()
@@ -543,8 +566,9 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
 
     def sort(self, **kwargs) -> None:
         """
-        >>> ml = MonitoredFocusList([-2,0,1,-3,2,-1,3], focus=4)
-        >>> ml.sort(); ml
+        >>> ml = MonitoredFocusList([-2, 0, 1, -3, 2, -1, 3], focus=4)
+        >>> ml.sort()
+        ... ml
         MonitoredFocusList([-3, -2, -1, 0, 1, 2, 3], focus=5)
         """
         if not self:

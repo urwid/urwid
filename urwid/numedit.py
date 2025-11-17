@@ -88,28 +88,28 @@ class NumEdit(Edit):
         Handle editing keystrokes.  Remove leading zeros.
 
         >>> e, size = NumEdit("0123456789", "", "5002"), (10,)
-        >>> e.keypress(size, 'home')
-        >>> e.keypress(size, 'delete')
+        >>> e.keypress(size, "home")
+        >>> e.keypress(size, "delete")
         >>> assert e.edit_text == "002"
-        >>> e.keypress(size, 'end')
+        >>> e.keypress(size, "end")
         >>> assert e.edit_text == "2"
         >>> # binary only
         >>> e, size = NumEdit("01", "", ""), (10,)
         >>> assert e.edit_text == ""
-        >>> e.keypress(size, '1')
-        >>> e.keypress(size, '0')
-        >>> e.keypress(size, '1')
+        >>> e.keypress(size, "1")
+        >>> e.keypress(size, "0")
+        >>> e.keypress(size, "1")
         >>> assert e.edit_text == "101"
         >>> e, size = NumEdit("0123456789", "", "", allow_negative=True), (10,)
         >>> e.keypress(size, "-")
-        >>> e.keypress(size, '1')
+        >>> e.keypress(size, "1")
         >>> e.edit_text
         '-1'
-        >>> e.keypress(size, 'home')
-        >>> e.keypress(size, 'delete')
+        >>> e.keypress(size, "home")
+        >>> e.keypress(size, "delete")
         >>> e.edit_text
         '1'
-        >>> e.keypress(size, 'end')
+        >>> e.keypress(size, "end")
         >>> e.keypress(size, "-")
         '-'
         >>> e.edit_text
@@ -141,52 +141,52 @@ class IntegerEdit(NumEdit):
         caption -- caption markup
         default -- default edit value
 
-        >>> IntegerEdit(u"", 42)
+        >>> IntegerEdit("", 42)
         <IntegerEdit selectable flow widget '42' edit_pos=2>
-        >>> e, size = IntegerEdit(u"", "5002"), (10,)
-        >>> e.keypress(size, 'home')
-        >>> e.keypress(size, 'delete')
+        >>> e, size = IntegerEdit("", "5002"), (10,)
+        >>> e.keypress(size, "home")
+        >>> e.keypress(size, "delete")
         >>> assert e.edit_text == "002"
-        >>> e.keypress(size, 'end')
+        >>> e.keypress(size, "end")
         >>> assert e.edit_text == "2"
-        >>> e.keypress(size, '9')
-        >>> e.keypress(size, '0')
+        >>> e.keypress(size, "9")
+        >>> e.keypress(size, "0")
         >>> assert e.edit_text == "290"
         >>> e, size = IntegerEdit("", ""), (10,)
         >>> assert e.value() is None
         >>> # binary
-        >>> e, size = IntegerEdit(u"", "1010", base=2), (10,)
-        >>> e.keypress(size, 'end')
-        >>> e.keypress(size, '1')
+        >>> e, size = IntegerEdit("", "1010", base=2), (10,)
+        >>> e.keypress(size, "end")
+        >>> e.keypress(size, "1")
         >>> assert e.edit_text == "10101"
         >>> assert e.value() == Decimal("21")
         >>> # HEX
-        >>> e, size = IntegerEdit(u"", "10", base=16), (10,)
-        >>> e.keypress(size, 'end')
-        >>> e.keypress(size, 'F')
-        >>> e.keypress(size, 'f')
+        >>> e, size = IntegerEdit("", "10", base=16), (10,)
+        >>> e.keypress(size, "end")
+        >>> e.keypress(size, "F")
+        >>> e.keypress(size, "f")
         >>> assert e.edit_text == "10Ff"
-        >>> assert e.keypress(size, 'G') == 'G'  # unhandled key
+        >>> assert e.keypress(size, "G") == "G"  # unhandled key
         >>> assert e.edit_text == "10Ff"
         >>> # keep leading 0's when not base 10
-        >>> e, size = IntegerEdit(u"", "10FF", base=16), (10,)
+        >>> e, size = IntegerEdit("", "10FF", base=16), (10,)
         >>> assert e.edit_text == "10FF"
         >>> assert e.value() == Decimal("4351")
-        >>> e.keypress(size, 'home')
-        >>> e.keypress(size, 'delete')
-        >>> e.keypress(size, '0')
+        >>> e.keypress(size, "home")
+        >>> e.keypress(size, "delete")
+        >>> e.keypress(size, "0")
         >>> assert e.edit_text == "00FF"
         >>> # test exception on incompatible value for base
-        >>> e, size = IntegerEdit(u"", "10FG", base=16), (10,)
+        >>> e, size = IntegerEdit("", "10FG", base=16), (10,)
         Traceback (most recent call last):
             ...
         ValueError: invalid value: 10FG for base 16
         >>> # test exception on float init value
-        >>> e, size = IntegerEdit(u"", 10.0), (10,)
+        >>> e, size = IntegerEdit("", 10.0), (10,)
         Traceback (most recent call last):
             ...
         ValueError: default: Only 'str', 'int', 'long' or Decimal input allowed
-        >>> e, size = IntegerEdit(u"", Decimal("10.0")), (10,)
+        >>> e, size = IntegerEdit("", Decimal("10.0")), (10,)
         Traceback (most recent call last):
             ...
         ValueError: not an 'integer Decimal' instance
@@ -226,8 +226,8 @@ class IntegerEdit(NumEdit):
         Return the numeric value of self.edit_text.
 
         >>> e, size = IntegerEdit(), (10,)
-        >>> e.keypress(size, '5')
-        >>> e.keypress(size, '1')
+        >>> e.keypress(size, "5")
+        >>> e.keypress(size, "1")
         >>> assert e.value() == 51
         """
         if self.edit_text:
@@ -240,9 +240,9 @@ class IntegerEdit(NumEdit):
 
         >>> e, size = IntegerEdit(allow_negative=True), (10,)
         >>> assert int(e) == 0
-        >>> e.keypress(size, '-')
-        >>> e.keypress(size, '4')
-        >>> e.keypress(size, '2')
+        >>> e.keypress(size, "-")
+        >>> e.keypress(size, "4")
+        >>> e.keypress(size, "2")
         >>> assert int(e) == -42
         """
         if self.edit_text:
@@ -270,46 +270,46 @@ class FloatEdit(NumEdit):
         preserve_significance -- return value has the same signif. as default
         decimal_separator -- use '.' as separator by default, optionally a ','
 
-        >>> FloatEdit(u"",  "1.065434")
+        >>> FloatEdit("", "1.065434")
         <FloatEdit selectable flow widget '1.065434' edit_pos=8>
-        >>> e, size = FloatEdit(u"", "1.065434"), (10,)
-        >>> e.keypress(size, 'home')
-        >>> e.keypress(size, 'delete')
+        >>> e, size = FloatEdit("", "1.065434"), (10,)
+        >>> e.keypress(size, "home")
+        >>> e.keypress(size, "delete")
         >>> assert e.edit_text == ".065434"
-        >>> e.keypress(size, 'end')
-        >>> e.keypress(size, 'backspace')
+        >>> e.keypress(size, "end")
+        >>> e.keypress(size, "backspace")
         >>> assert e.edit_text == ".06543"
         >>> e, size = FloatEdit(), (10,)
-        >>> e.keypress(size, '5')
-        >>> e.keypress(size, '1')
-        >>> e.keypress(size, '.')
-        >>> e.keypress(size, '5')
-        >>> e.keypress(size, '1')
+        >>> e.keypress(size, "5")
+        >>> e.keypress(size, "1")
+        >>> e.keypress(size, ".")
+        >>> e.keypress(size, "5")
+        >>> e.keypress(size, "1")
         >>> assert e.value() == Decimal("51.51"), e.value()
         >>> e, size = FloatEdit(decimal_separator=":"), (10,)
         Traceback (most recent call last):
             ...
         ValueError: invalid decimal separator: :
         >>> e, size = FloatEdit(decimal_separator=","), (10,)
-        >>> e.keypress(size, '5')
-        >>> e.keypress(size, '1')
-        >>> e.keypress(size, ',')
-        >>> e.keypress(size, '5')
-        >>> e.keypress(size, '1')
+        >>> e.keypress(size, "5")
+        >>> e.keypress(size, "1")
+        >>> e.keypress(size, ",")
+        >>> e.keypress(size, "5")
+        >>> e.keypress(size, "1")
         >>> assert e.edit_text == "51,51"
         >>> e, size = FloatEdit("", "3.1415", preserve_significance=True), (10,)
-        >>> e.keypress(size, 'end')
-        >>> e.keypress(size, 'backspace')
-        >>> e.keypress(size, 'backspace')
+        >>> e.keypress(size, "end")
+        >>> e.keypress(size, "backspace")
+        >>> e.keypress(size, "backspace")
         >>> assert e.edit_text == "3.14"
         >>> assert e.value() == Decimal("3.1400")
-        >>> e.keypress(size, '1')
-        >>> e.keypress(size, '5')
-        >>> e.keypress(size, '9')
+        >>> e.keypress(size, "1")
+        >>> e.keypress(size, "5")
+        >>> e.keypress(size, "9")
         >>> assert e.value() == Decimal("3.1416"), e.value()
         >>> e, size = FloatEdit("", ""), (10,)
         >>> assert e.value() is None
-        >>> e, size = FloatEdit(u"", 10.0), (10,)
+        >>> e, size = FloatEdit("", 10.0), (10,)
         Traceback (most recent call last):
             ...
         ValueError: default: Only 'str', 'int', 'long' or Decimal input allowed
@@ -368,11 +368,11 @@ class FloatEdit(NumEdit):
         """Enforced float value return.
 
         >>> e, size = FloatEdit(allow_negative=True), (10,)
-        >>> assert float(e) == 0.
-        >>> e.keypress(size, '-')
-        >>> e.keypress(size, '4')
-        >>> e.keypress(size, '.')
-        >>> e.keypress(size, '2')
+        >>> assert float(e) == 0.0
+        >>> e.keypress(size, "-")
+        >>> e.keypress(size, "4")
+        >>> e.keypress(size, ".")
+        >>> e.keypress(size, "2")
         >>> assert float(e) == -4.2
         """
         if self.edit_text:
