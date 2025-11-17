@@ -79,7 +79,9 @@ class AsyncioEventLoop(EventLoop):
                     self._original_event_loop_policy, asyncio.WindowsSelectorEventLoopPolicy
                 ):
                     self.logger.debug("Set WindowsSelectorEventLoopPolicy as asyncio event loop policy")
-                    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+                    asyncio.set_event_loop_policy(
+                        asyncio.WindowsSelectorEventLoopPolicy()  # pylint: disable=deprecated-class
+                    )
                     self._event_loop_policy_altered = True
                 else:
                     self._event_loop_policy_altered = False
