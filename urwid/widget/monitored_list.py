@@ -363,36 +363,36 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         """
         >>> ml = MonitoredFocusList([0, 1, 2, 3, 4], focus=2)
         >>> del ml[3]
-        ... ml
+        >>> ml
         MonitoredFocusList([0, 1, 2, 4], focus=2)
         >>> del ml[-1]
-        ... ml
+        >>> ml
         MonitoredFocusList([0, 1, 2], focus=2)
         >>> del ml[0]
-        ... ml
+        >>> ml
         MonitoredFocusList([1, 2], focus=1)
         >>> del ml[1]
-        ... ml
+        >>> ml
         MonitoredFocusList([1], focus=0)
         >>> del ml[0]
-        ... ml
+        >>> ml
         MonitoredFocusList([], focus=None)
         >>> ml = MonitoredFocusList([5, 4, 6, 4, 5, 4, 6, 4, 5], focus=4)
         >>> del ml[1::2]
-        ... ml
+        >>> ml
         MonitoredFocusList([5, 6, 5, 6, 5], focus=2)
         >>> del ml[::2]
-        ... ml
+        >>> ml
         MonitoredFocusList([6, 6], focus=1)
         >>> ml = MonitoredFocusList([0, 1, 2, 3, 4, 6, 7], focus=2)
         >>> del ml[-2:]
-        ... ml
+        >>> ml
         MonitoredFocusList([0, 1, 2, 3, 4], focus=2)
         >>> del ml[-4:-2]
-        ... ml
+        >>> ml
         MonitoredFocusList([0, 3, 4], focus=1)
         >>> del ml[:]
-        ... ml
+        >>> ml
         MonitoredFocusList([], focus=None)
         """
         if isinstance(y, slice):
@@ -497,13 +497,13 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         """
         >>> ml = MonitoredFocusList([0, 1, 2, 3], focus=2)
         >>> ml.insert(-1, -1)
-        ... ml
+        >>> ml
         MonitoredFocusList([0, 1, 2, -1, 3], focus=2)
         >>> ml.insert(0, -2)
-        ... ml
+        >>> ml
         MonitoredFocusList([-2, 0, 1, 2, -1, 3], focus=3)
         >>> ml.insert(3, -3)
-        ... ml
+        >>> ml
         MonitoredFocusList([-2, 0, 1, -3, 2, -1, 3], focus=4)
         """
         focus = self._adjust_focus_on_contents_modified(slice(index, index), [item])
@@ -514,20 +514,20 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         """
         >>> ml = MonitoredFocusList([-2, 0, 1, -3, 2, 3], focus=4)
         >>> ml.pop(3)
-        ... ml
         -3
+        >>> ml
         MonitoredFocusList([-2, 0, 1, 2, 3], focus=3)
         >>> ml.pop(0)
-        ... ml
         -2
+        >>> ml
         MonitoredFocusList([0, 1, 2, 3], focus=2)
         >>> ml.pop(-1)
-        ... ml
         3
+        >>> ml
         MonitoredFocusList([0, 1, 2], focus=2)
         >>> ml.pop(2)
-        ... ml
         2
+        >>> ml
         MonitoredFocusList([0, 1], focus=1)
         """
         focus = self._adjust_focus_on_contents_modified(slice(index, index + 1 or None))
@@ -539,13 +539,13 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         """
         >>> ml = MonitoredFocusList([-2, 0, 1, -3, 2, -1, 3], focus=4)
         >>> ml.remove(-3)
-        ... ml
+        >>> ml
         MonitoredFocusList([-2, 0, 1, 2, -1, 3], focus=3)
         >>> ml.remove(-2)
-        ... ml
+        >>> ml
         MonitoredFocusList([0, 1, 2, -1, 3], focus=2)
         >>> ml.remove(3)
-        ... ml
+        >>> ml
         MonitoredFocusList([0, 1, 2, -1], focus=2)
         """
         index = self.index(value)
@@ -557,7 +557,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         """
         >>> ml = MonitoredFocusList([0, 1, 2, 3, 4], focus=1)
         >>> ml.reverse()
-        ... ml
+        >>> ml
         MonitoredFocusList([4, 3, 2, 1, 0], focus=3)
         """
         rval = super().reverse()
@@ -568,7 +568,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         """
         >>> ml = MonitoredFocusList([-2, 0, 1, -3, 2, -1, 3], focus=4)
         >>> ml.sort()
-        ... ml
+        >>> ml
         MonitoredFocusList([-3, -2, -1, 0, 1, 2, 3], focus=5)
         """
         if not self:
