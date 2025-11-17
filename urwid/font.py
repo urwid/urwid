@@ -31,8 +31,6 @@ from urwid.util import apply_target_encoding, str_util
 if typing.TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
 
-    from typing_extensions import Literal
-
 
 def separate_glyphs(gdata: str, height: int) -> tuple[dict[str, tuple[int, list[str]]], bool]:
     """return (dictionary of glyphs, utf8 required)"""
@@ -218,22 +216,6 @@ class Font(metaclass=FontRegistry):
     def __str__(self) -> str:
         """Font description."""
         return f"{self.__class__.__name__}():\n  {self.height!r}\n  {pformat(self.data, indent=4)}"
-
-    @staticmethod
-    def _to_text(
-        obj: str,
-        encoding: str = "utf-8",
-        errors: Literal["strict", "ignore", "replace"] = "strict",
-    ) -> str:
-        warnings.warn(
-            "_to_text is deprecated: only text fonts are supported. API will be removed in version 4.0.",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        if isinstance(obj, str):
-            return obj
-
-        raise TypeError(f"{obj!r} is not str")
 
     def add_glyphs(self, gdata: str) -> None:
         d, utf8_required = separate_glyphs(gdata, self.height)
