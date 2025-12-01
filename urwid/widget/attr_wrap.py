@@ -71,22 +71,6 @@ class AttrWrap(AttrMap):
         )
         self.original_widget = new_widget
 
-    def get_w(self):
-        warnings.warn(
-            "backwards compatibility, widget used to be stored as original_widget. API will be removed in version 4.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.original_widget
-
-    def set_w(self, new_widget: Widget) -> None:
-        warnings.warn(
-            "backwards compatibility, widget used to be stored as original_widget. API will be removed in version 4.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.original_widget = new_widget
-
     def get_attr(self) -> Hashable:
         return self.attr_map[None]
 
