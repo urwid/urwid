@@ -2,6 +2,23 @@
 Changelog
 ---------
 
+Urwid 3.0.4
+===========
+
+2025-12-01
+
+Deprecations ⚡
+++++++++++++++
+* Fix CheckBox DeprecationWarning: Use user_args instead of user_arg by @sawdmn in https://github.com/urwid/urwid/pull/1079
+Other Changes
++++++++++++++
+* Refactoring: use official python way for lazy imports by @penguinolog in https://github.com/urwid/urwid/pull/1077
+
+## New Contributors
+* @sawdmn made their first contribution in https://github.com/urwid/urwid/pull/1079
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/3.0.3...3.0.4
+
 Urwid 3.0.3
 ===========
 
