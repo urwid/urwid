@@ -248,9 +248,15 @@ class CheckBox(WidgetWrap[Columns]):
         Traceback (most recent call last):
         ...
         ValueError: None not in (True, False, 'mixed')
+        >>> CheckBox("No", "mixed")
+        Traceback (most recent call last):
+        ...
+        ValueError: 'mixed' is not allowed: has_mixed=False
         """
         if state not in self.states:
             raise ValueError(f"{state!r} not in {tuple(self.states.keys())}")
+        if state == "mixed" and not has_mixed:
+            raise ValueError(f"{state!r} is not allowed: {has_mixed=!r}")
 
         self._label = Text(label)
         self.has_mixed = has_mixed
@@ -373,6 +379,9 @@ class CheckBox(WidgetWrap[Columns]):
 
         if state not in self.states:
             raise CheckBoxError(f"{self!r} Invalid state: {state!r}")
+
+        if state == "mixed" and not self.has_mixed:
+            raise ValueError(f"{state!r} is not allowed: {self.has_mixed=!r}")
 
         # self._state is None is a special case when the CheckBox
         # has just been created
