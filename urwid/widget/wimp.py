@@ -261,10 +261,7 @@ class CheckBox(WidgetWrap[Columns]):
         # The old way of listening for a change was to pass the callback
         # in to the constructor.  Just convert it to the new way:
         if on_state_change:
-            if user_data is not None:
-                connect_signal(self, "change", on_state_change, user_args=(user_data,))
-            else:
-                connect_signal(self, "change", on_state_change)
+            connect_signal(self, "change", on_state_change, user_data)
 
         # Initial create expect no callbacks call, create explicit
         super().__init__(
