@@ -172,13 +172,13 @@ jobs:
       - name: Build dist
         run: python -m build
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           path: dist/*.tar.gz
           name: built-sdist
           retention-days: 3
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           path: dist/*.whl
           name: built-bdist
