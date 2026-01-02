@@ -170,10 +170,10 @@ class CheckBox(WidgetWrap[Columns]):
     def __init__(
         self,
         label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
-        state: bool = False,
-        has_mixed: typing.Literal[False] = False,
-        on_state_change: Callable[[Self, bool], typing.Any] | None = None,
-        user_data: None = None,
+        state: typing.Literal["mixed"] | bool = False,
+        has_mixed: typing.Literal[True] = True,
+        on_state_change: Callable[[Self, bool | typing.Literal["mixed"], _T], typing.Any] | None = None,
+        user_data: _T = ...,
         checked_symbol: str | None = ...,
     ) -> None: ...
 
@@ -181,10 +181,10 @@ class CheckBox(WidgetWrap[Columns]):
     def __init__(
         self,
         label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
-        state: typing.Literal["mixed"] | bool = False,
-        has_mixed: typing.Literal[True] = True,
-        on_state_change: Callable[[Self, bool | typing.Literal["mixed"], _T], typing.Any] | None = None,
-        user_data: _T = ...,
+        state: bool = False,
+        has_mixed: typing.Literal[False] = False,
+        on_state_change: Callable[[Self, bool], typing.Any] | None = None,
+        user_data: None = None,
         checked_symbol: str | None = ...,
     ) -> None: ...
 
@@ -206,8 +206,8 @@ class CheckBox(WidgetWrap[Columns]):
         has_mixed: typing.Literal[False, True] = False,  # MyPy issue: Literal[True, False] is not equal `bool`
         on_state_change: (
             Callable[[Self, bool, _T], typing.Any]
-            | Callable[[Self, bool], typing.Any]
             | Callable[[Self, bool | typing.Literal["mixed"], _T], typing.Any]
+            | Callable[[Self, bool], typing.Any]
             | Callable[[Self, bool | typing.Literal["mixed"]], typing.Any]
             | None
         ) = None,
@@ -261,10 +261,7 @@ class CheckBox(WidgetWrap[Columns]):
         # The old way of listening for a change was to pass the callback
         # in to the constructor.  Just convert it to the new way:
         if on_state_change:
-            if user_data is not None:
-                connect_signal(self, "change", on_state_change, user_args=(user_data,))
-            else:
-                connect_signal(self, "change", on_state_change)
+            connect_signal(self, "change", on_state_change, user_data)
 
         # Initial create expect no callbacks call, create explicit
         super().__init__(
