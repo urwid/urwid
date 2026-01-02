@@ -295,14 +295,13 @@ class Signals:
         self,
         callback,
         user_arg: typing.Any,
-        weak_args: Collection[weakref.ReferenceType],
-        user_args: Collection[typing.Any],
+        weak_args: Iterable[weakref.ReferenceType],
+        user_args: Iterable[typing.Any],
         emit_args: Iterable[typing.Any],
     ) -> bool:
         args_to_pass = []
         for w_arg in weak_args:
-            real_arg = w_arg()
-            if real_arg is not None:
+            if (real_arg := w_arg()) is not None:
                 args_to_pass.append(real_arg)
             else:
                 # de-referenced
