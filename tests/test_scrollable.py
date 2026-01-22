@@ -38,7 +38,8 @@ class TestScrollable(unittest.TestCase):
         widget = urwid.Scrollable(long_content)
         self.assertEqual(frozenset((urwid.BOX,)), widget.sizing())
 
-        cropped_content_canvas = urwid.CompositeCanvas(long_content.render((reduced_size[0],)))
+        long_content_canvas = long_content.render((reduced_size[0],))
+        cropped_content_canvas = urwid.CompositeCanvas(long_content_canvas)
         cropped_content_canvas.trim_end(content_size[1] - reduced_size[1])
         top_decoded = cropped_content_canvas.decoded_text
 
