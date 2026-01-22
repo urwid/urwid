@@ -1418,7 +1418,8 @@ class TermCanvas(Canvas):
         if self.scrolling_up == 0:
             yield from self.term
         else:
-            yield from (*self.scrollback_buffer, *self.term)[-(self.height + self.scrolling_up) : -self.scrolling_up]
+            viewport_range = slice(-(self.height + self.scrolling_up), -self.scrolling_up)
+            yield from (*self.scrollback_buffer, *self.term)[viewport_range]
 
     def content_delta(self, other: Canvas):
         if other is self:
