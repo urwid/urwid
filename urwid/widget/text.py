@@ -73,6 +73,7 @@ class Text(Widget):
         """
         super().__init__()
         self._cache_maxcol: int | None = None
+        self._layout: text_layout.TextLayout = layout or text_layout.default_layout
         self.set_text(markup)
         self.set_layout(align, wrap, layout)
 
@@ -340,13 +341,14 @@ class Text(Widget):
         (8, 2)
         >>> Text("important things").pack(())
         (16, 1)
-        >>> nonstandard_nl_text = Text("123\u202812\u20291234")  # \u2028 and \u2029 are act as newline symbols
+        >>> nonstandard_nl_text = Text("123\u202812\u20291234")
+        >>> # \u2028 (Line Separator) and \u2029 (Paragraph Separator) are special cases and not split STDLIB print
         >>> nonstandard_nl_text.pack()
-        (4, 3)
+        (9, 1)
         >>> nonstandard_nl_text.render(()).cols()
-        4
+        9
         >>> nonstandard_nl_text.render(()).rows()
-        3
+        1
         """
         text, attr = self.get_text()
 
@@ -363,15 +365,10 @@ class Text(Widget):
             if isinstance(text, bytes):
                 text = text.decode(get_encoding())
 
-            # `str.splitlines` basically correctly split text, but:
-            # <newline> symbol (not always `\n`) is attached to the line, so if text ends by it - we have incorrect len
-            # Here we compare the last line from splitting with ends and without ends to catch newline symbol
-            split_text = text.splitlines(keepends=False)
-            last_unfiltered = text.splitlines(keepends=True)[-1]
-            rows = len(split_text) + int(last_unfiltered != split_text[-1])
+            split_text = text.split("\n")
 
             return (
                 max(calc_width(line, 0, len(line)) for line in split_text),
-                rows,
+                len(split_text),
             )
         return 0, 1
