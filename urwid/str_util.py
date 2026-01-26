@@ -290,24 +290,10 @@ def move_prev_char(text: str | bytes, start_offs: int, end_offs: int) -> int:
     For Unicode strings, handle multi-codepoint, "grapheme clusters",
     to better measure emoji ZWJ, flags, combining characters, skin tones.
     """
-    # TODO(jquast):
-    #
-    #   For Unicode strings, this is an unoptimized O(n) lookup that iterates
-    #   from start_offs to find the grapheme boundary. A future reversible
-    #   iter_graphemes in wcwidth would allow O(1) reverse traversal.
-    #
     if start_offs >= end_offs:
         raise ValueError((start_offs, end_offs))
     if isinstance(text, str):
-        pos = start_offs
-        prev_pos = start_offs
-        for grapheme in wcwidth.iter_graphemes(text[start_offs:end_offs]):
-            next_pos = pos + len(grapheme)
-            if next_pos >= end_offs:
-                return pos
-            prev_pos = pos
-            pos = next_pos
-        return prev_pos
+        return wcwidth.grapheme_boundary_before(text, end_offs)
     if not isinstance(text, bytes):
         raise TypeError(text)
     if _byte_encoding == "utf8":
