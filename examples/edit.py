@@ -48,7 +48,8 @@ class LineWalker(urwid.ListWalker):
         self.focus = 0
 
     def __del__(self) -> None:
-        self.file.close()
+        if self.file is not None:
+            self.file.close()
 
     def get_focus(self):
         return self._get_at_pos(self.focus)
