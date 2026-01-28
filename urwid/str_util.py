@@ -44,6 +44,7 @@ def get_char_width(char: str) -> Literal[0, 1, 2]:
     warnings.warn(
         "get_char_width is deprecated in favor of wcwidth.width",
         DeprecationWarning,
+        stacklevel=2,
     )
     if (width := wcwidth.wcwidth(char)) >= 0:
         return width
@@ -60,6 +61,7 @@ def get_width(o: int) -> Literal[0, 1, 2]:
     warnings.warn(
         "get_width is deprecated in favor of wcwidth.width",
         DeprecationWarning,
+        stacklevel=2,
     )
     if (width := wcwidth.wcwidth(chr(o))) >= 0:
         return width
