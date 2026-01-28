@@ -28,7 +28,6 @@ import os
 import sys
 import time
 import typing
-import warnings
 from contextlib import suppress
 
 from urwid import display, signals
@@ -169,16 +168,6 @@ class MainLoop:
         else:
             self._topmost_widget = self._widget
 
-    def _set_widget(self, widget: Widget) -> None:
-        warnings.warn(
-            f"method `{self.__class__.__name__}._set_widget` is deprecated, "
-            f"please use `{self.__class__.__name__}.widget` property."
-            "API will be removed in version 4.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.widget = widget
-
     @property
     def pop_ups(self) -> bool:
         return self._pop_ups
@@ -190,16 +179,6 @@ class MainLoop:
             self._topmost_widget = PopUpTarget(self._widget)
         else:
             self._topmost_widget = self._widget
-
-    def _set_pop_ups(self, pop_ups: bool) -> None:
-        warnings.warn(
-            f"method `{self.__class__.__name__}._set_pop_ups` is deprecated, "
-            f"please use `{self.__class__.__name__}.pop_ups` property."
-            "API will be removed in version 4.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.pop_ups = pop_ups
 
     def set_alarm_in(self, sec: float, callback: Callable[[Self, _T], typing.Any], user_data: _T = None):
         """

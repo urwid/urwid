@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import functools
 import typing
-import warnings
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Collection, Iterable, Iterator
@@ -243,26 +242,6 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         if index != self._focus:
             self._focus_changed(index)
         self._focus = index
-
-    def _get_focus(self) -> int | None:
-        warnings.warn(
-            f"method `{self.__class__.__name__}._get_focus` is deprecated, "
-            f"please use `{self.__class__.__name__}.focus` property."
-            "API will be removed in version 4.0.",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        return self.focus
-
-    def _set_focus(self, index: int) -> None:
-        warnings.warn(
-            f"method `{self.__class__.__name__}._set_focus` is deprecated, "
-            f"please use `{self.__class__.__name__}.focus` property."
-            "API will be removed in version 4.0.",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        self.focus = index
 
     def _focus_changed(self, new_focus: int) -> None:  # pylint: disable=method-hidden  # monkeypatch used
         pass
