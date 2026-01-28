@@ -341,14 +341,17 @@ class Text(Widget):
         (8, 2)
         >>> Text("important things").pack(())
         (16, 1)
-        >>> nonstandard_nl_text = Text("123\u202812\u20291234")
-        >>> # \u2028 (Line Separator) and \u2029 (Paragraph Separator) are special cases and not split STDLIB print
-        >>> nonstandard_nl_text.pack()
-        (9, 1)
-        >>> nonstandard_nl_text.render(()).cols()
-        9
-        >>> nonstandard_nl_text.render(()).rows()
-        1
+        >>> not_common_separated_text = "Carret return\\nLine Separator\\u2028Paragraph Separator\\u2029"
+        >>> # \u2028 (Line Separator) and \u2029 (Paragraph Separator) are not splitted by StandardTextLayout
+        >>> not_common_separated = Text(not_common_separated_text)
+
+        >>> not_common_separated.pack()
+        (33, 2)
+        >>> not_common_separated_canv = not_common_separated.render(())
+        >>> not_common_separated_canv.cols()
+        33
+        >>> not_common_separated_canv.rows()
+        2
         """
         text, attr = self.get_text()
 
