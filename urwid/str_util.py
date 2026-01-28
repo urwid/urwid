@@ -36,6 +36,11 @@ _byte_encoding: Literal["utf8", "narrow", "wide"] = "narrow"
 
 
 def get_char_width(char: str) -> Literal[0, 1, 2]:
+    """
+    Return the screen column width for a single character.
+
+    .. deprecated:: 3.0.4
+    """
     if (width := wcwidth.wcwidth(char)) >= 0:
         return width
 
@@ -43,8 +48,32 @@ def get_char_width(char: str) -> Literal[0, 1, 2]:
 
 
 def get_width(o: int) -> Literal[0, 1, 2]:
-    """Return the screen column width for unicode ordinal o."""
-    return get_char_width(chr(o))
+    """
+    Return the screen column width for unicode ordinal o.
+
+    .. deprecated:: 3.0.4
+    """
+    if (width := wcwidth.wcwidth(chr(o))) >= 0:
+        return width
+
+    return 0
+
+
+def _decode_grapheme_at(text: bytes, start: int, end: int) -> tuple[str, int]:
+    """
+    Decode bytes starting at `start` to get the first grapheme cluster.
+
+    :param text: UTF-8 encoded bytes
+    :param start: starting byte position
+    :param end: ending byte position
+    :returns: (grapheme_string, next_byte_position)
+
+    Assumes caller provides valid UTF-8 byte boundaries.
+    """
+    decoded = text[start:end].decode("utf-8")
+    grapheme = next(wcwidth.iter_graphemes(decoded), "")
+    grapheme_bytes = grapheme.encode("utf-8")
+    return grapheme, start + len(grapheme_bytes)
 
 
 def decode_one(text: bytes | str, pos: int) -> tuple[int, int]:
@@ -172,7 +201,7 @@ def calc_string_text_pos(text: str, start_offs: int, end_offs: int, pref_col: in
     cols = 0
     pos = start_offs
     for grapheme in wcwidth.iter_graphemes(text[start_offs:end_offs]):
-        grapheme_width = wcwidth.width(grapheme, control_codes='ignore')
+        grapheme_width = wcwidth.width(grapheme, control_codes="ignore")
         if grapheme_width + cols > pref_col:
             return pos, cols
         cols += grapheme_width
@@ -201,16 +230,10 @@ def calc_text_pos(text: str | bytes, start_offs: int, end_offs: int, pref_col: i
         raise TypeError(text)
 
     if _byte_encoding == "utf8":
-        i = start_offs
-        sc = 0
-        while i < end_offs:
-            o, n = decode_one(text, i)
-            w = get_width(o)
-            if w + sc > pref_col:
-                return i, sc
-            i = n
-            sc += w
-        return i, sc
+        decoded = text[start_offs:end_offs].decode("utf-8")
+        str_pos, cols = calc_string_text_pos(decoded, 0, len(decoded), pref_col)
+        byte_offset = len(decoded[:str_pos].encode("utf-8"))
+        return start_offs + byte_offset, cols
 
     # "wide" and "narrow"
     i = start_offs + pref_col
@@ -236,11 +259,11 @@ def calc_width(text: str | bytes, start_offs: int, end_offs: int) -> int:
         raise ValueError((start_offs, end_offs))
 
     if isinstance(text, str):
-        return wcwidth.width(text[start_offs:end_offs], control_codes='ignore')
+        return wcwidth.width(text[start_offs:end_offs], control_codes="ignore")
 
     if _byte_encoding == "utf8":
         try:
-            return wcwidth.width(text[start_offs:end_offs].decode("utf-8"), control_codes='ignore')
+            return wcwidth.width(text[start_offs:end_offs].decode("utf-8"), control_codes="ignore")
         except UnicodeDecodeError as exc:
             warnings.warn(
                 "`calc_width` with text encoded to bytes can produce incorrect results"
@@ -253,8 +276,8 @@ def calc_width(text: str | bytes, start_offs: int, end_offs: int) -> int:
         sc = 0
         while i < end_offs:
             o, i = decode_one(text, i)
-            w = get_width(o)
-            sc += w
+            if (w := wcwidth.wcwidth(chr(o))) > 0:
+                sc += w
         return sc
     # "wide", "narrow" or all printable ASCII, just return the character count
     return end_offs - start_offs
@@ -272,12 +295,12 @@ def is_wide_char(text: str | bytes, offs: int) -> bool:
     """
     if isinstance(text, str):
         grapheme = next(wcwidth.iter_graphemes(text[offs:]))
-        return wcwidth.width(grapheme, control_codes='ignore') == 2
+        return wcwidth.width(grapheme, control_codes="ignore") == 2
     if not isinstance(text, bytes):
         raise TypeError(text)
     if _byte_encoding == "utf8":
-        o, _n = decode_one(text, offs)
-        return get_width(o) == 2
+        grapheme, _ = _decode_grapheme_at(text, offs, len(text))
+        return wcwidth.width(grapheme, control_codes="ignore") == 2
     if _byte_encoding == "wide":
         return within_double_byte(text, offs, offs) == 1
     return False
@@ -297,10 +320,11 @@ def move_prev_char(text: str | bytes, start_offs: int, end_offs: int) -> int:
     if not isinstance(text, bytes):
         raise TypeError(text)
     if _byte_encoding == "utf8":
-        o = end_offs - 1
-        while text[o] & 0xC0 == 0x80:
-            o -= 1
-        return o
+        decoded = text[start_offs:end_offs].decode("utf-8")
+        str_pos = len(decoded)
+        prev_str_pos = wcwidth.grapheme_boundary_before(decoded, str_pos)
+        prefix = decoded[:prev_str_pos]
+        return start_offs + len(prefix.encode("utf-8"))
     if _byte_encoding == "wide" and within_double_byte(text, start_offs, end_offs - 1) == 2:
         return end_offs - 2
     return end_offs - 1
@@ -321,10 +345,8 @@ def move_next_char(text: str | bytes, start_offs: int, end_offs: int) -> int:
     if not isinstance(text, bytes):
         raise TypeError(text)
     if _byte_encoding == "utf8":
-        o = start_offs + 1
-        while o < end_offs and text[o] & 0xC0 == 0x80:
-            o += 1
-        return o
+        _, next_pos = _decode_grapheme_at(text, start_offs, end_offs)
+        return next_pos
     if _byte_encoding == "wide" and within_double_byte(text, start_offs, start_offs) == 1:
         return start_offs + 2
     return start_offs + 1
