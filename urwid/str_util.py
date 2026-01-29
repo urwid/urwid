@@ -230,7 +230,8 @@ def calc_width(text: str | bytes, start_offs: int, end_offs: int) -> int:
     """
 
     if start_offs > end_offs:
-        raise ValueError((start_offs, end_offs))
+        msg = f"{start_offs=} > {end_offs=}"
+        raise ValueError(msg)
 
     if isinstance(text, str):
         return sum(get_char_width(char) for char in text[start_offs:end_offs])

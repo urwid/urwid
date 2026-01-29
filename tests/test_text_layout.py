@@ -169,15 +169,27 @@ class CalcTranslateTest(unittest.TestCase):
     def check(self, text, mode, width, result_left, result_center, result_right) -> None:
         with self.subTest("left"):
             result = urwid.default_layout.layout(text, width, "left", mode)
-            self.assertEqual(result_left, result)
+            self.assertEqual(
+                result_left,
+                result,
+                f"For {text=} {width=} {mode=} got {result!r} instead of {result_left!r}",
+            )
 
         with self.subTest("center"):
             result = urwid.default_layout.layout(text, width, "center", mode)
-            self.assertEqual(result_center, result)
+            self.assertEqual(
+                result_center,
+                result,
+                f"For {text=} {width=} {mode=} got {result!r} instead of {result_center!r}",
+            )
 
         with self.subTest("right"):
             result = urwid.default_layout.layout(text, width, "right", mode)
-            self.assertEqual(result_right, result)
+            self.assertEqual(
+                result_right,
+                result,
+                f"For {text=} {width=} {mode=} got {result!r} instead of {result_right!r}",
+            )
 
     def test_calc_translate_char(self):
         self.check(
