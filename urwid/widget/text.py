@@ -341,7 +341,7 @@ class Text(Widget):
         (8, 2)
         >>> Text("important things").pack(())
         (16, 1)
-        >>> not_common_separated_text = "Carret return\\nLine Separator\\u2028Paragraph Separator\\u2029"
+        >>> not_common_separated_text = "Line feed\\nLine Separator\\u2028Paragraph Separator\\u2029"
         >>> # \u2028 (Line Separator) and \u2029 (Paragraph Separator) are not splitted by StandardTextLayout
         >>> not_common_separated = Text(not_common_separated_text)
 
