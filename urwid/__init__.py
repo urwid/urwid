@@ -255,15 +255,7 @@ VERSION = __version_tuple__
 __locals: dict[str, typing.Any] = locals()  # use mutable access for pure lazy loading
 
 # Backward compatible lazy load with deprecation warnings
-_moved_warn: dict[str, str] = {
-    "lcd_display": "urwid.display.lcd",
-    "html_fragment": "urwid.display.html_fragment",
-    "web_display": "urwid.display.web",
-    "monitored_list": "urwid.widget.monitored_list",
-    "listbox": "urwid.widget.listbox",
-    "treetools": "urwid.widget.treetools",
-}
-# Backward compatible lazy load without any warnings
+_moved_warn: dict[str, str] = {}
 # Before DeprecationWarning need to start PendingDeprecationWarning process.
 
 
