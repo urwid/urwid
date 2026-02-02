@@ -73,6 +73,7 @@ class Text(Widget):
         """
         super().__init__()
         self._cache_maxcol: int | None = None
+        self._layout: text_layout.TextLayout = layout or text_layout.default_layout
         self.set_text(markup)
         self.set_layout(align, wrap, layout)
 
@@ -340,6 +341,17 @@ class Text(Widget):
         (8, 2)
         >>> Text("important things").pack(())
         (16, 1)
+        >>> not_common_separated_text = "Line feed\\nLine Separator\\u2028Paragraph Separator\\u2029"
+        >>> # \u2028 (Line Separator) and \u2029 (Paragraph Separator) are not splitted by StandardTextLayout
+        >>> not_common_separated = Text(not_common_separated_text)
+
+        >>> not_common_separated.pack()
+        (33, 2)
+        >>> not_common_separated_canv = not_common_separated.render(())
+        >>> not_common_separated_canv.cols()
+        33
+        >>> not_common_separated_canv.rows()
+        2
         """
         text, attr = self.get_text()
 
@@ -356,8 +368,10 @@ class Text(Widget):
             if isinstance(text, bytes):
                 text = text.decode(get_encoding())
 
+            split_text = text.split("\n")
+
             return (
-                max(calc_width(line, 0, len(line)) for line in text.splitlines(keepends=False)),
-                text.count("\n") + 1,
+                max(calc_width(line, 0, len(line)) for line in split_text),
+                len(split_text),
             )
         return 0, 1

@@ -266,7 +266,8 @@ def calc_width(text: str | bytes, start_offs: int, end_offs: int) -> int:
     """
 
     if start_offs > end_offs:
-        raise ValueError((start_offs, end_offs))
+        msg = f"{start_offs=} > {end_offs=}"
+        raise ValueError(msg)
 
     if isinstance(text, str):
         return wcwidth.width(text[start_offs:end_offs], control_codes="ignore")

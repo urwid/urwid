@@ -178,7 +178,7 @@ class StandardTextLayout(TextLayout):
         self,
         text: str | bytes,
         width: int,
-        wrap: Literal["any", "space", "clip", "ellipsis"] | WrapMode,
+        wrap: Literal["clip", "ellipsis", WrapMode.CLIP, WrapMode.ELLIPSIS],
     ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]:
         """Calculate text segments for cases of a text trimmed (wrap is clip or ellipsis)."""
         segments = []
@@ -187,8 +187,8 @@ class StandardTextLayout(TextLayout):
         encoding = get_encoding()
         ellipsis_string = get_ellipsis_string(encoding)
         ellipsis_width = _get_width(ellipsis_string)
-        while width - 1 < ellipsis_width and ellipsis_string:
-            ellipsis_string = ellipsis_string[:-1]
+        if (extra := width - ellipsis_width - 1) < 0:
+            ellipsis_string = ellipsis_string[:extra]
             ellipsis_width = _get_width(ellipsis_string)
 
         ellipsis_char = ellipsis_string.encode(encoding)
@@ -238,7 +238,7 @@ class StandardTextLayout(TextLayout):
         """
         Calculate the segments of text to display given width screen columns to display them.
 
-        text - unicode text or byte string to display
+        text - Unicode text or byte string to display
         width - number of available screen columns
         wrap - wrapping mode used
 
