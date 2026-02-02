@@ -2,6 +2,26 @@
 Changelog
 ---------
 
+Urwid 3.0.5
+===========
+
+2026-02-02
+
+Deprecations ⚡
+++++++++++++++
+* Un-deprecate `user_arg` for signals by @penguinolog in https://github.com/urwid/urwid/pull/1092
+Bug fixes 🕷
+++++++++++++
+* Fix terminal scroll TypeError by @penguinolog in https://github.com/urwid/urwid/pull/1098
+* Bugfix some kinds of emojis with grapheme boundry support by @jquast in https://github.com/urwid/urwid/pull/1100
+* Fix: Text.pack line splitting not match Text.render by @penguinolog in https://github.com/urwid/urwid/pull/1099
+
+New Contributors
+++++++++++++++++
+* @jquast made their first contribution in https://github.com/urwid/urwid/pull/1100
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/3.0.4...3.0.5
+
 Urwid 3.0.4
 ===========
 
@@ -14,7 +34,8 @@ Other Changes
 +++++++++++++
 * Refactoring: use official python way for lazy imports by @penguinolog in https://github.com/urwid/urwid/pull/1077
 
-## New Contributors
+New Contributors
+++++++++++++++++
 * @sawdmn made their first contribution in https://github.com/urwid/urwid/pull/1079
 
 **Full Changelog**: https://github.com/urwid/urwid/compare/3.0.3...3.0.4
