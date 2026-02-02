@@ -484,26 +484,6 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self.contents = [(w, (t, n, i in box_columns)) for (i, (w, (t, n, b))) in enumerate(self.contents)]
 
     @property
-    def has_flow_type(self) -> bool:
-        """
-        .. deprecated:: 1.0 Read values from :attr:`contents` instead.
-        """
-        warnings.warn(
-            ".has_flow_type is deprecated, read values from .contents instead. API will be removed in version 4.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return WHSettings.PACK in self.column_types
-
-    @has_flow_type.setter
-    def has_flow_type(self, value):
-        warnings.warn(
-            ".has_flow_type is deprecated, read values from .contents instead. API will be removed in version 4.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-    @property
     def contents(
         self,
     ) -> MonitoredFocusList[

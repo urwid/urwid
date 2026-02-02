@@ -505,30 +505,6 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         raise ValueError(f"Widget not found in Pile contents: {item!r}")
 
     @property
-    def focus_item(self):
-        warnings.warn(
-            "only for backwards compatibility."
-            "You should use the new standard container properties "
-            "`focus` and `focus_position` to get the child widget in focus or modify the focus position."
-            "API will be removed in version 4.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.focus
-
-    @focus_item.setter
-    def focus_item(self, new_item):
-        warnings.warn(
-            "only for backwards compatibility."
-            "You should use the new standard container properties "
-            "`focus` and `focus_position` to get the child widget in focus or modify the focus position."
-            "API will be removed in version 4.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.focus = new_item
-
-    @property
     def focus_position(self) -> int:
         """
         index of child widget in focus.
