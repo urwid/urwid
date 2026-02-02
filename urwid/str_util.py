@@ -36,6 +36,16 @@ _byte_encoding: Literal["utf8", "narrow", "wide"] = "narrow"
 
 
 def get_char_width(char: str) -> Literal[0, 1, 2]:
+    """
+    Return the screen column width for a single character.
+
+    .. deprecated:: 3.0.4
+    """
+    warnings.warn(
+        "get_char_width is deprecated in favor of wcwidth.width",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if (width := wcwidth.wcwidth(char)) >= 0:
         return width
 
@@ -43,8 +53,37 @@ def get_char_width(char: str) -> Literal[0, 1, 2]:
 
 
 def get_width(o: int) -> Literal[0, 1, 2]:
-    """Return the screen column width for unicode ordinal o."""
-    return get_char_width(chr(o))
+    """
+    Return the screen column width for unicode ordinal o.
+
+    .. deprecated:: 3.0.4
+    """
+    warnings.warn(
+        "get_width is deprecated in favor of wcwidth.width",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    if (width := wcwidth.wcwidth(chr(o))) >= 0:
+        return width
+
+    return 0
+
+
+def _decode_grapheme_at(text: bytes, start: int, end: int) -> tuple[str, int]:
+    """
+    Decode bytes starting at `start` to get the first grapheme cluster.
+
+    :param text: UTF-8 encoded bytes
+    :param start: starting byte position
+    :param end: ending byte position
+    :returns: (grapheme_string, next_byte_position)
+
+    Assumes caller provides valid UTF-8 byte boundaries.
+    """
+    decoded = text[start:end].decode("utf-8")
+    grapheme = next(wcwidth.iter_graphemes(decoded), "")
+    grapheme_bytes = grapheme.encode("utf-8")
+    return grapheme, start + len(grapheme_bytes)
 
 
 def decode_one(text: bytes | str, pos: int) -> tuple[int, int]:
@@ -157,23 +196,26 @@ def calc_string_text_pos(text: str, start_offs: int, end_offs: int, pref_col: in
     where start_offs is the offset into text assumed to be screen column 0
     and end_offs is the end of the range to search.
 
+    Iterates by grapheme clusters for emoji ZWJ sequences, flags,
+    combining characters, and other multi-codepoint unicode sequences.
+
     :param text: string
     :param start_offs: starting text position
     :param end_offs: ending text position
     :param pref_col: target column
     :returns: (position, actual_col)
-
-    ..note:: this method is a simplified version of `wcwidth.wcswidth` and ideally should be in wcwidth package.
     """
     if start_offs > end_offs:
         raise ValueError((start_offs, end_offs))
 
     cols = 0
-    for idx in range(start_offs, end_offs):
-        width = get_char_width(text[idx])
-        if width + cols > pref_col:
-            return idx, cols
-        cols += width
+    pos = start_offs
+    for grapheme in wcwidth.iter_graphemes(text[start_offs:end_offs]):
+        grapheme_width = wcwidth.width(grapheme, control_codes="ignore")
+        if grapheme_width + cols > pref_col:
+            return pos, cols
+        cols += grapheme_width
+        pos += len(grapheme)
 
     return end_offs, cols
 
@@ -198,16 +240,10 @@ def calc_text_pos(text: str | bytes, start_offs: int, end_offs: int, pref_col: i
         raise TypeError(text)
 
     if _byte_encoding == "utf8":
-        i = start_offs
-        sc = 0
-        while i < end_offs:
-            o, n = decode_one(text, i)
-            w = get_width(o)
-            if w + sc > pref_col:
-                return i, sc
-            i = n
-            sc += w
-        return i, sc
+        decoded = text[start_offs:end_offs].decode("utf-8")
+        str_pos, cols = calc_string_text_pos(decoded, 0, len(decoded), pref_col)
+        byte_offset = len(decoded[:str_pos].encode("utf-8"))
+        return start_offs + byte_offset, cols
 
     # "wide" and "narrow"
     i = start_offs + pref_col
@@ -225,19 +261,19 @@ def calc_width(text: str | bytes, start_offs: int, end_offs: int) -> int:
     text may be unicode or a byte string in the target _byte_encoding
 
     Some characters are wide (take two columns) and others affect the
-    previous character (take zero columns).  Use the widths table above
-    to calculate the screen column width of text[start_offs:end_offs]
+    previous character (take zero columns), while others are grouped
+    in sequence by "grapheme boundaries" (Emoji, Skin tones, flags, etc).
     """
 
     if start_offs > end_offs:
         raise ValueError((start_offs, end_offs))
 
     if isinstance(text, str):
-        return sum(get_char_width(char) for char in text[start_offs:end_offs])
+        return wcwidth.width(text[start_offs:end_offs], control_codes="ignore")
 
     if _byte_encoding == "utf8":
         try:
-            return sum(get_char_width(char) for char in text[start_offs:end_offs].decode("utf-8"))
+            return wcwidth.width(text[start_offs:end_offs].decode("utf-8"), control_codes="ignore")
         except UnicodeDecodeError as exc:
             warnings.warn(
                 "`calc_width` with text encoded to bytes can produce incorrect results"
@@ -250,8 +286,8 @@ def calc_width(text: str | bytes, start_offs: int, end_offs: int) -> int:
         sc = 0
         while i < end_offs:
             o, i = decode_one(text, i)
-            w = get_width(o)
-            sc += w
+            if (w := wcwidth.wcwidth(chr(o))) > 0:
+                sc += w
         return sc
     # "wide", "narrow" or all printable ASCII, just return the character count
     return end_offs - start_offs
@@ -259,17 +295,22 @@ def calc_width(text: str | bytes, start_offs: int, end_offs: int) -> int:
 
 def is_wide_char(text: str | bytes, offs: int) -> bool:
     """
-    Test if the character at offs within text is wide.
+    Test if the grapheme cluster at offs within text is wide (2 columns).
+
+    For Unicode strings, extracts the full grapheme cluster starting at offs
+    and checks if it renders as wide. This correctly handles multi-codepoint
+    graphemes like emoji ZWJ sequences and flags.
 
     text may be unicode or a byte string in the target _byte_encoding
     """
     if isinstance(text, str):
-        return get_char_width(text[offs]) == 2
+        grapheme = next(wcwidth.iter_graphemes(text[offs:]))
+        return wcwidth.width(grapheme, control_codes="ignore") == 2
     if not isinstance(text, bytes):
         raise TypeError(text)
     if _byte_encoding == "utf8":
-        o, _n = decode_one(text, offs)
-        return get_width(o) == 2
+        grapheme, _ = _decode_grapheme_at(text, offs, len(text))
+        return wcwidth.width(grapheme, control_codes="ignore") == 2
     if _byte_encoding == "wide":
         return within_double_byte(text, offs, offs) == 1
     return False
@@ -277,19 +318,23 @@ def is_wide_char(text: str | bytes, offs: int) -> bool:
 
 def move_prev_char(text: str | bytes, start_offs: int, end_offs: int) -> int:
     """
-    Return the position of the character before end_offs.
+    Return the position of the grapheme cluster before end_offs.
+
+    For Unicode strings, handle multi-codepoint, "grapheme clusters",
+    to better measure emoji ZWJ, flags, combining characters, skin tones.
     """
     if start_offs >= end_offs:
         raise ValueError((start_offs, end_offs))
     if isinstance(text, str):
-        return end_offs - 1
+        return wcwidth.grapheme_boundary_before(text, end_offs)
     if not isinstance(text, bytes):
         raise TypeError(text)
     if _byte_encoding == "utf8":
-        o = end_offs - 1
-        while text[o] & 0xC0 == 0x80:
-            o -= 1
-        return o
+        decoded = text[start_offs:end_offs].decode("utf-8")
+        str_pos = len(decoded)
+        prev_str_pos = wcwidth.grapheme_boundary_before(decoded, str_pos)
+        prefix = decoded[:prev_str_pos]
+        return start_offs + len(prefix.encode("utf-8"))
     if _byte_encoding == "wide" and within_double_byte(text, start_offs, end_offs - 1) == 2:
         return end_offs - 2
     return end_offs - 1
@@ -297,19 +342,21 @@ def move_prev_char(text: str | bytes, start_offs: int, end_offs: int) -> int:
 
 def move_next_char(text: str | bytes, start_offs: int, end_offs: int) -> int:
     """
-    Return the position of the character after start_offs.
+    Return the position of the next grapheme cluster after start_offs.
+
+    For Unicode strings, handle multi-codepoint, "grapheme clusters",
+    to better measure emoji ZWJ, flags, combining characters, skin tones.
     """
     if start_offs >= end_offs:
         raise ValueError((start_offs, end_offs))
     if isinstance(text, str):
-        return start_offs + 1
+        grapheme = next(wcwidth.iter_graphemes(text[start_offs:end_offs]))
+        return start_offs + len(grapheme)
     if not isinstance(text, bytes):
         raise TypeError(text)
     if _byte_encoding == "utf8":
-        o = start_offs + 1
-        while o < end_offs and text[o] & 0xC0 == 0x80:
-            o += 1
-        return o
+        _, next_pos = _decode_grapheme_at(text, start_offs, end_offs)
+        return next_pos
     if _byte_encoding == "wide" and within_double_byte(text, start_offs, start_offs) == 1:
         return start_offs + 2
     return start_offs + 1
