@@ -5,13 +5,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Raw Display Attributes &#8212; Urwid 3.0.3</title>
+    <title>Raw Display Attributes &#8212; Urwid 3.0.5</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     
-    <script src="../_static/documentation_options.js?v=9b3fc59f"></script>
-    <script src="../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/documentation_options.js?v=f4ced14b"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
     <link rel="canonical" href="https://urwid.org/reference/attrspec.html" />
     <link rel="index" title="Index" href="../genindex.html" />
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="global_settings.html" title="Global Settings"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 3.0.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 3.0.5</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Raw Display Attributes</a></li> 
       </ul>
@@ -46,7 +46,7 @@
 <h1>Raw Display Attributes<a class="headerlink" href="#raw-display-attributes" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.AttrSpec">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">AttrSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">16</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">88</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">256</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">16777216</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">256</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrSpec" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">AttrSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">16</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">88</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">256</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">16777216</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">256</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrSpec" title="Link to this definition">¶</a></dt>
 <dd><dl>
 <dt>fg – a string containing a comma-separated foreground color</dt><dd><p>and settings</p>
 <p>Color values:
@@ -87,25 +87,25 @@ see fg examples above</p>
 values are only usable with 88, 256, or 2**24 colors.  With
 1 color only the foreground settings may be used.</p>
 </div></blockquote>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s1">&#39;dark red&#39;</span><span class="p">,</span> <span class="s1">&#39;light gray&#39;</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">&quot;dark red&quot;</span><span class="p">,</span> <span class="s2">&quot;light gray&quot;</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
 <span class="go">AttrSpec(&#39;dark red&#39;, &#39;light gray&#39;)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s1">&#39;yellow, underline, bold&#39;</span><span class="p">,</span> <span class="s1">&#39;dark blue&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">&quot;yellow, underline, bold&quot;</span><span class="p">,</span> <span class="s2">&quot;dark blue&quot;</span><span class="p">)</span>
 <span class="go">AttrSpec(&#39;yellow,bold,underline&#39;, &#39;dark blue&#39;)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s1">&#39;#ddb&#39;</span><span class="p">,</span> <span class="s1">&#39;#004&#39;</span><span class="p">,</span> <span class="mi">256</span><span class="p">)</span> <span class="c1"># closest colors will be found</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">&quot;#ddb&quot;</span><span class="p">,</span> <span class="s2">&quot;#004&quot;</span><span class="p">,</span> <span class="mi">256</span><span class="p">)</span>  <span class="c1"># closest colors will be found</span>
 <span class="go">AttrSpec(&#39;#dda&#39;, &#39;#006&#39;)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s1">&#39;#ddb&#39;</span><span class="p">,</span> <span class="s1">&#39;#004&#39;</span><span class="p">,</span> <span class="mi">88</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">&quot;#ddb&quot;</span><span class="p">,</span> <span class="s2">&quot;#004&quot;</span><span class="p">,</span> <span class="mi">88</span><span class="p">)</span>
 <span class="go">AttrSpec(&#39;#ccc&#39;, &#39;#000&#39;, colors=88)</span>
 </pre></div>
 </div>
 <dl class="py property">
 <dt class="sig sig-object py" id="urwid.AttrSpec.background">
-<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">background</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#urwid.AttrSpec.background" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">background</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#urwid.AttrSpec.background" title="Link to this definition">¶</a></dt>
 <dd><p>Return the background color.</p>
 </dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="urwid.AttrSpec.colors">
-<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">colors</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#urwid.AttrSpec.colors" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">colors</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#urwid.AttrSpec.colors" title="Link to this definition">¶</a></dt>
 <dd><p>Return the maximum colors required for this object.</p>
 <p>Returns 256, 88, 16 or 1.</p>
 </dd></dl>
@@ -118,9 +118,9 @@ components.  Each component is in the range 0-255.  Values are taken
 from the XTerm defaults and may not exactly match the user’s terminal.</p>
 <p>If the foreground or background is ‘default’ then all their compenents
 will be returned as None.</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s1">&#39;yellow&#39;</span><span class="p">,</span> <span class="s1">&#39;#ccf&#39;</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="mi">88</span><span class="p">)</span><span class="o">.</span><span class="n">get_rgb_values</span><span class="p">()</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">&quot;yellow&quot;</span><span class="p">,</span> <span class="s2">&quot;#ccf&quot;</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="mi">88</span><span class="p">)</span><span class="o">.</span><span class="n">get_rgb_values</span><span class="p">()</span>
 <span class="go">(255, 255, 0, 205, 205, 255)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="s1">&#39;g92&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get_rgb_values</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">&quot;default&quot;</span><span class="p">,</span> <span class="s2">&quot;g92&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get_rgb_values</span><span class="p">()</span>
 <span class="go">(None, None, None, 238, 238, 238)</span>
 </pre></div>
 </div>
@@ -196,14 +196,14 @@ will be returned as None.</p>
         <li class="right" >
           <a href="global_settings.html" title="Global Settings"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 3.0.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 3.0.5</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Raw Display Attributes</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
     </div>
   </body>
 </html>

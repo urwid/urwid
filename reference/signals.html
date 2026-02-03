@@ -5,13 +5,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Signal Functions &#8212; Urwid 3.0.3</title>
+    <title>Signal Functions &#8212; Urwid 3.0.5</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     
-    <script src="../_static/documentation_options.js?v=9b3fc59f"></script>
-    <script src="../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/documentation_options.js?v=f4ced14b"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
     <link rel="canonical" href="https://urwid.org/reference/signals.html" />
     <link rel="index" title="Index" href="../genindex.html" />
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="list_walkers.html" title="List Walker Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 3.0.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 3.0.5</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Signal Functions</a></li> 
       </ul>
@@ -61,9 +61,9 @@ instantiate your own Signals object.</p>
 <li><p><strong>obj</strong> (<em>object</em>) – the object sending a signal</p></li>
 <li><p><strong>name</strong> (<em>signal name</em>) – the signal to listen for, typically a string</p></li>
 <li><p><strong>callback</strong> (<em>function</em>) – the function to call when that signal is sent</p></li>
-<li><p><strong>user_arg</strong> – deprecated additional argument to callback (appended
-after the arguments passed when the signal is
-emitted). If None no arguments will be added.
+<li><p><strong>user_arg</strong> – additional argument to callback
+(appended  after the arguments passed when the signal is emitted).
+If None no arguments will be added.
 Don’t use this argument, use user_args instead.</p></li>
 <li><p><strong>weak_args</strong> (<em>iterable</em>) – <p>additional arguments passed to the callback
 (before any arguments passed when the signal
@@ -92,11 +92,11 @@ time (as individual arguments) followed by all the positional
 parameters sent with the signal.</p>
 <p>As an example of using weak_args, consider the following snippet:</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">debug</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">debug</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">handler</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">newtext</span><span class="p">):</span>
-<span class="gp">... </span>   <span class="n">debug</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="s2">&quot;Edit widget changed to </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">newtext</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">edit</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">key</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">edit</span><span class="p">,</span> <span class="s1">&#39;change&#39;</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">debug</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="s2">&quot;Edit widget changed to </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">newtext</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">edit</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">key</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">edit</span><span class="p">,</span> <span class="s2">&quot;change&quot;</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>If you now build some interface using “edit” and “debug”, the
@@ -108,11 +108,11 @@ signal handler is a closure that (implicitly) references the
 garbage collected, you can create a “fake” or “weak” closure
 (it’s not really a closure, since it doesn’t reference any
 outside variables, so it’s just a dynamic function):</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">debug</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">debug</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">handler</span><span class="p">(</span><span class="n">weak_debug</span><span class="p">,</span> <span class="n">widget</span><span class="p">,</span> <span class="n">newtext</span><span class="p">):</span>
-<span class="gp">... </span>   <span class="n">weak_debug</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="s2">&quot;Edit widget changed to </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">newtext</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">edit</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">key</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">edit</span><span class="p">,</span> <span class="s1">&#39;change&#39;</span><span class="p">,</span> <span class="n">handler</span><span class="p">,</span> <span class="n">weak_args</span><span class="o">=</span><span class="p">[</span><span class="n">debug</span><span class="p">])</span>
+<span class="gp">... </span>    <span class="n">weak_debug</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="s2">&quot;Edit widget changed to </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">newtext</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">edit</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">key</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">edit</span><span class="p">,</span> <span class="s2">&quot;change&quot;</span><span class="p">,</span> <span class="n">handler</span><span class="p">,</span> <span class="n">weak_args</span><span class="o">=</span><span class="p">[</span><span class="n">debug</span><span class="p">])</span>
 </pre></div>
 </div>
 <p>Here the weak_debug parameter in print_debug is the value passed
@@ -294,14 +294,14 @@ with the args arguments as positional parameters.</p>
         <li class="right" >
           <a href="list_walkers.html" title="List Walker Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 3.0.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 3.0.5</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Signal Functions</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
     </div>
   </body>
 </html>
