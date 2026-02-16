@@ -325,6 +325,9 @@ class Screen(BaseScreen, RealTerminal):
         fd_list: list[socket.socket | typing.IO | int] = [self._resize_pipe_rd]
 
         if (input_io := self._term_input_io) is not None:
+            if input_io.closed:
+                raise RuntimeError("Input IO is closed")
+
             fd_list.append(input_io)
         return fd_list
 
