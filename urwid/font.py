@@ -98,7 +98,8 @@ def add_font(name: str, cls: FontRegistry) -> None:
     warnings.warn(
         "`add_font` is deprecated, please set 'name' attribute to the font class,"
         " use metaclass keyword argument 'font_name'"
-        " or use `Font.register(<name>)`",
+        " or use `Font.register(<name>)`"
+        "API will be removed in version 5.0.",
         DeprecationWarning,
         stacklevel=2,
     )

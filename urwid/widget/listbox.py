@@ -896,7 +896,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
             def __call__(inner_self) -> Self:
                 warnings.warn(
-                    "ListBox.contents is a property, not a method",
+                    "ListBox.contents is a property, not a method. Call API will be removed in version 5.0.",
                     DeprecationWarning,
                     stacklevel=3,
                 )
