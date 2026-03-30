@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widget Classes &#8212; Urwid 3.0.5</title>
+    <title>Widget Classes &#8212; Urwid 4.0.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     
-    <script src="../_static/documentation_options.js?v=f4ced14b"></script>
+    <script src="../_static/documentation_options.js?v=3304f9e4"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 3.0.5</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>
@@ -2350,12 +2350,6 @@ If height still cannot be satisfied it will also be reduced.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="urwid.Filler.get_body">
-<span class="sig-name descname"><span class="pre">get_body</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">WrappedWidget</span></span></span><a class="headerlink" href="#urwid.Filler.get_body" title="Link to this definition">¶</a></dt>
-<dd><p>backwards compatibility, widget used to be stored as body</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="urwid.Filler.get_cursor_coords">
 <span class="sig-name descname"><span class="pre">get_cursor_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Filler.get_cursor_coords" title="Link to this definition">¶</a></dt>
 <dd><p>Return cursor coords from self.original_widget if any.</p>
@@ -3550,14 +3544,6 @@ standard container property <a class="reference internal" href="#urwid.Columns.f
 <dt class="sig sig-object py" id="urwid.Columns.get_pref_col">
 <span class="sig-name descname"><span class="pre">get_pref_col</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.Columns.get_pref_col" title="Link to this definition">¶</a></dt>
 <dd><p>Return the pref col from the column in focus.</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="urwid.Columns.has_flow_type">
-<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">has_flow_type</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#urwid.Columns.has_flow_type" title="Link to this definition">¶</a></dt>
-<dd><div class="deprecated">
-<p><span class="versionmodified deprecated">Deprecated since version 1.0: </span>Read values from <a class="reference internal" href="#urwid.Columns.contents" title="urwid.Columns.contents"><code class="xref py py-attr docutils literal notranslate"><span class="pre">contents</span></code></a> instead.</p>
-</div>
 </dd></dl>
 
 <dl class="py method">
@@ -5691,7 +5677,6 @@ be defined.</p>
 <li><a class="reference internal" href="#urwid.Filler"><code class="docutils literal notranslate"><span class="pre">Filler</span></code></a><ul>
 <li><a class="reference internal" href="#urwid.Filler.body"><code class="docutils literal notranslate"><span class="pre">Filler.body</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Filler.filler_values"><code class="docutils literal notranslate"><span class="pre">Filler.filler_values()</span></code></a></li>
-<li><a class="reference internal" href="#urwid.Filler.get_body"><code class="docutils literal notranslate"><span class="pre">Filler.get_body()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Filler.get_cursor_coords"><code class="docutils literal notranslate"><span class="pre">Filler.get_cursor_coords()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Filler.get_pref_col"><code class="docutils literal notranslate"><span class="pre">Filler.get_pref_col()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Filler.keypress"><code class="docutils literal notranslate"><span class="pre">Filler.keypress()</span></code></a></li>
@@ -5834,7 +5819,6 @@ be defined.</p>
 <li><a class="reference internal" href="#urwid.Columns.get_focus"><code class="docutils literal notranslate"><span class="pre">Columns.get_focus()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Columns.get_focus_column"><code class="docutils literal notranslate"><span class="pre">Columns.get_focus_column()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Columns.get_pref_col"><code class="docutils literal notranslate"><span class="pre">Columns.get_pref_col()</span></code></a></li>
-<li><a class="reference internal" href="#urwid.Columns.has_flow_type"><code class="docutils literal notranslate"><span class="pre">Columns.has_flow_type</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Columns.keypress"><code class="docutils literal notranslate"><span class="pre">Columns.keypress()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Columns.mouse_event"><code class="docutils literal notranslate"><span class="pre">Columns.mouse_event()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Columns.move_cursor_to_coords"><code class="docutils literal notranslate"><span class="pre">Columns.move_cursor_to_coords()</span></code></a></li>
@@ -6069,7 +6053,7 @@ be defined.</p>
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 3.0.5</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>
