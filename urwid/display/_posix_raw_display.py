@@ -315,7 +315,10 @@ class Screen(_raw_display_base.Screen):
             selector.register(fd, selectors.EVENT_READ)
             input_ready = selector.select(0)
             while input_ready:
-                chars.extend(os.read(fd, 1024))
+                chunk = os.read(fd, 1024)
+                if len(chunk) == 0:
+                    raise RuntimeError("stdin has been closed")
+                chars.extend(chunk)
                 input_ready = selector.select(0)
 
             return chars
