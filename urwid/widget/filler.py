@@ -177,23 +177,6 @@ class Filler(WidgetDecoration[WrappedWidget]):
         )
         self.original_widget = new_body
 
-    def get_body(self) -> WrappedWidget:
-        """backwards compatibility, widget used to be stored as body"""
-        warnings.warn(
-            "backwards compatibility, widget used to be stored as body. API will be removed in version 4.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.original_widget
-
-    def set_body(self, new_body: WrappedWidget) -> None:
-        warnings.warn(
-            "backwards compatibility, widget used to be stored as body. API will be removed in version 4.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.original_widget = new_body
-
     def selectable(self) -> bool:
         """Return selectable from body."""
         return self._original_widget.selectable()
