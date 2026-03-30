@@ -30,14 +30,9 @@ platforms=["unix-like"]
 zip-safe = false
 
 [tool.setuptools.packages.find]
-exclude = [
-  "doc",
-  "docs",
-  "examples",
-  "test",
-  "tests",
-  "bin",
-  ".*"
+include = [
+  "urwid",
+  "urwid.*",
 ]
 namespaces = false
 

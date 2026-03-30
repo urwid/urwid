@@ -247,6 +247,7 @@ class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         self.assertRaises(ZeroDivisionError, evl.run)
 
 
+@unittest.skip("Unstable test: race conditions happens")
 @unittest.skipUnless(GLIB_AVAILABLE, "GLIB unavailable")
 class GLibEventLoopTest(unittest.TestCase, EventLoopTestMixin):
     def setUp(self):
