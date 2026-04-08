@@ -458,7 +458,7 @@ class TextCanvas(Canvas):
         cols: int | None = 0,
         rows: int | None = 0,
         attr=None,
-    ) -> Iterator[tuple[object, Literal["0", "U"] | None, bytes]]:
+    ) -> Iterator[list[tuple[object, Literal["0", "U"] | None, bytes]]]:
         """
         Return the canvas content as a list of rows where each row
         is a list of (attr, cs, text) tuples.
