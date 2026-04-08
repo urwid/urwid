@@ -230,7 +230,7 @@ def supports_unicode() -> bool:
     Return True if python is able to convert non-ascii unicode strings
     to the current encoding.
     """
-    return _target_encoding and _target_encoding != "ascii"
+    return bool(_target_encoding and _target_encoding != "ascii")
 
 
 def calc_trim_text(

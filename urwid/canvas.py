@@ -321,7 +321,7 @@ class Canvas:
 
         self.coords["pop up"] = (left, top, (w, overlay_width, overlay_height))
 
-    def translate_coords(self, dx: int, dy: int) -> dict[str, tuple[int, int, tuple[Widget, int, int]]]:
+    def translate_coords(self, dx: int, dy: int) -> dict[str, tuple[int, int, tuple[Widget, int, int] | None]]:
         """
         Return coords shifted by (dx, dy).
         """
