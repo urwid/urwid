@@ -29,7 +29,6 @@ import glob
 import html
 import os
 import pathlib
-import random
 import selectors
 import signal
 import socket
@@ -37,6 +36,7 @@ import string
 import sys
 import tempfile
 import typing
+import uuid
 from contextlib import suppress
 
 from urwid.str_util import calc_text_pos, calc_width, move_next_char
@@ -217,8 +217,8 @@ class Screen(BaseScreen):
             sys.stdout.write("Status: 503 Sever Busy\r\n\r\n")
             sys.exit(0)
 
-        urwid_id = f"{random.randrange(10**9):09d}{random.randrange(10**9):09d}"  # noqa: S311
-        self.pipe_name = os.path.join(_prefs.pipe_dir, f"urwid{urwid_id}")
+        urwid_id = uuid.uuid4().hex
+        self.pipe_name = os.path.join(_prefs.pipe_dir, f"urwid_{urwid_id}")
         os.mkfifo(f"{self.pipe_name}.in", 0o600)
         signal.signal(signal.SIGTERM, self._cleanup_pipe)
 
