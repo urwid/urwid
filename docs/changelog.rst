@@ -2,6 +2,49 @@
 Changelog
 ---------
 
+Urwid 4.0.1
+===========
+
+2026-05-26
+
+Bug fixes 🕷
+++++++++++++
+* fix three return type annotations by @evgunter in https://github.com/urwid/urwid/pull/1121
+* Web display: use secure random session identifiers by @penguinolog in https://github.com/urwid/urwid/pull/1128
+Other Changes
++++++++++++++
+* Add SECURITY.md by @jrwe in https://github.com/urwid/urwid/pull/1123
+
+New Contributors
+++++++++++++++++
+* @evgunter made their first contribution in https://github.com/urwid/urwid/pull/1121
+* @jrwe made their first contribution in https://github.com/urwid/urwid/pull/1123
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.0...4.0.1
+
+Urwid 4.0.0
+===========
+
+2026-03-30
+
+Breaking Changes ⚠
+++++++++++++++++++
+* Deprecation: Remove deprecated protected  methods for version 4 by @penguinolog in https://github.com/urwid/urwid/pull/1078
+* Deprecation: Remove deprecated public methods announced to be removed in v4 by @penguinolog in https://github.com/urwid/urwid/pull/1085
+* Deprecation: Remove deprecated `Filler.get_body` and `Filler.set_body` by @penguinolog in https://github.com/urwid/urwid/pull/1117
+Deprecations ⚡
+++++++++++++++
+* Deprecation: announce deadline for deprecated APIs by @penguinolog in https://github.com/urwid/urwid/pull/1118
+Bug fixes 🕷
+++++++++++++
+* stdin handling for closed state by @wilkpio in https://github.com/urwid/urwid/pull/1112
+
+New Contributors
+++++++++++++++++
+* @wilkpio made their first contribution in https://github.com/urwid/urwid/pull/1112
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/3.0.5...4.0.0
+
 Urwid 3.0.5
 ===========
 
