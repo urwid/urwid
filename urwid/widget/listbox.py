@@ -1774,6 +1774,15 @@ class ListBox(Widget, WidgetContainerMixin):
                     (self.pref_col, 0),
                     snap_rows + maxrow - row_offset - 1,
                 )
+            elif row_offset + rows <= 0:
+                self.change_focus(
+                    (maxcol, maxrow),
+                    pos,
+                    -(rows - 1),
+                    "above",
+                    (self.pref_col, rows - 1),
+                    snap_rows - ((-row_offset) - (rows - 1)),
+                )
             else:
                 self.change_focus(
                     (maxcol, maxrow),
@@ -1823,6 +1832,9 @@ class ListBox(Widget, WidgetContainerMixin):
             if row_offset >= maxrow:
                 snap_rows -= snap_rows + maxrow - row_offset - 1
                 row_offset = maxrow - 1
+            elif row_offset + rows <= 0:
+                snap_rows -= (-row_offset) - (rows - 1)
+                row_offset = -(rows - 1)
 
             self.change_focus((maxcol, maxrow), pos, row_offset, "above", None, snap_rows)
             return None
