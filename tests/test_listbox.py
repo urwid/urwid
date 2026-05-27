@@ -1960,6 +1960,31 @@ class ZeroHeightContentsTest(unittest.TestCase):
         self.assertEqual([b"below  ", b"       ", b"       ", b"       ", b"       "], canvas.text)
 
 
+class PageDownAboveTopTest(unittest.TestCase):
+    def test_page_down_does_not_raise(self):
+        # Two-row rows so the four-item list does not fit the viewport at once.
+        lb = urwid.ListBox(
+            urwid.SimpleListWalker(
+                            [
+                    urwid.Text("a0\nb0"),
+                    SelectableText("a1\nb1"),
+                    urwid.Text("a2\nb2"),
+                    urwid.Text("a3\nb3"),
+                ]
+            )
+        )
+        size = (7, 4)
+        lb.set_focus(0)
+        lb.render(size, focus=True)
+        lb.keypress(size, "page down")  # used to raise ListBoxError
+        self.assertEqual(lb.focus_position, 3)
+        canvas = lb.render(size, focus=True)
+        self.assertEqual([b"a2     ", b"b2     ", b"a3     ", b"b3     "], canvas.text)
+        # a second page down at the bottom is a no-op, not a crash
+        lb.keypress(size, "page down")
+        self.assertEqual(lb.focus_position, 3)
+
+
 class ListBoxSetBodyTest(unittest.TestCase):
     def test_signal_connected(self):
         lb = urwid.ListBox([])
