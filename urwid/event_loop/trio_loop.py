@@ -31,18 +31,13 @@ import typing
 
 import trio
 
-from .abstract_loop import EventLoop, ExitMainLoop
+from .abstract_loop import EventLoop, ExitMainLoop, SupportsFileno
 
 if sys.version_info < (3, 11):
     from exceptiongroup import BaseExceptionGroup  # pylint: disable=redefined-builtin  # backport
 
 if typing.TYPE_CHECKING:
-    import io
-    from collections.abc import Awaitable, Callable, Hashable, Mapping
-
-    from typing_extensions import Concatenate, ParamSpec
-
-    _Spec = ParamSpec("_Spec")
+    from collections.abc import Awaitable, Callable, Mapping
 
 __all__ = ("TrioEventLoop",)
 
@@ -52,7 +47,7 @@ class _TrioIdleCallbackInstrument(trio.abc.Instrument):
 
     __slots__ = ("idle_callbacks",)
 
-    def __init__(self, idle_callbacks: Mapping[Hashable, Callable[[], typing.Any]]):
+    def __init__(self, idle_callbacks: Mapping[int, Callable[[], typing.Any]]):
         self.idle_callbacks = idle_callbacks
 
     def before_io_wait(self, timeout: float) -> None:
@@ -75,7 +70,13 @@ class TrioEventLoop(EventLoop):
 
         self._idle_handle = 0
         self._idle_callbacks: dict[int, Callable[[], typing.Any]] = {}
-        self._pending_tasks: list[tuple[Callable[_Spec, Awaitable], trio.CancelScope, _Spec.args]] = []
+        self._pending_tasks: list[
+            tuple[
+                Callable[..., Awaitable[typing.Any]],
+                trio.CancelScope,
+                tuple[typing.Any, ...],
+            ]
+        ] = []
 
         self._nursery: trio.Nursery | None = None
 
@@ -195,7 +196,7 @@ class TrioEventLoop(EventLoop):
 
     def watch_file(
         self,
-        fd: int | io.IOBase,
+        fd: int | SupportsFileno,
         callback: Callable[[], typing.Any],
     ) -> trio.CancelScope:
         """Calls `callback()` when the given file descriptor has some data
@@ -259,14 +260,16 @@ class TrioEventLoop(EventLoop):
         """Schedules all pending asynchronous tasks that were created before
         the nursery to be executed on the nursery soon.
         """
+        if self._nursery is None:
+            return
         for task, scope, args in self._pending_tasks:
             self._nursery.start_soon(task, scope, *args)
         self._pending_tasks.clear()
 
     def _start_task(
         self,
-        task: Callable[Concatenate[trio.CancelScope, _Spec], Awaitable],
-        *args: _Spec.args,
+        task: Callable[..., Awaitable[typing.Any]],
+        *args: typing.Any,
     ) -> trio.CancelScope:
         """Starts an asynchronous task in the Trio nursery managed by the
         main loop. If the nursery has not started yet, store a reference to
@@ -289,7 +292,7 @@ class TrioEventLoop(EventLoop):
     async def _watch_task(
         self,
         scope: trio.CancelScope,
-        fd: int | io.IOBase,
+        fd: int | SupportsFileno,
         callback: Callable[[], typing.Any],
     ) -> None:
         """Asynchronous task that watches the given file descriptor and calls
