@@ -359,7 +359,7 @@ class CF635Screen(CFLCDScreen):
         """
         return [self._device.fd]
 
-    def get_input_nonblocking(self) -> tuple[None, list[str], list[int]]:
+    def get_input_nonblocking(self) -> tuple[float | None, list[str], list[int]]:
         """
         Return a (next_input_timeout, keys_pressed, raw_keycodes)
         tuple.

@@ -19,7 +19,7 @@ ENABLE_WINDOW_INPUT = 0x0008
 class COORD(Structure):
     """https://docs.microsoft.com/en-us/windows/console/coord-str"""
 
-    _fields_: typing.ClassVar[list[tuple[str, type]]] = [
+    _fields_: typing.ClassVar[list[tuple[str, type[SHORT]]]] = [
         ("X", SHORT),
         ("Y", SHORT),
     ]
@@ -28,7 +28,7 @@ class COORD(Structure):
 class SMALL_RECT(Structure):
     """https://docs.microsoft.com/en-us/windows/console/small-rect-str"""
 
-    _fields_: typing.ClassVar[list[tuple[str, type]]] = [
+    _fields_: typing.ClassVar[list[tuple[str, type[SHORT]]]] = [
         ("Left", SHORT),
         ("Top", SHORT),
         ("Right", SHORT),
@@ -39,7 +39,7 @@ class SMALL_RECT(Structure):
 class CONSOLE_SCREEN_BUFFER_INFO(Structure):
     """https://docs.microsoft.com/en-us/windows/console/console-screen-buffer-info-str"""
 
-    _fields_: typing.ClassVar[list[tuple[str, type]]] = [
+    _fields_: typing.ClassVar[list[tuple[str, type[COORD]] | tuple[str, type[WORD]] | tuple[str, type[SMALL_RECT]]]] = [
         ("dwSize", COORD),
         ("dwCursorPosition", COORD),
         ("wAttributes", WORD),
@@ -51,7 +51,7 @@ class CONSOLE_SCREEN_BUFFER_INFO(Structure):
 class uChar(Union):
     """https://docs.microsoft.com/en-us/windows/console/key-event-record-str"""
 
-    _fields_: typing.ClassVar[list[tuple[str, type]]] = [
+    _fields_: typing.ClassVar[list[tuple[str, type[CHAR]] | tuple[str, type[WCHAR]]]] = [
         ("AsciiChar", CHAR),
         ("UnicodeChar", WCHAR),
     ]
@@ -60,7 +60,9 @@ class uChar(Union):
 class KEY_EVENT_RECORD(Structure):
     """https://docs.microsoft.com/en-us/windows/console/key-event-record-str"""
 
-    _fields_: typing.ClassVar[list[tuple[str, type]]] = [
+    _fields_: typing.ClassVar[
+        list[tuple[str, type[BOOL]] | tuple[str, type[WORD]] | tuple[str, type[uChar]] | tuple[str, type[DWORD]]]
+    ] = [
         ("bKeyDown", BOOL),
         ("wRepeatCount", WORD),
         ("wVirtualKeyCode", WORD),
@@ -73,7 +75,7 @@ class KEY_EVENT_RECORD(Structure):
 class MOUSE_EVENT_RECORD(Structure):
     """https://docs.microsoft.com/en-us/windows/console/mouse-event-record-str"""
 
-    _fields_: typing.ClassVar[list[tuple[str, type]]] = [
+    _fields_: typing.ClassVar[list[tuple[str, type[COORD]] | tuple[str, type[DWORD]]]] = [
         ("dwMousePosition", COORD),
         ("dwButtonState", DWORD),
         ("dwControlKeyState", DWORD),
@@ -104,25 +106,33 @@ class MouseEventFlags(enum.IntFlag):
 class WINDOW_BUFFER_SIZE_RECORD(Structure):
     """https://docs.microsoft.com/en-us/windows/console/window-buffer-size-record-str"""
 
-    _fields_: typing.ClassVar[list[tuple[str, type]]] = [("dwSize", COORD)]
+    _fields_: typing.ClassVar[list[tuple[str, type[COORD]]]] = [("dwSize", COORD)]
 
 
 class MENU_EVENT_RECORD(Structure):
     """https://docs.microsoft.com/en-us/windows/console/menu-event-record-str"""
 
-    _fields_: typing.ClassVar[list[tuple[str, type]]] = [("dwCommandId", UINT)]
+    _fields_: typing.ClassVar[list[tuple[str, type[UINT]]]] = [("dwCommandId", UINT)]
 
 
 class FOCUS_EVENT_RECORD(Structure):
     """https://docs.microsoft.com/en-us/windows/console/focus-event-record-str"""
 
-    _fields_: typing.ClassVar[list[tuple[str, type]]] = [("bSetFocus", BOOL)]
+    _fields_: typing.ClassVar[list[tuple[str, type[BOOL]]]] = [("bSetFocus", BOOL)]
 
 
 class Event(Union):
     """https://docs.microsoft.com/en-us/windows/console/input-record-str"""
 
-    _fields_: typing.ClassVar[list[tuple[str, type]]] = [
+    _fields_: typing.ClassVar[
+        list[
+            tuple[str, type[KEY_EVENT_RECORD]]
+            | tuple[str, type[MOUSE_EVENT_RECORD]]
+            | tuple[str, type[WINDOW_BUFFER_SIZE_RECORD]]
+            | tuple[str, type[MENU_EVENT_RECORD]]
+            | tuple[str, type[FOCUS_EVENT_RECORD]]
+        ]
+    ] = [
         ("KeyEvent", KEY_EVENT_RECORD),
         ("MouseEvent", MOUSE_EVENT_RECORD),
         ("WindowBufferSizeEvent", WINDOW_BUFFER_SIZE_RECORD),
@@ -134,7 +144,10 @@ class Event(Union):
 class INPUT_RECORD(Structure):
     """https://docs.microsoft.com/en-us/windows/console/input-record-str"""
 
-    _fields_: typing.ClassVar[list[tuple[str, type]]] = [("EventType", WORD), ("Event", Event)]
+    _fields_: typing.ClassVar[list[tuple[str, type[WORD]] | tuple[str, type[Event]]]] = [
+        ("EventType", WORD),
+        ("Event", Event),
+    ]
 
 
 class EventType(enum.IntFlag):
