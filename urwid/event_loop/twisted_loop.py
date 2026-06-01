@@ -37,6 +37,7 @@ from twisted.internet.error import AlreadyCalled, AlreadyCancelled
 from .abstract_loop import EventLoop, ExitMainLoop
 
 if typing.TYPE_CHECKING:
+    import asyncio
     from collections.abc import Callable
     from concurrent.futures import Executor, Future
 
@@ -68,7 +69,7 @@ class _TwistedInputDescriptor(FileDescriptor):
     def getPeer(self):
         raise NotImplementedError("No network operation expected")
 
-    def writeSomeData(self, data: bytes) -> None:
+    def writeSomeData(self, data: bytes) -> int | BaseException:
         raise NotImplementedError("Reduced functionality: read-only")
 
 
@@ -117,10 +118,10 @@ class TwistedEventLoop(EventLoop):
     def run_in_executor(
         self,
         executor: Executor,
-        func: Callable[..., _T],
-        *args: object,
-        **kwargs: object,
-    ) -> Future[_T]:
+        func: Callable[_Spec, _T],
+        *args: _Spec.args,
+        **kwargs: _Spec.kwargs,
+    ) -> Future[_T] | asyncio.Future[_T]:
         raise NotImplementedError(
             "Twisted implement it's own ThreadPool executor. Please use native API for call:\n"
             "'threads.deferToThread(Callable[..., Any], *args, **kwargs)'\n"
