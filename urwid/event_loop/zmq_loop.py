@@ -67,7 +67,7 @@ class ZMQEventLoop(EventLoop):
         self._did_something = True
         self._alarms: list[tuple[float, int, Callable[[], typing.Any]]] = []
         self._poller = zmq.Poller()
-        self._queue_callbacks: dict[int, Callable[[], typing.Any]] = {}
+        self._queue_callbacks: dict[int | zmq.Socket[typing.Any], Callable[[], typing.Any]] = {}
         self._idle_handle = 0
         self._idle_callbacks: dict[int, Callable[[], typing.Any]] = {}
 
@@ -124,10 +124,10 @@ class ZMQEventLoop(EventLoop):
 
     def watch_queue(
         self,
-        queue: zmq.Socket,
+        queue: zmq.Socket[typing.Any],
         callback: Callable[[], typing.Any],
         flags: int = zmq.POLLIN,
-    ) -> zmq.Socket:
+    ) -> zmq.Socket[typing.Any]:
         """
         Call *callback* when zmq *queue* has something to read (when *flags* is
         set to ``POLLIN``, the default) or is available to write (when *flags*
@@ -175,7 +175,7 @@ class ZMQEventLoop(EventLoop):
         self._queue_callbacks[fd.fileno()] = callback
         return fd
 
-    def remove_watch_queue(self, handle: zmq.Socket) -> bool:
+    def remove_watch_queue(self, handle: zmq.Socket[typing.Any]) -> bool:
         """
         Remove a queue from background polling. Returns ``True`` if the queue
         was being monitored, ``False`` otherwise.
