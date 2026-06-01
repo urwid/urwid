@@ -35,16 +35,15 @@ from itertools import count
 
 import zmq
 
-from .abstract_loop import EventLoop, ExitMainLoop
+from .abstract_loop import EventLoop, ExitMainLoop, SupportsFileno
 
 if typing.TYPE_CHECKING:
-    import io
     from collections.abc import Callable
     from concurrent.futures import Executor, Future
 
     from typing_extensions import ParamSpec
 
-    ZMQAlarmHandle = typing.TypeVar("ZMQAlarmHandle")
+    ZMQAlarmHandle = tuple[float, int, Callable[[], typing.Any]]
     _T = typing.TypeVar("_T")
     _Spec = ParamSpec("_Spec")
 
@@ -152,10 +151,10 @@ class ZMQEventLoop(EventLoop):
 
     def watch_file(
         self,
-        fd: int | io.TextIOWrapper,
+        fd: int | SupportsFileno,
         callback: Callable[[], typing.Any],
         flags: int = zmq.POLLIN,
-    ) -> io.TextIOWrapper:
+    ) -> SupportsFileno:
         """
         Call *callback* when *fd* has some data to read. No parameters are
         passed to the callback. The *flags* are as for :meth:`watch_queue`.
@@ -192,7 +191,7 @@ class ZMQEventLoop(EventLoop):
 
         return True
 
-    def remove_watch_file(self, handle: io.TextIOWrapper) -> bool:
+    def remove_watch_file(self, handle: SupportsFileno) -> bool:
         """
         Remove a file from background polling. Returns ``True`` if the file was
         being monitored, ``False`` otherwise.
@@ -252,14 +251,14 @@ class ZMQEventLoop(EventLoop):
         """
         state = "wait"  # default state not expecting any action
         if self._alarms or self._did_something:
-            timeout = 0
+            timeout = 0.0
             if self._alarms:
                 state = "alarm"
                 timeout = max(0.0, self._alarms[0][0] - time.time())
             if self._did_something and (not self._alarms or (self._alarms and timeout > 0)):
                 state = "idle"
                 timeout = 0
-            ready = dict(self._poller.poll(timeout * 1000))
+            ready = dict(self._poller.poll(int(timeout * 1000)))
         else:
             ready = dict(self._poller.poll())
 

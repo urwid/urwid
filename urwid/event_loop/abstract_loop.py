@@ -39,7 +39,14 @@ if typing.TYPE_CHECKING:
     _T = typing.TypeVar("_T")
     _Spec = ParamSpec("_Spec")
 
-__all__ = ("EventLoop", "ExitMainLoop")
+__all__ = ("EventLoop", "ExitMainLoop", "SupportsFileno")
+
+
+@typing.runtime_checkable
+class SupportsFileno(typing.Protocol):
+    """Object that can provide an OS-level file descriptor."""
+
+    def fileno(self) -> int: ...
 
 
 class ExitMainLoop(Exception):

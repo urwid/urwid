@@ -52,7 +52,7 @@ class Screen(_raw_display_base.Screen):
     def __init__(
         self,
         input: socket.socket | None = None,  # noqa: A002  # pylint: disable=redefined-builtin
-        output: typing.TextIO = sys.stdout,
+        output: _raw_display_base.TextWriter = sys.stdout,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output
         terminal.
@@ -106,7 +106,7 @@ class Screen(_raw_display_base.Screen):
         # restore mouse tracking to previous state
         self._mouse_tracking(self._mouse_tracking_enabled)
 
-        return super()._start()
+        super()._start()
 
     def _stop(self) -> None:
         """
@@ -197,7 +197,7 @@ class Screen(_raw_display_base.Screen):
         """Return the terminal dimensions (num columns, num rows)."""
         y, x = super().get_cols_rows()
         with contextlib.suppress(OSError):  # Term size could not be determined
-            if hasattr(self._term_output_file, "fileno"):
+            if isinstance(self._term_output_file, _raw_display_base.SupportsFileno):
                 if self._term_output_file != sys.stdout:
                     raise RuntimeError("Unexpected terminal output file")
                 handle = _win32.GetStdHandle(_win32.STD_OUTPUT_HANDLE)

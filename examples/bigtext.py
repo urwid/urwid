@@ -28,7 +28,6 @@ from __future__ import annotations
 import typing
 
 import urwid
-import urwid.display.raw
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable

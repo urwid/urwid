@@ -43,18 +43,19 @@ from . import _raw_display_base, escape
 from .common import INPUT_DESCRIPTORS_CHANGED
 
 if typing.TYPE_CHECKING:
-    import socket
     from collections.abc import Callable
     from types import FrameType
 
     from urwid.event_loop import EventLoop
 
+    SignalHandler = Callable[[int, FrameType | None], typing.Any] | int | None  # pylint: disable=unsupported-binary-operation
+
 
 class Screen(_raw_display_base.Screen):
     def __init__(
         self,
-        input: typing.TextIO = sys.stdin,  # noqa: A002  # pylint: disable=redefined-builtin
-        output: typing.TextIO = sys.stdout,
+        input: _raw_display_base.SupportsFileno = sys.stdin,  # noqa: A002  # pylint: disable=redefined-builtin
+        output: _raw_display_base.TextWriter = sys.stdout,
         bracketed_paste_mode=False,
         focus_reporting=False,
     ) -> None:
@@ -75,9 +76,9 @@ class Screen(_raw_display_base.Screen):
         self.focus_reporting = focus_reporting
 
         # These store the previous signal handlers after setting ours
-        self._prev_sigcont_handler = None
-        self._prev_sigtstp_handler = None
-        self._prev_sigwinch_handler = None
+        self._prev_sigcont_handler: SignalHandler = None
+        self._prev_sigtstp_handler: SignalHandler = None
+        self._prev_sigwinch_handler: SignalHandler = None
 
     def __repr__(self) -> str:
         return (
@@ -161,6 +162,8 @@ class Screen(_raw_display_base.Screen):
             close_fds=True,
             encoding="ascii",
         )
+        if m.stdout is None:
+            raise RuntimeError("gpm mouse tracking stdout was not created")
         fcntl.fcntl(m.stdout.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
         self.gpm_mev = m
 
@@ -205,7 +208,7 @@ class Screen(_raw_display_base.Screen):
         # restore mouse tracking to previous state
         self._mouse_tracking(self._mouse_tracking_enabled)
 
-        return super()._start()
+        super()._start()
 
     def _stop(self) -> None:
         """
@@ -234,7 +237,7 @@ class Screen(_raw_display_base.Screen):
 
         super()._stop()
 
-    def get_input_descriptors(self) -> list[socket.socket | typing.IO | int]:
+    def get_input_descriptors(self) -> list[_raw_display_base.SupportsFileno | int]:
         """
         Return a list of integer file descriptors that should be
         polled in external event loops to check for user input.
@@ -292,9 +295,11 @@ class Screen(_raw_display_base.Screen):
         return super()._get_input_codes() + self._get_gpm_codes()
 
     def _get_gpm_codes(self) -> list[int]:
-        codes = []
+        codes: list[int] = []
         try:
             while self.gpm_mev is not None and self.gpm_event_pending:
+                if self.gpm_mev.stdout is None:
+                    return codes
                 codes.extend(self._encode_gpm_event())
         except OSError as e:
             if e.args[0] != 11:
@@ -303,7 +308,8 @@ class Screen(_raw_display_base.Screen):
 
     def _read_raw_input(self, timeout: int) -> bytearray:
         ready = self._wait_for_input_ready(timeout)
-        if self.gpm_mev is not None and self.gpm_mev.stdout.fileno() in ready:
+        gpm_stdout = self.gpm_mev.stdout if self.gpm_mev is not None else None
+        if gpm_stdout is not None and gpm_stdout.fileno() in ready:
             self.gpm_event_pending = True
         fd = self._input_fileno()
         chars = bytearray()
@@ -325,6 +331,9 @@ class Screen(_raw_display_base.Screen):
 
     def _encode_gpm_event(self) -> list[int]:
         self.gpm_event_pending = False
+        if self.gpm_mev is None or self.gpm_mev.stdout is None:
+            return []
+
         s = self.gpm_mev.stdout.readline()
         result = s.split(", ")
         if len(result) != 6:
@@ -405,7 +414,7 @@ class Screen(_raw_display_base.Screen):
         """Return the terminal dimensions (num columns, num rows)."""
         y, x = super().get_cols_rows()
         with contextlib.suppress(OSError):  # Term size could not be determined
-            if hasattr(self._term_output_file, "fileno"):
+            if isinstance(self._term_output_file, _raw_display_base.SupportsFileno):
                 buf = fcntl.ioctl(self._term_output_file.fileno(), termios.TIOCGWINSZ, b" " * 8)
                 y, x, _, _ = struct.unpack("hhhh", buf)
 

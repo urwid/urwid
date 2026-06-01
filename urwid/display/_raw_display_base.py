@@ -41,7 +41,7 @@ from . import escape
 from .common import UNPRINTABLE_TRANS_TABLE, UPDATE_PALETTE_ENTRY, AttrSpec, BaseScreen, RealTerminal
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable, Iterable, Sequence
     from types import FrameType
 
     from typing_extensions import Literal
@@ -52,8 +52,30 @@ IS_WINDOWS = sys.platform == "win32"
 IS_WSL = (sys.platform == "linux") and ("wsl" in platform.platform().lower())
 
 
+@typing.runtime_checkable
+class SupportsFileno(typing.Protocol):
+    """Object that can be used to obtain an OS-level file descriptor."""
+
+    def fileno(self) -> int: ...
+
+
+class TextWriter(typing.Protocol):
+    """Text output stream used by the raw display."""
+
+    def write(self, data: str, /) -> object: ...
+
+    def flush(self) -> object: ...
+
+
 class Screen(BaseScreen, RealTerminal):
-    def __init__(self, input: typing.IO, output: typing.IO) -> None:  # noqa: A002  # pylint: disable=redefined-builtin
+    _term_input_file: SupportsFileno
+    _term_output_file: TextWriter
+
+    def __init__(
+        self,
+        input: SupportsFileno,  # noqa: A002  # pylint: disable=redefined-builtin
+        output: TextWriter,
+    ) -> None:
         """Initialize a screen that directly prints escape codes to an output
         terminal.
         """
@@ -68,21 +90,21 @@ class Screen(BaseScreen, RealTerminal):
         self.has_underline = True  # FIXME: detect this
         self.prev_input_resize = 0
         self.set_input_timeouts()
-        self.screen_buf = None
-        self._screen_buf_canvas = None
+        self.screen_buf: list[list[tuple[object, Literal["0", "U"] | None, bytes]]] | None = None
+        self._screen_buf_canvas: Canvas | None = None
         self._resized = False
-        self.maxrow = None
+        self.maxrow: int | None = None
         self._mouse_tracking_enabled = False
         self.last_bstate = 0
         self._setup_G1_done = False
-        self._rows_used = None
+        self._rows_used: int | None = None
         self._cy = 0
         self.term = os.environ.get("TERM", "")
         self.fg_bright_is_bold = not self.term.startswith("xterm")
         self.bg_bright_is_blink = self.term == "linux"
         self.back_color_erase = not self.term.startswith("screen")
         self.register_palette_entry(None, "default", "default")
-        self._next_timeout = None
+        self._next_timeout: float | None = None
         self.signal_handler_setter = signal.signal
 
         # Our connections to the world
@@ -115,8 +137,8 @@ class Screen(BaseScreen, RealTerminal):
         self.screen_buf = None
 
     @property
-    def _term_input_io(self) -> typing.IO | None:
-        if hasattr(self._term_input_file, "fileno"):
+    def _term_input_io(self) -> SupportsFileno | None:
+        if isinstance(self._term_input_file, SupportsFileno):
             return self._term_input_file
         return None
 
@@ -125,7 +147,7 @@ class Screen(BaseScreen, RealTerminal):
 
         A stream without a fileno can't participate in whatever.
         """
-        if hasattr(self._term_input_file, "fileno"):
+        if isinstance(self._term_input_file, SupportsFileno):
             return self._term_input_file.fileno()
 
         return None
@@ -161,7 +183,7 @@ class Screen(BaseScreen, RealTerminal):
             if self._next_timeout is None:
                 self._next_timeout = max_wait
             else:
-                self._next_timeout = min(self._next_timeout, self.max_wait)
+                self._next_timeout = min(self._next_timeout, max_wait)
         self.complete_wait = complete_wait
         self.resize_wait = resize_wait
 
@@ -309,7 +331,7 @@ class Screen(BaseScreen, RealTerminal):
             return keys, raw
         return keys
 
-    def get_input_descriptors(self) -> list[socket.socket | typing.IO | int]:
+    def get_input_descriptors(self) -> list[SupportsFileno | int]:
         """
         Return a list of integer file descriptors that should be
         polled in external event loops to check for user input.
@@ -322,13 +344,13 @@ class Screen(BaseScreen, RealTerminal):
         if not self._started:
             return []
 
-        fd_list: list[socket.socket | typing.IO | int] = [self._resize_pipe_rd]
+        fd_list: list[SupportsFileno | int] = [self._resize_pipe_rd]
 
         if (input_io := self._term_input_io) is not None:
             fd_list.append(input_io)
         return fd_list
 
-    _current_event_loop_handles = ()
+    _current_event_loop_handles: Sequence[typing.Any] = ()
 
     @abc.abstractmethod
     def unhook_event_loop(self, event_loop: EventLoop) -> None:
@@ -350,7 +372,7 @@ class Screen(BaseScreen, RealTerminal):
         Subclasses may wish to use parse_input to wrap the callback.
         """
 
-    _input_timeout = None
+    _input_timeout: typing.Any = None
 
     def _make_legacy_input_wrapper(
         self,
@@ -460,7 +482,8 @@ class Screen(BaseScreen, RealTerminal):
         decoded_codes = []
         try:
             while codes:
-                run, codes = escape.process_keyqueue(codes, wait_for_more)
+                run, remaining_codes = escape.process_keyqueue(codes, wait_for_more)
+                codes = list(remaining_codes)
                 decoded_codes.extend(run)
         except escape.MoreInputRequired:
             # Set a timer to wait for the rest of the input; if it goes off
@@ -545,7 +568,7 @@ class Screen(BaseScreen, RealTerminal):
                 return "\b" + escape.CURSOR_HOME_COL + escape.move_cursor_up(cy - y) + escape.move_cursor_right(x)
             return "\b" + escape.CURSOR_HOME_COL + escape.move_cursor_down(y - cy) + escape.move_cursor_right(x)
 
-        def is_blank_row(row: list[tuple[object, Literal["0", "U"] | None], bytes]) -> bool:
+        def is_blank_row(row: list[tuple[object, Literal["0", "U"] | None, bytes]]) -> bool:
             if len(row) > 1:
                 return False
             return not row[0][2].strip()
@@ -601,6 +624,7 @@ class Screen(BaseScreen, RealTerminal):
         if not partial_display():
             output.append(escape.CURSOR_HOME)
 
+        osb: list[list[tuple[object, Literal["0", "U"] | None, bytes]]]
         if self.screen_buf:
             osb = self.screen_buf
         else:
@@ -891,7 +915,7 @@ class Screen(BaseScreen, RealTerminal):
             if colors == 16:
                 aspec = AttrSpec(f"h{n:d}", "", 256)
             else:
-                aspec = AttrSpec(f"h{n:d}", "", colors)
+                aspec = AttrSpec(f"h{n:d}", "", typing.cast("Literal[1, 16, 88, 256, 16777216]", colors))
             return aspec.get_rgb_values()[:3]
 
         entries = [(n, *rgb_values(n)) for n in range(min(colors, 256))]
