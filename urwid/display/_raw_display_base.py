@@ -90,7 +90,7 @@ class Screen(BaseScreen, RealTerminal):
         self.has_underline = True  # FIXME: detect this
         self.prev_input_resize = 0
         self.set_input_timeouts()
-        self.screen_buf: list[list[tuple[object, Literal["0", "U"] | None, bytes]]] | None = None
+        self.screen_buf: list[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]] | None = None
         self._screen_buf_canvas: Canvas | None = None
         self._resized = False
         self.maxrow: int | None = None
@@ -568,7 +568,7 @@ class Screen(BaseScreen, RealTerminal):
                 return "\b" + escape.CURSOR_HOME_COL + escape.move_cursor_up(cy - y) + escape.move_cursor_right(x)
             return "\b" + escape.CURSOR_HOME_COL + escape.move_cursor_down(y - cy) + escape.move_cursor_right(x)
 
-        def is_blank_row(row: list[tuple[object, Literal["0", "U"] | None, bytes]]) -> bool:
+        def is_blank_row(row: list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]) -> bool:
             if len(row) > 1:
                 return False
             return not row[0][2].strip()
@@ -584,7 +584,7 @@ class Screen(BaseScreen, RealTerminal):
             self.logger.debug(f"Undefined attribute: {a!r}")
             return self._attrspec_to_escape(AttrSpec("default", "default"))
 
-        def using_standout_or_underline(a: AttrSpec | str) -> bool:
+        def using_standout_or_underline(a: AttrSpec | str | None) -> bool:
             a = self._pal_attrspec.get(a, a)
             return isinstance(a, AttrSpec) and (a.standout or a.underline)
 
@@ -624,12 +624,12 @@ class Screen(BaseScreen, RealTerminal):
         if not partial_display():
             output.append(escape.CURSOR_HOME)
 
-        osb: list[list[tuple[object, Literal["0", "U"] | None, bytes]]]
+        osb: list[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]
         if self.screen_buf:
             osb = self.screen_buf
         else:
             osb = []
-        sb: list[list[tuple[object, Literal["0", "U"] | None, bytes]]] = []
+        sb: list[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]] = []
         cy = self._cy
         y = -1
 
@@ -757,11 +757,11 @@ class Screen(BaseScreen, RealTerminal):
 
     def _last_row(
         self,
-        row: list[tuple[object, Literal["0", "U"] | None, bytes]],
+        row: list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]],
     ) -> tuple[
-        list[tuple[object, Literal["0", "U"] | None, bytes]],
+        list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]],
         int,
-        tuple[object, Literal["0", "U"] | None, bytes],
+        tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes],
     ]:
         """On the last row we need to slide the bottom right character
         into place. Calculate the new line, attr and an insert sequence
@@ -773,7 +773,7 @@ class Screen(BaseScreen, RealTerminal):
         Y will be drawn after Z, shifting Z into position.
         """
 
-        new_row = row[:-1]
+        new_row: list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]] = row[:-1]
         z_attr, z_cs, last_text = row[-1]
         last_cols = str_util.calc_width(last_text, 0, len(last_text))
         last_offs, z_col = str_util.calc_text_pos(last_text, 0, len(last_text), last_cols - 1)

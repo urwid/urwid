@@ -39,10 +39,11 @@ from urwid.util import (
 )
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable, Iterable, Iterator, Sequence
+    from collections.abc import Hashable, Iterable, Iterator, Mapping, Sequence
 
     from typing_extensions import Literal
 
+    from .display.common import AttrSpec
     from .widget import Widget
 
 
@@ -214,7 +215,7 @@ class Canvas:
 
     def __init__(self) -> None:
         """Base Canvas class"""
-        self._widget_info: tuple[Widget, tuple[[]] | tuple[int] | tuple[int, int], bool] | None = None
+        self._widget_info: tuple[Widget, tuple[()] | tuple[int] | tuple[int, int], bool] | None = None
         self.coords: dict[str, tuple[int, int, tuple[Widget, int, int]] | tuple[int, int, None]] = {}
         self.shortcuts: dict[str, str] = {}
 
@@ -240,7 +241,7 @@ class Canvas:
         self._widget_info = widget, size, focus
 
     @property
-    def widget_info(self) -> tuple[Widget, tuple[[]] | tuple[int] | tuple[int, int], bool] | None:
+    def widget_info(self) -> tuple[Widget, tuple[()] | tuple[int] | tuple[int, int], bool] | None:
         return self._widget_info
 
     @property
@@ -262,8 +263,8 @@ class Canvas:
         trim_top: int = 0,
         cols: int | None = None,
         rows: int | None = None,
-        attr=None,
-    ) -> Iterator[list[tuple[object, Literal["0", "U"] | None, bytes]]]:
+        attr: Mapping[object, AttrSpec | str | None] | None = None,
+    ) -> Iterator[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]:
         raise NotImplementedError()
 
     def cols(self) -> int:
@@ -455,10 +456,10 @@ class TextCanvas(Canvas):
         self,
         trim_left: int = 0,
         trim_top: int = 0,
-        cols: int | None = 0,
-        rows: int | None = 0,
-        attr=None,
-    ) -> Iterator[list[tuple[object, Literal["0", "U"] | None, bytes]]]:
+        cols: int = 0,
+        rows: int = 0,
+        attr: Mapping[object, AttrSpec | str | None] | None = None,
+    ) -> Iterator[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]:
         """
         Return the canvas content as a list of rows where each row
         is a list of (attr, cs, text) tuples.
@@ -529,10 +530,10 @@ class BlankCanvas(Canvas):
         self,
         trim_left: int = 0,
         trim_top: int = 0,
-        cols: int | None = 0,
-        rows: int | None = 0,
-        attr=None,
-    ) -> Iterator[list[tuple[object, Literal["0", "U"] | None, bytes]]]:
+        cols: int = 0,
+        rows: int = 0,
+        attr: Mapping[object, AttrSpec | str | None] | None = None,
+    ) -> Iterator[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]:
         """
         return (cols, rows) of spaces with default attributes.
         """
@@ -583,8 +584,8 @@ class SolidCanvas(Canvas):
         trim_top: int = 0,
         cols: int | None = None,
         rows: int | None = None,
-        attr=None,
-    ) -> Iterator[list[tuple[object, Literal["0", "U"] | None, bytes]]]:
+        attr: Mapping[object, AttrSpec | str | None] | None = None,
+    ) -> Iterator[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]:
         if cols is None:
             cols = self.size[0]
         if rows is None:
@@ -611,7 +612,7 @@ class CompositeCanvas(Canvas):
     class for storing a combination of canvases
     """
 
-    def __init__(self, canv: Canvas = None) -> None:
+    def __init__(self, canv: Canvas | None = None) -> None:
         """
         canv -- a Canvas object to wrap this CompositeCanvas around.
 
@@ -684,8 +685,8 @@ class CompositeCanvas(Canvas):
         trim_top: int = 0,
         cols: int | None = None,
         rows: int | None = None,
-        attr=None,
-    ) -> Iterator[list[tuple[object, Literal["0", "U"] | None, bytes]]]:
+        attr: Mapping[object, AttrSpec | str | None] | None = None,
+    ) -> Iterator[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]:
         """
         Return the canvas content as a list of rows where each row
         is a list of (attr, cs, text) tuples.
@@ -1217,7 +1218,7 @@ def CanvasCombine(canvas_info: Iterable[tuple[Canvas, typing.Any, bool]]) -> Com
     return combined_canvas
 
 
-def CanvasOverlay(top_c: Canvas, bottom_c: Canvas, left: int, top: int) -> CompositeCanvas:
+def CanvasOverlay(top_c: CompositeCanvas, bottom_c: Canvas, left: int, top: int) -> CompositeCanvas:
     """
     Overlay canvas top_c onto bottom_c at position (left, top).
     """

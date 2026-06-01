@@ -690,18 +690,18 @@ class AttrSpec:
         return self.__value & _STRIKETHROUGH != 0
 
     @property
-    def colors(self) -> int:
+    def colors(self) -> Literal[1, 16, 88, 256, 16777216]:
         """
         Return the maximum colors required for this object.
 
-        Returns 256, 88, 16 or 1.
+        Returns 16777216, 256, 88, 16 or 1.
         """
         if self.__value & _HIGH_88_COLOR:
             return 88
         if self.__value & (_BG_HIGH_COLOR | _FG_HIGH_COLOR):
             return 256
         if self.__value & (_BG_TRUE_COLOR | _FG_TRUE_COLOR):
-            return 2**24
+            return 16777216  # we have to return explicit 2**24 instead of inline calculation
         if self.__value & (_BG_BASIC_COLOR | _FG_BASIC_COLOR):
             return 16
         return 1
@@ -813,12 +813,11 @@ class AttrSpec:
 
     def get_rgb_values(self) -> tuple[int | None, int | None, int | None, int | None, int | None, int | None]:
         """
-        Return (fg_red, fg_green, fg_blue, bg_red, bg_green, bg_blue) color
-        components.  Each component is in the range 0-255.  Values are taken
-        from the XTerm defaults and may not exactly match the user's terminal.
+        Return (fg_red, fg_green, fg_blue, bg_red, bg_green, bg_blue) color components.
+        Each component is in the range 0-255.
+        Values are taken from the XTerm defaults and may not exactly match the user's terminal.
 
-        If the foreground or background is 'default' then all their compenents
-        will be returned as None.
+        If the foreground or background is 'default' then all their compenents will be returned as None.
 
         >>> AttrSpec("yellow", "#ccf", colors=88).get_rgb_values()
         (255, 255, 0, 205, 205, 255)
@@ -1158,7 +1157,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
             background_high = background
 
         high_256 = AttrSpec(foreground_high, background_high, 256)
-        high_true = AttrSpec(foreground_high, background_high, 2**24)
+        high_true = AttrSpec(foreground_high, background_high, 16777216)  # 2**24 is not Literal
 
         # 'hX' where X > 15 are different in 88/256 color, use
         # basic colors for 88-color mode if high colors are specified

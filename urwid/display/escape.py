@@ -34,6 +34,8 @@ from urwid import str_util
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from typing_extensions import Literal
+
 # NOTE: because of circular imports (urwid.util -> urwid.escape -> urwid.util)
 # from urwid.util import is_mouse_event -- will not work here
 import urwid.util  # isort: skip  # pylint: disable=wrong-import-position
@@ -335,7 +337,7 @@ class KeyqueueTrie:
             prefixes.append("ctrl ")
         prefix = "".join(prefixes)
 
-        wheel_used: typing.Literal[0, 1] = (b & 64) >> 6
+        wheel_used: typing.Literal[0, 1] = typing.cast("Literal[0, 1]", (b & 64) >> 6)
 
         button = (wheel_used * 3) + (b & 3) + 1
         x -= 1

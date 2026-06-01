@@ -68,7 +68,7 @@ if IS_WINDOWS:
 
         stdscr = _curses.initscr()
         for key, value in _curses.__dict__.items():
-            if key[:4] == "ACS_" or key in {"LINES", "COLS"}:
+            if key.startswith("ACS_") or key in {"LINES", "COLS"}:
                 setattr(curses, key, value)
 
         return stdscr
@@ -511,7 +511,7 @@ class Screen(BaseScreen, RealTerminal):
         rows, cols = self.s.getmaxyx()
         return cols, rows
 
-    def _setattr(self, a):
+    def _setattr(self, a: AttrSpec | str | None):
         if a is None:
             self.s.attrset(0)
             return
