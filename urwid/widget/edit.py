@@ -72,7 +72,7 @@ class Edit(Text):
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
         allow_tab: bool = False,
         edit_pos: int | None = None,
-        layout: text_layout.TextLayout = None,
+        layout: text_layout.TextLayout | None = None,
         mask: str | None = None,
     ) -> None:
         """

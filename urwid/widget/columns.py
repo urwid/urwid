@@ -507,10 +507,12 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def contents(
         self,
         c: Sequence[
-            Widget,
-            tuple[Literal[WHSettings.PACK], None, bool]
-            | tuple[Literal[WHSettings.GIVEN], int, bool]
-            | tuple[Literal[WHSettings.WEIGHT], int | float, bool],
+            tuple[
+                Widget,
+                tuple[Literal[WHSettings.PACK], None, bool]
+                | tuple[Literal[WHSettings.GIVEN], int, bool]
+                | tuple[Literal[WHSettings.WEIGHT], int | float, bool],
+            ]
         ],
     ) -> None:
         self._contents[:] = c
@@ -786,7 +788,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def _get_fixed_column_sizes(
         self,
         focus: bool = False,
-    ) -> tuple[Sequence[int], Sequence[int], Sequence[tuple[int] | tuple[()]]]:
+    ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[tuple[int] | tuple[()], ...]]:
         """Get column widths, heights and render size parameters"""
         widths: dict[int, int] = {}
         heights: dict[int, int] = {}
@@ -869,7 +871,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self,
         size: tuple[int, int] | tuple[int] | tuple[()],
         focus: bool = False,
-    ) -> tuple[Sequence[int], Sequence[int], Sequence[tuple[int, int] | tuple[int] | tuple[()]]]:
+    ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[tuple[int, int] | tuple[int] | tuple[()], ...]]:
         """Get column widths, heights and render size parameters"""
         if not size:
             return self._get_fixed_column_sizes(focus=focus)

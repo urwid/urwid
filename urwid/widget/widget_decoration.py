@@ -22,7 +22,7 @@ __all__ = (
     "delegate_to_widget_mixin",
 )
 
-WrappedWidget = typing.TypeVar("WrappedWidget")
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
 
 
 class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disable=abstract-method

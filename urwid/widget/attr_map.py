@@ -8,7 +8,11 @@ from urwid.canvas import CompositeCanvas
 from .widget import WidgetError, delegate_to_widget_mixin
 from .widget_decoration import WidgetDecoration
 
-WrappedWidget = typing.TypeVar("WrappedWidget")
+if typing.TYPE_CHECKING:
+    from .widget import Widget
+
+
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
 
 
 class AttrMapError(WidgetError):

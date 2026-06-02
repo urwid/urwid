@@ -423,7 +423,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         super().__setitem__(i, y)
         self.focus = focus
 
-    def __imul__(self, n: int):
+    def __imul__(self, n: int) -> Self:
         """
         >>> def modified(indices, new_items):
         ...     print(f"range{indices!r} <- {list(new_items)!r}")

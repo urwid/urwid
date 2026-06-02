@@ -196,10 +196,12 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self._selectable = False
         super().__init__()
         self._contents: MonitoredFocusList[
-            Widget,
-            tuple[Literal[WHSettings.PACK], None]
-            | tuple[Literal[WHSettings.GIVEN], int]
-            | tuple[Literal[WHSettings.WEIGHT], int | float],
+            tuple[
+                Widget,
+                tuple[Literal[WHSettings.PACK], None]
+                | tuple[Literal[WHSettings.GIVEN], int]
+                | tuple[Literal[WHSettings.WEIGHT], int | float],
+            ]
         ] = MonitoredFocusList()
         self._contents.set_modified_callback(self._contents_modified)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
@@ -374,10 +376,12 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def contents(
         self,
     ) -> MonitoredFocusList[
-        Widget,
-        tuple[Literal[WHSettings.PACK], None]
-        | tuple[Literal[WHSettings.GIVEN], int]
-        | tuple[Literal[WHSettings.WEIGHT], int | float],
+        tuple[
+            Widget,
+            tuple[Literal[WHSettings.PACK], None]
+            | tuple[Literal[WHSettings.GIVEN], int]
+            | tuple[Literal[WHSettings.WEIGHT], int | float],
+        ]
     ]:
         """
         The contents of this Pile as a list of (widget, options) tuples.
@@ -411,10 +415,12 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def contents(
         self,
         c: Sequence[
-            Widget,
-            tuple[Literal[WHSettings.PACK], None]
-            | tuple[Literal[WHSettings.GIVEN], int]
-            | tuple[Literal[WHSettings.WEIGHT], int | float],
+            tuple[
+                Widget,
+                tuple[Literal[WHSettings.PACK], None]
+                | tuple[Literal[WHSettings.GIVEN], int]
+                | tuple[Literal[WHSettings.WEIGHT], int | float],
+            ]
         ],
     ) -> None:
         self._contents[:] = c
@@ -583,7 +589,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
     def _get_fixed_rows_sizes(
         self,
         focus: bool = False,
-    ) -> tuple[Sequence[int], Sequence[int], Sequence[tuple[int] | tuple[()]]]:
+    ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[tuple[int] | tuple[()], ...]]:
         """Get rows widths, heights and render size parameters
 
         Fixed case expect widget sizes calculation with several cycles for unknown height cases.
@@ -683,7 +689,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self,
         size: tuple[int],
         focus: bool = False,
-    ) -> tuple[Sequence[int], Sequence[int], Sequence[tuple[int] | tuple[()]]]:
+    ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[tuple[int] | tuple[()], ...]]:
         """Get rows widths, heights and render size parameters
 
         Flow case is the simplest one: minimum cycles in the logic and no widgets manipulation.
@@ -693,7 +699,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         if not self.contents:
             return (maxcol,), (0,), ()
 
-        widths: Sequence[int] = (maxcol,) * len(self.contents)
+        widths: tuple[int, ...] = (maxcol,) * len(self.contents)
         heights: list[int] = []
         w_h_args: list[tuple[int, int] | tuple[int] | tuple[()]] = []
         focus_position = self.focus_position
@@ -732,7 +738,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         self,
         size: tuple[int, int] | tuple[int] | tuple[()],
         focus: bool = False,
-    ) -> tuple[Sequence[int], Sequence[int], Sequence[tuple[int, int] | tuple[int] | tuple[()]]]:
+    ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[tuple[int, int] | tuple[int] | tuple[()], ...]]:
         """Get rows widths, heights and render size parameters"""
         if not size:
             return self._get_fixed_rows_sizes(focus=focus)
@@ -745,7 +751,7 @@ class Pile(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
 
         remaining: int = maxrow
 
-        widths: Sequence[int] = (maxcol,) * len(self.contents)
+        widths: tuple[int, ...] = (maxcol,) * len(self.contents)
         heights: dict[int, int] = {}
         weighted: dict[int, int] = {}
         w_h_args: dict[int, tuple[int, int] | tuple[int] | tuple[()]] = {}
