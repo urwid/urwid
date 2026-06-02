@@ -2,6 +2,38 @@
 Changelog
 ---------
 
+Urwid 4.0.2
+===========
+
+2026-06-02
+
+New features 🗹
++++++++++++++++
+* Initial typing support for urwid package by @penguinolog in https://github.com/urwid/urwid/pull/1144
+Bug fixes 🕷
+++++++++++++
+* Fix ListBoxError in _keypress_page_down when snapping to a widget above the top by @neutralinsomniac in https://github.com/urwid/urwid/pull/1133
+* Fix lazy_import of display modules if __package__ is not defined by @penguinolog in https://github.com/urwid/urwid/pull/1136
+Documentation 🕮
+++++++++++++++++
+* Adjust typing for `urwid.display` and `urwid.event_loop` by @penguinolog in https://github.com/urwid/urwid/pull/1138
+* Typing: extend typing information for `urwid.display` by @penguinolog in https://github.com/urwid/urwid/pull/1139
+* Typing: adjust event loop types by @penguinolog in https://github.com/urwid/urwid/pull/1140
+* Typing: adjust types for vterm, numedit and graphics by @penguinolog in https://github.com/urwid/urwid/pull/1141
+* Typing: adjust types for `urwid.widget` by @penguinolog in https://github.com/urwid/urwid/pull/1142
+Refactoring 🛠
+++++++++++++++
+* Feat: refactor `urwid.widget.scrollable` by @penguinolog in https://github.com/urwid/urwid/pull/1143
+Other Changes
++++++++++++++
+* Web display: tighten security by using more complex identifiers by @penguinolog in https://github.com/urwid/urwid/pull/1137
+
+New Contributors
+++++++++++++++++
+* @neutralinsomniac made their first contribution in https://github.com/urwid/urwid/pull/1133
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.1...4.0.2
+
 Urwid 4.0.1
 ===========
 
