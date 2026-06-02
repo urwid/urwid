@@ -54,6 +54,9 @@ lcd = ["pyserial"]
 [tool.distutils.bdist_wheel]
 universal = 0
 
+[tool.setuptools.package-data]
+urwid = [ "py.typed" ]
+
 [tool.setuptools_scm]
 write_to = "urwid/version.py"
 
