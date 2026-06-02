@@ -261,8 +261,8 @@ class Canvas:
         self,
         trim_left: int = 0,
         trim_top: int = 0,
-        cols: int | None = None,
-        rows: int | None = None,
+        cols: int = 0,
+        rows: int = 0,
         attr: Mapping[object, AttrSpec | str | None] | None = None,
     ) -> Iterator[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]:
         raise NotImplementedError()
@@ -683,13 +683,14 @@ class CompositeCanvas(Canvas):
         self,
         trim_left: int = 0,
         trim_top: int = 0,
-        cols: int | None = None,
-        rows: int | None = None,
+        cols: int = 0,
+        rows: int = 0,
         attr: Mapping[object, AttrSpec | str | None] | None = None,
     ) -> Iterator[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]:
         """
-        Return the canvas content as a list of rows where each row
-        is a list of (attr, cs, text) tuples.
+        Return the canvas content as a list of rows where each row is a list of (attr, cs, text) tuples.
+
+        All parameters are ignored.
         """
         shard_tail = []
         for num_rows, cviews in self.shards:

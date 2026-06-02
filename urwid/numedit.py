@@ -49,7 +49,7 @@ class NumEdit(Edit):
         self,
         allowed: Container[str],
         caption,
-        default: str | bytes,
+        default: str,
         trimLeadingZeros: bool | None = None,
         *,
         trim_leading_zeros: bool = True,
