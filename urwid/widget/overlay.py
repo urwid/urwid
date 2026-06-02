@@ -660,7 +660,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
         return OverlayContents()
 
     @contents.setter
-    def contents(self, new_contents: Sequence[tuple[width, OverlayOptions]]) -> None:
+    def contents(self, new_contents: Sequence[tuple[TopWidget | BottomWidget, OverlayOptions]]) -> None:
         if len(new_contents) != 2:
             raise ValueError("Contents length for overlay should be only 2")
         self.contents[0] = new_contents[0]

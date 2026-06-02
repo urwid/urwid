@@ -43,11 +43,11 @@ if typing.TYPE_CHECKING:
         overlay_height: int
 
 
-WrappedWidget = typing.TypeVar("WrappedWidget")
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
 
 
 class PopUpLauncher(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[WrappedWidget]):
-    def __init__(self, original_widget: [WrappedWidget]) -> None:
+    def __init__(self, original_widget: WrappedWidget) -> None:
         super().__init__(original_widget)
         self._pop_up_widget = None
 

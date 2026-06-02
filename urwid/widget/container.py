@@ -79,7 +79,7 @@ class WidgetContainerMixin:
         and proceeding along each child widget until reaching a leaf
         (non-container) widget.
         """
-        out = []
+        out: list[int | str] = []
         w = self
         while True:
             try:

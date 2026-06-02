@@ -158,7 +158,7 @@ class GridFlow(WidgetWrap[Pile], WidgetContainerMixin, WidgetContainerListConten
         return ml
 
     @cells.setter
-    def cells(self, widgets: Sequence[Widget]):
+    def cells(self, widgets: Sequence[Widget]) -> None:
         warnings.warn(
             "only for backwards compatibility."
             "You should use the new standard container property `contents` to modify GridFlow."

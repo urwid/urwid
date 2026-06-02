@@ -133,12 +133,12 @@ class Text(Widget):
               run length encoded display attributes for *text*, eg.
               ``[('attr1', 10), ('attr2', 5)]``
 
-        >>> Text("Hello").get_text()  # ... = u in Python 2
-        (...'Hello', [])
+        >>> Text("Hello").get_text()
+        ('Hello', [])
         >>> Text(("bright", "Headline")).get_text()
-        (...'Headline', [('bright', 8)])
+        ('Headline', [('bright', 8)])
         >>> Text([("a", "one"), "two", ("b", "three")]).get_text()
-        (...'onetwothree', [('a', 3), (None, 3), ('b', 5)])
+        ('onetwothree', [('a', 3), (None, 3), ('b', 5)])
         """
         return self._text, self._attrib
 

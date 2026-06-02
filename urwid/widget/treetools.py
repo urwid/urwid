@@ -92,7 +92,7 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]]):
     def get_inner_widget(self) -> Text:
         if self._innerwidget is None:
             self._innerwidget = self.load_inner_widget()
-        return self._innerwidget
+        return typing.cast("Text", self._innerwidget)
 
     def load_inner_widget(self) -> Text:
         return Text(self.get_display_text())
@@ -241,7 +241,7 @@ class TreeNode:
         """Return the widget for this node."""
         if self._widget is None or reload:
             self._widget = self.load_widget()
-        return self._widget
+        return typing.cast("TreeWidget", self._widget)
 
     def load_widget(self) -> TreeWidget:
         return TreeWidget(self)
@@ -271,7 +271,7 @@ class TreeNode:
     def get_parent(self) -> ParentNode:
         if self._parent is None and self.get_depth() > 0:
             self._parent = self.load_parent()
-        return self._parent
+        return typing.cast("ParentNode", self._parent)
 
     def load_parent(self):
         """Provide TreeNode with a parent for the current node.  This function
@@ -301,7 +301,7 @@ class TreeNode:
         root = self
         while root.get_parent() is not None:
             root = root.get_parent()
-        return root
+        return typing.cast("ParentNode", root)
 
 
 class ParentNode(TreeNode):
@@ -323,7 +323,7 @@ class ParentNode(TreeNode):
         """Return a possibly ordered list of child keys"""
         if self._child_keys is None or reload:
             self._child_keys = self.load_child_keys()
-        return self._child_keys
+        return typing.cast("Sequence[Hashable]", self._child_keys)
 
     def load_child_keys(self) -> Sequence[Hashable]:
         """Provide ParentNode with an ordered list of child keys (virtual function)"""
@@ -440,7 +440,9 @@ class TreeListBox(ListBox):
         key: str,
     ) -> str | None:
         key: str | None = super().keypress(size, key)
-        return self.unhandled_input(size, key)
+        if key:
+            return self.unhandled_input(size, key)
+        return None
 
     def unhandled_input(self, size: tuple[int, int], data: str) -> str | None:
         """Handle macro-navigation keys"""

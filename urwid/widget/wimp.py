@@ -753,8 +753,8 @@ class Button(WidgetWrap[Columns]):
         >>> key = connect_signal(b, "click", handle_click)
         >>> b.keypress(size, "enter")
         >>> b.keypress(size, " ")
-        >>> clicked_buttons  # ... = u in Python 2
-        [...'Cancel', ...'Cancel']
+        >>> clicked_buttons
+        ['Cancel', 'Cancel']
         """
         if self._command_map[key] != Command.ACTIVATE:
             return key
@@ -776,8 +776,8 @@ class Button(WidgetWrap[Columns]):
         True
         >>> b.mouse_event(size, "mouse press", 2, 4, 0, True)  # ignored
         False
-        >>> clicked_buttons  # ... = u in Python 2
-        [...'Ok']
+        >>> clicked_buttons
+        ['Ok']
         """
         if button != 1 or not is_mouse_press(event):
             return False

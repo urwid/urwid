@@ -77,7 +77,7 @@ class Frame(Widget, WidgetContainerMixin, typing.Generic[BodyWidget, HeaderWidge
         self._body = body
         self._footer = footer
         if focus_part in {"header", "footer", "body"}:
-            self.focus_part = focus_part
+            self.focus_part: Literal["header", "footer", "body"] = focus_part
         elif focus_part == header:
             self.focus_part = "header"
         elif focus_part == footer:

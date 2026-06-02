@@ -359,8 +359,15 @@ class ListBox(Widget, WidgetContainerMixin):
         :type body: ListWalker
         """
         super().__init__()
-        if getattr(body, "get_focus", None):
+        if isinstance(body, ListWalker):
             self._body: ListWalker = body
+        elif getattr(body, "get_focus", None):
+            self._body = typing.cast("ListWalker", body)
+            warnings.warn(
+                f"ListWalker or Iterable[Widget] argument expected, got: {type(body)}",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
             self._body = SimpleListWalker(body)
 
@@ -402,8 +409,15 @@ class ListBox(Widget, WidgetContainerMixin):
             signals.disconnect_signal(self._body, "modified", self._invalidate)
             # _body may be not yet assigned
 
-        if getattr(body, "get_focus", None):
+        if isinstance(body, ListWalker):
             self._body = body
+        elif getattr(body, "get_focus", None):
+            self._body = typing.cast("ListWalker", body)
+            warnings.warn(
+                f"ListWalker or Iterable[Widget] argument expected, got: {type(body)}",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         else:
             self._body = SimpleListWalker(body)
         try:
