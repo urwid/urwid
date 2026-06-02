@@ -38,7 +38,14 @@ if typing.TYPE_CHECKING:
     from .widget import Widget
 
 
-__all__ = ("ScrollBar", "Scrollable", "ScrollableError", "ScrollbarSymbols")
+__all__ = (
+    "ScrollBar",
+    "Scrollable",
+    "ScrollableError",
+    "ScrollbarSymbols",
+    "SupportsRelativeScroll",
+    "SupportsScroll",
+)
 
 
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="SupportsScroll")
@@ -494,6 +501,14 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
         self.scrollbar_width = max(1, width)
         self._original_widget_size = (0, 0)
 
+    def _render_original(
+        self,
+        size: tuple[int, int],
+        focus: bool = False,
+    ) -> Canvas:
+        self._original_widget_size = size
+        return self._original_widget.render(size, focus)
+
     def render(
         self,
         size: tuple[int, int],  # type: ignore[override]
@@ -501,20 +516,11 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
     ) -> Canvas:
         from urwid import canvas
 
-        def render_no_scrollbar() -> Canvas:
-            self._original_widget_size = size
-            return ow.render(size, focus)
-
-        def render_for_scrollbar() -> Canvas:
-            self._original_widget_size = ow_size
-            return ow.render(ow_size, focus)
-
         maxcol, maxrow = size
 
         ow_size = (max(0, maxcol - self._scrollbar_width), maxrow)
         sb_width = maxcol - ow_size[0]
 
-        ow = self._original_widget
         ow_base = self.scrolling_base_widget
 
         # Use hasattr instead of protocol: hasattr will return False in case of getattr raise AttributeError
@@ -526,10 +532,10 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
         )
 
         if use_relative:
-            # `operator.length_hint` is Protocol (Spec) over class based and can end false-negative on the instance
+            # `operator.length_hint` is Protocol (Spec) over class base and can end false-negative on the instance
             # use length_hint-like approach with safe `AttributeError` handling
             ow_len = getattr(ow_base, "__len__", getattr(ow_base, "__length_hint__", int))()
-            ow_canv = render_for_scrollbar()
+            ow_canv = self._render_original(ow_size, focus)
             visible_amount = ow_base.get_visible_amount(ow_size, focus)
             pos = ow_base.get_first_visible_pos(ow_size, focus)
 
@@ -544,7 +550,7 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
 
         if not use_relative:
             if ow_base.rows_max(size, focus) > maxrow:
-                ow_canv = render_for_scrollbar()
+                ow_canv = self._render_original(ow_size, focus)
                 # re-calculate using wrapped size
                 ow_rows_max = ow_base.rows_max(ow_size, focus)
                 pos = ow_base.get_scrollpos(ow_size, focus)
@@ -553,7 +559,7 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
 
             else:
                 # Canvas fits without scrolling - no scrollbar needed
-                return render_no_scrollbar()
+                return self._render_original(size, focus)
 
         # Thumb shrinks/grows according to the ratio of <number of visible lines> / <number of total lines>
         thumb_height = max(1, round(thumb_weight * maxrow))  # pylint: disable=possibly-used-before-assignment
