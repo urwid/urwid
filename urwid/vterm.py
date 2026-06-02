@@ -48,7 +48,7 @@ from urwid.widget import Sizing, Widget
 from .display.common import _BASIC_COLORS, _color_desc_256, _color_desc_true
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Mapping, Sequence
+    from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 
     from typing_extensions import Literal
 
@@ -214,7 +214,7 @@ class TermCharset:
 
         # prepare defaults
         self.active = 0
-        self.current: str | None = None
+        self.current: Literal["0", "U"] | None = None
 
         self.activate(0)
 
@@ -268,7 +268,9 @@ class TermCanvas(Canvas):
         self.modes: TermModes = widget.term_modes
         self.has_focus = False
 
-        self.scrollback_buffer: deque[list[tuple[AttrSpec | None, str | None, bytes]]] = deque(maxlen=10000)
+        self.scrollback_buffer: deque[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]] = deque(
+            maxlen=10000
+        )
         self.scrolling_up = 0
 
         self.utf8_eat_bytes: int | None = None
@@ -295,7 +297,7 @@ class TermCanvas(Canvas):
         self.scrollregion_end = self.height - 1
 
         self.tabstops: list[int] = []
-        self.term: list[list[tuple[AttrSpec | None, str | None, bytes]]] = []
+        self.term: list[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]] = []
 
         self.reset()
 
@@ -411,10 +413,10 @@ class TermCanvas(Canvas):
         div, mod = divmod(x, 8)
         return (self.tabstops[div] & (1 << mod)) > 0
 
-    def empty_line(self, char: bytes = b" ") -> list[tuple[AttrSpec | None, str | None, bytes]]:
+    def empty_line(self, char: bytes = b" ") -> list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]:
         return [self.empty_char(char)] * self.width
 
-    def empty_char(self, char: bytes = b" ") -> tuple[AttrSpec | None, str | None, bytes]:
+    def empty_char(self, char: bytes = b" ") -> tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]:
         return (self.attrspec, self.charset.current, char)
 
     def addstr(self, data: Iterable[int]) -> None:
@@ -1061,10 +1063,10 @@ class TermCanvas(Canvas):
     def sgi_to_attrspec(
         self,
         attrs: Sequence[int],
-        fg: int,
-        bg: int,
+        fg: int | None,
+        bg: int | None,
         attributes: set[str],
-        prev_colors: int,
+        prev_colors: Literal[1, 16, 88, 256, 16777216],
     ) -> AttrSpec | None:
         """
         Parse SGI sequence and return an AttrSpec representing the sequence
@@ -1104,7 +1106,7 @@ class TermCanvas(Canvas):
                 elif idx + 4 < len(attrs) and attrs[idx + 1] == 2:
                     # 24 bit color specification
                     color = (attrs[idx + 2] << 16) + (attrs[idx + 3] << 8) + attrs[idx + 4]
-                    colors = 2**24
+                    colors = 16777216  # 2 ** 24
                     if attr == 38:
                         fg = color
                     else:
@@ -1150,18 +1152,18 @@ class TermCanvas(Canvas):
         if "bold" in attributes and colors == 16 and fg is not None and fg < 8:
             fg += 8
 
-        def _defaulter(color: int | None, colors: int) -> str:
-            if color is None:
+        def _defaulter(req_color: int | None) -> str:
+            if req_color is None:
                 return "default"
             # Note: we can't detect 88 color mode
-            if color > 255 or colors == 2**24:
-                return _color_desc_true(color)
-            if color > 15 or colors == 256:
-                return _color_desc_256(color)
-            return _BASIC_COLORS[color]
+            if req_color > 255 or colors == 2**24:
+                return _color_desc_true(req_color)
+            if req_color > 15 or colors == 256:
+                return _color_desc_256(req_color)
+            return _BASIC_COLORS[req_color]
 
-        decoded_fg = _defaulter(fg, colors)
-        decoded_bg = _defaulter(bg, colors)
+        decoded_fg = _defaulter(fg)
+        decoded_bg = _defaulter(bg)
 
         if attributes:
             decoded_fg = ",".join((decoded_fg, *list(attributes)))
@@ -1411,10 +1413,14 @@ class TermCanvas(Canvas):
         self,
         trim_left: int = 0,
         trim_top: int = 0,
-        cols: int | None = None,
-        rows: int | None = None,
-        attr=None,
-    ) -> Iterable[list[tuple[object, Literal["0", "U"] | None, bytes]]]:
+        cols: int = 0,
+        rows: int = 0,
+        attr: Mapping[object, AttrSpec | str | None] | None = None,
+    ) -> Iterator[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]:
+        """Canvas content.
+
+        All parameters are ignored.
+        """
         if self.scrolling_up == 0:
             yield from self.term
         else:
@@ -1435,7 +1441,10 @@ class Terminal(Widget):
 
     def __init__(
         self,
-        command: Sequence[str | bytes] | Callable[[], typing.Any] | None,
+        command: tuple[str | bytes | os.PathLike[str] | os.PathLike[bytes], ...]
+        | list[str | bytes | os.PathLike[str] | os.PathLike[bytes]]
+        | Callable[[], typing.Any]
+        | None,
         env: Mapping[str, str] | Iterable[tuple[str, str]] | None = None,
         main_loop: event_loop.EventLoop | None = None,
         escape_sequence: str | None = None,

@@ -44,7 +44,7 @@ def get_ellipsis_string(encoding: str) -> str:
 
 
 @functools.lru_cache(maxsize=4)
-def _get_width(string) -> int:
+def _get_width(string: str) -> int:
     """Get ellipsis character width for given encoding."""
     return wcwidth.width(string, control_codes="ignore")
 

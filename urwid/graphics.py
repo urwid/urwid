@@ -72,13 +72,13 @@ class PythonLogo(Widget):
         ).render((width,))
         # fmt: on
 
-    def pack(self, size=None, focus: bool = False):
+    def pack(self, size: tuple[()] | None = None, focus: bool = False):
         """
         Return the size from our pre-rendered canvas.
         """
         return self._canvas.cols(), self._canvas.rows()
 
-    def render(self, size, focus: bool = False):
+    def render(self, size: tuple[()], focus: bool = False):
         """
         Return the pre-rendered canvas.
         """
