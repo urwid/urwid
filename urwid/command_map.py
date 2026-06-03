@@ -115,7 +115,17 @@ class CommandMap(MutableMapping[str, typing.Union[str, Command, None]]):
     def __getitem__(self, key: str) -> str | Command | None:
         return self._command.get(key, None)
 
-    def __setitem__(self, key, command: str | Command) -> None:
+    def __setitem__(self, key: str, command: str | Command | None) -> None:
+        """Set command in the command map.
+
+        :param key: keystroke
+        :param command: command aliad. If the alias is `None`, the command is removed from the map.
+        """
+
+        if command is None:
+            if key in self._command:
+                del self._command[key]
+            return
         self._command[key] = command
 
     def __delitem__(self, key: str) -> None:
