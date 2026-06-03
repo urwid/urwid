@@ -127,7 +127,7 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
         for idx, (widget, (size_kind, _size_weight, is_box)) in enumerate(self.contents):
             w_sizing = widget.sizing()
 
-            flag = _ContainerElementSizingFlag.NONE
+            flag: int = _ContainerElementSizingFlag.NONE
 
             if size_kind == WHSettings.WEIGHT:
                 flag |= _ContainerElementSizingFlag.WH_WEIGHT
@@ -265,17 +265,25 @@ class Columns(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin):
             w = original
             if not isinstance(w, tuple):
                 self.contents.append((w, (WHSettings.WEIGHT, 1, i in box_columns)))
-            elif w[0] in {Sizing.FLOW, WHSettings.PACK}:  # 'pack' used to be called 'flow'
-                _ignored, w = w
-                self.contents.append((w, (WHSettings.PACK, None, i in box_columns)))
-            elif len(w) == 2 or w[0] in {Sizing.FIXED, WHSettings.GIVEN}:  # backwards compatibility: FIXED -> GIVEN
+
+            elif len(w) == 2:
+                width, w = w
+                if width in {Sizing.FLOW, WHSettings.PACK}:  # 'pack' used to be called 'flow'
+                    self.contents.append((w, (WHSettings.PACK, None, i in box_columns)))
+                else:
+                    self.contents.append((w, (WHSettings.GIVEN, width, i in box_columns)))
+
+            elif w[0] in {Sizing.FIXED, WHSettings.GIVEN}:  # backwards compatibility: FIXED -> GIVEN
                 width, w = w[-2:]
                 self.contents.append((w, (WHSettings.GIVEN, width, i in box_columns)))
+
             elif w[0] == WHSettings.WEIGHT:
                 _ignored, width, w = w
                 self.contents.append((w, (WHSettings.WEIGHT, width, i in box_columns)))
+
             else:
                 raise ColumnsError(f"initial widget list item invalid: {original!r}")
+
             if focus_column == w or (focus_column is None and w.selectable()):
                 focus_column = i
 
