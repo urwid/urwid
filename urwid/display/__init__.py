@@ -36,7 +36,7 @@ from .common import (
 if typing.TYPE_CHECKING:
     import types
 
-__all__ = (
+__all__: tuple[str, ...] = (
     "BLACK",
     "BROWN",
     "DARK_BLUE",

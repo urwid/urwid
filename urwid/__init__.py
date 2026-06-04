@@ -215,7 +215,7 @@ from .widget import (
     scale_bar_values,
 )
 
-__all__ = (
+__all__: tuple[str, ...] = (
     "ACTIVATE",
     "ANY",
     "BLACK",

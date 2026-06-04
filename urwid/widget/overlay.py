@@ -34,8 +34,8 @@ if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
 
-TopWidget = typing.TypeVar("TopWidget")
-BottomWidget = typing.TypeVar("BottomWidget")
+TopWidget = typing.TypeVar("TopWidget", bound=Widget)
+BottomWidget = typing.TypeVar("BottomWidget", bound=Widget)
 
 
 class OverlayError(WidgetError):

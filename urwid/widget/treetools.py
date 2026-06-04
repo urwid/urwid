@@ -228,7 +228,7 @@ class TreeNode:
         self,
         value: typing.Any,
         parent: ParentNode | None = None,
-        key: Hashable | None = None,
+        key: Hashable = None,
         depth: int | None = None,
     ) -> None:
         self._key = key
@@ -259,13 +259,13 @@ class TreeNode:
 
         return self.get_parent().get_child_index(self.get_key())
 
-    def get_key(self) -> Hashable | None:
+    def get_key(self) -> Hashable:
         return self._key
 
-    def set_key(self, key: Hashable | None) -> None:
+    def set_key(self, key: Hashable) -> None:
         self._key = key
 
-    def change_key(self, key: Hashable | None) -> None:
+    def change_key(self, key: Hashable) -> None:
         self.get_parent().change_child_key(self._key, key)
 
     def get_parent(self) -> ParentNode:
